@@ -1,0 +1,206 @@
+/* SoAI - Chat page styles [frontend/assets/css/pages/chat/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./recessed-surfaces.css') layer(pages);
+@import url('./surfaces.css') layer(pages);
+@import url('./advanced-scroll.css') layer(pages);
+@import url('./conversation-transition.css') layer(pages);
+
+@layer pages {
+    .chat-container:where([data-section='chat'], [data-page-scope='chat']) {
+        --chat-sidebar-width: 295px;
+        --chat-sidebar-width-mobile: clamp(200px, calc(42 * var(--ui-viewport-width-unit)), 282px);
+        --chat-message-avatar-size: 36px;
+        --chat-message-avatar-icon-size: 20px;
+        --chat-message-avatar-visual-size: calc((var(--font-size-sm) * var(--chat-text-scale) * 1.5) + (var(--space-15) * 2) + (var(--border-width-1) * 2));
+        --chat-message-role-activity-block-size: max(var(--chat-message-avatar-visual-size), calc(var(--title-bar-min-height) * var(--chat-text-scale)));
+        --chat-message-role-activity-min-outer-size: calc(16px + (var(--space-15) * 2) + (var(--border-width-1) * 2));
+        --chat-message-avatar-block-size: max(var(--chat-message-role-activity-min-outer-size), calc(var(--chat-message-role-activity-block-size) + (var(--border-width-1) * 2)));
+        --chat-message-action-button-size: calc(var(--icon-button-size-small) * var(--chat-text-scale));
+        --chat-message-action-icon-size: calc(14px * var(--chat-text-scale));
+        --chat-round-action-button-size: calc(var(--border-radius) * 2);
+        --chat-message-timestamp-font-size: calc(var(--font-size-xs) * var(--chat-text-scale));
+        --chat-message-timestamp-height: calc(var(--icon-button-size) * 0.7 * var(--chat-text-scale));
+        --chat-message-timestamp-icon-size: calc(0.75rem * var(--chat-text-scale));
+        --chat-message-timestamp-padding-inline: calc(var(--space-2) * var(--chat-text-scale));
+        --chat-input-default-height: 40px;
+        --chat-input-line-height: 1.5;
+        --chat-input-padding-y: var(--space-3);
+        --chat-input-empty-height: calc((var(--font-size-body-lg) * var(--chat-input-line-height)) + (var(--chat-input-padding-y) * 2) + 2px);
+        --chat-input-bottom-offset: calc(var(--space-16) + var(--space-6));
+        --chat-input-actions-height: var(--chat-input-empty-height);
+        --chat-messages-padding-bottom: calc(var(--chat-input-bottom-offset) + var(--ui-safe-area-inset-bottom));
+        --chat-attached-files-max-height: calc(230px + 4rem);
+        --chat-message-image-max-dimension: 300px;
+        --chat-pointer-size: 7px;
+        --chat-pointer-stroke: 1.5px;
+        --chat-svg-icon-size-sm: var(--icon-size);
+        --chat-advanced-scroll-bottom-offset: var(--space-4);
+        --chat-advanced-scroll-width: var(--chat-input-actions-height);
+        --chat-native-scrollbar-gutter-width: 8px;
+        --chat-minimap-message-height: 8px;
+        --chat-conversation-item-height: max(calc((var(--font-size-sm) * 1.5) + (var(--font-size-xs) * 1.5) + var(--space-1) + (var(--space-3) * 2)), calc((var(--chat-round-action-button-size) * 2) + var(--space-1) + (var(--space-3) * 2)));
+        --chat-composer-inset-inline: 0.5rem;
+        --chat-input-wrapper-padding: var(--space-2);
+        --chat-input-actions-gap: var(--header-button-gap);
+        --chat-conversation-header-height: calc(1rem + var(--control-height) + 0.75rem);
+        --chat-plan-overlay-height: 0;
+        --chat-plan-header-height: 0;
+        --chat-plan-divider-height: 0;
+        --chat-plan-overlay-surface: color-mix(in srgb, var(--glass-surface-medium-base) 60%, var(--glass-underlay-page));
+        --chat-connector-line-color: color-mix(in srgb, var(--glass-border-strong-base) 35%, transparent);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .theme-dark .chat-container:where([data-section='chat'], [data-page-scope='chat']) {
+        --chat-connector-line-color: color-mix(in srgb, var(--glass-border-strong-base) 18%, transparent);
+        --chat-plan-overlay-surface: color-mix(in srgb, var(--glass-surface-medium-base) 45%, var(--glass-underlay-page));
+    }
+
+    .main-content > .chat-container:where([data-section='chat'], [data-page-scope='chat']) {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+        position: relative;
+    }
+
+    body.detached-window .chat-container:where([data-section='chat'], [data-page-scope='chat']) {
+        position: fixed;
+        inset: 0;
+        height: calc(100 * var(--ui-viewport-height-unit));
+        width: calc(100 * var(--ui-viewport-width-unit));
+        padding: 0;
+        margin: 0;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-content-wrapper {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        position: absolute;
+        inset: calc(var(--layout-top-offset) + var(--layout-container-padding)) var(--layout-container-padding) calc(var(--layout-container-padding) + var(--ui-safe-area-inset-bottom)) var(--layout-container-padding);
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+    }
+
+    body.detached-window :where([data-section='chat'], [data-page-scope='chat']) .chat-content-wrapper {
+        inset: var(--layout-container-padding);
+        width: auto;
+        height: auto;
+        min-width: 0;
+        min-height: 0;
+    }
+
+    @container ui-viewport (width <= 900px) {
+        .chat-container:where([data-section='chat'], [data-page-scope='chat']) {
+            --chat-conversation-item-height: max(calc((var(--font-size-sm) * 1.5) + (var(--font-size-xs) * 1.5) + var(--space-1) + (var(--space-25) * 2)), calc((var(--chat-round-action-button-size) * 2) + var(--space-1) + (var(--space-25) * 2)));
+        }
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .conversation-info {
+        flex: 1;
+        min-width: 0;
+        appearance: none;
+        border: none;
+        background: transparent;
+        color: inherit;
+        padding: var(--space-3) var(--space-2) var(--space-3) calc(var(--space-3) + var(--space-1));
+        text-align: left;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-main-container {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 0;
+        min-height: 0;
+        height: 100%;
+        position: relative;
+        overflow: visible;
+        border-radius: var(--border-radius);
+        transition: --chat-plan-divider-height var(--duration-220) var(--ease-default);
+    }
+
+    body.detached-window :where([data-section='chat'], [data-page-scope='chat']) .chat-main-container {
+        height: auto;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-plan-messages-region {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        position: relative;
+        container-type: inline-size;
+    }
+
+    .chat-container:where([data-section='chat'], [data-page-scope='chat']) .tools-toggle-btn.is-tools-active {
+        --ui-button-color: var(--ui-button-dynamic-accent-color);
+        --ui-button-color-hover: var(--ui-button-dynamic-accent-color-hover);
+        --ui-button-border: var(--ui-button-dynamic-accent-color);
+        --ui-button-border-hover: var(--ui-button-dynamic-accent-color-hover);
+        --ui-button-bg: var(--ui-button-dynamic-accent-bg);
+        --ui-button-bg-hover: var(--ui-button-dynamic-accent-bg-hover);
+        --ui-button-focus-ring: var(--ui-button-dynamic-accent-focus-ring);
+    }
+
+    .chat-container:where([data-section='chat'], [data-page-scope='chat']) .tools-toggle-btn:where([data-tools-mode-locked='true'], [data-tools-execution-locked='true']):disabled {
+        cursor: no-drop;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-sync-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+        background: color-mix(in srgb, var(--glass-surface-light) 85%, var(--glass-underlay-surface));
+        -webkit-backdrop-filter: var(--glass-blur-base);
+
+        backdrop-filter: var(--glass-blur-base);
+        z-index: var(--z-dropdown);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--transition-fast);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-sync-overlay.is-syncing {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-sync-spinner {
+        width: 32px;
+        height: 32px;
+        border: var(--border-width-3) solid var(--border-color);
+        border-top-color: var(--accent-green);
+        border-radius: var(--border-round);
+        animation: spin var(--duration-800) var(--ease-linear) infinite;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-sync-label {
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .stream-progress-row {
+        margin: 0;
+        width: min(100%, 460px);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .stream-progress-row .stream-progress-label {
+        max-width: none;
+        flex: 0 1 auto;
+    }
+}

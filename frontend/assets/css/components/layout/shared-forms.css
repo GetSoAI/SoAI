@@ -1,0 +1,66 @@
+/* SoAI - Shared forms component styles [frontend/assets/css/components/layout/shared-forms.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(input, textarea).form-input {
+        width: 100%;
+        height: var(--control-height);
+        padding: var(--control-padding-block) var(--control-padding-inline);
+        font-size: var(--font-size-body-md);
+        line-height: 1.4;
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid var(--text-field-border);
+        background-color: var(--text-field-bg);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--glass-shadow-base);
+        color: var(--text-primary);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            color var(--transition-fast);
+    }
+
+    :where(input, textarea).form-input:disabled {
+        background-color: var(--text-field-bg-disabled);
+    }
+
+    :where(input, textarea).form-input:autofill,
+    :where(input, textarea).form-input:-webkit-autofill {
+        -webkit-text-fill-color: var(--text-primary);
+        box-shadow:
+            0 0 0 1000px var(--text-field-bg) inset,
+            var(--glass-shadow-base);
+    }
+
+    :where(input, textarea).form-input:hover:not(:focus) {
+        border-color: var(--text-field-border-hover);
+        background-color: var(--text-field-bg-hover);
+    }
+
+    :where(input, textarea).form-input::placeholder {
+        color: var(--text-tertiary);
+    }
+    .ui-required-marker {
+        color: var(--accent-primary);
+    }
+
+    textarea.form-input {
+        height: auto;
+        min-height: var(--control-height);
+        resize: vertical;
+    }
+    .secret-input {
+        -webkit-text-security: disc;
+    }
+    .secret-input.secret-input--visible {
+        -webkit-text-security: none;
+    }
+    .secret-input-container {
+        width: 100%;
+    }
+    .secret-input-container > :where(.form-input, .setting-input).secret-input {
+        padding-right: calc(var(--control-padding-inline) + var(--inline-action-field-width));
+    }
+}

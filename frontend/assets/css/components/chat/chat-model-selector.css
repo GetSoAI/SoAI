@@ -1,0 +1,280 @@
+/* SoAI - Chat model selector component styles [frontend/assets/css/components/chat/chat-model-selector.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu {
+        --chat-model-menu-max-height: calc(calc(100 * var(--ui-viewport-height-unit)) - 160px);
+
+        position: absolute;
+        top: calc(100% + var(--space-2));
+        inset-inline-start: 0;
+        min-width: min(360px, 100%);
+        max-width: min(420px, 100%);
+        max-height: min(420px, var(--chat-model-menu-max-height));
+        overflow: auto;
+        border-radius: var(--border-radius);
+        padding: 0;
+        z-index: calc(var(--z-overlay) + 2);
+    }
+
+    :where(.chat-container) .model-selector.model-selector--header.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu {
+        inset-inline-start: auto;
+        inset-inline-end: 0;
+    }
+
+    :where(.chat-container) .model-selector.chat-page-model-indicator-select.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu {
+        transform: none;
+        min-width: min(200px, calc(calc(100 * var(--ui-viewport-width-unit)) - 2rem));
+        max-height: min(420px, var(--chat-model-menu-max-height));
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu[aria-hidden='true'] {
+        display: none;
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-actions {
+        padding: var(--space-2);
+        border-bottom: var(--border-width-1) solid color-mix(in srgb, var(--glass-border-strong) 65%, transparent);
+        margin-bottom: 0;
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-action.ui-button {
+        flex: 1;
+        justify-content: flex-start;
+        min-width: 0;
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-slot-label.ui-model-type-badge {
+        flex: 1;
+        justify-content: space-between;
+        min-width: 0;
+        gap: var(--space-2);
+        white-space: nowrap;
+
+        --status-badge-font-weight: 600;
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-slot-label-right {
+        color: var(--text-tertiary);
+        font-weight: 500;
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-preserved {
+        --chat-model-menu-preserved-padding: var(--space-2);
+        --chat-model-menu-preserved-background: color-mix(in srgb, var(--glass-surface-medium) 55%, transparent);
+        --chat-model-menu-preserved-border-color: color-mix(in srgb, var(--glass-border-strong) 75%, transparent);
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        border: none;
+        margin-bottom: 0;
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin-bottom: 0;
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-group + .chat-model-menu-group {
+        border-top: var(--border-width-1) solid color-mix(in srgb, var(--glass-border-strong) 65%, transparent);
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-group-label {
+        font-size: var(--font-size-xs);
+        font-weight: 700;
+        letter-spacing: var(--tracking-04em);
+        text-align: left;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        padding: var(--space-2) var(--space-2) var(--space-1);
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-option {
+        --chat-model-menu-option-overlay-accent: var(--glass-border-strong);
+        --chat-model-menu-option-hover-overlay-opacity: 0;
+        --chat-model-menu-option-hover-surface: color-mix(in srgb, color-mix(in srgb, var(--glass-surface-interactive-hover) 86%, var(--color-black) 14%) 28%, transparent);
+        --chat-model-menu-option-left-rail-color: transparent;
+        width: 100%;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-2);
+        border-radius: 0;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        transition:
+            background-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            color var(--transition-fast);
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-preserved > .chat-model-menu-option {
+        padding: var(--chat-model-menu-preserved-padding);
+        border-radius: 0;
+        background: var(--chat-model-menu-preserved-background);
+        border: var(--border-width-1) solid var(--chat-model-menu-preserved-border-color);
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-option:is(:hover, :focus-visible):not(:disabled) {
+        --chat-model-menu-option-hover-overlay-opacity: 1;
+        --chat-model-menu-option-left-rail-color: var(--chat-model-menu-option-overlay-accent);
+        color: var(--text-primary);
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-preserved > .chat-model-menu-option:disabled {
+        cursor: not-allowed;
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-group > :is(.chat-model-menu-group-label, .chat-model-menu-option):nth-child(odd) {
+        background: var(--alternating-grey-light);
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-group > :is(.chat-model-menu-group-label, .chat-model-menu-option):nth-child(even) {
+        background: var(--alternating-grey-dark);
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu.is-open .chat-model-menu-group:first-of-type .chat-model-menu-option:first-of-type {
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-option[aria-current='true'] {
+        box-shadow: inset 0 0 0 9999px var(--ui-tone-green-surface-selected);
+        color: var(--ui-tone-green-text-selected);
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-preserved > .chat-model-menu-option[aria-current='true'] {
+        box-shadow: inset 0 0 0 9999px color-mix(in srgb, var(--status-red) 14%, transparent);
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .chat-header-model-selector {
+        display: none;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+        border: none;
+    }
+
+    :where(.chat-container) .chat-header-model-selector.is-visible {
+        width: auto;
+        height: auto;
+        overflow: visible;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: flex-end;
+        gap: var(--space-2);
+    }
+
+    @container ui-viewport (width <= 1200px) {
+        :where(.chat-container) .chat-header-model-selector.is-visible {
+            display: none;
+        }
+    }
+
+    :where(.chat-container) .chat-header-model-selector .model-selector {
+        margin-right: 0;
+    }
+
+    :where(.chat-container) .model-selector.model-selector--header {
+        flex: 0 0 200px;
+        inline-size: 200px;
+        min-inline-size: 200px;
+        max-inline-size: 200px;
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option {
+        --picker-ring-color: var(--border-color);
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--color-white) 55%, transparent);
+        cursor: pointer;
+        position: relative;
+        transition:
+            background-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            color var(--transition-fast),
+            border-color var(--transition-fast);
+        background: transparent;
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--color-black) 14%, transparent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-rename {
+        width: 22px;
+        height: 22px;
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--glass-surface-medium) 82%, var(--color-white) 18%);
+        border-color: var(--glass-border-strong);
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-rename svg.ui-icon {
+        width: 100%;
+        height: 100%;
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-rename:hover,
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-rename:focus-visible {
+        color: var(--text-primary);
+        border-color: var(--accent-green);
+        background: color-mix(in srgb, var(--glass-surface-medium) 70%, var(--color-white) 30%);
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-archive {
+        width: 22px;
+        height: 22px;
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--glass-surface-medium) 82%, var(--color-white) 18%);
+        border-color: var(--glass-border-strong);
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-archive svg.ui-icon {
+        width: 100%;
+        height: 100%;
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-archive:hover,
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-archive:focus-visible {
+        color: var(--text-primary);
+        border-color: var(--accent-green);
+        background: color-mix(in srgb, var(--glass-surface-medium) 70%, var(--color-white) 30%);
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option:hover,
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option:focus-visible {
+        transform: none;
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option:active {
+        transform: none;
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option.is-selected {
+        transform: none;
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--color-black) 25%, transparent),
+            0 0 0 3px var(--picker-ring-color);
+        border-color: color-mix(in srgb, var(--color-white) 85%, transparent);
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-none {
+        --picker-ring-color: var(--status-grey);
+        background: linear-gradient(135deg, var(--color-grey-200), var(--status-grey));
+    }
+}

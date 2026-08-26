@@ -1,0 +1,257 @@
+/* SoAI - Modals frontend styles [frontend/assets/css/layout/modals.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer layout {
+    .restart-overlay {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        isolation: isolate;
+        background: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: calc(var(--z-notification) + 1);
+    }
+
+    .restart-overlay::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-layer-background);
+        pointer-events: none;
+        background: var(--glass-surface-interactive);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+    }
+
+    .restart-content {
+        position: relative;
+        z-index: var(--z-base);
+        contain: layout style;
+        text-align: center;
+    }
+
+    .restart-reload-button {
+        margin-top: var(--space-4);
+    }
+
+    .restart-progress {
+        width: min(320px, calc(80 * var(--ui-viewport-width-unit)));
+        margin: var(--space-4) auto;
+    }
+
+    .restart-status-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent-green);
+        margin: 0 auto var(--space-8);
+    }
+
+    .restart-overlay--status-icon-hidden .restart-status-icon {
+        display: none;
+    }
+
+    .restart-overlay--danger .restart-status-icon {
+        color: var(--status-red);
+    }
+
+    .restart-overlay--warning .restart-status-icon {
+        color: var(--status-orange);
+    }
+
+    .restart-overlay--suspend .restart-status-icon {
+        color: var(--prompts-color-purple);
+    }
+
+    .restart-overlay--info .restart-status-icon {
+        color: var(--status-blue);
+    }
+
+    .power-overlay {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        isolation: isolate;
+        background: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: calc(var(--z-notification) + 1);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--transition-modal);
+    }
+
+    .power-overlay::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-layer-background);
+        pointer-events: none;
+        background: var(--glass-surface-interactive);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+    }
+
+    .power-overlay.is-visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .power-overlay-content {
+        position: relative;
+        z-index: var(--z-base);
+        contain: layout style;
+        text-align: center;
+        transform: translateY(18px);
+        transition: transform var(--transition-modal);
+        max-width: 420px;
+    }
+
+    .power-overlay.is-visible .power-overlay-content {
+        transform: translateY(0);
+    }
+
+    .power-overlay-status-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent-green);
+        margin: 0 auto var(--space-8);
+    }
+
+    .power-overlay-title {
+        margin: 0 0 var(--space-3);
+        font-size: var(--font-size-135);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .power-overlay-description {
+        margin: 0;
+        font-size: var(--font-size-base);
+        color: var(--text-secondary);
+    }
+
+    .power-overlay--danger .power-overlay-status-icon {
+        color: var(--status-red);
+    }
+
+    .power-overlay--warning .power-overlay-status-icon {
+        color: var(--status-orange);
+    }
+
+    .power-overlay--suspend .power-overlay-status-icon {
+        color: var(--prompts-color-purple);
+    }
+
+    .power-overlay--info .power-overlay-status-icon {
+        color: var(--status-blue);
+    }
+
+    .modal-resize-handle {
+        position: absolute;
+        background: transparent;
+        z-index: var(--z-tooltip);
+        touch-action: none;
+    }
+
+    .modal-content.is-fullscreen .modal-resize-handle {
+        display: none;
+        pointer-events: none;
+    }
+
+    :is(.modal-resize-handle--top, .modal-resize-handle--bottom) {
+        left: 10px;
+        right: 10px;
+        height: 10px;
+    }
+
+    .modal-resize-handle--top {
+        top: 0;
+        cursor: ns-resize;
+    }
+
+    .modal-resize-handle--bottom {
+        bottom: 0;
+        cursor: ns-resize;
+    }
+
+    :is(.modal-resize-handle--left, .modal-resize-handle--right) {
+        top: 10px;
+        bottom: 10px;
+        width: 10px;
+    }
+
+    .modal-resize-handle--left {
+        left: 0;
+        cursor: ew-resize;
+    }
+
+    .modal-resize-handle--right {
+        right: -6px;
+        cursor: ew-resize;
+    }
+
+    :is(.modal-resize-handle--top-left, .modal-resize-handle--top-right, .modal-resize-handle--bottom-left, .modal-resize-handle--bottom-right) {
+        width: 18px;
+        height: 18px;
+    }
+
+    .modal-resize-handle--top-left {
+        top: 0;
+        left: 0;
+        cursor: nwse-resize;
+    }
+
+    .modal-resize-handle--top-right {
+        top: 0;
+        right: -8px;
+        cursor: nesw-resize;
+    }
+
+    .modal-resize-handle--bottom-left {
+        bottom: 0;
+        left: 0;
+        cursor: nesw-resize;
+    }
+
+    .modal-resize-handle--bottom-right {
+        bottom: -6px;
+        right: -8px;
+        cursor: nwse-resize;
+    }
+
+    .modal-resize-handle--bottom-right::after {
+        content: '';
+        position: absolute;
+        bottom: 4px;
+        right: 4px;
+        width: 8px;
+        height: 8px;
+        border-bottom: var(--border-width-2) solid var(--border-color);
+        border-right: var(--border-width-2) solid var(--border-color);
+        opacity: 0;
+        transition: opacity var(--transition-fast);
+    }
+
+    .modal-resize-handle--bottom-right:hover::after {
+        opacity: 0.5;
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .modal-resize-handle {
+            display: none;
+        }
+
+        .modal-header-top {
+            cursor: default;
+        }
+    }
+}

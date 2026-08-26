@@ -1,0 +1,166 @@
+/* SoAI - Glass surfaces component styles [frontend/assets/css/components/layout/glass-surfaces.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.glass-surface, .glass-surface-strong, .glass-surface-medium, .glass-surface-light, .glass-surface-darker, .glass-surface-weak, .glass-surface-interactive, .glass-surface-interactive-strong, .glass-surface-full, .glass-input) {
+        --glass-surface-bg: var(--glass-surface-strong);
+        box-shadow: var(--glass-shadow-base);
+        isolation: isolate;
+        position: relative;
+        z-index: var(--z-base);
+        border: var(--border-width-1) solid var(--glass-border-subtle);
+        background: var(--glass-surface-bg);
+    }
+
+    :where(.glass-surface, .glass-surface-strong, .glass-surface-medium, .glass-surface-light, .glass-surface-darker, .glass-surface-weak, .glass-surface-interactive, .glass-surface-interactive-strong, .glass-surface-full, .glass-input):is(input, textarea, select) {
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+    }
+
+    :where(.surface-card, .card, .stat-card) {
+        --glass-surface-bg: var(--surface-card);
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        background: transparent;
+        isolation: isolate;
+        position: relative;
+        z-index: var(--z-base);
+    }
+
+    :where(.surface-card, .card, .stat-card)::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: inherit;
+        background: var(--glass-surface-bg);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        z-index: var(--z-layer-background);
+    }
+
+    :where(.glass-surface, .glass-surface-strong, .glass-surface-medium, .glass-surface-light, .glass-surface-darker, .glass-surface-weak, .glass-surface-interactive, .glass-surface-interactive-strong, .glass-surface-full, .glass-input):not(input, textarea, select) {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        background: transparent;
+    }
+
+    :where(.glass-surface, .glass-surface-strong, .glass-surface-medium, .glass-surface-light, .glass-surface-darker, .glass-surface-weak, .glass-surface-interactive, .glass-surface-interactive-strong, .glass-surface-full, .glass-input):not(input, textarea, select)::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border-radius: inherit;
+        background-color: var(--glass-surface-bg);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        z-index: var(--z-layer-background);
+    }
+
+    .glass-surface,
+    .glass-surface-strong {
+        --glass-surface-bg: var(--glass-surface-strong);
+        border-color: var(--glass-border-strong);
+    }
+
+    .glass-surface-medium {
+        --glass-surface-bg: var(--glass-surface-medium);
+        border-color: var(--glass-border-strong);
+    }
+
+    .glass-surface-light {
+        --glass-surface-bg: var(--glass-surface-light);
+    }
+
+    .glass-surface-darker {
+        --glass-surface-bg: var(--glass-surface-darker);
+        border-color: var(--glass-border-strong);
+    }
+
+    .glass-surface-weak {
+        --glass-surface-bg: var(--glass-surface-weak);
+    }
+
+    .glass-surface-interactive {
+        --glass-surface-bg: var(--glass-surface-interactive);
+        transition:
+            background var(--transition-fast),
+            border-color var(--transition-fast);
+    }
+
+    .glass-surface-interactive:not(input, textarea, select)::before {
+        transition: background var(--transition-fast);
+    }
+
+    .glass-surface-interactive:hover {
+        --glass-surface-bg: var(--glass-surface-hover);
+        border-color: var(--glass-border-strong);
+    }
+
+    .glass-surface-interactive-strong {
+        --glass-surface-bg: var(--glass-surface-interactive-strong);
+        border-color: var(--glass-border-strong);
+        transition:
+            background var(--transition-fast),
+            border-color var(--transition-fast);
+    }
+
+    .glass-surface-interactive-strong:not(input, textarea, select)::before {
+        transition: background var(--transition-fast);
+    }
+
+    .glass-surface-interactive-strong:hover {
+        --glass-surface-bg: var(--glass-surface-hover);
+    }
+
+    .glass-surface-full {
+        --glass-surface-bg: var(--glass-surface-strong);
+        border-color: var(--glass-border-strong);
+        border-radius: var(--border-radius);
+    }
+
+    .glass-input {
+        --glass-surface-bg: var(--text-field-bg);
+        background-color: var(--glass-surface-bg);
+        border-color: var(--text-field-border);
+    }
+
+    .glass-input:hover:not(:focus) {
+        --glass-surface-bg: var(--text-field-bg-hover);
+        border-color: var(--text-field-border-hover);
+    }
+
+    .glass-surface--bordered {
+        border: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    .glass-surface--no-border {
+        border: none;
+    }
+
+    .glass-surface--no-shadow {
+        box-shadow: none;
+    }
+
+    .glass-surface--no-blur {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+
+    .glass-surface--no-blur:not(input, textarea, select)::before {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+
+    .glass-surface--rounded {
+        border-radius: var(--border-radius);
+    }
+
+    :where(.data-table-wrapper, .dashboard-netif-row, .dashboard-storage-row, .hardware-core, .hardware-gpu-card, .provider-item, .ui-metric-badge) {
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--glass-shadow-base);
+        isolation: isolate;
+        position: relative;
+    }
+}

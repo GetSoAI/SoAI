@@ -1,0 +1,173 @@
+/* SoAI - MCP scope badges component styles [frontend/assets/css/components/integrations/mcp-scope-badges.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.mcp-tools-scope) .chat-configuration-hint {
+        display: block;
+        margin-top: var(--space-15);
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+    }
+
+    :where(.mcp-tools-scope) .chat-configuration-section-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+        margin: var(--space-8) 0 var(--space-4);
+    }
+
+    :where(.mcp-tools-scope) .chat-configuration-section-header:first-child {
+        margin-top: 0;
+    }
+
+    :where(.mcp-tools-scope) .mcp-default-tools-title {
+        margin: 0;
+    }
+
+    :where(.mcp-tools-scope) .chat-configuration-section-header .mcp-default-tools-title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    :where(.mcp-tools-scope) .chat-configuration-section-header .chat-configuration-section-title {
+        margin: 0;
+    }
+
+    :where(.mcp-tools-scope) .chat-configuration-section-header.mcp-default-tools-trigger {
+        appearance: none;
+        background: none;
+        border: none;
+        padding: var(--space-2);
+        width: 100%;
+        border-radius: var(--border-radius);
+        text-align: left;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+    }
+
+    :where(.mcp-tools-scope) .mcp-default-tools-summary,
+    :where(.mcp-tools-scope) .mcp-default-tools-summary-hint {
+        padding: 0 var(--space-2);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tools-empty,
+    :where(.mcp-tools-scope) .mcp-servers-empty {
+        margin-top: var(--space-3);
+        font-size: var(--font-size-sm);
+        color: var(--text-tertiary);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-reset-row {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-15);
+        align-items: flex-start;
+        justify-content: flex-start;
+        margin: var(--space-3) 0 var(--space-4);
+        padding: var(--space-2);
+        border-radius: var(--border-radius);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-reset-row--modal {
+        border-top: var(--border-width-1) solid var(--glass-border-subtle);
+        margin-bottom: 0;
+        margin-top: var(--space-4);
+        padding-top: var(--space-4);
+    }
+
+    :where(.mcp-tools-scope) .mcp-servers-list,
+    :where(.mcp-tools-scope) .mcp-tools-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-item {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding: var(--space-2);
+        border-radius: var(--border-radius);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-item + .mcp-tool-item {
+        padding-top: var(--space-2);
+        border-top: var(--border-width-1) solid var(--glass-border-subtle);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-info {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        min-width: 0;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-name-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-description {
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-icon {
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        flex-shrink: 0;
+        color: var(--text-secondary);
+        display: block;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-name-row svg.mcp-tool-icon {
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        display: block;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tools-mode-layout {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-mode-tabs.tabs-container {
+        border-bottom: var(--border-width-1) solid var(--glass-border-subtle);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tools-mode-layout:not(:has(.mcp-tool-mode-panel--active .mcp-tool-group.is-expanded)) .mcp-tool-mode-tabs.tabs-container {
+        display: none;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-mode-tabs .tabs-nav {
+        padding: 0;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-mode-tabs .tabs-tab {
+        flex: 1;
+        font-size: var(--font-size-sm);
+        justify-content: center;
+        padding: var(--space-2) var(--space-3);
+    }
+
+    .chat-configuration-mcp-content:has(.mcp-tools-enabled-toggle:not(:checked)) > .chat-config-grid > .chat-configuration-section-header,
+    .chat-configuration-mcp-content .mcp-tools-scope:has(.mcp-tools-enabled-toggle:not(:checked)) > :not(.form-group:has(.mcp-tools-enabled-toggle)) {
+        display: none;
+    }
+}

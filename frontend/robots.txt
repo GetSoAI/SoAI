@@ -1,0 +1,3 @@
+# SoAI WebUI is a private application. Do not crawl any URL.
+User-agent: *
+Disallow: /

@@ -1,0 +1,4 @@
+/* SoAI - Frontend core Translation declarations for key group `licensing.errors` [frontend/assets/ts/core/i18n/translationkeys/licensing/errors.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type LicensingErrorsTranslationKey = 'licensing.errors.actionFailed' | 'licensing.errors.activationNotFound' | 'licensing.errors.deploymentLimit' | 'licensing.errors.evaluationIneligible' | 'licensing.errors.expired' | 'licensing.errors.inProgress' | 'licensing.errors.invalidKey' | 'licensing.errors.licenseChanged' | 'licensing.errors.notEffective' | 'licensing.errors.operationNotFound' | 'licensing.errors.productMismatch' | 'licensing.errors.providerOutcomeUnknown' | 'licensing.errors.reference' | 'licensing.errors.renewalNotReconciled' | 'licensing.errors.stateChanged' | 'licensing.errors.suspended' | 'licensing.errors.terminated' | 'licensing.errors.termsChanged' | 'licensing.errors.trustUnavailable';

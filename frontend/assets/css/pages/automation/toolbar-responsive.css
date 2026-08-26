@@ -1,0 +1,128 @@
+/* SoAI - Automation page toolbar responsive styles [frontend/assets/css/pages/automation/toolbar-responsive.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-view-toggle-icon {
+        display: none;
+    }
+
+    @container ui-viewport (width <= 1200px) {
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-view-toggle {
+            padding: 0;
+            border: none;
+            background: transparent;
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-view-toggle button[data-view] {
+            display: none;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-view-toggle .automation-view-cycle-button {
+            display: inline-flex;
+            flex: 1 1 auto;
+            justify-content: center;
+
+            --ui-button-bg: var(--button-surface-bg);
+            --ui-button-bg-hover: var(--button-surface-hover);
+            --ui-button-border: var(--ui-button-neutral-color);
+            --ui-button-border-hover: var(--ui-button-neutral-color-hover);
+            --ui-button-color: var(--ui-button-neutral-color);
+            --ui-button-color-hover: var(--ui-button-neutral-color-hover);
+            --ui-button-focus-ring: var(--ui-button-neutral-focus-ring);
+        }
+    }
+
+    @container ui-viewport (width <= 900px) {
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar {
+            grid-template-areas: 'navigation actions';
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: start;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-group--navigation {
+            flex-wrap: wrap;
+            row-gap: var(--space-2);
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-group--actions {
+            justify-self: stretch;
+            justify-content: flex-end;
+            width: 100%;
+            gap: var(--space-2);
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-range-title {
+            max-width: none;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow.page-actions--dropdown {
+            margin-left: auto;
+            order: 1;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow.page-actions--dropdown .automation-toolbar-overflow-trigger {
+            display: inline-flex;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow.page-actions--dropdown .page-actions__menu {
+            min-width: min(300px, calc(calc(100 * var(--ui-viewport-width-unit)) - var(--space-6)));
+            max-width: min(320px, calc(calc(100 * var(--ui-viewport-width-unit)) - var(--space-6)));
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow.page-actions--dropdown .automation-view-toggle {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: var(--space-2);
+            padding: 0;
+            border: none;
+            background: transparent;
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow.page-actions--dropdown .automation-view-toggle button[data-view] {
+            display: inline-flex;
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow.page-actions--dropdown .automation-view-toggle button[data-view] .automation-view-toggle-icon {
+            display: inline-flex;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow.page-actions--dropdown .automation-view-toggle .automation-view-cycle-button {
+            display: none;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow.page-actions--dropdown :is(.automation-view-toggle .ui-button, .automation-toolbar-action-button, .automation-create-button) {
+            width: 100%;
+            min-width: 0;
+            min-height: var(--control-height);
+            justify-content: flex-start;
+            text-align: left;
+            padding: var(--space-2) var(--space-3);
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow.page-actions--dropdown .automation-toolbar-button-label {
+            display: inline;
+        }
+    }
+
+    @container ui-viewport (width <= 1400px) {
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-registry-overlay-toggle {
+            display: inline-flex;
+            order: 2;
+        }
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-range-title {
+            flex-basis: 100%;
+            order: 4;
+            margin-left: 0;
+        }
+    }
+}

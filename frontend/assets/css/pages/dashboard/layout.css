@@ -1,0 +1,239 @@
+/* SoAI - Dashboard page layout styles [frontend/assets/css/pages/dashboard/layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-main-value {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        text-align: center;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-label,
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .network-label {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+        text-align: center;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state {
+        grid-column: 1 / span 2;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        padding: var(--space-25) var(--space-3);
+        min-height: 3.75rem;
+        gap: var(--space-2);
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid var(--status-color);
+        background: color-mix(in srgb, var(--status-color) 6%, var(--glass-underlay-surface));
+        transition:
+            border-color var(--transition-fast),
+            background-color var(--transition-fast);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state .status-main-indicator {
+        display: flex;
+        align-items: center;
+        flex: 1;
+        min-width: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state .status-main-text {
+        font-size: var(--font-size-lg);
+        font-weight: 700;
+        color: var(--status-color);
+        min-width: 0;
+        line-height: var(--line-height-compact);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state .status-label {
+        font-size: var(--font-size-micro);
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-03px);
+        opacity: 0.9;
+        margin-left: auto;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state .status-label:empty {
+        display: none;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-main-state, .section-status-line)[data-color='green'] {
+        --status-color: var(--status-green);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-main-state, .section-status-line)[data-color='darkgreen'] {
+        --status-color: var(--status-darkgreen);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-main-state, .section-status-line)[data-color='blue'] {
+        --status-color: var(--status-blue);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-main-state, .section-status-line)[data-color='red'] {
+        --status-color: var(--status-red);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-main-state, .section-status-line)[data-color='orange'] {
+        --status-color: var(--status-orange);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-main-state, .section-status-line)[data-color='grey'] {
+        --status-color: var(--status-grey);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .tasks-stat-value {
+        font-size: var(--font-size-2xl);
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-1);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .logs-content {
+        flex-grow: 1;
+        min-height: 0;
+        height: 100%;
+        flex-basis: 100%;
+        width: 100%;
+        overflow-y: auto;
+        overflow-x: auto;
+        border-radius: 0;
+        padding: var(--space-3);
+        font-family: var(--font-family-code);
+        font-size: var(--log-font-size);
+        line-height: 1.4;
+        white-space: pre-wrap;
+        -webkit-overflow-scrolling: touch;
+        background-color: transparent;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .logs-viewer .log-entry {
+        display: flex;
+        align-items: stretch;
+        gap: var(--space-3);
+        min-width: 0;
+        width: 100%;
+        margin-bottom: var(--space-3);
+        padding: 0;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        font-family: var(--font-family-code);
+        font-size: inherit;
+        line-height: 1.2;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .logs-viewer .log-entry :where(.log-timestamp, .log-component, .log-level, .log-message) {
+        padding: var(--space-3);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .logs-viewer .log-entry:last-child {
+        margin-bottom: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-hardware-widgets-content {
+        display: block;
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden auto;
+        padding: var(--space-3);
+        scrollbar-gutter: stable;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-hardware-widgets-container {
+        display: grid;
+        align-content: flex-start;
+        gap: var(--space-3);
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 216px), 1fr));
+        justify-content: flex-start;
+        justify-items: center;
+        min-width: 0;
+        max-width: 100%;
+        padding: 0;
+        width: 100%;
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-hardware-widgets-container {
+            grid-template-columns: minmax(0, 1fr);
+            justify-content: stretch;
+        }
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .plugins-overview,
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .models-overview {
+        --dashboard-collection-visible-items: 8;
+        --dashboard-collection-item-height: 42px;
+        --dashboard-collection-gap-height: calc(var(--space-2) * 7);
+        --dashboard-collection-list-height: calc((var(--dashboard-collection-item-height) * var(--dashboard-collection-visible-items)) + var(--dashboard-collection-gap-height) + var(--space-3));
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .plugins-list,
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .models-list {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        margin-bottom: calc(-1 * var(--space-3));
+        margin-right: calc(-1 * var(--space-3));
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.plugins-list, .models-list) {
+        gap: var(--space-2);
+        min-height: var(--dashboard-collection-list-height);
+        padding-right: var(--space-3);
+        padding-bottom: var(--space-3);
+        margin-right: calc(-1 * var(--space-3));
+        scroll-padding-bottom: var(--space-3);
+        scrollbar-gutter: auto;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .plugin-item:not(.dropdown-item),
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .model-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        width: 100%;
+        padding: var(--space-2);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-storage-stat-row {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-memory-label {
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-collection-summary {
+        margin-top: 0;
+        margin-bottom: var(--space-4);
+        flex-shrink: 0;
+    }
+}

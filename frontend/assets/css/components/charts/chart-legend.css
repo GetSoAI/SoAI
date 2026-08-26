@@ -1,0 +1,79 @@
+/* SoAI - Chart legend component styles [frontend/assets/css/components/charts/chart-legend.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .chart-legend {
+        position: absolute;
+        top: 20px;
+        left: 60px;
+        background: var(--glass-surface-overlay);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        padding: var(--space-2) var(--space-25);
+        border-radius: var(--border-radius);
+        font-family: var(--font-family-code);
+        font-size: var(--font-size-caption);
+        color: var(--text-primary);
+        pointer-events: none;
+        z-index: var(--z-raised);
+    }
+
+    .chart-legend-item {
+        display: inline;
+        margin-right: var(--space-4);
+    }
+
+    .chart-legend-item:last-child {
+        margin-right: 0;
+    }
+
+    .chart-axis-label {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+    }
+
+    .chart-axis-label.manual {
+        color: var(--accent-green);
+        font-weight: 600;
+    }
+
+    @container ui-viewport (width <= 600px) {
+        .chart-container {
+            min-height: 220px;
+        }
+
+        .chart-legend {
+            font-size: var(--font-size-micro);
+            padding: var(--space-1) var(--space-15);
+            left: 45px;
+        }
+
+        .chart-legend-item {
+            display: block;
+            margin-right: 0;
+            margin-bottom: var(--space-05);
+        }
+
+        .chart-legend-item:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    .history-chart-card:fullscreen,
+    .card:fullscreen {
+        background: var(--bg-primary);
+        padding: var(--space-4);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .history-chart-card:fullscreen .history-chart-shell,
+    .card:fullscreen .metrics-card-content {
+        flex: 1;
+        min-height: 0;
+    }
+
+    .history-chart-card:fullscreen .chart-container,
+    .card:fullscreen .chart-container {
+        height: 100%;
+    }
+}

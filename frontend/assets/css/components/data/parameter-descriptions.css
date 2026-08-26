@@ -1,0 +1,9 @@
+/* SoAI - Parameter descriptions component styles [frontend/assets/css/components/data/parameter-descriptions.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .parameter-description {
+        border-left: 0;
+        background-image: none;
+    }
+}

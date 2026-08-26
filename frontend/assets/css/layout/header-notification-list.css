@@ -1,0 +1,145 @@
+/* SoAI - Header notification list frontend styles [frontend/assets/css/layout/header-notification-list.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer layout {
+    .notification-item.dropdown-item:is(:hover, :focus-visible) {
+        --notification-item-hover-overlay-opacity: 0.68;
+        background-color: var(--notification-item-row-bg);
+        background-image: none;
+        box-shadow: none;
+    }
+
+    .notification-item.dropdown-item:is(.notification-item--info, .notification-item--success, .notification-item--warning, .notification-item--error):is(:hover, :focus-visible) {
+        --notification-item-overlay-strong: 22%;
+        --notification-item-outline-opacity: 32%;
+        border-top-color: color-mix(in srgb, var(--notification-item-accent) var(--notification-item-outline-opacity), transparent);
+        border-bottom-color: color-mix(in srgb, var(--notification-item-accent) var(--notification-item-outline-opacity), transparent);
+    }
+
+    .notification-item.dropdown-item > * {
+        position: relative;
+        z-index: var(--z-raised);
+    }
+
+    .notification-item-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-05);
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .notification-item-title-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--space-2);
+        min-width: 0;
+    }
+
+    .notification-item-title {
+        font-size: var(--font-size-072);
+        font-weight: 600;
+        color: var(--text-primary);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .notification-item-time {
+        font-size: var(--font-size-072);
+        color: var(--text-tertiary);
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+
+    .notification-item-message {
+        overflow: hidden;
+        max-height: 2.8em;
+        transition: max-height var(--duration-300) var(--ease-out);
+    }
+
+    .notification-item-message-content {
+        font-size: var(--font-size-068);
+        color: var(--text-secondary);
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    .notification-item.notification-item--expanded .notification-item-message {
+        max-height: 500px;
+    }
+
+    .notification-item.notification-item--expanded .notification-item-message-content {
+        display: block;
+        -webkit-line-clamp: unset;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    .notification-item-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-1);
+        flex-shrink: 0;
+    }
+
+    .notification-delete-btn.ui-icon-button,
+    .notification-expand-btn.ui-icon-button,
+    .notification-clear-all-btn.ui-icon-button {
+        --icon-size: 16px;
+
+        padding: 0;
+        font-size: var(--font-size-zero);
+        width: var(--space-5);
+        height: var(--space-5);
+        min-width: var(--space-5);
+        min-height: var(--space-5);
+        line-height: 0;
+        color: var(--text-secondary);
+        align-items: center;
+        justify-content: center;
+    }
+
+    .notification-expand-btn.ui-icon-button > .ui-icon {
+        transition: transform var(--transition-fast);
+    }
+
+    .notification-item.notification-item--expanded .notification-expand-btn.ui-icon-button > .ui-icon {
+        transform: rotate(180deg);
+    }
+
+    .notification-item-actions :is(.notification-delete-btn, .notification-expand-btn).ui-icon-button {
+        opacity: 0.5;
+        transition: opacity var(--duration-200) var(--ease-out);
+    }
+
+    .notification-delete-btn.ui-icon-button:hover,
+    .notification-expand-btn.ui-icon-button:hover,
+    .notification-clear-all-btn.ui-icon-button:hover {
+        color: var(--text-primary);
+    }
+
+    .notification-delete-btn.ui-icon-button:active,
+    .notification-expand-btn.ui-icon-button:active {
+        opacity: 1;
+    }
+
+    .notification-item:hover .notification-delete-btn.ui-icon-button,
+    .notification-item:hover .notification-expand-btn.ui-icon-button {
+        opacity: 1;
+    }
+
+    .header-notification-manager:not(.header-notification-manager--expanded) .notification-clear-all-btn.ui-icon-button {
+        display: none;
+    }
+
+    .settings-logout-item {
+        display: none;
+    }
+}

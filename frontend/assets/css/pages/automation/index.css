@@ -1,0 +1,21 @@
+/* SoAI - Automation page styles [frontend/assets/css/pages/automation/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./base.css') layer(pages);
+@import url('./toolbar-layout.css') layer(pages);
+@import url('./toolbar-responsive.css') layer(pages);
+@import url('./layout.css') layer(pages);
+@import url('./toolbar.css') layer(pages);
+@import url('./panels.css') layer(pages);
+@import url('./week-header.css') layer(pages);
+@import url('./empty-day-labels.css') layer(pages);
+@import url('./forms.css') layer(pages);
+@import url('./tables.css') layer(pages);
+@import url('./cards.css') layer(pages);
+@import url('./configuration-modal-layout.css') layer(pages);
+@import url('./configuration-modal-picker.css') layer(pages);
+@import url('./configuration-modal-turns.css') layer(pages);
+@import url('./configuration-modal-responsive.css') layer(pages);
+@import url('./details.css') layer(pages);
+@import url('./registry-overlay.css') layer(pages);
+@import url('./states.css') layer(pages);

@@ -1,0 +1,84 @@
+/* SoAI - Inline tool ANSI component styles [frontend/assets/css/components/chat/inline-tool-ansi.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-bold {
+        font-weight: 600;
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-30 {
+        color: var(--inline-tool-ansi-fg-30);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-31 {
+        color: var(--inline-tool-ansi-fg-31);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-32 {
+        color: var(--inline-tool-ansi-fg-32);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-33 {
+        color: var(--inline-tool-ansi-fg-33);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-34 {
+        color: var(--inline-tool-ansi-fg-34);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-35 {
+        color: var(--inline-tool-ansi-fg-35);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-36 {
+        color: var(--inline-tool-ansi-fg-36);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-37 {
+        color: var(--inline-tool-ansi-fg-37);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-90 {
+        color: var(--inline-tool-ansi-fg-90);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-91 {
+        color: var(--inline-tool-ansi-fg-91);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-92 {
+        color: var(--inline-tool-ansi-fg-92);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-93 {
+        color: var(--inline-tool-ansi-fg-93);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-94 {
+        color: var(--inline-tool-ansi-fg-94);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-95 {
+        color: var(--inline-tool-ansi-fg-95);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-96 {
+        color: var(--inline-tool-ansi-fg-96);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-97 {
+        color: var(--inline-tool-ansi-fg-97);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-208 {
+        color: var(--inline-tool-ansi-fg-208);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-215 {
+        color: var(--inline-tool-ansi-fg-215);
+    }
+
+    :where(.chat-container) .inline-tool-field-pre .inline-ansi-fg-246 {
+        color: var(--inline-tool-ansi-fg-246);
+    }
+}

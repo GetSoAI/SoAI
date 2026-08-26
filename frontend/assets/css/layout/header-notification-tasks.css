@@ -1,0 +1,261 @@
+/* SoAI - Header notification tasks frontend styles [frontend/assets/css/layout/header-notification-tasks.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer layout {
+    .header-notification-tasks .header-task-manager {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        pointer-events: auto;
+    }
+
+    .header-notification-tasks .header-task-manager-toggle {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        padding: var(--space-2) var(--space-35);
+        min-height: var(--title-bar-min-height);
+        margin: 0;
+        cursor: pointer;
+        background: var(--title-bar-background);
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--glass-shadow-base);
+        position: relative;
+        z-index: var(--z-raised);
+        row-gap: var(--space-2);
+        user-select: none;
+    }
+
+    .header-notification-tasks .header-task-manager-toggle:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 var(--control-focus-ring-width) color-mix(in srgb, var(--accent-blue) 35%, transparent);
+        border-radius: var(--border-radius);
+    }
+
+    .header-notification-tasks .header-task-manager-label {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .header-notification-tasks .header-task-manager-title {
+        margin: 0;
+        padding: 0;
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-05px);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .header-notification-tasks .header-task-manager-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        padding: 0;
+        margin-left: auto;
+    }
+
+    .header-notification-tasks .stop-all-tasks.ui-icon-button {
+        --icon-size: 18px;
+        --ui-button-focus-ring: var(--ui-button-danger-focus-ring);
+
+        display: none;
+        padding: 0;
+        font-size: var(--font-size-zero);
+        width: var(--space-5);
+        height: var(--space-5);
+        min-width: var(--space-5);
+        min-height: var(--space-5);
+        line-height: 0;
+        color: var(--text-primary);
+        align-items: center;
+        justify-content: center;
+    }
+
+    .header-notification-tasks .stop-all-tasks.ui-icon-button:hover {
+        color: var(--ui-button-danger-color-hover);
+    }
+
+    .header-notification-tasks .stop-all-tasks.ui-icon-button:focus-visible {
+        border-color: transparent;
+        box-shadow: 0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring);
+    }
+
+    .header-notification-tasks .header-task-manager--expanded .stop-all-tasks.ui-icon-button:not([hidden]) {
+        display: inline-flex;
+    }
+
+    .header-notification-tasks .tasks-chevron {
+        --icon-size: 16px;
+        width: var(--space-5);
+        height: var(--space-5);
+        min-width: var(--space-5);
+        min-height: var(--space-5);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-tertiary);
+        transition: transform var(--transition-fast);
+    }
+
+    .header-notification-tasks .header-task-manager--expanded .tasks-chevron {
+        transform: rotate(180deg);
+    }
+
+    .header-notification-tasks .header-task-manager-panel {
+        display: grid;
+        grid-template-rows: 0fr;
+        opacity: 0;
+        transform: translateY(-4px);
+        overflow: hidden;
+        pointer-events: none;
+        border-top: none;
+        transition:
+            grid-template-rows var(--transition-panel),
+            opacity var(--transition-fast),
+            transform var(--transition-fast);
+    }
+
+    .header-notification-tasks .header-task-manager--expanded .header-task-manager-panel {
+        grid-template-rows: 1fr;
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+        border-top: none;
+    }
+
+    .header-notification-tasks .header-task-manager-panel-inner {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .header-notification-tasks .header-task-manager-panel .dropdown-item.task-item {
+        --task-item-row-bg: transparent;
+
+        border: none;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+        background-color: var(--task-item-row-bg);
+        transition: background-color var(--transition-fast);
+    }
+
+    .header-notification-tasks .header-task-manager-panel .dropdown-item.task-item.checkerboard-light {
+        --task-item-row-bg: var(--alternating-grey-light);
+    }
+
+    .header-notification-tasks .header-task-manager-panel .dropdown-item.task-item.checkerboard-dark {
+        --task-item-row-bg: var(--alternating-grey-dark);
+    }
+
+    .header-notification-tasks .header-task-manager-panel .dropdown-item.task-item:is(:hover, :focus-visible) {
+        --task-item-row-bg: color-mix(in srgb, var(--glass-surface-interactive) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+    }
+
+    .header-notification-tasks .header-task-manager-panel :is(.task-progress, .task-progress--operation) {
+        margin-top: var(--space-1);
+        height: 4px;
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-progress--operation {
+        --soai-progress-color: var(--status-orange);
+        margin-top: var(--space-05);
+        height: 2px;
+        background: var(--glass-border-subtle);
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-progress-bar {
+        display: block;
+        width: 45%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-green), var(--accent-green-light));
+        animation: task-progress-indeterminate var(--duration-1600) var(--ease-in-out) infinite;
+        transform-origin: left;
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-progress--operation .task-progress-bar {
+        animation: none;
+        background: var(--soai-progress-color);
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-progress-bar--determinate {
+        display: block;
+        height: 100%;
+        max-width: 100%;
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-operation-row {
+        margin-top: var(--space-05);
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-operation-row--inline {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-05);
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-operation-row--inline .task-progress {
+        width: 100%;
+    }
+
+    .header-notification-tasks .header-task-manager-panel :is(.task-operation-label, .task-operation-detail) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: var(--font-size-068);
+        color: var(--text-secondary);
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-operation-detail:empty {
+        display: none;
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-stop-btn {
+        all: unset;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--space-5);
+        height: var(--space-5);
+        min-width: var(--space-5);
+        min-height: var(--space-5);
+        line-height: 0;
+        cursor: pointer;
+        background: transparent;
+        border-radius: var(--border-radius);
+        color: var(--text-primary);
+        flex-shrink: 0;
+        transition:
+            color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            filter var(--transition-fast);
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-stop-btn:focus-visible {
+        box-shadow: 0 0 0 var(--control-focus-ring-width) color-mix(in srgb, var(--status-red) 35%, transparent);
+        border-radius: var(--border-radius);
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-stop-btn :is(svg, .ui-icon) {
+        width: 14px;
+        height: 14px;
+    }
+
+    .header-notification-tasks .header-task-manager-panel .task-stop-btn:hover {
+        color: color-mix(in srgb, var(--status-red) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+    }
+}

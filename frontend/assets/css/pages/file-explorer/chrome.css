@@ -1,0 +1,219 @@
+/* SoAI - File explorer page chrome styles [frontend/assets/css/pages/file-explorer/chrome.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .page-actions:not(.page-actions--dropdown) .page-actions__menu > .file-explorer-new-entry-shell {
+        margin-inline-start: auto;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .page-actions:not(.page-actions--dropdown) .file-explorer-new-entry-shell::after {
+        display: none;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .page-actions:not(.page-actions--dropdown) .file-explorer-new-entry-shell > select {
+        width: auto;
+        min-width: 0;
+        padding-right: var(--control-padding-inline);
+        field-sizing: content;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .page-actions:not(.page-actions--dropdown) .page-actions__menu > .file-explorer-labeled-command.ui-button {
+        width: auto;
+        min-width: 0;
+        padding: var(--control-padding-block-sm) var(--control-padding-inline);
+        aspect-ratio: auto;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .page-actions:not(.page-actions--dropdown) .page-actions__menu > .file-explorer-labeled-command.ui-button > span:not(.ui-icon) {
+        display: inline;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .page-actions:not(.page-actions--dropdown) .page-actions__menu > .file-explorer-labeled-command.ui-button > :is(svg, .ui-icon) {
+        display: none;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .page-actions--dropdown .toggle-selection-mode.is-active {
+        width: 100%;
+        min-width: 0;
+        height: auto;
+        min-height: var(--control-height);
+        padding: var(--space-2) var(--space-3);
+        justify-content: flex-start;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .page-actions--dropdown .toggle-selection-mode.is-active .toggle-selection-mode-label {
+        display: inline-flex;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-address-bar {
+        display: flex;
+        align-items: center;
+        gap: var(--space-15);
+        min-width: 0;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-address-bar__navigate {
+        flex: 0 0 auto;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-address-bar__field {
+        display: flex;
+        align-items: center;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-address-bar__field .ui-inline-action-field__icon,
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-address-bar__field .ui-inline-action-field__icon > .ui-icon {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb {
+        display: flex;
+        align-items: center;
+        flex: 1 1 auto;
+        gap: var(--space-05);
+        min-width: 0;
+        height: var(--control-height);
+        padding-inline: var(--space-2) calc(var(--space-2) + var(--inline-action-field-width));
+        border: var(--border-width-1) solid var(--text-field-border);
+        border-radius: var(--border-radius);
+        background: var(--text-field-bg);
+        overflow: hidden;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb__root-icon,
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb__separator,
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb__segment {
+        display: inline-flex;
+        align-items: center;
+        flex: 0 0 auto;
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb--truncate-current .file-explorer-breadcrumb__segment:last-of-type {
+        flex-shrink: 1;
+        min-width: 0;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb__ellipsis {
+        flex: 0 0 auto;
+        color: var(--text-tertiary);
+        font-size: var(--font-size-caption-plus);
+        font-weight: 600;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb__crumb {
+        appearance: none;
+        flex: 0 0 auto;
+        padding: var(--space-05) var(--space-15);
+        border: var(--border-width-1) solid transparent;
+        border-radius: var(--border-radius);
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption-plus);
+        font-weight: 600;
+        line-height: var(--line-height-compact);
+        white-space: nowrap;
+        cursor: pointer;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb__crumb--current {
+        color: var(--text-primary);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb--truncate-current .file-explorer-breadcrumb__segment:last-of-type .file-explorer-breadcrumb__crumb {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb__tail {
+        appearance: none;
+        flex: 1 0 var(--space-8);
+        align-self: stretch;
+        min-width: var(--space-8);
+        border: none;
+        background: transparent;
+        cursor: text;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-address-bar__input {
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 0;
+        height: var(--control-height);
+        padding-right: calc(var(--space-2) + var(--inline-action-field-width));
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-address-bar__field:has(.file-explorer-address-bar__input:not(.u-hidden)) .file-explorer-address-bar__refresh {
+        display: none;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-address-bar__input:not(.u-hidden) {
+        padding-right: var(--control-padding-inline);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-address-bar__search {
+        display: flex;
+        align-items: center;
+        flex: 0 1 auto;
+        min-width: 0;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-status-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: var(--space-2);
+        flex-shrink: 0;
+        padding: var(--space-2) var(--space-3);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-status-bar__label {
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-status-bar__value {
+        color: var(--text-primary);
+        font-variant-numeric: tabular-nums;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-status-bar__badge--selection {
+        --status-badge-color: var(--accent-green);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb:hover {
+            background: var(--text-field-bg-hover);
+            border-color: var(--text-field-border-hover);
+        }
+
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-breadcrumb__crumb:hover {
+            background: var(--glass-surface-medium);
+            border-color: var(--ui-button-border-hover);
+            color: var(--text-primary);
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-address-bar {
+            flex-wrap: wrap;
+        }
+
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-address-bar__field {
+            order: 1;
+            flex: 1 0 100%;
+        }
+
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-address-bar__search {
+            order: 0;
+            flex: 1 1 0;
+            width: auto;
+        }
+    }
+}

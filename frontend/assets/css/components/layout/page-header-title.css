@@ -1,0 +1,108 @@
+/* SoAI - Page header title component styles [frontend/assets/css/components/layout/page-header-title.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .page-header-title-section {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-4);
+        min-width: 0;
+    }
+
+    .page-header-title-section .page-header-icon {
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-light);
+    }
+
+    .page-header-title {
+        font-size: var(--font-size-163);
+        font-weight: var(--page-title-font-weight);
+        color: var(--text-primary);
+        margin: var(--page-title-margin);
+        line-height: 1.25;
+        min-width: 0;
+        transition: font-size var(--transition-fast);
+    }
+
+    .page-header-copy {
+        min-width: 0;
+    }
+
+    .page-header-title[data-page-header-title-middle-ellipsis='true'] {
+        display: inline-grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        column-gap: 0.08em;
+        align-items: baseline;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .page-header-title-segment--leading {
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .page-header-title-ellipsis,
+    .page-header-title-segment--trailing {
+        display: inline-block;
+        white-space: nowrap;
+    }
+
+    .page-header.page-header--tight-actions .page-header-title {
+        font-size: var(--font-size-150);
+    }
+
+    .page-header.page-header--tight-actions-strong .page-header-title {
+        font-size: var(--font-size-137);
+    }
+    .page-header-description {
+        font-size: var(--font-size-sm);
+        font-weight: var(--page-title-font-weight);
+        color: var(--text-secondary);
+        margin: 0;
+        line-height: 1.25;
+        opacity: 0.8;
+    }
+
+    @container ui-viewport (width <= 1400px) {
+        .card-title-controls .chart-filters-bar {
+            gap: var(--space-1);
+        }
+        .page-header-description {
+            display: none;
+        }
+    }
+
+    @container ui-viewport (width <= 768px) {
+        .page-header-title-section {
+            gap: var(--space-2);
+            align-items: center;
+        }
+        .page-header-title-section .page-header-icon {
+            width: 1.25rem;
+            height: 1.25rem;
+            background: none;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .page-header-title-section .page-header-icon :is(svg, .ui-icon, .sidebar-icon, span) {
+            width: 100%;
+            height: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+    }
+}

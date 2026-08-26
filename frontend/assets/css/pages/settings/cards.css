@@ -1,0 +1,206 @@
+/* SoAI - Settings page cards styles [frontend/assets/css/pages/settings/cards.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal [hidden] {
+        display: none;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__body,
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__editor:not([hidden]),
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__body .settings-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher > .settings-group {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(14rem, 18rem));
+        justify-content: center;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__group {
+        margin-bottom: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__group .settings-group > .setting-item {
+        justify-content: flex-start;
+        align-items: stretch;
+        text-align: left;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__group .setting-info {
+        width: 100%;
+        align-self: stretch;
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__group .setting-label,
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__group .setting-help {
+        text-align: left;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__editor-header {
+        margin-bottom: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__editor-header + .external-account-modal__form > .external-account-modal__group:first-child {
+        margin-top: var(--space-3);
+        padding-top: var(--space-3);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__subgroup-description {
+        margin: var(--space-1) 0 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption-plus);
+        line-height: 1.4;
+        max-width: 44rem;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__summary,
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__surface {
+        margin: 0;
+        padding: var(--space-3);
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption-plus);
+        line-height: 1.4;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__surface[data-tone='success'] {
+        background: var(--glass-surface-success);
+        border-color: var(--glass-border-success);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__surface[data-tone='warning'] {
+        background: var(--glass-surface-warning);
+        border-color: var(--glass-border-warning);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item {
+        justify-content: center;
+        align-items: stretch;
+        aspect-ratio: 1 / 1;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        user-select: none;
+        background: linear-gradient(180deg, var(--glass-surface-medium), var(--glass-surface-strong));
+        background-color: var(--glass-surface-medium);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        box-shadow: var(--glass-shadow-base);
+        transition:
+            background var(--transition-fast),
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            box-shadow var(--transition-fast);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-base);
+        background: transparent;
+        pointer-events: none;
+        transition:
+            background var(--transition-fast),
+            box-shadow var(--transition-fast);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item:hover,
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item:focus-visible {
+        border-color: color-mix(in srgb, var(--glass-border-strong) 58%, var(--text-primary) 42%);
+        outline: none;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item:hover::before,
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item:focus-visible::before {
+        background: color-mix(in srgb, var(--glass-surface-hover-strong) 58%, var(--glass-surface-medium));
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item:active {
+        box-shadow:
+            var(--shadow-lift-soft),
+            inset 0 0 0 calc(var(--border-width-1) * 2) color-mix(in srgb, var(--glass-border-strong) 56%, var(--text-primary) 44%);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item:active::before {
+        background: var(--glass-surface-hover-strong);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item:is(.is-selected, [aria-pressed='true']) {
+        border-color: var(--ui-tone-green-border-selected);
+        background: var(--ui-tone-green-surface-selected);
+        box-shadow:
+            var(--shadow-lift-soft),
+            inset 0 0 0 var(--border-width-1) var(--ui-tone-green-border-selected);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item:is(.is-selected, [aria-pressed='true'])::before {
+        background: linear-gradient(135deg, color-mix(in srgb, var(--ui-tone-green) 18%, transparent), color-mix(in srgb, var(--ui-tone-green) 10%, transparent));
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item:is(:hover, :focus-visible, :active, .is-selected) :is(.setting-label, .setting-help) {
+        color: var(--text-primary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item > .setting-info {
+        position: relative;
+        z-index: var(--z-above-sibling);
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher .external-account-modal__launcher-item.setting-item > .setting-info > .setting-help {
+        padding-inline: var(--space-5);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 4.5rem;
+        height: 4.5rem;
+        margin-bottom: var(--space-3);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher-icon svg {
+        width: 2.25rem;
+        height: 2.25rem;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal :is(.external-account-modal__surface[data-tone='error'], .external-account-modal__surface--error) {
+        background: var(--glass-surface-error);
+        border-color: var(--glass-border-error);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .setting-item > .setting-control {
+        display: flex;
+        width: 100%;
+        align-self: stretch;
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .setting-item > .setting-control > :is(.setting-input, .setting-textarea) {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .setting-item > .setting-control > .secret-input-container {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+}

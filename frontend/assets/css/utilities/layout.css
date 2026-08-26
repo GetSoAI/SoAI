@@ -1,0 +1,124 @@
+/* SoAI - Layout utility styles [frontend/assets/css/utilities/layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    .u-relative {
+        position: relative;
+    }
+
+    .u-absolute {
+        position: absolute;
+    }
+
+    .u-fixed {
+        position: fixed;
+    }
+
+    .u-sticky {
+        position: sticky;
+    }
+
+    .u-inset-0 {
+        inset: 0;
+    }
+
+    .u-absolute-inset {
+        position: absolute;
+        inset: 0;
+    }
+
+    .u-fixed-inset {
+        position: fixed;
+        inset: 0;
+    }
+
+    .u-hidden {
+        display: var(--hidden-display);
+    }
+
+    .u-invisible {
+        visibility: hidden;
+    }
+
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: none;
+    }
+
+    .u-stretch {
+        flex: 1 1 auto;
+        min-width: 0;
+        align-self: stretch;
+    }
+
+    .clipboard-hidden {
+        position: fixed;
+        opacity: 0;
+        pointer-events: none;
+        z-index: var(--z-layer-background);
+    }
+
+    .u-grid {
+        display: grid;
+        gap: var(--space-4);
+    }
+
+    .u-grid-cols-1 {
+        grid-template-columns: repeat(1, 1fr);
+    }
+
+    .u-grid-cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .u-grid-cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .u-grid-cols-4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .u-grid-cols-5 {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    @container ui-viewport (width <= 768px) {
+        .u-hide-mobile {
+            display: none;
+        }
+
+        .u-stretch {
+            width: 100%;
+            max-width: 100%;
+        }
+    }
+
+    @container ui-viewport (width <= 1200px) {
+        th.sortable .sort-indicator {
+            display: flex;
+            width: max-content;
+            min-width: 14px;
+            margin-top: var(--space-05);
+            margin-right: auto;
+            margin-left: auto;
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .u-hide-mobile-portrait {
+            display: none;
+        }
+
+        .page-actions--dropdown .page-actions__menu--open .page-header-search .searchbar-icon.u-hide-mobile-portrait {
+            display: flex;
+        }
+    }
+}

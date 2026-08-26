@@ -1,0 +1,29 @@
+/* SoAI - Collection list metrics mobile component styles [frontend/assets/css/components/collections/collection-list-metrics-mobile.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    @container ui-viewport (width <= 640px) {
+        .ui-collection-list__table .ui-collection-list__facts {
+            row-gap: var(--space-1);
+            column-gap: var(--space-2);
+            line-height: 1.5;
+        }
+
+        .ui-collection-list__table .ui-collection-list__fact {
+            padding: 0;
+            border: none;
+            border-radius: 0;
+            background: transparent;
+            line-height: 1.5;
+        }
+
+        .ui-collection-list__table .ui-collection-list__fact .ui-metric-label,
+        .ui-collection-list__table .ui-collection-list__fact .ui-metric-value {
+            line-height: 1.5;
+        }
+
+        .ui-collection-list__table .ui-collection-list__fact--action:hover {
+            background: transparent;
+        }
+    }
+}

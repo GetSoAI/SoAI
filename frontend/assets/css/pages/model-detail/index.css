@@ -1,0 +1,10 @@
+/* SoAI - Model detail page styles [frontend/assets/css/pages/model-detail/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./base.css') layer(pages);
+@import url('./layout.css') layer(pages);
+@import url('./toolbar.css') layer(pages);
+@import url('./panels.css') layer(pages);
+@import url('./forms.css') layer(pages);
+@import url('./tables.css') layer(pages);
+@import url('./recessed-surfaces.css') layer(pages);

@@ -1,0 +1,32 @@
+/* SoAI - Dashboard page quick actions widget styles [frontend/assets/css/pages/dashboard/quick-actions-widget.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) [data-section-id='quickActions'] .section-content {
+        display: grid;
+        min-height: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-quick-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-2);
+        align-content: center;
+        inline-size: 100%;
+        block-size: 100%;
+        padding: var(--space-2);
+        overflow: auto;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-quick-actions .ui-button.dashboard-quick-action {
+        justify-content: flex-start;
+        inline-size: 100%;
+        min-inline-size: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-quick-action-label {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}

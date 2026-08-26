@@ -1,0 +1,44 @@
+/* SoAI - Accent tokens frontend styles [frontend/assets/css/foundations/accent-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --accent-green-default: #668212;
+        --accent-green-light-default: #86b31e;
+        --accent-green-dark-default: #42580e;
+        --accent-green: var(--accent-green-default);
+        --accent-green-light: var(--accent-green-light-default);
+        --accent-green-dark: var(--accent-green-dark-default);
+        --accent-blue: #326dec;
+        --accent-yellow: #ca8a04;
+        --accent-yellow-dark: #f2b338;
+        --accent-cyan: #00a5c8;
+        --accent-pink: #db2777;
+        --accent-red: #dc2626;
+        --accent-purple: #9333ea;
+        --accent-favorite: #c94040;
+        --accent-favorite-light: #e05252;
+        --accent-primary: var(--accent-green);
+        --accent-primary-light: var(--accent-green-light);
+        --accent-primary-dark: var(--accent-green-dark);
+        --brand-nvidia: #3faf4a;
+        --brand-amd: #d73144;
+        --brand-intel: #0071c5;
+        --brand-qualcomm: #3253dc;
+        --brand-via: #5b9bd5;
+        --chart-grid-opacity: 0.15;
+        --color-black: #000;
+        --color-black-soft: #0a0a0a;
+        --color-white: #fff;
+        --color-white-soft: #f4f4f4;
+        --color-white-muted: #f2f2f2;
+        --color-grey-100: #e5e5e5;
+        --color-grey-200: #dcdcdc;
+        --color-grey-400: #888;
+        --accent-green-hover: color-mix(in srgb, var(--accent-green) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --accent-blue-hover: color-mix(in srgb, var(--accent-blue) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --accent-red-hover: color-mix(in srgb, var(--accent-red) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --accent-cyan-hover: color-mix(in srgb, var(--accent-cyan) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --accent-primary-hover: color-mix(in srgb, var(--accent-primary) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+    }
+}

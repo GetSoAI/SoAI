@@ -1,0 +1,16 @@
+SoAI Playwright / Chromium Runtime Download Notices
+===================================================
+
+SoAI may install Playwright and download browser binaries (Chromium) at first start.
+
+These runtime-fetched components are not shipped inside the SoAI release zip. They are downloaded into:
+  data/state/playwright-browsers/
+
+License pointers:
+- Playwright: Apache License 2.0 (see licenses/Apache-2.0.txt).
+- Chromium: License texts and third-party notices are included in the downloaded browser directory under
+  data/state/playwright-browsers/ (Playwright stores license/notice files alongside the browser payload).
+
+If you redistribute a SoAI installation that already contains downloaded browser binaries, ensure you also
+redistribute the corresponding Chromium license/notice files that exist within the Playwright browser directory.
+

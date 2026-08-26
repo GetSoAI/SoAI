@@ -1,0 +1,26 @@
+/* SoAI - Button base component styles [frontend/assets/css/components/controls/button-base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-button {
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-4);
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        line-height: var(--line-height-body-compact);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+
+        --button-icon-scale: 0.15;
+    }
+
+    .ui-button svg {
+        display: block;
+    }
+
+    @container ui-viewport (width <= 768px) and (orientation: portrait) {
+        body {
+            --is-mobile-portrait: 1;
+        }
+    }
+}

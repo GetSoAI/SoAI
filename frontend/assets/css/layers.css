@@ -1,0 +1,4 @@
+/* SoAI - Layers frontend styles [frontend/assets/css/layers.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations, components, layout, pages, utilities, states, overrides;

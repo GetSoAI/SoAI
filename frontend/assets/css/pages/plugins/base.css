@@ -1,0 +1,259 @@
+/* SoAI - Plugins page base styles [frontend/assets/css/pages/plugins/base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-backend-link svg {
+        flex-shrink: 0;
+        width: 0.75rem;
+        height: 0.75rem;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) :is(.download-plugin svg, .plugin-logo-small) {
+        width: 19px;
+        height: 19px;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .download-plugin svg {
+        stroke: var(--accent-green);
+        fill: none;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-logo-small {
+        border-radius: var(--border-radius);
+        margin-right: var(--space-2);
+        object-fit: contain;
+        flex-shrink: 0;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-file-input {
+        opacity: 0;
+        pointer-events: none;
+        display: none;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .plugin-description-empty {
+        display: block;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card > .ui-collection-card__subtitle.plugin-description {
+        height: calc((var(--font-size-compact-plus) * var(--line-height-body-compact) * 3) + (var(--layout-collection-card-horizontal-padding-block) * 2));
+        min-height: calc((var(--font-size-compact-plus) * var(--line-height-body-compact) * 3) + (var(--layout-collection-card-horizontal-padding-block) * 2));
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .plugin-info.ui-collection-card__info {
+        min-height: calc(var(--space-7) + (18px * 2 + var(--space-1)) + 32px + (var(--layout-collection-card-info-gap) * 2));
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) :is(.plugin-author, .version-value) {
+        font-family: var(--font-family-mono);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-author {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-15);
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .ui-collection-card__content > .ui-collection-card__info.plugin-info > .ui-model-type-badges--inline.ui-model-type-badges {
+        padding-inline: var(--layout-collection-card-content-padding-inline);
+        min-height: calc(18px * 2 + var(--space-1));
+        max-height: calc(18px * 2 + var(--space-1));
+        overflow: hidden;
+        align-content: flex-start;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card:is(.is-disabled, .plugin-card--incompatible, .plugin-card--circuit-breaker, [data-status='BACKEND_NOT_INSTALLED'], [data-status='BACKEND_INSTALLING'], [data-status='BACKEND_UPDATING'], [data-status='INSTALL_ERROR'], [data-status='LOAD_ERROR'], [data-status='UPDATE_ERROR'], [data-status='BACKEND_UNINSTALL_ERROR'], [data-status='DELETE_ERROR'], [data-status='NOT_DETECTED'], [data-status='ABSENT'], [data-status='REMOVING_BACKEND'], [data-status='DELETING']) .ui-collection-card__content > .ui-collection-card__info.plugin-info > :is(.plugin-author, .ui-model-type-badges--inline.ui-model-type-badges) {
+        visibility: hidden;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card[data-status='BACKEND_NOT_INSTALLED'] .ui-collection-card__content > .ui-collection-card__info.plugin-info > .ui-model-type-badges--inline.ui-model-type-badges {
+        visibility: visible;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-author-label {
+        font-weight: 400;
+        flex-shrink: 0;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-author-value {
+        word-break: break-all;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .toggle-label {
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+        color: var(--text-secondary);
+        min-width: 35px;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-compatibility-banner {
+        margin: 0;
+        padding: var(--space-3) var(--space-25);
+        border-radius: var(--border-radius);
+        font-size: var(--font-size-body-sm);
+        line-height: 1.4;
+        text-align: left;
+        display: flex;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-compatibility-banner:is(.incompatible, .circuit-breaker) {
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugins-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        padding: var(--space-8);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugins-empty.u-hidden {
+        display: none;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-compatibility-banner.incompatible {
+        background: var(--badge-bg-red);
+        border: var(--border-width-1) solid var(--badge-border-red);
+        color: var(--status-red);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-compatibility-banner.circuit-breaker {
+        background: var(--badge-bg-orange);
+        border: var(--border-width-1) solid var(--badge-border-orange);
+        color: color-mix(in srgb, var(--status-orange) 85%, var(--text-secondary));
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-compatibility-banner svg {
+        width: var(--font-size-110);
+        height: var(--font-size-110);
+        flex: 0 0 auto;
+        margin-top: 0;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-compatibility-banner span {
+        flex: 1 1 auto;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) :is(.plugin-card .status-install-button svg, .plugin-info-led) {
+        width: 12px;
+        height: 12px;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-round-button--clone {
+        top: 30px;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-round-button--edit-config {
+        top: 53px;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card:not(:has(.ui-round-button--clone)) .ui-round-button--edit-config {
+        top: 30px;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card:has(.ui-round-button--stop:not(.ui-round-button--inline)) .ui-round-button--clone {
+        top: 53px;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card:has(.ui-round-button--stop:not(.ui-round-button--inline)) .ui-round-button--edit-config {
+        top: 76px;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card:not(:has(.ui-round-button--clone)):has(.ui-round-button--stop:not(.ui-round-button--inline)) .ui-round-button--edit-config {
+        top: 53px;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .status-install-button {
+        margin-left: auto;
+        flex-shrink: 0;
+        padding: var(--space-1) var(--space-2);
+        font-size: var(--font-size-compact-plus);
+        gap: var(--space-1);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-led {
+        border-radius: var(--border-radius);
+        margin-right: var(--space-2);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-file-input-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-selected-file {
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .manual-discovery-text {
+        font-size: var(--font-size-body-xs);
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .manual-discovery-text p {
+        margin: 0 0 var(--space-3);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .manual-path-row {
+        margin-top: var(--space-3);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .manual-models-path {
+        color: var(--text-tertiary);
+        background: var(--glass-surface-medium);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border-color: var(--glass-border-strong);
+        box-shadow: var(--glass-shadow-base);
+        pointer-events: none;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .manual-models-path:hover {
+        border-color: var(--glass-border-strong);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-config-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-4);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .config-field-item--full,
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-row-full {
+        grid-column: 1 / -1;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-config-validation {
+        display: none;
+        font-size: var(--font-size-xs);
+        padding: var(--space-3);
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-config-validation.error {
+        display: block;
+        color: var(--status-red);
+        background: var(--badge-bg-red);
+        border: var(--border-width-1) solid var(--badge-border-red);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='BACKEND_NOT_INSTALLED'] {
+        --status-color: var(--status-green);
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 3%, var(--glass-underlay-surface));
+        border-color: color-mix(in srgb, var(--status-color) 40%, var(--glass-border-strong));
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='BACKEND_NOT_INSTALLED'] .ui-metric-label,
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='BACKEND_NOT_INSTALLED'] .ui-metric-value {
+        color: color-mix(in srgb, var(--status-color) 85%, var(--text-secondary));
+    }
+}

@@ -1,0 +1,21 @@
+/* SoAI - Dashboard page recessed surfaces styles [frontend/assets/css/pages/dashboard/recessed-surfaces.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section > .dashboard-section-surface > .section-content {
+        background-color: var(--recessed-surface-fill-background);
+        background-image: var(--recessed-surface-fill);
+        background-blend-mode: var(--recessed-surface-texture-blend);
+        background-size: var(--recessed-surface-texture-size);
+        -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
+        backdrop-filter: var(--recessed-surface-backdrop-filter);
+        box-shadow: var(--recessed-surface-shadow);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section::after {
+        background-color: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+}

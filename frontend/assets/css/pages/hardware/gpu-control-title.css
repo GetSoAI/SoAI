@@ -1,0 +1,31 @@
+/* SoAI - Hardware page GPU control title styles [frontend/assets/css/pages/hardware/gpu-control-title.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        flex: 1 1 auto;
+        min-width: 0;
+        line-height: 1.2;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-title > .gpu-control-vendor-logo {
+        width: 19px;
+        height: 19px;
+        border-radius: var(--border-radius);
+        object-fit: contain;
+        flex-shrink: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-title > .gpu-control-title-text {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        overflow: hidden;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+}

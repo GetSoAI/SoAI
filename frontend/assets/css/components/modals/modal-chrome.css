@@ -1,0 +1,148 @@
+/* SoAI - Modal chrome component styles [frontend/assets/css/components/modals/modal-chrome.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :is(.modal-header, .modal-footer) {
+        display: flex;
+        align-items: center;
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    .modal-header {
+        justify-content: space-between;
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0;
+        flex-shrink: 0;
+        background: color-mix(in srgb, var(--modal-chrome-background) 88%, var(--bg-primary));
+    }
+
+    .modal-footer {
+        justify-content: flex-end;
+        gap: var(--modal-footer-gap);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+        flex-shrink: 0;
+        padding: var(--modal-header-padding);
+        background: color-mix(in srgb, var(--modal-chrome-background) 88%, var(--bg-primary));
+    }
+
+    .modal-footer--split {
+        justify-content: space-between;
+    }
+
+    .modal-footer--split .modal-footer-section {
+        display: flex;
+        align-items: center;
+        gap: var(--modal-footer-gap);
+    }
+
+    .modal-footer--split .modal-footer-section--left {
+        justify-content: flex-start;
+    }
+
+    .modal-footer--split .modal-footer-section--center {
+        justify-content: center;
+        flex: 0 1 auto;
+    }
+
+    .modal-footer--split .modal-footer-section--right {
+        justify-content: flex-end;
+        gap: var(--modal-footer-gap);
+    }
+
+    .modal-header-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: nowrap;
+        gap: var(--space-1);
+        padding: var(--modal-header-padding);
+        cursor: grab;
+        user-select: none;
+        background: transparent;
+    }
+
+    .modal-header-actions {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        flex: none;
+        gap: calc(var(--space-1) - 1px);
+        margin-left: auto;
+    }
+
+    .modal-header-top:active {
+        cursor: grabbing;
+    }
+
+    .modal-header h3 {
+        flex: 1;
+        margin: 0;
+        font-size: var(--font-size-heading-xs);
+        font-weight: 500;
+        color: var(--text-primary);
+        text-align: left;
+    }
+
+    .modal-header-title-copy {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .modal-header-title-copy > .modal-title {
+        flex: none;
+    }
+
+    .modal-header-description {
+        color: var(--text-tertiary);
+        font-size: var(--font-size-xs);
+        line-height: 1.3;
+        margin: var(--space-1) 0 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .modal-header-top > .prompt-modal-header {
+        align-items: flex-start;
+        display: flex;
+        flex: 1;
+        gap: var(--space-1);
+        justify-content: flex-start;
+        min-width: 0;
+        padding: 0;
+    }
+
+    .modal-header-top > .prompt-modal-header > .modal-header-action-button {
+        flex: none;
+        margin-left: auto;
+    }
+
+    .modal-header-top > .prompt-modal-header + .modal-header-actions {
+        margin-left: auto;
+    }
+
+    .prompt-modal-header-left {
+        align-items: flex-start;
+        display: flex;
+        flex: 1;
+        gap: var(--space-4);
+        min-width: 0;
+    }
+
+    .prompt-modal-header-left .modal-header-title-copy,
+    .prompt-modal-header-left h3 {
+        flex: 1;
+        margin: 0;
+        min-width: 0;
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .modal-footer-section--left.modal-footer-section > .ui-button:is([data-modal-close], [data-modal-footer-dismiss='true']) {
+            display: none;
+        }
+    }
+}

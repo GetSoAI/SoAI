@@ -1,0 +1,40 @@
+/* SoAI - Collection card metrics component styles [frontend/assets/css/components/collections/collection-card-metrics.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :is(.models-header, .plugins-header, .model-detail-header) {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: var(--space-8);
+        gap: var(--space-8);
+    }
+
+    .plugin-description,
+    .plugin-author,
+    .plugin-metrics-display.ui-collection-card__metrics-grid {
+        transition: visibility var(--transition-normal);
+    }
+
+    .ui-collection-card__metrics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: var(--layout-collection-card-metrics-gap);
+        margin-top: var(--layout-collection-card-metrics-margin-top);
+        padding: var(--layout-collection-card-metrics-padding);
+    }
+
+    .ui-collection-card__status-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--layout-collection-card-metrics-gap);
+        margin-bottom: var(--layout-collection-card-status-margin-bottom);
+        padding: var(--layout-collection-card-metrics-padding);
+    }
+
+    .progress-bar-container {
+        width: 100%;
+        margin-bottom: var(--space-2);
+    }
+}

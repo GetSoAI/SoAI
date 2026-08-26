@@ -1,0 +1,37 @@
+/* SoAI - Chat audio preview component styles [frontend/assets/css/components/chat/chat-audio-preview.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .voice-recording-preview-item.file-preview-item.document {
+        width: min(260px, 100%);
+    }
+
+    :where(.chat-container) .voice-recording-preview-icon {
+        color: var(--status-blue);
+        animation: chat-audio-preview-pulse var(--duration-1200) var(--ease-in-out) infinite;
+    }
+
+    :where(.chat-container) .voice-recording-preview-status {
+        min-width: 0;
+    }
+
+    :where(.chat-container) .voice-recording-preview-spinner.loading-spinner {
+        width: 12px;
+        height: 12px;
+        border-width: var(--border-width-1);
+        border-top-width: var(--border-width-1);
+    }
+
+    @keyframes chat-audio-preview-pulse {
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 0.8;
+        }
+
+        50% {
+            transform: scale(1.06);
+            opacity: 1;
+        }
+    }
+}

@@ -1,0 +1,27 @@
+/* SoAI - Wizard animations frontend styles [frontend/assets/css/foundations/wizard-animations.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    @keyframes wizard-step-enter {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes wizard-progress-glow {
+        0%,
+        100% {
+            box-shadow: 0 0 6px color-mix(in srgb, var(--accent-green) 30%, transparent);
+        }
+
+        50% {
+            box-shadow: 0 0 14px color-mix(in srgb, var(--accent-green) 50%, transparent);
+        }
+    }
+}

@@ -1,0 +1,71 @@
+/* SoAI - Searchbar base component styles [frontend/assets/css/components/controls/searchbar-base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .searchbar-container {
+        --searchbar-border: var(--text-field-border);
+        --searchbar-border-focus: color-mix(in srgb, var(--status-grey) 72%, var(--text-field-border));
+        --searchbar-color: var(--text-primary);
+        --searchbar-shadow: var(--glass-shadow-base);
+        --searchbar-shadow-focus: var(--glass-shadow-base), 0 0 0 var(--control-focus-ring-width) color-mix(in srgb, var(--status-grey) 24%, transparent);
+        --searchbar-backdrop: var(--glass-blur-base);
+        --searchbar-bg: var(--text-field-bg);
+        --searchbar-bg-focus: var(--searchbar-bg);
+        --searchbar-bg-disabled: var(--text-field-bg-disabled);
+        --searchbar-height: var(--control-height);
+        --searchbar-font-size: var(--font-size-body-md);
+        --searchbar-padding-block: var(--control-padding-block-lg);
+        --searchbar-padding-inline: var(--space-35);
+        --searchbar-padding-inline-end: var(--space-12);
+        --searchbar-bg-hover: var(--text-field-bg-hover);
+        --searchbar-border-hover: var(--text-field-border-hover);
+        position: relative;
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+
+    .searchbar-container.compact {
+        --searchbar-height: var(--control-height-compact);
+        --searchbar-font-size: var(--font-size-body-sm);
+        --searchbar-padding-block: var(--control-padding-block);
+        --searchbar-padding-inline: var(--control-padding-inline);
+        --searchbar-padding-inline-end: var(--space-10);
+    }
+
+    .searchbar-container.header-search {
+        --searchbar-height: var(--icon-button-size);
+        --searchbar-padding-block: var(--control-padding-block);
+        --searchbar-padding-inline: var(--control-padding-inline);
+        --searchbar-padding-inline-end: var(--space-9);
+        width: var(--icon-button-size);
+        max-width: var(--icon-button-size);
+        height: var(--icon-button-size);
+        flex: 0 0 auto;
+        position: relative;
+
+        --searchbar-shadow: none;
+        --searchbar-shadow-focus: 0 0 0 var(--control-focus-ring-width) color-mix(in srgb, var(--status-grey) 20%, transparent);
+    }
+
+    .searchbar-container.header-search .header-search__bar {
+        display: none;
+    }
+
+    .searchbar-container.header-search .header-search__icon {
+        display: none;
+    }
+
+    .searchbar-container.wide {
+        min-width: 266px;
+    }
+
+    .searchbar-container.inline {
+        display: inline-flex;
+        width: auto;
+    }
+
+    .searchbar-container.full-width {
+        width: 100%;
+    }
+}

@@ -1,0 +1,169 @@
+/* SoAI - Dashboard page throughput widget styles [frontend/assets/css/pages/dashboard/throughput-widget.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) [data-section-id='throughput'] .section-content {
+        display: grid;
+        place-items: center;
+        min-height: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput {
+        --throughput-arc: 0%;
+        --throughput-intensity: 0;
+        --dashboard-throughput-accent: color-mix(in srgb, var(--accent-red) calc(var(--throughput-intensity) * 100%), var(--accent-cyan));
+        display: grid;
+        justify-items: stretch;
+        align-content: center;
+        gap: var(--space-2);
+        inline-size: 100%;
+        min-height: 0;
+        padding: var(--space-2);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-ring-shell {
+        position: relative;
+        display: grid;
+        place-items: center;
+        inline-size: min(15rem, 100%);
+        aspect-ratio: 1;
+        justify-self: center;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-ring-shell::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-base);
+        border-radius: var(--border-round);
+        box-shadow:
+            0 0.1rem 0 color-mix(in srgb, var(--dashboard-throughput-accent) 46%, var(--color-black)),
+            0 0.24rem 0 color-mix(in srgb, var(--dashboard-throughput-accent) 38%, var(--color-black)),
+            0 0.4rem 0 color-mix(in srgb, var(--dashboard-throughput-accent) 30%, var(--color-black)),
+            0 0.56rem 0 color-mix(in srgb, var(--dashboard-throughput-accent) 22%, var(--color-black)),
+            0 0.72rem 0 color-mix(in srgb, var(--dashboard-throughput-accent) 16%, var(--color-black)),
+            0 1.35rem 1.6rem -0.06rem color-mix(in srgb, var(--recessed-surface-shadow-dark) 60%, transparent);
+        pointer-events: none;
+        transition: box-shadow var(--transition-normal) var(--ease-material);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-ring {
+        --throughput-center-inset: 22%;
+        position: relative;
+        z-index: var(--z-above-sibling);
+        display: grid;
+        place-items: center;
+        inline-size: 100%;
+        aspect-ratio: 1;
+        border: var(--border-width-1) solid color-mix(in srgb, var(--surface-card-border) 64%, transparent);
+        border-radius: var(--border-round);
+        background: color-mix(in srgb, var(--recessed-surface-fill-background) 88%, var(--chart-plot-background));
+        box-shadow:
+            inset 0 0.12rem 0.3rem color-mix(in srgb, var(--color-white) 4%, transparent),
+            inset 0 -0.26rem 0.46rem color-mix(in srgb, var(--color-black) 34%, transparent);
+        overflow: hidden;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-throughput-ring-arc, .dashboard-throughput-ring-face) {
+        position: absolute;
+        border-radius: inherit;
+        pointer-events: none;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-ring-arc {
+        inset: var(--border-width-1);
+        z-index: var(--z-base);
+        background: conic-gradient(from 0deg, var(--dashboard-throughput-accent) 0 var(--throughput-arc), color-mix(in srgb, var(--dashboard-throughput-accent) 12%, transparent) var(--throughput-arc) 100%);
+        mask: radial-gradient(farthest-side, transparent calc(100% - var(--throughput-center-inset)), var(--color-black) calc(100% - var(--throughput-center-inset) + 0.02rem));
+        transition: background var(--transition-normal) var(--ease-material);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-ring-face {
+        inset: 0;
+        z-index: var(--z-above-sibling);
+        background: radial-gradient(circle at 33% 22%, color-mix(in srgb, var(--color-white) 4%, transparent) 0%, transparent 62%), radial-gradient(135% 135% at 50% 6%, color-mix(in srgb, var(--color-white) 7%, transparent) 0%, transparent 34%, transparent 50%, color-mix(in srgb, var(--color-black) 22%, transparent) 78%, color-mix(in srgb, var(--color-black) 36%, transparent) 100%);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-center {
+        position: relative;
+        z-index: var(--z-sticky);
+        display: grid;
+        place-items: center;
+        gap: var(--space-025);
+        inline-size: calc(100% - 2 * var(--throughput-center-inset));
+        aspect-ratio: 1;
+        padding: var(--space-1);
+        border-radius: var(--border-round);
+        border: var(--border-width-1) solid var(--glass-border-subtle);
+        background-color: color-mix(in srgb, var(--glass-surface-medium) 74%, var(--recessed-surface-fill-background));
+        background-image: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--color-white) 7%, transparent) 0%, transparent 54%), radial-gradient(circle at 50% 76%, color-mix(in srgb, var(--color-black) 18%, transparent) 0%, transparent 64%);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow:
+            inset 0 0.12rem 0.3rem color-mix(in srgb, var(--color-black) 24%, transparent),
+            inset 0 -0.08rem 0.18rem color-mix(in srgb, var(--color-white) 8%, transparent),
+            0 0.24rem 0.8rem color-mix(in srgb, var(--color-black) 24%, transparent);
+        text-align: center;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-value {
+        color: var(--text-primary);
+        font-size: var(--font-size-2xl);
+        font-weight: 700;
+        line-height: var(--line-height-tight);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: var(--tracking-tight);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-unit {
+        color: var(--text-tertiary);
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-04px);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-stats {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        inline-size: 100%;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-throughput-active, .dashboard-throughput-detail) {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+        inline-size: 100%;
+        padding: var(--space-2);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-throughput-active {
+        margin-block-start: var(--space-16);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-throughput-active-label, .dashboard-throughput-detail-label) {
+        color: var(--text-secondary);
+        font-size: var(--font-size-compact);
+        font-weight: 600;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-throughput-active-value, .dashboard-throughput-detail-value) {
+        color: var(--text-primary);
+        font-size: var(--font-size-compact);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        line-height: var(--line-height-compact);
+        flex-shrink: 0;
+        text-align: right;
+    }
+}

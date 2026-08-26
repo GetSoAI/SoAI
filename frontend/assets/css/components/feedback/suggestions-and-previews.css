@@ -1,0 +1,290 @@
+/* SoAI - Suggestions and previews component styles [frontend/assets/css/components/feedback/suggestions-and-previews.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .chat-page-suggestion-card-title {
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        color: var(--text-primary);
+        line-height: 1.3;
+    }
+
+    :where(.chat-container) .chat-page-suggestion-card-text {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+        line-height: var(--line-height-body-compact);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    body.reduce-motions :where(.chat-container) .chat-page-suggestion-card {
+        transition: none;
+    }
+
+    @container ui-viewport (height <= 640px) {
+        :where(.chat-container) .chat-page-suggestion-row-wrapper {
+            display: none;
+        }
+    }
+
+    :where(.chat-container) .chat-previews-container {
+        position: absolute;
+
+        --chat-previews-container-bottom: calc(80px + var(--ui-safe-area-inset-bottom));
+        --chat-previews-container-gap: var(--space-2);
+        --chat-previews-container-left: var(--space-14);
+        --chat-previews-container-right: 3rem;
+        bottom: var(--chat-previews-container-bottom);
+        left: var(--chat-previews-container-left);
+        right: var(--chat-previews-container-right);
+        max-height: var(--chat-attached-files-max-height);
+        overflow-y: auto;
+        z-index: var(--z-dropdown);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    :where(.chat-container) .chat-previews-container.u-hidden {
+        display: none;
+    }
+
+    @container ui-viewport (width >= 1280px) {
+        :where(.chat-container) .chat-page-suggestion-row {
+            gap: var(--space-4);
+        }
+
+        :where(.chat-container) .chat-page-suggestion-card {
+            width: 150px;
+            min-height: 120px;
+        }
+    }
+
+    :where(.chat-container) .agent-todo-panel-container {
+        position: absolute;
+        top: var(--chat-conversation-header-height);
+        inset-inline: 0 var(--chat-native-scrollbar-gutter-width);
+        z-index: var(--z-raised);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        transform: translateY(-2px);
+        transition:
+            max-height var(--duration-220) var(--ease-default),
+            opacity var(--duration-220) var(--ease-default),
+            transform var(--duration-220) var(--ease-default);
+    }
+
+    :where(.chat-container) .agent-todo-panel-container[data-agent-todo-panel-visibility='visible'] {
+        overflow: visible;
+        max-height: min(calc(var(--chat-conversation-header-height) + var(--chat-conversation-item-height)), calc(100% - var(--chat-conversation-header-height)));
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    :where(.chat-container) .agent-todo-panel {
+        display: flex;
+        flex-direction: column;
+        max-height: inherit;
+        min-height: 0;
+        background: transparent;
+        flex: 1 1 auto;
+        overflow: hidden;
+    }
+
+    :where(.chat-container) .agent-todo-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-2);
+        width: 100%;
+        min-height: calc(1rem + var(--control-height) + 0.75rem);
+        padding: 0 var(--space-4);
+        background: transparent;
+        flex-wrap: wrap;
+        row-gap: var(--space-2);
+        position: relative;
+        z-index: var(--z-raised);
+        isolation: isolate;
+        overflow: hidden;
+        flex: 0 0 auto;
+        user-select: none;
+    }
+
+    :where(.chat-container) .agent-todo-panel--collapsed > .agent-todo-panel-header {
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where(.chat-container) .agent-todo-panel-header::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: var(--chat-plan-overlay-surface);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        z-index: var(--z-layer-background);
+    }
+
+    :where(.chat-container) .agent-todo-panel-header > * {
+        position: relative;
+        z-index: var(--z-raised);
+    }
+
+    :where(.chat-container) .agent-todo-panel-header[data-action='chat:toggle-todo-panel'] {
+        cursor: pointer;
+    }
+
+    :where(.chat-container) .agent-todo-panel-view-plan {
+        flex-shrink: 0;
+        white-space: nowrap;
+        position: relative;
+        overflow: visible;
+    }
+
+    :where(.chat-container) .agent-todo-panel-title {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        color: var(--text-secondary);
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        font-weight: 600;
+        line-height: 1.3;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .agent-todo-panel-view-plan-icon-wrapper {
+        position: static;
+    }
+
+    :where(.chat-container) .agent-todo-panel-view-plan-icon-wrapper.agent-todo-panel-view-plan-icon-wrapper > .ui-icon {
+        pointer-events: none;
+    }
+
+    :where(.chat-container) .agent-todo-plan-update-count {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        background-color: var(--status-red);
+        color: var(--color-white);
+        width: var(--status-led-size);
+        height: var(--status-led-size);
+        min-width: var(--status-led-size);
+        padding: 0;
+        border-radius: var(--border-radius);
+        display: block;
+        z-index: var(--z-raised);
+        pointer-events: none;
+    }
+
+    :where(.chat-container) .agent-todo-panel-header-toggle {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-width: 0;
+        border: none;
+        background: transparent;
+        padding: 0;
+        color: var(--text-secondary);
+        cursor: pointer;
+        flex: 1;
+        justify-content: flex-start;
+    }
+
+    :where(.chat-container) .agent-todo-panel-header-toggle:hover {
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .agent-todo-panel-body {
+        min-height: 0;
+        height: var(--chat-conversation-item-height);
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-gutter: stable;
+        flex: 0 0 var(--chat-conversation-item-height);
+        opacity: 1;
+        background: var(--chat-plan-overlay-surface);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+        padding: var(--space-3) var(--space-4) var(--space-4);
+        transform: translateY(0);
+        transition:
+            max-height var(--duration-220) var(--ease-default),
+            opacity var(--duration-220) var(--ease-default),
+            padding var(--duration-220) var(--ease-default),
+            border-top-width var(--duration-220) var(--ease-default),
+            border-bottom-width var(--duration-220) var(--ease-default),
+            transform var(--duration-220) var(--ease-default);
+    }
+
+    :where(.chat-container) .agent-todo-panel--no-transition .agent-todo-panel-body {
+        transition: none;
+    }
+
+    :where(.chat-container) .agent-todo-panel--collapsed .agent-todo-panel-body {
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        padding: 0;
+        border-top-width: 0;
+        border-bottom-width: 0;
+        transform: translateY(-2px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where(.chat-container) :is(.agent-todo-panel-container, .agent-todo-panel-body) {
+            transition: none;
+        }
+    }
+
+    :where(.chat-container) .agent-todo-items {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-15);
+    }
+
+    :where(.chat-container) .agent-todo-item {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: var(--space-2);
+        color: var(--text-secondary);
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+    }
+
+    :where(.chat-container) .agent-todo-item-led {
+        display: inline-flex;
+        flex-shrink: 0;
+        width: 8px;
+        height: 8px;
+        border-radius: var(--border-radius);
+        background: var(--status-grey);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--glass-underlay-surface) 72%, transparent);
+    }
+
+    :where(.chat-container) .agent-todo-item--pending .agent-todo-item-led {
+        background: var(--status-grey);
+    }
+
+    :where(.chat-container) .agent-todo-item--in-progress .agent-todo-item-led {
+        background: var(--status-orange);
+    }
+
+    :where(.chat-container) .agent-todo-item--completed .agent-todo-item-led {
+        background: var(--status-green);
+    }
+
+    :where(.chat-container) :is(.inline-activity-leading-icon, .inline-activity-icon) {
+        flex-shrink: 0;
+    }
+}

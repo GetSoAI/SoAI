@@ -1,0 +1,33 @@
+/* SoAI - Wallpaper tokens frontend styles [frontend/assets/css/foundations/wallpaper-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --app-wallpaper: none;
+        --app-background-gradient-start-base: rgb(217 217 217);
+        --app-background-gradient-mid-base: rgb(183 183 183);
+        --app-background-gradient-end-base: rgb(173 173 173);
+        --app-background-base-raw: var(--app-background-gradient-mid-base);
+        --surface-user-tint: var(--app-background-base-raw);
+        --surface-user-tint-strength: 0%;
+        --surface-tint-bg-amount: 26%;
+        --surface-tint-page-amount: 50%;
+        --surface-tint-surface-amount: 40%;
+        --surface-tint-fill-amount: 40%;
+        --app-background-gradient-start-tinted: color-mix(in srgb, var(--app-background-gradient-start-base), var(--surface-user-tint) var(--surface-tint-bg-amount));
+        --app-background-gradient-mid-tinted: color-mix(in srgb, var(--app-background-gradient-mid-base), var(--surface-user-tint) calc(var(--surface-tint-bg-amount) + 12%));
+        --app-background-gradient-end-tinted: color-mix(in srgb, var(--app-background-gradient-end-base), var(--surface-user-tint) var(--surface-tint-bg-amount));
+        --app-background-gradient-start: color-mix(in srgb, var(--app-background-gradient-start-base), var(--app-background-gradient-start-tinted) var(--surface-user-tint-strength));
+        --app-background-gradient-mid: color-mix(in srgb, var(--app-background-gradient-mid-base), var(--app-background-gradient-mid-tinted) var(--surface-user-tint-strength));
+        --app-background-gradient-end: color-mix(in srgb, var(--app-background-gradient-end-base), var(--app-background-gradient-end-tinted) var(--surface-user-tint-strength));
+        --app-background-gradient: linear-gradient(135deg, var(--app-background-gradient-start) 0%, var(--app-background-gradient-mid) 46%, var(--app-background-gradient-end) 100%);
+        --app-background-base-tinted: color-mix(in srgb, var(--app-background-base-source), var(--surface-user-tint) var(--surface-tint-bg-amount));
+        --app-background-base: color-mix(in srgb, var(--app-background-base-source), var(--app-background-base-tinted) var(--surface-user-tint-strength));
+        --wallpaper-overlay-opacity: 0;
+        --wallpaper-overlay-rgb-light: 255 255 255;
+        --wallpaper-overlay-rgb-dark: 21 21 20;
+        --wallpaper-overlay-rgb: var(--wallpaper-overlay-rgb-light);
+        --avatar-bg-assistant: var(--accent-blue);
+        --avatar-bg-user: color-mix(in srgb, var(--accent-green) 85%, var(--color-black) 15%);
+    }
+}

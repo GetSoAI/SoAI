@@ -1,0 +1,201 @@
+/* SoAI - Chat attach modal camera component styles [frontend/assets/css/components/chat/chat-attach-modal-camera.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .chat-attach-modal-camera {
+        --chat-attach-camera-controls-size: 6.5rem;
+        --chat-attach-camera-aspect-ratio: 4 / 3;
+        --chat-attach-camera-live-width: min(calc(64 * var(--ui-viewport-dynamic-height-unit)), 42rem);
+        --chat-attach-camera-live-ratio: var(--chat-attach-camera-aspect-ratio);
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) var(--chat-attach-camera-controls-size);
+        align-items: stretch;
+        justify-content: stretch;
+        gap: 0;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+        background: transparent;
+    }
+
+    .modal-body:has(.chat-attach-modal-camera.is-active) {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .chat-attach-modal-body:has(> .chat-attach-modal-camera.is-active) {
+        flex: 1 1 auto;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .chat-attach-modal-camera > .chat-attach-modal-tab-header {
+        margin-bottom: var(--space-3);
+    }
+
+    .chat-attach-modal-camera-stage {
+        position: relative;
+        display: grid;
+        place-items: center;
+        align-self: center;
+        justify-self: center;
+        width: auto;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        aspect-ratio: 1 / 1;
+        contain: layout paint size;
+        overflow: hidden;
+        background: var(--color-black);
+    }
+
+    .chat-attach-modal-camera[data-camera-state='streaming'] .chat-attach-modal-camera-stage,
+    .chat-attach-modal-camera[data-camera-state='captured'] .chat-attach-modal-camera-stage {
+        width: auto;
+        height: 100%;
+        max-width: min(100%, var(--chat-attach-camera-live-width));
+        max-height: 100%;
+        aspect-ratio: var(--chat-attach-camera-live-ratio);
+    }
+
+    .chat-attach-modal-camera-video,
+    .chat-attach-modal-camera-canvas {
+        position: absolute;
+        inset: 0;
+        display: none;
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        min-width: 0;
+        min-height: 0;
+        object-fit: cover;
+        object-position: center;
+    }
+
+    .chat-attach-modal-camera[data-camera-state='streaming'] .chat-attach-modal-camera-video,
+    .chat-attach-modal-camera[data-camera-state='captured'] .chat-attach-modal-camera-canvas {
+        display: block;
+    }
+
+    .chat-attach-modal-camera-status {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        max-width: calc(100% - var(--space-8));
+        padding: var(--space-1) var(--space-2);
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--color-black) 70%, transparent);
+        color: var(--color-white);
+        font-size: var(--font-size-xs);
+        text-align: center;
+        transform: translate(-50%, -50%);
+    }
+
+    .chat-attach-modal-camera-status[hidden] {
+        display: none;
+    }
+
+    .chat-attach-modal-camera-controls {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        height: var(--chat-attach-camera-controls-size);
+        padding: var(--space-4) var(--space-4) var(--space-3);
+        min-height: 0;
+        background: transparent;
+    }
+
+    .chat-attach-modal-camera-control-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: center;
+        justify-content: center;
+        column-gap: var(--space-5);
+        width: 100%;
+        max-width: 18rem;
+    }
+
+    .chat-attach-camera-control {
+        grid-row: 1;
+        width: 44px;
+        height: 44px;
+        border: none;
+        border-radius: var(--border-round);
+        background: color-mix(in srgb, var(--color-white) 18%, transparent);
+        color: var(--color-white);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        justify-self: center;
+        padding: 0;
+        cursor: pointer;
+        transition:
+            background var(--transition-fast),
+            color var(--transition-fast),
+            transform var(--transition-fast);
+    }
+
+    .chat-attach-camera-control:disabled,
+    .chat-attach-camera-control[aria-disabled='true'] {
+        opacity: 0.5;
+        cursor: default;
+    }
+
+    .chat-attach-camera-control:focus-visible,
+    .chat-attach-camera-control:hover:not(:disabled, [aria-disabled='true']) {
+        background: color-mix(in srgb, var(--color-white) 26%, transparent);
+        color: var(--color-white);
+        transform: scale(0.96);
+    }
+
+    .chat-attach-camera-control-camera-flip,
+    .chat-attach-camera-control-camera-use {
+        grid-column: 3;
+    }
+
+    .chat-attach-camera-control-camera-retake {
+        grid-column: 1;
+    }
+
+    .chat-attach-camera-control-camera-shutter {
+        grid-column: 2;
+    }
+
+    .chat-attach-camera-shutter {
+        width: 76px;
+        height: 76px;
+        border: var(--border-width-3) solid var(--color-white);
+        background: transparent;
+        color: var(--color-white);
+        box-shadow: none;
+    }
+
+    .chat-attach-camera-shutter-core {
+        width: 60px;
+        height: 60px;
+        border-radius: var(--border-round);
+        background: var(--color-white);
+        transition: transform var(--transition-fast);
+    }
+
+    .chat-attach-camera-shutter:focus-visible,
+    .chat-attach-camera-shutter:hover:not(:disabled, [aria-disabled='true']) {
+        background: transparent;
+        border-color: var(--color-white);
+        color: var(--color-white);
+    }
+
+    .chat-attach-camera-shutter:focus-visible .chat-attach-camera-shutter-core,
+    .chat-attach-camera-shutter:hover:not(:disabled, [aria-disabled='true']) .chat-attach-camera-shutter-core {
+        transform: scale(0.94);
+    }
+
+    .chat-attach-camera-control[hidden] {
+        display: none;
+    }
+}

@@ -1,0 +1,209 @@
+/* SoAI - Settings page layout styles [frontend/assets/css/pages/settings/layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='settings'], [data-page-scope='settings']) .advanced-toggle-container {
+        display: flex;
+        align-items: center;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .page-actions:not(.page-actions--dropdown) .settings-search-container {
+        order: -1;
+        margin-right: auto;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .page-actions:not(.page-actions--dropdown) .page-actions__menu .advanced-toggle-container {
+        margin-left: auto;
+        order: 2;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-empty {
+        padding: var(--space-16) var(--space-8);
+        min-height: 300px;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-empty .ui-empty-state {
+        max-width: 500px;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .animation-options-grid {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    @container ui-viewport (width >= 1024px) or ((width >= 768px) and (width <= 1024px) and (orientation: landscape)) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3);
+            align-items: start;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .tab-content[data-tab-type='advanced'] .settings-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .setting-item.full-width {
+            grid-column: span 2;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .setting-item {
+            grid-column: span 1;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .animation-options-grid {
+            grid-column: span 2;
+        }
+    }
+
+    @container ui-viewport (width >= 1024px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-group {
+            column-gap: var(--space-6);
+        }
+    }
+
+    @container ui-viewport (width >= 768px) and (width <= 1024px) and (orientation: landscape) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-group {
+            column-gap: var(--space-5);
+        }
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .tab-content[data-tab-type='advanced'] .section-content {
+            column-count: 1;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-subgroup {
+            margin-bottom: var(--space-6);
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .setting-item {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) :is(.setting-control, .setting-input, .setting-textarea) {
+            width: 100%;
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-clock-preference {
+            display: none;
+        }
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .mcp-params code {
+        display: block;
+        white-space: pre-wrap;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .mcp-catalog-icon-wrap {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        flex-shrink: 0;
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .mcp-catalog-icon {
+        width: 1rem;
+        height: 1rem;
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.mcp-server-info, .mcp-search-info, .mcp-root-info, .mcp-interaction-info, .mcp-catalog-info) {
+        flex: 1;
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.mcp-server-header, .mcp-interaction-header, .mcp-catalog-header) {
+        margin-bottom: var(--space-1);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.mcp-server-name, .mcp-catalog-name) {
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.mcp-server-details, .mcp-search-masked, .mcp-root-name, .mcp-interaction-meta, .mcp-catalog-meta) {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2) var(--space-3);
+        font-size: var(--font-size-caption-plus);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .mcp-server-error {
+        color: var(--status-red);
+        font-size: var(--font-size-caption-plus);
+        margin-top: var(--space-1);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.mcp-server-actions, .mcp-search-actions, .mcp-root-actions) {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        flex-shrink: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .mcp-interaction-actions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        flex-shrink: 0;
+        min-width: 180px;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.mcp-search-provider, .mcp-root-uri, .mcp-interaction-method) {
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.mcp-search-source, .mcp-catalog-server) {
+        font-size: var(--font-size-caption);
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .mcp-root-uri {
+        word-break: break-all;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .mcp-catalog-type-badge {
+        --status-badge-color: var(--accent-green);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .mcp-catalog-description {
+        font-size: var(--font-size-caption-plus);
+        color: var(--text-secondary);
+        line-height: 1.3;
+    }
+
+    @container ui-viewport (width >= 2560px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-record-list--tools {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-record-list--tools .mcp-catalog-entry {
+            min-width: 0;
+        }
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='settings'], [data-page-scope='settings']) :is(.mcp-server-actions, .mcp-search-actions, .mcp-root-actions) {
+            justify-content: flex-end;
+            margin-top: var(--space-2);
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .mcp-interaction-actions {
+            margin-top: var(--space-2);
+        }
+    }
+}

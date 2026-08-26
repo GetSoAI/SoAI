@@ -1,0 +1,143 @@
+/* SoAI - Chat weather widget forecast component styles [frontend/assets/css/components/chat/chat-weather-widget-forecast.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .assistant-weather-widget__strip {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-2);
+        padding-top: var(--space-3);
+        border-top: var(--border-width-1) solid color-mix(in srgb, var(--glass-border-subtle) 60%, transparent);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__strip-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--space-2);
+        min-width: 0;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__strip-title {
+        color: var(--text-tertiary);
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__strip-range {
+        font-size: var(--font-size-068);
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-feature-settings: 'tnum' 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-align: end;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__forecast {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 0;
+        border: var(--border-width-1) solid color-mix(in srgb, var(--surface-card-border) 72%, transparent);
+        border-radius: var(--border-radius);
+        overflow-y: hidden;
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--glass-border-strong) 60%, transparent) transparent;
+        scroll-snap-type: x mandatory;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__hourly {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: var(--space-15);
+        overflow-x: auto;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--glass-border-strong) 60%, transparent) transparent;
+        scroll-snap-type: x mandatory;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__hour {
+        flex: 0 0 auto;
+        display: grid;
+        justify-items: center;
+        gap: calc(var(--space-05) / 2);
+        min-width: 3.25rem;
+        padding: var(--space-15) var(--space-1);
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--glass-surface-light) 50%, transparent);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--glass-border-subtle) 50%, transparent);
+        scroll-snap-align: start;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__hour[aria-current='time'] {
+        background: color-mix(in srgb, var(--weather-accent) 18%, var(--glass-surface-light) 60%);
+        border-color: color-mix(in srgb, var(--weather-accent) 55%, transparent);
+        box-shadow: 0 0 0 0.0625rem color-mix(in srgb, var(--weather-accent) 35%, transparent) inset;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__hour-label {
+        color: var(--text-tertiary);
+        font-feature-settings: 'tnum' 1;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__hour-icon {
+        display: grid;
+        place-items: center;
+        color: var(--accent-blue);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__hour-icon[data-condition='clear'],
+    :where(.chat-container) .assistant-weather-widget__hour-icon[data-condition='mostly_clear'] {
+        color: var(--accent-yellow);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__hour-icon[data-condition*='thunder'] {
+        color: color-mix(in srgb, var(--accent-yellow) 60%, var(--accent-purple) 40%);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__hour-temp {
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        color: var(--text-primary);
+        font-feature-settings: 'tnum' 1;
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__hour[aria-current='time'] .assistant-weather-widget__hour-label {
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__hour-precip {
+        font-size: var(--font-size-068);
+        font-weight: 600;
+        color: var(--accent-blue);
+        font-feature-settings: 'tnum' 1;
+        min-block-size: 1em;
+        line-height: 1;
+    }
+
+    @container assistant-activity-widgets (width >= 23.75rem) {
+        :where(.chat-container) .assistant-weather-widget__forecast {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(4.625rem, 1fr));
+            gap: 0;
+            overflow-x: visible;
+            scroll-snap-type: none;
+        }
+
+        :where(.chat-container) .assistant-weather-widget__hourly {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(3.5rem, 1fr));
+            overflow-x: visible;
+            scroll-snap-type: none;
+        }
+    }
+
+    @container assistant-activity-widgets (width >= 28.75rem) {
+        :where(.chat-container) .assistant-weather-widget__strip {
+            grid-column: 1 / -1;
+        }
+    }
+}

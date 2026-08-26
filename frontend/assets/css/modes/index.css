@@ -1,0 +1,5 @@
+/* SoAI - Frontend mode style aggregation [frontend/assets/css/modes/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./glass-disabled.css');
+@import url('./detached-window.css');

@@ -1,0 +1,62 @@
+/* SoAI - Search page styles [frontend/assets/css/pages/search/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='search'], [data-page-scope='search']) .search-content {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden auto;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+    }
+
+    .search-container:where([data-section='search'], [data-page-scope='search']) .search-results {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr));
+        gap: var(--space-35);
+        align-items: start;
+        align-content: start;
+        width: 100%;
+        padding: var(--space-4) 0;
+    }
+
+    .search-container:where([data-section='search'], [data-page-scope='search']) .search-results .search-category {
+        margin-bottom: 0;
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        width: 100%;
+        min-height: fit-content;
+        background: var(--surface-card);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        box-shadow: var(--surface-card-shadow);
+    }
+
+    :where([data-section='search'], [data-page-scope='search']) .search-category-content {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-2);
+        padding: var(--space-2);
+    }
+
+    :where([data-section='search'], [data-page-scope='search']) .search-category-content .search-item--card {
+        width: 100%;
+        margin: 0;
+    }
+
+    :where([data-section='search'], [data-page-scope='search']) .search-category-content .search-item--card .search-item-description {
+        margin-bottom: 0;
+    }
+
+    :where([data-section='search'], [data-page-scope='search']) .search-category-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+        min-height: 96px;
+        padding: var(--space-5);
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+    }
+}

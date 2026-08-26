@@ -1,0 +1,38 @@
+/* SoAI - Frontend foundation style aggregation [frontend/assets/css/foundations/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./font-faces.css') layer(foundations);
+@import url('./reset.css') layer(foundations);
+@import url('./background-tokens.css') layer(foundations);
+@import url('./typography-tokens.css') layer(foundations);
+@import url('./text-tokens.css') layer(foundations);
+@import url('./shadow-tokens.css') layer(foundations);
+@import url('./accent-tokens.css') layer(foundations);
+@import url('./status-tokens.css') layer(foundations);
+@import url('./control-tokens.css') layer(foundations);
+@import url('./layout-tokens.css') layer(foundations);
+@import url('./radius-tokens.css') layer(foundations);
+@import url('./motion-tokens.css') layer(foundations);
+@import url('./spacing-tokens.css') layer(foundations);
+@import url('./modal-tokens.css') layer(foundations);
+@import url('./wallpaper-tokens.css') layer(foundations);
+@import url('./badge-tokens.css') layer(foundations);
+@import url('./button-tokens.css') layer(foundations);
+@import url('./collection-tokens.css') layer(foundations);
+@import url('./syntax-tokens.css') layer(foundations);
+@import url('./prompt-tokens.css') layer(foundations);
+@import url('./log-tokens.css') layer(foundations);
+@import url('./terminal-tokens.css') layer(foundations);
+@import url('./inline-tool-ansi-tokens.css') layer(foundations);
+@import url('./palette-tokens.css') layer(foundations);
+@import url('./recessed-surface-tokens.css') layer(foundations);
+@import url('./title-bar-tokens.css') layer(foundations);
+@import url('./misc-ui-tokens.css') layer(foundations);
+@import url('./typography.css') layer(foundations);
+@import url('./loading-animations.css') layer(foundations);
+@import url('./modal-animations.css') layer(foundations);
+@import url('./card-animations.css') layer(foundations);
+@import url('./wizard-animations.css') layer(foundations);
+@import url('./theme-light.css') layer(foundations);
+@import url('./theme-dark.css') layer(foundations);
+@import url('./scrollbars.css') layer(foundations);

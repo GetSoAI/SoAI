@@ -1,0 +1,257 @@
+/* SoAI - Updates page base styles [frontend/assets/css/pages/updates/base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-content {
+        padding-bottom: 0;
+        min-height: 0;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-layout {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+        padding-bottom: var(--layout-bottom-safe-padding-extended);
+        scroll-padding-bottom: var(--layout-bottom-safe-padding-extended);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) :is(.updates-page-notice, .updates-status, .os-updates-panel) {
+        background: linear-gradient(180deg, color-mix(in srgb, var(--alternating-grey-light) 96%, var(--color-white) 4%) 0%, color-mix(in srgb, var(--alternating-grey-light) 98%, var(--color-white) 2%) 52%, var(--alternating-grey-light) 100%);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        box-shadow: var(--glass-shadow-base);
+        padding: var(--space-6);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) :is(.updates-status, .os-updates-panel) {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-application-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        flex-wrap: wrap;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-application-title {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-application-description {
+        margin: var(--space-15) 0 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) :is(.updates-page-notice, .updates-status) .status-body {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) :is(.updates-page-notice, .updates-status) .status-indicator {
+        width: 14px;
+        height: 14px;
+        border-radius: var(--border-radius);
+        flex-shrink: 0;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) :is(.updates-page-notice, .updates-status) .status-heading {
+        font-size: var(--font-size-base);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) :is(.updates-page-notice, .updates-status) .status-heading-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        min-width: 0;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-status :is(.status-failure-icon, .status-spinner) {
+        align-items: center;
+        flex: 0 0 auto;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-status :is(.status-failure-icon, .status-spinner):not(.u-hidden) {
+        display: inline-flex;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-status .status-spinner.loading-spinner {
+        width: 18px;
+        height: 18px;
+        border-width: var(--border-width-150);
+        border-top-width: var(--border-width-150);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-status .status-failure-icon-symbol {
+        display: inline-flex;
+        width: 18px;
+        height: 18px;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .metadata-link svg {
+        width: 0.75rem;
+        height: 0.75rem;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-status .status-failure-icon-symbol svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) :is(.updates-page-notice, .updates-status) .status-detail {
+        margin-top: var(--space-15);
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-details {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .update-summary-card {
+        background: var(--glass-surface-strong);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        box-shadow: var(--glass-shadow-base);
+        padding: var(--space-6);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-5);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .update-summary-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-4);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .update-summary-title {
+        margin: 0;
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .update-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--space-4);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .version-block {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-15);
+        padding: var(--space-4);
+        border-radius: var(--border-radius);
+        background: var(--badge-bg-blue);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .version-label {
+        font-size: var(--font-size-xs);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-04em);
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .version-value {
+        font-size: var(--font-size-base);
+        font-weight: 600;
+        color: var(--text-primary);
+        word-break: break-word;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .update-actions {
+        display: flex;
+        justify-content: flex-start;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .update-metadata {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3) var(--space-6);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .metadata-item {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .metadata-label {
+        font-size: var(--font-size-xs);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-04em);
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .metadata-link {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-15);
+        color: var(--accent-blue);
+        font-weight: 500;
+        text-decoration: none;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .metadata-link:hover,
+    :where([data-section='updates'], [data-page-scope='updates']) .metadata-link:focus-visible {
+        text-decoration: underline;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .release-notes {
+        background: var(--glass-surface-strong);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        box-shadow: var(--glass-shadow-base);
+        overflow: hidden;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .release-notes-header {
+        padding: var(--space-4) var(--space-6);
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .release-notes-header h3 {
+        margin: 0;
+        font-size: var(--font-size-base);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .release-notes-body {
+        padding: var(--space-6);
+        font-size: var(--font-size-body-md);
+        line-height: 1.6;
+        color: var(--text-secondary);
+        word-break: break-word;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .release-notes-body br + br {
+        margin-bottom: var(--space-3);
+    }
+}

@@ -1,0 +1,7 @@
+{
+    "extends": "./tsconfig.base.json",
+    "compilerOptions": {
+        "moduleResolution": "NodeNext"
+    },
+    "include": ["scripts/**/*.ts", "scripts/**/*.mts", "lib/**/*.js", "lib/**/*.mjs"]
+}

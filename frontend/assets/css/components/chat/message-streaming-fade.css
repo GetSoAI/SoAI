@@ -1,0 +1,24 @@
+/* SoAI - Message streaming fade component styles [frontend/assets/css/components/chat/message-streaming-fade.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    @media (prefers-reduced-motion: no-preference) {
+        @keyframes stream-word-reveal {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+        :where(.chat-container) .stream-word-reveal {
+            animation: stream-word-reveal var(--duration-1000) var(--ease-smooth) both;
+        }
+
+        :where(.chat-container) .inline-activity-details .stream-word-reveal {
+            opacity: 1;
+            transform: none;
+            animation: none;
+        }
+    }
+}

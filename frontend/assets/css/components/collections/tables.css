@@ -1,0 +1,158 @@
+/* SoAI - Tables component styles [frontend/assets/css/components/collections/tables.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :root {
+        --table-row-hover-background: var(--glass-surface-interactive-hover);
+    }
+
+    .data-table-wrapper {
+        max-width: 100%;
+        min-width: 0;
+        max-height: 400px;
+        overflow-x: auto;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+        border: var(--border-width-1) solid var(--surface-card-border);
+        background: var(--surface-card);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+
+    .table-compact {
+        border-collapse: collapse;
+    }
+
+    .data-table-wrapper .table-compact {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        table-layout: fixed;
+    }
+
+    .table-compact th {
+        min-width: 0;
+        padding: var(--space-2);
+        font-size: var(--font-size-caption-plus);
+        font-weight: 700;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-035px);
+        border-bottom: var(--border-width-2) solid var(--surface-card-border);
+        background: var(--surface-card);
+        position: sticky;
+        top: 0;
+        z-index: var(--z-above-sibling);
+        vertical-align: middle;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .table-compact td {
+        min-width: 0;
+        padding: var(--space-15) var(--space-2);
+        font-size: var(--font-size-caption-plus);
+        color: var(--text-primary);
+        vertical-align: middle;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .table-compact th.sortable {
+        user-select: none;
+        transition:
+            background-color var(--transition-fast),
+            color var(--transition-fast),
+            border-color var(--transition-fast);
+        position: relative;
+    }
+
+    .table-compact th.sortable:hover {
+        background: var(--table-row-hover-background);
+        color: var(--text-primary);
+    }
+
+    .table-compact th.sortable.is-active {
+        color: var(--text-secondary);
+        background: color-mix(in srgb, var(--surface-card) 88%, var(--border-color) 12%);
+        border-bottom-color: var(--border-color);
+        font-weight: 700;
+    }
+
+    .table-compact th.sortable .sort-indicator {
+        margin-left: var(--space-1);
+        min-width: 14px;
+        height: 14px;
+        vertical-align: middle;
+    }
+
+    .table-compact th.sortable .sort-indicator svg {
+        width: 14px;
+        height: 14px;
+        display: block;
+        color: inherit;
+    }
+
+    .table-compact th.sortable.is-active .sort-indicator {
+        color: var(--text-secondary);
+    }
+
+    .table-compact th.sortable.is-active .sort-indicator svg {
+        stroke: currentColor;
+    }
+
+    .table-compact tbody tr + tr td {
+        border-top: var(--border-width-1) solid var(--surface-card-border);
+    }
+
+    .table-compact th:nth-child(1),
+    .table-compact td:nth-child(1) {
+        width: 40%;
+        min-width: 140px;
+    }
+
+    .table-compact th:nth-child(2),
+    .table-compact td:nth-child(2) {
+        width: 12%;
+        min-width: 50px;
+    }
+
+    .table-compact th:nth-child(3),
+    .table-compact td:nth-child(3) {
+        width: 14%;
+        min-width: 55px;
+    }
+
+    .table-compact th:nth-child(4),
+    .table-compact td:nth-child(4) {
+        width: 16%;
+        min-width: 65px;
+    }
+
+    .table-compact th:nth-child(5),
+    .table-compact td:nth-child(5) {
+        width: 18%;
+        min-width: 70px;
+    }
+
+    .table-compact td:is(:nth-child(2), :nth-child(3), :nth-child(4), :nth-child(5)) {
+        text-align: right;
+    }
+
+    .table-compact td:first-child {
+        max-width: none;
+    }
+
+    .table-compact td > :where(.ui-status-badge, .plugin-status-badge, .modeldetail-status-badge, .settings-record-badge, .api-key-badge, .os-updates-security-badge, .progress-badge) {
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: middle;
+    }
+
+    .table-compact tbody tr:hover td {
+        background: var(--table-row-hover-background);
+    }
+}

@@ -1,0 +1,130 @@
+/* SoAI - Toggle switch component styles [frontend/assets/css/components/controls/toggle-switch.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    @property --toggle-handle-offset {
+        syntax: '<length>';
+        inherits: true;
+        initial-value: 0;
+    }
+
+    @keyframes toggle-switch-spinner-reveal {
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes toggle-switch-spinner-spin {
+        from {
+            transform: translate(-50%, -50%) rotate(0deg);
+        }
+
+        to {
+            transform: translate(-50%, -50%) rotate(360deg);
+        }
+    }
+
+    .toggle-switch {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: var(--toggle-gap);
+    }
+    .toggle-switch[data-pending] {
+        cursor: progress;
+    }
+    .toggle-switch input[type='checkbox'] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-switch .slider {
+        position: relative;
+        width: var(--toggle-width);
+        height: var(--toggle-height);
+        background: var(--toggle-track-bg-off);
+        border: var(--toggle-border-width) solid var(--toggle-track-border-off);
+        border-radius: var(--border-radius);
+        box-shadow:
+            inset 0 1px 1px color-mix(in srgb, var(--color-white) 35%, transparent),
+            inset 0 -1px 1px color-mix(in srgb, var(--color-black) 8%, transparent);
+        flex-shrink: 0;
+        transition:
+            background var(--transition-toggle),
+            border-color var(--transition-toggle),
+            box-shadow var(--transition-toggle);
+    }
+    .toggle-switch .slider::before {
+        content: '';
+        display: block;
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: var(--toggle-handle-offset);
+        margin-block: auto;
+        width: var(--toggle-handle-size);
+        height: var(--toggle-handle-size);
+        border-radius: var(--border-radius);
+        background: var(--toggle-handle-bg-off);
+        transition:
+            transform var(--transition-toggle),
+            background-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+        box-shadow:
+            0 1px 2px color-mix(in srgb, var(--color-black) 20%, transparent),
+            0 0 0 1px color-mix(in srgb, var(--color-black) 5%, transparent);
+        transform: none;
+        transform-origin: center;
+    }
+
+    .toggle-switch.toggle-switch--action > .slider,
+    .toggle-switch.toggle-switch--action > .slider::before {
+        transition: none;
+    }
+
+    .toggle-switch.toggle-switch--checked > .slider,
+    .toggle-switch input:checked + .slider {
+        background: linear-gradient(135deg, color-mix(in srgb, var(--accent-green) 80%, var(--color-white) 20%), var(--accent-green));
+        border-color: color-mix(in srgb, var(--accent-green) 65%, var(--glass-underlay-surface));
+        box-shadow:
+            inset 0 1px 1px color-mix(in srgb, var(--color-white) 25%, transparent),
+            0 4px 8px color-mix(in srgb, var(--accent-green) 18%, transparent);
+    }
+    .toggle-switch.toggle-switch--checked > .slider::before,
+    .toggle-switch input:checked + .slider::before {
+        background: var(--toggle-handle-bg-on);
+        transform: translateX(var(--toggle-handle-translate));
+        box-shadow:
+            0 4px 6px color-mix(in srgb, var(--color-black) 18%, transparent),
+            0 0 0 1px color-mix(in srgb, var(--color-black) 4%, transparent);
+    }
+
+    .toggle-switch.toggle-switch--action:not(.toggle-switch--checked) input:not(:checked) + .slider {
+        background: var(--toggle-track-bg-off);
+        border-color: var(--toggle-track-border-off);
+    }
+
+    .toggle-switch[data-pending] > .slider::after {
+        content: '';
+        position: absolute;
+        inset-block-start: 50%;
+        inset-inline-start: calc(var(--toggle-handle-offset) + (var(--toggle-handle-size) / 2));
+        width: min(8px, calc(var(--toggle-handle-size) - 4px));
+        height: min(8px, calc(var(--toggle-handle-size) - 4px));
+        border: var(--border-width-1) solid color-mix(in srgb, var(--color-black) 28%, transparent);
+        border-block-start-color: color-mix(in srgb, var(--color-black) 82%, transparent);
+        border-radius: var(--border-round);
+        opacity: 0;
+        pointer-events: none;
+        z-index: var(--z-above-sibling);
+        animation:
+            toggle-switch-spinner-reveal var(--duration-150) var(--ease-out) forwards,
+            toggle-switch-spinner-spin var(--duration-600) var(--ease-linear) infinite;
+    }
+
+    .toggle-switch[data-pending].toggle-switch--checked > .slider::after,
+    .toggle-switch[data-pending] input:checked + .slider::after {
+        inset-inline-start: calc(var(--toggle-handle-offset) + var(--toggle-handle-translate) + (var(--toggle-handle-size) / 2));
+    }
+}

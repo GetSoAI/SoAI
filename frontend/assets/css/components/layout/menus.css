@@ -1,0 +1,92 @@
+/* SoAI - Menus component styles [frontend/assets/css/components/layout/menus.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.soai-dropdown-menu, .page-actions--dropdown .page-actions__menu, .chart-filters-bar[data-compact-filters='true'] .chart-filters-panel, .chat-model-menu) {
+        --soai-dropdown-surface: var(--bg-secondary);
+        background-color: var(--soai-dropdown-surface);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        box-shadow: var(--glass-shadow-base);
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        filter: none;
+        isolation: isolate;
+    }
+
+    body:not(.glass-disabled) :where(.soai-dropdown-menu, .page-actions--dropdown .page-actions__menu, .chart-filters-bar[data-compact-filters='true'] .chart-filters-panel, .chat-model-menu) {
+        background-color: color-mix(in srgb, var(--soai-dropdown-surface) 95%, transparent);
+    }
+
+    :is(.soai-dropdown-menu, .page-actions--dropdown .page-actions__menu, .chart-filters-bar[data-compact-filters='true'] .chart-filters-panel, .chat-model-menu)::before,
+    :is(.soai-dropdown-menu, .page-actions--dropdown .page-actions__menu, .chart-filters-bar[data-compact-filters='true'] .chart-filters-panel, .chat-model-menu)::after {
+        content: none;
+    }
+
+    :where(.theme-dark) :where(.soai-dropdown-menu, .page-actions--dropdown .page-actions__menu, .chart-filters-bar[data-compact-filters='true'] .chart-filters-panel, .chat-model-menu) {
+        --soai-dropdown-surface: color-mix(in srgb, var(--bg-secondary) 45%, var(--bg-tertiary) 55%);
+    }
+
+    :where(.soai-dropdown-menu, .page-actions--dropdown .page-actions__menu, .chart-filters-bar[data-compact-filters='true'] .chart-filters-panel, .chat-model-menu) :is(.dropdown-item, .search-item):first-child {
+        border-top-left-radius: inherit;
+        border-top-right-radius: inherit;
+    }
+
+    :where(.soai-dropdown-menu, .page-actions--dropdown .page-actions__menu, .chart-filters-bar[data-compact-filters='true'] .chart-filters-panel) :is(.dropdown-item, .search-item):last-child {
+        border-bottom-left-radius: inherit;
+        border-bottom-right-radius: inherit;
+    }
+
+    .dropdown-item {
+        --dropdown-reflection: var(--surface-reflection-menu);
+        display: block;
+        width: 100%;
+        padding: var(--space-3) var(--space-4);
+        text-align: left;
+        background-color: transparent;
+        background-image: var(--dropdown-reflection);
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        border: var(--border-width-1) solid transparent;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        box-shadow:
+            inset 2px 2px 4px var(--surface-inner-highlight-soft),
+            inset -2px -2px 4px var(--surface-inner-shadow-soft);
+    }
+
+    .dropdown-item:hover {
+        --dropdown-reflection: var(--surface-reflection-menu-hover);
+        background-color: color-mix(in srgb, var(--glass-surface-interactive) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        background-image: var(--dropdown-reflection);
+        border-color: color-mix(in srgb, var(--glass-border-strong) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
+        color: var(--text-primary);
+    }
+
+    .theme-dark .dropdown-item:hover {
+        background-color: var(--glass-surface-hover-strong);
+    }
+
+    .soai-dropdown-menu.settings-dropdown .dropdown-item,
+    .soai-dropdown-menu.user-dropdown .dropdown-item,
+    .soai-dropdown-menu.task-list .dropdown-item,
+    div.plugin-item.dropdown-item,
+    div.task-item.dropdown-item,
+    .soai-dropdown-menu.settings-dropdown .notification-item.dropdown-item,
+    .soai-dropdown-menu.user-dropdown .notification-item.dropdown-item,
+    .soai-dropdown-menu.task-list .notification-item.dropdown-item {
+        background-image: none;
+        box-shadow: none;
+    }
+
+    .soai-dropdown-menu.settings-dropdown .dropdown-item:hover,
+    .soai-dropdown-menu.user-dropdown .dropdown-item:hover,
+    .soai-dropdown-menu.task-list .dropdown-item:hover,
+    div.plugin-item.dropdown-item:hover,
+    div.task-item.dropdown-item:hover,
+    .soai-dropdown-menu.settings-dropdown .notification-item.dropdown-item:hover,
+    .soai-dropdown-menu.user-dropdown .notification-item.dropdown-item:hover,
+    .soai-dropdown-menu.task-list .notification-item.dropdown-item:hover {
+        background-image: none;
+    }
+}

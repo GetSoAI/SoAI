@@ -1,0 +1,26 @@
+/* SoAI - Background tokens frontend styles [frontend/assets/css/foundations/background-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --bg-primary-base: #dedede;
+        --bg-secondary-base: #e5e5e8;
+        --bg-tertiary-base: #d5d5dd;
+        --auth-page-bg-solid-base: var(--bg-primary-base);
+        --auth-page-bg-start-base: var(--bg-primary-base);
+        --auth-page-bg-end-base: var(--bg-secondary-base);
+        --app-background-base-source: var(--app-background-base-raw);
+        --bg-primary-tinted: color-mix(in srgb, var(--bg-primary-base), var(--surface-user-tint) var(--surface-tint-fill-amount));
+        --bg-secondary-tinted: color-mix(in srgb, var(--bg-secondary-base), var(--surface-user-tint) var(--surface-tint-fill-amount));
+        --bg-tertiary-tinted: color-mix(in srgb, var(--bg-tertiary-base), var(--surface-user-tint) var(--surface-tint-fill-amount));
+        --auth-page-bg-solid-tinted: color-mix(in srgb, var(--auth-page-bg-solid-base), var(--surface-user-tint) var(--surface-tint-fill-amount));
+        --auth-page-bg-start-tinted: color-mix(in srgb, var(--auth-page-bg-start-base), var(--surface-user-tint) var(--surface-tint-fill-amount));
+        --auth-page-bg-end-tinted: color-mix(in srgb, var(--auth-page-bg-end-base), var(--surface-user-tint) var(--surface-tint-fill-amount));
+        --bg-primary: color-mix(in srgb, var(--bg-primary-base), var(--bg-primary-tinted) var(--surface-user-tint-strength));
+        --bg-secondary: color-mix(in srgb, var(--bg-secondary-base), var(--bg-secondary-tinted) var(--surface-user-tint-strength));
+        --bg-tertiary: color-mix(in srgb, var(--bg-tertiary-base), var(--bg-tertiary-tinted) var(--surface-user-tint-strength));
+        --auth-page-bg-solid: color-mix(in srgb, var(--auth-page-bg-solid-base), var(--auth-page-bg-solid-tinted) var(--surface-user-tint-strength));
+        --auth-page-bg-start: color-mix(in srgb, var(--auth-page-bg-start-base), var(--auth-page-bg-start-tinted) var(--surface-user-tint-strength));
+        --auth-page-bg-end: color-mix(in srgb, var(--auth-page-bg-end-base), var(--auth-page-bg-end-tinted) var(--surface-user-tint-strength));
+    }
+}

@@ -1,0 +1,185 @@
+"""SoAI - WebSocket event permission rules [backend/features/api/routes/system/events/websocket_permission_rules.py]"""
+# SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+from __future__ import annotations
+
+from core.events.types_base import Event
+from core.events.types_conversation_durable import (
+    ConversationAttentionChangedEvent,
+    ConversationInputTerminalEvent,
+)
+from core.events.types_file_explorer import FileSystemChangedEvent
+from core.events.types_mcp import (
+    KnowledgePromptStateChangedEvent,
+    MCPNotificationEvent,
+    MCPPromptsListChangedEvent,
+    MCPResourcesListChangedEvent,
+    MCPServerAddedEvent,
+    MCPServerConnectedEvent,
+    MCPServerDisconnectedEvent,
+    MCPServerRemovedEvent,
+    MCPServerStartedEvent,
+    MCPToolInvokedEvent,
+    MCPToolsListChangedEvent,
+)
+from core.events.types_models_model_events import (
+    ModelDatabaseChangeEvent,
+    ModelLastUsedChangedEvent,
+    ModelLoadedEvent,
+    ModelParametersChangedEvent,
+    ModelParametersRequireReloadEvent,
+)
+from core.events.types_models_routing_events import RoutingConfigChangedEvent
+from core.events.types_plugins import (
+    CircuitBreakerStateChangedEvent,
+    ErrorEvent,
+    InstalledPluginsChangedEvent,
+    PluginInstallationStateChangedEvent,
+    PluginLastUsedChangedEvent,
+    PluginLoadedEvent,
+    PluginPurgedEvent,
+    PluginRuntimeStateChangedEvent,
+    PluginUnloadedEvent,
+    ProviderStatusUpdatedEvent,
+)
+from core.events.types_system import (
+    ChatStreamActivityChangedEvent,
+    ChatStreamEvent,
+    ChatStreamStatusPreviewEvent,
+    ConversationAttachmentChangedEvent,
+    ConversationCreatedEvent,
+    ConversationDeletedEvent,
+    ConversationDraftChangedEvent,
+    ConversationInputsChangedEvent,
+    ConversationUpdatedEvent,
+    GPUActiveSlotChangedEvent,
+    GPUBootPreferenceChangedEvent,
+    GPUCapabilitiesChangedEvent,
+    GPUSavedSettingsChangedEvent,
+    GPUStartupWarningEvent,
+    HardwareSnapshotUpdatedEvent,
+    KnowledgeAttachmentChangedEvent,
+    MessageSavedEvent,
+    MetricsUpdatedEvent,
+    ModelTestStreamEvent,
+    PowerOperationChangedEvent,
+    ProcessListUpdatedEvent,
+    SoAIBenchRunUpdatedEvent,
+    SoAIMainStateChangedEvent,
+    SystemRestartRequiredEvent,
+    ToolCallLiveUpdatedEvent,
+)
+from core.events.types_tasks import (
+    TaskCompleteEvent,
+    TaskCreatedEvent,
+    TaskProgressEvent,
+    TaskStatusChangedEvent,
+)
+from core.events.types_webui import (
+    AutomationCreatedEvent,
+    AutomationDeletedEvent,
+    AutomationRunCreatedEvent,
+    AutomationRunUpdatedEvent,
+    AutomationUpdatedEvent,
+    LicensingStatusChangedEvent,
+    NotificationCreatedEvent,
+    NotificationDeletedEvent,
+    NotificationsClearedEvent,
+    NotificationsMarkedReadEvent,
+    PromptListUpdatedEvent,
+    UserPasswordChangedEvent,
+    UserSessionInvalidatedEvent,
+    UserUsernameChangedEvent,
+    WallpaperChangedEvent,
+)
+from core.state.access import AccessAction
+from features.api.routes.system.events.agent_event_types import (
+    REALTIME_AGENT_ACTION_EVENT_TYPES,
+    REALTIME_AGENT_DELTA_EVENT_TYPES,
+)
+
+__all__ = ("build_websocket_event_permission_rules",)
+
+
+def build_websocket_event_permission_rules() -> tuple[tuple[type[Event], AccessAction], ...]:
+    agent_event_permission_rules = tuple(
+        (event_type, AccessAction.AUTH_COOKIE)
+        for event_type in (REALTIME_AGENT_ACTION_EVENT_TYPES + REALTIME_AGENT_DELTA_EVENT_TYPES)
+    )
+    return (
+        (HardwareSnapshotUpdatedEvent, AccessAction.HARDWARE_READ),
+        (MetricsUpdatedEvent, AccessAction.AUTH_COOKIE),
+        (ModelDatabaseChangeEvent, AccessAction.MODEL_READ),
+        (ModelLoadedEvent, AccessAction.MODEL_READ),
+        (ModelLastUsedChangedEvent, AccessAction.MODEL_READ),
+        (SoAIMainStateChangedEvent, AccessAction.SYSTEM_STATUS_READ),
+        (CircuitBreakerStateChangedEvent, AccessAction.PLUGIN_READ),
+        (ProcessListUpdatedEvent, AccessAction.HW_PROCESS_VIEW),
+        (SoAIBenchRunUpdatedEvent, AccessAction.HARDWARE_READ),
+        (ModelParametersChangedEvent, AccessAction.MODEL_READ),
+        (ModelParametersRequireReloadEvent, AccessAction.MODEL_READ),
+        (SystemRestartRequiredEvent, AccessAction.SYSTEM_STATUS_READ),
+        (PowerOperationChangedEvent, AccessAction.SYSTEM_POWER),
+        (ProviderStatusUpdatedEvent, AccessAction.PLUGIN_READ),
+        (PluginRuntimeStateChangedEvent, AccessAction.PLUGIN_READ),
+        (PluginInstallationStateChangedEvent, AccessAction.PLUGIN_READ),
+        (InstalledPluginsChangedEvent, AccessAction.PLUGIN_READ),
+        (PluginLoadedEvent, AccessAction.PLUGIN_READ),
+        (PluginLastUsedChangedEvent, AccessAction.PLUGIN_READ),
+        (PluginUnloadedEvent, AccessAction.PLUGIN_READ),
+        (PluginPurgedEvent, AccessAction.PLUGIN_READ),
+        (RoutingConfigChangedEvent, AccessAction.MODEL_ROUTING_READ),
+        (GPUCapabilitiesChangedEvent, AccessAction.HW_GPU_TUNING),
+        (GPUSavedSettingsChangedEvent, AccessAction.HW_GPU_TUNING),
+        (GPUActiveSlotChangedEvent, AccessAction.HW_GPU_TUNING),
+        (GPUBootPreferenceChangedEvent, AccessAction.HW_GPU_TUNING),
+        (GPUStartupWarningEvent, AccessAction.HW_GPU_TUNING),
+        (PromptListUpdatedEvent, AccessAction.AUTH_COOKIE),
+        (AutomationCreatedEvent, AccessAction.AUTH_COOKIE),
+        (AutomationUpdatedEvent, AccessAction.AUTH_COOKIE),
+        (AutomationDeletedEvent, AccessAction.AUTH_COOKIE),
+        (AutomationRunCreatedEvent, AccessAction.AUTH_COOKIE),
+        (AutomationRunUpdatedEvent, AccessAction.AUTH_COOKIE),
+        (LicensingStatusChangedEvent, AccessAction.LICENSING_ADMIN),
+        (NotificationCreatedEvent, AccessAction.NOTIFICATIONS),
+        (NotificationDeletedEvent, AccessAction.NOTIFICATIONS),
+        (NotificationsClearedEvent, AccessAction.NOTIFICATIONS),
+        (NotificationsMarkedReadEvent, AccessAction.NOTIFICATIONS),
+        (TaskCreatedEvent, AccessAction.TASK_MANAGEMENT),
+        (TaskProgressEvent, AccessAction.TASK_MANAGEMENT),
+        (TaskCompleteEvent, AccessAction.TASK_MANAGEMENT),
+        (TaskStatusChangedEvent, AccessAction.TASK_MANAGEMENT),
+        (MCPNotificationEvent, AccessAction.MCP_USE),
+        (MCPToolsListChangedEvent, AccessAction.MCP_USE),
+        (MCPResourcesListChangedEvent, AccessAction.MCP_USE),
+        (MCPPromptsListChangedEvent, AccessAction.MCP_USE),
+        (MCPServerStartedEvent, AccessAction.MCP_USE),
+        (MCPServerAddedEvent, AccessAction.MCP_USE),
+        (MCPServerRemovedEvent, AccessAction.MCP_USE),
+        (MCPServerConnectedEvent, AccessAction.MCP_USE),
+        (MCPServerDisconnectedEvent, AccessAction.MCP_USE),
+        (MCPToolInvokedEvent, AccessAction.MCP_USE),
+        (KnowledgePromptStateChangedEvent, AccessAction.AUTH_COOKIE),
+        (ConversationCreatedEvent, AccessAction.AUTH_COOKIE),
+        (ConversationUpdatedEvent, AccessAction.AUTH_COOKIE),
+        (ConversationDeletedEvent, AccessAction.AUTH_COOKIE),
+        (ConversationDraftChangedEvent, AccessAction.AUTH_COOKIE),
+        (ConversationAttachmentChangedEvent, AccessAction.AUTH_COOKIE),
+        (KnowledgeAttachmentChangedEvent, AccessAction.AUTH_COOKIE),
+        (MessageSavedEvent, AccessAction.AUTH_COOKIE),
+        (ConversationInputsChangedEvent, AccessAction.AUTH_COOKIE),
+        (ConversationInputTerminalEvent, AccessAction.AUTH_COOKIE),
+        (ConversationAttentionChangedEvent, AccessAction.AUTH_COOKIE),
+        (ChatStreamEvent, AccessAction.AUTH_COOKIE),
+        (ChatStreamActivityChangedEvent, AccessAction.AUTH_COOKIE),
+        (ChatStreamStatusPreviewEvent, AccessAction.AUTH_COOKIE),
+        (ToolCallLiveUpdatedEvent, AccessAction.AUTH_COOKIE),
+        (ModelTestStreamEvent, AccessAction.AUTH_COOKIE),
+        *agent_event_permission_rules,
+        (ErrorEvent, AccessAction.AUTH_COOKIE),
+        (FileSystemChangedEvent, AccessAction.FILE_EXPLORER_READ),
+        (WallpaperChangedEvent, AccessAction.AUTH_COOKIE),
+        (UserPasswordChangedEvent, AccessAction.AUTH_COOKIE),
+        (UserUsernameChangedEvent, AccessAction.AUTH_COOKIE),
+        (UserSessionInvalidatedEvent, AccessAction.AUTH_COOKIE),
+    )

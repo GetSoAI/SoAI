@@ -1,0 +1,11 @@
+/* SoAI - Plugins page panels styles [frontend/assets/css/pages/plugins/panels.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-link,
+        :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-override-control {
+            width: 100%;
+        }
+    }
+}

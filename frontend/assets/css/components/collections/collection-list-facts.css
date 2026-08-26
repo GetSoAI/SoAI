@@ -1,0 +1,68 @@
+/* SoAI - Collection list facts component styles [frontend/assets/css/components/collections/collection-list-facts.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-collection-list__facts {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-1);
+        min-width: 0;
+    }
+
+    .ui-collection-list__fact {
+        --ui-collection-list-fact-surface: color-mix(in srgb, var(--glass-surface-weak) 78%, transparent);
+        --ui-collection-list-fact-surface-gradient: linear-gradient(180deg, color-mix(in srgb, var(--ui-collection-list-fact-surface) 96%, var(--color-white) 4%) 0%, color-mix(in srgb, var(--ui-collection-list-fact-surface) 98%, var(--color-white) 2%) 52%, var(--ui-collection-list-fact-surface) 100%);
+        display: inline-flex;
+        align-items: baseline;
+        gap: var(--space-1);
+        min-width: 0;
+        max-width: 100%;
+        padding: var(--space-05) var(--space-2);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background-color: var(--ui-collection-list-fact-surface);
+        background-image: var(--ui-collection-list-fact-surface-gradient);
+        color: var(--text-primary);
+        font: inherit;
+        line-height: 1.2;
+    }
+
+    .ui-collection-list__fact--action {
+        cursor: pointer;
+    }
+
+    .ui-collection-list__fact--action:hover {
+        --ui-collection-list-fact-surface: var(--glass-surface-hover);
+        border-color: var(--border-color);
+    }
+
+    .ui-collection-list__fact .ui-metric-label {
+        flex-shrink: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-micro);
+        font-weight: 700;
+        letter-spacing: var(--tracking-03px);
+        line-height: var(--line-height-badge);
+        text-transform: uppercase;
+    }
+
+    .ui-collection-list__fact .ui-metric-value {
+        min-width: 0;
+        overflow: hidden;
+        color: var(--text-primary);
+        font-size: var(--font-size-caption-plus);
+        font-weight: 600;
+        line-height: var(--line-height-compact);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ui-collection-list__fact .ui-adaptive-number {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: bottom;
+    }
+}

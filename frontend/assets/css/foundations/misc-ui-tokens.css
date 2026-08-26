@@ -1,0 +1,16 @@
+/* SoAI - Miscellaneous UI token styles [frontend/assets/css/foundations/misc-ui-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --hidden-display: none;
+        --feedback-critical-heading: #d74242;
+        --feedback-error-highlight: #ef4444;
+        --feedback-success-highlight: #16a34a;
+        --telemetry-status-connected: #4fd08f;
+        --telemetry-status-disconnected: #ff7676;
+        --telemetry-status-pending: var(--status-blue);
+        --telemetry-status-ready: #7fdca5;
+        --wizard-accent-success: #0f766e;
+    }
+}

@@ -1,0 +1,35 @@
+{
+  "dependencies": {
+    "nsis_portable": {
+      "bundled_tree_sha256": "2b9299810ed776de580ae3698bf27e6c7fca066435643bb8d6ad053d4e37a2f3",
+      "embedded_archive_sha256": "c7d27f780ddb6cffb4730138cd1591e841f4b7edb155856901cdf5f214394fa1",
+      "package_sha256": "af321371b90cea3f42fd35038ce3a59c665c722a123d561a27219d788fe0b33a",
+      "url": "https://community.chocolatey.org/api/v2/package/nsis.portable/3.11.0",
+      "version": "3.11.0"
+    },
+    "python": {
+      "package_sha256": "9ac15cfa6cab1115c83d48f2af55c554efa4d1bb044bbc4ab1c9d17ad426e16c",
+      "url": "https://www.nuget.org/api/v2/package/python/3.13.14",
+      "version": "3.13.14"
+    },
+    "visual_cpp_app_local": {
+      "package_sha256": "ea8fad02d8de9ca1ab4e1d20c282166b3386adf91a9b143019d59507229ea375",
+      "url": "https://www.nuget.org/api/v2/package/VCLibs.VCRuntime.140/1.0.4",
+      "version": "1.0.4"
+    },
+    "visual_cpp_redistributable": {
+      "integrity": "authenticode-microsoft",
+      "url": "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+    },
+    "webview2_runtime": {
+      "integrity": "authenticode-microsoft",
+      "url": "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
+    },
+    "webview2_sdk": {
+      "package_sha256": "d3934f482d484b89fb4825df720c710664e1143a1e90f7b3a60794ef33f473d2",
+      "url": "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.4129.50",
+      "version": "1.0.4129.50"
+    }
+  },
+  "schema_version": 1
+}

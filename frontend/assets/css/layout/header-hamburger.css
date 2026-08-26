@@ -1,0 +1,89 @@
+/* SoAI - Header hamburger frontend styles [frontend/assets/css/layout/header-hamburger.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer layout {
+    .sidebar .sidebar-plugin-indicator {
+        width: var(--status-led-size);
+        height: var(--status-led-size);
+        min-width: var(--status-led-size);
+        padding: 0;
+        border-radius: var(--border-radius);
+        pointer-events: none;
+    }
+
+    .sidebar .sidebar-chat-indicator {
+        width: var(--status-led-size);
+        height: var(--status-led-size);
+        min-width: var(--status-led-size);
+        padding: 0;
+        border-radius: var(--border-radius);
+        background-color: var(--accent-primary);
+        pointer-events: none;
+    }
+
+    .sidebar .sidebar-chat-indicator.sidebar-chat-indicator--error {
+        background-color: var(--status-red);
+    }
+
+    .sidebar .sidebar-busy-indicator {
+        width: var(--status-led-size);
+        height: var(--status-led-size);
+        min-width: var(--status-led-size);
+        padding: 0;
+        border-radius: var(--border-radius);
+        background-color: var(--status-orange);
+        pointer-events: none;
+    }
+
+    .hamburger-menu {
+        position: relative;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        margin-left: var(--sidebar-collapsed-icon-button-margin-inline-start);
+    }
+
+    .hamburger-menu :is(.hamburger-icon, .close-icon) {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: var(--icon-size);
+        height: var(--icon-size);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+            transform var(--transition-normal),
+            color var(--transition-normal),
+            opacity var(--transition-normal);
+        color: currentcolor;
+        transform-origin: center;
+    }
+
+    .hamburger-menu .hamburger-icon {
+        opacity: 1;
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    .hamburger-menu .close-icon {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(-90deg);
+    }
+
+    .hamburger-menu.is-active .hamburger-icon {
+        transform: translate(-50%, -50%) rotate(90deg);
+        opacity: 0;
+    }
+
+    .hamburger-menu.is-active .close-icon {
+        transform: translate(-50%, -50%) rotate(0deg);
+        opacity: 1;
+    }
+
+    .hamburger-menu.ui-icon-button.is-active {
+        opacity: 1;
+        pointer-events: auto;
+        transition: opacity var(--transition-header);
+    }
+}

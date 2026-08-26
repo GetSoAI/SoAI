@@ -1,0 +1,155 @@
+/* SoAI - Chat message layout component styles [frontend/assets/css/components/chat/chat-message-layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    @property --chat-plan-overlay-height {
+        syntax: '<length>';
+        inherits: true;
+        initial-value: 0;
+    }
+
+    @property --chat-plan-header-height {
+        syntax: '<length>';
+        inherits: true;
+        initial-value: 0;
+    }
+
+    @property --chat-plan-divider-height {
+        syntax: '<length>';
+        inherits: true;
+        initial-value: 0;
+    }
+
+    :where(.chat-container) :is(.chat-main-container, .chat-sidebar, .message-content) {
+        display: flex;
+        flex-direction: column;
+    }
+
+    :where(.chat-container) .chat-messages-area-shell {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        border-radius: var(--border-radius);
+        overflow: clip;
+    }
+
+    :where(.chat-container) .chat-messages-area {
+        --chat-messages-content-padding-top: var(--space-6);
+        --chat-messages-padding-top: calc(var(--chat-conversation-header-height) + var(--chat-plan-overlay-height) + var(--chat-messages-content-padding-top));
+        --chat-messages-surface: var(--chat-sidebar-strip-background);
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-anchor: none;
+        scrollbar-gutter: stable;
+        background:
+            linear-gradient(var(--glass-border-strong), var(--glass-border-strong)) right 0 top calc(var(--chat-conversation-header-height) + var(--chat-plan-header-height)) / var(--chat-native-scrollbar-gutter-width) var(--chat-plan-divider-height) no-repeat,
+            linear-gradient(to bottom, var(--glass-border-strong) 0, var(--glass-border-strong) var(--border-width-1), var(--chat-plan-overlay-surface) var(--border-width-1), var(--chat-plan-overlay-surface) calc(100% - var(--border-width-1)), var(--glass-border-strong) calc(100% - var(--border-width-1)), var(--glass-border-strong) 100%) right 0 top calc(var(--chat-conversation-header-height) - var(--border-width-1)) / var(--chat-native-scrollbar-gutter-width) calc(var(--chat-plan-overlay-height) + var(--border-width-1)) no-repeat,
+            var(--chat-messages-surface);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        padding: var(--chat-messages-padding-top) calc(var(--space-16) + var(--space-16)) var(--chat-messages-padding-bottom);
+        scroll-padding-top: var(--chat-messages-padding-top);
+        font-size: calc(var(--font-size-base) * var(--chat-text-scale));
+        position: relative;
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .chat-messages-area.widescreen-mode {
+        padding-left: var(--space-8);
+        padding-right: var(--space-8);
+    }
+
+    :where(.chat-container) .chat-messages-area:has(> .chat-messages[data-conversation-color]) {
+        --chat-messages-conversation-accent: var(--accent-blue);
+        --chat-messages-conversation-tint-amount: 7%;
+        --chat-messages-surface: color-mix(in srgb, var(--chat-messages-conversation-accent) var(--chat-messages-conversation-tint-amount), var(--chat-sidebar-strip-background));
+    }
+
+    :where(.chat-container) .chat-messages-area:has(> .chat-messages[data-conversation-color='Red' i]) {
+        --chat-messages-conversation-accent: var(--prompts-color-red);
+    }
+
+    :where(.chat-container) .chat-messages-area:has(> .chat-messages[data-conversation-color='Yellow' i]) {
+        --chat-messages-conversation-accent: var(--prompts-color-yellow);
+    }
+
+    :where(.chat-container) .chat-messages-area:has(> .chat-messages[data-conversation-color='Purple' i]) {
+        --chat-messages-conversation-accent: var(--prompts-color-purple);
+    }
+
+    :where(.chat-container) .chat-messages-area:has(> .chat-messages[data-conversation-color='Green' i]) {
+        --chat-messages-conversation-accent: var(--prompts-color-green);
+    }
+
+    :where(.chat-container) .chat-messages-area:has(> .chat-messages[data-conversation-color='Blue' i]) {
+        --chat-messages-conversation-accent: var(--prompts-color-blue);
+    }
+
+    .theme-dark :where(.chat-container) .chat-messages-area:has(> .chat-messages[data-conversation-color]) {
+        --chat-messages-conversation-tint-amount: 5%;
+    }
+
+    :where(.chat-container) .chat-messages {
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+        padding: 0 var(--space-4);
+    }
+
+    :where(.chat-container) .chat-message-window-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        width: 100%;
+        min-height: 44px;
+        padding: var(--space-3) var(--space-4);
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        pointer-events: none;
+    }
+
+    :where(.chat-container) .chat-message-window-loading-spinner {
+        width: 16px;
+        height: 16px;
+        border-width: var(--border-width-150);
+        border-top-width: var(--border-width-150);
+    }
+
+    :where(.chat-container) .chat-message {
+        display: flex;
+        gap: var(--space-4);
+        position: relative;
+        flex-direction: row;
+    }
+
+    :where(.chat-container) .chat-message + .chat-message::before {
+        content: none;
+    }
+
+    :where(.chat-container) .chat-message.user {
+        flex-direction: row-reverse;
+    }
+
+    :where(.chat-container) .chat-messages-area .chat-message .message-content {
+        flex: 1;
+        min-width: 0;
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        padding: var(--space-4);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--shadow-lift-soft);
+    }
+
+    :where(.chat-container) .message-content.message-content--deleted {
+        flex: 0 1 auto;
+        width: fit-content;
+        max-width: min(100%, 72ch);
+    }
+}

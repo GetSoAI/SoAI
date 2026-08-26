@@ -1,0 +1,143 @@
+/* SoAI - Chat page advanced scroll styles [frontend/assets/css/pages/chat/advanced-scroll.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll {
+        position: absolute;
+        top: calc(var(--chat-conversation-header-height) + var(--chat-plan-overlay-height) + var(--space-4));
+        bottom: var(--chat-advanced-scroll-bottom-offset);
+        right: calc(var(--chat-composer-inset-inline) + var(--chat-input-wrapper-padding));
+        width: var(--chat-advanced-scroll-width);
+        opacity: 0.5;
+        transition: opacity var(--transition-fast);
+        transform: translateZ(0);
+        will-change: opacity;
+        contain: layout paint;
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--glass-border-strong-base) 30%, transparent);
+        background: color-mix(in srgb, var(--glass-surface-light) 75%, transparent);
+        box-shadow: var(--shadow-lift-soft);
+        overflow: hidden;
+        user-select: none;
+        touch-action: none;
+        cursor: pointer;
+        z-index: var(--z-sticky);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll:hover,
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll.is-hover {
+        opacity: 1;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll.chat-advanced-scroll--hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    @container ui-viewport (width <= 1200px) {
+        :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll {
+            display: none;
+        }
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        pointer-events: none;
+        overflow: hidden;
+        contain: paint;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-minimap-root {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        contain: strict;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-minimap-inner {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-minimap-area,
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-minimap-messages {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-canvas .chat-advanced-scroll-minimap-message {
+        position: absolute;
+        left: 3px;
+        right: 3px;
+        display: block;
+        min-height: 8px;
+        margin: 0;
+        padding: 0;
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--glass-border-strong-base) 14%, transparent);
+        background: color-mix(in srgb, var(--glass-surface-chat-message) 36%, transparent);
+        overflow: hidden;
+        contain: strict;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-canvas .chat-advanced-scroll-minimap-message.user {
+        background: color-mix(in srgb, var(--accent-green) 14%, transparent);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-canvas .chat-advanced-scroll-minimap-message.assistant {
+        background: color-mix(in srgb, var(--accent-blue) 8%, color-mix(in srgb, var(--glass-surface-chat-message) 36%, transparent));
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-canvas .chat-advanced-scroll-minimap-message > span {
+        display: block;
+        width: 72%;
+        height: 100%;
+        opacity: 0.1;
+        background: currentcolor;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-canvas .chat-advanced-scroll-minimap-message.user > span {
+        margin-left: auto;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-fade {
+        position: absolute;
+        left: 0;
+        right: 0;
+        background: color-mix(in srgb, var(--color-black) 12%, transparent);
+        pointer-events: none;
+    }
+
+    .theme-dark :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-fade {
+        background: color-mix(in srgb, var(--color-black) 24%, transparent);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-fade--top {
+        top: 0;
+        height: 0;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-fade--bottom {
+        bottom: 0;
+        height: 0;
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll-viewport {
+        position: absolute;
+        left: 2px;
+        right: 2px;
+        top: 0;
+        height: 0;
+        border: var(--border-width-1) solid color-mix(in srgb, var(--text-primary) 45%, transparent);
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+        box-shadow: inset 0 0 0 var(--border-width-1) color-mix(in srgb, var(--glass-border-strong-base) 18%, transparent);
+        pointer-events: none;
+    }
+}

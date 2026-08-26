@@ -1,0 +1,223 @@
+/* SoAI - Chat empty state suggestions component styles [frontend/assets/css/components/chat/chat-empty-state-suggestions.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .chat-page-empty-state .chat-page-empty-state-icon svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    :where(.chat-container) .chat-page-empty-state-icon {
+        display: block;
+        width: 80px;
+        height: 80px;
+        flex-shrink: 0;
+    }
+
+    :where(.chat-container) .chat-page-empty-state-icon svg path:first-child {
+        stroke: var(--text-secondary);
+    }
+
+    :where(.chat-container) .chat-page-empty-state-icon svg path:not(:first-child) {
+        stroke: var(--accent-green);
+    }
+
+    :where(.chat-container) .chat-page-empty-state {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-8) var(--space-4) calc(var(--space-8) + var(--chat-input-bottom-offset));
+        text-align: center;
+        gap: var(--space-6);
+        animation: empty-state-appear var(--motion-empty-state-appear-duration) var(--ease-default) both;
+        animation-delay: var(--motion-empty-state-appear-delay);
+    }
+
+    :where(.chat-container) .chat-page-empty-state-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-2);
+        width: 100%;
+    }
+
+    :where(.chat-container) .chat-page-empty-state-title-row {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-4);
+    }
+
+    @container ui-viewport (height <= 900px) {
+        :where(.chat-container) .chat-page-empty-state-title-row {
+            flex-direction: row;
+            gap: var(--space-2);
+        }
+
+        :where(.chat-container) .chat-page-empty-state-icon {
+            width: 1.5em;
+            height: 1.5em;
+        }
+    }
+
+    :where(.chat-container) .chat-page-empty-state-heading {
+        font-size: var(--font-size-2xl);
+        font-weight: 500;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    :where(.chat-container) .chat-page-empty-state-subtitle {
+        font-size: var(--font-size-base);
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    :where(.chat-container) .chat-page-empty-state[data-state='loading'] .chat-page-loading-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+    }
+
+    :where(.chat-container) .chat-page-empty-state[data-state='loading'] .chat-page-loading-spinner {
+        width: 16px;
+        height: 16px;
+        border-width: var(--border-width-150);
+        border-top-width: var(--border-width-150);
+    }
+
+    :where(.chat-container) .chat-page-empty-state.has-input .chat-page-input-hint {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    body.reduce-motions :where(.chat-container) .chat-page-empty-state {
+        animation: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where(.chat-container) .chat-page-empty-state {
+            animation: none;
+        }
+
+        :where(.chat-container) .chat-page-suggestion-card {
+            transition: none;
+        }
+    }
+
+    @container ui-viewport (width >= 2560px) {
+        :where(.chat-container) .chat-page-empty-state {
+            padding: var(--space-12) var(--space-8);
+        }
+
+        :where(.chat-container) .chat-page-suggestion-card {
+            width: 170px;
+            min-height: 130px;
+            padding: var(--space-6);
+        }
+
+        :where(.chat-container) .chat-page-suggestion-card-icon svg {
+            width: var(--icon-button-size-dense);
+            height: var(--icon-button-size-dense);
+        }
+
+        :where(.chat-container) .chat-page-suggestion-card-title {
+            font-size: var(--font-size-base);
+        }
+    }
+
+    :where(.chat-container) .chat-page-suggestion-card .chat-page-suggestion-card-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    :where(.chat-container) .chat-page-suggestion-card .chat-page-suggestion-card-icon svg[fill='none'] {
+        stroke: currentcolor;
+        fill: none;
+    }
+
+    :where(.chat-container) .chat-page-suggestion-card .chat-page-suggestion-card-icon svg[fill='currentColor'] {
+        stroke: none;
+        fill: currentcolor;
+    }
+
+    :where(.chat-container) .chat-page-suggestion-row-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        width: 100%;
+        max-width: 900px;
+    }
+
+    @container ui-viewport (height <= 768px) {
+        :where(.chat-container) .chat-page-suggestion-row-wrapper {
+            display: none;
+        }
+    }
+
+    :where(.chat-container) .chat-page-suggestion-row {
+        display: flex;
+        gap: var(--space-3);
+        flex: 1;
+        min-width: 0;
+        overflow-x: auto;
+        padding: var(--space-2) var(--space-2);
+    }
+
+    :where(.chat-container) .chat-page-suggestion-nav {
+        flex-shrink: 0;
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
+        transition:
+            opacity var(--transition-fast),
+            visibility 0s var(--ease-linear) var(--duration-150);
+    }
+
+    :where(.chat-container) .chat-page-suggestion-nav.is-active {
+        opacity: 1;
+        pointer-events: auto;
+        visibility: visible;
+        transition:
+            opacity var(--transition-fast),
+            visibility 0s;
+    }
+
+    :where(.chat-container) .chat-page-suggestion-card {
+        --ui-surface-panel-bg: var(--glass-surface-medium);
+        flex: 0 0 auto;
+        width: 140px;
+        min-height: 110px;
+        padding: var(--space-4);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+
+        backdrop-filter: var(--glass-blur-base);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        text-align: center;
+        cursor: pointer;
+        transition:
+            background var(--transition-fast),
+            border-color var(--transition-fast);
+    }
+
+    :where(.chat-container) .chat-page-suggestion-card:hover {
+        background: var(--glass-surface-interactive-hover);
+        border-color: var(--accent-green);
+    }
+
+    :where(.chat-container) .chat-page-suggestion-card-icon {
+        color: var(--accent-green);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}

@@ -1,0 +1,27 @@
+/* SoAI - Automation page configuration modal responsive styles [frontend/assets/css/pages/automation/configuration-modal-responsive.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    @container ui-viewport (width <= 900px) {
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .form-row-split {
+            flex-direction: column;
+            flex-wrap: nowrap;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .form-col-main {
+            flex: 1 1 100%;
+            width: 100%;
+            min-width: 0;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .form-row-split--with-action {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .form-row-split--with-action .form-col-main {
+            flex: 1 1 40%;
+            min-width: 150px;
+        }
+    }
+}

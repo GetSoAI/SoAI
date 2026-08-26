@@ -1,0 +1,128 @@
+/* SoAI - Terminal page styles [frontend/assets/css/pages/terminal/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    .terminal-page:where([data-section='terminal'], [data-page-scope='terminal']) {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        height: 100%;
+    }
+
+    body.detached-window .terminal-page:where([data-section='terminal'], [data-page-scope='terminal']) {
+        position: fixed;
+        inset: 0;
+        width: calc(100 * var(--ui-viewport-width-unit));
+        height: calc(100 * var(--ui-viewport-height-unit));
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+    }
+
+    body.page-terminal:not(.detached-window) .main-content > .terminal-page:where([data-section='terminal'], [data-page-scope='terminal']) {
+        padding: 0;
+        min-height: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-container {
+        position: absolute;
+        inset: var(--layout-top-offset) 0 0 0;
+        display: flex;
+        flex-direction: column;
+        padding: var(--layout-section-padding);
+    }
+
+    body.detached-window :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-container {
+        inset: 0;
+        padding: var(--layout-container-padding);
+    }
+
+    :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-toolbar {
+        position: absolute;
+        top: calc(var(--layout-section-padding) + var(--space-5));
+        right: calc(var(--layout-section-padding) + var(--space-5));
+        z-index: var(--z-raised);
+        display: flex;
+        gap: var(--space-2);
+        opacity: 0.7;
+        transition: opacity var(--duration-200) var(--ease-default);
+    }
+
+    :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-toolbar:hover {
+        opacity: 1;
+    }
+
+    body.detached-window :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-toolbar {
+        top: calc(var(--layout-container-padding) + var(--space-5));
+        right: calc(var(--layout-container-padding) + var(--space-5));
+    }
+
+    :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-btn {
+        width: 2rem;
+        height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--glass-surface-terminal-btn);
+        border: var(--border-width-1) solid var(--glass-border-subtle);
+        border-radius: var(--border-radius);
+        transition: var(--transition-fast);
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-btn:hover:not(:disabled) {
+        background: var(--glass-surface-terminal-btn-hover);
+    }
+
+    :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-btn svg {
+        color: var(--text-primary);
+        stroke: currentColor;
+    }
+
+    :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-shell {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        width: 100%;
+        min-height: 0;
+        background: var(--terminal-surface);
+        border: var(--border-width-1) solid var(--glass-border-subtle);
+        border-radius: var(--border-radius);
+        box-shadow: var(--glass-shadow-base);
+        overflow: hidden;
+        padding: var(--space-3);
+    }
+
+    :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-shell .xterm {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        min-height: 0;
+        height: 100%;
+        width: 100%;
+        padding: var(--space-2);
+    }
+
+    :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-shell .xterm-viewport {
+        overflow-y: auto;
+    }
+
+    :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-shell .xterm-screen {
+        height: 100%;
+        width: 100%;
+    }
+
+    :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-shell .xterm .xterm-selection div {
+        background: color-mix(in srgb, var(--color-white) 30%, transparent);
+    }
+
+    @container ui-viewport (width <= 900px) {
+        :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-toolbar {
+            display: none;
+        }
+    }
+}

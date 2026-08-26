@@ -1,0 +1,4 @@
+/* SoAI - Frontend core Translation declarations for key group `settings.mcp.interactions` [frontend/assets/ts/core/i18n/translationkeys/settings/mcp__interactions.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type SettingsMcpInteractionsTranslationKey = 'settings.mcp.interactions.actions.accept' | 'settings.mcp.interactions.actions.approve' | 'settings.mcp.interactions.actions.cancel' | 'settings.mcp.interactions.actions.decline' | 'settings.mcp.interactions.contentPlaceholder' | 'settings.mcp.interactions.description' | 'settings.mcp.interactions.empty' | 'settings.mcp.interactions.meta.client' | 'settings.mcp.interactions.meta.created_at' | 'settings.mcp.interactions.placeholderDash' | 'settings.mcp.interactions.placeholderUnknown' | 'settings.mcp.interactions.title';

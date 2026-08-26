@@ -1,0 +1,5 @@
+/* SoAI - Power page styles [frontend/assets/css/pages/power/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./base.css') layer(pages);
+@import url('./layout.css') layer(pages);

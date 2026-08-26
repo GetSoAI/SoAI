@@ -1,0 +1,81 @@
+/* SoAI - Chat assistant activity widget shell component styles [frontend/assets/css/components/chat/chat-assistant-activity-widget-shell.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) :is(.assistant-news-widget, .assistant-plan-widget, .assistant-weather-widget) {
+        --assistant-activity-widget-block-size: 30rem;
+        position: relative;
+        gap: var(--space-3);
+        width: min(100%, 40rem);
+        block-size: var(--assistant-activity-widget-block-size);
+        padding: var(--space-3) var(--space-4) var(--space-3);
+        border-radius: var(--border-radius);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow:
+            0 0.0625rem 0 color-mix(in srgb, var(--text-primary) 6%, transparent) inset,
+            0 0.0625rem 0.125rem color-mix(in srgb, var(--color-black) 22%, transparent);
+        color: var(--text-primary);
+        isolation: isolate;
+        overflow: hidden;
+    }
+
+    :where(.chat-container) :is(.assistant-news-widget, .assistant-plan-widget) {
+        display: flex;
+        flex-direction: column;
+    }
+
+    :where(.chat-container) :is(.assistant-news-widget__header, .assistant-plan-widget__header, .assistant-weather-widget__header) {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--space-2);
+        min-width: 0;
+    }
+
+    :where(.chat-container) :is(.assistant-news-widget__title, .assistant-plan-widget__title, .assistant-weather-widget__title) {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-2);
+        min-width: 0;
+    }
+
+    :where(.chat-container) :is(.assistant-news-widget__title-icon, .assistant-plan-widget__title-icon, .assistant-weather-widget__title-icon) {
+        display: inline-grid;
+        place-items: center;
+        align-self: center;
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) :is(.assistant-news-widget__title-icon, .assistant-plan-widget__title-icon, .assistant-weather-widget__title-icon) > .ui-icon {
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) :is(.assistant-news-widget__label, .assistant-plan-widget__label, .assistant-weather-widget__label) {
+        color: var(--text-primary);
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) :is(.assistant-news-widget__query, .assistant-plan-widget__plan-title, .assistant-weather-widget__query) {
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        letter-spacing: var(--tracking-snug);
+        color: var(--text-tertiary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    :where(.chat-container) :is(.assistant-news-widget__scope, .assistant-plan-widget__scope, .assistant-weather-widget__scope) {
+        font-size: var(--font-size-068);
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-feature-settings: 'tnum' 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-align: end;
+    }
+}

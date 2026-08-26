@@ -1,0 +1,12 @@
+Microsoft Visual C++ Runtime notice
+===================================
+
+The SoAI Windows installer downloads the official Microsoft Visual C++ x64 Redistributable from Microsoft and installs it when required. It also downloads the VCLibs.VCRuntime.140 NuGet package and copies the required app-local runtime DLLs into the SoAI installation.
+
+The Microsoft Visual C++ Runtime components are separate third-party dependencies. They are not first-party SoAI code and are not licensed under the SoAI Source-Available License 1.0 or the SoAI commercial license. Their use and redistribution are governed by the applicable Microsoft license terms.
+
+Sources:
+https://aka.ms/vs/17/release/vc_redist.x64.exe
+https://www.nuget.org/packages/VCLibs.VCRuntime.140/1.0.4
+
+If the Windows runtime source, package version, or launcher build toolchain changes, review the applicable Microsoft redistribution terms and update this notice before release.

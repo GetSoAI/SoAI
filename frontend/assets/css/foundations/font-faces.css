@@ -1,0 +1,68 @@
+/* SoAI - Font faces frontend styles [frontend/assets/css/foundations/font-faces.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    @font-face {
+        font-family: SoAIType;
+        src: url('../../fonts/soaitype/woff2/SoAIType[opsz,wght].woff2') format('woff2-variations');
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: SoAIType;
+        src: url('../../fonts/soaitype/woff2/SoAIType[opsz,wght].woff2') format('woff2-variations');
+        font-style: normal;
+        font-weight: 500;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: SoAIType;
+        src: url('../../fonts/soaitype/woff2/SoAIType[opsz,wght].woff2') format('woff2-variations');
+        font-style: normal;
+        font-weight: 600;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: SoAIType;
+        src: url('../../fonts/soaitype/woff2/SoAIType[opsz,wght].woff2') format('woff2-variations');
+        font-style: normal;
+        font-weight: 700;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: SoAIType;
+        src: url('../../fonts/soaitype/woff2/SoAIType-Italic[opsz,wght].woff2') format('woff2-variations');
+        font-style: italic;
+        font-weight: 400;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: SoAIType;
+        src: url('../../fonts/soaitype/woff2/SoAIType-Italic[opsz,wght].woff2') format('woff2-variations');
+        font-style: italic;
+        font-weight: 500;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: SoAIType;
+        src: url('../../fonts/soaitype/woff2/SoAIType-Italic[opsz,wght].woff2') format('woff2-variations');
+        font-style: italic;
+        font-weight: 600;
+        font-display: swap;
+    }
+
+    @font-face {
+        font-family: SoAIType;
+        src: url('../../fonts/soaitype/woff2/SoAIType-Italic[opsz,wght].woff2') format('woff2-variations');
+        font-style: italic;
+        font-weight: 700;
+        font-display: swap;
+    }
+}

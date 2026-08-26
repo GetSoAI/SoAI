@@ -1,0 +1,145 @@
+/* SoAI - About page easter egg orb styles [frontend/assets/css/pages/about/easter-egg-orb.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='about'], [data-page-scope='about']) .easter-egg-orb {
+        position: relative;
+        width: var(--ee-orb-size);
+        height: var(--ee-orb-size);
+        border-radius: var(--border-round);
+        background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-green-dark) 100%);
+        box-shadow:
+            0 0 40px color-mix(in srgb, var(--ee-glow-color) 40%, transparent),
+            0 10px 30px var(--shadow-heavy),
+            inset 0 -5px 20px color-mix(in srgb, var(--color-black) 20%, transparent);
+        transform-style: preserve-3d;
+        will-change: transform;
+        transition: box-shadow var(--transition-fast);
+    }
+
+    @keyframes orb-breathe {
+        0%,
+        100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.03);
+        }
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .easter-egg-orb[data-phase='idle'] {
+        animation: orb-breathe var(--duration-3000) var(--ease-in-out) infinite;
+    }
+
+    @keyframes ee-halo-pulse {
+        0%,
+        100% {
+            transform: scale(1);
+            opacity: 0.7;
+        }
+        50% {
+            transform: scale(1.14);
+            opacity: 0.25;
+        }
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .orb-halo {
+        position: absolute;
+        inset: -18%;
+        border-radius: var(--border-round);
+        border: var(--border-width-2) solid color-mix(in srgb, var(--ee-glow-color) 40%, transparent);
+        pointer-events: none;
+        animation: ee-halo-pulse var(--duration-3000) var(--ease-in-out) infinite;
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .orb-shine {
+        position: absolute;
+        inset: 0;
+        border-radius: var(--border-round);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--color-white) 30%, transparent) 0%, transparent 50%);
+        animation: orb-shine-rotate var(--duration-6000) var(--ease-linear) infinite;
+        pointer-events: none;
+    }
+
+    @keyframes orb-shine-rotate {
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .orb-inner {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .orb-logo {
+        width: calc(var(--ee-orb-size) * 0.6);
+        height: calc(var(--ee-orb-size) * 0.6);
+
+        --soai-animated-logo-ring-edge: var(--bg-secondary);
+        --soai-animated-logo-ring-mid: var(--color-white);
+        --soai-animated-logo-ring-border: var(--glass-border-strong);
+        --soai-animated-logo-dot-fill: var(--text-tertiary);
+        --soai-animated-logo-center-fill: var(--accent-green);
+        --soai-animated-logo-pulse-color: color-mix(in srgb, var(--accent-green) 80%, transparent);
+        filter: drop-shadow(0 2px 8px var(--shadow-medium));
+        pointer-events: none;
+        user-select: none;
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .easter-egg-orb[data-phase='hover'] {
+        animation: none;
+        transition:
+            transform var(--duration-250) var(--ease-default),
+            box-shadow var(--duration-250) var(--ease-default);
+        box-shadow:
+            0 0 60px color-mix(in srgb, var(--ee-glow-color) 60%, transparent),
+            0 10px 30px var(--shadow-heavy),
+            inset 0 -5px 20px color-mix(in srgb, var(--color-black) 20%, transparent);
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .easter-egg-orb[data-phase='exploding'] {
+        animation: orb-explode var(--duration-300) var(--ease-out) forwards;
+    }
+
+    @keyframes orb-explode {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        100% {
+            transform: scale(0);
+            opacity: 0;
+        }
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .easter-egg-orb[data-phase='reassembling'] {
+        animation: orb-reassemble var(--duration-500) var(--ease-out) forwards;
+    }
+
+    @keyframes orb-reassemble {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        70% {
+            transform: scale(1.1);
+            opacity: 1;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .easter-egg-orb[data-phase='celebrating'] {
+        animation: none;
+        transition: box-shadow var(--transition-fast);
+    }
+}

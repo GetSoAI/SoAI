@@ -1,0 +1,160 @@
+/* SoAI - Checkerboard utility styles [frontend/assets/css/utilities/checkerboard.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    .checkerboard-light {
+        --checkerboard-surface: var(--alternating-grey-light);
+        background: var(--checkerboard-surface);
+    }
+
+    .checkerboard-dark {
+        --checkerboard-surface: var(--alternating-grey-dark);
+        background: var(--checkerboard-surface);
+    }
+
+    .log-message.checkerboard-light {
+        background-color: var(--alternating-grey-light);
+    }
+
+    .log-message.checkerboard-dark {
+        background-color: var(--alternating-grey-dark);
+    }
+
+    .log-message:is(.checkerboard-light, .checkerboard-dark) {
+        background-image: var(--log-cell-reflection), linear-gradient(to bottom, color-mix(in srgb, var(--text-primary) 5%, transparent), transparent 62%);
+    }
+
+    .hardware-widget.checkerboard-light,
+    .gpu-control-panel.checkerboard-light,
+    .prompt-card.checkerboard-light,
+    .plugin-card.checkerboard-light,
+    .model-card.checkerboard-light,
+    .os-storage-device-card.checkerboard-light,
+    .os-network-device-card.checkerboard-light {
+        background: linear-gradient(180deg, color-mix(in srgb, var(--alternating-grey-light) 96%, var(--color-white) 4%) 0%, color-mix(in srgb, var(--alternating-grey-light) 98%, var(--color-white) 2%) 52%, var(--alternating-grey-light) 100%);
+    }
+
+    .hardware-widget.checkerboard-dark,
+    .gpu-control-panel.checkerboard-dark,
+    .prompt-card.checkerboard-dark,
+    .plugin-card.checkerboard-dark,
+    .model-card.checkerboard-dark,
+    .os-storage-device-card.checkerboard-dark,
+    .os-network-device-card.checkerboard-dark {
+        background: linear-gradient(180deg, color-mix(in srgb, var(--alternating-grey-dark) 96%, var(--color-white) 4%) 0%, color-mix(in srgb, var(--alternating-grey-dark) 98%, var(--color-white) 2%) 52%, var(--alternating-grey-dark) 100%);
+    }
+
+    .prompt-color-surface:is(.checkerboard-light, .checkerboard-dark) {
+        --prompt-card-overlay-underlay: var(--checkerboard-surface);
+    }
+
+    .search-item--card:is(.checkerboard-light, .checkerboard-dark):is(:hover, .search-item-hover) {
+        background: color-mix(in srgb, var(--glass-surface-interactive) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+    }
+
+    .search-item--card:is(.checkerboard-light, .checkerboard-dark).is-selected {
+        background: var(--ui-tone-green-surface-selected);
+    }
+
+    .variant-check-entry:is(.checkerboard-light, .checkerboard-dark).variant-check-entry--selected {
+        background: color-mix(in srgb, var(--accent-primary) 9%, var(--checkerboard-surface));
+    }
+
+    .theme-dark .variant-check-entry:is(.checkerboard-light, .checkerboard-dark).variant-check-entry--selected {
+        background: color-mix(in srgb, var(--accent-primary) 18%, var(--checkerboard-surface));
+    }
+
+    :is(.rag-document-item, .chat-attach-draft-attachment-row):is(.checkerboard-light, .checkerboard-dark):is(:hover, :focus-within) {
+        background: var(--glass-surface-interactive-hover);
+    }
+
+    .automation-month-day.checkerboard-light,
+    .automation-automation-row.checkerboard-light,
+    .automation-window-run-item.checkerboard-light {
+        --automation-item-surface: color-mix(in srgb, var(--alternating-grey-light) 82%, var(--glass-surface-light));
+        background-color: var(--automation-item-surface);
+        background-image: var(--automation-item-status-overlay), var(--automation-item-surface-background);
+    }
+
+    .automation-month-day.checkerboard-dark,
+    .automation-automation-row.checkerboard-dark,
+    .automation-window-run-item.checkerboard-dark {
+        --automation-item-surface: color-mix(in srgb, var(--alternating-grey-dark) 78%, var(--glass-surface-light));
+        background-color: var(--automation-item-surface);
+        background-image: var(--automation-item-status-overlay), var(--automation-item-surface-background);
+    }
+
+    .automation-week-header-day.checkerboard-light,
+    .automation-week-header-day.checkerboard-dark {
+        background-color: var(--ui-button-bg);
+        background-image: var(--ui-button-reflection);
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+    }
+
+    .checkerboard-light .ui-collection-card__body .ui-metric-badge:not(.ui-metric-badge--status-full) {
+        --ui-metric-badge-surface: var(--alternating-grey-dark);
+    }
+
+    .checkerboard-dark .ui-collection-card__body .ui-metric-badge:not(.ui-metric-badge--status-full) {
+        --ui-metric-badge-surface: var(--alternating-grey-light);
+    }
+
+    .checkerboard-light .ui-collection-card__body .ui-metric-badge.ui-metric-badge--status-full {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 6%, var(--alternating-grey-dark));
+    }
+
+    .checkerboard-dark .ui-collection-card__body .ui-metric-badge.ui-metric-badge--status-full {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 6%, var(--alternating-grey-light));
+    }
+
+    .checkerboard-light .ui-collection-card__body .ui-metric-badge:not(.ui-metric-badge--status-full)[data-action]:hover {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--alternating-grey-dark) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+    }
+
+    .checkerboard-dark .ui-collection-card__body .ui-metric-badge:not(.ui-metric-badge--status-full)[data-action]:hover {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--alternating-grey-light) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+    }
+
+    .checkerboard-light .ui-collection-card__body .ui-metric-badge.ui-metric-badge--status-full:hover {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 6%, var(--alternating-grey-dark));
+    }
+
+    .checkerboard-dark .ui-collection-card__body .ui-metric-badge.ui-metric-badge--status-full:hover {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 6%, var(--alternating-grey-light));
+    }
+
+    .checkerboard-light .ui-collection-card__body .ui-metric-badge.ui-metric-badge--secondary[data-status] {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 3%, var(--alternating-grey-dark));
+    }
+
+    .checkerboard-dark .ui-collection-card__body .ui-metric-badge.ui-metric-badge--secondary[data-status] {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 3%, var(--alternating-grey-light));
+    }
+
+    .checkerboard-light .ui-collection-card__body .ui-metric-badge.ui-metric-badge--secondary[data-status='INCOMPATIBLE'] {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 8%, var(--alternating-grey-dark));
+    }
+
+    .checkerboard-dark .ui-collection-card__body .ui-metric-badge.ui-metric-badge--secondary[data-status='INCOMPATIBLE'] {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 8%, var(--alternating-grey-light));
+    }
+
+    .ui-page-header-stats__card.checkerboard-light {
+        background: var(--alternating-grey-light);
+    }
+
+    .ui-page-header-stats__card.checkerboard-dark {
+        background: var(--alternating-grey-dark);
+        box-shadow: none;
+    }
+
+    .ui-mini-stat-strip__card.checkerboard-light {
+        background: var(--alternating-grey-light);
+    }
+
+    .ui-mini-stat-strip__card.checkerboard-dark {
+        background: var(--alternating-grey-dark);
+        box-shadow: none;
+    }
+}

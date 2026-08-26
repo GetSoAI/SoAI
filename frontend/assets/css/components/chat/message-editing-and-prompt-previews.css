@@ -1,0 +1,245 @@
+/* SoAI - Message editing and prompt previews component styles [frontend/assets/css/components/chat/message-editing-and-prompt-previews.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) hr:nth-of-type(n) {
+        opacity: 0.5;
+    }
+
+    :where(.chat-container) .message-edit-input {
+        width: 100%;
+        background: var(--text-field-bg);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--glass-shadow-base);
+        border: var(--border-width-1) solid var(--text-field-border);
+        border-radius: var(--border-radius);
+        color: var(--text-primary);
+        font-size: var(--font-size-body-lg);
+        line-height: 1.5;
+        resize: vertical;
+        padding: var(--space-3);
+        font-family: inherit;
+        min-height: 1lh;
+        max-height: calc(50 * var(--ui-viewport-height-unit));
+    }
+
+    :where(.chat-container) .message-edit-input:focus {
+        border-color: var(--accent-green);
+    }
+
+    :where(.chat-container) .message-edit-input:hover:not(:focus) {
+        background: var(--text-field-bg-hover);
+        border-color: var(--text-field-border-hover);
+    }
+
+    :where(.chat-container) .chat-message.user .edit-message-save-btn,
+    :where(.chat-container) .chat-message.user .edit-message-cancel-btn {
+        display: none;
+    }
+
+    :where(.chat-container) .chat-message.user.is-editing .edit-message-btn {
+        display: none;
+    }
+
+    :where(.chat-container) .chat-message.user.is-editing .edit-message-save-btn,
+    :where(.chat-container) .chat-message.user.is-editing .edit-message-cancel-btn {
+        display: inline-flex;
+    }
+
+    :where(.chat-container) .message-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        margin-bottom: var(--space-2);
+        flex-shrink: 0;
+    }
+
+    :where(.chat-container) .message-role-badge-text {
+        display: block;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .message-role {
+        max-width: 400px;
+        min-width: 0;
+        display: inline-flex;
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .message-role-badge {
+        --message-role-badge-accent: transparent;
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        line-height: 1.5;
+        font-weight: 600;
+        color: var(--text-primary);
+        display: inline-flex;
+        align-items: center;
+        padding: var(--space-15) var(--space-25);
+        border-radius: var(--border-radius);
+        border: none;
+        box-shadow: none;
+        background: transparent;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    :where(.chat-container) .message-deleted-badge {
+        --status-badge-color: var(--accent-red);
+        --status-badge-font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        --status-badge-line-height: 1.5;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    :where(.chat-container) .thinking-phase-tool-main {
+        gap: var(--space-15);
+    }
+
+    :where(.chat-container) .thinking-phase-tool-name {
+        max-width: none;
+    }
+
+    :where(.chat-container) .thinking-phase-tool-label {
+        margin-left: auto;
+        flex-shrink: 0;
+        font-size: calc(var(--font-size-xs) * var(--chat-text-scale));
+        color: var(--text-tertiary);
+    }
+
+    :where(.chat-container) .message-response {
+        display: block;
+    }
+
+    :where(.chat-container) .message-loading {
+        display: flex;
+        align-items: center;
+        padding: var(--space-2) var(--space-3);
+    }
+
+    :where(.chat-container) .chat-page-input-hint {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-tertiary);
+        opacity: 0.6;
+        transition: opacity var(--transition-fast);
+    }
+
+    @container ui-viewport (height <= 768px) {
+        :where(.chat-container) .chat-page-input-hint {
+            display: none;
+        }
+    }
+
+    @container ui-viewport (width <= 900px) {
+        :where(.chat-container) .chat-page-input-hint > .ui-icon {
+            display: none;
+        }
+    }
+
+    :where(.chat-container) .ask-user-preview {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: stretch;
+    }
+
+    :where(.chat-container) .secret-prompt-preview {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: stretch;
+    }
+
+    :where(.chat-container) .ask-user-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding: var(--space-1) var(--space-1) 0 var(--space-1);
+    }
+
+    :where(.chat-container) .ask-user-title {
+        font-weight: 600;
+        letter-spacing: var(--tracking-neg-032px);
+        color: var(--text-primary);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .ask-user-question {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-15);
+        padding: var(--space-2);
+    }
+
+    :where(.chat-container) .ask-user-question-header {
+        font-size: var(--font-size-body-sm);
+        font-weight: 700;
+        letter-spacing: var(--tracking-04em);
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container) .ask-user-prompt {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-2);
+    }
+
+    :where(.chat-container) .ask-user-question-badge {
+        flex-shrink: 0;
+        margin-top: var(--space-05);
+    }
+
+    :where(.chat-container) .ask-user-prompt-text {
+        font-weight: 500;
+        color: var(--text-primary);
+        line-height: 1.3;
+    }
+
+    :where(.chat-container) .ask-user-multi-select-hint {
+        font-size: var(--font-size-body-sm);
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+
+    :where(.chat-container) .ask-user-text-input {
+        width: 100%;
+        min-height: var(--control-height);
+    }
+
+    :where(.chat-container) .ask-user-text-input-wrapper {
+        display: flex;
+        width: 100%;
+    }
+
+    :where(.chat-container) .ask-user-footer {
+        justify-content: flex-end;
+        padding: 0 var(--space-1) var(--space-1) var(--space-1);
+    }
+
+    :where(.chat-container) .secret-prompt-root {
+        width: 100%;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-15);
+    }
+
+    :where(.chat-container) .secret-prompt-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+        padding: var(--space-1) var(--space-1) 0 var(--space-1);
+    }
+}

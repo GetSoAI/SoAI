@@ -1,0 +1,137 @@
+/* SoAI - Metric badges component styles [frontend/assets/css/components/feedback/metric-badges.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-metric-badge {
+        --ui-metric-badge-surface: var(--surface-card);
+        --ui-metric-badge-surface-gradient: linear-gradient(180deg, color-mix(in srgb, var(--ui-metric-badge-surface) 96%, var(--color-white) 4%) 0%, color-mix(in srgb, var(--ui-metric-badge-surface) 98%, var(--color-white) 2%) 52%, var(--ui-metric-badge-surface) 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: var(--ui-metric-badge-min-height);
+        padding: var(--ui-metric-badge-padding);
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        text-align: center;
+        overflow: hidden;
+        background-color: var(--ui-metric-badge-surface);
+        background-image: var(--ui-metric-badge-surface-gradient);
+        gap: var(--ui-metric-badge-gap);
+        min-width: 0;
+        transition:
+            border-color var(--transition-fast),
+            background-color var(--transition-fast);
+    }
+    .ui-metric-badge[data-action] {
+        cursor: pointer;
+    }
+
+    button.ui-metric-badge {
+        width: 100%;
+        height: 100%;
+        font-family: inherit;
+        font-size: inherit;
+        color: inherit;
+    }
+
+    .ui-metric-badge[data-action]:hover {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--glass-surface-strong) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        border-color: color-mix(in srgb, var(--glass-border-strong) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+    }
+
+    .ui-metric-badge .ui-metric-label {
+        display: block;
+        font-size: var(--font-size-micro);
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-03px);
+        position: relative;
+        z-index: var(--z-raised);
+        opacity: 0.9;
+        margin: 0;
+        line-height: var(--line-height-badge);
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .ui-metric-badge .ui-metric-value {
+        display: block;
+        font-size: var(--font-size-body-xs);
+        font-weight: 500;
+        color: var(--text-primary);
+        line-height: var(--line-height-tight);
+        letter-spacing: var(--tracking-neg-032px);
+        position: relative;
+        z-index: var(--z-raised);
+        margin: 0;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .ui-metric-badge .ui-adaptive-number {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: bottom;
+    }
+
+    .ui-metric-badge.ui-metric-badge--status-full {
+        width: 100%;
+        min-height: var(--ui-metric-badge-status-min-height);
+        padding: var(--ui-metric-badge-padding);
+        border-radius: var(--border-radius);
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: var(--space-2);
+
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 6%, var(--glass-underlay-surface));
+    }
+    .ui-metric-badge.ui-metric-badge--status-full .ui-metric-value {
+        display: flex;
+        align-items: center;
+        font-size: var(--font-size-caption-plus);
+        padding: var(--space-05) 0;
+        text-align: left;
+        width: 100%;
+        letter-spacing: normal;
+    }
+    .ui-metric-badge.ui-metric-badge--status-full[data-action]:hover {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 6%, var(--glass-underlay-surface));
+        border-color: var(--status-color);
+    }
+
+    .ui-metric-badge.ui-metric-badge--primary,
+    .ui-metric-badge.ui-metric-badge--secondary,
+    .ui-metric-badge.ui-metric-badge--tertiary,
+    .ui-metric-badge.ui-metric-badge--quaternary {
+        min-height: var(--ui-metric-badge-status-min-height);
+    }
+    .ui-metric-badge.ui-metric-badge--quaternary .ui-metric-label {
+        color: var(--text-secondary);
+        text-shadow: none;
+    }
+    .ui-metric-badge.ui-metric-badge--quaternary .ui-metric-value {
+        color: var(--text-primary);
+        text-shadow: none;
+    }
+
+    .ui-metric-badge:is(.ui-metric-badge--status-green, .ui-metric-badge--status-persistentgreen, .ui-metric-badge--status-orange, .ui-metric-badge--status-red, .ui-metric-badge--status-blue, .ui-metric-badge--status-grey, .ui-metric-badge--status-darkgreen) {
+        border: var(--border-width-1) solid var(--status-color);
+    }
+    .ui-metric-badge:is(.ui-metric-badge--status-green, .ui-metric-badge--status-persistentgreen, .ui-metric-badge--status-orange, .ui-metric-badge--status-red, .ui-metric-badge--status-blue, .ui-metric-badge--status-grey, .ui-metric-badge--status-darkgreen):not(.ui-metric-badge--status-full)[data-action]:hover {
+        --ui-metric-badge-surface: color-mix(in srgb, var(--glass-surface-strong) var(--hover-layer-moderate-base), var(--status-color) var(--hover-layer-moderate));
+        border-color: color-mix(in srgb, var(--status-color) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+    }
+    .ui-metric-badge:is(.ui-metric-badge--status-green, .ui-metric-badge--status-persistentgreen, .ui-metric-badge--status-orange, .ui-metric-badge--status-red, .ui-metric-badge--status-blue, .ui-metric-badge--status-grey, .ui-metric-badge--status-darkgreen) :is(.ui-metric-label, .ui-metric-value) {
+        color: var(--status-color);
+        font-weight: 700;
+    }
+}

@@ -1,0 +1,206 @@
+/* SoAI - Power page base styles [frontend/assets/css/pages/power/base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='power'], [data-page-scope='power']) .power-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-7);
+
+        --power-grid-bottom-padding: calc(var(--layout-container-padding) + var(--ui-safe-area-inset-bottom));
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-content .ui-collection-grid {
+        padding-bottom: var(--power-grid-bottom-padding);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-content .ui-collection-grid::after {
+        content: '';
+        display: block;
+        grid-column: 1 / -1;
+        height: var(--power-grid-bottom-padding);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 360px;
+
+        --power-action-accent: var(--glass-border-strong);
+        --power-application-shutdown-accent: var(--prompts-color-red);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action-card {
+        padding: 0;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action-card::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 5px;
+        background: var(--power-action-accent);
+        border-bottom-left-radius: var(--border-radius);
+        border-bottom-right-radius: var(--border-radius);
+        pointer-events: none;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action--accent {
+        --power-action-accent: var(--accent-green-default);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action[data-action-key='restartApplication'] {
+        --power-action-accent: var(--accent-yellow-dark);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action--danger {
+        --power-action-accent: var(--status-red);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action--warning {
+        --power-action-accent: var(--status-orange);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action--info {
+        --power-action-accent: var(--status-blue);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action--status-blue {
+        --power-action-accent: var(--status-blue);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action--application-shutdown {
+        --power-action-accent: var(--power-application-shutdown-accent);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action[data-action-key='suspendSystem'] {
+        --power-action-accent: var(--prompts-color-purple);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action-header.action-header {
+        padding: var(--space-7) var(--space-7) var(--space-6);
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-5);
+        text-align: center;
+        border-bottom: none;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-icon-symbol {
+        display: inline-flex;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-restart-notice-icon svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-icon.ui-button {
+        width: 96px;
+        height: 96px;
+        border-radius: var(--border-radius);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        font-size: var(--font-size-zero);
+
+        --ui-button-bg: color-mix(in srgb, var(--power-action-accent) var(--interactive-tint-opacity-idle), var(--ui-button-inherited-underlay));
+        --ui-button-bg-hover: color-mix(in srgb, var(--power-action-accent) var(--interactive-tint-opacity-hover), var(--ui-button-inherited-underlay));
+        --ui-button-border: var(--power-action-accent);
+        --ui-button-border-hover: color-mix(in srgb, var(--power-action-accent) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --ui-button-color: var(--power-action-accent);
+        --ui-button-color-hover: color-mix(in srgb, var(--power-action-accent) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --ui-button-focus-ring: color-mix(in srgb, var(--power-action-accent) 35%, transparent);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-icon.ui-button svg {
+        width: 40px;
+        height: 40px;
+        stroke-width: 1.5;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .action-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .action-title {
+        margin: 0;
+        font-size: var(--font-size-heading-xs);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action-content .action-description {
+        margin: 0;
+        font-size: var(--font-size-body-lg);
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action-content {
+        padding: 0 var(--space-7) var(--space-7);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action-body {
+        padding: 0 var(--space-7) var(--space-7);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-5);
+        margin-top: auto;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action[data-action-key='restartApplication'] .power-action-body {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 5px;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-action-body .action-body {
+        padding: 0;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-restart-notice {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3);
+        padding: var(--space-3);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--status-orange) 45%, var(--glass-border-strong));
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--status-orange) 12%, var(--glass-underlay-surface));
+        box-shadow: var(--glass-shadow-base);
+        color: var(--status-orange);
+        font-size: var(--font-size-body-sm);
+        line-height: 1.4;
+        transition:
+            opacity var(--transition-fast),
+            transform var(--transition-fast);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-restart-notice.u-hidden {
+        display: var(--hidden-display);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-restart-notice-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+        color: var(--status-orange);
+        flex-shrink: 0;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-restart-notice-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-15);
+    }
+}

@@ -1,0 +1,128 @@
+/* SoAI - Text badges component styles [frontend/assets/css/components/feedback/text-badges.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.ui-badge, .ui-chip, .ui-status-badge, .plugin-status-badge, .model-plugin-badge, .ui-model-type-badge, .settings-record-badge, .api-key-badge, .section-badge, .mcp-catalog-type-badge, .alias-badge, .orphan-badge, .custom-badge, .input-queue-badge, .message-deleted-badge, .modeldetail-status-badge, .new-item-badge, .search-item-badge, .plugin-install-badge, .os-updates-security-badge, .param-badge, .modeldetail-constituent-badge, .ui-operation-progress__badge, .progress-badge, .variant-check-badge, .automation-month-day-count-badge, .sidebar-badge, .message-info-tool-status, .default-badge, .strategy-badge, .param-count) {
+        --status-badge-color: var(--text-secondary);
+        --status-badge-background-opacity: 10%;
+        --status-badge-border-opacity: 32%;
+        --status-badge-border-width: var(--border-width-1);
+        --status-badge-border-color: color-mix(in srgb, var(--status-badge-color) var(--status-badge-border-opacity), var(--glass-underlay-surface));
+        --status-badge-shadow: var(--glass-shadow-base);
+        --status-badge-min-height: 1.125rem;
+        --status-badge-padding: var(--space-1) var(--space-2);
+        --status-badge-gap: var(--space-15);
+        --status-badge-backdrop: var(--glass-blur-base);
+        --status-badge-font-size: var(--font-size-compact);
+        --status-badge-font-weight: 600;
+        --status-badge-letter-spacing: var(--tracking-03px);
+        --status-badge-text-transform: uppercase;
+        --status-badge-line-height: var(--line-height-badge);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--status-badge-gap);
+        min-height: var(--status-badge-min-height);
+        padding: var(--status-badge-padding);
+        border: var(--status-badge-border-width) solid var(--status-badge-border-color);
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--status-badge-color) var(--status-badge-background-opacity), var(--glass-underlay-surface));
+        box-shadow: var(--status-badge-shadow);
+        -webkit-backdrop-filter: var(--status-badge-backdrop);
+        backdrop-filter: var(--status-badge-backdrop);
+        color: var(--status-badge-color);
+        font-size: var(--status-badge-font-size);
+        font-weight: var(--status-badge-font-weight);
+        letter-spacing: var(--tracking-03px);
+        line-height: var(--status-badge-line-height);
+        text-transform: var(--status-badge-text-transform);
+        white-space: nowrap;
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            color var(--transition-fast);
+
+        &:where(.success, .status-green) {
+            --status-badge-color: var(--status-green);
+        }
+
+        &:where(.error, .status-red) {
+            --status-badge-color: var(--status-red);
+        }
+
+        &:where(.warning, .status-orange) {
+            --status-badge-color: var(--status-orange);
+        }
+
+        &:where(.neutral, .status-grey) {
+            --status-badge-color: var(--status-grey);
+        }
+
+        &:where(.status-yellow, .warning-yellow) {
+            --status-badge-color: var(--accent-yellow);
+        }
+
+        &.status-blue {
+            --status-badge-color: var(--status-blue);
+        }
+
+        &.available {
+            --status-badge-color: var(--accent-blue);
+        }
+
+        &.status-darkgreen {
+            --status-badge-color: var(--status-darkgreen);
+        }
+
+        &.status-persistentgreen {
+            --status-badge-color: var(--status-persistentgreen);
+        }
+
+        &.up-to-date {
+            --status-badge-color: var(--status-green);
+        }
+    }
+
+    :where(.ui-badge--compact, .new-item-badge, .alias-badge, .orphan-badge, .custom-badge) {
+        --status-badge-min-height: 18px;
+        --status-badge-padding: var(--space-05) var(--space-15);
+        --status-badge-font-size: var(--font-size-compact-sm);
+        --status-badge-font-weight: 500;
+        --status-badge-letter-spacing: var(--tracking-035px);
+        --status-badge-line-height: var(--line-height-badge);
+    }
+
+    :where(.ui-badge--compact-emphasis, .search-item-badge, .automation-month-day-count-badge, .sidebar-badge, .mcp-catalog-type-badge) {
+        --status-badge-min-height: 18px;
+        --status-badge-padding: var(--space-1) var(--space-2);
+        --status-badge-font-size: var(--font-size-xs);
+        --status-badge-font-weight: 600;
+        --status-badge-letter-spacing: var(--tracking-03px);
+        --status-badge-line-height: var(--line-height-badge);
+    }
+
+    :where(.ui-badge--compact-readable, .ui-model-type-badge, .message-info-tool-status) {
+        --status-badge-min-height: 18px;
+        --status-badge-padding: var(--space-05) var(--space-15);
+        --status-badge-font-size: var(--font-size-compact-sm);
+        --status-badge-font-weight: 500;
+        --status-badge-letter-spacing: var(--tracking-035px);
+        --status-badge-line-height: var(--line-height-badge);
+    }
+
+    .ui-badge--micro {
+        --status-badge-min-height: var(--space-3);
+        --status-badge-padding: var(--space-0) var(--space-05);
+        --status-badge-font-size: var(--font-size-em-070);
+        --status-badge-font-weight: 500;
+        --status-badge-letter-spacing: var(--tracking-015px);
+        --status-badge-line-height: var(--line-height-badge-micro);
+    }
+
+    :where(.ui-badge--roomy, .plugin-install-badge) {
+        --status-badge-padding: var(--space-15) var(--space-3);
+        --status-badge-font-size: var(--font-size-xs);
+        --status-badge-font-weight: 500;
+    }
+}

@@ -1,0 +1,12 @@
+/* SoAI - Blur blob background component styles [frontend/assets/css/components/layout/blur-blob-background.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .blur-blob {
+        position: absolute;
+        top: 0;
+        left: 0;
+        border-radius: var(--border-radius);
+        pointer-events: none;
+    }
+}

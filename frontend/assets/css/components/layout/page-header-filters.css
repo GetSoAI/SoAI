@@ -1,0 +1,68 @@
+/* SoAI - Page header filters component styles [frontend/assets/css/components/layout/page-header-filters.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .page-header-tabs-container {
+        margin: 0 calc(-1 * var(--layout-container-padding));
+        margin-bottom: calc(-1 * var(--space-6) + 1px);
+        padding: 0 var(--layout-container-padding);
+    }
+
+    @container ui-viewport (width <= 1024px) {
+        .page-header-tabs-container {
+            margin: 0 calc(-1 * var(--layout-container-padding)) calc(-1 * var(--space-4));
+            padding: 0 var(--layout-container-padding) 0;
+        }
+    }
+
+    @container ui-viewport (width <= 768px) {
+        .page-header-tabs-container {
+            margin: 0 calc(-1 * var(--space-3)) calc(-1 * var(--space-3) - 1px);
+            padding: 0 var(--space-3);
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .page-header-tabs-container {
+            margin: 0 calc(-1 * var(--space-3)) calc(-1 * var(--space-3) - 1px);
+            padding: 0 var(--space-3) 0;
+        }
+    }
+
+    .page-header-filters {
+        display: flex;
+        gap: var(--space-2);
+        align-items: center;
+    }
+
+    :where(.page-header-filter-select:not([data-chat-model-control='true']), .page-header-filter-input):not(select) {
+        --filter-control-bg: var(--text-field-bg);
+        --filter-control-border: var(--text-field-border);
+        --filter-control-color: var(--text-secondary);
+        height: var(--control-height);
+        padding: var(--control-padding-block) var(--control-padding-inline);
+        font-size: var(--font-size-body-md);
+        border: var(--border-width-1) solid var(--filter-control-border);
+        border-radius: var(--border-radius);
+        background-color: var(--filter-control-bg);
+        color: var(--filter-control-color);
+        width: auto;
+        min-width: fit-content;
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast);
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    :where(.page-header-filter-select:not([data-chat-model-control='true']), .page-header-filter-input):not(select):hover:not(:focus) {
+        background-color: var(--text-field-bg-hover);
+        border-color: var(--text-field-border-hover);
+        color: color-mix(in srgb, var(--filter-control-color) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
+    }
+
+    select.page-header-filter-select:not(.chart-filter-select, [multiple]) {
+        width: auto;
+        min-width: fit-content;
+    }
+}

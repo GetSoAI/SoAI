@@ -1,0 +1,49 @@
+"""SoAI - Frozen licensing V1 policy constants [backend/core/licensing/constants.py]"""
+# SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+from __future__ import annotations
+
+__all__ = (
+    "CLOCK_ROLLBACK_TOLERANCE_MS",
+    "EXPIRING_WINDOW_MS",
+    "LICENSING_DRAFT_REVISION_HEADER",
+    "LICENSING_REQUEST_DIGEST_HEADER",
+    "MAX_CANONICAL_DEPTH",
+    "MAX_CANONICAL_INTEGER",
+    "MAX_CANONICAL_MEMBERS",
+    "MAX_CANONICAL_STRING_BYTES",
+    "MAX_SIGNED_DOCUMENT_BYTES",
+    "MIN_CANONICAL_INTEGER",
+    "OFFLINE_ENTITLEMENT_FILENAME_SUFFIX",
+    "OFFLINE_ENTITLEMENT_MEDIA_TYPE",
+    "OFFLINE_REQUEST_FILENAME",
+    "OFFLINE_REQUEST_MEDIA_TYPE",
+    "SIGNED_LICENSING_ENVELOPE_FIELDS",
+    "VERIFIED_TIME_CHECKPOINT_INTERVAL_MS",
+)
+
+EXPIRING_WINDOW_MS = 604_800_000
+CLOCK_ROLLBACK_TOLERANCE_MS = 300_000
+VERIFIED_TIME_CHECKPOINT_INTERVAL_MS = 60_000
+MAX_CANONICAL_DEPTH = 12
+MAX_CANONICAL_MEMBERS = 128
+MAX_CANONICAL_STRING_BYTES = 4096
+MIN_CANONICAL_INTEGER = -9_223_372_036_854_775_808
+MAX_CANONICAL_INTEGER = 9_223_372_036_854_775_807
+MAX_SIGNED_DOCUMENT_BYTES = 65_536
+OFFLINE_REQUEST_FILENAME = "soai-offline-activation-request-v1.json"
+OFFLINE_REQUEST_MEDIA_TYPE = "application/vnd.soai.offline-activation-request+json"
+OFFLINE_ENTITLEMENT_FILENAME_SUFFIX = ".soailicense"
+OFFLINE_ENTITLEMENT_MEDIA_TYPE = "application/vnd.soai.offline-entitlement+json"
+LICENSING_DRAFT_REVISION_HEADER = "X-SoAI-Draft-Revision"
+LICENSING_REQUEST_DIGEST_HEADER = "X-SoAI-Request-Digest"
+SIGNED_LICENSING_ENVELOPE_FIELDS = frozenset(
+    (
+        "schema_version",
+        "payload",
+        "issuer_key_id",
+        "issuer_authorization",
+        "signature_domain",
+        "signature",
+    )
+)

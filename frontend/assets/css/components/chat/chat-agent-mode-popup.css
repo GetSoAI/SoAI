@@ -1,0 +1,70 @@
+/* SoAI - Chat agent mode popup component styles [frontend/assets/css/components/chat/chat-agent-mode-popup.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .agent-mode-popup {
+        position: absolute;
+        top: var(--chat-input-wrapper-padding);
+        left: var(--chat-input-wrapper-padding);
+        transform: translateY(calc(-100% + var(--space-15)));
+        z-index: var(--z-raised);
+        padding: var(--space-15) var(--space-3);
+        background: var(--chat-input-surface-color);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-color: var(--chat-input-mode-border-color);
+        border-radius: var(--border-radius);
+        border-bottom: none;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        box-shadow: var(--glass-shadow-base);
+        color: var(--chat-input-mode-label-color);
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+        pointer-events: none;
+        opacity: 0;
+        visibility: hidden;
+        transition:
+            opacity var(--duration-300) var(--ease-smooth),
+            transform var(--duration-300) var(--ease-spring),
+            background-color var(--transition-fast),
+            color var(--transition-fast),
+            border-color var(--transition-fast);
+    }
+
+    :where(.chat-container) .chat-input-wrapper:has(.chat-input:focus) .agent-mode-popup--visible {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(-100%);
+    }
+
+    :where(.chat-container) .agent-mode-popup--chat {
+        --chat-input-mode-border-color: color-mix(in srgb, var(--status-grey) 35%, var(--glass-border-strong));
+        --chat-input-mode-border-color-focus: color-mix(in srgb, var(--status-grey) 55%, var(--glass-border-strong));
+        --chat-input-mode-label-color: color-mix(in srgb, var(--status-grey) 72%, var(--text-secondary));
+        --chat-input-mode-label-color-focus: var(--status-grey);
+    }
+
+    :where(.chat-container) :is(.chat-input[data-agent-mode='plan'], .agent-mode-popup--plan) {
+        --chat-input-mode-border-color: color-mix(in srgb, var(--accent-purple) 35%, var(--glass-border-strong));
+        --chat-input-mode-border-color-focus: color-mix(in srgb, var(--accent-purple) 65%, var(--glass-border-strong));
+        --chat-input-mode-label-color: color-mix(in srgb, var(--accent-purple) 72%, var(--text-secondary));
+        --chat-input-mode-label-color-focus: var(--accent-purple);
+    }
+
+    :where(.chat-container) :is(.chat-input[data-agent-mode='execute'], .agent-mode-popup--execute) {
+        --chat-input-mode-border-color: color-mix(in srgb, var(--status-orange) 35%, var(--glass-border-strong));
+        --chat-input-mode-border-color-focus: color-mix(in srgb, var(--status-orange) 65%, var(--glass-border-strong));
+        --chat-input-mode-label-color: color-mix(in srgb, var(--status-orange) 72%, var(--text-secondary));
+        --chat-input-mode-label-color-focus: var(--status-orange);
+    }
+
+    :where(.chat-container) .chat-input-wrapper:has(.chat-input:focus) .agent-mode-popup {
+        border-color: var(--chat-input-mode-border-color-focus);
+        color: var(--chat-input-mode-label-color-focus);
+    }
+}

@@ -1,0 +1,252 @@
+/* SoAI - Boot frontend styles [frontend/assets/css/boot.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations, components, layout, pages, utilities, states, overrides;
+
+@layer foundations {
+    :root[data-soai-boot-state] {
+        color-scheme: dark;
+        block-size: 100%;
+        inline-size: 100%;
+        overflow: hidden;
+
+        --ui-scale: 1;
+        --ui-scale-inverse: 1;
+        --ui-viewport-width-unit: calc(1vw / var(--ui-scale));
+        --ui-viewport-height-unit: calc(1vh / var(--ui-scale));
+        --font-family-sans: 'SoAIType', system-ui, -apple-system, 'Segoe UI', roboto, 'Noto Sans', sans-serif;
+        --boot-radius: 12px;
+        --border-round: 50%;
+        --boot-spinner-size: clamp(40px, calc(15 * var(--ui-viewport-width-unit)), 78px);
+        --boot-spinner-ring: max(2px, calc(var(--boot-spinner-size) * 0.05));
+        --space-15: 0.375rem;
+        --space-6: 1.5rem;
+        --bg-primary: #151515;
+        --text-primary: #e6e6e6;
+        --accent-primary: #86b31e;
+        --z-tooltip: 700;
+        --duration-300: 300ms;
+        --duration-500: 500ms;
+        --duration-900: 900ms;
+        --duration-1000: 1000ms;
+        --ease-linear: linear;
+        --ease-out: ease-out;
+        --font-size-095: 0.95rem;
+        --preloader-exit-rise: 18px;
+        --preloader-bg-gradient: linear-gradient(90deg, rgb(33 33 33) 0%, rgb(20 20 20) 100%);
+    }
+
+    :root[data-soai-boot-state][data-interface-scale='50'] {
+        --ui-scale: 0.5;
+        --ui-scale-inverse: 2;
+    }
+
+    :root[data-soai-boot-state][data-interface-scale='75'] {
+        --ui-scale: 0.75;
+        --ui-scale-inverse: 1.3333;
+    }
+
+    :root[data-soai-boot-state][data-interface-scale='125'] {
+        --ui-scale: 1.25;
+        --ui-scale-inverse: 0.8;
+    }
+
+    :root[data-soai-boot-state][data-interface-scale='150'] {
+        --ui-scale: 1.5;
+        --ui-scale-inverse: 0.6667;
+    }
+
+    :root.theme-light[data-soai-boot-state] {
+        color-scheme: light;
+
+        --bg-primary: #dedede;
+        --text-primary: #0f0f11;
+        --accent-primary: #668212;
+        --preloader-bg-gradient: linear-gradient(90deg, rgb(217 217 217) 0%, rgb(173 173 173) 100%);
+    }
+
+    :root[data-soai-boot-state][data-animation-speed='fast'] {
+        --duration-300: 150ms;
+        --duration-500: 250ms;
+        --duration-900: 450ms;
+        --duration-1000: 500ms;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :root[data-soai-boot-state] {
+            --duration-300: 0ms;
+            --duration-500: 0ms;
+            --duration-900: 0ms;
+            --duration-1000: 0ms;
+        }
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes preloader-spinner-fade-in {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+}
+
+@layer overrides {
+    html[data-soai-boot-state='booting'],
+    html[data-soai-boot-state='loading'],
+    html[data-soai-boot-state='primed'],
+    html[data-soai-boot-state='ready'] {
+        background-color: var(--bg-primary);
+    }
+
+    html[data-soai-boot-state] body {
+        block-size: calc(100 * var(--ui-viewport-height-unit));
+        font-family: var(--font-family-sans);
+        inline-size: calc(100 * var(--ui-viewport-width-unit));
+        transform: scale(var(--ui-scale));
+        transform-origin: top left;
+    }
+
+    html[data-soai-boot-state='booting'] body,
+    html[data-soai-boot-state='loading'] body,
+    html[data-soai-boot-state='primed'] body,
+    html[data-soai-boot-state='ready'] body {
+        visibility: hidden;
+    }
+
+    .restart-overlay[hidden] {
+        display: none;
+    }
+
+    html[data-soai-boot-state] .page-preloader {
+        visibility: visible;
+        position: fixed;
+        inset: 0 auto auto 0;
+        block-size: calc(100% * var(--ui-scale));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        inline-size: calc(100% * var(--ui-scale));
+        background-color: var(--bg-primary);
+        background-image: var(--preloader-bg-gradient);
+        z-index: var(--z-tooltip);
+        opacity: 1;
+        pointer-events: auto;
+        transform: scale(var(--ui-scale-inverse));
+        transform-origin: top left;
+        transition: opacity var(--duration-300) var(--ease-out);
+    }
+
+    html[data-soai-boot-state] .page-preloader::before {
+        content: none;
+    }
+
+    html[data-soai-boot-state] .page-preloader.page-preloader--exiting {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    html[data-soai-boot-state] .page-preloader-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        transform: translateY(0);
+        transition:
+            gap var(--duration-500) var(--ease-out),
+            transform var(--duration-300) var(--ease-out);
+    }
+
+    html[data-soai-boot-state][data-soai-early-wallpaper-pending] .page-preloader-content {
+        opacity: 0;
+    }
+
+    html[data-soai-boot-state].preloader-logo-ready .page-preloader-content {
+        gap: calc(var(--space-6) + var(--space-15));
+    }
+
+    html[data-soai-boot-state] .page-preloader.page-preloader--exiting .page-preloader-content {
+        transform: translateY(calc(var(--preloader-exit-rise) * -1));
+    }
+
+    .page-preloader-spinner {
+        width: var(--boot-spinner-size);
+        height: var(--boot-spinner-size);
+        border: var(--boot-spinner-ring) solid color-mix(in srgb, var(--text-primary) 15%, transparent);
+        border-top-color: #86b31e;
+        border-radius: var(--border-round);
+        animation:
+            spin var(--duration-1000) var(--ease-linear) infinite,
+            preloader-spinner-fade-in var(--duration-1000) var(--ease-out) both;
+    }
+
+    :root.theme-light .page-preloader-spinner {
+        border-top-color: #668212;
+    }
+
+    html[data-soai-boot-state][data-soai-early-wallpaper-pending] .page-preloader-spinner {
+        animation-play-state: paused;
+    }
+
+    html[data-soai-boot-state] .page-preloader-text {
+        display: none;
+    }
+
+    html[data-soai-boot-state] .page-preloader-status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        max-width: min(calc(78 * var(--ui-viewport-width-unit)), 520px);
+        text-align: center;
+        color: color-mix(in srgb, var(--text-primary) 68%, transparent);
+        font-size: var(--font-size-095);
+        font-weight: 500;
+        line-height: 1.4;
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transform: translateY(-12px);
+        transition:
+            opacity var(--duration-900) var(--ease-out),
+            max-height var(--duration-500) var(--ease-out),
+            transform var(--duration-500) var(--ease-out);
+    }
+
+    html[data-soai-boot-state].preloader-status-ready .page-preloader-status {
+        opacity: 1;
+        max-height: 1.4rem;
+        transform: translateY(0);
+    }
+
+    html[data-soai-boot-state] .page-preloader-logo {
+        display: block;
+        width: 100%;
+        max-width: min(calc(80 * var(--ui-viewport-width-unit)), 420px);
+        height: auto;
+        aspect-ratio: 1800 / 750;
+        object-fit: contain;
+        margin-bottom: calc(-100% * 39 / 382 / 2.4);
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transform: translateY(-24px);
+        transition:
+            opacity var(--duration-900) var(--ease-out),
+            max-height var(--duration-500) var(--ease-out),
+            transform var(--duration-500) var(--ease-out);
+    }
+
+    html[data-soai-boot-state].preloader-logo-ready .page-preloader-logo {
+        opacity: 1;
+        max-height: min(calc(30 * var(--ui-viewport-height-unit)), 260px);
+        transform: translateY(0);
+    }
+}

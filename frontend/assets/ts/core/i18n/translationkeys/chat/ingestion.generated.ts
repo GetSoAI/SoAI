@@ -1,0 +1,4 @@
+/* SoAI - Frontend core Translation declarations for key group `chat.ingestion` [frontend/assets/ts/core/i18n/translationkeys/chat/ingestion.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type ChatIngestionTranslationKey = 'chat.ingestion.backpressure' | 'chat.ingestion.cancel' | 'chat.ingestion.cancelled' | 'chat.ingestion.failed' | 'chat.ingestion.filesSubmitted' | 'chat.ingestion.stage.cancelling' | 'chat.ingestion.stage.chunking' | 'chat.ingestion.stage.embedding' | 'chat.ingestion.stage.fetching' | 'chat.ingestion.stage.parsing' | 'chat.ingestion.stage.queued' | 'chat.ingestion.started' | 'chat.ingestion.status.paused' | 'chat.ingestion.status.running' | 'chat.ingestion.terminal.cancelled' | 'chat.ingestion.terminal.failed' | 'chat.ingestion.terminal.mixed' | 'chat.ingestion.terminal.ready' | 'chat.ingestion.title';

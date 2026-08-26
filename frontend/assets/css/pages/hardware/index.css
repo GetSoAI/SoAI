@@ -1,0 +1,17 @@
+/* SoAI - Hardware page styles [frontend/assets/css/pages/hardware/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./base.css') layer(pages);
+@import url('./layout.css') layer(pages);
+@import url('./toolbar.css') layer(pages);
+@import url('./gpu-control-title.css') layer(pages);
+@import url('./overflow.css') layer(pages);
+@import url('./panels.css') layer(pages);
+@import url('./soaibench-state-motion.css') layer(pages);
+@import url('./memory-swap.css') layer(pages);
+@import url('./memory-swap-gauges.css') layer(pages);
+@import url('./forms.css') layer(pages);
+@import url('./recessed-surfaces.css') layer(pages);
+@import url('./io-cards.css') layer(pages);
+@import url('./modals.css') layer(pages);
+@import url('./soaibench-run-modal.css') layer(pages);

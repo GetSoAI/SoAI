@@ -1,0 +1,28 @@
+/* SoAI - Model detail page recessed surfaces styles [frontend/assets/css/pages/model-detail/recessed-surfaces.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='modelDetail'], [data-page-scope='modelDetail']) .model-test-logs.logs-content,
+    :where([data-section='modelDetail'], [data-page-scope='modelDetail']) :is(.modeldetail-card > .modeldetail-card-body, .category-content.has-scroll) {
+        background-color: var(--recessed-surface-fill-background);
+        background-image: var(--recessed-surface-fill);
+        background-blend-mode: var(--recessed-surface-texture-blend);
+        background-size: var(--recessed-surface-texture-size);
+        -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
+        backdrop-filter: var(--recessed-surface-backdrop-filter);
+        box-shadow: var(--recessed-surface-shadow);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+
+    :where([data-section='modelDetail'], [data-page-scope='modelDetail']) :is(.modeldetail-card, .parameter-category) {
+        --glass-surface-bg: transparent;
+        background: transparent;
+    }
+
+    :where([data-section='modelDetail'], [data-page-scope='modelDetail']) :is(.modeldetail-card, .parameter-category)::after,
+    :where([data-section='modelDetail'], [data-page-scope='modelDetail']) .parameter-category::before {
+        background-color: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+}

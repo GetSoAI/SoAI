@@ -1,0 +1,63 @@
+/* SoAI - Automation page configuration modal layout styles [frontend/assets/css/pages/automation/configuration-modal-layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turns-container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .modal-body > .modal-body-section {
+        margin-top: var(--space-4);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .modal-body > .modal-body-section:first-child {
+        margin-top: 0;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .form-row-split {
+        display: flex;
+        gap: var(--space-4);
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .form-row-split--with-action {
+        align-items: flex-end;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .form-col-main {
+        flex: 7;
+        min-width: 260px;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .form-col-action {
+        flex: 0 0 auto;
+        min-width: 0;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-modal-settings-field {
+        margin-bottom: 0;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-modal-settings-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(max-content, calc(var(--control-height) * 4));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-modal-settings-main {
+        min-width: 0;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-modal-settings-action {
+        min-width: 0;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-modal-settings-action > .ui-button {
+        width: 100%;
+    }
+}

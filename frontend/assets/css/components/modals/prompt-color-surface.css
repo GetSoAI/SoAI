@@ -1,0 +1,84 @@
+/* SoAI - Shared prompt color surface styling [frontend/assets/css/components/modals/prompt-color-surface.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .prompt-color-surface {
+        --prompt-card-overlay-strong: 28%;
+        --prompt-card-overlay-soft: 16%;
+        --prompt-card-outline-opacity: 38%;
+        --prompt-card-accent: var(--border-color);
+        --prompt-card-overlay-accent: var(--accent-blue);
+        --prompt-card-overlay-underlay: var(--glass-underlay-surface);
+        position: relative;
+        isolation: isolate;
+    }
+
+    .theme-dark .prompt-color-surface {
+        --prompt-card-overlay-strong: 16%;
+        --prompt-card-overlay-soft: 8%;
+        --prompt-card-outline-opacity: 24%;
+    }
+
+    .prompt-color-surface::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--transition-fast);
+        z-index: var(--z-base);
+    }
+
+    .prompt-color-surface > :not(.ui-round-button) {
+        position: relative;
+        z-index: var(--z-raised);
+    }
+
+    .prompt-color-surface > .ui-round-button {
+        z-index: var(--z-raised);
+    }
+
+    .prompt-color-surface[data-prompt-color] {
+        --prompt-card-accent: var(--accent-blue);
+        --prompt-card-overlay-accent: var(--accent-blue);
+        border-width: var(--border-width-150);
+    }
+
+    .prompt-color-surface[data-prompt-color='red' i] {
+        --prompt-card-accent: var(--prompts-color-red);
+        --prompt-card-overlay-accent: var(--prompts-color-red);
+    }
+
+    .prompt-color-surface[data-prompt-color='yellow' i] {
+        --prompt-card-accent: var(--prompts-color-yellow);
+        --prompt-card-overlay-accent: var(--prompts-color-yellow);
+    }
+
+    .prompt-color-surface[data-prompt-color='purple' i] {
+        --prompt-card-accent: var(--prompts-color-purple);
+        --prompt-card-overlay-accent: var(--prompts-color-purple);
+    }
+
+    .prompt-color-surface[data-prompt-color='green' i] {
+        --prompt-card-accent: var(--prompts-color-green);
+        --prompt-card-overlay-accent: var(--prompts-color-green);
+    }
+
+    .prompt-color-surface[data-prompt-color='blue' i] {
+        --prompt-card-accent: var(--prompts-color-blue);
+        --prompt-card-overlay-accent: var(--prompts-color-blue);
+    }
+
+    .prompt-color-surface[data-prompt-color]:not(.is-selected) {
+        border-color: var(--prompt-card-accent);
+        box-shadow:
+            var(--glass-shadow-base),
+            0 0 0 1.5px color-mix(in srgb, var(--prompt-card-overlay-accent) var(--prompt-card-outline-opacity), var(--prompt-card-overlay-underlay));
+    }
+
+    .prompt-color-surface[data-prompt-color]:not(.is-selected)::before {
+        background: linear-gradient(135deg, color-mix(in srgb, var(--prompt-card-overlay-accent) var(--prompt-card-overlay-strong), var(--prompt-card-overlay-underlay)), color-mix(in srgb, var(--prompt-card-overlay-accent) var(--prompt-card-overlay-soft), var(--prompt-card-overlay-underlay)));
+        opacity: 1;
+    }
+}

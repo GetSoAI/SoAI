@@ -1,0 +1,109 @@
+/* SoAI - Help page styles [frontend/assets/css/pages/help/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='help'], [data-page-scope='help']) .help-content {
+        padding-bottom: calc(var(--layout-container-padding) + var(--ui-safe-area-inset-bottom));
+    }
+
+    :where([data-section='help'], [data-page-scope='help']) .help-root {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-6);
+    }
+
+    :where([data-section='help'], [data-page-scope='help']) .help-logo-box {
+        grid-column: 1;
+        padding: var(--space-10);
+        background: color-mix(in srgb, var(--glass-surface-strong) 97%, var(--accent-green) 3%);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        box-shadow: var(--surface-card-shadow);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-5);
+        min-height: 220px;
+    }
+
+    :where([data-section='help'], [data-page-scope='help']) .help-intro {
+        grid-column: 2;
+        padding: var(--space-6);
+        background: var(--surface-card);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        box-shadow: var(--surface-card-shadow);
+    }
+
+    :where([data-section='help'], [data-page-scope='help']) .help-intro p {
+        font-size: var(--font-size-body-md);
+        line-height: 1.6;
+        color: var(--text-secondary);
+        margin-bottom: var(--space-4);
+    }
+
+    :where([data-section='help'], [data-page-scope='help']) .help-intro p:last-child {
+        margin-bottom: 0;
+    }
+
+    :where([data-section='help'], [data-page-scope='help']) .help-section {
+        padding: var(--space-6);
+        background: var(--surface-card);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        box-shadow: var(--surface-card-shadow);
+    }
+
+    :where([data-section='help'], [data-page-scope='help']) .help-actions {
+        display: flex;
+        gap: var(--space-4);
+        margin-top: var(--space-6);
+    }
+
+    @container ui-viewport (width <= 1024px) {
+        :where([data-section='help'], [data-page-scope='help']) .help-root {
+            grid-template-columns: 1fr;
+            gap: var(--space-6);
+        }
+
+        :where([data-section='help'], [data-page-scope='help']) .help-logo-box {
+            grid-column: 1;
+        }
+
+        :where([data-section='help'], [data-page-scope='help']) .help-intro {
+            grid-column: 1;
+        }
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='help'], [data-page-scope='help']) .help-root {
+            gap: var(--space-4);
+        }
+
+        :where([data-section='help'], [data-page-scope='help']) :is(.help-logo-box, .help-intro, .help-section) {
+            padding: var(--space-4);
+        }
+
+        :where([data-section='help'], [data-page-scope='help']) .help-logo-box {
+            min-height: 180px;
+            padding: var(--space-6);
+        }
+
+        :where([data-section='help'], [data-page-scope='help']) .help-logo-box .logo-ui-help {
+            max-width: 180px;
+        }
+
+        :where([data-section='help'], [data-page-scope='help']) .help-actions {
+            flex-direction: column;
+        }
+    }
+}

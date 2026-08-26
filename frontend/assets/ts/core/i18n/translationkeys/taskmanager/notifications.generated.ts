@@ -1,0 +1,4 @@
+/* SoAI - Frontend core Translation declarations for key group `taskManager.notifications` [frontend/assets/ts/core/i18n/translationkeys/taskmanager/notifications.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type TaskManagerNotificationsTranslationKey = 'taskManager.notifications.cancelOperationFailed' | 'taskManager.notifications.cancelOperationsAlreadyFinished' | 'taskManager.notifications.cancelOperationsFailed.plural' | 'taskManager.notifications.cancelOperationsFailed.singular' | 'taskManager.notifications.cancelOperationsPartial' | 'taskManager.notifications.cancelOperationsSuccess.plural' | 'taskManager.notifications.cancelOperationsSuccess.singular' | 'taskManager.notifications.pluginStopped' | 'taskManager.notifications.stopAllFailed' | 'taskManager.notifications.stopAllSuccess' | 'taskManager.notifications.stopFailed';

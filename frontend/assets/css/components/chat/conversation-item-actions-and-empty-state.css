@@ -1,0 +1,52 @@
+/* SoAI - Conversation item actions and empty state component styles [frontend/assets/css/components/chat/conversation-item-actions-and-empty-state.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .conversation-action-btn.color-picker-trigger::after {
+        content: '';
+        width: 10px;
+        height: 10px;
+        border-radius: var(--border-radius);
+        background: var(--conversation-item-overlay-accent);
+    }
+
+    :where(.chat-container) .conversation-item:not([data-conversation-color]) .conversation-action-btn.color-picker-trigger::after {
+        background: var(--glass-surface-medium);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where(.chat-container) .conversation-item[data-terminal-indicator='complete'] .conversation-action-btn.color-picker-trigger::after {
+        background: var(--accent-primary);
+        border: none;
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--glass-underlay-surface) 72%, transparent),
+            0 0 10px color-mix(in srgb, var(--accent-primary) 48%, transparent);
+    }
+
+    :where(.chat-container) .conversation-item[data-terminal-indicator='error'] .conversation-action-btn.color-picker-trigger::after {
+        background: var(--status-red);
+        border: none;
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--glass-underlay-surface) 72%, transparent),
+            0 0 10px color-mix(in srgb, var(--status-red) 50%, transparent);
+    }
+
+    :where(.chat-container) .conversation-item:is([data-conversation-execution-status='chat_streaming'], [data-conversation-execution-status='agent_running']) .conversation-action-btn.color-picker-trigger::after {
+        background: var(--status-orange);
+        border: none;
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--glass-underlay-surface) 72%, transparent),
+            0 0 12px color-mix(in srgb, var(--status-orange) 55%, transparent);
+    }
+
+    :where(.chat-container) .conversation-action-btn.conversation-favorite-color-picker {
+        --ui-button-border: var(--ui-button-danger-color);
+        --ui-button-border-hover: var(--ui-button-danger-color-hover);
+        border-color: var(--ui-button-danger-color);
+    }
+
+    :where(.chat-container) .conversation-action-btn.conversation-favorite-color-picker:hover,
+    :where(.chat-container) .conversation-action-btn.conversation-favorite-color-picker:focus-visible {
+        border-color: var(--ui-button-danger-color-hover);
+    }
+}

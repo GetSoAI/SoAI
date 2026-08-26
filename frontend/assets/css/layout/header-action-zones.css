@@ -1,0 +1,105 @@
+/* SoAI - Header action zones frontend styles [frontend/assets/css/layout/header-action-zones.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer layout {
+    .advanced-toggle-btn {
+        display: none;
+    }
+
+    .header-action-zone {
+        display: flex;
+        align-items: center;
+        gap: var(--header-button-gap);
+    }
+
+    .header-action-zone.u-hidden {
+        display: none;
+    }
+
+    .header-action-zone .header-action-button {
+        width: var(--icon-button-size);
+        height: var(--icon-button-size);
+        min-width: var(--icon-button-size);
+        min-height: var(--icon-button-size);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        position: relative;
+        border-radius: var(--border-radius);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            opacity var(--transition-normal),
+            transform var(--transition-normal);
+    }
+
+    .header-action-zone .header-action-button.header-action-button--space-suppressed {
+        display: none;
+    }
+
+    .header-action-zone .header-action-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--icon-size);
+        height: var(--icon-size);
+    }
+
+    .header-action-zone .header-action-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 var(--space-1);
+        border-radius: var(--border-radius);
+        font-size: var(--font-size-compact);
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--status-red);
+        color: var(--color-white);
+    }
+
+    .header-action-zone .header-action-badge[hidden] {
+        display: none;
+    }
+
+    .header-action-button.header-action--save {
+        --ui-button-color: var(--ui-button-accent-color);
+        --ui-button-color-hover: var(--ui-button-accent-color-hover);
+        --ui-button-border: var(--ui-button-accent-color);
+        --ui-button-border-hover: var(--ui-button-accent-color-hover);
+        --ui-button-bg: color-mix(in srgb, var(--ui-button-accent-color) var(--interactive-tint-opacity-idle), var(--ui-button-inherited-underlay));
+        --ui-button-bg-hover: color-mix(in srgb, var(--ui-button-accent-color-hover) 18%, var(--ui-button-inherited-underlay));
+    }
+
+    .header-action-button.header-action--restart {
+        --ui-button-color: var(--ui-button-warning-color);
+        --ui-button-color-hover: var(--ui-button-warning-color-hover);
+        --ui-button-border: var(--ui-button-warning-color);
+        --ui-button-border-hover: var(--ui-button-warning-color-hover);
+        --ui-button-bg: color-mix(in srgb, var(--ui-button-warning-color) var(--interactive-tint-opacity-idle), var(--ui-button-inherited-underlay));
+        --ui-button-bg-hover: color-mix(in srgb, var(--ui-button-warning-color-hover) 18%, var(--ui-button-inherited-underlay));
+    }
+
+    .header-action-button .header-action-icon svg {
+        width: 100%;
+        height: 100%;
+        stroke: currentcolor;
+    }
+
+    @container ui-viewport (width <= 480px) {
+        .header-right .user-wrapper {
+            display: none;
+        }
+
+        .settings-logout-item {
+            display: block;
+        }
+    }
+}

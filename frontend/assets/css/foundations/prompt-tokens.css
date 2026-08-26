@@ -1,0 +1,17 @@
+/* SoAI - Prompt tokens frontend styles [frontend/assets/css/foundations/prompt-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --prompts-color-red: #ff5d73;
+        --prompts-color-yellow: #f7cc4b;
+        --prompts-color-purple: #9f7bff;
+        --prompts-color-green: #42d18a;
+        --prompts-color-blue: #4db8ff;
+        --prompts-gradient-red-start: #ff94a9;
+        --prompts-gradient-yellow-start: #ffe27c;
+        --prompts-gradient-purple-start: #c9b3ff;
+        --prompts-gradient-green-start: #8af1c3;
+        --prompts-gradient-blue-start: #96dcff;
+    }
+}

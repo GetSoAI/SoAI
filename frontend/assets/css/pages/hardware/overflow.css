@@ -1,0 +1,62 @@
+/* SoAI - Hardware page overflow styles [frontend/assets/css/pages/hardware/overflow.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-row-wrapper {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-row-wrapper--gpu {
+        display: flex;
+        flex: 1 1 0;
+        min-height: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-nav {
+        position: absolute;
+        top: 50%;
+        z-index: var(--z-raised);
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
+        transform: translateY(-50%);
+        transition:
+            opacity var(--transition-fast),
+            visibility 0s var(--ease-linear) var(--duration-150);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-nav--left {
+        left: var(--space-3);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-nav--right {
+        right: var(--space-3);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-nav.is-active {
+        opacity: 0.5;
+        pointer-events: auto;
+        visibility: visible;
+        transition:
+            opacity var(--transition-fast),
+            visibility 0s;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-row-wrapper:is(:hover, :focus-within) .hardware-overflow-nav.is-active {
+        opacity: 1;
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-nav.is-active {
+            opacity: 1;
+        }
+    }
+
+    @media (hover: none) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-nav.is-active {
+            opacity: 1;
+        }
+    }
+}

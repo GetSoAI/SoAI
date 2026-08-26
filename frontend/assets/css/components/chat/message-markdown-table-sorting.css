@@ -1,0 +1,55 @@
+/* SoAI - Message markdown table sorting component styles [frontend/assets/css/components/chat/message-markdown-table-sorting.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .message-text table.markdown-table th.markdown-table-sortable-header {
+        position: relative;
+        cursor: pointer;
+        user-select: none;
+        transition:
+            background-color var(--transition-fast),
+            color var(--transition-fast),
+            border-color var(--transition-fast);
+    }
+
+    :where(.chat-container) .message-text table.markdown-table th.markdown-table-sortable-header:is(:hover, :focus-visible) {
+        background: var(--glass-surface-interactive-hover);
+        color: var(--text-primary);
+        outline: none;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table th.markdown-table-sortable-header.is-active {
+        background: color-mix(in srgb, var(--glass-surface-medium) 88%, var(--border-color) 12%);
+        border-bottom-color: var(--border-color);
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table th.markdown-table-sortable-header .sort-indicator:empty {
+        display: none;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table th.markdown-table-sortable-header .sort-indicator:not(:empty) {
+        display: inline-flex;
+        width: 14px;
+        height: 14px;
+        margin-left: var(--space-1);
+        vertical-align: middle;
+        color: inherit;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table th.markdown-table-sortable-header .sort-indicator.is-space-overlay {
+        position: absolute;
+        top: 50%;
+        right: var(--space-3);
+        margin-left: 0;
+        transform: translateY(-50%);
+    }
+
+    :where(.chat-container) .message-text table.markdown-table th.markdown-table-sortable-header .sort-indicator svg {
+        display: block;
+        width: 14px;
+        height: 14px;
+        stroke: currentcolor;
+    }
+}

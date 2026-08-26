@@ -1,0 +1,116 @@
+/* SoAI - Login page layout styles [frontend/assets/css/pages/login/layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    @container ui-viewport (width <= 768px) {
+        .login-container:where([data-section='login'], [data-page-scope='login']) {
+            padding: var(--space-3);
+            align-items: flex-start;
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-layout {
+            width: 100%;
+            display: block;
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-card {
+            width: 100%;
+            flex: none;
+            max-width: none;
+            margin: 0;
+            min-height: auto;
+            max-height: none;
+            overflow-y: visible;
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-header {
+            padding: var(--space-6) var(--space-6) var(--space-4);
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-logo {
+            max-width: calc(286px * 0.864);
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-header h1 {
+            font-size: var(--font-size-xl);
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-form {
+            padding: var(--space-4) var(--space-6) var(--space-6);
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-footer {
+            padding: 0 var(--space-6) var(--space-6);
+        }
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='login'], [data-page-scope='login']) .login-card {
+            margin: 0;
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-logo {
+            width: 100%;
+            max-width: calc(286px * 0.864);
+            height: auto;
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-header {
+            padding: var(--space-4) var(--space-4) var(--space-2);
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-header h1 {
+            font-size: var(--font-size-lg);
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-header p {
+            font-size: var(--font-size-xs);
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-form {
+            padding: var(--space-2) var(--space-4) var(--space-4);
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-card .form-group {
+            margin-bottom: var(--space-4);
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .form-input {
+            padding: var(--space-25) var(--space-35);
+            font-size: var(--font-size-body-sm);
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .secret-input-container > .form-input.secret-input {
+            padding-right: calc(var(--space-35) + var(--control-height));
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-button {
+            padding: var(--space-25) var(--space-4);
+            font-size: var(--font-size-body-sm);
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-footer {
+            padding: 0 var(--space-4) var(--space-4);
+        }
+
+        :where([data-section='login'], [data-page-scope='login']) .login-help-text {
+            font-size: var(--font-size-caption);
+        }
+    }
+
+    @container ui-viewport (height <= 640px) {
+        :where([data-section='login'], [data-page-scope='login']) .login-help-text {
+            display: none;
+        }
+    }
+
+    @container ui-viewport (height <= 480px) {
+        :where([data-section='login'], [data-page-scope='login']) .login-header > p {
+            display: none;
+        }
+    }
+
+    :where([data-section='login'], [data-page-scope='login']) .login-card.success {
+        animation: success-pulse var(--duration-600) var(--ease-in-out);
+    }
+}

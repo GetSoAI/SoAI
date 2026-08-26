@@ -1,0 +1,70 @@
+/* SoAI - Page header shell component styles [frontend/assets/css/components/layout/page-header-shell.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .page-header-icon {
+        border: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    .page-header-icon svg {
+        width: var(--control-icon-size-lg);
+        height: var(--control-icon-size-lg);
+        color: var(--text-primary);
+    }
+
+    .page-header-panel {
+        z-index: var(--z-sticky);
+        margin: 0 calc(-1 * var(--layout-container-padding)) var(--layout-container-padding);
+        margin-top: calc(-1 * var(--layout-section-padding));
+        padding: var(--layout-container-padding);
+        padding-bottom: var(--space-6);
+        background: var(--glass-surface-darker);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--glass-shadow-base);
+        isolation: isolate;
+        border-right: var(--border-width-1) solid var(--glass-border-strong);
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+        border-top: none;
+        border-left: none;
+        overflow: visible;
+        user-select: none;
+    }
+    .page-header-panel > * {
+        position: relative;
+        z-index: var(--z-raised);
+    }
+
+    .page-header-panel.is-floating {
+        position: sticky;
+        top: var(--page-header-top);
+        transition: top var(--header-fold-duration) var(--header-fold-easing);
+    }
+    .page-header-panel.is-static {
+        position: static;
+        top: auto;
+        transition: none;
+    }
+    .page-header-panel--folded {
+        --page-header-top: calc(-1 * var(--layout-section-padding) - var(--header-measured-height));
+    }
+    .page-header-panel--extended {
+        --page-header-top: calc(-1 * var(--layout-section-padding));
+    }
+    .page-header-panel.page-header-panel--no-transition {
+        transition: none;
+    }
+    body.header-auto-hide-disabled .page-header-panel {
+        --page-header-top: calc(-1 * var(--layout-section-padding));
+        transition: none;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        position: relative;
+        margin-bottom: var(--space-8);
+        gap: var(--space-8);
+    }
+}

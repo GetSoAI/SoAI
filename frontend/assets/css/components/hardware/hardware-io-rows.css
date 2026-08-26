@@ -1,0 +1,145 @@
+/* SoAI - Hardware io rows component styles [frontend/assets/css/components/hardware/hardware-io-rows.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .hardware-resource-row {
+        --hardware-resource-row-height: calc(var(--space-16) + var(--space-16) + var(--space-5));
+
+        border: var(--border-width-1) solid color-mix(in srgb, var(--surface-card-border) 82%, transparent);
+        border-radius: var(--border-radius);
+        background-color: var(--surface-card);
+        background-image: var(--title-bar-background);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        display: grid;
+        gap: var(--space-25);
+        grid-template-rows: var(--space-6) min-content minmax(0, 1fr);
+        height: var(--hardware-resource-row-height);
+        max-width: 100%;
+        min-height: calc(var(--space-16) + var(--space-16) + var(--space-5));
+        min-width: 0;
+        overflow: hidden;
+        padding: var(--space-35);
+        width: 100%;
+        transition:
+            box-shadow var(--transition-fast),
+            border-color var(--transition-fast);
+    }
+
+    .hardware-resource-row.checkerboard-light {
+        background-color: var(--alternating-grey-light);
+        background-image: linear-gradient(180deg, color-mix(in srgb, var(--alternating-grey-light) 96%, var(--color-white) 4%) 0%, color-mix(in srgb, var(--alternating-grey-light) 98%, var(--color-white) 2%) 52%, var(--alternating-grey-light) 100%);
+    }
+
+    .hardware-resource-row.checkerboard-dark {
+        background-color: var(--alternating-grey-dark);
+        background-image: linear-gradient(180deg, color-mix(in srgb, var(--alternating-grey-dark) 96%, var(--color-white) 4%) 0%, color-mix(in srgb, var(--alternating-grey-dark) 98%, var(--color-white) 2%) 52%, var(--alternating-grey-dark) 100%);
+    }
+
+    .hardware-resource-row-header {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-25);
+        height: var(--space-6);
+        justify-content: space-between;
+        min-height: var(--space-6);
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .hardware-resource-name {
+        color: var(--text-primary);
+        flex: 1 1 auto;
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        letter-spacing: var(--tracking-04px);
+        line-height: var(--line-height-compact);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .hardware-resource-value {
+        color: var(--text-secondary);
+        flex: 0 1 auto;
+        font-size: var(--font-size-compact-plus);
+        font-weight: 600;
+        letter-spacing: var(--tracking-04px);
+        line-height: var(--line-height-compact);
+        min-width: 0;
+        overflow-wrap: anywhere;
+        text-transform: uppercase;
+    }
+
+    .hardware-resource-value:is(.progress-red, .progress-orange, .progress-yellow, .progress-green) {
+        color: var(--soai-progress-color);
+    }
+
+    .hardware-resource-speed-segment {
+        align-items: center;
+        display: inline-flex;
+        font-size: inherit;
+        gap: var(--space-05);
+        line-height: inherit;
+        min-width: 0;
+        white-space: nowrap;
+    }
+
+    .hardware-resource-speed-label {
+        align-items: center;
+        display: inline-flex;
+        font-size: inherit;
+        letter-spacing: var(--tracking-04px);
+        line-height: inherit;
+        vertical-align: middle;
+    }
+
+    .hardware-network-speed-arrow,
+    .hardware-network-speed-value {
+        align-items: center;
+        display: inline-flex;
+        font-size: inherit;
+        line-height: inherit;
+        vertical-align: middle;
+    }
+
+    @container ui-viewport (width <= 480px) {
+        .hardware-resource-row {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-15);
+            height: auto;
+            min-height: auto;
+            overflow: visible;
+            padding: var(--space-2) var(--space-25);
+        }
+
+        .hardware-resource-row-header {
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .hardware-resource-value {
+            font-size: var(--font-size-compact);
+        }
+
+        .hardware-resource-name {
+            flex: 1 1 auto;
+            font-size: var(--font-size-compact);
+            min-width: 0;
+            overflow: visible;
+            overflow-wrap: anywhere;
+            text-overflow: clip;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .hardware-network-row .hardware-resource-name,
+        .hardware-network-row .hardware-network-speed {
+            flex-basis: 100%;
+        }
+    }
+}

@@ -1,0 +1,88 @@
+/* SoAI - About page easter egg scene styles [frontend/assets/css/pages/about/easter-egg-scene.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='about'], [data-page-scope='about']) .easter-egg-scene {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 0;
+        perspective: 800px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        overflow: hidden;
+    }
+
+    @keyframes ee-scene-fade-in {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes ee-aurora-drift {
+        from {
+            transform: rotate(0deg) scale(1);
+        }
+        to {
+            transform: rotate(12deg) scale(1.18);
+        }
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .easter-egg-aurora {
+        position: absolute;
+        inset: -25%;
+        background: radial-gradient(ellipse at 22% 30%, color-mix(in srgb, var(--ee-glow-color) 14%, transparent) 0%, transparent 55%), radial-gradient(ellipse at 78% 72%, color-mix(in srgb, var(--accent-green-light) 10%, transparent) 0%, transparent 50%), radial-gradient(ellipse at 60% 15%, color-mix(in srgb, var(--ee-glow-color) 8%, transparent) 0%, transparent 45%);
+        filter: blur(30px);
+        pointer-events: none;
+        animation:
+            ee-scene-fade-in var(--duration-2500) var(--ease-default) forwards,
+            ee-aurora-drift var(--duration-12000) var(--ease-in-out) infinite alternate;
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .easter-egg-glow {
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle at center, color-mix(in srgb, var(--ee-glow-color) 20%, transparent) 0%, transparent 50%);
+        opacity: 0.6;
+        will-change: opacity;
+        transition: opacity var(--transition-fast);
+        pointer-events: none;
+        animation: ee-scene-fade-in var(--duration-2500) var(--ease-default) forwards;
+    }
+
+    @keyframes ee-starfield-twinkle {
+        from {
+            opacity: 1;
+        }
+        to {
+            opacity: 0.5;
+        }
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .easter-egg-starfield {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: var(--z-base);
+        animation:
+            ee-scene-fade-in var(--duration-2500) var(--ease-default) forwards,
+            ee-starfield-twinkle var(--duration-4000) var(--ease-in-out) var(--duration-2500) infinite alternate;
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .easter-egg-particles {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        animation: ee-scene-fade-in var(--duration-2500) var(--ease-default) forwards;
+    }
+}

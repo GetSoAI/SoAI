@@ -1,0 +1,118 @@
+/* SoAI - Status badges utility styles [frontend/assets/css/utilities/status-badges.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    :is(.status-led, .status-indicator) {
+        --status-led-color: var(--status-grey);
+        --status-led-glow: var(--status-shadow-grey-medium);
+        --status-led-glow-strong: var(--status-shadow-grey-strong);
+        display: inline-block;
+        width: var(--status-led-size);
+        height: var(--status-led-size);
+        border-radius: var(--border-radius);
+        flex-shrink: 0;
+    }
+
+    .status-led {
+        margin-right: var(--status-led-margin);
+        background-color: var(--status-led-color);
+        box-shadow:
+            0 0 8px var(--status-led-glow),
+            inset 0 1px 2px var(--glass-surface-medium);
+    }
+
+    .status-indicator {
+        margin-right: var(--space-2);
+        background: var(--status-led-color);
+        box-shadow: 0 0 8px var(--status-led-glow);
+    }
+
+    .ui-icon-button .status-indicator,
+    .sidebar-icon-button .status-indicator {
+        margin: 0;
+    }
+
+    .status-led-green,
+    .status-indicator.green {
+        --status-led-color: var(--status-green);
+        --status-led-glow: var(--status-shadow-green-medium);
+        --status-led-glow-strong: var(--status-shadow-green-strong);
+    }
+
+    .status-led-blue,
+    .status-indicator.blue {
+        --status-led-color: var(--status-blue);
+        --status-led-glow: var(--status-shadow-blue-medium);
+        --status-led-glow-strong: var(--status-shadow-blue-strong);
+    }
+
+    .status-led-orange,
+    .status-indicator.orange {
+        --status-led-color: var(--status-orange);
+        --status-led-glow: var(--status-shadow-orange-medium);
+        --status-led-glow-strong: var(--status-shadow-orange-strong);
+    }
+
+    .status-led-red,
+    .status-indicator.red {
+        --status-led-color: var(--status-red);
+        --status-led-glow: var(--status-shadow-red-medium);
+        --status-led-glow-strong: var(--status-shadow-red-strong);
+    }
+
+    .status-led-grey,
+    .status-indicator.grey {
+        --status-led-color: var(--status-grey);
+        --status-led-glow: var(--status-shadow-grey-medium);
+        --status-led-glow-strong: var(--status-shadow-grey-strong);
+    }
+
+    .status-led-darkgreen,
+    .status-indicator.darkgreen {
+        --status-led-color: var(--status-darkgreen);
+        --status-led-glow: var(--status-shadow-darkgreen-medium);
+        --status-led-glow-strong: var(--status-shadow-darkgreen-medium);
+    }
+
+    .status-led-persistentgreen,
+    .status-indicator.persistentgreen {
+        --status-led-color: var(--status-persistentgreen);
+        --status-led-glow: color-mix(in srgb, var(--status-persistentgreen) 45%, transparent);
+        --status-led-glow-strong: color-mix(in srgb, var(--status-persistentgreen) 70%, transparent);
+    }
+
+    .status-led-strong {
+        --status-led-glow: var(--status-led-glow-strong);
+    }
+
+    .status-led-sm {
+        --status-led-size: var(--status-led-size-sm);
+        --status-led-margin: var(--space-1);
+    }
+
+    .status-led-no-margin {
+        margin-right: 0;
+    }
+
+    .ui-collection-list__status .status-led {
+        --status-led-color: currentColor;
+        --status-led-glow: color-mix(in srgb, currentColor 40%, transparent);
+        --status-led-glow-strong: color-mix(in srgb, currentColor 60%, transparent);
+    }
+
+    .status-indicator.is-active {
+        box-shadow: 0 0 8px var(--status-led-glow-strong);
+        transform: scale(1.1);
+        transition:
+            box-shadow var(--transition-fast),
+            transform var(--transition-fast);
+    }
+
+    .status-indicator.is-transitioning {
+        box-shadow: 0 0 12px var(--status-led-glow-strong);
+        transform: scale(1.05);
+        transition:
+            box-shadow var(--duration-500) var(--ease-in-out),
+            transform var(--duration-500) var(--ease-in-out);
+    }
+}

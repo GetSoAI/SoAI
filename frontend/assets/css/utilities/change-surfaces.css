@@ -1,0 +1,71 @@
+/* SoAI - Change surfaces utility styles [frontend/assets/css/utilities/change-surfaces.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    .setting-change-surface {
+        --setting-change-surface-underlay: color-mix(in srgb, var(--glass-surface-medium-base) 62%, var(--app-background-base-source));
+        --setting-change-surface-modified-bg: color-mix(in srgb, var(--accent-green-default) var(--badge-bg-opacity-medium), var(--setting-change-surface-underlay));
+        --setting-change-surface-modified-border: color-mix(in srgb, var(--accent-green-default) var(--badge-border-opacity-base), var(--setting-change-surface-underlay));
+        --setting-change-surface-invalid-bg: color-mix(in srgb, var(--status-red) var(--badge-bg-opacity-medium), var(--setting-change-surface-underlay));
+        --setting-change-surface-invalid-border: color-mix(in srgb, var(--status-red) var(--badge-border-opacity-base), var(--setting-change-surface-underlay));
+        --setting-change-surface-shadow: var(--glass-shadow-base);
+        border-radius: var(--border-radius);
+        transition:
+            background var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+    }
+
+    .mcp-tool-group.is-expanded > .mcp-tool-group-header.setting-change-surface {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .setting-change-surface:is(.form-group, .model-edit-field, .config-field-item, .concurrent-plugins-form-group, .modal-body-section) {
+        padding: var(--space-2);
+    }
+
+    .setting-change-surface:not(.setting-item, .glass-surface, .glass-surface-strong, .glass-surface-medium, .glass-surface-light, .glass-surface-darker, .glass-surface-weak, .glass-surface-interactive, .glass-surface-interactive-strong, .glass-surface-full, .glass-input, .model-parameter-item) {
+        border: var(--border-width-1) solid transparent;
+    }
+
+    .setting-change-surface.modified {
+        --glass-surface-bg: var(--setting-change-surface-modified-bg);
+        background: var(--setting-change-surface-modified-bg);
+        border-color: var(--setting-change-surface-modified-border);
+        box-shadow:
+            var(--setting-change-surface-shadow),
+            inset 0 0 0 var(--border-width-1) var(--setting-change-surface-modified-border);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group-header.setting-change-surface:not(.is-invalid):is(:hover, :focus-within) {
+        --glass-surface-bg: var(--glass-surface-hover);
+        background: var(--glass-surface-hover);
+    }
+
+    .setting-change-surface.setting-change-surface--child-selection.modified {
+        --glass-surface-bg: transparent;
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+    }
+
+    :where(.glass-surface, .glass-surface-strong, .glass-surface-medium, .glass-surface-light, .glass-surface-darker, .glass-surface-weak, .glass-surface-interactive, .glass-surface-interactive-strong, .glass-surface-full).setting-change-surface.modified {
+        background: transparent;
+    }
+
+    .setting-change-surface.is-invalid {
+        --glass-surface-bg: var(--setting-change-surface-invalid-bg);
+        --model-parameter-overlay-bg: var(--setting-change-surface-invalid-bg);
+        --model-parameter-overlay-border: var(--setting-change-surface-invalid-border);
+        background: var(--setting-change-surface-invalid-bg);
+        border-color: var(--setting-change-surface-invalid-border);
+        box-shadow:
+            var(--setting-change-surface-shadow),
+            inset 0 0 0 var(--border-width-1) var(--setting-change-surface-invalid-border);
+    }
+
+    :where(.glass-surface, .glass-surface-strong, .glass-surface-medium, .glass-surface-light, .glass-surface-darker, .glass-surface-weak, .glass-surface-interactive, .glass-surface-interactive-strong, .glass-surface-full).setting-change-surface.is-invalid {
+        background: transparent;
+    }
+}

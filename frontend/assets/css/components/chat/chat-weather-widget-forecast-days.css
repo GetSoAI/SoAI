@@ -1,0 +1,180 @@
+/* SoAI - Chat weather widget forecast days component styles [frontend/assets/css/components/chat/chat-weather-widget-forecast-days.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .assistant-weather-widget__day {
+        --assistant-weather-day-surface: color-mix(in srgb, var(--glass-surface-light) 50%, transparent);
+        --assistant-weather-day-overlay-strong: 28%;
+        --assistant-weather-day-overlay-soft: 16%;
+        --assistant-weather-day-overlay-accent: var(--weather-accent);
+        --assistant-weather-day-overlay-opacity: 0;
+        --assistant-weather-day-before-surface: none;
+        position: relative;
+        isolation: isolate;
+        flex: 0 0 auto;
+        display: grid;
+        justify-items: center;
+        gap: var(--space-1);
+        min-width: 4rem;
+        padding: var(--space-2) var(--space-1);
+        border-radius: 0;
+        background: var(--assistant-weather-day-surface);
+        border: none;
+        scroll-snap-align: start;
+        cursor: pointer;
+        transition: background var(--transition-fast);
+    }
+
+    .theme-dark :where(.chat-container) .assistant-weather-widget__day {
+        --assistant-weather-day-overlay-strong: 16%;
+        --assistant-weather-day-overlay-soft: 8%;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__day::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        z-index: var(--z-base);
+        opacity: var(--assistant-weather-day-overlay-opacity);
+        transition: opacity var(--transition-fast);
+        background: var(--glass-surface-interactive-hover);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__day::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        z-index: var(--z-base);
+        background: var(--assistant-weather-day-before-surface);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__day:hover {
+        --assistant-weather-day-overlay-opacity: 1;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__forecast > .assistant-weather-widget__day:first-child {
+        border-radius: var(--border-radius) 0 0 var(--border-radius);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__forecast > .assistant-weather-widget__day:last-child {
+        border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__forecast > .assistant-weather-widget__day:only-child {
+        border-radius: var(--border-radius);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__forecast > :nth-of-type(odd) {
+        --assistant-weather-day-surface: var(--alternating-grey-dark);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__forecast > :nth-of-type(even) {
+        --assistant-weather-day-surface: var(--alternating-grey-light);
+    }
+
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(1):checked) .assistant-weather-widget__forecast > :nth-of-type(1),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(2):checked) .assistant-weather-widget__forecast > :nth-of-type(2),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(3):checked) .assistant-weather-widget__forecast > :nth-of-type(3),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(4):checked) .assistant-weather-widget__forecast > :nth-of-type(4),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(5):checked) .assistant-weather-widget__forecast > :nth-of-type(5),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(6):checked) .assistant-weather-widget__forecast > :nth-of-type(6),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(7):checked) .assistant-weather-widget__forecast > :nth-of-type(7),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(8):checked) .assistant-weather-widget__forecast > :nth-of-type(8),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(9):checked) .assistant-weather-widget__forecast > :nth-of-type(9),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(10):checked) .assistant-weather-widget__forecast > :nth-of-type(10),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(11):checked) .assistant-weather-widget__forecast > :nth-of-type(11),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(12):checked) .assistant-weather-widget__forecast > :nth-of-type(12),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(13):checked) .assistant-weather-widget__forecast > :nth-of-type(13),
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(14):checked) .assistant-weather-widget__forecast > :nth-of-type(14) {
+        --assistant-weather-day-overlay-opacity: var(--chat-conversation-item-active-overlay-opacity);
+        --assistant-weather-day-before-surface: linear-gradient(135deg, color-mix(in srgb, var(--weather-accent) var(--assistant-weather-day-overlay-strong), transparent), color-mix(in srgb, var(--weather-accent) var(--assistant-weather-day-overlay-soft), transparent));
+    }
+
+    :where(.chat-container) .assistant-weather-widget__day-label {
+        position: relative;
+        z-index: var(--z-above-sibling);
+        color: var(--text-tertiary);
+    }
+
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(1):checked) .assistant-weather-widget__forecast > :nth-of-type(1) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(2):checked) .assistant-weather-widget__forecast > :nth-of-type(2) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(3):checked) .assistant-weather-widget__forecast > :nth-of-type(3) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(4):checked) .assistant-weather-widget__forecast > :nth-of-type(4) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(5):checked) .assistant-weather-widget__forecast > :nth-of-type(5) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(6):checked) .assistant-weather-widget__forecast > :nth-of-type(6) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(7):checked) .assistant-weather-widget__forecast > :nth-of-type(7) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(8):checked) .assistant-weather-widget__forecast > :nth-of-type(8) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(9):checked) .assistant-weather-widget__forecast > :nth-of-type(9) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(10):checked) .assistant-weather-widget__forecast > :nth-of-type(10) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(11):checked) .assistant-weather-widget__forecast > :nth-of-type(11) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(12):checked) .assistant-weather-widget__forecast > :nth-of-type(12) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(13):checked) .assistant-weather-widget__forecast > :nth-of-type(13) .assistant-weather-widget__day-label,
+    :where(.chat-container) .assistant-weather-widget:has(.assistant-weather-widget__day-selector:nth-of-type(14):checked) .assistant-weather-widget__forecast > :nth-of-type(14) .assistant-weather-widget__day-label {
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__day-date {
+        position: relative;
+        z-index: var(--z-above-sibling);
+        font-size: var(--font-size-068);
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-feature-settings: 'tnum' 1;
+        letter-spacing: var(--tracking-snug);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__day-icon {
+        position: relative;
+        z-index: var(--z-above-sibling);
+        display: grid;
+        place-items: center;
+        color: var(--accent-blue);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__day-icon[data-condition='clear'],
+    :where(.chat-container) .assistant-weather-widget__day-icon[data-condition='mostly_clear'] {
+        color: var(--accent-yellow);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__day-icon[data-condition*='thunder'] {
+        color: color-mix(in srgb, var(--accent-yellow) 60%, var(--accent-purple) 40%);
+    }
+
+    :where(.chat-container) .assistant-weather-widget__day-precip {
+        position: relative;
+        z-index: var(--z-above-sibling);
+        font-size: var(--font-size-068);
+        font-weight: 600;
+        color: var(--accent-blue);
+        font-feature-settings: 'tnum' 1;
+        min-block-size: 1em;
+        line-height: 1;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__day-temp {
+        position: relative;
+        z-index: var(--z-above-sibling);
+        display: inline-flex;
+        gap: var(--space-15);
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+        font-feature-settings: 'tnum' 1;
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .assistant-weather-widget__day-temp strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where(.chat-container) .assistant-weather-widget__day,
+        :where(.chat-container) .assistant-weather-widget__day::after {
+            transition: none;
+        }
+    }
+}

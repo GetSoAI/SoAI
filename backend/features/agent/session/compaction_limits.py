@@ -1,0 +1,15 @@
+"""SoAI - Agent compaction limits [backend/features/agent/session/compaction_limits.py]"""
+# SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+from __future__ import annotations
+
+__all__ = (
+    "AGENT_COMPACTION_PRESERVE_BEFORE_ANCHOR_HEAD_MESSAGES",
+    "AGENT_COMPACTION_PRESERVE_BEFORE_ANCHOR_TAIL_MESSAGES",
+    "AGENT_SUMMARIZER_MAX_MESSAGES",
+)
+
+AGENT_SUMMARIZER_MAX_MESSAGES: int = 2000
+
+AGENT_COMPACTION_PRESERVE_BEFORE_ANCHOR_HEAD_MESSAGES: int = 20
+AGENT_COMPACTION_PRESERVE_BEFORE_ANCHOR_TAIL_MESSAGES: int = 30

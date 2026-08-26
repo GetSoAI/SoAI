@@ -1,0 +1,148 @@
+/* SoAI - Model detail page panels styles [frontend/assets/css/pages/model-detail/panels.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :is(.model-detail-container):where([data-section='modelDetail'], [data-page-scope='modelDetail']) {
+        .param-badge {
+            &:is(.custom, .default) {
+                min-width: 60px;
+                text-align: center;
+            }
+
+            &.custom {
+                --status-badge-color: var(--accent-green);
+            }
+            &.default {
+                --status-badge-color: var(--text-secondary);
+            }
+            &.no-default {
+                --status-badge-color: var(--status-red);
+            }
+            &.reload {
+                --status-badge-color: var(--status-orange);
+            }
+
+            &.group {
+                --status-badge-color: var(--text-tertiary);
+
+                &.startup {
+                    --status-badge-color: var(--accent-blue);
+                }
+                &.inference {
+                    --status-badge-color: var(--model-parameter-badge);
+                }
+            }
+        }
+
+        .parameter-aliases {
+            font-size: var(--font-size-compact);
+            color: var(--text-tertiary);
+            font-style: italic;
+            margin-bottom: var(--space-1);
+        }
+
+        .model-parameter-help-type {
+            display: block;
+            margin-top: var(--space-1);
+            font-style: italic;
+            opacity: 0.8;
+        }
+
+        .boolean-input-wrapper {
+            display: flex;
+            align-items: center;
+        }
+
+        .number-input-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-15);
+            width: 120px;
+            min-width: 60px;
+        }
+
+        .input-range {
+            font-size: var(--font-size-compact);
+            color: var(--text-tertiary);
+            margin-top: calc(-1 * var(--space-05));
+            text-align: right;
+        }
+
+        .text-input-wrapper,
+        .select-input-wrapper {
+            width: 180px;
+        }
+
+        :is(.number-input-wrapper, .text-input-wrapper, .select-input-wrapper) .model-parameter-input {
+            width: 100%;
+        }
+
+        :is(.array-input-wrapper, .json-input-wrapper) {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+
+        .array-input-wrapper {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) var(--icon-button-size-dense);
+            gap: var(--space-2);
+        }
+
+        .json-input-wrapper {
+            gap: var(--space-2);
+        }
+
+        .array-items {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            grid-column: 1 / -1;
+        }
+
+        .array-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) var(--icon-button-size-dense);
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .array-item-input {
+            flex: 1;
+        }
+
+        :is(.btn-remove-item, .add-array-item) {
+            width: var(--icon-button-size-dense);
+            height: var(--icon-button-size-dense);
+            min-width: var(--icon-button-size-dense);
+            min-height: var(--icon-button-size-dense);
+            box-shadow: none;
+        }
+
+        .add-array-item {
+            grid-column: 2;
+            justify-self: end;
+        }
+
+        .json-input {
+            font-family: var(--font-family-mono);
+            line-height: 1.4;
+            resize: vertical;
+            width: 100%;
+        }
+
+        .json-validation {
+            font-size: var(--font-size-xs);
+            padding: var(--space-3);
+            border-radius: var(--border-radius);
+            display: none;
+
+            &.error {
+                display: block;
+                color: var(--status-red);
+                background: var(--badge-bg-red);
+                border: var(--border-width-1) solid var(--badge-border-red);
+            }
+        }
+    }
+}

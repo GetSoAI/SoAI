@@ -1,0 +1,188 @@
+/* SoAI - Hardware io bars component styles [frontend/assets/css/components/hardware/hardware-io-bars.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .hardware-resource-bar {
+        --hardware-resource-bar-height: 6px;
+
+        background: var(--surface-card-border);
+        border: none;
+        border-radius: var(--border-radius);
+        height: var(--hardware-resource-bar-height);
+        min-height: var(--hardware-resource-bar-height);
+        overflow: hidden;
+        position: relative;
+        width: 100%;
+    }
+
+    .hardware-resource-bar-fill {
+        border-radius: var(--border-radius);
+        height: 100%;
+        inset-block: 0;
+        left: 0;
+        position: absolute;
+        transform-origin: left center;
+        transition:
+            background var(--duration-300) var(--ease-in-out),
+            background-color var(--duration-300) var(--ease-in-out),
+            width var(--duration-300) var(--ease-in-out);
+        width: 0;
+    }
+
+    .hardware-storage-bar .hardware-resource-bar-fill:is(.progress-red, .progress-orange, .progress-yellow, .progress-green) {
+        background-color: var(--soai-progress-color);
+    }
+
+    .hardware-network-bar-fill[data-network-flow='download'] {
+        background: var(--network-download-color);
+    }
+
+    .hardware-network-bar-fill[data-network-flow='upload'] {
+        background: var(--network-upload-color);
+    }
+
+    .hardware-network-bar-fill[data-network-flow='mixed'] {
+        --hardware-network-mix-start: 48%;
+        --hardware-network-mix-end: 52%;
+
+        background: linear-gradient(to right, var(--network-download-color) var(--hardware-network-mix-start), var(--network-upload-color) var(--hardware-network-mix-end));
+    }
+
+    .hardware-resource-bar-fill[data-fill-step='5'] {
+        width: 5%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='10'] {
+        width: 10%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='15'] {
+        width: 15%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='20'] {
+        width: 20%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='25'] {
+        width: 25%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='30'] {
+        width: 30%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='35'] {
+        width: 35%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='40'] {
+        width: 40%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='45'] {
+        width: 45%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='50'] {
+        width: 50%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='55'] {
+        width: 55%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='60'] {
+        width: 60%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='65'] {
+        width: 65%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='70'] {
+        width: 70%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='75'] {
+        width: 75%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='80'] {
+        width: 80%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='85'] {
+        width: 85%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='90'] {
+        width: 90%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='95'] {
+        width: 95%;
+    }
+    .hardware-resource-bar-fill[data-fill-step='100'] {
+        width: 100%;
+    }
+
+    .hardware-network-bar-fill[data-network-mix='5'] {
+        --hardware-network-mix-start: 3%;
+        --hardware-network-mix-end: 7%;
+    }
+    .hardware-network-bar-fill[data-network-mix='10'] {
+        --hardware-network-mix-start: 8%;
+        --hardware-network-mix-end: 12%;
+    }
+    .hardware-network-bar-fill[data-network-mix='15'] {
+        --hardware-network-mix-start: 13%;
+        --hardware-network-mix-end: 17%;
+    }
+    .hardware-network-bar-fill[data-network-mix='20'] {
+        --hardware-network-mix-start: 18%;
+        --hardware-network-mix-end: 22%;
+    }
+    .hardware-network-bar-fill[data-network-mix='25'] {
+        --hardware-network-mix-start: 23%;
+        --hardware-network-mix-end: 27%;
+    }
+    .hardware-network-bar-fill[data-network-mix='30'] {
+        --hardware-network-mix-start: 28%;
+        --hardware-network-mix-end: 32%;
+    }
+    .hardware-network-bar-fill[data-network-mix='35'] {
+        --hardware-network-mix-start: 33%;
+        --hardware-network-mix-end: 37%;
+    }
+    .hardware-network-bar-fill[data-network-mix='40'] {
+        --hardware-network-mix-start: 38%;
+        --hardware-network-mix-end: 42%;
+    }
+    .hardware-network-bar-fill[data-network-mix='45'] {
+        --hardware-network-mix-start: 43%;
+        --hardware-network-mix-end: 47%;
+    }
+    .hardware-network-bar-fill[data-network-mix='50'] {
+        --hardware-network-mix-start: 48%;
+        --hardware-network-mix-end: 52%;
+    }
+    .hardware-network-bar-fill[data-network-mix='55'] {
+        --hardware-network-mix-start: 53%;
+        --hardware-network-mix-end: 57%;
+    }
+    .hardware-network-bar-fill[data-network-mix='60'] {
+        --hardware-network-mix-start: 58%;
+        --hardware-network-mix-end: 62%;
+    }
+    .hardware-network-bar-fill[data-network-mix='65'] {
+        --hardware-network-mix-start: 63%;
+        --hardware-network-mix-end: 67%;
+    }
+    .hardware-network-bar-fill[data-network-mix='70'] {
+        --hardware-network-mix-start: 68%;
+        --hardware-network-mix-end: 72%;
+    }
+    .hardware-network-bar-fill[data-network-mix='75'] {
+        --hardware-network-mix-start: 73%;
+        --hardware-network-mix-end: 77%;
+    }
+    .hardware-network-bar-fill[data-network-mix='80'] {
+        --hardware-network-mix-start: 78%;
+        --hardware-network-mix-end: 82%;
+    }
+    .hardware-network-bar-fill[data-network-mix='85'] {
+        --hardware-network-mix-start: 83%;
+        --hardware-network-mix-end: 87%;
+    }
+    .hardware-network-bar-fill[data-network-mix='90'] {
+        --hardware-network-mix-start: 88%;
+        --hardware-network-mix-end: 92%;
+    }
+    .hardware-network-bar-fill[data-network-mix='95'] {
+        --hardware-network-mix-start: 93%;
+        --hardware-network-mix-end: 97%;
+    }
+}

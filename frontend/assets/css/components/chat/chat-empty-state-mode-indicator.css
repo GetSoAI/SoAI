@@ -1,0 +1,151 @@
+/* SoAI - Chat empty state mode indicator component styles [frontend/assets/css/components/chat/chat-empty-state-mode-indicator.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .chat-page-indicator-row {
+        --chat-page-empty-state-indicator-width: min(240px, calc(calc(100 * var(--ui-viewport-width-unit)) - 4rem));
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        column-gap: var(--space-2);
+        max-width: calc(90 * var(--ui-viewport-width-unit));
+    }
+
+    :where(.chat-container) .chat-page-indicator-row :is(.chat-page-model-indicator, .chat-page-mode-indicator) {
+        width: var(--chat-page-empty-state-indicator-width);
+        max-width: var(--chat-page-empty-state-indicator-width);
+    }
+
+    :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator {
+        --chat-page-mode-chevron-color: var(--text-tertiary);
+        --chat-page-mode-chevron-size: calc(1em + (var(--button-icon-scale) * 1rem));
+        --chat-page-mode-select-height: calc(var(--control-height) - 2px);
+
+        position: relative;
+    }
+
+    :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator-chevron {
+        position: absolute;
+        right: calc(var(--space-3) + var(--space-25));
+        bottom: calc(var(--space-2) + (var(--chat-page-mode-select-height) - var(--chat-page-mode-chevron-size)) / 2);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: var(--chat-page-mode-chevron-size);
+        height: var(--chat-page-mode-chevron-size);
+        pointer-events: none;
+        color: var(--chat-page-mode-chevron-color);
+        z-index: calc(var(--z-overlay) + 4);
+    }
+
+    :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator-chevron > svg.ui-icon {
+        width: var(--chat-page-mode-chevron-size);
+        height: var(--chat-page-mode-chevron-size);
+    }
+
+    :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator:has(.chat-page-mode-indicator-select[data-agent-mode='plan']) {
+        --chat-page-mode-chevron-color: var(--accent-purple);
+    }
+
+    :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator:has(.chat-page-mode-indicator-select[data-agent-mode='execute']) {
+        --chat-page-mode-chevron-color: var(--status-orange);
+    }
+
+    :where(.chat-container) .chat-page-indicator-row .chat-page-model-indicator-select.page-header-filter-select[data-chat-model-control='true'] {
+        display: flex;
+        flex: 1 1 auto;
+        width: 100%;
+        min-width: 0;
+    }
+
+    :where(.chat-container) .chat-page-indicator-row .chat-page-model-indicator-select.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary.ui-button {
+        width: 100%;
+    }
+
+    :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator-select.page-header-filter-select {
+        display: block;
+        flex: 1 1 auto;
+        flex-basis: 100%;
+        width: 100%;
+        min-width: 0;
+        text-align: start;
+        text-align-last: start;
+    }
+
+    :where(.chat-container) select.chat-page-mode-indicator-select.page-header-filter-select {
+        --control-select-arrow-image: none;
+        --filter-control-border: var(--glass-border-strong);
+
+        appearance: none;
+        height: var(--chat-page-mode-select-height);
+        min-height: var(--chat-page-mode-select-height);
+        min-width: 0;
+        padding: 0 calc(var(--space-25) + var(--control-icon-size) + var(--space-2)) 0 var(--space-25);
+        border: var(--border-width-1) solid var(--filter-control-border);
+        border-radius: var(--border-radius);
+        font-size: inherit;
+        line-height: normal;
+        background-image: var(--filter-control-reflection), none;
+        background-repeat: no-repeat, no-repeat;
+        background-position:
+            0 0,
+            right var(--space-25) center;
+        background-size:
+            100% 100%,
+            0;
+        box-shadow:
+            inset 2px 2px 4px var(--surface-inner-highlight-soft),
+            inset -2px -2px 4px var(--surface-inner-shadow-soft);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            color var(--transition-fast);
+    }
+
+    :where(.chat-container) select.chat-page-mode-indicator-select.page-header-filter-select[data-agent-mode='chat'] {
+        --filter-control-bg: var(--ui-button-neutral-bg);
+        --filter-control-border: var(--ui-button-neutral-color);
+        --filter-control-color: var(--ui-button-neutral-color);
+        --filter-control-reflection: var(--surface-reflection-soft);
+
+        background-color: var(--filter-control-bg);
+        border-color: var(--filter-control-border);
+        color: var(--filter-control-color);
+    }
+
+    :where(.chat-container) select.chat-page-mode-indicator-select.page-header-filter-select[data-agent-mode='chat']:is(:hover, :focus-visible) {
+        --filter-control-bg: var(--ui-button-neutral-bg-hover);
+        --filter-control-border: var(--ui-button-neutral-color-hover);
+        --filter-control-color: var(--ui-button-neutral-color-hover);
+        --filter-control-reflection: var(--surface-reflection-soft-hover);
+
+        background-color: var(--filter-control-bg);
+        border-color: var(--filter-control-border);
+        color: var(--filter-control-color);
+    }
+
+    :where(.chat-container) select.chat-page-mode-indicator-select.page-header-filter-select[data-agent-mode='plan'] {
+        --agent-mode-color: var(--accent-purple);
+
+        color: color-mix(in srgb, var(--agent-mode-color) 80%, var(--text-primary) 20%);
+        border-color: color-mix(in srgb, var(--agent-mode-color) 45%, var(--glass-border-strong));
+        background-color: color-mix(in srgb, var(--agent-mode-color) 10%, var(--ui-button-surface-strong));
+    }
+
+    :where(.chat-container) select.chat-page-mode-indicator-select.page-header-filter-select[data-agent-mode='execute'] {
+        --agent-mode-color: var(--status-orange);
+
+        color: color-mix(in srgb, var(--agent-mode-color) 80%, var(--text-primary) 20%);
+        border-color: color-mix(in srgb, var(--agent-mode-color) 45%, var(--glass-border-strong));
+        background-color: color-mix(in srgb, var(--agent-mode-color) 10%, var(--ui-button-surface-strong));
+    }
+
+    :where(.chat-container) select.chat-page-mode-indicator-select.page-header-filter-select:is([data-agent-mode='plan'], [data-agent-mode='execute']):is(:hover, :focus-visible) {
+        color: color-mix(in srgb, var(--agent-mode-color) 92%, var(--text-primary) 8%);
+        border-color: color-mix(in srgb, var(--agent-mode-color) 65%, var(--glass-border-strong));
+        background-color: color-mix(in srgb, var(--agent-mode-color) 16%, var(--ui-button-surface-strong));
+    }
+}

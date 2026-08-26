@@ -1,0 +1,29 @@
+/* SoAI - Truncation utility styles [frontend/assets/css/utilities/truncation.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    .u-truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :is(.u-line-clamp-1, .u-line-clamp-2, .u-line-clamp-3) {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .u-line-clamp-1 {
+        -webkit-line-clamp: 1;
+    }
+
+    .u-line-clamp-2 {
+        -webkit-line-clamp: 2;
+    }
+
+    .u-line-clamp-3 {
+        -webkit-line-clamp: 3;
+    }
+}

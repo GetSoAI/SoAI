@@ -1,0 +1,94 @@
+/* SoAI - Header clock frontend styles [frontend/assets/css/layout/header-clock.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer layout {
+    .header-clock {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: inherit;
+        line-height: var(--line-height-compact);
+    }
+
+    .clock-time {
+        font-family: var(--font-family-mono);
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+        color: inherit;
+        line-height: var(--line-height-compact);
+        letter-spacing: var(--tracking-05px);
+    }
+
+    .clock-date {
+        font-size: var(--font-size-compact-sm);
+        color: inherit;
+        font-weight: 400;
+        margin-top: var(--space-05);
+        line-height: var(--line-height-compact);
+        letter-spacing: var(--tracking-03px);
+    }
+
+    .clock-face {
+        position: relative;
+        display: none;
+        width: calc(var(--icon-button-size) - var(--space-25));
+        height: calc(var(--icon-button-size) - var(--space-25));
+        color: inherit;
+        opacity: 0.9;
+    }
+
+    .clock-hand {
+        --clock-hand-angle: 0deg;
+
+        position: absolute;
+        left: 50%;
+        bottom: 50%;
+        width: 2px;
+        border-radius: var(--border-round);
+        background: currentColor;
+        transform-origin: 50% 100%;
+        transform: translateX(-50%) rotate(var(--clock-hand-angle));
+    }
+
+    .clock-hand--hour {
+        height: 31%;
+        opacity: 0.7;
+    }
+
+    .clock-hand--minute {
+        height: 43%;
+        opacity: 0.7;
+    }
+
+    .clock-hand--second {
+        height: 45%;
+        width: 1px;
+        opacity: 0.3;
+    }
+
+    .header-clock--seconds-disabled .clock-hand--second {
+        display: none;
+    }
+
+    .clock-face-center {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 2px;
+        height: 2px;
+        background: currentColor;
+        border-radius: var(--border-round);
+        transform: translate(-50%, -50%);
+        opacity: 0.7;
+    }
+
+    .header-clock--analog .clock-time,
+    .header-clock--analog .clock-date {
+        display: none;
+    }
+
+    .header-clock--analog .clock-face {
+        display: block;
+    }
+}

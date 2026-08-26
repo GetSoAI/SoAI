@@ -1,0 +1,202 @@
+/* SoAI - Dashboard page clock widget digital styles [frontend/assets/css/pages/dashboard/clock-widget-digital.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock--digital .dashboard-clock-shell {
+        inline-size: 100%;
+        max-inline-size: 28rem;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-digital-face {
+        display: grid;
+        place-items: center;
+        inline-size: 100%;
+        block-size: 100%;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-board {
+        --dashboard-clock-flip-card-font-size: clamp(2.5rem, calc(11 * var(--ui-viewport-width-unit)), 4.5rem);
+        inline-size: min(100%, calc(var(--dashboard-clock-shell-block-size) * 2.96));
+        block-size: min(9.75rem, 100%);
+        display: flex;
+        align-items: stretch;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-card {
+        flex: 1 1 0;
+        position: relative;
+        block-size: 100%;
+        min-block-size: 0;
+        min-width: 0;
+        border-radius: 0.95rem;
+        overflow: hidden;
+        isolation: isolate;
+        transform-style: preserve-3d;
+        perspective: 1200px;
+        border: var(--border-width-1) solid var(--dashboard-clock-flip-border);
+        background-color: var(--dashboard-clock-flip-surface-bottom);
+        background-image: linear-gradient(to bottom, var(--dashboard-clock-flip-surface-top-bright) 0%, var(--dashboard-clock-flip-surface-top) 49.5%, var(--dashboard-clock-flip-surface-bottom) 50.5%, var(--dashboard-clock-flip-surface-bottom-deep) 100%);
+        box-shadow:
+            inset 0 0.08rem 0.18rem var(--dashboard-clock-flip-sheen),
+            inset 0 -0.3rem 0.8rem var(--dashboard-clock-flip-depth),
+            0 0.55rem 1.4rem -0.45rem var(--dashboard-clock-flip-drop-shadow);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-card::before {
+        content: '';
+        position: absolute;
+        inset-inline: 0;
+        inset-block-start: calc(50% - 0.08rem);
+        block-size: 0.16rem;
+        background: linear-gradient(to right, transparent 0%, var(--dashboard-clock-flip-seam) 18%, var(--dashboard-clock-flip-seam) 82%, transparent 100%);
+        box-shadow:
+            0 -0.04rem 0.16rem var(--dashboard-clock-flip-seam-shadow),
+            0 0.04rem 0.16rem var(--dashboard-clock-flip-seam-shadow);
+        z-index: calc(var(--z-base) + 4);
+        pointer-events: none;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, var(--dashboard-clock-flip-highlight) 0%, transparent 24%, transparent 72%, var(--dashboard-clock-flip-lowlight) 100%);
+        z-index: calc(var(--z-base) + 1);
+        pointer-events: none;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-half {
+        position: absolute;
+        inset-inline: 0;
+        block-size: 50%;
+        overflow: hidden;
+        backface-visibility: hidden;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-half::before {
+        content: none;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-text {
+        position: absolute;
+        inset-inline: 0;
+        block-size: 200%;
+        display: grid;
+        place-items: center;
+        font-family: var(--font-family-sans);
+        font-size: var(--dashboard-clock-flip-card-font-size);
+        font-weight: 600;
+        font-variant-numeric: tabular-nums lining-nums;
+        line-height: 1;
+        color: var(--dashboard-clock-flip-text-color);
+        text-shadow:
+            0 0.06rem 0 var(--dashboard-clock-flip-text-highlight),
+            0 0.18rem 0.45rem var(--dashboard-clock-flip-text-shadow);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-current-top {
+        inset-block-start: 0;
+        background-color: var(--dashboard-clock-flip-surface-top);
+        background-image: linear-gradient(to bottom, var(--dashboard-clock-flip-surface-top-bright) 0%, var(--dashboard-clock-flip-surface-top) 100%);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-current-bottom {
+        inset-block-end: 0;
+        background-color: var(--dashboard-clock-flip-surface-bottom);
+        background-image: linear-gradient(to bottom, var(--dashboard-clock-flip-surface-bottom) 0%, var(--dashboard-clock-flip-surface-bottom-deep) 100%);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-clock-flip-current-top, .dashboard-clock-flip-overlay-top) .dashboard-clock-flip-text {
+        inset-block-start: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-clock-flip-current-bottom, .dashboard-clock-flip-overlay-bottom) .dashboard-clock-flip-text {
+        inset-block-end: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-overlay-top {
+        inset-block-start: 0;
+        background-color: var(--dashboard-clock-flip-surface-top);
+        background-image: linear-gradient(to bottom, var(--dashboard-clock-flip-surface-top-bright) 0%, var(--dashboard-clock-flip-surface-top) 100%);
+        z-index: calc(var(--z-base) + 3);
+        transform-origin: bottom center;
+        transform: rotateX(0deg);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-overlay-bottom {
+        inset-block-end: 0;
+        background-color: var(--dashboard-clock-flip-surface-bottom);
+        background-image: linear-gradient(to bottom, var(--dashboard-clock-flip-surface-bottom) 0%, var(--dashboard-clock-flip-surface-bottom-deep) 100%);
+        z-index: calc(var(--z-base) + 2);
+        transform-origin: top center;
+        transform: rotateX(90deg);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-card-flipping .dashboard-clock-flip-overlay-top {
+        animation: dashboard-clock-flip-top calc(var(--duration-240) + var(--duration-220)) var(--ease-material) both;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-card-flipping .dashboard-clock-flip-overlay-bottom {
+        animation: dashboard-clock-flip-bottom calc(var(--duration-240) + var(--duration-220)) var(--ease-smooth) both;
+    }
+
+    .theme-light :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-card {
+        --dashboard-clock-flip-border: color-mix(in srgb, var(--surface-card-border) 78%, var(--color-black) 10%);
+        --dashboard-clock-flip-surface-top-bright: color-mix(in srgb, var(--color-white) 96%, var(--color-black) 4%);
+        --dashboard-clock-flip-surface-top: color-mix(in srgb, var(--color-white) 90%, var(--color-black) 10%);
+        --dashboard-clock-flip-surface-bottom: color-mix(in srgb, var(--color-white) 82%, var(--color-black) 18%);
+        --dashboard-clock-flip-surface-bottom-deep: color-mix(in srgb, var(--color-white) 74%, var(--color-black) 26%);
+        --dashboard-clock-flip-sheen: color-mix(in srgb, var(--color-white) 72%, transparent);
+        --dashboard-clock-flip-depth: color-mix(in srgb, var(--color-black) 14%, transparent);
+        --dashboard-clock-flip-drop-shadow: color-mix(in srgb, var(--color-black) 18%, transparent);
+        --dashboard-clock-flip-seam: color-mix(in srgb, var(--color-black) 18%, transparent);
+        --dashboard-clock-flip-seam-shadow: color-mix(in srgb, var(--color-black) 10%, transparent);
+        --dashboard-clock-flip-highlight: color-mix(in srgb, var(--color-white) 46%, transparent);
+        --dashboard-clock-flip-lowlight: color-mix(in srgb, var(--color-black) 8%, transparent);
+        --dashboard-clock-flip-text-color: color-mix(in srgb, var(--text-primary) 86%, var(--color-black));
+        --dashboard-clock-flip-text-highlight: color-mix(in srgb, var(--color-white) 62%, transparent);
+        --dashboard-clock-flip-text-shadow: color-mix(in srgb, var(--color-black) 6%, transparent);
+    }
+
+    .theme-dark :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-flip-card {
+        --dashboard-clock-flip-border: color-mix(in srgb, var(--surface-card-border) 84%, var(--color-white) 8%);
+        --dashboard-clock-flip-surface-top-bright: color-mix(in srgb, var(--surface-card) 84%, var(--color-white) 6%);
+        --dashboard-clock-flip-surface-top: color-mix(in srgb, var(--surface-card) 92%, var(--color-black) 8%);
+        --dashboard-clock-flip-surface-bottom: color-mix(in srgb, var(--surface-card) 74%, var(--color-black) 26%);
+        --dashboard-clock-flip-surface-bottom-deep: color-mix(in srgb, var(--surface-card) 58%, var(--color-black) 42%);
+        --dashboard-clock-flip-sheen: color-mix(in srgb, var(--color-white) 9%, transparent);
+        --dashboard-clock-flip-depth: color-mix(in srgb, var(--color-black) 38%, transparent);
+        --dashboard-clock-flip-drop-shadow: color-mix(in srgb, var(--color-black) 42%, transparent);
+        --dashboard-clock-flip-seam: color-mix(in srgb, var(--color-black) 42%, transparent);
+        --dashboard-clock-flip-seam-shadow: color-mix(in srgb, var(--color-black) 30%, transparent);
+        --dashboard-clock-flip-highlight: color-mix(in srgb, var(--color-white) 8%, transparent);
+        --dashboard-clock-flip-lowlight: color-mix(in srgb, var(--color-black) 30%, transparent);
+        --dashboard-clock-flip-text-color: color-mix(in srgb, var(--color-white) 92%, var(--text-primary));
+        --dashboard-clock-flip-text-highlight: color-mix(in srgb, var(--color-white) 14%, transparent);
+        --dashboard-clock-flip-text-shadow: color-mix(in srgb, var(--color-black) 34%, transparent);
+    }
+}
+
+@keyframes dashboard-clock-flip-top {
+    0% {
+        transform: rotateX(0deg);
+    }
+    100% {
+        transform: rotateX(-90deg);
+    }
+}
+
+@keyframes dashboard-clock-flip-bottom {
+    0% {
+        transform: rotateX(90deg);
+    }
+    48% {
+        transform: rotateX(90deg);
+    }
+    100% {
+        transform: rotateX(0deg);
+    }
+}

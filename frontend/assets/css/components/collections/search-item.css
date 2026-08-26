@@ -1,0 +1,144 @@
+/* SoAI - Search item component styles [frontend/assets/css/components/collections/search-item.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .search-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        transition:
+            background-color var(--transition-fast),
+            color var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+        min-width: 0;
+        text-align: left;
+        position: relative;
+        cursor: pointer;
+        appearance: none;
+        border: none;
+        background: transparent;
+        padding: 0;
+        font: inherit;
+        color: inherit;
+    }
+
+    .search-item--card {
+        padding: var(--space-4);
+        margin: var(--space-2);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        background: var(--glass-surface-medium);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        width: calc(100% - 1rem);
+        border-radius: var(--border-radius);
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    .search-item--card:last-child {
+        margin-bottom: var(--space-2);
+    }
+
+    .search-item--card:is(:hover, .search-item-hover) {
+        background-color: color-mix(in srgb, var(--glass-surface-interactive) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        border-color: color-mix(in srgb, var(--glass-border-strong) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+    }
+
+    .search-item--card:focus-visible {
+        border-color: var(--accent-primary);
+        box-shadow:
+            0 0 0 2px color-mix(in srgb, var(--accent-primary) 22%, transparent),
+            var(--shadow-lift-soft);
+    }
+
+    .search-item--card:active {
+        transform: translateY(1px);
+    }
+
+    .search-item-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+    }
+
+    .search-item-description {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+        line-height: 1.4;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .search-item--card .search-item-header {
+        margin-bottom: var(--space-15);
+    }
+
+    .search-item--card .search-item-description {
+        margin-bottom: var(--space-2);
+    }
+
+    .search-item-icon {
+        width: var(--control-height-compact);
+        height: var(--control-height-compact);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: var(--text-secondary);
+    }
+
+    .search-item-icon--messaging {
+        color: var(--prompts-color-blue);
+    }
+
+    .search-item-icon svg {
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        display: block;
+    }
+
+    .search-item-content {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .search-item-title {
+        font-weight: 600;
+        line-height: 1.3;
+        font-size: var(--font-size-sm);
+        text-align: left;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .search-item-author {
+        color: var(--text-tertiary);
+        font-weight: 500;
+    }
+
+    .search-item-separator {
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin: 0 var(--space-1);
+    }
+
+    .search-item-model {
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+
+    .search-item-badge {
+        flex-shrink: 0;
+    }
+
+    .search-item-status {
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+}

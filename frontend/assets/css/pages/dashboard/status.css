@@ -1,0 +1,102 @@
+/* SoAI - Dashboard page status styles [frontend/assets/css/pages/dashboard/status.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-section .section-status-line, .status-status) {
+        height: 3px;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .section-status-line {
+        --status-color: var(--status-grey);
+        background-color: var(--status-color);
+        transition: background-color var(--transition-fast);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-status {
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-overview {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: repeat(3, minmax(0, 1fr)) auto;
+        grid-auto-rows: auto;
+        gap: var(--space-3);
+        height: 100%;
+        min-width: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip {
+        --ui-mini-stat-strip-padding: var(--space-25);
+        --dashboard-status-value-size: var(--font-size-2xl);
+        --ui-mini-stat-strip-label-size: var(--font-size-xs);
+        grid-column: 1 / span 2;
+        min-height: 0;
+        min-width: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-item {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-2);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip .status-item {
+        align-items: center;
+        padding: var(--ui-mini-stat-strip-padding);
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip .status-item + .status-item {
+        border-left: var(--border-width-1) solid var(--ui-mini-stat-strip-divider);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-value {
+        font-size: var(--font-size-xl);
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-1);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip .status-value {
+        font-size: var(--dashboard-status-value-size);
+        margin-bottom: 0;
+        max-width: 100%;
+        line-height: 1.1;
+        text-align: center;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-overflow: clip;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip .status-value--compact {
+        --dashboard-status-value-size: var(--font-size-xl);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip .status-value--dense {
+        --dashboard-status-value-size: var(--font-size-lg);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip .status-value--tight {
+        --dashboard-status-value-size: var(--font-size-base);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip .status-label {
+        margin-top: var(--space-2);
+        max-width: 100%;
+        line-height: 1.2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-overflow: clip;
+    }
+}

@@ -1,0 +1,28 @@
+/* SoAI - Model detail page tables styles [frontend/assets/css/pages/model-detail/tables.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-page-scope='modelDetail'], [data-section='modelDetail']):is(.model-detail-container) {
+        @container parameter-category (min-width: 980px) {
+            .parameter-category .model-parameter-group {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media screen {
+            @container ui-viewport (width <= 768px) {
+                .model-parameter-item {
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+                :is(.model-parameter-control, .model-parameter-input, .model-parameter-textarea, .number-input-wrapper, .text-input-wrapper, .select-input-wrapper) {
+                    width: 100%;
+                }
+                .modeldetail-overview-grid {
+                    column-count: 1;
+                    column-width: auto;
+                }
+            }
+        }
+    }
+}

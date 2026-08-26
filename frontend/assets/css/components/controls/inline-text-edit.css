@@ -1,0 +1,82 @@
+/* SoAI - Inline text edit component styles [frontend/assets/css/components/controls/inline-text-edit.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-inline-text-edit {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        min-width: 0;
+    }
+
+    .ui-inline-text-edit__trigger {
+        appearance: none;
+        border: none;
+        background: transparent;
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-start;
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: min(500px, 100%);
+        padding: 0 var(--space-2);
+        border-radius: var(--border-radius);
+        color: var(--text-primary);
+        font-size: var(--font-size-base);
+        font-weight: 600;
+        line-height: 1.25;
+        text-align: left;
+        cursor: pointer;
+        transition:
+            background var(--transition-fast),
+            color var(--transition-fast);
+    }
+
+    .ui-inline-text-edit__text {
+        display: block;
+        flex: 0 1 auto;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-align: left;
+    }
+
+    .ui-inline-text-edit__trigger:hover {
+        background: transparent;
+        text-decoration: underline;
+    }
+
+    .ui-inline-text-edit__trigger:focus-visible {
+        background: transparent;
+        color: var(--accent-green-dark);
+        box-shadow: 0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring);
+    }
+
+    .ui-inline-text-edit__input {
+        width: min(420px, calc(48 * var(--ui-viewport-width-unit)));
+        min-width: 180px;
+        max-width: 100%;
+        padding: var(--space-15) var(--space-2);
+        border: var(--border-width-1) solid var(--text-field-border);
+        border-radius: var(--border-radius);
+        background: var(--text-field-bg);
+        color: var(--text-primary);
+        font-size: var(--font-size-base);
+        font-weight: 600;
+        line-height: 1.25;
+        transition:
+            background var(--transition-fast),
+            border-color var(--transition-fast);
+    }
+
+    .ui-inline-text-edit__input:focus {
+        border-color: var(--accent-green);
+    }
+
+    .ui-inline-text-edit__input:hover:not(:focus) {
+        background: var(--text-field-bg-hover);
+        border-color: var(--text-field-border-hover);
+    }
+}

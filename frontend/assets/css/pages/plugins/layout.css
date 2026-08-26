@@ -1,0 +1,253 @@
+/* SoAI - Plugins page layout styles [frontend/assets/css/pages/plugins/layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='BACKEND_INSTALLING'] {
+        --status-color: var(--status-blue);
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 3%, var(--glass-underlay-surface));
+        border-color: color-mix(in srgb, var(--status-color) 40%, var(--glass-border-strong));
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='BACKEND_INSTALLING'] .ui-metric-label,
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='BACKEND_INSTALLING'] .ui-metric-value {
+        color: color-mix(in srgb, var(--status-color) 85%, var(--text-secondary));
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='INSTALL_ERROR'] {
+        --status-color: var(--status-red);
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 8%, var(--glass-underlay-surface));
+        border-color: color-mix(in srgb, var(--status-color) 45%, var(--glass-border-strong));
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='INSTALL_ERROR'] .ui-metric-label,
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='INSTALL_ERROR'] .ui-metric-value {
+        color: color-mix(in srgb, var(--status-color) 90%, var(--text-secondary));
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='INCOMPATIBLE'] {
+        --status-color: var(--status-red);
+        --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 8%, var(--glass-underlay-surface));
+        border-color: color-mix(in srgb, var(--status-color) 45%, var(--glass-border-strong));
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='INCOMPATIBLE'] .ui-metric-label,
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='INCOMPATIBLE'] .ui-metric-value {
+        color: color-mix(in srgb, var(--status-color) 90%, var(--text-secondary));
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--status-full.ui-metric-badge--status-grey[data-status='BACKEND_NOT_INSTALLED'] {
+        --status-color: var(--status-grey);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-item.plugin-clone-summary {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']):is(.clone-plugin-modal, .manage-backend-modal) .plugin-info-item {
+        padding: var(--modal-section-padding);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-clone-summary .plugin-info-content {
+        width: 100%;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-clone-controls {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        margin-top: var(--space-3);
+        padding-top: var(--space-3);
+        border-top: var(--border-width-1) solid var(--border-color);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-clone-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        padding: var(--space-2) 0;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-clone-item .toggle-switch {
+        margin-left: auto;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-clone-item-label {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        flex: 1;
+        min-width: 0;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-clone-item-title {
+        font-size: var(--font-size-body);
+        font-weight: 500;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-clone-item-description {
+        font-size: var(--font-size-body-sm);
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-clone-name-input {
+        margin-top: var(--space-4);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-clone-name-input .form-input {
+        width: 100%;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).clone-plugin-modal .clone-progress-container:not(:empty),
+    :where([data-section='plugins'], [data-page-scope='plugins']).manage-backend-modal .backend-operation-container:not(:empty) {
+        margin: 0;
+        padding: var(--modal-section-padding);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).clone-plugin-modal .plugin-clone-name-input:not(.u-hidden) {
+        margin: 0;
+        padding: var(--modal-section-padding);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-name {
+        display: flex;
+        align-items: center;
+        font-size: var(--font-size-body-lg);
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: var(--space-1);
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-name > span:last-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-details {
+        display: flex;
+        gap: var(--space-4);
+        font-size: var(--font-size-body-sm);
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-link {
+        margin-top: var(--space-2);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-backend-link {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-15);
+        color: var(--text-secondary);
+        transition: color var(--transition-fast);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-backend-link:hover {
+        color: color-mix(in srgb, var(--accent-green) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-version,
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-status {
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-author {
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-install-badge[data-state='needs-install'] {
+        --status-badge-color: var(--status-grey);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-install-badge[data-state='installing'] {
+        --status-badge-color: var(--status-orange);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .backend-variant-selector {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-3);
+        margin: 0;
+        min-height: var(--control-height);
+        font-size: var(--font-size-body-sm);
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .backend-variant-footer-slot {
+        display: flex;
+        align-items: center;
+        min-height: var(--control-height);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .backend-variant-footer-slot > .form-disclaimer {
+        display: flex;
+        align-items: center;
+        min-height: var(--control-height);
+        margin-top: 0;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .backend-variant-select-shell {
+        max-width: 11rem;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .backend-version-info {
+        margin: 0;
+        padding: var(--space-3);
+        background: var(--bg-secondary);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .backend-version-info .form-group {
+        margin-bottom: 0;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .version-comparison {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--space-3);
+        background: var(--bg-primary);
+        border: var(--border-width-1) solid var(--border-color);
+        border-radius: var(--border-radius);
+        position: relative;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .version-item {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        text-align: left;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .version-item:last-of-type {
+        text-align: right;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .version-label {
+        color: var(--text-tertiary);
+    }
+}

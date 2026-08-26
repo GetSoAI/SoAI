@@ -1,0 +1,53 @@
+/* SoAI - Hardware io cards component styles [frontend/assets/css/components/hardware/hardware-io-cards.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .hardware-arrow-download {
+        color: var(--network-download-color);
+    }
+
+    .hardware-arrow-upload {
+        color: var(--network-upload-color);
+    }
+
+    :is(.hardware-network-list, .hardware-storage-list) {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        gap: var(--space-3);
+        min-height: 0;
+        width: 100%;
+    }
+
+    :is(.hardware-network-empty, .hardware-network-placeholder, .hardware-storage-empty, .hardware-storage-placeholder) {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-height: 100%;
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+    }
+
+    .hardware-network-speed {
+        align-items: center;
+        display: inline-flex;
+        flex-wrap: nowrap;
+        font-size: var(--font-size-compact-plus);
+        gap: var(--space-05) var(--space-2);
+        justify-content: flex-end;
+        line-height: var(--line-height-compact);
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .hardware-network-speed-separator {
+        align-items: center;
+        color: var(--text-tertiary);
+        display: inline-flex;
+        font-size: inherit;
+        font-weight: 600;
+        line-height: inherit;
+        vertical-align: middle;
+    }
+}

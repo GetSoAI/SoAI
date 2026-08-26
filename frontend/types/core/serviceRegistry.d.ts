@@ -1,0 +1,94 @@
+/* SoAI - Core service registry type declarations [frontend/types/core/serviceRegistry.d.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+type BootstrapStorageService = ReturnType<typeof import('../../assets/ts/core/storage/StorageService.ts').createStorageService>;
+type BootstrapAuthManager = ReturnType<typeof import('../../assets/ts/core/auth/public.ts').getAuthManager>;
+type BootstrapConnectionState = ReturnType<typeof import('../../assets/ts/core/connectionstate/service.ts').createConnectionState>;
+type BootstrapConnectionStatus = ReturnType<typeof import('../../assets/ts/core/connectionstatus/public.ts').createConnectionStatus>;
+type BootstrapSoaiOsCapabilities = ReturnType<typeof import('../../assets/ts/core/soaiOsCapabilities.ts').createSoaiOsCapabilities>;
+type BootstrapModalPresenter = ReturnType<typeof import('../../assets/ts/core/modals/modalPresenter.ts').createModalPresenterService>;
+type BootstrapTooltipService = ReturnType<typeof import('../../assets/ts/core/ui/tooltips/public.ts').createTooltipService>;
+type BootstrapSecretInputToggleService = ReturnType<typeof import('../../assets/ts/core/ui/secretInput.ts').createSecretInputToggleService>;
+type CollectionSupportService = {
+    configure: typeof import('../../assets/ts/core/componentsupport/public.ts').configureCollection;
+};
+
+interface SoAIServiceRegistry {
+    'core.apiClient': import('../../assets/ts/core/api/service.ts').ApiClient;
+    'core.appLifecycle': import('../../assets/ts/app/bootstrap/stages/applifecycle/AppLifecycle.ts').AppLifecycle;
+    'core.auth': BootstrapAuthManager;
+    'core.basePage': typeof import('../../assets/ts/core/routing/pages/basepage/public.ts').BasePage;
+    'core.bootstrap': import('../../assets/ts/app/bootstrap/stages/types.ts').BootstrapApi;
+    'core.branding': ReturnType<typeof import('../../assets/ts/core/branding/public.ts').createBranding>;
+    'core.collectionSupport': CollectionSupportService;
+    'core.clientDataHub': import('../../assets/ts/core/data/ClientDataHub.ts').ClientDataHub;
+    'core.componentRegistry': import('../../assets/ts/core/componentsupport/public.ts').ComponentRegistry;
+    'core.componentSupport': import('../../assets/ts/core/componentsupport/public.ts').ComponentSupport;
+    'core.connectionState': BootstrapConnectionState;
+    'core.connectionStatus': BootstrapConnectionStatus;
+    'core.contentPreviewModal': ReturnType<typeof import('../../assets/ts/core/ui/modals/contentpreview/service.ts').createContentPreviewModalService>;
+    'core.dialogs': ReturnType<typeof import('../../assets/ts/core/ui/modals/dialogs/service.ts').createDialogsService>;
+    'core.dom': typeof import('../../assets/ts/core/dom/dom.ts').dom;
+    'core.domObserver': typeof import('../../assets/ts/core/dom/dom.ts').DomObserver;
+    'core.domUpdateService': ReturnType<typeof import('../../assets/ts/core/dom/dom.ts').getDomUpdateService>;
+    'core.errorBoundary': typeof import('../../assets/ts/core/ErrorBoundary.ts').ErrorBoundary;
+    'core.errorHandler': typeof import('../../assets/ts/core/errorHandler.ts').errorHandler;
+    'core.eventBus': ReturnType<typeof import('../../assets/ts/core/EventBus.ts').createEventBus>;
+    'core.iconService': import('../../assets/ts/core/ui/icons/iconservice/public.ts').IconService;
+    'core.layout.header': import('../../assets/ts/core/layout/header/Header.ts').LayoutHeader;
+    'core.layout.sidebar': import('../../assets/ts/core/layout/sidebar/Sidebar.ts').LayoutSidebar;
+    'core.layoutManager': ReturnType<typeof import('../../assets/ts/core/runtime/LayoutManager.ts').createLayoutRuntimeManager>;
+    'core.layoutShell': import('../../assets/ts/app/bootstrap/LayoutShell.ts').LayoutShell;
+    'core.licenseService': ReturnType<typeof import('../../assets/ts/core/licenseservice/service.ts').createLicenseService>;
+    'core.lifecycleModel': typeof import('../../assets/ts/core/LifecycleModel.ts').LifecycleModel;
+    'core.logValidation': ReturnType<typeof import('../../assets/ts/core/logvalidation/public.ts').createLogValidation>;
+    'core.maintenanceCoordinator': ReturnType<typeof import('../../assets/ts/core/maintenanceCoordinator.ts').createMaintenanceCoordinator>;
+    'core.mainStatusMonitor': import('../../assets/ts/core/mainstatusmonitor/public.ts').MainStatusMonitor;
+    'core.modalPresenter': BootstrapModalPresenter;
+    'core.operationErrorNotifier': import('../../assets/ts/core/operationErrorNotifier.ts').OperationErrorNotifier;
+    'core.operationProgress': typeof import('../../assets/ts/core/operationprogress/public.ts').operationProgress;
+    'core.pageHost': typeof import('../../assets/ts/core/pagehost/service.ts').PageHost;
+    'core.pageOutlet': typeof import('../../assets/ts/core/pageoutlet/public.ts').PageOutlet;
+    'core.pageRegistry': import('../../assets/ts/core/pageRegistry.ts').PageRegistry;
+    'core.realtime': import('../../assets/ts/core/realtime/public.ts').RealtimeService;
+    'core.resourceTracker': typeof import('../../assets/ts/core/resourcetracker/service.ts').ResourceTracker;
+    'core.router': import('../../assets/ts/core/routing/router/Router.ts').Router;
+    'core.runtimeEnv': typeof import('../../assets/ts/core/runtimeenv/public.ts').runtimeEnv;
+    'core.secretInputToggle': BootstrapSecretInputToggleService;
+    'core.security': typeof import('../../assets/ts/core/security/public.ts').securityApi;
+    'core.soaiOsCapabilities': BootstrapSoaiOsCapabilities;
+    'core.speedTest': typeof import('../../assets/ts/core/speedTest.ts').speedTest;
+    'core.state': import('../../assets/ts/core/state/StateManager.ts').StateManager;
+    'core.storage': BootstrapStorageService;
+    'core.streamConnection': import('../../assets/ts/core/realtime/streammanager/streamTransport.ts').StreamTransport;
+    'core.streamLifecycle': import('../../assets/ts/core/realtime/streammanager/StreamManager.ts').StreamManager;
+    'core.streamResources': import('../../assets/ts/core/realtime/streammanager/resourceLoader.ts').StreamResourceLoader;
+    'core.streamSubscriptions': import('../../assets/ts/core/realtime/streammanager/streamSubscriptions.ts').StreamSubscriptions;
+    'core.streamTasks': import('../../assets/ts/core/realtime/streammanager/actions/service.ts').StreamTaskRuntime;
+    'core.subscriptionManager': typeof import('../../assets/ts/core/subscriptionmanager/service.ts').subscriptionManager;
+    'core.syntaxHighlighter': import('../../assets/ts/core/syntaxhighlighter/public.ts').SyntaxHighlighter;
+    'core.systemLimitsService': ReturnType<typeof import('../../assets/ts/core/api/systemLimitsService.ts').createSystemLimitsService>;
+    'core.tooltipService': BootstrapTooltipService;
+    'core.uiElementService': typeof import('../../assets/ts/core/dom/dom.ts').uiElementServiceModule;
+    'core.uiPrimitives': typeof import('../../assets/ts/core/uiprimitives/public.ts').primitives;
+    'features.automation.runActivity': import('../../assets/ts/features/automation/runactivity/service.ts').AutomationRunActivityService;
+    'features.catalog.store': ReturnType<typeof import('../../assets/ts/features/catalog/state.ts').createCatalogStore>;
+    'features.chat.chatPagePresence': import('../../assets/ts/features/chat/background/ChatPagePresenceService.ts').ChatPagePresenceService;
+    'features.chat.conversationAttention': import('../../assets/ts/features/chat/background/ChatConversationAttentionService.ts').ChatConversationAttentionService;
+    'features.chat.chatStreamService': import('../../assets/ts/features/chat/chatstreamservice/service.ts').ChatStreamService;
+    'features.chat.ragIngestion': import('../../assets/ts/core/chat/protocols.ts').ChatRagIngestionServiceContract;
+    'features.chat.toolIconService': import('../../assets/ts/features/chat/ChatToolIconService.ts').ChatToolIconService;
+    'features.firstRunModals': import('../../assets/ts/core/firstrun/protocols.ts').FirstRunModalService;
+    'features.indicators.mainState': import('../../assets/ts/features/indicators/MainState.ts').MainStateIndicatorComponent;
+    'features.indicators.liveStatusOverlay': import('../../assets/ts/features/indicators/service.ts').LiveStatusOverlay;
+    'features.logging.logStreamService': import('../../assets/ts/features/logging/logstreamservice/service.ts').LogStream;
+    'features.notifications.center': import('../../assets/ts/features/notifications/public.ts').NotificationCenter;
+    'features.overlays.countdown': import('../../assets/ts/features/overlays/Countdown.ts').CountdownOverlay;
+    'features.overlays.power': ReturnType<typeof import('../../assets/ts/features/overlays/PowerAction.ts').createPowerActionOverlay>;
+    'features.overlays.restart': import('../../assets/ts/features/overlays/restart/service.ts').RestartOverlay;
+    'features.search.panel': import('../../assets/ts/features/search/SearchPanel.ts').SearchComponent;
+    'features.tasks.manager': import('../../assets/ts/features/tasks/TaskManager.ts').TaskManager;
+}
+
+type SoAIServiceId = keyof SoAIServiceRegistry;
+type SoAIRegisteredService = SoAIServiceRegistry[SoAIServiceId];

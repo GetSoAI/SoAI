@@ -1,0 +1,66 @@
+/* SoAI - Chart states component styles [frontend/assets/css/components/charts/chart-states.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :is(.chart-loading, .chart-empty, .chart-error) {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: var(--font-size-sm);
+        z-index: var(--z-dropdown);
+        pointer-events: none;
+        color: var(--text-tertiary);
+    }
+
+    .chart-error {
+        color: var(--accent-red);
+    }
+
+    .chart-loading::after {
+        content: '';
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        margin-left: var(--space-2);
+        border: var(--border-width-1) solid var(--text-tertiary);
+        border-top-color: transparent;
+        border-radius: var(--border-radius);
+        animation: spin var(--duration-800) var(--ease-linear) infinite;
+    }
+
+    .chart-tooltip {
+        position: absolute;
+        background: var(--glass-surface-overlay-strong);
+        border: var(--border-width-2) solid var(--accent-green);
+        border-radius: var(--border-radius);
+        padding: var(--space-2);
+        font-size: var(--font-size-xs);
+        color: var(--text-primary);
+        pointer-events: none;
+        z-index: var(--z-tooltip);
+        white-space: nowrap;
+    }
+
+    .chart-tooltip-value {
+        font-weight: 600;
+        color: var(--accent-green);
+        margin-bottom: var(--space-1);
+    }
+
+    .chart-tooltip-time {
+        font-size: var(--font-size-caption);
+        color: var(--text-secondary);
+    }
+
+    .chart-manual-indicator {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-size: var(--font-size-compact);
+        font-weight: 600;
+        color: var(--accent-green);
+        pointer-events: none;
+        z-index: var(--z-raised);
+    }
+}

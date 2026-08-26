@@ -1,0 +1,48 @@
+/* SoAI - Borders utility styles [frontend/assets/css/utilities/borders.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    .u-rounded-none {
+        border-radius: 0;
+    }
+
+    .u-rounded {
+        border-radius: var(--border-radius);
+    }
+
+    .u-border {
+        border: var(--border-width-1) solid var(--border-color);
+    }
+
+    .u-border-none {
+        border: none;
+    }
+
+    .u-border-glass {
+        border: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    .u-border-glass-subtle {
+        border: var(--border-width-1) solid var(--glass-border-subtle);
+    }
+
+    .u-border-card {
+        border: var(--border-width-1) solid var(--surface-card-border);
+    }
+
+    .u-border-b {
+        border-bottom: var(--border-width-1) solid var(--border-color);
+    }
+
+    .u-border-t {
+        border-top: var(--border-width-1) solid var(--border-color);
+    }
+
+    .u-border-b-glass {
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    .u-border-t-glass {
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+    }
+}

@@ -1,0 +1,78 @@
+/* SoAI - Page content frontend styles [frontend/assets/css/layout/page-content.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer layout {
+    .initialization-error__badge {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--border-radius);
+        display: grid;
+        place-items: center;
+        border: var(--border-width-1) solid color-mix(in srgb, var(--status-red) 35%, var(--glass-border-strong));
+        background: color-mix(in srgb, var(--status-red) 14%, var(--glass-underlay-surface));
+        color: var(--status-red);
+        font-weight: 700;
+        line-height: var(--line-height-tight);
+        flex: 0 0 auto;
+    }
+
+    .initialization-error h1 {
+        font-size: var(--font-size-2xl);
+        font-weight: 700;
+        color: var(--feedback-critical-heading);
+        margin: 0 0 var(--space-2);
+    }
+
+    .initialization-error__message {
+        margin: 0;
+        color: var(--text-primary);
+        line-height: 1.6;
+    }
+
+    .initialization-error__details {
+        margin-top: var(--space-5);
+        color: var(--text-secondary);
+        text-align: left;
+    }
+
+    .initialization-error__details:empty {
+        display: none;
+    }
+
+    .initialization-error__details :is(p, ul) {
+        margin: 0;
+    }
+
+    .initialization-error__details ul {
+        margin-top: var(--space-2);
+        padding-left: 1.2em;
+    }
+
+    .initialization-error__actions {
+        margin-top: var(--space-7);
+        display: flex;
+        justify-content: flex-start;
+    }
+
+    @container ui-viewport (width <= 480px) {
+        .initialization-error__actions .ui-button {
+            width: 100%;
+        }
+    }
+
+    @container ui-viewport (width <= 1024px) or (height <= 768px) {
+        .main-content,
+        body.sidebar-expanded .main-content,
+        body.sidebar-collapsed .main-content,
+        body:not(.sidebar-ready) .main-content {
+            margin-left: 0;
+        }
+    }
+
+    @container ui-viewport (width <= 768px) {
+        .page-scrollable {
+            padding-inline: var(--space-3);
+            padding-bottom: var(--space-3);
+        }
+    }
+}

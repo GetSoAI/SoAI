@@ -1,0 +1,37 @@
+/* SoAI - Frontend entry styles [frontend/entries/styles/main.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('../../assets/css/layers.css');
+@import url('../../assets/css/foundations/index.css');
+@import url('../../assets/css/utilities/index.css');
+@import url('../../assets/css/modes/glass-disabled.css');
+@import url('../../assets/css/components/index.css');
+@import url('../../assets/css/layout/index.css');
+@import url('../../assets/css/modes/detached-window.css');
+@import url('../../assets/css/states.css');
+@import url('../../assets/css/skeleton.css');
+@import url('../../assets/css/pages/login/index.css') layer(pages);
+@import url('../../assets/css/pages/dashboard/index.css') layer(pages);
+@import url('../../assets/css/pages/chat/index.css') layer(pages);
+@import url('../../assets/css/pages/automation/index.css') layer(pages);
+@import url('../../assets/css/pages/search/index.css') layer(pages);
+@import url('../../assets/css/pages/models/index.css') layer(pages);
+@import url('../../assets/css/pages/model-detail/index.css') layer(pages);
+@import url('../../assets/css/pages/plugins/index.css') layer(pages);
+@import url('../../assets/css/pages/hardware/index.css') layer(pages);
+@import url('../../assets/css/pages/metrics/index.css') layer(pages);
+@import url('../../assets/css/pages/prompts/index.css') layer(pages);
+@import url('../../assets/css/pages/settings/index.css') layer(pages);
+@import url('../../assets/css/pages/logs/index.css') layer(pages);
+@import url('../../assets/css/pages/updates/index.css') layer(pages);
+@import url('../../assets/css/pages/file-explorer/index.css') layer(pages);
+@import url('../../assets/css/pages/power/index.css') layer(pages);
+@import url('../../assets/css/pages/terminal/index.css') layer(pages);
+@import url('../../assets/css/pages/help/index.css') layer(pages);
+@import url('../../assets/css/pages/about/index.css') layer(pages);
+@import url('../../assets/css/pages/wizard/index.css') layer(pages);
+@import url('../../assets/css/pages/collection-list-mode.css') layer(pages);
+@import url('@xterm/xterm/css/xterm.css') layer(components);
+@import url('katex/dist/katex.min.css') layer(foundations);
+@import url('../../assets/css/overrides/recessed-surfaces.css');
+@import url('../../assets/css/overrides/third-party.css');

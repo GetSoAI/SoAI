@@ -1,0 +1,33 @@
+/* SoAI - Frontend pages hardware SoAI Bench state motion styles [frontend/assets/css/pages/hardware/soaibench-state-motion.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    @keyframes gpu-soaibench-state-alert-color {
+        0%,
+        100% {
+            color: var(--status-orange);
+            border-color: color-mix(in srgb, var(--status-orange) var(--status-badge-border-opacity), var(--glass-underlay-surface));
+            background: color-mix(in srgb, var(--status-orange) var(--status-badge-background-opacity), var(--glass-underlay-surface));
+        }
+        50% {
+            color: var(--status-red);
+            border-color: color-mix(in srgb, var(--status-red) var(--status-badge-border-opacity), var(--glass-underlay-surface));
+            background: color-mix(in srgb, var(--status-red) var(--status-badge-background-opacity), var(--glass-underlay-surface));
+        }
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-panel.is-soaibench-stress-active .gpu-soaibench-state.warning {
+        animation:
+            assistant-weather-widget-pulse var(--duration-6000) var(--ease-in-out) infinite,
+            gpu-soaibench-state-alert-color var(--duration-6000) var(--ease-in-out) infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-panel.is-soaibench-stress-active .gpu-soaibench-state.warning {
+            animation: none;
+            color: var(--status-orange);
+            border-color: color-mix(in srgb, var(--status-orange) var(--status-badge-border-opacity), var(--glass-underlay-surface));
+            background: color-mix(in srgb, var(--status-orange) var(--status-badge-background-opacity), var(--glass-underlay-surface));
+        }
+    }
+}

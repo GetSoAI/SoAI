@@ -1,0 +1,193 @@
+/* SoAI - Text utility styles [frontend/assets/css/utilities/text.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    .u-text-primary {
+        color: var(--text-primary);
+    }
+
+    .u-text-secondary {
+        color: var(--text-secondary);
+    }
+
+    .u-text-tertiary {
+        color: var(--text-tertiary);
+    }
+
+    .u-text-muted {
+        color: var(--text-muted);
+    }
+
+    .u-text-disabled {
+        color: var(--text-disabled);
+    }
+
+    .u-text-accent {
+        color: var(--accent-primary);
+    }
+
+    .u-text-accent-green {
+        color: var(--accent-green);
+    }
+
+    .u-text-accent-blue {
+        color: var(--accent-blue);
+    }
+
+    .u-text-accent-red {
+        color: var(--accent-red);
+    }
+
+    .u-text-accent-yellow {
+        color: var(--accent-yellow);
+    }
+
+    .u-text-accent-cyan {
+        color: var(--accent-cyan);
+    }
+
+    .u-text-status-green {
+        color: var(--status-green);
+    }
+
+    .u-text-status-orange {
+        color: var(--status-orange);
+    }
+
+    .u-text-status-red {
+        color: var(--status-red);
+    }
+
+    .u-text-status-blue {
+        color: var(--status-blue);
+    }
+
+    .u-text-status-grey {
+        color: var(--status-grey);
+    }
+
+    .u-text-left {
+        text-align: left;
+    }
+
+    .u-text-center {
+        text-align: center;
+    }
+
+    .u-text-right {
+        text-align: right;
+    }
+
+    .u-font-normal {
+        font-weight: 400;
+    }
+
+    .u-font-medium {
+        font-weight: 500;
+    }
+
+    .u-font-semibold {
+        font-weight: 600;
+    }
+
+    .u-font-bold {
+        font-weight: 700;
+    }
+
+    .u-text-xs {
+        font-size: var(--font-size-xs);
+    }
+
+    .u-text-sm {
+        font-size: var(--font-size-sm);
+    }
+
+    .u-text-base {
+        font-size: var(--font-size-base);
+    }
+
+    .u-text-lg {
+        font-size: var(--font-size-lg);
+    }
+
+    .u-text-xl {
+        font-size: var(--font-size-xl);
+    }
+
+    .u-uppercase {
+        text-transform: uppercase;
+    }
+
+    .u-lowercase {
+        text-transform: lowercase;
+    }
+
+    .u-capitalize {
+        text-transform: capitalize;
+    }
+
+    .u-normal-case {
+        text-transform: none;
+    }
+
+    .u-tracking-tight {
+        letter-spacing: var(--tracking-tight);
+    }
+
+    .u-tracking-normal {
+        letter-spacing: var(--tracking-0);
+    }
+
+    .u-tracking-wide {
+        letter-spacing: var(--tracking-05px);
+    }
+
+    .u-text-label {
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-05px);
+        color: var(--text-secondary);
+    }
+
+    [data-soai-modal-root='true'] :where(.form-group > :is(label, .form-label), .form-col-main > label, .form-col-secondary > label, .config-field-item > label, .concurrent-plugins-form-group > label, .download-model-selected-model-label, .storage-modal-form-label, .storage-modal-preview-label, .storage-modal-info-label, .model-edit-label, .model-rename-source-label, :where(.model-test-status-block, .model-test-request-details, .model-test-timing-row) .stat-label, .backend-version-info label, .setting-change-surface > .setting-info > .setting-label, .subgroup-title, .os-network-dryrun-label, .chat-config-field-header > :is(label, .form-label), .chat-configuration-section-header .chat-configuration-section-title, .mcp-tools-scope .mcp-default-tools-title, .metrics-advanced-section-title, .metrics-advanced-label, .plugin-info-section-title, .plugin-info-label, .message-info-section-title, .message-info-label, .prompt-enhancer-meta-label, .openai-capabilities-category-title) {
+        display: block;
+        color: var(--modal-field-label-color);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        letter-spacing: var(--tracking-05px);
+        margin-bottom: var(--space-2);
+        text-transform: uppercase;
+    }
+
+    [data-soai-modal-root='true'] .api-key-quota-modal :where(.setting-change-surface > .setting-info > .setting-label) {
+        letter-spacing: 0;
+        text-transform: none;
+    }
+
+    .u-text-caption {
+        font-size: var(--font-size-caption);
+        color: var(--text-tertiary);
+    }
+
+    .u-font-mono {
+        font-family: var(--font-family-mono);
+    }
+
+    .u-font-mono-code {
+        font-family: var(--font-family-code);
+    }
+
+    .u-text-label-strong {
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-05px);
+        color: var(--text-secondary);
+    }
+
+    .u-text-pre {
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+    }
+}

@@ -1,0 +1,124 @@
+/* SoAI - Spacing utility styles [frontend/assets/css/utilities/spacing.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    .u-p-0 {
+        padding: 0;
+    }
+
+    .u-p-1 {
+        padding: var(--space-1);
+    }
+
+    .u-p-2 {
+        padding: var(--space-2);
+    }
+
+    .u-p-3 {
+        padding: var(--space-3);
+    }
+
+    .u-p-4 {
+        padding: var(--space-4);
+    }
+
+    .u-p-5 {
+        padding: var(--space-5);
+    }
+
+    .u-p-6 {
+        padding: var(--space-6);
+    }
+
+    .u-px-0 {
+        padding-inline: 0;
+    }
+
+    .u-px-1 {
+        padding-inline: var(--space-1);
+    }
+
+    .u-px-2 {
+        padding-inline: var(--space-2);
+    }
+
+    .u-px-3 {
+        padding-inline: var(--space-3);
+    }
+
+    .u-px-4 {
+        padding-inline: var(--space-4);
+    }
+
+    .u-px-35 {
+        padding-inline: var(--space-35);
+    }
+
+    .u-py-0 {
+        padding-block: 0;
+    }
+
+    .u-py-1 {
+        padding-block: var(--space-1);
+    }
+
+    .u-py-2 {
+        padding-block: var(--space-2);
+    }
+
+    .u-py-3 {
+        padding-block: var(--space-3);
+    }
+
+    .u-py-4 {
+        padding-block: var(--space-4);
+    }
+
+    .u-m-0 {
+        margin: 0;
+    }
+
+    .u-m-auto {
+        margin: auto;
+    }
+
+    .u-mx-auto {
+        margin-inline: auto;
+    }
+
+    .u-my-auto {
+        margin-block: auto;
+    }
+
+    .u-mt-0 {
+        margin-top: 0;
+    }
+
+    .u-mt-2 {
+        margin-top: var(--space-2);
+    }
+
+    .u-mt-3 {
+        margin-top: var(--space-3);
+    }
+
+    .u-mt-4 {
+        margin-top: var(--space-4);
+    }
+
+    .u-mb-0 {
+        margin-bottom: 0;
+    }
+
+    .u-mb-2 {
+        margin-bottom: var(--space-2);
+    }
+
+    .u-mb-3 {
+        margin-bottom: var(--space-3);
+    }
+
+    .u-mb-4 {
+        margin-bottom: var(--space-4);
+    }
+}

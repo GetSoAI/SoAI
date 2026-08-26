@@ -1,0 +1,98 @@
+/* SoAI - Automation page configuration modal turns styles [frontend/assets/css/pages/automation/configuration-modal-turns.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turns-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: var(--space-2);
+        align-items: start;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-fields {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        isolation: isolate;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-connector {
+        position: relative;
+        flex: 0 0 var(--space-2);
+        height: var(--space-2);
+        pointer-events: none;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-connector::before {
+        content: '';
+        position: absolute;
+        inset-block: 0;
+        left: 50%;
+        width: var(--border-width-3);
+        background: color-mix(in srgb, var(--text-secondary) 18%, transparent);
+        transform: translateX(-50%);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-input {
+        min-height: 74px;
+        resize: vertical;
+        position: relative;
+        z-index: var(--z-raised);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-assistant-input {
+        cursor: default;
+        resize: none;
+        user-select: none;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-fields .automation-turn-assistant-input {
+        color: var(--text-tertiary);
+        -webkit-text-fill-color: var(--text-tertiary);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-end-input {
+        min-height: 36px;
+        height: 36px;
+        background-color: var(--text-field-bg);
+        color: color-mix(in srgb, var(--text-tertiary) 55%, transparent);
+        -webkit-text-fill-color: color-mix(in srgb, var(--text-tertiary) 55%, transparent);
+        cursor: default;
+        opacity: 1;
+        resize: none;
+        user-select: none;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-char-counter {
+        font-size: var(--font-size-body-xs);
+        color: var(--text-muted);
+        white-space: nowrap;
+        margin-left: var(--space-2);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-char-counter.is-warning {
+        color: var(--status-orange);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-char-counter:is(.is-critical, .is-over) {
+        color: var(--status-red);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-actions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-add-turn-button {
+        align-self: flex-start;
+        inline-size: fit-content;
+        max-inline-size: 100%;
+    }
+}

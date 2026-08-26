@@ -1,0 +1,74 @@
+/* SoAI - Movable sections component styles [frontend/assets/css/components/layout/movable-sections.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .movable-sections-grid {
+        --movable-section-content-scale: 1;
+        --movable-section-content-scale-inverse: 1;
+
+        display: grid;
+        grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+        grid-auto-rows: var(--cell-height);
+        gap: var(--layout-section-padding);
+        min-width: 0;
+        padding-bottom: calc(var(--layout-container-padding) + var(--layout-section-padding));
+        position: relative;
+    }
+
+    .movable-sections-grid[data-dragging='true'] {
+        user-select: none;
+        cursor: grabbing;
+    }
+
+    .movable-section {
+        display: flex;
+        flex-direction: column;
+        min-height: var(--cell-height);
+        transition:
+            border-color var(--transition-normal),
+            box-shadow var(--transition-normal);
+    }
+
+    .movable-section.is-dragging {
+        z-index: var(--z-modal);
+        pointer-events: none;
+        box-shadow: var(--shadow-lift-strong);
+        transition: transform var(--transition-fast);
+        will-change: transform;
+    }
+
+    .movable-section.is-displaced {
+        will-change: transform;
+    }
+
+    .movable-sections-grid.is-collapsed {
+        grid-template-columns: minmax(0, 1fr);
+        grid-auto-rows: minmax(min-content, var(--cell-height));
+    }
+
+    .movable-sections-grid.is-collapsed .movable-section,
+    .movable-section.is-collapsed {
+        grid-column: 1;
+        grid-row: auto;
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        min-height: var(--cell-height);
+        max-height: var(--cell-height);
+        overflow: hidden;
+    }
+
+    .movable-section .section-header {
+        cursor: grab;
+        user-select: none;
+    }
+
+    .movable-section .section-header:active {
+        cursor: grabbing;
+    }
+
+    .movable-section.is-locked .section-header,
+    .movable-section.is-locked .section-header:active {
+        cursor: default;
+    }
+}

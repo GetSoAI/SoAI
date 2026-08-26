@@ -1,0 +1,151 @@
+/* SoAI - Modal body component styles [frontend/assets/css/components/modals/modal-body.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .modal-body {
+        padding: var(--modal-body-padding);
+        overflow-y: auto;
+        flex: 1;
+        min-height: 0;
+        background-color: transparent;
+    }
+
+    .modal-body--padded {
+        padding: var(--modal-body-padding);
+    }
+
+    .modal-body--sectioned {
+        padding: 0;
+    }
+
+    .modal-body--no-padding {
+        padding: 0;
+    }
+
+    .modal-body--relative {
+        position: relative;
+    }
+
+    :is(.system-info-modal, .system-license-modal) .modal-content {
+        max-width: 900px;
+        width: calc(90 * var(--ui-viewport-width-unit));
+    }
+
+    :is(.system-info-modal, .system-license-modal) .modal-body {
+        position: relative;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+    }
+
+    .modal-content.is-fullscreen > .modal-body {
+        max-height: none;
+    }
+
+    .modal-body .modal-loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-4);
+        padding: var(--space-8);
+        color: var(--text-secondary);
+        min-height: 160px;
+    }
+
+    .modal-body .modal-loading-state--overlay {
+        position: absolute;
+        inset: 0;
+        min-height: 0;
+    }
+
+    .modal-body .modal-loading-state.u-hidden {
+        display: var(--hidden-display);
+        padding: 0;
+        margin: 0;
+        min-height: 0;
+    }
+
+    .modal-body .loading-spinner {
+        width: var(--control-height-compact);
+        height: var(--control-height-compact);
+        border: var(--border-width-3) solid var(--surface-card-border);
+        border-top-color: var(--accent-primary);
+        border-radius: var(--border-round);
+        animation: spin var(--duration-800) var(--ease-linear) infinite;
+        padding: 0;
+    }
+
+    :is(.system-info-modal, .system-license-modal) :is(.content-display, .system-info-content) {
+        font-family: var(--font-family-code);
+        font-size: var(--font-size-xs);
+        line-height: 1.5;
+        color: var(--text-primary);
+        background: var(--glass-surface-strong);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        padding: 0;
+        margin: 0;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        overflow: auto;
+        min-height: 0;
+        max-height: 100%;
+        display: block;
+    }
+
+    :is(.system-info-modal, .system-license-modal) :is(.content-display, .system-info-content):empty {
+        display: none;
+    }
+
+    :is(.system-info-modal, .system-license-modal) :is(.content-display, .system-info-content).is-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-4);
+        padding: var(--space-12) var(--space-8);
+    }
+
+    :is(.system-info-modal, .system-license-modal) :is(.content-display, .system-info-content) .loading-text {
+        color: var(--text-secondary);
+    }
+
+    :is(.system-info-modal, .system-license-modal) .modal-body > .system-info-content.u-stretch {
+        flex: 1 1 auto;
+        width: 100%;
+        height: 100%;
+        padding: 0 var(--space-4);
+    }
+
+    :is(.system-info-modal, .system-license-modal) .modal-footer {
+        padding: var(--space-4);
+        border-top: var(--border-width-1) solid var(--surface-card-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .system-info-modal .modal-footer-section--left {
+        --modal-footer-gap: var(--space-3);
+    }
+
+    .license-modal-content {
+        width: min(calc(80 * var(--ui-viewport-width-unit)), 600px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .system-credits-modal .license-modal-content {
+            width: 100%;
+            height: var(--layout-content-height);
+            max-height: var(--layout-content-height);
+            border-radius: 0;
+        }
+    }
+}

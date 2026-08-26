@@ -1,0 +1,23 @@
+/* SoAI - Collection tokens frontend styles [frontend/assets/css/foundations/collection-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --layout-collection-card-min-width: 320px;
+        --layout-collection-card-max-width: 330px;
+        --layout-collection-card-min-height: 420px;
+        --layout-collection-card-aspect-ratio: auto;
+        --layout-collection-card-header-padding-block: 0.85rem;
+        --layout-collection-card-header-padding-inline: 1.5rem;
+        --layout-collection-card-content-padding-block: 0.6rem;
+        --layout-collection-card-content-padding-inline: 0.6rem;
+        --layout-collection-card-content-padding-end: 0.25rem;
+        --layout-collection-card-info-gap: 0.55rem;
+        --layout-collection-card-horizontal-gap: 0.5rem;
+        --layout-collection-card-horizontal-padding-block: 0.35rem;
+        --layout-collection-card-metrics-gap: 0.35rem;
+        --layout-collection-card-metrics-padding: 0.25rem;
+        --layout-collection-card-metrics-margin-top: 0.55rem;
+        --layout-collection-card-status-margin-bottom: 0.55rem;
+    }
+}

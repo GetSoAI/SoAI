@@ -1,0 +1,269 @@
+/* SoAI - Models page base styles [frontend/assets/css/pages/models/base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='models'], [data-page-scope='models']) .model-card {
+        --layout-collection-card-min-height: 400px;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-card > .ui-collection-card__action-bar > .ui-round-button:not(.ui-round-button--inline) {
+        position: absolute;
+        right: 7px;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-card > .ui-collection-card__action-bar > .ui-round-button:not(.ui-round-button--inline):first-child {
+        top: 7px;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-card > .ui-collection-card__action-bar > .ui-round-button:not(.ui-round-button--inline):nth-child(2) {
+        top: 30px;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-card > .ui-collection-card__action-bar > .ui-round-button:not(.ui-round-button--inline):nth-child(3) {
+        top: 53px;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) :is(.model-id, .model-universal-id, .provider-url) {
+        font-family: var(--font-family-mono);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .no-parameters svg {
+        margin-bottom: var(--space-4);
+        opacity: 0.6;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) :is(.repository-link svg, .variant-check-advisory-icon svg) {
+        stroke: currentColor;
+        fill: none;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .repository-link svg {
+        flex-shrink: 0;
+        width: 12px;
+        height: 12px;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .manual-discovery-text {
+        font-size: var(--font-size-body-xs);
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .manual-discovery-text p {
+        margin: 0 0 var(--space-3);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .manual-path-row {
+        margin-top: var(--space-3);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .manual-models-path {
+        color: var(--text-tertiary);
+        background: var(--glass-surface-medium);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border-color: var(--glass-border-strong);
+        box-shadow: var(--surface-card-shadow);
+        pointer-events: none;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .manual-models-path:hover {
+        border-color: var(--glass-border-strong);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .modal-body {
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .download-model-modal-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: var(--modal-body-padding);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .download-model-selected-model-bar {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-2);
+        min-width: 0;
+        padding: var(--space-3) var(--space-4);
+        font-size: var(--font-size-body);
+        color: var(--text-primary);
+        white-space: nowrap;
+        border-top: var(--border-width-1) solid var(--surface-card-border);
+        background: var(--surface-card);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .download-model-selected-model-bar.u-hidden {
+        display: none;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .download-model-selected-model-label {
+        display: inline-flex;
+        align-items: center;
+        flex: 0 0 auto;
+        margin: 0;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .download-model-selected-model-id {
+        color: var(--text-primary);
+        flex: 1 1 auto;
+        font-weight: 600;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .download-model-selected-model-quant {
+        color: var(--accent-green);
+        display: inline-flex;
+        flex: 0 1 auto;
+        font-weight: 600;
+        max-width: 45%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).download-model-modal .download-model-selected-model-quant:empty {
+        display: none;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-status-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-status {
+        font-size: var(--font-size-body-xs);
+        color: var(--accent-blue);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-filter-status {
+        font-size: var(--font-size-body-xs);
+        color: var(--accent-green);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-filter-status:empty {
+        display: none;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-results {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        margin-top: var(--space-3);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-entry {
+        background: var(--glass-surface-medium);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        padding: var(--space-3);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-25);
+        box-shadow: var(--surface-card-shadow);
+        transition:
+            background var(--duration-200) var(--ease-in-out),
+            border-color var(--duration-200) var(--ease-in-out),
+            box-shadow var(--duration-200) var(--ease-in-out);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-entry:is(:focus, :focus-visible) {
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 var(--control-focus-ring-width) color-mix(in srgb, var(--accent-primary) 22%, transparent);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-entry--selected {
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-primary) 35%, transparent);
+        background: color-mix(in srgb, var(--accent-primary) 9%, var(--glass-surface-medium) 91%);
+    }
+
+    .theme-dark :where([data-section='models'], [data-page-scope='models']) .variant-check-entry--selected {
+        background: color-mix(in srgb, var(--accent-primary) 18%, var(--glass-underlay-surface));
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-entry-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: var(--space-4);
+        flex-wrap: wrap;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-entry-title {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-entry-name {
+        font-size: var(--font-size-body-md);
+        font-weight: 600;
+        color: var(--text-primary);
+        word-break: break-word;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-entry-quant {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-04px);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-metrics {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: var(--space-1);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-metric {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-meta,
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-15);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-badge {
+        --status-badge-padding: var(--space-1) var(--space-2);
+        --status-badge-font-size: var(--font-size-caption-plus);
+        --status-badge-letter-spacing: var(--tracking-04px);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-badge.variant-check-badge--ok {
+        --status-badge-color: var(--status-green);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-badge.variant-check-badge--warn {
+        --status-badge-color: var(--status-orange);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-badge.variant-check-badge--fail {
+        --status-badge-color: var(--status-red);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-badge.variant-check-badge--neutral {
+        --status-badge-color: var(--text-tertiary);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-check-badge.variant-check-badge--meta {
+        --status-badge-color: var(--accent-blue);
+    }
+}

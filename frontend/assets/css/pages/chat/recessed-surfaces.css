@@ -1,0 +1,29 @@
+/* SoAI - Chat page recessed surfaces styles [frontend/assets/css/pages/chat/recessed-surfaces.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='chat'], [data-page-scope='chat']) .conversations-list {
+        background-color: var(--recessed-surface-fill-background);
+        background-image: var(--recessed-surface-fill);
+        background-blend-mode: var(--recessed-surface-texture-blend);
+        background-size: var(--recessed-surface-texture-size);
+        -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
+        backdrop-filter: var(--recessed-surface-backdrop-filter);
+        box-shadow: var(--recessed-surface-shadow);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .inline-activity .inline-activity-details {
+        background-color: var(--recessed-surface-fill-background);
+        background-image: var(--recessed-surface-fill);
+        background-blend-mode: var(--recessed-surface-texture-blend);
+        background-size: var(--recessed-surface-texture-size);
+        -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
+        backdrop-filter: var(--recessed-surface-backdrop-filter);
+        box-shadow: var(--recessed-surface-shadow);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .inline-activity[data-collapsed='false'] {
+        background: transparent;
+    }
+}

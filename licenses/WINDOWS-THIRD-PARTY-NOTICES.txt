@@ -1,0 +1,41 @@
+SoAI Windows Third-Party Notices
+================================
+
+Native launcher and WebView2
+----------------------------
+
+The Windows distribution includes a native C# WinForms launcher and the Microsoft WebView2 SDK assemblies and x64
+loader required by that launcher. The installer installs the WebView2 Evergreen Runtime when it is missing. Notices
+for the SDK files and runtime deployment are provided in:
+
+  licenses/webview2/Microsoft.Web.WebView2.SDK-LICENSE.txt
+  licenses/webview2/Microsoft.Web.WebView2.SDK-NOTICE.txt
+  licenses/webview2/README.txt
+
+Managed Python runtime
+----------------------
+
+The Windows installer downloads the pinned Python 3.13 NuGet runtime into the SoAI installation. That package includes
+Python, OpenSSL, libffi, and Microsoft Visual C++ runtime components and retains its own upstream license file. Additional
+copies and notices shipped with SoAI are provided in:
+
+  licenses/Python-3.13-LICENSE.txt
+  licenses/OpenSSL-NOTICE.txt
+  licenses/libffi-NOTICE.txt
+  licenses/MSVC-RUNTIME-NOTICE.txt
+
+NSIS installer
+--------------
+
+The Windows installer is built with NSIS and contains NSIS components. Its license is provided in:
+
+  licenses/NSIS-LICENSE.txt
+
+Managed Tesseract OCR runtime
+-----------------------------
+
+The Windows distribution includes a minimal managed Tesseract OCR runtime and
+English language data. Its provenance and notices are provided in:
+
+  licenses/TESSERACT-WINDOWS-RUNTIME-NOTICES.txt
+  licenses/Apache-2.0.txt

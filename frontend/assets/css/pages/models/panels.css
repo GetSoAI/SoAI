@@ -1,0 +1,196 @@
+/* SoAI - Models page panels styles [frontend/assets/css/pages/models/panels.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='models'], [data-page-scope='models']) .no-parameters p {
+        font-size: var(--font-size-body-md);
+        margin: 0;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) :is(.alias-badge, .orphan-badge, .custom-badge, .ui-status-badge) {
+        margin-left: var(--space-2);
+        margin-right: var(--space-2);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .alias-badge {
+        --status-badge-color: var(--accent-green);
+        margin-right: var(--space-3);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .orphan-badge {
+        --status-badge-color: var(--status-red);
+        transform: scale(1.02);
+        transition:
+            transform var(--transition-fast),
+            box-shadow var(--transition-fast);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .custom-badge {
+        --status-badge-color: var(--status-orange);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .parameter-category {
+        background: var(--surface-card);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        box-shadow: var(--surface-card-shadow);
+        margin-bottom: var(--space-8);
+        overflow: hidden;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .parameter-item {
+        padding: var(--space-4);
+        margin-bottom: var(--space-4);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+        box-shadow: var(--surface-card-shadow);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-plugin-logo {
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .models-plugin-enabled-status {
+        font-weight: 400;
+        color: var(--text-primary);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-universal-id {
+        color: var(--text-tertiary);
+        word-break: break-all;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .repository-link {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        color: var(--accent-green);
+        text-decoration: none;
+        font-size: var(--font-size-compact-plus);
+        padding: var(--space-1) var(--space-15);
+        border-radius: var(--border-radius);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            box-shadow var(--transition-fast);
+        background: color-mix(in srgb, var(--accent-green) 15%, var(--hover-layer-mix-base) 85%);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--accent-green) 30%, var(--hover-layer-mix-base) 70%);
+        max-width: 100%;
+        overflow: hidden;
+        overflow-wrap: break-word;
+        line-height: 1.2;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .repository-link:hover {
+        background: color-mix(in srgb, var(--accent-green) 25%, var(--hover-layer-mix-base) 75%);
+        border-color: color-mix(in srgb, var(--accent-green) 45%, var(--hover-layer-mix-base) 55%);
+        color: color-mix(in srgb, var(--accent-green) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .repository-link span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-repository-link {
+        margin-top: var(--space-1);
+        margin-bottom: var(--space-05);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .repository-link-display {
+        padding: var(--space-3);
+        margin-bottom: var(--space-2);
+        display: flex;
+        align-items: center;
+        min-height: 40px;
+        width: 100%;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .repository-link-display .repository-link {
+        flex: 0 0 auto;
+        font-size: var(--font-size-body);
+        padding: 0;
+        background: none;
+        border: none;
+        justify-content: flex-start;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .repository-link-display .repository-link:hover {
+        background: none;
+        border: none;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .repository-link-display .ui-model-type-badges {
+        flex: 1;
+        display: flex;
+        justify-content: flex-end;
+        margin-left: 0;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-title-bar {
+        justify-content: space-between;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .ui-metric-item {
+        flex-shrink: 0;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).vm-edit-modal .vm-edit-modal-summary {
+        margin-bottom: var(--space-4);
+        font-size: var(--font-size-heading-xs);
+        font-weight: 600;
+        color: var(--text-primary);
+        text-align: left;
+        font-family: var(--font-family-mono);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .providers-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']).providers-modal .modal-body {
+        position: relative;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-item {
+        position: relative;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: var(--space-4);
+        background: var(--surface-card);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        gap: var(--space-4);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-item:has(> .ui-collection-card__action-bar) > .provider-info {
+        padding-right: calc(var(--control-round-button-size) + var(--space-3));
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='models'], [data-page-scope='models']) .provider-item {
+            flex-direction: column;
+        }
+    }
+}

@@ -1,0 +1,37 @@
+/* SoAI - Status lines component styles [frontend/assets/css/components/feedback/status-lines.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :is(.status-line, .box-status-line) {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+    }
+    .status-line {
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+
+    :is(.status-success, .status-info, .status-warning, .status-error, .status-neutral) :is(.status-line, .box-status-line) {
+        background-color: var(--status-color);
+        box-shadow: 0 0 8px var(--status-shadow-color);
+    }
+
+    .status-success {
+        --status-shadow-color: var(--status-shadow-green-soft);
+    }
+
+    .ui-collection-card__horizontal .ui-model-type-badges {
+        margin: 0;
+        margin-left: auto;
+        padding: 0;
+        flex-shrink: 0;
+        justify-content: flex-end;
+    }
+    .ui-collection-card__horizontal .ui-model-type-badges.ui-model-type-badges--inline {
+        margin: 0;
+        margin-left: auto;
+        gap: var(--space-1);
+    }
+}

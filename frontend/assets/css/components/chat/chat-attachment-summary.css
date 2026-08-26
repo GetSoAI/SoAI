@@ -1,0 +1,271 @@
+/* SoAI - Chat attachment summary component styles [frontend/assets/css/components/chat/chat-attachment-summary.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .message-attachment-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        margin-top: var(--space-2);
+        max-width: 100%;
+    }
+
+    :where(.chat-container) .chat-attachment-summary-card {
+        color: var(--text-primary);
+        text-decoration: none;
+        border: var(--border-width-1) solid var(--glass-border-subtle);
+        cursor: pointer;
+    }
+
+    :where(.chat-container) button.chat-attachment-summary-card {
+        font: inherit;
+        text-align: left;
+    }
+
+    :where(.chat-container) .chat-attachment-summary-card.document {
+        width: min(260px, 100%);
+    }
+
+    :where(.chat-container) .file-preview-item.image.chat-attachment-summary-card {
+        width: min(260px, 100%);
+        min-width: 180px;
+        min-height: 74px;
+        align-items: center;
+        padding: var(--space-2);
+        overflow: hidden;
+    }
+
+    .chat-attachment-overflow-item.image img {
+        width: 48px;
+        height: 48px;
+        flex: 0 0 auto;
+        border-radius: var(--border-radius);
+        object-fit: cover;
+    }
+
+    :where(.chat-container) .file-preview-item.image.chat-attachment-summary-card img {
+        flex: 0 0 auto;
+        width: 56px;
+        height: 56px;
+    }
+
+    :where(.chat-container) .chat-attachment-summary-card .file-info {
+        flex: 1 1 auto;
+    }
+
+    :where(.chat-container) .chat-attachment-summary-card .file-name {
+        max-width: none;
+    }
+
+    :where(.chat-container) .chat-attachment-summary-card .file-status {
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+
+    :where(.chat-container) .chat-attachment-summary-card .file-status > span:not(.chat-attachment-badge) {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .chat-attachment-summary-card:is(:hover, :focus-visible) {
+        border-color: var(--ui-button-border-hover);
+    }
+
+    :where(.chat-container) button.file-preview-item.image.chat-attachment-summary-card--soai-link:focus:not(:focus-visible, :hover) {
+        border-color: var(--glass-border-subtle);
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) button.file-preview-item.image.chat-attachment-summary-card--soai-link.glass-surface-light:focus:not(:focus-visible, :hover) {
+        --glass-surface-bg: var(--chat-preview-neutral-base);
+    }
+
+    :where(.chat-container) .message-edit-attachment-strip .chat-attachment-summary-card {
+        cursor: default;
+    }
+
+    :where(.chat-container) .message-edit-attachment-strip .file-preview-item.image.chat-attachment-summary-card {
+        overflow: visible;
+    }
+
+    :where(.chat-container) .message-edit-attachment-strip .remove-file-btn {
+        opacity: 1;
+    }
+
+    .chat-attachment-overflow-modal-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        min-height: 320px;
+        max-height: min(calc(70 * var(--ui-viewport-height-unit)), 720px);
+        padding: var(--modal-body-padding);
+        overflow: auto;
+    }
+
+    .chat-attachment-overflow-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: var(--space-2);
+        align-content: start;
+    }
+
+    .chat-attachment-overflow-toolbar {
+        display: grid;
+        grid-template-columns: auto minmax(120px, 0.7fr) minmax(180px, 1fr);
+        gap: var(--space-2);
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .chat-attachment-overflow-search {
+        --search-control-bg: color-mix(in srgb, var(--border-color) var(--interactive-tint-opacity-idle), var(--glass-underlay-surface));
+
+        width: 100%;
+        min-width: 0;
+        height: var(--control-height);
+        padding: var(--control-padding-block) var(--control-padding-inline);
+        font-size: var(--font-size-body-md);
+        line-height: 1.2;
+        border: var(--border-width-1) solid var(--border-color);
+        border-radius: var(--border-radius);
+        background-color: var(--search-control-bg);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow:
+            inset 2px 2px 4px var(--surface-inner-highlight-soft),
+            inset -2px -2px 4px var(--surface-inner-shadow-soft);
+        color: var(--text-primary);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast);
+    }
+
+    .chat-attachment-overflow-search::placeholder {
+        color: var(--text-tertiary);
+    }
+
+    .chat-attachment-overflow-search:focus,
+    .chat-attachment-overflow-search:focus-visible {
+        outline: none;
+        border-color: var(--accent-green);
+    }
+
+    .chat-attachment-overflow-search:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .chat-attachment-overflow-search:hover:not(:focus, :disabled) {
+        background-color: color-mix(in srgb, var(--search-control-bg) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        border-color: color-mix(in srgb, var(--border-color) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
+    }
+
+    .chat-attachment-overflow-toolbar[hidden] {
+        display: var(--hidden-display);
+    }
+
+    .chat-attachment-overflow-error {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        align-items: center;
+        color: var(--status-red);
+        flex-shrink: 0;
+    }
+
+    .chat-attachment-overflow-error[hidden] {
+        display: var(--hidden-display);
+    }
+
+    .chat-attachment-overflow-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        color: var(--text-secondary);
+        min-height: var(--control-height);
+        flex-shrink: 0;
+    }
+
+    .chat-attachment-overflow-loading[hidden],
+    .chat-attachment-overflow-sentinel[hidden],
+    .chat-attachment-overflow-empty[hidden] {
+        display: var(--hidden-display);
+    }
+
+    .chat-attachment-overflow-sentinel {
+        min-height: var(--space-1);
+        flex-shrink: 0;
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .chat-attachment-overflow-toolbar {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .chat-attachment-overflow-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-height: 58px;
+        max-width: 100%;
+        padding: var(--space-2) var(--space-25);
+        color: var(--text-primary);
+        font: inherit;
+        text-align: left;
+        text-decoration: none;
+    }
+
+    button.chat-attachment-overflow-item {
+        appearance: none;
+        cursor: pointer;
+    }
+
+    .chat-attachment-overflow-item.image {
+        padding: var(--space-1);
+    }
+
+    .chat-attachment-overflow-item .file-info {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        gap: var(--space-05);
+        min-width: 0;
+    }
+
+    .chat-attachment-overflow-item .file-name {
+        max-width: none;
+        font-size: var(--font-size-xs);
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .chat-attachment-overflow-item .file-status {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-15);
+        min-width: 0;
+        font-size: var(--font-size-compact);
+        line-height: 1.2;
+        color: var(--text-secondary);
+    }
+
+    .chat-attachment-overflow-item .file-status .chat-attachment-badge {
+        flex: 0 0 auto;
+        margin: 0;
+    }
+
+    .chat-attachment-overflow-item .file-status > span:not(.chat-attachment-badge) {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}

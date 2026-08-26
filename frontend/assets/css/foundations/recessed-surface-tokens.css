@@ -1,0 +1,37 @@
+/* SoAI - Recessed surface tokens frontend styles [frontend/assets/css/foundations/recessed-surface-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --recessed-surface-background: color-mix(in srgb, var(--glass-surface-strong) 64%, transparent);
+        --recessed-surface-fill-background-tinted: color-mix(in srgb, var(--recessed-surface-background), var(--surface-user-tint) var(--surface-tint-fill-amount));
+        --recessed-surface-fill-background-colored: color-mix(in srgb, var(--recessed-surface-background), var(--recessed-surface-fill-background-tinted) var(--surface-user-tint-strength));
+        --recessed-surface-fill-background: color-mix(in srgb, var(--recessed-surface-fill-background-colored) 92%, transparent);
+        --chart-plot-background-base: color-mix(in srgb, var(--glass-surface-medium) 68%, transparent);
+        --chart-plot-background-tinted: color-mix(in srgb, var(--chart-plot-background-base), var(--surface-user-tint) var(--surface-tint-fill-amount));
+        --chart-plot-background-colored: color-mix(in srgb, var(--chart-plot-background-base), var(--chart-plot-background-tinted) var(--surface-user-tint-strength));
+        --chart-plot-background: color-mix(in srgb, var(--chart-plot-background-colored) 92%, transparent);
+        --recessed-surface-backdrop-filter: var(--glass-blur-base);
+        --recessed-surface-texture-light-target: color-mix(in srgb, var(--color-white) 82%, var(--surface-user-tint));
+        --recessed-surface-texture-dark-target: color-mix(in srgb, var(--color-black) 82%, var(--surface-user-tint));
+        --recessed-surface-shadow-dark-target: color-mix(in srgb, var(--color-black) 88%, var(--surface-user-tint));
+        --recessed-surface-shadow-light-target: color-mix(in srgb, var(--color-white) 90%, var(--surface-user-tint));
+        --recessed-surface-texture-light: color-mix(in srgb, var(--color-white), var(--recessed-surface-texture-light-target) var(--surface-user-tint-strength));
+        --recessed-surface-texture-dark: color-mix(in srgb, var(--color-black), var(--recessed-surface-texture-dark-target) var(--surface-user-tint-strength));
+        --recessed-surface-shadow-dark: color-mix(in srgb, var(--color-black), var(--recessed-surface-shadow-dark-target) var(--surface-user-tint-strength));
+        --recessed-surface-shadow-light: color-mix(in srgb, var(--color-white), var(--recessed-surface-shadow-light-target) var(--surface-user-tint-strength));
+        --recessed-surface-texture: radial-gradient(circle at 25% 30%, color-mix(in srgb, var(--recessed-surface-texture-light) 1.5%, transparent) 0 1px, transparent 3px), radial-gradient(circle at 75% 70%, color-mix(in srgb, var(--recessed-surface-texture-dark) 2.5%, transparent) 0 1px, transparent 3px);
+        --recessed-surface-fill: var(--recessed-surface-texture);
+        --recessed-surface-texture-blend: normal, normal;
+        --recessed-surface-texture-size: 11px 11px, 13px 13px;
+        --recessed-surface-shadow: inset 0 3px 7px -3px color-mix(in srgb, var(--recessed-surface-shadow-dark) 14%, transparent), inset 0 10px 20px -14px color-mix(in srgb, var(--recessed-surface-shadow-dark) 22%, transparent), inset 0 -9px 18px -14px color-mix(in srgb, var(--recessed-surface-shadow-dark) 14%, transparent), inset 9px 0 18px -14px color-mix(in srgb, var(--recessed-surface-shadow-dark) 13%, transparent), inset -9px 0 18px -14px color-mix(in srgb, var(--recessed-surface-shadow-dark) 13%, transparent), inset 0 0 22px color-mix(in srgb, var(--recessed-surface-shadow-dark) 5%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--recessed-surface-shadow-light) 55%, transparent);
+        --recessed-surface-compact-shadow: inset 0 2px 6px -4px color-mix(in srgb, var(--recessed-surface-shadow-dark) 20%, transparent), inset 0 9px 16px -18px color-mix(in srgb, var(--recessed-surface-shadow-dark) 22%, transparent), inset 0 -7px 14px -18px color-mix(in srgb, var(--recessed-surface-shadow-dark) 10%, transparent), inset 0 0 14px color-mix(in srgb, var(--recessed-surface-shadow-dark) 3%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--recessed-surface-shadow-light) 50%, transparent);
+    }
+
+    .theme-dark {
+        --recessed-surface-background: color-mix(in srgb, var(--glass-surface-darker) 82%, var(--color-black) 18%);
+        --chart-plot-background-base: color-mix(in srgb, var(--glass-surface-darker) 86%, var(--color-black) 14%);
+        --recessed-surface-shadow: inset 0 4px 10px -2px color-mix(in srgb, var(--recessed-surface-shadow-dark) 22%, transparent), inset 0 16px 30px -14px color-mix(in srgb, var(--recessed-surface-shadow-dark) 52%, transparent), inset 0 -14px 26px -14px color-mix(in srgb, var(--recessed-surface-shadow-dark) 39%, transparent), inset 14px 0 26px -14px color-mix(in srgb, var(--recessed-surface-shadow-dark) 36%, transparent), inset -14px 0 26px -14px color-mix(in srgb, var(--recessed-surface-shadow-dark) 36%, transparent), inset 0 0 36px color-mix(in srgb, var(--recessed-surface-shadow-dark) 12%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--recessed-surface-shadow-light) 4%, transparent);
+        --recessed-surface-compact-shadow: inset 0 3px 8px -4px color-mix(in srgb, var(--recessed-surface-shadow-dark) 34%, transparent), inset 0 12px 22px -18px color-mix(in srgb, var(--recessed-surface-shadow-dark) 46%, transparent), inset 0 -10px 20px -18px color-mix(in srgb, var(--recessed-surface-shadow-dark) 26%, transparent), inset 0 0 20px color-mix(in srgb, var(--recessed-surface-shadow-dark) 7%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--recessed-surface-shadow-light) 4%, transparent);
+    }
+}

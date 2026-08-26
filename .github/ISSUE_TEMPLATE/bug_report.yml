@@ -1,0 +1,55 @@
+name: Bug report
+description: Something in SoAI behaves incorrectly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report security vulnerabilities here. Follow `SECURITY.md` instead.
+
+        Please describe the problem rather than supply a patch — pull requests are not accepted (`CONTRIBUTING.md` explains why). A reliable reproduction is worth far more than a proposed fix.
+  - type: input
+    id: version
+    attributes:
+      label: SoAI version
+      description: The version shown in the Web UI, or the release or revision you are running.
+    validations:
+      required: true
+  - type: dropdown
+    id: edition
+    attributes:
+      label: Edition
+      options:
+        - SoAI Core
+        - SoAI OS
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: Operating system, version, and architecture. Include GPU vendor and driver if the problem involves inference or hardware monitoring.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: The exact sequence that triggers the problem, starting from a known state.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: From `data/logs/soai.log`. Remove credentials, API keys, tokens, and private data before pasting.
+      render: text
+    validations:
+      required: false

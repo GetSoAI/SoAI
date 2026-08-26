@@ -1,0 +1,224 @@
+/* SoAI - Dashboard page panels styles [frontend/assets/css/pages/dashboard/panels.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    @container ui-viewport (width <= 1400px) {
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-grid {
+            gap: var(--space-3);
+            padding-inline: var(--space-3);
+            padding-bottom: calc(var(--space-3) + var(--space-3));
+        }
+    }
+
+    @container ui-viewport (width <= 1024px) and (width >= 768px) {
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-overview {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-overview {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .section-content {
+            padding: var(--space-3);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section[data-section-id='logs'] .section-content {
+            padding: 0;
+            font-size: var(--font-size-caption);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .logs-content {
+            overflow-x: auto;
+            white-space: normal;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .logs-viewer .log-entry {
+            display: inline-flex;
+            flex-wrap: nowrap;
+            flex-shrink: 0;
+            width: max-content;
+            min-width: 100%;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .logs-viewer .log-message {
+            flex: 0 0 auto;
+            width: max-content;
+            max-width: none;
+            min-width: max-content;
+            white-space: pre;
+            overflow-wrap: normal;
+            word-break: normal;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section[data-section-id='hardwareWidgets'] > .dashboard-section-surface > .section-content,
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section[data-section-id='imagecard'] > .dashboard-section-surface > .section-content {
+            padding: 0;
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-overview {
+            grid-template-columns: 1fr;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip {
+            grid-column: auto;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state {
+            grid-column: auto;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .section-header {
+            padding: var(--space-2) var(--space-3);
+        }
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-overview {
+            grid-template-columns: 1fr;
+            grid-auto-rows: auto;
+            gap: var(--space-2);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-stat-strip {
+            grid-column: auto;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-item {
+            padding: var(--space-15) var(--space-2);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-value {
+            font-size: var(--font-size-lg);
+            margin-bottom: var(--space-1);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .status-label {
+            font-size: var(--font-size-compact);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state {
+            grid-column: auto;
+            flex-direction: row;
+            padding: var(--space-25) var(--space-3);
+            min-height: auto;
+            gap: var(--space-1);
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state .status-main-indicator {
+            flex: 1;
+            min-width: 0;
+            justify-content: flex-start;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state .status-main-text {
+            font-size: var(--font-size-base);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state .status-label {
+            margin-left: auto;
+            text-align: right;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .logs-content {
+            padding: var(--space-3);
+            font-size: var(--font-size-compact);
+            line-height: 1.3;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .logs-viewer .log-entry {
+            gap: var(--space-3);
+            padding: 0;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .log-timestamp {
+            min-width: 90px;
+            padding: var(--space-15) var(--space-2);
+            font-size: inherit;
+            flex-shrink: 0;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .log-level {
+            min-width: 55px;
+            padding: var(--space-15) var(--space-1);
+            font-size: inherit;
+            flex-shrink: 0;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .log-component {
+            min-width: 60px;
+            padding: var(--space-15) var(--space-2);
+            font-size: inherit;
+            flex-shrink: 0;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .log-message {
+            padding: var(--space-15) var(--space-2);
+            font-size: inherit;
+            min-height: auto;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .section-content {
+            padding: var(--space-2);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section[data-section-id='logs'] > .dashboard-section-surface > .section-content {
+            padding: 0;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section[data-section-id='hardwareWidgets'] > .dashboard-section-surface > .section-content,
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section[data-section-id='imagecard'] > .dashboard-section-surface > .section-content {
+            padding: 0;
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .section-header {
+            padding: var(--space-15) var(--space-25);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .plugin-item:not(.dropdown-item),
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .model-item {
+            padding: var(--space-15);
+            gap: var(--space-1);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .plugin-name,
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .model-name {
+            font-size: var(--font-size-compact);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .stat-value {
+            font-size: var(--font-size-xl);
+        }
+
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .tasks-stat-value {
+            font-size: var(--font-size-xl);
+        }
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-imagecard-wrapper {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-imagecard-display {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        min-height: 0;
+        min-width: 0;
+        width: 100%;
+    }
+}

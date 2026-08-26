@@ -1,0 +1,4 @@
+/* SoAI - Frontend core Translation declarations for key group `header.notificationCenter` [frontend/assets/ts/core/i18n/translationkeys/header/notificationCenter.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type HeaderNotificationCenterTranslationKey = 'header.notificationCenter.actions.clearAll' | 'header.notificationCenter.actions.delete' | 'header.notificationCenter.actions.expand' | 'header.notificationCenter.actions.loadingMore' | 'header.notificationCenter.actions.open' | 'header.notificationCenter.aria.panel' | 'header.notificationCenter.aria.unreadCount' | 'header.notificationCenter.confirmations.clearAllMessage' | 'header.notificationCenter.messages.noNotifications' | 'header.notificationCenter.messages.unavailable' | 'header.notificationCenter.title' | 'header.notificationCenter.titleWithCount';

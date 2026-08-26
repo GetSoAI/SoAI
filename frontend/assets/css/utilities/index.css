@@ -1,0 +1,18 @@
+/* SoAI - Index utility styles [frontend/assets/css/utilities/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./spacing.css') layer(utilities);
+@import url('./sizing.css') layer(utilities);
+@import url('./flex.css') layer(utilities);
+@import url('./layout.css') layer(utilities);
+@import url('./text.css') layer(utilities);
+@import url('./truncation.css') layer(utilities);
+@import url('./borders.css') layer(utilities);
+@import url('./shadows.css') layer(utilities);
+@import url('./icons.css') layer(utilities);
+@import url('./interactions.css') layer(utilities);
+@import url('./checkerboard.css') layer(utilities);
+@import url('./status-colors.css') layer(utilities);
+@import url('./status-badges.css') layer(utilities);
+@import url('./change-surfaces.css') layer(utilities);
+@import url('./motion-effects.css') layer(utilities);

@@ -1,0 +1,76 @@
+/* SoAI - Licensing settings layout [frontend/assets/css/pages/settings/licensing.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--licensing .settings-licensing-status--active {
+        color: var(--status-green);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--licensing .settings-licensing-status--warning {
+        color: var(--status-orange);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--licensing .settings-licensing-status--danger {
+        color: var(--status-red);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--licensing .settings-licensing-status--neutral {
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--licensing .settings-licensing-actions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.settings-licensing-key-control, .settings-licensing-action-controls) {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--licensing .settings-licensing-actions .setting-control {
+        flex: 1 1 32rem;
+        min-width: min(32rem, 100%);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--licensing .settings-licensing-action-controls {
+        width: 100%;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--licensing .settings-licensing-key-control {
+        width: min(30rem, 100%);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-licensing-key-control .secret-input-container {
+        flex: 1 1 18rem;
+        min-width: min(18rem, 100%);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-licensing-key-control .secret-input-container > .setting-input {
+        width: 100%;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-licensing-fingerprint .setting-help {
+        overflow-wrap: anywhere;
+        font-family: var(--font-family-mono);
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--licensing .settings-licensing-actions .setting-control {
+            flex: 0 1 auto;
+            min-width: 0;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) :is(.settings-licensing-key-control, .settings-licensing-action-controls) {
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-licensing-key-control .secret-input-container {
+            flex-basis: 100%;
+        }
+    }
+}

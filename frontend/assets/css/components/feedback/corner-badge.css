@@ -1,0 +1,31 @@
+/* SoAI - Corner badge component styles [frontend/assets/css/components/feedback/corner-badge.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-corner-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 var(--space-1);
+        border-radius: var(--border-radius);
+        font-size: var(--font-size-compact);
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--status-red);
+        color: var(--color-white);
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .ui-corner-badge[hidden] {
+        display: none;
+    }
+
+    .ui-corner-badge--danger {
+        background: var(--status-red);
+    }
+}

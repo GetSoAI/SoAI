@@ -1,0 +1,122 @@
+/* SoAI - Hardware page memory swap styles [frontend/assets/css/pages/hardware/memory-swap.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-content {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        height: 100%;
+        padding: var(--space-3);
+        overflow: hidden;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-shell {
+        --memory-swap-accent-ram: color-mix(in srgb, var(--accent-green) 82%, var(--accent-cyan));
+        --memory-swap-accent-swap: color-mix(in srgb, var(--status-orange) 78%, var(--status-red));
+        --memory-swap-process-row-size: calc(21rem / 10);
+        --memory-swap-process-list-size: calc(var(--memory-swap-process-row-size) + var(--memory-swap-process-row-size) + var(--memory-swap-process-row-size) + var(--space-05) + var(--space-05));
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: var(--space-25);
+        min-height: 0;
+        height: 100%;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-shell--ram {
+        --memory-swap-process-accent: var(--memory-swap-accent-ram);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-shell--swap {
+        --memory-swap-process-accent: var(--memory-swap-accent-swap);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-gauges {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-2);
+        min-height: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-process-meta,
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-stat-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+        min-width: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-processes-header {
+        display: flex;
+        align-items: baseline;
+        justify-content: flex-start;
+        gap: var(--space-2);
+        min-width: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-processes-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text-primary);
+        font-size: var(--font-size-caption-plus);
+        font-weight: 700;
+        letter-spacing: var(--tracking-035px);
+        text-transform: uppercase;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-processes-metric {
+        color: var(--text-tertiary);
+        font-size: var(--font-size-compact-sm);
+        margin-left: var(--space-1);
+        text-transform: uppercase;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-processes {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: var(--space-15);
+        min-height: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-process-list {
+        block-size: var(--memory-swap-process-list-size);
+        min-height: 0;
+        overflow: auto;
+        scrollbar-gutter: stable;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-process-row {
+        display: grid;
+        gap: var(--space-05);
+        min-height: var(--memory-swap-process-row-size);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-process-bar {
+        height: 0.125rem;
+        width: min(9rem, 42%);
+        overflow: hidden;
+        border-radius: 0;
+        background: color-mix(in srgb, var(--surface-card-border) 28%, transparent);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-process-fill {
+        height: 100%;
+        border-radius: 0;
+        background-color: var(--memory-swap-process-accent);
+        background-image: none;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-status,
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 5rem;
+        text-align: center;
+    }
+}

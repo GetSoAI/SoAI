@@ -1,0 +1,246 @@
+/* SoAI - Settings page panels styles [frontend/assets/css/pages/settings/panels.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='settings'], [data-page-scope='settings']) .sidebar-page-item .toggle-label {
+        flex: 1;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .sidebar-page-item input[type='checkbox']:disabled + .slider {
+        opacity: 0.5;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .sidebar-page-item input[type='checkbox']:disabled ~ .toggle-label {
+        opacity: 0.7;
+    }
+
+    @container ui-viewport (width >= 1200px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .sidebar-page-list {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    @container ui-viewport (width >= 900px) and (width <= 1200px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .sidebar-page-list {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @container ui-viewport (width >= 600px) and (width <= 900px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .sidebar-page-list {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @container ui-viewport (width <= 600px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .sidebar-page-list {
+            grid-template-columns: 1fr;
+        }
+    }
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-users-empty-row {
+        padding: var(--space-3);
+        color: var(--text-tertiary);
+        font-size: var(--font-size-caption-plus);
+        text-align: center;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-users-ssh-keys {
+        height: var(--control-height);
+        resize: none;
+    }
+    :where([data-section='settings'], [data-page-scope='settings']) .api-keys-actions-bar {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding: var(--space-3) 0 0;
+        margin-top: var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-window {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        min-width: 0;
+        padding: var(--space-2) var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-window-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: var(--space-2);
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-window-label {
+        font-size: var(--font-size-caption-plus);
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: none;
+        letter-spacing: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-window-value {
+        font-size: var(--font-size-caption-plus);
+        color: var(--text-secondary);
+        font-family: var(--font-family-mono);
+        white-space: nowrap;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-window-meta {
+        font-size: var(--font-size-micro-extended);
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-progress {
+        height: 8px;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal-note {
+        margin: 0 0 var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal-key-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        flex-wrap: wrap;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal-key-header > .api-key-label {
+        font-size: calc(var(--font-size-xs) * 2);
+        line-height: 1.2;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal-status {
+        margin: var(--space-3) 0 var(--space-4);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal > .settings-group {
+        grid-template-columns: 1fr;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal .setting-item {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(11rem, auto);
+        grid-template-areas:
+            'label control'
+            'help help';
+        align-items: start;
+        gap: var(--space-1) var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal > .settings-group > .setting-item {
+        grid-column: 1 / -1;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal .setting-item > .setting-info {
+        display: contents;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal .setting-item > .setting-info > .setting-label {
+        grid-area: label;
+        align-self: start;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal .setting-item > .setting-info > .setting-help {
+        grid-area: help;
+        max-width: none;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal .setting-item > .setting-control {
+        grid-area: control;
+        align-self: start;
+        justify-self: end;
+        width: auto;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal .setting-control > :is(.setting-input, .dropdown-select) {
+        width: min(320px, 100%);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal-hourly {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-2);
+        width: min(420px, 100%);
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal .setting-item {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+                'label'
+                'control'
+                'help';
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal .setting-item > .setting-control {
+            justify-self: stretch;
+            width: 100%;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal .setting-control > :is(.setting-input, .dropdown-select) {
+            width: 100%;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-modal-hourly {
+            width: 100%;
+            grid-template-columns: 1fr;
+        }
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-token-secret-display {
+        margin-top: var(--space-4);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-token-secret-display.form-row-split {
+        display: flex;
+        gap: var(--space-4);
+        align-items: flex-start;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-token-secret-display .form-col-main {
+        flex: 1;
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-token-secret-display .settings-token-secret-field {
+        font-family: var(--font-family-mono);
+        color: var(--accent-green);
+        font-size: var(--font-size-xs);
+        border-color: var(--glass-border-strong);
+        background: var(--glass-surface-medium);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-token-flow-modal .confirmation-message {
+        color: var(--text-primary);
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-token-flow-modal .confirmation-description {
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-token-flow-modal--secret .settings-token-flow-modal__description-emphasis {
+        font-weight: 600;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-token-flow-modal .settings-token-flow-modal__field {
+        margin-top: var(--space-5);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .section-count-badge {
+        margin-left: var(--space-2);
+        vertical-align: middle;
+    }
+}

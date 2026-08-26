@@ -1,0 +1,32 @@
+/* SoAI - Inline activity pending component styles [frontend/assets/css/components/chat/inline-activity-pending.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .inline-activity[data-details-open-pending='true'] > .inline-activity-header :is(.inline-activity-close-button, .inline-activity-stop-button).ui-round-button {
+        display: inline-grid;
+    }
+
+    :where(.chat-container) .inline-activity[data-details-loading='true'] > .inline-activity-header .inline-activity-close-button.ui-round-button {
+        animation: effect-fade-enter var(--duration-150) var(--ease-out);
+    }
+
+    :where(.chat-container) .inline-activity[data-details-loading='true'] > .inline-activity-header .inline-activity-close-button.ui-round-button > :not(.inline-activity-details-loading-spinner) {
+        display: none;
+    }
+
+    :where(.chat-container) .inline-activity[data-details-loading='true'] > .inline-activity-header .inline-activity-close-button.ui-round-button > .inline-activity-details-loading-spinner.loading-spinner {
+        width: calc(var(--control-round-button-icon-size) - 2px);
+        height: calc(var(--control-round-button-icon-size) - 2px);
+        border-width: var(--border-width-1);
+        border-top-width: var(--border-width-1);
+        border-top-color: var(--text-secondary);
+    }
+
+    :where(.chat-container) .inline-activity[data-details-loading='true'][data-collapsed='true'] > .inline-activity-header {
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .inline-activity:is([data-collapsed='false'], [data-collapsing='true'])[data-details-loading='true'] > .inline-activity-header .inline-activity-close-button.ui-round-button {
+        animation: none;
+    }
+}

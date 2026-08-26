@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: mailto:security@soai.to?subject=SoAI%20security%20report
+    about: Never report a vulnerability in a public issue. SECURITY.md sets out the single point of contact, the coordinated-disclosure timelines, and the declared support period.
+  - name: Licensing, purchasing, and commercial terms
+    url: https://soai.to/licensing
+    about: Personal use, organization evaluation, and commercial offers, with the exact operative documents and their fingerprints.
+  - name: Contribution policy
+    url: https://soai.to/legal-notices/
+    about: Pull requests are not accepted. Read CONTRIBUTING.md in this repository first to see what is welcome instead, including building and publishing your own plugins.

@@ -1,0 +1,215 @@
+/* SoAI - Chat character map modal component styles [frontend/assets/css/components/chat/chat-character-map-modal.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .chat-character-map-workbench {
+        align-content: start;
+        container-type: inline-size;
+        display: grid;
+        gap: var(--space-3);
+        min-height: 100%;
+        padding: var(--space-4);
+    }
+
+    .chat-character-map-controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-3);
+        min-width: 0;
+    }
+
+    .chat-character-map-select-field,
+    .chat-character-map-staging {
+        display: grid;
+        gap: 0;
+        margin-bottom: 0;
+        min-width: 0;
+    }
+
+    .chat-character-map-select-field .dropdown-select,
+    .chat-character-map-select-field select {
+        width: 100%;
+    }
+
+    .chat-character-map-search {
+        display: grid;
+        gap: 0;
+        grid-column: 1 / -1;
+        margin-bottom: 0;
+        min-width: 0;
+    }
+
+    .chat-character-map-font-hint {
+        grid-column: 1 / -1;
+        margin: 0;
+    }
+
+    .chat-character-map-status {
+        min-height: 1.25rem;
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+    }
+
+    .chat-character-map-results-surface {
+        position: relative;
+        height: clamp(252px, calc(42 * var(--ui-viewport-height-unit)), 480px);
+        min-height: 252px;
+        overflow: hidden;
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+    }
+
+    .chat-character-map-results-surface > :is(.modal-loading-state, .chat-character-map-error, .chat-character-map-empty) {
+        height: 100%;
+        min-height: 252px;
+    }
+
+    .chat-character-map-error {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+        padding: var(--space-6);
+        color: var(--text-secondary);
+        text-align: center;
+    }
+
+    .chat-character-map-grid {
+        --character-map-cell-size: var(--space-12);
+
+        align-content: start;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, var(--character-map-cell-size));
+        grid-auto-rows: var(--character-map-cell-size);
+        gap: var(--space-1);
+        height: 100%;
+        justify-content: start;
+        min-height: 252px;
+        overflow: auto;
+        padding: var(--space-1);
+        scrollbar-gutter: stable;
+    }
+
+    .chat-character-map-cell {
+        justify-content: center;
+        width: 100%;
+        min-width: 0;
+        height: 100%;
+        overflow: hidden;
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-light);
+        color: var(--text-primary);
+        font-size: var(--font-size-lg);
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    .chat-character-map-cell:hover {
+        border-color: var(--ui-tone-green-border-subtle);
+        background: var(--glass-surface-interactive);
+    }
+
+    .chat-character-map-cell:focus-visible {
+        z-index: var(--z-above-sibling);
+        border-color: var(--accent-primary);
+        outline: var(--control-focus-ring-width) solid var(--control-focus-ring-color);
+        outline-offset: calc(-1 * var(--control-focus-ring-width));
+    }
+
+    .chat-character-map-cell:active {
+        background: var(--glass-surface-strong);
+    }
+
+    .chat-character-map-cell.is-selected {
+        border-color: var(--ui-tone-green-border-selected);
+        background: var(--ui-tone-green-surface-selected);
+        color: var(--ui-tone-green-text-selected);
+    }
+
+    .chat-character-map-details {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        min-width: 0;
+        padding: var(--space-3);
+    }
+
+    .chat-character-map-details__metadata {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .chat-character-map-code-points {
+        overflow: hidden;
+        color: var(--text-secondary);
+        font-family: var(--font-family-mono);
+        font-size: var(--font-size-xs);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .chat-character-map-name {
+        overflow: hidden;
+        font-size: var(--font-size-sm);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .chat-character-map-staging input {
+        width: 100%;
+    }
+
+    .chat-character-map-font--soai-sans .chat-character-map-cell {
+        font-family: var(--font-family-sans);
+    }
+
+    .chat-character-map-font--soai-mono .chat-character-map-cell {
+        font-family: var(--font-family-mono);
+    }
+
+    .chat-character-map-font--serif .chat-character-map-cell {
+        font-family: var(--font-family-generic-serif);
+    }
+
+    .chat-character-map-font--sans-serif .chat-character-map-cell {
+        font-family: var(--font-family-generic-sans);
+    }
+
+    .chat-character-map-font--monospace .chat-character-map-cell {
+        font-family: var(--font-family-generic-mono);
+    }
+
+    .chat-character-map-font--symbols .chat-character-map-cell {
+        font-family: var(--font-family-symbols);
+    }
+
+    .chat-character-map-font--emoji .chat-character-map-cell {
+        font-family: var(--font-family-emoji);
+    }
+
+    @container (width < 640px) {
+        .chat-character-map-search .ui-collection-search-row__action {
+            display: none;
+        }
+    }
+
+    @container (width < 440px) {
+        .chat-character-map-controls {
+            grid-template-columns: 1fr;
+        }
+
+        .chat-character-map-controls > :is(.chat-character-map-search, .chat-character-map-font-hint) {
+            grid-column: auto;
+        }
+    }
+
+    @container (width < 320px) {
+        .chat-character-map-details {
+            align-items: stretch;
+            flex-direction: column;
+        }
+    }
+}

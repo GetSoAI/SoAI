@@ -1,0 +1,25 @@
+/* SoAI - Collection list actions mobile component styles [frontend/assets/css/components/collections/collection-list-actions-mobile.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    @container ui-viewport (width <= 640px) {
+        .ui-collection-list__table tbody tr > td.ui-collection-list__actions {
+            grid-column: 3;
+            grid-row: 1 / -1;
+            align-self: start;
+            justify-self: end;
+            display: flex;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            align-items: center;
+            justify-content: flex-start;
+            gap: var(--space-1);
+            width: var(--control-round-button-size);
+            min-width: var(--control-round-button-size);
+        }
+
+        .ui-collection-list__table tbody tr > td.ui-collection-list__actions > :is(.ui-round-button--delete, .ui-round-button--stop) {
+            order: -1;
+        }
+    }
+}

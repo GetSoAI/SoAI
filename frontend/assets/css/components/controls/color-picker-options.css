@@ -1,0 +1,79 @@
+/* SoAI - Color picker options component styles [frontend/assets/css/components/controls/color-picker-options.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.prompt-color-picker) {
+        display: grid;
+        grid-template-columns: repeat(3, auto);
+        justify-content: center;
+        align-items: center;
+        gap: var(--space-15);
+        padding: var(--space-1);
+    }
+
+    :where(.prompt-color-picker) .prompt-color-option {
+        --picker-ring-color: var(--border-color);
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--color-white) 55%, transparent);
+        background: transparent;
+        position: relative;
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--color-black) 14%, transparent);
+        transition:
+            background-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            border-color var(--transition-fast);
+    }
+
+    :where(.prompt-color-picker) .prompt-color-option-none {
+        --picker-ring-color: var(--status-grey);
+        background: linear-gradient(135deg, var(--color-grey-200), var(--status-grey));
+    }
+
+    :where(.prompt-color-picker) .prompt-color-option-red {
+        --picker-ring-color: var(--prompts-color-red);
+        background: linear-gradient(135deg, var(--prompts-gradient-red-start), var(--prompts-color-red));
+    }
+
+    :where(.prompt-color-picker) .prompt-color-option-yellow {
+        --picker-ring-color: var(--prompts-color-yellow);
+        background: linear-gradient(135deg, var(--prompts-gradient-yellow-start), var(--prompts-color-yellow));
+    }
+
+    :where(.prompt-color-picker) .prompt-color-option-purple {
+        --picker-ring-color: var(--prompts-color-purple);
+        background: linear-gradient(135deg, var(--prompts-gradient-purple-start), var(--prompts-color-purple));
+    }
+
+    :where(.prompt-color-picker) .prompt-color-option-green {
+        --picker-ring-color: var(--prompts-color-green);
+        background: linear-gradient(135deg, var(--prompts-gradient-green-start), var(--prompts-color-green));
+    }
+
+    :where(.prompt-color-picker) .prompt-color-option-blue {
+        --picker-ring-color: var(--prompts-color-blue);
+        background: linear-gradient(135deg, var(--prompts-gradient-blue-start), var(--prompts-color-blue));
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-picker-colors .chat-color-option:hover,
+    :where(.chat-container, .archived-conversations-modal) .chat-color-picker-colors .chat-color-option:focus-visible,
+    :where(.prompt-color-picker) .prompt-color-option:hover,
+    :where(.prompt-color-picker) .prompt-color-option:focus-visible {
+        transform: none;
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-picker-colors .chat-color-option:active,
+    :where(.prompt-color-picker) .prompt-color-option:active {
+        transform: none;
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-picker-colors .chat-color-option.is-selected,
+    :where(.prompt-color-picker) .prompt-color-option.is-selected {
+        transform: none;
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--color-black) 25%, transparent),
+            0 0 0 3px var(--picker-ring-color);
+        border-color: color-mix(in srgb, var(--color-white) 85%, transparent);
+    }
+}

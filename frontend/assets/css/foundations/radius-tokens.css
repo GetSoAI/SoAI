@@ -1,0 +1,14 @@
+/* SoAI - Radius tokens frontend styles [frontend/assets/css/foundations/radius-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --border-radius: 12px;
+        --border-round: 50%;
+        --border-width-1: 1px;
+        --border-width-150: 1.5px;
+        --border-width-2: 2px;
+        --border-width-3: 3px;
+        --border-width-4: 4px;
+    }
+}

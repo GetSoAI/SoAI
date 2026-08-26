@@ -1,0 +1,263 @@
+/* SoAI - Message markdown basics component styles [frontend/assets/css/components/chat/message-markdown-basics.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .message-text del {
+        text-decoration: line-through;
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container) .message-text hr {
+        border: none;
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+        margin: var(--space-4) 0;
+    }
+
+    :where(.chat-container) .message-text img.markdown-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: var(--border-radius);
+        margin: var(--space-3) 0;
+        display: block;
+    }
+
+    @container ui-viewport (width <= 900px) {
+        :where(.chat-container) .chat-content-wrapper {
+            position: absolute;
+            inset: calc(var(--layout-top-offset) + 0.75rem) 0.75rem calc(0.75rem + var(--ui-safe-area-inset-bottom)) 0.75rem;
+        }
+
+        :where(.chat-container) .conversation-item {
+            padding: 0;
+        }
+
+        :where(.chat-container) .conversation-info {
+            padding: var(--space-25) var(--space-2) var(--space-25) var(--space-25);
+        }
+
+        :where(.chat-container) .conversation-item-actions {
+            padding: var(--space-25) var(--space-25) var(--space-25) 0;
+        }
+
+        :where(.chat-container) .chat-messages-area {
+            --chat-messages-content-padding-top: var(--space-3);
+            padding: var(--chat-messages-padding-top) var(--space-5) var(--chat-messages-padding-bottom);
+            scroll-padding-top: var(--chat-messages-padding-top);
+        }
+
+        :where(.chat-container) .chat-messages-area.widescreen-mode {
+            padding-left: var(--space-15);
+            padding-right: var(--space-15);
+        }
+
+        :where(.chat-container) .chat-message {
+            gap: var(--space-2);
+        }
+
+        :where(.chat-container) .message-text {
+            font-size: var(--font-size-body-sm);
+        }
+
+        :where(.chat-container) .chat-input-wrapper {
+            left: var(--chat-composer-inset-inline);
+            right: var(--chat-composer-inset-inline);
+            bottom: calc(0.5rem + var(--ui-safe-area-inset-bottom));
+            padding: var(--chat-input-wrapper-padding);
+        }
+
+        :where(.chat-container) .chat-previews-container {
+            --chat-previews-container-bottom: calc(80px + var(--ui-safe-area-inset-bottom));
+            --chat-previews-container-left: 1.5rem;
+            --chat-previews-container-right: 1.5rem;
+        }
+
+        :where(.chat-container) .chat-input {
+            font-size: var(--font-size-sm);
+        }
+
+        :where(.chat-container) .file-preview-item.image :is(img, .file-preview-image-placeholder) {
+            width: 48px;
+            height: 48px;
+        }
+
+        :where(.chat-container) .file-preview-item.document {
+            min-width: 150px;
+            padding: var(--space-1) var(--space-2);
+        }
+
+        :where(.chat-container) .file-preview-item .file-name {
+            font-size: var(--font-size-caption);
+            max-width: 170px;
+        }
+
+        :where(.chat-container) .file-preview-item .remove-file-btn {
+            width: var(--icon-button-size-small);
+            height: var(--icon-button-size-small);
+            top: -5px;
+            right: -5px;
+        }
+
+        :where(.chat-container) .chat-page-model-indicator-select.page-header-filter-select {
+            width: auto;
+            max-width: 100%;
+        }
+    }
+
+    :where(.chat-container) .message-text .markdown-table-scroll {
+        display: block;
+        margin: var(--space-4) 0;
+        max-width: 100%;
+        overflow-x: visible;
+        overflow-y: hidden;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 0;
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        background: transparent;
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table:nth-of-type(n) {
+        border-radius: var(--border-radius);
+    }
+
+    :where(.chat-container) .message-text table.markdown-table :is(th, td) {
+        border-right: var(--border-width-1) solid var(--glass-border-strong);
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+        padding: var(--space-2) var(--space-3);
+        text-align: left;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table th {
+        background: var(--glass-surface-medium);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .message-text table.markdown-table td {
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .message-text table.markdown-table thead tr:first-child th {
+        border-top: none;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table tr > :first-child {
+        border-left: none;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table tr > :last-child {
+        border-right: none;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    :where(.chat-container) .message-text table.markdown-table tbody tr:hover {
+        background: var(--glass-surface-interactive-hover);
+    }
+
+    @container (width <= 900px) {
+        :where(.chat-container) .message-text:has(.markdown-table-scroll) {
+            contain: none;
+        }
+
+        :where(.chat-container) .message-text .markdown-table-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-x: contain;
+        }
+
+        :where(.chat-container) .message-text table.markdown-table {
+            width: max-content;
+            min-width: 100%;
+        }
+
+        :where(.chat-container) .message-text table.markdown-table :is(th, td) {
+            min-width: 7rem;
+            overflow-wrap: normal;
+            word-break: normal;
+            hyphens: auto;
+        }
+    }
+
+    :where(.chat-container) .message-text ul.task-list {
+        list-style: none;
+        padding-left: 0;
+        margin: var(--space-3) 0;
+        background: transparent;
+    }
+
+    :where(.chat-container) .message-text li.task-list-item {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-2);
+        margin-bottom: var(--space-15);
+        padding: var(--space-1) 0;
+        background: transparent;
+    }
+
+    :where(.chat-container) .message-text li.task-list-item-checked {
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container) .message-text input.task-list-checkbox {
+        appearance: none;
+        width: 1rem;
+        height: 1rem;
+        min-width: 1rem;
+        border: var(--border-width-1) solid color-mix(in srgb, var(--text-secondary) 55%, var(--glass-border-strong));
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--chat-sidebar-strip-background) 80%, var(--text-primary) 20%);
+        margin-top: var(--space-05);
+        cursor: default;
+        position: relative;
+    }
+
+    :where(.chat-container) .message-text input.task-list-checkbox:checked {
+        background: var(--accent-green);
+        border-color: var(--accent-green);
+    }
+
+    :where(.chat-container) .message-text input.task-list-checkbox:checked::after {
+        content: '';
+        position: absolute;
+        left: var(--space-1);
+        top: var(--space-05);
+        width: 0.25rem;
+        height: 0.5rem;
+        border: solid var(--color-white);
+        border-width: 0 var(--border-width-2) var(--border-width-2) 0;
+        transform: rotate(45deg);
+    }
+
+    :where(.chat-container) .message-text .math-inline {
+        display: inline;
+        vertical-align: baseline;
+    }
+
+    :where(.chat-container) .message-text .math-block {
+        display: block;
+        text-align: center;
+        margin: var(--space-4) 0;
+        overflow-x: auto;
+    }
+
+    :where(.chat-container) .message-text .math-error {
+        color: var(--status-red);
+        font-family: var(--font-family-mono);
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        background: var(--glass-surface-error);
+        padding: var(--space-1) var(--space-2);
+        border-radius: var(--border-radius);
+    }
+}

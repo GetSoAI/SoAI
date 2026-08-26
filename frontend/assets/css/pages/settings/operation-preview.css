@@ -1,0 +1,140 @@
+/* SoAI - Settings page operation preview styles [frontend/assets/css/pages/settings/operation-preview.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress {
+        --settings-operation-progress-color: var(--status-orange);
+
+        display: flex;
+        width: min(100%, 32rem);
+        flex-direction: column;
+        gap: var(--space-2);
+        padding: var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress-slot:empty {
+        display: none;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress-slot:not(:empty) {
+        margin-bottom: var(--space-4);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress-slot > .settings-operation-progress {
+        width: 100%;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress__row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress__label {
+        font-weight: 600;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress__badge {
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption-plus);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress[data-state='idle'] {
+        --settings-operation-progress-color: var(--status-grey);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress[data-state='pending'] {
+        --settings-operation-progress-color: var(--status-blue);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress[data-state='running'] {
+        --settings-operation-progress-color: var(--status-orange);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress[data-state='success'] {
+        --settings-operation-progress-color: var(--status-green);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress[data-state='error'] {
+        --settings-operation-progress-color: var(--status-red);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress__bar {
+        width: 100%;
+        height: 0.5rem;
+        accent-color: var(--settings-operation-progress-color);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress__meta {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--space-3);
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption-plus);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-progress__detail {
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption-plus);
+        line-height: 1.4;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-preview {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-preview__summary {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        line-height: 1.5;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-preview__section {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-preview__label {
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption-plus);
+        font-weight: 700;
+        letter-spacing: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-preview__code {
+        padding: var(--space-2) var(--space-3);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--glass-surface-weak) 90%, transparent);
+        color: var(--text-primary);
+        font-family: var(--font-family-code);
+        font-size: var(--font-size-caption-plus);
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-preview__code-line {
+        white-space: pre-wrap;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.settings-operation-preview__effects, .settings-operation-preview__warnings) {
+        margin: 0;
+        padding-left: var(--space-4);
+        font-size: var(--font-size-sm);
+        line-height: 1.5;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-preview__warnings {
+        color: var(--status-orange);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-operation-preview__empty {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+    }
+}

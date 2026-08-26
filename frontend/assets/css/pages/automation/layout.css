@@ -1,0 +1,240 @@
+/* SoAI - Automation page layout styles [frontend/assets/css/pages/automation/layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-loading {
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-above-sibling);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-registry-root {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) [data-automation-calendar-stage='true'] {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-scroll {
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        position: relative;
+        touch-action: pan-x;
+        contain: layout paint;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-stream {
+        position: relative;
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-track {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        height: calc(var(--automation-calendar-viewport-height) * 3);
+        min-height: calc(var(--automation-calendar-viewport-height) * 3);
+        transform: translate3d(0, calc(var(--automation-calendar-viewport-height) * -1), 0);
+        will-change: transform;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-track.is-animating {
+        transition: transform var(--duration-240) var(--ease-smooth);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-track.is-dragging {
+        transition: none;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-period {
+        flex: 0 0 var(--automation-calendar-viewport-height);
+        width: 100%;
+        height: var(--automation-calendar-viewport-height);
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-period--week,
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-period--day {
+        overflow-y: auto;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-block: var(--space-3);
+        touch-action: pan-x;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-period--month {
+        overflow: hidden;
+        touch-action: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-track.is-animating {
+            transition: none;
+        }
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-day-heading {
+        padding: 0 var(--space-1) var(--space-3) var(--space-1);
+        font-size: var(--font-size-body-lg);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--tracking-snug);
+        text-transform: capitalize;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month {
+        --automation-month-sparkline-marker-thickness-scale: 0.65;
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-heading {
+        padding: var(--space-3) var(--space-3) 0 var(--space-3);
+        font-size: var(--font-size-body-lg);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--tracking-snug);
+        text-transform: capitalize;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-period--month > .automation-month {
+        min-height: 100%;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: var(--space-2);
+        padding: var(--space-3) var(--space-3) 0 var(--space-3);
+        flex: 0 0 auto;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month.has-week-numbers .automation-month-weekdays {
+        grid-template-columns: 52px repeat(7, minmax(0, 1fr));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-month-weekday--weeknumber, .automation-month-weeknumber) {
+        font-variant-numeric: tabular-nums;
+        color: var(--text-muted);
+        font-size: var(--font-size-body-xs);
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 0 var(--space-2);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-weeknumber {
+        align-items: flex-start;
+        padding-top: var(--space-3);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-weekday {
+        text-transform: uppercase;
+        font-size: var(--font-size-body-xs);
+        letter-spacing: var(--tracking-08em);
+        color: var(--text-muted);
+        padding: 0 var(--space-2);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        grid-template-rows: repeat(6, minmax(0, 1fr));
+        gap: var(--space-2);
+        padding: var(--space-3);
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month.has-week-numbers .automation-month-grid {
+        grid-template-columns: 52px repeat(7, minmax(0, 1fr));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(var(--space-15), 6%, var(--space-2));
+        padding: clamp(var(--space-1), 10%, var(--space-3));
+        overflow: hidden;
+        position: relative;
+        isolation: isolate;
+        container-type: inline-size;
+
+        --automation-zone-chip-font-size: clamp(var(--font-size-body-xs), 24cqi, var(--font-size-body-sm));
+        --automation-zone-chip-padding-y: clamp(var(--space-05), 3cqi, var(--space-15));
+        --automation-zone-chip-padding-x: clamp(var(--space-15), 8cqi, var(--space-2));
+        transition:
+            box-shadow var(--transition-fast),
+            border-color var(--transition-fast),
+            background-color var(--transition-fast);
+        cursor: pointer;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-above-sibling);
+        pointer-events: none;
+        background: var(--button-surface-hover);
+        border-radius: inherit;
+        opacity: 0;
+        transition: opacity var(--transition-fast);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day:focus-visible {
+        border-color: var(--glass-border-strong);
+        box-shadow:
+            0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring),
+            var(--shadow-lift-soft);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day:hover {
+        border-color: var(--glass-border-strong);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day:focus-visible::before,
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day:hover::before {
+        opacity: 1;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day.is-outside {
+        opacity: 0.55;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day.is-today {
+        border-color: color-mix(in srgb, var(--accent-green) 55%, var(--glass-border-strong));
+        box-shadow: var(--shadow-lift-soft);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day.is-selected {
+        border-color: var(--ui-tone-green-border-selected);
+        background: var(--ui-tone-green-surface-selected);
+        box-shadow: var(--shadow-lift-soft);
+    }
+}

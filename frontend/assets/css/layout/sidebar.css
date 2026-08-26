@@ -1,0 +1,148 @@
+/* SoAI - Sidebar frontend styles [frontend/assets/css/layout/sidebar.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer layout {
+    .sidebar {
+        --sidebar-width-expanded: var(--sidebar-width);
+        --sidebar-width-collapsed: var(--sidebar-collapsed-width);
+        --sidebar-icon-rail: calc(var(--sidebar-width-collapsed) - var(--sidebar-border-inline-total-width));
+        --sidebar-logo-height: 85px;
+        --sidebar-menu-gap: var(--space-15);
+        --sidebar-item-padding-y: var(--space-05);
+        --sidebar-item-min-height: 42px;
+        --sidebar-active-rail-height: 0;
+        --sidebar-active-rail-opacity: 0;
+        --sidebar-active-rail-y: 0;
+        position: fixed;
+        top: var(--layout-top-offset);
+        left: 0;
+        bottom: 0;
+        width: var(--sidebar-width-collapsed);
+        display: flex;
+        flex-direction: column;
+        background: var(--glass-surface-darker);
+        border-right: var(--sidebar-border-inline-end-width) solid var(--glass-border-strong);
+        border-left: var(--sidebar-border-inline-start-width) solid transparent;
+        box-shadow: var(--glass-shadow-base);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        z-index: calc(var(--z-modal) - 1);
+        overflow: hidden;
+        transition: width var(--transition-normal);
+        user-select: none;
+    }
+
+    .sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: calc(var(--z-modal) - 2);
+        background: transparent;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .sidebar-backdrop.is-visible {
+        pointer-events: auto;
+    }
+
+    body.sidebar-expanded .sidebar,
+    .sidebar.is-open {
+        width: var(--sidebar-width-expanded);
+    }
+
+    body.sidebar-collapsed .sidebar,
+    .sidebar.is-collapsed {
+        width: var(--sidebar-width-collapsed);
+    }
+
+    .sidebar-header {
+        height: var(--sidebar-logo-height);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .sidebar-logo-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+    }
+
+    .sidebar-logo {
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        height: 100%;
+        width: auto;
+        object-fit: contain;
+        opacity: 0;
+        transition: opacity var(--duration-050) var(--ease-in-out);
+    }
+
+    .sidebar-logo[data-visible='true'] {
+        opacity: 1;
+    }
+
+    .sidebar-logo-large {
+        aspect-ratio: 1800 / 750;
+        max-height: var(--sidebar-logo-height);
+        max-width: calc(var(--sidebar-width-expanded) - 20px);
+    }
+
+    .sidebar-logo-small {
+        aspect-ratio: 1;
+        max-height: calc(var(--sidebar-logo-height) * 0.55);
+        max-width: calc(var(--sidebar-logo-height) * 0.55);
+    }
+
+    .sidebar-version-container {
+        padding: 0 var(--space-3);
+        margin: 0 0 var(--space-15);
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        align-items: center;
+        flex-shrink: 0;
+        width: 100%;
+    }
+
+    .sidebar-version-container span {
+        color: var(--text-muted);
+        white-space: nowrap;
+        font-size: calc(var(--font-size-micro) * 0.9);
+        letter-spacing: var(--tracking-01em);
+    }
+
+    .sidebar .sidebar-icon-button {
+        transform: translateX(var(--sidebar-button-alignment-offset-x));
+    }
+
+    .sidebar:not(.is-collapsed) .sidebar-version-small {
+        display: none;
+    }
+
+    .sidebar.is-collapsed .sidebar-version-large {
+        display: none;
+    }
+
+    @container ui-viewport (width <= 1024px) or (height <= 768px) {
+        .sidebar,
+        .sidebar.is-collapsed,
+        body.sidebar-collapsed .sidebar {
+            width: 0;
+        }
+
+        .sidebar.is-open,
+        body.sidebar-expanded .sidebar {
+            width: var(--sidebar-width-expanded);
+        }
+
+        .sidebar:not(.is-open) .sidebar-logo-small {
+            display: none;
+        }
+    }
+}

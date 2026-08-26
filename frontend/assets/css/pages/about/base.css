@@ -1,0 +1,293 @@
+/* SoAI - About page base styles [frontend/assets/css/pages/about/base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    .about-container:where([data-section='about'], [data-page-scope='about']) {
+        min-height: var(--layout-content-height);
+        height: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
+        position: relative;
+        padding-bottom: var(--ui-safe-area-inset-bottom);
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .about-hero-background {
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-overlay);
+        pointer-events: none;
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .about-pattern {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--accent-green) 12%, transparent) 0%, transparent 50%), radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--accent-green) 8%, transparent) 0%, transparent 50%), radial-gradient(circle at 40% 20%, color-mix(in srgb, var(--accent-green) 8%, transparent) 0%, transparent 50%);
+        pointer-events: none;
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .about-content-wrapper {
+        position: relative;
+        z-index: var(--z-raised);
+        min-height: calc(var(--layout-content-height) + var(--ui-safe-area-inset-bottom));
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: var(--space-8) var(--layout-container-padding) calc(var(--space-8) + var(--ui-safe-area-inset-bottom)) var(--layout-container-padding);
+        max-width: 800px;
+        margin: 0 auto;
+        gap: var(--space-12);
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .about-logo-section {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 450px;
+        aspect-ratio: 2.35;
+        margin: 0 auto;
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .about-hero-background .logo-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 585px;
+        height: 248px;
+        background: radial-gradient(circle, color-mix(in srgb, var(--accent-green) 20%, transparent) 0%, transparent 70%);
+        filter: blur(60px);
+        pointer-events: none;
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .about-logo-section .logo-ui-about {
+        width: 585px;
+        height: auto;
+        filter: drop-shadow(0 25px 50px color-mix(in srgb, var(--color-black) 12%, transparent));
+        position: relative;
+        z-index: var(--z-raised);
+        visibility: hidden;
+        opacity: 0;
+        transform: translateY(30px) scale(0.9);
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .about-logo-section .logo-ui-about.animate-entrance {
+        visibility: visible;
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: drop-shadow(0 25px 50px color-mix(in srgb, var(--color-black) 12%, transparent));
+        transition:
+            opacity var(--transition-normal),
+            transform var(--transition-normal),
+            filter var(--transition-normal);
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .about-main-content {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-8);
+    }
+
+    @container ui-viewport (width <= 768px) {
+        .about-container:where([data-section='about'], [data-page-scope='about']) {
+            height: 100%;
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-content-wrapper {
+            min-height: auto;
+            padding: var(--space-6) var(--space-4) calc(var(--space-8) + var(--ui-safe-area-inset-bottom)) var(--space-4);
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-logo-section {
+            max-width: 450px;
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-logo-section .logo-ui-about {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-hero-background .logo-glow {
+            width: 400px;
+            height: 170px;
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-tagline {
+            font-size: var(--font-size-heading-xs);
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .meta-info {
+            flex-direction: column;
+            gap: var(--space-6);
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-description {
+            padding: var(--space-6);
+        }
+    }
+
+    :where([data-section='about'], [data-page-scope='about']) .about-tagline {
+        font-size: var(--font-size-xl);
+        color: var(--text-secondary);
+        font-weight: 400;
+        letter-spacing: var(--tracking-01em);
+        text-align: center;
+    }
+
+    .about-container:where([data-section='about'], [data-page-scope='about']) .about-description {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: var(--space-8);
+        border-radius: var(--border-radius);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .theme-dark .about-container:where([data-section='about'], [data-page-scope='about']) .about-description {
+        background: var(--surface-card);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        box-shadow: var(--surface-card-shadow);
+    }
+
+    .about-container:where([data-section='about'], [data-page-scope='about']) .about-description::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent-green) 30%, transparent), transparent);
+    }
+
+    .about-container:where([data-section='about'], [data-page-scope='about']) .about-description p {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin: 0 0 var(--space-6);
+        font-size: var(--font-size-body-xl);
+    }
+
+    .about-container:where([data-section='about'], [data-page-scope='about']) .website-link {
+        margin-top: var(--space-4);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--space-3);
+    }
+
+    .about-container:where([data-section='about'], [data-page-scope='about']) .meta-info {
+        display: flex;
+        gap: var(--space-12);
+        justify-content: center;
+        padding: var(--space-6) 0 0;
+        margin-top: var(--space-6);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    .about-container:where([data-section='about'], [data-page-scope='about']) .meta-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .about-container:where([data-section='about'], [data-page-scope='about']) .meta-label {
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-05em);
+        font-weight: 600;
+    }
+
+    .about-container:where([data-section='about'], [data-page-scope='about']) .meta-value {
+        font-size: var(--font-size-body-xl);
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    .about-container:where([data-section='about'], [data-page-scope='about']) .meta-item .ui-button--sm {
+        padding: var(--space-05) var(--space-15);
+        font-size: var(--font-size-caption-plus);
+        font-weight: 500;
+        height: auto;
+        min-height: auto;
+    }
+
+    .about-container:where([data-section='about'], [data-page-scope='about']) .license-label {
+        font-size: var(--font-size-body-md);
+        color: var(--text-secondary);
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='about'], [data-page-scope='about']) .about-content-wrapper {
+            padding: var(--space-4) var(--space-3) calc(var(--space-6) + var(--ui-safe-area-inset-bottom)) var(--space-3);
+            gap: var(--space-8);
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-logo-section {
+            max-width: 380px;
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-logo-section .logo-ui-about {
+            width: 100%;
+            max-width: 380px;
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-hero-background .logo-glow {
+            width: 320px;
+            height: 136px;
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-tagline {
+            font-size: var(--font-size-base);
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-description {
+            padding: var(--space-5);
+        }
+    }
+
+    @container ui-viewport (width <= 320px) {
+        :where([data-section='about'], [data-page-scope='about']) .about-content-wrapper {
+            padding: var(--space-4) var(--space-2) calc(var(--space-5) + var(--ui-safe-area-inset-bottom)) var(--space-2);
+            gap: var(--space-6);
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-hero-background .logo-glow {
+            width: 260px;
+            height: 110px;
+        }
+
+        :where([data-section='about'], [data-page-scope='about']) .about-tagline {
+            font-size: var(--font-size-body-md);
+        }
+
+        .about-container:where([data-section='about'], [data-page-scope='about']) .about-description {
+            padding: var(--space-4);
+        }
+
+        .about-container:where([data-section='about'], [data-page-scope='about']) .about-description p {
+            font-size: var(--font-size-body-md);
+            margin-bottom: var(--space-5);
+        }
+
+        .about-container:where([data-section='about'], [data-page-scope='about']) .website-link {
+            gap: var(--space-2);
+        }
+
+        .about-container:where([data-section='about'], [data-page-scope='about']) .meta-info {
+            gap: var(--space-5);
+            padding-top: var(--space-5);
+            margin-top: var(--space-5);
+        }
+    }
+
+    .theme-dark .about-container:where([data-section='about'], [data-page-scope='about']) .about-pattern {
+        background-image: radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--accent-green-light) 5%, transparent) 0%, transparent 50%), radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--accent-green-light) 3%, transparent) 0%, transparent 50%), radial-gradient(circle at 40% 20%, color-mix(in srgb, var(--accent-green-light) 3%, transparent) 0%, transparent 50%);
+    }
+}

@@ -1,0 +1,27 @@
+/* SoAI - Chat page surfaces styles [frontend/assets/css/pages/chat/surfaces.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-sidebar-header {
+        background: var(--glass-surface-light);
+        color: var(--text-primary);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .agent-todo-panel-header {
+        color: var(--text-primary);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .agent-todo-panel-header::before {
+        background: var(--glass-surface-darker);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-search-container {
+        background: var(--glass-surface-darker);
+        color: var(--text-primary);
+    }
+
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-conversation-header.glass-surface--no-shadow {
+        background: var(--glass-surface-light);
+        color: var(--text-primary);
+    }
+}

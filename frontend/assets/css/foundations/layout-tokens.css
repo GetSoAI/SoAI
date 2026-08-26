@@ -1,0 +1,92 @@
+/* SoAI - Layout tokens frontend styles [frontend/assets/css/foundations/layout-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    @property --header-measured-height {
+        syntax: '<length>';
+        inherits: true;
+        initial-value: 0;
+    }
+
+    @property --layout-top-offset {
+        syntax: '<length>';
+        inherits: true;
+        initial-value: 0;
+    }
+
+    @property --layout-section-offset {
+        syntax: '<length>';
+        inherits: true;
+        initial-value: 0;
+    }
+
+    :root {
+        --ui-scale: 1;
+        --ui-scale-inverse: 1;
+        --ui-viewport-width-unit: calc(1vw / var(--ui-scale));
+        --ui-viewport-height-unit: calc(1vh / var(--ui-scale));
+        --ui-viewport-small-height-unit: calc(1svh / var(--ui-scale));
+        --ui-viewport-dynamic-height-unit: calc(1dvh / var(--ui-scale));
+        --ui-safe-area-inset-top: calc(env(safe-area-inset-top, 0) / var(--ui-scale));
+        --ui-safe-area-inset-right: calc(env(safe-area-inset-right, 0) / var(--ui-scale));
+        --ui-safe-area-inset-bottom: calc(env(safe-area-inset-bottom, 0) / var(--ui-scale));
+        --ui-safe-area-inset-left: calc(env(safe-area-inset-left, 0) / var(--ui-scale));
+        --header-height: 60px;
+        --layout-top-offset: var(--header-height);
+        --layout-content-height: calc(100 * var(--ui-viewport-height-unit) - var(--layout-top-offset));
+        --layout-section-padding: 1.4rem;
+        --layout-section-offset: calc(var(--layout-top-offset) + var(--layout-section-padding));
+        --page-header-top: calc(-1 * var(--layout-section-padding));
+        --layout-container-padding: 1.4rem;
+        --layout-bottom-safe-padding: calc(var(--layout-container-padding) + var(--ui-safe-area-inset-bottom));
+        --layout-bottom-safe-padding-extended: calc(var(--layout-bottom-safe-padding) + var(--space-5));
+        --content-overlay: 0;
+        --grid-columns: 1;
+        --cell-height: 533px;
+        --header-stats-columns: 1;
+        --collection-enter-delay: 0ms;
+        --chat-text-scale: 1;
+        --chat-widescreen-backdrop-filter: brightness(0.8);
+        --chat-assistant-activity-leading-index-font-size: 10px;
+        --logs-font-size: 0.75rem;
+        --sidebar-width: 180px;
+        --sidebar-collapsed-width: 60px;
+        --sidebar-border-inline-start-width: 1px;
+        --sidebar-border-inline-end-width: 1px;
+        --sidebar-border-inline-total-width: calc(var(--sidebar-border-inline-start-width) + var(--sidebar-border-inline-end-width));
+        --sidebar-button-alignment-offset-x: -1px;
+        --sidebar-collapsed-icon-button-margin-inline-start: calc((var(--sidebar-collapsed-width) - var(--icon-button-size)) / 2 - 0.5rem + var(--sidebar-button-alignment-offset-x));
+        --breakpoint-sm: 640px;
+        --breakpoint-md: 768px;
+        --breakpoint-lg: 1024px;
+        --breakpoint-xl: 1280px;
+        --breakpoint-2xl: 1536px;
+        --sidebar-icon-stroke-width: 1.5;
+        --header-fold-duration: 280ms;
+        --header-fold-easing: cubic-bezier(0.32, 0, 0.23, 1);
+        --header-measured-height: 0;
+        --sidebar-viewing-icon-color: var(--text-primary);
+        --sidebar-viewing-border-color: var(--ui-button-border-hover);
+        --sidebar-viewing-bg: color-mix(in srgb, var(--accent-primary) 12%, var(--glass-underlay-surface));
+    }
+
+    :root[data-interface-scale='50'] {
+        --ui-scale: 0.5;
+        --ui-scale-inverse: 2;
+    }
+
+    :root[data-interface-scale='75'] {
+        --ui-scale: 0.75;
+        --ui-scale-inverse: 1.3333;
+    }
+
+    :root[data-interface-scale='125'] {
+        --ui-scale: 1.25;
+        --ui-scale-inverse: 0.8;
+    }
+
+    :root[data-interface-scale='150'] {
+        --ui-scale: 1.5;
+        --ui-scale-inverse: 0.6667;
+    }
+}

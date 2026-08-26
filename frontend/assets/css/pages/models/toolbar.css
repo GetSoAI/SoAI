@@ -1,0 +1,230 @@
+/* SoAI - Models page toolbar styles [frontend/assets/css/pages/models/toolbar.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='models'], [data-page-scope='models']) .form-col-main {
+        flex: 7;
+        min-width: 0;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .form-col-secondary {
+        flex: 3;
+        min-width: 0;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .form-col-action {
+        flex: 0 0 auto;
+        min-width: 0;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .form-row-split--search {
+        align-items: flex-end;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .form-row-split--search .form-col-action {
+        flex: 0 0 auto;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .form-row-split--with-action {
+        align-items: flex-end;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .form-row-split .form-input {
+        width: 100%;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .form-row-split--with-action .form-col-action {
+        flex: 0 0 auto;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .form-row-split--with-action .form-col-action label {
+        visibility: hidden;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .form-group:is(.model-search-group, .variant-search-group) .searchbar-container--collection {
+        width: 100%;
+        min-width: unset;
+
+        --searchbar-padding-inline-end: var(--space-10);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .variant-search-group {
+        margin-top: var(--space-3);
+    }
+
+    @container ui-viewport (width <= 1024px) {
+        :where([data-section='models'], [data-page-scope='models']) .form-row-split {
+            flex-direction: column;
+        }
+
+        :where([data-section='models'], [data-page-scope='models']) .form-col-main,
+        :where([data-section='models'], [data-page-scope='models']) .form-col-secondary {
+            flex: 1 1 100%;
+            width: 100%;
+        }
+
+        :where([data-section='models'], [data-page-scope='models']) .form-row-split--search {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        :where([data-section='models'], [data-page-scope='models']) .form-row-split--search .form-col-main {
+            flex: 1 1 auto;
+            min-width: 200px;
+        }
+
+        :where([data-section='models'], [data-page-scope='models']) .form-row-split--search .form-col-action {
+            flex: 0 0 auto;
+        }
+
+        :where([data-section='models'], [data-page-scope='models']) .form-row-split--with-action {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        :where([data-section='models'], [data-page-scope='models']) .form-row-split--with-action .form-col-main {
+            flex: 1 1 40%;
+            min-width: 150px;
+        }
+
+        :where([data-section='models'], [data-page-scope='models']) .form-row-split--with-action .form-col-secondary {
+            flex: 1 1 30%;
+            min-width: 100px;
+        }
+
+        :where([data-section='models'], [data-page-scope='models']) .form-row-split--with-action .form-col-action {
+            flex: 0 0 auto;
+        }
+
+        :where([data-section='models'], [data-page-scope='models']) .form-row-split--with-action .form-col-action label {
+            display: none;
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='models'], [data-page-scope='models']) .model-details {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        :where([data-section='models'], [data-page-scope='models']) .variant-check-entry {
+            padding: var(--space-25);
+        }
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-card .ui-operation-progress.model-card-progress-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: calc(100% - 2rem);
+        max-width: 220px;
+        margin: 0;
+        z-index: var(--z-modal);
+        background: var(--glass-surface-progress);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-2) solid var(--accent-green);
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .ui-operation-progress .ui-round-button--delete {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-card.deleting {
+        filter: grayscale(100%) blur(1px);
+        transition:
+            filter var(--transition-slow),
+            opacity var(--transition-slow);
+        pointer-events: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-card.deleting::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(45deg, color-mix(in srgb, var(--status-red) 10%, var(--glass-underlay-surface)) 0%, color-mix(in srgb, var(--status-red) 5%, var(--glass-underlay-surface)) 50%, color-mix(in srgb, var(--status-red) 10%, var(--glass-underlay-surface)) 100%);
+        z-index: var(--z-base);
+        animation: delete-shimmer var(--duration-1600) infinite;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-card.deleting .model-delete-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, color-mix(in srgb, var(--status-red) 95%, var(--glass-underlay-surface)) 0%, color-mix(in srgb, var(--status-red-hover) 95%, var(--glass-underlay-surface)) 100%);
+        color: var(--color-white);
+        padding: var(--space-3) var(--space-6);
+        border-radius: var(--border-radius);
+        font-size: var(--font-size-sm);
+        font-weight: 700;
+        z-index: var(--z-modal);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow:
+            0 8px 32px var(--status-shadow-red-medium),
+            inset 0 1px 0 var(--glass-surface-light);
+        text-shadow: 0 1px 2px color-mix(in srgb, var(--color-black) 50%, transparent);
+        animation: delete-pulse var(--duration-1000) infinite alternate;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .strategy-badge.fallback {
+        --status-badge-color: var(--status-orange);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .constituent-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .constituent-item {
+        padding: var(--space-3);
+        background: var(--glass-bg);
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .parameter-label {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-weight: 600;
+        margin-bottom: var(--space-2);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .default-badge {
+        --status-badge-color: var(--accent-green);
+        --status-badge-font-size: var(--font-size-compact-plus);
+        --status-badge-padding: var(--space-1) var(--space-15);
+        --status-badge-letter-spacing: var(--tracking-05px);
+        margin-left: var(--space-2);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .parameter-input {
+        flex: 0 1 auto;
+        width: 120px;
+        min-width: 60px;
+        transition:
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .no-parameters {
+        text-align: center;
+        padding: var(--space-12) var(--space-8);
+        color: var(--text-tertiary);
+    }
+}

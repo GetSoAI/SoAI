@@ -1,0 +1,19 @@
+/* SoAI - Chat model menu overlays component styles [frontend/assets/css/components/chat/chat-model-menu-overlays.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.theme-dark) :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-option {
+        --chat-model-menu-option-hover-surface: color-mix(in srgb, color-mix(in srgb, var(--glass-surface-interactive-hover) 64%, var(--color-white) 36%) 36%, transparent);
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-option::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        opacity: var(--chat-model-menu-option-hover-overlay-opacity);
+        transition: opacity var(--transition-fast);
+        background: linear-gradient(to right, var(--chat-model-menu-option-left-rail-color) 0, var(--chat-model-menu-option-left-rail-color) var(--border-width-3), transparent var(--border-width-3)), var(--chat-model-menu-option-hover-surface);
+    }
+}

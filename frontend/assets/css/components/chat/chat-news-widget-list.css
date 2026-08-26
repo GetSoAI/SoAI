@@ -1,0 +1,262 @@
+/* SoAI - Chat news widget list component styles [frontend/assets/css/components/chat/chat-news-widget-list.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .assistant-news-widget__body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-3);
+        min-width: 0;
+        min-height: 0;
+        flex: 1 1 auto;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--text-tertiary) 45%, transparent) transparent;
+    }
+
+    :where(.chat-container) .assistant-news-widget__list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        min-width: 0;
+        min-height: 0;
+        max-block-size: 13.5rem;
+        overflow-y: auto;
+        border-radius: var(--border-radius);
+        background-color: var(--recessed-surface-fill-background);
+        background-image: var(--recessed-surface-fill);
+        background-blend-mode: var(--recessed-surface-texture-blend);
+        background-size: var(--recessed-surface-texture-size);
+        -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
+        backdrop-filter: var(--recessed-surface-backdrop-filter);
+        box-shadow: var(--recessed-surface-shadow);
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--text-tertiary) 45%, transparent) transparent;
+    }
+
+    :where(.chat-container) .assistant-news-widget__item {
+        --assistant-news-item-overlay-strong: 28%;
+        --assistant-news-item-overlay-soft: 16%;
+        --assistant-news-item-overlay-accent: var(--glass-border-strong);
+        --assistant-news-item-overlay-opacity: 0;
+        --assistant-news-item-overlay-inset-left: 0;
+        --assistant-news-item-overlay-inset-right: 0;
+        --assistant-news-item-left-rail-color: transparent;
+        --assistant-news-item-right-rail-color: transparent;
+        --assistant-news-item-before-surface: none;
+        position: relative;
+        isolation: isolate;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        column-gap: var(--space-2);
+        row-gap: calc(var(--space-05) / 2);
+        align-items: baseline;
+        padding: var(--space-2) var(--space-3);
+        margin-bottom: 0;
+        border-radius: 0;
+        border-top: 0 solid transparent;
+        border-left: 0 solid transparent;
+        cursor: pointer;
+        transition:
+            background var(--transition-fast),
+            border-color var(--transition-fast);
+    }
+
+    .theme-dark :where(.chat-container) .assistant-news-widget__item {
+        --assistant-news-item-overlay-strong: 16%;
+        --assistant-news-item-overlay-soft: 8%;
+    }
+
+    :where(.chat-container) .assistant-news-widget__item::after {
+        content: '';
+        position: absolute;
+        inset: 0 var(--assistant-news-item-overlay-inset-right) 0 var(--assistant-news-item-overlay-inset-left);
+        border-radius: inherit;
+        pointer-events: none;
+        z-index: var(--z-base);
+        opacity: var(--assistant-news-item-overlay-opacity);
+        transition: opacity var(--transition-fast);
+        background: var(--glass-surface-interactive-hover);
+    }
+
+    :where(.chat-container) .assistant-news-widget__item::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        z-index: var(--z-base);
+        background: linear-gradient(to right, var(--assistant-news-item-left-rail-color) 0, var(--assistant-news-item-left-rail-color) var(--border-width-3), transparent var(--border-width-3)), linear-gradient(to left, var(--assistant-news-item-right-rail-color) 0, var(--assistant-news-item-right-rail-color) var(--border-width-3), transparent var(--border-width-3)), var(--assistant-news-item-before-surface);
+    }
+
+    :where(.chat-container) .assistant-news-widget__item:nth-of-type(odd) {
+        background: var(--alternating-grey-dark);
+    }
+
+    :where(.chat-container) .assistant-news-widget__item:nth-of-type(even) {
+        background: var(--alternating-grey-light);
+    }
+
+    :where(.chat-container) .assistant-news-widget__item + .assistant-news-widget__item {
+        border-top-width: var(--border-width-1);
+    }
+
+    :where(.chat-container) .assistant-news-widget__item:hover {
+        --assistant-news-item-overlay-opacity: 1;
+        --assistant-news-item-overlay-inset-left: var(--border-width-3);
+        --assistant-news-item-left-rail-color: var(--assistant-news-item-overlay-accent);
+        border-top-color: color-mix(in srgb, var(--glass-border-strong) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
+    }
+
+    :where(.chat-container) .assistant-news-widget__item-index {
+        position: relative;
+        z-index: var(--z-above-sibling);
+        grid-row: 1 / span 2;
+        align-self: start;
+        font-size: var(--font-size-caption-plus);
+        font-weight: 600;
+        letter-spacing: var(--tracking-04em);
+        color: var(--text-tertiary);
+        font-feature-settings: 'tnum' 1;
+        padding-top: calc(var(--space-05) / 2);
+        transition: color var(--transition-fast);
+    }
+
+    :where(.chat-container) .assistant-news-widget__item-title {
+        position: relative;
+        z-index: var(--z-above-sibling);
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+        line-height: 1.4;
+        color: var(--text-secondary);
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        transition: color var(--transition-fast);
+    }
+
+    :where(.chat-container) .assistant-news-widget__item-meta {
+        position: relative;
+        z-index: var(--z-above-sibling);
+        grid-column: 2;
+        font-size: var(--font-size-caption-plus);
+        color: var(--text-tertiary);
+        font-feature-settings: 'tnum' 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(1):checked) .assistant-news-widget__list > :nth-of-type(1),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(2):checked) .assistant-news-widget__list > :nth-of-type(2),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(3):checked) .assistant-news-widget__list > :nth-of-type(3),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(4):checked) .assistant-news-widget__list > :nth-of-type(4),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(5):checked) .assistant-news-widget__list > :nth-of-type(5),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(6):checked) .assistant-news-widget__list > :nth-of-type(6),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(7):checked) .assistant-news-widget__list > :nth-of-type(7),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(8):checked) .assistant-news-widget__list > :nth-of-type(8),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(9):checked) .assistant-news-widget__list > :nth-of-type(9),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(10):checked) .assistant-news-widget__list > :nth-of-type(10),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(11):checked) .assistant-news-widget__list > :nth-of-type(11),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(12):checked) .assistant-news-widget__list > :nth-of-type(12),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(13):checked) .assistant-news-widget__list > :nth-of-type(13),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(14):checked) .assistant-news-widget__list > :nth-of-type(14),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(15):checked) .assistant-news-widget__list > :nth-of-type(15),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(16):checked) .assistant-news-widget__list > :nth-of-type(16),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(17):checked) .assistant-news-widget__list > :nth-of-type(17),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(18):checked) .assistant-news-widget__list > :nth-of-type(18),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(19):checked) .assistant-news-widget__list > :nth-of-type(19),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(20):checked) .assistant-news-widget__list > :nth-of-type(20),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(21):checked) .assistant-news-widget__list > :nth-of-type(21),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(22):checked) .assistant-news-widget__list > :nth-of-type(22),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(23):checked) .assistant-news-widget__list > :nth-of-type(23),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(24):checked) .assistant-news-widget__list > :nth-of-type(24),
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(25):checked) .assistant-news-widget__list > :nth-of-type(25) {
+        --assistant-news-item-overlay-opacity: var(--chat-conversation-item-active-overlay-opacity);
+        --assistant-news-item-overlay-inset-left: var(--border-width-3);
+        --assistant-news-item-overlay-inset-right: var(--border-width-3);
+        --assistant-news-item-left-rail-color: var(--assistant-news-item-overlay-accent);
+        --assistant-news-item-right-rail-color: var(--chat-conversation-item-active-right-rail-color);
+        --assistant-news-item-before-surface: linear-gradient(135deg, color-mix(in srgb, var(--news-accent) var(--assistant-news-item-overlay-strong), transparent), color-mix(in srgb, var(--news-accent) var(--assistant-news-item-overlay-soft), transparent));
+    }
+
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(1):checked) .assistant-news-widget__list > :nth-of-type(1) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(2):checked) .assistant-news-widget__list > :nth-of-type(2) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(3):checked) .assistant-news-widget__list > :nth-of-type(3) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(4):checked) .assistant-news-widget__list > :nth-of-type(4) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(5):checked) .assistant-news-widget__list > :nth-of-type(5) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(6):checked) .assistant-news-widget__list > :nth-of-type(6) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(7):checked) .assistant-news-widget__list > :nth-of-type(7) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(8):checked) .assistant-news-widget__list > :nth-of-type(8) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(9):checked) .assistant-news-widget__list > :nth-of-type(9) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(10):checked) .assistant-news-widget__list > :nth-of-type(10) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(11):checked) .assistant-news-widget__list > :nth-of-type(11) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(12):checked) .assistant-news-widget__list > :nth-of-type(12) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(13):checked) .assistant-news-widget__list > :nth-of-type(13) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(14):checked) .assistant-news-widget__list > :nth-of-type(14) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(15):checked) .assistant-news-widget__list > :nth-of-type(15) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(16):checked) .assistant-news-widget__list > :nth-of-type(16) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(17):checked) .assistant-news-widget__list > :nth-of-type(17) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(18):checked) .assistant-news-widget__list > :nth-of-type(18) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(19):checked) .assistant-news-widget__list > :nth-of-type(19) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(20):checked) .assistant-news-widget__list > :nth-of-type(20) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(21):checked) .assistant-news-widget__list > :nth-of-type(21) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(22):checked) .assistant-news-widget__list > :nth-of-type(22) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(23):checked) .assistant-news-widget__list > :nth-of-type(23) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(24):checked) .assistant-news-widget__list > :nth-of-type(24) .assistant-news-widget__item-title,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(25):checked) .assistant-news-widget__list > :nth-of-type(25) .assistant-news-widget__item-title {
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(1):checked) .assistant-news-widget__list > :nth-of-type(1) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(2):checked) .assistant-news-widget__list > :nth-of-type(2) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(3):checked) .assistant-news-widget__list > :nth-of-type(3) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(4):checked) .assistant-news-widget__list > :nth-of-type(4) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(5):checked) .assistant-news-widget__list > :nth-of-type(5) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(6):checked) .assistant-news-widget__list > :nth-of-type(6) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(7):checked) .assistant-news-widget__list > :nth-of-type(7) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(8):checked) .assistant-news-widget__list > :nth-of-type(8) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(9):checked) .assistant-news-widget__list > :nth-of-type(9) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(10):checked) .assistant-news-widget__list > :nth-of-type(10) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(11):checked) .assistant-news-widget__list > :nth-of-type(11) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(12):checked) .assistant-news-widget__list > :nth-of-type(12) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(13):checked) .assistant-news-widget__list > :nth-of-type(13) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(14):checked) .assistant-news-widget__list > :nth-of-type(14) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(15):checked) .assistant-news-widget__list > :nth-of-type(15) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(16):checked) .assistant-news-widget__list > :nth-of-type(16) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(17):checked) .assistant-news-widget__list > :nth-of-type(17) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(18):checked) .assistant-news-widget__list > :nth-of-type(18) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(19):checked) .assistant-news-widget__list > :nth-of-type(19) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(20):checked) .assistant-news-widget__list > :nth-of-type(20) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(21):checked) .assistant-news-widget__list > :nth-of-type(21) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(22):checked) .assistant-news-widget__list > :nth-of-type(22) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(23):checked) .assistant-news-widget__list > :nth-of-type(23) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(24):checked) .assistant-news-widget__list > :nth-of-type(24) .assistant-news-widget__item-index,
+    :where(.chat-container) .assistant-news-widget:has(.assistant-news-widget__item-selector:nth-of-type(25):checked) .assistant-news-widget__list > :nth-of-type(25) .assistant-news-widget__item-index {
+        color: var(--news-accent);
+    }
+
+    @container assistant-activity-widgets (width >= 28.75rem) {
+        :where(.chat-container) .assistant-news-widget__body {
+            grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+            gap: var(--space-4);
+            overflow: hidden;
+        }
+
+        :where(.chat-container) .assistant-news-widget__list {
+            max-block-size: none;
+            border-right: var(--border-width-1) solid color-mix(in srgb, var(--glass-border-subtle) 55%, transparent);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where(.chat-container) .assistant-news-widget__item,
+        :where(.chat-container) .assistant-news-widget__item-index,
+        :where(.chat-container) .assistant-news-widget__item-title {
+            transition: none;
+        }
+    }
+}

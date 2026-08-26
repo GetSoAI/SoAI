@@ -1,0 +1,157 @@
+/* SoAI - Settings page drivers styles [frontend/assets/css/pages/settings/drivers.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-drivers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 640px));
+        gap: var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-drivers-empty {
+        padding: var(--space-4);
+        color: var(--text-secondary);
+        font-size: var(--font-size-body-xs);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-drivers-notice {
+        margin-bottom: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        color: var(--text-primary);
+        font-size: var(--font-size-body-xs);
+        line-height: 1.4;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-drivers-progress-item {
+        align-items: flex-start;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-drivers-progress-item > .setting-control {
+        flex: 1;
+        min-width: 0;
+        align-items: stretch;
+        justify-content: stretch;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-drivers-progress-item:has(.ui-operation-progress-list:empty) {
+        display: none;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-drivers-progress-panel {
+        display: flex;
+        width: 100%;
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-drivers-operation-progress-list {
+        width: 100%;
+        min-width: 0;
+        margin-bottom: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-drivers-operation-progress-list .ui-operation-progress {
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-drivers-operation-progress-list .ui-operation-progress__details {
+        display: -webkit-box;
+        overflow: hidden;
+        line-height: 1.4;
+        max-height: calc(1.4em * 4);
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 4;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-card {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        min-width: 0;
+        padding: var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-card__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-card__title {
+        margin: 0;
+        font-size: var(--font-size-sm);
+        font-weight: 700;
+        letter-spacing: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-card__id {
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption-plus);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-card__badges {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: var(--space-1);
+        max-width: min(100%, 320px);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-badge {
+        gap: var(--space-1);
+
+        --status-badge-font-size: var(--font-size-caption-plus);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-badge strong {
+        color: inherit;
+        font-weight: 700;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-card__body {
+        display: grid;
+        grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);
+        gap: var(--space-1) var(--space-3);
+        align-items: start;
+        padding-top: var(--space-1);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-row {
+        display: contents;
+        min-width: 0;
+        font-size: var(--font-size-body-xs);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-row span {
+        color: var(--text-secondary);
+        font-weight: 600;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-row strong {
+        overflow-wrap: anywhere;
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-card__header {
+            flex-direction: column;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-card__badges {
+            justify-content: flex-start;
+            max-width: 100%;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-card__body {
+            grid-template-columns: minmax(0, 1fr);
+            gap: var(--space-05);
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-os-driver-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0;
+        }
+    }
+}

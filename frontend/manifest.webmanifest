@@ -1,0 +1,30 @@
+{
+    "name": "SoAI - Smart Orchestrator for Artificial Intelligence",
+    "short_name": "SoAI",
+    "description": "Orchestration layer for local and remote Large Language Models",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#1a1a2e",
+    "theme_color": "#4a90d9",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "./android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "./android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "./apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        }
+    ],
+    "categories": ["utilities", "developer tools"]
+}

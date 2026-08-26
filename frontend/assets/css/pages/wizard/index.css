@@ -1,0 +1,8 @@
+/* SoAI - Wizard page styles [frontend/assets/css/pages/wizard/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./base.css') layer(pages);
+@import url('./layout.css') layer(pages);
+@import url('./licensing.css') layer(pages);
+@import url('./product-access.css') layer(pages);
+@import url('./toolbar.css') layer(pages);

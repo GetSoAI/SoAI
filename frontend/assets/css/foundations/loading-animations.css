@@ -1,0 +1,190 @@
+/* SoAI - Loading animations frontend styles [frontend/assets/css/foundations/loading-animations.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    @keyframes task-progress-indeterminate {
+        0% {
+            transform: translateX(-60%) scaleX(0.4);
+        }
+
+        50% {
+            transform: translateX(-10%) scaleX(0.9);
+        }
+
+        100% {
+            transform: translateX(80%) scaleX(0.4);
+        }
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @keyframes slide-up {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes soai-running-surface-pulse {
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.4;
+        }
+    }
+
+    @keyframes delete-shimmer {
+        0%,
+        100% {
+            opacity: 0.3;
+        }
+        50% {
+            opacity: 0.1;
+        }
+    }
+
+    @keyframes delete-pulse {
+        0% {
+            transform: translate(-50%, -50%) scale(1);
+        }
+        100% {
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+    }
+
+    @keyframes gpu-slot-hover-flash {
+        0%,
+        100% {
+            background: var(--ui-button-bg);
+            border-color: var(--ui-button-border);
+            color: var(--ui-button-color);
+        }
+        50% {
+            background: var(--ui-button-bg-hover);
+            border-color: var(--ui-button-border-hover);
+            color: var(--ui-button-color-hover);
+        }
+    }
+
+    @keyframes background-move {
+        0% {
+            transform: translate(0, 0);
+        }
+        100% {
+            transform: translate(60px, -60px);
+        }
+    }
+
+    @keyframes success-pulse {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.02);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    @keyframes prompts-multi-select-slide-up {
+        from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    }
+
+    @container ui-viewport (width <= 768px) {
+        @keyframes prompts-multi-select-slide-up {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    }
+
+    @keyframes effect-fade-enter {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes effect-slide-enter {
+        from {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes effect-scale-enter {
+        from {
+            opacity: 0;
+            transform: scale(0.96);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @keyframes effect-zoom-enter {
+        0% {
+            opacity: 0;
+            transform: scale(0.85);
+        }
+
+        70% {
+            opacity: 1;
+            transform: scale(1.02);
+        }
+
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    @keyframes effect-lateral-enter {
+        from {
+            opacity: 0;
+            transform: translateX(24px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+}

@@ -1,0 +1,57 @@
+/* SoAI - Collection list status component styles [frontend/assets/css/components/collections/collection-list-status.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-collection-list__status {
+        --status-color: var(--status-grey);
+        --status-collection-list-color: var(--status-color);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        max-width: 100%;
+        color: var(--status-collection-list-color);
+        font-size: var(--font-size-caption-plus);
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .ui-collection-list__status .status-led {
+        --status-led-size: var(--status-led-size-sm);
+        --status-led-margin: 0;
+    }
+
+    .ui-collection-list__status > span:not(.status-led) {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ui-collection-list__status:is(.status-green, .status-success) {
+        --status-color: var(--status-green);
+    }
+
+    .ui-collection-list__status:is(.status-darkgreen) {
+        --status-color: var(--status-darkgreen);
+    }
+
+    .ui-collection-list__status:is(.status-persistentgreen, .status-persistent) {
+        --status-color: var(--status-persistentgreen);
+    }
+
+    .ui-collection-list__status:is(.status-blue, .status-info) {
+        --status-color: var(--status-blue);
+    }
+
+    .ui-collection-list__status:is(.status-orange, .status-warning) {
+        --status-color: var(--status-orange);
+    }
+
+    .ui-collection-list__status:is(.status-red, .status-error) {
+        --status-color: var(--status-red);
+    }
+
+    .ui-collection-list__status:is(.status-grey, .status-neutral) {
+        --status-color: var(--status-grey);
+    }
+}

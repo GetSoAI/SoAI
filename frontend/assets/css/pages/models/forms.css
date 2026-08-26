@@ -1,0 +1,153 @@
+/* SoAI - Models page forms styles [frontend/assets/css/pages/models/forms.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='models'], [data-page-scope='models']) .provider-name {
+        font-size: var(--font-size-base);
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-extra {
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-extra .strategy-label {
+        font-weight: 600;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-extra .strategy-label--load-balancing {
+        color: var(--accent-purple);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-extra .strategy-label--failover {
+        color: var(--status-orange);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-details {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-plugin {
+        font-weight: 500;
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-availability {
+        display: grid;
+        grid-template-columns: minmax(90px, max-content) minmax(0, 1fr);
+        gap: var(--space-2) var(--space-3);
+        margin-top: var(--space-3);
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-availability-row {
+        display: contents;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-availability-label {
+        color: var(--text-tertiary);
+        font-weight: 500;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-availability-value {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-availability-error {
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-status-badge {
+        justify-self: start;
+        max-width: 100%;
+        padding: var(--space-05) var(--space-2);
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--provider-status-color) 28%, var(--glass-underlay-surface));
+        background: color-mix(in srgb, var(--provider-status-color) 12%, var(--glass-underlay-surface));
+        color: var(--provider-status-color);
+        font-size: var(--font-size-compact);
+        font-weight: 600;
+        line-height: 1.2;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-status-badge--neutral {
+        --provider-status-color: var(--text-tertiary);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-status-badge--success {
+        --provider-status-color: var(--status-green);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-status-badge--danger {
+        --provider-status-color: var(--status-red);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-status-badge--warning {
+        --provider-status-color: var(--status-orange);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .provider-status-badge--loading {
+        --provider-status-color: var(--status-blue);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-rename-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-5);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-rename-source-value {
+        min-height: var(--control-height);
+        padding: var(--control-padding-block) var(--control-padding-inline);
+        border: var(--border-width-1) solid var(--border-color);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+        color: var(--text-primary);
+        font-family: var(--font-family-mono);
+        font-size: var(--font-size-sm);
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .model-rename-source {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .models-empty,
+    :where([data-section='models'], [data-page-scope='models']) .models-filtered-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        padding: var(--space-8);
+    }
+
+    :where([data-section='models'], [data-page-scope='models']) .models-empty.u-hidden,
+    :where([data-section='models'], [data-page-scope='models']) .models-filtered-empty.u-hidden {
+        display: none;
+    }
+
+    @container ui-viewport (width <= 1200px) {
+        :where([data-section='models'], [data-page-scope='models']) .provider-filter {
+            display: none;
+        }
+
+        :where([data-section='models'], [data-page-scope='models']) .page-actions--dropdown .page-actions__menu--open .provider-filter {
+            display: block;
+        }
+    }
+}

@@ -1,0 +1,4 @@
+/* SoAI - Frontend core Translation declarations for key group `modelDetail.notifications` [frontend/assets/ts/core/i18n/translationkeys/modeldetail/notifications.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type ModelDetailNotificationsTranslationKey = 'modelDetail.notifications.capabilitiesUpdated' | 'modelDetail.notifications.deletionInProgress' | 'modelDetail.notifications.enabledUpdated' | 'modelDetail.notifications.enabledUpdateFailed' | 'modelDetail.notifications.modelDeleted' | 'modelDetail.notifications.noModifiedParams' | 'modelDetail.notifications.paramsSaved' | 'modelDetail.notifications.persistentPlugin' | 'modelDetail.notifications.pluginStopInProgress' | 'modelDetail.notifications.pluginStopped' | 'modelDetail.notifications.testModelNotReady' | 'modelDetail.notifications.thisModel';

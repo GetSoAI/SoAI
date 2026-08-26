@@ -1,0 +1,232 @@
+/* SoAI - Select controls component styles [frontend/assets/css/components/controls/select-controls.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .model-selector.page-header-filter-select[data-chat-model-control='true'] {
+        padding: 0;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        text-align: left;
+    }
+
+    :where(select):not(.chart-filter-select, .chat-page-mode-indicator-select, [multiple]),
+    .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary.ui-button {
+        --filter-control-bg: var(--ui-button-bg);
+        --filter-control-bg-hover: var(--ui-button-bg-hover);
+        --filter-control-border: var(--ui-button-border);
+        --filter-control-border-hover: var(--ui-button-border-hover);
+        --filter-control-color: var(--ui-button-color);
+        --filter-control-color-hover: var(--ui-button-color-hover);
+        --filter-control-focus-ring: var(--ui-button-focus-ring);
+        --filter-control-reflection: var(--ui-button-reflection);
+        font-family: inherit;
+        font-size: var(--control-dropdown-font-size);
+        line-height: 1.2;
+        text-align: left;
+        border: var(--border-width-1) solid var(--filter-control-border);
+        border-radius: var(--border-radius);
+        background-color: var(--filter-control-bg);
+        background-image: var(--filter-control-reflection);
+        background-repeat: no-repeat, no-repeat;
+        background-position: 0 0;
+        background-size: 100% 100%;
+        color: var(--filter-control-color);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow:
+            inset 2px 2px 4px var(--surface-inner-highlight-soft),
+            inset -2px -2px 4px var(--surface-inner-shadow-soft);
+    }
+
+    select:not(.chart-filter-select, .chat-page-mode-indicator-select, [multiple]) {
+        appearance: none;
+        height: var(--control-height);
+        padding: var(--control-padding-block) calc(var(--control-padding-inline) + var(--space-15) + var(--control-icon-size)) var(--control-padding-block) var(--control-padding-inline);
+        background-image: var(--filter-control-reflection), var(--control-select-arrow-image);
+        background-position:
+            0 0,
+            right var(--control-padding-inline) center;
+        background-size:
+            100% 100%,
+            var(--control-icon-size);
+    }
+
+    :where(select):not(.chart-filter-select, .chat-page-mode-indicator-select, [multiple], :disabled, [aria-disabled='true']):hover,
+    .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary.ui-button:is(:hover, :focus-visible, .is-open):not(:disabled, [aria-disabled='true']) {
+        --filter-control-reflection: var(--surface-reflection-soft-hover);
+        background-color: var(--filter-control-bg-hover);
+        border-color: var(--filter-control-border-hover);
+        color: var(--filter-control-color-hover);
+    }
+
+    :where(select):not(.chart-filter-select, .chat-page-mode-indicator-select, [multiple]):focus-visible {
+        border-color: var(--filter-control-border-hover);
+        box-shadow:
+            0 0 0 var(--control-focus-ring-width) var(--filter-control-focus-ring),
+            0 4px 12px var(--shadow-medium);
+    }
+
+    :where(select):not(.chart-filter-select, .chat-page-mode-indicator-select, [multiple]) :is(option, optgroup) {
+        color: var(--text-secondary);
+        background-color: var(--glass-surface-strong);
+    }
+
+    select.form-input:not(.page-header-filter-select, .chart-filter-select, [multiple]) {
+        width: 100%;
+    }
+
+    .dropdown-select {
+        --filter-control-color: var(--ui-button-color);
+        --filter-control-color-hover: var(--ui-button-color-hover);
+        --dropdown-select-padding-left: var(--control-padding-inline);
+
+        position: relative;
+        display: inline-flex;
+        align-items: stretch;
+        width: fit-content;
+        max-width: 100%;
+    }
+
+    .dropdown-select::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: var(--control-padding-inline);
+        z-index: var(--z-above-sibling);
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        background-color: var(--filter-control-color);
+        mask-image: var(--control-select-arrow-image);
+        mask-position: center;
+        mask-repeat: no-repeat;
+        mask-size: var(--control-icon-size);
+        pointer-events: none;
+        transform: translateY(-50%);
+        transition: background-color var(--transition-fast);
+    }
+
+    .dropdown-select__prefix-icon {
+        position: absolute;
+        top: 50%;
+        left: var(--control-padding-inline);
+        z-index: var(--z-above-sibling);
+        display: inline-grid;
+        place-items: center;
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        color: var(--filter-control-color);
+        pointer-events: none;
+        transform: translateY(-50%);
+    }
+
+    .dropdown-select__prefix-icon > :is(svg, .ui-icon) {
+        width: 100%;
+        height: 100%;
+    }
+
+    .dropdown-select--prefix-icon {
+        --dropdown-select-padding-left: calc(var(--control-padding-inline) + var(--control-icon-size) + var(--space-2));
+    }
+
+    .dropdown-select:has(> select:is(.form-input, .setting-input--full)) {
+        width: 100%;
+    }
+
+    .dropdown-select:has(> select[hidden]) {
+        display: none;
+    }
+
+    .dropdown-select > select:not(.chart-filter-select, [multiple]) {
+        position: relative;
+        z-index: var(--z-base);
+        width: 100%;
+        min-width: 0;
+        padding-left: var(--dropdown-select-padding-left);
+        text-align: left;
+        background-image: var(--filter-control-reflection), none;
+        background-size:
+            100% 100%,
+            0;
+    }
+
+    .dropdown-select__selection-label {
+        position: relative;
+        z-index: var(--z-above-sibling);
+        display: inline-flex;
+        align-items: center;
+        height: var(--control-height);
+        padding: var(--control-padding-block) calc(var(--control-padding-inline) + var(--space-15) + var(--control-icon-size)) var(--control-padding-block) var(--control-padding-inline);
+        color: var(--filter-control-color);
+        font-size: var(--control-dropdown-font-size);
+        line-height: 1.2;
+        pointer-events: none;
+        white-space: nowrap;
+    }
+
+    .dropdown-select:where(.ui-variant-accent, .ui-variant-danger, .ui-variant-warning, .ui-variant-success, .ui-variant-primary, .ui-variant-violet) > select:not(.chart-filter-select, [multiple]) {
+        --ui-button-reflection: var(--surface-reflection-soft);
+
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .dropdown-select:where(.ui-variant-accent, .ui-variant-danger, .ui-variant-warning, .ui-variant-success, .ui-variant-primary, .ui-variant-violet) > select:not(.chart-filter-select, [multiple], :focus-visible) {
+        box-shadow:
+            inset 2px 2px 4px var(--surface-inner-highlight-soft),
+            inset -2px -2px 4px var(--surface-inner-shadow-soft),
+            0 2px 4px var(--surface-drop-shadow-soft),
+            0 0 0 1px var(--surface-outline-highlight-soft);
+    }
+
+    .dropdown-select:has(> select:not(.chart-filter-select, [multiple]):is(:hover, :focus-visible):not(:disabled, [aria-disabled='true'])) {
+        --filter-control-color: var(--ui-button-color-hover);
+    }
+
+    .dropdown-select:has(> select[hidden])::after {
+        display: none;
+    }
+
+    .dropdown-select:has(> select:not(.chart-filter-select, [multiple]):is(:disabled, [aria-disabled='true']))::after {
+        opacity: 0.55;
+    }
+
+    .dropdown-select--sm > select:not(.chart-filter-select, [multiple]) {
+        height: auto;
+        padding: var(--space-15) calc(var(--space-3) + var(--space-15) + var(--control-icon-size-compact)) var(--space-15) var(--space-3);
+        font-size: var(--font-size-xs);
+        line-height: var(--line-height-compact);
+    }
+
+    .dropdown-select--sm::after {
+        right: var(--space-3);
+        width: var(--control-icon-size-compact);
+        height: var(--control-icon-size-compact);
+        mask-size: var(--control-icon-size-compact);
+    }
+
+    .dropdown-select.dropdown-select--selection-prefix > select:not(.chart-filter-select, [multiple]) {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        color: transparent;
+    }
+
+    .dropdown-select--selection-prefix > select:not(.chart-filter-select, [multiple]) :is(option, optgroup) {
+        color: var(--text-secondary);
+    }
+
+    .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary-text {
+        flex: 1 1 auto;
+        text-align: left;
+    }
+
+    .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary-chevron {
+        color: currentColor;
+    }
+}

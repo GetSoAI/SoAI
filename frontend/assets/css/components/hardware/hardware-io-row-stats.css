@@ -1,0 +1,122 @@
+/* SoAI - Hardware io row stats component styles [frontend/assets/css/components/hardware/hardware-io-row-stats.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .hardware-resource-stats {
+        color: var(--text-tertiary);
+        display: grid;
+        font-size: var(--font-size-xs);
+        gap: var(--space-1);
+        grid-template-rows: var(--space-5) minmax(0, 1fr);
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .hardware-resource-stat-row {
+        align-items: center;
+        color: var(--text-secondary);
+        display: flex;
+        flex-wrap: wrap;
+        font-size: var(--font-size-xs);
+        gap: var(--space-2);
+        justify-content: flex-start;
+        line-height: var(--line-height-compact);
+        min-height: var(--space-5);
+        min-width: 0;
+    }
+
+    .hardware-resource-stat-row > span {
+        font-weight: 700;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .hardware-resource-stat-row--triple {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: var(--space-4);
+        justify-content: center;
+        min-height: 0;
+        padding: var(--space-1) 0;
+    }
+
+    .hardware-resource-stat-item {
+        align-items: center;
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: var(--space-1);
+        min-width: 0;
+        text-align: center;
+    }
+
+    .hardware-resource-stat-label {
+        color: var(--text-tertiary);
+        display: block;
+        font-size: var(--font-size-compact-sm);
+        font-weight: 600;
+        letter-spacing: var(--tracking-035px);
+        line-height: var(--line-height-compact);
+        overflow-wrap: anywhere;
+        text-align: center;
+        text-transform: uppercase;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .hardware-resource-stat-value {
+        color: var(--text-primary);
+        display: block;
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        line-height: var(--line-height-compact);
+        overflow-wrap: anywhere;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .hardware-resource-stat-value.hardware-network-stat-value {
+        min-width: 0;
+        overflow: hidden;
+        overflow-wrap: normal;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        word-break: normal;
+    }
+
+    .hardware-network-stat-value--truncated {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    @container ui-viewport (width <= 1024px) {
+        .hardware-resource-stat-row--triple {
+            gap: var(--space-3);
+        }
+
+        .hardware-resource-stat-item {
+            flex: 1 1 0%;
+            min-width: 0;
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .hardware-resource-stats {
+            overflow: visible;
+        }
+
+        .hardware-resource-stat-row--triple {
+            gap: var(--space-2);
+        }
+
+        .hardware-resource-stat-label {
+            font-size: var(--font-size-micro-tight);
+            letter-spacing: var(--tracking-03px);
+        }
+
+        .hardware-resource-stat-value {
+            font-size: var(--font-size-caption-plus);
+        }
+    }
+}

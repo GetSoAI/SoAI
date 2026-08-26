@@ -1,0 +1,100 @@
+/* SoAI - Chat plan widget component styles [frontend/assets/css/components/chat/chat-plan-widget.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .assistant-plan-widget {
+        --plan-accent: color-mix(in srgb, var(--text-primary) 55%, var(--text-secondary) 45%);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--glass-border-strong) 78%, var(--plan-accent) 22%);
+        background: linear-gradient(180deg, color-mix(in srgb, var(--plan-accent) 6%, transparent) 0%, transparent 38%), color-mix(in srgb, var(--glass-surface-strong) 88%, var(--plan-accent) 4%);
+    }
+
+    :where(.chat-container) .assistant-plan-widget__plan-metrics {
+        font-size: var(--font-size-068);
+        font-weight: 500;
+        letter-spacing: var(--tracking-snug);
+        color: var(--text-tertiary);
+        font-feature-settings: 'tnum' 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    :where(.chat-container) .assistant-plan-widget__body {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-inline-end: var(--space-1);
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--text-tertiary) 45%, transparent) transparent;
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container) .assistant-plan-widget__body > *:first-child {
+        margin-block-start: 0;
+    }
+
+    :where(.chat-container) .assistant-plan-widget__body > *:last-child {
+        margin-block-end: 0;
+    }
+
+    :where(.chat-container) .assistant-plan-widget__body :is(h1, h2, h3, h4, h5, h6) {
+        margin: var(--space-3) 0 var(--space-1);
+        line-height: 1.3;
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .assistant-plan-widget__body h1 {
+        font-size: var(--font-size-105);
+    }
+
+    :where(.chat-container) .assistant-plan-widget__body h2 {
+        font-size: var(--font-size-100);
+    }
+
+    :where(.chat-container) .assistant-plan-widget__body :is(h3, h4, h5, h6) {
+        font-size: var(--font-size-094);
+    }
+
+    :where(.chat-container) .assistant-plan-widget__body :is(p, ul, ol, pre, blockquote, table) {
+        margin-block: var(--space-2);
+    }
+
+    :where(.chat-container) .assistant-plan-widget__body :is(ul, ol) {
+        padding-inline-start: var(--space-5);
+    }
+
+    :where(.chat-container) .assistant-plan-widget__body li + li {
+        margin-block-start: var(--space-1);
+    }
+
+    :where(.chat-container) .assistant-plan-widget__actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: var(--space-2);
+        min-width: 0;
+    }
+
+    :where(.chat-container) .assistant-plan-widget__action {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        min-width: 0;
+        white-space: nowrap;
+    }
+
+    @container assistant-activity-widgets (width < 23.75rem) {
+        :where(.chat-container) .assistant-plan-widget__actions {
+            justify-content: stretch;
+        }
+
+        :where(.chat-container) .assistant-plan-widget__action {
+            flex: 1 1 auto;
+            justify-content: center;
+        }
+    }
+}

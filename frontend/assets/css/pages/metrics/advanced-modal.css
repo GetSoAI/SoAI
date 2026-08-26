@@ -1,0 +1,64 @@
+/* SoAI - Metrics page advanced modal styles [frontend/assets/css/pages/metrics/advanced-modal.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='metrics'], [data-page-scope='metrics']).metrics-advanced-modal .modal-body {
+        overflow-y: auto;
+        min-height: 12.5rem;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']).metrics-advanced-modal .metrics-advanced-search {
+        padding: var(--modal-section-padding);
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']).metrics-advanced-modal .metrics-advanced-search .searchbar-container {
+        width: 100%;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']).metrics-advanced-modal .metrics-advanced-section {
+        padding: var(--modal-section-padding);
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']).metrics-advanced-modal .metrics-advanced-section:last-child {
+        border-bottom: none;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']).metrics-advanced-modal .metrics-advanced-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+        gap: var(--space-3);
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']).metrics-advanced-modal .metrics-advanced-row {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        padding: var(--space-2) var(--space-3);
+        border: none;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']).metrics-advanced-modal .metrics-advanced-label {
+        word-break: break-word;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']).metrics-advanced-modal .metrics-advanced-value {
+        font-size: var(--font-size-sm);
+        color: var(--text-primary);
+        word-break: break-word;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']).metrics-advanced-modal .metrics-advanced-value-mono {
+        font-family: var(--font-family-mono);
+        font-size: var(--font-size-body-sm);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']).metrics-advanced-modal .metrics-advanced-nodata {
+        color: var(--text-tertiary);
+        font-style: italic;
+        padding: var(--modal-section-padding);
+        text-align: center;
+    }
+}

@@ -1,0 +1,19 @@
+/* SoAI - Log tokens frontend styles [frontend/assets/css/foundations/log-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --log-font-size: var(--font-size-xs);
+        --log-timestamp-bg: color-mix(in srgb, rgb(107 114 128) 35%, var(--glass-underlay-surface));
+        --log-timestamp-color: var(--text-primary);
+        --log-component-bg: color-mix(in srgb, rgb(255 140 60) 35%, var(--glass-underlay-surface));
+        --log-component-color: var(--text-primary);
+        --log-level-debug-bg: color-mix(in srgb, rgb(85 85 255) 35%, var(--glass-underlay-surface));
+        --log-level-info-bg: color-mix(in srgb, rgb(85 255 85) 35%, var(--glass-underlay-surface));
+        --log-level-warning-bg: color-mix(in srgb, rgb(255 255 85) 35%, var(--glass-underlay-surface));
+        --log-level-error-bg: color-mix(in srgb, rgb(255 85 85) 35%, var(--glass-underlay-surface));
+        --log-level-color: var(--text-primary);
+        --live-status-overlay-text: rgb(15 17 15);
+        --live-status-overlay-text-muted: rgb(15 17 15 / 64%);
+    }
+}

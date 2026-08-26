@@ -1,0 +1,31 @@
+/* SoAI - Frontend core Translation declarations for key group `hardware.systemInfo` [frontend/assets/ts/core/i18n/translationkeys/hardware/systemInfo.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type HardwareSystemInfoTranslationKey =
+    | 'hardware.systemInfo.labels.status'
+    | 'hardware.systemInfo.labels.versionPrefix'
+    | 'hardware.systemInfo.report.bullet'
+    | 'hardware.systemInfo.report.end'
+    | 'hardware.systemInfo.report.generated'
+    | 'hardware.systemInfo.report.separator'
+    | 'hardware.systemInfo.report.title'
+    | 'hardware.systemInfo.sections.capabilities'
+    | 'hardware.systemInfo.sections.cpu'
+    | 'hardware.systemInfo.sections.cpuEntry'
+    | 'hardware.systemInfo.sections.cpuEntryWithIndex'
+    | 'hardware.systemInfo.sections.disk'
+    | 'hardware.systemInfo.sections.diskEntryIndexed'
+    | 'hardware.systemInfo.sections.diskEntryMounted'
+    | 'hardware.systemInfo.sections.gpu'
+    | 'hardware.systemInfo.sections.gpuEntry'
+    | 'hardware.systemInfo.sections.health'
+    | 'hardware.systemInfo.sections.memory'
+    | 'hardware.systemInfo.sections.network'
+    | 'hardware.systemInfo.sections.networkEntryIndexed'
+    | 'hardware.systemInfo.sections.networkEntryNamed'
+    | 'hardware.systemInfo.sections.os'
+    | 'hardware.systemInfo.sections.plugins'
+    | 'hardware.systemInfo.sections.summary'
+    | 'hardware.systemInfo.sections.swap'
+    | 'hardware.systemInfo.sections.system'
+    | 'hardware.systemInfo.sections.uptime';

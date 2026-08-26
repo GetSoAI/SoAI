@@ -1,0 +1,36 @@
+/* SoAI - Modal tokens frontend styles [frontend/assets/css/foundations/modal-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --modal-overlay-backdrop-filter: blur(12px);
+        --modal-overlay-surface: var(--glass-surface-medium);
+        --modal-surface-width: min(calc(80 * var(--ui-viewport-width-unit)), 500px);
+        --modal-surface-max-height: min(calc(80 * var(--ui-viewport-height-unit)), 600px);
+        --modal-surface-max-width-large: min(calc(95 * var(--ui-viewport-width-unit)), 1200px);
+        --modal-surface-max-height-large: min(calc(95 * var(--ui-viewport-height-unit)), 900px);
+        --modal-header-padding: 0.75rem;
+        --modal-footer-gap: 1rem;
+        --modal-chrome-background: var(--glass-surface-darker);
+        --modal-field-label-color: var(--text-secondary);
+        --modal-surface-shadow: var(--glass-shadow-base), 0 25px 80px rgb(0 0 0 / 30%);
+        --modal-section-padding: var(--space-3);
+        --modal-body-padding: var(--modal-section-padding);
+        --modal-confirmation-body-padding: 2rem;
+        --modal-size-md-width: 650px;
+        --modal-size-md-height: 450px;
+        --modal-size-md-min-width: 650px;
+        --modal-size-md-min-height: 450px;
+        --modal-size-lg-width: 850px;
+        --modal-size-lg-height: 650px;
+        --modal-size-lg-min-width: 550px;
+        --modal-size-lg-min-height: 450px;
+        --modal-size-xl-width: 1200px;
+        --modal-size-xl-height: 960px;
+        --modal-size-xl-min-width: 780px;
+        --modal-size-xl-min-height: 600px;
+        --layout-empty-state-max-width: 400px;
+        --motion-empty-state-appear-delay: 250ms;
+        --motion-empty-state-appear-duration: 150ms;
+    }
+}

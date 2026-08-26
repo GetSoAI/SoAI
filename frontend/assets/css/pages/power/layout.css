@@ -1,0 +1,85 @@
+/* SoAI - Power page layout styles [frontend/assets/css/pages/power/layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='power'], [data-page-scope='power']) .power-restart-notice-message {
+        margin: 0;
+        font-size: inherit;
+        color: var(--status-orange);
+        line-height: inherit;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-options {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-option {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        font-size: var(--font-size-body-xl);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-option-input {
+        width: 110px;
+        padding: var(--space-15) var(--space-2);
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid var(--text-field-border);
+        background: var(--text-field-bg);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        color: var(--text-primary);
+        box-shadow: var(--glass-shadow-base);
+        transition:
+            background var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .power-option-input:hover:not(:focus) {
+        background: var(--text-field-bg-hover);
+        border-color: var(--text-field-border-hover);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .delay-option {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-size: var(--font-size-body-md);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .delay-option label {
+        font-weight: 500;
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .delay-option input {
+        width: 120px;
+        min-width: 60px;
+        padding: var(--space-15) var(--space-3);
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        border: var(--border-width-1) solid var(--text-field-border);
+        border-radius: var(--border-radius);
+        background: var(--text-field-bg);
+        transition:
+            background var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+    }
+
+    :where([data-section='power'], [data-page-scope='power']) .delay-option input:hover:not(:focus) {
+        background: var(--text-field-bg-hover);
+        border-color: var(--text-field-border-hover);
+    }
+
+    @container ui-viewport (width <= 900px) {
+        :where([data-section='power'], [data-page-scope='power']) .power-action-header.action-header {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+}

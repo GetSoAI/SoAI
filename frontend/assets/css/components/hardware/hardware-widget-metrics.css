@@ -1,0 +1,47 @@
+/* SoAI - Hardware widget metrics component styles [frontend/assets/css/components/hardware/hardware-widget-metrics.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .hardware-widget .ui-metric-value {
+        color: var(--hardware-widget-text-muted);
+        font-size: clamp(var(--font-size-micro), 5cqw, var(--font-size-sm));
+        font-weight: 500;
+        text-shadow: 0 2px 4px color-mix(in srgb, var(--color-black) 20%, transparent);
+        text-align: right;
+        white-space: nowrap;
+        flex-shrink: 0;
+        min-width: 6ch;
+        margin-left: auto;
+        font-variant-numeric: tabular-nums;
+        transition:
+            color var(--duration-400) var(--ease-emphasized),
+            transform var(--duration-400) var(--ease-emphasized);
+        transform-origin: right center;
+    }
+
+    .hardware-widget .ui-metric-value.hardware-widget__metric-value--temperature-critical {
+        color: var(--accent-red);
+    }
+
+    .hardware-widget .ui-metric-value.hardware-widget__metric-value--temperature-warning {
+        color: var(--status-orange);
+    }
+
+    .hardware-widget .ui-metric-value.is-unit-switching {
+        animation: widget-fade-switch var(--duration-300) var(--ease-out);
+    }
+
+    .hardware-widgets-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-6);
+        padding: var(--space-5);
+        justify-content: flex-start;
+    }
+
+    @container ui-viewport (width <= 1024px) {
+        .hardware-widgets-container {
+            justify-content: center;
+        }
+    }
+}

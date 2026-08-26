@@ -1,0 +1,26 @@
+/* SoAI - Inline tool status values component styles [frontend/assets/css/components/chat/inline-tool-status-values.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .inline-tool-status-value {
+        font-weight: 600;
+    }
+
+    :where(.chat-container) .inline-tool-status-value--pending {
+        color: var(--status-blue);
+    }
+
+    :where(.chat-container) .inline-tool-status-value--in-progress,
+    :where(.chat-container) .inline-tool-status-value--running {
+        color: var(--status-orange);
+    }
+
+    :where(.chat-container) .inline-tool-status-value--completed,
+    :where(.chat-container) .inline-tool-status-value--cancelled {
+        color: var(--status-green);
+    }
+
+    :where(.chat-container) .inline-tool-status-value--error {
+        color: var(--status-red);
+    }
+}

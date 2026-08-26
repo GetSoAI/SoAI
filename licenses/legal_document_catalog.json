@@ -1,0 +1,80 @@
+{
+  "catalog_version": "1.0",
+  "documents": [
+    {
+      "document_id": "soai_core_license",
+      "effective_date": "2026-08-22",
+      "flows": [
+        "commercial_activation",
+        "core_evaluation",
+        "core_personal"
+      ],
+      "offers": [
+        "core_and_os_commercial",
+        "core_commercial",
+        "os_commercial"
+      ],
+      "repository_path": "LICENSE.md",
+      "sha256": "be7f990f998f87bf02eede34d5184cf257eba8b8033a43d1e39e7a7b34815717",
+      "version": "1.0"
+    },
+    {
+      "document_id": "soai_core_change_dates",
+      "effective_date": "2026-08-22",
+      "flows": [
+        "official_release",
+        "update_verification"
+      ],
+      "offers": [],
+      "repository_path": "CHANGE-DATES.md",
+      "sha256": "a78e45ee2d7178d89d67c3877940d7553419037222d405dcdd745b9204772f9f",
+      "version": "1.0"
+    },
+    {
+      "document_id": "organization_evaluation_terms",
+      "effective_date": "2026-08-22",
+      "flows": [
+        "core_evaluation",
+        "os_evaluation_conversion"
+      ],
+      "offers": [],
+      "repository_path": "ORGANIZATION-EVALUATION-TERMS.md",
+      "sha256": "97077ee7ae50ba18fff5de3050c6e9c2ac4bc7bc856134849a404c6c6f28db72",
+      "version": "1.0"
+    },
+    {
+      "document_id": "standard_commercial_license",
+      "effective_date": "2026-08-22",
+      "flows": [
+        "commercial_activation",
+        "commercial_checkout",
+        "term_renewal"
+      ],
+      "offers": [
+        "core_and_os_commercial",
+        "core_commercial",
+        "os_commercial"
+      ],
+      "repository_path": "COMMERCIAL-LICENSE.md",
+      "sha256": "e5c9ea4394fb22478708f3868ccdd6d46a7ec3059f0b8e36a79962bf60dedf3e",
+      "version": "1.0"
+    },
+    {
+      "document_id": "commercial_support_terms",
+      "effective_date": "2026-08-22",
+      "flows": [
+        "commercial_checkout",
+        "support_entitlement"
+      ],
+      "offers": [
+        "core_and_os_commercial",
+        "core_commercial",
+        "os_commercial"
+      ],
+      "repository_path": "COMMERCIAL-SUPPORT-TERMS.md",
+      "sha256": "8375bae05ce5d585c6364440cb2f00007d02d210a1682c8eb9f720da111d6a90",
+      "version": "1.0"
+    }
+  ],
+  "schema_version": 1
+}

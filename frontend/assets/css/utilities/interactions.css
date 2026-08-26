@@ -1,0 +1,64 @@
+/* SoAI - Interactions utility styles [frontend/assets/css/utilities/interactions.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    .u-cursor-pointer {
+        cursor: pointer;
+    }
+
+    .u-cursor-default {
+        cursor: default;
+    }
+
+    .u-cursor-grab {
+        cursor: grab;
+    }
+
+    .u-cursor-grabbing {
+        cursor: grabbing;
+    }
+
+    .u-cursor-not-allowed {
+        cursor: no-drop;
+    }
+
+    .u-pointer-events-none {
+        pointer-events: none;
+    }
+
+    .u-pointer-events-auto {
+        pointer-events: auto;
+    }
+
+    .u-select-none {
+        user-select: none;
+    }
+
+    .u-select-text {
+        user-select: text;
+    }
+
+    .u-select-all {
+        user-select: all;
+    }
+
+    .u-overflow-hidden {
+        overflow: hidden;
+    }
+
+    .u-overflow-auto {
+        overflow: auto;
+    }
+
+    .u-overflow-scroll {
+        overflow: scroll;
+    }
+
+    .u-overflow-y-auto {
+        overflow-y: auto;
+    }
+
+    .u-overflow-x-auto {
+        overflow-x: auto;
+    }
+}

@@ -1,0 +1,69 @@
+/* SoAI - Frontend components chat attachment summary removable styles [frontend/assets/css/components/chat/chat-attachment-summary-removable.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .file-preview-item.document.chat-attachment-summary-card--removable {
+        position: relative;
+        align-items: stretch;
+        gap: 0;
+        padding: 0;
+        cursor: default;
+    }
+
+    :where(.chat-container) .chat-attachment-summary-card-body {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        width: 100%;
+        padding: var(--space-15) var(--space-2);
+        border: none;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    :where(.chat-container) .chat-attachment-summary-card-delete.ui-round-button {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        z-index: var(--z-above-sibling);
+    }
+
+    .file-preview-item.document.chat-attachment-overflow-item--removable {
+        position: relative;
+        align-items: stretch;
+        gap: 0;
+        padding: 0;
+        cursor: default;
+    }
+
+    .chat-attachment-overflow-body {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        width: 100%;
+        padding: var(--space-2) var(--space-25);
+        border: none;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .chat-attachment-overflow-delete.ui-round-button {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        z-index: var(--z-above-sibling);
+    }
+
+    @container ui-viewport (width <= 900px) {
+        :where(.chat-container) .chat-attachment-summary-card-body,
+        .chat-attachment-overflow-body {
+            padding: var(--space-1) var(--space-2);
+        }
+    }
+}

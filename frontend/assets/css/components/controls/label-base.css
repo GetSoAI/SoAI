@@ -1,0 +1,16 @@
+/* SoAI - Label base component styles [frontend/assets/css/components/controls/label-base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    label {
+        display: block;
+        margin-bottom: var(--space-1);
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+
+    label:not(:has(:where(input, select, textarea)), .slider, .assistant-news-widget__item, .assistant-weather-widget__day) {
+        pointer-events: none;
+    }
+}

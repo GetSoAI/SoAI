@@ -1,0 +1,67 @@
+/* SoAI - Hardware page io cards styles [frontend/assets/css/pages/hardware/io-cards.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    .hardware-container:where([data-section='hardware'], [data-page-scope='hardware']) {
+        --network-download-color: var(--status-green-bright);
+        --network-upload-color: var(--accent-yellow);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) :is(.hardware-network-card, .hardware-storage-card).metrics-panel.card {
+        display: flex;
+        flex-direction: column;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) :is(.hardware-network-card, .hardware-storage-card).metrics-panel.card::after {
+        background-color: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) :is(.hardware-network-card, .hardware-storage-card).hardware-section > .section-content {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) :is(.hardware-network-content, .hardware-storage-content) {
+        background-color: var(--recessed-surface-fill-background);
+        background-image: var(--recessed-surface-fill);
+        background-blend-mode: var(--recessed-surface-texture-blend);
+        background-size: var(--recessed-surface-texture-size);
+        -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
+        backdrop-filter: var(--recessed-surface-backdrop-filter);
+        box-shadow: var(--recessed-surface-shadow);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        gap: var(--space-3);
+        max-height: 100%;
+        min-height: 0;
+        overflow: hidden auto;
+        padding: var(--space-4);
+        scrollbar-gutter: auto;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) :is(.hardware-network-card, .hardware-storage-card) > .section-header .u-text-muted {
+        font-size: var(--font-size-compact);
+        letter-spacing: var(--tracking-04px);
+        text-transform: uppercase;
+    }
+
+    @container ui-viewport (width <= 1400px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) :is(.hardware-network-card, .hardware-storage-card) > .section-header .u-text-muted {
+            display: none;
+        }
+    }
+
+    @container ui-viewport (width <= 1200px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-grid.movable-sections-grid.is-collapsed :is(.hardware-network-card, .hardware-storage-card).hardware-section.is-collapsed {
+            min-height: min(24rem, calc(calc(100 * var(--ui-viewport-small-height-unit)) - var(--layout-container-padding) * 2));
+        }
+    }
+}

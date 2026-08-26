@@ -1,0 +1,24 @@
+/* SoAI - Chat model menu search component styles [frontend/assets/css/components/chat/chat-model-menu-search.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-search {
+        padding: var(--space-2);
+        border-bottom: var(--border-width-1) solid color-mix(in srgb, var(--glass-border-strong) 65%, transparent);
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-search .searchbar-container {
+        min-width: 0;
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-search .searchbar-input {
+        height: var(--control-height-compact);
+    }
+
+    :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-empty {
+        padding: var(--space-3) var(--space-2);
+        color: var(--text-tertiary);
+        font-size: var(--font-size-sm);
+        text-align: center;
+    }
+}

@@ -1,0 +1,27 @@
+/* SoAI - Automation page empty day labels styles [frontend/assets/css/pages/automation/empty-day-labels.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-empty-day-label {
+        position: absolute;
+        inset-block-start: var(--space-2);
+        inset-inline-start: var(--space-2);
+        z-index: var(--z-above-sibling);
+        max-inline-size: calc(100% - (2 * var(--space-2)));
+        pointer-events: none;
+        color: var(--text-muted);
+        font-size: clamp(var(--font-size-micro), 18cqi, var(--font-size-body-lg));
+        font-weight: var(--font-weight-semibold);
+        line-height: 1;
+        opacity: 0.4;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    @container (max-width: 48px) {
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-empty-day-label {
+            display: none;
+        }
+    }
+}

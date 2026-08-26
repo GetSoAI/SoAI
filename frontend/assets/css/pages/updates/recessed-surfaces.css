@@ -1,0 +1,43 @@
+/* SoAI - Updates page recessed surfaces styles [frontend/assets/css/pages/updates/recessed-surfaces.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-table-card-content.data-table-wrapper {
+        position: relative;
+        background-color: var(--recessed-surface-fill-background);
+        background-image: var(--recessed-surface-fill);
+        background-blend-mode: var(--recessed-surface-texture-blend);
+        background-size: var(--recessed-surface-texture-size);
+        -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
+        backdrop-filter: var(--recessed-surface-backdrop-filter);
+        box-shadow: var(--recessed-surface-shadow);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        overflow: auto;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-table-card-content.data-table-wrapper .table-compact th {
+        background: color-mix(in srgb, var(--recessed-surface-fill-background) 84%, var(--surface-card));
+        border-bottom-color: color-mix(in srgb, var(--surface-card-border) 76%, transparent);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-table-card-content.data-table-wrapper .table-compact th.sortable:hover {
+        background: var(--glass-surface-interactive-hover);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-table-card-content.data-table-wrapper .table-compact th.sortable.is-active {
+        background: color-mix(in srgb, var(--recessed-surface-fill-background) 70%, var(--surface-card));
+        border-bottom-color: color-mix(in srgb, var(--surface-card-border) 90%, var(--text-tertiary) 10%);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-table-card-content.data-table-wrapper .table-compact tbody tr.checkerboard-light td {
+        background: color-mix(in srgb, var(--recessed-surface-fill-background) 22%, var(--alternating-grey-light));
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-table-card-content.data-table-wrapper .table-compact tbody tr.checkerboard-dark td {
+        background: color-mix(in srgb, var(--recessed-surface-fill-background) 30%, var(--alternating-grey-dark));
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-table-card-content.data-table-wrapper .table-compact tbody tr:hover td {
+        background: var(--glass-surface-interactive-hover);
+    }
+}

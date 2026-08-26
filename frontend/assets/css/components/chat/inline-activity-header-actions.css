@@ -1,0 +1,38 @@
+/* SoAI - Inline activity header actions component styles [frontend/assets/css/components/chat/inline-activity-header-actions.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) :is(.inline-activity-close-button, .inline-activity-stop-button).ui-round-button {
+        --ui-round-button-surface: var(--control-round-button-activity-close-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-activity-close-bg-hover);
+        display: none;
+        margin-left: auto;
+        position: relative;
+        inset: auto;
+        z-index: var(--z-base);
+        flex: 0 0 auto;
+        border-radius: var(--border-radius);
+        box-shadow: none;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    :where(.chat-container) .inline-activity-stop-button.ui-round-button + .inline-activity-close-button.ui-round-button {
+        margin-left: 0;
+    }
+
+    :where(.chat-container) :is(.inline-activity-close-button, .inline-activity-stop-button).ui-round-button > :is(.ui-icon, .sidebar-icon, svg):not(.status-indicator, .status-led) {
+        width: var(--control-round-button-icon-size);
+        height: var(--control-round-button-icon-size);
+    }
+
+    :where(.chat-container) :is(.inline-activity-close-button, .inline-activity-stop-button).ui-round-button::before {
+        inset: 0;
+        border-radius: var(--border-radius);
+        pointer-events: none;
+    }
+
+    :where(.chat-container) .inline-activity:is([data-collapsed='false'], [data-collapsing='true']) > .inline-activity-header :is(.inline-activity-close-button, .inline-activity-stop-button).ui-round-button {
+        display: inline-grid;
+    }
+}

@@ -1,0 +1,79 @@
+/* SoAI - Chat configuration avatar component styles [frontend/assets/css/components/chat/chat-configuration-avatar.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .chat-configuration-modal {
+        --chat-configuration-avatar-preview-size: calc(var(--space-3) * 10);
+        --chat-configuration-avatar-preview-icon-size: calc(var(--space-3) * 4.5);
+    }
+
+    .chat-configuration-modal .chat-avatar-upload-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-4);
+    }
+
+    .chat-configuration-modal .chat-avatar-upload-column {
+        min-width: 0;
+    }
+
+    .chat-configuration-modal .chat-avatar-upload-row {
+        display: grid;
+        grid-template-columns: repeat(2, max-content);
+        align-items: start;
+        justify-items: start;
+        column-gap: var(--space-2);
+        row-gap: var(--space-3);
+    }
+
+    .chat-configuration-modal .chat-avatar-upload-row > .chat-avatar-preview {
+        grid-column: 1 / -1;
+    }
+
+    .chat-configuration-modal .chat-avatar-preview.message-avatar {
+        --ui-surface-panel-bg: color-mix(in srgb, var(--glass-surface-medium) 65%, var(--glass-underlay-surface));
+        display: grid;
+        place-items: center;
+        flex: 0 0 var(--chat-configuration-avatar-preview-size);
+        width: var(--chat-configuration-avatar-preview-size);
+        height: var(--chat-configuration-avatar-preview-size);
+        min-width: var(--chat-configuration-avatar-preview-size);
+        min-height: var(--chat-configuration-avatar-preview-size);
+        margin: 0;
+        align-self: center;
+        position: static;
+        top: auto;
+        overflow: hidden;
+        box-shadow: var(--glass-shadow-base);
+        color: var(--text-primary);
+    }
+
+    .chat-configuration-modal .chat-avatar-preview.message-avatar > .chat-avatar-preview-placeholder {
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--glass-surface-light) 88%, var(--color-white) 12%) 0%, transparent 58%), color-mix(in srgb, var(--glass-surface-light) 82%, var(--text-primary) 18%);
+    }
+
+    .chat-configuration-modal .chat-avatar-preview.message-avatar > .chat-avatar-preview-placeholder > svg {
+        width: var(--chat-configuration-avatar-preview-icon-size);
+        height: var(--chat-configuration-avatar-preview-icon-size);
+        color: color-mix(in srgb, currentcolor 88%, var(--color-white) 12%);
+        stroke: currentcolor;
+    }
+
+    .chat-configuration-modal .chat-avatar-preview.message-avatar > .chat-avatar-image {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        object-fit: cover;
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .chat-configuration-modal .chat-avatar-upload-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+}

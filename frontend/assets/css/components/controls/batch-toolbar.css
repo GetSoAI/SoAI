@@ -1,0 +1,97 @@
+/* SoAI - Batch toolbar component styles [frontend/assets/css/components/controls/batch-toolbar.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .batch-toolbar-count-icon {
+        display: inline-flex;
+        width: 12px;
+        height: 12px;
+        flex: 0 0 auto;
+        line-height: 1;
+    }
+
+    .batch-toolbar-count-icon svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .batch-toolbar-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        padding: 0 var(--space-4);
+        flex-shrink: 0;
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+        transition: min-height var(--transition-fast);
+        overflow: hidden;
+    }
+
+    .batch-toolbar-container.is-collapsed {
+        min-height: calc((1rem + var(--control-height) + 0.75rem) / 3);
+    }
+
+    .batch-toolbar-toggle {
+        background: none;
+        border: none;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        padding: var(--space-1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+    }
+
+    .batch-toolbar-toggle > svg.ui-icon {
+        pointer-events: none;
+    }
+
+    .batch-toolbar-content {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .batch-toolbar-container.is-expanded {
+        min-height: calc(1rem + var(--control-height) + 0.75rem);
+    }
+
+    .batch-toolbar-container.is-expanded .chat-toolbar-expanded-layer {
+        pointer-events: auto;
+        max-height: 72px;
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .batch-toolbar-container.is-expanded .chat-toolbar-collapsed-layer {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .batch-toolbar-metrics {
+        flex: 1 1 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-start;
+        text-align: left;
+        gap: var(--space-1);
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+        min-width: 0;
+        padding: 0 var(--space-1);
+    }
+
+    .batch-toolbar-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        flex-shrink: 0;
+    }
+
+    .batch-toolbar-batch-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        margin-left: auto;
+    }
+}

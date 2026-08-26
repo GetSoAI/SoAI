@@ -1,0 +1,83 @@
+/* SoAI - Modal shell component styles [frontend/assets/css/components/modals/modal-shell.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-modal {
+        --modal-frame-top: var(--layout-top-offset);
+        --modal-frame-left: var(--sidebar-collapsed-width);
+
+        position: fixed;
+        inset: var(--modal-frame-top) 0 0 var(--modal-frame-left);
+        z-index: calc(var(--z-modal) - 2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 1;
+        visibility: visible;
+        transition: opacity var(--transition-fast);
+        pointer-events: none;
+    }
+
+    body:is(.detached-window, .page-login, .page-wizard) .ui-modal {
+        --modal-frame-top: 0;
+        --modal-frame-left: 0;
+    }
+
+    .ui-modal.u-hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: calc(var(--z-modal) - 2);
+        background: var(--modal-overlay-surface);
+        -webkit-backdrop-filter: var(--modal-overlay-backdrop-filter);
+        backdrop-filter: var(--modal-overlay-backdrop-filter);
+        opacity: 1;
+        transition:
+            opacity var(--transition-fast),
+            backdrop-filter var(--transition-fast);
+        pointer-events: auto;
+        touch-action: none;
+        overscroll-behavior: contain;
+    }
+
+    .ui-modal.u-hidden .modal-overlay {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .modal-top-dock-preview {
+        position: absolute;
+        inset: var(--space-6);
+        background: color-mix(in srgb, var(--glass-surface-strong) 36%, transparent);
+        border: var(--border-width-2) solid color-mix(in srgb, var(--glass-border-strong) 70%, var(--text-secondary) 30%);
+        border-radius: var(--border-radius);
+        z-index: var(--z-modal);
+        pointer-events: none;
+        opacity: 0;
+        transform: scale(0.98);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--glass-border-strong) 30%, transparent),
+            0 6px 18px color-mix(in srgb, var(--color-black) 14%, transparent);
+        transition:
+            opacity var(--duration-220) var(--ease-in-out),
+            transform var(--duration-220) var(--ease-in-out);
+    }
+
+    .modal-top-dock-preview.is-visible {
+        opacity: 0.9;
+        transform: scale(1);
+    }
+
+    @container ui-viewport (width <= 1024px) or (height <= 768px) {
+        .ui-modal {
+            --modal-frame-left: 0;
+        }
+    }
+}

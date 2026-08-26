@@ -1,0 +1,45 @@
+/* SoAI - Dashboard page hardware cards styles [frontend/assets/css/pages/dashboard/hardware-cards.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) {
+        --network-download-color: var(--status-green-bright);
+        --network-upload-color: var(--accent-yellow);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is([data-section-id='network'], [data-section-id='storage']) {
+        --dashboard-section-content-overflow: hidden auto;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.hardware-network-list, .hardware-storage-list) {
+        overflow: hidden auto;
+        padding-bottom: var(--space-3);
+        scroll-padding-bottom: var(--space-3);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :where(.hardware-network-row, .hardware-storage-row) {
+        border-color: color-mix(in srgb, var(--surface-card-border) 82%, transparent);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is([data-section-id='network'], [data-section-id='storage']) > .dashboard-section-surface > .section-header .u-text-muted {
+        font-size: var(--font-size-compact);
+        letter-spacing: var(--tracking-04px);
+        text-transform: uppercase;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-grid[data-columns='1'] :is(.hardware-network-list, .hardware-storage-list) {
+        flex: none;
+        height: auto;
+        overflow-y: visible;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.hardware-network-list .hardware-network-row, .hardware-storage-list .hardware-storage-row) {
+        margin-right: 0;
+    }
+
+    @container ui-viewport (width <= 1400px) {
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) :is([data-section-id='network'], [data-section-id='storage']) > .dashboard-section-surface > .section-header .u-text-muted {
+            display: none;
+        }
+    }
+}

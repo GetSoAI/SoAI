@@ -1,0 +1,18 @@
+/* SoAI - Chat authority lock component styles [frontend/assets/css/components/chat/chat-authority-lock.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) [data-settings-authority-lock] {
+        opacity: 0.55;
+        cursor: no-drop;
+        pointer-events: auto;
+    }
+
+    :where(.chat-container) [data-settings-authority-lock]:is(:hover, :focus-visible, :active) {
+        opacity: 0.55;
+    }
+
+    :where(.chat-container) [data-settings-authority-lock] :is(button, select, input, textarea):disabled {
+        pointer-events: none;
+    }
+}

@@ -1,0 +1,19 @@
+/* SoAI - Modal tabs component styles [frontend/assets/css/components/modals/modal-tabs.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .modal-header .tabs-container {
+        margin-bottom: 0;
+        min-height: fit-content;
+    }
+
+    .modal-header .tabs-nav {
+        overflow: auto visible;
+        flex-wrap: nowrap;
+        min-height: fit-content;
+    }
+
+    .modal-header .tabs-nav-button {
+        display: none;
+    }
+}

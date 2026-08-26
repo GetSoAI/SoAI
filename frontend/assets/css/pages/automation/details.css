@@ -1,0 +1,71 @@
+/* SoAI - Automation page details styles [frontend/assets/css/pages/automation/details.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-occurrence-excerpt {
+        padding: var(--space-4);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        font-size: var(--font-size-body-sm);
+        color: var(--text-primary);
+        line-height: 1.4;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        max-height: min(calc(40 * var(--ui-viewport-height-unit)), 320px);
+        overflow: hidden auto;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-occurrence-excerpt.is-empty {
+        color: var(--text-muted);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-occurrence-plan, .automation-occurrence-todo) {
+        margin: 0;
+        padding: var(--space-4);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        font-size: var(--font-size-body-sm);
+        font-family: inherit;
+        color: var(--text-primary);
+        line-height: 1.4;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        max-height: min(calc(40 * var(--ui-viewport-height-unit)), 320px);
+        overflow: hidden auto;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-occurrence-plan, .automation-occurrence-todo).is-empty {
+        color: var(--text-muted);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-occurrence-excerpt, .automation-occurrence-plan, .automation-occurrence-todo):has(> .code-block),
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-occurrence-excerpt, .automation-occurrence-plan, .automation-occurrence-todo):has(> .code-block-plain) {
+        padding: 0;
+        border: none;
+        background: none;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        box-shadow: none;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-occurrence-excerpt, .automation-occurrence-plan, .automation-occurrence-todo) > :is(.code-block, .code-block-plain) {
+        max-height: min(calc(40 * var(--ui-viewport-height-unit)), 320px);
+        overflow: hidden auto;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-occurrence-excerpt, .automation-occurrence-plan, .automation-occurrence-todo) > .code-block-plain {
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-occurrence-modal .modal-body {
+        overflow: hidden auto;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-occurrence-modal .automation-occurrence-modal-body {
+        display: grid;
+        grid-auto-rows: min-content;
+        row-gap: var(--space-4);
+        padding: var(--modal-section-padding);
+        min-height: 0;
+    }
+}

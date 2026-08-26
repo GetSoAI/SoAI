@@ -1,0 +1,74 @@
+/* SoAI - Tool approval preview component styles [frontend/assets/css/components/data/tool-approval-preview.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .tool-approval-arguments-pre {
+        margin: var(--space-15) 0 0 0;
+        padding: var(--space-15);
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--glass-surface-strong) 88%, var(--text-primary));
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        font-family: var(--font-family-mono);
+        font-size: var(--font-size-body-sm);
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 240px;
+        overflow: auto;
+    }
+
+    :where(.chat-container) .tool-approval-arguments-pre.code-block {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    :where(.chat-container) .tool-approval-remember {
+        --ui-action-row-gap: var(--space-15);
+        --ui-action-row-wrap: nowrap;
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container) .tool-approval-footer {
+        justify-content: flex-end;
+        gap: var(--space-15);
+        padding: 0 var(--space-2) var(--space-1) var(--space-2);
+    }
+
+    :where(.chat-container) .tool-call {
+        --ui-surface-panel-bg: color-mix(in srgb, var(--glass-surface-medium) 65%, var(--glass-underlay-surface));
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        margin: var(--space-3) 0;
+        padding: var(--space-3);
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    :where(.chat-container) .tool-call-header {
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .tool-call-args,
+    :where(.chat-container) .tool-call-function,
+    :where(.chat-container) .tool-call-metadata {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    :where(.chat-container) pre.tool-call-args,
+    :where(.chat-container) pre.tool-call-function,
+    :where(.chat-container) pre.tool-call-metadata {
+        margin: 0;
+        padding: var(--space-2);
+        background: var(--glass-surface-medium);
+        border: var(--border-width-1) solid var(--glass-border-medium);
+        border-radius: var(--border-radius);
+        max-height: 200px;
+        overflow: auto;
+        scrollbar-gutter: stable;
+        font-family: var(--font-family-mono);
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+    }
+}

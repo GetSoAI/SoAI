@@ -1,0 +1,32 @@
+/* SoAI - Collection status component styles [frontend/assets/css/components/collections/collection-status.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-collection-card__status-line {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        transition: background-color var(--transition-fast);
+    }
+
+    .ui-collection-card__status-line.status-success {
+        background-color: var(--status-green);
+    }
+    .ui-collection-card__status-line.status-persistent {
+        background-color: var(--status-persistentgreen);
+    }
+    .ui-collection-card__status-line.status-info {
+        background-color: var(--status-blue);
+    }
+    .ui-collection-card__status-line.status-warning {
+        background-color: var(--status-orange);
+    }
+    .ui-collection-card__status-line.status-error {
+        background-color: var(--status-red);
+    }
+    .ui-collection-card__status-line.status-neutral {
+        background-color: var(--status-grey);
+    }
+}

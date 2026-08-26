@@ -1,0 +1,31 @@
+/* SoAI - Frontend core Translation declarations for key group `statusCatalog.default` [frontend/assets/ts/core/i18n/translationkeys/statuscatalog/default.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type StatusCatalogDefaultTranslationKey =
+    | 'statusCatalog.default.absent'
+    | 'statusCatalog.default.backendInstalling'
+    | 'statusCatalog.default.backendNotInstalled'
+    | 'statusCatalog.default.backendUninstallError'
+    | 'statusCatalog.default.backendUpdating'
+    | 'statusCatalog.default.deleteError'
+    | 'statusCatalog.default.deleting'
+    | 'statusCatalog.default.disabled'
+    | 'statusCatalog.default.error'
+    | 'statusCatalog.default.idle'
+    | 'statusCatalog.default.incompatible'
+    | 'statusCatalog.default.installError'
+    | 'statusCatalog.default.loadError'
+    | 'statusCatalog.default.loading'
+    | 'statusCatalog.default.notDetected'
+    | 'statusCatalog.default.persistentReady'
+    | 'statusCatalog.default.processing'
+    | 'statusCatalog.default.quarantined'
+    | 'statusCatalog.default.ready'
+    | 'statusCatalog.default.readyDirty'
+    | 'statusCatalog.default.readyPendingDispatch'
+    | 'statusCatalog.default.removing'
+    | 'statusCatalog.default.starting'
+    | 'statusCatalog.default.stopped'
+    | 'statusCatalog.default.stopping'
+    | 'statusCatalog.default.unknown'
+    | 'statusCatalog.default.updateError';

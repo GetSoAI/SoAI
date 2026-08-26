@@ -1,0 +1,32 @@
+/* SoAI - Status colors utility styles [frontend/assets/css/utilities/status-colors.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    :where(.status-success, .ui-metric-badge.ui-metric-badge--status-green) {
+        --status-color: var(--status-green);
+    }
+
+    :where(.ui-metric-badge.ui-metric-badge--status-persistentgreen) {
+        --status-color: var(--status-persistentgreen);
+    }
+
+    :where(.status-warning, .ui-metric-badge.ui-metric-badge--status-orange) {
+        --status-color: var(--status-orange);
+    }
+
+    :where(.status-error, .ui-metric-badge.ui-metric-badge--status-red) {
+        --status-color: var(--status-red);
+    }
+
+    :where(.status-info, .ui-metric-badge.ui-metric-badge--status-blue) {
+        --status-color: var(--status-blue);
+    }
+
+    :where(.status-neutral, .ui-metric-badge.ui-metric-badge--status-grey) {
+        --status-color: var(--status-grey);
+    }
+
+    :where(.ui-metric-badge.ui-metric-badge--status-darkgreen) {
+        --status-color: var(--status-darkgreen);
+    }
+}

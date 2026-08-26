@@ -1,0 +1,56 @@
+/* SoAI - Control tokens frontend styles [frontend/assets/css/foundations/control-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --control-height: 37px;
+        --control-height-compact: 32px;
+        --control-height-lg: 38px;
+        --control-height-titlebar: 18px;
+        --control-padding-block-sm: 0.35rem;
+        --control-padding-block: 0.375rem;
+        --control-padding-block-lg: 0.5rem;
+        --control-padding-inline: 0.75rem;
+        --control-dropdown-font-size: var(--font-size-body-md);
+        --control-icon-size: 16px;
+        --control-icon-size-compact: 14px;
+        --control-icon-size-lg: 24px;
+        --control-focus-ring-color: var(--accent-primary);
+        --control-focus-ring-width: var(--border-width-2);
+        --control-focus-ring-offset: var(--border-width-2);
+        --control-select-arrow-image: url('../../img/icons/chevron-down.svg');
+        --text-field-bg: var(--glass-surface-strong);
+        --text-field-bg-hover: color-mix(in srgb, var(--text-field-bg) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        --text-field-bg-disabled: var(--glass-surface-weak);
+        --text-field-border: var(--border-color);
+        --text-field-border-hover: color-mix(in srgb, var(--text-field-border) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
+        --glass-surface-interactive-hover: var(--glass-surface-interactive-hover-base);
+        --control-round-button-size: 20px;
+        --control-round-button-icon-size: 12px;
+        --control-round-button-foreground: var(--color-white);
+        --control-round-button-danger-bg: color-mix(in srgb, var(--ui-button-danger-color) 85%, var(--color-white) 15%);
+        --control-round-button-danger-bg-hover: color-mix(in srgb, var(--ui-button-danger-color) 65%, var(--color-white) 35%);
+        --control-round-button-neutral-bg: color-mix(in srgb, var(--ui-button-neutral-color) 85%, var(--color-white) 15%);
+        --control-round-button-neutral-bg-hover: color-mix(in srgb, var(--ui-button-neutral-color) 65%, var(--color-white) 35%);
+        --control-round-button-primary-bg: color-mix(in srgb, var(--ui-button-primary-color) 82%, var(--color-black) 18%);
+        --control-round-button-primary-bg-hover: color-mix(in srgb, var(--ui-button-primary-color) 88%, var(--color-black) 12%);
+        --control-round-button-violet-bg: color-mix(in srgb, var(--ui-button-violet-color) 82%, var(--color-black) 18%);
+        --control-round-button-violet-bg-hover: color-mix(in srgb, var(--ui-button-violet-color) 88%, var(--color-black) 12%);
+        --control-round-button-warning-bg: color-mix(in srgb, var(--ui-button-warning-color) 85%, var(--color-white) 15%);
+        --control-round-button-warning-bg-hover: color-mix(in srgb, var(--ui-button-warning-color) 65%, var(--color-white) 35%);
+        --control-round-button-success-bg: color-mix(in srgb, var(--ui-button-accent-color) 85%, var(--color-white) 15%);
+        --control-round-button-success-bg-hover: color-mix(in srgb, var(--ui-button-accent-color) 65%, var(--color-white) 35%);
+        --control-round-button-close-bg: color-mix(in srgb, var(--ui-button-neutral-color) 63%, var(--color-black) 37%);
+        --control-round-button-close-bg-hover: var(--control-round-button-neutral-bg-hover);
+        --control-round-button-modal-close-bg: var(--control-round-button-close-bg);
+        --control-round-button-modal-close-bg-hover: var(--control-round-button-close-bg-hover);
+        --control-round-button-activity-close-bg: var(--control-round-button-close-bg);
+        --control-round-button-activity-close-bg-hover: var(--control-round-button-close-bg-hover);
+        --icon-button-size: var(--control-height);
+        --icon-button-size-small: 26px;
+        --icon-button-size-dense: 28px;
+        --icon-size: 19px;
+        --button-icon-scale: 0.15;
+        --header-button-gap: 0.75rem;
+    }
+}

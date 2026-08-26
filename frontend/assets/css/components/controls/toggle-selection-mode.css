@@ -1,0 +1,41 @@
+/* SoAI - Toggle selection mode component styles [frontend/assets/css/components/controls/toggle-selection-mode.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .toggle-selection-mode.is-active {
+        order: 9999;
+        width: var(--icon-button-size);
+        height: var(--icon-button-size);
+        min-width: var(--icon-button-size);
+        min-height: var(--icon-button-size);
+        padding: 0;
+        border-radius: var(--border-radius);
+        justify-content: center;
+        align-items: center;
+        gap: 0;
+    }
+
+    .toggle-selection-mode svg {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+    }
+
+    .toggle-selection-mode .toggle-selection-mode-label,
+    .toggle-selection-mode .toggle-selection-mode-open-icon {
+        display: inline-flex;
+    }
+
+    .toggle-selection-mode .toggle-selection-mode-close-icon {
+        display: none;
+    }
+
+    .toggle-selection-mode.is-active .toggle-selection-mode-label,
+    .toggle-selection-mode.is-active .toggle-selection-mode-open-icon {
+        display: none;
+    }
+
+    .toggle-selection-mode.is-active .toggle-selection-mode-close-icon {
+        display: inline-flex;
+    }
+}

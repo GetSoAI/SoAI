@@ -1,0 +1,6 @@
+/* SoAI - Updates page styles [frontend/assets/css/pages/updates/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./base.css') layer(pages);
+@import url('./layout.css') layer(pages);
+@import url('./recessed-surfaces.css') layer(pages);

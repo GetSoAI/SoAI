@@ -1,0 +1,39 @@
+/* SoAI - Inline tool code diffs component styles [frontend/assets/css/components/chat/inline-tool-code-diffs.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .inline-tool-code-diffs {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    :where(.chat-container) .inline-tool-code-diff-entry {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        padding: 0;
+    }
+
+    :where(.chat-container) .inline-tool-code-diff-entry > .code-block {
+        margin: 0;
+    }
+
+    :where(.chat-container) .inline-tool-code-diff-entry > .code-block > code {
+        scrollbar-gutter: auto;
+    }
+
+    :where(.chat-container) .inline-tool-code-diff-path {
+        font-family: var(--font-family-mono);
+        font-size: calc(var(--font-size-xs) * var(--chat-text-scale));
+        color: var(--text-secondary);
+        overflow-wrap: anywhere;
+    }
+
+    :where(.chat-container) .inline-tool-code-diff-truncated {
+        font-size: calc(var(--font-size-xs) * var(--chat-text-scale));
+        color: var(--status-orange);
+    }
+}

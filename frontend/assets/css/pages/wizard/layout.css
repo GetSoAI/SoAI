@@ -1,0 +1,230 @@
+/* SoAI - Wizard page layout styles [frontend/assets/css/pages/wizard/layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-hero-icon {
+        width: 56px;
+        height: 56px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-wizard-icon);
+        color: var(--accent-green);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-hero-icon--logo {
+        background: none;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-content[data-step='welcome'] .wizard-hero-icon--logo.wizard-hero-icon {
+        animation: wizard-logo-fade-in var(--duration-3000) var(--ease-emphasized) 1 both;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-step-logo {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 14px color-mix(in srgb, var(--status-shadow-green-medium) 50%, transparent));
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-form {
+        width: min(440px, 100%);
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-language-setting.setting-item {
+        width: min(440px, 100%);
+        margin: 0 auto;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .setting-item {
+        background: var(--glass-surface-strong);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        box-shadow: var(--glass-shadow-base);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-4);
+        padding: var(--space-3);
+        transition:
+            background var(--transition-fast),
+            border var(--transition-fast);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .setting-info {
+        flex: 1;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .setting-item > .setting-info {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) :is(.setting-label, .wizard-step--license > label, .wizard-form-group > label) {
+        display: block;
+        color: var(--modal-field-label-color);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        letter-spacing: var(--tracking-05px);
+        margin-bottom: var(--space-2);
+        text-transform: uppercase;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .setting-help {
+        font-size: var(--font-size-caption-plus);
+        color: var(--text-secondary);
+        line-height: 1.3;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .setting-control {
+        flex-shrink: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .setting-input {
+        width: 180px;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) input.setting-input {
+        background: var(--text-field-bg);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--text-field-border);
+        border-radius: var(--border-radius);
+        box-shadow: var(--glass-shadow-base);
+        padding: var(--space-15) var(--space-3);
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) input.setting-input:hover:not(:focus) {
+        background-color: var(--text-field-bg-hover);
+        border-color: var(--text-field-border-hover);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-step--license {
+        width: 100%;
+        max-width: 560px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-license-textbox {
+        width: 100%;
+        height: clamp(200px, calc(38 * var(--ui-viewport-height-unit)), 360px);
+        max-height: 640px;
+        border: var(--border-width-1) solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: var(--space-3);
+        font-size: var(--font-size-body-sm);
+        line-height: 1.5;
+        color: var(--text-primary);
+        background-color: var(--glass-surface-strong);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--glass-shadow-base);
+        white-space: pre-wrap;
+        overflow: auto;
+        resize: none;
+        font-family: inherit;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-password-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: var(--space-4);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-form-input {
+        width: 100%;
+        border: var(--border-width-1) solid var(--text-field-border);
+        border-radius: var(--border-radius);
+        padding: var(--space-25) var(--space-3);
+        font-size: var(--font-size-092);
+        color: var(--text-primary);
+        background: var(--text-field-bg);
+        transition:
+            background-color var(--duration-150) var(--ease-in-out),
+            border-color var(--duration-150) var(--ease-in-out),
+            box-shadow var(--duration-150) var(--ease-in-out);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-form-input:hover:not(:focus) {
+        background: var(--text-field-bg-hover);
+        border-color: var(--text-field-border-hover);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .secret-input-container > .wizard-form-input.secret-input {
+        padding-right: calc(var(--space-3) + var(--control-height));
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-error {
+        border-radius: var(--border-radius);
+        padding: var(--space-3) var(--space-4);
+        background: var(--glass-surface-error);
+        border: var(--border-width-1) solid var(--glass-border-error);
+        color: var(--feedback-error-highlight);
+        font-size: var(--font-size-body);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-navigation {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-4);
+        padding: var(--space-5) var(--space-7);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+        background: var(--glass-surface-medium);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) :is(.wizard-nav-left, .wizard-nav-right) {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-nav-right {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        row-gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-nav-button {
+        border-radius: var(--border-radius);
+        min-height: var(--control-height-lg);
+        padding: var(--space-2) var(--space-4);
+        font-weight: 600;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-nav-button.ui-variant-neutral {
+        --ui-button-border: var(--ui-button-neutral-color);
+        --ui-button-color: var(--ui-button-neutral-color);
+        --ui-button-border-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-color-hover: var(--ui-button-neutral-color-hover);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-nav-button.is-ready {
+        box-shadow: var(--shadow-glow-accent);
+    }
+}

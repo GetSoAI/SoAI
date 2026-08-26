@@ -1,0 +1,28 @@
+/* SoAI - Scrollbars frontend styles [frontend/assets/css/foundations/scrollbars.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :where(*) {
+        scrollbar-color: var(--border-color) var(--glass-surface-light);
+        scrollbar-width: thin;
+    }
+
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: var(--glass-surface-light);
+        border-radius: var(--border-radius);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: var(--border-radius);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--text-tertiary);
+    }
+}

@@ -1,0 +1,224 @@
+/* SoAI - Staged product access wizard presentation [frontend/assets/css/pages/wizard/product-access.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-step--product-access {
+        gap: var(--space-5);
+        max-width: 640px;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-operation-banner small,
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-price span {
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-price strong {
+        font-size: var(--font-size-145);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid--access {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-3);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid--access:has(> :nth-child(3)) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid--access .wizard-choice-card {
+        min-height: 0;
+        padding: var(--space-4);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid--access .wizard-choice-card strong {
+        font-size: var(--font-size-body);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid--access .wizard-choice-card em {
+        display: block;
+        margin-top: var(--space-3);
+        color: var(--text-primary);
+        font-size: var(--font-size-caption-plus);
+        font-style: normal;
+        font-weight: 600;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-access-panel {
+        display: grid;
+        gap: var(--space-5);
+        padding: var(--space-5);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-strong);
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-panel-heading {
+        display: grid;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-panel-heading :is(h3, h4, p) {
+        margin: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-panel-heading p {
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-product-access-form {
+        display: grid;
+        gap: var(--space-4);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-product-access-form .wizard-form-group,
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-access-panel > .wizard-form-group {
+        width: 100%;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-field-hint {
+        display: block;
+        margin-top: var(--space-2);
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption-plus);
+        line-height: 1.4;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-governing-documents {
+        display: grid;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document {
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        cursor: pointer;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document summary > span:first-child {
+        display: grid;
+        gap: var(--space-1);
+        min-width: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document summary small {
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-document-read,
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-contact-link {
+        color: var(--accent-green);
+        font-weight: 600;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document[open] .wizard-document-read {
+        display: none;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document .wizard-document-fingerprint {
+        padding: 0 var(--space-4) var(--space-3);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document-text {
+        margin: 0;
+        padding: var(--space-4);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+        background: var(--text-field-bg);
+        color: var(--text-secondary);
+        font-family: inherit;
+        font-size: var(--font-size-body-sm);
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-operation-banner {
+        display: grid;
+        gap: var(--space-1);
+        padding: var(--space-3) var(--space-4);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--accent-green) 35%, var(--glass-border-strong));
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--accent-green) 8%, var(--glass-surface-medium));
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-offline-actions .ui-button {
+        width: fit-content;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-offline-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-personal-offer {
+        display: grid;
+        gap: var(--space-3);
+        padding: var(--space-4);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--accent-green) 60%, var(--glass-border-strong));
+        border-radius: var(--border-radius);
+        background: linear-gradient(145deg, color-mix(in srgb, var(--accent-green) 10%, var(--glass-surface-strong)), var(--glass-surface-strong));
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-personal-offer :is(h4, p, ul) {
+        margin: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-access-badge {
+        width: fit-content;
+        padding: var(--space-1) var(--space-2);
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--accent-green) 16%, transparent);
+        color: var(--accent-green);
+        font-size: var(--font-size-caption-plus);
+        font-weight: 700;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-price {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-commercial-help {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        padding-top: var(--space-3);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-action-feedback {
+        display: grid;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-action-reason,
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-path-prompt {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-body-sm);
+    }
+
+    @container ui-viewport (width <= 760px) {
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid--access,
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid--access:has(> :nth-child(3)) {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-legal-document summary {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+}

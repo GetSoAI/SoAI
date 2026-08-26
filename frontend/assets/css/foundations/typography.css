@@ -1,0 +1,42 @@
+/* SoAI - Typography frontend styles [frontend/assets/css/foundations/typography.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :is(h1, h2, h3, h4, h5, h6) {
+        font-weight: 500;
+        line-height: 1.2;
+    }
+
+    h1 {
+        font-size: var(--font-size-2xl);
+    }
+    h2 {
+        font-size: var(--font-size-120);
+    }
+    h3 {
+        font-size: var(--font-size-base);
+    }
+    h4 {
+        font-size: var(--font-size-body-md);
+    }
+    h5 {
+        font-size: var(--font-size-body-md);
+    }
+    h6 {
+        font-size: var(--font-size-caption-plus);
+    }
+
+    p {
+        margin-bottom: 1rem;
+    }
+
+    a {
+        color: var(--accent-green);
+        text-decoration: none;
+        transition: color var(--transition-fast);
+    }
+
+    a:hover {
+        color: color-mix(in srgb, var(--accent-green) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+    }
+}

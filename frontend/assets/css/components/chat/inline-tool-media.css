@@ -1,0 +1,135 @@
+/* SoAI - Inline tool media component styles [frontend/assets/css/components/chat/inline-tool-media.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .inline-tool-image {
+        display: inline-flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        margin: 0;
+        width: min(100%, 38rem);
+        max-width: 100%;
+        padding: var(--space-15);
+        border: var(--border-width-1) solid var(--glass-border-medium);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+    }
+
+    :where(.chat-container) .inline-tool-video-frame img {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        border-radius: var(--border-radius);
+        object-fit: cover;
+    }
+
+    :where(.chat-container) .inline-activity-details .inline-tool-image img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-width: 100%;
+        min-height: 12rem;
+        max-height: min(calc(42 * var(--ui-viewport-height-unit)), 24rem);
+        aspect-ratio: 16 / 10;
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--glass-underlay-surface) 72%, transparent);
+        object-fit: contain;
+    }
+
+    :where(.chat-container) .inline-activity-details .inline-tool-image img[data-media-load-state='loaded'] {
+        min-height: 0;
+        aspect-ratio: auto;
+    }
+
+    :where(.chat-container) .inline-tool-image figcaption {
+        display: flex;
+        gap: var(--space-2);
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        margin-top: var(--space-1);
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: flex-start;
+    }
+
+    :where(.chat-container) .inline-tool-image .message-image-label {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    :where(.chat-container) .inline-tool-result-media-video {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        max-width: 100%;
+    }
+
+    :where(.chat-container) .inline-tool-video {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        width: min(100%, 42rem);
+        max-width: 100%;
+        margin: 0;
+        padding: var(--space-15);
+        border: var(--border-width-1) solid var(--glass-border-medium);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+    }
+
+    :where(.chat-container) .inline-tool-video figcaption,
+    :where(.chat-container) .inline-tool-media-heading {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        line-height: 1.4;
+    }
+
+    :where(.chat-container) .inline-tool-video-player {
+        display: block;
+        width: 100%;
+        max-height: min(calc(46 * var(--ui-viewport-height-unit)), 26rem);
+        aspect-ratio: 16 / 9;
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--glass-underlay-surface) 72%, transparent);
+    }
+
+    :where(.chat-container) .inline-tool-video-frames,
+    :where(.chat-container) .inline-tool-video-transcript {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-15);
+        max-width: 100%;
+    }
+
+    :where(.chat-container) .inline-tool-video-frame-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+        gap: var(--space-15);
+        max-width: min(100%, 42rem);
+    }
+
+    :where(.chat-container) .inline-tool-video-frame {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-05);
+        min-width: 0;
+        margin: 0;
+        padding: var(--space-1);
+        border: var(--border-width-1) solid var(--glass-border-medium);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+    }
+
+    :where(.chat-container) .inline-tool-video-frame figcaption {
+        color: var(--text-tertiary);
+        font-size: var(--font-size-xs);
+        line-height: 1.25;
+    }
+
+    :where(.chat-container) .inline-tool-video-transcript-text {
+        max-width: min(100%, 42rem);
+        max-height: none;
+        overflow: visible;
+        white-space: pre-wrap;
+    }
+}

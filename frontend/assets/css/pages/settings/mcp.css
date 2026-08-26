@@ -1,0 +1,191 @@
+/* SoAI - Settings page MCP styles [frontend/assets/css/pages/settings/mcp.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-mcp-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-5);
+        width: 100%;
+        margin-bottom: var(--space-4);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-mcp-grid > .settings-section {
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+    }
+
+    @container ui-viewport (width >= 1024px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-mcp-grid {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            align-items: start;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-mcp-grid > :is(.settings-section--mcp-status, .settings-section--mcp-tokens) {
+            grid-row: 1;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-mcp-grid > .settings-section--mcp-status {
+            grid-column: 1;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-mcp-grid > .settings-section--mcp-tokens {
+            grid-column: 2;
+            contain: layout;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-mcp-grid > .settings-section--mcp-tokens.is-expanded {
+            align-self: stretch;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-mcp-grid > .settings-section--mcp-config {
+            grid-column: 1 / -1;
+        }
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-tokens {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-tokens > .settings-mcp-section-body {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-tokens .mcp-tool-group-body-inner {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        gap: 0;
+        height: 100%;
+        min-height: 0;
+        padding: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-tokens .mcp-tokens-list {
+        align-self: stretch;
+        flex: 1 1 0;
+        gap: var(--space-3);
+        height: 100%;
+        min-height: 0;
+        padding: var(--space-3);
+        width: 100%;
+        overflow: auto;
+        overscroll-behavior: contain;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-tokens .mcp-token-item {
+        flex-shrink: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-collapsible > .mcp-tool-group-header {
+        cursor: pointer;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding: var(--space-2) var(--space-35);
+        border: none;
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+        background: var(--title-bar-background);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--glass-shadow-base);
+        min-height: var(--title-bar-min-height);
+        position: relative;
+        z-index: var(--z-raised);
+        flex-wrap: wrap;
+        row-gap: var(--space-2);
+        font-weight: inherit;
+        color: inherit;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-collapsible > .mcp-tool-group-header:hover,
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-collapsible > .mcp-tool-group-header:focus-within {
+        background: var(--title-bar-background);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-collapsible > .settings-mcp-section-body {
+        display: none;
+        opacity: 1;
+        transform: none;
+        overflow: visible;
+        pointer-events: auto;
+        transition: none;
+        padding: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-collapsible.is-expanded > .settings-mcp-section-body {
+        display: block;
+        border-top: var(--border-width-1) solid var(--glass-border-subtle);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-tokens.is-expanded > .settings-mcp-section-body {
+        display: flex;
+        flex-direction: column;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-collapsible .mcp-tool-group-body-inner {
+        gap: var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp .settings-group {
+        gap: var(--space-3);
+    }
+
+    @container ui-viewport (width >= 1024px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp:not(.settings-section--mcp-config) .settings-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: start;
+        }
+    }
+
+    @container ui-viewport not (width <= 768px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-config .mcp-tool-group-body-inner {
+            display: block;
+            column-count: 2;
+            column-gap: var(--space-6);
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-config :is(.settings-group, .settings-config-group) {
+            width: 100%;
+            min-width: 0;
+            break-inside: avoid;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-config .settings-group {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-config .settings-group > .setting-item {
+            width: 100%;
+            min-width: 0;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-config .mcp-tool-group-body-inner > :is(.settings-group, .settings-config-group) {
+            margin-bottom: var(--space-4);
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp-config .mcp-tool-group-body-inner > :is(.settings-group, .settings-config-group):last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp .settings-config-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--mcp :is(.setting-item, .setting-info) {
+        min-width: 0;
+    }
+}

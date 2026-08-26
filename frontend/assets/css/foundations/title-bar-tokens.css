@@ -1,0 +1,9 @@
+/* SoAI - Title bar tokens frontend styles [frontend/assets/css/foundations/title-bar-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --title-bar-background: linear-gradient(180deg, color-mix(in srgb, var(--glass-surface-medium) 96%, var(--color-white) 4%) 0%, color-mix(in srgb, var(--glass-surface-medium) 98%, var(--color-white) 2%) 52%, var(--glass-surface-medium) 100%);
+        --title-bar-min-height: 2.25rem;
+    }
+}

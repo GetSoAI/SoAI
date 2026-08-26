@@ -1,0 +1,8 @@
+/* SoAI - About page styles [frontend/assets/css/pages/about/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./base.css') layer(pages);
+@import url('./layout.css') layer(pages);
+@import url('./easter-egg-scene.css') layer(pages);
+@import url('./easter-egg-orb.css') layer(pages);
+@import url('./toolbar.css') layer(pages);

@@ -1,0 +1,60 @@
+/* SoAI - Searchbar variants component styles [frontend/assets/css/components/controls/searchbar-variants.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .searchbar-container--control {
+        --searchbar-border: var(--text-field-border);
+        --searchbar-color: var(--text-secondary);
+        --searchbar-shadow: none;
+        --searchbar-shadow-focus: none;
+        --searchbar-backdrop: none;
+        --searchbar-bg-disabled: var(--searchbar-bg);
+        --searchbar-font-size: var(--font-size-sm);
+        --searchbar-padding-block: var(--control-padding-block);
+        --searchbar-padding-inline: var(--control-padding-inline);
+        --searchbar-padding-inline-end: var(--space-10);
+    }
+
+    .searchbar-container--collection {
+        --searchbar-bg: var(--text-field-bg);
+        --searchbar-border: var(--text-field-border);
+        --searchbar-color: var(--text-primary);
+        --searchbar-shadow: var(--glass-shadow-base);
+        --searchbar-shadow-focus: var(--searchbar-shadow);
+        --searchbar-backdrop: var(--glass-blur-base);
+        --searchbar-bg-disabled: var(--text-field-bg-disabled);
+        --searchbar-height: var(--control-height-lg);
+        --searchbar-font-size: var(--font-size-sm);
+        --searchbar-padding-block: var(--control-padding-block-lg);
+        --searchbar-padding-inline: var(--space-35);
+        --searchbar-padding-inline-end: var(--space-12);
+    }
+
+    :where(.theme-dark) .searchbar-container:where(:not(.searchbar-container--control, .searchbar-container--collection)) {
+        --searchbar-shadow: 0 2px 8px var(--shadow-heavy);
+        --searchbar-shadow-focus: var(--searchbar-shadow);
+    }
+
+    .searchbar-container--control .searchbar-icon {
+        right: 0.75rem;
+    }
+
+    .searchbar-container--collection .searchbar-icon {
+        right: 0.75rem;
+    }
+
+    @container ui-viewport (width <= 768px) {
+        .searchbar-container.wide {
+            min-width: auto;
+            width: 100%;
+        }
+
+        .searchbar-container {
+            --searchbar-font-size: var(--font-size-base);
+        }
+
+        .page-header .searchbar-container--control {
+            --searchbar-padding-inline-end: var(--searchbar-padding-inline);
+        }
+    }
+}

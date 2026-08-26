@@ -1,0 +1,202 @@
+/* SoAI - Tabs nav component styles [frontend/assets/css/components/controls/tabs-nav.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .tabs-container {
+        --tabs-selected-bg: color-mix(in srgb, var(--glass-surface-light) 96%, var(--color-black) 4%);
+        --tabs-selected-bg-hover: color-mix(in srgb, var(--glass-surface-light) 94%, var(--color-black) 6%);
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: none;
+        position: relative;
+        flex-shrink: 0;
+        margin-bottom: 0;
+        background: transparent;
+        gap: var(--space-25);
+    }
+
+    .theme-dark .tabs-container {
+        --tabs-selected-bg: color-mix(in srgb, var(--glass-surface-light) 94%, var(--color-white) 6%);
+        --tabs-selected-bg-hover: color-mix(in srgb, var(--glass-surface-light) 92%, var(--color-white) 8%);
+    }
+
+    .tabs-nav-wrapper {
+        display: flex;
+        align-items: center;
+        gap: var(--space-15);
+        flex: 1;
+        position: relative;
+        min-width: 0;
+    }
+
+    .tabs-nav {
+        display: flex;
+        gap: var(--space-1);
+        overflow: auto visible;
+        padding: 0 var(--space-5);
+        flex: 1;
+        position: relative;
+        scroll-behavior: smooth;
+        background: transparent;
+    }
+
+    .tabs-tab {
+        --tabs-tab-bg: var(--glass-surface-light);
+        --tabs-tab-border-color: var(--glass-border-strong);
+        --tabs-tab-color: var(--text-tertiary);
+        --tabs-tab-active-bg: var(--tabs-selected-bg);
+        --tabs-tab-active-border-color: var(--border-color);
+        --tabs-tab-active-color: var(--text-primary);
+        --tabs-tab-active-inset-color: color-mix(in srgb, var(--tabs-tab-active-border-color) 28%, transparent);
+        --tabs-tab-hover-bg: color-mix(in srgb, var(--glass-surface-strong) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        --tabs-tab-hover-border-color: color-mix(in srgb, var(--glass-border-strong) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --tabs-tab-hover-color: var(--text-primary);
+        --tabs-tab-active-hover-bg: var(--tabs-selected-bg-hover);
+        --tabs-tab-active-hover-border-color: var(--border-color);
+        --tabs-tab-active-hover-color: var(--text-primary);
+
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-3) var(--space-5);
+        background: var(--tabs-tab-bg);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        color: var(--tabs-tab-color);
+        font-size: var(--font-size-body-balanced);
+        font-weight: 500;
+        white-space: nowrap;
+        border: var(--border-width-1) solid var(--tabs-tab-border-color);
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+        box-shadow: var(--glass-shadow-base);
+        transition:
+            background var(--transition-fast),
+            color var(--transition-fast),
+            box-shadow var(--transition-fast);
+        position: relative;
+        margin-bottom: 0;
+        text-decoration: none;
+    }
+
+    .tabs-tab--tone-green {
+        --tabs-tab-tone-color: var(--ui-tone-green);
+        --tabs-tab-bg: var(--ui-tone-green-surface-subtle);
+        --tabs-tab-border-color: var(--ui-tone-green-border-subtle);
+        --tabs-tab-color: var(--ui-tone-green-text);
+        --tabs-tab-active-bg: var(--ui-tone-green-surface-selected);
+        --tabs-tab-active-border-color: var(--ui-tone-green-border-selected);
+        --tabs-tab-active-color: var(--ui-tone-green-text-selected);
+    }
+
+    .tabs-tab--tone-orange {
+        --tabs-tab-tone-color: var(--ui-tone-orange);
+        --tabs-tab-bg: var(--ui-tone-orange-surface-subtle);
+        --tabs-tab-border-color: var(--ui-tone-orange-border-subtle);
+        --tabs-tab-color: var(--ui-tone-orange-text);
+        --tabs-tab-active-bg: var(--ui-tone-orange-surface-selected);
+        --tabs-tab-active-border-color: var(--ui-tone-orange-border-selected);
+        --tabs-tab-active-color: var(--ui-tone-orange-text-selected);
+    }
+
+    .tabs-tab--tone-red {
+        --tabs-tab-tone-color: var(--ui-tone-red);
+        --tabs-tab-bg: var(--ui-tone-red-surface-subtle);
+        --tabs-tab-border-color: var(--ui-tone-red-border-subtle);
+        --tabs-tab-color: var(--ui-tone-red-text);
+        --tabs-tab-active-bg: var(--ui-tone-red-surface-selected);
+        --tabs-tab-active-border-color: var(--ui-tone-red-border-selected);
+        --tabs-tab-active-color: var(--ui-tone-red-text-selected);
+    }
+
+    .tabs-tab--tone-blue {
+        --tabs-tab-tone-color: var(--ui-tone-blue);
+        --tabs-tab-bg: var(--ui-tone-blue-surface-subtle);
+        --tabs-tab-border-color: var(--ui-tone-blue-border-subtle);
+        --tabs-tab-color: var(--ui-tone-blue-text);
+        --tabs-tab-active-bg: var(--ui-tone-blue-surface-selected);
+        --tabs-tab-active-border-color: var(--ui-tone-blue-border-selected);
+        --tabs-tab-active-color: var(--ui-tone-blue-text-selected);
+    }
+
+    .tabs-tab:is(.tabs-tab--tone-green, .tabs-tab--tone-orange, .tabs-tab--tone-red, .tabs-tab--tone-blue) {
+        --tabs-tab-hover-bg: color-mix(in srgb, var(--tabs-tab-bg) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        --tabs-tab-hover-border-color: color-mix(in srgb, var(--tabs-tab-border-color) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --tabs-tab-hover-color: var(--tabs-tab-active-color);
+        --tabs-tab-active-hover-bg: color-mix(in srgb, var(--tabs-selected-bg-hover) var(--ui-tone-surface-base), var(--tabs-tab-tone-color) var(--ui-tone-surface-opacity));
+        --tabs-tab-active-hover-border-color: color-mix(in srgb, var(--border-color) var(--ui-tone-border-base), var(--tabs-tab-tone-color) var(--ui-tone-border-opacity));
+        --tabs-tab-active-hover-color: var(--tabs-tab-active-color);
+    }
+
+    .tabs-tab.is-active,
+    .tabs-tab[aria-selected='true'] {
+        color: var(--tabs-tab-active-color);
+        background: var(--tabs-tab-active-bg);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border-color: var(--tabs-tab-active-border-color);
+        border-bottom: none;
+        box-shadow:
+            var(--glass-shadow-base),
+            inset 0 0 0 var(--border-width-1) var(--tabs-tab-active-inset-color);
+        z-index: var(--z-dropdown);
+    }
+
+    .tabs-tab svg {
+        width: 15.2px;
+        height: 15.2px;
+        flex-shrink: 0;
+    }
+
+    .tabs-tab-label {
+        color: inherit;
+    }
+
+    .tabs-tab.is-active .tabs-tab-label,
+    .tabs-tab[aria-selected='true'] .tabs-tab-label {
+        color: inherit;
+    }
+
+    .tabs-tab:focus-visible {
+        border-color: var(--accent-green);
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    .tabs-tab:hover:not(:disabled, [aria-disabled='true']) {
+        color: var(--tabs-tab-hover-color);
+        background: var(--tabs-tab-hover-bg);
+        border-color: var(--tabs-tab-hover-border-color);
+        z-index: var(--z-raised);
+    }
+
+    .tabs-tab:is(.is-active, [aria-selected='true']):hover:not(:disabled, [aria-disabled='true']) {
+        background: var(--tabs-tab-active-hover-bg);
+        border-color: var(--tabs-tab-active-hover-border-color);
+        color: var(--tabs-tab-active-hover-color);
+    }
+
+    [role='tab'][aria-selected='true']:not(.tabs-tab) {
+        background: color-mix(in srgb, var(--glass-surface-light) 96%, var(--color-black) 4%);
+        border-color: var(--border-color);
+        color: var(--text-primary);
+    }
+
+    [role='tab'][aria-selected='true']:not(.tabs-tab):is(:hover, :focus-visible) {
+        background: color-mix(in srgb, var(--glass-surface-light) 94%, var(--color-black) 6%);
+        border-color: var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .theme-dark [role='tab'][aria-selected='true']:not(.tabs-tab) {
+        background: color-mix(in srgb, var(--glass-surface-light) 94%, var(--color-white) 6%);
+    }
+
+    .theme-dark [role='tab'][aria-selected='true']:not(.tabs-tab):is(:hover, :focus-visible) {
+        background: color-mix(in srgb, var(--glass-surface-light) 92%, var(--color-white) 8%);
+    }
+
+    .modal-header :is(.tabs-container, .tabs-nav-wrapper, .tabs-nav) {
+        background-color: transparent;
+    }
+}

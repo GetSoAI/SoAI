@@ -1,0 +1,46 @@
+/* SoAI - Automation page registry overlay styles [frontend/assets/css/pages/automation/registry-overlay.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    @container ui-viewport (width <= 1400px) {
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-split {
+            display: flex;
+            grid-template-columns: none;
+            align-items: stretch;
+            position: relative;
+            overflow: hidden;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-pane--calendar {
+            flex: 1 1 auto;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-splitter {
+            display: none;
+        }
+
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-pane--registry {
+            position: absolute;
+            inset-block: 0;
+            right: 0;
+            width: min(420px, 100%);
+            z-index: var(--z-overlay);
+            transform: translateX(calc(100% + var(--layout-container-padding)));
+            visibility: hidden;
+            box-shadow: var(--glass-shadow-base);
+            transition:
+                transform var(--transition-normal),
+                visibility 0s var(--ease-linear) var(--transition-normal);
+        }
+
+        .automation-container.is-registry-overlay-open:where([data-section='automation'], [data-page-scope='automation']) .automation-pane--registry {
+            transform: translateX(0);
+            visibility: visible;
+            transition:
+                transform var(--transition-normal),
+                visibility 0s var(--ease-linear) 0s;
+        }
+    }
+}

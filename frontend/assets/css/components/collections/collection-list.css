@@ -1,0 +1,229 @@
+/* SoAI - Collection list component styles [frontend/assets/css/components/collections/collection-list.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-collection-list {
+        display: none;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        width: 100%;
+        overflow: hidden;
+        padding: 0;
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-strong);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    .page-scrollable[data-view-mode='list'] .page-content-area--card-grid:has(> .ui-collection-list) {
+        position: relative;
+    }
+
+    .page-scrollable[data-view-mode='list'] .page-content-area--card-grid > .ui-collection-list__empty-state:not(.u-hidden) {
+        position: absolute;
+        inset: var(--layout-collection-list-empty-state-top) 0 calc(var(--collection-container-bottom-padding) + var(--ui-safe-area-inset-bottom)) 0;
+        z-index: var(--z-above-sibling);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 0;
+        padding: var(--space-8) var(--space-4);
+        pointer-events: none;
+    }
+
+    .page-scrollable[data-view-mode='list'] .page-content-area--card-grid > .ui-collection-list__empty-state:not(.u-hidden) > .ui-empty-state {
+        pointer-events: auto;
+    }
+
+    .ui-collection-list__table {
+        --layout-collection-list-columns: repeat(5, minmax(0, 1fr));
+        --layout-collection-list-mobile-columns: auto 1fr auto;
+        --layout-collection-list-mobile-rows: auto auto;
+        --border-collection-row: var(--glass-border-strong);
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0;
+        width: 100%;
+        color: var(--text-secondary);
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .ui-collection-list__table :is(thead, tbody) {
+        display: block;
+    }
+
+    .ui-collection-list__table :is(thead, tbody) tr {
+        display: grid;
+        grid-template-columns: var(--layout-collection-list-columns);
+    }
+
+    .ui-collection-list__table :is(th, td) {
+        min-width: 0;
+        padding: var(--space-2) var(--space-3);
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .ui-collection-list__table thead {
+        position: relative;
+        z-index: var(--z-above-sibling);
+        flex-shrink: 0;
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    .ui-collection-list__header-cell {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        min-width: 0;
+    }
+
+    .ui-collection-list__header-cell--actions {
+        justify-content: flex-end;
+    }
+
+    .ui-collection-list__header-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ui-collection-list__table th {
+        background: var(--glass-surface-darker);
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption-plus);
+        font-weight: 700;
+    }
+
+    .ui-collection-list__table thead th:first-child {
+        border-top-left-radius: var(--border-radius);
+    }
+
+    .ui-collection-list__table thead th:last-child {
+        border-top-right-radius: var(--border-radius);
+    }
+
+    .ui-collection-list__table tbody {
+        position: relative;
+        z-index: var(--z-base);
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    .ui-collection-list__table tbody tr:nth-of-type(odd) {
+        --surface-collection-row-background: var(--alternating-grey-light);
+    }
+
+    .ui-collection-list__table tbody tr:nth-of-type(even) {
+        --surface-collection-row-background: var(--alternating-grey-dark);
+    }
+
+    .ui-collection-list__table tbody tr:hover {
+        --surface-collection-row-background: var(--table-row-hover-background);
+    }
+
+    .ui-collection-list__table td {
+        border-bottom-color: var(--border-collection-row);
+        color: var(--text-primary);
+        font-size: var(--font-size-caption-plus);
+    }
+
+    .ui-collection-list__table tbody tr > td {
+        background: var(--surface-collection-row-background);
+    }
+
+    .ui-collection-list__actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: var(--space-2);
+        flex-wrap: wrap;
+    }
+
+    .ui-collection-list__state {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+
+    .ui-collection-list__table th.sortable {
+        cursor: pointer;
+        user-select: none;
+        transition:
+            background-color var(--transition-fast),
+            color var(--transition-fast);
+    }
+
+    .ui-collection-list__table th.sortable.is-active {
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+
+    .ui-collection-list__table th.sortable .sort-indicator {
+        min-width: 14px;
+        height: 14px;
+        vertical-align: middle;
+    }
+
+    .ui-collection-list__table th.sortable .sort-indicator svg {
+        width: 14px;
+        height: 14px;
+        display: block;
+        color: inherit;
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .page-scrollable[data-view-mode='list'] .page-content-area--card-grid > .ui-collection-list__empty-state:not(.u-hidden) {
+            --layout-collection-list-empty-state-top: var(--border-width-1);
+        }
+
+        .ui-collection-list__table thead {
+            display: none;
+        }
+
+        .ui-collection-list__table tbody tr {
+            position: relative;
+            grid-template-columns: var(--layout-collection-list-mobile-columns);
+            grid-template-rows: var(--layout-collection-list-mobile-rows);
+            column-gap: var(--space-2);
+            row-gap: var(--space-2);
+            align-items: center;
+            padding: var(--space-3) var(--space-2);
+            border-top: 0;
+            border-bottom: var(--border-width-1) solid var(--border-collection-row);
+            background: var(--surface-collection-row-background);
+        }
+
+        .ui-collection-list__table tbody tr:first-child {
+            border-top: 0;
+        }
+
+        .ui-collection-list__table tbody tr:last-child {
+            border-bottom: 0;
+        }
+
+        .ui-collection-list__table tbody td {
+            border-bottom: 0;
+            padding: 0;
+        }
+
+        .ui-collection-list__state {
+            row-gap: var(--space-1);
+            column-gap: var(--space-2);
+        }
+
+        .ui-collection-list__table tbody tr:is(:nth-of-type(odd), :nth-of-type(even), :hover) td {
+            background: transparent;
+        }
+    }
+}

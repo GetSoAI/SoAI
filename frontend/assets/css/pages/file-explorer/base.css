@@ -1,0 +1,256 @@
+/* SoAI - File explorer page base styles [frontend/assets/css/pages/file-explorer/base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) {
+        --file-explorer-select-col-width: 44px;
+        --file-explorer-deeplink-highlight-surface: color-mix(in srgb, var(--accent-green) 12%, var(--glass-surface-strong));
+        --file-explorer-deeplink-highlight-border: color-mix(in srgb, var(--accent-green) 65%, var(--glass-border-strong));
+    }
+
+    @keyframes file-explorer-deeplink-highlight-pulse {
+        0%,
+        100% {
+            box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-green) 35%, transparent);
+        }
+        50% {
+            box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-green) 10%, transparent);
+        }
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-content {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        padding-bottom: var(--layout-bottom-safe-padding);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) fit-content(35%);
+        gap: var(--space-5);
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-card {
+        background: var(--surface-card);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        box-shadow: var(--surface-card-shadow);
+        padding: var(--space-4);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-label {
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption-plus);
+        font-weight: 600;
+        letter-spacing: var(--tracking-02em);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table-wrap {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table-wrap.file-explorer-card {
+        padding: 0;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table colgroup {
+        display: none;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table :is(thead, tbody) {
+        display: block;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table :is(thead, tbody) tr {
+        display: grid;
+        grid-template-columns: var(--file-explorer-select-col-width) repeat(4, minmax(0, 1fr));
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table th,
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table td {
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+        min-width: 0;
+        padding: var(--space-2) var(--space-3);
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table thead {
+        flex-shrink: 0;
+        box-shadow: var(--surface-card-shadow);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table thead th {
+        background: var(--glass-surface-darker);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table thead th:first-child {
+        border-top-left-radius: var(--border-radius);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table thead th:last-child {
+        border-top-right-radius: var(--border-radius);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table tbody {
+        overflow-y: auto;
+        flex: 1 1 auto;
+        min-height: 0;
+        scrollbar-gutter: stable;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-rows-body tr[data-collection-loader] > td {
+        display: flex;
+        grid-column: 1 / -1;
+        justify-content: center;
+        width: 100%;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-panel.is-collapsed {
+        align-self: start;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-summary {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        width: 100%;
+        padding: var(--space-4);
+        border: none;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-summary-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--space-4);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-summary-copy {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-summary-progress-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-summary-progress {
+        flex: 1 1 auto;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-summary-progress-fill {
+        display: block;
+        width: 0%;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-progress-value {
+        min-width: 3rem;
+        font-size: var(--font-size-caption-plus);
+        font-weight: 600;
+        color: var(--text-primary);
+        text-align: right;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-toggle-indicator {
+        width: 0.75rem;
+        height: 0.75rem;
+        border-right: var(--border-width-2) solid var(--text-secondary);
+        border-bottom: var(--border-width-2) solid var(--text-secondary);
+        transform: rotate(45deg);
+        transition: transform var(--transition-fast);
+        flex: 0 0 auto;
+        margin-top: var(--space-15);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-panel.is-expanded .file-explorer-task-toggle-indicator {
+        transform: rotate(-135deg);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-details {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        min-height: 0;
+        padding: 0 var(--space-4) var(--space-4);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-details > .file-explorer-task-line > .file-explorer-label {
+        padding-top: var(--space-3);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-id {
+        font-family: var(--font-family-code);
+        font-size: var(--font-size-caption-plus);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-details > .file-explorer-task-line > .file-explorer-task-id {
+        padding-top: var(--space-3);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-panel.is-collapsed .file-explorer-task-details {
+        display: none;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table-col--select {
+        width: var(--file-explorer-select-col-width);
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-panel {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: var(--z-raised);
+            border-top: var(--border-width-1) solid var(--glass-border-strong);
+            box-shadow: var(--shadow-lift-strong);
+            border-radius: 0;
+        }
+
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-panel.is-expanded .file-explorer-task-details {
+            max-height: calc(60 * var(--ui-viewport-height-unit));
+            overflow-y: auto;
+        }
+
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-content:has(.file-explorer-task-panel.is-expanded) {
+            padding-bottom: calc(60 * var(--ui-viewport-height-unit));
+        }
+    }
+}

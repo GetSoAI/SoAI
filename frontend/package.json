@@ -1,0 +1,33 @@
+{
+    "name": "webui",
+    "description": "SoAI web interface for orchestrating local and remote AI workloads.",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "generate": "tsx scripts/generateCharacterMapCatalog.mts && tsx scripts/generateTranslationKeys.mts && tsx scripts/generateIconRegistry.mts && tsx scripts/buildThemePreinit.mts && tsx scripts/buildWallpaperPreinit.mts && tsx scripts/cspNonceVendorXterm.mts && tsx scripts/cspNonceVendorMermaid.mts",
+        "dev": "vite dev",
+        "prebuild:core": "npm run generate",
+        "build:core": "vite build",
+        "postbuild:core": "tsx scripts/updateHtmlReferences.mts",
+        "serve": "vite --host 127.0.0.1"
+    },
+    "keywords": [],
+    "author": "SoAI Contributors",
+    "license": "LicenseRef-SoAI-Source-1.0",
+    "devDependencies": {
+        "@types/node": "^26.2.0",
+        "@xterm/addon-fit": "^0.11.0",
+        "@xterm/addon-web-links": "^0.12.0",
+        "@xterm/xterm": "^6.0.0",
+        "postcss": "^8.5.26",
+        "prettier": "^3.9.6",
+        "tsx": "^4.23.12",
+        "typescript": "^5.9.3",
+        "vite": "^8.2.2"
+    },
+    "dependencies": {
+        "dompurify": "^3.4.14",
+        "katex": "^0.18.4",
+        "mermaid": "^11.17.0"
+    }
+}

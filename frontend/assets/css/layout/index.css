@@ -1,0 +1,20 @@
+/* SoAI - Frontend layout style aggregation [frontend/assets/css/layout/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./page.css') layer(layout);
+@import url('./page-outlet-overlay.css') layer(layout);
+@import url('./page-content.css') layer(layout);
+@import url('./header-shell.css') layer(layout);
+@import url('./header-title.css') layer(layout);
+@import url('./header-search.css') layer(layout);
+@import url('./header-right.css') layer(layout);
+@import url('./page-actions.css') layer(layout);
+@import url('./header-action-zones.css') layer(layout);
+@import url('./header-hamburger.css') layer(layout);
+@import url('./header-notifications.css') layer(layout);
+@import url('./header-notification-list.css') layer(layout);
+@import url('./header-notification-tasks.css') layer(layout);
+@import url('./header-clock.css') layer(layout);
+@import url('./sidebar.css') layer(layout);
+@import url('./sidebar-navigation.css') layer(layout);
+@import url('./modals.css') layer(layout);

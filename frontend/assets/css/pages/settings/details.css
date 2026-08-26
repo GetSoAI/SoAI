@@ -1,0 +1,42 @@
+/* SoAI - Settings page details styles [frontend/assets/css/pages/settings/details.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .setting-control {
+        width: 100%;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__footer .modal-footer-section {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__footer .modal-footer-section--right {
+        justify-content: flex-end;
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__launcher > .settings-group {
+            grid-template-columns: minmax(14rem, 18rem);
+        }
+    }
+    :where([data-section='settings'], [data-page-scope='settings']) .backup-id {
+        font-family: var(--font-family-mono);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        word-break: break-all;
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .backup-header .settings-record-badge {
+            width: 100%;
+            margin-top: var(--space-1);
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .backup-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+}

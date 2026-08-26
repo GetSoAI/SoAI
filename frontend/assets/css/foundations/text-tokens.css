@@ -1,0 +1,14 @@
+/* SoAI - Text tokens frontend styles [frontend/assets/css/foundations/text-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --text-primary: #0f0f11;
+        --text-secondary: #3a3a3d;
+        --text-tertiary: #4e4e53;
+        --text-muted: var(--text-tertiary);
+        --text-primary-alt: color-mix(in srgb, var(--text-primary) 90%, var(--text-secondary) 10%);
+        --text-disabled: color-mix(in srgb, var(--text-tertiary) 50%, transparent);
+        --text-on-accent: var(--color-white);
+    }
+}

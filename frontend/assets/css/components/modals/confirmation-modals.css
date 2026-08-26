@@ -1,0 +1,111 @@
+/* SoAI - Confirmation modals component styles [frontend/assets/css/components/modals/confirmation-modals.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .confirmation-modal {
+        --confirmation-modal-icon-color: var(--text-secondary);
+    }
+
+    .confirmation-modal.info-modal {
+        --confirmation-modal-icon-color: var(--ui-button-primary-color);
+    }
+
+    .confirmation-modal.warning-modal {
+        --confirmation-modal-icon-color: var(--ui-button-warning-color);
+    }
+
+    .confirmation-modal:is(.danger-modal, .error-modal) {
+        --confirmation-modal-icon-color: var(--ui-button-danger-color);
+    }
+
+    .confirmation-modal.success-modal {
+        --confirmation-modal-icon-color: var(--ui-button-success-color);
+    }
+
+    .external-link-modal {
+        --confirmation-modal-icon-color: var(--ui-button-neutral-color);
+    }
+
+    .confirmation-modal-content > .modal-body {
+        display: flex;
+        flex-direction: column;
+        padding: var(--modal-confirmation-body-padding);
+        padding-bottom: calc(var(--modal-confirmation-body-padding) + var(--space-6));
+    }
+
+    .password-change-modal-content > .modal-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    .password-change-modal-content .form-group {
+        margin-bottom: 0;
+    }
+
+    .confirmation-modal-content .confirmation-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        flex: 1;
+        min-height: 0;
+    }
+
+    .confirmation-icon {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: var(--space-6);
+        margin-bottom: var(--space-12);
+    }
+
+    .confirmation-icon > :is(.ui-icon, svg, *) {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transform: none;
+        width: 86.4px;
+        height: 86.4px;
+    }
+
+    .confirmation-modal .confirmation-icon :is(.ui-icon, svg),
+    .theme-dark .confirmation-modal .confirmation-icon :is(.ui-icon, svg) {
+        color: var(--confirmation-modal-icon-color);
+    }
+
+    .confirmation-message,
+    .confirmation-description--link {
+        text-align: left;
+    }
+
+    .confirmation-modal-content .confirmation-body > .confirmation-description {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        flex: 1;
+        min-height: 0;
+    }
+
+    .confirmation-description--link.confirmation-description {
+        flex: 1;
+        min-height: 0;
+        overflow: visible;
+    }
+
+    .confirmation-description--link .confirmation-description-link {
+        display: inline;
+        width: auto;
+        font-family: inherit;
+        font-size: inherit;
+        line-height: inherit;
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
+        color: var(--accent-primary);
+        text-decoration: underline;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+}

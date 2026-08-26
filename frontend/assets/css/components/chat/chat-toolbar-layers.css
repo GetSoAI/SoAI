@@ -1,0 +1,56 @@
+/* SoAI - Chat toolbar layers component styles [frontend/assets/css/components/chat/chat-toolbar-layers.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .chat-toolbar-collapsed-layer {
+        --chat-toolbar-collapsed-toggle-size: calc((1rem + var(--control-height) + 0.75rem) / 3);
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: var(--chat-toolbar-collapsed-toggle-size);
+        opacity: 1;
+        visibility: visible;
+        transition:
+            opacity var(--transition-fast),
+            visibility var(--transition-fast);
+    }
+
+    .chat-toolbar-collapsed-layer > .chat-toolbar-toggle {
+        width: var(--chat-toolbar-collapsed-toggle-size);
+        height: var(--chat-toolbar-collapsed-toggle-size);
+        min-width: var(--chat-toolbar-collapsed-toggle-size);
+        min-height: var(--chat-toolbar-collapsed-toggle-size);
+        cursor: pointer;
+    }
+
+    .chat-toolbar-expanded-layer {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+        align-items: stretch;
+        gap: var(--space-2);
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition:
+            max-height var(--transition-fast),
+            opacity var(--transition-fast),
+            visibility var(--transition-fast);
+    }
+
+    .chat-toolbar-expanded-bottom {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+    }
+
+    .chat-toolbar-expanded-chevron {
+        display: grid;
+        place-items: center;
+        min-height: var(--control-height);
+    }
+}

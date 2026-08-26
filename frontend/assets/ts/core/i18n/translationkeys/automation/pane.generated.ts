@@ -1,0 +1,33 @@
+/* SoAI - Frontend core Translation declarations for key group `automation.pane` [frontend/assets/ts/core/i18n/translationkeys/automation/pane.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type AutomationPaneTranslationKey =
+    | 'automation.pane.automations.empty'
+    | 'automation.pane.automations.enabled'
+    | 'automation.pane.automations.recurring'
+    | 'automation.pane.automations.title'
+    | 'automation.pane.details.excerptTitle'
+    | 'automation.pane.details.noExcerpt'
+    | 'automation.pane.details.openTranscript'
+    | 'automation.pane.details.planEmpty'
+    | 'automation.pane.details.planTitle'
+    | 'automation.pane.details.timelineUnavailable'
+    | 'automation.pane.details.title'
+    | 'automation.pane.details.todoEmpty'
+    | 'automation.pane.details.todoTitle'
+    | 'automation.pane.windowRuns.confirmations.deleteMessage'
+    | 'automation.pane.windowRuns.confirmations.deleteTitle'
+    | 'automation.pane.windowRuns.empty'
+    | 'automation.pane.windowRuns.groups.nextRuns'
+    | 'automation.pane.windowRuns.groups.today'
+    | 'automation.pane.windowRuns.groups.yesterday'
+    | 'automation.pane.windowRuns.notifications.deleteSuccess'
+    | 'automation.pane.windowRuns.title'
+    | 'automation.pane.windowRuns.toolbar.batchDelete'
+    | 'automation.pane.windowRuns.toolbar.deleteOne'
+    | 'automation.pane.windowRuns.toolbar.exitSelect'
+    | 'automation.pane.windowRuns.toolbar.select'
+    | 'automation.pane.windowRuns.toolbar.selectedCount'
+    | 'automation.pane.windowRuns.toolbar.stopOne'
+    | 'automation.pane.windowRuns.toolbar.totalRuns'
+    | 'automation.pane.windowRuns.turnsCount';

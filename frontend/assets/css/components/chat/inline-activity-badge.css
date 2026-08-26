@@ -1,0 +1,260 @@
+/* SoAI - Inline activity badge component styles [frontend/assets/css/components/chat/inline-activity-badge.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .inline-activity-leading-icon {
+        --inline-activity-leading-icon-slot-size: 16px;
+        --inline-activity-leading-icon-icon-size: 12px;
+        width: var(--inline-activity-leading-icon-slot-size);
+        height: var(--inline-activity-leading-icon-slot-size);
+        color: var(--text-tertiary);
+        transition: transform var(--duration-220) var(--ease-default);
+        position: relative;
+        overflow: hidden;
+    }
+
+    :where(.chat-container) .inline-activity-leading-icon[data-leading-variant='hourglass'] {
+        --inline-activity-leading-icon-icon-size: 8px;
+    }
+
+    :where(.chat-container) .inline-activity-leading-icon[data-leading-variant='expander'] {
+        --inline-activity-leading-icon-icon-size: 10px;
+    }
+
+    :where(.chat-container) .inline-activity-icon {
+        width: 16px;
+        height: 16px;
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container) :is(.inline-activity-icon, .inline-activity-separator-dot) > :is(svg, .ui-icon) {
+        width: 100%;
+        height: 100%;
+    }
+
+    :where(.chat-container) .inline-activity-icon :is(svg, .ui-icon, path, line, polyline, circle, rect, polygon) {
+        stroke-width: 1.7;
+    }
+
+    :where(.chat-container) .inline-activity-leading-icon > :is(svg, .ui-icon) {
+        width: min(var(--inline-activity-leading-icon-icon-size), var(--inline-activity-leading-icon-slot-size));
+        height: min(var(--inline-activity-leading-icon-icon-size), var(--inline-activity-leading-icon-slot-size));
+    }
+
+    :where(.chat-container) .inline-activity-leading-index {
+        display: none;
+        font-size: var(--chat-assistant-activity-leading-index-font-size);
+        line-height: 1;
+        font-weight: var(--font-weight-bold);
+        letter-spacing: var(--tracking-neg-1px);
+        color: var(--text-tertiary);
+        font-variant-numeric: tabular-nums;
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    :where(.chat-container) .inline-activity.message-role-activity .inline-activity-leading-index[data-model-leading-index='true'] {
+        display: inline-flex;
+    }
+
+    :where(.chat-container) .inline-activity.message-role-activity .inline-activity-leading-icon > :is(svg, .ui-icon) {
+        display: none;
+    }
+
+    :where(.chat-container) .inline-activity {
+        --ui-surface-panel-bg: var(--glass-surface-medium);
+        --ui-surface-panel-border: var(--surface-card-border);
+        display: flex;
+        flex-direction: column;
+        align-self: flex-start;
+        margin: var(--space-3) 0;
+        width: fit-content;
+        max-width: 100%;
+        box-shadow: var(--surface-card-shadow);
+        overflow: hidden;
+    }
+
+    :where(.chat-container) .inline-activity.message-role-activity {
+        display: flex;
+        flex-direction: column;
+        align-self: flex-start;
+        margin: 0;
+        width: auto;
+        max-width: 100%;
+        min-height: var(--chat-message-role-activity-block-size);
+        box-shadow: var(--surface-card-shadow);
+        overflow: hidden;
+        padding: 0;
+    }
+
+    :where(.chat-container) .inline-activity.message-role-activity[data-action] {
+        cursor: pointer;
+    }
+
+    :where(.chat-container) .inline-activity[data-collapsed='true'] {
+        width: fit-content;
+    }
+
+    :where(.chat-container) .inline-activity:is([data-collapsed='false'], [data-collapsing='true']) {
+        align-self: stretch;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    :where(.chat-container) .inline-activity-type-thinking.inline-activity:is([data-collapsed='false'], [data-collapsing='true']) {
+        align-self: flex-start;
+        width: fit-content;
+        max-width: 100%;
+    }
+
+    :where(.chat-container) .inline-activity:is([data-collapsed='false'], [data-collapsing='true']) > .inline-activity-header .inline-activity-leading-icon[data-leading-variant='expander'] {
+        transform: rotate(90deg);
+    }
+
+    :where(.chat-container) .inline-activity-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+        max-width: min(48rem, calc(78 * var(--ui-viewport-width-unit)));
+        flex: 0 0 auto;
+    }
+
+    :where(.chat-container) .inline-activity.message-role-activity .inline-activity-name {
+        flex: 1 1 auto;
+        max-width: none;
+    }
+
+    :where(.chat-container) .inline-activity-separator-dot {
+        flex-shrink: 0;
+        width: 10px;
+        height: 10px;
+        color: var(--text-tertiary);
+    }
+
+    :where(.chat-container) .inline-action-update-text > p {
+        margin: 0;
+        display: block;
+    }
+
+    :where(.chat-container) .inline-action-update {
+        display: block;
+        margin: 0 0 var(--space-2) 0;
+        max-width: 100%;
+        color: inherit;
+        font-size: inherit;
+        line-height: inherit;
+    }
+
+    :where(.chat-container) .inline-action-update-text {
+        color: inherit;
+        font-size: inherit;
+        line-height: inherit;
+        overflow-wrap: anywhere;
+    }
+
+    :where(.chat-container) .inline-action-update-text > :first-child {
+        margin-top: 0;
+    }
+
+    :where(.chat-container) .inline-action-update-text > :last-child {
+        margin-bottom: 0;
+    }
+
+    :where(.chat-container) .inline-activity-header {
+        gap: var(--space-2);
+        flex-wrap: nowrap;
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        padding: var(--space-15) var(--space-25);
+        cursor: default;
+        user-select: none;
+        white-space: nowrap;
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        color: var(--text-secondary);
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
+        border-bottom: none;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        background: var(--title-bar-background);
+        transition: color var(--duration-220) var(--ease-default);
+    }
+
+    :where(.chat-container) .inline-activity-header::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background-color: var(--ui-button-bg-hover);
+        opacity: 0;
+        z-index: var(--z-base);
+        pointer-events: none;
+        transition: opacity var(--duration-220) var(--ease-default);
+    }
+
+    :where(.chat-container) .inline-activity-header > * {
+        position: relative;
+        z-index: var(--z-above-sibling);
+    }
+
+    :where(.chat-container) .inline-activity-header[aria-disabled='false'] {
+        cursor: pointer;
+
+        --ui-button-bg: var(--button-surface-bg);
+        --ui-button-color: var(--ui-button-neutral-color);
+        --ui-button-color-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-bg-hover: color-mix(in srgb, var(--ui-button-bg) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+    }
+
+    :where(.chat-container) .inline-activity-header[aria-disabled='false']:is(:hover, :focus-visible),
+    :where(.chat-container) .inline-activity-header[aria-disabled='false'][data-loading-toggle-hover='true'] {
+        color: var(--ui-button-color-hover);
+    }
+
+    :where(.chat-container) .inline-activity-header[aria-disabled='false']:is(:hover, :focus-visible)::before,
+    :where(.chat-container) .inline-activity-header[aria-disabled='false'][data-loading-toggle-hover='true']::before {
+        opacity: 1;
+    }
+
+    :where(.chat-container) .inline-activity-header[aria-disabled='true'],
+    :where(.chat-container) .inline-activity-header[data-toggle-disabled='true'] {
+        cursor: default;
+    }
+
+    :where(.chat-container) .inline-activity:is([data-collapsed='false'], [data-collapsing='true']) > .inline-activity-header {
+        color: var(--text-primary);
+        box-shadow: inset 0 -1px 0 var(--glass-border-subtle);
+    }
+
+    :where(.chat-container) .inline-activity.message-role-activity > .inline-activity-header {
+        cursor: default;
+        pointer-events: none;
+        user-select: text;
+        min-height: var(--chat-message-role-activity-block-size);
+    }
+
+    :where(.chat-container) .inline-activity:not(.message-role-activity) > .inline-activity-header:is([aria-disabled='true'], [data-toggle-disabled='true']) {
+        background: var(--button-surface-bg);
+    }
+
+    :where(.chat-container) .inline-activity.message-role-activity[data-action]:is(:hover, :focus-within) > .inline-activity-header {
+        color: color-mix(in srgb, var(--text-secondary) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
+    }
+
+    :where(.chat-container) .inline-activity.message-role-activity[data-action]:is(:hover, :focus-within) > .inline-activity-header::before {
+        --ui-button-bg-hover: color-mix(in srgb, var(--button-surface-bg) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        opacity: 1;
+    }
+
+    :where(.chat-container) .inline-activity .inline-activity-details > * {
+        flex-shrink: 0;
+        min-width: 0;
+    }
+}

@@ -1,0 +1,229 @@
+/* SoAI - Settings page toolbar styles [frontend/assets/css/pages/settings/toolbar.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.wallpaper-controls, .wallpaper-layout) {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-layout {
+        --wallpaper-column-padding: 0;
+        --wallpaper-preview-target-height: calc(var(--space-16) * 6);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.wallpaper-preview-column, .wallpaper-details-column) {
+        padding: var(--wallpaper-column-padding);
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-details-column {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-preview-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        width: 100%;
+        max-width: none;
+        height: auto;
+        max-height: var(--wallpaper-preview-target-height);
+        flex: 1;
+        aspect-ratio: 16 / 9;
+        background: var(--glass-surface-light);
+        border: var(--border-width-2) dashed var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        margin: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-preview-column {
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-preview {
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .no-wallpaper-message {
+        color: var(--text-tertiary);
+        font-size: var(--font-size-xs);
+        font-style: italic;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.action-title, .settings-slider-value) {
+        color: var(--text-primary);
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .action-title {
+        margin-bottom: var(--space-1);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .action-description {
+        margin-bottom: var(--space-3);
+        line-height: 1.4;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .url-input-group {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: var(--space-2);
+        width: 100%;
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .url-input-group .setting-input {
+        flex: 1 1 12rem;
+        min-width: 0;
+        width: auto;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-slider-control {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-slider {
+        flex: 1;
+        min-width: 120px;
+        height: 4px;
+        background: var(--glass-surface-light);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--glass-shadow-base);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        appearance: none;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-slider:focus-visible {
+        box-shadow:
+            var(--glass-shadow-base),
+            0 0 0 var(--control-focus-ring-width) color-mix(in srgb, var(--control-focus-ring-color) 25%, transparent);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-slider::-webkit-slider-thumb {
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-slider::-moz-range-thumb {
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-slider-value {
+        min-width: 35px;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-info-value {
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        word-break: break-word;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .solid-background-controls {
+        --ui-action-row-wrap: nowrap;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-control > .solid-background-controls {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-color-picker {
+        width: var(--control-height);
+        min-width: var(--control-height);
+        height: var(--control-height);
+        padding: 0;
+        border-radius: var(--border-radius);
+        flex: 0 0 var(--control-height);
+        appearance: none;
+        overflow: hidden;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-color-picker::-webkit-color-swatch-wrapper {
+        padding: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.setting-color-picker::-webkit-color-swatch, .setting-color-picker::-moz-color-swatch) {
+        border: none;
+        border-radius: 0;
+    }
+
+    @container ui-viewport (width >= 768px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-preview-container {
+            grid-column: span 2;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-layout {
+            --wallpaper-column-padding: var(--space-3);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-6);
+            align-items: stretch;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-preview-column {
+            justify-content: center;
+            align-items: stretch;
+        }
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-button-row {
+        display: flex;
+        gap: var(--space-2);
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-button-row[hidden] {
+        display: none;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-os-button-row > .ui-button[hidden] {
+        display: none;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-item--danger {
+        background: var(--badge-bg-red);
+        border-color: var(--badge-border-red);
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .sidebar-page-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: var(--space-3);
+        padding: var(--space-4) 0 0;
+        margin-top: var(--space-2);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .sidebar-page-list.sidebar-page-list--hidden {
+        display: none;
+        margin: 0;
+        padding: 0;
+        height: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .sidebar-page-item .toggle-switch {
+        width: 100%;
+    }
+}

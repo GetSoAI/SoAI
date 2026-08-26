@@ -1,0 +1,4 @@
+/* SoAI - Frontend core Translation declarations for key group `fileExplorer.actionBar` [frontend/assets/ts/core/i18n/translationkeys/fileexplorer/actionBar.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type FileExplorerActionBarTranslationKey = 'fileExplorer.actionBar.copy.batch' | 'fileExplorer.actionBar.copy.single' | 'fileExplorer.actionBar.copyHere.batch' | 'fileExplorer.actionBar.copyHere.single' | 'fileExplorer.actionBar.delete.batch' | 'fileExplorer.actionBar.delete.single' | 'fileExplorer.actionBar.download.batch' | 'fileExplorer.actionBar.download.single' | 'fileExplorer.actionBar.metadata.batch' | 'fileExplorer.actionBar.metadata.single' | 'fileExplorer.actionBar.move.batch' | 'fileExplorer.actionBar.move.single' | 'fileExplorer.actionBar.moveHere.batch' | 'fileExplorer.actionBar.moveHere.single' | 'fileExplorer.actionBar.use.batch' | 'fileExplorer.actionBar.use.single';

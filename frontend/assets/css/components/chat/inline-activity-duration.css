@@ -1,0 +1,19 @@
+/* SoAI - Inline activity duration component styles [frontend/assets/css/components/chat/inline-activity-duration.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .inline-activity-duration {
+        --inline-activity-duration-reserve: 0;
+        display: inline-block;
+        font-size: calc(var(--font-size-xs) * var(--chat-text-scale));
+        color: var(--text-tertiary);
+        font-weight: 400;
+        font-variant-numeric: tabular-nums;
+        flex-shrink: 0;
+        align-self: center;
+        line-height: var(--line-height-compact);
+        text-align: end;
+        white-space: nowrap;
+        min-inline-size: calc(var(--inline-activity-duration-reserve) * 1ch);
+    }
+}

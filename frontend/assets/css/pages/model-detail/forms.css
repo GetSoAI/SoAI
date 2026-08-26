@@ -1,0 +1,279 @@
+/* SoAI - Model detail page forms styles [frontend/assets/css/pages/model-detail/forms.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    .model-test-modal:where([data-section='modelDetail'], [data-page-scope='modelDetail']) {
+        .model-test-status-block {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+
+        .model-test-plugin-status-row,
+        .model-test-model-status-row {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-3);
+        }
+
+        .model-test-controls-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            margin-top: var(--space-2);
+        }
+
+        .model-test-controls-row > .u-hidden {
+            display: none;
+        }
+
+        .model-test-elapsed-spinner {
+            width: 14px;
+            height: 14px;
+            min-width: 14px;
+            min-height: 14px;
+            border-width: var(--border-width-150);
+        }
+
+        .model-test-elapsed-spinner.u-hidden {
+            display: none;
+        }
+
+        .model-test-result-row {
+            margin-bottom: var(--space-4);
+        }
+
+        .model-test-result-text-only {
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .model-test-result-text-only .status-indicator {
+            display: none;
+        }
+
+        .model-test-result-row .plugin-status-badge {
+            --status-badge-gap: var(--space-2);
+            --status-badge-padding: var(--space-15) var(--space-3);
+        }
+
+        .model-test-result-row .plugin-status-badge .status-indicator {
+            margin-right: var(--space-15);
+        }
+
+        .model-test-status-block .stat-value {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .model-test-timing-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) max-content 14px;
+            align-items: center;
+            column-gap: var(--space-2);
+        }
+
+        .model-test-elapsed-value {
+            min-inline-size: 4.5ch;
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            text-align: right;
+            justify-self: end;
+        }
+
+        .model-test-timing-row .model-test-elapsed-spinner {
+            align-self: center;
+            justify-self: center;
+        }
+
+        .model-test-timing-row.u-hidden {
+            display: none;
+        }
+
+        .model-test-plugin-status-row .plugin-status-badge .status-indicator,
+        .model-test-model-status-row .plugin-status-badge .status-indicator {
+            margin-right: var(--space-15);
+        }
+
+        .model-test-request-details {
+            margin-top: var(--space-4);
+            padding: var(--space-4);
+            border-radius: var(--border-radius);
+            background: color-mix(in srgb, var(--glass-surface-strong) 96%, var(--glass-underlay-page));
+            border: var(--border-width-1) solid var(--border-color);
+        }
+
+        .model-test-request-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-2) var(--space-4);
+        }
+
+        .model-test-request-grid .stat-row {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+        }
+
+        .model-test-request-grid .stat-value {
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.4;
+            overflow-wrap: break-word;
+            min-width: 0;
+        }
+
+        .model-test-request-prompt {
+            margin-top: var(--space-4);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+        }
+
+        .model-test-request-prompt-value {
+            font-family: var(--font-family-mono);
+            font-size: var(--font-size-xs);
+            padding: var(--space-3);
+            border-radius: var(--border-radius);
+            background: var(--glass-surface-medium);
+            border: var(--border-width-1) solid var(--border-color);
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .model-test-request-response {
+            margin-top: var(--space-4);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+        }
+
+        .model-test-request-response-value {
+            font-family: var(--font-family-mono);
+            font-size: var(--font-size-xs);
+            padding: var(--space-3);
+            border-radius: var(--border-radius);
+            background: var(--glass-surface-medium);
+            border: var(--border-width-1) solid var(--border-color);
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+
+        .model-test-logs-card {
+            margin-top: var(--space-4);
+            border: var(--border-width-1) solid var(--border-color);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            transition: border-color var(--transition-fast);
+        }
+
+        .model-test-logs-card.u-hidden,
+        .model-test-request-details.u-hidden,
+        .model-test-request-response.u-hidden {
+            display: none;
+        }
+
+        .model-test-logs-card.is-collapsed {
+            border-color: var(--border-color);
+        }
+
+        .model-test-logs-card.is-collapsed .model-test-logs-header {
+            border-bottom: none;
+            box-shadow: none;
+        }
+
+        .model-test-logs-header.model-test-logs-header--clickable {
+            box-shadow: none;
+            user-select: none;
+            transition: background var(--transition-fast);
+        }
+
+        .model-test-logs-header.model-test-logs-header--clickable:hover {
+            background: color-mix(in srgb, var(--glass-surface-medium) 80%, var(--glass-underlay-surface));
+        }
+
+        .model-test-logs-header .model-test-logs-title {
+            margin: 0;
+            margin-right: auto;
+        }
+
+        .model-test-logs-toggle {
+            border-radius: var(--border-round);
+            transform: rotate(-90deg);
+            transition: transform var(--transition-fast);
+        }
+
+        .model-test-logs-toggle.model-test-logs-toggle--collapsed {
+            transform: none;
+        }
+
+        .model-test-logs-section {
+            overflow: hidden;
+            transition:
+                max-height var(--transition-normal),
+                opacity var(--transition-normal);
+        }
+
+        .model-test-logs-section.is-collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .model-test-logs.logs-content {
+            max-height: 360px;
+            overflow-y: auto;
+            padding: var(--space-2) var(--space-3);
+            font-family: var(--font-family-mono);
+            font-size: var(--font-size-xs);
+            line-height: 1.5;
+        }
+
+        .model-test-log-entry {
+            padding: var(--space-05) var(--space-2);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--space-05);
+            white-space: pre-wrap;
+            word-break: break-word;
+
+            &[data-level='ERROR'],
+            &[data-level='CRITICAL'] {
+                background: var(--log-level-error-bg);
+                font-weight: 600;
+            }
+
+            &[data-level='WARNING'] {
+                background: var(--log-level-warning-bg);
+            }
+        }
+
+        .model-test-logs-placeholder {
+            color: var(--text-muted);
+            padding: var(--space-05) var(--space-2);
+            white-space: normal;
+        }
+
+        @media screen {
+            @container ui-viewport (width <= 768px) {
+                .model-test-request-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        }
+    }
+}

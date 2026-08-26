@@ -1,0 +1,29 @@
+/* SoAI - Disabled controls component styles [frontend/assets/css/components/controls/disabled-controls.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :is(button, input, textarea, select):disabled:not([aria-busy='true']) {
+        cursor: no-drop;
+        opacity: 0.55;
+    }
+
+    :is(button, a, input, textarea, select)[aria-disabled='true']:not([aria-busy='true']) {
+        cursor: no-drop;
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    :is(.ui-button, .ui-icon-button):is(:disabled, [aria-disabled='true']):not([aria-busy='true']) {
+        cursor: no-drop;
+        opacity: 0.55;
+        pointer-events: none;
+    }
+
+    :is(button, input, textarea, select):is(:disabled, [aria-disabled='true']) {
+        box-shadow: none;
+    }
+
+    :is(.ui-button, .ui-icon-button):is(:disabled, [aria-disabled='true']) {
+        box-shadow: none;
+    }
+}

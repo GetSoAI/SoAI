@@ -1,0 +1,35 @@
+/* SoAI - Third party frontend styles [frontend/assets/css/overrides/third-party.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer overrides {
+    * {
+        outline-color: transparent;
+    }
+
+    :where(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='button'], [type='submit'], [type='reset']), textarea, select) {
+        outline: none;
+    }
+
+    :where(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='button'], [type='submit'], [type='reset']), textarea, select):focus {
+        outline: none;
+    }
+
+    :where(input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='button'], [type='submit'], [type='reset']), textarea, select):focus-visible {
+        outline: none;
+    }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:focus-visible {
+        outline: none;
+    }
+
+    body {
+        counter-reset: none;
+    }
+
+    .katex-display {
+        counter-reset: katexEqnNo mmlEqnNo;
+    }
+}

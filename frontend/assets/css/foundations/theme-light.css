@@ -1,0 +1,17 @@
+/* SoAI - Theme light frontend styles [frontend/assets/css/foundations/theme-light.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    .theme-light {
+        color-scheme: light;
+
+        --soai-animated-logo-ring-edge: #0d0d0d;
+        --soai-animated-logo-ring-mid: #222222;
+        --soai-animated-logo-ring-border: #444444;
+        --soai-animated-logo-dot-fill: #5a5a5a;
+        --soai-animated-logo-center-fill: #bedc00;
+        --soai-animated-logo-pulse-color: rgba(190, 220, 0, 0.8);
+        --soai-animated-logo-pico-dot-fill: #5a5a5a;
+        --soai-animated-logo-pico-pulse-color: rgba(190, 220, 0, 0.96);
+    }
+}

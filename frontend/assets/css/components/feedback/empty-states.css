@@ -1,0 +1,93 @@
+/* SoAI - Empty states component styles [frontend/assets/css/components/feedback/empty-states.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: var(--space-2);
+    }
+
+    .ui-empty-state--simple {
+        padding: var(--space-12) var(--space-4);
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: var(--font-size-base);
+    }
+
+    :is(.no-results, .search-loading) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-16) var(--space-4);
+        text-align: center;
+        color: var(--text-secondary);
+    }
+
+    .no-results {
+        border-radius: var(--border-radius);
+    }
+
+    .no-results-icon {
+        font-size: var(--font-size-display);
+        margin-bottom: var(--space-4);
+        opacity: 0.5;
+    }
+
+    .no-results-icon svg {
+        width: 3rem;
+        height: 3rem;
+        display: block;
+        stroke: currentColor;
+    }
+
+    .no-results h3 {
+        margin: 0 0 var(--space-2);
+        color: var(--text-primary);
+    }
+
+    .no-results p {
+        margin: 0;
+        color: var(--text-secondary);
+    }
+
+    :is(.ui-empty-state, .ui-empty-state--simple, .no-results, .search-no-results, .logs-empty-state, .modeldetail-empty-state) {
+        animation: empty-state-appear var(--motion-empty-state-appear-duration) var(--ease-default) both;
+        animation-delay: var(--motion-empty-state-appear-delay);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :is(.ui-empty-state, .ui-empty-state--simple, .no-results, .search-no-results, .logs-empty-state, .modeldetail-empty-state) {
+            animation: none;
+        }
+    }
+
+    .ui-empty-state svg {
+        color: var(--text-tertiary);
+        margin-bottom: var(--space-4);
+    }
+    .ui-empty-state h3 {
+        color: var(--text-primary);
+        margin-bottom: var(--space-2);
+    }
+    .ui-empty-state p {
+        color: var(--text-secondary);
+        margin-bottom: var(--space-8);
+        max-width: var(--layout-empty-state-max-width);
+    }
+    .ui-empty-state__actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        flex-wrap: wrap;
+    }
+    .ui-empty-state__icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}

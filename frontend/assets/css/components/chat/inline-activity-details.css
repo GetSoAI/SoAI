@@ -1,0 +1,202 @@
+/* SoAI - Inline activity details component styles [frontend/assets/css/components/chat/inline-activity-details.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .inline-activity .inline-activity-details {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        overflow: hidden;
+        max-height: 0;
+        opacity: 0;
+        padding: 0;
+        background: var(--glass-surface-darker);
+        border-bottom-left-radius: var(--border-radius);
+        border-bottom-right-radius: var(--border-radius);
+        min-width: 0;
+        min-inline-size: 0;
+        width: 100%;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        transform: translateY(-2px);
+        transition:
+            max-height var(--duration-220) var(--ease-default),
+            opacity var(--duration-220) var(--ease-default),
+            padding var(--duration-220) var(--ease-default),
+            transform var(--duration-220) var(--ease-default);
+    }
+
+    :where(.chat-container) .inline-activity-type-thinking.inline-activity .inline-activity-details {
+        width: auto;
+        max-width: 100%;
+    }
+
+    :where(.chat-container) .inline-activity[data-collapsed='false'] > .inline-activity-details {
+        max-height: 360px;
+        opacity: 1;
+        padding: var(--space-3);
+        overflow: auto;
+        overflow-x: hidden;
+        scrollbar-gutter: stable;
+        transform: translateY(0);
+    }
+
+    :where(.chat-container) .chat-messages-area[data-auto-scroll-lock='true'] .inline-activity .inline-activity-details {
+        transition:
+            opacity var(--duration-220) var(--ease-default),
+            transform var(--duration-220) var(--ease-default);
+    }
+
+    :where(.chat-container) .inline-activity-preview {
+        min-width: 0;
+        flex: 0 1 auto;
+        max-width: min(36rem, calc(78 * var(--ui-viewport-width-unit)));
+    }
+
+    :where(.chat-container) .inline-activity[data-collapsed='true']:not([data-collapsing='true']) > .inline-activity-details {
+        width: 0;
+        max-width: 0;
+    }
+
+    :where(.chat-container) .inline-activity .inline-activity-details .chat-inline-media-card:is(.chat-inline-media-card--error, .chat-inline-media-card--unavailable) {
+        display: none;
+    }
+
+    :where(.chat-container) .inline-activity-details code {
+        font-family: var(--font-family-mono);
+    }
+
+    :where(.chat-container) .inline-activity-details pre:not(.code-block) {
+        margin: 0;
+        padding: var(--space-2);
+        background: var(--glass-surface-medium);
+        border: var(--border-width-1) solid var(--glass-border-medium);
+        border-radius: var(--border-radius);
+        overflow: visible;
+        max-height: none;
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    :where(.chat-container) .inline-activity-details pre[data-language='diff'] {
+        max-height: none;
+    }
+
+    :where(.chat-container) .inline-activity-details pre[data-language='diff'] > code {
+        max-height: none;
+        overflow: visible;
+    }
+
+    :where(.chat-container) .inline-activity-details .code-block:not([data-language='diff']) {
+        margin: 0;
+        padding: 0;
+        max-height: none;
+        border-radius: var(--border-radius);
+    }
+
+    :where(.chat-container) .inline-activity-details .code-block:not([data-language='diff'])::before {
+        display: none;
+    }
+
+    :where(.chat-container) .inline-activity-details .code-block:not([data-language='diff']) code {
+        padding: var(--space-2) var(--space-3);
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        line-height: 1.5;
+        max-height: none;
+        overflow: visible;
+    }
+
+    :where(.chat-container) .inline-activity-preview[data-model-mode='true'] {
+        flex: 0 0 auto;
+        max-width: 8rem;
+    }
+
+    :where(.chat-container) .inline-activity-preview-text {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 400;
+        color: var(--text-secondary);
+        opacity: 1;
+        transition: opacity var(--duration-150) var(--ease-in-out);
+    }
+
+    :where(.chat-container) .inline-activity-preview-text.inline-activity-preview-text-fading {
+        opacity: 0;
+    }
+
+    :where(.chat-container) .inline-activity-type-thinking > .inline-activity-header > .inline-activity-preview > .inline-activity-preview-text {
+        transition: none;
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where(.chat-container) .inline-activity[data-collapsed='true'] > .inline-activity-header > .inline-activity-separator-dot,
+        :where(.chat-container) .inline-activity-preview {
+            display: none;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where(.chat-container) .inline-activity-header,
+        :where(.chat-container) .inline-activity-leading-icon {
+            transition: none;
+        }
+
+        :where(.chat-container) .inline-activity .inline-activity-details {
+            transition: none;
+        }
+
+        :where(.chat-container) .inline-activity-preview-text {
+            transition: none;
+        }
+
+        :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text {
+            color: inherit;
+            animation: none;
+            overflow: visible;
+        }
+
+        :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text .message-streaming-status-label-text::after {
+            content: none;
+            animation: none;
+        }
+    }
+
+    :where(.chat-container) .inline-activity-status-led {
+        --inline-activity-status-led-size: var(--status-led-size);
+        display: inline-flex;
+        flex: 0 0 var(--inline-activity-status-led-size);
+        inline-size: var(--inline-activity-status-led-size);
+        min-inline-size: var(--inline-activity-status-led-size);
+        max-inline-size: var(--inline-activity-status-led-size);
+        block-size: var(--inline-activity-status-led-size);
+        min-block-size: var(--inline-activity-status-led-size);
+        max-block-size: var(--inline-activity-status-led-size);
+        border-radius: var(--border-radius);
+        background: var(--text-tertiary);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--glass-underlay-surface) 72%, transparent);
+    }
+
+    :where(.chat-container) .inline-activity-status-pending > .inline-activity-header > .inline-activity-status-led {
+        background: var(--accent-blue);
+    }
+
+    :where(.chat-container) .inline-activity-status-running > .inline-activity-header > .inline-activity-status-led {
+        background: var(--status-orange);
+    }
+
+    :where(.chat-container) .inline-activity-status-completed > .inline-activity-header > .inline-activity-status-led {
+        background: var(--status-green);
+    }
+
+    :where(.chat-container) .inline-activity-status-cancelled > .inline-activity-header > .inline-activity-status-led {
+        background: var(--status-green);
+    }
+
+    :where(.chat-container) .inline-activity-status-error > .inline-activity-header > .inline-activity-status-led {
+        background: var(--status-red);
+    }
+}

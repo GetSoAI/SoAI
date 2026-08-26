@@ -1,0 +1,21 @@
+/* SoAI - Inline tool code blocks component styles [frontend/assets/css/components/chat/inline-tool-code-blocks.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .inline-tool-field > .inline-tool-field-pre {
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+        background-clip: padding-box;
+    }
+
+    :where(.chat-container) .inline-tool-field > .inline-tool-field-pre.code-block {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    :where(.chat-container) .inline-tool-field > .inline-tool-field-pre.code-block > code {
+        min-width: 100%;
+        border-radius: inherit;
+    }
+}

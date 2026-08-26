@@ -1,0 +1,190 @@
+/* SoAI - Chart filters component styles [frontend/assets/css/components/charts/chart-filters.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .chart-filters-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-2) 0;
+    }
+
+    .card-title-controls .chart-filters-bar,
+    .section-controls .chart-filters-bar {
+        padding: 0;
+        gap: var(--space-1);
+    }
+
+    .chart-filter {
+        display: grid;
+        gap: var(--space-1);
+        min-width: 0;
+    }
+
+    .chart-filter-label {
+        color: var(--text-tertiary);
+        font-size: var(--font-size-compact);
+        font-weight: 600;
+        letter-spacing: var(--tracking-05px);
+        line-height: 1.2;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .chart-filter-select {
+        appearance: none;
+        width: 100%;
+        min-width: 14ch;
+        max-width: 26ch;
+        min-height: var(--control-height-compact);
+        padding: 0 calc(var(--space-2) + var(--control-icon-size-compact) + var(--space-15)) 0 var(--space-2);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        color: var(--text-primary);
+        background-color: var(--bg-secondary);
+        background-image: var(--control-select-arrow-image);
+        background-repeat: no-repeat;
+        background-position: right var(--space-15) center;
+        background-size: var(--control-icon-size-compact);
+        box-shadow: none;
+        font: inherit;
+        font-size: var(--font-size-compact);
+        line-height: 1.2;
+        transition:
+            border-color var(--transition-fast),
+            background-color var(--transition-fast),
+            color var(--transition-fast);
+    }
+
+    .chart-filter-select:is(:hover, :focus-visible) {
+        border-color: var(--status-grey);
+        background-color: var(--bg-tertiary);
+        color: var(--text-primary);
+    }
+
+    .chart-filter-select :is(option, optgroup) {
+        color: var(--text-primary);
+        background-color: var(--bg-secondary);
+    }
+
+    .chart-filter-select--titlebar {
+        height: var(--control-height-compact);
+    }
+
+    .chart-filters-bar[data-chart-filters-layout='titlebar-inline'] .chart-filter-select--titlebar {
+        height: var(--control-height-titlebar);
+        min-height: var(--control-height-titlebar);
+    }
+
+    .chart-filter-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(7ch, 1fr));
+        gap: var(--space-1);
+        width: 100%;
+        min-width: 0;
+    }
+
+    .chart-filter-buttons > .ui-button {
+        width: 100%;
+        min-width: 0;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .chart-filter-buttons > .ui-button.is-active {
+        background-color: var(--ui-button-bg-hover);
+        border-color: var(--ui-button-border-hover);
+        color: var(--ui-button-color-hover);
+    }
+
+    .chart-filter[data-filter='candleInterval'] {
+        transition: opacity var(--transition-fast);
+    }
+
+    .chart-filter--hidden {
+        display: none;
+    }
+
+    .chart-filters-bar[data-chart-filters-layout='titlebar-inline'] .chart-filter.chart-filter--hidden {
+        display: none;
+    }
+
+    .chart-filter-fullscreen {
+        margin-left: auto;
+    }
+
+    .chart-filters-trigger {
+        display: none;
+        align-items: center;
+        gap: var(--space-15);
+    }
+
+    .chart-filters-panel {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: start;
+        gap: var(--space-3);
+    }
+
+    .chart-filters-bar[data-chart-filters-layout='titlebar-inline'] {
+        width: auto;
+        max-width: 100%;
+        flex: 0 0 auto;
+        min-height: 0;
+        padding: 0;
+        margin: 0;
+        justify-content: flex-start;
+    }
+
+    .section-controls.card-title-controls > .chart-filters-bar[data-chart-filters-layout='titlebar-inline'] {
+        height: auto;
+        min-height: 0;
+    }
+
+    .section-controls.card-title-controls:has(> .chart-filters-bar[data-chart-filters-layout='titlebar-inline']) {
+        width: auto;
+        max-width: 100%;
+        flex: 1 1 auto;
+        min-height: 0;
+        justify-content: flex-end;
+    }
+
+    .chart-filters-bar[data-chart-filters-layout='titlebar-inline'] .chart-filter-fullscreen {
+        margin-left: 0;
+    }
+
+    .chart-filters-bar[data-chart-filters-layout='titlebar-inline'] .chart-filters-panel {
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: var(--space-1);
+    }
+
+    .chart-filters-bar[data-chart-filters-layout='titlebar-inline'] .chart-filter {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+
+    .chart-filters-bar[data-chart-filters-layout='titlebar-inline'] .chart-filter-label {
+        display: none;
+    }
+
+    .chart-filters-bar[data-chart-filters-layout='titlebar-inline'] .chart-filter-buttons {
+        display: inline-flex;
+        flex-wrap: nowrap;
+        width: auto;
+        gap: var(--space-1);
+    }
+
+    .chart-filters-bar[data-chart-filters-layout='titlebar-inline'] .chart-filter-buttons > .ui-button {
+        width: auto;
+    }
+
+    @container ui-viewport (width <= 900px) {
+        .chart-filter-fullscreen {
+            margin-left: 0;
+            order: 10;
+        }
+    }
+}

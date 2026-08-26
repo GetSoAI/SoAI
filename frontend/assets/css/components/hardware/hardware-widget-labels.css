@@ -1,0 +1,47 @@
+/* SoAI - Hardware widget labels component styles [frontend/assets/css/components/hardware/hardware-widget-labels.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .hardware-widget .hardware-widget__label {
+        position: absolute;
+        top: 3cqw;
+        left: 3cqw;
+        color: var(--hardware-widget-text-muted);
+        font-size: clamp(var(--font-size-micro), 3cqw, var(--font-size-xs));
+        font-weight: 400;
+        opacity: 0.5;
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-05px);
+        z-index: var(--hardware-widget-z-label);
+    }
+
+    .hardware-widget .hardware-widget__device-name {
+        position: absolute;
+        top: 9%;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        color: var(--hardware-widget-text-muted);
+        font-size: clamp(var(--font-size-sm), 9cqw, var(--font-size-2xl));
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: var(--tracking-neg-05px);
+        z-index: var(--hardware-widget-z-content);
+        text-shadow: 0 1px 2px color-mix(in srgb, var(--color-black) 10%, transparent);
+        width: 90%;
+        white-space: normal;
+        max-width: 90%;
+    }
+
+    .hardware-widget .hardware-widget__device-name.hardware-widget__device-name--long {
+        font-size: clamp(var(--font-size-xs), 8cqw, var(--font-size-135));
+        letter-spacing: var(--tracking-neg-1px);
+    }
+
+    .hardware-widget .hardware-widget__device-name-secondary {
+        color: var(--hardware-widget-text-muted);
+        font-weight: 400;
+        font-size: var(--font-size-em-080);
+        margin-left: 0.3em;
+    }
+}

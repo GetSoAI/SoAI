@@ -1,0 +1,228 @@
+/* SoAI - Prompt delete and view modal component styles [frontend/assets/css/components/modals/prompt-delete-and-view-modal.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .prompt-delete-modal .modal-body {
+        padding: var(--modal-body-padding);
+    }
+
+    .prompt-delete-modal .modal-body p {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: var(--space-4);
+    }
+
+    .prompt-delete-modal .prompt-delete-warning {
+        margin-top: var(--space-4);
+        color: var(--text-tertiary);
+        font-size: var(--font-size-sm);
+    }
+
+    .prompt-delete-modal .prompt-preview {
+        background: var(--glass-surface-light);
+        border: var(--border-width-1) solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: var(--space-3);
+        font-size: var(--font-size-sm);
+        color: var(--text-primary);
+        margin-top: var(--space-4);
+        margin-bottom: var(--space-4);
+        overflow: visible;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+    }
+
+    .prompt-view-modal :is(.prompt-modal-title-input, .prompt-modal-content-textarea) {
+        width: 100%;
+        background: var(--text-field-bg);
+        border: var(--border-width-1) solid var(--text-field-border);
+        color: var(--text-primary);
+        font-family: inherit;
+    }
+
+    .prompt-view-modal :is(.prompt-modal-title-input, .prompt-modal-content-textarea):hover:not(:focus) {
+        background: var(--text-field-bg-hover);
+        border-color: var(--text-field-border-hover);
+    }
+
+    .prompt-view-modal .prompt-modal-title-input {
+        border-radius: var(--border-radius);
+        padding: var(--space-15) var(--space-25) var(--space-15) var(--space-4);
+        font-size: var(--font-size-heading-xs);
+        font-weight: 500;
+    }
+
+    .prompt-view-modal .prompt-modal-content-textarea {
+        border-radius: var(--border-radius);
+        min-height: 200px;
+        padding: var(--space-3);
+        font-size: inherit;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        resize: none;
+        display: block;
+        max-height: none;
+        min-width: 0;
+        max-width: 100%;
+        flex: 1;
+    }
+
+    .prompt-view-modal .modal-body {
+        padding: var(--modal-body-padding);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    .prompt-view-modal .prompt-modal-content {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+    }
+
+    .prompt-view-modal .prompt-modal-content-editor {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+    }
+
+    .prompt-view-modal .prompt-view-text {
+        font-size: inherit;
+        line-height: 1.6;
+        color: var(--text-secondary);
+        white-space: pre-wrap;
+        overflow-wrap: break-word;
+        user-select: text;
+    }
+
+    .prompt-view-modal.is-editing .prompt-view-text {
+        flex: 0 0 auto;
+        min-height: auto;
+    }
+
+    .prompt-view-modal.is-editing :is(.prompt-modal-content, .prompt-modal-content-editor) {
+        flex: 0 0 auto;
+        min-height: auto;
+    }
+
+    .prompt-view-modal.is-editing .prompt-modal-content-textarea {
+        flex: 0 0 auto;
+        height: auto;
+        overflow: hidden;
+    }
+
+    .prompt-view-modal:not(.is-editing) :is(.prompt-modal-content, .prompt-modal-content-editor, .prompt-view-text) {
+        flex: 0 0 auto;
+        min-height: auto;
+    }
+
+    .prompt-view-modal .prompt-view-text.prompt-modal-content-text {
+        padding: var(--space-3);
+        min-height: 0;
+        width: 100%;
+    }
+
+    .prompt-view-modal:not(.is-editing) .prompt-view-text.prompt-modal-content-text {
+        overflow: visible;
+    }
+
+    .prompt-view-modal .prompt-view-text.prompt-view-text--editing:not(.prompt-modal-content-textarea) {
+        overflow: hidden;
+    }
+
+    .prompt-view-modal .prompt-modal-content pre,
+    .prompt-view-modal .prompt-modal-content code {
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .prompt-view-modal .modal-footer {
+        padding: var(--space-3) var(--space-6);
+    }
+
+    .content-preview-modal .modal-footer-section--right {
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .content-preview-modal .modal-footer-section--right > .ui-button {
+        min-height: var(--icon-button-size-dense);
+    }
+
+    .prompt-view-modal .prompt-modal-title-input:focus-visible {
+        border-color: var(--accent-green);
+    }
+
+    .prompt-view-modal.is-editing :is(.prompt-modal-title-input, .prompt-modal-content-textarea) {
+        background: var(--text-field-bg);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+    }
+
+    .prompt-view-modal .prompt-view-text--editing .prompt-modal-content-textarea {
+        min-height: 0;
+        width: 100%;
+    }
+
+    .prompt-view-modal .prompt-modal-content-textarea:focus-visible {
+        border-color: var(--accent-green);
+    }
+
+    .prompt-view-modal .prompt-modal-header .prompt-color-picker {
+        justify-content: flex-start;
+    }
+
+    .prompt-view-modal .prompt-modal-header-color {
+        display: flex;
+        align-items: center;
+        gap: var(--space-15);
+    }
+
+    .prompt-view-modal .prompt-modal-header:not(.is-editing) .prompt-modal-header-color {
+        display: none;
+    }
+
+    .prompt-view-modal[data-prompt-color] {
+        --prompt-modal-overlay-accent: var(--accent-blue);
+        --prompt-modal-overlay-strong: 28%;
+        --prompt-modal-overlay-soft: 16%;
+        --prompt-modal-underlay: var(--glass-surface-strong);
+        --prompt-modal-z-overlay: 0;
+        --prompt-modal-z-content: 1;
+    }
+
+    .theme-dark .prompt-view-modal[data-prompt-color] {
+        --prompt-modal-overlay-strong: 16%;
+        --prompt-modal-overlay-soft: 8%;
+    }
+
+    .prompt-view-modal[data-prompt-color='red' i] {
+        --prompt-modal-overlay-accent: var(--prompts-color-red);
+    }
+
+    .prompt-view-modal[data-prompt-color='yellow' i] {
+        --prompt-modal-overlay-accent: var(--prompts-color-yellow);
+    }
+
+    .prompt-view-modal[data-prompt-color='purple' i] {
+        --prompt-modal-overlay-accent: var(--prompts-color-purple);
+    }
+
+    .prompt-view-modal[data-prompt-color='green' i] {
+        --prompt-modal-overlay-accent: var(--prompts-color-green);
+    }
+
+    .prompt-view-modal[data-prompt-color='blue' i] {
+        --prompt-modal-overlay-accent: var(--prompts-color-blue);
+    }
+
+    .prompt-view-modal[data-prompt-color] .modal-content > .modal-body {
+        background-color: var(--prompt-modal-underlay);
+        background-image: linear-gradient(135deg, color-mix(in srgb, var(--prompt-modal-overlay-accent) var(--prompt-modal-overlay-strong), var(--prompt-modal-underlay)), color-mix(in srgb, var(--prompt-modal-overlay-accent) var(--prompt-modal-overlay-soft), var(--prompt-modal-underlay)));
+    }
+}

@@ -1,0 +1,289 @@
+/* SoAI - Chat messages responsive component styles [frontend/assets/css/components/chat/chat-messages-responsive.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .chat-messages-area:not(.widescreen-mode) .chat-message.user .message-avatar {
+        margin-top: 0;
+    }
+
+    :where(.chat-container) .chat-messages-area:not(.widescreen-mode) .chat-message.assistant .message-avatar {
+        flex-direction: row;
+        margin-top: var(--border-width-1);
+    }
+
+    :where(.chat-container) .chat-messages-area.widescreen-mode .chat-message.assistant .message-avatar {
+        margin-top: 0;
+    }
+
+    :where(.chat-container) .chat-message.user .message-avatar-icon:has(.message-avatar-icon-hit-target.message-avatar-icon--uploadable) {
+        background: color-mix(in srgb, var(--glass-surface-light) 90%, var(--accent-primary) 10%);
+    }
+
+    :where(.chat-container) .chat-message.assistant .message-avatar-icon:has(.message-avatar-icon-hit-target.message-avatar-icon--uploadable) {
+        background: color-mix(in srgb, var(--glass-surface-light) 90%, var(--status-blue) 10%);
+    }
+
+    :where(.chat-container) .chat-messages-area:not(.widescreen-mode) .chat-message.assistant .message-avatar-label .message-role-badge-text {
+        padding-inline-end: var(--space-2);
+    }
+
+    :where(.chat-container) .chat-messages-area:not(.widescreen-mode) .chat-message.user .message-avatar-label .message-role-badge-text {
+        padding-inline-start: var(--space-2);
+    }
+
+    :where(.chat-container) .chat-message.user .message-avatar-icon > .chat-avatar-image,
+    :where(.chat-container) .chat-message.assistant .message-avatar-icon > .chat-avatar-image {
+        display: block;
+        padding-block: 0;
+        border-radius: 0;
+    }
+
+    :where(.chat-container) .chat-messages-area:not(.widescreen-mode) .message-avatar-icon > .chat-avatar-image {
+        width: 100%;
+        height: 100%;
+        padding-block: 0;
+        margin: 0;
+    }
+
+    @container ui-viewport (width <= 1200px) {
+        :where(.chat-container) .chat-message.assistant .message-avatar::before,
+        :where(.chat-container) .chat-message.user .message-avatar::before {
+            content: none;
+        }
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where(.chat-container) .chat-content-wrapper {
+            position: absolute;
+            inset: calc(var(--layout-top-offset) + 0.75rem) 1rem calc(1rem + var(--ui-safe-area-inset-bottom)) 1rem;
+            padding: 0;
+        }
+
+        :where(.chat-container) .chat-message + .chat-message::before {
+            content: none;
+        }
+
+        :where(.chat-container) .message-avatar {
+            width: var(--chat-message-avatar-visual-size);
+            height: var(--chat-message-avatar-visual-size);
+            margin: 0 0 var(--space-2);
+            transition:
+                box-shadow var(--transition-fast),
+                filter var(--transition-fast),
+                opacity var(--transition-fast);
+        }
+
+        :where(.chat-container) .message-avatar.is-floating {
+            opacity: 0.3;
+        }
+
+        :where(.chat-container) .chat-messages-area {
+            padding-left: var(--space-16);
+            padding-right: var(--space-16);
+            padding-bottom: var(--chat-messages-padding-bottom);
+        }
+
+        :where(.chat-container) .chat-messages-area.widescreen-mode {
+            padding-left: var(--space-2);
+            padding-right: var(--space-2);
+        }
+
+        :where(.chat-container) .chat-input-wrapper {
+            left: 0.75rem;
+            right: 0.75rem;
+            bottom: calc(0.75rem + var(--ui-safe-area-inset-bottom));
+        }
+
+        :where(.chat-container) .chat-previews-container {
+            --chat-previews-container-bottom: calc(85px + var(--ui-safe-area-inset-bottom));
+            --chat-previews-container-left: 3rem;
+            --chat-previews-container-right: 2.5rem;
+        }
+
+        :where(.chat-container) .message-images {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        :where(.chat-container) .message-image {
+            width: 100%;
+        }
+
+        :where(.chat-container) .message-text {
+            font-size: var(--font-size-sm);
+        }
+
+        :where(.chat-container) .chat-message {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        :where(.chat-container) .chat-message.assistant .message-content,
+        :where(.chat-container) .chat-message.user .message-content {
+            margin: 0;
+            width: 100%;
+        }
+
+        :where(.chat-container) .chat-message.user > .glass-surface--no-shadow.glass-surface-strong.message-content--with-header.message-content {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        :where(.chat-container) .chat-message .message-avatar::before {
+            content: none;
+        }
+    }
+
+    :where(.chat-container) .chat-message .message-avatar svg {
+        width: var(--chat-message-avatar-icon-size);
+        height: var(--chat-message-avatar-icon-size);
+        color: var(--color-white);
+        stroke: currentcolor;
+    }
+
+    :where(.chat-container) .message-avatar :is(.message-avatar-icon-default, .message-avatar-icon-upload) > svg {
+        display: block;
+    }
+
+    :where(.chat-container) .message-avatar-label {
+        display: none;
+        min-width: 0;
+    }
+
+    :where(.chat-container) .chat-messages-area:not(.widescreen-mode) .message-avatar-label {
+        display: none;
+    }
+
+    :where(.chat-container) .message-timestamp-btn {
+        --ui-button-bg: transparent;
+        --ui-button-bg-hover: var(--ui-button-surface-hover-strong);
+        --ui-button-border: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: var(--chat-message-timestamp-height);
+        padding: 0 var(--chat-message-timestamp-padding-inline);
+        border: var(--border-width-1) solid var(--ui-button-border);
+        border-radius: var(--border-radius);
+        background: var(--ui-button-bg);
+        box-shadow: none;
+        color: var(--text-tertiary);
+        font-size: var(--chat-message-timestamp-font-size);
+        line-height: 1;
+        cursor: pointer;
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast);
+    }
+
+    :where(.chat-container) .message-timestamp-btn-content {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-15);
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .message-timestamp-duration {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container) .message-timestamp .message-timestamp-duration svg {
+        width: var(--chat-message-timestamp-icon-size);
+        height: var(--chat-message-timestamp-icon-size);
+    }
+
+    .chat-container .chat-message button svg {
+        color: inherit;
+        fill: none;
+        stroke: currentcolor;
+        transition:
+            color var(--transition-fast),
+            opacity var(--transition-fast),
+            transform var(--transition-fast);
+    }
+
+    :where(.chat-container) .chat-message.user .message-avatar svg,
+    :where(.chat-container) .chat-message.assistant .message-avatar svg {
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .message-timestamp-divider {
+        color: var(--text-tertiary);
+    }
+
+    :where(.chat-container) .message-timestamp-text {
+        display: inline-flex;
+        align-items: center;
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where(.chat-container) .message-timestamp-duration,
+        :where(.chat-container) .message-timestamp-divider {
+            display: none;
+        }
+    }
+
+    :where(.chat-container) .message-timestamp-btn:hover {
+        background-color: var(--ui-button-bg-hover);
+        border-color: var(--ui-button-border-hover);
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container) .message-timestamp-btn:focus-visible {
+        border-color: var(--ui-button-border-hover);
+        box-shadow: 0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring);
+    }
+
+    :where(.chat-container) .chat-message.user.is-editing .message-timestamp-btn,
+    :where(.chat-container) .chat-message.user.is-editing .copy-message-btn,
+    :where(.chat-container) .chat-message.user.is-editing .resend-message-btn,
+    :where(.chat-container) .chat-message.user.is-editing .delete-message-btn {
+        display: none;
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where(.chat-container) .chat-page-empty-state {
+            padding: var(--space-4) var(--space-2);
+        }
+
+        :where(.chat-container) :is(.chat-message.assistant, .chat-message.user) > .message-content > .message-actions {
+            width: 100%;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        :where(.chat-container) :is(.chat-message.assistant, .chat-message.user) > .message-content > .message-actions > .message-action-buttons {
+            width: 100%;
+            min-width: 0;
+            gap: var(--space-2);
+            align-items: flex-start;
+        }
+
+        :where(.chat-container) :is(.chat-message.assistant, .chat-message.user) > .message-content > .message-actions > .message-action-buttons > .message-action-buttons-left {
+            flex: 1 1 auto;
+            display: flex;
+            flex-wrap: wrap;
+            min-width: 0;
+            gap: var(--space-1);
+            justify-content: flex-start;
+
+            --chat-message-action-flow-gap: var(--space-1);
+        }
+
+        :where(.chat-container) :is(.chat-message.assistant, .chat-message.user) > .message-content > .message-actions > .message-action-buttons > .message-action-buttons-right {
+            flex: 0 0 auto;
+        }
+
+        :where(.chat-container) :is(.chat-message.assistant, .chat-message.user) > .message-content > .message-actions .message-timestamp-btn.message-action {
+            flex: 0 0 auto;
+            break-before: always;
+            justify-content: flex-start;
+            padding: 0 var(--space-1);
+        }
+    }
+}

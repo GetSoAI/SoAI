@@ -1,0 +1,107 @@
+/* SoAI - Header right frontend styles [frontend/assets/css/layout/header-right.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer layout {
+    .header-right {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: var(--header-button-gap);
+        flex: 0 1 auto;
+        min-width: 0;
+        margin-right: calc((var(--sidebar-collapsed-width) - var(--icon-button-size)) / 2 - var(--space-2));
+    }
+
+    .header-right > * {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        flex-shrink: 0;
+    }
+
+    .header-right .ui-icon-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--icon-button-size);
+        height: var(--icon-button-size);
+        min-width: var(--icon-button-size);
+        min-height: var(--icon-button-size);
+        padding: 0;
+    }
+
+    :is(.header-right .header-badge, .sidebar .sidebar-plugin-indicator, .sidebar .sidebar-chat-indicator, .sidebar .sidebar-busy-indicator) {
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        background-color: var(--status-red);
+        color: var(--color-white);
+        font-size: var(--font-size-compact);
+        font-weight: 600;
+        padding: var(--space-05) var(--space-15);
+        border-radius: var(--border-radius);
+        min-width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: var(--line-height-badge);
+        transform: none;
+        z-index: var(--z-raised);
+    }
+
+    .header-right .clock-button {
+        height: var(--icon-button-size);
+        min-height: var(--icon-button-size);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 70px;
+        width: auto;
+        padding: 0 var(--space-3);
+    }
+
+    .header-right .clock-button--analog {
+        width: var(--icon-button-size);
+        min-width: var(--icon-button-size);
+        padding: 0;
+    }
+
+    .header-right .header-clock {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        line-height: var(--line-height-compact);
+        position: static;
+        transform: none;
+        width: auto;
+        height: auto;
+    }
+
+    :is(.header-right .settings-wrapper, .header-right .notification-wrapper, .header-right .user-wrapper) {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .header-right .notification-wrapper {
+        transition: opacity var(--transition-normal);
+    }
+
+    .header-right svg {
+        width: var(--icon-size);
+        height: var(--icon-size);
+        display: block;
+        flex-shrink: 0;
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .header-right .clock-button {
+            display: none;
+        }
+    }
+}

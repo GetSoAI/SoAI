@@ -1,0 +1,35 @@
+/* SoAI - Chat custom endpoint fields component styles [frontend/assets/css/components/chat/chat-custom-endpoint-fields.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .custom-endpoint-fields {
+        margin-top: var(--space-3);
+        padding-left: var(--space-4);
+        border-left: var(--border-width-2) solid var(--glass-border-subtle);
+    }
+
+    :where(.chat-container) .custom-endpoint-fields.u-hidden {
+        display: none;
+    }
+
+    :where(.chat-container) .custom-endpoint-fields .form-group {
+        margin-bottom: var(--space-3);
+    }
+
+    :where(.chat-container) .custom-endpoint-fields .form-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .chat-memory-profile-modal .chat-memory-profile-grid > .form-group {
+        margin-bottom: 0;
+    }
+
+    :where(.chat-container) .custom-endpoint-url,
+    :where(.chat-container) .custom-endpoint-key {
+        width: 100%;
+        height: var(--control-height);
+        padding: var(--control-padding-block) var(--control-padding-inline);
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+    }
+}

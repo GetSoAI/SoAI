@@ -1,0 +1,78 @@
+/* SoAI - Input queue preview component styles [frontend/assets/css/components/chat/input-queue-preview.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .input-queue-badge {
+        --status-badge-padding: var(--space-05) var(--space-15);
+        --status-badge-letter-spacing: var(--tracking-05em);
+        margin-right: var(--space-1);
+        flex: 0 0 auto;
+    }
+
+    :where(.chat-container) .input-queue-badge--queued {
+        --status-badge-color: var(--status-blue);
+    }
+
+    :where(.chat-container) .input-queue-badge--steer {
+        --status-badge-color: var(--status-orange);
+    }
+
+    :where(.chat-container) .input-queue-preview {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: hidden;
+        justify-content: flex-start;
+        align-items: flex-start;
+    }
+
+    :where(.chat-container) .input-queue-preview .file-preview-item {
+        flex: 0 1 min(14rem, 100%);
+        width: min(14rem, 100%);
+        min-width: 0;
+        max-width: min(14rem, 100%);
+    }
+
+    :where(.chat-container) .input-queue-preview .file-preview-item .file-info {
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    :where(.chat-container) .input-queue-preview .file-preview-item .file-name {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-1);
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    :where(.chat-container) .input-queue-preview .input-queue-prompt-title {
+        flex: 1 1 auto;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .input-queue-preview .file-preview-item .file-status {
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .input-queue-preview .input-queue-badge {
+        margin-right: 0;
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where(.chat-container) .input-queue-preview .file-preview-item {
+            flex-basis: min(16rem, 100%);
+            width: min(16rem, 100%);
+            max-width: min(16rem, 100%);
+        }
+    }
+}

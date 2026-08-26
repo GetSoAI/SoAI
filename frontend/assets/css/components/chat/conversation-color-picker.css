@@ -1,0 +1,129 @@
+/* SoAI - Conversation color picker component styles [frontend/assets/css/components/chat/conversation-color-picker.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container, .archived-conversations-modal) .chat-conversation-color-picker {
+        --chat-color-picker-action-icon-size: var(--control-round-button-icon-size);
+        --chat-color-picker-button-size: var(--control-round-button-size);
+        --chat-color-picker-favorite-icon-color: var(--color-white);
+
+        position: absolute;
+        right: calc(100% + var(--space-2));
+        top: 50%;
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: var(--space-15);
+        padding: var(--space-2);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        z-index: calc(var(--z-overlay) + 1);
+        pointer-events: auto;
+        transform: translateY(-50%);
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-red {
+        --picker-ring-color: var(--prompts-color-red);
+        background: linear-gradient(135deg, var(--prompts-gradient-red-start), var(--prompts-color-red));
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-yellow {
+        --picker-ring-color: var(--prompts-color-yellow);
+        background: linear-gradient(135deg, var(--prompts-gradient-yellow-start), var(--prompts-color-yellow));
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-purple {
+        --picker-ring-color: var(--prompts-color-purple);
+        background: linear-gradient(135deg, var(--prompts-gradient-purple-start), var(--prompts-color-purple));
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-green {
+        --picker-ring-color: var(--prompts-color-green);
+        background: linear-gradient(135deg, var(--prompts-gradient-green-start), var(--prompts-color-green));
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-blue {
+        --picker-ring-color: var(--prompts-color-blue);
+        background: linear-gradient(135deg, var(--prompts-gradient-blue-start), var(--prompts-color-blue));
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-favorite {
+        --ui-round-button-border-color: color-mix(in srgb, var(--accent-favorite) 20%, var(--border-color) 80%);
+        --ui-round-button-surface-hover: var(--accent-favorite-light);
+
+        background: var(--accent-favorite);
+        border: var(--border-width-1) solid var(--accent-favorite);
+        color: var(--chat-color-picker-favorite-icon-color);
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-conversation-color-picker .chat-color-option-archive,
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-export,
+    :where(.chat-container, .archived-conversations-modal) .chat-conversation-color-picker .chat-color-option-rename {
+        --ui-round-button-border-color: color-mix(in srgb, var(--control-round-button-neutral-bg) 20%, var(--border-color) 80%);
+        --ui-round-button-surface-hover: var(--control-round-button-neutral-bg-hover);
+
+        background: var(--control-round-button-neutral-bg);
+        border-color: var(--ui-round-button-border-color);
+        color: var(--control-round-button-foreground);
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-picker-actions .chat-color-option:hover,
+    :where(.chat-container, .archived-conversations-modal) .chat-color-picker-actions .chat-color-option:focus-visible {
+        transform: none;
+        border-color: var(--ui-round-button-border-color);
+        background: var(--ui-round-button-surface-hover);
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-picker-colors {
+        display: grid;
+        grid-template-columns: repeat(3, var(--chat-color-picker-button-size));
+        align-items: center;
+        gap: var(--space-15);
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-picker-actions {
+        display: grid;
+        grid-template-columns: repeat(2, var(--chat-color-picker-button-size));
+        align-items: center;
+        gap: var(--space-15);
+        padding-left: var(--space-2);
+        border-left: var(--border-width-1) solid var(--glass-border-subtle);
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-conversation-color-picker .chat-color-picker-actions .chat-color-option,
+    :where(.chat-container, .archived-conversations-modal) .chat-conversation-color-picker .chat-color-picker-colors .chat-color-option {
+        width: var(--chat-color-picker-button-size);
+        height: var(--chat-color-picker-button-size);
+        min-width: var(--chat-color-picker-button-size);
+        min-height: var(--chat-color-picker-button-size);
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-conversation-color-picker .chat-color-option.is-selected {
+        transform: none;
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-conversation-color-picker .chat-color-picker-actions .chat-color-option > :is(svg, .ui-icon) {
+        display: block;
+        width: var(--chat-color-picker-action-icon-size);
+        height: var(--chat-color-picker-action-icon-size);
+        color: inherit;
+        stroke: currentcolor;
+        flex-shrink: 0;
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-favorite.chat-color-option-favorite svg {
+        fill: none;
+        stroke: currentcolor;
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-conversation-color-picker .chat-color-picker-actions .chat-color-option > .ui-icon > svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    :where(.chat-container, .archived-conversations-modal) .chat-color-option-favorite.is-selected {
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--color-black) 25%, transparent),
+            0 0 0 3px var(--color-white);
+        border-color: color-mix(in srgb, var(--color-white) 85%, transparent);
+    }
+}

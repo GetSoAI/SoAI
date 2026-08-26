@@ -1,0 +1,51 @@
+/* SoAI - Prompts page toolbar styles [frontend/assets/css/pages/prompts/toolbar.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='prompts'], [data-page-scope='prompts']):has(.toggle-selection-mode.is-active) .page-header-filter-select-shell:has(> .group-by-filter.page-header-filter-select) {
+        display: none;
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 400px;
+        padding: var(--space-8);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-empty.u-hidden {
+        display: none;
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-empty .ui-empty-state {
+        text-align: center;
+        max-width: 400px;
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-empty h3 {
+        font-size: var(--font-size-xl);
+        color: var(--text-primary);
+        margin-bottom: var(--space-2);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-empty p {
+        font-size: var(--font-size-body-md);
+        color: var(--text-secondary);
+        margin-bottom: var(--space-6);
+    }
+
+    @container ui-viewport (width <= 480px) {
+        .prompts-container:where([data-section='prompts'], [data-page-scope='prompts']) {
+            --prompt-card-size: 100%;
+        }
+
+        :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card {
+            min-width: 0;
+        }
+    }
+}

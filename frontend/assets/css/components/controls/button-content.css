@@ -1,0 +1,227 @@
+/* SoAI - Button content component styles [frontend/assets/css/components/controls/button-content.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :is(.ui-button, .ui-icon-button) {
+        --ui-button-border: var(--ui-button-neutral-color);
+        --ui-button-border-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-color: var(--ui-button-neutral-color);
+        --ui-button-color-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-focus-ring: var(--ui-button-neutral-focus-ring);
+        --ui-button-bg: var(--ui-button-neutral-bg);
+        --ui-button-bg-hover: var(--ui-button-neutral-bg-hover);
+        --ui-button-reflection: var(--surface-reflection-soft);
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--ui-button-bg);
+        background-image: var(--ui-button-reflection);
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        border: var(--border-width-1) solid var(--ui-button-border);
+        box-shadow:
+            inset 2px 2px 4px var(--surface-inner-highlight-soft),
+            inset -2px -2px 4px var(--surface-inner-shadow-soft),
+            0 2px 4px var(--surface-drop-shadow-soft),
+            0 0 0 1px var(--surface-outline-highlight-soft);
+        color: var(--ui-button-color);
+        cursor: pointer;
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            filter var(--transition-fast),
+            opacity var(--transition-fast);
+    }
+
+    .ui-icon-button,
+    .ui-button.ui-icon-button {
+        display: inline-grid;
+        place-items: center;
+        width: var(--icon-button-size);
+        height: var(--icon-button-size);
+        min-width: var(--icon-button-size);
+        min-height: var(--icon-button-size);
+        border-radius: var(--border-radius);
+        padding: 0;
+        appearance: none;
+    }
+
+    .ui-button:focus-visible,
+    .ui-icon-button:focus-visible {
+        border-color: var(--ui-button-border-hover);
+        box-shadow:
+            0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring),
+            0 4px 12px var(--shadow-medium);
+    }
+
+    .ui-button:not(.ui-icon-button, .ui-button--sm, .ui-button-xs, .ui-button--titlebar, .ui-button-block) {
+        min-width: 85px;
+        flex: none;
+        width: auto;
+        max-width: none;
+        height: var(--control-height);
+        padding: var(--control-padding-block) var(--control-padding-inline);
+    }
+
+    .ui-button:hover:not(:disabled, [aria-disabled='true']),
+    .ui-icon-button:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true']) {
+        --ui-button-reflection: var(--surface-reflection-soft-hover);
+        background-color: var(--ui-button-bg-hover);
+        border-color: var(--ui-button-border-hover);
+        color: var(--ui-button-color-hover);
+    }
+
+    .ui-icon-button--chromeless {
+        --ui-button-bg: transparent;
+        --ui-button-bg-hover: transparent;
+        --ui-button-border: transparent;
+        --ui-button-border-hover: transparent;
+
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+
+    .ui-icon-button--chromeless:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true']) {
+        background: transparent;
+        border-color: transparent;
+    }
+
+    .ui-icon-button--titlebar {
+        width: var(--control-height-titlebar);
+        height: var(--control-height-titlebar);
+        min-width: var(--control-height-titlebar);
+        min-height: var(--control-height-titlebar);
+
+        --icon-size: var(--control-icon-size-compact);
+    }
+
+    .provider-logo,
+    .global-plugin-logo {
+        width: 30px;
+        height: 30px;
+        border-radius: var(--border-radius);
+        object-fit: contain;
+    }
+
+    .provider-icon-svg,
+    .global-plugin-icon-svg {
+        color: var(--text-secondary);
+        transition: color var(--transition-fast);
+    }
+
+    .logo {
+        display: block;
+        object-fit: contain;
+    }
+
+    .logo-small {
+        aspect-ratio: 1;
+        width: auto;
+        height: 100%;
+    }
+
+    .logo-ui {
+        aspect-ratio: 2.353;
+        max-width: 100%;
+        height: auto;
+    }
+
+    .logo-small-about {
+        height: 64px;
+        width: 64px;
+        margin: 0 auto;
+    }
+
+    .logo-ui-help {
+        max-width: 320px;
+        max-height: 136px;
+        margin-right: var(--space-4);
+    }
+
+    .logo[src=''],
+    .logo:not([src]) {
+        display: none;
+    }
+
+    .ui-icon:not(svg) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 0;
+    }
+
+    :where(.ui-icon:not(svg)) > svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        stroke: currentColor;
+    }
+
+    svg.ui-icon {
+        display: block;
+    }
+
+    :is(.ui-button, .ui-icon-button) :where(span:not(.ui-icon), .ui-icon, svg) {
+        color: inherit;
+        stroke: currentColor;
+    }
+
+    :where(.ui-button) :is(svg, .ui-icon) {
+        flex-shrink: 0;
+        width: calc(1em + (var(--button-icon-scale) * 1rem));
+        height: calc(1em + (var(--button-icon-scale) * 1rem));
+    }
+
+    :is(.ui-icon-button, .header-right .ui-icon-button) > :is(.ui-icon, .sidebar-icon, svg):not(.sidebar-version-small, .sidebar-version-large, .hamburger-icon, .close-icon, .header-badge, .header-clock, .status-indicator) {
+        display: inline-grid;
+        place-items: center;
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: var(--icon-size);
+        height: var(--icon-size);
+        flex-shrink: 0;
+    }
+
+    :is(.ui-button, .ui-icon-button).ui-color-button {
+        --ui-button-border: color-mix(in srgb, var(--variant-color) 58%, var(--ui-button-border-strong));
+        --ui-button-border-hover: color-mix(in srgb, var(--variant-color) 68%, var(--ui-button-border-strong));
+        --ui-button-bg: color-mix(in srgb, var(--variant-color) 15%, var(--ui-button-inherited-underlay));
+        --ui-button-bg-hover: color-mix(in srgb, var(--ui-button-bg) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        --ui-button-color: var(--variant-color);
+        --ui-button-color-hover: var(--variant-color-hover);
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    .ui-icon-button--xs {
+        width: 30px;
+        height: 30px;
+        min-width: 30px;
+        min-height: 30px;
+        border-radius: var(--border-radius);
+        box-shadow: 0 1px 4px var(--shadow-light);
+
+        --icon-size: 16px;
+    }
+
+    .ui-icon-button-small {
+        width: var(--icon-button-size-small);
+        height: var(--icon-button-size-small);
+        min-width: var(--icon-button-size-small);
+        min-height: var(--icon-button-size-small);
+        border-radius: var(--border-radius);
+
+        --icon-size: 14px;
+    }
+
+    .message-action.ui-icon-button.ui-icon-button-small > .ui-icon,
+    .message-action.ui-icon-button.ui-icon-button-small > svg,
+    .code-copy-btn.ui-icon-button.ui-icon-button-small > .ui-icon,
+    .code-copy-btn.ui-icon-button.ui-icon-button-small > svg {
+        width: var(--icon-size);
+        height: var(--icon-size);
+    }
+}

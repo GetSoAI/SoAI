@@ -1,0 +1,18 @@
+/* SoAI - Syntax tokens frontend styles [frontend/assets/css/foundations/syntax-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --syntax-text-color: #3a3a3d;
+        --syntax-token-comment: #6a9955;
+        --syntax-token-string: #ce9178;
+        --syntax-token-accent: #4ec9b0;
+        --syntax-token-number: #b5cea8;
+        --syntax-token-keyword: #c586c0;
+        --syntax-token-tag: #569cd6;
+        --syntax-token-property: #9cdcfe;
+        --syntax-token-value: #d7ba7d;
+        --syntax-token-operator: #dcdcdc;
+        --syntax-token-anchor: #ffaf87;
+    }
+}

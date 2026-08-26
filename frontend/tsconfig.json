@@ -1,0 +1,5 @@
+{
+    "extends": "./tsconfig.base.json",
+    "include": ["assets/ts/**/*.ts", "assets/ts/**/*.mts", "entries/**/*.ts", "entries/**/*.mts", "lib/**/*.ts", "lib/**/*.mts", "tests/**/*.ts", "unit/**/*.ts", "types/**/*.d.ts", "vite.config.ts", "vitest.config.ts"],
+    "exclude": ["node_modules", "assets/build", "tests/e2e/tmp"]
+}

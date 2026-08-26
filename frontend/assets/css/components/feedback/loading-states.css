@@ -1,0 +1,48 @@
+/* SoAI - Loading states component styles [frontend/assets/css/components/feedback/loading-states.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .loading-spinner {
+        width: 20px;
+        height: 20px;
+        border: var(--border-width-2) solid var(--border-color);
+        border-top: var(--border-width-2) solid var(--accent-primary);
+        border-radius: var(--border-round);
+        display: inline-block;
+        flex-shrink: 0;
+        animation: spin var(--duration-1000) var(--ease-linear) infinite;
+    }
+
+    .inline-loading-status {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-15);
+        min-width: 0;
+    }
+
+    .inline-loading-status .inline-loading-status-spinner.loading-spinner {
+        width: 12px;
+        height: 12px;
+        border-width: var(--border-width-1);
+        border-top-width: var(--border-width-1);
+    }
+
+    .inline-loading-status .inline-loading-status-text {
+        min-width: 0;
+    }
+
+    :is(.loading-container, .section-loading) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-tertiary);
+    }
+    .loading-container {
+        gap: var(--space-3);
+        padding: var(--space-8);
+    }
+    .section-loading {
+        padding: var(--space-12);
+        font-size: var(--font-size-sm);
+    }
+}

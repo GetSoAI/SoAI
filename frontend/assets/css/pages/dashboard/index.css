@@ -1,0 +1,15 @@
+/* SoAI - Dashboard page styles [frontend/assets/css/pages/dashboard/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./base.css') layer(pages);
+@import url('./status.css') layer(pages);
+@import url('./layout.css') layer(pages);
+@import url('./toolbar.css') layer(pages);
+@import url('./panels.css') layer(pages);
+@import url('./forms.css') layer(pages);
+@import url('./recessed-surfaces.css') layer(pages);
+@import url('./hardware-cards.css') layer(pages);
+@import url('./clock-widget.css') layer(pages);
+@import url('./clock-widget-digital.css') layer(pages);
+@import url('./throughput-widget.css') layer(pages);
+@import url('./quick-actions-widget.css') layer(pages);

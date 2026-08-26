@@ -1,0 +1,74 @@
+/* SoAI - Motion effects utility styles [frontend/assets/css/utilities/motion-effects.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    html[data-notification-animation='fade'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing) {
+        transform: none;
+        animation: effect-fade-enter var(--effect-notification-enter-duration) var(--ease-smooth) forwards;
+    }
+
+    html[data-notification-animation='slide'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing) {
+        transform: translateY(100%);
+        animation: effect-slide-enter var(--effect-notification-enter-duration) var(--ease-smooth) forwards;
+    }
+
+    html[data-notification-animation='scale'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing) {
+        transform: scale(0.96);
+        animation: effect-scale-enter calc(var(--effect-notification-enter-duration) * var(--effect-scale-duration-factor)) var(--ease-smooth) forwards;
+    }
+
+    html[data-notification-animation='zoom'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing) {
+        transform: scale(0.85);
+        animation: effect-zoom-enter var(--effect-notification-enter-duration) var(--ease-spring) forwards;
+    }
+
+    html[data-notification-animation='lateral'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing) {
+        transform: translateX(100%);
+        animation: effect-lateral-enter var(--effect-notification-enter-duration) var(--ease-smooth) forwards;
+    }
+
+    html[data-modal-animation='fade'] .modal-content {
+        animation: modal-fade-enter var(--effect-modal-enter-duration) var(--ease-smooth);
+    }
+
+    html[data-modal-animation='slide'] .modal-content {
+        animation: modal-slide-enter var(--effect-modal-enter-duration) var(--ease-smooth);
+    }
+
+    html[data-modal-animation='scale'] .modal-content {
+        animation: modal-scale-enter calc(var(--effect-modal-enter-duration) * var(--effect-scale-duration-factor)) var(--ease-smooth);
+    }
+
+    html[data-modal-animation='zoom'] .modal-content {
+        animation: modal-zoom-enter var(--effect-modal-enter-duration) var(--ease-spring);
+    }
+
+    html[data-modal-animation='lateral'] .modal-content {
+        animation: modal-lateral-enter var(--effect-modal-enter-duration) var(--ease-smooth);
+    }
+
+    html[data-page-animation='fade'] .main-content > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
+    html[data-page-animation='fade'] .main-content > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
+        animation: effect-fade-enter var(--effect-page-enter-duration) var(--ease-smooth) forwards;
+    }
+
+    html[data-page-animation='slide'] .main-content > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
+    html[data-page-animation='slide'] .main-content > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
+        animation: effect-slide-enter var(--effect-page-enter-duration) var(--ease-smooth) forwards;
+    }
+
+    html[data-page-animation='scale'] .main-content > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
+    html[data-page-animation='scale'] .main-content > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
+        animation: effect-scale-enter calc(var(--effect-page-enter-duration) * var(--effect-scale-duration-factor)) var(--ease-smooth) forwards;
+    }
+
+    html[data-page-animation='zoom'] .main-content > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
+    html[data-page-animation='zoom'] .main-content > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
+        animation: effect-zoom-enter var(--effect-page-enter-duration) var(--ease-spring) forwards;
+    }
+
+    html[data-page-animation='lateral'] .main-content > [data-section].page-content-ready.page-transitioning-in:not([data-page-transition-mode='surface']),
+    html[data-page-animation='lateral'] .main-content > [data-section].page-content-ready.page-transitioning-in[data-page-transition-mode='surface'] [data-page-transition-surface='true'] {
+        animation: effect-lateral-enter var(--effect-page-enter-duration) var(--ease-smooth) forwards;
+    }
+}

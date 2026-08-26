@@ -1,0 +1,145 @@
+/* SoAI - MCP tool groups component styles [frontend/assets/css/components/integrations/mcp-tool-groups.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.mcp-tools-scope) .mcp-server-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding: var(--space-3);
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where(.mcp-tools-scope) .mcp-server-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group {
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-2);
+        width: 100%;
+        padding: var(--space-3);
+        border: none;
+        background: var(--glass-surface-medium);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--glass-shadow-base);
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-primary);
+        transition:
+            background var(--transition-fast),
+            color var(--transition-fast);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group-toggle-button {
+        appearance: none;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-width: 0;
+        flex: 1 1 auto;
+        border: none;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        font: inherit;
+        font-weight: 600;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group-chevron-button {
+        flex: 0 0 auto;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group-collapse-toggle {
+        border-radius: var(--border-round);
+        transform: rotate(-90deg);
+        transition: transform var(--transition-fast);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group-collapse-toggle--collapsed {
+        transform: none;
+    }
+
+    :where(.mcp-tools-scope) button:is(.mcp-tool-group-toggle-button, .mcp-tool-group-chevron-button) {
+        cursor: pointer;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group-header:has(button:is(.mcp-tool-group-toggle-button, .mcp-tool-group-chevron-button):is(:hover, :focus-visible)) {
+        background: var(--glass-surface-weak);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group-title {
+        flex: 0 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-count-badge {
+        --status-badge-padding: var(--space-05) var(--space-15);
+        --status-badge-font-size: var(--font-size-xs);
+        --status-badge-min-height: 1rem;
+        --status-badge-border-color: color-mix(in srgb, var(--status-badge-color) var(--status-badge-border-opacity), var(--app-background-base));
+        background: color-mix(in srgb, var(--status-badge-color) var(--status-badge-background-opacity), var(--app-background-base));
+        flex: 0 0 auto;
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group-body {
+        display: grid;
+        grid-template-rows: 0fr;
+        opacity: 0;
+        transform: translateY(-4px);
+        overflow: hidden;
+        pointer-events: none;
+        transition:
+            grid-template-rows var(--transition-panel),
+            opacity var(--transition-fast),
+            transform var(--transition-fast);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group.is-expanded .mcp-tool-group-body {
+        grid-template-rows: 1fr;
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+        border-top: var(--border-width-1) solid var(--glass-border-subtle);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group-body-inner {
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        padding: 0 var(--space-3);
+        transition: padding-bottom var(--transition-fast);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group.is-expanded .mcp-tool-group-body-inner {
+        padding: var(--space-3);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-search {
+        flex: 0 0 auto;
+    }
+}

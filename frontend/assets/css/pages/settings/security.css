@@ -1,0 +1,94 @@
+/* SoAI - Settings page security styles [frontend/assets/css/pages/settings/security.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='settings'], [data-page-scope='settings']) .tab-notify-badge--security {
+        background: var(--accent-red);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-security-findings {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--space-2);
+        margin-bottom: var(--space-4);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-security-finding.settings-record-item {
+        align-items: flex-start;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-security-finding .settings-record-header {
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-security-finding :is(.settings-record-label, .settings-record-description) {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    @container ui-viewport (width >= 1600px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-security-findings {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @container ui-viewport not (width <= 768px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--security .section-content {
+            column-count: 2;
+            column-gap: var(--space-6);
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--security .settings-subgroup {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            min-width: 0;
+            break-inside: avoid;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--security .settings-subgroup:has(> .settings-security-findings) {
+            column-span: all;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--security .settings-group {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--security .settings-group > .setting-item {
+            width: 100%;
+            min-width: 0;
+        }
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-security-finding-references {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-15);
+        margin-top: var(--space-2);
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-security-finding-references > .ui-model-type-badge {
+        max-width: 100%;
+        justify-content: flex-start;
+        text-align: left;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-security-workspace-item .setting-control {
+        justify-content: flex-end;
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-security-workspace-item .setting-control {
+            justify-content: stretch;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-security-workspace-item .ui-button {
+            width: 100%;
+        }
+    }
+}

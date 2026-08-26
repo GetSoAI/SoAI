@@ -1,0 +1,155 @@
+/* SoAI - Header shell frontend styles [frontend/assets/css/layout/header-shell.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer layout {
+    :is(.header, .main-content) {
+        opacity: 1;
+        transform: none;
+    }
+
+    .header {
+        grid-row: 1;
+        grid-column: 1 / -1;
+        position: sticky;
+        top: 0;
+        inset-inline: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--header-button-gap);
+        padding: var(--space-3) var(--space-2);
+        background: var(--glass-surface-darker);
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--glass-shadow-base);
+        z-index: var(--z-modal);
+        transition:
+            background var(--transition-header),
+            box-shadow var(--transition-header),
+            border-color var(--transition-slow);
+        user-select: none;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: var(--header-button-gap);
+        min-width: 0;
+        flex: 0 1 auto;
+    }
+
+    .header-dropdown-scroll-list {
+        overflow-y: auto;
+        overflow-x: auto;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: 0;
+        min-height: 0;
+        max-height: calc(var(--header-dropdown-item-height) * var(--header-dropdown-visible-items));
+        background-color: var(--glass-surface-strong);
+    }
+
+    .task-list-empty {
+        padding: var(--space-3);
+    }
+
+    .header-dropdown-scroll-list:has(> .task-list-empty:last-child),
+    .header-dropdown-scroll-list > .task-list-empty:last-child {
+        border-bottom-left-radius: var(--border-radius);
+        border-bottom-right-radius: var(--border-radius);
+    }
+
+    .header-dropdown-loading-footer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        min-height: var(--space-12);
+        padding: var(--space-3);
+        border-top: var(--border-width-1) solid var(--glass-border-subtle);
+        color: var(--text-secondary);
+        background-color: var(--glass-surface-strong);
+        font-size: var(--font-size-068);
+    }
+
+    .header-notification-manager-panel-inner > .header-dropdown-scroll-list:has(+ .header-dropdown-loading-footer.u-hidden),
+    .header-notification-manager-panel-inner > .header-dropdown-loading-footer:not(.u-hidden) {
+        border-bottom-left-radius: var(--border-radius);
+        border-bottom-right-radius: var(--border-radius);
+    }
+
+    .header-dropdown-loading-footer .loading-spinner {
+        width: 16px;
+        height: 16px;
+        border-width: var(--border-width-150);
+        border-top-width: var(--border-width-150);
+    }
+
+    .settings-dropdown,
+    .user-dropdown {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: var(--z-dropdown);
+        min-width: 200px;
+        overflow: hidden;
+    }
+
+    .user-dropdown-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .user-dropdown-text {
+        flex: 1;
+        min-width: 0;
+        max-width: 13ch;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 500;
+    }
+
+    .user-dropdown-role {
+        flex-shrink: 0;
+    }
+
+    .active-task-info {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        flex: 1;
+        min-width: 0;
+    }
+
+    .active-task-details {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        flex: 1;
+        min-width: 0;
+    }
+
+    .active-task-name {
+        display: flex;
+        align-items: center;
+        gap: var(--space-15);
+        min-width: 0;
+        flex: 1;
+    }
+
+    .task-name-text {
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1 1 auto;
+    }
+}

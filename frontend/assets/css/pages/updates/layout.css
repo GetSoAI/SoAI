@@ -1,0 +1,41 @@
+/* SoAI - Updates page layout styles [frontend/assets/css/pages/updates/layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='updates'], [data-page-scope='updates']) .update-summary-card {
+            padding: var(--space-5);
+        }
+
+        :where([data-section='updates'], [data-page-scope='updates']) .update-summary-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        :where([data-section='updates'], [data-page-scope='updates']) .update-actions {
+            width: 100%;
+        }
+
+        :where([data-section='updates'], [data-page-scope='updates']) .update-actions .ui-button {
+            width: 100%;
+        }
+
+        :where([data-section='updates'], [data-page-scope='updates']) .metadata-item {
+            width: 100%;
+        }
+
+        :where([data-section='updates'], [data-page-scope='updates']) .os-updates-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        :where([data-section='updates'], [data-page-scope='updates']) .updates-application-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        :where([data-section='updates'], [data-page-scope='updates']) .os-updates-actions .ui-button {
+            width: 100%;
+        }
+    }
+}

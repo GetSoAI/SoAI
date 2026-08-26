@@ -1,0 +1,289 @@
+/* SoAI - Message streaming status component styles [frontend/assets/css/components/chat/message-streaming-status.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    @keyframes chat-streaming-status-previous-text-fade {
+        0% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+        }
+    }
+
+    @keyframes chat-streaming-status-text-shimmer {
+        0% {
+            background-position: 140% 50%;
+        }
+        66.666% {
+            background-position: -140% 50%;
+        }
+        100% {
+            background-position: -140% 50%;
+        }
+    }
+
+    :where(.chat-container) .message-streaming-spinner-indicator {
+        margin-inline-end: var(--space-1);
+        flex-shrink: 0;
+        opacity: 1;
+        transition: opacity var(--chat-stream-spinner-fade-duration) var(--ease-in-out);
+    }
+
+    :where(.chat-container) .message-streaming-spinner-indicator.loading-spinner {
+        width: var(--chat-stream-spinner-inline-size);
+        height: var(--chat-stream-spinner-inline-size);
+        border-width: var(--border-width-1);
+        border-top-width: var(--border-width-1);
+    }
+
+    :where(.chat-container) .message-streaming-status {
+        min-width: 0;
+        flex: 0 1 auto;
+        max-width: min(36rem, calc(78 * var(--ui-viewport-width-unit)));
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+        display: inline-flex;
+        align-items: center;
+        align-self: center;
+        line-height: var(--line-height-compact);
+    }
+
+    :where(.chat-container) .message-streaming-status-label {
+        min-width: 0;
+        max-width: 100%;
+        flex: 0 1 auto;
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        line-height: 1.25;
+        color: inherit;
+    }
+
+    :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text {
+        color: inherit;
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+        max-width: 100%;
+        overflow: visible;
+        text-overflow: clip;
+
+        --chat-streaming-status-shimmer-highlight: currentColor;
+    }
+
+    :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text .message-streaming-status-label-text {
+        min-width: 0;
+        flex: 0 1 auto;
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        position: relative;
+        overflow: visible;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: inherit;
+    }
+
+    :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text .message-streaming-status-label-text-body {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: inherit;
+        opacity: 1;
+        position: relative;
+        z-index: var(--z-base);
+        transition: opacity var(--chat-stream-spinner-fade-duration) var(--ease-in-out);
+    }
+
+    :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text .message-streaming-status-label-text.message-streaming-status-visibility-fading .message-streaming-status-label-text-body {
+        opacity: 0;
+    }
+
+    :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text .message-streaming-status-label-text::before {
+        content: attr(data-stream-spinner-previous-text-value);
+        position: absolute;
+        inset: 0;
+        padding-inline-start: inherit;
+        pointer-events: none;
+        display: inline-block;
+        font: inherit;
+        line-height: inherit;
+        letter-spacing: inherit;
+        white-space: inherit;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: inherit;
+        opacity: 0;
+        z-index: var(--z-above-sibling);
+    }
+
+    :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text .message-streaming-status-label-text.message-streaming-status-label-text-fading::before {
+        animation: chat-streaming-status-previous-text-fade var(--chat-stream-spinner-fade-duration) var(--ease-in-out) both;
+    }
+
+    :where(.chat-container) .message-streaming-spinner-indicator.message-streaming-status-label-text-fading {
+        opacity: 0;
+    }
+
+    .theme-dark :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text {
+        --chat-streaming-status-shimmer-highlight: color-mix(in srgb, var(--color-white) 92%, transparent);
+    }
+
+    .theme-light :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text {
+        --chat-streaming-status-shimmer-highlight: color-mix(in srgb, var(--color-black) 78%, transparent);
+    }
+
+    :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text .message-streaming-status-label-text::after {
+        content: attr(data-stream-spinner-text-value);
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        display: inline-block;
+        font: inherit;
+        line-height: inherit;
+        letter-spacing: inherit;
+        white-space: inherit;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: transparent;
+        background-image: linear-gradient(100deg, transparent 0%, transparent 38%, color-mix(in srgb, var(--chat-streaming-status-shimmer-highlight) 55%, transparent) 47%, var(--chat-streaming-status-shimmer-highlight) 50%, color-mix(in srgb, var(--chat-streaming-status-shimmer-highlight) 55%, transparent) 53%, transparent 62%, transparent 100%);
+        background-repeat: no-repeat;
+        background-size: 260% 100%;
+        background-position: 140% 50%;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        opacity: 1;
+        z-index: calc(var(--z-above-sibling) + 1);
+        animation: chat-streaming-status-text-shimmer var(--duration-3000) var(--ease-linear) infinite;
+    }
+
+    :where(.chat-container) .message-running-activity-summary {
+        min-width: 0;
+        max-width: 100%;
+        flex: 1 0 100%;
+        display: inline-flex;
+        align-items: center;
+        color: var(--text-tertiary);
+        font-family: inherit;
+        font-size: calc(var(--font-size-xs) * var(--chat-text-scale));
+        font-weight: inherit;
+        line-height: 1.25;
+        overflow: visible;
+        position: relative;
+        margin: 0;
+        padding-inline-start: calc(var(--chat-stream-spinner-inline-size) + var(--space-1) + var(--chat-message-action-flow-gap));
+        padding-inline-end: 0;
+        padding-block: 0;
+        text-align: start;
+        transition: color var(--transition-fast);
+    }
+
+    :where(.chat-container) .message-running-activity-summary[data-running-activity-summary-visible='false'] {
+        display: none;
+    }
+
+    :where(.chat-container) .message-running-activity-summary-text {
+        --ui-button-bg: transparent;
+        --ui-button-bg-hover: var(--ui-button-surface-hover-strong);
+        --ui-button-border: transparent;
+        appearance: none;
+        border: var(--border-width-1) solid var(--ui-button-border);
+        background: var(--ui-button-bg);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        position: relative;
+        z-index: var(--z-base);
+        color: inherit;
+        font-family: inherit;
+        font-size: inherit;
+        font-weight: inherit;
+        line-height: inherit;
+        border-radius: var(--border-radius);
+        margin-inline: calc(-1 * var(--chat-message-timestamp-padding-inline));
+        margin-block: calc(-1 * var(--border-width-1));
+        padding-inline: var(--chat-message-timestamp-padding-inline);
+        padding-block: 0;
+        text-align: start;
+        cursor: pointer;
+        box-shadow: none;
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast);
+    }
+
+    :where(.chat-container) .message-running-activity-summary-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .message-running-activity-summary-reveal-spinner {
+        display: none;
+        flex: 0 0 auto;
+        width: calc(var(--chat-stream-spinner-inline-size) * 0.72);
+        height: calc(var(--chat-stream-spinner-inline-size) * 0.72);
+        border-width: var(--border-width-1);
+        border-top-width: var(--border-width-1);
+    }
+
+    :where(.chat-container) .message-running-activity-summary[data-running-activity-reveal-pending='true'] .message-running-activity-summary-reveal-spinner {
+        display: inline-block;
+    }
+
+    :where(.chat-container) .message-running-activity-summary > .message-running-activity-summary-text:is(:hover, :focus-visible) {
+        background-color: var(--ui-button-bg-hover);
+        border-color: var(--ui-button-border-hover);
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container) .message-running-activity-summary > .message-running-activity-summary-text:focus-visible {
+        outline: none;
+        border-color: var(--ui-button-border-hover);
+        box-shadow: 0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring);
+    }
+
+    :where(.chat-container) .message-actions[data-message-streaming='false'] .message-running-activity-summary {
+        padding-inline-start: 0;
+    }
+
+    :where(.chat-container) .chat-message.assistant .message-action-buttons--assistant > .message-action-buttons-left > .message-running-activity-summary > .message-running-activity-summary-text {
+        opacity: 0.7;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where(.chat-container) .message-streaming-spinner-indicator {
+            transition: none;
+        }
+
+        :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text .message-streaming-status-label-text-body {
+            transition: none;
+        }
+
+        :where(.chat-container) .message-streaming-status-label.inline-activity-preview-text .message-streaming-status-label-text.message-streaming-status-label-text-fading::before {
+            animation: none;
+        }
+    }
+
+    :where(.chat-container) .message-actions[data-stream-spinner-visible='false'] .message-streaming-spinner-indicator,
+    :where(.chat-container) .message-actions[data-stream-spinner-visible='false'] .message-streaming-status {
+        display: none;
+    }
+
+    :where(.chat-container) .message-actions[data-stream-spinner-visible='true'] .message-streaming-spinner-indicator {
+        display: inline-flex;
+    }
+
+    :where(.chat-container) .message-actions[data-stream-spinner-visible='true'] .message-streaming-status {
+        display: inline-flex;
+    }
+}

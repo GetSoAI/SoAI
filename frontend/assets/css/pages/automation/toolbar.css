@@ -1,0 +1,247 @@
+/* SoAI - Automation page toolbar styles [frontend/assets/css/pages/automation/toolbar.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day-header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: clamp(var(--space-15), 6cqi, var(--space-2));
+        flex: 0 0 auto;
+        padding-inline-start: var(--space-2);
+        padding-bottom: 0;
+        position: relative;
+        z-index: var(--z-above-sibling);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day-number {
+        font-weight: var(--font-weight-semibold);
+        font-size: clamp(var(--font-size-body-xs), 28cqi, var(--font-size-body));
+        margin-inline-start: var(--space-2);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-zones {
+        display: flex;
+        flex-direction: column;
+        gap: clamp(var(--space-15), 5cqi, var(--space-2));
+        flex: 1 1 auto;
+        min-height: 0;
+        position: relative;
+        overflow: hidden;
+        z-index: var(--z-above-sibling);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day-count {
+        flex: 0 0 auto;
+        margin-left: auto;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day-count-badge {
+        --status-badge-font-size: clamp(var(--font-size-067), 18cqi, var(--font-size-body-xs));
+        --status-badge-padding: clamp(var(--space-05), 3cqi, var(--space-1)) clamp(var(--space-05), 6cqi, var(--space-15));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month.has-sparklines .automation-month-day-header,
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month.has-sparklines .automation-month-zones {
+        padding-left: clamp(var(--space-15), 10cqi, var(--space-2));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-sparkline {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: clamp(var(--space-15), 6cqi, var(--space-2));
+        width: clamp(var(--space-1), 10cqi, var(--space-3));
+        pointer-events: none;
+        z-index: var(--z-base);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-sparkline::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: var(--border-width-2);
+        border-radius: var(--border-radius);
+        transform: translateX(-50%);
+        background: color-mix(in srgb, var(--glass-border-strong-base) 28%, transparent);
+        box-shadow: 0 0 14px var(--shadow-medium);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day.is-today:not(.is-selected) .automation-month-sparkline::before {
+        background: color-mix(in srgb, var(--accent-red) 70%, transparent);
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--accent-red) 35%, transparent),
+            0 0 18px color-mix(in srgb, var(--accent-red) 26%, transparent);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-sparkline-marker {
+        position: absolute;
+        left: 1px;
+        right: 1px;
+        top: calc(var(--spark-pos) * 100%);
+        height: calc(var(--spark-size) * var(--automation-month-sparkline-marker-thickness-scale));
+        transform: translateY(-50%);
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--automation-zone-accent) 74%, transparent);
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--automation-zone-accent) 55%, transparent),
+            0 6px 12px color-mix(in srgb, var(--automation-zone-accent) 22%, transparent);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day.is-selected:not(.is-today) .automation-month-sparkline::before {
+        background: color-mix(in srgb, var(--accent-green) 35%, var(--glass-border-strong-base));
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--accent-green) 35%, transparent),
+            0 0 18px color-mix(in srgb, var(--accent-green) 28%, transparent);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-zone-chip {
+        appearance: none;
+        font: inherit;
+        color: inherit;
+        text-align: left;
+
+        --automation-zone-chip-padding-y: var(--space-1);
+        --automation-zone-chip-padding-x: var(--space-15);
+        --automation-zone-chip-font-size: var(--font-size-body-xs);
+        position: relative;
+        isolation: isolate;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: var(--space-15);
+        padding: var(--automation-zone-chip-padding-y) var(--automation-zone-chip-padding-x);
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--automation-zone-accent) 30%, var(--glass-border-strong));
+        background: color-mix(in srgb, var(--automation-zone-accent) 10%, var(--glass-underlay-surface));
+        font-size: var(--automation-zone-chip-font-size);
+        line-height: var(--line-height-badge);
+        overflow: hidden;
+        cursor: pointer;
+        user-select: none;
+        transition:
+            box-shadow var(--transition-fast),
+            border-color var(--transition-fast),
+            background-color var(--transition-fast);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-zone-chip, .automation-zone-block) > * {
+        position: relative;
+        z-index: var(--z-raised);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :where(.automation-zone-chip, .automation-zone-block) {
+        --status-color: var(--status-grey);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-automation-row, .automation-window-run-item)::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        z-index: var(--z-base);
+        background: var(--button-surface-hover);
+        opacity: 0;
+        transition: opacity var(--transition-fast);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-zone-chip, .automation-zone-block)::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        z-index: var(--z-base);
+        opacity: 0;
+        background-image: linear-gradient(135deg, color-mix(in srgb, var(--status-color) var(--automation-status-overlay-strong), transparent), color-mix(in srgb, var(--status-color) var(--automation-status-overlay-soft), transparent));
+        box-shadow:
+            inset 0 0 0 1px color-mix(in srgb, var(--status-color) var(--automation-status-outline-strong), transparent),
+            inset 0 0 0 2px color-mix(in srgb, var(--status-color) var(--automation-status-outline-soft), transparent);
+        transition: opacity var(--transition-fast);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-zone-chip, .automation-zone-block):is(.status-success, .status-warning, .status-error, .status-neutral)::before {
+        opacity: 1;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-zone-chip, .automation-zone-block)[data-run-status='running']::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        z-index: var(--z-base);
+        background-image: linear-gradient(135deg, color-mix(in srgb, var(--status-orange) 14%, transparent), color-mix(in srgb, var(--status-orange) 8%, transparent));
+        opacity: 1;
+        animation: soai-running-surface-pulse var(--duration-2000) var(--ease-in-out) infinite;
+        box-shadow:
+            inset 0 0 0 1px color-mix(in srgb, var(--status-orange) 55%, transparent),
+            inset 0 0 0 2px color-mix(in srgb, var(--status-orange) 35%, transparent);
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='automation'], [data-page-scope='automation']) .automation-month .automation-zone-chip {
+            display: none;
+        }
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-zone-chip:hover {
+        border-color: color-mix(in srgb, var(--automation-zone-accent) 45%, var(--ui-button-border-hover));
+        background: color-mix(in srgb, var(--automation-zone-accent) 12%, var(--button-surface-hover));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-zone-chip:focus-visible {
+        border-color: var(--automation-zone-accent);
+        box-shadow: 0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-zone-chip-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-zone-chip.is-selected {
+        border-color: var(--ui-tone-green-border-selected);
+        background: var(--ui-tone-green-surface-selected);
+        box-shadow: var(--shadow-lift-soft);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-zone-chip[data-run-status='running'] {
+        border-color: color-mix(in srgb, var(--status-orange) 32%, var(--glass-border-strong));
+        background: color-mix(in srgb, var(--status-orange) 8%, var(--glass-underlay-surface));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-zone-chip[data-run-status='running'].is-selected {
+        border-color: color-mix(in srgb, var(--ui-tone-green-border-selected) 72%, var(--status-orange) 28%);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-scroll-inner {
+        display: grid;
+        grid-template-columns: var(--automation-time-grid-gutter-width) 1fr;
+        gap: 0;
+        min-height: calc(24 * var(--automation-hour-height));
+        width: 100%;
+        position: relative;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-gutter {
+        border-right: var(--border-width-1) solid var(--glass-border-strong);
+        background: color-mix(in srgb, var(--glass-surface-light) 80%, transparent);
+        position: relative;
+        padding-block: var(--space-3);
+    }
+}

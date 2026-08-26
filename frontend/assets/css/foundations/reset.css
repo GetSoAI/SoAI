@@ -1,0 +1,97 @@
+/* SoAI - Reset frontend styles [frontend/assets/css/foundations/reset.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    * {
+        box-sizing: border-box;
+    }
+
+    html {
+        block-size: 100%;
+        font-size: var(--font-size-base);
+        inline-size: 100%;
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+        block-size: calc(100 * var(--ui-viewport-height-unit));
+        container-name: ui-viewport;
+        container-type: size;
+        font-family: var(--font-family-sans);
+        background-color: var(--bg-primary);
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        color: var(--text-primary);
+        inline-size: calc(100 * var(--ui-viewport-width-unit));
+        line-height: 1.5;
+        margin: 0;
+        overflow: hidden;
+        transform: scale(var(--ui-scale));
+        transform-origin: top left;
+    }
+
+    body:not(.has-wallpaper, .has-solid-background) {
+        background-color: var(--app-background-base);
+        background-image: var(--app-background-gradient);
+    }
+
+    body.has-wallpaper {
+        background-color: var(--bg-primary-base);
+    }
+
+    body.has-wallpaper::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        z-index: var(--z-layer-backdrop);
+        animation: wallpaper-fade-in var(--duration-600) var(--ease-out);
+    }
+
+    body.has-wallpaper::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: var(--z-layer-background);
+        background-color: rgb(var(--wallpaper-overlay-rgb) / var(--wallpaper-overlay-opacity));
+    }
+
+    body.has-solid-background::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: var(--z-layer-backdrop);
+    }
+
+    body.has-solid-background::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: var(--z-layer-background);
+        background-color: rgb(var(--wallpaper-overlay-rgb) / var(--wallpaper-overlay-opacity));
+    }
+
+    :where(input:not([type]), input[type='text'], input[type='password'], input[type='email'], input[type='search'], input[type='url'], input[type='tel'], textarea) {
+        appearance: none;
+        background-image: none;
+    }
+
+    :where(input[type='number']) {
+        background-image: none;
+    }
+
+    :where(input[type='search'])::-webkit-search-decoration,
+    :where(input[type='search'])::-webkit-search-cancel-button,
+    :where(input[type='search'])::-webkit-search-results-button,
+    :where(input[type='search'])::-webkit-search-results-decoration {
+        appearance: none;
+    }
+}

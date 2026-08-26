@@ -1,0 +1,245 @@
+/* SoAI - Round buttons component styles [frontend/assets/css/components/controls/round-buttons.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-round-button {
+        --ui-round-button-surface: var(--glass-surface-strong);
+        --ui-round-button-surface-hover: var(--glass-surface-hover-strong);
+        --ui-round-button-border-color: color-mix(in srgb, var(--ui-round-button-surface) 20%, var(--border-color) 80%);
+        --ui-round-button-color: var(--control-round-button-foreground);
+        position: absolute;
+        z-index: var(--z-raised);
+        display: inline-grid;
+        place-items: center;
+        width: var(--control-round-button-size);
+        height: var(--control-round-button-size);
+        padding: 0;
+        background: var(--ui-round-button-surface);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--ui-round-button-border-color);
+        border-radius: var(--border-radius);
+        color: var(--ui-round-button-color);
+        box-shadow: var(--glass-shadow-base);
+        font-size: 0;
+        line-height: 0;
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            box-shadow var(--transition-fast);
+        overflow: visible;
+        flex-shrink: 0;
+    }
+
+    .ui-round-button::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: var(--border-radius);
+    }
+
+    .ui-round-button svg {
+        width: var(--control-round-button-icon-size);
+        height: var(--control-round-button-icon-size);
+        display: block;
+        flex-shrink: 0;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.6;
+    }
+
+    .ui-round-button:hover:not(:disabled, [aria-disabled='true']) {
+        background: var(--ui-round-button-surface-hover);
+        border-color: var(--ui-round-button-border-color);
+    }
+
+    .ui-collection-card__action-bar > .ui-round-button:first-child {
+        top: 7px;
+        right: 7px;
+    }
+
+    .ui-round-button.ui-round-button--inline {
+        position: relative;
+        z-index: var(--z-base);
+        inset: auto;
+    }
+
+    :where(.ui-round-button--delete, .ui-round-button--edit, .ui-round-button--copy, .ui-round-button--clone, .ui-round-button--run-now, .ui-round-button--success, .ui-round-button--settings, .ui-round-button--neutral, .ui-round-button--violet, .ui-round-button--alert, .ui-round-button--stop) {
+        --ui-round-button-color: var(--control-round-button-foreground);
+    }
+
+    .ui-round-button--delete {
+        top: 7px;
+        right: 7px;
+
+        --ui-round-button-surface: var(--control-round-button-danger-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-danger-bg-hover);
+    }
+
+    .ui-round-button--delete.ui-round-button:empty::after {
+        content: '';
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        line-height: 1;
+        color: inherit;
+    }
+
+    .ui-round-button--edit {
+        top: 30px;
+        right: 7px;
+
+        --ui-round-button-surface: var(--control-round-button-neutral-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-neutral-bg-hover);
+    }
+
+    .ui-round-button--copy {
+        --ui-round-button-surface: var(--control-round-button-primary-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-primary-bg-hover);
+    }
+
+    .ui-round-button--violet {
+        --ui-round-button-surface: var(--control-round-button-violet-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-violet-bg-hover);
+    }
+
+    .ui-round-button--copy svg,
+    .ui-round-button--clone svg {
+        stroke-width: 1;
+    }
+
+    .ui-round-button > :is(.ui-icon, .sidebar-icon):not(.status-indicator, .status-led) {
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: var(--control-round-button-icon-size);
+        height: var(--control-round-button-icon-size);
+        flex-shrink: 0;
+        color: inherit;
+        stroke: currentColor;
+        display: inline-grid;
+        place-items: center;
+    }
+
+    .ui-round-button > svg:not(.status-indicator, .status-led) {
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: var(--control-round-button-icon-size);
+        height: var(--control-round-button-icon-size);
+        flex-shrink: 0;
+        color: inherit;
+        stroke: currentColor;
+        display: block;
+    }
+
+    .ui-round-button > :is(.ui-icon, .sidebar-icon):not(.status-indicator, .status-led) > svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+        stroke: currentColor;
+    }
+
+    .ui-round-button--clone {
+        top: 53px;
+        right: 7px;
+
+        --ui-round-button-surface: var(--control-round-button-warning-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-warning-bg-hover);
+    }
+
+    .ui-round-button--run-now {
+        top: 53px;
+        right: 7px;
+
+        --ui-round-button-surface: var(--control-round-button-success-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-success-bg-hover);
+    }
+
+    .ui-round-button--alert {
+        --ui-round-button-surface: var(--control-round-button-warning-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-warning-bg-hover);
+    }
+
+    .ui-round-button--success {
+        --ui-round-button-surface: var(--control-round-button-success-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-success-bg-hover);
+    }
+
+    .ui-round-button--stop {
+        --ui-round-button-surface: var(--control-round-button-danger-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-danger-bg-hover);
+    }
+
+    .ui-round-button--stop:not(.ui-round-button--inline) {
+        top: 30px;
+        right: 7px;
+    }
+
+    .ui-round-button--settings {
+        --ui-round-button-surface: var(--control-round-button-neutral-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-neutral-bg-hover);
+    }
+
+    .ui-round-button--neutral {
+        --ui-round-button-surface: var(--control-round-button-neutral-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-neutral-bg-hover);
+    }
+
+    .ui-round-button--settings:not(.ui-round-button--inline),
+    .ui-round-button--neutral:not(.ui-round-button--inline) {
+        position: relative;
+        inset: auto;
+        z-index: var(--z-base);
+    }
+
+    .virtual-model .ui-collection-card__action-bar > .ui-round-button--settings.ui-round-button {
+        position: absolute;
+        top: 30px;
+        right: 7px;
+        z-index: var(--z-raised);
+
+        --ui-round-button-surface: var(--control-round-button-modal-close-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-modal-close-bg-hover);
+    }
+
+    .ui-round-button--modal-close {
+        --ui-round-button-surface: var(--control-round-button-modal-close-bg);
+        --ui-round-button-surface-hover: var(--control-round-button-modal-close-bg-hover);
+        position: relative;
+        inset: auto;
+        z-index: var(--z-base);
+    }
+
+    .modal-header-action-button.ui-round-button {
+        position: relative;
+        inset: auto;
+        z-index: var(--z-base);
+        box-shadow: none;
+        overflow: hidden;
+    }
+
+    .modal-header-action-button.ui-round-button > :is(.ui-icon, .sidebar-icon, svg):not(.status-indicator, .status-led) {
+        width: var(--control-round-button-icon-size);
+        height: var(--control-round-button-icon-size);
+    }
+
+    .modal-header-action-button.ui-round-button::before {
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .modal-header-actions .modal-header-action-button {
+        margin-left: 0;
+    }
+
+    .modal-header-top > .modal-header-action-button:first-of-type {
+        margin-left: auto;
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .modal-header-fullscreen-button {
+            display: none;
+        }
+    }
+}

@@ -1,0 +1,64 @@
+/* SoAI - Collection card content component styles [frontend/assets/css/components/collections/collection-card-content.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-collection-card__identifier {
+        font-size: var(--font-size-compact-plus);
+        color: var(--text-secondary);
+        line-height: var(--line-height-body-compact);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        overflow-wrap: break-word;
+        min-height: var(--space-7);
+        margin-bottom: 0;
+        padding: var(--layout-collection-card-horizontal-padding-block) var(--layout-collection-card-content-padding-inline);
+    }
+
+    .ui-collection-card__description {
+        font-size: var(--font-size-micro);
+        color: var(--text-secondary);
+        line-height: var(--line-height-body-compact);
+        margin: 0;
+        padding: var(--layout-collection-card-horizontal-padding-block) var(--layout-collection-card-content-padding-inline);
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: var(--space-8);
+        overflow-wrap: break-word;
+    }
+
+    .model-card .ui-collection-card__identifier.model-universal-id,
+    .plugin-card .ui-collection-card__identifier.plugin-author {
+        -webkit-line-clamp: 3;
+        min-height: 0;
+    }
+
+    .model-card .ui-collection-card__description.model-description,
+    .plugin-card .ui-collection-card__description.plugin-description {
+        font-size: var(--font-size-caption-plus);
+        -webkit-line-clamp: 3;
+        min-height: 0;
+        white-space: pre-line;
+    }
+
+    :is(.ui-collection-card > .model-universal-id.ui-collection-card__subtitle, .ui-collection-card > .plugin-description.ui-collection-card__subtitle, .ui-collection-card__content > .ui-collection-card__info.plugin-info > .ui-collection-card__identifier.plugin-author, .ui-collection-card__content > .ui-collection-card__info.model-plugin-info > .ui-collection-card__description.model-description) {
+        max-width: calc(100% - var(--control-round-button-size) - var(--space-3));
+    }
+
+    .ui-collection-card__horizontal {
+        display: flex;
+        align-items: center;
+        gap: var(--layout-collection-card-horizontal-gap);
+        padding: var(--layout-collection-card-horizontal-padding-block) var(--layout-collection-card-content-padding-inline);
+        margin-bottom: 0;
+        margin-top: auto;
+    }
+
+    :is(.plugin-card--incompatible, .plugin-card--circuit-breaker) :is(.ui-collection-card__content, .plugin-card-body, .ui-collection-card__status-grid, .ui-collection-card__metrics-grid) {
+        pointer-events: none;
+    }
+}

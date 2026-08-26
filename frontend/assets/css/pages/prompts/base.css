@@ -1,0 +1,165 @@
+/* SoAI - Prompts page base styles [frontend/assets/css/pages/prompts/base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    .prompts-container:where([data-section='prompts'], [data-page-scope='prompts']) {
+        --prompt-card-size: 220px;
+        --prompt-card-gap: var(--space-6);
+        --prompt-card-accent: var(--border-color);
+        --prompt-card-overlay-accent: var(--accent-blue);
+        --prompts-z-card: var(--z-above-sibling);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']).page-scrollable,
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-container.page-scrollable {
+        padding-bottom: 0;
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .page-content-area--card-grid,
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-container .page-content-area--card-grid {
+        --prompts-grid-bottom-padding: calc(var(--layout-container-padding) + var(--ui-safe-area-inset-bottom));
+        padding-bottom: var(--prompts-grid-bottom-padding);
+        scroll-padding-bottom: var(--prompts-grid-bottom-padding);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .page-content-area--card-grid > .ui-collection-grid,
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-container .page-content-area--card-grid > .ui-collection-grid,
+    :where([data-section='prompts'], [data-page-scope='prompts']) .page-content-area--card-grid > .prompts-grid.is-grouped,
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-container .page-content-area--card-grid > .prompts-grid.is-grouped {
+        padding-bottom: var(--prompts-grid-bottom-padding);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .page-content-area--card-grid > .ui-collection-grid::after,
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-container .page-content-area--card-grid > .ui-collection-grid::after,
+    :where([data-section='prompts'], [data-page-scope='prompts']) .page-content-area--card-grid > .prompts-grid.is-grouped::after,
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-container .page-content-area--card-grid > .prompts-grid.is-grouped::after {
+        content: '';
+        display: block;
+        grid-column: 1 / -1;
+        height: var(--prompts-grid-bottom-padding);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-grid {
+        grid-template-columns: repeat(auto-fill, minmax(var(--prompt-card-size), 1fr));
+        gap: var(--prompt-card-gap);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card {
+        border-radius: var(--border-radius);
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1;
+        display: flex;
+        flex-direction: column;
+        user-select: none;
+        transition:
+            box-shadow var(--transition-fast),
+            border-color var(--transition-fast),
+            background-color var(--transition-fast);
+        background: var(--surface-card);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow:
+            var(--glass-shadow-base),
+            0 0 0 1.5px color-mix(in srgb, var(--glass-border-strong) var(--prompt-card-outline-opacity), var(--glass-underlay-surface));
+        border: var(--border-width-150) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card[data-prompt-color]:not(.is-selected) {
+        border-width: var(--border-width-150);
+        border-color: var(--prompt-card-accent);
+        box-shadow:
+            var(--glass-shadow-base),
+            0 0 0 1.5px color-mix(in srgb, var(--prompt-card-overlay-accent) var(--prompt-card-outline-opacity), var(--prompt-card-overlay-underlay));
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card.checkerboard-light {
+        background: var(--alternating-grey-light);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card.checkerboard-dark {
+        background: var(--alternating-grey-dark);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-row[data-prompt-color] {
+        --prompt-card-accent: var(--accent-blue);
+        --prompt-card-overlay-accent: var(--accent-blue);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-row[data-prompt-color='red' i] {
+        --prompt-card-accent: var(--prompts-color-red);
+        --prompt-card-overlay-accent: var(--prompts-color-red);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-row[data-prompt-color='yellow' i] {
+        --prompt-card-accent: var(--prompts-color-yellow);
+        --prompt-card-overlay-accent: var(--prompts-color-yellow);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-row[data-prompt-color='purple' i] {
+        --prompt-card-accent: var(--prompts-color-purple);
+        --prompt-card-overlay-accent: var(--prompts-color-purple);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-row[data-prompt-color='green' i] {
+        --prompt-card-accent: var(--prompts-color-green);
+        --prompt-card-overlay-accent: var(--prompts-color-green);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-row[data-prompt-color='blue' i] {
+        --prompt-card-accent: var(--prompts-color-blue);
+        --prompt-card-overlay-accent: var(--prompts-color-blue);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card-header {
+        position: relative;
+        padding: var(--layout-collection-card-header-padding-block) var(--space-4);
+        flex-shrink: 0;
+        z-index: var(--prompts-z-card);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card-content {
+        flex: 1;
+        padding: 0 var(--space-4);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        position: relative;
+        z-index: var(--prompts-z-card);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card-footer {
+        padding: var(--space-2) var(--space-4) var(--space-2) var(--space-4);
+        padding-right: calc(var(--space-2) - 1px);
+        flex-shrink: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        z-index: var(--prompts-z-card);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card-title-bar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 33px;
+        position: relative;
+        width: 100%;
+        flex: 1;
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card-date .ui-icon,
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card-date svg {
+        flex-shrink: 0;
+        width: 12px;
+        height: 12px;
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .create-prompt svg {
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+    }
+}

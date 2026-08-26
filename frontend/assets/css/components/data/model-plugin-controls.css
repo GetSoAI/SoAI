@@ -1,0 +1,111 @@
+/* SoAI - Model plugin controls component styles [frontend/assets/css/components/data/model-plugin-controls.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :is(.model-actions, .plugin-actions) .ui-button {
+        flex: 1;
+        min-width: fit-content;
+        padding: var(--space-15) var(--space-3);
+        font-size: var(--font-size-xs);
+    }
+
+    :is(.models-stats, .plugins-stats, .hardware-stats) {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(152px, 1fr));
+        gap: var(--space-35);
+        margin-bottom: 0;
+    }
+
+    :is(.models-stats, .plugins-stats, .hardware-stats) .stat-value {
+        font-size: var(--font-size-190);
+        font-weight: 700;
+        color: var(--text-secondary);
+        line-height: 1;
+        margin-bottom: var(--space-2);
+    }
+
+    .plugin-card.is-disabled {
+        pointer-events: auto;
+    }
+
+    .plugin-card.is-disabled > .ui-collection-card__action-bar {
+        opacity: 1;
+        filter: none;
+    }
+
+    .plugin-card--incompatible .ui-round-button--edit,
+    .plugin-card--incompatible .status-install-button {
+        display: none;
+    }
+
+    .plugin-card.plugin-card--incompatible.is-disabled .ui-round-button--delete {
+        visibility: visible;
+        opacity: 1;
+        filter: none;
+        pointer-events: auto;
+        z-index: var(--z-raised);
+    }
+
+    :is(.model-card-footer, .plugin-card-footer) {
+        display: none;
+    }
+
+    :is(.model-actions, .plugin-actions) {
+        display: flex;
+        gap: var(--space-2);
+        flex-wrap: wrap;
+    }
+
+    :is(.plugin-card--incompatible, .plugin-card--circuit-breaker) {
+        pointer-events: auto;
+        position: relative;
+    }
+
+    :is(.plugin-card--incompatible, .plugin-card--circuit-breaker) .plugin-enable-toggle {
+        pointer-events: auto;
+        gap: var(--space-15);
+    }
+
+    .plugin-card--incompatible .plugin-enable-toggle :is(.slider, .slider::before) {
+        display: none;
+    }
+
+    .plugin-card--incompatible .plugin-enable-label {
+        color: var(--status-red);
+        font-weight: 600;
+    }
+
+    :is(.plugin-card--hardware-incompatible, .plugin-card--circuit-breaker) .plugin-enable-toggle .slider {
+        display: block;
+    }
+
+    :is(.plugin-card--hardware-incompatible, .plugin-card--circuit-breaker) .plugin-enable-toggle .slider::before {
+        display: block;
+    }
+
+    .plugin-card--hardware-incompatible .plugin-enable-label {
+        color: var(--status-orange);
+    }
+
+    .plugin-card--circuit-breaker .plugin-enable-label {
+        color: var(--accent-yellow);
+        font-weight: 600;
+    }
+
+    :is(.plugin-card--incompatible, .plugin-card--circuit-breaker) .plugin-compatibility-banner {
+        position: absolute;
+        top: calc(var(--layout-collection-card-content-padding-block) - var(--space-5));
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - var(--layout-collection-card-content-padding-inline) - var(--layout-collection-card-content-padding-inline));
+        max-width: 292px;
+        z-index: var(--z-raised);
+        opacity: 1;
+        filter: none;
+        pointer-events: none;
+        margin: 0;
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-2);
+    }
+}

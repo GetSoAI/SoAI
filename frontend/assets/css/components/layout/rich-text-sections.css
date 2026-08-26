@@ -1,0 +1,71 @@
+/* SoAI - Rich text sections component styles [frontend/assets/css/components/layout/rich-text-sections.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .rich-text-section p {
+        font-size: var(--font-size-sm);
+        line-height: 1.6;
+        color: var(--text-secondary);
+        margin-bottom: var(--space-4);
+    }
+
+    .rich-text-section-title {
+        font-size: var(--font-size-caption-plus);
+        font-weight: 600;
+        color: var(--accent-green);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-1px);
+        margin-bottom: var(--space-3);
+    }
+
+    .rich-text-section h2 {
+        font-size: var(--font-size-xl);
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-4);
+    }
+
+    .rich-text-section h3 {
+        font-size: var(--font-size-base);
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-top: var(--space-6);
+        margin-bottom: var(--space-3);
+    }
+
+    .rich-text-section ul {
+        margin: var(--space-4) 0;
+        padding-left: var(--space-6);
+        list-style-type: disc;
+    }
+
+    .rich-text-section li {
+        font-size: var(--font-size-sm);
+        line-height: 1.6;
+        color: var(--text-secondary);
+        margin-bottom: var(--space-2);
+    }
+
+    .rich-text-section li strong {
+        color: var(--text-primary);
+    }
+
+    .first-run-rich-text {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-5);
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .first-run-rich-text-section:not(:last-child) {
+        padding-bottom: var(--space-5);
+        border-bottom: var(--border-width-1) solid var(--surface-card-border);
+    }
+
+    @container ui-viewport (width <= 768px) {
+        .rich-text-section h2 {
+            font-size: var(--font-size-heading-xs);
+        }
+    }
+}

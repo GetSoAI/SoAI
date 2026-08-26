@@ -1,0 +1,287 @@
+/* SoAI - Dashboard page clock widget styles [frontend/assets/css/pages/dashboard/clock-widget.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) [data-section-id='clock'] .section-content {
+        display: grid;
+        align-items: stretch;
+        justify-items: stretch;
+        min-height: 0;
+        position: relative;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock {
+        --dashboard-clock-accent: var(--accent-primary);
+        --dashboard-clock-shell-row-size: 15rem;
+        --dashboard-clock-face-size: min(15rem, 100%);
+        --dashboard-clock-shell-block-size: var(--dashboard-clock-shell-row-size);
+        --dashboard-clock-date-row-size: 1.85rem;
+        --dashboard-clock-week-row-size: 2.125rem;
+        --dashboard-clock-timezone-row-size: 2.75rem;
+        display: grid;
+        grid-template-rows:
+            var(--dashboard-clock-shell-block-size)
+            minmax(0, 1fr)
+            var(--dashboard-clock-date-row-size)
+            var(--dashboard-clock-week-row-size)
+            var(--dashboard-clock-timezone-row-size);
+        justify-items: center;
+        align-content: stretch;
+        gap: var(--space-1);
+        inline-size: 100%;
+        block-size: 100%;
+        min-block-size: 0;
+        padding: calc(var(--space-3) + var(--space-2)) var(--space-3) var(--space-3);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-meta {
+        position: absolute;
+        inset-block-start: var(--space-2);
+        inset-inline: var(--space-3);
+        z-index: var(--z-sticky);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--space-3);
+        pointer-events: none;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-clock-time-column, .dashboard-clock-day-column) {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-025);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-time-column {
+        align-items: flex-start;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-day-column {
+        align-items: flex-end;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-clock-digital, .dashboard-clock-swatch, .dashboard-clock-day-of-year, .dashboard-clock-mjd) {
+        z-index: var(--z-sticky);
+        font-family: var(--font-family-mono);
+        color: var(--text-tertiary);
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        line-height: var(--line-height-compact);
+        letter-spacing: var(--tracking-05px);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-clock-swatch, .dashboard-clock-mjd) {
+        font-size: var(--font-size-063);
+        opacity: 0.7;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-shell {
+        grid-row: 1;
+        align-self: start;
+        position: relative;
+        inline-size: var(--dashboard-clock-face-size);
+        block-size: var(--dashboard-clock-shell-block-size);
+        display: grid;
+        place-items: center;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-face {
+        --dashboard-clock-hour-angle: 0deg;
+        --dashboard-clock-minute-angle: 0deg;
+        --dashboard-clock-second-angle: 0deg;
+        position: relative;
+        display: grid;
+        place-items: center;
+        inline-size: 100%;
+        aspect-ratio: 1;
+        border: var(--border-width-1) solid color-mix(in srgb, var(--surface-card-border) 70%, transparent);
+        border-radius: var(--border-round);
+        box-shadow:
+            inset 0 0.12rem 0.4rem color-mix(in srgb, var(--color-white) 5%, transparent),
+            inset 0 -0.3rem 0.6rem color-mix(in srgb, var(--color-black) 34%, transparent),
+            0 0.5rem 1.4rem -0.3rem color-mix(in srgb, var(--recessed-surface-shadow-dark) 68%, transparent);
+        overflow: hidden;
+        cursor: pointer;
+        user-select: none;
+        background-color: color-mix(in srgb, var(--recessed-surface-fill-background) 84%, var(--chart-plot-background));
+        background-image: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--color-white) 6%, transparent) 0%, transparent 56%), radial-gradient(circle at 50% 112%, color-mix(in srgb, var(--color-black) 28%, transparent) 0%, transparent 62%);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-ticks {
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-base);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-tick {
+        position: absolute;
+        inset-block-start: 0;
+        inset-inline-start: 50%;
+        block-size: 50%;
+        inline-size: var(--border-width-2);
+        transform-origin: bottom center;
+        transform: translateX(-50%) rotate(var(--dashboard-clock-tick-angle));
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-tick::before {
+        content: '';
+        position: absolute;
+        inset-block-start: 7%;
+        inset-inline-start: 50%;
+        block-size: 8%;
+        inline-size: 0.14rem;
+        border-radius: var(--border-round);
+        background: color-mix(in srgb, var(--text-tertiary) 70%, transparent);
+        transform: translateX(-50%);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-tick-major::before {
+        block-size: 13%;
+        inline-size: 0.2rem;
+        background: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-hand {
+        position: absolute;
+        inset-inline-start: 50%;
+        inset-block-end: 50%;
+        border-radius: var(--border-round);
+        transform-origin: bottom center;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-hand-hour {
+        z-index: var(--z-above-sibling);
+        block-size: 27%;
+        inline-size: 0.34rem;
+        background: color-mix(in srgb, var(--text-primary) 92%, transparent);
+        transform: translateX(-50%) rotate(var(--dashboard-clock-hour-angle));
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-hand-minute {
+        z-index: var(--z-above-sibling);
+        block-size: 37%;
+        inline-size: 0.24rem;
+        background: color-mix(in srgb, var(--text-primary) 82%, transparent);
+        transform: translateX(-50%) rotate(var(--dashboard-clock-minute-angle));
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-hand-second {
+        z-index: var(--z-raised);
+        block-size: 41%;
+        inline-size: 0.1rem;
+        background: var(--dashboard-clock-accent);
+        box-shadow: 0 0 0.5rem color-mix(in srgb, var(--dashboard-clock-accent) 60%, transparent);
+        transform: translateX(-50%) rotate(var(--dashboard-clock-second-angle));
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock--seconds-disabled .dashboard-clock-hand-second {
+        display: none;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-cap {
+        position: absolute;
+        inset-block-start: 50%;
+        inset-inline-start: 50%;
+        z-index: var(--z-sticky);
+        block-size: 0.72rem;
+        inline-size: 0.72rem;
+        border-radius: var(--border-round);
+        background: var(--dashboard-clock-accent);
+        box-shadow:
+            0 0 0 0.14rem color-mix(in srgb, var(--recessed-surface-fill-background) 80%, var(--color-black)),
+            0 0 0.6rem color-mix(in srgb, var(--dashboard-clock-accent) 60%, transparent);
+        transform: translate(-50%, -50%);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-date {
+        grid-row: 3;
+        display: grid;
+        place-items: start center;
+        inline-size: 100%;
+        block-size: 100%;
+        margin: 0;
+        padding-block-start: var(--space-025);
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-04px);
+        line-height: 1.2;
+        text-align: center;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-week {
+        grid-row: 4;
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        align-items: start;
+        gap: var(--space-05);
+        inline-size: min(calc(var(--dashboard-clock-face-size) + 0.5rem), 100%);
+        block-size: 100%;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-timezone.dashboard-throughput-active {
+        grid-row: 5;
+        inline-size: min(calc(var(--dashboard-clock-face-size) + 0.5rem), 100%);
+        margin-block-start: 0;
+        align-self: end;
+        border-color: transparent;
+        background: none;
+        background-image: none;
+        background-color: transparent;
+        box-shadow: none;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-timezone.dashboard-throughput-active .dashboard-clock-timezone-name {
+        min-width: 0;
+        color: var(--text-tertiary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-timezone.dashboard-throughput-active .dashboard-clock-timezone-offset {
+        color: var(--text-tertiary);
+        white-space: nowrap;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-week-day {
+        display: grid;
+        justify-items: center;
+        gap: var(--space-025);
+        padding: var(--space-05) 0;
+        border: var(--border-width-1) solid transparent;
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-week-day-active {
+        border-color: color-mix(in srgb, var(--dashboard-clock-accent) 55%, transparent);
+        background-color: color-mix(in srgb, var(--dashboard-clock-accent) 16%, transparent);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-week-dow {
+        color: var(--text-tertiary);
+        font-size: var(--font-size-063);
+        font-weight: 600;
+        text-transform: uppercase;
+        line-height: var(--line-height-badge);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-week-day-active .dashboard-clock-week-dow {
+        color: var(--dashboard-clock-accent);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-week-date {
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        line-height: var(--line-height-badge);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-week-day-active .dashboard-clock-week-date {
+        color: var(--text-primary);
+    }
+}

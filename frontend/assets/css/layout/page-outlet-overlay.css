@@ -1,0 +1,132 @@
+/* SoAI - Page outlet overlay frontend styles [frontend/assets/css/layout/page-outlet-overlay.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer layout {
+    .page-outlet-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-8);
+        pointer-events: none;
+        opacity: 0;
+        transition:
+            opacity var(--duration-250) var(--ease-in-out),
+            transform var(--duration-250) var(--ease-in-out);
+        z-index: var(--z-overlay);
+    }
+
+    .page-outlet-overlay.is-loading,
+    .page-outlet-overlay.is-error {
+        pointer-events: auto;
+        opacity: 1;
+    }
+
+    .page-outlet-overlay:is(.is-loading) {
+        transition: opacity var(--duration-1000) var(--ease-in-out);
+    }
+
+    .page-outlet-overlay.is-loading.is-loading-delayed {
+        pointer-events: none;
+        opacity: 0;
+        animation: effect-fade-enter var(--duration-1000) var(--ease-in-out) var(--duration-1000) forwards;
+    }
+
+    .page-outlet-overlay-panel {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-35);
+        align-items: center;
+        text-align: center;
+        padding: var(--space-8) var(--space-10);
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--glass-surface-darker) 88%, var(--color-black) 12%);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        box-shadow: var(--surface-card-shadow);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        max-width: min(420px, calc(90 * var(--ui-viewport-width-unit)));
+        width: 100%;
+    }
+
+    .page-outlet-overlay.is-loading .page-outlet-overlay-panel {
+        padding: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        max-width: none;
+        width: auto;
+        gap: 0;
+        transition: gap var(--duration-500) var(--ease-out);
+    }
+
+    .page-outlet-overlay.is-loading .page-outlet-overlay-panel:has(:is(.page-outlet-overlay-label, .page-outlet-overlay-detail.form-disclaimer):not(:empty)) {
+        gap: var(--space-4);
+    }
+
+    .page-outlet-overlay-spinner {
+        width: 3rem;
+        height: 3rem;
+        border-radius: var(--border-round);
+        border: var(--border-width-4) solid color-mix(in srgb, var(--glass-border-strong) 45%, var(--glass-underlay-surface));
+        border-top-color: var(--accent-primary);
+        animation:
+            spin var(--duration-800) var(--ease-linear) infinite,
+            effect-fade-enter var(--duration-1000) var(--ease-in-out) forwards;
+    }
+
+    .page-outlet-overlay-label {
+        margin: 0;
+        font-size: var(--font-size-135);
+        font-weight: 400;
+        color: var(--text-primary);
+    }
+
+    .page-outlet-overlay-detail {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-body);
+    }
+
+    .page-outlet-overlay-action {
+        min-width: 160px;
+    }
+
+    .page-outlet-overlay.is-loading .page-outlet-overlay-action {
+        display: none;
+    }
+
+    .page-outlet-overlay.is-loading :is(.page-outlet-overlay-label, .page-outlet-overlay-detail.form-disclaimer) {
+        display: block;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(calc(var(--space-2) * -1));
+        transition:
+            max-height var(--duration-500) var(--ease-out),
+            opacity var(--duration-500) var(--ease-in-out),
+            transform var(--duration-500) var(--ease-out);
+    }
+
+    .page-outlet-overlay.is-loading .page-outlet-overlay-detail.form-disclaimer {
+        margin-top: 0;
+        max-width: min(420px, calc(90 * var(--ui-viewport-width-unit)));
+    }
+
+    .page-outlet-overlay.is-loading :is(.page-outlet-overlay-label, .page-outlet-overlay-detail.form-disclaimer):not(:empty) {
+        max-height: 6rem;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .page-outlet-overlay.is-loading .page-outlet-overlay-detail:not(.form-disclaimer) {
+        display: none;
+    }
+
+    .page-outlet-overlay.is-error .page-outlet-overlay-spinner {
+        display: none;
+    }
+}

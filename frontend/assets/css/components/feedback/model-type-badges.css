@@ -1,0 +1,96 @@
+/* SoAI - Model type badges component styles [frontend/assets/css/components/feedback/model-type-badges.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-model-type-badges {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: var(--space-1);
+        margin: var(--space-1) 0 0;
+        align-items: center;
+        flex-shrink: 0;
+    }
+    .ui-model-type-badges.ui-model-type-badges--inline {
+        margin-top: var(--space-1);
+        margin-left: 0;
+        gap: var(--space-1);
+    }
+
+    .ui-model-type-badge {
+        --ui-model-type-badge-base: var(--model-badge-color-0);
+        --status-badge-color: var(--ui-model-type-badge-base);
+    }
+
+    .ui-model-type-badge.ui-model-type-badge--theme-0 {
+        --ui-model-type-badge-base: var(--model-badge-color-0);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-1 {
+        --ui-model-type-badge-base: var(--model-badge-color-1);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-2 {
+        --ui-model-type-badge-base: var(--model-badge-color-2);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-3 {
+        --ui-model-type-badge-base: var(--model-badge-color-3);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-4 {
+        --ui-model-type-badge-base: var(--model-badge-color-4);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-5 {
+        --ui-model-type-badge-base: var(--model-badge-color-5);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-6 {
+        --ui-model-type-badge-base: var(--model-badge-color-6);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-7 {
+        --ui-model-type-badge-base: var(--model-badge-color-7);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-8 {
+        --ui-model-type-badge-base: var(--model-badge-color-8);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-9 {
+        --ui-model-type-badge-base: var(--model-badge-color-9);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-10 {
+        --ui-model-type-badge-base: var(--model-badge-color-10);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-11 {
+        --ui-model-type-badge-base: var(--model-badge-color-11);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-12 {
+        --ui-model-type-badge-base: var(--model-badge-color-12);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-13 {
+        --ui-model-type-badge-base: var(--model-badge-color-13);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-14 {
+        --ui-model-type-badge-base: var(--model-badge-color-14);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-15 {
+        --ui-model-type-badge-base: var(--model-badge-color-15);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-16 {
+        --ui-model-type-badge-base: var(--model-badge-color-16);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-17 {
+        --ui-model-type-badge-base: var(--model-badge-color-17);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-18 {
+        --ui-model-type-badge-base: var(--model-badge-color-18);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-19 {
+        --ui-model-type-badge-base: var(--model-badge-color-19);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-20 {
+        --ui-model-type-badge-base: var(--model-badge-color-20);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-21 {
+        --ui-model-type-badge-base: var(--model-badge-color-21);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-22 {
+        --ui-model-type-badge-base: var(--model-badge-color-22);
+    }
+    .ui-model-type-badge.ui-model-type-badge--theme-23 {
+        --ui-model-type-badge-base: var(--model-badge-color-23);
+    }
+}

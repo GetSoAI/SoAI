@@ -1,0 +1,201 @@
+/* SoAI - Message actions component styles [frontend/assets/css/components/chat/message-actions.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .message-actions {
+        --chat-stream-spinner-fade-duration: 150ms;
+        --chat-stream-spinner-inline-size: 13px;
+        --chat-message-action-flow-gap: var(--space-2);
+    }
+
+    :where(.chat-container) .message-actions[data-stream-spinner-first-reveal='true'] {
+        --chat-stream-spinner-fade-duration: 300ms;
+    }
+
+    :where(.chat-container) .message-actions[data-user-input-required='true'] .message-action-buttons {
+        display: none;
+    }
+
+    :where(.chat-container) .chat-messages-area[data-chat-executing='true'] .resend-message-btn {
+        display: none;
+    }
+
+    :where(.chat-container) .chat-messages-area[data-chat-executing='true'] .message-action-buttons-left > :is(.edit-message-btn, .edit-message-save-btn, .regenerate-message-btn, .delete-message-btn) {
+        cursor: no-drop;
+        opacity: 0.55;
+        box-shadow: none;
+    }
+
+    :where(.chat-container) .chat-message.user .message-action-buttons {
+        margin-left: 0;
+    }
+
+    :where(.chat-container) .chat-message.assistant .message-action-buttons--assistant {
+        opacity: 1;
+        flex-wrap: wrap;
+        row-gap: var(--space-1);
+    }
+
+    :where(.chat-container) .chat-message.assistant .message-action-buttons--assistant > .message-action-buttons-left {
+        flex: 1 0 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+
+        --chat-message-action-flow-gap: var(--space-2);
+    }
+
+    :where(.chat-container) .chat-message.assistant .message-action-buttons--assistant > .message-action-buttons-right {
+        flex: 1 0 100%;
+        justify-content: flex-start;
+        min-width: 0;
+    }
+
+    :where(.chat-container) .chat-message.assistant .message-action-buttons--assistant .message-action-buttons-left > .message-action {
+        opacity: 0.4;
+        transition: opacity var(--transition-fast);
+    }
+
+    :where(.chat-container) .conversation-item:hover .delete-conversation,
+    :where(.chat-container) .chat-message:hover .message-action-buttons,
+    :where(.chat-container) .chat-message.is-editing .message-action-buttons {
+        opacity: 1;
+    }
+
+    :where(.chat-container) .chat-message.assistant:hover .message-action-buttons--assistant .message-action-buttons-left > .message-action,
+    :where(.chat-container) .chat-message.assistant.is-editing .message-action-buttons--assistant .message-action-buttons-left > .message-action {
+        opacity: 1;
+    }
+
+    :where(.chat-container) .conversations-list.selection-mode .conversation-item-actions .delete-conversation,
+    :where(.chat-container) .conversations-list.selection-mode .conversation-item-actions .color-picker-trigger,
+    :where(.chat-container) .conversations-list.selection-mode .conversation-item-actions .message-action.conversation-action-btn {
+        visibility: hidden;
+    }
+
+    :where(.chat-container) :is(.message-action.ui-icon-button, .chat-inline-media-card__copy.code-copy-btn, .chat-inline-media-card__action--icon.ui-icon-button) {
+        --ui-button-bg: var(--ui-button-surface-strong);
+        --ui-button-border: var(--ui-button-border-strong);
+        --ui-button-color: var(--ui-button-neutral-color);
+        --ui-button-bg-hover: var(--ui-button-surface-hover-strong);
+        --ui-button-color-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-focus-ring: var(--ui-button-neutral-focus-ring);
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    :where(.chat-container) .message-action.ui-icon-button.ui-icon-button-small,
+    :where(.chat-container) .conversation-action-btn.ui-icon-button.ui-icon-button-small,
+    :where(.chat-container) .chat-inline-media-card__copy.code-copy-btn {
+        border-radius: var(--border-radius);
+    }
+
+    :where(.chat-container) .message-code-block .code-copy-btn.ui-icon-button.ui-icon-button-small,
+    :where(.chat-container) .chat-inline-media-card__action--icon.ui-icon-button {
+        width: var(--chat-round-action-button-size);
+        height: var(--chat-round-action-button-size);
+        min-width: var(--chat-round-action-button-size);
+        min-height: var(--chat-round-action-button-size);
+        flex-basis: var(--chat-round-action-button-size);
+        border-radius: var(--border-radius);
+    }
+
+    :where(.chat-container) :is(.code-copy-btn, .message-code-block .code-copy-btn, .chat-inline-media-card__copy.code-copy-btn) {
+        animation: effect-fade-enter var(--duration-200) var(--ease-out);
+    }
+
+    body.reduce-motions :where(.chat-container) :is(.code-copy-btn, .message-code-block .code-copy-btn, .chat-inline-media-card__copy.code-copy-btn) {
+        animation: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where(.chat-container) :is(.code-copy-btn, .message-code-block .code-copy-btn, .chat-inline-media-card__copy.code-copy-btn) {
+            animation: none;
+        }
+    }
+
+    :where(.chat-container) :is(.chat-messages-area[data-chat-executing='true'], .chat-message:has(.message-actions[data-message-streaming='true'])) :is(.code-copy-btn, .message-code-block .code-copy-btn, .chat-inline-media-card__copy.code-copy-btn) {
+        display: none;
+    }
+
+    :where(.chat-container) .chat-inline-media-card__actions .chat-inline-media-card__action--icon.ui-icon-button {
+        --ui-button-border: var(--ui-button-border-strong);
+        --ui-button-border-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-color: var(--ui-button-neutral-color);
+        --ui-button-color-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-focus-ring: var(--ui-button-neutral-focus-ring);
+    }
+
+    :where(.chat-container) .message-action-buttons-left > .message-action.ui-icon-button,
+    :where(.chat-container) .message-action-buttons-right > .message-action.ui-icon-button {
+        --ui-button-bg: transparent;
+        --ui-button-bg-hover: var(--ui-button-surface-hover-strong);
+        --ui-button-border: transparent;
+        --ui-button-border-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-color: var(--text-tertiary);
+        --ui-button-color-hover: var(--ui-button-neutral-color);
+        --ui-button-focus-ring: var(--ui-button-neutral-focus-ring);
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+        cursor: pointer;
+    }
+
+    :where(.chat-container) .message-action-buttons-left > .message-action.ui-icon-button.ui-icon-button-small,
+    :where(.chat-container) .message-action-buttons-right > .message-action.ui-icon-button.ui-icon-button-small {
+        width: var(--chat-message-action-button-size);
+        height: var(--chat-message-action-button-size);
+        min-width: var(--chat-message-action-button-size);
+        min-height: var(--chat-message-action-button-size);
+
+        --icon-size: var(--chat-message-action-icon-size);
+    }
+
+    :where(.chat-container) .message-action-buttons-left > .message-action.ui-icon-button:is(:hover, :focus-visible),
+    :where(.chat-container) .message-action-buttons-right > .message-action.ui-icon-button:is(:hover, :focus-visible) {
+        background-color: var(--ui-button-bg-hover);
+        border-color: var(--ui-button-border-hover);
+        color: var(--ui-button-color-hover);
+    }
+
+    :where(.chat-container) .chat-message.chat-message--compaction-boundary > .message-content--compaction-boundary > .message-actions {
+        width: 100%;
+        margin-top: var(--space-2);
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    :where(.chat-container) .chat-message.chat-message--compaction-boundary > .message-content--compaction-boundary > .message-actions .message-action-buttons {
+        justify-content: flex-start;
+    }
+
+    :where(.chat-container) .assistant.chat-message > .glass-surface--no-shadow.glass-surface-strong.message-content--with-header.message-content > .message-actions {
+        margin-left: 0;
+        padding-left: 0;
+        padding-right: 0;
+        width: 100%;
+    }
+
+    :where(.chat-container) .assistant.chat-message > .glass-surface--no-shadow.glass-surface-strong.message-content--with-header.message-content > .message-actions > .message-action-buttons,
+    :where(.chat-container) .assistant.chat-message > .glass-surface--no-shadow.glass-surface-strong.message-content--with-header.message-content > .message-actions .message-action-buttons-left,
+    :where(.chat-container) .assistant.chat-message > .glass-surface--no-shadow.glass-surface-strong.message-content--with-header.message-content > .message-actions .message-action-buttons-right {
+        margin-left: 0;
+        padding-left: 0;
+        width: auto;
+    }
+
+    @media print {
+        :where(.chat-container) .chat-sidebar,
+        :where(.chat-container) .chat-input-wrapper,
+        :where(.chat-container) .chat-message .message-actions {
+            display: none;
+        }
+
+        :where(.chat-container) .chat-main-container {
+            width: 100%;
+        }
+
+        :where(.chat-container) .chat-messages-area {
+            padding: 0;
+            background: var(--color-white);
+        }
+    }
+}

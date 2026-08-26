@@ -1,0 +1,49 @@
+/* SoAI - Badge tokens frontend styles [frontend/assets/css/foundations/badge-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --ui-metric-badge-min-height: 38px;
+        --ui-metric-badge-status-min-height: 46px;
+        --ui-metric-badge-padding: 0.35rem;
+        --ui-metric-badge-gap: 0.1rem;
+        --gpu-slider-header-height: 1.5rem;
+        --gpu-slider-body-height: 1.375rem;
+        --gpu-slider-info-height: 0.875rem;
+        --gpu-slider-margin: 0.65rem;
+        --hover-layer-subtle: 5%;
+        --hover-layer-moderate: 10%;
+        --hover-layer-strong: 15%;
+        --hover-layer-mix-base: var(--color-black);
+        --hover-layer-subtle-base: calc(100% - var(--hover-layer-subtle));
+        --hover-layer-moderate-base: calc(100% - var(--hover-layer-moderate));
+        --hover-layer-strong-base: calc(100% - var(--hover-layer-strong));
+        --tint-green-subtle: color-mix(in srgb, var(--accent-green) 15%, var(--glass-underlay-surface));
+        --tint-green-medium: color-mix(in srgb, var(--accent-green) 25%, var(--glass-underlay-surface));
+        --tint-blue-subtle: color-mix(in srgb, var(--accent-blue) 15%, var(--glass-underlay-surface));
+        --tint-red-subtle: color-mix(in srgb, var(--status-red) 15%, var(--glass-underlay-surface));
+        --tint-orange-subtle: color-mix(in srgb, var(--status-orange) 15%, var(--glass-underlay-surface));
+        --badge-bg-opacity-light: 8%;
+        --badge-bg-opacity-base: 10%;
+        --badge-bg-opacity-medium: 12%;
+        --badge-border-opacity-base: 25%;
+        --badge-border-opacity-strong: 40%;
+        --badge-bg-green: color-mix(in srgb, var(--accent-green-default) var(--badge-bg-opacity-medium), var(--glass-underlay-surface));
+        --badge-bg-green-hover: color-mix(in srgb, var(--accent-green-default) 18%, var(--glass-underlay-surface));
+        --badge-bg-accent: color-mix(in srgb, var(--accent-green) var(--badge-bg-opacity-medium), var(--glass-underlay-surface));
+        --badge-bg-accent-hover: color-mix(in srgb, var(--accent-green) 18%, var(--glass-underlay-surface));
+        --badge-bg-favorite: color-mix(in srgb, var(--accent-favorite) var(--badge-bg-opacity-medium), var(--glass-underlay-surface));
+        --badge-bg-favorite-hover: color-mix(in srgb, var(--accent-favorite) 18%, var(--glass-underlay-surface));
+        --badge-bg-blue: color-mix(in srgb, var(--accent-blue) var(--badge-bg-opacity-medium), var(--glass-underlay-surface));
+        --badge-bg-red: color-mix(in srgb, var(--status-red) var(--badge-bg-opacity-medium), var(--glass-underlay-surface));
+        --badge-bg-orange: color-mix(in srgb, var(--status-orange) var(--badge-bg-opacity-medium), var(--glass-underlay-surface));
+        --badge-bg-grey: color-mix(in srgb, var(--status-grey) var(--badge-bg-opacity-medium), var(--glass-underlay-surface));
+        --badge-bg-statusgreen: color-mix(in srgb, var(--status-green) var(--badge-bg-opacity-base), var(--glass-underlay-surface));
+        --badge-border-green: color-mix(in srgb, var(--accent-green-default) var(--badge-border-opacity-base), var(--glass-underlay-surface));
+        --badge-border-blue: color-mix(in srgb, var(--accent-blue) var(--badge-border-opacity-base), var(--glass-underlay-surface));
+        --badge-border-red: color-mix(in srgb, var(--status-red) var(--badge-border-opacity-base), var(--glass-underlay-surface));
+        --badge-border-orange: color-mix(in srgb, var(--status-orange) var(--badge-border-opacity-base), var(--glass-underlay-surface));
+        --badge-border-grey: color-mix(in srgb, var(--status-grey) var(--badge-border-opacity-base), var(--glass-underlay-surface));
+        --badge-border-statusgreen: color-mix(in srgb, var(--status-green) var(--badge-border-opacity-strong), var(--glass-underlay-surface));
+    }
+}

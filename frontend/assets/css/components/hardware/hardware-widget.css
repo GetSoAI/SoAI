@@ -1,0 +1,245 @@
+/* SoAI - Hardware widget component styles [frontend/assets/css/components/hardware/hardware-widget.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .hardware-widget {
+        --hardware-widget-width: 250px;
+        --hardware-widget-height: 250px;
+        --hardware-widget-background: var(--surface-card);
+        --hardware-widget-border: var(--surface-card-border);
+        --hardware-widget-text: var(--text-primary-alt);
+        --hardware-widget-text-muted: var(--text-primary-alt);
+        --hardware-widget-metric-core: var(--accent-cyan);
+        --hardware-widget-metric-vram: var(--accent-favorite-light);
+        --hardware-widget-metric-ram: var(--accent-favorite-light);
+        --hardware-widget-metric-power: var(--accent-yellow);
+        --hardware-widget-metric-temperature: var(--accent-pink);
+        --hardware-widget-metric-network-download: var(--status-green-bright);
+        --hardware-widget-metric-network-upload: var(--accent-yellow);
+        --hardware-widget-bar-nvidia: var(--brand-nvidia);
+        --hardware-widget-bar-amd: var(--brand-amd);
+        --hardware-widget-bar-intel: var(--brand-intel);
+        --hardware-widget-bar-qualcomm: var(--brand-qualcomm);
+        --hardware-widget-bar-via: var(--brand-via);
+        --hardware-widget-bar-unknown: var(--accent-purple);
+        --hardware-widget-chart-color: var(--hardware-widget-metric-core);
+        --hardware-widget-z-indicator: 1;
+        --hardware-widget-z-metric-text: 2;
+        --hardware-widget-z-content: 3;
+        --hardware-widget-z-label: 4;
+        container-type: size;
+        width: var(--hardware-widget-width);
+        height: var(--hardware-widget-height);
+        min-width: var(--hardware-widget-width);
+        min-height: var(--hardware-widget-height);
+        max-width: var(--hardware-widget-width);
+        max-height: var(--hardware-widget-height);
+        flex-shrink: 0;
+        flex-grow: 0;
+        background-color: var(--hardware-widget-background);
+        background-image: var(--title-bar-background);
+        border: var(--border-width-1) solid var(--hardware-widget-border);
+        border-radius: var(--border-radius);
+        position: relative;
+        overflow: hidden;
+        user-select: none;
+        box-shadow:
+            var(--surface-card-shadow),
+            0 0 0 1px var(--surface-outline-highlight-soft);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        isolation: isolate;
+    }
+
+    .hardware-widget .hardware-widget__chart--core {
+        stroke: var(--hardware-widget-metric-core);
+        stroke-opacity: 0.4;
+    }
+
+    .hardware-widget .hardware-widget__chart--vram,
+    .hardware-widget .hardware-widget__chart--ram {
+        stroke: var(--hardware-widget-metric-ram);
+        stroke-opacity: 0.4;
+    }
+
+    .hardware-widget .hardware-widget__chart--power {
+        stroke: var(--hardware-widget-metric-power);
+        stroke-opacity: 0.4;
+    }
+
+    .hardware-widget .hardware-widget__chart--temperature {
+        stroke: var(--hardware-widget-metric-temperature);
+        stroke-opacity: 0.4;
+    }
+
+    .hardware-widget .hardware-widget__chart--download {
+        stroke: var(--hardware-widget-metric-network-download);
+        stroke-opacity: 0.4;
+    }
+
+    .hardware-widget .hardware-widget__chart--upload {
+        stroke: var(--hardware-widget-metric-network-upload);
+        stroke-opacity: 0.4;
+    }
+
+    .hardware-widget .hardware-widget__metrics {
+        position: absolute;
+        bottom: 8cqw;
+        left: 8cqw;
+        right: 8cqw;
+        z-index: var(--hardware-widget-z-content);
+    }
+
+    .hardware-widget .hardware-widget__metric-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: clamp(var(--space-1), 2cqw, var(--space-2));
+        position: relative;
+        height: clamp(1rem, 8cqw, 1.5rem);
+    }
+
+    .hardware-widget .hardware-widget__metric-label-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-width: 0;
+    }
+
+    .hardware-widget .hardware-widget__metric-label-chip {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+    }
+
+    .hardware-widget .ui-metric-label {
+        color: var(--hardware-widget-text-muted);
+        font-size: clamp(var(--font-size-micro), 5cqw, var(--font-size-sm));
+        font-weight: 400;
+        text-shadow: 0 2px 4px color-mix(in srgb, var(--color-black) 20%, transparent);
+        position: relative;
+        z-index: var(--hardware-widget-z-metric-text);
+    }
+
+    .hardware-widget .hardware-widget__metric-indicator {
+        position: absolute;
+        top: 50%;
+        left: clamp(-0.5rem, -3cqw, -0.25rem);
+        width: calc(100% + clamp(var(--space-3), 6cqw, var(--space-4)));
+        height: clamp(1rem, 8cqw, 1.5rem);
+        border-radius: var(--border-radius);
+        opacity: 0;
+        transform: translateY(-50%) scaleX(0);
+        transform-origin: left center;
+        transition:
+            opacity var(--duration-300) var(--ease-material),
+            transform var(--duration-300) var(--ease-material);
+        z-index: var(--hardware-widget-z-indicator);
+        padding: 0 clamp(var(--space-2), 4cqw, var(--space-3));
+    }
+
+    .hardware-widget .hardware-widget__metric-indicator.is-active {
+        opacity: 1;
+        transform: translateY(-50%) scaleX(1);
+    }
+
+    .hardware-widget .hardware-widget__metric-indicator.hardware-widget__metric-indicator--core {
+        background-color: color-mix(in srgb, var(--hardware-widget-metric-core) 25%, var(--glass-underlay-surface));
+        border: var(--border-width-1) solid color-mix(in srgb, var(--hardware-widget-metric-core) 40%, var(--glass-underlay-surface));
+    }
+
+    .hardware-widget .hardware-widget__metric-indicator.hardware-widget__metric-indicator--vram,
+    .hardware-widget .hardware-widget__metric-indicator.hardware-widget__metric-indicator--ram {
+        background-color: color-mix(in srgb, var(--hardware-widget-metric-ram) 25%, var(--glass-underlay-surface));
+        border: var(--border-width-1) solid color-mix(in srgb, var(--hardware-widget-metric-ram) 40%, var(--glass-underlay-surface));
+    }
+
+    .hardware-widget .hardware-widget__metric-indicator.hardware-widget__metric-indicator--power {
+        background-color: color-mix(in srgb, var(--hardware-widget-metric-power) 25%, var(--glass-underlay-surface));
+        border: var(--border-width-1) solid color-mix(in srgb, var(--hardware-widget-metric-power) 40%, var(--glass-underlay-surface));
+    }
+
+    .hardware-widget .hardware-widget__metric-indicator.hardware-widget__metric-indicator--temperature {
+        background-color: color-mix(in srgb, var(--hardware-widget-metric-temperature) 25%, var(--glass-underlay-surface));
+        border: var(--border-width-1) solid color-mix(in srgb, var(--hardware-widget-metric-temperature) 40%, var(--glass-underlay-surface));
+    }
+
+    .hardware-widget .hardware-widget__metric-indicator.hardware-widget__metric-indicator--download {
+        background-color: color-mix(in srgb, var(--hardware-widget-metric-network-download) 25%, var(--glass-underlay-surface));
+        border: var(--border-width-1) solid color-mix(in srgb, var(--hardware-widget-metric-network-download) 40%, var(--glass-underlay-surface));
+    }
+
+    .hardware-widget .hardware-widget__metric-indicator.hardware-widget__metric-indicator--upload {
+        background-color: color-mix(in srgb, var(--hardware-widget-metric-network-upload) 25%, var(--glass-underlay-surface));
+        border: var(--border-width-1) solid color-mix(in srgb, var(--hardware-widget-metric-network-upload) 40%, var(--glass-underlay-surface));
+    }
+
+    .hardware-widget .hardware-widget__time-scale {
+        color: var(--hardware-widget-text-muted);
+        font-size: clamp(var(--font-size-micro), 4cqw, var(--font-size-xs));
+        font-weight: 400;
+        text-shadow: 0 2px 4px color-mix(in srgb, var(--color-black) 20%, transparent);
+        opacity: 1;
+        transition:
+            opacity var(--duration-300) var(--ease-default),
+            color var(--duration-300) var(--ease-default);
+        margin-left: 5cqw;
+    }
+
+    @keyframes widget-fade-switch {
+        0%,
+        100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.3;
+        }
+    }
+
+    .hardware-widget .hardware-widget__bottom-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 2cqw;
+        background-color: var(--hardware-widget-bar-unknown);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+
+    .hardware-widget.hardware-widget--nvidia .hardware-widget__bottom-bar {
+        background-color: var(--hardware-widget-bar-nvidia);
+    }
+
+    .hardware-widget.hardware-widget--amd .hardware-widget__bottom-bar {
+        background-color: var(--hardware-widget-bar-amd);
+    }
+
+    .hardware-widget.hardware-widget--intel .hardware-widget__bottom-bar {
+        background-color: var(--hardware-widget-bar-intel);
+    }
+
+    .hardware-widget.hardware-widget--qualcomm .hardware-widget__bottom-bar {
+        background-color: var(--hardware-widget-bar-qualcomm);
+    }
+
+    .hardware-widget.hardware-widget--via .hardware-widget__bottom-bar {
+        background-color: var(--hardware-widget-bar-via);
+    }
+
+    .hardware-widget.hardware-widget--network .hardware-widget__bottom-bar {
+        background-color: var(--status-orange);
+    }
+
+    @container ui-viewport (width <= 480px) {
+        .hardware-widget {
+            width: 100%;
+            min-width: auto;
+            max-width: var(--hardware-widget-width);
+            height: auto;
+            min-height: auto;
+            max-height: var(--hardware-widget-height);
+            aspect-ratio: 1 / 1;
+        }
+    }
+}

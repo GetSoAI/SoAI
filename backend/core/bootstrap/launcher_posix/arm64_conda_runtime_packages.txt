@@ -1,0 +1,4 @@
+argon2-cffi-bindings=25.1.0
+greenlet=3.5.5
+hf-xet=1.5.2
+onnxruntime=1.28.0

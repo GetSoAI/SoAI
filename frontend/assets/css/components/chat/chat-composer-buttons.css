@@ -1,0 +1,88 @@
+/* SoAI - Chat composer buttons component styles [frontend/assets/css/components/chat/chat-composer-buttons.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .microphone-btn {
+        transition:
+            color var(--duration-200) var(--ease-default),
+            background-color var(--duration-200) var(--ease-default);
+    }
+
+    :where(.chat-container) .microphone-btn:is(.ui-button, .ui-icon-button) > .ui-icon.chat-action-icon:is(.microphone-btn-icon--microphone, .microphone-btn-icon--stop) {
+        line-height: 0;
+        place-items: center;
+    }
+
+    :where(.chat-container) .microphone-btn:is(.ui-button, .ui-icon-button) > .ui-icon.chat-action-icon.microphone-btn-icon--stop {
+        display: none;
+    }
+
+    :where(.chat-container) .microphone-btn:is(.ui-button, .ui-icon-button).is-stop-mode > .ui-icon.chat-action-icon.microphone-btn-icon--microphone {
+        display: none;
+    }
+
+    :where(.chat-container) .microphone-btn:is(.ui-button, .ui-icon-button).is-stop-mode > .ui-icon.chat-action-icon.microphone-btn-icon--stop {
+        display: inline-grid;
+    }
+
+    :where(.chat-container) .microphone-btn.is-processing {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    :where(.chat-container) .square-btn {
+        width: var(--icon-button-size);
+        height: var(--icon-button-size);
+        min-height: var(--icon-button-size);
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: var(--border-width-1) solid var(--border-color);
+        border-radius: var(--border-radius);
+        background-color: var(--button-surface-bg);
+        background-image: var(--surface-reflection-compact);
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        -webkit-backdrop-filter: var(--glass-blur-base);
+
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow:
+            inset 0 1px 0 var(--surface-top-highlight-soft),
+            0 2px 4px var(--surface-drop-shadow-soft),
+            0 0 0 1px var(--surface-top-highlight-muted);
+        flex-shrink: 0;
+    }
+
+    :where(.chat-container) .square-btn:hover:not(:disabled) {
+        background-color: var(--ui-button-surface-hover);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+
+        backdrop-filter: var(--glass-blur-base);
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .square-btn.chat-action-btn:not(:disabled, .is-stop-mode) {
+        color: var(--ui-button-dynamic-accent-color);
+        border-color: var(--ui-button-dynamic-accent-color);
+        background-color: var(--ui-button-dynamic-accent-bg);
+    }
+
+    :where(.chat-container) .square-btn.chat-action-btn.is-stop-mode {
+        color: var(--status-red);
+        border-color: var(--status-red);
+        background-color: color-mix(in srgb, var(--status-red) var(--interactive-tint-opacity-idle), var(--ui-button-inherited-underlay));
+    }
+
+    :where(.chat-container) .square-btn.chat-action-btn:hover:not(:disabled, .is-stop-mode) {
+        background-color: var(--ui-button-dynamic-accent-bg-hover);
+        border-color: var(--ui-button-dynamic-accent-color-hover);
+        color: var(--ui-button-dynamic-accent-color-hover);
+    }
+
+    :where(.chat-container) .square-btn.chat-action-btn.is-stop-mode:hover {
+        background-color: color-mix(in srgb, var(--status-red) 18%, var(--ui-button-inherited-underlay));
+        border-color: var(--status-red-hover);
+        color: var(--status-red-hover);
+    }
+}

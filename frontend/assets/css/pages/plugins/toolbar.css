@@ -1,0 +1,206 @@
+/* SoAI - Plugins page toolbar styles [frontend/assets/css/pages/plugins/toolbar.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='plugins'], [data-page-scope='plugins']) .version-value {
+        font-size: var(--font-size-body-lg);
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .version-value.version-new {
+        color: var(--accent-green);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .version-arrow {
+        font-size: var(--font-size-xl);
+        color: var(--text-tertiary);
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-config-modal :where(.config-field-item),
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal :where(.plugin-info-row) {
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-config-modal .config-field-item {
+        transition:
+            background var(--transition-fast),
+            border var(--transition-fast);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-config-modal .config-field-item label {
+        overflow-wrap: break-word;
+        white-space: normal;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).concurrent-plugins-modal .modal-body {
+        border-radius: var(--border-radius);
+        position: relative;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).concurrent-plugins-modal .concurrent-plugins-form-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).concurrent-plugins-modal .concurrent-plugins-slider {
+        width: 100%;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).concurrent-plugins-modal .concurrent-plugins-input {
+        align-self: flex-end;
+
+        --concurrent-plugins-input-min-width: calc(var(--space-16) + var(--space-4));
+        --concurrent-plugins-input-max-width: calc(var(--space-16) + var(--space-16));
+        width: clamp(var(--concurrent-plugins-input-min-width), 30%, var(--concurrent-plugins-input-max-width));
+        min-width: var(--concurrent-plugins-input-min-width);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).concurrent-plugins-modal .concurrent-plugins-form-group .form-error {
+        align-self: flex-start;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-config-modal .modal-body {
+        overflow-y: auto;
+        min-height: 200px;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .modal-body {
+        overflow-y: auto;
+        min-height: 200px;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-section {
+        padding: var(--modal-section-padding);
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-section:last-child {
+        border-bottom: none;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-header {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-3);
+        margin-bottom: var(--space-3);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-title {
+        font-size: var(--font-size-xl);
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-title-suffix {
+        font-weight: 400;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-version {
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        padding: var(--space-05) var(--space-2);
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-description {
+        color: var(--text-secondary);
+        line-height: 1.5;
+        margin: var(--space-2) 0 0;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: var(--space-3);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-row {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        border: none;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-section > .plugin-info-row {
+        padding: var(--space-2) 0;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-value {
+        font-size: var(--font-size-sm);
+        color: var(--text-primary);
+        word-break: break-word;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-value-mono {
+        font-family: var(--font-family-mono);
+        font-size: var(--font-size-body-sm);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-links {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-link {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-15);
+        padding: var(--space-2) var(--space-3);
+        border-radius: var(--border-radius);
+        color: var(--accent-blue);
+        text-decoration: none;
+        font-size: var(--font-size-sm);
+        width: fit-content;
+        border: var(--border-width-1) solid transparent;
+        transition:
+            background var(--transition-fast),
+            border var(--transition-fast),
+            color var(--transition-fast);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-link:hover {
+        background: color-mix(in srgb, var(--accent-blue) 10%, var(--glass-surface-strong));
+        border-color: color-mix(in srgb, var(--accent-blue) 30%, var(--glass-border-strong));
+        color: var(--accent-blue-hover);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-link-icon {
+        font-size: var(--font-size-base);
+        opacity: 0.7;
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-badges {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']).plugin-info-modal .plugin-info-badges .ui-model-type-badges {
+        margin: 0;
+    }
+
+    @container ui-viewport (width <= 1024px) {
+        :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-config-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--space-3);
+        }
+
+        :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-details {
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+    }
+}

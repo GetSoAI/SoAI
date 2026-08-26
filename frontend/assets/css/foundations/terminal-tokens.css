@@ -1,0 +1,37 @@
+/* SoAI - Terminal tokens frontend styles [frontend/assets/css/foundations/terminal-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --terminal-surface: #000;
+        --terminal-surface-inverse: var(--color-white);
+        --terminal-foreground: var(--color-grey-100);
+        --terminal-foreground-inverse: var(--color-black);
+        --terminal-text-info: var(--color-grey-400);
+        --terminal-text-info-inverse: var(--color-black);
+        --terminal-text-error: #f44;
+        --terminal-text-error-inverse: #c00;
+        --terminal-text-success: #4f4;
+        --terminal-text-success-inverse: #0a0;
+        --terminal-text-command: #aaf;
+        --terminal-text-command-inverse: #06c;
+        --terminal-cursor: var(--color-grey-400);
+        --terminal-cursor-inverse: var(--color-black);
+        --terminal-ansi-black: #000000;
+        --terminal-ansi-red: #cd0000;
+        --terminal-ansi-green: #00cd00;
+        --terminal-ansi-yellow: #cdcd00;
+        --terminal-ansi-blue: #0000ee;
+        --terminal-ansi-magenta: #cd00cd;
+        --terminal-ansi-cyan: #00cdcd;
+        --terminal-ansi-white: #e5e5e5;
+        --terminal-ansi-bright-black: #7f7f7f;
+        --terminal-ansi-bright-red: #ff0000;
+        --terminal-ansi-bright-green: #00ff00;
+        --terminal-ansi-bright-yellow: #ffff00;
+        --terminal-ansi-bright-blue: #5c5cff;
+        --terminal-ansi-bright-magenta: #ff00ff;
+        --terminal-ansi-bright-cyan: #00ffff;
+        --terminal-ansi-bright-white: #ffffff;
+    }
+}

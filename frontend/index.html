@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en" data-soai-boot-state="booting">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="referrer" content="no-referrer" />
+        <meta name="robots" content="noindex, nofollow, nosnippet, noimageindex" />
+        <meta name="theme-color" content="#4a90d9" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="SoAI" />
+        <link rel="manifest" href="./manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+        <title>SoAI</title>
+        <script src="./assets/js/theme-preinit.js"></script>
+        <script src="./assets/js/wallpaper-preinit.js"></script>
+        <link rel="stylesheet" href="./assets/css/boot.css" />
+        <link rel="stylesheet" href="./assets/build/css/main-BMvkJsiH.css" />
+        <script type="module" src="./assets/build/js/critical-DlZ1mWZF.js"></script>
+    </head>
+    <body class="ui-ready ui-animated sidebar-collapsed">
+        <div id="restart-overlay" class="restart-overlay u-hidden" hidden>
+            <div class="restart-content">
+                <div id="restart-status-icon" class="restart-status-icon" aria-hidden="true"></div>
+                <h2 id="restart-message"></h2>
+                <p id="restart-description"></p>
+            </div>
+        </div>
+
+        <div id="power-action-overlay" class="power-overlay u-hidden" role="alert" aria-live="assertive">
+            <div class="power-overlay-content">
+                <div id="power-overlay-status-icon" class="power-overlay-status-icon" aria-hidden="true"></div>
+                <h2 id="power-overlay-title" class="power-overlay-title"></h2>
+                <p id="power-overlay-description" class="power-overlay-description"></p>
+            </div>
+        </div>
+
+        <div id="page-preloader" class="page-preloader is-visible" aria-hidden="false">
+            <div class="page-preloader-content">
+                <img class="page-preloader-logo" alt="" data-logo-type="ui" />
+                <div class="page-preloader-status" role="status" aria-live="polite"></div>
+                <div class="page-preloader-spinner"></div>
+                <div class="page-preloader-text" role="status" aria-live="polite"></div>
+            </div>
+        </div>
+
+        <div id="app" class="app-container">
+            <header id="header" class="header">
+                <div class="header-left">
+                    <button type="button" id="hamburger-menu" class="ui-icon-button hamburger-menu" aria-label="" data-tooltip="">
+                        <span class="ui-icon hamburger-icon"></span>
+                        <span class="ui-icon close-icon"></span>
+                    </button>
+                    <h1 id="page-title" class="page-title" data-page-title-display="brand">
+                        <span class="page-title-logo-slot" aria-hidden="true">
+                            <img src="./assets/img/soai/soai-logo-light.png" alt="" class="page-title-logo logo logo-ui logo-transition" data-logo-type="ui" />
+                        </span>
+                        <span class="page-title-text" aria-hidden="true"></span>
+                    </h1>
+                </div>
+
+                <div class="header-right">
+                    <div class="header-search searchbar-container" id="header-search-container" aria-label="">
+                        <div class="header-search__bar">
+                            <input type="text" id="header-search-input" placeholder="" class="searchbar-input" autocomplete="off" aria-label="" />
+                            <span class="header-search__icon searchbar-icon"></span>
+                        </div>
+                        <button type="button" class="ui-icon-button header-search__button" id="header-search-button" data-tooltip="" aria-label="">
+                            <span class="ui-icon"></span>
+                        </button>
+                        <div id="search-dropdown" class="header-search__dropdown soai-dropdown-menu u-hidden"></div>
+                    </div>
+
+                    <div class="notification-wrapper">
+                        <button type="button" id="notification-button" class="ui-icon-button notification-button" aria-label="" data-tooltip="">
+                            <span class="ui-icon"></span>
+                            <span id="notification-count" class="header-badge u-hidden">0</span>
+                        </button>
+                        <div id="header-notification-center" class="header-notification-center soai-dropdown-menu u-hidden" role="dialog" aria-modal="false">
+                            <div id="header-notification-tasks" class="header-notification-tasks">
+                                <div id="header-task-manager" class="header-task-manager">
+                                    <div class="header-task-manager-header header-task-manager-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="header-task-list-panel">
+                                        <div class="header-task-manager-label">
+                                            <h3 class="header-task-manager-title"></h3>
+                                            <span class="ui-icon tasks-chevron" aria-hidden="true"></span>
+                                        </div>
+                                        <div class="header-task-manager-actions">
+                                            <button type="button" id="stop-all-tasks" class="ui-icon-button ui-icon-button--chromeless stop-all-tasks" data-tooltip="" aria-label="">
+                                                <span class="ui-icon stop-icon"></span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="header-task-list-panel" class="header-task-manager-panel" aria-hidden="true">
+                                        <div class="header-task-manager-panel-inner">
+                                            <div id="task-list" class="task-list header-dropdown-scroll-list"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="header-notification-manager" class="header-notification-manager header-notification-manager--expanded">
+                                <div class="header-notification-center-header header-notification-manager-toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="header-notification-list-panel">
+                                    <div class="header-notification-center-label">
+                                        <h3 id="header-notification-title"></h3>
+                                        <span class="ui-icon notifications-chevron" aria-hidden="true"></span>
+                                    </div>
+                                    <div class="header-notification-center-actions">
+                                        <button id="clear-all-notifications" class="ui-icon-button ui-icon-button--chromeless notification-clear-all-btn" type="button"></button>
+                                    </div>
+                                </div>
+                                <div id="header-notification-list-panel" class="header-notification-manager-panel" aria-hidden="false">
+                                    <div class="header-notification-manager-panel-inner">
+                                        <div id="notification-list" class="notification-list header-dropdown-scroll-list"></div>
+                                        <div id="notification-loading-footer" class="header-dropdown-loading-footer u-hidden" aria-live="polite" aria-hidden="true">
+                                            <span class="loading-spinner" aria-hidden="true"></span>
+                                            <span class="header-dropdown-loading-text"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="header-action-zone" class="header-action-zone u-hidden" aria-hidden="true"></div>
+
+                    <div class="settings-wrapper">
+                        <button type="button" id="settings-button" class="ui-icon-button settings-button" aria-label="" data-tooltip="">
+                            <span class="ui-icon"></span>
+                        </button>
+                        <div id="settings-dropdown" class="settings-dropdown soai-dropdown-menu u-hidden">
+                            <button type="button" id="goto-settings" class="dropdown-item" data-header-menu="settings"></button>
+                            <button type="button" id="goto-logs" class="dropdown-item" data-header-menu="logs"></button>
+                            <button type="button" id="goto-updates" class="dropdown-item" data-header-menu="updates"></button>
+                            <button type="button" id="goto-about" class="dropdown-item" data-header-menu="about"></button>
+                            <button type="button" id="settings-logout" class="dropdown-item settings-logout-item" data-header-menu="logout"></button>
+                        </div>
+                    </div>
+
+                    <div class="user-wrapper u-hidden">
+                        <button type="button" id="user-button" class="ui-icon-button user-button" aria-label="" data-tooltip="">
+                            <span class="ui-icon"></span>
+                        </button>
+                        <div id="user-dropdown" class="user-dropdown soai-dropdown-menu u-hidden">
+                            <button type="button" id="current-user-item" class="dropdown-item user-dropdown-item" data-header-menu="current-user">
+                                <span class="user-dropdown-text"></span>
+                                <span class="user-dropdown-role ui-status-badge"></span>
+                            </button>
+                            <button type="button" id="logout" class="dropdown-item" data-header-menu="logout"></button>
+                        </div>
+                    </div>
+
+                    <button type="button" id="clock-button" class="ui-icon-button clock-button" aria-label="" data-tooltip="">
+                        <div id="header-clock" class="header-clock">
+                            <div class="clock-time">--:--:--</div>
+                            <div class="clock-date">---</div>
+                            <div class="clock-face" aria-hidden="true">
+                                <span class="clock-hand clock-hand--hour"></span>
+                                <span class="clock-hand clock-hand--minute"></span>
+                                <span class="clock-hand clock-hand--second"></span>
+                                <span class="clock-face-center"></span>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+            </header>
+
+            <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+            <nav id="sidebar" class="sidebar is-collapsed">
+                <div class="sidebar-header">
+                    <div class="sidebar-logo-wrapper">
+                        <img src="./assets/img/soai/soai-logo-light.png" alt="" class="sidebar-logo sidebar-logo-large logo-ui logo-transition" data-logo-type="ui" data-visible="false" />
+                        <img src="./assets/img/soai/soai-logo-small-light.png" alt="" class="sidebar-logo sidebar-logo-small logo-small logo-transition" data-logo-type="small" data-visible="true" />
+                    </div>
+                </div>
+                <div class="sidebar-version-container">
+                    <span id="sidebar-version-large" class="sidebar-version-large" aria-hidden="true"></span>
+                    <span id="sidebar-version-small" class="sidebar-version-small" aria-hidden="true"></span>
+                </div>
+                <ul class="sidebar-menu"></ul>
+            </nav>
+
+            <main id="main-content" class="main-content content-container"></main>
+        </div>
+        <script type="module" src="./assets/build/js/main-BHFXDfFO.js" data-soai-entry="main"></script>
+    </body>
+</html>

@@ -1,0 +1,90 @@
+/* SoAI - Operation progress component styles [frontend/assets/css/components/feedback/operation-progress.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-operation-progress-list {
+        margin-bottom: var(--space-6);
+    }
+
+    .ui-operation-progress-list:empty {
+        margin-bottom: 0;
+    }
+
+    .ui-operation-progress {
+        position: relative;
+        margin-bottom: var(--space-4);
+        padding: var(--space-4);
+        background: var(--surface-card);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--surface-card-shadow);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+    }
+
+    .ui-operation-progress:last-child {
+        margin-bottom: 0;
+    }
+
+    .ui-operation-progress .ui-operation-progress__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-2);
+        margin-bottom: var(--space-3);
+    }
+
+    .ui-operation-progress .ui-operation-progress__message {
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        color: var(--text-primary);
+        flex: 1;
+        text-align: left;
+    }
+
+    .ui-operation-progress .ui-operation-progress__badge {
+        flex-shrink: 0;
+        max-width: 45%;
+
+        --status-badge-color: var(--status-blue);
+        --status-badge-padding: var(--space-05) var(--space-2);
+        --status-badge-font-size: var(--font-size-xs);
+        --status-badge-line-height: var(--line-height-badge);
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ui-operation-progress .ui-operation-progress__badge[hidden] {
+        display: none;
+    }
+
+    .ui-operation-progress .ui-operation-progress__info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: var(--space-2);
+    }
+
+    .ui-operation-progress .ui-operation-progress__details {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+        flex: 1;
+        text-align: left;
+    }
+
+    .ui-operation-progress .ui-operation-progress__percentage {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+        font-weight: 500;
+        margin-left: var(--space-4);
+        flex-shrink: 0;
+    }
+
+    .ui-operation-progress .ui-operation-progress__bar {
+        width: 100%;
+    }
+
+    .ui-operation-progress .ui-operation-progress__fill {
+        width: 0%;
+    }
+}

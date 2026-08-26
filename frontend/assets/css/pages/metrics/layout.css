@@ -1,0 +1,307 @@
+/* SoAI - Metrics page layout styles [frontend/assets/css/pages/metrics/layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-content .plugin-status {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-card-content--table {
+        padding: 0;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) :where(.metrics-card-content.metrics-card-content--table.data-table-wrapper) {
+        background: none;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-card-content.metrics-card-content--table.data-table-wrapper:has(> .plugin-health-list) {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-card-content--table .table {
+        width: 100%;
+        max-width: none;
+        border-collapse: collapse;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-card-content--table .table-compact :is(th, td) {
+        text-align: left;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-table-wrapper > .table-compact {
+        min-width: max-content;
+        table-layout: auto;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-table-wrapper:has(.metrics-table-state) {
+        position: relative;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-table-wrapper > .table-compact :is(th, td):not(:first-child) {
+        white-space: nowrap;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .plugin-health-list.table-compact :is(th, td) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .plugin-health-list.table-compact {
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-content .stat-label {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-content .stat-value {
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-adaptive-number {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: bottom;
+        font-variant-numeric: tabular-nums;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .frontend-metrics-table.table-compact th:nth-child(1),
+    :where([data-section='metrics'], [data-page-scope='metrics']) .frontend-metrics-table.table-compact td:nth-child(1) {
+        width: 60%;
+        min-width: 24ch;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .frontend-metrics-table.table-compact th:nth-child(2),
+    :where([data-section='metrics'], [data-page-scope='metrics']) .frontend-metrics-table.table-compact td:nth-child(2) {
+        width: 40%;
+        min-width: 16ch;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .frontend-metrics-table.table-compact {
+        min-width: 0;
+        table-layout: fixed;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .system-stats-table.table-compact th:nth-child(1),
+    :where([data-section='metrics'], [data-page-scope='metrics']) .system-stats-table.table-compact td:nth-child(1) {
+        width: 60%;
+        min-width: 24ch;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .system-stats-table.table-compact th:nth-child(2),
+    :where([data-section='metrics'], [data-page-scope='metrics']) .system-stats-table.table-compact td:nth-child(2) {
+        width: 40%;
+        min-width: 16ch;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .model-stats-table :is(th, td):nth-child(1) {
+        width: 42%;
+        min-width: 30ch;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .model-stats-table :is(th, td):nth-child(2),
+    :where([data-section='metrics'], [data-page-scope='metrics']) .model-stats-table :is(th, td):nth-child(3) {
+        width: 13%;
+        min-width: 10ch;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .model-stats-table :is(th, td):nth-child(4) {
+        width: 18%;
+        min-width: 12ch;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .model-stats-table :is(th, td):nth-child(5) {
+        width: 14%;
+        min-width: 10ch;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .plugin-health-list.table-compact :is(th, td):nth-child(1) {
+        width: 40%;
+        min-width: 24ch;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .plugin-health-list.table-compact :is(th, td):nth-child(2) {
+        width: 18%;
+        min-width: 10ch;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .plugin-health-list.table-compact :is(th, td):nth-child(3) {
+        width: 18%;
+        min-width: 10ch;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .plugin-health-list.table-compact :is(th, td):nth-child(4) {
+        width: 24%;
+        min-width: 14ch;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .api-key-usage-table.table-compact {
+        width: max(100%, 88ch);
+        min-width: max(100%, 88ch);
+        max-width: none;
+        table-layout: fixed;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .api-key-usage-table.table-compact :is(th, td) {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .api-key-usage-table.table-compact :is(th, td):nth-child(1) {
+        width: 24%;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .api-key-usage-table.table-compact :is(th, td):nth-child(2) {
+        width: 12%;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .api-key-usage-table.table-compact :is(th, td):nth-child(3) {
+        width: 14%;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .api-key-usage-table.table-compact :is(th, td):nth-child(4),
+    :where([data-section='metrics'], [data-page-scope='metrics']) .api-key-usage-table.table-compact :is(th, td):nth-child(5) {
+        width: 15%;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .api-key-usage-table.table-compact :is(th, td):nth-child(6) {
+        width: 20%;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-table-wrapper .table-compact td.metrics-table-state {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        color: var(--text-tertiary);
+        font-size: var(--font-size-sm);
+        font-weight: 400;
+        pointer-events: none;
+        text-align: center;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-content .ui-status-badge {
+        --status-badge-padding: var(--space-05) var(--space-2);
+    }
+
+    @container ui-viewport (width <= 75rem) {
+        :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-panel .card-title-controls .ui-button:not(.ui-button--titlebar) {
+            padding: 0 var(--space-2);
+        }
+    }
+
+    @container ui-viewport (width <= 87.5rem) {
+        :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-card-content.metrics-card-content--chart-sm {
+            min-height: 0;
+            max-height: 100%;
+            height: 100%;
+        }
+        :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-card-content--chart-sm .chart-container-sm {
+            display: grid;
+            grid-template-rows: minmax(9.5rem, clamp(10.5rem, calc(44 * var(--ui-viewport-width-unit)), 14rem)) minmax(0, 1fr);
+            gap: var(--space-3);
+            padding: var(--space-2);
+            justify-content: stretch;
+            justify-items: stretch;
+            min-height: 0;
+            max-height: 100%;
+            height: 100%;
+        }
+        :where([data-section='metrics'], [data-page-scope='metrics']) .chart-container-sm__canvas {
+            order: 1;
+            width: 100%;
+            min-width: 0;
+            min-height: 0;
+            height: auto;
+            max-height: none;
+        }
+        :where([data-section='metrics'], [data-page-scope='metrics']) .chart-container-sm__canvas .distribution-chart-3d {
+            min-height: 0;
+            height: 100%;
+            max-width: min(100%, 14rem);
+            max-height: 100%;
+        }
+        :where([data-section='metrics'], [data-page-scope='metrics']) .chart-container-sm__legend {
+            order: 2;
+            width: calc(100% + (var(--space-2) * 2));
+            height: auto;
+            min-height: 0;
+            max-height: 100%;
+            margin-block: 0 calc(var(--space-2) * -1);
+            margin-inline: calc(var(--space-2) * -1);
+            padding: 0;
+        }
+    }
+
+    @container ui-viewport (width <= 48rem) {
+        :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-card-content.metrics-card-content--chart-sm {
+            min-height: 0;
+            max-height: 100%;
+            height: 100%;
+        }
+        :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-card-content--chart-sm .chart-container-sm {
+            padding: var(--space-15);
+            grid-template-rows: minmax(8.75rem, clamp(9.5rem, calc(42 * var(--ui-viewport-width-unit)), 12rem)) minmax(0, 1fr);
+            min-height: 0;
+        }
+        :where([data-section='metrics'], [data-page-scope='metrics']) .chart-container-sm__canvas {
+            min-height: 0;
+            height: auto;
+            max-height: none;
+        }
+        :where([data-section='metrics'], [data-page-scope='metrics']) .chart-container-sm__canvas .distribution-chart-3d {
+            min-height: 0;
+            height: 100%;
+            max-width: min(100%, 12rem);
+            max-height: 100%;
+        }
+        :where([data-section='metrics'], [data-page-scope='metrics']) .chart-container-sm__legend {
+            flex: 1 1 auto;
+            width: calc(100% + (var(--space-15) * 2));
+            height: auto;
+            min-height: 0;
+            max-height: 100%;
+            margin-block: 0 calc(var(--space-15) * -1);
+            margin-inline: calc(var(--space-15) * -1);
+            padding: 0;
+        }
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-card-content.has-scroll {
+        overflow: auto;
+        scrollbar-gutter: stable;
+        overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
+    }
+
+    :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-content .metrics-card-content.metrics-card-content--table.metrics-table-wrapper.has-scroll {
+        display: block;
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: 100%;
+        height: 100%;
+        width: 100%;
+    }
+}

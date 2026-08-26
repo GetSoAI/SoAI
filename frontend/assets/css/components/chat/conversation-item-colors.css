@@ -1,0 +1,204 @@
+/* SoAI - Conversation item colors component styles [frontend/assets/css/components/chat/conversation-item-colors.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .conversation-item[data-conversation-color='Green' i] {
+        --conversation-item-overlay-accent: var(--prompts-color-green);
+    }
+
+    :where(.chat-container) .conversation-item[data-conversation-color='Blue' i] {
+        --conversation-item-overlay-accent: var(--prompts-color-blue);
+    }
+
+    :where(.chat-container) .conversation-item[data-is-favorite='true']:not([data-conversation-color]) {
+        --conversation-item-overlay-accent: var(--accent-favorite);
+    }
+
+    :where(.chat-container) .conversation-item[data-conversation-color]:not(.is-selected) {
+        --conversation-item-left-rail-color: var(--conversation-item-overlay-accent);
+        --conversation-item-before-surface: linear-gradient(135deg, color-mix(in srgb, var(--conversation-item-overlay-accent) var(--conversation-item-overlay-strong), var(--glass-underlay-surface)), color-mix(in srgb, var(--conversation-item-overlay-accent) var(--conversation-item-overlay-soft), var(--glass-underlay-surface)));
+    }
+
+    :where(.chat-container) .conversation-item[data-is-favorite='true']:not([data-conversation-color], .is-selected) {
+        --conversation-item-left-rail-color: var(--accent-favorite);
+    }
+
+    :where(.chat-container) .conversation-item[data-is-favorite='true']:not([data-conversation-color], .is-selected).is-active {
+        --conversation-item-left-rail-color: var(--accent-favorite-light);
+    }
+
+    :where(.chat-container) .conversations-list.selection-mode .conversation-item {
+        cursor: pointer;
+        transition:
+            border-color var(--transition-fast),
+            background var(--transition-fast);
+    }
+
+    :where(.chat-container) .conversation-item-title {
+        font-size: var(--font-size-sm);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 500;
+        color: var(--text-secondary);
+        margin-bottom: var(--space-1);
+    }
+
+    :where(.chat-container) .conversation-title {
+        margin: 0;
+    }
+
+    :where(.chat-container) .conversation-title :is(.conversation-title-automation-indicator, .conversation-title-messaging-indicator, .conversation-title-archive-indicator) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--control-icon-size-compact);
+        height: var(--control-icon-size-compact);
+        margin-left: var(--space-15);
+        flex: 0 0 auto;
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container) .conversation-title .conversation-title-automation-indicator {
+        color: var(--prompts-color-yellow);
+    }
+
+    :where(.chat-container) .conversation-title .conversation-title-messaging-indicator {
+        color: var(--prompts-color-blue);
+    }
+
+    @container ui-viewport (width <= 900px) {
+        :where(.chat-container) .conversation-title {
+            pointer-events: none;
+            cursor: default;
+        }
+
+        :where(.chat-container) .conversation-title-text {
+            pointer-events: none;
+        }
+
+        :where(.chat-container) .conversation-title:hover {
+            text-decoration: none;
+        }
+    }
+
+    @container ui-viewport (width <= 320px) {
+        :where(.chat-container) .chat-page-model-indicator {
+            display: none;
+        }
+
+        :where(.chat-container) .conversation-title {
+            display: none;
+        }
+
+        :where(.chat-container) .chat-header-actions > .header-favorite-btn {
+            display: none;
+        }
+    }
+
+    :where(.chat-container) .conversation-meta {
+        display: flex;
+        gap: var(--space-2);
+        font-size: var(--font-size-xs);
+        align-items: center;
+        white-space: nowrap;
+        color: var(--text-tertiary);
+    }
+
+    :where(.chat-container) .conversation-meta .conversation-favorite-indicator {
+        color: var(--accent-favorite);
+        font-size: var(--font-size-xs);
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        vertical-align: middle;
+    }
+
+    :where(.chat-container) .conversation-meta .conversation-automation-indicator {
+        color: var(--prompts-color-yellow);
+        display: inline-flex;
+        align-items: center;
+        line-height: 1;
+        vertical-align: middle;
+    }
+
+    :where(.chat-container) .conversation-meta .conversation-messaging-indicator {
+        color: var(--prompts-color-blue);
+        display: inline-flex;
+        align-items: center;
+        line-height: 1;
+        vertical-align: middle;
+    }
+
+    :where(.chat-container) .conversation-item.is-active .conversation-meta,
+    :where(.chat-container) .conversation-item.is-active .conversation-item-title {
+        color: var(--text-primary);
+    }
+
+    :where(.chat-container) .conversation-item-title-editor {
+        margin-bottom: var(--space-1);
+    }
+
+    :where(.chat-container) .conversation-item-title-input {
+        width: 100%;
+        min-width: 0;
+        padding: var(--space-15) var(--space-2);
+        border: var(--border-width-1) solid var(--text-field-border);
+        border-radius: var(--border-radius);
+        background: var(--text-field-bg);
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        line-height: 1.2;
+        transition:
+            background var(--transition-fast),
+            border-color var(--transition-fast);
+    }
+
+    :where(.chat-container) .conversation-item-title-input:focus {
+        border-color: var(--accent-green);
+    }
+
+    :where(.chat-container) .conversation-item-title-input:hover:not(:focus) {
+        background: var(--text-field-bg-hover);
+        border-color: var(--text-field-border-hover);
+    }
+
+    :where(.chat-container) .conversation-title-wrapper {
+        margin-right: auto;
+        flex: 1 1 auto;
+    }
+
+    :where(.chat-container) .conversation-title-save-btn,
+    :where(.chat-container) .conversation-title-cancel-btn {
+        white-space: nowrap;
+    }
+
+    :where(.chat-container) .conversation-title-save-btn:is(:disabled, [aria-disabled='true']) {
+        display: none;
+    }
+
+    :where(.chat-container) .conversation-item-actions {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        opacity: 0.25;
+        transition: opacity var(--transition-fast);
+        flex-shrink: 0;
+        justify-content: center;
+        padding: var(--space-3) var(--space-3) var(--space-3) 0;
+        position: relative;
+    }
+
+    :where(.chat-container) .conversation-item .conversation-info,
+    :where(.chat-container) .conversation-item .conversation-item-actions {
+        position: relative;
+        z-index: var(--z-above-sibling);
+    }
+
+    :where(.chat-container) .conversation-item:hover .conversation-item-actions,
+    :where(.chat-container) .conversation-item.color-picker-open .conversation-item-actions,
+    :where(.chat-container) .conversation-item.is-renaming .conversation-item-actions {
+        opacity: 1;
+    }
+}

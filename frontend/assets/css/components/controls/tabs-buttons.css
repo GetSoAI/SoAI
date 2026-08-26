@@ -1,0 +1,228 @@
+/* SoAI - Tabs buttons component styles [frontend/assets/css/components/controls/tabs-buttons.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .tabs-nav-button {
+        width: var(--control-height-compact);
+        height: var(--control-height-compact);
+        padding: 0;
+        border-radius: var(--border-radius);
+        background: var(--surface-card);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        box-shadow: var(--surface-card-shadow);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-secondary);
+        transition:
+            opacity var(--transition-fast),
+            transform var(--transition-fast),
+            background var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            visibility 0s var(--ease-linear) var(--duration-150);
+        flex-shrink: 0;
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        transform: scale(0.96);
+    }
+
+    .tabs-nav-button svg {
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        stroke: currentcolor;
+        fill: none;
+    }
+
+    .tabs-nav-button.is-active {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+        transform: none;
+        transition:
+            opacity var(--transition-fast),
+            transform var(--transition-fast),
+            background var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            visibility 0s;
+    }
+
+    .tabs-buttons {
+        display: flex;
+        gap: var(--space-2);
+        padding: 0 var(--space-6);
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .tabs-buttons:empty {
+        display: none;
+    }
+
+    .tabs-buttons .ui-button {
+        height: 32.3px;
+        padding: 0 var(--space-3);
+        font-size: var(--font-size-071);
+        line-height: var(--line-height-compact);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-15);
+        white-space: nowrap;
+    }
+
+    .tabs-buttons .ui-button svg {
+        width: 13.3px;
+        height: 13.3px;
+        flex-shrink: 0;
+    }
+
+    .tabs-buttons .ui-button.filter-button {
+        --ui-button-border: var(--ui-button-neutral-color);
+        --ui-button-border-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-color: var(--ui-button-neutral-color);
+        --ui-button-color-hover: var(--ui-button-neutral-color-hover);
+    }
+
+    .tabs-buttons .ui-button.filter-button.is-active {
+        background-color: var(--ui-button-bg-hover);
+        border-color: var(--ui-button-border-hover);
+        color: var(--ui-button-color-hover);
+    }
+
+    .tabs-buttons .ui-button:focus-visible {
+        border-color: var(--accent-green);
+    }
+
+    .tabs-nav-button:hover:not(:disabled, [aria-disabled='true']) {
+        background: color-mix(in srgb, var(--glass-surface-interactive) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        border-color: color-mix(in srgb, var(--accent-green) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        color: color-mix(in srgb, var(--accent-green) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+    }
+
+    @container ui-viewport (width <= 768px) {
+        .tabs-container {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-25);
+            padding-bottom: 0;
+        }
+
+        .tabs-nav-wrapper {
+            width: 100%;
+            align-self: stretch;
+            flex: 1 1 100%;
+            min-width: 0;
+        }
+
+        .tabs-nav {
+            order: 0;
+            padding: 0 var(--space-5);
+            gap: var(--space-1);
+            width: 100%;
+            flex: 1 1 100%;
+            min-width: 0;
+        }
+
+        .tabs-nav-button--right {
+            order: 0;
+        }
+
+        .tabs-buttons {
+            order: 0;
+            justify-content: flex-start;
+            flex-wrap: nowrap;
+            padding: 0 var(--space-6);
+            gap: var(--space-2);
+        }
+
+        .tabs-tab {
+            padding: var(--space-3) var(--space-4);
+            font-size: var(--font-size-071);
+        }
+
+        .tabs-tab svg {
+            width: 13.3px;
+            height: 13.3px;
+        }
+
+        .tab-notify-badge {
+            top: 1px;
+            right: -4px;
+            font-size: var(--font-size-micro-plus);
+            padding: var(--space-05) var(--space-1);
+            min-width: var(--control-icon-size);
+            height: var(--control-icon-size);
+            border-width: var(--border-width-150);
+        }
+
+        .tabs-buttons .ui-button {
+            height: 30.4px;
+            font-size: var(--font-size-067);
+            padding: 0 var(--space-2);
+        }
+
+        .modal-header .tabs-container {
+            flex-direction: row;
+            align-items: center;
+            gap: var(--space-25);
+            padding-bottom: 0;
+        }
+
+        .modal-header .tabs-nav-wrapper {
+            width: auto;
+        }
+
+        .modal-header .tabs-nav {
+            padding: 0 var(--space-5);
+            gap: var(--space-1);
+        }
+
+        .modal-header .tabs-tab {
+            padding: var(--space-3) var(--space-5);
+            font-size: var(--font-size-body-balanced);
+        }
+
+        .modal-header .tabs-tab svg {
+            width: 15.2px;
+            height: 15.2px;
+        }
+
+        .modal-header .tab-notify-badge {
+            top: 2px;
+            right: -6px;
+            font-size: var(--font-size-compact);
+            padding: var(--space-05) var(--space-15);
+            min-width: 18px;
+            height: 18px;
+            border-width: var(--border-width-2);
+        }
+    }
+
+    @container ui-viewport (width <= 480px) {
+        .tabs-buttons .ui-button span {
+            display: none;
+        }
+
+        .tabs-buttons .ui-button {
+            min-width: 30.4px;
+            padding: 0 var(--space-15);
+        }
+
+        .tab-notify-badge {
+            top: 0;
+            right: -3px;
+            font-size: var(--font-size-micro);
+            padding: var(--space-05) var(--space-1);
+            min-width: 14px;
+            height: 14px;
+            border-width: var(--border-width-1);
+        }
+    }
+}

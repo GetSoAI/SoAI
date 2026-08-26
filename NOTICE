@@ -1,0 +1,125 @@
+SoAI: Smart Orchestrator for Artificial Intelligence
+Copyright (C) 2024-2026 Roberto Martini
+
+SoAI Core is distributed under the SoAI Source-Available License 1.0. See LICENSE.md.
+Each released version of SoAI Core converts to the MIT License (licenses/MIT.txt) exactly four years
+after its first official public distribution. Change Dates are recorded in CHANGE-DATES.md. Separately licensed
+separately distributed SoAI OS source is unaffected by Core Change Dates. The SoAI names, logos, and trademarks are reserved
+in all cases.
+
+The bundled .soaiplugin packages in plugins/ are licensed under the MIT License (licenses/MIT.txt) and are not
+part of the Core Licensed Work. See LICENSE.md section 7. Each package carries that text at
+LICENSES/LICENSE_SOAIPLUGIN.txt, and where a plugin manages a third-party inference engine, that engine's own
+license is recorded at LICENSES/LICENSE_MANAGED_BACKEND.txt. The MIT grant covers first-party plugin members
+only; it conveys no SoAI trademark right and no right to run or distribute SoAI Core itself.
+
+Writing your own plugin is separately permitted by LICENSE.md section 7.1, which grants anyone a perpetual,
+royalty-free right to study plugin_sdk, build a plugin against it, and use, publish, sell, and distribute that
+plugin under any license they choose. A plugin must not bundle plugin_sdk or other Core material, and running
+SoAI to develop, test, or operate a plugin still requires personal, evaluation, or commercial rights.
+
+Commercial terms for company use, redistribution, SaaS use, and trademark licensing are documented separately
+in the following operative files:
+  CHANGE-DATES.md
+  ORGANIZATION-EVALUATION-TERMS.md
+  COMMERCIAL-LICENSE.md
+  COMMERCIAL-SUPPORT-TERMS.md
+
+LICENSING.md, PRIVACY.md, and this NOTICE are explanatory and non-operative. They summarize or point to the
+operative documents and do not themselves grant, limit, or vary any right.
+
+PRIVACY.md describes what SoAI does with data on the machine you run it on and what it sends off that machine.
+Prompts, model inputs and outputs, files, credentials, and knowledge-base content stay local; there is no
+analytics or usage reporting; and the only first-party endpoints SoAI contacts on its own are https://soai.to for
+explicit licensing operations and https://api.github.com for release lookups. The privacy notice at
+https://soai.to/privacy/ separately covers the licensing website, checkout, and direct support records.
+
+This distribution does not include a prebuilt Python environment. On first start, SoAI installs Python
+dependencies listed in requirements.txt into its managed runtime environment. Those downloaded dependencies
+are not included in this distribution and carry their own license terms.
+
+On first start, SoAI may also download additional runtime artifacts, such as:
+- Playwright Chromium (stored under data/state/playwright-browsers)
+- Microsoft Build of OpenJDK for Apache Tika (stored under data/state/java)
+- Apache Tika Server JAR (stored under data/state/tika)
+- ripgrep binary for MCP grep_files (stored under data/state/ripgrep)
+- tiktoken encoding tables published by OpenAI from Microsoft-operated storage at
+  https://openaipublic.blob.core.windows.net, used for local token counting
+  (stored under data/state/tiktoken-cache)
+
+Third-Party Notices
+-------------------
+
+This distribution includes a vendored copy of the Apache Tika Python library ("tika") version 3.3.2.
+Location: data/vendor/tika
+License: Apache License 2.0 (see licenses/Apache-2.0.txt)
+License text (vendored): data/vendor/tika/LICENSE.txt
+Upstream: https://github.com/chrismattmann/tika-python
+
+Note: The vendored "tika" Python library may download and run Apache Tika server components at runtime,
+depending on configuration. Those runtime-fetched components are not included in this distribution.
+
+SoAI bootstraps a managed Java runtime for Tika using Microsoft Build of OpenJDK and downloads the Tika
+Server JAR. License and notice texts for those runtime-fetched artifacts are provided in:
+  licenses/Microsoft-OpenJDK-NOTICE.txt
+  licenses/OpenJDK-GPLv2.txt
+  licenses/OpenJDK-ADDITIONAL-LICENSE-INFO.txt
+
+Frontend Third-Party Notices
+----------------------------
+
+This distribution includes a built frontend bundle which incorporates third-party npm packages.
+License texts for the frontend bundle are provided in:
+  licenses/FRONTEND-THIRD-PARTY-LICENSES.txt
+
+Bundled Font Notices (SoAIType)
+-------------------------------
+
+This distribution includes SoAIType, the SoAI user-interface typeface. SoAIType is a modified derivative of Inter
+by Rasmus Andersson and The Inter Project Authors, and like Inter it is licensed under the SIL Open Font License,
+Version 1.1. SoAIType remains under the OFL, must keep its license text alongside the font files when distributed,
+and must not be sold on its own. Inter declares no Reserved Font Name.
+  licenses/OFL.txt
+  frontend/assets/fonts/soaitype/OFL.txt
+
+SoAI Connect for Android
+---------------------------------------
+
+The SoAI Connect companion client is licensed under the MIT License (licenses/MIT.txt) and is not part of the Core
+Licensed Work. See LICENSE.md section 7. Its license text is published in the separate SoAI Connect repository, every first-party Kotlin
+source file is marked SPDX-License-Identifier: MIT, and the application reproduces the license in its licenses
+screen. The MIT grant covers this client only: it conveys no SoAI trademark right and no right to run or
+distribute SoAI Core. SoAI Connect is published as a separate sideloaded APK and is not part of the signed release
+manifest. Third-party components embedded in the APK are listed in:
+  the Android third-party notice in the separate SoAI Connect repository
+
+Playwright / Chromium Runtime Download Notices
+---------------------------------------------
+
+SoAI may install Playwright and download Chromium browser binaries at first start.
+License pointers for these runtime-fetched artifacts are provided in:
+  licenses/PLAYWRIGHT-CHROMIUM-NOTICES.txt
+
+Additional Distribution Records
+-------------------------------
+
+The Python dependency SBOM and notices for optional backends and third-party marks are provided in:
+  licenses/SBOM-PYTHON-CYCLONEDX.json
+  licenses/THIRD_PARTY_BACKEND_LICENSES.md
+  licenses/THIRD_PARTY_LOGO_NOTICES.md
+
+Trademarks
+----------
+
+OpenAI, Anthropic, Microsoft, Google, DuckDuckGo, Brave, Serper.dev, Meta, WhatsApp, Facebook, Instagram, Telegram,
+Discord, Slack, Signal, GitHub, Hugging Face, Ollama, vLLM, OpenNMT, MyShell, NVIDIA, AMD, Intel, Apple, Debian,
+Ubuntu, Linux, and other third-party product, project, service, hardware, operating-system, model, API, search-provider,
+messaging-provider, and company names mentioned by SoAI are trademarks or other protected identifiers of their
+respective owners and are used for identification, compatibility description, interoperability, parser support, or
+nominative reference only. SoAI is not affiliated with, sponsored by, endorsed by, or approved by those third parties.
+NVIDIA, AMD, and Intel hardware logos are used only to identify detected GPU hardware vendors inside SoAI hardware
+views.
+
+If you own rights in material included with SoAI and believe a notice, attribution, logo, mark, or reference should be
+changed, removed, replaced, or corrected, contact Roberto Martini at info@soai.to. The issue will be reviewed and fixed
+promptly when appropriate.

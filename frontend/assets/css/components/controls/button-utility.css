@@ -1,0 +1,178 @@
+/* SoAI - Button utility component styles [frontend/assets/css/components/controls/button-utility.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .form-group {
+        margin-bottom: var(--space-6);
+    }
+
+    .form-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .form-help {
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+        margin-top: var(--space-2);
+        line-height: 1.3;
+    }
+
+    .form-disclaimer {
+        font-size: var(--font-size-xs);
+        color: var(--status-orange);
+        background: color-mix(in srgb, var(--status-orange-bright) 10%, var(--glass-underlay-surface));
+        border: var(--border-width-1) solid color-mix(in srgb, var(--status-orange-bright) 30%, var(--glass-underlay-surface));
+        border-radius: var(--border-radius);
+        padding: var(--space-3);
+        margin-top: var(--space-3);
+        line-height: 1.4;
+    }
+
+    .form-disclaimer.form-disclaimer-error {
+        color: var(--feedback-error-highlight);
+        background: var(--glass-surface-error);
+        border-color: var(--glass-border-error);
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: var(--border-width-2) solid var(--border-color);
+        border-top-color: var(--accent-green);
+        border-radius: var(--border-round);
+        animation: spin var(--duration-800) var(--ease-linear) infinite;
+    }
+
+    .task-list-empty > p {
+        text-align: center;
+    }
+
+    :is(.models-loading, .plugins-loading) {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: var(--space-4);
+        z-index: var(--z-modal);
+        background: color-mix(in srgb, var(--color-black) 30%, transparent);
+    }
+
+    :is(.models-loading, .plugins-loading) .spinner {
+        width: 48px;
+        height: 48px;
+        border: var(--border-width-4) solid var(--bg-tertiary);
+        border-top: var(--border-width-4) solid var(--accent-green);
+        border-radius: var(--border-round);
+        animation: spin var(--duration-1200) var(--ease-bounce) infinite;
+        margin-bottom: var(--space-6);
+        box-shadow: 0 0 20px color-mix(in srgb, var(--accent-green) 30%, transparent);
+    }
+
+    .plugin-compatibility-banner.hardware-incompatible {
+        color: var(--status-orange);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--status-orange) 75%, var(--color-black) 25%);
+        background: color-mix(in srgb, var(--glass-surface-strong) 85%, var(--status-orange) 15%);
+    }
+
+    .plugin-compatibility-banner.circuit-breaker {
+        color: var(--accent-yellow);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--accent-yellow) 75%, var(--color-black) 25%);
+        background: color-mix(in srgb, var(--glass-surface-strong) 85%, var(--accent-yellow) 15%);
+    }
+
+    .live-status-overlay {
+        position: fixed;
+        bottom: 16px;
+        right: 16px;
+        background: var(--glass-surface-interactive-strong);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        color: var(--live-status-overlay-text);
+        border-radius: var(--border-radius);
+        padding: var(--space-4);
+        font-size: var(--font-size-xs);
+        line-height: 1.5;
+        z-index: var(--z-overlay);
+        width: 240px;
+        box-shadow: var(--shadow-lift-strong);
+        cursor: move;
+        touch-action: none;
+        user-select: none;
+    }
+    .live-status-overlay.is-dragging {
+        cursor: grabbing;
+    }
+    .live-status-overlay-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-2);
+    }
+    .live-status-overlay-section:last-child {
+        margin-bottom: 0;
+    }
+    .live-status-overlay-label {
+        font-size: var(--font-size-compact);
+        letter-spacing: var(--tracking-08em);
+        text-transform: uppercase;
+        color: var(--live-status-overlay-text-muted);
+        margin-right: var(--space-25);
+    }
+    .live-status-overlay-value {
+        font-weight: 600;
+        color: var(--live-status-overlay-text);
+    }
+    .live-status-overlay-status {
+        transition: color var(--transition-fast);
+    }
+    .live-status-overlay-status--connected {
+        color: var(--telemetry-status-connected);
+    }
+    .live-status-overlay-status--disconnected {
+        color: var(--telemetry-status-disconnected);
+    }
+    .live-status-overlay-event {
+        max-width: 150px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .live-status-overlay-section--bundles {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .live-status-overlay-bundle-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        width: 100%;
+        margin-top: var(--space-15);
+    }
+    .live-status-overlay-bundle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: var(--font-size-caption);
+    }
+    .live-status-overlay-bundle-name {
+        font-weight: 500;
+    }
+    .live-status-overlay-bundle-status {
+        font-weight: 600;
+    }
+    .live-status-overlay-bundle--pending .live-status-overlay-bundle-status {
+        color: var(--telemetry-status-pending);
+    }
+    .live-status-overlay-bundle--ready .live-status-overlay-bundle-status {
+        color: var(--telemetry-status-ready);
+    }
+    .live-status-overlay-bundle--empty {
+        color: var(--text-tertiary);
+        font-style: italic;
+    }
+}

@@ -1,0 +1,223 @@
+/* SoAI - Dashboard page base styles [frontend/assets/css/pages/dashboard/base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    .dashboard-container:where([data-section='dashboard'], [data-page-scope='dashboard']) {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        scrollbar-gutter: stable;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section {
+        --dashboard-section-content-overflow: hidden;
+        --glass-surface-bg: transparent;
+
+        background: transparent;
+        min-width: 0;
+        overflow: hidden;
+        position: relative;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section-surface {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: calc(100% * var(--movable-section-content-scale-inverse));
+        height: calc(100% * var(--movable-section-content-scale-inverse));
+        min-width: 0;
+        transform: scale(var(--movable-section-content-scale));
+        transform-origin: top left;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .section-header {
+        gap: var(--space-3);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .section-header-main {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-2);
+        flex: 1;
+        min-width: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.dashboard-section .section-controls, .logs-controls, .logs-controls .logs-size-controls) {
+        display: flex;
+        align-items: center;
+        gap: var(--dashboard-section-control-gap);
+        flex-wrap: nowrap;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .section-controls {
+        --dashboard-section-control-gap: var(--space-2);
+        --dashboard-section-control-size: var(--control-height-titlebar);
+        --dashboard-section-control-icon-size: var(--space-25);
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section > .dashboard-section-surface > .section-header > .section-controls :is(.ui-button, .ui-icon-button) {
+        min-height: var(--dashboard-section-control-size);
+        height: var(--dashboard-section-control-size);
+        font-size: var(--font-size-compact);
+        gap: var(--space-05);
+
+        --button-icon-scale: 0;
+        --icon-size: var(--dashboard-section-control-icon-size);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section > .dashboard-section-surface > .section-header > .section-controls .ui-button {
+        padding: var(--space-05) var(--space-15);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section > .dashboard-section-surface > .section-header > .section-controls .ui-icon-button {
+        width: var(--dashboard-section-control-size);
+        min-width: var(--dashboard-section-control-size);
+        padding: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section > .dashboard-section-surface > .section-header > .section-controls :is(.ui-button, .ui-icon-button) :is(svg, .ui-icon),
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section > .dashboard-section-surface > .section-header > .section-controls :is(.ui-button, .ui-icon-button) .ui-icon > svg {
+        width: var(--dashboard-section-control-icon-size);
+        height: var(--dashboard-section-control-icon-size);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .logs-viewer {
+        background-color: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .section-content {
+        flex: 1;
+        padding: var(--space-3);
+        overflow: var(--dashboard-section-content-overflow);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section[data-section-id='logs'] > .dashboard-section-surface > .section-content {
+        padding: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section[data-section-id='hardwareWidgets'] > .dashboard-section-surface > .section-content,
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section[data-section-id='imagecard'] > .dashboard-section-surface > .section-content {
+        padding: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section :is(.section-loading, .section-error, .section-empty) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        font-size: var(--font-size-sm);
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .hardware-status {
+        border: none;
+        padding: 0;
+        margin: 0;
+        height: 0;
+        display: none;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-os-capabilities-grid {
+        --dashboard-os-capability-rows: 1;
+        --dashboard-os-capability-items: 1;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: repeat(var(--dashboard-os-capability-rows), minmax(0, 1fr));
+        gap: var(--space-2);
+        align-content: stretch;
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-os-capability-item {
+        --dashboard-os-capability-color: var(--status-red);
+        --dashboard-os-capability-checkerboard-surface: var(--glass-underlay-surface);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: var(--space-2);
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+        padding: var(--ui-metric-badge-padding);
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid var(--dashboard-os-capability-color);
+        background: color-mix(in srgb, var(--dashboard-os-capability-color) 6%, var(--dashboard-os-capability-checkerboard-surface));
+        transition:
+            border-color var(--transition-fast),
+            background-color var(--transition-fast);
+        overflow: hidden;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-os-capability-item.checkerboard-light {
+        --dashboard-os-capability-checkerboard-surface: var(--alternating-grey-dark);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-os-capability-item.checkerboard-dark {
+        --dashboard-os-capability-checkerboard-surface: var(--alternating-grey-light);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-os-capability-item--positive {
+        --dashboard-os-capability-color: var(--status-persistentgreen);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-os-capability-item--negative {
+        --dashboard-os-capability-color: var(--status-red);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-os-capability-text {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-width: 0;
+        font-size: var(--font-size-caption-plus);
+        font-weight: 700;
+        color: var(--dashboard-os-capability-color);
+        padding: var(--space-05) 0;
+        text-align: center;
+        letter-spacing: normal;
+        line-height: 1.2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.network-item, .tasks-stat, .plugin-item:not(.dropdown-item), .model-item) {
+        position: relative;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .network-item,
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .tasks-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-2);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .network-value {
+        font-size: var(--font-size-xl);
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-1);
+    }
+}

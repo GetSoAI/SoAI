@@ -1,0 +1,44 @@
+/* SoAI - Shadows utility styles [frontend/assets/css/utilities/shadows.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    .shadow-subtle {
+        box-shadow: 0 2px 4px var(--shadow-light);
+    }
+
+    .shadow-base {
+        box-shadow: 0 4px 8px var(--shadow-medium);
+    }
+
+    .shadow-heavy {
+        box-shadow: 0 6px 12px var(--shadow-heavy);
+    }
+
+    .shadow-lift-sm {
+        box-shadow: var(--shadow-lift-soft);
+    }
+
+    .shadow-lift {
+        box-shadow: var(--shadow-lift-base);
+    }
+
+    .shadow-lift-lg {
+        box-shadow: var(--shadow-lift-strong);
+    }
+
+    .shadow-none {
+        box-shadow: none;
+    }
+
+    .shadow-glass {
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    .shadow-card {
+        box-shadow: var(--surface-card-shadow);
+    }
+
+    .shadow-modal {
+        box-shadow: var(--modal-surface-shadow);
+    }
+}

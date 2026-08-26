@@ -1,0 +1,65 @@
+/* SoAI - Hardware page recessed surfaces styles [frontend/assets/css/pages/hardware/recessed-surfaces.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='hardware'], [data-page-scope='hardware']) :is(.gpu-control-section > .section-content, .hardware-widgets-section > .section-content, .hardware-memory-swap-content) {
+        background-color: var(--recessed-surface-fill-background);
+        background-image: var(--recessed-surface-fill);
+        background-blend-mode: var(--recessed-surface-texture-blend);
+        background-size: var(--recessed-surface-texture-size);
+        -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
+        backdrop-filter: var(--recessed-surface-backdrop-filter);
+        box-shadow: var(--recessed-surface-shadow);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .metrics-card-content.metrics-card-content--table.data-table-wrapper {
+        position: relative;
+        background-color: var(--recessed-surface-fill-background);
+        background-image: var(--recessed-surface-fill);
+        background-blend-mode: var(--recessed-surface-texture-blend);
+        background-size: var(--recessed-surface-texture-size);
+        -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
+        backdrop-filter: var(--recessed-surface-backdrop-filter);
+        box-shadow: var(--recessed-surface-shadow);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        overflow: auto;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .metrics-card-content.metrics-card-content--table.data-table-wrapper .table-compact th {
+        background: color-mix(in srgb, var(--recessed-surface-fill-background) 84%, var(--surface-card));
+        border-bottom-color: color-mix(in srgb, var(--surface-card-border) 76%, transparent);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .metrics-card-content.metrics-card-content--table.data-table-wrapper .table-compact th.sortable:hover {
+        background: var(--glass-surface-interactive-hover);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .metrics-card-content.metrics-card-content--table.data-table-wrapper .table-compact th.sortable.is-active {
+        background: color-mix(in srgb, var(--recessed-surface-fill-background) 70%, var(--surface-card));
+        border-bottom-color: color-mix(in srgb, var(--surface-card-border) 90%, var(--text-tertiary) 10%);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .metrics-card-content.metrics-card-content--table.data-table-wrapper .table-compact tbody td {
+        background: color-mix(in srgb, var(--recessed-surface-fill-background) 22%, transparent);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .metrics-card-content.metrics-card-content--table.data-table-wrapper .table-compact tbody tr:nth-child(even) td {
+        background: color-mix(in srgb, var(--recessed-surface-fill-background) 30%, transparent);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .metrics-card-content.metrics-card-content--table.data-table-wrapper .table-compact tbody tr:hover td {
+        background: var(--glass-surface-interactive-hover);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) :is(.gpu-control-section, .hardware-memory-swap-card, .hardware-widgets-section).metrics-panel.card {
+        --glass-surface-bg: transparent;
+        background: transparent;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) :is(.gpu-control-section, .hardware-memory-swap-card, .hardware-widgets-section).metrics-panel.card::after {
+        background-color: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+}

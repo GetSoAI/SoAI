@@ -1,0 +1,70 @@
+/* SoAI - Modal surface component styles [frontend/assets/css/components/modals/modal-surface.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .modal-content {
+        --motion-modal-translate-x: 0;
+        --motion-modal-translate-y: 0;
+
+        position: relative;
+        z-index: calc(var(--z-modal) + 1);
+        background-color: color-mix(in srgb, var(--glass-surface-strong) 88%, var(--bg-primary));
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        box-shadow: var(--modal-surface-shadow);
+        width: var(--modal-surface-width);
+        max-height: var(--modal-surface-max-height);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y));
+        animation: modal-appear var(--duration-200) var(--ease-smooth);
+        pointer-events: auto;
+        isolation: isolate;
+    }
+
+    .modal-content[data-modal-size='md'] {
+        width: var(--modal-size-md-width);
+        min-width: var(--modal-size-md-min-width);
+        min-height: var(--modal-size-md-min-height);
+    }
+
+    .modal-content[data-modal-size='lg'] {
+        width: var(--modal-size-lg-width);
+        min-width: var(--modal-size-lg-min-width);
+        min-height: var(--modal-size-lg-min-height);
+    }
+
+    .modal-content[data-modal-size='xl'] {
+        width: var(--modal-size-xl-width);
+        min-width: var(--modal-size-xl-min-width);
+        min-height: var(--modal-size-xl-min-height);
+    }
+
+    .modal-content.is-fullscreen {
+        border-radius: 0;
+        border-top-color: transparent;
+        border-left-color: transparent;
+    }
+
+    .ui-modal.u-hidden .modal-content {
+        animation: modal-disappear var(--duration-200) var(--ease-in);
+    }
+
+    @container ui-viewport (width <= 768px) {
+        .modal-content[data-modal-size] {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            max-height: 100%;
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .modal-content[data-modal-size] {
+            border-radius: 0;
+        }
+    }
+}

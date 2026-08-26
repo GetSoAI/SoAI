@@ -1,0 +1,45 @@
+/* SoAI - Glass disabled frontend styles [frontend/assets/css/modes/glass-disabled.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer overrides {
+    :root.glass-disabled,
+    body.glass-disabled {
+        --glass-underlay-page: var(--glass-user-disabled-underlay-page);
+        --glass-underlay-surface: var(--glass-user-disabled-underlay-surface);
+        --glass-border-strong: color-mix(in srgb, var(--glass-border-strong-base) 65%, var(--glass-surface-strong));
+        --glass-border-medium: color-mix(in srgb, var(--glass-border-strong) 70%, var(--glass-underlay-surface));
+        --glass-border-subtle: color-mix(in srgb, var(--glass-border-strong) 50%, var(--glass-surface-strong));
+        --glass-blur-base: none;
+        --modal-overlay-backdrop-filter: none;
+        --modal-overlay-surface: color-mix(in srgb, var(--glass-surface-medium-base) 85%, transparent);
+        --chat-widescreen-backdrop-filter: none;
+        --glass-surface-hover: color-mix(in srgb, var(--glass-surface-interactive) 82%, var(--hover-layer-mix-base) 18%);
+        --glass-surface-hover-strong: color-mix(in srgb, var(--glass-surface-interactive-strong) 78%, var(--hover-layer-mix-base) 22%);
+        --glass-border-chat-message-user: color-mix(in srgb, var(--glass-surface-chat-message-user) 72%, var(--accent-green-dark) 28%);
+        --glass-surface-chat-message-user-badge: color-mix(in srgb, var(--glass-surface-chat-message-user) 88%, var(--glass-surface-medium));
+    }
+
+    :root.theme-dark.glass-disabled,
+    body.theme-dark.glass-disabled {
+        --glass-border-strong: color-mix(in srgb, var(--glass-border-strong-base) 70%, var(--glass-surface-strong));
+        --glass-border-medium: color-mix(in srgb, var(--glass-border-strong) 70%, var(--glass-underlay-surface));
+        --modal-overlay-surface: color-mix(in srgb, var(--glass-surface-medium-base) 85%, transparent);
+        --glass-surface-hover: color-mix(in srgb, var(--glass-surface-interactive) 80%, var(--hover-layer-mix-base) 20%);
+        --glass-surface-hover-strong: color-mix(in srgb, var(--glass-surface-interactive-strong) 76%, var(--hover-layer-mix-base) 24%);
+        --glass-border-chat-message-user: color-mix(in srgb, var(--glass-surface-chat-message-user) 78%, var(--accent-green-light) 22%);
+        --glass-surface-chat-message-user-badge: color-mix(in srgb, var(--glass-surface-chat-message-user) 90%, var(--glass-surface-medium));
+    }
+
+    body.glass-disabled :is(.dropdown-item, .plugin-item.dropdown-item, .task-item.dropdown-item):is(:hover, :focus-visible) {
+        background-color: color-mix(in srgb, var(--glass-surface-interactive) 78%, var(--hover-layer-mix-base) 22%);
+    }
+
+    body.glass-disabled .prompt-view-modal[data-prompt-color] {
+        --prompt-modal-underlay: var(--glass-underlay-surface);
+    }
+
+    body.theme-dark.glass-disabled .prompt-view-modal[data-prompt-color] {
+        --prompt-modal-overlay-strong: 20%;
+        --prompt-modal-overlay-soft: 12%;
+    }
+}

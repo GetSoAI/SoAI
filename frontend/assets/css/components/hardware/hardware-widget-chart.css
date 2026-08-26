@@ -1,0 +1,40 @@
+/* SoAI - Hardware widget chart component styles [frontend/assets/css/components/hardware/hardware-widget-chart.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .hardware-widget .hardware-widget__gradient-stop--start {
+        stop-color: var(--hardware-widget-chart-color);
+        stop-opacity: 0.15;
+    }
+
+    .hardware-widget .hardware-widget__gradient-stop--end {
+        stop-color: var(--hardware-widget-chart-color);
+        stop-opacity: 0.02;
+    }
+
+    .hardware-widget .hardware-widget__chart-container {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    .hardware-widget .hardware-widget__chart-wrapper {
+        width: 100%;
+        height: 100%;
+        transform-origin: center center;
+    }
+
+    .hardware-widget .hardware-widget__chart-svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .hardware-widget .hardware-widget__chart-path,
+    .hardware-widget .hardware-widget__chart-line {
+        transition:
+            fill var(--duration-300) var(--ease-default),
+            stroke var(--duration-300) var(--ease-default);
+    }
+}

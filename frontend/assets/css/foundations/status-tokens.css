@@ -1,0 +1,56 @@
+/* SoAI - Status tokens frontend styles [frontend/assets/css/foundations/status-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    @property --soai-progress-color {
+        syntax: '<color>';
+        inherits: true;
+        initial-value: #e06106;
+    }
+
+    :root {
+        --status-grey: #757575;
+        --status-dark-grey: #1f1f1f;
+        --status-orange: #e06106;
+        --status-yellow: #b77905;
+        --status-green: #4a6b16;
+        --status-persistentgreen: #95a078;
+        --status-blue: #2183c0;
+        --status-blue-bright: #60a5fa;
+        --status-red: #d63232;
+        --status-darkgreen: #0d632d;
+        --status-led-size: 8px;
+        --status-led-size-sm: 7px;
+        --status-led-margin: 6px;
+        --alternating-grey-light: color-mix(in srgb, rgb(242 242 242) 59%, var(--glass-underlay-surface));
+        --alternating-grey-dark: color-mix(in srgb, rgb(198 198 198) 81%, var(--glass-underlay-surface));
+        --status-green-hover: color-mix(in srgb, var(--status-green) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --status-yellow-hover: color-mix(in srgb, var(--status-yellow) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --status-orange-hover: color-mix(in srgb, var(--status-orange) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --status-red-hover: color-mix(in srgb, var(--status-red) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --status-blue-hover: color-mix(in srgb, var(--status-blue) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --status-grey-hover: color-mix(in srgb, var(--status-grey) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --status-shadow-green-soft: rgb(34 197 94 / 30%);
+        --status-shadow-green-medium: rgb(34 197 94 / 40%);
+        --status-shadow-blue-soft: rgb(59 130 246 / 30%);
+        --status-shadow-blue-medium: rgb(59 130 246 / 40%);
+        --status-shadow-yellow-soft: rgb(245 158 11 / 30%);
+        --status-shadow-yellow-medium: rgb(245 158 11 / 40%);
+        --status-shadow-orange-soft: rgb(249 115 22 / 30%);
+        --status-shadow-orange-medium: rgb(249 115 22 / 40%);
+        --status-shadow-red-soft: rgb(239 68 68 / 30%);
+        --status-shadow-red-medium: rgb(239 68 68 / 40%);
+        --status-shadow-grey-soft: rgb(107 114 128 / 30%);
+        --status-shadow-grey-medium: rgb(107 114 128 / 40%);
+        --status-shadow-darkgreen-medium: rgb(22 163 74 / 40%);
+        --status-shadow-green-strong: rgb(34 197 94 / 60%);
+        --status-shadow-blue-strong: rgb(59 130 246 / 60%);
+        --status-shadow-yellow-strong: rgb(245 158 11 / 60%);
+        --status-shadow-orange-strong: rgb(249 115 22 / 60%);
+        --status-shadow-red-strong: rgb(239 68 68 / 60%);
+        --status-shadow-grey-strong: rgb(107 114 128 / 60%);
+        --status-green-bright: #10b981;
+        --status-yellow-bright: #f59e0b;
+        --status-orange-bright: #ea580c;
+    }
+}

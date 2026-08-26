@@ -1,0 +1,297 @@
+/* SoAI - States frontend styles [frontend/assets/css/states.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer states {
+    html[data-transition-level='reduced'] {
+        --transition-fast: 75ms ease-in-out;
+        --transition-normal: 125ms ease-in-out;
+        --transition-slow: 175ms ease-in-out;
+        --duration-100: 50ms;
+        --duration-150: 75ms;
+        --duration-200: 100ms;
+        --duration-250: 125ms;
+        --duration-300: 150ms;
+        --duration-350: 175ms;
+        --duration-400: 200ms;
+        --duration-500: 250ms;
+        --duration-600: 300ms;
+        --duration-800: 400ms;
+        --duration-1000: 500ms;
+        --duration-1200: 600ms;
+        --duration-1600: 800ms;
+    }
+
+    html[data-transition-level='enhanced'] {
+        --transition-fast: 200ms ease-in-out;
+        --transition-normal: 350ms ease-in-out;
+        --transition-slow: 500ms ease-in-out;
+        --duration-100: 130ms;
+        --duration-150: 200ms;
+        --duration-200: 260ms;
+        --duration-250: 330ms;
+        --duration-300: 400ms;
+        --duration-350: 460ms;
+        --duration-400: 530ms;
+        --duration-500: 660ms;
+        --duration-600: 780ms;
+        --duration-800: 1040ms;
+        --duration-1000: 1300ms;
+        --duration-1200: 1560ms;
+        --duration-1600: 2080ms;
+    }
+
+    html[data-animation-speed='fast']:not([data-transition-level='none']) {
+        --transition-fast: 75ms ease-in-out;
+        --transition-normal: 125ms ease-in-out;
+        --transition-slow: 175ms ease-in-out;
+        --duration-050: 25ms;
+        --duration-100: 50ms;
+        --duration-150: 75ms;
+        --duration-200: 100ms;
+        --duration-220: 110ms;
+        --duration-240: 120ms;
+        --duration-250: 125ms;
+        --duration-300: 150ms;
+        --duration-350: 175ms;
+        --duration-400: 200ms;
+        --duration-500: 250ms;
+        --duration-600: 300ms;
+        --duration-800: 400ms;
+        --duration-900: 450ms;
+        --duration-1000: 500ms;
+        --duration-1200: 600ms;
+        --duration-1500: 750ms;
+        --duration-1600: 800ms;
+        --duration-2000: 1000ms;
+        --duration-2500: 1250ms;
+        --duration-3000: 1500ms;
+        --duration-6000: 3000ms;
+        --duration-12000: 6000ms;
+        --transition-button: var(--transition-fast);
+        --transition-panel: var(--transition-normal);
+        --transition-modal: var(--duration-250) var(--ease-smooth);
+        --transition-sidebar: var(--transition-normal);
+        --transition-toggle: var(--duration-150) var(--ease-spring);
+        --transition-card: var(--transition-normal);
+        --transition-header: var(--duration-200) var(--ease-smooth);
+        --transition-effect-enter: var(--duration-150) var(--ease-smooth);
+        --transition-effect-exit: var(--duration-150) var(--ease-in-out);
+        --effect-page-enter-duration: var(--duration-250);
+        --effect-page-exit-duration: var(--duration-150);
+        --effect-modal-enter-duration: var(--duration-100);
+        --effect-modal-exit-duration: 75ms;
+        --effect-notification-enter-duration: 125ms;
+        --effect-notification-exit-duration: var(--duration-100);
+        --motion-empty-state-appear-duration: 75ms;
+        --header-fold-duration: 140ms;
+    }
+
+    body.reduce-motions,
+    html[data-transition-level='none'] {
+        --transition-fast: 0ms ease-in-out;
+        --transition-normal: 0ms ease-in-out;
+        --transition-slow: 0ms ease-in-out;
+        --duration-050: 0ms;
+        --duration-100: 0ms;
+        --duration-150: 0ms;
+        --duration-200: 0ms;
+        --duration-220: 0ms;
+        --duration-240: 0ms;
+        --duration-250: 0ms;
+        --duration-300: 0ms;
+        --duration-350: 0ms;
+        --duration-400: 0ms;
+        --duration-500: 0ms;
+        --duration-600: 0ms;
+        --duration-800: 0ms;
+        --duration-900: 0ms;
+        --duration-1000: 0ms;
+        --duration-1200: 0ms;
+        --duration-1500: 0ms;
+        --duration-1600: 0ms;
+        --duration-2000: 0ms;
+        --duration-2500: 0ms;
+        --duration-3000: 0ms;
+        --duration-6000: 0ms;
+        --duration-12000: 0ms;
+        --transition-button: 0ms;
+        --transition-panel: 0ms;
+        --transition-modal: 0ms;
+        --transition-sidebar: 0ms;
+        --transition-toggle: 0ms;
+        --transition-card: 0ms;
+        --transition-header: 0ms;
+        --transition-effect-enter: 0ms;
+        --transition-effect-exit: 0ms;
+        --effect-page-enter-duration: 0ms;
+        --effect-page-exit-duration: 0ms;
+        --effect-modal-enter-duration: 0ms;
+        --effect-modal-exit-duration: 0ms;
+        --effect-notification-enter-duration: 0ms;
+        --effect-notification-exit-duration: 0ms;
+        --motion-empty-state-appear-duration: 0ms;
+        --header-fold-duration: 0ms;
+    }
+
+    body.reduce-motions * {
+        transition-duration: 0ms;
+        animation-duration: 0ms;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :root {
+            --transition-fast: 0ms ease-in-out;
+            --transition-normal: 0ms ease-in-out;
+            --transition-slow: 0ms ease-in-out;
+            --duration-050: 0ms;
+            --duration-100: 0ms;
+            --duration-150: 0ms;
+            --duration-200: 0ms;
+            --duration-220: 0ms;
+            --duration-240: 0ms;
+            --duration-250: 0ms;
+            --duration-300: 0ms;
+            --duration-350: 0ms;
+            --duration-400: 0ms;
+            --duration-500: 0ms;
+            --duration-600: 0ms;
+            --duration-800: 0ms;
+            --duration-900: 0ms;
+            --duration-1000: 0ms;
+            --duration-1200: 0ms;
+            --duration-1500: 0ms;
+            --duration-1600: 0ms;
+            --duration-2000: 0ms;
+            --duration-2500: 0ms;
+            --duration-3000: 0ms;
+            --duration-6000: 0ms;
+            --duration-12000: 0ms;
+            --transition-button: 0ms;
+            --transition-panel: 0ms;
+            --transition-modal: 0ms;
+            --transition-sidebar: 0ms;
+            --transition-toggle: 0ms;
+            --transition-card: 0ms;
+            --transition-header: 0ms;
+            --transition-effect-enter: 0ms;
+            --transition-effect-exit: 0ms;
+            --effect-page-enter-duration: 0ms;
+            --effect-page-exit-duration: 0ms;
+            --effect-modal-enter-duration: 0ms;
+            --effect-modal-exit-duration: 0ms;
+            --effect-notification-enter-duration: 0ms;
+            --effect-notification-exit-duration: 0ms;
+            --motion-empty-state-appear-duration: 0ms;
+            --header-fold-duration: 0ms;
+        }
+
+        * {
+            transition-duration: 0ms;
+            animation-duration: 0ms;
+        }
+    }
+
+    html[data-transition-style='smooth'] {
+        --ease-in-out: var(--ease-smooth);
+    }
+
+    html[data-transition-style='sharp'] {
+        --ease-in-out: var(--ease-material);
+    }
+
+    html[data-transition-style='bouncy'] {
+        --ease-in-out: var(--ease-spring);
+    }
+
+    .main-content > [data-section]:not(.is-collection-card-reveal-ready) .ui-collection-grid .entering {
+        transition: none;
+    }
+
+    @container ui-viewport (width >= 1024px) {
+        .chat-header-model-selector.is-visible {
+            display: flex;
+        }
+    }
+
+    .header-notification-tasks .header-task-manager-panel .dropdown-item.task-item {
+        background: var(--task-item-row-bg);
+    }
+
+    .header-notification-center .notification-item.dropdown-item {
+        background: var(--notification-item-row-bg);
+    }
+
+    :where(.session-recent-card, .session-recent-row) {
+        --session-recent-overlay-accent: var(--prompts-color-yellow);
+        --session-recent-overlay-strong: 28%;
+        --session-recent-overlay-soft: 16%;
+        --session-recent-outline-opacity: 38%;
+    }
+
+    .theme-dark :where(.session-recent-card, .session-recent-row) {
+        --session-recent-overlay-strong: 16%;
+        --session-recent-overlay-soft: 8%;
+        --session-recent-outline-opacity: 24%;
+    }
+
+    :where(.ui-collection-card, .model-card, .plugin-card).session-recent-card:not(.pending-delete, .removing, .deleting) {
+        border-color: var(--session-recent-overlay-accent);
+        box-shadow:
+            var(--glass-shadow-base),
+            0 0 0 1.5px color-mix(in srgb, var(--session-recent-overlay-accent) var(--session-recent-outline-opacity), var(--glass-underlay-surface));
+        isolation: isolate;
+    }
+
+    :where(.ui-collection-card, .model-card, .plugin-card).session-recent-card:not(.pending-delete, .removing, .deleting)::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(135deg, color-mix(in srgb, var(--session-recent-overlay-accent) var(--session-recent-overlay-strong), var(--glass-underlay-surface)), color-mix(in srgb, var(--session-recent-overlay-accent) var(--session-recent-overlay-soft), var(--glass-underlay-surface)));
+        pointer-events: none;
+        z-index: var(--z-base);
+    }
+
+    :where(.ui-collection-card, .model-card, .plugin-card).session-recent-card:not(.pending-delete, .removing, .deleting) > * {
+        position: relative;
+        z-index: var(--z-raised);
+    }
+
+    :where(.ui-collection-card, .model-card, .plugin-card).session-recent-card:not(.pending-delete, .removing, .deleting) > .ui-collection-card__action-bar {
+        pointer-events: auto;
+        z-index: calc(var(--z-raised) + 1);
+    }
+
+    .session-recent-row {
+        --surface-collection-row-background: linear-gradient(135deg, color-mix(in srgb, var(--session-recent-overlay-accent) var(--session-recent-overlay-strong), var(--glass-underlay-surface)), color-mix(in srgb, var(--session-recent-overlay-accent) var(--session-recent-overlay-soft), var(--glass-underlay-surface)));
+        --border-collection-row: color-mix(in srgb, var(--session-recent-overlay-accent) 58%, var(--glass-border-strong));
+    }
+
+    .ui-collection-list__table tbody tr.session-recent-row {
+        background: var(--surface-collection-row-background);
+    }
+
+    .ui-collection-list__table tbody tr.session-recent-row > td {
+        background: transparent;
+        border-bottom-color: var(--border-collection-row);
+    }
+
+    .session-recent-row .ui-collection-list__actions {
+        position: relative;
+        z-index: var(--z-raised);
+        pointer-events: auto;
+    }
+
+    .session-recent-row .ui-collection-list__actions > .ui-round-button {
+        pointer-events: auto;
+    }
+
+    :where(.ui-collection-card, .model-card, .plugin-card).session-recent-card:not(.pending-delete, .removing, .deleting) > .ui-collection-card__action-bar > .ui-round-button {
+        pointer-events: auto;
+        z-index: calc(var(--z-raised) + 2);
+    }
+
+    .session-recent-row:hover {
+        --surface-collection-row-background: var(--table-row-hover-background);
+    }
+}

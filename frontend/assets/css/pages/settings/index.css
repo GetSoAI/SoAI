@@ -1,0 +1,17 @@
+/* SoAI - Settings page styles [frontend/assets/css/pages/settings/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./base.css') layer(pages);
+@import url('./layout.css') layer(pages);
+@import url('./toolbar.css') layer(pages);
+@import url('./panels.css') layer(pages);
+@import url('./mcp.css') layer(pages);
+@import url('./security.css') layer(pages);
+@import url('./licensing.css') layer(pages);
+@import url('./forms.css') layer(pages);
+@import url('./operation-preview.css') layer(pages);
+@import url('./drivers.css') layer(pages);
+@import url('./records.css') layer(pages);
+@import url('./cards.css') layer(pages);
+@import url('./details.css') layer(pages);
+@import url('./recessed-surfaces.css') layer(pages);

@@ -1,0 +1,84 @@
+/* SoAI - Skeleton frontend styles [frontend/assets/css/skeleton.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .page-preloader {
+        --preloader-exit-rise: 18px;
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        isolation: isolate;
+        background: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: var(--z-overlay);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(0);
+        transition:
+            opacity var(--duration-300) var(--ease-out),
+            transform var(--duration-300) var(--ease-out);
+    }
+
+    .page-preloader::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: var(--z-layer-background);
+        pointer-events: none;
+        background: var(--glass-surface-light);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+    }
+
+    .page-preloader.is-visible {
+        opacity: 1;
+        pointer-events: all;
+    }
+
+    .page-preloader.page-preloader--exiting {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(calc(var(--preloader-exit-rise) * -1));
+    }
+
+    .page-preloader-content {
+        position: relative;
+        z-index: var(--z-base);
+        contain: layout style;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-4);
+        text-align: center;
+    }
+
+    .page-preloader-logo {
+        display: block;
+        width: 100%;
+        max-width: min(calc(80 * var(--ui-viewport-width-unit)), 420px);
+        height: auto;
+        max-height: min(calc(30 * var(--ui-viewport-height-unit)), 260px);
+        aspect-ratio: 1800 / 750;
+        object-fit: contain;
+    }
+
+    .page-preloader-spinner {
+        width: clamp(28px, calc(10 * var(--ui-viewport-width-unit)), 52px);
+        height: clamp(28px, calc(10 * var(--ui-viewport-width-unit)), 52px);
+        border: var(--border-width-3) solid var(--border-color);
+        border-top-color: var(--accent-green);
+        border-radius: var(--border-round);
+        animation: spin var(--duration-1000) var(--ease-linear) infinite;
+        will-change: transform;
+    }
+
+    .page-preloader-text {
+        color: var(--text-secondary);
+        font-size: var(--font-size-body-md);
+        font-weight: 500;
+    }
+}

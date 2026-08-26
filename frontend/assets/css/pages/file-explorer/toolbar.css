@@ -1,0 +1,48 @@
+/* SoAI - File explorer page toolbar styles [frontend/assets/css/pages/file-explorer/toolbar.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-progress {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        gap: var(--space-2);
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: var(--space-1);
+    }
+
+    @container ui-viewport (width <= 1024px) {
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-content {
+            padding-bottom: var(--space-3);
+        }
+
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table,
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table th,
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table td {
+            font-size: var(--font-size-caption-plus);
+        }
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table,
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table th,
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table td {
+            font-size: var(--font-size-compact-plus);
+        }
+
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-meta-cell--type .file-explorer-type-label--full {
+            display: none;
+        }
+
+        :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-meta-cell--type .file-explorer-type-label--short {
+            display: inline;
+        }
+    }
+}

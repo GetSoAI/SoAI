@@ -1,0 +1,27 @@
+/* SoAI - Prompts page actions [frontend/assets/ts/pages/prompts/actions.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+import { createActionIdSet } from '@core/dom/actions/actionIdGuard.ts';
+import { PROMPTS_ACTION_COLOR_SELECT } from '@features/prompts/public.ts';
+
+export const PROMPTS_ACTION_CREATE_PROMPT = 'prompts.createPrompt';
+export const PROMPTS_ACTION_TOGGLE_SELECTION_MODE = 'prompts.toggleSelectionMode';
+export const PROMPTS_ACTION_SELECT_ALL = 'prompts.selectAll';
+export const PROMPTS_ACTION_DESELECT_ALL = 'prompts.deselectAll';
+export const PROMPTS_ACTION_DUPLICATE_SELECTED = 'prompts.duplicateSelected';
+export const PROMPTS_ACTION_DOWNLOAD_SELECTED = 'prompts.downloadSelected';
+export const PROMPTS_ACTION_DELETE_SELECTED = 'prompts.deleteSelected';
+export const PROMPTS_ACTION_CARD_OPEN = 'prompts.cardOpen';
+export const PROMPTS_ACTION_CARD_COPY = 'prompts.cardCopy';
+export const PROMPTS_ACTION_CARD_EDIT = 'prompts.cardEdit';
+export const PROMPTS_ACTION_CARD_DELETE = 'prompts.cardDelete';
+export const PROMPTS_ACTION_CARD_CANCEL_EDIT = 'prompts.cardCancelEdit';
+export const PROMPTS_ACTION_CARD_SAVE_EDIT = 'prompts.cardSaveEdit';
+export const PROMPTS_ACTION_TOGGLE_VIEW_MODE = 'prompts.toggleViewMode';
+export const PROMPTS_ACTION_SORT_LIST = 'prompts.sortList';
+
+export type PromptsActionId = typeof PROMPTS_ACTION_CREATE_PROMPT | typeof PROMPTS_ACTION_TOGGLE_SELECTION_MODE | typeof PROMPTS_ACTION_SELECT_ALL | typeof PROMPTS_ACTION_DESELECT_ALL | typeof PROMPTS_ACTION_DUPLICATE_SELECTED | typeof PROMPTS_ACTION_DOWNLOAD_SELECTED | typeof PROMPTS_ACTION_DELETE_SELECTED | typeof PROMPTS_ACTION_CARD_OPEN | typeof PROMPTS_ACTION_CARD_COPY | typeof PROMPTS_ACTION_CARD_EDIT | typeof PROMPTS_ACTION_CARD_DELETE | typeof PROMPTS_ACTION_CARD_CANCEL_EDIT | typeof PROMPTS_ACTION_CARD_SAVE_EDIT | typeof PROMPTS_ACTION_COLOR_SELECT | typeof PROMPTS_ACTION_TOGGLE_VIEW_MODE | typeof PROMPTS_ACTION_SORT_LIST;
+
+const { guard: isPromptsActionId } = createActionIdSet(PROMPTS_ACTION_CREATE_PROMPT, PROMPTS_ACTION_TOGGLE_SELECTION_MODE, PROMPTS_ACTION_SELECT_ALL, PROMPTS_ACTION_DESELECT_ALL, PROMPTS_ACTION_DUPLICATE_SELECTED, PROMPTS_ACTION_DOWNLOAD_SELECTED, PROMPTS_ACTION_DELETE_SELECTED, PROMPTS_ACTION_CARD_OPEN, PROMPTS_ACTION_CARD_COPY, PROMPTS_ACTION_CARD_EDIT, PROMPTS_ACTION_CARD_DELETE, PROMPTS_ACTION_CARD_CANCEL_EDIT, PROMPTS_ACTION_CARD_SAVE_EDIT, PROMPTS_ACTION_COLOR_SELECT, PROMPTS_ACTION_TOGGLE_VIEW_MODE, PROMPTS_ACTION_SORT_LIST);
+
+export { PROMPTS_ACTION_COLOR_SELECT, isPromptsActionId };

@@ -1,0 +1,43 @@
+/* SoAI - Busy controls component styles [frontend/assets/css/components/controls/busy-controls.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(button, a, input, select, textarea)[aria-busy='true'] {
+        cursor: progress;
+    }
+
+    :where(button)[aria-busy='true'][data-busy-spinner='overlay'] {
+        position: relative;
+        color: transparent;
+    }
+
+    :where(button)[aria-busy='true'][data-busy-spinner='overlay']::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        margin: auto;
+        width: 12px;
+        height: 12px;
+        border: var(--border-width-1) solid color-mix(in srgb, var(--ui-button-color) 24%, transparent);
+        border-top-color: var(--ui-button-color);
+        border-radius: var(--border-round);
+        animation: spin var(--duration-800) var(--ease-linear) infinite;
+        pointer-events: none;
+        z-index: var(--z-above-sibling);
+    }
+
+    :where(button)[aria-busy='true'][data-busy-spinner='overlay'] > * {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    :where(button, a, input, select, textarea)[aria-busy='true'][aria-disabled='true'] {
+        pointer-events: none;
+    }
+
+    :where(button, input, select, textarea)[aria-busy='true']:disabled,
+    :where([aria-busy='true']) :where(button, input, select, textarea):disabled {
+        cursor: progress;
+        opacity: 0.7;
+    }
+}

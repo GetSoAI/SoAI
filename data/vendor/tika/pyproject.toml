@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tika"
+version = "3.3.2"
+description = "Apache Tika Python library vendored by SoAI"
+requires-python = ">=3.10"
+dependencies = [
+  "beautifulsoup4>=4.13.3",
+  "requests",
+]
+
+[tool.setuptools]
+packages = ["tika"]

@@ -1,0 +1,31 @@
+name: Feature request
+description: Suggest a capability or a change in behaviour.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem you are trying to solve and the outcome you want, rather than the implementation. Real use cases shape the roadmap.
+
+        If what you want is an integration or a new backend, consider building it as a plugin: `LICENSE.md` section 7.1 grants anyone a perpetual, royalty-free right to build against `plugin_sdk` and to publish, sell, and license the result on their own terms. Your plugin stays yours.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and where does SoAI get in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: The outcome you want
+      description: How would you know this was solved well?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried or considered
+      description: Existing SoAI features, workarounds, or other tools, and why they fall short.
+    validations:
+      required: false

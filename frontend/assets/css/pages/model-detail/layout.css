@@ -1,0 +1,172 @@
+/* SoAI - Model detail page layout styles [frontend/assets/css/pages/model-detail/layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    .model-detail-container:is(:where([data-section='modelDetail'], [data-page-scope='modelDetail'])) {
+        .modeldetail-status-badge {
+            --status-badge-gap: var(--space-15);
+            --status-badge-padding: var(--space-05) var(--space-15);
+            --status-badge-font-size: var(--font-size-xs);
+        }
+
+        .modeldetail-status-badge--ready {
+            --status-badge-color: var(--status-green);
+        }
+        .modeldetail-status-badge--loading {
+            --status-badge-color: var(--status-blue);
+        }
+        .modeldetail-status-badge--error {
+            --status-badge-color: var(--status-red);
+        }
+        .modeldetail-status-badge--stopped {
+            --status-badge-color: var(--status-grey);
+        }
+        .modeldetail-status-badge--virtual {
+            --status-badge-color: var(--accent-blue);
+        }
+
+        .modeldetail-enabled-toggle {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .modeldetail-enabled-note {
+            font-size: var(--font-size-xs);
+            color: var(--text-tertiary);
+            border-bottom: var(--border-width-1) solid transparent;
+        }
+
+        .modeldetail-status-capabilities .modeldetail-card-header {
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .modeldetail-status-capabilities .modeldetail-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .modeldetail-status-capabilities-heading {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-05);
+            min-width: 0;
+            flex: 1;
+        }
+
+        .modeldetail-status-capabilities :is(.modeldetail-status-capabilities-save, .modeldetail-status-capabilities-reset).ui-button--titlebar {
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .modeldetail-status-actions {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: var(--space-2);
+            margin-top: 0;
+            padding-top: var(--space-2);
+            border-top: none;
+        }
+
+        .modeldetail-status-actions .ui-button {
+            flex: 1 1 0;
+            min-width: 0;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        .modeldetail-status-actions .ui-button.ui-icon-button {
+            flex: 0 0 var(--icon-button-size);
+        }
+
+        :is(.modeldetail-constituent-list, .modeldetail-inference-defaults) {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modeldetail-constituent-list {
+            gap: var(--space-2);
+        }
+
+        .modeldetail-constituent-item {
+            padding: var(--space-25) var(--space-3);
+            border-radius: var(--border-radius);
+        }
+
+        .modeldetail-constituent-name {
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--space-1);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .modeldetail-constituent-uid {
+            color: var(--text-tertiary);
+        }
+
+        :is(.modeldetail-constituent-badge, .param-badge) {
+            --status-badge-font-size: var(--font-size-micro);
+            --status-badge-padding: var(--space-05) var(--space-1);
+            --status-badge-letter-spacing: var(--tracking-03px);
+        }
+
+        .modeldetail-constituent-badge {
+            margin-top: var(--space-15);
+
+            --status-badge-color: var(--accent-green);
+        }
+
+        .modeldetail-capabilities {
+            display: block;
+        }
+
+        .form-group .modeldetail-capabilities {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+        }
+
+        .parameter-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            margin-top: var(--space-3);
+            width: 100%;
+        }
+
+        .modeldetail-empty-state {
+            padding: var(--space-4);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+        }
+
+        .no-parameters {
+            padding: var(--space-12) var(--space-8);
+            text-align: center;
+            color: var(--text-secondary);
+            height: 100%;
+
+            svg {
+                color: var(--text-tertiary);
+                margin-bottom: var(--space-4);
+            }
+        }
+
+        .parameters-content {
+            overflow: auto;
+            padding: 0;
+            min-height: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+    }
+}

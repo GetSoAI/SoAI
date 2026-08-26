@@ -1,0 +1,85 @@
+/* SoAI - Recessed surfaces frontend styles [frontend/assets/css/overrides/recessed-surfaces.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer overrides {
+    :where(.table-compact, .ui-collection-list__table, .file-explorer-table, .chat-attach-results-table) th.sortable {
+        color: var(--text-secondary);
+    }
+
+    :where(.table-compact, .ui-collection-list__table, .file-explorer-table, .chat-attach-results-table) th.sortable.is-active {
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+
+    :where(.table-compact, .ui-collection-list__table, .file-explorer-table, .chat-attach-results-table) th.sortable:is(:hover, :focus-visible) {
+        background: var(--table-row-hover-background);
+        color: var(--text-primary);
+        outline: none;
+    }
+
+    :where(.table-compact, .ui-collection-list__table, .file-explorer-table, .chat-attach-results-table) th.sortable:is(:hover, :focus-visible) .sort-indicator {
+        color: inherit;
+    }
+
+    :where(.history-chart-shell) {
+        background-color: var(--recessed-surface-fill-background);
+        background-image: var(--recessed-surface-fill);
+        background-blend-mode: var(--recessed-surface-texture-blend);
+        background-size: var(--recessed-surface-texture-size);
+        -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
+        backdrop-filter: var(--recessed-surface-backdrop-filter);
+    }
+
+    :where(.header-search__dropdown .search-category-content),
+    :where(.header-notification-center) :is(.header-dropdown-scroll-list, .header-dropdown-loading-footer) {
+        background-color: var(--recessed-surface-fill-background);
+        background-image: var(--recessed-surface-fill);
+        background-blend-mode: var(--recessed-surface-texture-blend);
+        background-size: var(--recessed-surface-texture-size);
+        -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
+        backdrop-filter: var(--recessed-surface-backdrop-filter);
+        box-shadow: var(--recessed-surface-compact-shadow);
+    }
+
+    :where(.mcp-tools-scope) .mcp-tool-group-body-inner,
+    :where(.prompt-enhancer-modal) .prompt-enhancer-pane > .prompt-enhancer-pane-body,
+    :where(.model-details-modal) :is(.modeldetail-card > .modeldetail-card-body, .category-content.has-scroll) {
+        background-color: var(--recessed-surface-fill-background);
+        background-image: var(--recessed-surface-fill);
+        background-blend-mode: var(--recessed-surface-texture-blend);
+        background-size: var(--recessed-surface-texture-size);
+        -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
+        backdrop-filter: var(--recessed-surface-backdrop-filter);
+        box-shadow: var(--recessed-surface-shadow);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+
+    :where(.history-chart-card > .history-chart-shell, .history-chart-card > .section-content > .history-chart-shell) {
+        position: relative;
+        z-index: var(--z-base);
+    }
+
+    :where(.history-chart-card > .history-chart-shell, .history-chart-card > .section-content > .history-chart-shell)::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        z-index: var(--z-sticky);
+        box-shadow: var(--recessed-surface-shadow);
+    }
+
+    :where(.header-search__dropdown .search-category),
+    :where(.model-details-modal) :is(.modeldetail-card, .parameter-category) {
+        --glass-surface-bg: transparent;
+        background: transparent;
+    }
+
+    :where(.header-search__dropdown .search-category)::before,
+    :where(.model-details-modal) :is(.modeldetail-card, .parameter-category)::after,
+    :where(.model-details-modal) .parameter-category::before {
+        background-color: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+}

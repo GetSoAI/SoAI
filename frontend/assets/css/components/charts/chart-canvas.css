@@ -1,0 +1,155 @@
+/* SoAI - Chart canvas component styles [frontend/assets/css/components/charts/chart-canvas.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .chart-container {
+        --chart-interaction-top: 0;
+        --chart-interaction-right: 0;
+        --chart-interaction-bottom: 0;
+        --chart-interaction-left: 0;
+
+        position: relative;
+        display: flex;
+        align-items: stretch;
+        width: 100%;
+        min-height: 384px;
+        height: auto;
+        background: transparent;
+        contain: layout paint;
+    }
+
+    .chart-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 1;
+        pointer-events: none;
+        touch-action: pan-y;
+    }
+
+    .chart-container.chart-container--loading .chart-layer {
+        opacity: 0;
+        pointer-events: none;
+        transition: none;
+    }
+
+    .chart-container.chart-container--ready .chart-layer {
+        opacity: 1;
+        transition: opacity var(--duration-240) var(--ease-default);
+    }
+
+    .chart-transition-layer {
+        position: absolute;
+        inset: 0;
+        z-index: calc(var(--z-dropdown) + 1);
+        width: 100%;
+        height: 100%;
+        opacity: 1;
+        pointer-events: none;
+        touch-action: none;
+        transition: opacity var(--duration-240) var(--ease-default);
+        will-change: opacity;
+    }
+
+    .chart-container canvas {
+        flex: 1;
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    .history-chart-shell {
+        --chart-canvas-base-background: transparent;
+
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        width: 100%;
+        min-height: 0;
+        overflow: hidden;
+        max-height: none;
+    }
+
+    .history-chart-shell.chart-container {
+        flex: 1 1 auto;
+        min-height: 0;
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        contain: layout paint;
+    }
+
+    .history-chart-card.card > .card-title-bar {
+        gap: var(--space-15);
+        padding: var(--space-15) var(--space-35);
+    }
+
+    .history-chart-card.card > .card-title-bar .card-title {
+        margin-right: auto;
+        min-height: 0;
+    }
+
+    .history-chart-card.card > .card-title-bar .card-title-controls {
+        margin-left: auto;
+        gap: var(--space-15);
+        max-width: 100%;
+        row-gap: var(--space-15);
+    }
+
+    .history-chart-status {
+        display: block;
+        text-align: center;
+        padding: var(--space-3) var(--space-2);
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        pointer-events: none;
+    }
+
+    .history-chart-status[data-overlay='true'] {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-4);
+    }
+
+    .chart-layer-static {
+        z-index: var(--z-base);
+    }
+
+    .chart-layer-data {
+        z-index: var(--z-raised);
+    }
+
+    .chart-container canvas.chart-layer-interaction {
+        top: var(--chart-interaction-top);
+        right: var(--chart-interaction-right);
+        bottom: var(--chart-interaction-bottom);
+        left: var(--chart-interaction-left);
+        width: calc(100% - var(--chart-interaction-left) - var(--chart-interaction-right));
+        height: calc(100% - var(--chart-interaction-top) - var(--chart-interaction-bottom));
+        z-index: var(--z-dropdown);
+        pointer-events: all;
+    }
+
+    .chart-layer-interaction.is-pan-active {
+        cursor: grabbing;
+    }
+
+    .chart-layer-interaction.is-y-resize-active {
+        cursor: ns-resize;
+    }
+
+    .chart-layer-interaction.is-x-resize-active {
+        cursor: ew-resize;
+    }
+
+    .chart-icon-fallback {
+        font-size: var(--font-size-body-md);
+        line-height: 1;
+        display: inline-block;
+    }
+}

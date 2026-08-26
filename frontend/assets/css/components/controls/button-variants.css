@@ -1,0 +1,122 @@
+/* SoAI - Button variants component styles [frontend/assets/css/components/controls/button-variants.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-button--sm {
+        padding: var(--space-15) var(--space-3);
+        font-size: var(--font-size-xs);
+        gap: var(--space-15);
+        line-height: var(--line-height-compact);
+
+        --button-icon-scale: 0.05;
+    }
+
+    .ui-button-xs {
+        padding: var(--space-05) var(--space-15);
+        font-size: var(--font-size-compact);
+        gap: var(--space-05);
+        height: 20px;
+        min-height: 20px;
+        line-height: var(--line-height-compact);
+
+        --button-icon-scale: 0.05;
+    }
+
+    .ui-button--titlebar {
+        padding: var(--space-05) var(--space-15);
+        font-size: var(--font-size-compact);
+        gap: var(--space-05);
+        height: var(--control-height-titlebar);
+        min-height: var(--control-height-titlebar);
+        line-height: var(--line-height-compact);
+
+        --button-icon-scale: 0.05;
+    }
+
+    .ui-button-block {
+        width: 100%;
+    }
+
+    .ui-button-quiet {
+        box-shadow: none;
+    }
+
+    :is(.ui-button, .ui-icon-button, .dropdown-select):is(.ui-variant-accent, .ui-variant-danger, .ui-variant-warning, .ui-variant-success, .ui-variant-primary, .ui-variant-violet) {
+        --ui-button-border: var(--variant-color);
+        --ui-button-border-hover: var(--variant-color-hover);
+        --ui-button-color: var(--variant-color);
+        --ui-button-color-hover: var(--variant-color-hover);
+        --ui-button-bg: color-mix(in srgb, var(--variant-color) var(--interactive-tint-opacity-idle), var(--ui-button-inherited-underlay));
+        --ui-button-bg-hover: color-mix(in srgb, var(--ui-button-bg) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        --ui-button-focus-ring: var(--variant-focus-ring);
+    }
+
+    .ui-variant-accent {
+        --variant-color: var(--ui-button-accent-color);
+        --variant-color-hover: var(--ui-button-accent-color-hover);
+        --variant-focus-ring: var(--ui-button-accent-focus-ring);
+    }
+    .ui-variant-danger {
+        --variant-color: var(--ui-button-danger-color);
+        --variant-color-hover: var(--ui-button-danger-color-hover);
+        --variant-focus-ring: var(--ui-button-danger-focus-ring);
+    }
+    .ui-variant-warning {
+        --variant-color: var(--ui-button-warning-color);
+        --variant-color-hover: var(--ui-button-warning-color-hover);
+        --variant-focus-ring: var(--ui-button-warning-focus-ring);
+    }
+    .ui-variant-success {
+        --variant-color: var(--ui-button-success-color);
+        --variant-color-hover: var(--ui-button-success-color-hover);
+        --variant-focus-ring: var(--ui-button-success-focus-ring);
+    }
+    .ui-variant-primary {
+        --variant-color: var(--ui-button-primary-color);
+        --variant-color-hover: var(--ui-button-primary-color-hover);
+        --variant-focus-ring: var(--ui-button-primary-focus-ring);
+    }
+    .ui-variant-violet {
+        --variant-color: var(--ui-button-violet-color);
+        --variant-color-hover: var(--ui-button-violet-color-hover);
+        --variant-focus-ring: var(--ui-button-violet-focus-ring);
+    }
+
+    :is(.ui-button, .ui-icon-button).ui-variant-neutral {
+        --variant-color: var(--ui-button-neutral-color);
+        --variant-color-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-border: var(--ui-button-neutral-color);
+        --ui-button-border-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-color: var(--ui-button-neutral-color);
+        --ui-button-color-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-bg: var(--ui-button-neutral-bg);
+        --ui-button-bg-hover: var(--ui-button-neutral-bg-hover);
+        --ui-button-focus-ring: var(--ui-button-neutral-focus-ring);
+    }
+
+    :is(.ui-button, .ui-icon-button).ui-variant-neutral.is-active {
+        background-color: var(--ui-button-bg-hover);
+        border-color: var(--ui-button-border-hover);
+        color: var(--ui-button-color-hover);
+    }
+
+    .ui-variant-surface {
+        --ui-button-bg: var(--ui-button-surface-strong);
+        --ui-button-border: var(--ui-button-border-strong);
+        --ui-button-color: var(--text-primary);
+        --ui-button-bg-hover: var(--ui-button-surface-hover);
+        --ui-button-border-hover: var(--ui-button-border-strong);
+        --ui-button-color-hover: var(--text-primary);
+        --ui-button-focus-ring: color-mix(in srgb, var(--ui-button-border-strong) 45%, transparent);
+    }
+
+    .ui-variant-ghost {
+        --ui-button-bg: transparent;
+        --ui-button-border: transparent;
+        --ui-button-color: var(--text-secondary);
+        --ui-button-bg-hover: color-mix(in srgb, var(--ui-button-surface-interactive) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
+        --ui-button-border-hover: transparent;
+        --ui-button-color-hover: var(--text-primary);
+        --ui-button-focus-ring: color-mix(in srgb, var(--border-color) 35%, transparent);
+    }
+}

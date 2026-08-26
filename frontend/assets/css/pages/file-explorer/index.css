@@ -1,0 +1,10 @@
+/* SoAI - File explorer page styles [frontend/assets/css/pages/file-explorer/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./base.css') layer(pages);
+@import url('./layout.css') layer(pages);
+@import url('./chrome.css') layer(pages);
+@import url('./toolbar.css') layer(pages);
+@import url('./animations.css') layer(pages);
+@import url('./icon-mode.css') layer(pages);
+@import url('./compact-list-mode.css') layer(pages);

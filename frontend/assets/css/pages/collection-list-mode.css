@@ -1,0 +1,8 @@
+/* SoAI - Collection list-mode import sentinel styles [frontend/assets/css/pages/collection-list-mode.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :root {
+        --layout-collection-list-mode-import-sentinel: 0;
+    }
+}

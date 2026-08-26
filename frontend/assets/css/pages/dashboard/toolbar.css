@@ -1,0 +1,61 @@
+/* SoAI - Dashboard page toolbar styles [frontend/assets/css/pages/dashboard/toolbar.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .stat-value {
+        font-size: var(--font-size-2xl);
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-1);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .stat-label,
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .tasks-stat-label {
+        font-size: var(--font-size-xs);
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-05px);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .plugin-name,
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .model-name {
+        margin: 0;
+        padding: 0;
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+        color: var(--text-primary);
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        line-height: var(--line-height-compact);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .plugin-status {
+        font-size: var(--font-size-compact);
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .plugin-status-badge,
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .model-plugin-badge {
+        --status-badge-min-height: 1.5rem;
+        --status-badge-padding: var(--space-1) var(--space-25);
+        --status-badge-font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .tasks-overview {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        height: 100%;
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-os-capabilities-grid {
+            grid-template-columns: 1fr;
+            grid-template-rows: repeat(var(--dashboard-os-capability-items), minmax(0, 1fr));
+        }
+    }
+}

@@ -1,0 +1,281 @@
+/* SoAI - Chat configuration layout component styles [frontend/assets/css/components/chat/chat-configuration-layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .chat-configuration-modal .tab-content {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .chat-configuration-modal .modal-body {
+        overflow-x: clip;
+        overflow-y: auto;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .chat-configuration-modal .form-group,
+    .chat-configuration-modal .setting-change-surface,
+    .chat-configuration-modal :is(.form-input, textarea, select, .ui-range) {
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .chat-configuration-modal .chat-config-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .chat-configuration-modal .chat-config-grid > :where(.form-group) {
+        margin-bottom: 0;
+    }
+
+    .chat-configuration-modal .chat-config-grid > * {
+        min-width: 0;
+    }
+
+    @container ui-viewport (width >= 900px) {
+        .chat-configuration-modal .chat-config-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .chat-configuration-modal .chat-config-span-2 {
+            grid-column: 1 / -1;
+        }
+
+        .chat-configuration-modal .chat-config-grid > :where(.chat-configuration-section-header) {
+            grid-column: 1 / -1;
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        .chat-configuration-modal .chat-config-grid {
+            gap: var(--space-3);
+        }
+    }
+
+    @container ui-viewport (width <= 480px) {
+        .chat-configuration-modal .chat-config-grid {
+            gap: var(--space-25);
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where(.chat-container) .chat-conversation-header .chat-header-model-selector.is-visible {
+            display: none;
+        }
+    }
+
+    .chat-configuration-modal .form-row-split {
+        display: flex;
+        gap: var(--space-4);
+        align-items: flex-start;
+        flex-wrap: wrap;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .chat-configuration-modal .form-col-main {
+        flex: 7;
+        min-width: min(100%, 260px);
+    }
+
+    .chat-configuration-modal .form-col-secondary {
+        flex: 3;
+        min-width: min(100%, 220px);
+    }
+
+    .chat-configuration-modal .form-col-action {
+        flex: 0 0 auto;
+        min-width: 0;
+    }
+
+    .chat-configuration-modal .form-row-split--with-action {
+        align-items: flex-end;
+    }
+
+    .chat-configuration-modal .chat-config-field-header > :is(label, .form-label) {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .chat-configuration-modal .chat-config-field-hide-model {
+        --toggle-width: 24px;
+        --toggle-height: 13px;
+        --toggle-handle-size: 9px;
+        --toggle-handle-offset: 0;
+        --toggle-handle-translate: 11px;
+
+        display: flex;
+        align-items: center;
+        gap: var(--space-15);
+        flex: 0 0 auto;
+        min-width: 0;
+    }
+
+    .chat-configuration-modal .chat-config-field-hide-model > label {
+        color: var(--text-primary);
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        letter-spacing: var(--tracking-04px);
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .chat-configuration-modal .chat-config-field-toggle {
+        --toggle-width: 24px;
+        --toggle-height: 13px;
+        --toggle-handle-size: 9px;
+        --toggle-handle-offset: 0;
+        --toggle-handle-translate: 11px;
+
+        gap: var(--space-15);
+        flex-shrink: 0;
+    }
+
+    .chat-configuration-modal .chat-config-field-header > .chat-config-field-toggle {
+        flex: 0 0 auto;
+    }
+
+    .chat-configuration-modal .form-row-split--with-action .form-col-action label {
+        visibility: hidden;
+    }
+
+    @container ui-viewport (width <= 900px) {
+        .chat-configuration-modal .form-row-split {
+            flex-direction: column;
+            flex-wrap: nowrap;
+        }
+
+        .chat-configuration-modal .form-col-main,
+        .chat-configuration-modal .form-col-secondary {
+            flex: 1 1 100%;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .chat-configuration-modal .form-row-split--with-action {
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+
+        .chat-configuration-modal .form-row-split--with-action .form-col-main {
+            flex: 1 1 40%;
+            min-width: min(100%, 150px);
+        }
+
+        .chat-configuration-modal .form-row-split--with-action .form-col-secondary {
+            flex: 1 1 30%;
+            min-width: min(100%, 120px);
+        }
+
+        .chat-configuration-modal .form-row-split--with-action .form-col-action label {
+            display: none;
+        }
+    }
+
+    .chat-configuration-modal .chat-configuration-hint {
+        display: block;
+        margin-top: var(--space-15);
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+    }
+
+    .chat-configuration-modal .chat-config-field-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .chat-configuration-modal .chat-config-field-header > * {
+        min-width: 0;
+    }
+
+    .chat-configuration-modal .chat-config-field-toggle .toggle-label {
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        letter-spacing: var(--tracking-04px);
+        color: var(--text-primary);
+    }
+
+    .chat-configuration-modal .chat-config-field-display-disabled {
+        --modal-field-label-color: var(--text-tertiary);
+
+        color: var(--text-tertiary);
+        opacity: 0.7;
+    }
+
+    .chat-configuration-modal .chat-configuration-section-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+        margin: var(--space-8) 0 var(--space-4);
+    }
+
+    .chat-configuration-modal .chat-configuration-section-header:first-child {
+        margin-top: 0;
+    }
+
+    .chat-configuration-modal .chat-configuration-mcp-content > .chat-config-grid > .chat-configuration-section-header {
+        border-radius: var(--border-radius);
+        padding: var(--space-2);
+    }
+
+    .chat-configuration-modal .chat-configuration-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+        align-items: center;
+        margin: var(--space-4) 0;
+    }
+
+    .chat-configuration-modal .chat-configuration-actions--split {
+        justify-content: flex-start;
+    }
+
+    .chat-configuration-modal .preset-controls-actions {
+        justify-self: start;
+        justify-content: flex-start;
+        min-width: 0;
+        width: auto;
+    }
+
+    .chat-configuration-modal .preset-controls-actions > .ui-button {
+        flex: 0 0 auto;
+        min-width: 0;
+        justify-content: center;
+    }
+
+    .message-info-modal .chat-configuration-modal .rag-documents-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        margin-top: var(--space-3);
+    }
+
+    .chat-configuration-modal .rag-documents-pager {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        margin-top: var(--space-3);
+        padding-top: var(--space-2);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+    }
+
+    .chat-configuration-modal .rag-documents-pager-summary {
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+    }
+
+    .chat-configuration-modal .rag-documents-pager-controls {
+        --ui-action-row-wrap: nowrap;
+    }
+}

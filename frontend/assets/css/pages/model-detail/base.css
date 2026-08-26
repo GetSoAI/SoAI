@@ -1,0 +1,209 @@
+/* SoAI - Model detail page base styles [frontend/assets/css/pages/model-detail/base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    .model-detail-container:where([data-section='modelDetail'], [data-page-scope='modelDetail']) {
+        --model-detail-overview-padding: calc(var(--layout-container-padding) + var(--ui-safe-area-inset-bottom));
+        &.page-content-ready.page-scrollable,
+        &.page-scrollable {
+            padding-bottom: 0;
+        }
+
+        :is(.page-content-area--floating, .page-content-area--sections, .tab-content.is-active, .modeldetail-overview-grid) {
+            padding-bottom: var(--model-detail-overview-padding);
+            scroll-padding-bottom: var(--model-detail-overview-padding);
+        }
+
+        .parameters-interface {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .card {
+            padding: 0;
+            overflow: hidden;
+            margin-bottom: var(--space-6);
+        }
+
+        .model-overview-card {
+            align-self: start;
+        }
+
+        .card:last-child {
+            margin-bottom: 0;
+        }
+
+        .card-body,
+        .modeldetail-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            padding: var(--space-3);
+        }
+
+        .model-detail-error {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            text-align: center;
+        }
+
+        .model-detail-error:not(.u-hidden) {
+            display: flex;
+        }
+
+        .error-state {
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .error-icon {
+            color: var(--status-red);
+            margin-bottom: var(--space-4);
+        }
+
+        .error-state h3 {
+            color: var(--text-primary);
+            margin-bottom: var(--space-2);
+        }
+
+        .error-state p {
+            color: var(--text-secondary);
+            margin-bottom: var(--space-8);
+        }
+
+        .modeldetail-overview-grid {
+            column-width: 320px;
+            column-gap: var(--space-6);
+            width: 100%;
+        }
+
+        .modeldetail-card {
+            overflow: hidden;
+            break-inside: avoid;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .modeldetail-plugin-summary {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            min-height: 32px;
+        }
+
+        .modeldetail-plugin-logo {
+            width: var(--icon-button-size-dense);
+            height: var(--icon-button-size-dense);
+            margin-right: 0;
+        }
+
+        .modeldetail-plugin-meta {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-05);
+            min-width: 0;
+        }
+
+        .modeldetail-plugin-name {
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            color: var(--text-primary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .modeldetail-plugin-subtitle {
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+        }
+
+        .modeldetail-card.u-hidden,
+        .modeldetail-info-row.u-hidden,
+        .modeldetail-metrics-row.u-hidden {
+            display: none;
+        }
+
+        :is(.modeldetail-info-row, .modeldetail-metrics-row, .modeldetail-default-row) {
+            display: grid;
+            grid-template-columns: minmax(96px, max-content) minmax(0, 1fr);
+            align-items: start;
+            column-gap: var(--space-4);
+            min-height: 22px;
+        }
+
+        .modeldetail-info-row {
+            align-items: flex-start;
+        }
+
+        :is(.modeldetail-info-label, .modeldetail-metrics-label, .modeldetail-default-label) {
+            font-size: var(--font-size-xs);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: var(--tracking-05px);
+            flex-shrink: 0;
+            line-height: 1.5;
+        }
+
+        .modeldetail-default-label {
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        :is(.modeldetail-info-value, .modeldetail-metrics-value, .modeldetail-default-value) {
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-width: 0;
+            text-align: right;
+        }
+
+        .modeldetail-info-value {
+            word-break: break-word;
+        }
+
+        .modeldetail-metrics-value,
+        .modeldetail-default-value {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .modeldetail-metrics-row--total-requests {
+            gap: var(--space-3);
+        }
+
+        :is(.modeldetail-info-value--mono, .modeldetail-info-value--path, .modeldetail-constituent-uid) {
+            font-family: var(--font-family-mono);
+            font-size: var(--font-size-xs);
+        }
+
+        .modeldetail-info-value--mono {
+            color: var(--text-secondary);
+        }
+
+        .modeldetail-info-value--path {
+            color: var(--text-secondary);
+            word-break: break-all;
+            text-align: left;
+            max-width: 100%;
+        }
+
+        .modeldetail-info-row--fullwidth {
+            grid-template-columns: minmax(0, 1fr);
+            align-items: flex-start;
+            row-gap: var(--space-15);
+
+            & .modeldetail-info-value {
+                width: 100%;
+                text-align: left;
+                line-height: 1.5;
+            }
+        }
+    }
+}

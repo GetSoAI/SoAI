@@ -1,0 +1,47 @@
+/* SoAI - File explorer page animations styles [frontend/assets/css/pages/file-explorer/animations.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-rows-body .entering {
+        opacity: 0;
+        transform: translateY(-12px);
+        transition: none;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-rows-body.is-hydrating {
+        pointer-events: none;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-rows-body.is-hydrating > * {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-rows-body.is-hydrating .entering {
+        visibility: visible;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout.is-collection-card-reveal-ready .file-explorer-rows-body .entering {
+        animation: card-enter var(--duration-300) var(--ease-material) both;
+        animation-delay: var(--collection-enter-delay);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-entry-open-spinner.loading-spinner {
+        position: absolute;
+        inset: 0;
+        display: none;
+        width: 12px;
+        height: 12px;
+        margin: auto;
+        border-width: var(--border-width-1);
+        border-top-width: var(--border-width-1);
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) tr[data-file-preview-loading='true'] .file-explorer-entry-icon > :not(.file-explorer-entry-open-spinner) {
+        display: none;
+    }
+
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) tr[data-file-preview-loading='true'] .file-explorer-entry-open-spinner.loading-spinner {
+        display: inline-block;
+    }
+}

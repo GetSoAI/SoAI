@@ -1,0 +1,253 @@
+/* SoAI - Settings page forms styles [frontend/assets/css/pages/settings/forms.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='settings'], [data-page-scope='settings']) .acl-item-locked {
+        opacity: 0.7;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .acl-item-locked .toggle-switch {
+        pointer-events: none;
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .api-keys-actions-bar {
+            flex-direction: column;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-instance-id {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-instance-id > .setting-control {
+            justify-content: flex-start;
+            width: 100%;
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-instance-id .settings-control-code {
+            text-align: left;
+        }
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-record-id-label {
+        font-size: var(--font-size-caption);
+        color: var(--text-tertiary);
+        font-weight: 500;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-control > :is(.settings-control-value, .settings-control-code) {
+        max-width: min(30rem, 100%);
+        color: var(--text-secondary);
+        font-size: var(--font-size-body-xs);
+        line-height: 1.3;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-control > .settings-control-value.settings-record-badge {
+        color: var(--status-badge-color);
+        font-size: var(--status-badge-font-size);
+        line-height: var(--status-badge-line-height);
+        text-align: center;
+        overflow-wrap: normal;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-control > .settings-control-code {
+        background: var(--glass-surface-strong);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--glass-shadow-base);
+        padding: var(--space-05) var(--space-15);
+        border-radius: var(--border-radius);
+        font-family: var(--font-family-mono);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.setting-input, .setting-textarea) {
+        width: 180px;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-instance-id .settings-control-code {
+        max-width: min(30rem, 100%);
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-control > .dropdown-select:has(> .setting-input) {
+        width: 180px;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-control > .secret-input-container {
+        width: 180px;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-control > .secret-input-container:has(> .setting-input--wide) {
+        width: min(320px, 100%);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-control > .secret-input-container:has(> .setting-input--full) {
+        width: 100%;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(input.setting-input:not([type='color']), textarea.setting-textarea) {
+        background: var(--text-field-bg);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border: var(--border-width-1) solid var(--text-field-border);
+        border-radius: var(--border-radius);
+        box-shadow: var(--glass-shadow-base);
+        padding: var(--space-15) var(--space-3);
+        font-size: var(--font-size-sm);
+        color: var(--text-secondary);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .secret-input-container > input.setting-input.secret-input {
+        padding-right: calc(var(--space-3) + var(--control-height));
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-textarea {
+        resize: vertical;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']):not(.external-account-modal) .setting-item:has(> .setting-control > .setting-textarea:not(.settings-os-users-ssh-keys)) {
+        align-items: flex-start;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']):not(.external-account-modal) .setting-item:has(> .setting-control > .setting-textarea:not(.settings-os-users-ssh-keys)) > .setting-info {
+        justify-content: flex-start;
+        padding-top: var(--space-1);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']):not(.external-account-modal) .setting-item:has(> .setting-control > .setting-textarea:not(.settings-os-users-ssh-keys)) > .setting-control {
+        align-items: flex-start;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--messaging > .section-content > .settings-subgroup > .settings-group > div.setting-change-surface.setting-item > .setting-control {
+        width: min(180px, 100%);
+        max-width: 180px;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-input--wide,
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-textarea--wide {
+        width: min(320px, 100%);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .setting-control > .dropdown-select:has(> .setting-input--wide) {
+        width: min(320px, 100%);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) :is(input.setting-input, textarea.setting-textarea):hover:not(:focus) {
+        background-color: var(--text-field-bg-hover);
+        border-color: var(--text-field-border-hover);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-record-item--user > .settings-record-actions {
+        flex-shrink: 0;
+        margin-top: 0;
+        padding-top: 0;
+        border-top: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-record-list--sessions {
+        max-height: 22rem;
+        padding-right: var(--space-2);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-record-list--sessions > .settings-record-item--session {
+        flex-shrink: 0;
+    }
+
+    @container ui-viewport (width >= 1024px) or ((width >= 768px) and (width <= 1024px) and (orientation: landscape)) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-record-list--users {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3);
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-record-list--users > .settings-record-item--user {
+            grid-column: 1 / -1;
+        }
+    }
+
+    @container ui-viewport (width >= 1024px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-record-list--users {
+            column-gap: var(--space-6);
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-os-users-mapping-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-3) var(--space-6);
+        }
+    }
+
+    @container ui-viewport (width >= 768px) and (width <= 1024px) and (orientation: landscape) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-record-list--users {
+            column-gap: var(--space-5);
+        }
+    }
+
+    @container ui-viewport (width <= 1200px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-record-item--user .settings-record-actions {
+            justify-content: flex-end;
+        }
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-record-item--user .settings-record-header .settings-record-badge {
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-label {
+        font-size: var(--font-size-body-xs);
+        font-weight: 600;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-record-item--danger {
+        opacity: 0.6;
+        background: color-mix(in srgb, var(--status-red) 5%, var(--glass-surface-light));
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-record-item--warning {
+        opacity: 0.7;
+        background: color-mix(in srgb, var(--accent-yellow) 5%, var(--glass-surface-light));
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-header {
+        margin-bottom: var(--space-1);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-rotation-warning {
+        color: var(--accent-yellow);
+        font-size: var(--font-size-caption);
+        font-weight: 500;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-prefix {
+        margin-bottom: var(--space-2);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2) var(--space-4);
+        font-size: var(--font-size-caption);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .api-key-quota-summary {
+        margin-top: var(--space-3);
+        padding-top: var(--space-3);
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+}

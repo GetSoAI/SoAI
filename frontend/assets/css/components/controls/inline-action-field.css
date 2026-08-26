@@ -1,0 +1,57 @@
+/* SoAI - Inline action field component styles [frontend/assets/css/components/controls/inline-action-field.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-inline-action-field {
+        --inline-action-field-inset: var(--border-width-1);
+        --inline-action-field-width: var(--control-height);
+
+        position: relative;
+        overflow: hidden;
+        border-radius: var(--border-radius);
+    }
+
+    .ui-inline-action-field__button {
+        position: absolute;
+        top: var(--inline-action-field-inset);
+        right: var(--inline-action-field-inset);
+        bottom: var(--inline-action-field-inset);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: calc(var(--inline-action-field-width) - (var(--inline-action-field-inset) * 2));
+        min-width: calc(var(--inline-action-field-width) - (var(--inline-action-field-inset) * 2));
+        padding: var(--space-1);
+        border: none;
+        border-radius: 0 var(--border-radius) var(--border-radius) 0;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition:
+            background-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            color var(--transition-fast);
+    }
+
+    .ui-inline-action-field__button:hover,
+    .ui-inline-action-field__button:focus-visible {
+        color: var(--text-primary);
+        background: color-mix(in srgb, var(--glass-surface-light) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        outline: none;
+    }
+
+    .ui-inline-action-field__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+
+    .ui-inline-action-field__icon > svg {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+}

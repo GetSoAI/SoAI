@@ -1,0 +1,36 @@
+"""SoAI - MCP remote metric tuple paths [backend/core/metrics/keyspace_paths_mcp_remote.py]"""
+# SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+from __future__ import annotations
+
+from core.metrics.keyspace_base import (
+    METRIC_BLOCK_MCP_REMOTE,
+    METRIC_KEY_CONNECTIONS,
+    METRIC_KEY_DISCONNECTIONS,
+    METRIC_KEY_FAILED,
+    METRIC_KEY_SUCCESSFUL,
+    METRIC_KEY_TOTAL,
+)
+
+__all__ = ()
+
+MCP_REMOTE_COUNTER_CONNECTIONS_DISCONNECTIONS: tuple[str, ...] = (
+    METRIC_BLOCK_MCP_REMOTE,
+    METRIC_KEY_CONNECTIONS,
+    METRIC_KEY_DISCONNECTIONS,
+)
+MCP_REMOTE_COUNTER_CONNECTIONS_TOTAL: tuple[str, ...] = (
+    METRIC_BLOCK_MCP_REMOTE,
+    METRIC_KEY_CONNECTIONS,
+    METRIC_KEY_TOTAL,
+)
+MCP_REMOTE_COUNTER_CONNECTIONS_FAILED: tuple[str, ...] = (
+    METRIC_BLOCK_MCP_REMOTE,
+    METRIC_KEY_CONNECTIONS,
+    METRIC_KEY_FAILED,
+)
+MCP_REMOTE_COUNTER_CONNECTIONS_SUCCESSFUL: tuple[str, ...] = (
+    METRIC_BLOCK_MCP_REMOTE,
+    METRIC_KEY_CONNECTIONS,
+    METRIC_KEY_SUCCESSFUL,
+)

@@ -1,0 +1,4 @@
+/* SoAI - Frontend core Translation declarations for key group `settings.mcp.searchKeys` [frontend/assets/ts/core/i18n/translationkeys/settings/mcp__searchKeys.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type SettingsMcpSearchKeysTranslationKey = 'settings.mcp.searchKeys.actions.delete' | 'settings.mcp.searchKeys.actions.edit' | 'settings.mcp.searchKeys.description' | 'settings.mcp.searchKeys.empty' | 'settings.mcp.searchKeys.form.api_key.help' | 'settings.mcp.searchKeys.form.api_key.label' | 'settings.mcp.searchKeys.form.api_key.placeholder' | 'settings.mcp.searchKeys.form.provider.custom' | 'settings.mcp.searchKeys.form.provider.help' | 'settings.mcp.searchKeys.form.provider.label' | 'settings.mcp.searchKeys.form.provider.placeholder' | 'settings.mcp.searchKeys.form.provider.selectPlaceholder' | 'settings.mcp.searchKeys.maskedPlaceholder' | 'settings.mcp.searchKeys.source.env' | 'settings.mcp.searchKeys.title';

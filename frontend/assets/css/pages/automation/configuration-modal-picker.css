@@ -1,0 +1,146 @@
+/* SoAI - Automation page configuration modal picker styles [frontend/assets/css/pages/automation/configuration-modal-picker.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-picker.automation-color-select {
+        --automation-color-picker-button-size: var(--control-round-button-size);
+        --automation-color-picker-surface: var(--bg-secondary);
+
+        display: inline-grid;
+        grid-template-columns: repeat(3, var(--automation-color-picker-button-size));
+        align-items: center;
+        justify-content: start;
+        gap: var(--space-15);
+        width: max-content;
+        min-height: 0;
+        padding: var(--space-2);
+        background-color: var(--automation-color-picker-surface);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        box-shadow: var(--glass-shadow-base);
+        isolation: isolate;
+    }
+
+    :where(.theme-dark) :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-picker.automation-color-select {
+        --automation-color-picker-surface: color-mix(in srgb, var(--bg-secondary) 45%, var(--bg-tertiary) 55%);
+    }
+
+    body:not(.glass-disabled) :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-picker.automation-color-select {
+        background-color: color-mix(in srgb, var(--automation-color-picker-surface) 95%, transparent);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-select.is-readonly {
+        opacity: 0.55;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option {
+        --automation-color-ring: var(--border-color);
+
+        display: block;
+        width: var(--automation-color-picker-button-size);
+        height: var(--automation-color-picker-button-size);
+        min-width: var(--automation-color-picker-button-size);
+        min-height: var(--automation-color-picker-button-size);
+        position: relative;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        line-height: 0;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-swatch {
+        display: block;
+        position: absolute;
+        inset: 0;
+        width: auto;
+        height: auto;
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--color-white) 55%, transparent);
+        background: transparent;
+        overflow: hidden;
+        box-shadow: 0 1px 3px color-mix(in srgb, var(--color-black) 14%, transparent);
+        transition:
+            background-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            border-color var(--transition-fast);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-swatch::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: color-mix(in srgb, var(--glass-surface-hover-strong) 56%, transparent);
+        opacity: 0;
+        transition: opacity var(--transition-fast);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option-red {
+        --automation-color-ring: var(--prompts-color-red);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option-red .automation-color-swatch {
+        background: linear-gradient(135deg, var(--prompts-gradient-red-start), var(--prompts-color-red));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option-yellow {
+        --automation-color-ring: var(--prompts-color-yellow);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option-yellow .automation-color-swatch {
+        background: linear-gradient(135deg, var(--prompts-gradient-yellow-start), var(--prompts-color-yellow));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option-purple {
+        --automation-color-ring: var(--prompts-color-purple);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option-purple .automation-color-swatch {
+        background: linear-gradient(135deg, var(--prompts-gradient-purple-start), var(--prompts-color-purple));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option-green {
+        --automation-color-ring: var(--prompts-color-green);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option-green .automation-color-swatch {
+        background: linear-gradient(135deg, var(--prompts-gradient-green-start), var(--prompts-color-green));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option-blue {
+        --automation-color-ring: var(--prompts-color-blue);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option-blue .automation-color-swatch {
+        background: linear-gradient(135deg, var(--prompts-gradient-blue-start), var(--prompts-color-blue));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option:hover .automation-color-swatch,
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option:focus-within .automation-color-swatch {
+        transform: none;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option:hover .automation-color-swatch::before,
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option:focus-within .automation-color-swatch::before {
+        opacity: 1;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-option:active .automation-color-swatch {
+        transform: none;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-input:checked + .automation-color-swatch {
+        transform: none;
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--color-black) 25%, transparent),
+            0 0 0 3px var(--automation-color-ring);
+        border-color: color-mix(in srgb, var(--color-white) 85%, transparent);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-picker .automation-color-option:first-child {
+        --automation-color-ring: var(--status-grey);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-color-picker .automation-color-option:first-child .automation-color-swatch {
+        background: linear-gradient(135deg, var(--color-grey-200), var(--status-grey));
+    }
+}

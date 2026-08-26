@@ -1,0 +1,158 @@
+/* SoAI - Hardware page forms styles [frontend/assets/css/pages/hardware/forms.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    @container ui-viewport (width <= 900px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .table-compact th,
+        :where([data-section='hardware'], [data-page-scope='hardware']) .table-compact td {
+            padding: var(--space-15);
+            font-size: var(--font-size-compact);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .process-name {
+            max-width: calc(100% - 2.5rem);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .process-close-btn {
+            width: var(--font-size-110);
+            height: var(--font-size-110);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .process-owner {
+            font-size: var(--font-size-compact-sm);
+        }
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper {
+            --process-primary-column: 25%;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-card.metrics-panel.card .hardware-process-table-wrapper {
+            max-height: 100%;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact {
+            min-width: 480px;
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper {
+            --process-primary-column: 39%;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-insights-grid {
+            --hardware-insight-size: 220px;
+            padding: var(--space-3);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-card.metrics-panel.card .hardware-process-table-wrapper {
+            max-height: 100%;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-color: color-mix(in srgb, var(--accent-green) 72%, var(--surface-card-border)) color-mix(in srgb, var(--surface-card-border) 48%, transparent);
+            scrollbar-gutter: stable both-edges;
+            scrollbar-width: thin;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact {
+            width: max(100%, 34rem);
+            min-width: 34rem;
+            table-layout: fixed;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .table-compact th,
+        :where([data-section='hardware'], [data-page-scope='hardware']) .table-compact td {
+            padding: var(--space-1) var(--space-15);
+            font-size: var(--font-size-caption);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-card.metrics-panel.card > .section-header .u-text-muted,
+        :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-section.metrics-panel.card > .section-header .u-text-muted {
+            display: none;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact th:first-child,
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact td:first-child {
+            min-width: 9rem;
+            width: var(--process-primary-column);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact th:nth-child(2),
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact td:nth-child(2) {
+            display: table-cell;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact th:nth-child(3),
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact td:nth-child(3),
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact th:nth-child(4),
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact td:nth-child(4),
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact th:nth-child(5),
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact td:nth-child(5) {
+            display: table-cell;
+            width: calc((100% - var(--process-primary-column)) / 4);
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .process-owner {
+            display: none;
+        }
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-card.metrics-panel.card,
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-card > .section-content,
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-shell {
+            height: auto;
+            max-height: none;
+            overflow: visible;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-content {
+            flex: 1 1 auto;
+            height: auto;
+            min-height: 100%;
+            max-height: none;
+            overflow: visible;
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-gauges {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--space-15);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-gauge {
+            grid-template-rows: minmax(7.25rem, auto) auto;
+            padding: var(--space-1);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-ring-shell {
+            inline-size: min(6rem, 100%);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-ring {
+            --memory-swap-center-inset: var(--space-35);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-stat-row {
+            position: relative;
+            z-index: var(--z-overlay);
+            gap: var(--space-1);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-stat-label {
+            font-size: var(--font-size-micro-tight);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-stat-value {
+            font-size: var(--font-size-caption-plus);
+        }
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']).system-info-modal .system-info-anonymize-toggle {
+        flex-shrink: 0;
+    }
+}

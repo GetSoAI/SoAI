@@ -1,0 +1,98 @@
+/* SoAI - Collection grid component styles [frontend/assets/css/components/collections/collection-grid.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .collection-actions {
+        display: flex;
+        gap: var(--space-35);
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .ui-collection-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(var(--layout-collection-card-min-width), 1fr));
+        gap: var(--space-6);
+        place-items: start center;
+        place-content: start center;
+        grid-auto-rows: auto;
+        width: 100%;
+        overflow: visible;
+    }
+
+    .ui-collection-explicit-anchor > * {
+        overflow-anchor: none;
+    }
+
+    .ui-collection-grid .entering,
+    .ui-collection-list__table .entering {
+        opacity: 0;
+        transform: translateY(-12px);
+        transition: none;
+    }
+    .ui-collection-grid.is-hydrating,
+    .ui-collection-list__table tbody.is-hydrating {
+        pointer-events: none;
+    }
+    .ui-collection-grid.is-hydrating > * {
+        opacity: 0;
+        visibility: hidden;
+    }
+    .ui-collection-list__table tbody.is-hydrating > * {
+        opacity: 0;
+        visibility: hidden;
+    }
+    .ui-collection-grid.is-hydrating .entering,
+    .ui-collection-list__table tbody.is-hydrating .entering {
+        visibility: visible;
+    }
+    .main-content > [data-section].is-collection-card-reveal-ready .ui-collection-grid .entering,
+    .main-content > [data-section].is-collection-card-reveal-ready .ui-collection-list__table .entering {
+        animation: card-enter var(--duration-300) var(--ease-material) both;
+        animation-delay: var(--collection-enter-delay);
+    }
+
+    [data-collection-loader] {
+        grid-column: 1 / -1;
+        width: 100%;
+        padding: var(--space-3);
+        color: var(--text-secondary);
+        text-align: center;
+        pointer-events: none;
+    }
+
+    tr[data-collection-loader] > td {
+        padding: var(--space-3);
+        text-align: center;
+    }
+
+    .collection-edge-loader-content {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+    }
+
+    .collection-edge-loader-content .loading-spinner {
+        width: 16px;
+        height: 16px;
+        border-width: var(--border-width-1);
+    }
+
+    @container ui-viewport (width <= 1024px) {
+        .ui-collection-grid {
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+    }
+    @container ui-viewport (width <= 480px) {
+        .ui-collection-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    @container ui-viewport (width >= 768px) {
+        .collection-actions {
+            align-items: flex-start;
+        }
+    }
+}

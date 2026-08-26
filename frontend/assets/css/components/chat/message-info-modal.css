@@ -1,0 +1,27 @@
+/* SoAI - Message info modal component styles [frontend/assets/css/components/chat/message-info-modal.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    [data-soai-modal-root='true'].chat-message-info-modal .message-info-tool-status--error {
+        --status-badge-color: var(--status-red);
+    }
+
+    [data-soai-modal-root='true'].chat-message-info-modal .message-info-value.message-info-value--error {
+        color: var(--status-red);
+    }
+
+    [data-soai-modal-root='true'].chat-message-info-modal .message-info-value.message-info-value--success {
+        color: var(--status-green);
+    }
+
+    [data-soai-modal-root='true'].chat-message-info-modal .message-info-value.message-info-value--warning {
+        color: var(--status-orange);
+    }
+
+    [data-soai-modal-root='true'].chat-message-info-modal .message-info-nodata {
+        color: var(--text-tertiary);
+        font-style: italic;
+        padding: var(--space-3);
+        text-align: center;
+    }
+}

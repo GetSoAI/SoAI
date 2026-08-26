@@ -1,0 +1,12 @@
+/* SoAI - Models page styles [frontend/assets/css/pages/models/index.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@import url('./base.css') layer(pages);
+@import url('./layout.css') layer(pages);
+@import url('./download-modal.css') layer(pages);
+@import url('./virtual-models-modal.css') layer(pages);
+@import url('./toolbar.css') layer(pages);
+@import url('./panels.css') layer(pages);
+@import url('./forms.css') layer(pages);
+@import url('./edit-modal.css') layer(pages);
+@import url('./list-mode.css') layer(pages);

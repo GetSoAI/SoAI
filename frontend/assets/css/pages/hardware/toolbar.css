@@ -1,0 +1,248 @@
+/* SoAI - Hardware page toolbar styles [frontend/assets/css/pages/hardware/toolbar.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-card {
+        background: var(--surface-card);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        padding: var(--space-3);
+        gap: var(--space-25);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-header {
+        font-size: var(--font-size-xs);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-temp {
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-metric {
+        gap: var(--space-1);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-metric-value {
+        font-size: var(--font-size-xs);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-metric-subvalue {
+        font-size: var(--font-size-compact);
+        color: var(--text-tertiary);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-insights-card {
+        overflow: visible;
+        padding: 0;
+        position: relative;
+        z-index: var(--z-raised);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-insights-grid {
+        --hardware-insight-size: 250px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, var(--hardware-insight-size));
+        grid-auto-rows: var(--hardware-insight-size);
+        gap: var(--space-6);
+        padding: var(--space-5);
+        justify-content: flex-start;
+        place-items: start start;
+        width: 100%;
+        max-width: calc(6 * var(--hardware-insight-size) + 5 * 1.5rem);
+        margin-left: 0;
+        margin-right: auto;
+        position: relative;
+        z-index: var(--z-base);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-insight-content {
+        align-items: center;
+        gap: var(--space-15);
+        text-align: center;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-insight-title {
+        font-size: var(--font-size-body);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-055px);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-insight-meta {
+        font-size: var(--font-size-caption-plus);
+        color: var(--text-secondary);
+        letter-spacing: var(--tracking-035px);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-panel {
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        background-color: var(--surface-card);
+        background-image: var(--title-bar-background);
+        box-shadow: var(--surface-card-shadow);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        visibility: visible;
+        opacity: 1;
+        width: 100%;
+        max-width: var(--gpu-panel-max);
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-header {
+        background: transparent;
+        border-bottom: none;
+        box-shadow: none;
+        flex-shrink: 0;
+        gap: var(--space-2);
+        justify-content: flex-start;
+        padding-left: var(--space-2);
+        padding-right: calc(var(--control-round-button-size) + var(--space-4));
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-action-bar {
+        position: absolute;
+        top: var(--space-15);
+        right: var(--space-2);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-15);
+        width: var(--control-round-button-size);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-header .gpu-reset-round-btn,
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-header .gpu-history-round-btn {
+        position: relative;
+        inset: auto;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-body {
+        padding: var(--space-2) var(--space-25) var(--space-25);
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+        justify-content: flex-start;
+        gap: var(--space-2);
+        background: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-sliders {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        justify-content: space-evenly;
+        gap: var(--space-15);
+        min-height: 0;
+        margin-top: var(--space-1);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-container {
+        margin-bottom: 0;
+        padding: var(--space-1);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-container:nth-of-type(n + 2) {
+        margin-top: calc(-1 * var(--space-05));
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-container.gpu-slider-container--auto .gpu-slider-body {
+        visibility: hidden;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-container:last-child {
+        margin-bottom: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-header {
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-label {
+        align-items: center;
+        margin-bottom: var(--space-15);
+        font-size: var(--font-size-compact);
+        color: var(--text-secondary);
+        gap: var(--space-2);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-label-controls {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-15);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-auto-toggle {
+        gap: var(--space-15);
+        transform: scale(0.95);
+        transform-origin: right center;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-auto-toggle .toggle-label {
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        letter-spacing: var(--tracking-04px);
+        text-transform: lowercase;
+        color: var(--text-primary);
+        min-width: 4rem;
+        text-align: right;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-controls-container .toggle-switch,
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-boot-toggle-row .toggle-switch {
+        --toggle-width: 24px;
+        --toggle-height: 13px;
+        --toggle-handle-size: 9px;
+        --toggle-handle-offset: 0;
+        --toggle-handle-translate: 11px;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-value {
+        display: none;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider {
+        --range-track-height: 5px;
+        --range-thumb-size: 13px;
+
+        width: 100%;
+        height: var(--range-track-height);
+        appearance: none;
+        padding: var(--space-2) 0;
+        margin: calc(-1 * var(--space-2)) 0;
+        background: transparent;
+        box-sizing: content-box;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider::-webkit-slider-runnable-track {
+        background: var(--surface-card-border);
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider::-webkit-slider-thumb {
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider::-moz-range-track {
+        background: var(--surface-card-border);
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider::-moz-range-thumb {
+        border-radius: var(--border-radius);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-info {
+        display: flex;
+        justify-content: space-between;
+        margin-top: var(--space-1);
+        font-size: var(--font-size-compact-sm);
+        color: var(--text-tertiary);
+    }
+}

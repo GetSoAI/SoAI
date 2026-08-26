@@ -1,0 +1,184 @@
+/* SoAI - Licensing wizard presentation [frontend/assets/css/pages/wizard/licensing.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-content[data-step='use'] .wizard-step {
+        max-width: 720px;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-section-heading {
+        display: grid;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-section-heading :is(h2, p) {
+        margin: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-section-heading h2 {
+        font-size: var(--font-size-135);
+        letter-spacing: var(--tracking-snug);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-section-heading p {
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-eyebrow {
+        color: var(--accent-green);
+        font-size: var(--font-size-caption-plus);
+        font-weight: 700;
+        letter-spacing: var(--tracking-1px);
+        text-transform: uppercase;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-document-fingerprint {
+        display: grid;
+        gap: var(--space-3);
+        margin: var(--space-1) 0 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-caption-plus);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-document-fingerprint code {
+        color: var(--text-primary);
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-4);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-use-selection {
+        display: grid;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card {
+        --wizard-choice-overlay-opacity: 0;
+        position: relative;
+        isolation: isolate;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: var(--space-3);
+        min-height: 150px;
+        padding: var(--space-5);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface-medium));
+        box-shadow: var(--glass-shadow-base);
+        cursor: pointer;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card::after {
+        content: '';
+        position: absolute;
+        z-index: var(--z-base);
+        inset: 0;
+        border-radius: inherit;
+        background: var(--glass-surface-interactive-hover);
+        opacity: var(--wizard-choice-overlay-opacity);
+        pointer-events: none;
+        transition: opacity var(--transition-fast);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card:not(.is-disabled):is(:hover, .is-selected) {
+        --wizard-choice-overlay-opacity: 1;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card.is-disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card > * {
+        position: relative;
+        z-index: calc(var(--z-base) + 1);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card input {
+        position: absolute;
+        opacity: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-orb {
+        width: 18px;
+        height: 18px;
+        margin-top: var(--space-05);
+        border: var(--border-width-2) solid var(--text-secondary);
+        border-radius: var(--border-radius);
+        box-shadow: inset 0 0 0 4px transparent;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .is-selected .wizard-choice-orb {
+        border-color: var(--accent-green);
+        background: var(--accent-green);
+        box-shadow: inset 0 0 0 4px var(--glass-surface-strong);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card strong {
+        display: block;
+        margin-bottom: var(--space-2);
+        font-size: var(--font-size-body-xl);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card small {
+        display: block;
+        color: var(--text-secondary);
+        font-size: var(--font-size-body-sm);
+        line-height: 1.5;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-attestation {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3);
+        padding: var(--space-4);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-attestation-region {
+        display: grid;
+        grid-template-rows: 0fr;
+        opacity: 0;
+        transition:
+            grid-template-rows var(--transition-panel),
+            opacity var(--transition-fast);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-attestation-region.is-expanded {
+        grid-template-rows: 1fr;
+        opacity: 1;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-attestation-region-inner {
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-attestation-region-inner > .wizard-attestation {
+        margin-top: clamp(var(--space-4), calc(3 * var(--ui-viewport-width-unit)), var(--space-8));
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-attestation input {
+        flex: 0 0 auto;
+        margin-top: 0.2em;
+        accent-color: var(--accent-green);
+    }
+
+    @container ui-viewport (width <= 680px) {
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card {
+            min-height: 0;
+        }
+    }
+}

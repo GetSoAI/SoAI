@@ -1,0 +1,173 @@
+/* SoAI - Searchbar input component styles [frontend/assets/css/components/controls/searchbar-input.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .searchbar-input {
+        width: 100%;
+        height: var(--searchbar-height);
+        padding: var(--searchbar-padding-block) var(--searchbar-padding-inline-end) var(--searchbar-padding-block) var(--searchbar-padding-inline);
+        font-size: var(--searchbar-font-size);
+        border: var(--border-width-1) solid var(--searchbar-border);
+        border-radius: var(--border-radius);
+
+        background-color: var(--searchbar-bg);
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        -webkit-backdrop-filter: var(--searchbar-backdrop);
+        backdrop-filter: var(--searchbar-backdrop);
+        color: var(--searchbar-color);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            color var(--transition-fast);
+        box-shadow: var(--searchbar-shadow);
+    }
+
+    .searchbar-input:autofill,
+    .searchbar-input:-webkit-autofill {
+        -webkit-text-fill-color: var(--searchbar-color);
+        box-shadow:
+            0 0 0 1000px var(--searchbar-bg) inset,
+            var(--searchbar-shadow);
+    }
+
+    .searchbar-input:focus {
+        background-color: var(--searchbar-bg-focus);
+        border-color: var(--searchbar-border-focus);
+        box-shadow: var(--searchbar-shadow-focus);
+    }
+
+    .searchbar-input:disabled {
+        opacity: 0.6;
+        background-color: var(--searchbar-bg-disabled);
+        -webkit-backdrop-filter: var(--searchbar-backdrop);
+        backdrop-filter: var(--searchbar-backdrop);
+        box-shadow: var(--searchbar-shadow);
+    }
+
+    .chat-sidebar .searchbar-input {
+        height: var(--icon-button-size);
+    }
+
+    .chat-sidebar .searchbar-input:focus {
+        background: var(--searchbar-bg-focus);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--searchbar-shadow-focus);
+    }
+
+    .searchbar-input:hover:not(:focus) {
+        background-color: var(--searchbar-bg-hover);
+        border-color: var(--searchbar-border-hover);
+    }
+
+    .searchbar-input:-webkit-autofill:hover,
+    .searchbar-input:-webkit-autofill:focus,
+    .searchbar-input:-webkit-autofill:focus-visible {
+        -webkit-text-fill-color: var(--searchbar-color);
+    }
+
+    @container ui-viewport (width >= 900px) and (height >= 640px) {
+        .searchbar-container.header-search {
+            --header-search-total-width: clamp(250px, calc(17 * var(--ui-viewport-width-unit)), 420px);
+            transition:
+                width var(--duration-250) var(--ease-smooth),
+                max-width var(--duration-250) var(--ease-smooth);
+        }
+
+        .searchbar-container.header-search .header-search__bar {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            transform: none;
+            width: 0;
+            opacity: 0;
+            pointer-events: none;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            transition:
+                width var(--duration-250) var(--ease-smooth),
+                opacity var(--duration-150) var(--ease-in-out);
+        }
+
+        .searchbar-container.header-search .header-search__button {
+            position: absolute;
+            right: 0;
+            top: 0;
+            transform: none;
+            z-index: var(--z-raised);
+        }
+
+        .searchbar-container.header-search.header-search--expanded {
+            width: var(--header-search-total-width);
+            max-width: var(--header-search-total-width);
+        }
+
+        .searchbar-container.header-search.header-search--expanded .header-search__bar {
+            width: var(--header-search-total-width);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .searchbar-container.header-search.header-search--expanded .searchbar-input {
+            padding-right: calc(var(--icon-button-size) + var(--searchbar-padding-inline));
+        }
+    }
+
+    .searchbar-container:focus-within .searchbar-input,
+    .searchbar-container.is-focused .searchbar-input {
+        background-color: var(--searchbar-bg-focus);
+        border-color: var(--searchbar-border-focus);
+        box-shadow: var(--searchbar-shadow-focus);
+    }
+
+    .searchbar-input::placeholder {
+        font-size: var(--control-dropdown-font-size);
+        color: var(--text-tertiary);
+    }
+
+    .searchbar-icon {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        color: var(--text-tertiary);
+        pointer-events: none;
+        transition: color var(--transition-fast);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .searchbar-icon svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    .searchbar-container:focus-within .searchbar-icon,
+    .searchbar-container.is-focused .searchbar-icon {
+        color: var(--text-primary);
+    }
+
+    .searchbar-container.compact .searchbar-icon {
+        right: 0.75rem;
+        width: var(--control-icon-size-compact);
+        height: var(--control-icon-size-compact);
+    }
+
+    .searchbar-input:disabled::placeholder {
+        color: var(--text-disabled);
+    }
+
+    @media (prefers-contrast: more) {
+        .searchbar-input {
+            border-width: var(--border-width-1);
+        }
+    }
+}

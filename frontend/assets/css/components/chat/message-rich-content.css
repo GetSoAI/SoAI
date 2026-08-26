@@ -1,0 +1,273 @@
+/* SoAI - Message rich content component styles [frontend/assets/css/components/chat/message-rich-content.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .message-text .mermaid-container {
+        margin: var(--space-4) 0;
+        padding: var(--space-4);
+        background: var(--glass-surface-light);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        overflow-x: auto;
+    }
+
+    :where(.chat-container) .message-text .mermaid-container.mermaid-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100px;
+    }
+
+    :where(.chat-container) .message-text .mermaid-container .mermaid-spinner {
+        width: 24px;
+        height: 24px;
+        border: var(--border-width-2) solid var(--glass-border-strong);
+        border-top-color: var(--accent-green);
+        border-radius: var(--border-round);
+        animation: spin var(--duration-800) var(--ease-linear) infinite;
+    }
+
+    :where(.chat-container) .message-text .mermaid-container.mermaid-rendered {
+        background: transparent;
+        border-color: transparent;
+        padding: var(--space-2) 0;
+    }
+
+    :where(.chat-container) .message-text .mermaid-container.mermaid-rendered svg {
+        max-width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    :where(.chat-container) .message-text .mermaid-container.mermaid-rendered [class~='nodeLabel'],
+    :where(.chat-container) .message-text .mermaid-container.mermaid-rendered [class~='edgeLabel'],
+    :where(.chat-container) .message-text .mermaid-container.mermaid-rendered .label {
+        font-family: inherit;
+    }
+
+    :where(.chat-container) .message-text .mermaid-container.mermaid-rendered [class~='nodeLabel'] p,
+    :where(.chat-container) .message-text .mermaid-container.mermaid-rendered [class~='edgeLabel'] p,
+    :where(.chat-container) .message-text .mermaid-container.mermaid-rendered .label p {
+        margin: 0;
+        padding: 0;
+        line-height: 1.2;
+        min-height: 0;
+    }
+
+    :where(.chat-container) .message-text .mermaid-container.mermaid-rendered foreignObject,
+    :where(.chat-container) .message-text .mermaid-container.mermaid-rendered .label-container {
+        overflow: visible;
+    }
+
+    .theme-light :where(.chat-container) .message-text .mermaid-container.mermaid-rendered [class~='nodeLabel'],
+    .theme-light :where(.chat-container) .message-text .mermaid-container.mermaid-rendered [class~='edgeLabel'],
+    .theme-light :where(.chat-container) .message-text .mermaid-container.mermaid-rendered .label {
+        color: var(--text-primary);
+        fill: var(--text-primary);
+    }
+
+    :where(.chat-container) .message-text .mermaid-container .mermaid-error {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-2);
+        color: var(--status-red);
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+    }
+
+    :where(.chat-container) .message-text .mermaid-container .mermaid-error-icon {
+        flex-shrink: 0;
+    }
+
+    :where(.chat-container) .message-text .mermaid-container .mermaid-error-text {
+        word-break: break-word;
+    }
+
+    :where(.chat-container) .message-text .footnote-ref {
+        font-size: calc(var(--font-size-xs) * var(--chat-text-scale));
+        vertical-align: super;
+        line-height: 0;
+    }
+
+    :where(.chat-container) .message-text .footnote-ref a {
+        color: var(--accent-blue);
+        text-decoration: none;
+        padding: 0 var(--space-05);
+    }
+
+    :where(.chat-container) .message-text .footnote-ref a:hover {
+        text-decoration: underline;
+    }
+
+    :where(.chat-container) .message-text .footnotes-section {
+        margin-top: var(--space-6);
+        padding-top: var(--space-2);
+    }
+
+    :where(.chat-container) .message-text .footnotes-separator {
+        border: none;
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+        margin-bottom: var(--space-4);
+    }
+
+    :where(.chat-container) .message-text .footnotes-list {
+        margin: 0;
+        padding-left: var(--space-6);
+        font-size: calc(var(--font-size-sm) * var(--chat-text-scale));
+        color: var(--text-secondary);
+    }
+
+    :where(.chat-container) .message-text .footnote-item {
+        margin-bottom: var(--space-2);
+        padding-left: var(--space-1);
+    }
+
+    :where(.chat-container) .message-text .footnote-item:target {
+        background: var(--glass-surface-hover);
+        border-radius: var(--border-radius);
+        padding: var(--space-1);
+        margin-left: calc(-1 * var(--space-1));
+    }
+
+    :where(.chat-container) .message-text .footnote-content {
+        margin-right: var(--space-2);
+    }
+
+    :where(.chat-container) .message-text .footnote-backref {
+        color: var(--accent-blue);
+        text-decoration: none;
+        font-size: calc(var(--font-size-xs) * var(--chat-text-scale));
+    }
+
+    :where(.chat-container) .message-text .footnote-backref:hover {
+        text-decoration: underline;
+    }
+
+    :where(.chat-container) .message-code-block pre[data-language='diff'] :is(.token-diff.token-inserted, .token-diff.token-deleted, .token-diff.token-viewed) {
+        display: inline-block;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 0;
+        margin-inline: calc(-1 * var(--space-15));
+        padding-inline: var(--space-15);
+        white-space: inherit;
+        overflow-wrap: anywhere;
+        vertical-align: top;
+    }
+
+    :where(.chat-container) .message-code-block pre[data-language='diff'] :is(.token-diff.token-inserted, .token-diff.token-deleted):nth-of-type(4) {
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
+    }
+
+    :where(.chat-container) .message-code-block pre[data-language='diff'] :is(.token-diff.token-inserted, .token-diff.token-deleted):last-of-type {
+        border-bottom-left-radius: var(--border-radius);
+        border-bottom-right-radius: var(--border-radius);
+    }
+
+    :where(.chat-container) .message-code-block pre[data-language='diff'] .token-diff.token-inserted {
+        background: color-mix(in srgb, var(--status-green) 22%, transparent);
+    }
+
+    :where(.chat-container) .message-code-block pre[data-language='diff'] .token-diff.token-deleted {
+        background: color-mix(in srgb, var(--status-red) 20%, transparent);
+    }
+
+    :where(.chat-container) .message-code-block pre[data-language='diff'] .token-diff.token-viewed {
+        background: color-mix(in srgb, var(--accent-blue) 22%, transparent);
+    }
+
+    .message-code-block {
+        position: relative;
+        margin: var(--space-4) 0;
+    }
+
+    .message-code-block pre {
+        margin: 0;
+        position: relative;
+        z-index: var(--z-base);
+    }
+
+    .message-code-block .code-copy-btn {
+        position: absolute;
+        right: 0.5rem;
+        bottom: 0.5rem;
+        pointer-events: auto;
+        z-index: var(--z-raised);
+
+        --ui-button-bg: var(--ui-button-surface-strong);
+        --ui-button-border: var(--ui-button-border-strong);
+        --ui-button-color: var(--ui-button-neutral-color);
+        --ui-button-bg-hover: var(--ui-button-surface-hover-strong);
+        --ui-button-border-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-color-hover: var(--ui-button-neutral-color-hover);
+        --ui-button-focus-ring: var(--ui-button-neutral-focus-ring);
+        box-shadow: var(--glass-shadow-base);
+    }
+
+    :where(.chat-container) .message-thinking {
+        display: none;
+        border-radius: 0;
+        border: none;
+        background: transparent;
+        padding: 0;
+        margin-bottom: 0;
+        color: var(--text-secondary);
+        overflow: hidden;
+        font-size: calc(var(--font-size-body-lg) * var(--chat-text-scale));
+        line-height: 1.6;
+    }
+
+    :where(.chat-container) .message-thinking.is-visible {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        padding: var(--space-3);
+        border-top: var(--border-width-1) solid var(--glass-border-medium);
+        background: color-mix(in srgb, var(--glass-surface-darker) 30%, transparent);
+        overflow: hidden;
+        transform-origin: top;
+        max-height: 520px;
+        overflow-y: auto;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    :where(.chat-container) .message-thinking > :first-child {
+        margin-top: 0;
+    }
+
+    :where(.chat-container) .message-thinking > :last-child {
+        margin-bottom: 0;
+    }
+
+    :where(.chat-container) .message-thinking-phase > :first-child {
+        margin-top: 0;
+    }
+
+    :where(.chat-container) .message-thinking-phase > :last-child {
+        margin-bottom: 0;
+    }
+
+    :where(.chat-container) .message-thinking.is-visible ~ .message-response {
+        margin-top: var(--space-3);
+    }
+
+    :where(.chat-container) .message-content .message-error .message-error-icon svg {
+        stroke: var(--status-red);
+    }
+
+    :where(.chat-container) .message-error {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: var(--space-2);
+        width: fit-content;
+        max-width: 100%;
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--status-red) 12%, var(--glass-underlay-surface));
+        border: var(--border-width-1) solid color-mix(in srgb, var(--status-red) 35%, var(--glass-underlay-surface));
+        color: var(--status-red);
+        font-size: calc(var(--font-size-body-lg) * var(--chat-text-scale));
+        line-height: 1.5;
+    }
+}

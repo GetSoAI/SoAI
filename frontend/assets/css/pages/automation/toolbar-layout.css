@@ -1,0 +1,136 @@
+/* SoAI - Automation page toolbar layout styles [frontend/assets/css/pages/automation/toolbar-layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar {
+        display: grid;
+        grid-template-areas: 'navigation actions';
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        column-gap: var(--space-4);
+        row-gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        min-height: var(--automation-toolbar-height);
+        flex: 0 0 auto;
+        overflow: visible;
+        z-index: var(--z-dropdown);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .surface-card.automation-toolbar::after {
+        background-color: var(--surface-card);
+        background-image: var(--title-bar-background);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-group {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: var(--space-3);
+        min-width: 0;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-group--navigation {
+        grid-area: navigation;
+        flex: 1 1 auto;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-group--actions {
+        grid-area: actions;
+        justify-self: end;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-registry-overlay-toggle {
+        display: none;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-range-title {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: var(--font-size-body-lg);
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: var(--tracking-snug);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: calc(32 * var(--ui-viewport-width-unit));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-range-title[data-view-mode='week'] {
+        max-width: calc(44 * var(--ui-viewport-width-unit));
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-range-title.is-current-range {
+        color: var(--accent-primary);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-group--navigation > .ui-button.ui-variant-accent,
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-view-toggle > .ui-button.ui-variant-accent.is-active {
+        --variant-color: var(--accent-primary);
+        --variant-color-hover: color-mix(in srgb, var(--accent-primary) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        --ui-button-border: var(--accent-primary);
+        --ui-button-border-hover: var(--variant-color-hover);
+        --ui-button-color: var(--accent-primary);
+        --ui-button-color-hover: var(--variant-color-hover);
+        --ui-button-focus-ring: color-mix(in srgb, var(--accent-primary) 35%, transparent);
+        border-color: var(--ui-button-border);
+        color: var(--ui-button-color);
+        background-color: var(--ui-button-bg);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow {
+        display: flex;
+        align-items: center;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow .page-actions__menu {
+        align-items: center;
+        gap: var(--header-button-gap);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow-trigger {
+        display: none;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-action-button,
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-create-button {
+        gap: var(--space-2);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-button-label,
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-create-button-label {
+        white-space: nowrap;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow:not(.page-actions--dropdown) .automation-toolbar-button-label {
+        display: none;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-action-button--settings {
+        width: var(--icon-button-size);
+        height: var(--icon-button-size);
+        min-width: var(--icon-button-size);
+        min-height: var(--icon-button-size);
+        padding: 0;
+        justify-content: center;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-view-toggle {
+        display: inline-flex;
+        flex-direction: row;
+        gap: var(--space-2);
+        padding: 0;
+        border: none;
+        background: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        flex: 0 0 auto;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow:not(.page-actions--dropdown) .automation-view-toggle button[data-view] > :is(.ui-icon, svg) {
+        display: none;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-view-cycle-button {
+        display: none;
+    }
+}

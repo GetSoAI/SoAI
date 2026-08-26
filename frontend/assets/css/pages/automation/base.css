@@ -1,0 +1,134 @@
+/* SoAI - Automation page base styles [frontend/assets/css/pages/automation/base.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    .automation-container:where([data-section='automation'], [data-page-scope='automation']) {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        padding: 0;
+        margin: 0;
+
+        --automation-toolbar-height: calc(var(--control-height) + var(--space-3) * 2);
+        --automation-splitter-width: var(--layout-container-padding);
+        --automation-splitter-handle-width: var(--space-3);
+        --automation-left-width: 80%;
+        --automation-hour-height: 64px;
+        --automation-calendar-viewport-height: 100%;
+        --automation-time-grid-gutter-width: 64px;
+        --automation-status-overlay-strong: 14%;
+        --automation-status-overlay-soft: 6%;
+        --automation-status-outline-strong: 55%;
+        --automation-status-outline-soft: 22%;
+    }
+
+    .theme-dark .automation-container:where([data-section='automation'], [data-page-scope='automation']) {
+        --automation-status-overlay-strong: 10%;
+        --automation-status-overlay-soft: 4%;
+        --automation-status-outline-strong: 40%;
+        --automation-status-outline-soft: 16%;
+    }
+
+    body.page-automation .main-content > .automation-container:where([data-section='automation'], [data-page-scope='automation']) {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+        position: relative;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-content-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: var(--layout-container-padding);
+        position: absolute;
+        top: calc(var(--layout-top-offset) + var(--layout-container-padding));
+        right: var(--layout-container-padding);
+        bottom: var(--layout-bottom-safe-padding);
+        left: var(--layout-container-padding);
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-split {
+        display: grid;
+        grid-template-columns: minmax(0, var(--automation-left-width)) var(--automation-splitter-width) minmax(min(320px, 100%), 1fr);
+        gap: 0;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-pane {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-splitter {
+        cursor: col-resize;
+        touch-action: pan-y;
+        position: relative;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-splitter::before {
+        content: '';
+        position: absolute;
+        inset-block: 0;
+        inset-inline: calc((var(--automation-splitter-width) - var(--automation-splitter-handle-width)) / 2);
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--glass-border-strong-base) 22%, transparent);
+        opacity: 0;
+        transition: opacity var(--transition-fast);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-splitter:hover::before,
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-splitter.is-dragging::before {
+        opacity: 1;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-surface {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        flex: 1 1 auto;
+        overflow: hidden;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-surface-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-root {
+        --automation-calendar-transition-duration: calc(var(--effect-page-enter-duration) * 0.7);
+        flex: 1 1 auto;
+        min-height: 0;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-month-day, .automation-automation-row, .automation-window-run-item) {
+        --automation-item-surface: var(--surface-card);
+        --automation-item-status-overlay: none;
+        --automation-item-surface-background: linear-gradient(180deg, color-mix(in srgb, var(--automation-item-surface) 96%, var(--color-white) 4%) 0%, color-mix(in srgb, var(--automation-item-surface) 98%, var(--color-white) 2%) 52%, var(--automation-item-surface) 100%);
+        border-color: var(--glass-border-strong);
+        background-color: var(--automation-item-surface);
+        background-image: var(--automation-item-status-overlay), var(--automation-item-surface-background);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        box-shadow: var(--surface-card-shadow);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-automation-row, .automation-window-run-item):is(.status-success, .status-warning, .status-error, .status-neutral) {
+        --automation-item-status-overlay: linear-gradient(135deg, color-mix(in srgb, var(--status-color) var(--automation-status-overlay-strong), transparent), color-mix(in srgb, var(--status-color) var(--automation-status-overlay-soft), transparent));
+    }
+}

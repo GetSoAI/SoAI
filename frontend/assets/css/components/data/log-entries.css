@@ -1,0 +1,91 @@
+/* SoAI - Log entries component styles [frontend/assets/css/components/data/log-entries.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.log-timestamp, .log-component, .log-level, .log-message) {
+        --log-cell-reflection: var(--surface-reflection-soft);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        padding: var(--space-2) var(--space-3);
+        display: flex;
+        align-items: center;
+        background-image: var(--log-cell-reflection), linear-gradient(to bottom, color-mix(in srgb, var(--text-primary) 5%, transparent), transparent 62%);
+        box-shadow:
+            inset 2px 2px 4px var(--surface-inner-highlight-soft),
+            inset -2px -2px 4px var(--surface-inner-shadow-soft),
+            var(--glass-shadow-base),
+            0 0 0 1px var(--surface-outline-highlight-soft);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+    }
+
+    .log-timestamp {
+        background-color: var(--log-timestamp-bg);
+        color: var(--log-timestamp-color);
+        font-size: var(--font-size-relative-body-sm);
+        white-space: nowrap;
+        min-width: 140px;
+    }
+
+    .log-component {
+        background-color: var(--log-component-bg);
+        color: var(--log-component-color);
+        font-size: var(--font-size-relative-body-sm);
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .log-level {
+        font-size: var(--font-size-relative-body-sm);
+        font-weight: 600;
+        text-transform: uppercase;
+        white-space: nowrap;
+        min-width: 80px;
+        justify-content: center;
+        color: var(--log-level-color);
+    }
+
+    .log-level[data-level='DEBUG'] {
+        background-color: var(--log-level-debug-bg);
+    }
+
+    .log-level[data-level='INFO'] {
+        background-color: var(--log-level-info-bg);
+    }
+
+    .log-level[data-level='WARNING'] {
+        background-color: var(--log-level-warning-bg);
+    }
+
+    .log-level[data-level='ERROR'],
+    .log-level[data-level='CRITICAL'] {
+        background-color: var(--log-level-error-bg);
+    }
+
+    .log-message {
+        flex: 1;
+        min-width: 0;
+        color: var(--text-primary);
+        font-size: var(--font-size-relative-base);
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        min-height: 100%;
+        white-space: pre-wrap;
+    }
+
+    .log-message:not(.checkerboard-light, .checkerboard-dark) {
+        background-color: var(--glass-surface-strong);
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where(.log-timestamp, .log-component, .log-level) {
+            font-size: var(--font-size-relative-label);
+            padding: var(--space-15) var(--space-25);
+        }
+
+        .log-message {
+            font-size: var(--font-size-relative-body-sm);
+            padding: var(--space-15) var(--space-25);
+        }
+    }
+}

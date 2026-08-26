@@ -1,0 +1,31 @@
+/* SoAI - Frontend core Translation declarations for key group `chat.configuration.mcp` [frontend/assets/ts/core/i18n/translationkeys/chat/configuration__mcp.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type ChatConfigurationMcpTranslationKey =
+    | 'chat.configuration.mcp.automation'
+    | 'chat.configuration.mcp.automationEphemeralHint'
+    | 'chat.configuration.mcp.builtinServer'
+    | 'chat.configuration.mcp.defaultTools.modalTitle'
+    | 'chat.configuration.mcp.defaultTools.open'
+    | 'chat.configuration.mcp.defaultTools.summary'
+    | 'chat.configuration.mcp.defaultTools.summaryHint'
+    | 'chat.configuration.mcp.defaultTools.title'
+    | 'chat.configuration.mcp.knowledgeManagedDefaultToolsHint'
+    | 'chat.configuration.mcp.knowledgeManagedToolHint'
+    | 'chat.configuration.mcp.knowledgeManagedToolsEnabledHint'
+    | 'chat.configuration.mcp.noServers'
+    | 'chat.configuration.mcp.noTools'
+    | 'chat.configuration.mcp.resetToolsDescription'
+    | 'chat.configuration.mcp.resetToolsLabel'
+    | 'chat.configuration.mcp.resetToolsTitle'
+    | 'chat.configuration.mcp.servers'
+    | 'chat.configuration.mcp.title'
+    | 'chat.configuration.mcp.tool_approval_required'
+    | 'chat.configuration.mcp.toolApprovalRequiredHint'
+    | 'chat.configuration.mcp.toolCountBadge'
+    | 'chat.configuration.mcp.tools'
+    | 'chat.configuration.mcp.tools_enabled'
+    | 'chat.configuration.mcp.toolSearch.placeholder'
+    | 'chat.configuration.mcp.toolsEnabledHint'
+    | 'chat.configuration.mcp.toolsEnabledLockedForAgentModeHint'
+    | 'chat.configuration.mcp.toolsEnabledLockedWhileConversationRunningHint';

@@ -1,0 +1,84 @@
+/* SoAI - Chat prompts picker modal component styles [frontend/assets/css/components/chat/chat-prompts-picker-modal.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .chat-prompts-picker {
+        --chat-prompts-picker-card-size: 190px;
+        container-type: inline-size;
+        display: block;
+    }
+
+    .chat-prompts-picker .ui-collection-search-row {
+        justify-content: flex-end;
+    }
+
+    .chat-prompts-picker-results {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, var(--chat-prompts-picker-card-size));
+        align-items: stretch;
+        justify-content: start;
+        gap: var(--space-3);
+        margin-top: var(--space-3);
+    }
+
+    .chat-prompts-picker-status {
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        padding: var(--space-3) var(--space-2);
+        text-align: center;
+    }
+
+    .chat-prompts-picker-status[hidden] {
+        display: none;
+    }
+
+    .chat-prompts-picker-card {
+        width: var(--chat-prompts-picker-card-size);
+        height: var(--chat-prompts-picker-card-size);
+        margin: 0;
+        align-items: stretch;
+        overflow: hidden;
+        padding: var(--space-4);
+        background: var(--surface-card);
+        border-radius: var(--border-radius);
+    }
+
+    .chat-prompts-picker-card .search-item-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        height: 100%;
+        min-height: 0;
+    }
+
+    .chat-prompts-picker-card .search-item-header {
+        flex: 0 0 auto;
+        margin-bottom: 0;
+        min-height: 0;
+        padding-right: calc(var(--control-round-button-size) + var(--space-2));
+    }
+
+    .chat-prompts-picker-card .search-item-description {
+        display: -webkit-box;
+        flex: 1 1 auto;
+        min-height: 0;
+        margin-bottom: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal;
+        line-height: 1.4;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+    }
+
+    .chat-prompts-picker-results .chat-prompts-picker-card > .chat-prompts-picker-edit.ui-round-button {
+        top: 7px;
+        right: 7px;
+    }
+
+    @container (width < 190px) {
+        .chat-prompts-picker {
+            --chat-prompts-picker-card-size: 100cqi;
+        }
+    }
+}

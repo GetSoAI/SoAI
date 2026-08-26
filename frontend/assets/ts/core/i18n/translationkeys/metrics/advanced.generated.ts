@@ -1,0 +1,4 @@
+/* SoAI - Frontend core Translation declarations for key group `metrics.advanced` [frontend/assets/ts/core/i18n/translationkeys/metrics/advanced.generated.ts] */
+// SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
+
+export type MetricsAdvancedTranslationKey = 'metrics.advanced.modalTitle' | 'metrics.advanced.moreButton' | 'metrics.advanced.noMatches' | 'metrics.advanced.noSnapshot' | 'metrics.advanced.searchPlaceholder' | 'metrics.advanced.sections.api' | 'metrics.advanced.sections.billing' | 'metrics.advanced.sections.director' | 'metrics.advanced.sections.frontendTelemetry' | 'metrics.advanced.sections.genesis' | 'metrics.advanced.sections.global' | 'metrics.advanced.sections.hardware' | 'metrics.advanced.sections.models' | 'metrics.advanced.sections.other' | 'metrics.advanced.sections.plugins' | 'metrics.advanced.sections.system' | 'metrics.advanced.sections.tasks' | 'metrics.advanced.sections.telemetry';

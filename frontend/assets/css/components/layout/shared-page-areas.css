@@ -1,0 +1,198 @@
+/* SoAI - Shared page areas component styles [frontend/assets/css/components/layout/shared-page-areas.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .box {
+        border-radius: var(--border-radius);
+        position: relative;
+        overflow: hidden;
+        transition:
+            background-color var(--transition-normal),
+            border-color var(--transition-normal),
+            box-shadow var(--transition-normal),
+            transform var(--transition-normal);
+        padding: var(--space-2);
+    }
+
+    .card-control {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+
+    .section-controls.card-title-controls {
+        --card-title-control-height: var(--space-7);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-15);
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        font-size: var(--font-size-compact);
+        color: var(--text-secondary);
+        line-height: 1;
+        max-width: 100%;
+        row-gap: var(--space-15);
+    }
+    .section-controls.card-title-controls > :not(.ui-button--titlebar, .ui-icon-button--titlebar) {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        height: var(--card-title-control-height);
+        min-height: var(--card-title-control-height);
+        flex: 0 0 auto;
+    }
+    .section-controls.card-title-controls .card-control {
+        flex-direction: row;
+    }
+
+    .section-controls.card-title-controls :is(.card-control-label, .chart-type-label) {
+        font-size: var(--font-size-compact);
+        font-weight: 500;
+        letter-spacing: var(--tracking-05px);
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+    }
+    .section-controls.card-title-controls .chart-type-label {
+        color: var(--text-secondary);
+    }
+
+    .box-title {
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin: 0;
+        font-size: var(--font-size-micro-extended);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-05px);
+    }
+    .box-subtitle {
+        font-size: var(--font-size-xs);
+        color: var(--text-tertiary);
+    }
+    .box-content {
+        padding: var(--space-2);
+    }
+
+    .stat-value {
+        font-size: var(--font-size-heading-lg);
+        font-weight: 600;
+        line-height: 1;
+        color: var(--text-secondary);
+        margin-bottom: var(--space-15);
+    }
+
+    :where(.ui-surface-panel, .chat-configuration-modal .rag-document-item, .folder-picker-current-path, .automation-window-run-item, .automation-occurrence-summary, .automation-occurrence-excerpt, .automation-occurrence-plan, .automation-occurrence-todo, .automation-month-day, .automation-automation-row, .chat-page-suggestion-card, .inline-activity, .tool-call, .chat-comparison-chevron, .chat-avatar-preview.message-avatar, .chat-inline-media-card, .wizard-summary-item, .automation-week-column) {
+        border-radius: var(--border-radius);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        background: var(--glass-surface-light);
+    }
+
+    :where(.ui-caption-label, .stat-label, .card-title, .section-title, .gpu-control-title, .modeldetail-card-title, .automation-pane-section-title, .category-title, .model-test-logs-header .model-test-logs-title, .model-plugin-label) {
+        font-size: var(--font-size-xs);
+        font-weight: 500;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: var(--tracking-05px);
+    }
+
+    .ui-caption-label--strong {
+        font-size: var(--font-size-caption-plus);
+        font-weight: 600;
+        letter-spacing: var(--tracking-05px);
+        text-transform: uppercase;
+    }
+
+    :where(.ui-caption-label--weather, .assistant-weather-widget__strip-title, .assistant-weather-widget__hour-label, .assistant-weather-widget__day-label, .assistant-weather-widget__location) {
+        font-size: var(--font-size-caption-plus);
+        font-weight: 600;
+        letter-spacing: var(--tracking-05em);
+        text-transform: uppercase;
+    }
+
+    .assistant-weather-widget__location {
+        --ui-caption-label-weather-font-size: var(--font-size-xs);
+    }
+
+    .collection-filters {
+        display: flex;
+        gap: var(--space-2);
+        align-items: center;
+    }
+
+    .page-content-area {
+        min-height: 0;
+        flex: 1;
+        padding-top: var(--content-overlay);
+        scroll-padding-top: calc(var(--content-overlay) + var(--header-height));
+    }
+
+    .page-content-area--collections {
+        --collection-container-bottom-padding: var(--layout-container-padding);
+        --layout-collection-grid-bottom-padding: var(--collection-container-bottom-padding);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+        padding-bottom: calc(var(--collection-container-bottom-padding) + var(--ui-safe-area-inset-bottom));
+        scroll-padding-bottom: calc(var(--collection-container-bottom-padding) + var(--ui-safe-area-inset-bottom));
+    }
+    .page-content-area--collections > .ui-collection-grid {
+        padding-bottom: var(--layout-collection-grid-bottom-padding);
+    }
+
+    .page-content-area--card-grid {
+        --collection-container-bottom-padding: var(--layout-container-padding);
+        --layout-collection-grid-bottom-padding: var(--layout-container-padding);
+        scroll-padding-bottom: calc(var(--layout-collection-grid-bottom-padding) + var(--ui-safe-area-inset-bottom));
+    }
+    .page-content-area--card-grid > .ui-collection-grid::after {
+        content: '';
+        display: block;
+        height: var(--layout-collection-grid-bottom-padding);
+        grid-column: 1 / -1;
+    }
+
+    :is(.page-content-area--sections, .analytics-stack, .page-content-area--analytics) {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+    }
+    :is(.page-content-area--sections, .page-content-area--analytics) {
+        flex: 1;
+    }
+    .page-content-area--sections {
+        padding-bottom: calc(var(--layout-container-padding) + var(--ui-safe-area-inset-bottom));
+        scroll-padding-bottom: calc(var(--layout-container-padding) + var(--ui-safe-area-inset-bottom));
+    }
+
+    .sections-page,
+    .analytics-page {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .analytics-stack {
+        padding-bottom: var(--layout-container-padding);
+    }
+    .analytics-stack > :last-child {
+        margin-bottom: calc(var(--layout-container-padding) * 0.75);
+    }
+
+    .page-content-area--analytics {
+        min-height: 0;
+        padding-bottom: calc(var(--layout-container-padding) * 1.75 + var(--ui-safe-area-inset-bottom));
+        scroll-padding-bottom: calc(var(--layout-container-padding) * 1.75 + var(--ui-safe-area-inset-bottom));
+    }
+    @container ui-viewport (width <= 900px) {
+        .section-controls.card-title-controls {
+            margin-left: 0;
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .section-controls.card-title-controls:has(> .ui-icon-button--titlebar:only-child) {
+            margin-left: auto;
+            width: auto;
+            flex-wrap: nowrap;
+            justify-content: flex-end;
+        }
+    }
+}

@@ -1,0 +1,26 @@
+/* SoAI - Inline tool ANSI foundation tokens [frontend/assets/css/foundations/inline-tool-ansi-tokens.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --inline-tool-ansi-fg-30: var(--text-primary);
+        --inline-tool-ansi-fg-31: #dc2626;
+        --inline-tool-ansi-fg-32: #16a34a;
+        --inline-tool-ansi-fg-33: #f59e0b;
+        --inline-tool-ansi-fg-34: #2563eb;
+        --inline-tool-ansi-fg-35: #9333ea;
+        --inline-tool-ansi-fg-36: #0891b2;
+        --inline-tool-ansi-fg-37: var(--text-primary);
+        --inline-tool-ansi-fg-90: var(--text-tertiary);
+        --inline-tool-ansi-fg-91: #ef4444;
+        --inline-tool-ansi-fg-92: #22c55e;
+        --inline-tool-ansi-fg-93: #facc15;
+        --inline-tool-ansi-fg-94: #60a5fa;
+        --inline-tool-ansi-fg-95: #d946ef;
+        --inline-tool-ansi-fg-96: #14b8a6;
+        --inline-tool-ansi-fg-97: var(--text-primary);
+        --inline-tool-ansi-fg-208: #f97316;
+        --inline-tool-ansi-fg-215: #fb923c;
+        --inline-tool-ansi-fg-246: #a1a1aa;
+    }
+}
