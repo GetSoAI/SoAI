@@ -42,6 +42,7 @@ async def upsert_thinking_phase(
     phase_text: str,
     status: str,
     started_at_ms: int | None = None,
+    duration_ms: int | None = None,
 ) -> bool:
     _require_active_thinking_phase_state(
         thinking_state=thinking_state,
@@ -56,9 +57,10 @@ async def upsert_thinking_phase(
         thinking_phases=thinking_phases,
         sequence_index=sequence_index,
     )
-    duration_ms = _resolve_visible_phase_duration_ms(
+    resolved_duration_ms = _resolve_visible_phase_duration_ms(
         status=status,
         started_at_ms=started_at_ms,
+        duration_ms=duration_ms,
     )
     phase_payload = build_thinking_phase(
         phase_id=phase_id,
@@ -67,7 +69,7 @@ async def upsert_thinking_phase(
         anchor_call_id=anchor_call_id,
         anchor_position=anchor_position,
         phase_text=phase_text,
-        duration_ms=duration_ms,
+        duration_ms=resolved_duration_ms,
         started_at_ms=started_at_ms,
         status=status,
         committed_preface_text=thinking_state.active_committed_preface_text,
@@ -115,6 +117,7 @@ async def upsert_thinking_phase_from_identity(
     phase_identity: tuple[str, int, str, str | None, int | None, int],
     phase_text: str,
     status: str,
+    duration_ms: int | None = None,
 ) -> bool:
     phase_id, sequence_index, anchor_type, anchor_call_id, anchor_position, started_at_ms = (
         phase_identity
@@ -133,6 +136,7 @@ async def upsert_thinking_phase_from_identity(
         phase_text=phase_text,
         started_at_ms=started_at_ms,
         status=status,
+        duration_ms=duration_ms,
     )
 
 
@@ -176,9 +180,13 @@ def _require_valid_sequence_index(
     raise ValidationError("Thinking phase upsert sequence index is invalid.")
 
 
-def _resolve_visible_phase_duration_ms(*, status: str, started_at_ms: int | None) -> int | None:
+def _resolve_visible_phase_duration_ms(
+    *, status: str, started_at_ms: int | None, duration_ms: int | None
+) -> int | None:
     if status == "running":
         return None
+    if duration_ms is not None:
+        return max(0, int(duration_ms))
     if started_at_ms is None:
         raise ValidationError("Terminal thinking phase started_at_ms is missing.")
     return max(0, int(epoch_ms()) - int(started_at_ms))

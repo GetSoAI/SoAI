@@ -4,11 +4,11 @@ param(
     [string]$OutputDir,
     [string]$MakensisPath,
     [switch]$NoNSISBootstrap,
-    [switch]$SkipCompleteArchive,
     [switch]$SkipInstaller
 )
 
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
     $SourceRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
@@ -96,14 +96,10 @@ try {
         -or $releaseInfo.core_version -ne $Version) {
         throw 'Windows build kit release identity is invalid.'
     }
-    $completeArchive = Join-Path $outputRoot "SoAI-$Version-windows-x64-complete.zip"
-    $temporaryArchive = Join-Path $outputRoot ".SoAI-$Version-windows-x64-complete.partial.zip"
     $expectedInstaller = Join-Path $outputRoot "SoAI-$Version-windows-x64-setup.exe"
-    if (!$SkipCompleteArchive -and (Test-Path -LiteralPath $completeArchive)) {
+    $completeArchive = Join-Path $outputRoot "SoAI-$Version-windows-x64-complete.zip"
+    if (Test-Path -LiteralPath $completeArchive) {
         throw "Complete Windows archive already exists: $completeArchive"
-    }
-    if (!$SkipCompleteArchive -and (Test-Path -LiteralPath $temporaryArchive)) {
-        throw "Partial Windows archive already exists: $temporaryArchive"
     }
     if (!$SkipInstaller -and (Test-Path -LiteralPath $expectedInstaller)) {
         throw "Windows installer already exists: $expectedInstaller"
@@ -135,37 +131,20 @@ try {
     $sourceRuntimeInstaller = Join-Path $PSScriptRoot 'installer\scripts\Install-SoAIRuntime.ps1'
     $stagedRuntimeInstaller = Join-Path $payloadRoot 'installer-support\Install-SoAIRuntime.ps1'
     Assert-FilesMatch -Source $sourceRuntimeInstaller -Staged $stagedRuntimeInstaller -FailureMessage 'Windows runtime installer script was not staged exactly.'
+    $sourceUpgradePreserver = Join-Path $PSScriptRoot 'installer\scripts\Preserve-SoAIUpgrade.ps1'
+    $stagedUpgradePreserver = Join-Path $payloadRoot 'installer-support\Preserve-SoAIUpgrade.ps1'
+    Assert-FilesMatch -Source $sourceUpgradePreserver -Staged $stagedUpgradePreserver -FailureMessage 'Windows upgrade preservation script was not staged exactly.'
     foreach ($runtimeAssetName in @('tesseract-5.5.3-windows-x64.zip', 'tesseract-5.5.3-windows-x64.json')) {
         $sourceRuntimeAsset = Join-Path $releaseRoot "runtime-assets\$runtimeAssetName"
         $stagedRuntimeAsset = Join-Path $payloadRoot "runtime-assets\$runtimeAssetName"
         Assert-FilesMatch -Source $sourceRuntimeAsset -Staged $stagedRuntimeAsset -FailureMessage "Windows Tesseract runtime asset was not staged exactly: $runtimeAssetName"
     }
 
-    if ($SkipCompleteArchive) {
-        Write-Host "Skipped complete Windows archive build."
-    } else {
-        $completeStage = Join-Path $outputRoot '.complete-archive-stage'
-        if (Test-Path -LiteralPath $completeStage) {
-            throw "Complete Windows archive staging path already exists: $completeStage"
-        }
-        try {
-            $completeRoot = Join-Path $completeStage 'SoAI'
-            New-Item -ItemType Directory -Path $completeRoot | Out-Null
-            Get-ChildItem -LiteralPath $payloadRoot -Force | Copy-Item -Destination $completeRoot -Recurse -Force
-            Compress-Archive -LiteralPath $completeRoot -DestinationPath $temporaryArchive -CompressionLevel Optimal
-            Move-Item -LiteralPath $temporaryArchive -Destination $completeArchive
-        } catch {
-            if (Test-Path -LiteralPath $temporaryArchive) {
-                Remove-Item -LiteralPath $temporaryArchive -Force
-            }
-            throw
-        } finally {
-            if (Test-Path -LiteralPath $completeStage) {
-                Remove-Item -LiteralPath $completeStage -Recurse -Force
-            }
-        }
-        Write-Host "Complete Windows archive built at: $completeArchive"
-    }
+    Write-Host "Building complete Windows archive..."
+    & (Join-Path $PSScriptRoot 'tools\New-CompleteArchive.ps1') `
+        -PayloadDir $payloadRoot `
+        -OutputPath $completeArchive `
+        -Version $Version
 
     if ($SkipInstaller) {
         Write-Host "Skipped NSIS build. Payload is ready at: $payloadRoot"
@@ -191,7 +170,7 @@ try {
         if (Test-Path -LiteralPath $expectedInstaller) {
             Remove-Item -LiteralPath $expectedInstaller -Force
         }
-        if (!$SkipCompleteArchive -and (Test-Path -LiteralPath $completeArchive)) {
+        if (Test-Path -LiteralPath $completeArchive) {
             Remove-Item -LiteralPath $completeArchive -Force
         }
         throw

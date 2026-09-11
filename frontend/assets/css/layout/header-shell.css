@@ -18,17 +18,32 @@
         justify-content: space-between;
         gap: var(--header-button-gap);
         padding: var(--space-3) var(--space-2);
-        background: var(--glass-surface-darker);
+        background: transparent;
         border-bottom: var(--border-width-1) solid var(--glass-border-strong);
-        -webkit-backdrop-filter: var(--glass-blur-base);
-        backdrop-filter: var(--glass-blur-base);
         box-shadow: var(--glass-shadow-base);
+        isolation: isolate;
+        pointer-events: none;
         z-index: var(--z-modal);
         transition:
-            background var(--transition-header),
             box-shadow var(--transition-header),
             border-color var(--transition-slow);
         user-select: none;
+    }
+
+    .header::before {
+        content: '';
+        position: absolute;
+        inset: 0 var(--ui-scrollbar-inline-size) 0 0;
+        background: var(--glass-surface-darker);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        pointer-events: auto;
+        z-index: var(--z-layer-background);
+        transition: background var(--transition-header);
+    }
+
+    .header > * {
+        pointer-events: auto;
     }
 
     .header-left {

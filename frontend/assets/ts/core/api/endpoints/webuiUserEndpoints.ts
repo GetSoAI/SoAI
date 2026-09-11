@@ -10,12 +10,13 @@ import { serializeLoginRequest, serializeMutationStatusRequest, serializePasswor
 import { buildQueryRequestOptions, buildSignalRequestOptions, type AuthTransitionSignalOptions, type SignalOptions } from '@core/api/requestOptions.ts';
 import { decodeMessageResponse, decodeOpaquePreferencesResponse, decodePasswordVaultResetResponse, decodeWebuiUser, decodeWebuiUsers, decodeWizardCompleteResponse, decodeWizardStatusLookupResponse, type MessageResponse, type PasswordVaultResetResponse, type WebuiUser, type WizardCompleteResponse, type WizardStatusLookupResponse } from '@core/api/contracts/webuiUserContracts.ts';
 import type { ApiQueryParameters } from '@core/api/types/request.ts';
-import type { FileBrowserListOptions, FileBrowserSearchOptions } from '@core/fileexplorerbrowser/types.ts';
 import { decodeFileExplorerListResponse, decodeFileExplorerSearchResponse } from '@core/api/contracts/fileExplorerContracts.ts';
 import type { FileExplorerListResponse, FileExplorerSearchResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
 import { decodeChatMemorySnapshot, serializeChatMemoryProfileUpdate, type ChatMemoryProfileUpdateRequest, type ChatMemorySnapshot } from '@core/api/contracts/webuiMemoryContracts.ts';
 import { decodeIdentityMutationStatus, decodeIdentityMutationSuccess, decodeSessionRotationRecovery, type IdentityMutationStatus, type IdentityMutationSuccess, type SessionRotationRecovery } from '@core/api/contracts/webuiIdentityMutationContracts.ts';
 import { createWizardLicensingEndpoints, type WizardLicensingEndpoints } from '@core/api/endpoints/wizardLicensingEndpoints.ts';
+import { decodeHostFilesystemLocateResponse, decodeHostFilesystemRootsResponse, serializeHostFilesystemLocateRequest, type HostFilesystemLocateResponse, type HostFilesystemRootsResponse } from '@core/api/contracts/hostFilesystemBrowserContracts.ts';
+import type { HostFileBrowserListOptions, HostFileBrowserSearchOptions } from '@core/fileexplorerbrowser/types.ts';
 
 interface WebuiUserEndpoints {
     auth: {
@@ -36,8 +37,10 @@ interface WebuiUserEndpoints {
         mutationStatus(operationId: string, finalization?: IdentityMutationFinalization, options?: AuthTransitionSignalOptions): Promise<IdentityMutationStatus>;
         updateWorkspacePath(id: number, workspacePath: string | null): Promise<WebuiUser>;
         workspaceBrowser: {
-            list(options?: FileBrowserListOptions): Promise<FileExplorerListResponse>;
-            search(options: FileBrowserSearchOptions): Promise<FileExplorerSearchResponse>;
+            roots(options?: SignalOptions): Promise<HostFilesystemRootsResponse>;
+            locate(path: string, options?: SignalOptions): Promise<HostFilesystemLocateResponse>;
+            list(options?: HostFileBrowserListOptions): Promise<FileExplorerListResponse>;
+            search(options: HostFileBrowserSearchOptions): Promise<FileExplorerSearchResponse>;
         };
         delete(id: number): Promise<void>;
     };
@@ -68,13 +71,16 @@ interface WebuiUserEndpoints {
     };
 }
 
-const buildWorkspaceBrowserListRequestOptions = (options: FileBrowserListOptions | undefined): { query: ApiQueryParameters | null; signal?: AbortSignal } => {
+const buildWorkspaceBrowserListRequestOptions = (options: HostFileBrowserListOptions | undefined): { query: ApiQueryParameters | null; signal?: AbortSignal } => {
     if (!options) {
         return buildQueryRequestOptions(null);
     }
     const query: ApiQueryParameters = {};
     if (options.path !== undefined) {
         query['path'] = options.path;
+    }
+    if (options.rootPath !== undefined) {
+        query['root_path'] = options.rootPath;
     }
     if (options.offset !== undefined) {
         query['offset'] = options.offset;
@@ -85,10 +91,13 @@ const buildWorkspaceBrowserListRequestOptions = (options: FileBrowserListOptions
     return buildQueryRequestOptions(query, options.signal);
 };
 
-const buildWorkspaceBrowserSearchRequestOptions = (options: FileBrowserSearchOptions): { query: ApiQueryParameters | null; signal?: AbortSignal } => {
+const buildWorkspaceBrowserSearchRequestOptions = (options: HostFileBrowserSearchOptions): { query: ApiQueryParameters | null; signal?: AbortSignal } => {
     const query: ApiQueryParameters = {
         query: options.query
     };
+    if (options.rootPath !== undefined) {
+        query['root_path'] = options.rootPath;
+    }
     if (options.path !== undefined) {
         query['path'] = options.path;
     }
@@ -128,6 +137,8 @@ const createWebuiUserEndpoints = (api: ApiClientContext): WebuiUserEndpoints => 
         },
         updateWorkspacePath: async (id, workspacePath): Promise<WebuiUser> => decodeWebuiUser(await api.patch(`/api/v1/webui/users/${api.encodePathSegment(id)}/workspace-path`, serializeWorkspacePathRequest(workspacePath)), 'Updated WebUI user workspace'),
         workspaceBrowser: {
+            roots: async (options = {}): Promise<HostFilesystemRootsResponse> => decodeHostFilesystemRootsResponse(await api.get('/api/v1/webui/users/workspace-browser/roots', buildSignalRequestOptions(options))),
+            locate: async (path, options = {}): Promise<HostFilesystemLocateResponse> => decodeHostFilesystemLocateResponse(await api.post('/api/v1/webui/users/workspace-browser/locate', serializeHostFilesystemLocateRequest(path), buildSignalRequestOptions(options))),
             list: async (options): Promise<FileExplorerListResponse> => decodeFileExplorerListResponse(await api.get('/api/v1/webui/users/workspace-browser/list', buildWorkspaceBrowserListRequestOptions(options))),
             search: async (options): Promise<FileExplorerSearchResponse> => decodeFileExplorerSearchResponse(await api.get('/api/v1/webui/users/workspace-browser/search', buildWorkspaceBrowserSearchRequestOptions(options)))
         },

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.plugins.backend_variant_status import read_installed_backend_variant_id
 from core.plugins.backend_variants import (
     AUTO_BACKEND_VARIANT_ID,
@@ -11,9 +12,11 @@ from core.plugins.backend_variants import (
     require_backend_variant_id,
     require_known_backend_variant_id,
 )
+from core.plugins.persistent_runtime_truth import get_plugin_status_payload
 from core.types.json import JSONDict, JSONValue
 from plugins.manager.backend_variant_counts import persist_backend_variant_count
 from plugins.manager.backend_variant_option_loading import load_backend_variant_options
+from plugins.manager.load_serialization import serialized_plugin_load_scope
 from plugins.protocols_internal.runtime.internal_protocols import (
     PluginManagerRuntimeProtocol,
 )
@@ -49,10 +52,28 @@ async def resolve_installed_backend_variant_id(
     manager: PluginManagerRuntimeProtocol,
     plugin_name: str,
 ) -> str | None:
-    instance = await manager.get_plugin_instance(plugin_name)
-    if instance is None:
-        return None
-    return read_installed_backend_variant_id(await instance.get_status())
+    async with serialized_plugin_load_scope(manager, plugin_name):
+        instance = await manager.get_plugin_instance(plugin_name)
+        release_after_discovery = instance is None
+        if instance is None:
+            instance = await manager.require_loaded_plugin(
+                plugin_name,
+                auto_load=True,
+                already_serialized=True,
+            )
+        try:
+            status_payload = await get_plugin_status_payload(
+                instance,
+                operation="plugins.resolve_installed_backend_variant_id",
+                logger=manager.logger,
+                raise_on_error=True,
+            )
+            return read_installed_backend_variant_id(status_payload)
+        finally:
+            if release_after_discovery:
+                await uncancel_then_cleanup(
+                    manager.release_discovery_plugin_instance(plugin_name),
+                )
 
 
 async def get_backend_variants(manager: PluginManagerRuntimeProtocol, plugin_name: str) -> JSONDict:

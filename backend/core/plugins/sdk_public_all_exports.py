@@ -6,6 +6,13 @@ from __future__ import annotations
 __all__ = ("PUBLIC_PLUGIN_SDK_EXPORTS",)
 
 PUBLIC_PLUGIN_SDK_EXPORTS: tuple[str, ...] = (
+    "LOGO_FILENAMES",
+    "MAX_LOGO_SOURCE_BYTES",
+    "MAX_LOGO_DIMENSION",
+    "MAX_LOGO_OUTPUT_BYTES",
+    "PluginLogoSource",
+    "PluginLogoResult",
+    "sanitize_plugin_logo",
     "ArchiveLinkTargetNotFoundError",
     "AcceleratorMemoryExhaustedError",
     "AUTO_BACKEND_VARIANT_ID",

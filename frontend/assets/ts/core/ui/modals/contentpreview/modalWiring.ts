@@ -162,4 +162,4 @@ const wireContentPreviewModalEvents = ({ resources, modalRoot, handleClose, hand
     });
 };
 
-export { wireContentPreviewModalEvents };
+export { wireContentPreviewModalEvents, runContentPreviewAsyncAction };

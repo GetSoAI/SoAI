@@ -58,10 +58,13 @@ def query_nvidia_gpus(
     expected_unavailable_logger = RateLimitedLogger(interval_seconds=300.0)
     gpus: list[JSONDict] = []
     drivers: JSONDict = {}
+    sequence = capabilities_cache_service.expire_inventory_snapshot()
+    complete = False
+    driver_version = ""
     try:
-        capabilities_cache_service.clear()
         with nvml_gate.session():
             try:
+                driver_version = str(pynvml.nvmlSystemGetDriverVersion())
                 try:
                     cuda_version_function = pynvml.nvmlSystemGetCudaDriverVersion
                 except AttributeError:
@@ -70,7 +73,7 @@ def query_nvidia_gpus(
                     cuda_version_val = cuda_version_function()
                     drivers["CUDA"] = {
                         "version": f"{cuda_version_val // 1000}.{cuda_version_val % 1000 // 10}",
-                        "driver_version": pynvml.nvmlSystemGetDriverVersion(),
+                        "driver_version": driver_version,
                     }
             except pynvml.NVMLError as exception:
                 log_handled_exception(
@@ -83,8 +86,8 @@ def query_nvidia_gpus(
             count = 0
             try:
                 count = int(pynvml.nvmlDeviceGetCount())
-            except (TypeError, ValueError):
-                count = 0
+            except (TypeError, ValueError) as exception:
+                raise StateError("NVIDIA inventory count unavailable.") from exception
             try:
                 device_get_handle_by_index = pynvml.nvmlDeviceGetHandleByIndex
             except AttributeError:
@@ -150,6 +153,7 @@ def query_nvidia_gpus(
                 if gpu_uuid is not None:
                     gpu_data["gpu_uuid"] = gpu_uuid
                 gpus.append(gpu_data)
+            complete = len(gpus) == count
     except pynvml.NVMLError as exception:
         expected_unavailable = is_expected_nvml_unavailable_error(exception)
         if expected_unavailable:
@@ -171,5 +175,12 @@ def query_nvidia_gpus(
             message="pynvml failed during NVIDIA GPU scan",
             operation=OPERATION_HARDWARE_NVIDIA_SYNC_GET_NVIDIA_GPUS,
             level="error",
+        )
+    finally:
+        capabilities_cache_service.observe_inventory(
+            sequence,
+            "complete" if complete else "failed",
+            gpus,
+            driver_version,
         )
     return (gpus, drivers)

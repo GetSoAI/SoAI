@@ -12,7 +12,7 @@ import { isArray, isFiniteNumber, isObject, isString } from '@core/typeGuards.ts
 import { isNamedPluginRecord } from '@core/types/pluginRecordGuards.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
-import { getCapabilityDescriptors, getPluginLogoPath, PROVIDER_MODE, resolveProviderMode, type CatalogStore, type CircuitBreakerInfo, type CompatibilityInfo } from '@features/catalog/public.ts';
+import { getCapabilityDescriptors, getPluginFallbackLogoPath, getPluginLogoPath, isHardwareCompatibilityAcknowledged, PROVIDER_MODE, resolveProviderMode, type CatalogStore, type CircuitBreakerInfo, type CompatibilityInfo } from '@features/catalog/public.ts';
 import { PLUGIN_FILTER_ACTIVE } from '@features/plugins/public.ts';
 
 interface PluginsDataControllerDependencies {
@@ -81,18 +81,19 @@ class PluginsDataController {
     }
 
     isPluginIncompatible(plugin: PluginRecord | string | null | undefined): boolean {
-        const comp = this.resolvePluginRecord(plugin)?.compatibility;
-        return Boolean(comp?.reason && comp.isOverridden !== true);
+        const record = this.resolvePluginRecord(plugin);
+        const compatibility = record?.compatibility;
+        return Boolean(compatibility?.reason && compatibility.isOverridden !== true && !isHardwareCompatibilityAcknowledged(record, compatibility));
     }
 
     isHardwareIncompatible(plugin: PluginRecord | string | null | undefined): boolean {
-        const compatibility = this.getPluginCompatibility(plugin);
-        return Boolean(compatibility?.reason && compatibility.canOverride === true && compatibility.isOverridden !== true);
+        const record = this.resolvePluginRecord(plugin);
+        const compatibility = this.getPluginCompatibility(record);
+        return Boolean(compatibility.reason && compatibility.canOverride && !compatibility.isOverridden && !isHardwareCompatibilityAcknowledged(record, compatibility));
     }
 
     requiresCompatibilityOverride(plugin: PluginRecord | string | null | undefined): boolean {
-        const compatibility = this.resolvePluginRecord(plugin)?.compatibility;
-        return Boolean(compatibility?.reason && compatibility?.canOverride && compatibility?.isOverridden !== true);
+        return this.isHardwareIncompatible(plugin);
     }
 
     canExecutePluginAction(plugin: PluginRecord | string | null | undefined, { notify = true, allowCompatibilityOverride = false }: { notify?: boolean; allowCompatibilityOverride?: boolean } = {}): boolean {
@@ -191,6 +192,10 @@ class PluginsDataController {
 
     getPluginLogo(plugin: PluginRecord | null | undefined): string {
         return getPluginLogoPath(plugin);
+    }
+
+    getPluginLogoFallback(plugin: PluginRecord | null | undefined): string {
+        return getPluginFallbackLogoPath(plugin);
     }
 
     getItemCardId(item: PluginRecord | ResourceIncomingValue | null | undefined): string | null {

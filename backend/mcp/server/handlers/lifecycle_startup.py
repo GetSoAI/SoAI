@@ -68,6 +68,7 @@ async def activate_server_mode_and_initialize_rag(
     logger: LoggerProtocol,
 ) -> bool:
     rag_initialized = False
+    deps.register_local_tools()
     if deps.server_mode_enabled:
         missing_allowlists: list[str] = []
         if deps.exposed_tools is None:

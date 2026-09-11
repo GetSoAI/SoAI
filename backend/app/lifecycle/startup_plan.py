@@ -103,15 +103,6 @@ def build_background_startup_entries(
             ),
         )
     )
-    database_core = application_context.services.databases.core
-    entries.append(
-        timed_startup_entry(
-            component_name="Database Vacuum",
-            metric_key="startup.background.database_vacuum_start_ms",
-            deps=deps,
-            action=database_core.vacuum.start_vacuum_task,
-        ),
-    )
     entries.extend(
         (
             timed_startup_entry(

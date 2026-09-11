@@ -9,7 +9,6 @@ import { renderChatHeaderOverflowComposerButtons, renderChatInputActionButtonsIn
 const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string => {
     const { strings, sanitizer } = context;
     const sidebarToggleButton = `<button type="button" class="chat-sidebar-toggle-btn ui-icon-button" data-action="chat:toggle-sidebar" ${renderLabelAttributes(strings.toggleSidebar)}></button>`;
-    const newConversationHeaderButton = `<button type="button" class="new-conversation-header-btn ui-icon-button" data-action="chat:new-conversation" ${renderLabelAttributes(strings.newConversation)}></button>`;
     const editLabel = i18n.attr(sanitizer, 'common.edit');
     const agentCompactTooltip = i18n.t('chat.agent.compact.tooltip');
     const planBarToggleTooltip = i18n.t('chat.header.togglePlanBar');
@@ -43,10 +42,6 @@ const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string =>
         <button type="button" class="tools-toggle-btn chat-header-action ui-button" data-action="chat:toggle-tools" data-page-actions-menu-keep-open="true" ${renderLabelAttributes(strings.toggleTools)} aria-pressed="false"><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.toggleTools}</span></button>
         <button type="button" class="plan-bar-toggle-btn chat-header-action ui-button ui-variant-violet u-hidden" data-action="chat:toggle-plan-bar" data-page-actions-menu-keep-open="true" aria-controls="agent-todo-panel-container" aria-expanded="true" ${renderLabelAttributes(planBarToggleTooltip)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label"></span></button>
         <button type="button" class="configuration-toggle-btn ui-icon-button" data-action="chat:toggle-configuration" ${renderLabelAttributes(strings.configuration)}></button>
-        <div class="chat-header-model-selector" aria-hidden="true" hidden>
-        <div class="model-selector model-selector--header page-header-filter-select" data-chat-model-control="true" data-scope="header" aria-label="${strings.selectModel}"></div>
-        </div>
-        ${newConversationHeaderButton}
         </div>
         </div>
         <div class="chat-plan-messages-region">
@@ -75,16 +70,17 @@ const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string =>
         <input type="file" class="folder-upload-input u-hidden" webkitdirectory directory multiple>
         <input type="file" class="u-hidden user-avatar-file-input" accept="image/*">
         <input type="file" class="u-hidden assistant-avatar-file-input" accept="image/*">
-	        <div class="chat-input-wrapper">
-			        <textarea class="chat-input glass-surface-strong" aria-label="${strings.inputPlaceholder}" placeholder="${strings.inputPlaceholder}" rows="1"></textarea>
-			        <div class="chat-input-actions chat-input-actions--hydrating glass-surface-strong">
-				        <button type="button" class="chat-token-counter-btn chat-token-counter-inline ui-icon-button u-hidden" data-action="chat:cycle-token-counter" ${renderLabelAttributes(strings.tokenCounterTooltip)} aria-pressed="false"><span class="chat-token-counter-label">${strings.tokenCounterInactive}</span></button>
+	        <div class="chat-input-wrapper glass-surface-strong">
+			        <textarea class="chat-input" aria-label="${strings.inputPlaceholder}" placeholder="${strings.inputPlaceholder}" rows="1"></textarea>
+			        <div class="chat-input-actions chat-input-actions--hydrating">
+                ${inputActionsInlineHtml.leading}
+                <div class="model-selector model-selector--composer page-header-filter-select" data-chat-model-control="true" data-scope="composer" aria-label="${strings.selectModel}"></div>
 			        <div class="chat-composer-skeleton-actions" aria-hidden="true">
 			        <span class="chat-composer-skeleton-button"></span>
 			        <span class="chat-composer-skeleton-button"></span>
 			        </div>
 			        <div class="chat-input-actions-inline">
-			        ${inputActionsInlineHtml}
+			        ${inputActionsInlineHtml.auxiliary}
 			        </div>
 			        <div class="chat-mobile-auxiliary-action-slot u-hidden" data-mobile-auxiliary-action="none"></div>
 		        <button type="button" class="chat-action-btn square-btn" data-action="chat:send-or-stop" ${renderLabelAttributes(strings.send)} disabled></button>

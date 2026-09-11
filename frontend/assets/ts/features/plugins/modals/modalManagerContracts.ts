@@ -67,6 +67,7 @@ interface PluginsModalOperationPort {
     updateStats(): void;
     loadCoreConfig(options?: { force?: boolean }): Promise<void>;
     createStreamHandlers: BackendOperationHost['createStreamHandlers'];
+    trackAcceptedTask: DownloadManagerHost['execution']['trackAcceptedTask'];
     startTaskAction: BackendOperationHost['startTaskAction'];
     startTaskCommand: BackendOperationHost['startTaskCommand'];
     beginOptimisticOperation: BackendOperationHost['beginOptimisticOperation'];

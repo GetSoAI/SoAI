@@ -7,16 +7,19 @@ import atexit
 import os
 import re
 import threading
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
+from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from core.errors.exception_logging import log_exception, log_handled_exception
+from core.concurrency.deadlines import MonotonicDeadline, deadline_after
+from core.di.validation import require_dependencies
+from core.errors.exception_logging import log_handled_exception
 from core.files.temp_files import (
     acquire_directory_lock,
     release_directory_lock,
     system_temp_directory,
 )
-from core.logging.trace import get_logger
 from core.system.commands import run_argv_capture
 from core.system.process_launcher import (
     DEVNULL_STREAM,
@@ -24,14 +27,18 @@ from core.system.process_launcher import (
     spawn_managed_process,
 )
 from core.timing.constants import (
-    LOCAL_IO_TIMEOUT_SEC,
-    RESPONSIVE_TIMEOUT_SEC,
     SHORT_POLL_INTERVAL_SEC,
 )
-from core.timing.monotonic import monotonic_ms
 from core.timing.sleep import sleep_seconds
 from hardware.vendors.nvidia.paths import nvidia_xorg_config_path
-from hardware.vendors.nvidia.smi_display_environment import detect_display_environment
+from hardware.vendors.nvidia.smi_display_environment import (
+    DisplaySearchStatus,
+    detect_display_environment,
+    display_process_environment,
+    display_target_occupied,
+    enumerate_displays,
+    validate_display,
+)
 
 if TYPE_CHECKING:
     from core.logging.protocols import TraceLogger
@@ -44,157 +51,163 @@ OPERATION_HARDWARE_NVIDIA_START_HEADLESS_XSERVER = "hardware_nvidia.start_headle
 OPERATION_HARDWARE_NVIDIA_STOP_XSERVER = "hardware_nvidia.stop_xserver"
 MAX_PERF_LEVEL = 8
 HEADLESS_XSERVER_LOCK_DIR_NAME = "soai-nvidia-headless-xserver.lock"
-HEADLESS_XSERVER_LOCK_TIMEOUT_MS = 10_000
 RANGE_PATTERN_TEXT = "valid values for '[^']+' are in the range\\s+(-?\\d+)\\s+-\\s+(-?\\d+)"
+
+
+@dataclass(frozen=True, slots=True)
+class NvidiaSettingsControllerDependencies:
+    logger: TraceLogger
+
+    def __post_init__(self) -> None:
+        require_dependencies(owner="NvidiaSettingsControllerDependencies", logger=self.logger)
 
 
 class NvidiaSettingsController:
     def __init__(
-        self,
-        display: str | None = None,
-        controller_logger: TraceLogger | None = None,
+        self, deps: NvidiaSettingsControllerDependencies, display: str | None = None
     ) -> None:
-        self._logger: TraceLogger = controller_logger or get_logger(LOGGER_NAME)
+        self._logger = deps.logger
         self._lock = threading.Lock()
         self._display = display
         self._xserver_process: ManagedProcess | None = None
         self._env: dict[str, str] | None = None
         self._atexit_registered: bool = False
 
-    def _ensure_display(self) -> bool:
+    def _ensure_display(self, deadline: MonotonicDeadline | None = None) -> bool:
+        operation_deadline = deadline or deadline_after(10.0)
         if self._env is not None:
-            return True
-        env_config = detect_display_environment(self._logger)
-        display_value = env_config.get("display")
-        display = self._display or (display_value if isinstance(display_value, str) else ":1")
-        self._env = os.environ.copy()
-        self._env["DISPLAY"] = display
-        xauthority_value = env_config.get("xauthority")
-        if isinstance(xauthority_value, str) and xauthority_value:
-            self._env["XAUTHORITY"] = xauthority_value
-        if env_config["needs_own_xserver"] and (not env_config["has_display_manager"]):
-            return self._ensure_headless_xserver()
-        return True
-
-    def ensure_display_environment(self) -> Mapping[str, str] | None:
-        with self._lock:
-            if not self._ensure_display():
-                return None
-            return dict(self._env) if self._env is not None else None
-
-    def _use_existing_display_if_available(self) -> bool:
-        if self._env is None:
-            return False
-        env_config = detect_display_environment(self._logger)
-        if env_config.get("has_display_manager") is not True:
-            return False
-        display_value = env_config.get("display")
-        self._env["DISPLAY"] = display_value if isinstance(display_value, str) else ":0"
-        xauthority_value = env_config.get("xauthority")
-        if isinstance(xauthority_value, str) and xauthority_value:
-            self._env["XAUTHORITY"] = xauthority_value
-        return True
-
-    def _ensure_headless_xserver(self) -> bool:
-        lock_path = os.path.join(system_temp_directory(), HEADLESS_XSERVER_LOCK_DIR_NAME)
-        deadline_ms = monotonic_ms() + HEADLESS_XSERVER_LOCK_TIMEOUT_MS
-        while True:
-            if not acquire_directory_lock(lock_path):
-                if self._use_existing_display_if_available():
-                    return True
-                if monotonic_ms() >= deadline_ms:
+            display = self._env["DISPLAY"]
+            xauthority = self._env.get("XAUTHORITY")
+            self._env = None
+            result = validate_display(display, xauthority, operation_deadline)
+            if result.status == DisplaySearchStatus.USABLE:
+                self._env = display_process_environment(display, xauthority)
+                return True
+        result = detect_display_environment(self._logger, operation_deadline)
+        if result.status == DisplaySearchStatus.USABLE and result.display is not None:
+            selected_display = self._display or result.display
+            if selected_display != result.display:
+                result = validate_display(selected_display, result.xauthority, operation_deadline)
+                if result.status != DisplaySearchStatus.USABLE:
                     return False
-                sleep_seconds(SHORT_POLL_INTERVAL_SEC)
+            self._env = display_process_environment(selected_display, result.xauthority)
+            return True
+        if result.status != DisplaySearchStatus.NO_DISPLAY:
+            return False
+        return self._ensure_headless_xserver(operation_deadline)
+
+    @contextmanager
+    def probe_environment(self, deadline: MonotonicDeadline) -> Generator[Mapping[str, str] | None]:
+        if not self._lock.acquire(timeout=deadline.remaining_seconds()):
+            yield None
+            return
+        try:
+            if self._ensure_display(deadline):
+                yield dict(self._env) if self._env is not None else None
+            else:
+                yield None
+        finally:
+            self._lock.release()
+
+    def ensure_display_environment(
+        self,
+        deadline: MonotonicDeadline | None = None,
+    ) -> Mapping[str, str] | None:
+        with self.probe_environment(deadline or deadline_after(10.0)) as environment:
+            return environment
+
+    def _ensure_headless_xserver(self, deadline: MonotonicDeadline) -> bool:
+        if self._xserver_process is not None:
+            if not self._cleanup_owned_process():
+                return False
+        if not os.path.exists(nvidia_xorg_config_path()):
+            return False
+        lock_path = os.path.join(system_temp_directory(), HEADLESS_XSERVER_LOCK_DIR_NAME)
+        while not deadline.expired():
+            if not acquire_directory_lock(lock_path):
+                sleep_seconds(min(SHORT_POLL_INTERVAL_SEC, deadline.remaining_seconds()))
                 continue
             try:
-                if self._use_existing_display_if_available():
+                result = detect_display_environment(self._logger, deadline)
+                if result.status == DisplaySearchStatus.USABLE and result.display is not None:
+                    self._env = display_process_environment(result.display, result.xauthority)
                     return True
-                if not self._start_headless_xserver(":1"):
-                    self._logger.warning("Failed to start headless X server for nvidia-settings")
+                if result.status != DisplaySearchStatus.NO_DISPLAY:
                     return False
-                if self._env is None:
+                display = self._display or ":1"
+                if display in enumerate_displays() or display_target_occupied(display, deadline):
                     return False
-                self._env["DISPLAY"] = ":1"
-                return True
+                return self._start_headless_xserver(display, deadline)
             finally:
-                try:
-                    release_directory_lock(lock_path)
-                except OSError as exception:
-                    log_handled_exception(
-                        self._logger,
-                        exception,
-                        message="Failed to remove NVIDIA headless X server lock (non-critical).",
-                        operation=OPERATION_HARDWARE_NVIDIA_START_HEADLESS_XSERVER,
-                        level="debug",
-                    )
+                release_directory_lock(lock_path)
+        return False
 
-    def _start_headless_xserver(self, display: str) -> bool:
+    def _start_headless_xserver(self, display: str, deadline: MonotonicDeadline) -> bool:
         xorg_config_path = nvidia_xorg_config_path()
-        if not os.path.exists(xorg_config_path):
-            self._logger.warning("xorg.conf not found; cannot start X server")
+        if deadline.remaining_seconds() < 1 or not os.path.exists(xorg_config_path):
             return False
-        process_ready = threading.Event()
-        launch_error: dict[str, BaseException] = {}
+        try:
+            self._xserver_process = spawn_managed_process(
+                ["Xorg", display, "-config", xorg_config_path],
+                stdout=DEVNULL_STREAM,
+                stderr=DEVNULL_STREAM,
+            )
+            if not self._atexit_registered:
+                atexit.register(self.close)
+                self._atexit_registered = True
+            while deadline.remaining_seconds() >= 1:
+                if self._xserver_process.poll() is not None:
+                    break
+                result = validate_display(display, None, deadline)
+                if result.status == DisplaySearchStatus.USABLE:
+                    self._env = display_process_environment(display, None)
+                    return True
+                if result.status in (
+                    DisplaySearchStatus.TOOL_UNAVAILABLE,
+                    DisplaySearchStatus.DEADLINE,
+                ):
+                    break
+                sleep_seconds(min(SHORT_POLL_INTERVAL_SEC, deadline.remaining_seconds()))
+        except SUBPROCESS_RECOVERABLE_EXCEPTIONS as exception:
+            log_handled_exception(
+                self._logger,
+                exception,
+                message="NVIDIA owned display startup failed.",
+                operation=OPERATION_HARDWARE_NVIDIA_START_HEADLESS_XSERVER,
+                level="debug",
+            )
+        self._cleanup_owned_process()
+        return False
 
-        def _run_xserver() -> None:
-            try:
-                with spawn_managed_process(
-                    ["Xorg", display, "-config", xorg_config_path],
-                    stdout=DEVNULL_STREAM,
-                    stderr=DEVNULL_STREAM,
-                ) as process:
-                    self._xserver_process = process
-                    process_ready.set()
-                    process.wait()
-            except SUBPROCESS_RECOVERABLE_EXCEPTIONS as exception:
-                launch_error["exception"] = exception
-                process_ready.set()
-                log_exception(
-                    self._logger,
-                    exception,
-                    message="Failed to start X server",
-                    operation=OPERATION_HARDWARE_NVIDIA_START_HEADLESS_XSERVER,
-                )
-
-        thread = threading.Thread(
-            target=_run_xserver,
-            name="soai-nvidia-xserver",
-            daemon=True,
-        )
-        thread.start()
-        if not process_ready.wait(timeout=2):
-            return False
-        if launch_error:
-            return False
-        sleep_seconds(RESPONSIVE_TIMEOUT_SEC)
+    def _cleanup_owned_process(self) -> bool:
+        self._env = None
         process = self._xserver_process
-        if not process:
+        if process is None:
+            return True
+        cleanup_deadline = deadline_after(2.0)
+        try:
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=min(1.0, cleanup_deadline.remaining_seconds()))
+                except SUBPROCESS_RECOVERABLE_EXCEPTIONS:
+                    process.kill()
+            process.wait(timeout=cleanup_deadline.remaining_seconds())
+        except SUBPROCESS_RECOVERABLE_EXCEPTIONS as exception:
+            log_handled_exception(
+                self._logger,
+                exception,
+                message="NVIDIA owned display cleanup failed.",
+                operation=OPERATION_HARDWARE_NVIDIA_STOP_XSERVER,
+                level="warning",
+            )
             return False
-        if process.poll() is not None:
-            return False
-        if not self._atexit_registered:
-            atexit.register(self._stop_xserver)
-            self._atexit_registered = True
+        self._xserver_process = None
         return True
 
-    def _stop_xserver(self) -> None:
+    def close(self) -> None:
         with self._lock:
-            if self._xserver_process:
-                try:
-                    self._xserver_process.terminate()
-                    self._xserver_process.wait(timeout=LOCAL_IO_TIMEOUT_SEC)
-                except SUBPROCESS_RECOVERABLE_EXCEPTIONS:
-                    try:
-                        self._xserver_process.kill()
-                    except SUBPROCESS_RECOVERABLE_EXCEPTIONS as exception:
-                        log_handled_exception(
-                            self._logger,
-                            exception,
-                            message="Failed to kill headless X server process (non-critical).",
-                            operation=OPERATION_HARDWARE_NVIDIA_STOP_XSERVER,
-                            level="debug",
-                        )
-                self._xserver_process = None
+            self._cleanup_owned_process()
 
     def _run_nvidia_settings(self, args: list[str]) -> tuple[bool, str]:
         if not self._ensure_display():

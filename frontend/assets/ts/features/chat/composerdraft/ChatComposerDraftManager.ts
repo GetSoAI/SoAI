@@ -17,7 +17,7 @@ import { presentComposerDraftRestoreFailure, trackComposerDraftTaskFailure } fro
 import { ComposerDraftOwnershipState, type ComposerDraftOwnershipSnapshot, type ComposerDraftTransferMode } from '@features/chat/composerdraft/ComposerDraftOwnershipState.ts';
 import { ComposerDraftRevisionState } from '@features/chat/composerdraft/ComposerDraftRevisionState.ts';
 import { ComposerDraftDebounce } from '@features/chat/composerdraft/ComposerDraftDebounce.ts';
-import type { ComposerDraftLoadSettlement, ComposerDraftManagerDependencies, ComposerDraftProjection, ComposerDraftTransferTicket, ParsedComposerDraft } from '@features/chat/composerdraft/composerDraftTypes.ts';
+import type { ComposerDraftFlushOptions, ComposerDraftLoadSettlement, ComposerDraftManagerDependencies, ComposerDraftProjection, ComposerDraftTransferTicket, ParsedComposerDraft } from '@features/chat/composerdraft/composerDraftTypes.ts';
 
 class ChatComposerDraftManager {
     readonly #dependencies: ComposerDraftManagerDependencies;
@@ -32,7 +32,7 @@ class ChatComposerDraftManager {
     #disposed = false;
     #applying = false;
     #appliedSignature = buildProjectionSignature('', '', []);
-    #pendingFlush: { conversationId: string; signature: string; keepalive: boolean; promise: Promise<void> } | null = null;
+    #pendingFlush: { conversationId: string; signature: string; immediate: boolean; promise: Promise<void> } | null = null;
     #unsubscribeAttachments: (() => void) | null = null;
     #unsubscribeDraftEvents: (() => void) | null = null;
     constructor(dependencies: ComposerDraftManagerDependencies) {
@@ -52,7 +52,8 @@ class ChatComposerDraftManager {
                 }
             },
             getRevision: (conversationId) => this.#revisions.get(conversationId),
-            recordRevision: (conversationId, revision, conflicted) => this.#revisions.record(conversationId, revision, conflicted)
+            recordRevision: (conversationId, revision, conflicted) => this.#revisions.record(conversationId, revision, conflicted),
+            observeRevision: (conversationId, revision) => this.#revisions.observe(conversationId, revision)
         });
     }
 
@@ -84,7 +85,7 @@ class ChatComposerDraftManager {
         });
     }
 
-    async flushNow(reason: string, options: { keepalive?: boolean } = {}): Promise<void> {
+    async flushNow(reason: string, options: ComposerDraftFlushOptions = {}): Promise<void> {
         if (this.#disposed && reason !== 'dispose') {
             return;
         }
@@ -96,8 +97,8 @@ class ChatComposerDraftManager {
         if (projection.signature === this.#appliedSignature && !hasConflictingPendingFlush) {
             return;
         }
-        const keepalive = options.keepalive === true;
-        if (pendingFlush?.conversationId === projection.conversationId && pendingFlush.signature === projection.signature && (!keepalive || pendingFlush.keepalive)) {
+        const immediate = options.immediate === true;
+        if (pendingFlush?.conversationId === projection.conversationId && pendingFlush.signature === projection.signature && (!immediate || pendingFlush.immediate)) {
             await pendingFlush.promise;
             return;
         }
@@ -114,7 +115,7 @@ class ChatComposerDraftManager {
         this.#pendingFlush = {
             conversationId: projection.conversationId,
             signature: projection.signature,
-            keepalive,
+            immediate,
             promise: trackedPromise
         };
         await trackedPromise;

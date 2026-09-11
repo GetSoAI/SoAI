@@ -19,6 +19,7 @@ from app.startup_steps.actors_and_services_model_discovery_wait import (
 )
 from app.startup_steps.dependencies import StartupStepDependencies
 from app.startup_steps.disk_speed_warmup import DiskSpeedWarmupStep
+from app.startup_steps.plugin_summary import log_plugin_startup_summary
 from app.startup_steps.webui_attachment_recovery import (
     recover_webui_conversation_attachments,
 )
@@ -199,6 +200,7 @@ class ActorsAndServicesStartupStep:
             "startup.actors.model_discovery_ms",
             model_discovery_started_ms,
         )
+        await log_plugin_startup_summary(plugin_manager_instance, state_aggregator)
         inactivity_monitor_instance = application_context.services.orchestrator.inactivity_monitor
         if inactivity_monitor_instance is None:
             raise StateError("Inactivity monitor is not configured.")

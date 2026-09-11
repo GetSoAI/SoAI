@@ -29,4 +29,21 @@
     .ui-collection-card__status-line.status-neutral {
         background-color: var(--status-grey);
     }
+
+    .ui-collection-card__status-line.ui-collection-card__status-line--progress {
+        --ui-collection-card-progress: 0%;
+
+        background-color: var(--status-grey);
+    }
+
+    .ui-collection-card__status-line.ui-collection-card__status-line--progress::after {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: var(--ui-collection-card-progress);
+        content: '';
+        background-color: var(--soai-progress-color);
+        transition:
+            width var(--transition-normal),
+            background-color var(--transition-slow);
+    }
 }

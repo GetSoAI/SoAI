@@ -58,7 +58,7 @@ class DatabaseReceiptSweeper:
     async def start(self) -> None:
         if self._task is not None and not self._task.done():
             return
-        self._shutdown_event = asyncio.Event()
+        self._shutdown_event.clear()
         self._task = run_background_periodic_task(
             shutdown_event=self._shutdown_event,
             interval_seconds=float(LONG_IDLE_TIMEOUT_SEC),
@@ -93,7 +93,7 @@ class DatabaseReceiptSweeper:
             if deleted < DATABASE_RECEIPT_CLEANUP_BATCH_SIZE:
                 break
         if deleted_total:
-            self._logger.info("Deleted %d expired database operation receipts.", deleted_total)
+            self._logger.debug("Deleted %d expired database operation receipts.", deleted_total)
 
     async def shutdown(self) -> None:
         self._shutdown_event.set()

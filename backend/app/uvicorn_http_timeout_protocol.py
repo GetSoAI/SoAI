@@ -59,6 +59,14 @@ class SoAIHttpToolsProtocol(HttpToolsProtocol):
         super().connection_lost(exc)
 
     @override
+    def shutdown(self) -> None:
+        self._cancel_soai_header_timeout()
+        self._unset_keepalive_if_required()
+        if self.transport.is_closing():
+            return
+        super().shutdown()
+
+    @override
     def data_received(self, data: bytes) -> None:
         if self.cycle is None or self.cycle.response_complete:
             self._arm_soai_header_timeout()

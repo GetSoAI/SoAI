@@ -35,9 +35,10 @@ interface ModelsManagerInitializationResult {
 
 interface ModelsManagerBundleOptions {
     getPendingToggleTarget?: ModelCardHost['status']['getPendingToggleTarget'] | undefined;
+    shouldShowNormalEmptyState: (modelCount: number) => boolean;
 }
 
-const createModelsManagerBundle = (runtime: ModelsManagerRuntimeDependencies, options: ModelsManagerBundleOptions = {}): ModelsManagerInitializationResult => {
+const createModelsManagerBundle = (runtime: ModelsManagerRuntimeDependencies, options: ModelsManagerBundleOptions): ModelsManagerInitializationResult => {
     const { infrastructure, session, collection } = runtime;
     const downloadModalRoot = infrastructure.services.modals.requireElement(MODELS_DOWNLOAD_MODAL_ID);
     const variantProbeHost: VariantProbeHost = {
@@ -109,7 +110,6 @@ const createModelsManagerBundle = (runtime: ModelsManagerRuntimeDependencies, op
             collectionName: modelsPageConfig.collectionName,
             cardSelector: grid.cardSelector,
             gridSelector: grid.gridSelector,
-            cacheKey: 'models',
             getItemId: (model) => {
                 if (!isObject(model)) {
                     return null;
@@ -119,12 +119,11 @@ const createModelsManagerBundle = (runtime: ModelsManagerRuntimeDependencies, op
             },
             resolveCurrentItem: (identifier) => collection.collections.runtime?.find(identifier) ?? null,
             emptyStates: [
-                { selector: grid.emptyStateIds.empty, visibleWhen: ({ all }) => all.length === 0 },
+                { selector: grid.emptyStateIds.empty, visibleWhen: ({ all }) => options.shouldShowNormalEmptyState(all.length) },
                 {
                     selector: grid.emptyStateIds.filtered,
                     visibleWhen: ({ filtered, all }) => all.length > 0 && filtered.length === 0
-                },
-                { selector: grid.emptyStateIds.firstDownload, visibleWhen: ({ all }) => all.length === 0 }
+                }
             ]
         }
     );

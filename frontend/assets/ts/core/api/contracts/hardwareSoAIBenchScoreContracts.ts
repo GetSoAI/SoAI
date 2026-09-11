@@ -35,7 +35,7 @@ const decodeGpuSoAIBenchScore = (value: JsonValue | undefined, label: string): G
     const unavailableSensors = readSoAIBenchOptionalStringList(value, 'unavailable_sensors', label);
     const failureReason = readSoAIBenchOptionalString(value, 'failure_reason', label);
     const scoreVariancePercent = readSoAIBenchOptionalNumber(value, 'score_variance_percent', label);
-    const scoreConfidence = readSoAIBenchOptionalString(value, 'score_confidence', label);
+    const scoreConfidence = readSoAIBenchOptionalNumber(value, 'score_confidence', label);
     if (scoreVersion !== undefined) decoded.scoreVersion = scoreVersion;
     if (overallScore !== undefined) decoded.overallScore = overallScore;
     if (computeScore !== undefined) decoded.computeScore = computeScore;

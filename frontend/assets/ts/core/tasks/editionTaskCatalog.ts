@@ -4,11 +4,13 @@
 interface EditionTaskCatalog {
     readonly taskTypeMappings: Readonly<Record<string, string>>;
     readonly operationLabels: Readonly<Record<string, () => string>>;
+    readonly backgroundActivityOperationTypes: readonly string[];
 }
 
 const EMPTY_EDITION_TASK_CATALOG: EditionTaskCatalog = Object.freeze({
     taskTypeMappings: Object.freeze({}),
-    operationLabels: Object.freeze({})
+    operationLabels: Object.freeze({}),
+    backgroundActivityOperationTypes: Object.freeze([])
 });
 
 let selectedCatalog: EditionTaskCatalog = EMPTY_EDITION_TASK_CATALOG;
@@ -20,7 +22,8 @@ const configureEditionTaskCatalog = (catalog: EditionTaskCatalog): void => {
     }
     selectedCatalog = Object.freeze({
         taskTypeMappings: Object.freeze({ ...catalog.taskTypeMappings }),
-        operationLabels: Object.freeze({ ...catalog.operationLabels })
+        operationLabels: Object.freeze({ ...catalog.operationLabels }),
+        backgroundActivityOperationTypes: Object.freeze([...catalog.backgroundActivityOperationTypes])
     });
     catalogConfigured = true;
 };
@@ -34,5 +37,7 @@ const resolveEditionTaskOperationLabel = (operationType: string): string | null 
     return getLabel ? getLabel() : null;
 };
 
-export { configureEditionTaskCatalog, resolveEditionTaskOperationLabel, resolveEditionTaskOperationType };
+const resolveEditionBackgroundActivityOperationTypes = (): readonly string[] => selectedCatalog.backgroundActivityOperationTypes;
+
+export { configureEditionTaskCatalog, resolveEditionBackgroundActivityOperationTypes, resolveEditionTaskOperationLabel, resolveEditionTaskOperationType };
 export type { EditionTaskCatalog };

@@ -10,7 +10,6 @@ interface ChatPagePresentationContract {
     userAvatarUrl(): string | null;
     cachedIcon(name: IconName, options?: IconOptions): TrustedHtml;
     updateExportButtonVisibility(): void;
-    updateHeaderModelSelectorVisibility(): void;
     insertIcons(): void;
     showConversationColorPicker(conversationItem: HTMLElement, conversationId: string): void;
     hideConversationColorPicker(): void;

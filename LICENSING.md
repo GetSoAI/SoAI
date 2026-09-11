@@ -32,7 +32,7 @@ not ship `plugin_sdk` or other Core material inside it, because it takes the SDK
 from the SoAI installation that runs it, and running SoAI to develop, test, or
 operate the plugin still needs personal, evaluation, or commercial rights.
 
-The canonical documents are:
+The licensing documents are:
 
 - `LICENSE.md` — SoAI Core Source-Available License 1.0;
 - `CHANGE-DATES.md` — immutable Core release/change-date schedule;
@@ -44,9 +44,6 @@ The canonical documents are:
 
 The last two ship only inside SoAI OS artifacts. Core artifacts carry the five
 Core documents and reference the OS terms by their published address.
-
-The exact bytes, versions, Core paths, flows, offers, and SHA-256 fingerprints are in
-`licenses/legal_document_catalog.json`.
 
 `PRIVACY.md` is explanatory alongside this file. It describes what the software
 does with your data and what it sends: licensing requests carry deployment and
@@ -117,8 +114,7 @@ OS or a later Core release early.
 
 Roberto Martini is the individual software owner, licensor, supplier, and support
 provider. Paddle is the authorized reseller and merchant of record for transactions
-processed by Paddle. Provider approval and public sales admission are deployment
-gates, not facts inferred from source code.
+processed by Paddle.
 
 Licensing, purchasing, and commercial enquiries: `sales@soai.to`. Support under a
 paid term: `support@soai.to`. Security reports: `security@soai.to`. Privacy and

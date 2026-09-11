@@ -86,10 +86,10 @@ def _sanitize_openai_tool_parameters(parameters: Mapping[str, JSONValue]) -> JSO
 def build_local_catalog_version(
     *,
     local_definitions: Mapping[str, JSONValue],
-    registered_local_tools: set[str],
+    available_local_tools: set[str],
 ) -> str:
     signature_parts: list[str] = []
-    for name in sorted(registered_local_tools):
+    for name in sorted(available_local_tools):
         definition = local_definitions.get(name)
         if not isinstance(definition, Mapping):
             signature_parts.append(name)
@@ -164,10 +164,10 @@ async def collect_mcp_tool_catalog(
     tool_entries: list[JSONDict] = []
     tools_by_name: dict[str, JSONDict] = {}
     local_definitions = mcp_server.registration.tool_definitions(local_scope)
-    registered_local_tools = set(mcp_server.registration.registered_tool_names(local_scope))
+    available_local_tools = set(mcp_server.registration.available_local_tool_names(local_scope))
     local_version = build_local_catalog_version(
         local_definitions=local_definitions,
-        registered_local_tools=registered_local_tools,
+        available_local_tools=available_local_tools,
     )
     remote_version = await mcp_remote.tool_catalog_version()
     cache_key = MCPToolCatalogCacheKey(
@@ -183,7 +183,7 @@ async def collect_mcp_tool_catalog(
             tools_by_name=cached.tools_by_name,
         )
     if normalized_server_filter.get(SOAI_MCP_SERVER_ID, True) is not False:
-        for name in sorted(registered_local_tools):
+        for name in sorted(available_local_tools):
             definition = local_definitions.get(name)
             if not isinstance(definition, Mapping):
                 continue

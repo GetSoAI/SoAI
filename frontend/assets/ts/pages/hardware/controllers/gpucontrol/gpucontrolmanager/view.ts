@@ -1,7 +1,7 @@
 /* SoAI - Hardware page GPU control manager rendering [frontend/assets/ts/pages/hardware/controllers/gpucontrol/gpucontrolmanager/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { dom } from '@core/dom/dom.ts';
+import { dom, domCache } from '@core/dom/dom.ts';
 import { replaceChildrenFromHtml } from '@core/dom/html.ts';
 import { securityApi } from '@core/security/public.ts';
 import { isArray } from '@core/typeGuards.ts';
@@ -194,6 +194,7 @@ export const renderGpuControls = (context: GpuControlManagerViewContext, { only 
         }
     });
 
+    domCache.invalidate('gpu-');
     restoreGpuControlsState(context, previousState, new Set(targets));
     hydratePreviewStates(context, targets);
     refreshedTargets.forEach((index) => context.refreshApplyState(index));

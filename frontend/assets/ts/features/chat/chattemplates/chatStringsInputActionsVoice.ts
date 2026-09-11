@@ -36,6 +36,8 @@ type InputActionsVoice = Pick<
     | 'toolApprovalRequiredHint'
     | 'newConversationInheritLastSettings'
     | 'newConversationInheritLastSettingsHint'
+    | 'ctrlEnterSend'
+    | 'ctrlEnterSendHint'
     | 'voiceTitle'
     | 'voiceTtsModel'
     | 'voiceTtsModelAuto'
@@ -83,6 +85,8 @@ const resolveInputActionsVoiceTemplateStrings = (sanitizer: SanitizerApi): Input
         toolApprovalRequiredHint: i18n.html(sanitizer, 'chat.configuration.toolApprovalRequiredHint'),
         newConversationInheritLastSettings: i18n.html(sanitizer, 'chat.configuration.newConversationInheritLastSettings'),
         newConversationInheritLastSettingsHint: i18n.html(sanitizer, 'chat.configuration.newConversationInheritLastSettingsHint'),
+        ctrlEnterSend: i18n.html(sanitizer, 'chat.configuration.ctrlEnterSend'),
+        ctrlEnterSendHint: i18n.html(sanitizer, 'chat.configuration.ctrlEnterSendHint'),
         voiceTitle: i18n.html(sanitizer, 'chat.configuration.voice.title'),
         voiceTtsModel: i18n.html(sanitizer, 'chat.configuration.voice.ttsModel'),
         voiceTtsModelAuto: i18n.html(sanitizer, 'chat.configuration.voice.ttsModelAuto'),

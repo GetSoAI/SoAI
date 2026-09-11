@@ -167,6 +167,8 @@ export type ChatStreamTranslationKey =
     | 'chat.stream.preview.tools.shell.2'
     | 'chat.stream.preview.tools.shell.detail.1'
     | 'chat.stream.preview.tools.shell.detail.2'
+    | 'chat.stream.preview.tools.soai_documentation.1'
+    | 'chat.stream.preview.tools.soai_documentation.detail.1'
     | 'chat.stream.preview.tools.stop_conversation.1'
     | 'chat.stream.preview.tools.subagent_cancel.1'
     | 'chat.stream.preview.tools.subagent_observe.1'

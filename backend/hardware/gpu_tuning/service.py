@@ -15,7 +15,6 @@ from core.runtime.soai_identifiers import create_system_id
 from core.system.protocols import CommandExecutorProtocol
 from core.tasks.asyncio_task_spawner import spawn_tracked_task
 from hardware.gpu_tuning.capabilities import (
-    create_nvidia_settings_controller,
     enrich_gpu_capabilities_with_slots,
 )
 from hardware.gpu_tuning.capabilities_refresh import (
@@ -72,14 +71,12 @@ class HardwareGpuTuningService:
         self.activity_registry: HardwareActivityRegistryProtocol = deps.activity_registry
         self.detailed_gpu_info = deps.detailed_gpu_info
         self.main_loop: asyncio.AbstractEventLoop | None = None
-        self.nvidia_settings_controller = create_nvidia_settings_controller(
-            self.logger,
-            deps.nvidia_nvml_gate,
-        )
+        self.nvidia_settings_controller = deps.nvidia_settings_controller
         self.gpu_services = GpuServiceDependencies(
             gpu_info_cache_service=deps.gpu_info_cache_service,
             gpu_vendor_detection_service=deps.gpu_vendor_detection_service,
             nvidia_nvml_gate=deps.nvidia_nvml_gate,
+            nvidia_settings_controller=deps.nvidia_settings_controller,
             nvidia_capabilities_cache_service=deps.nvidia_capabilities_cache_service,
         )
         self.gpu_settings_apply_deps: GpuSettingsApplyDependencies = (

@@ -16,7 +16,6 @@ import { applyModelContextWindowConstraints } from '@pages/chat/controllers/page
 import { syncCameraInputActionSupport } from '@pages/chat/controllers/page/dom/cameraController.ts';
 import { updateVoiceAudioModelOptions } from '@pages/chat/controllers/page/dom/voice.ts';
 import type { ChatPageDomHost } from '@pages/chat/controllers/page/dom/contracts.ts';
-import type { ChatPagePresentationHost } from '@pages/chat/controllers/chatpage/presentation/contracts.ts';
 import type { PageStreamingOwnerHost } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
 import type { ChatModelSessionContract, ComparisonPresentationState } from '@pages/chat/controllers/chatpage/models/contracts.ts';
 import type { ChatComparisonTurnNavigationController } from '@pages/chat/widgets/comparisonturn/ChatComparisonTurnNavigationController.ts';
@@ -44,7 +43,6 @@ interface ChatModelSessionDependencies {
         dom: ChatPageDomHost['dom'] & { getDocument(): Document };
         getDomContext(): Element | null;
     };
-    presentation: ChatPagePresentationHost['presentation'];
     comparisonNavigation: ChatComparisonTurnNavigationController;
 }
 
@@ -98,7 +96,6 @@ class ChatModelSessionManager implements ChatModelSessionContract {
     }
 
     updateUi(root?: Element): void {
-        this.#page.presentation.updateHeaderModelSelectorVisibility();
         this.#modelControl?.render();
         applyModelContextWindowConstraints({ conversationRuntime: this.#page.runtime.conversationRuntime, conversationState: this.#page.state.conversationState, settings: this.#page.state.settings, pageDom: this.#page.page.pageDom });
         syncCameraInputActionSupport({ pageDom: this.#page.page.pageDom });

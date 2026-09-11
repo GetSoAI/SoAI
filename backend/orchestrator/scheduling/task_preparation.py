@@ -7,6 +7,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.di.validation import require_dependencies
 from core.errors.exceptions import StateError
 from orchestrator.lifecycle.service_interfaces.internal_protocols import (
@@ -30,6 +31,7 @@ class SchedulerTaskPreparationDependencies:
     lifecycle: OrchestratorLifecycleCoordinatorProtocol
     dispatch_waiters: Callable[[str, str, JSONDict], Awaitable[None]]
     fail_waiters: Callable[[str, str], Awaitable[None]]
+    reevaluate_routing_key: Callable[[str], Awaitable[None]]
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -37,6 +39,7 @@ class SchedulerTaskPreparationDependencies:
             dispatch_waiters=self.dispatch_waiters,
             fail_waiters=self.fail_waiters,
             lifecycle=self.lifecycle,
+            reevaluate_routing_key=self.reevaluate_routing_key,
         )
 
 
@@ -80,6 +83,7 @@ class SchedulerTaskPreparation:
                 task = action.task
                 plugin_name = action.plugin_name
                 model_info = action.model_info
+                pending_key = action.pending_key or action.universal_id
 
                 async def _start() -> None:
                     result = await self._deps.lifecycle.model_loading.start_plugin_and_load_model(
@@ -89,10 +93,16 @@ class SchedulerTaskPreparation:
                     )
                     if result.terminal_failure:
                         await self._deps.fail_waiters(
-                            action.pending_key or action.universal_id,
+                            pending_key,
                             result.message
                             or f"Model '{action.universal_id}' failed to load on plugin '{plugin_name}'.",
                         )
+                        return
+                    if not result.loaded:
+                        return
+                    await uncancel_then_cleanup(
+                        self._deps.reevaluate_routing_key(pending_key),
+                    )
 
                 return (f"Starting plugin '{plugin_name}' for model {action.universal_id}.", _start)
             case SchedulerActionType.EVICT_AND_START:

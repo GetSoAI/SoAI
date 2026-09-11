@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import os
+import sysconfig
 
 __all__ = (
     "get_venv_path",
     "get_venv_python_executable",
+    "get_venv_site_package_paths",
 )
 
 SOAI_VENV_DIR_NAME = "soai_main_venv"
@@ -27,3 +29,13 @@ def get_venv_python_executable(venv_path: str) -> str:
     if os.name == "nt":
         return os.path.join(venv_path, "Scripts", "python.exe")
     return os.path.join(venv_path, "bin", "python")
+
+
+def get_venv_site_package_paths(venv_path: str) -> tuple[str, ...]:
+    variables = {"base": venv_path, "platbase": venv_path}
+    return tuple(
+        dict.fromkeys(
+            os.path.abspath(sysconfig.get_path(name, vars=variables))
+            for name in ("purelib", "platlib")
+        )
+    )

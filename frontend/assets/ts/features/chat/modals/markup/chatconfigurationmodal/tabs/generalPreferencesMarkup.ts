@@ -34,6 +34,19 @@ const buildGeneralPreferencesMarkup = (inputArguments: { modalId: string; string
     })}
     <span class="chat-configuration-hint">${strings.newConversationInheritLastSettingsHint}</span>
   </div>
+
+  <div class="form-group setting-change-surface">
+    <label for="${uiIdAttr('ctrl-enter-send-toggle')}">${strings.ctrlEnterSend}</label>
+    ${buildToggleSwitchMarkup({
+        modalId,
+        token: 'ctrl-enter-send-toggle',
+        inputClassName: 'ctrl-enter-send-toggle',
+        checked: false,
+        labels: enabledDisabledLabels,
+        dataParameter: 'ctrl_enter_send_enabled'
+    })}
+    <span class="chat-configuration-hint">${strings.ctrlEnterSendHint}</span>
+  </div>
 `;
 };
 

@@ -111,6 +111,7 @@ const createPluginsPagePrimaryRuntime = (dependencies: CreatePluginsPageRuntimeD
             },
             presentation: {
                 getPluginLogo: (plugin: PluginRecord): string => coreControllers.dataController.getPluginLogo(plugin),
+                getPluginLogoFallback: (plugin: PluginRecord): string => coreControllers.dataController.getPluginLogoFallback(plugin),
                 formatPluginName: (name: string | undefined): string => coreControllers.dataController.formatPluginName(name ?? ''),
                 getCircuitBreakerNotice: (plugin: PluginRecord): string => coreControllers.compatibilityController.getCircuitBreakerNotice(plugin),
                 getIncompatibleNotice: (plugin: PluginRecord): string => coreControllers.compatibilityController.getIncompatibleNotice(plugin),

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.concurrency.deadlines import MonotonicDeadline, deadline_after
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.hardware.protocols import (
@@ -37,6 +38,7 @@ from hardware.vendors.nvidia.nvidia_settings_capabilities import (
 )
 from hardware.vendors.nvidia.nvml_capabilities import collect_nvidia_capabilities
 from hardware.vendors.nvidia.nvml_metric_reading import is_nvml_error_not_supported
+from hardware.vendors.nvidia.smi import NvidiaSettingsController
 
 if TYPE_CHECKING:
     import ctypes
@@ -138,6 +140,8 @@ def _expensive_capability_computation(
     vendor_id: int,
     *,
     nvml_gate: NvmlGateProtocol,
+    controller: NvidiaSettingsController | None,
+    deadline: MonotonicDeadline,
 ) -> JSONDict:
     nvapi_available = nvml_gate.nvapi_support.can_attempt
     nvidia_settings_available = nvml_gate.nvidia_settings_available
@@ -196,11 +200,13 @@ def _expensive_capability_computation(
     if nvapi_available:
         nvapi_caps = collect_nvapi_capabilities(vendor_id, nvml_gate=nvml_gate)
         gpu_caps = merge_nvapi_capabilities(gpu_caps, nvapi_caps)
-    if nvidia_settings_available and nvml_gate.runtime_platform.is_linux:
+    if nvidia_settings_available and nvml_gate.runtime_platform.is_linux and controller is not None:
         nvidia_settings_control_available = apply_nvidia_settings_capabilities(
             nvml_gate.logger,
             vendor_id,
             gpu_caps,
+            controller=controller,
+            deadline=deadline,
         )
     gpu_name_value = gpu_caps.get("name")
     if (
@@ -245,7 +251,10 @@ def sync_get_nvidia_capabilities(
     *,
     nvml_gate: NvmlGateProtocol,
     capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
+    controller: NvidiaSettingsController | None,
+    deadline: MonotonicDeadline | None = None,
 ) -> JSONDict:
+    operation_deadline = deadline or deadline_after(10.0)
     cached = capabilities_cache_service.get_cached(vendor_id)
     if cached is not None and _is_finalized_nvidia_capabilities(cached):
         return cached
@@ -257,6 +266,10 @@ def sync_get_nvidia_capabilities(
             trace_logger,
             vendor_id,
             nvml_gate=nvml_gate,
+            controller=controller,
+            deadline=operation_deadline,
         )
 
-    return capabilities_cache_service.compute_or_wait(vendor_id, _compute_capabilities)
+    return capabilities_cache_service.compute_or_wait(
+        vendor_id, _compute_capabilities, deadline=operation_deadline
+    )

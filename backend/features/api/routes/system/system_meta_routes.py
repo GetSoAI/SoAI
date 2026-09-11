@@ -19,6 +19,7 @@ from starlette.responses import Response
 
 from core.config.byte_sizes import MIB_BYTES
 from core.config.upload_limits import UploadLimitType, resolve_upload_limit_bytes
+from core.database.vacuum_result import DatabaseVacuumStartupResult
 from core.errors.exceptions import ValidationError
 from core.files.export import build_content_disposition_inline
 from core.filesystem.async_queries import async_path_exists
@@ -85,7 +86,12 @@ def register_routes(routers: ApiRouters) -> None:
         if runtime_api_endpoint is None:
             raise ValidationError("Runtime API endpoint is unavailable.")
         licensing_status = await api_context.dependencies.licensing_service.resolved_status()
+        try:
+            maintenance = api_context.dependencies.runtime_state.database_maintenance
+        except AttributeError:
+            maintenance = DatabaseVacuumStartupResult(status="not_run")
         payload: JSONDict = {
+            "database_maintenance": {"status": maintenance.status, "reason": maintenance.reason},
             "status": (
                 "degraded"
                 if licensing_status.requires_repair_plane

@@ -93,7 +93,7 @@ async def prepare_rag_document_upload(
     )
     registry = await require_task_registry_or_raise(request, api_context.dependencies)
     context = request.state.context
-    _, _, _, cancellation_id = resolve_context_ownership(context)
+    cancellation_id = resolve_context_ownership(context).cancellation_id
     task = await create(
         registry,
         task_type=TASK_TYPE_RAG_DOCUMENT_UPLOAD,

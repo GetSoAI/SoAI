@@ -13,7 +13,7 @@ interface BackendVariantOption {
 
 const AUTO_BACKEND_VARIANT_ID = 'auto';
 
-const normalizeBackendVariantOptions = (payload: BackendVariantsResponse): { selected: string; installed: string | null; options: BackendVariantOption[] } => {
+const normalizeBackendVariantOptions = (payload: BackendVariantsResponse): { selected: string; installed: string | null; installedLabel: string | null; options: BackendVariantOption[] } => {
     const options = payload.options.map((item) => ({
         id: item.id,
         label: item.label,
@@ -22,8 +22,8 @@ const normalizeBackendVariantOptions = (payload: BackendVariantsResponse): { sel
         selectable: item.selectable
     }));
     if (!options.some((option) => option.id === AUTO_BACKEND_VARIANT_ID)) throw new Error('Backend variant response did not include the auto option');
-    const installed = payload.installedVariantId;
-    return { selected: payload.selectedVariantId, installed: installed !== null && options.some((option) => option.id === installed) ? installed : null, options };
+    const installedOption = payload.installedVariantId === null ? undefined : options.find((option) => option.id === payload.installedVariantId);
+    return { selected: payload.selectedVariantId, installed: installedOption?.id ?? null, installedLabel: installedOption?.label ?? null, options };
 };
 
 export { normalizeBackendVariantOptions };

@@ -23,14 +23,22 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
 
 __all__ = (
+    "SlotInventoryObservation",
     "SlotPayloadDependencies",
     "build_slot_payload_dependencies",
     "get_capabilities_and_inventory",
     "load_inventory_and_payload",
     "load_locked_devices_payload",
-    "load_locked_inventory_and_payload",
     "load_locked_payload",
+    "observe_locked_slot_inventory",
 )
+
+
+@dataclass(frozen=True, slots=True)
+class SlotInventoryObservation:
+    inventory: dict[str, JSONDict]
+    payload: JSONDict
+    nvidia_inventory_available: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,7 +83,7 @@ def load_inventory_and_payload(
     prune: bool = True,
     allow_create: bool,
 ) -> tuple[dict[str, JSONDict], JSONDict]:
-    return load_locked_inventory_and_payload(
+    observation = observe_locked_slot_inventory(
         executor=deps.executor,
         storage=deps.storage,
         detailed_gpu_info=deps.detailed_gpu_info,
@@ -83,9 +91,10 @@ def load_inventory_and_payload(
         prune=prune,
         allow_create=allow_create,
     )
+    return (observation.inventory, observation.payload)
 
 
-def load_locked_inventory_and_payload(
+def observe_locked_slot_inventory(
     *,
     executor: CommandExecutorProtocol,
     storage: GpuSlotStorageManagerProtocol,
@@ -93,13 +102,16 @@ def load_locked_inventory_and_payload(
     gpu_services: GpuServiceDependencies,
     prune: bool = True,
     allow_create: bool,
-) -> tuple[dict[str, JSONDict], JSONDict]:
+) -> SlotInventoryObservation:
     inventory = snapshot_tuning_inventory(
         executor=executor,
         detailed_gpu_info=detailed_gpu_info,
         gpu_services=gpu_services,
     )
-    return snapshot_inventory_and_load_slots_payload(
+    nvidia_inventory_available = (
+        gpu_services.nvidia_capabilities_cache_service.inventory_available()
+    )
+    inventory_snapshot, payload = snapshot_inventory_and_load_slots_payload(
         storage,
         executor,
         detailed_gpu_info=detailed_gpu_info,
@@ -107,9 +119,15 @@ def load_locked_inventory_and_payload(
         gpu_vendor_detection_service=gpu_services.gpu_vendor_detection_service,
         nvidia_nvml_gate=gpu_services.nvidia_nvml_gate,
         nvidia_capabilities_cache_service=gpu_services.nvidia_capabilities_cache_service,
+        nvidia_inventory_available=nvidia_inventory_available,
         prune=prune,
         allow_create=allow_create,
         inventory=inventory,
+    )
+    return SlotInventoryObservation(
+        inventory=inventory_snapshot,
+        payload=payload,
+        nvidia_inventory_available=nvidia_inventory_available,
     )
 
 
@@ -122,7 +140,7 @@ def load_locked_devices_payload(
     prune: bool = True,
     allow_create: bool,
 ) -> JSONDict:
-    _inventory, payload = load_locked_inventory_and_payload(
+    observation = observe_locked_slot_inventory(
         executor=executor,
         storage=storage,
         detailed_gpu_info=detailed_gpu_info,
@@ -130,7 +148,7 @@ def load_locked_devices_payload(
         prune=prune,
         allow_create=allow_create,
     )
-    devices_payload = payload.get("devices")
+    devices_payload = observation.payload.get("devices")
     return devices_payload if isinstance(devices_payload, dict) else {}
 
 
@@ -142,14 +160,14 @@ def load_locked_payload(
     gpu_services: GpuServiceDependencies,
     allow_create: bool,
 ) -> JSONDict:
-    _inventory, payload = load_locked_inventory_and_payload(
+    observation = observe_locked_slot_inventory(
         executor=executor,
         storage=storage,
         detailed_gpu_info=detailed_gpu_info,
         gpu_services=gpu_services,
         allow_create=allow_create,
     )
-    return payload
+    return observation.payload
 
 
 def get_capabilities_and_inventory(

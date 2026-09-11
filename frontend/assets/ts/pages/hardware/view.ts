@@ -64,7 +64,7 @@ const renderHardwarePageView = ({ getIconSync, generateStandardHeader }: Hardwar
         ],
         contentLayout: 'analytics'
     });
-    const contentMarkup = uiHtml`<div class="hardware-content analytics-stack"><div id="hardware-grid" class="hardware-grid movable-sections-grid" data-columns="${HARDWARE_GRID_SETTINGS.columns}"></div></div>`;
+    const contentMarkup = uiHtml`<div class="hardware-content analytics-stack"><div id="hardware-gpu-resource-status" class="hardware-gpu-resource-status u-hidden" role="status" aria-live="polite"></div><div id="hardware-grid" class="hardware-grid movable-sections-grid" data-columns="${HARDWARE_GRID_SETTINGS.columns}"></div></div>`;
     const markup = headerMarkup.html.replace('<!-- Page content goes here -->', contentMarkup.html);
     return toTrustedUiHtml(markup);
 };

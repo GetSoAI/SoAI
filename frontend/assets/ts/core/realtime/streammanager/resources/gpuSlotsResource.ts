@@ -39,7 +39,7 @@ const buildGpuSlotsResult = (previousValue: GpuSlotsBuilderResult, update: Parti
         byDeviceId,
         byIndex,
         warnings: update.warnings ?? previousValue.warnings,
-        error: update.error ?? previousValue.error
+        error: hasOwn(update, 'error') ? (update.error ?? null) : previousValue.error
     };
 };
 

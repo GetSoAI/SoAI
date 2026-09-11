@@ -1,0 +1,63 @@
+/* SoAI - Composer model selector geometry [frontend/assets/css/components/chat/chat-composer-model-selector.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .model-selector.model-selector--composer.page-header-filter-select[data-chat-model-control='true'] {
+        position: static;
+        flex: 0 0 176px;
+        width: 176px;
+        min-width: 0;
+        max-width: 176px;
+        height: var(--chat-composer-control-size);
+        margin-inline-end: auto;
+    }
+
+    :where(.chat-container) .model-selector.model-selector--composer.page-header-filter-select[data-chat-model-control='true'] .chat-model-control {
+        position: static;
+    }
+
+    :where(.chat-container) .model-selector.model-selector--composer.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary.ui-button {
+        height: var(--chat-composer-control-size);
+        min-height: var(--chat-composer-control-size);
+        width: 100%;
+        overflow: hidden;
+    }
+
+    :where(.chat-container) .model-selector.model-selector--composer.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu {
+        top: auto;
+        inset-inline-start: var(--space-2);
+        bottom: calc(100% + var(--space-2));
+        width: min(360px, 100cqi);
+        min-width: 0;
+        max-width: none;
+        max-height: min(420px, var(--chat-model-menu-max-height));
+    }
+
+    :where(.chat-container) .chat-input-wrapper:has(.model-selector--composer .chat-model-menu.is-open) {
+        z-index: var(--z-overlay);
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where(.chat-container) .chat-input-actions {
+            --chat-input-actions-gap: var(--space-1);
+            flex-wrap: nowrap;
+        }
+
+        :where(.chat-container) .chat-mobile-auxiliary-action-slot {
+            min-width: 0;
+            flex-shrink: 1;
+        }
+
+        :where(.chat-container) .chat-input-actions .chat-token-counter-auxiliary {
+            min-width: var(--chat-composer-control-size);
+            max-width: 100%;
+            flex-shrink: 1;
+        }
+
+        :where(.chat-container) .model-selector.model-selector--composer.page-header-filter-select[data-chat-model-control='true'] {
+            flex-basis: 112px;
+            width: 112px;
+            max-width: 112px;
+        }
+    }
+}

@@ -1,0 +1,81 @@
+/* SoAI - Hardware page GPU resource status styles [frontend/assets/css/pages/hardware/gpu-resource-status.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-resource-status {
+        --hardware-gpu-status-accent: var(--status-orange);
+        --hardware-gpu-status-icon-size: 1.25rem;
+
+        display: grid;
+        grid-template-columns: var(--hardware-gpu-status-icon-size) minmax(0, 1fr) auto;
+        align-items: start;
+        gap: var(--space-3);
+        padding: var(--space-3);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--hardware-gpu-status-accent) 45%, var(--glass-border-strong));
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--hardware-gpu-status-accent) 12%, var(--glass-underlay-surface));
+        box-shadow: var(--glass-shadow-base);
+        font-size: var(--font-size-body-sm);
+        line-height: 1.4;
+        animation: effect-fade-enter var(--duration-200) var(--ease-out);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-resource-status[data-severity='error'] {
+        --hardware-gpu-status-accent: var(--status-red);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-resource-status.u-hidden {
+        display: var(--hidden-display);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-resource-status__icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: var(--hardware-gpu-status-icon-size);
+        height: var(--hardware-gpu-status-icon-size);
+        margin-top: var(--space-05);
+        color: var(--hardware-gpu-status-accent);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-resource-status__icon svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-resource-status__messages {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        gap: var(--space-1);
+        min-width: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-resource-status__message {
+        margin: 0;
+        color: var(--text-primary);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-resource-status__action {
+        flex-shrink: 0;
+        align-self: center;
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-resource-status {
+            grid-template-columns: var(--hardware-gpu-status-icon-size) minmax(0, 1fr);
+        }
+
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-resource-status__action {
+            grid-column: 2;
+            justify-self: start;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-gpu-resource-status {
+            animation: none;
+        }
+    }
+}

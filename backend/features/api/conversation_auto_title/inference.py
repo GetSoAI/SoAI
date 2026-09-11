@@ -18,6 +18,7 @@ from core.prompts.system_prompts import get_text_prompt_v1
 from core.runtime.request_context import RequestContext
 from core.runtime.request_sources import REQUEST_SOURCE_SYSTEM
 from core.runtime.soai_identifiers import create_request_id, create_system_id
+from core.validation.integers import is_strict_int
 from features.api.conversation_auto_title.prompt_template import build_auto_title_prompt
 from features.api.conversation_auto_title.title_parser import parse_auto_title
 from features.api.routes.openai.chat.non_streaming.runner import (
@@ -77,6 +78,9 @@ async def generate_auto_title(
     user_message: JSONDict,
     assistant_message: JSONDict,
 ) -> str | None:
+    context_window_tokens = runtime.usage_preview_context_window_tokens
+    if not is_strict_int(context_window_tokens) or context_window_tokens <= 0:
+        return None
     api_context = AutoTitleApiContext(dependencies=api_dependencies)
     request_context = RequestContext(
         trace_id=create_request_id(prefix="auto-title"),
@@ -108,6 +112,7 @@ async def generate_auto_title(
         "temperature": 0.2,
         "timeout": 15,
         "reasoning_effort": "none",
+        "context_window_tokens": context_window_tokens,
     }
     quota = InferenceQuotaContext(
         api_context=api_context,

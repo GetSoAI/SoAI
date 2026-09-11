@@ -11,7 +11,7 @@ import psutil
 
 from core.errors.exceptions import StateError, ValidationError
 from core.filesystem.atomic_writes import atomic_write_text_content
-from core.filesystem.open_files import open_text
+from core.filesystem.open_files import read_regular_file_no_symlink
 from core.licensing.edition import require_licensing_edition
 from core.runtime.api_endpoint import RuntimeApiEndpoint
 from core.serialization.json import serialize_json_compact_stable_strict
@@ -29,6 +29,7 @@ __all__ = (
     "read_verified_runtime_instance_record",
     "runtime_record_matches_current_process",
     "runtime_record_process_descends_from",
+    "runtime_record_matches_process_tree",
     "write_runtime_instance_record",
 )
 
@@ -170,11 +171,17 @@ def create_runtime_instance_record(
 
 def read_runtime_instance_record(record_path: str) -> RuntimeInstanceRecord:
     try:
-        with open_text(record_path, encoding="utf-8", errors="strict") as handle:
-            raw_payload = handle.read()
-    except UnicodeError as exception:
-        raise ValidationError("Runtime instance record must be valid UTF-8.") from exception
-    parsed_payload = parse_json_value(raw_payload)
+        raw_payload = read_regular_file_no_symlink(record_path)
+    except ValidationError as exception:
+        if isinstance(exception.__cause__, FileNotFoundError):
+            missing_record = exception.__cause__
+            raise FileNotFoundError(
+                missing_record.errno, missing_record.strerror, missing_record.filename
+            ) from exception
+        raise
+    parsed_payload = parse_json_value(
+        raw_payload, field="runtime instance record", strict_utf8=True, reject_duplicate_keys=True
+    )
     return RuntimeInstanceRecord.from_mapping(
         require_json_dict(parsed_payload, label="runtime instance record"),
     )
@@ -253,9 +260,32 @@ def runtime_record_matches_current_process(
 def runtime_record_process_descends_from(
     record: RuntimeInstanceRecord,
     ancestor_pid: int,
+    *,
+    ancestor_create_time_ns: int | None = None,
 ) -> bool:
     try:
-        parent_pids = {parent.pid for parent in psutil.Process(record.pid).parents()}
+        process = psutil.Process(record.pid)
+        if ancestor_create_time_ns is not None and (
+            int(round(process.create_time() * 1_000_000_000)) != record.process_create_time_ns
+        ):
+            return False
+        for parent in process.parents():
+            if parent.pid == ancestor_pid:
+                return ancestor_create_time_ns is None or (
+                    int(round(parent.create_time() * 1_000_000_000)) == ancestor_create_time_ns
+                )
     except psutil.Error:
         return False
-    return ancestor_pid in parent_pids
+    return False
+
+
+def runtime_record_matches_process_tree(
+    record: RuntimeInstanceRecord, expected: RuntimeInstanceRecord
+) -> bool:
+    if record.edition != expected.edition or record.base_dir != expected.base_dir:
+        return False
+    if record.pid == expected.pid:
+        return record.process_create_time_ns == expected.process_create_time_ns
+    return runtime_record_process_descends_from(
+        record, expected.pid, ancestor_create_time_ns=expected.process_create_time_ns
+    )

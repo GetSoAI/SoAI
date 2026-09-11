@@ -17,9 +17,10 @@ const normalizeModelItems = (items: ReadonlyArray<ResourceItem>, context: string
     return models;
 };
 
-const renderModelsItemsForRuntime = (dependencies: { getFilteredItems: () => ReadonlyArray<ResourceItem>; getAllItems: () => ReadonlyArray<ResourceItem>; renderCollection: (payload: { filteredItems: ModelRecord[]; allItems: ModelRecord[] }) => void }): void => {
+const renderModelsItemsForRuntime = (dependencies: { getFilteredItems: () => ReadonlyArray<ResourceItem>; getAllItems: () => ReadonlyArray<ResourceItem>; syncAuthoritativeModelCount: (modelCount: number) => void; renderCollection: (payload: { filteredItems: ModelRecord[]; allItems: ModelRecord[] }) => void }): void => {
     const filteredItems = normalizeModelItems(dependencies.getFilteredItems(), 'ModelsPage.renderModelsItems.filtered');
     const allItems = normalizeModelItems(dependencies.getAllItems(), 'ModelsPage.renderModelsItems.all');
+    dependencies.syncAuthoritativeModelCount(allItems.length);
     dependencies.renderCollection({ filteredItems, allItems });
 };
 

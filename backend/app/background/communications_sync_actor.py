@@ -56,6 +56,7 @@ OPERATION = "app.background.communications_sync_actor.run"
 
 @dataclass(frozen=True, slots=True)
 class CommunicationsSyncActorDependencies:
+    startup_ready_event: asyncio.Event
     config: ConfigProtocol
     database_users: DatabaseUsersProtocol
     database_calendar: DatabaseCalendarProtocol
@@ -70,6 +71,7 @@ class CommunicationsSyncActorDependencies:
     def __post_init__(self) -> None:
         require_dependencies(
             owner="CommunicationsSyncActorDependencies",
+            startup_ready_event=self.startup_ready_event,
             config=self.config,
             database_users=self.database_users,
             database_calendar=self.database_calendar,
@@ -231,6 +233,9 @@ class CommunicationsSyncActor:
         )
 
     async def _ordinary_operations_allowed(self) -> bool:
+        await self._deps.startup_ready_event.wait()
+        if self._shutdown_event.is_set():
+            return False
         licensing_status = self._require_licensing_status()
         decision = await licensing_status.admission(LicensingOperationClass.ORDINARY)
         return decision.allowed

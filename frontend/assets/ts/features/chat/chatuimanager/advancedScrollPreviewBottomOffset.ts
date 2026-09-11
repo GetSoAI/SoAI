@@ -1,4 +1,4 @@
-/* SoAI - Stable baseline composer clearance for the chat advanced scroll preview [frontend/assets/ts/features/chat/chatuimanager/advancedScrollPreviewBottomOffset.ts] */
+/* SoAI - Composer clearance for the chat advanced scroll preview [frontend/assets/ts/features/chat/chatuimanager/advancedScrollPreviewBottomOffset.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
@@ -78,7 +78,7 @@ const resolveBaselineWrapperHeightPx = (win: Window, inputWrapper: HTMLElement, 
     const actionHeightPx = resolveElementHeightPx(win, inputActions);
     const controlFallbackPx = actionHeightPx > 0 ? actionHeightPx : FALLBACK_CONTROL_HEIGHT_PX;
     const inputHeightPx = resolveSingleLineInputHeightPx(win, inputWrapper, controlFallbackPx);
-    const contentHeightPx = Math.max(inputHeightPx, actionHeightPx, FALLBACK_CONTROL_HEIGHT_PX);
+    const contentHeightPx = inputHeightPx + actionHeightPx;
     return Math.max(minHeightPx === null ? 0 : minHeightPx, paddingTopPx + paddingBottomPx + contentHeightPx);
 };
 
@@ -101,9 +101,9 @@ const createAdvancedScrollPreviewBottomOffsetController = (input: { context: Cha
         }
         const shellRect = measureLayoutBox(input.shell);
         const wrapperRect = measureLayoutBox(input.inputWrapper);
-        const baselineHeightPx = resolveBaselineWrapperHeightPx(input.win, input.inputWrapper, input.inputActions);
-        const baselineTopPx = wrapperRect.bottom - baselineHeightPx;
-        const overlapPx = shellRect.bottom - baselineTopPx;
+        const composerClearanceHeightPx = Math.max(wrapperRect.height, resolveBaselineWrapperHeightPx(input.win, input.inputWrapper, input.inputActions));
+        const composerClearanceTopPx = wrapperRect.bottom - composerClearanceHeightPx;
+        const overlapPx = shellRect.bottom - composerClearanceTopPx;
         const clampedOverlapPx = clampNumber(overlapPx, 0, shellRect.height);
         return baseSpacingPx + clampedOverlapPx;
     };

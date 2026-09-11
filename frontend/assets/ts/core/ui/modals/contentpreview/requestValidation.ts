@@ -4,7 +4,7 @@
 import { toTrimmedString } from '@core/normalize.ts';
 import { normalizeContentPreviewSourceReference } from '@core/ui/modals/contentpreview/sourceReference.ts';
 import { normalizeContentPreviewTextBaseline } from '@core/ui/modals/contentpreview/textBaseline.ts';
-import type { ContentPreviewDocumentRequest, ContentPreviewImageMetadata, ContentPreviewMediaRequest, ContentPreviewOpenRequest, ContentPreviewSourceReference, ContentPreviewTextBaseline, ContentPreviewTextRequest } from '@core/ui/modals/contentpreview/types.ts';
+import type { ContentPreviewDocumentRequest, ContentPreviewImageNavigation, ContentPreviewImageMetadata, ContentPreviewMediaRequest, ContentPreviewOpenRequest, ContentPreviewSourceReference, ContentPreviewTextBaseline, ContentPreviewTextRequest } from '@core/ui/modals/contentpreview/types.ts';
 
 const requireContentPreviewNonEmpty = (value: string, label: string): string => {
     const trimmed = toTrimmedString(value);
@@ -70,6 +70,17 @@ const normalizeTextRequest = (request: ContentPreviewTextRequest): ContentPrevie
         openSourceUrl: normalizeOptionalContentPreviewOpenUrl(request.openSourceUrl, 'openSourceUrl')
     });
 
+const normalizeImageNavigation = (navigation: ContentPreviewImageNavigation | null | undefined): ContentPreviewImageNavigation | null => {
+    if (!navigation) {
+        return null;
+    }
+    const position = navigation.position;
+    if (position && (!Number.isSafeInteger(position.current) || !Number.isSafeInteger(position.total) || position.current < 1 || position.current > position.total)) {
+        throw new Error('Image gallery position must identify an image within the gallery');
+    }
+    return navigation;
+};
+
 const normalizeMediaRequest = (request: ContentPreviewMediaRequest): ContentPreviewMediaRequest =>
     Object.freeze({
         ...request,
@@ -77,6 +88,7 @@ const normalizeMediaRequest = (request: ContentPreviewMediaRequest): ContentPrev
         title: requireContentPreviewNonEmpty(request.title, 'title'),
         sourceUrl: requireContentPreviewNonEmpty(request.sourceUrl, 'sourceUrl'),
         imageMetadata: normalizeImageMetadata(request.imageMetadata),
+        imageNavigation: normalizeImageNavigation(request.imageNavigation),
         sourceReference: normalizeRequestSourceReference(request.sourceReference),
         onRequestAttach: request.onRequestAttach ?? null,
         onSourceUrlRelease: request.onSourceUrlRelease ?? null,

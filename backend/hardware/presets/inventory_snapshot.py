@@ -60,8 +60,12 @@ def snapshot_gpu_inventory(
         if gpu_index is None or gpu_index < 0:
             continue
         gpu_name = entry.get("name")
-        devices[device_id] = {
+        device_info: JSONDict = {
             "gpu_index": gpu_index,
             "name": gpu_name if isinstance(gpu_name, str) else str(gpu_name),
         }
+        vendor = entry.get("vendor")
+        if isinstance(vendor, str) and vendor:
+            device_info["vendor"] = vendor
+        devices[device_id] = device_info
     return devices

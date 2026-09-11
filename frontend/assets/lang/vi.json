@@ -82,6 +82,9 @@
                 "deleteMessage": "Thao tác này sẽ xóa \"{title}\" và các lượt chạy đã lên lịch của nó. Bản ghi trò chuyện hiện có vẫn sẽ khả dụng.",
                 "deleteTitle": "Xóa tác vụ tự động?"
             },
+            "errors": {
+                "oneShotStartNotFuture": "Tác vụ tự động chạy một lần phải bắt đầu trong tương lai. Hãy chọn thời gian bắt đầu muộn hơn."
+            },
             "preferencesCorrupt": {
                 "message": "Tùy chọn của trang Tự động hóa không hợp lệ. Hãy đặt lại tùy chọn để tiếp tục.",
                 "reset": "Đặt lại tùy chọn tự động hóa",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "Yêu cầu phê duyệt trước khi thực thi công cụ trong cuộc trò chuyện này.",
                 "newConversationInheritLastSettings": "Dùng cài đặt gần nhất cho cuộc trò chuyện mới",
                 "newConversationInheritLastSettingsHint": "Cuộc trò chuyện mới sẽ bắt đầu với mô hình, công cụ và cài đặt kiến thức bạn dùng gần nhất.",
+                "ctrlEnterSend": "Ctrl + Enter để gửi",
+                "ctrlEnterSendHint": "Khi bật, gửi bằng Ctrl + Enter và xuống dòng bằng Enter. Khi tắt, gửi bằng Enter và xuống dòng bằng Shift + Enter.",
                 "knowledge": {
                     "downloadModel": "Tải mô hình xuống",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "Đang dừng phản hồi"
                         },
+                        "soai_documentation": {
+                            "1": "Đang tìm kiếm tài liệu SoAI",
+                            "detail": {
+                                "1": "Đang tìm kiếm tài liệu SoAI: {detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "Đang thay thế văn bản",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "Thư mục hiện tại",
+                "filesystemRoot": "Thư mục gốc của hệ thống tệp",
                 "empty": "Không tìm thấy thư mục.",
                 "forbidden": "Bạn không có quyền truy cập thư mục này.",
                 "loadFailed": "Không thể tải thư mục.",
+                "validationFailed": "Không thể xác thực thư mục đã chọn.",
                 "loading": "Đang tải thư mục...",
                 "manualAbsolutePathRequired": "Nhập đường dẫn tuyệt đối (ví dụ: /path hoặc C:\\path).",
                 "manualPath": "Thư mục đã chọn",
@@ -2474,7 +2487,8 @@
                 "loading": "Đang tải",
                 "resolution": "Độ phân giải",
                 "size": "Kích thước",
-                "zoom": "Thu phóng"
+                "zoom": "Thu phóng",
+                "position": "Hình ảnh {current} trên {total}"
             },
             "sourceInfo": {
                 "conversationPath": "Đường dẫn cuộc trò chuyện",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "Widget"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "Không thể phát hiện một số chức năng điều khiển GPU. Các chức năng có sẵn vẫn sử dụng được.",
+                "capabilitiesStale": "Đang kết nối lại các chức năng điều khiển GPU. Cập nhật lần cuối: {age}.",
+                "capabilitiesRetained": "Các chức năng điều khiển GPU không khả dụng. Đang hiển thị dữ liệu từ {age}.",
+                "slotsStale": "Đang kết nối lại các cài đặt GPU đã lưu. Cập nhật lần cuối: {age}.",
+                "slotsRetained": "Các cài đặt GPU đã lưu không khả dụng. Đang hiển thị dữ liệu từ {age}.",
+                "capabilitiesUnavailable": "Không thể sử dụng các điều khiển GPU.",
+                "slotsUnavailable": "Không thể sử dụng các cài đặt GPU đã lưu."
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "Mở"
                 },
                 "aria": {
-                    "panel": "Trung tâm thông báo",
-                    "unreadCount": "Thông báo chưa đọc"
+                    "panel": "Trung tâm thông báo"
                 },
                 "messages": {
                     "noNotifications": "Không có thông báo",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "Tiếp tục",
                 "externalLinkMessage": "Mở trang web SoAI trong tab trình duyệt mới?"
             },
-            "description": "Tìm hiểu cách sử dụng SoAI",
+            "description": "Tìm hiểu cách sử dụng SoAI.",
             "documentationUrl": "Tài liệu",
             "intro": {
                 "aboutButton": "Giới thiệu SoAI",
@@ -4236,8 +4258,7 @@
             "description": "Quản lý các mô hình AI trên nhiều plugin và nhà cung cấp.",
             "searchPlaceholder": "Tìm kiếm mô hình...",
             "empty": {
-                "downloadFirst": "Tải mô hình đầu tiên",
-                "getStarted": "Bắt đầu bằng cách tải mô hình đầu tiên.",
+                "getStarted": "Bắt đầu bằng cách thêm mô hình đầu tiên của bạn.",
                 "noMatch": "Không có mô hình nào khớp với bộ lọc",
                 "noModels": "Không tìm thấy mô hình nào",
                 "tryAdjusting": "Hãy thử điều chỉnh tiêu chí tìm kiếm hoặc bộ lọc."
@@ -4702,7 +4723,7 @@
                 "title": "Bảng điều khiển"
             },
             "fileExplorer": {
-                "description": "Duyệt và quản lý tệp SoAI OS.",
+                "description": "Duyệt và quản lý tệp SoAI.",
                 "title": "Tệp"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "Không có",
                 "reasons": {
                     "broken": "Tệp plugin bị hỏng hoặc có lỗi cú pháp. Hãy xóa và tải lại.",
+                    "dependencyMissing": "Các phần phụ thuộc bắt buộc của plugin không khả dụng: {dependencies}.",
                     "gpu": "Yêu cầu GPU ({required}). Nhà cung cấp được phát hiện: {detected}. Ghi đè để dùng chế độ CPU (có thể không hoạt động).",
                     "gpuShort": "Kiểm tra GPU thất bại. Yêu cầu: {required}. Phát hiện: {detected}. Bật/tắt công tắc để tiếp tục.",
                     "hardwareShort": "Không đáp ứng yêu cầu phần cứng. Yêu cầu: {required}. Hiện tại: {current}. Bật/tắt công tắc để tiếp tục.",
                     "os": "Yêu cầu {required}. Phát hiện: {detected}. Tự chịu rủi ro nếu ghi đè.",
+                    "osCard": "Yêu cầu {required}. Phát hiện: {detected}.",
                     "osShort": "Hệ điều hành không khớp. Yêu cầu: {required}. Phát hiện: {detected}. Bật/tắt công tắc để vẫn bật.",
                     "version": "Yêu cầu SoAI {required}. Hiện tại: {current}. Hãy cập nhật SoAI để dùng plugin này."
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "Đã gửi lệnh dừng tất cả plugin.",
                 "stopSuccess": "Đã dừng plugin {plugin} thành công",
                 "updateCheckFailed": "Không thể kiểm tra bản cập nhật",
-                "uploadAccepted": "Đã chấp nhận tệp plugin tải lên",
                 "uploadFailed": "Không thể tải plugin lên"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "Plugin",
                 "prompts": "Prompt"
             },
-            "description": "Tìm kiếm trong mô hình, plugin, phần cứng và nhiều nội dung khác",
+            "description": "Tìm kiếm trong mô hình, plugin, phần cứng và nhiều nội dung khác.",
             "deviceDescriptions": {
                 "cpuCores": "{count} lõi",
                 "cpuThreads": "{count} luồng",
@@ -7669,7 +7691,8 @@
                 "upToDate": "Đã cập nhật"
             },
             "confirmations": {
-                "installSystem": "Bạn có chắc muốn cài đặt bản cập nhật hệ thống {version} không? Việc này sẽ khởi động lại ứng dụng SoAI."
+                "installSystem": "Bạn có chắc muốn cài đặt bản cập nhật hệ thống {version} không? Việc này sẽ khởi động lại ứng dụng SoAI.",
+                "installSystemWithInstaller": "Bạn có chắc muốn cài đặt bản cập nhật hệ thống {version} không? Trình cài đặt Windows sẽ chạy và khởi động lại SoAI."
             },
             "description": "Kiểm tra và cài đặt bản cập nhật cho ứng dụng SoAI.",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "Xác nhận mật khẩu",
-                    "placeholder": "Nhập lại mật khẩu."
+                    "placeholder": "Lặp lại"
                 },
                 "creating": "Đang tạo...",
                 "description": "Tạo tài khoản quản trị viên của bạn. Tài khoản này có toàn quyền truy cập phiên bản SoAI này.",

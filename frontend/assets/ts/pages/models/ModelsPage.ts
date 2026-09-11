@@ -9,6 +9,7 @@ import { METRICS, MODELS, MODELS_LAST_USED } from '@core/realtime/streammanager/
 import type { TrustedHtml } from '@core/security/public.ts';
 import { StaticBasePage } from '@core/StaticBasePage.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
+import { bindPluginLogoFallbacks } from '@features/catalog/public.ts';
 import { PAGE_ID, PAGE_MODULE_ID } from '@pages/models/contracts/modelsPageConstants.ts';
 import { isModelsDataActionId } from '@pages/models/actions.ts';
 import { bindModelsModalLifecycleEvents } from '@pages/models/controllers/page/modelsModalLifecycleController.ts';
@@ -80,6 +81,7 @@ class ModelsPage extends StaticBasePage {
         if (!this.#domain.session.cardController) throw new Error('ModelsPage.setupEventListeners requires cardController to be initialized');
         const signal = this.pageLifecycle.beginListeners();
         const root = requireModelsRoot({ pageDom: this.pageDom });
+        bindPluginLogoFallbacks(root, signal);
         bindPageActionDispatcher({
             label: 'ModelsPage',
             root,
@@ -105,14 +107,6 @@ class ModelsPage extends StaticBasePage {
             this.#domain.initializeView();
             await super.loadData(loadParameters, loadContext);
         });
-    }
-
-    protected override async afterInitialization(parameters: JsonObject | null, context: { signal?: AbortSignal } = {}): Promise<void> {
-        await super.afterInitialization(parameters, context);
-        if (signalAborted(context.signal ?? null)) {
-            return;
-        }
-        await this.#domain.handleInitialAction(parameters);
     }
 
     override async onRefresh(parameters: JsonObject | null): Promise<void> {

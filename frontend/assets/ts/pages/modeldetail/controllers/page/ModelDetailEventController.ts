@@ -5,6 +5,7 @@ import { bindPageActionDispatcher } from '@core/dom/dataActionBinding.ts';
 import type { PageLifecycle } from '@core/routing/pages/basepage/PageLifecycle.ts';
 import type { SaveController } from '@core/save/public.ts';
 import { setOpenAICapabilityControlsBusy } from '@features/models/public.ts';
+import { bindPluginLogoFallbacks } from '@features/catalog/public.ts';
 import { isModeldetailActionId } from '@pages/modeldetail/actions.ts';
 import type { ModelDetailActionsHost } from '@pages/modeldetail/controllers/page/actionEffects.ts';
 import { dispatchModelDetailDelegatedAction, handleModelDetailDelegatedChange, handleModelDetailDelegatedClick } from '@pages/modeldetail/controllers/page/delegatedActionsController.ts';
@@ -45,6 +46,7 @@ class ModelDetailEventController {
         const ui = dependencies.ensureUi();
         const signal = dependencies.pageLifecycle.beginListeners();
         dependencies.session.listeners = dependencies.pageLifecycle.listenersController;
+        bindPluginLogoFallbacks(ui.root, signal);
         ui.modelTestModal.addEventListener('core.modal.close', this.#handleTestModalClose, { signal });
         dependencies.save.attach({
             resolveSaveButtons: () => [ui.saveParametersHeaderButton, ui.openAICapabilitiesSaveButton],

@@ -146,6 +146,9 @@ class DatabaseWriter:
         status = self._io_controller.operations.get_operation_status(operation_id)
         return status.value if status else None
 
+    def has_pending_write_operations(self) -> bool:
+        return self._io_controller.operations.has_pending_write_operations()
+
     async def queue_write_operation[*Ts, T](
         self,
         func: Callable[[sqlite3.Connection, *Ts], T],

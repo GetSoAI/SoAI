@@ -8,6 +8,12 @@ from typing import TYPE_CHECKING
 from fastapi import Depends, Query, Request
 from fastapi.responses import Response
 
+from core.files.host_filesystem_roots import (
+    default_host_filesystem_root,
+    enumerate_host_filesystem_roots,
+    locate_existing_host_directory,
+    resolve_host_filesystem_root,
+)
 from core.logging.trace import get_logger
 from core.state.access import AccessAction
 from features.api.routes.file_explorer.listing_serialization import (
@@ -25,6 +31,7 @@ from features.api.runtime.audit import log_audit_event
 from features.api.runtime.container.api_routers import ApiRouters
 from features.api.runtime.context import ApiContext, resolve_api_context
 from features.api.runtime.errors import raise_server_error
+from features.api.schemas.users import AdminWorkspaceBrowserLocate
 from features.file_explorer.workspace_scope import FileSystemRootScope
 
 if TYPE_CHECKING:
@@ -34,10 +41,75 @@ __all__ = ("register_routes",)
 
 LOGGER_NAME = "SoAI.features.api.users_admin_file_browser_routes"
 OPERATION_WEBUI_USERS_FILE_BROWSER_LIST = "webui.users.file_browser.list"
+OPERATION_WEBUI_USERS_FILE_BROWSER_LOCATE = "webui.users.file_browser.locate"
+OPERATION_WEBUI_USERS_FILE_BROWSER_ROOTS = "webui.users.file_browser.roots"
 OPERATION_WEBUI_USERS_FILE_BROWSER_SEARCH = "webui.users.file_browser.search"
 
 
 def register_routes(routers: ApiRouters) -> None:
+    @routers.webui.get(
+        "/users/workspace-browser/roots",
+        dependencies=require_action_dependencies(AccessAction.USER_ADMIN),
+    )
+    async def list_host_filesystem_roots(request: Request) -> Response:
+        log_audit_event(request, "LIST_WORKSPACE_BROWSER_ROOTS", "file_explorer")
+
+        async def run() -> JSONDict:
+            roots = enumerate_host_filesystem_roots()
+            return {
+                "roots": list(roots),
+                "default_root": roots[0],
+            }
+
+        return await execute_file_explorer_route_json(
+            request=request,
+            run=run,
+            logger=get_logger(LOGGER_NAME),
+            recoverable_coerce_operation=OPERATION_WEBUI_USERS_FILE_BROWSER_ROOTS,
+            operation=OPERATION_WEBUI_USERS_FILE_BROWSER_ROOTS,
+            recoverable_log_message="Failed to list host filesystem roots",
+            server_error_message="Failed to list filesystem roots.",
+            handle_validation_error=True,
+        )
+
+    @routers.webui.post(
+        "/users/workspace-browser/locate",
+        dependencies=require_action_dependencies(AccessAction.USER_ADMIN),
+    )
+    async def locate_host_directory(
+        request: Request,
+        payload: AdminWorkspaceBrowserLocate,
+    ) -> Response:
+        log_audit_event(
+            request,
+            "LOCATE_WORKSPACE_BROWSER_DIRECTORY",
+            "file_explorer",
+            {"path": payload.path},
+        )
+
+        async def run() -> JSONDict:
+            location = locate_existing_host_directory(payload.path)
+            root_scope = FileSystemRootScope(
+                root_path=location.root_path,
+                allow_symlinks=True,
+            )
+            return {
+                "root_path": root_scope.root_path,
+                "path": root_scope.to_virtual_path(location.absolute_path),
+                "absolute_path": location.absolute_path,
+            }
+
+        return await execute_file_explorer_route_json(
+            request=request,
+            run=run,
+            logger=get_logger(LOGGER_NAME),
+            recoverable_coerce_operation=OPERATION_WEBUI_USERS_FILE_BROWSER_LOCATE,
+            operation=OPERATION_WEBUI_USERS_FILE_BROWSER_LOCATE,
+            recoverable_log_message="Failed to locate host directory",
+            server_error_message="Failed to locate directory.",
+            handle_validation_error=True,
+        )
+
     @routers.webui.get(
         "/users/workspace-browser/list",
         dependencies=require_action_dependencies(AccessAction.USER_ADMIN),
@@ -45,17 +117,28 @@ def register_routes(routers: ApiRouters) -> None:
     async def list_global_file_explorer_root(
         request: Request,
         path: str = Query(default="/", description="Virtual directory path"),
+        root_path: str | None = Query(default=None, description="Native filesystem root"),
         offset: int = Query(default=0, ge=0),
         limit: int | None = Query(default=None, ge=1, le=1000),
         api_context: ApiContext = Depends(resolve_api_context),
     ) -> Response:
-        log_audit_event(request, "LIST_WORKSPACE_BROWSER", "file_explorer", {"path": path})
+        log_audit_event(
+            request,
+            "LIST_WORKSPACE_BROWSER",
+            "file_explorer",
+            {"path": path, "root_path": root_path},
+        )
         file_explorer_core = api_context.dependencies.file_explorer_core
         if file_explorer_core is None:
             raise_server_error(request, "File explorer service is not available.")
-        root_scope = FileSystemRootScope(root_path="/", allow_symlinks=True)
 
         async def run() -> JSONDict:
+            resolved_root = (
+                default_host_filesystem_root()
+                if root_path is None
+                else resolve_host_filesystem_root(root_path)
+            )
+            root_scope = FileSystemRootScope(root_path=resolved_root, allow_symlinks=True)
             result = await file_explorer_core.list_directory(
                 root_scope,
                 path,
@@ -84,6 +167,7 @@ def register_routes(routers: ApiRouters) -> None:
     async def search_global_file_explorer_root(
         request: Request,
         path: str = Query(default="/", description="Virtual directory path"),
+        root_path: str | None = Query(default=None, description="Native filesystem root"),
         query: str = Query(description="Search pattern"),
         offset: int = Query(default=0, ge=0),
         limit: int | None = Query(default=None, ge=1, le=1000),
@@ -95,14 +179,19 @@ def register_routes(routers: ApiRouters) -> None:
             request,
             "SEARCH_WORKSPACE_BROWSER",
             "file_explorer",
-            {"path": path, "query": query},
+            {"path": path, "query": query, "root_path": root_path},
         )
         file_explorer_search = api_context.dependencies.file_explorer_search
         if file_explorer_search is None:
             raise_server_error(request, "File explorer search service is not available.")
-        root_scope = FileSystemRootScope(root_path="/", allow_symlinks=True)
 
         async def run() -> JSONDict:
+            resolved_root = (
+                default_host_filesystem_root()
+                if root_path is None
+                else resolve_host_filesystem_root(root_path)
+            )
+            root_scope = FileSystemRootScope(root_path=resolved_root, allow_symlinks=True)
             result = await run_file_explorer_directory_search_with_disconnect_watch(
                 request=request,
                 file_explorer_search=file_explorer_search,

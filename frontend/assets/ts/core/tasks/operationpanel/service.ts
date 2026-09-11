@@ -22,6 +22,7 @@ interface TaskOperationPanelOptions {
     showCancel?: boolean | undefined;
     backgroundButtonId?: string | undefined;
     normalizeProgress?: ((value: JsonValue | null | undefined) => number) | undefined;
+    onOperationsChanged?: ((operations: readonly TaskOperationEntry[]) => void) | undefined;
 }
 
 const buildQueuedBadgeMap = (operations: TaskOperationEntry[]): Map<string, string> => {
@@ -52,32 +53,49 @@ class TaskOperationPanel {
     readonly #normalizeProgress: (value: JsonValue | null | undefined) => number;
     readonly #showCancel: boolean;
     readonly #backgroundButtonId: string | null;
+    readonly #onOperationsChanged: ((operations: readonly TaskOperationEntry[]) => void) | null;
     #reporter: OperationProgressReporter | null = null;
     #unsubscribe: (() => void) | null = null;
+    #attachmentGeneration = 0;
     readonly #renderedOperationIds = new Set<string>();
 
     constructor(options: TaskOperationPanelOptions) {
         this.#container = options.container;
-        this.#filter = options.filter;
+        this.#filter = {
+            ...options.filter,
+            ...(options.filter.types ? { types: [...options.filter.types] } : {})
+        };
         this.#operationsApi = options.operationsApi ?? requireTaskOperationsApi();
         this.#normalizeProgress = options.normalizeProgress ?? ((value) => normalizeProgress(value) ?? 0);
         this.#showCancel = options.showCancel !== false;
         this.#backgroundButtonId = options.backgroundButtonId ?? null;
+        this.#onOperationsChanged = options.onOperationsChanged ?? null;
     }
 
     attach(): void {
         this.detach();
-        this.#reporter = createOperationProgressReporter(this.#container, {
+        const attachmentGeneration = this.#attachmentGeneration + 1;
+        this.#attachmentGeneration = attachmentGeneration;
+        const reporter = createOperationProgressReporter(this.#container, {
             showCancel: this.#showCancel,
             backgroundButtonId: this.#backgroundButtonId,
             onCancel: (operationId: string): Promise<void> => this.#cancelOperation(operationId)
         });
-        this.#unsubscribe = this.#operationsApi.subscribeOperations(this.#filter, (operations) => {
-            this.#render(operations);
+        this.#reporter = reporter;
+        const unsubscribe = this.#operationsApi.subscribeOperations(this.#filter, (operations) => {
+            this.#render(operations, attachmentGeneration);
         });
+        if (this.#attachmentGeneration !== attachmentGeneration || this.#reporter !== reporter) {
+            runCleanup(unsubscribe, (runtimeError) => {
+                errorHandler.warn('TaskOperationPanel', 'Superseded operation subscription cleanup failed', runtimeError);
+            });
+            return;
+        }
+        this.#unsubscribe = unsubscribe;
     }
 
     detach(): void {
+        this.#attachmentGeneration += 1;
         const unsubscribe = this.#unsubscribe;
         this.#unsubscribe = null;
         runCleanup(unsubscribe, (runtimeError) => {
@@ -94,13 +112,13 @@ class TaskOperationPanel {
         this.#filter.pluginName = filter.pluginName;
         this.#filter.conversationId = filter.conversationId;
         if (this.#reporter) {
-            this.#render(this.#operationsApi.getOperations(this.#filter));
+            this.#render(this.#operationsApi.getOperations(this.#filter), this.#attachmentGeneration);
         }
     }
 
-    #render(operations: TaskOperationEntry[]): void {
+    #render(operations: TaskOperationEntry[], attachmentGeneration: number): void {
         const reporter = this.#reporter;
-        if (!reporter) {
+        if (!reporter || attachmentGeneration !== this.#attachmentGeneration) {
             return;
         }
         const nextOperationIds = new Set<string>();
@@ -129,6 +147,9 @@ class TaskOperationPanel {
         this.#renderedOperationIds.clear();
         for (const operationId of nextOperationIds) {
             this.#renderedOperationIds.add(operationId);
+        }
+        if (this.#reporter === reporter && attachmentGeneration === this.#attachmentGeneration) {
+            this.#onOperationsChanged?.(operations);
         }
     }
 

@@ -32,7 +32,10 @@ function Find-CSharpCompiler {
 }
 
 function Find-WebView2Package {
-    param([string]$ExplicitPath)
+    param(
+        [string]$ExplicitPath,
+        [Parameter(Mandatory=$true)][string]$CachePath
+    )
     if ($ExplicitPath) {
         $resolved = Resolve-FullPath $ExplicitPath
         if (Test-Path -LiteralPath (Join-Path $resolved 'lib\net462\Microsoft.Web.WebView2.Core.dll')) {
@@ -51,7 +54,7 @@ function Find-WebView2Package {
         throw 'WebView2 SDK dependency manifest entry is invalid.'
     }
 
-    $cacheRoot = Join-Path $PSScriptRoot '..\out\cache'
+    $cacheRoot = Resolve-FullPath $CachePath
     $packageRoot = Join-Path $cacheRoot 'Microsoft.Web.WebView2'
     New-Item -ItemType Directory -Force -Path $cacheRoot | Out-Null
     $nupkg = Join-Path $cacheRoot 'Microsoft.Web.WebView2.nupkg'
@@ -93,51 +96,64 @@ if ($versionParts.Count -ne 3 -or $invalidVersionParts.Count -gt 0) {
 $versionQuad = "$Version.0"
 $manifestContent = (Get-Content -LiteralPath $manifestTemplate -Raw).Replace('@SOAI_VERSION_QUAD@', $versionQuad)
 Set-Content -LiteralPath $manifest -Value $manifestContent -Encoding UTF8
-$webView2Package = Find-WebView2Package $WebView2PackageDir
-$csc = Find-CSharpCompiler
-$outExe = Join-Path $outputRoot 'soai.exe'
-
-$references = @(
-    '/reference:System.dll',
-    '/reference:System.Core.dll',
-    '/reference:System.Drawing.dll',
-    '/reference:System.Windows.Forms.dll',
-    '/reference:System.Web.Extensions.dll',
-    "/reference:$($webView2Package)\lib\net462\Microsoft.Web.WebView2.Core.dll",
-    "/reference:$($webView2Package)\lib\net462\Microsoft.Web.WebView2.WinForms.dll"
+$dependencyCacheRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
+    'SoAI-Windows-Launcher-' + [Guid]::NewGuid().ToString('N')
 )
+$ownsDependencyCache = [string]::IsNullOrWhiteSpace($WebView2PackageDir)
+try {
+    $webView2Package = Find-WebView2Package `
+        -ExplicitPath $WebView2PackageDir `
+        -CachePath $dependencyCacheRoot
+    $csc = Find-CSharpCompiler
+    $outExe = Join-Path $outputRoot 'soai.exe'
 
-$args = @(
-    '/nologo',
-    '/target:winexe',
-    '/platform:x64',
-    '/optimize+',
-    "/win32manifest:$manifest",
-    "/out:$outExe"
-) + $references + @($source)
+    $references = @(
+        '/reference:System.dll',
+        '/reference:System.Core.dll',
+        '/reference:System.Drawing.dll',
+        '/reference:System.Windows.Forms.dll',
+        '/reference:System.Web.Extensions.dll',
+        "/reference:$($webView2Package)\lib\net462\Microsoft.Web.WebView2.Core.dll",
+        "/reference:$($webView2Package)\lib\net462\Microsoft.Web.WebView2.WinForms.dll"
+    )
 
-if ($IconPath -and (Test-Path -LiteralPath $IconPath)) {
     $args = @(
         '/nologo',
         '/target:winexe',
         '/platform:x64',
         '/optimize+',
-        "/win32icon:$IconPath",
         "/win32manifest:$manifest",
         "/out:$outExe"
     ) + $references + @($source)
-}
 
-& $csc @args
-if ($LASTEXITCODE -ne 0) {
-    throw "Launcher compilation failed with exit code $LASTEXITCODE."
-}
+    if ($IconPath -and (Test-Path -LiteralPath $IconPath)) {
+        $args = @(
+            '/nologo',
+            '/target:winexe',
+            '/platform:x64',
+            '/optimize+',
+            "/win32icon:$IconPath",
+            "/win32manifest:$manifest",
+            "/out:$outExe"
+        ) + $references + @($source)
+    }
 
-Copy-Item -LiteralPath (Join-Path $webView2Package 'lib\net462\Microsoft.Web.WebView2.Core.dll') -Destination $outputRoot -Force
-Copy-Item -LiteralPath (Join-Path $webView2Package 'lib\net462\Microsoft.Web.WebView2.WinForms.dll') -Destination $outputRoot -Force
-Copy-Item -LiteralPath (Join-Path $webView2Package 'runtimes\win-x64\native\WebView2Loader.dll') -Destination $outputRoot -Force
-if ($IconPath -and (Test-Path -LiteralPath $IconPath)) {
-    Copy-Item -LiteralPath $IconPath -Destination (Join-Path $outputRoot 'soai-app.ico') -Force
+    & $csc @args
+    if ($LASTEXITCODE -ne 0) {
+        throw "Launcher compilation failed with exit code $LASTEXITCODE."
+    }
+
+    Copy-Item -LiteralPath (Join-Path $webView2Package 'lib\net462\Microsoft.Web.WebView2.Core.dll') -Destination $outputRoot -Force
+    Copy-Item -LiteralPath (Join-Path $webView2Package 'lib\net462\Microsoft.Web.WebView2.WinForms.dll') -Destination $outputRoot -Force
+    Copy-Item -LiteralPath (Join-Path $webView2Package 'runtimes\win-x64\native\WebView2Loader.dll') -Destination $outputRoot -Force
+    if ($IconPath -and (Test-Path -LiteralPath $IconPath)) {
+        Copy-Item -LiteralPath $IconPath -Destination (Join-Path $outputRoot 'soai-app.ico') -Force
+    }
+}
+finally {
+    if ($ownsDependencyCache -and (Test-Path -LiteralPath $dependencyCacheRoot)) {
+        Remove-Item -LiteralPath $dependencyCacheRoot -Recurse -Force
+    }
 }
 
 Write-Host "Launcher built at: $outExe"

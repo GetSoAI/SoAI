@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.concurrency.task_groups import (
     DEFAULT_CANCELLATION_TIMEOUT_SEC,
@@ -58,7 +60,9 @@ async def stop_log_stream(
                     [existing],
                     logger=get_logger(LOGGER_NAME),
                     task_label="websocket log stream forward task",
+                    log_level=logging.DEBUG,
                     timeout_sec=DEFAULT_CANCELLATION_TIMEOUT_SEC,
+                    timeout_log_level=logging.DEBUG,
                 ),
             )
         finally:

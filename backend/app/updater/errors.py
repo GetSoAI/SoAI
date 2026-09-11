@@ -7,6 +7,7 @@ import argparse
 import dataclasses
 
 from core.errors.exceptions import ValidationError
+from core.tasks.identifiers import validate_optional_task_id
 
 __all__ = (
     "UpdaterArgs",
@@ -29,6 +30,7 @@ class UpdaterArgs:
     no_restart: bool
     debug: bool
     wait_for_pid: int | None
+    task_id: str | None = None
 
 
 def parse_updater_args(namespace: argparse.Namespace) -> UpdaterArgs:
@@ -85,6 +87,11 @@ def parse_updater_args(namespace: argparse.Namespace) -> UpdaterArgs:
             details={"wait_for_pid": wait_for_pid_value},
         )
     try:
+        task_id_value = namespace.task_id
+    except AttributeError:
+        task_id_value = None
+    normalized_task_id = validate_optional_task_id(task_id_value, field_name="Updater --task-id")
+    try:
         update_software_value = bool(namespace.update_software)
     except AttributeError:
         update_software_value = False
@@ -130,4 +137,5 @@ def parse_updater_args(namespace: argparse.Namespace) -> UpdaterArgs:
         no_restart=no_restart_value,
         debug=debug_value,
         wait_for_pid=wait_for_pid_value,
+        task_id=normalized_task_id,
     )

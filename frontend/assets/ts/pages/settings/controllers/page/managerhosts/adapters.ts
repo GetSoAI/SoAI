@@ -137,6 +137,8 @@ const createUsersManagerHost = (page: SettingsRuntimeContext, state: SettingsPag
                 }
             });
         },
+        listWorkspaceBrowserRoots: (options) => page.owners.api.webui.users.workspaceBrowser.roots(options),
+        locateWorkspaceBrowserPath: (path, options) => page.owners.api.webui.users.workspaceBrowser.locate(path, options),
         listWorkspaceBrowser: (options) => page.owners.api.webui.users.workspaceBrowser.list(options),
         searchWorkspaceBrowser: (options) => page.owners.api.webui.users.workspaceBrowser.search(options),
         updateUserWorkspacePath: (userId: number, workspacePath: string | null) => page.owners.api.webui.users.updateWorkspacePath(userId, workspacePath),

@@ -3,19 +3,17 @@
 
 from __future__ import annotations
 
-import hashlib
 from typing import Literal
 
 from fastapi import Depends, Request
 from pydantic import BaseModel, Field
 
-from core.runtime.soai_identifiers import build_soai_id, safe_or_hashed_segment
 from core.state.access import AccessAction
-from core.tasks.creation import create
 from core.tasks.enums import TaskStatus
 from core.tasks.finalization import finalize
+from core.tasks.identifiers import validate_optional_task_id
+from core.tasks.software_update_result import create_software_update_task
 from core.tasks.status_transitions import update_status
-from core.tasks.type_catalog import TASK_TYPE_SOFTWARE_UPDATE
 from features.api.routes.tasks.task_query_models import SoftwareUpdateLogRequest
 from features.api.runtime.access_dependencies import restart_protected_dependencies
 from features.api.runtime.audit import log_audit_event
@@ -49,26 +47,27 @@ def register_routes(routers: ApiRouters) -> None:
         api_context: ApiContext = Depends(resolve_api_context),
     ) -> SoftwareUpdateLogResponse:
         registry = api_context.dependencies.task_registry
-        task_seed = f"software_update:{payload.from_version}:{payload.to_version}".encode()
-        task_id = f"task_{hashlib.sha256(task_seed).hexdigest()[:32]}"
+        task_id = validate_optional_task_id(
+            payload.task_id,
+            field_name="software update task_id",
+        )
+        if task_id is None:
+            raise_bad_request(
+                request,
+                "Software update task_id is required.",
+                error_type="invalid_task_id",
+            )
         existing_task = await registry.get(task_id)
         if payload.status == "started":
-            if existing_task and (not existing_task.status.is_terminal()):
+            if existing_task:
                 return SoftwareUpdateLogResponse(
                     success=True,
                     task_id=task_id,
-                    message="Update task already in progress",
+                    message="Update attempt is already recorded",
                 )
-            await create(
+            await create_software_update_task(
                 registry,
                 task_id=task_id,
-                task_type=TASK_TYPE_SOFTWARE_UPDATE,
-                owner_id="updater",
-                owner_type="system",
-                user_id=0,
-                cancellation_id=build_soai_id(
-                    ("sys", "software_update", safe_or_hashed_segment(task_id)),
-                ),
                 metadata={
                     "from_version": payload.from_version,
                     "to_version": payload.to_version,
@@ -94,16 +93,9 @@ def register_routes(routers: ApiRouters) -> None:
             return SoftwareUpdateLogResponse(success=True, task_id=task_id, status="started")
         if payload.status == "completed":
             if not existing_task:
-                await create(
+                await create_software_update_task(
                     registry,
                     task_id=task_id,
-                    task_type=TASK_TYPE_SOFTWARE_UPDATE,
-                    owner_id="updater",
-                    owner_type="system",
-                    user_id=0,
-                    cancellation_id=build_soai_id(
-                        ("sys", "software_update", safe_or_hashed_segment(task_id)),
-                    ),
                     metadata={
                         "from_version": payload.from_version,
                         "to_version": payload.to_version,
@@ -134,16 +126,9 @@ def register_routes(routers: ApiRouters) -> None:
             return SoftwareUpdateLogResponse(success=True, task_id=task_id, status="completed")
         if payload.status == "failed":
             if not existing_task:
-                await create(
+                await create_software_update_task(
                     registry,
                     task_id=task_id,
-                    task_type=TASK_TYPE_SOFTWARE_UPDATE,
-                    owner_id="updater",
-                    owner_type="system",
-                    user_id=0,
-                    cancellation_id=build_soai_id(
-                        ("sys", "software_update", safe_or_hashed_segment(task_id)),
-                    ),
                     metadata={
                         "from_version": payload.from_version,
                         "to_version": payload.to_version,

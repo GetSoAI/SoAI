@@ -28,10 +28,11 @@ const createAssistantMessageTextRoot = (messageText: HTMLElement, responseRoot: 
     return createdText;
 };
 
-const applyAssistantMessageTextUpdate = (inputArguments: { existingText: HTMLElement; createdText: HTMLElement; suppressInsertAnimations?: boolean; assistantDomState?: AssistantDomStatePreservation | null }): boolean => {
+const applyAssistantMessageTextUpdate = (inputArguments: { preserveActiveStreamingText?: boolean; existingText: HTMLElement; createdText: HTMLElement; suppressInsertAnimations?: boolean; assistantDomState?: AssistantDomStatePreservation | null }): boolean => {
     const patched = patchAssistantMessageTextInPlace({
         existingText: inputArguments.existingText,
         createdText: inputArguments.createdText,
+        preserveActiveStreamingText: inputArguments.preserveActiveStreamingText === true,
         suppressInsertAnimations: inputArguments.suppressInsertAnimations === true,
         ...(inputArguments.assistantDomState !== undefined ? { assistantDomState: inputArguments.assistantDomState } : {})
     });

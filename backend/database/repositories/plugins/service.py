@@ -102,8 +102,8 @@ class DatabasePlugins(DatabasePluginsOperations):
                 PLUGIN_STATE_ABSENT,
             )
 
-    async def get_all_listable_plugins(self) -> list[JSONDict]:
-        return await self.core.reader.execute_read(get_all_listable_plugins_query)
+    async def get_all_listable_plugins(self, plugin_name: str | None = None) -> list[JSONDict]:
+        return await self.core.reader.execute_read(get_all_listable_plugins_query, plugin_name)
 
     async def get_all_plugins(self) -> list[JSONDict]:
         return await self.core.reader.execute_read(get_all_plugins_query)

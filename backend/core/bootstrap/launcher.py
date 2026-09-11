@@ -65,6 +65,7 @@ def _ensure_runtime_artifacts_via_managed_python(
     )
     command = [
         python_executable,
+        "-P",
         "-m",
         "core.bootstrap.runtime_artifacts_cli",
         os.path.abspath(repo_root_path),

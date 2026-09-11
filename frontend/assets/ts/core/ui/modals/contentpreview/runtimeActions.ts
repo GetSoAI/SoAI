@@ -26,6 +26,7 @@ type ContentPreviewRuntimeActions = Readonly<{
     handleOpenSource: () => Promise<void>;
     handleImagePrevious: () => Promise<void>;
     handleImageNext: () => Promise<void>;
+    resetImageNavigation: () => void;
 }>;
 
 const createContentPreviewRuntimeActions = (dependencies: ContentPreviewRuntimeActionDependencies): ContentPreviewRuntimeActions => {
@@ -87,21 +88,60 @@ const createContentPreviewRuntimeActions = (dependencies: ContentPreviewRuntimeA
         windowOpen(url, '_blank', 'noopener,noreferrer');
     };
 
+    let navigationPending = false;
+    let queuedDirection: ContentPreviewImageNavigationDirection | null = null;
+    let navigationSequence = 0;
+
+    const resetImageNavigation = (): void => {
+        navigationSequence += 1;
+        navigationPending = false;
+        queuedDirection = null;
+    };
+
     const handleImageNavigation = async (direction: ContentPreviewImageNavigationDirection): Promise<void> => {
-        const navigation = dependencies.getCurrentImageNavigation();
-        if (!navigation) {
+        if (!dependencies.getCurrentImageNavigation()) {
             return;
         }
-        dependencies.beginImageNavigation(direction, direction === 'previous' ? navigation.previousLoadingPath : navigation.nextLoadingPath);
+        if (navigationPending) {
+            queuedDirection = direction;
+            return;
+        }
+        navigationPending = true;
+        const sequence = navigationSequence;
+        let nextDirection: ContentPreviewImageNavigationDirection | null = direction;
         try {
-            if (direction === 'previous') {
-                await navigation.onRequestPrevious();
-                return;
+            while (nextDirection !== null && sequence === navigationSequence) {
+                const navigation = dependencies.getCurrentImageNavigation();
+                if (!navigation) {
+                    break;
+                }
+                const previousRequest = dependencies.getCurrentRequest();
+                dependencies.beginImageNavigation(nextDirection, nextDirection === 'previous' ? navigation.previousLoadingPath : navigation.nextLoadingPath);
+                if (nextDirection === 'previous') {
+                    await navigation.onRequestPrevious();
+                } else {
+                    await navigation.onRequestNext();
+                }
+                if (sequence !== navigationSequence) {
+                    return;
+                }
+                if (previousRequest === dependencies.getCurrentRequest()) {
+                    dependencies.cancelImageNavigation();
+                    break;
+                }
+                nextDirection = queuedDirection;
+                queuedDirection = null;
             }
-            await navigation.onRequestNext();
         } catch (error) {
-            dependencies.cancelImageNavigation();
-            throw error;
+            if (sequence === navigationSequence) {
+                dependencies.cancelImageNavigation();
+                throw error;
+            }
+        } finally {
+            if (sequence === navigationSequence) {
+                navigationPending = false;
+                queuedDirection = null;
+            }
         }
     };
 
@@ -116,7 +156,8 @@ const createContentPreviewRuntimeActions = (dependencies: ContentPreviewRuntimeA
         handleEnhance,
         handleOpenSource,
         handleImagePrevious,
-        handleImageNext
+        handleImageNext,
+        resetImageNavigation
     });
 };
 

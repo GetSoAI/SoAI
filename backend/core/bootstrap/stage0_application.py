@@ -15,9 +15,12 @@ from core.bootstrap.stage0_environment import (
     ensure_stage0_config_yaml_exists,
     ensure_stage0_soai_python_version,
     is_running_in_soai_venv,
+    is_stage0_offline_mode_enabled,
     relaunch_in_venv_or_emit_failure,
     repo_root,
 )
+from core.bootstrap.windows_sqlite_runtime import ensure_windows_sqlite_runtime
+from core.errors.exceptions import SoAIError
 from core.runtime.opencl_environment import configure_opencl_runtime_environment
 from core.system.process_replacement import replace_current_process
 
@@ -39,7 +42,7 @@ def _exec_bootstrap_module(repo_root_path: str, bootstrap_module: str) -> int:
     os.chdir(repo_root_path)
     os.environ["PYTHONPATH"] = _python_path_including_backend(repo_root_path)
     return replace_current_process(
-        [sys.executable, "-m", bootstrap_module, *sys.argv[1:]],
+        [sys.executable, "-P", "-m", bootstrap_module, *sys.argv[1:]],
     )
 
 
@@ -47,9 +50,25 @@ def run_stage0_application(*, bootstrap_module: str, entrypoint_path: str) -> in
     repo_root_path = repo_root()
     configure_opencl_runtime_environment()
     ensure_stage0_config_yaml_exists(repo_root_path)
-    ensure_runtime_directory_environment(repo_root_path)
+    runtime_directories = ensure_runtime_directory_environment(repo_root_path)
     running_in_managed_runtime = is_running_in_soai_venv(repo_root_path)
     if os.name == "nt" and not running_in_managed_runtime:
+        sqlite_bootstrap_error: str | None = None
+        try:
+            ensure_windows_sqlite_runtime(
+                repo_root_path,
+                runtime_directories,
+                python_executable=sys.executable,
+                offline_mode=is_stage0_offline_mode_enabled(repo_root_path),
+            )
+        except (OSError, SoAIError) as exception:
+            sqlite_bootstrap_error = f"{type(exception).__name__}: {exception}"
+        if sqlite_bootstrap_error is not None:
+            emit(
+                "ERROR",
+                f"FATAL: Windows SQLite bootstrap failed: {sqlite_bootstrap_error}",
+            )
+            return 1
         return _exec_bootstrap_module(repo_root_path, bootstrap_module)
     if not running_in_managed_runtime:
         launched = relaunch_in_venv_or_emit_failure(

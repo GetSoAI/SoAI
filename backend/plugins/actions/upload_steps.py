@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from core.events.types_system import TriggerConfigReconciliationCommand
 from core.files.move_with_cancellation import move_file_with_cancellation
 from core.hardware.reservation_claims import claim_reserved_write
 from plugins.actions.upload_validation import (
+    UploadedPluginOutcome,
     load_and_validate_uploaded_plugin,
     validate_upload_destination_available,
 )
@@ -39,11 +41,11 @@ async def perform_plugin_upload_steps(
     final_path: str,
     temp_file_path: str,
     context: RequestContext | None,
-) -> bool:
+) -> UploadedPluginOutcome:
     await progress(5, f"Starting plugin upload for '{plugin_name}'...")
     await validate_upload_destination_available(manager, plugin_name, final_path)
     await progress(15, "Validating plugin package...")
-    await audit_plugin_package(
+    package_audit = await audit_plugin_package(
         manager,
         plugin_name,
         file_path_override=temp_file_path,
@@ -69,19 +71,19 @@ async def perform_plugin_upload_steps(
         with claim_reserved_write(install_reservation, size_bytes=upload_size):
             await move_file_with_cancellation(temp_file_path, final_path, task_token)
     state.file_moved = True
-    await progress(50, "Loading plugin...")
-    await progress(70, "Checking compatibility...")
-    requires_backend_install = await load_and_validate_uploaded_plugin(
+    package_audit = replace(package_audit, archive_path=final_path)
+    await progress(50, "Inspecting plugin metadata...")
+    await progress(70, "Validating plugin compatibility...")
+    outcome = await load_and_validate_uploaded_plugin(
         manager,
         plugin_name=plugin_name,
-        final_path=final_path,
+        package_audit=package_audit,
     )
-    state.plugin_loaded = True
-    await progress(85, "Finalizing configuration...")
+    await progress(85, "Finalizing plugin registration...")
     await manager.dependencies.infrastructure.event_bus.publish(
         TriggerConfigReconciliationCommand(
             reason=f"plugin_uploaded:{plugin_name}", context=context
         ),
     )
     await progress(100, "Upload complete.")
-    return requires_backend_install
+    return outcome

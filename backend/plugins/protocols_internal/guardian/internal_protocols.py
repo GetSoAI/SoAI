@@ -19,6 +19,7 @@ if TYPE_CHECKING:
         DirectorComponentContext,
         GuardianExecutorProtocol,
     )
+    from core.state.plugin_state_generation import PluginStateGeneration
     from core.state.protocols import StateAggregatorProtocol
     from core.tasks.protocols import TaskCancellationBinderProtocol
 
@@ -55,4 +56,9 @@ class PluginGuardianInternalProtocol(Protocol):
     @property
     def cancellation_binder(self) -> TaskCancellationBinderProtocol: ...
 
-    async def guarded_recover_plugin(self, plugin_name: str, reason: str) -> None: ...
+    async def guarded_recover_plugin(
+        self,
+        plugin_name: str,
+        reason: str,
+        expected_generation: PluginStateGeneration,
+    ) -> None: ...

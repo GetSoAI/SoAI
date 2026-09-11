@@ -258,7 +258,7 @@ class ChatConfigurationController implements EditableConfigurationSessionState {
     };
 
     async #retryProjectionEffects(): Promise<boolean> {
-        const emptyCommit = { committed: false, backendDefaultsChanged: false, richTextChanged: false, senderLabelChanged: false, inputActionsChanged: false, toolsEnabledChanged: false, toolApprovalRequiredChanged: false, conversationListFiltersChanged: false };
+        const emptyCommit = { committed: false, backendDefaultsChanged: false, richTextChanged: false, senderLabelChanged: false, inputActionsChanged: false, sendHotkeyChanged: false, toolsEnabledChanged: false, toolApprovalRequiredChanged: false, conversationListFiltersChanged: false };
         this.#pendingProjectionEffects = await applyConfigurationCommitSideEffects(emptyCommit, { stateAccess: this.#state, host: this.#host }, this.#pendingProjectionEffects, false);
         this.updateConfigurationSaveState();
         return this.#pendingProjectionEffects.length > 0;

@@ -17,6 +17,7 @@ __all__ = (
     "ConfigPathResolutionError",
     "resolve_all_paths_in_config_with_layout",
     "resolve_config_file_path",
+    "resolve_default_config_schema_path",
     "resolve_path",
 )
 
@@ -25,6 +26,10 @@ _UNRESOLVED_WINDOWS_ENV_PATTERN = r"%(?P<name>[A-Za-z_][A-Za-z0-9_]*)%"
 
 
 class ConfigPathResolutionError(Exception): ...
+
+
+def resolve_default_config_schema_path(config_path: str) -> str:
+    return os.path.join(os.path.dirname(config_path), "config.default.yaml")
 
 
 def resolve_path(path: str | os.PathLike[str] | None, base_path: str) -> str | None:

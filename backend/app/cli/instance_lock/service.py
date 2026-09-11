@@ -22,8 +22,9 @@ from app.cli.instance_lock.process_tree import (
     terminate_process_native,
 )
 from app.internal_protocols import InstanceLockProtocol
+from app.updater.software_update.activation_state import claim_pending_update_activation
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import StateError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.runtime.instance_record import (
     RuntimeInstanceRecord,
@@ -31,10 +32,16 @@ from core.runtime.instance_record import (
     read_verified_runtime_instance_record,
     write_runtime_instance_record,
 )
+from core.timing.constants import BACKGROUND_TIMEOUT_SEC, CONTROL_TIMEOUT_SEC
 
 __all__ = ("setup_pid_file_and_lock",)
 
 OPERATION = "main.pid"
+PID_RECORD_EXCEPTIONS: tuple[type[Exception], ...] = (
+    *RECOVERABLE_EXCEPTIONS,
+    StateError,
+    ValidationError,
+)
 
 
 def setup_pid_file_and_lock(
@@ -110,7 +117,11 @@ def setup_pid_file_and_lock(
                     logger=logger,
                     exclude_pids=protected_pids,
                 )
-            lock = wait_for_instance_lock(instance_lock_path, logger=logger, timeout_sec=15.0)
+            lock = wait_for_instance_lock(
+                instance_lock_path,
+                logger=logger,
+                timeout_sec=BACKGROUND_TIMEOUT_SEC,
+            )
             if lock is None:
                 logger.warning(
                     "Graceful shutdown timed out. Force killing PID(s): %s",
@@ -122,7 +133,11 @@ def setup_pid_file_and_lock(
                         logger=logger,
                         exclude_pids=protected_pids,
                     )
-                lock = wait_for_instance_lock(instance_lock_path, logger=logger, timeout_sec=10.0)
+                lock = wait_for_instance_lock(
+                    instance_lock_path,
+                    logger=logger,
+                    timeout_sec=CONTROL_TIMEOUT_SEC,
+                )
         elif raw_candidate_pids and protected_pids:
             logger.error(
                 "Instance lock appears held by the current process tree; refusing to terminate.",
@@ -140,7 +155,8 @@ def setup_pid_file_and_lock(
             edition=edition,
         )
         write_runtime_instance_record(pid_file_path, runtime_record)
-    except RECOVERABLE_EXCEPTIONS as exception:
+        claim_pending_update_activation(base_dir, runtime_record)
+    except PID_RECORD_EXCEPTIONS as exception:
         log_exception(
             logger,
             exception,

@@ -18,6 +18,8 @@ interface PluginIncompatibilityContext extends JsonObject {
     detectedOs?: string | null;
     requiredGpu?: string[];
     detectedVendors?: string[];
+    missingDependencies?: string[];
+    declaredDependencies?: string[];
 }
 
 interface CompatibilityInfo {
@@ -68,6 +70,7 @@ interface Plugin {
     permanentlyDisabled?: boolean;
     isPersistent?: boolean;
     isBuiltin?: boolean;
+    userEnabledOnce?: boolean;
     incompatibility?: IncompatibilityDetails;
     circuitBreaker?: CircuitBreakerRaw | CircuitBreakerInfo | null;
     circuitBreakerWasEnabled?: boolean;
@@ -86,6 +89,7 @@ interface NormalizedPlugin {
     compatibility: CompatibilityInfo;
     isPersistent: boolean;
     isBuiltin: boolean;
+    userEnabledOnce: boolean;
     circuitBreaker: CircuitBreakerInfo | null;
     circuitBreakerWasEnabled: boolean;
     incompatibility?: IncompatibilityDetails;

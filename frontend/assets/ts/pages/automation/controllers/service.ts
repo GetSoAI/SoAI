@@ -7,6 +7,7 @@ import { i18n } from '@core/i18n/index.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
 import { showOperationFailureNotification } from '@core/ui/notifications/operationFailure.ts';
 import type { NotificationType } from '@core/ui/notifications/types.ts';
+import { resolveAutomationOperationErrorMessage } from '@pages/automation/controllers/AutomationPageErrorNotifier.ts';
 import { saveAutomationCreateDefaults } from '@pages/automation/state/AutomationCreateDefaultsManager.ts';
 import type { AutomationDataService, CreateAutomationPayload } from '@features/automation/public.ts';
 
@@ -39,6 +40,7 @@ const performAutomationEditorSave = async (inputArguments: AutomationEditorSaveF
         showOperationFailureNotification({
             error: runtimeError,
             operation: i18n.t('common.save'),
+            errorMessage: resolveAutomationOperationErrorMessage(runtimeError),
             showNotification: (message, level): void => inputArguments.showNotification(message, level)
         });
         errorHandler.error('AutomationEditorController', 'Failed to save automation', runtimeError);

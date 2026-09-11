@@ -8,11 +8,12 @@ from typing import override
 from urllib.request import Request
 
 import httpx2
+from httpx2._utils import get_environment_proxies
 
 from core.network.dns_cache import DnsResolutionCache
 from core.network.http_transport import PinnedHost, PolicyPinnedAsyncHTTPTransport
 from core.network.outbound_http_profiles import build_outbound_request_headers
-from core.runtime.network_policy import guard_outbound_http_request
+from core.runtime.network_policy import guard_outbound_http_request, require_online_mode
 from core.runtime.protocols import RuntimeFlagsViewProtocol
 
 __all__ = ("create_guarded_async_http_client",)
@@ -57,6 +58,24 @@ def create_guarded_async_http_client(
         limits=effective_limits,
         trust_env=trust_env,
     )
+
+    def admit_environment_proxy() -> None:
+        require_online_mode(flags, source=f"{source}.environment_proxy")
+
+    proxy_mounts: dict[str, httpx2.AsyncBaseTransport | None] = {}
+    if trust_env:
+        for pattern, proxy_url in get_environment_proxies().items():
+            proxy_mounts[pattern] = (
+                PolicyPinnedAsyncHTTPTransport(
+                    request_pinner=request_pinner,
+                    limits=effective_limits,
+                    trust_env=True,
+                    proxy=httpx2.Proxy(proxy_url),
+                    proxy_admission=admit_environment_proxy,
+                )
+                if proxy_url is not None
+                else None
+            )
     return httpx2.AsyncClient(
         headers=(
             default_headers
@@ -67,5 +86,6 @@ def create_guarded_async_http_client(
         limits=effective_limits,
         cookies=CookieJar(policy=_RejectAmbientCookiesPolicy()),
         transport=transport,
+        mounts=proxy_mounts,
         trust_env=trust_env,
     )

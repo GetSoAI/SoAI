@@ -109,6 +109,8 @@ def build_agent_tool_hints_text(
         lines.append(get_text_prompt_v1("agent.tool_hints.video.read_video.v1"))
     if "read_document" in decoded_names:
         lines.append(get_text_prompt_v1("agent.tool_hints.documents.read_document_continue.v1"))
+    if "soai_documentation" in decoded_names:
+        lines.append(get_text_prompt_v1("agent.tool_hints.soai_documentation.usage.v1"))
     if "browser" in categories:
         if "browser_navigate" in decoded_names and "browser_snapshot" in decoded_names:
             lines.append(get_text_prompt_v1("agent.tool_hints.browser.start_with_snapshot.v1"))

@@ -8,9 +8,9 @@ import threading
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, override
 
+from core.lifecycle.protocols import Shutdownable
 from core.logging.protocols import TraceLogger
 from core.logging.trace import get_logger
-from core.runtime.protocols import Shutdownable
 from core.types.protocols import HttpClientProtocol
 from hardware.cpu_rapl import RaplEnergyCache
 from hardware.info_network import get_network_info
@@ -102,6 +102,7 @@ class HardwareManager(Shutdownable):
         self._gpu_capabilities_service: GpuCapabilitiesServiceProtocol = (
             deps.gpu_capabilities_service
         )
+        self._nvidia_settings_controller = deps.nvidia_settings_controller
         self._nvidia_nvml_gate: NvmlGateProtocol = deps.nvidia_nvml_gate
         self._nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol = (
             deps.nvidia_capabilities_cache_service
@@ -136,6 +137,7 @@ class HardwareManager(Shutdownable):
             components=None,
             cache=cache,
             include_gpu_capabilities=include_gpu_capabilities,
+            nvidia_settings_controller=self._nvidia_settings_controller,
         )
 
     async def get_system_info(
@@ -164,6 +166,7 @@ class HardwareManager(Shutdownable):
             components=components,
             cache=cache,
             include_gpu_capabilities=include_gpu_capabilities,
+            nvidia_settings_controller=self._nvidia_settings_controller,
         )
 
     async def get_system_capabilities(self) -> JSONDict:
@@ -259,6 +262,8 @@ class HardwareManager(Shutdownable):
 
     @override
     async def shutdown(self) -> None:
+        if self._nvidia_settings_controller is not None:
+            await asyncio.to_thread(self._nvidia_settings_controller.close)
         await shutdown_hardware_monitoring(state=self.state, logger=self.logger)
 
     def set_disk_speed_cache(self, snapshot: JSONDict | None, *, cached_at: float) -> None:

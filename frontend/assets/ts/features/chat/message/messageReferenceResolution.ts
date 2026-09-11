@@ -5,6 +5,7 @@ import { isNullOrUndefined } from '@core/typeGuards.ts';
 import { resolveAssistantVariantIdentity } from '@core/chat/assistantIdentity.ts';
 import { formatAssistantVariantIdentityKey, resolveAssistantVariantMessageIndex } from '@features/chat/message/assistantMessageIdentity.ts';
 import { resolveAssistantVariantMessageIdentifier, resolveIndexedMessageDomPosition, resolvePersistedMessageIdentifier } from '@features/chat/message/messageDomIds.ts';
+import { buildPersistedMessageCursorKey, resolveFallbackMessagePersistenceKey, resolvePersistedMessageCursor } from '@features/chat/message/persistedMessageIdentity.ts';
 import type { ChatMessage, ConversationContract, ConversationMessage } from '@features/chat/ChatTypes.ts';
 
 interface ResolvedMessageReference {
@@ -20,6 +21,46 @@ interface IndexedAssistantVariantReference {
     matchedIdentifier: boolean;
     message: ConversationMessage | null;
 }
+
+type CapturedMessageReferenceIdentity = {
+    originalMessage: ChatMessage;
+    persistedCursorKey: string | null;
+    fallbackKey: string | null;
+};
+
+const captureMessageReferenceIdentity = (message: ChatMessage): CapturedMessageReferenceIdentity => {
+    const cursor = resolvePersistedMessageCursor(message);
+    return {
+        originalMessage: message,
+        persistedCursorKey: cursor === null ? null : buildPersistedMessageCursorKey(cursor),
+        fallbackKey: cursor === null ? resolveFallbackMessagePersistenceKey(message) : null
+    };
+};
+
+const resolveMessageReferenceFromIdentity = (conversation: ConversationContract, identity: CapturedMessageReferenceIdentity, isMessageContract: (value: ConversationMessage) => value is ChatMessage): ResolvedMessageReference => {
+    const objectIndex = conversation.messages.indexOf(identity.originalMessage);
+    if (objectIndex >= 0) {
+        return resolveIndexedReference(conversation, objectIndex, isMessageContract);
+    }
+    let resolved: ResolvedMessageReference | null = null;
+    for (let index = 0; index < conversation.messages.length; index += 1) {
+        const message = conversation.messages[index];
+        if (message === undefined || !isMessageContract(message)) {
+            continue;
+        }
+        const cursor = resolvePersistedMessageCursor(message);
+        const matchesCursor = identity.persistedCursorKey !== null && cursor !== null && buildPersistedMessageCursorKey(cursor) === identity.persistedCursorKey;
+        const matchesFallback = identity.persistedCursorKey === null && identity.fallbackKey !== null && resolveFallbackMessagePersistenceKey(message) === identity.fallbackKey;
+        if (!matchesCursor && !matchesFallback) {
+            continue;
+        }
+        if (resolved !== null) {
+            return { index: -1, message: null };
+        }
+        resolved = { index, message };
+    }
+    return resolved ?? { index: -1, message: null };
+};
 
 const createAssistantVariantReferenceIndex = (conversation: ConversationContract): AssistantVariantReferenceIndex => {
     const index = new Map<string, ConversationMessage>();
@@ -103,5 +144,5 @@ export const resolveMessageReferenceFromConversation = (conversation: Conversati
     return { index: -1, message: null };
 };
 
-export { createAssistantVariantReferenceIndex, resolveAssistantVariantReferenceFromIndex };
-export type { AssistantVariantReferenceIndex, MessageReferenceResolver, ResolvedMessageReference };
+export { captureMessageReferenceIdentity, createAssistantVariantReferenceIndex, resolveAssistantVariantReferenceFromIndex, resolveMessageReferenceFromIdentity };
+export type { AssistantVariantReferenceIndex, CapturedMessageReferenceIdentity, MessageReferenceResolver, ResolvedMessageReference };

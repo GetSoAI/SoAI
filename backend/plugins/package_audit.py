@@ -6,12 +6,15 @@ from __future__ import annotations
 import asyncio
 import io
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from core.archives.zip_plan import ValidatedZipPlan
 from core.errors.exceptions import NotFoundError, StateError, ValidationError
 from core.filesystem.open_files import open_regular_binary_no_symlink
+from core.logging.trace import get_logger
+from core.plugins.logo_contract import PluginLogoResult
+from core.plugins.logo_images import sanitize_plugin_logo
 from core.types.json import is_str_list
 from core.types.json_value import copy_json_dict
 from plugins.hash_blocklist import (
@@ -47,6 +50,8 @@ __all__ = (
     "inspect_plugin_package",
 )
 
+LOGGER_NAME = "SoAI.plugins.package_audit"
+
 
 @dataclass(frozen=True, slots=True)
 class PluginPackageAudit:
@@ -60,6 +65,7 @@ class PluginPackageAudit:
     python_members: tuple[PluginPythonMemberAudit, ...]
     imports_validated: bool
     parameter_schema: JSONDict | None
+    logo: PluginLogoResult = field(default_factory=lambda: PluginLogoResult(status="absent"))
 
 
 def _open_plugin_snapshot(plugin_name: str, archive_path: str) -> PluginPackageSnapshot:
@@ -112,6 +118,13 @@ def _audit_snapshot(
                 python_member.parsed_source,
                 package_names,
             )
+    logo = sanitize_plugin_logo(snapshot.logo_source)
+    if logo.status == "invalid":
+        get_logger(LOGGER_NAME).warning(
+            "Plugin '%s' optional artwork rejected: %s",
+            plugin_name,
+            logo.reason,
+        )
     return PluginPackageAudit(
         plugin_name=plugin_name,
         archive_path=archive_path,
@@ -122,6 +135,7 @@ def _audit_snapshot(
         entrypoint=snapshot.entrypoint,
         python_members=snapshot.python_members,
         imports_validated=enforce_import_scan,
+        logo=logo,
         parameter_schema=(
             copy_json_dict(snapshot.parameter_schema)
             if snapshot.parameter_schema is not None

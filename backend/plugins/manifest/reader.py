@@ -7,7 +7,7 @@ import asyncio
 from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import StateError
+from core.errors.exceptions import NotFoundError, StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from plugins.manifest.ast_extraction import extract_plugin_manifest_from_disk
@@ -30,6 +30,7 @@ LOGGER_NAME = "SoAI.plugins.manifest.reader"
 OPERATION = "plugins.manifest.reader.read_plugin_manifests_from_disk"
 
 PLUGIN_MANIFEST_READ_EXCEPTIONS = RECOVERABLE_EXCEPTIONS + (
+    NotFoundError,
     StateError,
     SyntaxError,
     OSError,

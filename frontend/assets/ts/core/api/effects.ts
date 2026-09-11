@@ -80,6 +80,10 @@ const executeXmlHttpRequestUpload = async (requestUrl: string, fetchConfig: Requ
             xhr.upload.onprogress = (event): void => {
                 onUploadProgress(resolveUploadProgressPayload(event));
             };
+            xhr.upload.onload = (event): void => {
+                const progress = resolveUploadProgressPayload(event);
+                onUploadProgress({ ...progress, percent: 100 });
+            };
             xhr.onerror = (): void => {
                 reject(new Error('Network request failed'));
             };

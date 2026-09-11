@@ -8,9 +8,10 @@ import sys
 from typing import override
 
 from core.errors.trace_logging import ensure_trace_logging
+from core.logging.configuration_constants import DEFAULT_LOG_DATE_FORMAT
 from core.logging.palette import get_palette_colors
 from core.runtime.environment_flags import is_soai_gui_launched
-from core.timing.formatting import timestamp_to_utc_log_format, utc_now_log_format
+from core.timing.formatting import timestamp_to_utc_format, utc_now
 
 __all__ = (
     "emit_gui_status",
@@ -47,7 +48,7 @@ def setup_bootstrap_logger(name: str, level: int = logging.INFO) -> logging.Logg
                 @override
                 def format(self, record: logging.LogRecord) -> str:
                     color = color_map.get(record.levelname, "")
-                    created = timestamp_to_utc_log_format(record.created)
+                    created = timestamp_to_utc_format(record.created, DEFAULT_LOG_DATE_FORMAT)
                     message = record.getMessage()
                     tag_name = record.name.replace(".", "/")
                     result = (
@@ -85,5 +86,6 @@ def transition_bootstrap_loggers_to_runtime_logging() -> None:
 
 def emit_gui_status(message: str) -> None:
     if is_soai_gui_launched():
-        sys.stdout.write(f"{utc_now_log_format()} - [SoAI/Bootstrap] - INFO - {message}\n")
+        created = utc_now().strftime(DEFAULT_LOG_DATE_FORMAT)
+        sys.stdout.write(f"{created} - [SoAI/Bootstrap] - INFO - {message}\n")
         sys.stdout.flush()

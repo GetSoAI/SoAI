@@ -4,35 +4,41 @@
 from __future__ import annotations
 
 import os
-import sys
-from subprocess import CalledProcessError
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from app.updater.disk_space import require_disk_space_for_update
-from app.updater.download import download_zip
+from app.updater.download import download_update_file
 from app.updater.install import (
     calculate_uncompressed_size_bytes,
     resolve_disk_space_tolerance_bytes,
 )
 from app.updater.release_bundle import PreparedReleaseBundle
+from app.updater.release_manifest_types import ReleaseUpdateArchive
+from app.updater.software_update.activation_state import prepare_update_activation
+from app.updater.software_update.archive_installation import apply_update_from_zip
 from app.updater.software_update.install_transaction import (
     AppliedUpdateTransaction,
-    apply_update_from_zip,
     finalize_update_transaction,
 )
+from app.updater.software_update.install_transaction_persisted_state import (
+    resolve_update_plugins_path,
+    resolve_update_state_files,
+)
+from app.updater.target_runtime_preparation import prepare_target_update_runtime
+from core.bootstrap.install_payload import write_install_manifest
+from core.bootstrap.venv_paths import get_venv_path
 from core.config.byte_sizes import mib_to_bytes, require_config_mib_to_bytes
-from core.config.numeric import coerce_int_or_none
 from core.config.protocols import ConfigProtocol
-from core.errors.exception_logging import log_exception, log_handled_exception
+from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import (
     ConfigurationError,
     InsufficientDiskSpaceError,
     StateError,
     ValidationError,
 )
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.protocols import LoggerProtocol
-from core.system.commands import run_argv_capture
+from database.migrations.runtime import validate_database_path_for_upgrade
 
 if TYPE_CHECKING:
     from core.hardware.protocols_storage import StorageManagerProtocol
@@ -46,9 +52,10 @@ OPERATION_APPLICATION_UPDATER_PERFORM_UPDATE_DISK_SPACE_CHECK = (
 OPERATION_APPLICATION_UPDATER_PERFORM_UPDATE_CLEANUP_DOWNLOADED_ZIP = (
     "application_updater.perform_update.cleanup_downloaded_zip"
 )
-OPERATION_APPLICATION_UPDATER_POST_UPDATE_HOOK = "application_updater.post_update_hook"
 OPERATION_APPLICATION_UPDATER_MAX_ARCHIVE_BYTES = "application_updater.max_archive_bytes"
+OPERATION_APPLICATION_UPDATER_INSTALL_METADATA = "application_updater.install_metadata"
 DEFAULT_UPDATER_MAX_ARCHIVE_MB = 2048
+OPERATION_APPLICATION_UPDATER_STATE_PREFLIGHT = "application_updater.state_preflight"
 
 
 def perform_update(
@@ -58,36 +65,55 @@ def perform_update(
     temp_path: str,
     platform_id: str,
     config: ConfigProtocol,
+    config_path: str,
     download_timeout: float,
     release_bundle: PreparedReleaseBundle,
     reservation_provider: StorageManagerProtocol,
+    before_commit: Callable[[], bool],
+    task_id: str,
+    from_version: str,
 ) -> bool:
     downloaded_zip = None
     update_transaction: AppliedUpdateTransaction | None = None
     update_success = False
     try:
+        plugins_path = resolve_update_plugins_path(config)
+        try:
+            validate_database_path_for_upgrade(config.get_str("DATA.DATABASE.PATHS.SYSTEM_DB"))
+        except (OSError, StateError, ValidationError) as exception:
+            log_handled_exception(
+                logger,
+                exception,
+                message="Persisted database state cannot be upgraded safely.",
+                operation=OPERATION_APPLICATION_UPDATER_STATE_PREFLIGHT,
+                level="error",
+            )
+            return False
         logger.info("Downloading signed update archive...")
         max_archive_bytes = _resolve_max_archive_bytes(config, logger=logger)
         if max_archive_bytes is None:
             return False
-        archive_record = release_bundle.archive_record
+        archive_record = release_bundle.artifact_record
+        if not isinstance(archive_record, ReleaseUpdateArchive):
+            raise ValidationError("Archive update received a non-archive release artifact.")
         if archive_record.size_bytes > max_archive_bytes:
             logger.error("Signed update archive exceeds the configured archive size limit.")
             return False
-        downloaded_zip = download_zip(
+        downloaded_zip = download_update_file(
             logger,
-            url=release_bundle.archive_download_url,
+            url=release_bundle.artifact_download_url,
             timeout=download_timeout,
             temp_path=temp_path,
-            max_archive_bytes=archive_record.size_bytes,
+            max_download_bytes=archive_record.size_bytes,
             reservation_provider=reservation_provider,
+            suffix=".zip",
         )
         if downloaded_zip is None:
             return False
         zip_path = downloaded_zip.file_path
         if (
             downloaded_zip.size_bytes != archive_record.size_bytes
-            or downloaded_zip.sha256_hex != release_bundle.expected_archive_sha256
+            or downloaded_zip.sha256_hex != release_bundle.expected_artifact_sha256
         ):
             logger.error("Downloaded update archive does not match its signed release record.")
             return False
@@ -124,69 +150,45 @@ def perform_update(
             reservation_provider=reservation_provider,
             manifest=release_bundle.manifest,
             updater=release_bundle.updater,
+            before_commit=before_commit,
+            task_id=task_id,
+            from_version=from_version,
+            config_path=config_path,
+            runtime_path=get_venv_path(base_path),
+            state_files=resolve_update_state_files(config, config_path),
+            plugins_path=plugins_path,
         )
         if update_transaction is None:
             logger.warning("Failed to apply update.")
             return False
-        hook_module = release_bundle.updater.post_update_hook_module
-        hook_script = os.path.join(
-            base_path,
-            release_bundle.updater.post_update_hook_relative_path,
-        )
-        if os.path.exists(hook_script):
-            logger.info("Executing post-update hook script...")
-            hook_timeout = _resolve_post_update_hook_timeout_seconds(config, logger=logger)
-            if hook_timeout is None:
-                return False
-            try:
-                pythonpath = os.pathsep.join((os.path.join(base_path, "backend"), base_path))
-                env = dict(os.environ)
-                existing_pythonpath = env.get("PYTHONPATH")
-                env["PYTHONPATH"] = (
-                    f"{pythonpath}{os.pathsep}{existing_pythonpath}"
-                    if existing_pythonpath
-                    else pythonpath
-                )
-                result = run_argv_capture(
-                    [sys.executable, "-m", hook_module],
-                    cwd=base_path,
-                    timeout=hook_timeout,
-                    check=True,
-                    env=env,
-                )
-                logger.info("Post-update hook finished successfully:\n%s", result.stdout)
-            except CalledProcessError as exception:
-                log_handled_exception(
-                    logger,
-                    exception,
-                    message="Post-update hook failed.",
-                    operation=OPERATION_APPLICATION_UPDATER_POST_UPDATE_HOOK,
-                    details={
-                        "returncode": exception.returncode,
-                        "stdout": str(exception.output or "").strip(),
-                        "stderr": str(exception.stderr or "").strip(),
-                    },
-                    level="error",
-                )
-                return False
-            except RECOVERABLE_EXCEPTIONS as exception:
-                log_exception(
-                    logger,
-                    exception,
-                    message="Post-update hook failed.",
-                    operation=OPERATION_APPLICATION_UPDATER_POST_UPDATE_HOOK,
-                    level="error",
-                )
-                return False
-        update_success = True
-        if not finalize_update_transaction(
-            transaction=update_transaction,
-            update_success=True,
+        try:
+            write_install_manifest(
+                base_path,
+                release_bundle.artifact_download_url,
+                reservation_provider=reservation_provider,
+                edition=release_bundle.manifest.edition,
+                product_version=release_bundle.manifest.version,
+                core_version=release_bundle.manifest.core_version,
+            )
+        except (OSError, InsufficientDiskSpaceError, StateError, ValidationError) as exception:
+            log_handled_exception(
+                logger,
+                exception,
+                message="Installation metadata could not be updated.",
+                operation=OPERATION_APPLICATION_UPDATER_INSTALL_METADATA,
+                level="error",
+            )
+            return False
+        if not prepare_target_update_runtime(
+            base_path=base_path,
+            config_path=config_path,
+            config=config,
+            updater=release_bundle.updater,
             logger=logger,
         ):
-            logger.error("Update transaction finalization failed.")
-            update_success = False
             return False
+        prepare_update_activation(update_transaction)
+        update_success = True
         return True
     finally:
         if update_transaction is not None and (not update_success):
@@ -207,23 +209,6 @@ def perform_update(
                     details={"path": downloaded_zip.file_path},
                     level="debug",
                 )
-
-
-def _resolve_post_update_hook_timeout_seconds(
-    config: ConfigProtocol,
-    *,
-    logger: LoggerProtocol,
-) -> int | None:
-    raw = config.get("SYSTEM.UPDATER.POST_UPDATE_HOOK_TIMEOUT_SEC", 7200)
-    if raw is None:
-        return 7200
-    return coerce_int_or_none(
-        raw,
-        minimum=1,
-        invalid_message="SYSTEM.UPDATER.POST_UPDATE_HOOK_TIMEOUT_SEC must be a positive integer.",
-        below_minimum_message="SYSTEM.UPDATER.POST_UPDATE_HOOK_TIMEOUT_SEC must be greater than 0.",
-        logger=logger,
-    )
 
 
 def _resolve_max_archive_bytes(

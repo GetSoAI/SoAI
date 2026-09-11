@@ -5,12 +5,14 @@ import { dom } from '@core/dom/dom.ts';
 import { readTrimmedInputValue } from '@core/dom/formValues.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { toTrimmedString } from '@core/normalize.ts';
+import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
+import { createDeferred } from '@core/runtime/deferred.ts';
 import { createSaveController, SAVE_HEADER_PRIORITY_PAGE, type SaveController } from '@core/save/public.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { reportChatStreamTerminalizationFailureOnce } from '@features/chat/chatstreamservice/controller/terminalizationError.ts';
 import { runChatExecutionModelPreflightBoundary } from '@features/chat/modelExecutionPreflight.ts';
 import { commitChatMessageEdit, commitChatMessageResend } from '@features/chat/message/messageEditCommit.ts';
-import { beginMessageTextEditing, restoreRenderedMessageText } from '@features/chat/message/messageEditDom.ts';
+import { beginMessageTextEditing, restoreRenderedMessageText, setMessageTextEditingBusy } from '@features/chat/message/messageEditDom.ts';
 import { handleEditAttachmentClick, resolveRemovedEditAttachmentIndexes } from '@features/chat/message/messageEditAttachmentDom.ts';
 import type { ChatMessageEditControllerDependencies } from '@features/chat/message/messageMutationControllerContracts.ts';
 import { normalizeMessageDomId } from '@features/chat/message/messageDomIds.ts';
@@ -46,6 +48,10 @@ class ChatMessageEditController {
             resolveSaveButtons: () => {
                 const button = this.#resolveActiveSaveButton();
                 return button ? [button] : [];
+            },
+            onBusyChange: (busy) => {
+                const container = this.#resolveActiveContainer();
+                if (container) setMessageTextEditingBusy(container, busy);
             }
         });
         this.#domChangeHandler = (): void => this.#save.notifyChanged();
@@ -64,7 +70,7 @@ class ChatMessageEditController {
     }
 
     beginEditing(message: ChatMessage, messageId: string): void {
-        if (this.#isCurrentConversationExecuting()) {
+        if (this.#save.isSaving() || this.#isCurrentConversationExecuting()) {
             return;
         }
         const normalizedId = normalizeMessageDomId(messageId);
@@ -103,7 +109,7 @@ class ChatMessageEditController {
 
     endEditing(message: ChatMessage, messageId: string): void {
         const normalizedId = normalizeMessageDomId(messageId);
-        if (!normalizedId || this.#activeMessageId !== normalizedId) {
+        if (this.#save.isSaving() || !normalizedId || this.#activeMessageId !== normalizedId) {
             return;
         }
         const container = this.#dependencies.view.resolveMessageContainer(normalizedId);
@@ -134,10 +140,13 @@ class ChatMessageEditController {
                 });
             });
         } catch (error) {
-            const runtimeError = ensureError(error);
-            if (!reportChatStreamTerminalizationFailureOnce(runtimeError, (failure) => this.#dependencies.reportRequestFailure(failure))) {
-                this.#dependencies.reportRequestFailure(runtimeError);
-            }
+            this.#reportRequestFailure(ensureError(error));
+        }
+    }
+
+    #reportRequestFailure(error: Error): void {
+        if (!reportChatStreamTerminalizationFailureOnce(error, (failure) => this.#dependencies.reportRequestFailure(failure))) {
+            this.#dependencies.reportRequestFailure(error);
         }
     }
 
@@ -194,18 +203,40 @@ class ChatMessageEditController {
             return;
         }
         const removedAttachmentIndexes = this.#resolveRemovedAttachmentIndexes();
-        if (readTrimmedInputValue(textarea) === this.#baselineText && removedAttachmentIndexes.length === 0) {
+        if (updatedText === this.#baselineText && removedAttachmentIndexes.length === 0) {
             return;
         }
-        await this.#dependencies.runWithBoundary('chat:editMessage', async () => {
+        const container = this.#dependencies.view.resolveMessageContainer(messageId);
+        if (!container || !container.contains(textarea)) {
+            return;
+        }
+        const committedSignal = createDeferred<void>();
+        let editWasCommitted = false;
+        const completion = this.#dependencies.runWithBoundary('chat:editMessage', async () => {
             const preflightAccepted = await runChatExecutionModelPreflightBoundary(async () => {
                 await commitChatMessageEdit(this.#dependencies, {
                     messageId,
                     updatedText,
                     removedAttachmentIndexes,
-                    onCommitted: () => {
-                        this.#clearActiveState();
-                        this.#save.notifyChanged();
+                    onSettled: (settlement) => {
+                        editWasCommitted = settlement.status === 'committed';
+                        try {
+                            setMessageTextEditingBusy(container, false);
+                            if (settlement.status === 'committed' && settlement.currentMessage !== null) {
+                                restoreRenderedMessageText({
+                                    container,
+                                    message: settlement.currentMessage,
+                                    renderMessageTextContent: this.#dependencies.view.renderMessageTextContent,
+                                    postRender: this.#dependencies.view.postRender
+                                });
+                            }
+                        } finally {
+                            if (this.#activeMessageId === messageId) {
+                                this.#clearActiveState();
+                                this.#save.notifyChanged();
+                            }
+                            committedSignal.resolve();
+                        }
                     }
                 });
             });
@@ -213,6 +244,20 @@ class ChatMessageEditController {
                 return;
             }
         });
+        terminateHandledPromise(
+            completion.then(
+                () => committedSignal.resolve(),
+                (error): void => {
+                    const runtimeError = ensureError(error);
+                    if (!editWasCommitted) {
+                        committedSignal.reject(runtimeError);
+                        return;
+                    }
+                    this.#reportRequestFailure(runtimeError);
+                }
+            )
+        );
+        await committedSignal.promise;
     }
 
     #wireEditInput(textarea: HTMLTextAreaElement, container: HTMLElement): void {
@@ -244,11 +289,7 @@ class ChatMessageEditController {
     }
 
     #resolveActiveTextarea(): HTMLTextAreaElement | null {
-        const messageId = this.#activeMessageId;
-        if (!messageId) {
-            return null;
-        }
-        const container = this.#dependencies.view.resolveMessageContainer(messageId);
+        const container = this.#resolveActiveContainer();
         if (!container) {
             return null;
         }
@@ -257,11 +298,7 @@ class ChatMessageEditController {
     }
 
     #resolveRemovedAttachmentIndexes(): number[] {
-        const messageId = this.#activeMessageId;
-        if (!messageId) {
-            return [];
-        }
-        const container = this.#dependencies.view.resolveMessageContainer(messageId);
+        const container = this.#resolveActiveContainer();
         if (!container) {
             return [];
         }
@@ -269,16 +306,20 @@ class ChatMessageEditController {
     }
 
     #resolveActiveSaveButton(): HTMLButtonElement | null {
-        const messageId = this.#activeMessageId;
-        if (!messageId) {
-            return null;
-        }
-        const container = this.#dependencies.view.resolveMessageContainer(messageId);
+        const container = this.#resolveActiveContainer();
         if (!container) {
             return null;
         }
         const button = dom.resolve('.edit-message-save-btn', container);
         return button instanceof HTMLButtonElement ? button : null;
+    }
+
+    #resolveActiveContainer(): HTMLElement | null {
+        const messageId = this.#activeMessageId;
+        if (!messageId) {
+            return null;
+        }
+        return this.#dependencies.view.resolveMessageContainer(messageId);
     }
 }
 

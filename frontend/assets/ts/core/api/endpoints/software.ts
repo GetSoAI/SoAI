@@ -3,11 +3,12 @@
 
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import { decodeSoftwareUpdateAcceptedResponse, decodeSoftwareUpdateCheckResponse, type SoftwareUpdateAcceptedResponse, type SoftwareUpdateCheckResponse } from '@core/api/contracts/softwareContracts.ts';
+import { minutesToMs } from '@core/time/durations.ts';
 
 const createSoftwareEndpoints = (api: ApiClientContext): { checkUpdates: () => Promise<SoftwareUpdateCheckResponse>; updateSoAI: () => Promise<SoftwareUpdateAcceptedResponse> } => {
     return {
         checkUpdates: async (): Promise<SoftwareUpdateCheckResponse> => decodeSoftwareUpdateCheckResponse(await api.post('/api/v1/actions/software/check-for-updates')),
-        updateSoAI: async (): Promise<SoftwareUpdateAcceptedResponse> => decodeSoftwareUpdateAcceptedResponse(await api.post('/api/v1/software/update-soai'))
+        updateSoAI: async (): Promise<SoftwareUpdateAcceptedResponse> => decodeSoftwareUpdateAcceptedResponse(await api.post('/api/v1/software/update-soai', undefined, { timeoutMs: minutesToMs(15) }))
     };
 };
 

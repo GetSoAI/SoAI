@@ -10,6 +10,8 @@ import { disposeResourceStreamSubscriptions, subscribeResourceStateStreamBatch, 
 import { HARDWARE_GPU_CAPABILITIES, HARDWARE_GPU_SLOTS, HARDWARE_GPU_SOAIBENCH_RUNS, HARDWARE_PROCESSES } from '@core/realtime/streammanager/resources/ids.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { StreamRuntimeOwners } from '@core/realtime/streammanager/public.ts';
+import type { ReconciledResourceStatus, ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
+import type { HardwareGpuResource } from '@pages/hardware/controllers/realtime/gpuResourceState.ts';
 import type { ResourcesInterface } from '@pages/hardware/contracts/contracts.ts';
 
 interface HardwareRealtimeHost {
@@ -19,7 +21,7 @@ interface HardwareRealtimeHost {
 
     resolveStreamManager: (options?: { signal?: AbortSignal | undefined }) => Promise<StreamRuntimeOwners | null>;
     ensureDataSubscriptions: (options?: { signal?: AbortSignal }) => Promise<void>;
-    subscribeToData: (resource: string, handler: (value: JsonValue | null) => void) => (() => void) | null;
+    subscribeToResourceState: (resource: string, listener: (snapshot: ResourceReconciliationSnapshot) => void) => (() => void) | null;
     trackDisposable: (resource: () => void, onDispose?: () => void) => void;
     hasGrantedAction: (action: string) => boolean;
     hasProcessPanel: () => boolean;
@@ -30,7 +32,59 @@ interface HardwareRealtimeHost {
     handleSavedGpuSettings: (value: JsonValue | null) => void;
     handleSoAIBenchRunsUpdate: (value: JsonValue | null) => void;
     handleProcessResourceUpdate: (value: JsonValue | null) => void;
+    gpuResourceAvailable: (resource: HardwareGpuResource) => boolean;
+    handleGpuResourceUnavailable: (resource: HardwareGpuResource, error: Error) => void;
+    handleGpuResourceStale: (resource: HardwareGpuResource, error: Error) => void;
 }
+
+const GPU_RESOURCE_IDS: Readonly<Record<string, HardwareGpuResource>> = Object.freeze({
+    [HARDWARE_GPU_CAPABILITIES]: 'capabilities',
+    [HARDWARE_GPU_SLOTS]: 'slots'
+});
+
+const RECOVERABLE_STATUSES: ReadonlySet<ReconciledResourceStatus> = new Set(['initializing', 'recovering', 'disconnected']);
+
+const createGpuResourceStateListener = (host: HardwareRealtimeHost, gpuResource: HardwareGpuResource, resource: string, handler: (value: JsonValue | null) => void): ((snapshot: ResourceReconciliationSnapshot) => void) => {
+    let previousStatus: ReconciledResourceStatus | null = null;
+    let hasObservedValue = host.gpuResourceAvailable(gpuResource);
+    return (snapshot: ResourceReconciliationSnapshot): void => {
+        if (snapshot.status === 'ready') {
+            handler(snapshot.value);
+            hasObservedValue = true;
+            previousStatus = snapshot.status;
+            return;
+        }
+        hasObservedValue = hasObservedValue || snapshot.value !== null || host.gpuResourceAvailable(gpuResource);
+        if (!hasObservedValue && snapshot.error === null && snapshot.status !== 'error') return;
+        if (snapshot.status === previousStatus) {
+            return;
+        }
+        previousStatus = snapshot.status;
+        const error = snapshot.error ?? new Error(`Hardware resource "${resource}" is ${snapshot.status}`);
+        if (RECOVERABLE_STATUSES.has(snapshot.status)) {
+            host.handleGpuResourceStale(gpuResource, error);
+            return;
+        }
+        host.handleGpuResourceUnavailable(gpuResource, error);
+    };
+};
+
+const createResourceValueListener = (handler: (value: JsonValue | null) => void): ((snapshot: ResourceReconciliationSnapshot) => void) => {
+    return (snapshot: ResourceReconciliationSnapshot): void => {
+        if (snapshot.status !== 'ready') {
+            return;
+        }
+        handler(snapshot.value);
+    };
+};
+
+const subscribeHardwareResource = (host: HardwareRealtimeHost, resource: string, handler: (value: JsonValue | null) => void): (() => void) | null => {
+    const gpuResource = GPU_RESOURCE_IDS[resource];
+    if (gpuResource === undefined) {
+        return host.subscribeToResourceState(resource, createResourceValueListener(handler));
+    }
+    return host.subscribeToResourceState(resource, createGpuResourceStateListener(host, gpuResource, resource, handler));
+};
 
 interface HardwareRealtimeStreams {
     hardwareSnapshotStream: string;
@@ -65,7 +119,7 @@ const setupRealtimeSubscriptions = (host: HardwareRealtimeHost, streams: Hardwar
         resourceSubscriptions = subscribeResourceStateStreamBatch({
             label: 'Hardware realtime',
             bindings: subscriptions.map(([resource, handler]) => ({ resource, handler })),
-            subscribeToData: (resource, handler) => host.subscribeToData(resource, handler)
+            subscribeToData: (resource, handler) => subscribeHardwareResource(host, resource, handler)
         });
         for (const subscription of resourceSubscriptions) {
             const disposer = subscription.dispose;

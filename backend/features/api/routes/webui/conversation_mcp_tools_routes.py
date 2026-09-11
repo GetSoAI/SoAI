@@ -9,8 +9,7 @@ from core.automation.automation_tool_blocklist import (
     load_automation_disallowed_unqualified_tools,
 )
 from core.mcp.tool_catalog_scope import (
-    INTERNAL_ADMIN_MCP_TOOL_CATALOG_SCOPE,
-    PUBLIC_MCP_TOOL_CATALOG_SCOPE,
+    resolve_conversation_tool_catalog_scope,
 )
 from core.state.access import AccessAction
 from core.types.json import JSONDict
@@ -46,10 +45,8 @@ def register_routes(routers: ApiRouters) -> None:
             api_context=api_context,
             conv_id=conv_id,
             user_id=current_user["id"],
-            local_tool_catalog_scope=(
-                INTERNAL_ADMIN_MCP_TOOL_CATALOG_SCOPE
-                if current_user["is_admin"]
-                else PUBLIC_MCP_TOOL_CATALOG_SCOPE
+            local_tool_catalog_scope=resolve_conversation_tool_catalog_scope(
+                user_is_admin=current_user["is_admin"],
             ),
         )
         disallowed_unqualified_tools = (

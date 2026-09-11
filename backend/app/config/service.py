@@ -46,9 +46,9 @@ from core.concurrency.task_groups import ManagedTaskGroup
 from core.config.locks import get_lock_path
 from core.errors.exceptions import StateError, ValidationError
 from core.files.locking import async_guarded_file_lock
+from core.lifecycle.protocols import Shutdownable
 from core.logging.protocols import LoggerProtocol
 from core.logging.trace import get_logger
-from core.runtime.protocols import Shutdownable
 from core.tasks.protocols import (
     TaskCancellationBinderProtocol,
     TaskFinalizerTrackerProtocol,

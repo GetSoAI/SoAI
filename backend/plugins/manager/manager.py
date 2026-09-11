@@ -3,10 +3,14 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
+from core.concurrency.bounded_blocking import run_bounded_blocking_call
+from core.errors.exceptions import StateError
 from core.logging.protocols import LoggerProtocol
 from core.logging.trace import get_logger
+from core.plugins.logo_contract import PluginLogoResult
 from core.plugins.protocols_manager_dependencies import (
     PluginManagerDependenciesProtocol,
     PluginManagerPathsProtocol,
@@ -14,9 +18,13 @@ from core.plugins.protocols_manager_dependencies import (
 )
 from core.runtime.request_context import RequestContext
 from core.runtime.startup_status import StartupPhaseResult
+from core.serialization.sha256_hexdigest import require_canonical_sha256_hexdigest
 from core.state.protocols import AuthoritativePluginStateTransitionReceipt
 from core.state.state_names import PLUGIN_STATE_NAMES, PluginRuntimeStateName
+from core.timing.constants import CONTROL_TIMEOUT_SEC
 from plugins.clone.clone_committed_integrity import is_clone_integrity_quarantined
+from plugins.identity import require_plugin_identifier
+from plugins.logo_preparation import prepare_archive_logo
 from plugins.manager.alias_map import is_known_plugin, normalize_plugin_name
 from plugins.manager.dependencies import PluginManagerDependencies
 from plugins.manager.lifecycle_controller import PluginManagerLifecycleController
@@ -31,6 +39,7 @@ from plugins.manager.path_resolver import resolve_plugin_manager_paths
 from plugins.manager.public_operations import PluginManagerOperations
 from plugins.manager.startup_recovery import perform_startup_backend_stop_sweep
 from plugins.manager.state_builder import build_plugin_manager_state
+from plugins.path_safety import get_plugin_file_path
 from plugins.protocols_internal.runtime.internal_protocols import (
     PluginWorkerControllerProtocol,
 )
@@ -187,3 +196,38 @@ class PluginManager(PluginManagerOperations):
             reason,
             context=context,
         )
+
+    async def prepare_logo(
+        self,
+        plugin_name: str,
+        archive_hash: str,
+    ) -> PluginLogoResult | None:
+        require_plugin_identifier(plugin_name, invalid_message="Invalid plugin artwork identifier.")
+        require_canonical_sha256_hexdigest(archive_hash, label="Plugin archive revision")
+        infrastructure = self.dependencies.infrastructure
+        database = self.dependencies.databases.plugins
+        async with asyncio.timeout(CONTROL_TIMEOUT_SEC):
+            async with self.lifecycle.bounded_plugin_lock_scope(
+                plugin_name,
+                timeout_seconds=CONTROL_TIMEOUT_SEC,
+            ) as lock_result:
+                if lock_result.acquired:
+                    if infrastructure.lifecycle.shutdown_event.is_set():
+                        raise StateError("Plugin artwork preparation is unavailable.")
+                    records = await database.get_all_listable_plugins(plugin_name)
+                    if not records or records[0].get("file_hash") != archive_hash:
+                        return None
+                    result = await run_bounded_blocking_call(
+                        infrastructure.logo_preparation_pool,
+                        prepare_archive_logo,
+                        plugin_name,
+                        get_plugin_file_path(self, plugin_name),
+                        archive_hash,
+                        infrastructure.logo_cache,
+                        total_timeout_sec=CONTROL_TIMEOUT_SEC,
+                    )
+                    current_records = await database.get_all_listable_plugins(plugin_name)
+                    if not current_records or current_records[0].get("file_hash") != archive_hash:
+                        return None
+                    return result
+            raise StateError("Plugin artwork preparation lock timed out.")

@@ -4,7 +4,7 @@
 import { i18n } from '@core/i18n/index.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
-import { CONTENT_PREVIEW_IMAGE_MAX_SCALE, CONTENT_PREVIEW_IMAGE_MIN_SCALE, computeFitScale, resolveViewerOffsets, type Point } from '@core/ui/modals/contentpreview/imageViewerGeometry.ts';
+import { CONTENT_PREVIEW_IMAGE_MAX_SCALE, computeFitScale, resolveViewerOffsets, type Point } from '@core/ui/modals/contentpreview/imageViewerGeometry.ts';
 import { applyContentPreviewImageViewerMetadata } from '@core/ui/modals/contentpreview/imageViewerMetadataState.ts';
 import type { ContentPreviewImageViewerRefs } from '@core/ui/modals/contentpreview/imageViewerDom.ts';
 import { createContentPreviewImageViewerMinimap } from '@core/ui/modals/contentpreview/imageViewerMinimap.ts';
@@ -12,7 +12,7 @@ import { computeMinimapProjection } from '@core/ui/modals/contentpreview/imageVi
 import type { ContentPreviewImageViewerState } from '@core/ui/modals/contentpreview/imageViewerStateTypes.ts';
 import type { ContentPreviewImageMetadata } from '@core/ui/modals/contentpreview/types.ts';
 
-const createContentPreviewImageViewerState = (refs: ContentPreviewImageViewerRefs, sourceUrl: string, imageMetadata: ContentPreviewImageMetadata | null): ContentPreviewImageViewerState => {
+const createContentPreviewImageViewerState = (refs: ContentPreviewImageViewerRefs, sourceUrl: string, imageMetadata: ContentPreviewImageMetadata | null, onImageStatus: (status: 'ready' | 'failed') => void): ContentPreviewImageViewerState => {
     const resources = new ResourceTracker();
     const minimap = createContentPreviewImageViewerMinimap({ refs, resources });
 
@@ -22,9 +22,18 @@ const createContentPreviewImageViewerState = (refs: ContentPreviewImageViewerRef
     let offsetX = 0;
     let offsetY = 0;
     let fitMode = false;
-    let minScale = CONTENT_PREVIEW_IMAGE_MIN_SCALE;
+    let previousViewportWidth = 0;
+    let previousViewportHeight = 0;
+    const resizeListeners = new Set<() => void>();
     const maxScale = CONTENT_PREVIEW_IMAGE_MAX_SCALE;
     let metadataAbort: AbortController | null = null;
+    let loadDeadline: number | null = null;
+    const clearLoadDeadline = (): void => {
+        if (loadDeadline !== null) {
+            resources.clearTimeout(loadDeadline);
+            loadDeadline = null;
+        }
+    };
 
     const updateZoom = (): void => {
         refs.zoom.value.textContent = `${Math.round(scale * 100)}%`;
@@ -81,7 +90,7 @@ const createContentPreviewImageViewerState = (refs: ContentPreviewImageViewerRef
         if (!imageWidth || !imageHeight || !viewportWidth || !viewportHeight) {
             return scale;
         }
-        return computeFitScale(imageWidth, imageHeight, viewportWidth, viewportHeight, minScale, maxScale);
+        return computeFitScale(imageWidth, imageHeight, viewportWidth, viewportHeight);
     };
 
     const configureMinimapSize = (): void => {
@@ -99,16 +108,20 @@ const createContentPreviewImageViewerState = (refs: ContentPreviewImageViewerRef
         refs.minimapFrame.style.height = `${Math.max(44, Math.round(height))}px`;
     };
 
-    const applyTransform = (nextScale: number, nextOffsetX: number, nextOffsetY: number, showMinimap: boolean): boolean => {
-        const clampedScale = clampNumber(nextScale, minScale, maxScale);
-        const clampedOffsets = resolveOffsets(clampedScale, nextOffsetX, nextOffsetY);
+    const applyTransform = (nextScale: number, nextOffsetX: number, nextOffsetY: number, showMinimap: boolean, elastic = false): boolean => {
+        if (![nextScale, nextOffsetX, nextOffsetY].every(Number.isFinite) || nextScale <= 0) {
+            throw new Error('Image transform requires finite coordinates and a positive scale');
+        }
+        const minimum = computeFitScaleValue();
+        const clampedScale = clampNumber(nextScale, elastic ? minimum * 0.84 : minimum, elastic ? maxScale * 1.08 : maxScale);
+        const clampedOffsets = elastic ? { x: nextOffsetX, y: nextOffsetY } : resolveOffsets(clampedScale, nextOffsetX, nextOffsetY);
         if (clampedScale === scale && clampedOffsets.x === offsetX && clampedOffsets.y === offsetY) {
             return false;
         }
         scale = clampedScale;
         offsetX = clampedOffsets.x;
         offsetY = clampedOffsets.y;
-        fitMode = false;
+        fitMode = Math.abs(scale / minimum - 1) <= 0.001;
         render(showMinimap);
         return true;
     };
@@ -126,72 +139,32 @@ const createContentPreviewImageViewerState = (refs: ContentPreviewImageViewerRef
         render(showMinimap);
     };
 
-    const centerNative = (showMinimap: boolean): void => {
-        if (!imageWidth || !imageHeight) {
-            return;
-        }
-        fitMode = false;
-        scale = 1;
+    const handleResize = (): void => {
         const viewportWidth = refs.viewport.clientWidth;
         const viewportHeight = refs.viewport.clientHeight;
-        offsetX = viewportWidth ? (viewportWidth - imageWidth * scale) / 2 : 0;
-        offsetY = viewportHeight ? (viewportHeight - imageHeight * scale) / 2 : 0;
-        render(showMinimap);
-    };
-
-    const centerNativeAt = (showMinimap: boolean, center: Point): void => {
-        if (!imageWidth || !imageHeight) {
+        if (!imageWidth || !imageHeight || !viewportWidth || !viewportHeight || (viewportWidth === previousViewportWidth && viewportHeight === previousViewportHeight)) {
             return;
         }
-        const currentTransform = state.getTransform();
-        const contentX = (center.x - currentTransform.offsetX) / currentTransform.scale;
-        const contentY = (center.y - currentTransform.offsetY) / currentTransform.scale;
-        fitMode = false;
-        scale = 1;
-        offsetX = center.x - contentX * scale;
-        offsetY = center.y - contentY * scale;
-        const clamped = resolveOffsets(scale, offsetX, offsetY);
-        offsetX = clamped.x;
-        offsetY = clamped.y;
-        render(showMinimap);
-    };
-
-    const fitToViewportAt = (showMinimap: boolean, center: Point): void => {
-        if (!imageWidth || !imageHeight) {
-            return;
-        }
-        const currentTransform = state.getTransform();
-        const contentX = (center.x - currentTransform.offsetX) / currentTransform.scale;
-        const contentY = (center.y - currentTransform.offsetY) / currentTransform.scale;
-        fitMode = true;
-        scale = computeFitScaleValue();
-        offsetX = center.x - contentX * scale;
-        offsetY = center.y - contentY * scale;
-        const clamped = resolveOffsets(scale, offsetX, offsetY);
-        offsetX = clamped.x;
-        offsetY = clamped.y;
-        render(showMinimap);
-    };
-
-    const handleResize = (): void => {
-        if (!imageWidth || !imageHeight) {
-            return;
-        }
+        const centerX = (previousViewportWidth / 2 - offsetX) / scale;
+        const centerY = (previousViewportHeight / 2 - offsetY) / scale;
         if (fitMode) {
-            scale = computeFitScaleValue();
-            const viewportWidth = refs.viewport.clientWidth;
-            const viewportHeight = refs.viewport.clientHeight;
-            offsetX = viewportWidth ? (viewportWidth - imageWidth * scale) / 2 : 0;
-            offsetY = viewportHeight ? (viewportHeight - imageHeight * scale) / 2 : 0;
+            fitToViewport(false);
         } else {
-            const clamped = resolveOffsets(scale, offsetX, offsetY);
+            scale = clampNumber(scale, computeFitScaleValue(), maxScale);
+            const clamped = resolveOffsets(scale, viewportWidth / 2 - centerX * scale, viewportHeight / 2 - centerY * scale);
             offsetX = clamped.x;
             offsetY = clamped.y;
+            fitMode = Math.abs(scale / computeFitScaleValue() - 1) <= 0.001;
+            render(false);
         }
-        render(false);
+        previousViewportWidth = viewportWidth;
+        previousViewportHeight = viewportHeight;
+        resizeListeners.forEach((listener) => listener());
     };
 
     const handleImageLoad = (): void => {
+        clearLoadDeadline();
+        onImageStatus('ready');
         imageWidth = refs.image.naturalWidth;
         imageHeight = refs.image.naturalHeight;
         refs.stage.style.width = `${imageWidth}px`;
@@ -201,9 +174,10 @@ const createContentPreviewImageViewerState = (refs: ContentPreviewImageViewerRef
 
         const viewportWidth = refs.viewport.clientWidth;
         const viewportHeight = refs.viewport.clientHeight;
-        minScale = CONTENT_PREVIEW_IMAGE_MIN_SCALE;
-        scale = imageWidth && imageHeight && viewportWidth && viewportHeight ? Math.min(1, Math.min(viewportWidth / imageWidth, viewportHeight / imageHeight)) : 1;
-        fitMode = scale < 1;
+        previousViewportWidth = viewportWidth;
+        previousViewportHeight = viewportHeight;
+        scale = imageWidth && imageHeight && viewportWidth && viewportHeight ? computeFitScale(imageWidth, imageHeight, viewportWidth, viewportHeight) : 1;
+        fitMode = true;
         offsetX = viewportWidth ? (viewportWidth - imageWidth * scale) / 2 : 0;
         offsetY = viewportHeight ? (viewportHeight - imageHeight * scale) / 2 : 0;
 
@@ -223,6 +197,12 @@ const createContentPreviewImageViewerState = (refs: ContentPreviewImageViewerRef
     };
 
     const handleImageError = (): void => {
+        clearLoadDeadline();
+        metadataAbort?.abort();
+        metadataAbort = null;
+        onImageStatus('failed');
+        imageWidth = 0;
+        imageHeight = 0;
         refs.stage.classList.remove('is-ready');
         refs.info.classList.add('is-ready');
         refs.resolution.value.textContent = i18n.t('common.unknown');
@@ -241,16 +221,21 @@ const createContentPreviewImageViewerState = (refs: ContentPreviewImageViewerRef
     const state: ContentPreviewImageViewerState = Object.freeze({
         isReady: (): boolean => Boolean(imageWidth && imageHeight),
         getTransform: (): Readonly<{ scale: number; offsetX: number; offsetY: number; fitMode: boolean }> => Object.freeze({ scale, offsetX, offsetY, fitMode }),
+        getGeometry: () => ({ imageWidth, imageHeight, viewportWidth: refs.viewport.clientWidth, viewportHeight: refs.viewport.clientHeight, fitScale: computeFitScaleValue() }),
+        subscribeResize: (listener: () => void): (() => void) => {
+            resizeListeners.add(listener);
+            return () => {
+                resizeListeners.delete(listener);
+            };
+        },
         scheduleMinimapHide: (delayMs: number): void => minimap.scheduleHide(delayMs),
         applyTransform,
         fitToViewport,
-        fitToViewportAt,
-        centerNative,
-        centerNativeAt,
         handleResize,
         handleImageLoad,
         handleImageError,
         dispose: (): void => {
+            resizeListeners.clear();
             metadataAbort?.abort();
             metadataAbort = null;
             minimap.dispose();
@@ -264,6 +249,13 @@ const createContentPreviewImageViewerState = (refs: ContentPreviewImageViewerRef
         } else {
             handleImageError();
         }
+    }
+
+    if (!refs.image.complete) {
+        loadDeadline = resources.setTimeout(() => {
+            handleImageError();
+            refs.image.removeAttribute('src');
+        }, 30000);
     }
 
     return state;

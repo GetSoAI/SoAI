@@ -206,6 +206,7 @@ def build_mcp_server_components(
             worker_builder=MCPWorker,
             load_search_api_keys=load_search_api_keys,
             register_tools=registration_service.register_soai_tools,
+            register_local_tools=registration_service.register_local_tools,
             register_resources=registration_service.register_soai_resources,
             register_prompts=registration_service.register_soai_prompts,
             exposed_tools=inputs.exposed_tools,

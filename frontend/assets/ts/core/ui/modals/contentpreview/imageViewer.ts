@@ -1,13 +1,17 @@
 /* SoAI - Content preview image viewer [frontend/assets/ts/core/ui/modals/contentpreview/imageViewer.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { resolveMaxCssTransitionTotalMs } from '@core/animations/parseMaxCssDurationMs.ts';
-import { createContentPreviewImageViewerDom, type ContentPreviewImageViewerRefs } from '@core/ui/modals/contentpreview/imageViewerDom.ts';
+import type { ImageViewerGestureActions } from '@core/ui/modals/contentpreview/imageViewerPaging.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { loadContentPreviewImage, prepareImageScene, slideImageScene, waitForImageSceneTransition } from '@core/ui/modals/contentpreview/imageViewerScene.ts';
+import { createContentPreviewImageViewerDom, updateContentPreviewImageNavigation, type ContentPreviewImageViewerRefs } from '@core/ui/modals/contentpreview/imageViewerDom.ts';
 import { createContentPreviewImageViewerGestures } from '@core/ui/modals/contentpreview/imageViewerGestures.ts';
 import { createContentPreviewImageViewerState } from '@core/ui/modals/contentpreview/imageViewerState.ts';
 import type { ContentPreviewImageMetadata, ContentPreviewImageNavigation, ContentPreviewImageNavigationDirection, ContentPreviewSourceReference } from '@core/ui/modals/contentpreview/types.ts';
 
 type MountArguments = Readonly<{
+    actions: Pick<ImageViewerGestureActions, 'requestNavigation' | 'requestClose'>;
+    onImageStatus: (status: 'ready' | 'failed') => void;
     container: HTMLElement;
     sourceUrl: string;
     title: string;
@@ -17,6 +21,7 @@ type MountArguments = Readonly<{
 }>;
 
 type ContentPreviewImageNavigationUpdate = Readonly<{
+    imageNavigation?: ContentPreviewImageNavigation | null;
     sourceUrl: string;
     title: string;
     imageMetadata: ContentPreviewImageMetadata | null;
@@ -27,86 +32,10 @@ type ContentPreviewImageViewerController = Readonly<{
     beginNavigation: (direction: ContentPreviewImageNavigationDirection, loadingLabel: string) => void;
     completeNavigation: (update: ContentPreviewImageNavigationUpdate, direction: ContentPreviewImageNavigationDirection) => Promise<boolean>;
     cancelNavigation: () => void;
-    isNavigationPending: () => boolean;
     dispose: () => void;
 }>;
 
 const IMAGE_LOADING_OVERLAY_DELAY_MS = 250;
-
-const configureImage = (image: HTMLImageElement, sourceUrl: string, title: string): void => {
-    image.className = 'content-preview-image';
-    image.alt = title;
-    image.decoding = 'async';
-    image.loading = 'eager';
-    image.draggable = false;
-    image.src = sourceUrl;
-};
-
-const loadImage = async (sourceUrl: string, title: string, documentRef: Document): Promise<HTMLImageElement> => {
-    const image = documentRef.createElement('img');
-    await new Promise<void>((resolve, reject) => {
-        const handleLoad = (): void => {
-            image.removeEventListener('error', handleError);
-            resolve();
-        };
-        const handleError = (): void => {
-            image.removeEventListener('load', handleLoad);
-            reject(new Error('Adjacent preview image failed to load'));
-        };
-        image.addEventListener('load', handleLoad, { once: true });
-        image.addEventListener('error', handleError, { once: true });
-        configureImage(image, sourceUrl, title);
-    });
-    return image;
-};
-
-const waitForTransition = async (element: HTMLElement): Promise<void> => {
-    const transitionMs = resolveMaxCssTransitionTotalMs(element);
-    if (transitionMs === 0) {
-        return;
-    }
-    await new Promise<void>((resolve) => {
-        let settled = false;
-        const finish = (event?: Event): void => {
-            if (event && event.target !== element) {
-                return;
-            }
-            if (settled) {
-                return;
-            }
-            settled = true;
-            element.removeEventListener('transitionend', finish);
-            clearTimeout(timeout);
-            resolve();
-        };
-        const timeout = setTimeout(finish, transitionMs + 80);
-        element.addEventListener('transitionend', finish);
-    });
-};
-
-const createIncomingRefs = (refs: ContentPreviewImageViewerRefs, image: HTMLImageElement): ContentPreviewImageViewerRefs => {
-    const scene = image.ownerDocument.createElement('div');
-    scene.className = 'content-preview-image-scene';
-    const stage = image.ownerDocument.createElement('div');
-    stage.className = 'content-preview-image-stage';
-    stage.appendChild(image);
-    scene.appendChild(stage);
-    return Object.freeze({ ...refs, scene, stage, image });
-};
-
-const createTransitionTrack = (outgoingRefs: ContentPreviewImageViewerRefs, incomingRefs: ContentPreviewImageViewerRefs, direction: ContentPreviewImageNavigationDirection): HTMLDivElement => {
-    const track = outgoingRefs.viewer.ownerDocument.createElement('div');
-    track.className = `content-preview-image-transition-track content-preview-image-transition-track--${direction}`;
-    outgoingRefs.viewport.insertBefore(track, outgoingRefs.scene);
-    if (direction === 'next') {
-        track.appendChild(outgoingRefs.scene);
-        track.appendChild(incomingRefs.scene);
-    } else {
-        track.appendChild(incomingRefs.scene);
-        track.appendChild(outgoingRefs.scene);
-    }
-    return track;
-};
 
 const setNavigationButtonsDisabled = (refs: ContentPreviewImageViewerRefs, disabled: boolean): void => {
     if (refs.previousButton) {
@@ -117,18 +46,30 @@ const setNavigationButtonsDisabled = (refs: ContentPreviewImageViewerRefs, disab
     }
 };
 
-export const mountContentPreviewImageViewer = ({ container, sourceUrl, title, imageMetadata, imageNavigation, sourceReference }: MountArguments): ContentPreviewImageViewerController => {
+export const mountContentPreviewImageViewer = ({ actions, onImageStatus, container, sourceUrl, title, imageMetadata, imageNavigation, sourceReference }: MountArguments): ContentPreviewImageViewerController => {
     const url = sourceUrl.trim();
     if (!url) {
         throw new Error('Image viewer sourceUrl must be non-empty');
     }
 
     let refs = createContentPreviewImageViewerDom(container, url, title, imageNavigation, sourceReference);
-    let state = createContentPreviewImageViewerState(refs, url, imageMetadata);
-    let disposeGestures = createContentPreviewImageViewerGestures({ refs, state });
+    let state = createContentPreviewImageViewerState(refs, url, imageMetadata, onImageStatus);
     let pendingDirection: ContentPreviewImageNavigationDirection | null = null;
     let loadingOverlayTimeout: ReturnType<typeof setTimeout> | null = null;
     let disposed = false;
+    let navigationOffset = 0;
+    let navigationAbort: AbortController | null = null;
+    let currentNavigation = imageNavigation;
+    const gestureActions: ImageViewerGestureActions = {
+        canNavigate: () => currentNavigation !== null,
+        isBlocked: () => disposed || pendingDirection !== null,
+        requestClose: actions.requestClose,
+        requestNavigation: (direction, offset) => {
+            navigationOffset = offset;
+            actions.requestNavigation(direction, offset);
+        }
+    };
+    let gestures = createContentPreviewImageViewerGestures({ refs, state, actions: gestureActions });
 
     const hideLoadingOverlay = (): boolean => {
         if (loadingOverlayTimeout !== null) {
@@ -150,6 +91,10 @@ export const mountContentPreviewImageViewer = ({ container, sourceUrl, title, im
             return;
         }
         pendingDirection = direction;
+        navigationAbort?.abort();
+        navigationAbort = new AbortController();
+        gestures.suspend();
+        refs.scene.style.transform = `translate3d(${navigationOffset}px, 0, 0)`;
         refs.loadingPath.textContent = loadingPath;
         refs.metadata.classList.add('is-loading');
         setNavigationButtonsDisabled(refs, true);
@@ -159,55 +104,53 @@ export const mountContentPreviewImageViewer = ({ container, sourceUrl, title, im
     };
 
     const completeNavigation = async (update: ContentPreviewImageNavigationUpdate, direction: ContentPreviewImageNavigationDirection): Promise<boolean> => {
-        if (disposed || pendingDirection !== direction) {
+        if (disposed) {
+            return false;
+        }
+        const controller = navigationAbort;
+        if (pendingDirection !== direction || !controller) {
             throw new Error('Image navigation completion does not match the active transition');
         }
         const nextUrl = update.sourceUrl.trim();
         if (!nextUrl) {
             throw new Error('Adjacent image sourceUrl must be non-empty');
         }
-        const incomingImage = await loadImage(nextUrl, update.title, refs.viewer.ownerDocument);
-        if (disposed || pendingDirection !== direction) {
-            return false;
+        try {
+            const incomingImage = await loadContentPreviewImage(nextUrl, update.title, refs.viewer.ownerDocument, controller.signal);
+            if (hideLoadingOverlay()) {
+                await waitForImageSceneTransition(refs.loadingOverlay, controller.signal);
+            }
+            const incomingRefs = prepareImageScene(refs, incomingImage);
+            await slideImageScene(refs, incomingRefs, direction, navigationOffset, controller.signal);
+            if (controller.signal.aborted) {
+                return false;
+            }
+            gestures.dispose();
+            state.dispose();
+            refs.scene.replaceWith(incomingRefs.scene);
+            refs = incomingRefs;
+            refs.minimapImage.src = nextUrl;
+            refs.viewer.setAttribute('aria-label', update.title);
+            if (refs.sourceReference && update.sourceReference) {
+                refs.sourceReference.value.textContent = update.sourceReference.value;
+            }
+            state = createContentPreviewImageViewerState(refs, nextUrl, update.imageMetadata, onImageStatus);
+            gestures = createContentPreviewImageViewerGestures({ refs, state, actions: gestureActions });
+            restoreMetadata();
+            pendingDirection = null;
+            navigationOffset = 0;
+            navigationAbort = null;
+            currentNavigation = update.imageNavigation ?? null;
+            updateContentPreviewImageNavigation(refs, currentNavigation);
+            setNavigationButtonsDisabled(refs, false);
+            return true;
+        } catch (error) {
+            const runtimeError = ensureError(error);
+            if (controller.signal.aborted) {
+                return false;
+            }
+            throw runtimeError;
         }
-        const overlayWasVisible = hideLoadingOverlay();
-        if (overlayWasVisible) {
-            await waitForTransition(refs.loadingOverlay);
-        }
-        if (disposed || pendingDirection !== direction) {
-            return false;
-        }
-
-        const outgoingRefs = refs;
-        const incomingRefs = createIncomingRefs(refs, incomingImage);
-        const transitionTrack = createTransitionTrack(outgoingRefs, incomingRefs, direction);
-
-        disposeGestures();
-        state.dispose();
-        refs = incomingRefs;
-        refs.minimapImage.src = nextUrl;
-        if (refs.sourceReference && update.sourceReference) {
-            refs.sourceReference.value.textContent = update.sourceReference.value;
-        }
-        state = createContentPreviewImageViewerState(refs, nextUrl, update.imageMetadata);
-        disposeGestures = createContentPreviewImageViewerGestures({ refs, state });
-        restoreMetadata();
-
-        transitionTrack.classList.add('is-sliding');
-        await new Promise<void>((resolve) => {
-            requestAnimationFrame(() => resolve());
-        });
-        transitionTrack.classList.add('is-active');
-        await waitForTransition(transitionTrack);
-        if (disposed || pendingDirection !== direction) {
-            transitionTrack.remove();
-            return false;
-        }
-        outgoingRefs.viewport.insertBefore(refs.scene, outgoingRefs.loadingOverlay);
-        transitionTrack.remove();
-        pendingDirection = null;
-        setNavigationButtonsDisabled(refs, false);
-        return true;
     };
 
     const cancelNavigation = (): void => {
@@ -215,6 +158,10 @@ export const mountContentPreviewImageViewer = ({ container, sourceUrl, title, im
             return;
         }
         pendingDirection = null;
+        navigationAbort?.abort();
+        navigationAbort = null;
+        navigationOffset = 0;
+        gestures.cancel();
         hideLoadingOverlay();
         restoreMetadata();
         setNavigationButtonsDisabled(refs, false);
@@ -223,10 +170,10 @@ export const mountContentPreviewImageViewer = ({ container, sourceUrl, title, im
     const dispose = (): void => {
         disposed = true;
         pendingDirection = null;
+        navigationAbort?.abort();
+        navigationAbort = null;
         hideLoadingOverlay();
-        restoreMetadata();
-        setNavigationButtonsDisabled(refs, false);
-        disposeGestures();
+        gestures.dispose();
         state.dispose();
         container.textContent = '';
     };
@@ -235,7 +182,6 @@ export const mountContentPreviewImageViewer = ({ container, sourceUrl, title, im
         beginNavigation,
         completeNavigation,
         cancelNavigation,
-        isNavigationPending: (): boolean => pendingDirection !== null,
         dispose
     });
 };

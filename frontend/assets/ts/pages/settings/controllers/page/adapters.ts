@@ -53,8 +53,7 @@ const createCoreSettingsManagers = (page: SettingsRuntimeContext, state: Setting
             resolveWorkspaceBrowserAccess: async () =>
                 await resolveWorkspaceBrowserAccess({
                     getCurrentUser: () => page.owners.api.webui.auth.getMe(),
-                    scopedBrowserApi: page.owners.api.fileExplorer,
-                    adminBrowserApi: page.owners.api.webui.users.workspaceBrowser
+                    scopedBrowserApi: page.owners.api.fileExplorer
                 }),
             hasSearchQuery: (): boolean => hasSearchQuery(page)
         }

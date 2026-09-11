@@ -7,7 +7,7 @@ import copy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from hardware.gpu_tuning.slot_payload import load_locked_inventory_and_payload
+from hardware.gpu_tuning.slot_payload import observe_locked_slot_inventory
 from hardware.presets.slot_storage import update_control_state_for_device
 
 if TYPE_CHECKING:
@@ -41,7 +41,7 @@ def load_device_slot_state(
     device_id: str,
 ) -> tuple[JSONDict | None, JSONDict | None]:
     with storage.lock:
-        inventory, slots_payload = load_locked_inventory_and_payload(
+        observation = observe_locked_slot_inventory(
             executor=executor,
             storage=storage,
             detailed_gpu_info=detailed_gpu_info,
@@ -49,6 +49,7 @@ def load_device_slot_state(
             prune=True,
             allow_create=True,
         )
+        inventory, slots_payload = (observation.inventory, observation.payload)
         payload_devices = slots_payload.get("devices")
         device_entry = payload_devices.get(device_id) if isinstance(payload_devices, dict) else None
         device_info = inventory.get(device_id)
@@ -69,7 +70,7 @@ def ensure_device_control_state(
     applied_settings: JSONDict,
 ) -> DeviceControlStateWriteResult:
     with storage.lock:
-        inventory, slots_payload = load_locked_inventory_and_payload(
+        observation = observe_locked_slot_inventory(
             executor=executor,
             storage=storage,
             detailed_gpu_info=detailed_gpu_info,
@@ -77,6 +78,7 @@ def ensure_device_control_state(
             prune=True,
             allow_create=True,
         )
+        inventory, slots_payload = (observation.inventory, observation.payload)
         device_info = inventory.get(device_id)
         if not isinstance(device_info, dict):
             return DeviceControlStateWriteResult(success=False, changed=False, entry=None)

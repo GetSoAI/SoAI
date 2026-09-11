@@ -5,294 +5,278 @@ import { measureLayoutBox, measureLayoutPoint } from '@core/layout/elementGeomet
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { createContentPreviewImageViewerActivation } from '@core/ui/modals/contentpreview/imageViewerActivation.ts';
+import { createContentPreviewImageViewerMotion } from '@core/ui/modals/contentpreview/imageViewerMotion.ts';
+import { createContentPreviewImageViewerPaging, type ImageViewerGestureActions } from '@core/ui/modals/contentpreview/imageViewerPaging.ts';
 import type { ContentPreviewImageViewerRefs } from '@core/ui/modals/contentpreview/imageViewerDom.ts';
-import { CONTENT_PREVIEW_IMAGE_MAX_SCALE, CONTENT_PREVIEW_IMAGE_MIN_SCALE } from '@core/ui/modals/contentpreview/imageViewerGeometry.ts';
+import { CONTENT_PREVIEW_IMAGE_MAX_SCALE, resolveElasticImageScale, resolveViewerOffsets, restoreImageDisplacement, type Point } from '@core/ui/modals/contentpreview/imageViewerGeometry.ts';
 import type { ContentPreviewImageViewerState } from '@core/ui/modals/contentpreview/imageViewerStateTypes.ts';
 
-type MountArguments = Readonly<{
-    refs: ContentPreviewImageViewerRefs;
-    state: ContentPreviewImageViewerState;
-}>;
+type MountArguments = Readonly<{ refs: ContentPreviewImageViewerRefs; state: ContentPreviewImageViewerState; actions: ImageViewerGestureActions }>;
+type TrackedPointer = Readonly<{ x: number; y: number; pointerType: string }>;
+type PanState = { pointerId: number; start: Point; last: Point; offset: Point; startedAt: number; lastAt: number; velocity: Point; moved: boolean; mode: 'pending' | 'pan' | 'page' | 'dismiss' };
+type PinchState = Readonly<{ firstId: number; secondId: number; distance: number; scale: number; content: Point }>;
 
-type Point = Readonly<{ x: number; y: number }>;
-type PointerPosition = Readonly<{ clientX: number; clientY: number }>;
-type PointerDownState = Readonly<{ startX: number; startY: number; pointerType: string; moved: boolean }>;
-type PanState = Readonly<{ pointerId: number; clientX: number; clientY: number; offsetX: number; offsetY: number }>;
-type PinchState = Readonly<{ a: number; b: number; distance: number; scale: number; centerX: number; centerY: number }>;
-type TapState = Readonly<{ time: number; x: number; y: number }>;
-
-const distance = (first: Point, second: Point): number => Math.hypot(first.x - second.x, first.y - second.y);
-const pointerDistance = (first: PointerPosition, second: PointerPosition): number => Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
-
-const localPoint = (viewport: HTMLElement, clientX: number, clientY: number): Point => {
-    const rect = measureLayoutBox(viewport);
-    return { x: clientX - rect.left, y: clientY - rect.top };
-};
-
-const createContentPreviewImageViewerGestures = ({ refs, state }: MountArguments): (() => void) => {
+const createContentPreviewImageViewerGestures = ({ refs, state, actions }: MountArguments) => {
     const resources = new ResourceTracker();
-    const activation = createContentPreviewImageViewerActivation({ refs, state, resources });
-    const pointers = new Map<number, PointerPosition>();
-    const pointerDown = new Map<number, PointerDownState>();
-    let panState: PanState | null = null;
-    let pinchState: PinchState | null = null;
-    let lastTap: TapState | null = null;
-    let tapResetTimer: number | null = null;
-    let zoomTransitionTimer: number | null = null;
+    const motion = createContentPreviewImageViewerMotion(refs, state, resources);
+    const activation = createContentPreviewImageViewerActivation({ state, motion });
+    const paging = createContentPreviewImageViewerPaging(refs, resources, actions);
+    const pointers = new Map<number, TrackedPointer>();
+    let pan: PanState | null = null;
+    let pinch: PinchState | null = null;
+    let multiTouch = false;
+    let lastPinchCenter: Point | undefined;
+    let wheelTarget: number | null = null;
+    let lastWheelAt = -Infinity;
 
-    const startSmoothZoom = (): void => {
-        refs.stage.classList.add('is-zooming');
-        if (zoomTransitionTimer !== null) {
-            resources.clearTimeout(zoomTransitionTimer);
+    const localPoint = (point: Point): Point => {
+        const bounds = measureLayoutBox(refs.viewport);
+        return { x: point.x - bounds.left, y: point.y - bounds.top };
+    };
+
+    const rebase = (): void => {
+        pan = null;
+        pinch = null;
+        const entries = Array.from(pointers.entries());
+        const first = entries[0];
+        if (!first) {
+            refs.viewport.classList.remove('is-panning');
+            refs.stage.classList.remove('is-gesturing');
+            return;
         }
-        zoomTransitionTimer = resources.setTimeout(() => {
-            zoomTransitionTimer = null;
-            refs.stage.classList.remove('is-zooming');
-        }, 140);
-    };
-
-    const stopSmoothZoom = (): void => {
-        if (zoomTransitionTimer !== null) {
-            resources.clearTimeout(zoomTransitionTimer);
-            zoomTransitionTimer = null;
+        const transform = state.getTransform();
+        const firstPoint = localPoint(first[1]);
+        const second = entries[1];
+        if (second) {
+            multiTouch = true;
+            activation.clearTap();
+            paging.reset(true);
+            const secondPoint = localPoint(second[1]);
+            const distance = Math.hypot(firstPoint.x - secondPoint.x, firstPoint.y - secondPoint.y);
+            const center = { x: (firstPoint.x + secondPoint.x) / 2, y: (firstPoint.y + secondPoint.y) / 2 };
+            lastPinchCenter = center;
+            pinch = { firstId: first[0], secondId: second[0], distance, scale: transform.scale, content: { x: (center.x - transform.offsetX) / transform.scale, y: (center.y - transform.offsetY) / transform.scale } };
+        } else {
+            const now = performance.now();
+            const geometry = state.getGeometry();
+            const bounded = resolveViewerOffsets(geometry.imageWidth, geometry.imageHeight, geometry.viewportWidth, geometry.viewportHeight, transform.scale, transform.offsetX, transform.offsetY);
+            const offset = first[1].pointerType === 'touch' ? { x: bounded.x + restoreImageDisplacement(transform.offsetX - bounded.x, geometry.viewportWidth), y: bounded.y + restoreImageDisplacement(transform.offsetY - bounded.y, geometry.viewportHeight) } : { x: transform.offsetX, y: transform.offsetY };
+            pan = { pointerId: first[0], start: firstPoint, last: firstPoint, offset, startedAt: now, lastAt: now, velocity: { x: 0, y: 0 }, moved: multiTouch, mode: multiTouch ? 'pan' : 'pending' };
         }
-        refs.stage.classList.remove('is-zooming');
     };
 
-    const beginDirectGesture = (): void => {
-        stopSmoothZoom();
-        refs.stage.classList.add('is-gesturing');
-    };
-
-    const endDirectGesture = (): void => {
+    const clearPointers = (): void => {
+        const pointerIds = Array.from(pointers.keys());
+        pointers.clear();
+        pan = null;
+        pinch = null;
+        multiTouch = false;
+        for (const pointerId of pointerIds) {
+            if (refs.viewport.hasPointerCapture(pointerId)) {
+                refs.viewport.releasePointerCapture(pointerId);
+            }
+        }
+        refs.viewport.classList.remove('is-panning');
         refs.stage.classList.remove('is-gesturing');
     };
 
-    const clearTap = (): void => {
-        lastTap = null;
-        if (tapResetTimer !== null) {
-            resources.clearTimeout(tapResetTimer);
-            tapResetTimer = null;
-        }
-    };
-
-    const setTap = (tap: TapState | null): void => {
-        lastTap = tap;
-        if (tapResetTimer !== null) {
-            resources.clearTimeout(tapResetTimer);
-            tapResetTimer = null;
-        }
-        if (!tap) {
-            return;
-        }
-        tapResetTimer = resources.setTimeout(() => {
-            tapResetTimer = null;
-            lastTap = null;
-        }, 300);
-    };
-
-    const startPan = (pointerId: number): void => {
-        const pointer = pointers.get(pointerId);
-        if (!pointer) {
-            return;
-        }
+    const cancelGesture = (): void => {
+        clearPointers();
+        activation.clearTap();
+        wheelTarget = null;
+        motion.cancel();
+        paging.reset(true);
         const transform = state.getTransform();
-        panState = {
-            pointerId,
-            clientX: pointer.clientX,
-            clientY: pointer.clientY,
-            offsetX: transform.offsetX,
-            offsetY: transform.offsetY
-        };
-        refs.viewport.classList.add('is-panning');
-    };
-
-    const startPinch = (): void => {
-        if (pointers.size !== 2) {
-            return;
-        }
-        const entries = Array.from(pointers.entries());
-        const first = entries[0];
-        const second = entries[1];
-        if (!first || !second) {
-            return;
-        }
-        const transform = state.getTransform();
-        const firstPoint = first[1];
-        const secondPoint = second[1];
-        const pinchDistance = pointerDistance(firstPoint, secondPoint);
-        if (!pinchDistance) {
-            return;
-        }
-        pinchState = {
-            a: first[0],
-            b: second[0],
-            distance: pinchDistance,
-            scale: transform.scale,
-            centerX: ((firstPoint.clientX + secondPoint.clientX) / 2 - transform.offsetX) / transform.scale,
-            centerY: ((firstPoint.clientY + secondPoint.clientY) / 2 - transform.offsetY) / transform.scale
-        };
-        panState = null;
-        refs.viewport.classList.remove('is-panning');
+        state.applyTransform(transform.scale, transform.offsetX, transform.offsetY, false);
     };
 
     const handlePointerDown = (event: Event): void => {
-        if (!(event instanceof PointerEvent) || !state.isReady()) {
+        if (!(event instanceof PointerEvent) || !state.isReady() || actions.isBlocked() || (event.pointerType !== 'touch' && event.button !== 0)) {
             return;
         }
         if (event.pointerType !== 'touch') {
             event.preventDefault();
         }
-        beginDirectGesture();
+        motion.cancel();
+        paging.reset(true);
+        wheelTarget = null;
+        refs.stage.classList.add('is-gesturing');
         refs.viewport.setPointerCapture(event.pointerId);
-        const point = measureLayoutPoint(event, refs.viewport);
-        pointers.set(event.pointerId, { clientX: point.x, clientY: point.y });
-        pointerDown.set(event.pointerId, { startX: point.x, startY: point.y, pointerType: event.pointerType, moved: false });
-
-        if (pointers.size === 1) {
-            startPan(event.pointerId);
-            return;
-        }
-        if (pointers.size === 2) {
-            startPinch();
+        pointers.set(event.pointerId, { ...measureLayoutPoint(event, refs.viewport), pointerType: event.pointerType });
+        if (pointers.size <= 2) {
+            rebase();
         }
     };
 
     const handlePointerMove = (event: Event): void => {
-        if (!(event instanceof PointerEvent) || !state.isReady()) {
+        if (!(event instanceof PointerEvent) || !pointers.has(event.pointerId) || !state.isReady()) {
             return;
         }
-        const point = measureLayoutPoint(event, refs.viewport);
-        if (pointers.has(event.pointerId)) {
-            pointers.set(event.pointerId, { clientX: point.x, clientY: point.y });
-        }
-        const downState = pointerDown.get(event.pointerId);
-        if (downState && !downState.moved && distance({ x: downState.startX, y: downState.startY }, point) > 8) {
-            pointerDown.set(event.pointerId, { ...downState, moved: true });
-        }
-
-        if (pinchState) {
-            const first = pointers.get(pinchState.a);
-            const second = pointers.get(pinchState.b);
+        const position = measureLayoutPoint(event, refs.viewport);
+        pointers.set(event.pointerId, { ...position, pointerType: event.pointerType });
+        const point = localPoint(position);
+        if (pinch) {
+            const first = pointers.get(pinch.firstId);
+            const second = pointers.get(pinch.secondId);
             if (!first || !second) {
                 return;
             }
-            const pinchDistance = pointerDistance(first, second);
-            if (!pinchDistance) {
+            if (pinch.distance === 0) {
+                rebase();
                 return;
             }
-            activation.cancel();
-            const nextScale = clampNumber(pinchState.scale * (pinchDistance / pinchState.distance), CONTENT_PREVIEW_IMAGE_MIN_SCALE, CONTENT_PREVIEW_IMAGE_MAX_SCALE);
-            const center = localPoint(refs.viewport, (first.clientX + second.clientX) / 2, (first.clientY + second.clientY) / 2);
-            state.applyTransform(nextScale, center.x - pinchState.centerX * nextScale, center.y - pinchState.centerY * nextScale, true);
+            const center = localPoint({ x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 });
+            lastPinchCenter = center;
+            const geometry = state.getGeometry();
+            const scale = resolveElasticImageScale((pinch.scale * Math.hypot(first.x - second.x, first.y - second.y)) / pinch.distance, geometry.fitScale);
+            const offsets = resolveViewerOffsets(geometry.imageWidth, geometry.imageHeight, geometry.viewportWidth, geometry.viewportHeight, scale, center.x - pinch.content.x * scale, center.y - pinch.content.y * scale);
+            state.applyTransform(scale, offsets.x, offsets.y, true, true);
             return;
         }
-
-        if (panState && panState.pointerId === event.pointerId) {
-            activation.cancel();
-            state.applyTransform(state.getTransform().scale, panState.offsetX + (point.x - panState.clientX), panState.offsetY + (point.y - panState.clientY), true);
-        }
-    };
-
-    const finishGesture = (): void => {
-        if (pointers.size === 0) {
-            panState = null;
-            pinchState = null;
-            refs.viewport.classList.remove('is-panning');
-            state.scheduleMinimapHide(900);
-            stopSmoothZoom();
-            endDirectGesture();
+        if (!pan || pan.pointerId !== event.pointerId) {
             return;
         }
-        if (pointers.size === 1) {
-            pinchState = null;
-            stopSmoothZoom();
-            const onlyPointer = Array.from(pointers.keys())[0];
-            if (onlyPointer !== undefined) {
-                startPan(onlyPointer);
+        const delta = { x: point.x - pan.start.x, y: point.y - pan.start.y };
+        const now = performance.now();
+        const elapsed = Math.max(1, now - pan.lastAt);
+        const retention = Math.pow(0.6, elapsed / 16.67);
+        pan.velocity = { x: pan.velocity.x * retention + ((point.x - pan.last.x) / elapsed) * (1 - retention), y: pan.velocity.y * retention + ((point.y - pan.last.y) / elapsed) * (1 - retention) };
+        pan.last = point;
+        pan.lastAt = now;
+        if (!pan.moved && Math.hypot(delta.x, delta.y) <= 8) {
+            return;
+        }
+        pan.moved = true;
+        activation.clearTap();
+        if (pan.mode === 'pending') {
+            const atFit = state.getTransform().scale <= state.getGeometry().fitScale * 1.001;
+            pan.mode = event.pointerType === 'touch' && atFit && !multiTouch ? (Math.abs(delta.x) >= Math.abs(delta.y) ? 'page' : 'dismiss') : 'pan';
+        }
+        if (pan.mode === 'page' || pan.mode === 'dismiss') {
+            paging.drag(pan.mode, delta);
+        } else {
+            if (multiTouch) {
+                lastPinchCenter = point;
             }
+            refs.viewport.classList.add('is-panning');
+            motion.pan(pan.offset.x + delta.x, pan.offset.y + delta.y, event.pointerType === 'touch');
         }
     };
 
-    const handlePointerUpOrCancel = (event: Event): void => {
-        if (!(event instanceof PointerEvent) || !state.isReady()) {
+    const handlePointerEnd = (event: Event): void => {
+        if (!(event instanceof PointerEvent) || !pointers.has(event.pointerId)) {
             return;
         }
-        const downState = pointerDown.get(event.pointerId);
+        if (event.type !== 'pointerup') {
+            cancelGesture();
+            return;
+        }
+        const completed = pan;
+        const wasPinch = pinch !== null;
+        const pinchPointerEnded = pinch && (pinch.firstId === event.pointerId || pinch.secondId === event.pointerId);
         pointers.delete(event.pointerId);
-        pointerDown.delete(event.pointerId);
         if (refs.viewport.hasPointerCapture(event.pointerId)) {
             refs.viewport.releasePointerCapture(event.pointerId);
         }
-
-        if (event.type === 'pointercancel') {
-            finishGesture();
+        if (pointers.size > 0) {
+            if (pinchPointerEnded || completed?.pointerId === event.pointerId) {
+                rebase();
+            }
             return;
         }
-
-        const wasTap = Boolean(downState && !downState.moved && downState.pointerType === 'touch' && !pinchState);
-        finishGesture();
-        if (!wasTap || pointers.size !== 0) {
-            return;
+        const wasMultiTouch = multiTouch;
+        clearPointers();
+        state.scheduleMinimapHide(900);
+        if (wasPinch || wasMultiTouch) {
+            motion.settle(lastPinchCenter);
+        } else if (completed?.moved) {
+            const delta = { x: completed.last.x - completed.start.x, y: completed.last.y - completed.start.y };
+            if (completed.mode === 'page' || completed.mode === 'dismiss') {
+                paging.finish(completed.mode, delta, performance.now() - completed.startedAt);
+            } else if (event.pointerType === 'touch') {
+                motion.inertia(performance.now() - completed.lastAt > 80 ? { x: 0, y: 0 } : completed.velocity);
+            }
+        } else {
+            motion.settle();
+            if (event.pointerType === 'touch') {
+                activation.tap(localPoint(measureLayoutPoint(event, refs.viewport)));
+            }
         }
-
-        const eventPoint = measureLayoutPoint(event, refs.viewport);
-        const point = localPoint(refs.viewport, eventPoint.x, eventPoint.y);
-        const previousTap = lastTap;
-        const now = performance.now();
-        if (previousTap && now - previousTap.time <= 300 && distance(previousTap, point) <= 12) {
-            clearTap();
-            activation.triggerDoubleActivation(point);
-            return;
-        }
-        setTap({ time: now, x: point.x, y: point.y });
-    };
-
-    const handleDoubleClick = (event: Event): void => {
-        if (!(event instanceof MouseEvent) || !state.isReady()) {
-            return;
-        }
-        event.preventDefault();
-        const point = measureLayoutPoint(event, refs.viewport);
-        activation.triggerDoubleActivation(localPoint(refs.viewport, point.x, point.y));
     };
 
     const handleWheel = (event: Event): void => {
-        if (!(event instanceof WheelEvent) || !state.isReady()) {
+        if (!(event instanceof WheelEvent) || !state.isReady() || actions.isBlocked() || pointers.size > 0) {
             return;
         }
         event.preventDefault();
-        activation.cancel();
-        const transform = state.getTransform();
-        const point = measureLayoutPoint(event, refs.viewport);
-        const pointer = localPoint(refs.viewport, point.x, point.y);
-        const nextScale = clampNumber(transform.scale * Math.exp(-event.deltaY * 0.0016), CONTENT_PREVIEW_IMAGE_MIN_SCALE, CONTENT_PREVIEW_IMAGE_MAX_SCALE);
-        if (nextScale === transform.scale) {
-            return;
+        motion.cancel();
+        activation.clearTap();
+        paging.reset(true);
+        const geometry = state.getGeometry();
+        const now = performance.now();
+        const currentScale = wheelTarget !== null && now - lastWheelAt < 160 ? wheelTarget : state.getTransform().scale;
+        const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? geometry.viewportHeight : 1);
+        const nextScale = clampNumber(currentScale * Math.exp(-delta * 0.0016), geometry.fitScale, CONTENT_PREVIEW_IMAGE_MAX_SCALE);
+        lastWheelAt = now;
+        wheelTarget = nextScale;
+        if (nextScale !== state.getTransform().scale) {
+            motion.zoomAt(nextScale, localPoint(measureLayoutPoint(event, refs.viewport)), 140);
         }
-        startSmoothZoom();
-        const contentX = (pointer.x - transform.offsetX) / transform.scale;
-        const contentY = (pointer.y - transform.offsetY) / transform.scale;
-        state.applyTransform(nextScale, pointer.x - contentX * nextScale, pointer.y - contentY * nextScale, true);
     };
 
-    resources.addEventListener(refs.image, 'dragstart', (event: Event) => {
-        event.preventDefault();
-    });
+    resources.addEventListener(refs.image, 'dragstart', (event: Event) => event.preventDefault());
     resources.addEventListener(refs.viewport, 'wheel', handleWheel, { passive: false });
     resources.addEventListener(refs.viewport, 'pointerdown', handlePointerDown);
     resources.addEventListener(refs.viewport, 'pointermove', handlePointerMove);
-    resources.addEventListener(refs.viewport, 'pointerup', handlePointerUpOrCancel);
-    resources.addEventListener(refs.viewport, 'pointercancel', handlePointerUpOrCancel);
-    resources.addEventListener(refs.viewport, 'dblclick', handleDoubleClick);
+    resources.addEventListener(refs.viewport, 'pointerup', handlePointerEnd);
+    resources.addEventListener(refs.viewport, 'pointercancel', handlePointerEnd);
+    resources.addEventListener(refs.viewport, 'lostpointercapture', handlePointerEnd);
+    resources.addEventListener(refs.viewport, 'dblclick', (event: Event) => {
+        if (event instanceof MouseEvent && state.isReady() && !actions.isBlocked() && pointers.size === 0) {
+            event.preventDefault();
+            wheelTarget = null;
+            activation.doubleClick(localPoint(measureLayoutPoint(event, refs.viewport)));
+        }
+    });
+    resources.addEventListener(refs.viewer.ownerDocument, 'visibilitychange', () => {
+        if (refs.viewer.ownerDocument.hidden && !actions.isBlocked()) {
+            cancelGesture();
+        }
+    });
+    resources.track(
+        state.subscribeResize(() => {
+            motion.cancel();
+            if (!actions.isBlocked()) {
+                paging.reset(true);
+            }
+            wheelTarget = null;
+            multiTouch = pointers.size > 0;
+            activation.clearTap();
+            rebase();
+        })
+    );
 
-    return (): void => {
-        clearTap();
-        stopSmoothZoom();
-        endDirectGesture();
-        activation.cancel();
-        resources.cleanup();
+    const suspend = (): void => {
+        clearPointers();
+        activation.clearTap();
+        wheelTarget = null;
+        motion.cancel();
+        paging.cancel();
     };
+
+    return Object.freeze({
+        suspend,
+        cancel: (): void => {
+            suspend();
+            motion.settle();
+            paging.reset();
+        },
+        dispose: (): void => {
+            suspend();
+            paging.reset(true);
+            resources.cleanup();
+        }
+    });
 };
 
 export { createContentPreviewImageViewerGestures };

@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING
 from core.concurrency.cancellation import TaskCancelledError
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_coercion import coerce_to_soai_error
-from core.errors.exception_logging import log_exception
+from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import RateLimitError
+from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.tasks.interaction_secrets import InteractionSecretEffectUnknownError
@@ -55,6 +56,9 @@ from features.chat.conversation_input_turn_preparation import (
     PreparedConversationInputTurn,
     prepare_conversation_input_turn,
 )
+from features.chat.conversation_stream_cancellation import (
+    cancel_conversation_stream_runtime,
+)
 from features.chat.conversation_timeline_session import (
     create_assistant_timeline_session,
 )
@@ -62,6 +66,8 @@ from features.chat.conversation_timeline_session import (
 if TYPE_CHECKING:
     from typing import Literal
 
+    from core.logging.protocols import TraceLogger
+    from core.runtime.request_context import RequestContext
     from core.types.json import JSONDict
     from features.api.runtime.container.types import ApiDependencies
     from features.assistant_timeline.models import AssistantTimelineRuntime
@@ -77,6 +83,34 @@ __all__ = ("execute_conversation_input_variant",)
 
 LOGGER_NAME = "SoAI.features.chat.conversation_input_variant_execution"
 OPERATION = "chat.conversation_input.execute_variant"
+OPERATION_CANCEL_AFTER_FAILURE = "chat.conversation_input.cancel_after_failure"
+
+
+async def _cancel_admitted_inference_noncritical(
+    api_dependencies: ApiDependencies,
+    *,
+    context: RequestContext,
+    runtime: AssistantTimelineRuntime,
+    logger: TraceLogger,
+    reason: str,
+) -> None:
+    try:
+        await cancel_conversation_stream_runtime(
+            api_dependencies=api_dependencies,
+            context=context,
+            runtime=runtime,
+            reason=reason,
+        )
+    except RECOVERABLE_EXCEPTIONS as exception:
+        log_handled_exception(
+            logger,
+            exception,
+            message="Failed to cancel admitted conversation inference after failure.",
+            operation=OPERATION_CANCEL_AFTER_FAILURE,
+            trace_id=context.trace_id,
+            level="warning",
+            details={"conv_id": runtime.conv_id, "request_id": runtime.request_id},
+        )
 
 
 async def _reserve_turn_quota(
@@ -237,6 +271,14 @@ async def execute_conversation_input_variant(
                 operation=OPERATION,
                 trace_id=context.trace_id,
                 details={"input_id": execution.input_id, "conv_id": execution.conv_id},
+            )
+        if inference_admitted:
+            await _cancel_admitted_inference_noncritical(
+                api_dependencies,
+                context=context,
+                runtime=runtime,
+                logger=logger,
+                reason=str(coerced),
             )
         if session is None:
             session = create_assistant_timeline_session(

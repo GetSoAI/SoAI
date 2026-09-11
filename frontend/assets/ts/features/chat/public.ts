@@ -48,6 +48,7 @@ export { ChatConversationAttentionService } from '@features/chat/background/Chat
 export { ChatAttachmentManager } from '@features/chat/ChatAttachmentManager.ts';
 export { ChatComposerDraftManager } from '@features/chat/composerdraft/ChatComposerDraftManager.ts';
 export type { ComposerDraftTransferMode } from '@features/chat/composerdraft/ComposerDraftOwnershipState.ts';
+export type { ComposerDraftFlushOptions } from '@features/chat/composerdraft/composerDraftTypes.ts';
 export { buildDraftAttachmentOverflowRecords } from '@features/chat/attachments/draftAttachmentOverflowRecords.ts';
 export { createLinkedKnowledgeClientBatchId } from '@features/chat/attachments/linkedKnowledgeClientBatchId.ts';
 export type { LinkedKnowledgeClientBatchSelection } from '@features/chat/attachments/linkedKnowledgeClientBatchId.ts';

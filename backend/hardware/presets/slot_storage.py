@@ -112,6 +112,8 @@ def normalize_device_entry(entry: JSONDict, device_info: JSONDict) -> bool:
         entry["gpu_index"], changed = (gpu_index, True)
     if (gpu_name := device_info.get("name")) and entry.get("name") != gpu_name:
         entry["name"], changed = (gpu_name, True)
+    if (vendor := device_info.get("vendor")) and entry.get("vendor") != vendor:
+        entry["vendor"], changed = (vendor, True)
     original_slots = entry.get("slots")
     if not isinstance(original_slots, dict):
         original_slots, changed = ({}, True)
@@ -185,6 +187,8 @@ def ensure_device_entry(payload: JSONDict, device_id: str, device_info: JSONDict
             "field_modes": {},
             "applied_settings": {},
         }
+        if vendor := device_info.get("vendor"):
+            existing["vendor"] = vendor
         devices[device_id] = existing
         return existing
     normalize_device_entry(existing, device_info)
@@ -222,7 +226,12 @@ def is_device_entry_empty(entry: JSONDict) -> bool:
     return True
 
 
-def prune_slots_payload(payload: JSONDict, inventory: dict[str, JSONDict]) -> bool:
+def prune_slots_payload(
+    payload: JSONDict,
+    inventory: dict[str, JSONDict],
+    *,
+    retained_vendors: frozenset[str] = frozenset(),
+) -> bool:
     devices = payload.get("devices")
     if not isinstance(devices, dict):
         payload["devices"] = {}
@@ -234,6 +243,8 @@ def prune_slots_payload(payload: JSONDict, inventory: dict[str, JSONDict]) -> bo
             changed = True
             continue
         if device_id not in inventory:
+            if entry.get("vendor") in retained_vendors:
+                continue
             if is_device_entry_empty(entry):
                 del devices[device_id]
                 changed = True

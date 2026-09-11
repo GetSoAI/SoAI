@@ -32,6 +32,7 @@ async def begin_chat_stream_terminal_finalization(
         if context.runtime.terminal_finalization_started:
             return False
         context.runtime.terminal_finalization_started = True
+        context.runtime.terminal_persistence_attempted = False
         context.runtime.terminal_persistence_completed = False
         clear_status_preview_state(runtime=context.runtime, now_ms=monotonic_ms())
         detach_event = context.runtime.detach_event

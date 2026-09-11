@@ -4,7 +4,7 @@
 import { AsyncOnceGuard } from '@core/concurrency/AsyncOnce.ts';
 import type { ModelCatalogResponse } from '@core/api/contracts/modelCatalogContracts.ts';
 import type { WebuiUser } from '@core/api/contracts/webuiUserContracts.ts';
-import type { ReadOnlyFileBrowserApi } from '@core/fileexplorerbrowser/types.ts';
+import type { HostFilesystemBrowserApi, ReadOnlyFileBrowserApi } from '@core/fileexplorerbrowser/types.ts';
 import { resolveWorkspaceBrowserAccess } from '@core/fileexplorerbrowser/workspaceBrowserAccess.ts';
 import { parseAutomationModelOptions } from '@features/automation/modelOptions.ts';
 import type { AutomationDataService, AutomationDefinition, AutomationDefinitionsPage, AutomationMcpCatalog, AutomationModelOption, AutomationOccurrenceKey, AutomationOccurrencesDeleteResult, AutomationOccurrencesWindowPage, AutomationRunRecord, AutomationWorkspaceAccess, CreateAutomationPayload, UpdateAutomationPayload } from '@features/automation/contracts.ts';
@@ -33,7 +33,7 @@ interface AutomationApiClient {
             getMe(): Promise<WebuiUser>;
         };
         users: {
-            workspaceBrowser: ReadOnlyFileBrowserApi;
+            workspaceBrowser: HostFilesystemBrowserApi;
         };
     };
     fileExplorer: ReadOnlyFileBrowserApi;
@@ -66,8 +66,7 @@ class AutomationApiService implements AutomationDataService {
     async getWorkspaceAccess(): Promise<AutomationWorkspaceAccess> {
         return await resolveWorkspaceBrowserAccess({
             getCurrentUser: () => this.#api.webui.auth.getMe(),
-            scopedBrowserApi: this.#api.fileExplorer,
-            adminBrowserApi: this.#api.webui.users.workspaceBrowser
+            scopedBrowserApi: this.#api.fileExplorer
         });
     }
 

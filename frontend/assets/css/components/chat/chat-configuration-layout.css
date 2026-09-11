@@ -63,12 +63,6 @@
         }
     }
 
-    @container ui-viewport (width <= 640px) {
-        :where(.chat-container) .chat-conversation-header .chat-header-model-selector.is-visible {
-            display: none;
-        }
-    }
-
     .chat-configuration-modal .form-row-split {
         display: flex;
         gap: var(--space-4);

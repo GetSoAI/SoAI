@@ -84,7 +84,7 @@ STATE_DEFINITION_ENTRIES: tuple[tuple[str, str, str, str, tuple[str, ...]], ...]
     ),
     (
         PLUGIN_STATE_BACKEND_INSTALLING,
-        "blue",
+        "orange",
         "Backend installing",
         "plugin_manager",
         ("transition",),

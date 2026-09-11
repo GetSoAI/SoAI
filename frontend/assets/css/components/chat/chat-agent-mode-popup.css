@@ -44,7 +44,7 @@
 
     :where(.chat-container) .agent-mode-popup--chat {
         --chat-input-mode-border-color: color-mix(in srgb, var(--status-grey) 35%, var(--glass-border-strong));
-        --chat-input-mode-border-color-focus: color-mix(in srgb, var(--status-grey) 55%, var(--glass-border-strong));
+        --chat-input-mode-border-color-focus: var(--ui-button-neutral-color);
         --chat-input-mode-label-color: color-mix(in srgb, var(--status-grey) 72%, var(--text-secondary));
         --chat-input-mode-label-color-focus: var(--status-grey);
     }

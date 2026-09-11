@@ -127,7 +127,8 @@ const createBootstrapInteractiveFeatures = (dependencies: BootstrapInteractiveFe
         dom: { getDocument: () => requireDocument() },
         header: dependencies.header,
         apiClient: dependencies.apiClient,
-        stream
+        stream,
+        taskOperations: taskManager
     });
     const componentLookup = new Map<string, ComponentInstance>([
         ['core.layout.header', dependencies.header],

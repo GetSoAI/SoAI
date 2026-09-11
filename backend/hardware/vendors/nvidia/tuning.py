@@ -44,6 +44,7 @@ def sync_set_nvidia_settings(
         vendor_id,
         nvml_gate=nvml_gate,
         capabilities_cache_service=capabilities_cache_service,
+        controller=nvidia_settings_controller,
     )
     if control_backend == "nvidia_nvapi":
         return sync_set_nvidia_settings_nvapi(

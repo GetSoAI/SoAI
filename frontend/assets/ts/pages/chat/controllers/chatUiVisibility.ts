@@ -15,6 +15,7 @@ interface ChatInputActionVisibilityState {
     promptsEnabled: boolean;
     tokenCounterEnabled: boolean;
     tokenCounterAuxiliaryEnabled: boolean;
+    newConversationEnabled: boolean;
     characterMapEnabled: boolean;
 }
 
@@ -28,6 +29,8 @@ export const applyChatInputActionVisibility = (host: ChatInputActionVisibilityHo
     host.pageDom.query(CHAT_SELECTORS.CAMERA_BTN).forEach((element) => host.pageDom.toggleClass(element, 'u-hidden', !state.cameraEnabled));
 
     host.pageDom.query(CHAT_SELECTORS.PROMPTS_BTN).forEach((element) => host.pageDom.toggleClass(element, 'u-hidden', !state.promptsEnabled));
+
+    host.pageDom.query('.new-conversation-input-btn').forEach((element) => host.pageDom.toggleClass(element, 'u-hidden', !state.newConversationEnabled));
 
     host.pageDom.query(CHAT_SELECTORS.CHARACTER_MAP_BTN).forEach((element) => host.pageDom.toggleClass(element, 'u-hidden', !state.characterMapEnabled));
 
@@ -47,28 +50,6 @@ export const initializeChatEmptyStateNav = (manager: ChatEmptyStateNavTarget, co
     };
 
     manager.initializeOverflowNav(container, addEventListener);
-};
-
-type ChatHeaderModelSelectorHost = PageDomOwnerHost;
-
-export const updateChatHeaderModelSelectorVisibility = (
-    host: ChatHeaderModelSelectorHost,
-    {
-        modelCount,
-        sidebarOpen,
-        detached
-    }: {
-        modelCount: number;
-        sidebarOpen: boolean;
-        detached: boolean;
-    }
-): void => {
-    const container = host.pageDom.optionalHTMLElement('.chat-header-model-selector');
-    if (!container) return;
-    const show = modelCount > 0 && (!sidebarOpen || detached);
-    host.pageDom.toggleClass(container, 'is-visible', show);
-    host.pageDom.updateAttribute(container, 'hidden', show ? null : 'true');
-    host.pageDom.updateAttribute(container, 'aria-hidden', show ? 'false' : 'true');
 };
 
 type ChatEmptyStateInputHintHost = PageDomOwnerHost;

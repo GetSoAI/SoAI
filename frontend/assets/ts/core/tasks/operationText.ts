@@ -11,7 +11,8 @@ const resolveTaskOperationMeta = (operation: { meta?: TaskOperationMeta | undefi
     return operation.meta ?? {};
 };
 
-const resolveKnownTaskOperationLabelText = (type: string): string | null => {
+const resolveTaskOperationTypeLabelText = (source: string): string => {
+    const type = readRequiredTrimmedStringMessageValue(source, 'Task operation requires a type');
     switch (type) {
         case 'audio-transcription':
             return i18n.t('taskManager.badges.audioTranscription');
@@ -82,7 +83,11 @@ const resolveKnownTaskOperationLabelText = (type: string): string | null => {
         case 'web-search':
             return i18n.t('taskManager.badges.webSearch');
     }
-    return resolveEditionTaskOperationLabel(type);
+    const label = resolveEditionTaskOperationLabel(type);
+    if (!label) {
+        throw new Error(`Task operation type is not mapped: ${type}`);
+    }
+    return label;
 };
 
 const resolveTaskOperationLabelText = (operation: TaskOperationEntry): string => {
@@ -91,12 +96,7 @@ const resolveTaskOperationLabelText = (operation: TaskOperationEntry): string =>
     if (displayName) {
         return displayName;
     }
-    const type = readRequiredTrimmedStringMessageValue(operation.type, 'Task operation requires a type');
-    const label = resolveKnownTaskOperationLabelText(type);
-    if (!label) {
-        throw new Error(`Task operation type is not mapped: ${type}`);
-    }
-    return label;
+    return resolveTaskOperationTypeLabelText(operation.type);
 };
 
 const resolveTaskOperationDetailText = (operation: TaskOperationEntry): string => {
@@ -124,4 +124,4 @@ const resolveTaskOperationFailureText = (operation: 'pluginTask' | 'pluginStop')
     }
 };
 
-export { resolveTaskOperationDetailText, resolveTaskOperationFailureText, resolveTaskOperationLabelText, resolveTaskOperationMeta };
+export { resolveTaskOperationDetailText, resolveTaskOperationFailureText, resolveTaskOperationLabelText, resolveTaskOperationMeta, resolveTaskOperationTypeLabelText };

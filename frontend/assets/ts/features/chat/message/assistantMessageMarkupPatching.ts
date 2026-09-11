@@ -23,7 +23,7 @@ type AssistantMessageSurfacePatchMode = 'full' | 'preserveText';
 
 const preservedRootAttributeNames = new Set<string>(['data-id']);
 
-const patchResolvedAssistantMessageInPlace = (inputArguments: { existingMessageRoot: HTMLElement; replacement: HTMLElement; mode: AssistantMessageSurfacePatchMode; options: ChatMessageInsertAnimationOptions; assistantDomState?: AssistantDomStatePreservation | null; forceTextPatch?: boolean }): AssistantMessagePatchResult => {
+const patchResolvedAssistantMessageInPlace = (inputArguments: { existingMessageRoot: HTMLElement; replacement: HTMLElement; mode: AssistantMessageSurfacePatchMode; options: ChatMessageInsertAnimationOptions; assistantDomState?: AssistantDomStatePreservation | null; forceTextPatch?: boolean; activityToggle?: boolean }): AssistantMessagePatchResult => {
     if (!inputArguments.replacement.classList.contains('chat-message') || !inputArguments.replacement.classList.contains('assistant')) {
         return { supported: false, changed: false, requiresPostRender: false };
     }
@@ -39,6 +39,13 @@ const patchResolvedAssistantMessageInPlace = (inputArguments: { existingMessageR
         throw new Error('Assistant message reconcile rejected a non-canonical keyed body without mutating the live tree.');
     }
     const canPatchTextInPlace = hasCanonicalAssistantMessageTextBody(existingText);
+    if (inputArguments.activityToggle === true) {
+        if (!canPatchTextInPlace) {
+            throw new Error('Activity presentation requires a canonical assistant body');
+        }
+        const changed = applyAssistantMessageTextUpdate({ existingText, createdText, suppressInsertAnimations: true, preserveActiveStreamingText: true, assistantDomState: inputArguments.assistantDomState ?? null });
+        return { supported: true, changed, requiresPostRender: changed };
+    }
     let changed = false;
 
     if (syncClass(inputArguments.existingMessageRoot, inputArguments.replacement)) {
@@ -119,7 +126,7 @@ const patchResolvedAssistantMessageInPlace = (inputArguments: { existingMessageR
     return { supported: true, changed, requiresPostRender };
 };
 
-const applyParsedAssistantMessageRoot = (inputArguments: { existingMessageRoot: HTMLElement; replacement: HTMLElement; mode?: AssistantMessageSurfacePatchMode; suppressInsertAnimations?: boolean; assistantDomState?: AssistantDomStatePreservation | null; forceTextPatch?: boolean }): { root: HTMLElement; changed: boolean; requiresPostRender: boolean } => {
+const applyParsedAssistantMessageRoot = (inputArguments: { existingMessageRoot: HTMLElement; replacement: HTMLElement; mode?: AssistantMessageSurfacePatchMode; suppressInsertAnimations?: boolean; assistantDomState?: AssistantDomStatePreservation | null; forceTextPatch?: boolean; activityToggle?: boolean }): { root: HTMLElement; changed: boolean; requiresPostRender: boolean } => {
     const patchResult = patchResolvedAssistantMessageInPlace({
         existingMessageRoot: inputArguments.existingMessageRoot,
         replacement: inputArguments.replacement,
@@ -128,7 +135,8 @@ const applyParsedAssistantMessageRoot = (inputArguments: { existingMessageRoot: 
             suppressInsertAnimations: inputArguments.suppressInsertAnimations === true
         },
         ...(inputArguments.assistantDomState !== undefined ? { assistantDomState: inputArguments.assistantDomState } : {}),
-        ...(inputArguments.forceTextPatch === true ? { forceTextPatch: true } : {})
+        ...(inputArguments.forceTextPatch === true ? { forceTextPatch: true } : {}),
+        ...(inputArguments.activityToggle === true ? { activityToggle: true } : {})
     });
     if (!patchResult.supported) {
         throw new Error('Assistant message reconcile requires a canonical assistant DOM shape.');
@@ -140,7 +148,7 @@ const applyParsedAssistantMessageRoot = (inputArguments: { existingMessageRoot: 
     };
 };
 
-const applyRenderedAssistantMessageRoot = (inputArguments: { existingMessageRoot: HTMLElement; nextMarkup: TrustedHtml; mode?: AssistantMessageSurfacePatchMode; suppressInsertAnimations?: boolean; assistantDomState?: AssistantDomStatePreservation | null; forceTextPatch?: boolean }): { root: HTMLElement; changed: boolean; requiresPostRender: boolean } => {
+const applyRenderedAssistantMessageRoot = (inputArguments: { existingMessageRoot: HTMLElement; nextMarkup: TrustedHtml; mode?: AssistantMessageSurfacePatchMode; suppressInsertAnimations?: boolean; assistantDomState?: AssistantDomStatePreservation | null; forceTextPatch?: boolean; activityToggle?: boolean }): { root: HTMLElement; changed: boolean; requiresPostRender: boolean } => {
     const replacement = parseRenderedMarkupRoot({
         documentRef: inputArguments.existingMessageRoot.ownerDocument,
         nextMarkup: inputArguments.nextMarkup,
@@ -153,7 +161,8 @@ const applyRenderedAssistantMessageRoot = (inputArguments: { existingMessageRoot
         ...(inputArguments.mode !== undefined ? { mode: inputArguments.mode } : {}),
         ...(inputArguments.suppressInsertAnimations !== undefined ? { suppressInsertAnimations: inputArguments.suppressInsertAnimations } : {}),
         ...(inputArguments.assistantDomState !== undefined ? { assistantDomState: inputArguments.assistantDomState } : {}),
-        ...(inputArguments.forceTextPatch === true ? { forceTextPatch: true } : {})
+        ...(inputArguments.forceTextPatch === true ? { forceTextPatch: true } : {}),
+        ...(inputArguments.activityToggle === true ? { activityToggle: true } : {})
     });
 };
 

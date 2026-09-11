@@ -18,6 +18,7 @@ type FolderPickerModalElements = {
     footerLeftSlot: HTMLElement;
     footerRightSlot: HTMLElement;
     currentPathElement: HTMLInputElement;
+    rootSelect: HTMLSelectElement | null;
     statusElement: HTMLElement;
     tableElement: HTMLTableElement;
     rowsElement: HTMLElement;
@@ -72,10 +73,12 @@ const resolveFolderPickerModalScaffoldElements = (modal: HTMLElement): FolderPic
     return Object.freeze({ titleElement, bodySlot, footerLeftSlot, footerRightSlot });
 };
 
-const resolveFolderPickerModalElements = (modal: HTMLElement, requireResetButton: boolean): FolderPickerModalElements => {
+const resolveFolderPickerModalElements = (modal: HTMLElement, requireResetButton: boolean, requireRootSelect: boolean): FolderPickerModalElements => {
     const modalId = FOLDER_PICKER_MODAL_ID;
     const { titleElement, bodySlot, footerLeftSlot, footerRightSlot } = resolveFolderPickerModalScaffoldElements(modal);
     const currentPathElement = dom.resolve(modalUiSelector(modalId, 'current'), modal);
+    const rootSelectCandidate = dom.resolve(modalUiSelector(modalId, 'root'), modal);
+    const rootSelect = rootSelectCandidate instanceof HTMLSelectElement ? rootSelectCandidate : null;
     const statusElement = dom.resolve(modalUiSelector(modalId, 'status'), modal);
     const tableElement = dom.resolve(modalUiSelector(modalId, 'table'), modal);
     const rowsElement = dom.resolve(modalUiSelector(modalId, 'rows'), modal);
@@ -87,7 +90,7 @@ const resolveFolderPickerModalElements = (modal: HTMLElement, requireResetButton
     const resetButtonCandidate = dom.resolve(modalUiSelector(modalId, 'reset'), modal);
     const resetButton = resetButtonCandidate instanceof HTMLButtonElement ? resetButtonCandidate : null;
 
-    if (!(titleElement instanceof HTMLElement) || !(bodySlot instanceof HTMLElement) || !(footerLeftSlot instanceof HTMLElement) || !(footerRightSlot instanceof HTMLElement) || !(currentPathElement instanceof HTMLInputElement) || !(statusElement instanceof HTMLElement) || !(tableElement instanceof HTMLTableElement) || !(rowsElement instanceof HTMLElement) || !(sortHeaderElement instanceof HTMLElement) || !(searchInput instanceof HTMLInputElement) || !(manualInput instanceof HTMLInputElement) || !(confirmButton instanceof HTMLButtonElement) || !(cancelButton instanceof HTMLButtonElement) || (requireResetButton && !resetButton)) {
+    if (!(titleElement instanceof HTMLElement) || !(bodySlot instanceof HTMLElement) || !(footerLeftSlot instanceof HTMLElement) || !(footerRightSlot instanceof HTMLElement) || !(currentPathElement instanceof HTMLInputElement) || !(statusElement instanceof HTMLElement) || !(tableElement instanceof HTMLTableElement) || !(rowsElement instanceof HTMLElement) || !(sortHeaderElement instanceof HTMLElement) || !(searchInput instanceof HTMLInputElement) || !(manualInput instanceof HTMLInputElement) || !(confirmButton instanceof HTMLButtonElement) || !(cancelButton instanceof HTMLButtonElement) || (requireResetButton && !resetButton) || (requireRootSelect && !rootSelect)) {
         throw new Error('Folder picker modal failed to initialize required elements');
     }
 
@@ -97,6 +100,7 @@ const resolveFolderPickerModalElements = (modal: HTMLElement, requireResetButton
         footerLeftSlot,
         footerRightSlot,
         currentPathElement,
+        rootSelect,
         statusElement,
         tableElement,
         rowsElement,

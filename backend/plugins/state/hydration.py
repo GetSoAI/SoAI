@@ -205,6 +205,7 @@ def format_plugin_details(
     dependencies = dependency_snapshot_from_record(p_data)
     return {
         "name": plugin_name,
+        "logo_revision": p_data.get("file_hash"),
         "display_name": display_name_value.strip(),
         "description_soaiplugin": description_value,
         "author_soaiplugin": author_value,

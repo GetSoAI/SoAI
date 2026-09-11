@@ -7,12 +7,7 @@ import os
 import unicodedata
 from typing import TYPE_CHECKING
 
-from app.updater.release_contract import (
-    COMPLETE_ARCHIVE_TYPE,
-    INSTALLER_TYPE,
-    SUPPORTED_UPDATE_PLATFORMS,
-    validate_release_artifact_contract,
-)
+from app.updater.release_contract import validate_release_artifact_contract
 from app.updater.release_identity import (
     parse_legal_fingerprints,
     parse_public_trust,
@@ -26,6 +21,11 @@ from app.updater.release_manifest_types import (
     ReleaseUpdateArchive,
 )
 from core.errors.exceptions import ValidationError
+from core.meta.software_update_platforms import (
+    COMPLETE_ARCHIVE_TYPE,
+    INSTALLER_TYPE,
+    SUPPORTED_UPDATE_PLATFORMS,
+)
 from core.runtime.platform import normalize_platform_id
 from core.serialization.json_parsing import parse_json_dict
 from core.serialization.sha256_hexdigest import is_canonical_sha256_hexdigest
@@ -33,9 +33,14 @@ from core.types.json_value import require_json_dict_list
 from core.validation.strings import coerce_required_non_empty_str
 
 if TYPE_CHECKING:
+    from app.updater.release_manifest_types import ReleaseArtifact
     from core.types.json import JSONDict, JSONValue
 
-__all__ = ("parse_release_manifest_bytes", "select_update_archive")
+__all__ = (
+    "parse_release_manifest_bytes",
+    "select_release_artifact",
+    "select_update_archive",
+)
 
 RELEASE_MANIFEST_SCHEMA_VERSION = 1
 RELEASE_PRODUCT = "SoAI"
@@ -203,6 +208,7 @@ def parse_release_manifest_bytes(
     *,
     expected_version: str,
     expected_edition: str,
+    expected_platform_id: str | None = None,
 ) -> ReleaseManifestV1:
     payload = parse_json_dict(
         manifest_bytes,
@@ -266,6 +272,7 @@ def parse_release_manifest_bytes(
         core_version=core_version,
         archives=archives,
         installers=installers,
+        expected_platform_id=expected_platform_id,
     )
     manifest = ReleaseManifestV1(
         edition=edition,
@@ -294,4 +301,21 @@ def select_update_archive(
         raise ValidationError(f"Release has no supported update archive for {platform_id}.")
     if len(matches) != 1:
         raise ValidationError(f"Release has multiple update archives for {platform_id}.")
+    return matches[0]
+
+
+def select_release_artifact(
+    manifest: ReleaseManifestV1,
+    *,
+    platform_id: str,
+) -> ReleaseArtifact:
+    normalized_platform_id = normalize_platform_id(platform_id)
+    if normalized_platform_id is None or normalized_platform_id != platform_id:
+        raise ValidationError("Current platform ID is invalid.")
+    artifacts: tuple[ReleaseArtifact, ...] = (*manifest.update_archives, *manifest.installers)
+    matches = [artifact for artifact in artifacts if platform_id in artifact.platforms]
+    if not matches:
+        raise ValidationError(f"Release has no supported artifact for {platform_id}.")
+    if len(matches) != 1:
+        raise ValidationError(f"Release has multiple artifacts for {platform_id}.")
     return matches[0]

@@ -24,13 +24,11 @@ const resolvePreservedDefined = <T>(existingValue: T | undefined, incomingValue:
 };
 
 interface ToolActivityMergeOptions {
-    preserveAdvancedStatus: boolean;
     replaceTerminalOutput: boolean;
     replaceLiveOutput: boolean;
 }
 
 const DEFAULT_TOOL_ACTIVITY_MERGE_OPTIONS: ToolActivityMergeOptions = {
-    preserveAdvancedStatus: false,
     replaceTerminalOutput: false,
     replaceLiveOutput: false
 };
@@ -78,9 +76,6 @@ const mergeToolActivityEntry = (existing: ToolActivityItem, incoming: ToolActivi
     assertToolActivityChronologyMetadata(existing, incoming);
     const existingStatusRank = resolveToolActivityStatusRank(existing.status);
     const incomingStatusRank = resolveToolActivityStatusRank(incoming.status);
-    if (incomingStatusRank < existingStatusRank && !options.preserveAdvancedStatus && !options.replaceTerminalOutput) {
-        throw new Error(`Assistant event timeline call_id "${existing.callId}" contains a regressed tool status transition.`);
-    }
     const mergedStatus = incomingStatusRank < existingStatusRank && !options.replaceTerminalOutput ? existing.status : incoming.status;
 
     const existingSignatureSequence = typeof existing.signatureSequence === 'number' && Number.isFinite(existing.signatureSequence) ? existing.signatureSequence : null;

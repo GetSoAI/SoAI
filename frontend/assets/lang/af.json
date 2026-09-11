@@ -82,6 +82,9 @@
                 "deleteMessage": "Dit sal \"{title}\" en die geskeduleerde uitvoerings daarvan uitvee. Bestaande kletstranskripsies bly beskikbaar.",
                 "deleteTitle": "Vee outomatisering uit?"
             },
+            "errors": {
+                "oneShotStartNotFuture": "Eenmalige outomatiserings moet in die toekoms begin. Kies 'n latere begintyd."
+            },
             "preferencesCorrupt": {
                 "message": "Voorkeure vir die outomatiseringsbladsy is ongeldig. Stel voorkeure terug om voort te gaan.",
                 "reset": "Stel outomatiseringsvoorkeure terug",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "Vereis goedkeuring voordat hulpmiddels in hierdie gesprek uitgevoer word.",
                 "newConversationInheritLastSettings": "Gebruik laaste instellings vir nuwe kletse",
                 "newConversationInheritLastSettingsHint": "Nuwe kletse begin met jou laaste gebruikte model-, hulpmiddel- en kennisinstellings.",
+                "ctrlEnterSend": "Ctrl + Enter om te stuur",
+                "ctrlEnterSendHint": "Wanneer geaktiveer, stuur met Ctrl + Enter en begin ’n nuwe reël met Enter. Wanneer gedeaktiveer, stuur met Enter en begin ’n nuwe reël met Shift + Enter.",
                 "knowledge": {
                     "downloadModel": "Laai model af",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "Stop antwoord"
                         },
+                        "soai_documentation": {
+                            "1": "SoAI-dokumentasie deursoek",
+                            "detail": {
+                                "1": "SoAI-dokumentasie deursoek: {detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "Vervang teks",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "Huidige gids",
+                "filesystemRoot": "Lêerstelselwortel",
                 "empty": "Geen gidse gevind nie.",
                 "forbidden": "Jy het nie toegang tot hierdie gids nie.",
                 "loadFailed": "Kon nie gidse laai nie.",
+                "validationFailed": "Die geselekteerde gids kon nie bekragtig word nie.",
                 "loading": "Laai gidse...",
                 "manualAbsolutePathRequired": "Voer 'n absolute pad in (bv. /path of C:\\path).",
                 "manualPath": "Gekose gids",
@@ -2474,7 +2487,8 @@
                 "loading": "Laai tans",
                 "resolution": "Resolusie",
                 "size": "Grootte",
-                "zoom": "Zoem"
+                "zoom": "Zoem",
+                "position": "Beeld {current} van {total}"
             },
             "sourceInfo": {
                 "conversationPath": "Gesprekspad",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "Legstukke"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "Sommige GPU-kontroles kon nie opgespoor word nie. Beskikbare kontroles bly bruikbaar.",
+                "capabilitiesStale": "GPU-kontroles verbind weer. Laas bygewerk {age}.",
+                "capabilitiesRetained": "GPU-kontroles is nie beskikbaar nie. Data van {age} word gewys.",
+                "slotsStale": "Gestoorde GPU-instellings verbind weer. Laas bygewerk {age}.",
+                "slotsRetained": "Gestoorde GPU-instellings is nie beskikbaar nie. Data van {age} word gewys.",
+                "capabilitiesUnavailable": "GPU-kontroles is nie beskikbaar nie.",
+                "slotsUnavailable": "Gestoorde GPU-instellings is nie beskikbaar nie."
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "Maak oop"
                 },
                 "aria": {
-                    "panel": "Kennisgewingsentrum",
-                    "unreadCount": "Ongeleesde kennisgewings"
+                    "panel": "Kennisgewingsentrum"
                 },
                 "messages": {
                     "noNotifications": "Geen kennisgewings nie",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "Gaan voort",
                 "externalLinkMessage": "Maak die SoAI-webwerf in 'n nuwe blaaieroortjie oop?"
             },
-            "description": "Vind jou weg deur SoAI",
+            "description": "Vind jou weg deur SoAI.",
             "documentationUrl": "Dokumentasie",
             "intro": {
                 "aboutButton": "Oor SoAI",
@@ -4236,8 +4258,7 @@
             "description": "Bestuur KI-modelle oor plugins en verskaffers heen.",
             "searchPlaceholder": "Soek modelle...",
             "empty": {
-                "downloadFirst": "Laai jou eerste model af",
-                "getStarted": "Begin deur jou eerste model af te laai.",
+                "getStarted": "Begin deur jou eerste model by te voeg.",
                 "noMatch": "Geen modelle pas by jou filters nie",
                 "noModels": "Geen modelle gevind nie",
                 "tryAdjusting": "Probeer jou soek- of filterkriteria aanpas."
@@ -4702,7 +4723,7 @@
                 "title": "Dashboard"
             },
             "fileExplorer": {
-                "description": "Blaai deur en bestuur SoAI OS-lêers.",
+                "description": "Blaai deur en bestuur SoAI-lêers.",
                 "title": "Lêers"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "Geen",
                 "reasons": {
                     "broken": "Die pluginlêer is beskadig of bevat sintaksfoute. Vee dit uit en laai dit weer af.",
+                    "dependencyMissing": "Vereiste plugin-afhanklikhede is nie beskikbaar nie: {dependencies}.",
                     "gpu": "Vereis GPU ({required}). Bespeurde verskaffers: {detected}. Oorskryf om CPU-modus te gebruik (werk moontlik nie).",
                     "gpuShort": "GPU-kontrole het misluk. Vereis: {required}. Bespeur: {detected}. Wissel om voort te gaan.",
                     "hardwareShort": "Hardewarevereistes word nie nagekom nie. Vereis: {required}. Huidig: {current}. Wissel om voort te gaan.",
                     "os": "Vereis {required}. Bespeur: {detected}. Oorskryf op eie risiko.",
+                    "osCard": "Vereis {required}. Bespeur: {detected}.",
                     "osShort": "OS stem nie ooreen nie. Vereis: {required}. Bespeur: {detected}. Wissel om dit tog te aktiveer.",
                     "version": "Vereis SoAI {required}. Huidig: {current}. Dateer SoAI op om hierdie plugin te gebruik."
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "Opdrag om alle plugins te stop is uitgereik.",
                 "stopSuccess": "Plugin {plugin} suksesvol gestop",
                 "updateCheckFailed": "Kon nie vir opdaterings kyk nie",
-                "uploadAccepted": "Plugin-oplaai aanvaar",
                 "uploadFailed": "Kon nie plugin oplaai nie"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "Plugins",
                 "prompts": "Prompts"
             },
-            "description": "Soek deur modelle, plugins, hardeware en meer",
+            "description": "Soek deur modelle, plugins, hardeware en meer.",
             "deviceDescriptions": {
                 "cpuCores": "{count} kerne",
                 "cpuThreads": "{count} drade",
@@ -7669,7 +7691,8 @@
                 "upToDate": "Op datum"
             },
             "confirmations": {
-                "installSystem": "Is jy seker jy wil stelselopdatering {version} installeer? Dit sal die SoAI-toepassing herbegin."
+                "installSystem": "Is jy seker jy wil stelselopdatering {version} installeer? Dit sal die SoAI-toepassing herbegin.",
+                "installSystemWithInstaller": "Is jy seker jy wil stelselopdatering {version} installeer? Dit sal die Windows-installeerder laat loop en SoAI herbegin."
             },
             "description": "Kyk vir en installeer opdaterings vir die SoAI-toepassing.",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "Bevestig wagwoord",
-                    "placeholder": "Voer die wagwoord weer in."
+                    "placeholder": "Herhaal wagwoord"
                 },
                 "creating": "Skep tans...",
                 "description": "Skep jou administrateurrekening. Dit het volle toegang tot hierdie SoAI-instansie.",

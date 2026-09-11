@@ -19,8 +19,7 @@ from core.conversations.settings_authority import (
 from core.errors.exceptions import StateError, ValidationError
 from core.logging.trace import get_logger
 from core.mcp.tool_catalog_scope import (
-    INTERNAL_ADMIN_MCP_TOOL_CATALOG_SCOPE,
-    PUBLIC_MCP_TOOL_CATALOG_SCOPE,
+    resolve_conversation_tool_catalog_scope,
 )
 from core.model_settings.normalization import (
     extract_agent_mode,
@@ -230,10 +229,8 @@ async def _merge_mcp_update_from_settings_patch(
     settings: JSONDict,
     disallowed_unqualified_tools: tuple[str, ...],
 ) -> JSONDict:
-    local_tool_catalog_scope = (
-        INTERNAL_ADMIN_MCP_TOOL_CATALOG_SCOPE
-        if current_user["is_admin"]
-        else PUBLIC_MCP_TOOL_CATALOG_SCOPE
+    local_tool_catalog_scope = resolve_conversation_tool_catalog_scope(
+        user_is_admin=current_user["is_admin"],
     )
     model_settings = payload.model_settings
     if not isinstance(model_settings, dict):

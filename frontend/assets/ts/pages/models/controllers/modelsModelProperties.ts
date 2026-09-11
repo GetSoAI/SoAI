@@ -17,8 +17,8 @@ import type { ModelRecord } from '@core/types/modelTypes.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
-import { PROVIDER_MODE, resolveProviderMode } from '@features/catalog/public.ts';
-import { BUILTIN_LOGO_FILES, PROVIDER_LOGO_PATHS, THIRD_PARTY_MODEL_LOGOS, VIRTUAL_MODEL_LOGO } from '@pages/models/contracts/ModelPageSupport.ts';
+import { getPluginLogoPresentation, PROVIDER_MODE, resolveProviderMode } from '@features/catalog/public.ts';
+import { THIRD_PARTY_MODEL_LOGOS, VIRTUAL_MODEL_LOGO } from '@pages/models/contracts/ModelPageSupport.ts';
 
 interface ModelsModelPropertiesDependencies {
     getIconSync: (iconName: IconName, options?: IconOptions) => TrustedHtml;
@@ -114,25 +114,18 @@ const getModelIcon = (dependencies: ModelsModelPropertiesDependencies, model: Mo
         return uiHtml`<img src="${uiAttr(resolveAssetPath(VIRTUAL_MODEL_LOGO))}" alt="${uiAttr(i18n.t('models.types.virtual'))}" class="provider-logo" />`;
     }
     const providerStr = String(provider ?? '');
-    const provLower = providerStr.toLowerCase();
-    const mapped = PROVIDER_LOGO_PATHS[provLower];
-    if (mapped) {
-        return uiHtml`<img src="${uiAttr(resolveAssetPath(mapped))}" alt="${uiAttr(providerStr)}" class="provider-logo" />`;
-    }
     const plugin = dependencies.getPluginByName(providerStr);
     if (plugin) {
         const displayNameCandidate = plugin.displayName;
         const alt = isString(displayNameCandidate) ? displayNameCandidate : providerStr;
-        let logoPath: string | undefined;
-        if (plugin.isBuiltin === true) {
-            const fileName = BUILTIN_LOGO_FILES[provLower];
-            if (fileName) logoPath = resolveAssetPath(`img/logo/${fileName}`);
-        } else {
+        let fallback = '';
+        if (plugin.isBuiltin !== true) {
             const mode = resolveProviderMode(plugin);
             const key = mode === PROVIDER_MODE.USER_MANAGED ? 'external' : 'default';
-            logoPath = resolveAssetPath(THIRD_PARTY_MODEL_LOGOS[key]);
+            fallback = resolveAssetPath(THIRD_PARTY_MODEL_LOGOS[key]);
         }
-        if (logoPath) return uiHtml`<img src="${uiAttr(logoPath)}" alt="${uiAttr(alt)}" class="provider-logo" />`;
+        const logo = getPluginLogoPresentation(plugin, fallback);
+        if (logo.source) return uiHtml`<img src="${uiAttr(logo.source)}" data-plugin-logo-fallback="${uiAttr(logo.fallback)}" alt="${uiAttr(alt)}" class="provider-logo" />`;
     }
     return dependencies.getIconSync('model-default', { size: 20, strokeWidth: 1.5 });
 };

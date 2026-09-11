@@ -3,10 +3,10 @@
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { showFolderPickerModal, type FolderPickerResult } from '@core/fileexplorerbrowser/folderPickerModal.ts';
+import { showFolderPickerModal, type FolderPickerModalOptions, type FolderPickerResult } from '@core/fileexplorerbrowser/folderPickerModal.ts';
 import { resolveFolderPickerPathOverride } from '@core/fileexplorerbrowser/folderPickerPathOverride.ts';
 import { buildFolderPickerLabels } from '@core/fileexplorerbrowser/folderPickerLabels.ts';
-import { isAbsoluteOsPath } from '@core/fileexplorerbrowser/paths.ts';
+import { isAbsoluteFilesystemPath } from '@core/filePathResolution.ts';
 import { resolveWorkspaceBrowserAccess } from '@core/fileexplorerbrowser/workspaceBrowserAccess.ts';
 import { setFieldSurfaceModified } from '@core/forms/fieldSurface.ts';
 import { isChatConversationSettingsWritable } from '@features/chat/conversation/conversationSettingsEligibility.ts';
@@ -92,7 +92,7 @@ class ConversationWorkspacePathSettingsController {
     }
 
     canCommitWorkingOverride(workspacePath: string | null): boolean {
-        return workspacePath === null || isAbsoluteOsPath(workspacePath);
+        return workspacePath === null || isAbsoluteFilesystemPath(workspacePath);
     }
 
     baselineConfig(): ConversationWorkspacePathConfig | null {
@@ -237,21 +237,19 @@ class ConversationWorkspacePathSettingsController {
         }
         const access = await resolveWorkspaceBrowserAccess({
             getCurrentUser: () => this.#host.data.api.webui.auth.getMe(),
-            scopedBrowserApi: this.#host.data.api.fileExplorer,
-            adminBrowserApi: this.#host.data.api.webui.users.workspaceBrowser
+            scopedBrowserApi: this.#host.data.api.fileExplorer
         });
         if (!this.#isCurrentConversation()) return;
         const initialPath = this.#workingOverride ?? config.effectiveWorkspacePath;
         const pickerOptions = {
-            api: access.browserApi,
+            source: { type: 'workspace', api: access.browserApi },
             title: i18n.t('chat.configuration.filesFolder.pickerTitle'),
             message: i18n.t('chat.configuration.filesFolder.pickerMessage'),
             labels: buildFolderPickerLabels({ chooseCurrent: i18n.t('common.save') }),
             allowManualPathEntry: true,
-            allowManualAbsoluteSelectionOutsideRoot: access.allowManualAbsoluteSelectionOutsideRoot,
-            ...(initialPath && isAbsoluteOsPath(initialPath) ? { initialAbsolutePathToBrowse: initialPath } : {}),
-            ...(initialPath && !isAbsoluteOsPath(initialPath) ? { initialVirtualPath: initialPath } : {})
-        };
+            ...(initialPath && isAbsoluteFilesystemPath(initialPath) ? { initialAbsolutePathToBrowse: initialPath } : {}),
+            ...(initialPath && !isAbsoluteFilesystemPath(initialPath) ? { initialVirtualPath: initialPath } : {})
+        } satisfies FolderPickerModalOptions;
         const result = await showFolderPickerModal(pickerOptions);
         if (!result || !this.#isCurrentConversation()) return;
         this.#stagePickerResult(result);

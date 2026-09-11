@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 __all__ = (
     "get_all_listable_plugins_query",
     "get_all_plugins_query",
-    "get_plugin_by_name_query",
     "get_latest_plugin_usage_query",
+    "get_plugin_by_name_query",
 )
 
 
@@ -29,6 +29,7 @@ def _remove_internal_usage_revision(row: JSONDict) -> JSONDict:
 
 async def get_all_listable_plugins_query(
     database: aiosqlite.Connection,
+    plugin_name: str | None = None,
 ) -> list[JSONDict]:
     rows = await query_to_dicts(
         database,
@@ -37,8 +38,8 @@ async def get_all_listable_plugins_query(
             AND NOT EXISTS (
                 SELECT 1 FROM plugin_clone_target_reservations AS reservation
                 WHERE reservation.target_plugin_name = plugin.plugin_name
-            )""",
-        (PLUGIN_STATE_ABSENT, PLUGIN_STATE_DELETING),
+            ) AND (? IS NULL OR plugin.plugin_name = ?)""",
+        (PLUGIN_STATE_ABSENT, PLUGIN_STATE_DELETING, plugin_name, plugin_name),
     )
     result: list[JSONDict] = []
     for row in rows:

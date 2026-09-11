@@ -11,11 +11,19 @@ from core.logging.rate_limited_logger import RateLimitedLogger
 from core.logging.trace import get_logger
 from core.models.provider_backing import is_provider_backed_model
 from core.orchestrator.protocols_queue import QueueTrackingViewProtocol
+from core.state.state_names import (
+    ORCH_STATE_READY,
+    ORCH_STATE_READY_PENDING_DISPATCH,
+    PLUGIN_STATE_PERSISTENT_READY,
+)
 from core.state.state_transition_sets import UNAVAILABLE_PLUGIN_STATES
 from core.tasks.enums import TaskStatus
 from core.tasks.task import Task
 from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 from core.types.json import JSONDict
+from orchestrator.lifecycle.state_transition_publication import (
+    publish_runtime_state_change_and_wait,
+)
 from orchestrator.scheduling.dispatch_runtime_invariant import (
     ensure_scheduler_dispatch_runtime_instance,
 )
@@ -133,9 +141,21 @@ async def dispatch_waiters_for_ready_model(
         unregistered_key = universal_id
         waiters = list(await deps.queue.tracking.unregister_pending_queue(universal_id))
     if not waiters:
+        await _settle_ready_pending_dispatch(
+            deps=deps,
+            plugin_name=plugin_name,
+            universal_id=universal_id,
+            persistent_plugin=persistent_plugin,
+        )
         return
     tasks_to_process = [waiter for waiter in waiters if waiter.status != TaskStatus.CANCELLED]
     if not tasks_to_process:
+        await _settle_ready_pending_dispatch(
+            deps=deps,
+            plugin_name=plugin_name,
+            universal_id=universal_id,
+            persistent_plugin=persistent_plugin,
+        )
         return
     loaded_parameters = state.loaded_parameters if state is not None else None
     compatible_waiters: list[Task] = []
@@ -190,6 +210,38 @@ async def dispatch_waiters_for_ready_model(
                     plugin_name=plugin_name,
                 ),
             )
+        if not scheduled_task_ids:
+            await uncancel_then_cleanup(
+                _settle_ready_pending_dispatch(
+                    deps=deps,
+                    plugin_name=plugin_name,
+                    universal_id=universal_id,
+                    persistent_plugin=persistent_plugin,
+                ),
+            )
+
+
+async def _settle_ready_pending_dispatch(
+    *,
+    deps: SchedulerDispatchingDependencies,
+    plugin_name: str,
+    universal_id: str,
+    persistent_plugin: bool,
+) -> None:
+    current_status = await deps.state_aggregator.get_plugin_status(plugin_name)
+    if current_status != ORCH_STATE_READY_PENDING_DISPATCH:
+        return
+    state = await deps.lifecycle.watchers.get_plugin_state(plugin_name)
+    if state is None or state.loaded_model_universal_id != universal_id:
+        return
+    await publish_runtime_state_change_and_wait(
+        publisher=deps.lifecycle.publisher,
+        plugin_name=plugin_name,
+        new_state=(PLUGIN_STATE_PERSISTENT_READY if persistent_plugin else ORCH_STATE_READY),
+        reason="Model load handoff completed without a compatible waiter.",
+        details={"universal_id": universal_id},
+        expected_previous_state=ORCH_STATE_READY_PENDING_DISPATCH,
+    )
 
 
 async def _record_waiter_deferral_reason(

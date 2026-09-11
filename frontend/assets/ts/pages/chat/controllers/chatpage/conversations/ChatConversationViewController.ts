@@ -74,6 +74,7 @@ class ChatConversationViewController implements ChatConversationViewContract {
             conversationRuntime: dependencies.conversationRuntime,
             turnRuntime: dependencies.turnRuntime,
             conversationState: dependencies.conversationState,
+            settings: dependencies.settings,
             viewState: dependencies.viewState,
             conversationView: this,
             modelSession: dependencies.modelSession,

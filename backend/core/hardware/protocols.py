@@ -7,8 +7,9 @@ import asyncio
 import threading
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import AbstractContextManager
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
 
+from core.concurrency.deadlines import MonotonicDeadline
 from core.database.protocols import DatabaseCoreProtocol
 from core.hardware.protocols_soaibench import DatabaseSoAIBenchProtocol
 from core.hardware.types import GPUSettingsOutcome
@@ -260,4 +261,30 @@ class NvidiaCapabilitiesCacheServiceProtocol(Protocol):
 
     def clear(self) -> None: ...
 
-    def compute_or_wait(self, vendor_id: int, compute: Callable[[], JSONDict]) -> JSONDict: ...
+    def revision(self) -> int: ...
+
+    def expiry_sequence(self) -> int: ...
+
+    def expire_inventory_snapshot(self) -> int: ...
+
+    def observe_inventory(
+        self,
+        sequence: int,
+        status: Literal["complete", "partial", "failed"],
+        gpus: list[JSONDict],
+        driver_version: str,
+    ) -> None: ...
+
+    def inventory_available(self) -> bool: ...
+
+    def unfinished_devices(self) -> tuple[str, ...]: ...
+
+    def record_probe_progress(self, generation: int, unfinished: tuple[str, ...]) -> None: ...
+
+    def compute_or_wait(
+        self,
+        vendor_id: int,
+        compute: Callable[[], JSONDict],
+        *,
+        deadline: MonotonicDeadline | None = None,
+    ) -> JSONDict: ...

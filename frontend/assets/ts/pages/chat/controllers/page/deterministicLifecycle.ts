@@ -141,7 +141,8 @@ const setupDeterministicLifecycleForChatPage = (page: DeterministicLifecycleSour
                     return false;
                 }
                 return page.conversationView.isExecuting(normalizedConversationId);
-            }
+            },
+            isCtrlEnterSendRequired: () => page.settings.parameters.ctrlEnterSendEnabled === true
         },
         messages: {
             resolveMessageIdForTarget: (target) => {

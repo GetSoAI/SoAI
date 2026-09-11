@@ -26,6 +26,7 @@ from hardware.internal_protocols import (
     GPUInfoCacheServiceProtocol,
     GPUVendorDetectionServiceProtocol,
 )
+from hardware.vendors.nvidia.smi import NvidiaSettingsController
 
 if TYPE_CHECKING:
     from core.runtime.protocols import RuntimeFlagsViewProtocol
@@ -52,6 +53,7 @@ class HardwareGpuTuningServiceDependencies:
     gpu_vendor_detection_service: GPUVendorDetectionServiceProtocol
     nvidia_nvml_gate: NvmlGateProtocol
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol
+    nvidia_settings_controller: NvidiaSettingsController | None
     gpu_operation_lock: asyncio.Lock
     activity_registry: HardwareActivityRegistryProtocol
     runtime_flags: RuntimeFlagsViewProtocol

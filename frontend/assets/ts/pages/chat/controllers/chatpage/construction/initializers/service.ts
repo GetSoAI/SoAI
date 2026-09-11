@@ -39,7 +39,6 @@ const initializeUIManager = (page: ChatControllerInitializationContext): void =>
             },
             composition: {
                 applyTextZoom: () => page.state.settings.applyTextZoom(),
-                updateHeaderModelSelectorVisibility: () => page.sessions.presentation.updateHeaderModelSelectorVisibility(),
                 updateExportButtonVisibility: () => page.sessions.presentation.updateExportButtonVisibility(),
                 applyWidescreenMode: () => applyWidescreenMode(page.sessions.uiBehaviors),
                 applySidebarState: () => page.sessions.uiBehaviors.layout.applySidebarState()

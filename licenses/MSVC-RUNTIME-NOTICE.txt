@@ -8,5 +8,3 @@ The Microsoft Visual C++ Runtime components are separate third-party dependencie
 Sources:
 https://aka.ms/vs/17/release/vc_redist.x64.exe
 https://www.nuget.org/packages/VCLibs.VCRuntime.140/1.0.4
-
-If the Windows runtime source, package version, or launcher build toolchain changes, review the applicable Microsoft redistribution terms and update this notice before release.

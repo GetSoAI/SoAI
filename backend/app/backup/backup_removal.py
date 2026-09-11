@@ -11,6 +11,7 @@ from core.errors.exception_logging import log_exception
 from core.errors.exceptions import SecurityError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.filesystem.async_queries import async_path_exists
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.logging.protocols import LoggerProtocol
 
 __all__ = (
@@ -27,6 +28,7 @@ OPERATION_APP_BACKUP_BACKUP_REMOVAL_SAFE_CLEANUP_PATH = (
 def sync_remove_tree_no_symlinks(path: str) -> None:
     if not path.strip():
         raise ValidationError("path is required.")
+    path = normalize_filesystem_path(path)
     try:
         stat_info = os.lstat(path)
     except FileNotFoundError:

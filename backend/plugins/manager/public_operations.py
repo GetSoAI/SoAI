@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
+from core.concurrency.cancellation_cleanup import run_idempotent_current_task_operation
 from core.hardware.protocols import HardwareManagerProtocol
 from core.plugins.protocols_instance import PluginInstanceProtocol
 from core.plugins.protocols_manager_dependencies import PluginManagerDependenciesProtocol
@@ -46,6 +47,7 @@ from plugins.manager.listing import (
     list_plugins,
     search_remote_models,
 )
+from plugins.manager.load_serialization import serialized_plugin_load_scope
 from plugins.manager.name_normalization import (
     call_with_optional_plugin_name,
     call_with_required_plugin_name,
@@ -275,7 +277,14 @@ class PluginManagerOperations(PluginManagerTransferOperations):
         override: bool,
     ) -> CompatibilityInfo:
         normalized_plugin_name = normalize_or_original(plugin_name)
-        return await set_incompatibility_override(self, normalized_plugin_name, override)
+        async with serialized_plugin_load_scope(self, normalized_plugin_name):
+            return await run_idempotent_current_task_operation(
+                lambda: set_incompatibility_override(
+                    self,
+                    normalized_plugin_name,
+                    override,
+                )
+            )
 
     async def ensure_plugin_capability(
         self: PluginManagerRuntimeProtocol,

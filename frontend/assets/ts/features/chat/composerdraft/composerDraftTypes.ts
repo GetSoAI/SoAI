@@ -16,6 +16,11 @@ interface ComposerDraftApi {
     delete(conversationId: string, options?: RequestOptions): Promise<ConversationDraftResponse>;
 }
 
+interface ComposerDraftFlushOptions {
+    keepalive?: boolean;
+    immediate?: boolean;
+}
+
 interface ComposerDraftManagerDependencies {
     api: ComposerDraftApi;
     getCurrentConversationId(): string | null;
@@ -61,4 +66,4 @@ interface ComposerDraftTransferTicket {
 
 type ComposerDraftLoadSettlement = { status: 'ready'; draft: ParsedComposerDraft } | { status: 'failed'; error: Error };
 
-export type { ComposerDraftApi, ComposerDraftLoadSettlement, ComposerDraftManagerDependencies, ComposerDraftProjection, ComposerDraftTransferTicket, ParsedComposerDraft };
+export type { ComposerDraftApi, ComposerDraftFlushOptions, ComposerDraftLoadSettlement, ComposerDraftManagerDependencies, ComposerDraftProjection, ComposerDraftTransferTicket, ParsedComposerDraft };

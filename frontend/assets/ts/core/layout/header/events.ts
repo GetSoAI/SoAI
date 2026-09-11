@@ -85,13 +85,6 @@ const applyHeaderLocalization = (context: HeaderLocalizationContext): void => {
         }
     }
     setAttr('#header-search-button', 'aria-label', i18n.t('header.search.open'));
-    setAttr('#notification-button', 'aria-label', i18n.t('header.notificationCenter.title'));
-    {
-        const node = dom.resolve('#notification-button', documentRef);
-        if (node instanceof HTMLElement) {
-            setTooltipText(node, i18n.t('header.notificationCenter.title'));
-        }
-    }
     setText('#header-notification-title', i18n.t('header.notificationCenter.title'));
     {
         const node = dom.resolve('#clear-all-notifications', documentRef);

@@ -8,6 +8,7 @@ import copy
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+from core.concurrency.deadlines import deadline_after
 from core.errors.exception_logging import log_handled_exception
 from core.errors.payload import ErrorPublicPayload
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
@@ -21,6 +22,7 @@ from core.runtime.platform import get_runtime_platform
 from core.types.json_value import coerce_json_dict_or_empty
 from hardware.gpu_capabilities.aggregate_payloads import (
     build_capabilities_aggregate_payload,
+    build_probe_error_payload,
     collect_control_backends,
 )
 from hardware.gpu_capabilities.payloads import (
@@ -41,6 +43,7 @@ from hardware.operations import sum_vram_gb
 from hardware.vendors.amd.capabilities import sync_get_amd_capabilities
 from hardware.vendors.intel.capabilities import sync_get_intel_capabilities
 from hardware.vendors.nvidia.metrics import sync_get_nvidia_capabilities
+from hardware.vendors.nvidia.smi import NvidiaSettingsController
 from hardware.vendors.vendor_metadata import resolve_driver_version
 from hardware.vendors.vendor_types import AMD_VENDOR, INTEL_VENDOR, NVIDIA_VENDOR
 
@@ -65,6 +68,7 @@ def sync_get_raw_capabilities(
     gpu_vendor_detection_service: GPUVendorDetectionServiceProtocol,
     nvidia_nvml_gate: NvmlGateProtocol,
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
+    nvidia_settings_controller: NvidiaSettingsController | None,
     gpu_info: JSONDict | None = None,
     logger: TraceLogger | None = None,
 ) -> JSONDict:
@@ -81,6 +85,7 @@ def sync_get_raw_capabilities(
         compute_drivers=compute_drivers,
         total_vram_gb=sum_vram_gb(all_gpu_info),
     )
+    optional_deadline = deadline_after(10.0)
     vendor_map: dict[str, Callable[[int], JSONDict]] = {
         AMD_VENDOR: lambda vendor_id: sync_get_amd_capabilities(executor, logger, vendor_id),
         INTEL_VENDOR: lambda vendor_id: sync_get_intel_capabilities(executor, logger, vendor_id),
@@ -89,13 +94,24 @@ def sync_get_raw_capabilities(
             vendor_id,
             nvml_gate=nvidia_nvml_gate,
             capabilities_cache_service=nvidia_capabilities_cache_service,
+            controller=nvidia_settings_controller,
+            deadline=optional_deadline,
         ),
     }
     runtime_platform = get_runtime_platform()
     gpus_value = all_gpu_info.get("gpus")
     if not isinstance(gpus_value, list):
         return capabilities
-    for gpu in gpus_value:
+    probe_generation = nvidia_capabilities_cache_service.revision()
+    unfinished_before = nvidia_capabilities_cache_service.unfinished_devices()
+    unfinished_after: list[str] = []
+    ordered_gpus = sorted(
+        gpus_value,
+        key=lambda gpu: (
+            0 if isinstance(gpu, dict) and gpu.get("device_id") in unfinished_before else 1
+        ),
+    )
+    for gpu in ordered_gpus:
         if not isinstance(gpu, dict):
             continue
         vendor_type = gpu.get("type")
@@ -144,6 +160,13 @@ def sync_get_raw_capabilities(
                 )
         if not isinstance(caps_payload, dict):
             continue
+        if vendor_type == NVIDIA_VENDOR and optional_deadline.remaining_seconds() < 1:
+            unfinished_device = gpu.get("device_id")
+            if isinstance(unfinished_device, str):
+                unfinished_after.append(unfinished_device)
+            capabilities["error"] = ErrorPublicPayload(
+                code="timeout", message="Optional GPU capability discovery is incomplete."
+            ).to_dict()
         caps_copy = copy.deepcopy(caps_payload)
         _apply_inventory_runtime_reasons(caps_copy, gpu, vendor_type)
         driver = resolve_driver_version(compute_drivers, vendor_type)
@@ -176,6 +199,23 @@ def sync_get_raw_capabilities(
             caps_by_device = capabilities.get("gpus_by_device_id")
             if isinstance(caps_by_device, dict):
                 caps_by_device[device_id] = copy.deepcopy(caps_copy)
+    if probe_generation != nvidia_capabilities_cache_service.revision():
+        return build_probe_error_payload(
+            "stale_probe", "GPU inventory changed while probing capabilities."
+        )
+    nvidia_capabilities_cache_service.record_probe_progress(
+        probe_generation, tuple(unfinished_after)
+    )
+    for map_key, identity_key in (("gpus", "index"), ("gpus_by_device_id", "device_id")):
+        collected = capabilities.get(map_key)
+        if isinstance(collected, dict):
+            ordered: JSONDict = {}
+            for gpu in gpus_value:
+                if isinstance(gpu, dict):
+                    key = str(gpu.get(identity_key))
+                    if key in collected:
+                        ordered[key] = collected[key]
+            capabilities[map_key] = ordered
     return capabilities
 
 
@@ -224,6 +264,7 @@ async def async_get_raw_capabilities(
     gpu_vendor_detection_service: GPUVendorDetectionServiceProtocol,
     nvidia_nvml_gate: NvmlGateProtocol,
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
+    nvidia_settings_controller: NvidiaSettingsController | None,
     gpu_info: JSONDict | None = None,
     logger: TraceLogger | None = None,
 ) -> JSONDict:
@@ -235,5 +276,6 @@ async def async_get_raw_capabilities(
         nvidia_nvml_gate=nvidia_nvml_gate,
         nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
         gpu_info=gpu_info,
+        nvidia_settings_controller=nvidia_settings_controller,
         logger=logger,
     )

@@ -41,6 +41,7 @@ CHAT_PRESET_GENERAL_FIELDS = frozenset(
         "hide_real_model",
         "conversation_pdf_export_enabled",
         "new_conversation_inherit_last_settings",
+        "ctrl_enter_send_enabled",
     },
 )
 CHAT_PRESET_APPEARANCE_FIELDS = frozenset(
@@ -62,6 +63,7 @@ CHAT_PRESET_APPEARANCE_FIELDS = frozenset(
         "input_action_camera_enabled",
         "input_action_prompts_enabled",
         "input_action_token_counter_enabled",
+        "input_action_new_conversation_enabled",
         "input_action_character_map_enabled",
         "input_action_mobile_auxiliary_action",
     },
@@ -127,6 +129,7 @@ CHAT_PRESET_MOBILE_AUXILIARY_ACTIONS = frozenset(
         "attach",
         "prompts",
         "character_map",
+        "new_conversation",
     },
 )
 

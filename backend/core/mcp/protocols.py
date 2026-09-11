@@ -68,7 +68,12 @@ __all__ = (
 
 
 class MCPToolRegistrationViewProtocol(Protocol):
-    def registered_tool_names(self, local_scope: MCPToolCatalogScope = "public") -> list[str]: ...
+    def registered_tool_names(self) -> list[str]: ...
+
+    def available_local_tool_names(
+        self,
+        local_scope: MCPToolCatalogScope = "public",
+    ) -> list[str]: ...
 
     def tool_definitions(
         self,

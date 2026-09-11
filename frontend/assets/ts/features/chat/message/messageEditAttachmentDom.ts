@@ -123,7 +123,7 @@ const handleEditAttachmentClick = (container: HTMLElement, event: Event): boolea
     }
     event.preventDefault();
     const removeButton = target.closest('.message-edit-remove-attachment-btn');
-    if (!(removeButton instanceof HTMLElement)) {
+    if (!(removeButton instanceof HTMLButtonElement) || removeButton.disabled) {
         return true;
     }
     const card = removeButton.closest('.chat-attachment-summary-card');

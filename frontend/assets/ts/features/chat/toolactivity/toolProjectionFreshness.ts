@@ -3,6 +3,7 @@
 
 import { isNonNegativeInteger } from '@core/typeGuards.ts';
 import type { ToolActivityItem } from '@features/chat/ChatTypes.ts';
+import { isTerminalToolActivityStatus } from '@features/chat/toolactivity/toolActivityStatus.ts';
 import { compareToolResultMediaHydration } from '@features/chat/toolactivity/toolResultMediaHydration.ts';
 
 const compareProjectionCounter = (existingValue: number | undefined, incomingValue: number | undefined): number | null => {
@@ -40,13 +41,11 @@ const compareProjectionImageHydration = (existing: ToolActivityItem, incoming: T
 
 const isActiveToolStatus = (status: ToolActivityItem['status']): boolean => status === 'pending' || status === 'running';
 
-const isTerminalToolStatus = (status: ToolActivityItem['status']): boolean => status === 'completed' || status === 'cancelled' || status === 'error';
-
 const shouldReplaceToolProjection = (existing: ToolActivityItem, incoming: ToolActivityItem): boolean => {
-    if (isTerminalToolStatus(existing.status) && isActiveToolStatus(incoming.status)) {
+    if (isTerminalToolActivityStatus(existing.status) && isActiveToolStatus(incoming.status)) {
         return false;
     }
-    if (isActiveToolStatus(existing.status) && isTerminalToolStatus(incoming.status)) {
+    if (isActiveToolStatus(existing.status) && isTerminalToolActivityStatus(incoming.status)) {
         return true;
     }
     const freshnessComparison = compareProjectionFreshness(existing, incoming);

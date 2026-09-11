@@ -8,7 +8,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from core.config.value_types import ConfigDict
 
-__all__ = ("build_database_manager_defaults",)
+__all__ = ("DEFAULT_VACUUM_INTERVAL_HOURS", "build_database_manager_defaults")
+
+DEFAULT_VACUUM_INTERVAL_HOURS = 720
 
 
 def build_database_manager_defaults() -> ConfigDict:
@@ -16,7 +18,7 @@ def build_database_manager_defaults() -> ConfigDict:
         "DATABASE": {
             "SQLITE": {
                 "CONNECT_TIMEOUT_SEC": 10,
-                "VACUUM_INTERVAL_HOURS": 100,
+                "VACUUM_INTERVAL_HOURS": DEFAULT_VACUUM_INTERVAL_HOURS,
                 "READ_POOL_MAX_SIZE": 8,
                 "READ_MMAP_SIZE_MB": 4096,
                 "WRITE_MMAP_SIZE_MB": 4096,

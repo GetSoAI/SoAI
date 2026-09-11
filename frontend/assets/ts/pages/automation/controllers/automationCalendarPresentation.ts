@@ -141,11 +141,10 @@ const buildDayMarkup = (state: AutomationPageState, zonesByDay: Map<string, Auto
             }
             const iso = toIsoDate(entry.window.day);
             const label = i18n.formatDate(entry.window.day, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-            const dayName = i18n.formatDate(entry.window.day, { weekday: 'long' });
             const zones = zonesByDay.get(iso) ?? [];
             const layouts = layoutZonesForTimeGrid(zones, entry.offset === 0 ? state.selectedZoneKey : null, constants);
             const nowLineTopPx = isSameDay(entry.window.day, now) ? resolveNowLineTopPx(hourHeightPx, now) : null;
-            return renderBufferedPeriod(entry, renderDayTimeGrid({ label, dayName, isoDate: iso, zones: layouts, nowLineTopPx, hourHeightPx, hourLabels, formatZoneTime }));
+            return renderBufferedPeriod(entry, renderDayTimeGrid({ label, isoDate: iso, zones: layouts, nowLineTopPx, hourHeightPx, hourLabels, formatZoneTime }));
         })
         .join('');
 };

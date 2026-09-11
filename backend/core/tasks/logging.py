@@ -56,3 +56,11 @@ def log_task_exception[TaskResult](task: asyncio.Task[TaskResult], logger: Logge
             message=f"Unclassified exception in background task '{task.get_name()}'",
             operation=OPERATION,
         )
+    except ExceptionGroup as exception:
+        coerced = coerce_to_soai_error(exception, operation=OPERATION)
+        log_exception(
+            logger,
+            coerced,
+            message=f"Unhandled grouped exception in background task '{task.get_name()}'",
+            operation=OPERATION,
+        )

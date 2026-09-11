@@ -141,6 +141,7 @@ async def build_database_services(
         task_catalog=task_catalog,
     )
     try:
+        await database_core.vacuum.run_startup_maintenance()
         repository_dependencies = DatabaseRepositoryDependencies(
             core=database_core,
             config=config,

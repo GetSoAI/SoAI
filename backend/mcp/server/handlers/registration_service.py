@@ -36,7 +36,7 @@ from mcp.registry.tools_definitions import build_tool_definitions
 from mcp.search.handlers import build_mcp_search_tool_handlers
 from mcp.server.handlers.exposure_drift import report_exposed_tools_drift
 from mcp.shared.protocol_arguments import get_required_str_with_missing_message
-from mcp.tools.handlers import build_public_utility_tool_handlers
+from mcp.tools.handlers import build_internal_utility_tool_handlers
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
@@ -138,7 +138,7 @@ class MCPRegistrationService:
     def get_available_utility_tools(self) -> dict[str, ToolHandler]:
         if not self._utility_tools:
             return {}
-        return build_public_utility_tool_handlers(self._utility_tools)
+        return build_internal_utility_tool_handlers(self._utility_tools)
 
     def get_available_mail_tools(self) -> dict[str, ToolHandler]:
         return build_mail_tool_handlers(
@@ -159,7 +159,7 @@ class MCPRegistrationService:
             notify_resource_updated=self._server_ref.notify_resource_updated,
         )
 
-    def register_soai_tools(self) -> None:
+    def build_local_tool_handlers(self) -> dict[str, ToolHandler]:
         tools: dict[str, ToolHandler] = {}
         tools = merge_named_catalog_items(
             tools,
@@ -185,20 +185,39 @@ class MCPRegistrationService:
             existing_label="mcp_tool_handlers",
             incoming_label="calendar_tool_handlers",
         )
-        tools = merge_named_catalog_items(
+        return merge_named_catalog_items(
             tools,
             self.get_available_utility_tools(),
             existing_label="mcp_tool_handlers",
             incoming_label="utility_tool_handlers",
         )
+
+    def register_local_tools(self) -> None:
+        local_tools = self._state.registration.available_local_tools
+        local_tools.clear()
+        local_tools.update(self.build_local_tool_handlers())
+        get_logger(LOGGER_NAME).debug(
+            "Local MCP tool catalog holds %d tool(s).",
+            len(local_tools),
+        )
+
+    def register_soai_tools(self) -> None:
+        if not self._state.registration.available_local_tools:
+            self.register_local_tools()
+        exposable_definitions = self.tool_definitions("public")
+        exposable_tools = {
+            name: handler
+            for name, handler in self._state.registration.available_local_tools.items()
+            if name in exposable_definitions
+        }
         report_exposed_tools_drift(
             exposed_tools=self._exposed_tools,
             known_tool_names=set(self.tool_definitions("internal_admin")),
-            exposable_tool_names=set(self.tool_definitions("public")),
+            exposable_tool_names=set(exposable_definitions),
             logger=get_logger(LOGGER_NAME),
         )
         self.register_exposed_items(
-            tools,
+            exposable_tools,
             self._exposed_tools,
             self._state.registration.registered_tools,
             "Registered MCP tool: %s",
@@ -267,15 +286,17 @@ class MCPRegistrationService:
             missing_message=f"Missing required parameter: {key}",
         )
 
-    def registered_tool_names(self, local_scope: MCPToolCatalogScope = "public") -> list[str]:
-        names = set(self._state.registration.registered_tools)
-        if local_scope == "internal_admin":
-            public_definitions = build_tool_definitions("public")
-            internal_definitions = build_tool_definitions(local_scope)
-            for name in internal_definitions:
-                if name not in public_definitions:
-                    names.add(name)
-        return sorted(names)
+    def registered_tool_names(self) -> list[str]:
+        return sorted(self._state.registration.registered_tools)
+
+    def available_local_tool_names(
+        self,
+        local_scope: MCPToolCatalogScope = "public",
+    ) -> list[str]:
+        definitions = self.tool_definitions(local_scope)
+        return sorted(
+            name for name in self._state.registration.available_local_tools if name in definitions
+        )
 
     def plugin_tool_definitions(self) -> dict[str, JSONDict]:
         return self._server_ref.plugin_tool_definitions()

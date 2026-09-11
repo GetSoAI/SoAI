@@ -1,6 +1,8 @@
 /* SoAI - Frontend core Translation declarations for `chat` namespace section 02 [frontend/assets/ts/core/i18n/translationkeys/chat__section02.generated.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ChatConfigurationNotifyOnCompletionTranslationKey } from '@core/i18n/translationkeys/chat/configuration__notify_on_completion.generated.ts';
+import type { ChatConfigurationNotifyOnErrorTranslationKey } from '@core/i18n/translationkeys/chat/configuration__notify_on_error.generated.ts';
 import type { ChatConfigurationNotifyOnCompletionHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__notifyOnCompletionHint.generated.ts';
 import type { ChatConfigurationNotifyOnErrorHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__notifyOnErrorHint.generated.ts';
 import type { ChatConfigurationPresencePenaltyTranslationKey } from '@core/i18n/translationkeys/chat/configuration__presencePenalty.generated.ts';
@@ -59,10 +61,10 @@ import type { ChatConfigurationTitleTranslationKey } from '@core/i18n/translatio
 import type { ChatConfigurationToolApprovalRequiredTranslationKey } from '@core/i18n/translationkeys/chat/configuration__toolApprovalRequired.generated.ts';
 import type { ChatConfigurationToolApprovalRequiredHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__toolApprovalRequiredHint.generated.ts';
 import type { ChatConfigurationTopLogprobsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topLogprobs.generated.ts';
-import type { ChatConfigurationTopLogprobsHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topLogprobsHint.generated.ts';
-import type { ChatConfigurationTopPTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topP.generated.ts';
 
 export type ChatSection02TranslationKey =
+    | ChatConfigurationNotifyOnCompletionTranslationKey
+    | ChatConfigurationNotifyOnErrorTranslationKey
     | ChatConfigurationNotifyOnCompletionHintTranslationKey
     | ChatConfigurationNotifyOnErrorHintTranslationKey
     | ChatConfigurationPresencePenaltyTranslationKey
@@ -120,6 +122,4 @@ export type ChatSection02TranslationKey =
     | ChatConfigurationTitleTranslationKey
     | ChatConfigurationToolApprovalRequiredTranslationKey
     | ChatConfigurationToolApprovalRequiredHintTranslationKey
-    | ChatConfigurationTopLogprobsTranslationKey
-    | ChatConfigurationTopLogprobsHintTranslationKey
-    | ChatConfigurationTopPTranslationKey;
+    | ChatConfigurationTopLogprobsTranslationKey;

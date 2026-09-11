@@ -111,13 +111,23 @@ The Python dependency SBOM and notices for optional backends and third-party mar
 Trademarks
 ----------
 
-OpenAI, Anthropic, Microsoft, Google, DuckDuckGo, Brave, Serper.dev, Meta, WhatsApp, Facebook, Instagram, Telegram,
-Discord, Slack, Signal, GitHub, Hugging Face, Ollama, vLLM, OpenNMT, MyShell, NVIDIA, AMD, Intel, Apple, Debian,
-Ubuntu, Linux, and other third-party product, project, service, hardware, operating-system, model, API, search-provider,
-messaging-provider, and company names mentioned by SoAI are trademarks or other protected identifiers of their
-respective owners and are used for identification, compatibility description, interoperability, parser support, or
-nominative reference only. SoAI is not affiliated with, sponsored by, endorsed by, or approved by those third parties.
-NVIDIA, AMD, and Intel hardware logos are used only to identify detected GPU hardware vendors inside SoAI hardware
+Third-party names and marks mentioned by SoAI include, in alphabetical order: aider, AI Horde, Amazon Web Services
+(AWS), AMD, Android, Anthropic, Antigravity, AnythingLLM, Apache, Apple, APT, Arch Linux, Argon2, AUTOMATIC1111,
+Backblaze, BotFather, Brave Search, Certbot, Chroma, Chromium, Claude, Cline, Cloudflare, Codex, ComfyUI, CrowdSec,
+Crush, CTranslate2, CUDA, Cursor, Debian, DeepSeek, Devin, Discord, Docker, DuckDuckGo, EasyList, Facebook, Facebook
+Messenger, FastAPI, Fedora, Fernet, FFmpeg, Firefox, GDELT, Gemini, Git, GitHub, GNU, Google, goose, GPT, Groq,
+HAProxy, Helsinki-NLP, Hermes Agent, Hugging Face, Instagram, Intel, KDE, Kilo Code, Let's Encrypt, LibreChat, Linux,
+LiteLLM, llama.cpp, LM Studio, macOS, MeloTTS, Mermaid, Meta, Metal, micromamba, Microsoft, Mozilla, MSN Messenger,
+MyShell, Namecheap, NetworkManager, Nginx, Node.js, npm, NumPy, NVIDIA, NVML, Ollama, OpenAI, OpenCL, OpenClaw,
+opencode, OpenHands, Open-Meteo, OpenNMT, OpenRouter, OpenSSL, OpenVINO, Open WebUI, Paddle, Pi, Playwright,
+Purelymail, Python, PyTorch, Qwen Code, ROCm, Roo Code, SearXNG, Serper.dev, SheetJS, Signal, SillyTavern, Slack,
+SQLite, Stable Diffusion, SYCL, systemd, Tavily, Telegram, Tesseract, Together AI, TypeScript, Ubuntu, Uvicorn,
+Visual Studio Code, vLLM, Vulkan, WhatsApp, Whisper, Windows, Windsurf, WireGuard, YouTube, and Zed. These and other
+third-party product, project, service, hardware, operating-system, model, API, search-provider, messaging-provider, and
+company names mentioned by SoAI are trademarks or other protected identifiers of their respective owners and are used
+for identification, compatibility description, interoperability, parser support, or nominative reference only. SoAI
+is not affiliated with, sponsored by, endorsed by, or approved by those third parties.
+AMD, Intel, and NVIDIA hardware logos are used only to identify detected GPU hardware vendors inside SoAI hardware
 views.
 
 If you own rights in material included with SoAI and believe a notice, attribution, logo, mark, or reference should be

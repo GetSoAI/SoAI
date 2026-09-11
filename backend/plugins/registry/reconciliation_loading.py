@@ -11,7 +11,12 @@ from core.errors.exceptions import ValidationError
 from core.logging.trace import get_logger
 from core.plugins.errors import PluginIncompatibleError
 from core.runtime.soai_identifiers import create_system_id
-from core.state.state_names import PLUGIN_STATE_LOAD_ERROR, PLUGIN_STATE_STOPPED
+from core.state.state_names import (
+    PLUGIN_STATE_INCOMPATIBLE,
+    PLUGIN_STATE_LOAD_ERROR,
+    PLUGIN_STATE_NOT_DETECTED,
+    PLUGIN_STATE_STOPPED,
+)
 from plugins.loader.incompatibility import (
     handle_incompatible_plugin,
     handle_plugin_compatibility_failure,
@@ -28,6 +33,7 @@ from plugins.manifest.dependency_assessment import (
 from plugins.manifest.dependency_index import build_plugin_dependency_index
 from plugins.registry.dependency_cycles import get_cyclic_plugins
 from plugins.registry.startup_concurrency import resolve_plugin_startup_concurrency
+from plugins.state.compatibility import should_block_for_incompatibility
 from plugins.state.load_order import get_plugin_load_order
 from plugins.state.transition_publication import transition_plugin_state_and_wait
 
@@ -44,19 +50,25 @@ LOGGER_NAME = "SoAI.plugins.registry.reconciliation_loading"
 OPERATION = "plugin_manager.reconciliation"
 
 
-async def _recover_stale_catalog_load_error(
+async def _recover_stale_catalog_state(
     manager: PluginManagerRuntimeProtocol,
     plugin_name: str,
     existing_record: JSONDict | None,
 ) -> None:
     persisted_state = existing_record.get("state") if existing_record else None
-    if persisted_state != PLUGIN_STATE_LOAD_ERROR:
+    if persisted_state == PLUGIN_STATE_LOAD_ERROR:
+        target_state = PLUGIN_STATE_STOPPED
+        message = "Catalog reconciliation succeeded after a previous plugin load failure."
+    elif persisted_state == PLUGIN_STATE_INCOMPATIBLE:
+        target_state = PLUGIN_STATE_NOT_DETECTED
+        message = "Catalog reconciliation confirmed that the plugin is now compatible."
+    else:
         return
     await transition_plugin_state_and_wait(
         manager,
         plugin_name,
-        PLUGIN_STATE_STOPPED,
-        "Catalog reconciliation succeeded after a previous plugin load failure.",
+        target_state,
+        message,
     )
 
 
@@ -178,6 +190,21 @@ async def _persist_catalog_for_order(
                 manifest=loaded_manifests.get(target),
                 dependency_manifests=loaded_manifests,
             )
+            should_block, _is_hardware = should_block_for_incompatibility(
+                preflight_result.compatibility,
+                preflight_result.existing_record,
+                manager.policy.hardware_incompatible_reasons,
+            )
+            if should_block:
+                await handle_plugin_compatibility_failure(
+                    manager,
+                    target,
+                    preflight_result.compatibility,
+                    plugin_class_name=None,
+                    plugin_data_override=preflight_result.manifest,
+                    package_audit=preflight_result.package_audit,
+                )
+                return False
             plugin_data = await build_plugin_record_data(
                 manager,
                 target,
@@ -189,7 +216,7 @@ async def _persist_catalog_for_order(
                 incompatibility=preflight_result.compatibility,
             )
             if preflight_result.compatibility.reason is None:
-                await _recover_stale_catalog_load_error(
+                await _recover_stale_catalog_state(
                     manager,
                     target,
                     preflight_result.existing_record,

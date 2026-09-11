@@ -18,8 +18,8 @@ from hardware.gpu_inventory.identity import normalize_gpu_index
 from hardware.gpu_tuning.service_dependencies import GpuServiceDependencies
 from hardware.gpu_tuning.slot_errors import devices
 from hardware.gpu_tuning.slot_payload import (
-    load_locked_inventory_and_payload,
     load_locked_payload,
+    observe_locked_slot_inventory,
 )
 
 if TYPE_CHECKING:
@@ -99,13 +99,14 @@ def sync_collect_startup_apply_targets(
     snapshots: dict[str, JSONDict] = {}
     disabled: list[str] = []
     with storage.lock:
-        inventory, payload = load_locked_inventory_and_payload(
+        observation = observe_locked_slot_inventory(
             executor=executor,
             storage=storage,
             detailed_gpu_info=detailed_gpu_info,
             gpu_services=gpu_services,
             allow_create=True,
         )
+        inventory, payload = (observation.inventory, observation.payload)
         devices_payload, changed_devices = (devices(payload), set[str]())
         for device_id, entry in devices_payload.items():
             if not isinstance(entry, dict):

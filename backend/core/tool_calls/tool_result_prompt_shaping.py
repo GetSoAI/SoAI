@@ -189,7 +189,7 @@ def shape_tool_result_json_for_prompt(
         if shaped_len <= resolved_max_chars:
             stats.shaped_chars = len(shaped_json)
             if stats.changed:
-                logger.warning(
+                logger.trace(
                     "Shaped tool result for prompt (tool=%s, original_chars=%s, shaped_chars=%s, redacted_binary_base64=%s, truncated_strings=%s, omitted_keys=%s, omitted_items=%s, max_depth=%s, emergency_drops=%s).",
                     stats.tool_name,
                     stats.original_chars,

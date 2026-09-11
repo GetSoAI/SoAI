@@ -21,9 +21,9 @@ from core.mcp.agent_config_normalization import (
     build_normalized_agent_mcp_config_payload,
 )
 from core.mcp.tool_catalog_scope import (
-    INTERNAL_ADMIN_MCP_TOOL_CATALOG_SCOPE,
     PUBLIC_MCP_TOOL_CATALOG_SCOPE,
     MCPToolCatalogScope,
+    resolve_conversation_tool_catalog_scope,
 )
 from core.openai.request_fields import resolve_optional_model_name
 from core.runtime.request_context_agent_fields import apply_agent_runtime_context_fields
@@ -77,8 +77,8 @@ async def resolve_tool_request_conversation_context(
     user_id = resolve_request_user_id(request)
     user_record = await api_context.dependencies.database_users.get_account_by_id(user_id)
     user_is_admin = isinstance(user_record, Mapping) and user_record.get("is_admin") is True
-    local_tool_catalog_scope = (
-        INTERNAL_ADMIN_MCP_TOOL_CATALOG_SCOPE if user_is_admin else PUBLIC_MCP_TOOL_CATALOG_SCOPE
+    local_tool_catalog_scope = resolve_conversation_tool_catalog_scope(
+        user_is_admin=user_is_admin,
     )
     request_model = resolve_optional_model_name(request_json)
     state, _tool_map = await load_conversation_mcp_catalog_state(

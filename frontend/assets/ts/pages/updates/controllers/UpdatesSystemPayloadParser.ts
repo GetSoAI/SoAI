@@ -19,7 +19,10 @@ const normalizeUpdatePayload = (payload: SoftwareUpdateCheckResponse | null): No
         message: normalizeUpdateText(payload.message),
         releaseUrl: normalizeUpdateText(payload.releaseUrl),
         releaseNotes: payload.releaseNotes ?? '',
-        publishedAt: normalizeUpdateText(payload.publishedAt)
+        publishedAt: normalizeUpdateText(payload.publishedAt),
+        platformId: normalizeUpdateText(payload.platformId),
+        deliveryType: payload.deliveryType,
+        installSupported: payload.installSupported
     };
 };
 

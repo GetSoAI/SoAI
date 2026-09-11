@@ -54,6 +54,7 @@ OPERATION_DOMAIN_EVENT_OUTBOX_DISPATCHER_SHUTDOWN = "domain_event_outbox_dispatc
 
 @dataclass(frozen=True, slots=True)
 class DomainEventOutboxDispatcherDependencies:
+    startup_ready_event: asyncio.Event
     config: ConfigProtocol
     database_core: DatabaseCoreProtocol
     event_bus: EventBusProtocol
@@ -64,6 +65,7 @@ class DomainEventOutboxDispatcherDependencies:
     def __post_init__(self) -> None:
         require_dependencies(
             owner="DomainEventOutboxDispatcherDependencies",
+            startup_ready_event=self.startup_ready_event,
             cancellation_binder=self.cancellation_binder,
             config=self.config,
             database_core=self.database_core,
@@ -223,6 +225,9 @@ class DomainEventOutboxDispatcher:
         processing_timeout_ms = int(settings.processing_timeout_ms)
 
         async def _run_loop() -> None:
+            await self._deps.startup_ready_event.wait()
+            if self._shutdown_event.is_set():
+                return
             await self._drain_available_events(
                 batch_limit=batch_limit,
                 processing_timeout_ms=processing_timeout_ms,

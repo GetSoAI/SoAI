@@ -88,7 +88,7 @@
         user-select: none;
     }
 
-    :where(.chat-container) .chat-conversation-header:has(:is(.chat-header-overflow.page-actions--dropdown .page-actions__menu--open, .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu.is-open)) {
+    :where(.chat-container) .chat-conversation-header:has(.chat-header-overflow.page-actions--dropdown .page-actions__menu--open) {
         overflow: visible;
         z-index: calc(var(--z-overlay) + 5);
     }
@@ -133,10 +133,6 @@
         }
 
         :where(.chat-container) .chat-conversation-header .chat-header-actions > .chat-header-overflow.page-actions {
-            margin-left: 0;
-        }
-
-        :where(.chat-container) .chat-conversation-header .chat-header-actions > .new-conversation-header-btn {
             margin-left: 0;
         }
     }

@@ -19,6 +19,7 @@ from hardware.gpu_tuning.slot_payload import (
     build_slot_payload_dependencies,
 )
 from hardware.presets.slot_payload_loading import load_gpu_slots_payload_unlocked
+from hardware.vendors.vendor_types import unobserved_vendors
 
 if TYPE_CHECKING:
     from core.system.protocols import CommandExecutorProtocol
@@ -213,6 +214,11 @@ def load_slot_operation_context(
         inventory=inventory,
         prune=True,
         allow_create=False,
+        retained_vendors=unobserved_vendors(
+            nvidia_inventory_available=(
+                gpu_services.nvidia_capabilities_cache_service.inventory_available()
+            )
+        ),
     )
     entry_raw = devices(payload).get(device_id)
     entry = entry_raw if isinstance(entry_raw, dict) else None

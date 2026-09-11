@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import dataclasses
 
+from core.config.default_schema.database_manager import DEFAULT_VACUUM_INTERVAL_HOURS
 from core.config.numeric import coerce_positive_float, coerce_positive_int
 from core.config.protocols import ConfigProtocol
 from core.errors.exception_logging import log_exception
@@ -92,14 +93,16 @@ def resolve_database_manager_settings(
     writer_shutdown_timeout = _resolve_manager_float("WRITER.SHUTDOWN_TIMEOUT_SEC", 5.0, 0.1)
     writer_sample_interval = _resolve_manager_float("METRICS.IO_SAMPLE_INTERVAL_SEC", 1.0, 0.1)
     writer_operation_timeout = _resolve_manager_float("WRITER.OPERATION_TIMEOUT_SEC", 120.0, 1.0)
-    raw_vacuum_hours = _resolve_manager_float("SQLITE.VACUUM_INTERVAL_HOURS", 100.0, 0.0)
+    raw_vacuum_hours = _resolve_manager_float(
+        "SQLITE.VACUUM_INTERVAL_HOURS", float(DEFAULT_VACUUM_INTERVAL_HOURS), 0.0
+    )
     read_pool_max_size = _resolve_manager_int("SQLITE.READ_POOL_MAX_SIZE", 8, 1, 512)
     read_mmap_size_mb = _resolve_manager_int("SQLITE.READ_MMAP_SIZE_MB", 4096, 0, 4096)
     write_mmap_size_mb = _resolve_manager_int("SQLITE.WRITE_MMAP_SIZE_MB", 4096, 0, 4096)
     vacuum_interval_hours = (
         0
         if raw_vacuum_hours <= 0
-        else coerce_positive_int(raw_vacuum_hours, default=100, minimum=1)
+        else coerce_positive_int(raw_vacuum_hours, default=DEFAULT_VACUUM_INTERVAL_HOURS, minimum=1)
     )
     return DatabaseManagerSettings(
         sqlite_connect_timeout=sqlite_connect_timeout,

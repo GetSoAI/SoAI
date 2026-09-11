@@ -1,0 +1,72 @@
+name: Validate macOS Core
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: ${{ matrix.architecture }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: intel-x64
+            runner: macos-15-intel
+            machine: x86_64
+          - architecture: apple-silicon-arm64
+            runner: macos-15
+            machine: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - name: Download exact source revision
+        env:
+          EXPECTED_MACHINE: ${{ matrix.machine }}
+        run: |
+          set -euo pipefail
+          validation_root="$(mktemp -d "$RUNNER_TEMP/soai-macos-validation.XXXXXX")"
+          cleanup() {
+            case "$validation_root" in
+              "$RUNNER_TEMP"/soai-macos-validation.*)
+                chmod -R u+w "$validation_root" 2>/dev/null || true
+                rm -rf -- "$validation_root"
+                ;;
+              *)
+                echo "Refusing unsafe validation cleanup path." >&2
+                return 1
+                ;;
+            esac
+          }
+          trap cleanup EXIT
+          test "$(uname -m)" = "$EXPECTED_MACHINE"
+          archive_path="$validation_root/source.tar.gz"
+          curl --fail --location --silent --show-error \
+            "https://codeload.github.com/$GITHUB_REPOSITORY/tar.gz/$GITHUB_SHA" \
+            --output "$archive_path"
+          source_root="$validation_root/source"
+          mkdir "$source_root"
+          tar -xzf "$archive_path" -C "$source_root" --strip-components=1
+          rm -f -- "$archive_path"
+          cd "$source_root"
+          export PIP_NO_CACHE_DIR=1
+          export npm_config_cache="$validation_root/npm-cache"
+          python3 -m venv soai_test_venv
+          soai_test_venv/bin/python -m pip install \
+            --disable-pip-version-check \
+            --no-cache-dir \
+            --requirement requirements.txt
+          bash -n install-soai-macos.command
+          bash -n install-soai-from-release.command
+          bash -n soai.sh
+          test -f soai.command
+          test -f backend/core/bootstrap/launcher_posix/darwin_x64_conda_runtime_packages.txt
+          test ! -e soai_os
+          soai_test_venv/bin/python -m compileall -q backend
+          (
+            cd frontend
+            npm ci --ignore-scripts --no-audit --no-fund
+            npm run build:core
+          )

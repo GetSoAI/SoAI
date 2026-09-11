@@ -10,6 +10,12 @@ import type { PluginIncompatibilityContext } from '@core/types/catalogPluginType
 type PluginCollectionEntry = JsonObject;
 
 const requirePluginStringField = (entry: PluginCollectionEntry, key: string, index: number): void => {
+    if (!isString(entry[key])) {
+        throw new TypeError(`plugins.collection entry ${index} field "${key}" must be a string`);
+    }
+};
+
+const requirePluginNonEmptyStringField = (entry: PluginCollectionEntry, key: string, index: number): void => {
     const value = entry[key];
     if (!isString(value) || !value.trim()) {
         throw new TypeError(`plugins.collection entry ${index} field "${key}" must be a non-empty string`);
@@ -18,8 +24,8 @@ const requirePluginStringField = (entry: PluginCollectionEntry, key: string, ind
 
 const requirePluginNullableStringField = (entry: PluginCollectionEntry, key: string, index: number): void => {
     const value = entry[key];
-    if (value !== null && (!isString(value) || !value.trim())) {
-        throw new TypeError(`plugins.collection entry ${index} field "${key}" must be a non-empty string or null`);
+    if (value !== null && !isString(value)) {
+        throw new TypeError(`plugins.collection entry ${index} field "${key}" must be a string or null`);
     }
 };
 
@@ -102,16 +108,16 @@ const validatePluginStats = (entry: PluginCollectionEntry, index: number): void 
 };
 
 const validatePluginCollectionEntry = (entry: PluginCollectionEntry, index: number): void => {
-    requirePluginStringField(entry, 'name', index);
-    requirePluginStringField(entry, 'display_name', index);
+    requirePluginNonEmptyStringField(entry, 'name', index);
+    requirePluginNonEmptyStringField(entry, 'display_name', index);
     requirePluginStringField(entry, 'description_soaiplugin', index);
     requirePluginStringField(entry, 'author_soaiplugin', index);
-    requirePluginStringField(entry, 'version_soaiplugin', index);
-    requirePluginStringField(entry, 'license_soaiplugin', index);
+    requirePluginNonEmptyStringField(entry, 'version_soaiplugin', index);
+    requirePluginNonEmptyStringField(entry, 'license_soaiplugin', index);
     requirePluginStringField(entry, 'website_soaiplugin', index);
     requirePluginNullableStringField(entry, 'license_managed_backend', index);
-    requirePluginStringField(entry, 'core_compat', index);
-    requirePluginStringField(entry, 'state', index);
+    requirePluginNonEmptyStringField(entry, 'core_compat', index);
+    requirePluginNonEmptyStringField(entry, 'state', index);
     requirePluginStringArrayField(entry, 'model_types', index);
     requirePluginStringArrayField(entry, 'aliases', index);
     requirePluginStringArrayField(entry, 'modalities', index);
@@ -126,12 +132,20 @@ const validatePluginCollectionEntry = (entry: PluginCollectionEntry, index: numb
     requirePluginNullableObjectField(entry, 'incompatibility', index);
     requirePluginObjectField(entry, 'capabilities', index);
     requirePluginObjectField(entry, 'technical', index);
+    requirePluginNullableStringField(entry, 'logo_revision', index);
     validatePluginDependencies(entry, index);
     validatePluginStats(entry, index);
     validatePluginCircuitBreaker(entry, index);
 };
 
-const decodePluginIncompatibility = (value: JsonValue): JsonValue => {
+const decodeIncompatibilityStringArray = (details: JsonObject, key: string, label: string): string[] | undefined => {
+    const value = details[key];
+    if (value === undefined) return undefined;
+    if (!isJsonArray(value) || !value.every(isString)) throw new TypeError(`${label} must be a string array`);
+    return [...value];
+};
+
+const decodePluginIncompatibility = (value: JsonValue): JsonObject | null => {
     if (value === null) return null;
     if (!isJsonObject(value)) throw new TypeError('plugins.collection incompatibility must be an object or null');
     const decoded: JsonObject = {};
@@ -147,19 +161,19 @@ const decodePluginIncompatibility = (value: JsonValue): JsonValue => {
         if (details['detected_version'] !== undefined) context.detectedVersion = String(details['detected_version']);
         const detectedOs = details['detected_os'] !== undefined ? details['detected_os'] : details['detected_platform'];
         if (detectedOs !== undefined) context.detectedOs = detectedOs === null ? null : String(detectedOs);
-        const requiredOs = details['required_os'] !== undefined ? details['required_os'] : details['required_platforms'];
+        const requiredOsKey = details['required_os'] !== undefined ? 'required_os' : 'required_platforms';
+        const requiredOs = decodeIncompatibilityStringArray(details, requiredOsKey, 'plugins.collection incompatibility OS requirements');
         if (requiredOs !== undefined) {
-            if (!isJsonArray(requiredOs) || !requiredOs.every(isString)) throw new TypeError('plugins.collection incompatibility OS requirements must be a string array');
-            context.requiredOs = [...requiredOs];
+            context.requiredOs = requiredOs;
         }
-        if (details['required_gpu'] !== undefined) {
-            if (!isJsonArray(details['required_gpu']) || !details['required_gpu'].every(isString)) throw new TypeError('plugins.collection incompatibility.details.required_gpu must be a string array');
-            context.requiredGpu = [...details['required_gpu']];
-        }
-        if (details['detected_vendors'] !== undefined) {
-            if (!isJsonArray(details['detected_vendors']) || !details['detected_vendors'].every(isString)) throw new TypeError('plugins.collection incompatibility.details.detected_vendors must be a string array');
-            context.detectedVendors = [...details['detected_vendors']];
-        }
+        const requiredGpu = decodeIncompatibilityStringArray(details, 'required_gpu', 'plugins.collection incompatibility.details.required_gpu');
+        if (requiredGpu !== undefined) context.requiredGpu = requiredGpu;
+        const detectedVendors = decodeIncompatibilityStringArray(details, 'detected_vendors', 'plugins.collection incompatibility.details.detected_vendors');
+        if (detectedVendors !== undefined) context.detectedVendors = detectedVendors;
+        const missingDependencies = decodeIncompatibilityStringArray(details, 'missing_dependencies', 'plugins.collection incompatibility.details.missing_dependencies');
+        if (missingDependencies !== undefined) context.missingDependencies = missingDependencies;
+        const declaredDependencies = decodeIncompatibilityStringArray(details, 'declared_dependencies', 'plugins.collection incompatibility.details.declared_dependencies');
+        if (declaredDependencies !== undefined) context.declaredDependencies = declaredDependencies;
         decoded['details'] = context;
     }
     return decoded;
@@ -252,6 +266,7 @@ const decodePluginCollectionEntry = (entry: PluginCollectionEntry): PluginCollec
     if (entry['license_managed_backend'] !== undefined) decoded['licenseManagedBackend'] = entry['license_managed_backend'];
     if (entry['website_backend'] !== undefined) decoded['websiteBackend'] = entry['website_backend'];
     if (entry['model_repository'] !== undefined) decoded['modelRepository'] = parsePluginModelRepository(entry['model_repository']);
+    decoded['logoRevision'] = entry['logo_revision'] ?? null;
     return decoded;
 };
 
@@ -280,5 +295,5 @@ const parsePluginsCollectionState = <T>(payload: T): PluginCollectionEntry[] => 
     });
 };
 
-export { parsePluginsCollectionSnapshot, parsePluginsCollectionState };
+export { decodePluginIncompatibility, parsePluginsCollectionSnapshot, parsePluginsCollectionState };
 export type { JsonValue, PluginCollectionEntry };

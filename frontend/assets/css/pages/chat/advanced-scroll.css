@@ -34,6 +34,12 @@
         pointer-events: none;
     }
 
+    @container ui-viewport (width > 1200px) {
+        :where([data-section='chat'], [data-page-scope='chat']) .chat-main-container:has(.chat-advanced-scroll:not(.chat-advanced-scroll--hidden)) .chat-previews-container {
+            right: max(var(--chat-previews-container-right), calc(var(--chat-composer-inset-inline) + var(--chat-input-wrapper-padding) + var(--chat-advanced-scroll-width) + var(--chat-previews-container-gap)));
+        }
+    }
+
     @container ui-viewport (width <= 1200px) {
         :where([data-section='chat'], [data-page-scope='chat']) .chat-advanced-scroll {
             display: none;

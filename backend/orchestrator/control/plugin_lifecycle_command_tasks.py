@@ -9,6 +9,7 @@ from collections.abc import Awaitable, Callable, Sequence
 from core.errors.error_types import ErrorType
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.events.types_base import Event
 from core.events.types_plugins import (
     ClearQuarantineCommand,
@@ -166,7 +167,7 @@ async def _spawn_plugin_command_task(
                     registry=deps.task_registry,
                 )
             raise
-        except RECOVERABLE_EXCEPTIONS as exception:
+        except HANDLED_RUNTIME_EXCEPTIONS as exception:
             if await _reply_task_is_terminal(reply_channel, deps=deps):
                 return
             log_exception(
@@ -179,7 +180,7 @@ async def _spawn_plugin_command_task(
             )
             await send_error_event_and_finalize(
                 reply_channel,
-                f"Failed to {command_name} plugin '{plugin_name}': {exception}",
+                f"Failed to {command_name} plugin '{plugin_name}'.",
                 ErrorType.SERVER_ERROR,
                 registry=deps.task_registry,
             )

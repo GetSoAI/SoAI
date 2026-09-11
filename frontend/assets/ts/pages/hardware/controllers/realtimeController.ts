@@ -8,6 +8,7 @@ import { isGpuSlotsBuilderResult } from '@core/realtime/streammanager/resources/
 import { isGpuCapabilitiesResource } from '@core/realtime/streammanager/resources/gpuCapabilitiesResource.ts';
 import { decodeHardwareSnapshotResource, isHardwareProcessesResource } from '@core/realtime/streammanager/resources/resourceDecoders.ts';
 import type { StreamRuntimeOwners } from '@core/realtime/streammanager/public.ts';
+import type { ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
 import type { DisposableResource } from '@core/resourcetracker/types.ts';
 import { requestWebSocketSnapshotRecord } from '@core/websocketclient/snapshotPayload.ts';
 import { isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
@@ -32,7 +33,10 @@ import type { HistoryRequestParameters, ModuleLoggerFunctionValue } from '@pages
 import type { MemorySwapPanelController } from '@pages/hardware/widgets/memoryswap/MemorySwapPanelController.ts';
 import type { ProcessTableManager } from '@pages/hardware/widgets/processes/service.ts';
 
+import { HardwareGpuResourceState, type HardwareGpuResource } from '@pages/hardware/controllers/realtime/gpuResourceState.ts';
+
 class HardwareRealtimeController implements HardwareRealtimeHost {
+    readonly gpuResourceState = new HardwareGpuResourceState();
     state: HardwarePageState;
     dataController: HardwareDataController;
     renderController: HardwareRenderController;
@@ -46,7 +50,7 @@ class HardwareRealtimeController implements HardwareRealtimeHost {
     getStreamManager: HardwareRealtimeControllerDependencies['getStreamManager'];
     peekStreamManager: HardwareRealtimeControllerDependencies['peekStreamManager'];
     ensureDataSubscriptions: (options?: { signal?: AbortSignal }) => Promise<void>;
-    subscribeToData: (resource: string, handler: (value: JsonValue | null) => void) => (() => void) | null;
+    subscribeToResourceState: (resource: string, listener: (snapshot: ResourceReconciliationSnapshot) => void) => (() => void) | null;
     trackDisposable: (resource: DisposableResource, onDispose?: () => void) => void;
     resolveHasProcessPanel: () => boolean;
     resources: ResourcesInterface | null;
@@ -83,11 +87,12 @@ class HardwareRealtimeController implements HardwareRealtimeHost {
         this.getStreamManager = dependencies.getStreamManager;
         this.peekStreamManager = dependencies.peekStreamManager;
         this.ensureDataSubscriptions = dependencies.ensureDataSubscriptions;
-        this.subscribeToData = dependencies.subscribeToData;
+        this.subscribeToResourceState = dependencies.subscribeToResourceState;
         this.trackDisposable = dependencies.trackDisposable;
         this.resolveHasProcessPanel = dependencies.hasProcessPanel;
         this.resources = dependencies.resources;
         this.gpuController = dependencies.gpuController;
+        this.gpuController.setResourceFreshness(this.gpuResourceState);
         this.processController = dependencies.processController;
         this.memorySwapController = dependencies.memorySwapController;
         this.historyStreamState = createHardwareHistoryStreamState();
@@ -241,6 +246,7 @@ class HardwareRealtimeController implements HardwareRealtimeHost {
         });
     }
     cleanupAllStreams(): void {
+        this.gpuResourceState.invalidate();
         this.processController.reset();
         this.memorySwapController.resetProcessData();
         cleanupHistoryStream(this.historyStreamDependencies, this.historyRuntime);
@@ -267,12 +273,38 @@ class HardwareRealtimeController implements HardwareRealtimeHost {
 
     handleGpuCapabilities(value: JsonValue | null): void {
         if (!isGpuCapabilitiesResource(value)) throw new TypeError('hardware.gpu.capabilities stream must contain decoded capabilities');
-        this.gpuController.setCapabilities(value);
+        if (!this.hasGrantedAction('HW_GPU_TUNING')) return;
+        this.gpuResourceState.acceptCapabilities(value);
+        this.gpuController.setResourceFreshness(this.gpuResourceState);
+        if (value.success) this.gpuController.setCapabilities(value);
     }
 
     handleSavedGpuSettings(value: JsonValue | null): void {
         if (!isGpuSlotsBuilderResult(value)) throw new TypeError('hardware.gpu.slots stream must contain decoded slot state');
-        this.gpuController.setSavedSettings(value);
+        if (!this.hasGrantedAction('HW_GPU_TUNING')) return;
+        this.gpuResourceState.acceptSlots(value);
+        this.gpuController.setResourceFreshness(this.gpuResourceState);
+        if (value.error === null) this.gpuController.setSavedSettings(value);
+    }
+
+    gpuResourceAvailable(resource: HardwareGpuResource): boolean {
+        return this.gpuResourceState.usable(resource);
+    }
+
+    gpuResourceGeneration(resource: HardwareGpuResource): number {
+        return this.gpuResourceState[resource].generation;
+    }
+
+    handleGpuResourceUnavailable(resource: HardwareGpuResource, error: Error): void {
+        this.gpuResourceState.unavailable(resource);
+        this.gpuController.setResourceFreshness(this.gpuResourceState);
+        this.logger('debug', `GPU ${resource} resource unavailable`, error);
+    }
+
+    handleGpuResourceStale(resource: HardwareGpuResource, error: Error): void {
+        this.gpuResourceState.stale(resource);
+        this.gpuController.setResourceFreshness(this.gpuResourceState);
+        this.logger('debug', `GPU ${resource} resource is recovering`, error);
     }
 
     handleSoAIBenchRunsUpdate(value: JsonValue | null): void {

@@ -5,8 +5,7 @@ import { toTrimmedString } from '@core/normalize.ts';
 import { requireTaskOperationsApi } from '@core/tasks/serviceAccess.ts';
 import type { TaskOperationEntry } from '@core/tasks/protocols.ts';
 import type { DownloadModalManagerRuntime } from '@features/models/modals/downloadmodal/manager/contracts.ts';
-
-const MODEL_DOWNLOAD_OPERATION_TYPES = Object.freeze(['model-download']);
+import { MODEL_DOWNLOAD_OPERATION_FILTER, MODEL_DOWNLOAD_OPERATION_TYPE } from '@features/models/modelDownloadOperation.ts';
 
 interface ModelDownloadRequestSignature {
     plugin?: string | undefined;
@@ -32,7 +31,7 @@ const buildOperationSignature = (operation: TaskOperationEntry): string => {
     return `${toTrimmedString(meta['plugin'] ?? meta['pluginName']).toLowerCase()}:${toTrimmedString(meta['modelId']).toLowerCase()}:${toTrimmedString(meta['quantization']).toLowerCase()}`;
 };
 
-const getActiveModelDownloadOperations = (): TaskOperationEntry[] => requireTaskOperationsApi().getOperations({ types: MODEL_DOWNLOAD_OPERATION_TYPES });
+const getActiveModelDownloadOperations = (): TaskOperationEntry[] => requireTaskOperationsApi().getOperations(MODEL_DOWNLOAD_OPERATION_FILTER);
 
 const operationMatchesRequest = (operation: TaskOperationEntry, request: ModelDownloadRequestSignature): boolean => {
     const requestSignature = buildRequestSignature(request);
@@ -52,7 +51,7 @@ const countActiveModelDownloads = (runtime: DownloadModalManagerRuntime): number
 };
 
 const hasActiveModelDownloads = (runtime: DownloadModalManagerRuntime): boolean => {
-    return countActiveModelDownloads(runtime) > 0 || runtime.host.execution.requireStreamManager().hasActiveOperationsOfType('model-download');
+    return countActiveModelDownloads(runtime) > 0 || runtime.host.execution.requireStreamManager().hasActiveOperationsOfType(MODEL_DOWNLOAD_OPERATION_TYPE);
 };
 
 export { buildRequestSignature, countActiveModelDownloads, getActiveModelDownloadOperations, hasActiveModelDownloads, operationMatchesRequest };

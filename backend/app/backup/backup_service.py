@@ -35,9 +35,9 @@ from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.lifecycle.protocols import Shutdownable
 from core.logging.rate_limited_logger import RateLimitedLogger
 from core.logging.trace import get_logger
-from core.runtime.protocols import Shutdownable
 from core.validation.booleans import parse_bool
 from core.validation.integers import is_strict_int
 

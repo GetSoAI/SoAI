@@ -8,16 +8,16 @@ import logging
 from typing import TYPE_CHECKING
 
 from core.concurrency.cancellation import TaskCancelledError
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import SecurityError, StateError, ValidationError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.errors.exceptions import StateError
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.events.types_plugins import UploadPluginCommand
 from core.files.move_with_cancellation import (
     MoveFileCommittedAfterCancellationError,
 )
 from core.files.operations import async_remove_if_exists
 from core.logging.trace import get_logger
-from core.plugins.errors import PluginIncompatibleError
 from core.tasks.errors import TaskIDCollisionError
 from plugins.actions.progress import (
     create_task_progress_sender,
@@ -27,17 +27,17 @@ from plugins.actions.progress import (
 )
 from plugins.actions.upload_cleanup import (
     UploadExecutionState,
-    cleanup_created_upload_runtime,
+    rollback_plugin_upload,
 )
-from plugins.actions.upload_placeholder_cleanup import cleanup_uploading_placeholder
 from plugins.actions.upload_steps import perform_plugin_upload_steps
 from plugins.actions.upload_task_collision import handle_upload_task_id_collision
 from plugins.actions.upload_validation import (
+    UploadedPluginDisposition,
     normalize_upload_target,
     reject_upload_preflight_if_needed,
     resolve_upload_failure_code,
+    resolve_upload_failure_message,
     resolve_upload_task_id,
-    safe_remove_upload_file,
 )
 
 if TYPE_CHECKING:
@@ -49,13 +49,6 @@ __all__ = ()
 
 LOGGER_NAME = "SoAI.plugins.actions.upload"
 OPERATION = "plugin_flow.process_upload_plugin_async"
-PLUGIN_UPLOAD_FAILURE_EXCEPTIONS = RECOVERABLE_EXCEPTIONS + (
-    PluginIncompatibleError,
-    SecurityError,
-    StateError,
-    ValidationError,
-    ValueError,
-)
 
 
 async def process_upload_plugin_async(
@@ -108,7 +101,7 @@ async def process_upload_plugin_async(
                     raise StateError(
                         "Upload plugin internal error: missing resolved plugin_name or final_path.",
                     )
-                requires_backend_install = await perform_plugin_upload_steps(
+                outcome = await perform_plugin_upload_steps(
                     manager,
                     progress=progress,
                     task_token=task_token,
@@ -118,68 +111,59 @@ async def process_upload_plugin_async(
                     temp_file_path=temp_file_path,
                     context=context,
                 )
-                message = f"Plugin '{await manager.get_plugin_display_name(plugin_name)}' uploaded and loaded successfully."
-                if requires_backend_install:
-                    message += " This plugin requires a backend installation."
-                await send_success_completion_for_plugin_manager(
-                    manager,
-                    reply_channel,
-                    task_id,
-                    message,
-                )
-            except asyncio.CancelledError:
-                logger.info("Upload of plugin '%s' cancelled by user request.", plugin_name)
-                if upload_state.file_moved:
-                    await safe_remove_upload_file(final_path, logger=logger)
-                    await cleanup_created_upload_runtime(
-                        manager,
-                        state=upload_state,
-                        plugin_name=plugin_name,
-                        logger=logger,
+                display_name = await manager.get_plugin_display_name(plugin_name)
+                if outcome.disposition is UploadedPluginDisposition.RETAINED_INCOMPATIBLE:
+                    message = (
+                        f"Plugin '{display_name}' uploaded successfully. "
+                        "It is incompatible with this system and remains disabled."
                     )
-                await notify_operation_cancelled(
-                    "Plugin upload",
-                    reply_channel,
-                    task_id,
-                    registry,
-                    manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
+                else:
+                    message = f"Plugin '{display_name}' uploaded and loaded successfully."
+                if outcome.requires_backend_installation:
+                    message += " This plugin requires a backend installation."
+                await uncancel_then_cleanup(
+                    send_success_completion_for_plugin_manager(
+                        manager,
+                        reply_channel,
+                        task_id,
+                        message,
+                    )
                 )
-                await cleanup_uploading_placeholder(
-                    manager,
-                    placeholder_created=upload_state.placeholder_created,
-                    plugin_name=plugin_name,
-                    final_path=final_path,
-                )
-            except (TaskCancelledError, MoveFileCommittedAfterCancellationError) as exception:
+            except (
+                asyncio.CancelledError,
+                TaskCancelledError,
+                MoveFileCommittedAfterCancellationError,
+            ) as exception:
                 logger.info(
                     "Upload of plugin '%s' cancelled: %s",
                     plugin_name,
-                    str(exception),
+                    str(exception) or "user request",
                 )
-                cleanup_path = final_path
-                if isinstance(exception, MoveFileCommittedAfterCancellationError):
-                    cleanup_path = exception.destination_path or final_path
-                await safe_remove_upload_file(cleanup_path, logger=logger)
-                await cleanup_created_upload_runtime(
-                    manager,
-                    state=upload_state,
-                    plugin_name=plugin_name,
-                    logger=logger,
+                committed_path = (
+                    exception.destination_path or final_path
+                    if isinstance(exception, MoveFileCommittedAfterCancellationError)
+                    else final_path if upload_state.file_moved else None
                 )
-                await notify_operation_cancelled(
-                    "Plugin upload",
-                    reply_channel,
-                    task_id,
-                    registry,
-                    manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
+                await uncancel_then_cleanup(
+                    rollback_plugin_upload(
+                        manager,
+                        state=upload_state,
+                        plugin_name=plugin_name,
+                        final_path=final_path,
+                        committed_path=committed_path,
+                        logger=logger,
+                    )
                 )
-                await cleanup_uploading_placeholder(
-                    manager,
-                    placeholder_created=upload_state.placeholder_created,
-                    plugin_name=plugin_name,
-                    final_path=final_path,
+                await uncancel_then_cleanup(
+                    notify_operation_cancelled(
+                        "Plugin upload",
+                        reply_channel,
+                        task_id,
+                        registry,
+                        manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
+                    )
                 )
-            except PLUGIN_UPLOAD_FAILURE_EXCEPTIONS as exception:
+            except HANDLED_RUNTIME_EXCEPTIONS as exception:
                 if isinstance(exception, ValueError):
                     log_handled_exception(
                         logger,
@@ -196,45 +180,40 @@ async def process_upload_plugin_async(
                         operation=OPERATION,
                         details={"filename": original_filename},
                     )
-                if upload_state.file_moved and final_path is not None:
-                    await safe_remove_upload_file(final_path, logger=logger)
-                    await cleanup_created_upload_runtime(
+                await uncancel_then_cleanup(
+                    rollback_plugin_upload(
                         manager,
                         state=upload_state,
                         plugin_name=plugin_name,
+                        final_path=final_path,
+                        committed_path=(final_path if upload_state.file_moved else None),
                         logger=logger,
                     )
-                failure_code = resolve_upload_failure_code(exception)
-                await send_completion_with_task(
-                    reply_channel,
-                    task_id,
-                    success=False,
-                    message=str(exception),
-                    error_code=failure_code,
-                    task_registry=registry,
-                    send_task_complete_event_callable=manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
                 )
-                await cleanup_uploading_placeholder(
-                    manager,
-                    placeholder_created=upload_state.placeholder_created,
-                    plugin_name=plugin_name,
-                    final_path=final_path,
-                )
-            finally:
-                if temp_file_path:
-                    await async_remove_if_exists(
-                        temp_file_path,
-                        logger=logger,
-                        log_level=logging.DEBUG,
+                await uncancel_then_cleanup(
+                    send_completion_with_task(
+                        reply_channel,
+                        task_id,
+                        success=False,
+                        message=resolve_upload_failure_message(exception),
+                        error_code=resolve_upload_failure_code(exception),
+                        task_registry=registry,
+                        send_task_complete_event_callable=manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
                     )
+                )
     except TaskIDCollisionError as exception:
         await handle_upload_task_id_collision(
             manager,
             exception,
             reply_channel=reply_channel,
-            context=context,
-            temp_file_path=temp_file_path,
             placeholder_created=upload_state.placeholder_created,
             plugin_name=plugin_name,
             final_path=final_path,
         )
+    finally:
+        staged_file_cleanup = async_remove_if_exists(
+            temp_file_path,
+            logger=logger,
+            log_level=logging.DEBUG,
+        )
+        await uncancel_then_cleanup(staged_file_cleanup)

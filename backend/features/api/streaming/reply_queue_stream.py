@@ -9,6 +9,7 @@ from collections.abc import AsyncGenerator
 from starlette.requests import ClientDisconnect
 
 from core.concurrency.cancellation_cleanup import (
+    current_task_has_pending_cancellation,
     shielded_cleanup,
     uncancel_then_cleanup,
 )
@@ -19,8 +20,11 @@ from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.events.types_base import Event
 from core.logging.trace import get_logger
 from core.runtime.protocols import RequestContextProtocol
+from core.runtime.soai_identifiers import create_system_id
+from core.tasks.asyncio_task_spawner import spawn_tracked_task
 from core.tasks.cancellation import publish_cancel
 from core.tasks.task_cancellation import cancel
+from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
 from features.api.streaming.reply_queue_task_state import (
     reply_queue_inactivity_timeout_is_suspended,
     resolve_reply_queue_terminal_event,
@@ -126,6 +130,40 @@ async def iter_reply_queue_events(
                 level="warning",
             )
 
+    async def notify_timeout_cancel() -> None:
+        cancellation_task = spawn_tracked_task(
+            notify_cancel("Stream timed out."),
+            name=f"stream-timeout-cancel-{channel_task_id or trace_id}",
+            logger=logger,
+            cancellation_binder=stream_dependencies.cancellation_binder,
+            cancellation_id=create_system_id(
+                subsystem="stream_timeout_cancel",
+                include_random_suffix=True,
+            ),
+            owner="api_stream_timeout_cancel",
+            finalizer_tracker=stream_dependencies.finalizer_tracker,
+        )
+        try:
+            await asyncio.wait_for(
+                asyncio.shield(cancellation_task),
+                timeout=LOCAL_IO_TIMEOUT_SEC,
+            )
+        except asyncio.CancelledError:
+            if current_task_has_pending_cancellation():
+                raise
+        except TimeoutError as exception:
+            log_handled_exception(
+                logger,
+                exception,
+                message=(
+                    "Stream timeout cancellation exceeded the response deadline and "
+                    "continues in the background."
+                ),
+                trace_id=trace_id,
+                operation=OPERATION_API_STREAMING_ITER_REPLY_QUEUE_EVENTS_NOTIFY_CANCEL,
+                level="warning",
+            )
+
     channel_task_id = resolve_task_id_from_sources(
         context,
         reply_queue,
@@ -177,6 +215,7 @@ async def iter_reply_queue_events(
                         if idle_for < timeout_limit:
                             yield StreamKeepAliveSentinel
                             continue
+                        await notify_timeout_cancel()
                         yield StreamTimeoutSentinel
                         break
                 yield StreamKeepAliveSentinel

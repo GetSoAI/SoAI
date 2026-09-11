@@ -10,6 +10,7 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { readStorageJson, removeStorageKey, writeStorageJson } from '@core/storage/ttlStorageCache.ts';
 import { ClockTicker, type ClockTickCadence } from '@core/time/clockTicker.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
+import { setVisibilityState } from '@core/ui/visibility.ts';
 import type { ClockDisplayMode, ClockFormat } from '@core/layout/header/state.ts';
 
 export interface ClockManagerHost {
@@ -132,8 +133,7 @@ export class ClockManager {
 
     #applyVisibility(): void {
         const { button, clockNode, secondHand } = this.#requireDom();
-        button.hidden = !this.headerClockEnabled;
-        button.setAttribute('aria-hidden', this.headerClockEnabled ? 'false' : 'true');
+        setVisibilityState(button, this.headerClockEnabled, { ariaHidden: true });
         if (this.headerClockEnabled) {
             button.removeAttribute('tabindex');
         } else {

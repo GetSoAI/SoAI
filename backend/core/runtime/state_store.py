@@ -8,6 +8,7 @@ import threading
 
 from fastapi import FastAPI
 
+from core.database.vacuum_result import DatabaseVacuumStartupResult
 from core.rate_limiting.moving_window import MovingWindowRateLimiter
 from core.runtime.api_endpoint import RuntimeApiEndpoint
 from core.runtime.protocols import RuntimePidLockProtocol
@@ -41,6 +42,7 @@ class RuntimeStateStore:
         self._system_restart_requester: SystemRestartRequesterProtocol | None = None
         self._hardware_manager_available = hardware_manager_available
         self._degraded_mode = False
+        self._database_maintenance = DatabaseVacuumStartupResult(status="not_run")
         self._repair_plane = False
         self._webui_available = False
         self._tls_user_supplied = False
@@ -273,10 +275,10 @@ class RuntimeStateStore:
             return True
 
     def set_system_stop(self) -> None:
-        self._set_event(self._system_stop_event)
+        self._set_stop_event(self._system_stop_event)
 
     def set_shutdown_requested(self) -> None:
-        self._set_event(self._shutdown_event)
+        self._set_stop_event(self._shutdown_event)
 
     def set_pid_lock(self, pid_lock: RuntimePidLockProtocol | None) -> None:
         with self._state_lock:
@@ -290,7 +292,11 @@ class RuntimeStateStore:
         with self._state_lock:
             self._transferred_processes.append(process_handle)
 
-    def _set_event(self, event: asyncio.Event) -> None:
+    def _set_stop_event(self, event: asyncio.Event) -> None:
+        def apply_stop_event() -> None:
+            self._startup_ready_event.clear()
+            event.set()
+
         event_loop = self.async_loop
         if event_loop is not None and not event_loop.is_closed():
             try:
@@ -298,11 +304,20 @@ class RuntimeStateStore:
             except RuntimeError:
                 running_loop = None
             if running_loop is event_loop:
-                event.set()
+                apply_stop_event()
                 return
             try:
-                event_loop.call_soon_threadsafe(event.set)
+                event_loop.call_soon_threadsafe(apply_stop_event)
             except RuntimeError:
-                event.set()
+                apply_stop_event()
             return
-        event.set()
+        apply_stop_event()
+
+    @property
+    def database_maintenance(self) -> DatabaseVacuumStartupResult:
+        with self._state_lock:
+            return self._database_maintenance
+
+    def set_database_maintenance(self, result: DatabaseVacuumStartupResult) -> None:
+        with self._state_lock:
+            self._database_maintenance = result

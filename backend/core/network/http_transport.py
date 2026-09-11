@@ -60,12 +60,19 @@ class PolicyPinnedAsyncHTTPTransport(httpx2.AsyncHTTPTransport):
         request_pinner: Callable[[httpx2.Request], Awaitable[PinnedHost | None]],
         limits: httpx2.Limits | None = None,
         trust_env: bool = False,
+        proxy: httpx2.Proxy | None = None,
+        proxy_admission: Callable[[], None] | None = None,
     ) -> None:
-        super().__init__(limits=limits or httpx2.Limits(), trust_env=trust_env)
+        if (proxy is None) != (proxy_admission is None):
+            raise ValidationError("A guarded proxy route requires its admission policy.")
+        super().__init__(limits=limits or httpx2.Limits(), trust_env=trust_env, proxy=proxy)
         self._request_pinner = request_pinner
+        self._proxy_admission = proxy_admission
 
     @override
     async def handle_async_request(self, request: httpx2.Request) -> httpx2.Response:
+        if self._proxy_admission is not None:
+            self._proxy_admission()
         pinned = _read_pinned_host_extensions(request)
         url = request.url
         if pinned is not None and str(url.host or "").lower() != pinned.original_host.lower():

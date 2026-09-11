@@ -4,25 +4,31 @@
 from __future__ import annotations
 
 import os
+import secrets
 import time
 
 from core.bootstrap.install_filesystem import rmdir_if_exists, unlink_if_exists
 from core.errors.exceptions import SoAITimeoutError
+from core.filesystem.open_files import create_binary_owner_only
 from core.system.pid_liveness import pid_is_running
 from core.timing.sleep import sleep_seconds
 
 __all__ = (
     "INSTALL_LOCK_ENV",
+    "INSTALL_LOCK_TOKEN_ENV",
     "acquire_lock_dir",
     "lock_dir_has_live_owner",
     "read_lock_pid",
+    "read_lock_token",
     "release_lock_dir",
     "wait_for_lock_dir_clear",
 )
 
 INSTALL_LOCK_ENV = "SOAI_INSTALL_LOCK_HELD_PATH"
+INSTALL_LOCK_TOKEN_ENV = "SOAI_INSTALL_LOCK_HELD_TOKEN"
 LOCK_TIMEOUT_SECONDS = 1200.0
 MISSING_PID_STALE_SECONDS = 5.0
+LOCK_TOKEN_HEX_LENGTH = 64
 
 
 def acquire_lock_dir(lock_dir: str) -> str:
@@ -35,7 +41,12 @@ def acquire_lock_dir(lock_dir: str) -> str:
     while True:
         try:
             os.mkdir(resolved_lock_dir)
-            _write_pid_file(resolved_lock_dir)
+            try:
+                _write_pid_file(resolved_lock_dir)
+                _write_token_file(resolved_lock_dir)
+            except OSError:
+                _remove_stale_lock(resolved_lock_dir)
+                raise
             return resolved_lock_dir
         except FileExistsError as exception:
             missing_pid_started = _clear_stale_lock(
@@ -53,6 +64,8 @@ def acquire_lock_dir(lock_dir: str) -> str:
 
 def release_lock_dir(lock_dir: str) -> None:
     pid_file = os.path.join(lock_dir, "pid")
+    token_file = os.path.join(lock_dir, "token")
+    unlink_if_exists(token_file)
     unlink_if_exists(pid_file)
     rmdir_if_exists(lock_dir)
 
@@ -90,12 +103,15 @@ def wait_for_lock_dir_clear(lock_dir: str) -> None:
 
 def _write_pid_file(lock_dir: str) -> None:
     pid_file = os.path.join(lock_dir, "pid")
-    try:
-        with open(pid_file, "w", encoding="utf-8", errors="strict") as handle:
-            handle.write(f"{os.getpid()}\n")
-    except OSError:
-        rmdir_if_exists(lock_dir)
-        raise
+    with open(pid_file, "x", encoding="utf-8", errors="strict") as handle:
+        handle.write(f"{os.getpid()}\n")
+
+
+def _write_token_file(lock_dir: str) -> None:
+    token_file = os.path.join(lock_dir, "token")
+    token = f"{secrets.token_hex(LOCK_TOKEN_HEX_LENGTH // 2)}\n".encode("ascii")
+    with create_binary_owner_only(token_file) as handle:
+        handle.write(token)
 
 
 def _clear_stale_lock(lock_dir: str, *, missing_pid_started: float | None) -> float | None:
@@ -113,6 +129,7 @@ def _clear_stale_lock(lock_dir: str, *, missing_pid_started: float | None) -> fl
 
 
 def _remove_stale_lock(lock_dir: str) -> None:
+    unlink_if_exists(os.path.join(lock_dir, "token"))
     unlink_if_exists(os.path.join(lock_dir, "pid"))
     rmdir_if_exists(lock_dir)
 
@@ -132,3 +149,22 @@ def read_lock_pid(lock_dir: str) -> int | None:
     if not text.isdigit():
         return None
     return int(text)
+
+
+def read_lock_token(lock_dir: str) -> str | None:
+    token_file = os.path.join(lock_dir, "token")
+    token = ""
+    read_succeeded = False
+    try:
+        with open(token_file, encoding="utf-8", errors="strict") as handle:
+            token = handle.readline().strip()
+        read_succeeded = True
+    except (OSError, UnicodeError):
+        read_succeeded = False
+    if not read_succeeded:
+        return None
+    if len(token) != LOCK_TOKEN_HEX_LENGTH:
+        return None
+    if any(character not in "0123456789abcdef" for character in token):
+        return None
+    return token

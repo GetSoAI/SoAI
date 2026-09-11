@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Awaitable, Callable
 
 from fastapi import WebSocket
@@ -97,7 +98,9 @@ async def cleanup_websocket_connection(
                 snapshot_tasks,
                 logger=logger,
                 task_label="websocket snapshot task",
+                log_level=logging.DEBUG,
                 timeout_sec=DEFAULT_CANCELLATION_TIMEOUT_SEC,
+                timeout_log_level=logging.DEBUG,
             ),
         )
         connection.snapshot_tasks.clear()
@@ -230,7 +233,9 @@ async def cleanup_websocket_connection(
                     [forward_task],
                     logger=logger,
                     task_label="websocket log stream forward task",
+                    log_level=logging.DEBUG,
                     timeout_sec=DEFAULT_CANCELLATION_TIMEOUT_SEC,
+                    timeout_log_level=logging.DEBUG,
                 ),
             )
     connection.log_stream_replacements.clear()

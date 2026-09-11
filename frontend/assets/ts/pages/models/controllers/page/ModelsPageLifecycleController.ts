@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isJsonValue, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
+import { signalAborted } from '@core/lifecycle/abortSignals.ts';
 import { handleModelsInitialAction, type ModelsInitialActionHost } from '@pages/models/controllers/modelsPageInitialActions.ts';
 import type { ModelsLifecycleRuntimeDependencies } from '@pages/models/controllers/page/contracts.ts';
 import { initializeModelsPageShell, loadModelsPageData } from '@pages/models/controllers/page/effects.ts';
@@ -15,6 +16,7 @@ interface ModelsPageLifecycleDependencies {
     viewModeHost: ModelsViewModeHost;
     populateProviderFilter(): void;
     updateStats(): void;
+    initializeDownloadProgress(): void;
 }
 
 class ModelsPageLifecycleController {
@@ -45,11 +47,14 @@ class ModelsPageLifecycleController {
             parameters,
             context
         );
+        if (signalAborted(context.signal ?? null)) return;
+        await handleModelsInitialAction(this.#dependencies.initialActionHost, parameters ?? null);
     }
 
     initializeShell(): void {
         const { runtime } = this.#dependencies;
         const ui = initializeModelsPageShell(runtime.infrastructure);
+        this.#dependencies.initializeDownloadProgress();
         initializeModelsViewMode(this.#dependencies.viewModeHost, ui);
     }
 

@@ -16,6 +16,7 @@ from app.composition.manager_preconditions import ManagerPreconditions
 from app.internal_protocols import LifecycleCoordinatorProtocol
 from app.types_services_foundation import InfrastructureServices
 from core.config.protocols import ConfigManagerProtocol, ConfigProtocol
+from core.licensing.types import Edition
 from core.orchestrator.routing_config import RoutingConfig
 from core.plugins.protocols import PluginManagerProtocol
 from core.plugins.protocols_instance import FilesProtocol
@@ -36,6 +37,7 @@ async def build_plugin_manager_instance(
     plugin_directory: str,
     backends_directory: str,
     updater_module_dependencies: ApplicationUpdaterModuleDependencies,
+    edition: Edition,
     lifecycle_coordinator: LifecycleCoordinatorProtocol,
     infrastructure_services: InfrastructureServices,
     preconditions: ManagerPreconditions,
@@ -118,6 +120,7 @@ async def build_plugin_manager_instance(
         plugin_directory=plugin_directory,
         backends_directory=backends_directory,
         updater_module_dependencies=updater_module_dependencies,
+        edition=edition,
         lifecycle_coordinator=lifecycle_coordinator,
         command_executor=command_executor,
     )

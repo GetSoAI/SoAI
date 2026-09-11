@@ -26,6 +26,7 @@ interface ChatPageEmptyStateDependencies {
     getCachedIcon: (name: IconName, options?: IconOptions) => TrustedHtml;
     activeAgentMode: AgentMode;
     authorityLock: ConversationAuthorityLock | null;
+    ctrlEnterSendRequired: boolean;
     isMac?: boolean;
 }
 
@@ -62,7 +63,7 @@ class ChatPageEmptyState {
     #suggestionOrder: ChatPageSuggestionConfig[] | null = null;
 
     buildMarkup(dependencies: ChatPageEmptyStateDependencies): TrustedHtml {
-        const { sanitizer: stringValue, getCachedIcon, activeAgentMode, authorityLock, isMac } = dependencies;
+        const { sanitizer: stringValue, getCachedIcon, activeAgentMode, authorityLock, ctrlEnterSendRequired, isMac } = dependencies;
         const leftLabel = i18n.t('tabs.scrollLeft');
         const rightLabel = i18n.t('tabs.scrollRight');
 
@@ -137,10 +138,10 @@ class ChatPageEmptyState {
         </div>`;
 
         const modificationKey = isMac ? '⌘' : 'Ctrl';
+        const sendModifierHtml = ctrlEnterSendRequired ? `<kbd class="chat-page-kbd">${modificationKey}</kbd><span class="chat-page-kbd-separator">+</span>` : '';
         const shortcutsHtml = `<div class="chat-page-shortcuts glass-surface">
             <div class="chat-page-shortcut">
-                <kbd class="chat-page-kbd">${modificationKey}</kbd>
-                <span class="chat-page-kbd-separator">+</span>
+                ${sendModifierHtml}
                 <kbd class="chat-page-kbd">Enter</kbd>
                 <span class="chat-page-shortcut-label">${stringValue.html(i18n.t('chat.empty.shortcuts.send'))}</span>
             </div>

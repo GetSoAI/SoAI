@@ -2,29 +2,34 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { resolveAssetPath } from '@core/assetPaths.ts';
+import { pluginLogoPath } from '@core/api/endpoints/uiPaths.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 
-const BUILTIN_PLUGIN_LOGO_PATHS: Readonly<Record<string, string>> = Object.freeze({
-    ollama: 'img/logo/ollama-plugin-logo.png',
-    vllm: 'img/logo/vllm-plugin-logo.png',
-    llamacpp: 'img/logo/llamacpp-plugin-logo.png',
-    external: 'img/logo/external-plugin-logo.png',
-    ctranslate2: 'img/logo/ctranslate2-plugin-logo.png',
-    embedding: 'img/logo/embedding-plugin-logo.png',
-    melotts: 'img/logo/melotts-plugin-logo.png',
-    whisper: 'img/logo/whisper-plugin-logo.png'
-});
+const ARCHIVE_REVISION_PATTERN = /^[a-f0-9]{64}$/;
 
-const getPluginLogoPath = (plugin: PluginRecord | null | undefined): string => {
+interface PluginLogoPresentation {
+    source: string;
+    fallback: string;
+}
+
+const getPluginFallbackLogoPath = (plugin: PluginRecord | null | undefined): string => {
     if (!plugin) return '';
-    const normalizedName = typeof plugin.name === 'string' ? plugin.name.trim().toLowerCase() : '';
-    if (plugin.isBuiltin === true && normalizedName) {
-        const builtinLogoPath = BUILTIN_PLUGIN_LOGO_PATHS[normalizedName];
-        if (builtinLogoPath) {
-            return resolveAssetPath(builtinLogoPath);
-        }
-    }
     return resolveAssetPath('img/logo/third-party-plugin-logo.png');
 };
 
-export { getPluginLogoPath };
+const getPluginArchiveLogoPath = (plugin: PluginRecord | null | undefined): string => {
+    const pluginName = typeof plugin?.name === 'string' ? plugin.name.trim() : '';
+    const revision = typeof plugin?.logoRevision === 'string' ? plugin.logoRevision.trim() : '';
+    if (!pluginName || !ARCHIVE_REVISION_PATTERN.test(revision)) return '';
+    return pluginLogoPath(pluginName, revision);
+};
+
+const getPluginLogoPresentation = (plugin: PluginRecord | null | undefined, fallbackOverride?: string): PluginLogoPresentation => {
+    const fallback = fallbackOverride || getPluginFallbackLogoPath(plugin);
+    return { source: getPluginArchiveLogoPath(plugin) || fallback, fallback };
+};
+
+const getPluginLogoPath = (plugin: PluginRecord | null | undefined): string => getPluginLogoPresentation(plugin).source;
+
+export { getPluginArchiveLogoPath, getPluginFallbackLogoPath, getPluginLogoPath, getPluginLogoPresentation };
+export type { PluginLogoPresentation };

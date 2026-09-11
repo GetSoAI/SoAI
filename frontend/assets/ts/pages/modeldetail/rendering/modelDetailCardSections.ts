@@ -10,7 +10,7 @@ import type { JsonValue } from '@core/types/jsonValues.ts';
 import { MODEL_CONTEXT_WINDOW_PARAMETER_KEY, type ModelRecord } from '@core/types/modelTypes.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
-import { getPluginLogoPath } from '@features/catalog/public.ts';
+import { getPluginLogoPresentation, setPluginLogoFallback } from '@features/catalog/public.ts';
 import type { OpenAICapabilityOverrideCategory, OpenAICapabilityOverrideState } from '@features/models/public.ts';
 import type { ParameterMetadata } from '@pages/modeldetail/controllers/ParameterStateManager.ts';
 import type { Parameter } from '@pages/modeldetail/contracts/parameterTypes.ts';
@@ -78,7 +78,8 @@ const populateModelDetailPluginInfoCard = (host: ModelDetailCardSectionsHost): v
     const displayRaw = recordDisplayName || recordName || pluginName;
     const displayName = formatTitleFromId(displayRaw) || displayRaw;
     const subtitle = isString(record?.descriptionSoaiplugin) ? record.descriptionSoaiplugin.trim() : '';
-    const logoPath = getPluginLogoPath(record);
+    const logoPresentation = getPluginLogoPresentation(record);
+    const logoPath = logoPresentation.source;
     const logo = host.pageDom.optional('modeldetail-plugin-logo');
     const nameElement = host.pageDom.optionalHTMLElement('modeldetail-plugin-name');
     const subtitleElement = host.pageDom.optionalHTMLElement('modeldetail-plugin-subtitle');
@@ -87,8 +88,10 @@ const populateModelDetailPluginInfoCard = (host: ModelDetailCardSectionsHost): v
             throw new TypeError('#modeldetail-plugin-logo must be an HTMLImageElement');
         }
         if (logoPath) {
+            setPluginLogoFallback(logo, logoPresentation.fallback);
             host.pageDom.updateProperty(logo, 'src', logoPath);
         } else {
+            setPluginLogoFallback(logo, '');
             logo.removeAttribute('src');
         }
         host.pageDom.updateProperty(logo, 'alt', displayName);

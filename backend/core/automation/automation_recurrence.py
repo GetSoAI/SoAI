@@ -14,7 +14,7 @@ from core.automation.automation_recurrence_candidates import (
     most_recent_occurrence_naive_at_or_before,
     next_occurrence_naive_after,
 )
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import OneShotAutomationStartNotFutureError, ValidationError
 
 __all__ = (
     "iter_occurrences_in_window",
@@ -38,7 +38,7 @@ def resolve_next_run_at(
     if recurrence == "none":
         scheduled_at = resolve_local_naive_to_utc_ms(start_naive, timezone_name)
         if scheduled_at <= now_ms:
-            raise ValidationError(
+            raise OneShotAutomationStartNotFutureError(
                 "One-shot automations must start strictly in the future when enabled.",
             )
         return scheduled_at

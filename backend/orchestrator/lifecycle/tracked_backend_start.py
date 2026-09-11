@@ -130,7 +130,7 @@ async def _poll_and_persist_start_identities(
             STANDARD_DELAY_SEC,
             max(0.0, poll_deadline - time.monotonic()),
         )
-        if probe_timeout == 0.0:
+        if probe_timeout < SHORT_POLL_INTERVAL_SEC:
             break
         try:
             raw_pids = await asyncio.wait_for(

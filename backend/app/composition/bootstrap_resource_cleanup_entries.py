@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
     from app.types_services_database import DatabaseServices
     from core.events.protocols import EventBusProtocol
-    from core.runtime.protocols import Shutdownable
+    from core.lifecycle.protocols import Shutdownable
 
 __all__ = ("bootstrap_resource_cleanup_entries",)
 

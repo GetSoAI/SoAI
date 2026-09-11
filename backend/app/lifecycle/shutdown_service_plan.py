@@ -9,7 +9,7 @@ from app.lifecycle.entries import LifecycleEntry
 
 if TYPE_CHECKING:
     from app.types_application import ApplicationContext
-    from core.runtime.protocols import Shutdownable
+    from core.lifecycle.protocols import Shutdownable
 
 __all__ = (
     "build_restore_service_shutdown_entries",

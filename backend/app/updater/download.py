@@ -1,4 +1,4 @@
-"""SoAI - Update archive download with reservation-aware staging [backend/app/updater/download.py]"""
+"""SoAI - Update artifact download with reservation-aware staging [backend/app/updater/download.py]"""
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 from __future__ import annotations
@@ -23,7 +23,11 @@ from core.errors.exceptions import (
     ValidationError,
 )
 from core.errors.http_recoverable import HTTP_RECOVERABLE_EXCEPTIONS
-from core.files.staged_transfer import StagedTransferResult, stage_chunks_to_temp_file
+from core.files.staged_transfer import (
+    STAGED_TRANSFER_CHUNK_SIZE,
+    StagedTransferResult,
+    stage_chunks_to_temp_file,
+)
 from core.hardware.protocols_storage import (
     DiskSpaceWriteClaimProtocol,
     StorageManagerProtocol,
@@ -31,7 +35,7 @@ from core.hardware.protocols_storage import (
 from core.logging.protocols import LoggerProtocol
 from core.network.outbound_http_profiles import build_outbound_request_headers
 
-__all__ = ("download_zip",)
+__all__ = ("download_update_file",)
 
 OPERATION_APPLICATION_UPDATER_DOWNLOAD_RELEASE = "application_updater.download_release"
 
@@ -47,14 +51,15 @@ def _read_content_length(response: httpx2.Response) -> int | None:
     return parsed if parsed >= 0 else None
 
 
-def download_zip(
+def download_update_file(
     logger: LoggerProtocol,
     *,
     url: str,
     timeout: float,
     temp_path: str,
-    max_archive_bytes: int,
+    max_download_bytes: int,
     reservation_provider: StorageManagerProtocol,
+    suffix: str = ".zip",
 ) -> StagedTransferResult | None:
     validated_url = validate_updater_url(url)
     download_request = request.Request(
@@ -82,9 +87,9 @@ def download_zip(
                 )
                 return None
             content_length = _read_content_length(response)
-            if content_length is not None and content_length > max_archive_bytes:
+            if content_length is not None and content_length > max_download_bytes:
                 raise PayloadTooLargeError(
-                    f"Update archive exceeds the configured limit of {max_archive_bytes} bytes.",
+                    f"Update download exceeds its limit of {max_download_bytes} bytes.",
                 )
             last_percent = -1
 
@@ -92,7 +97,7 @@ def download_zip(
                 nonlocal last_percent
                 last_percent = report_progress(
                     logger,
-                    "update.zip",
+                    "update.download",
                     downloaded_size,
                     content_length or 0,
                     last_percent,
@@ -150,10 +155,10 @@ def download_zip(
                         claim.commit()
 
                 return stage_chunks_to_temp_file(
-                    response.iter_bytes(),
+                    response.iter_bytes(chunk_size=STAGED_TRANSFER_CHUNK_SIZE),
                     temp_dir=temp_path,
-                    suffix=".zip",
-                    max_bytes=max_archive_bytes,
+                    suffix=suffix,
+                    max_bytes=max_download_bytes,
                     expected_size=content_length,
                     on_progress=report_download_progress,
                     on_chunk_write_scope=reserve_chunk_before_write,

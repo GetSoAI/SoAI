@@ -29,10 +29,10 @@ from core.events.bus_subscriptions import (
 )
 from core.events.protocols import EventCompletionSignal
 from core.events.types_base import Event
+from core.lifecycle.protocols import Shutdownable
 from core.logging.protocols import TraceLogger
 from core.logging.trace import get_logger
 from core.metrics.protocols import MetricsManagerProtocol
-from core.runtime.protocols import Shutdownable
 from core.tasks.protocols import (
     TaskCancellationBinderProtocol,
     TaskFinalizerTrackerProtocol,

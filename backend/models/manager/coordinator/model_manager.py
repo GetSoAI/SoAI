@@ -40,9 +40,9 @@ from core.events.types_system import (
     ConfigAppliedEvent,
     SystemRestartRequiredEvent,
 )
+from core.lifecycle.protocols import Shutdownable
 from core.logging.protocols import LoggerProtocol
 from core.logging.trace import get_logger
-from core.runtime.protocols import Shutdownable
 from core.runtime.soai_identifiers import build_soai_id, safe_or_hashed_segment
 from core.runtime.startup_status import StartupPhaseResult
 from core.tasks.asyncio_task_spawner import spawn_tracked_task

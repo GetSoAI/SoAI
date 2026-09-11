@@ -150,6 +150,9 @@ from mcp.tools.utility_tool_definitions.shell_output import (
 from mcp.tools.utility_tool_definitions.shell_write_stdin import (
     build_shell_write_stdin_tool_definitions,
 )
+from mcp.tools.utility_tool_definitions.soai_documentation import (
+    build_soai_documentation_tool_definitions,
+)
 from mcp.tools.utility_tool_definitions.stop_conversation import (
     build_stop_conversation_tool_definitions,
 )
@@ -190,6 +193,7 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
 
 __all__ = (
+    "build_conversation_utility_tool_definitions",
     "build_internal_utility_tool_definitions",
     "build_public_utility_tool_definitions",
 )
@@ -266,9 +270,15 @@ def build_public_utility_tool_definitions() -> dict[str, JSONDict]:
     return merged
 
 
-def build_internal_utility_tool_definitions() -> dict[str, JSONDict]:
+def build_conversation_utility_tool_definitions() -> dict[str, JSONDict]:
     merged = build_public_utility_tool_definitions()
+    merged.update(build_soai_documentation_tool_definitions())
     merged.update(build_stop_conversation_tool_definitions())
+    return merged
+
+
+def build_internal_utility_tool_definitions() -> dict[str, JSONDict]:
+    merged = build_conversation_utility_tool_definitions()
     merged.update(build_hardware_benchmark_tool_definitions())
     merged.update(build_hardware_control_tool_definitions())
     return merged

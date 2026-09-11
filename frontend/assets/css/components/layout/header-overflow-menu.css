@@ -42,15 +42,6 @@
     }
 
     @container ui-viewport (width <= 1024px) {
-        :where(.chat-container) .chat-conversation-header .chat-header-model-selector.is-visible {
-            display: none;
-        }
-
-        :where(.chat-container) .chat-header-model-selector,
-        :where(.chat-container) .model-selector.model-selector--header.page-header-filter-select {
-            display: none;
-        }
-
         :where(.chat-container) .chat-header-actions > .configuration-toggle-btn:not(.configuration-toggle-btn--dropdown) {
             display: none;
         }
@@ -145,6 +136,11 @@
         scrollbar-gutter: stable both-edges;
         scrollbar-width: thin;
         scrollbar-color: color-mix(in srgb, var(--glass-border-strong) 80%, transparent) transparent;
+    }
+
+    :where(.chat-container) .chat-sidebar-header .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary.ui-button {
+        height: var(--icon-button-size);
+        min-height: var(--icon-button-size);
     }
 
     :where(.chat-container) .chat-sidebar-header .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slots {

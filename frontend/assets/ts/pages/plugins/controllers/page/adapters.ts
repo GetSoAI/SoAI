@@ -169,6 +169,12 @@ const createPluginsPageModalRuntime = (dependencies: CreatePluginsPageModalRunti
                 return lifecycleController.loadCoreConfig(options);
             },
             createStreamHandlers: (_key, _message, callbacks) => infrastructure.streaming.handlers(normalizeModalStreamCallbacks(callbacks)),
+            trackAcceptedTask: (taskId, options) =>
+                infrastructure.streaming.runtime().tasks.trackAcceptedTask(taskId, {
+                    handlers: options.handlers,
+                    operation: normalizeOperationMeta(options.operation),
+                    ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs })
+                }),
             startTaskAction: (endpoint, options, runtimeOptions) => infrastructure.streaming.taskAction(endpoint, normalizeBackendTaskActionOptions(options), runtimeOptions),
             startTaskCommand: (command, options, runtimeOptions) => {
                 if (!isJsonObject(command)) {

@@ -1,6 +1,7 @@
 /* SoAI - File explorer page control layer runtime [frontend/assets/ts/pages/fileexplorer/controllers/page/runtime.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { buildSignalRequestOptions } from '@core/api/requestOptions.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
@@ -77,6 +78,7 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
     let selectionRenderer: (() => void) | null = null;
     const selectionModel = new FileExplorerSelectionModel({ onChange: () => selectionRenderer?.() });
 
+    let invalidatePreparedImages: (() => void) | null = null;
     let navigationHistoryController: FileExplorerNavigationHistoryController | null = null;
     const dataController = new FileExplorerDataController({
         host: controllerHost,
@@ -87,6 +89,7 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
         selection: selectionModel,
         rowsReveal: rowsRevealController,
         onStateChanged: (currentPath, isLoading) => {
+            invalidatePreparedImages?.();
             navigationHistoryController?.handleBrowserState(currentPath, isLoading);
             deeplinkHighlight.apply();
         },
@@ -156,8 +159,8 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
         modalPresenter: host.modalPresenter,
         showNotification: (message, type) => host.feedback.show(message, type),
         readPath: (path) => dataController.readPath(path),
-        loadMetadata: (path) => dataController.loadMetadata(path),
-        downloadResponse: async (path) => controllerHost.api.download(toVirtualPath(path)),
+        loadMetadata: (path, signal) => dataController.loadMetadata(path, signal),
+        downloadResponse: async (path, signal) => controllerHost.api.download(toVirtualPath(path), buildSignalRequestOptions({ signal })),
         downloadPath: (path) => operationsController.downloadPath(path),
         writeFile: (path, content) => operationsController.writeFile(path, content),
         createFile: (path, content) => operationsController.createFile(path, content),
@@ -165,6 +168,7 @@ const createFileExplorerPageRuntime = (host: FileExplorerPageRuntimeHost, initia
         getCurrentFolderImagePaths: () => dataController.getCurrentFolderImagePaths(),
         runWithBoundary: (operation, task) => host.pageLifecycle.run(operation, task)
     });
+    invalidatePreparedImages = () => contentPreviewModalController.invalidatePreparedImages();
     const interactionController = new FileExplorerPageInteractionController({
         host: {
             showNotification: (message, type) => host.feedback.show(message, type),

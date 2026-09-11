@@ -7,8 +7,7 @@ from fastapi import Depends
 
 from core.mcp.tool_catalog import collect_mcp_tool_map
 from core.mcp.tool_catalog_scope import (
-    INTERNAL_ADMIN_MCP_TOOL_CATALOG_SCOPE,
-    PUBLIC_MCP_TOOL_CATALOG_SCOPE,
+    resolve_conversation_tool_catalog_scope,
 )
 from core.state.access import AccessAction
 from core.types.json import JSONDict
@@ -38,10 +37,8 @@ def register_routes(routers: ApiRouters) -> None:
             api_context.dependencies.mcp_server,
             api_context.dependencies.mcp_remote,
             api_context.dependencies.mcp_tool_catalog_cache,
-            local_scope=(
-                INTERNAL_ADMIN_MCP_TOOL_CATALOG_SCOPE
-                if current_user["is_admin"]
-                else PUBLIC_MCP_TOOL_CATALOG_SCOPE
+            local_scope=resolve_conversation_tool_catalog_scope(
+                user_is_admin=current_user["is_admin"],
             ),
         )
         return build_messaging_mcp_tool_catalog_response(

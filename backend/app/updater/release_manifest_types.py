@@ -4,15 +4,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 __all__ = (
-    "ReleaseIdentity",
     "ReleaseFileRecord",
+    "ReleaseIdentity",
     "ReleaseInstaller",
     "ReleaseLegalFingerprint",
     "ReleaseManifestV1",
-    "ReleasePublicationRecord",
     "ReleasePublicTrust",
+    "ReleasePublicationRecord",
     "ReleaseUpdateArchive",
 )
 
@@ -40,6 +41,10 @@ class ReleaseInstaller:
     platforms: tuple[str, ...]
     size_bytes: int
     sha256: str
+
+
+if TYPE_CHECKING:
+    type ReleaseArtifact = ReleaseUpdateArchive | ReleaseInstaller
 
 
 @dataclass(frozen=True, slots=True)

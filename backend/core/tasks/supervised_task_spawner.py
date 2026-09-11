@@ -89,6 +89,39 @@ def spawn_supervised_tracked_task(
                     },
                     level="error",
                 )
+            except ExceptionGroup as exception:
+                attempt += 1
+                _matched, unmatched = exception.split(RECOVERABLE_EXCEPTIONS)
+                if unmatched is None:
+                    log_exception(
+                        supervisor_logger if supervised_logger is None else supervised_logger,
+                        exception,
+                        message="Supervised task crashed (grouped); restarting.",
+                        operation=OPERATION,
+                        details={
+                            "attempt": int(attempt),
+                            "delay_sec": float(delay),
+                            "owner": str(owner),
+                        },
+                        level="warning",
+                    )
+                else:
+                    coerced = coerce_to_soai_error(
+                        exception,
+                        operation="core.tasks.supervised_task_spawner.spawn_supervised_tracked_task",
+                    )
+                    log_exception(
+                        supervisor_logger if supervised_logger is None else supervised_logger,
+                        coerced,
+                        message="Supervised task crashed (unexpected grouped); restarting.",
+                        operation=OPERATION,
+                        details={
+                            "attempt": int(attempt),
+                            "delay_sec": float(delay),
+                            "owner": str(owner),
+                        },
+                        level="error",
+                    )
             sleep_for = delay
             if jitter > 0.0:
                 sleep_for += secrets.SystemRandom().uniform(0.0, jitter)

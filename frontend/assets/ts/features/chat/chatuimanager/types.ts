@@ -57,7 +57,6 @@ export type ElementSelectorKey = 'input' | 'actionBtn' | 'attachBtn' | 'messages
 
 interface ChatUiCompositionPort {
     applyTextZoom: () => void;
-    updateHeaderModelSelectorVisibility: () => void;
     updateExportButtonVisibility: () => void;
     applyWidescreenMode: () => void;
     applySidebarState: () => void;

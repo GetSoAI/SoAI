@@ -6,13 +6,19 @@ from __future__ import annotations
 import os
 
 from app.edition_composition import UpdaterComposition
-from app.updater.release_manifest_types import ReleaseManifestV1, ReleaseUpdateArchive
+from app.installation_transaction_admission import (
+    TRANSACTION_PREFIX,
+)
+from app.updater.release_manifest_types import (
+    ReleaseInstaller,
+    ReleaseManifestV1,
+    ReleaseUpdateArchive,
+)
 from app.updater.software_update.frontend_payload_validation import (
     validate_staged_frontend,
 )
 from app.updater.software_update.install_transaction_state import (
     EXECUTABLE_UPDATE_FILES,
-    TRANSACTION_PREFIX,
     required_update_paths,
 )
 from core.errors.exceptions import ValidationError
@@ -69,14 +75,19 @@ def validate_and_prepare_staged_update(
     *,
     staged_root: str,
     platform_id: str,
-    archive_record: ReleaseUpdateArchive,
+    artifact_record: ReleaseUpdateArchive | ReleaseInstaller,
     manifest: ReleaseManifestV1,
     updater: UpdaterComposition,
 ) -> None:
-    _validate_signed_file_records(
-        staged_root=staged_root,
-        archive_record=archive_record,
-    )
+    if isinstance(artifact_record, ReleaseUpdateArchive):
+        _validate_signed_file_records(
+            staged_root=staged_root,
+            archive_record=artifact_record,
+        )
+    else:
+        if platform_id != "windows-x64" or artifact_record.platforms != ("windows-x64",):
+            raise ValidationError("Native installer preparation requires the Windows artifact.")
+        _staged_file_paths(staged_root)
     updater.validate_staged_payload(staged_root, manifest)
     for relative_path in required_update_paths(platform_id):
         staged_path = os.path.join(staged_root, *relative_path.split("/"))

@@ -18,6 +18,7 @@ from hardware.manager.system_info_cache import (
     resolve_needed_keys,
 )
 from hardware.manager.system_info_snapshot import collect_system_info_snapshot
+from hardware.vendors.nvidia.smi import NvidiaSettingsController
 
 if TYPE_CHECKING:
     from core.hardware.protocols import (
@@ -53,6 +54,7 @@ def sync_query_system_info(
     gpu_info_cache_service: GPUInfoCacheServiceProtocol,
     gpu_vendor_detection_service: GPUVendorDetectionServiceProtocol,
     nvidia_nvml_gate: NvmlGateProtocol,
+    nvidia_settings_controller: NvidiaSettingsController | None,
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
     rapl_energy_cache: RaplEnergyCache,
     components: Sequence[str] | None,
@@ -95,6 +97,7 @@ def sync_query_system_info(
         nvidia_nvml_gate=nvidia_nvml_gate,
         nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
         rapl_energy_cache=rapl_energy_cache,
+        nvidia_settings_controller=nvidia_settings_controller,
         components=components,
         current_time_ms=now_ts_ms,
         manager=manager,

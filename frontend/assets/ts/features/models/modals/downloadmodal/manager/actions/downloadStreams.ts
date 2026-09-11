@@ -12,6 +12,7 @@ import { buildDownloadRequest } from '@features/models/modals/downloadmodal/mana
 import type { DownloadModalManagerRuntime } from '@features/models/modals/downloadmodal/manager/contracts.ts';
 import { buildRequestSignature, countActiveModelDownloads, getActiveModelDownloadOperations, operationMatchesRequest } from '@features/models/modals/downloadmodal/manager/modelDownloadOperations.ts';
 import { updateDownloadBadge } from '@features/models/modals/downloadmodal/manager/view.ts';
+import { MODEL_DOWNLOAD_OPERATION_TYPE } from '@features/models/modelDownloadOperation.ts';
 
 const scrollOperationProgressToTop = (runtime: DownloadModalManagerRuntime): void => {
     const modalRoot = runtime.host.session.modals.requireElement(runtime.modalId);
@@ -36,7 +37,7 @@ const downloadModel = async (runtime: DownloadModalManagerRuntime): Promise<void
     if (signature) {
         runtime.state['activeDownloadSignatures'].add(signature);
     }
-    const key = 'model-download';
+    const key = MODEL_DOWNLOAD_OPERATION_TYPE;
     const message = i18n.t('models.loading.downloading');
     try {
         scrollOperationProgressToTop(runtime);

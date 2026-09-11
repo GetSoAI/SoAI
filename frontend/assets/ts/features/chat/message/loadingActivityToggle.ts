@@ -3,55 +3,79 @@
 
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { dom } from '@core/dom/dom.ts';
-import type { ChatMessage } from '@features/chat/ChatTypes.ts';
-import { applyAssistantMessageTextMarkup } from '@features/chat/message/assistantMessageTextDomApply.ts';
-import { captureAssistantViewportStability, restoreAssistantViewportStability } from '@features/chat/message/assistantViewportStability.ts';
-import { animateCollapseNodes, animateMessageTextTransition, preserveLoadingHeaderHoverState, resolveHoveredLoadingHeaderState, resolveLoadingActivityToggleFallbackDurationMs, resolvePersistedContentMotionSnapshot } from '@features/chat/message/loadingActivityToggleMotion.ts';
-import { beginLoadingActivityAnimations, beginLoadingActivityToggleSequence, cancelLoadingActivityTransition, isLatestLoadingActivityToggleSequence, scheduleLoadingActivityAnimationCleanup, type LoadingActivityAnimationState } from '@features/chat/message/loadingActivityToggleRegistry.ts';
+import { normalizeConversationId } from '@features/chat/validation/ids.ts';
+import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
+import type { ChatMessageActionsDependencies } from '@features/chat/message/actionDeps.ts';
+import { patchRenderedAssistantMessageInConversation } from '@features/chat/message/assistantMessageDomPatch.ts';
+import { resolveAssistantMessageParts } from '@features/chat/message/assistantMessageMarkupParts.ts';
+import { animateMessageTextTransition, resolvePersistedContentMotionSnapshot } from '@features/chat/message/loadingActivityToggleMotion.ts';
+import { beginLoadingActivityAnimations, beginLoadingActivityToggleSequence, cancelLoadingActivityTransition, clearLoadingActivityAnimations } from '@features/chat/message/loadingActivityToggleRegistry.ts';
 
-interface ToggleLoadingActivityItemDependencies {
-    resolveMessageContainer: (messageId: string) => HTMLElement | null;
-    renderMessageTextContent: (message: ChatMessage) => string;
-    isShowActivitiesEnabled: () => boolean;
-    toggleLoadingActivityCollapsedState: (message: ChatMessage, defaultCollapsed: boolean) => boolean;
-    invalidateMessageCache: (message: ChatMessage) => void;
-    postRender: (container: Element | null) => void;
-}
+type LoadingActivityToggleDependencies = {
+    session: Pick<ChatMessageActionsDependencies['session'], 'getCurrentConversation'>;
+    presentation: Pick<ChatMessageActionsDependencies['presentation'], 'resolveMessageReference' | 'resolveMessageContainer' | 'toggleLoadingActivityCollapsedState' | 'isShowActivitiesEnabled' | 'invalidateMessageCache' | 'invalidateActiveStreamDomCache' | 'assistantRenderPort' | 'postRender'>;
+};
 
-const toggleLoadingActivityItem = async (dependencies: ToggleLoadingActivityItemDependencies, messageId: string, message: ChatMessage): Promise<void> => {
-    const nextCollapsed = dependencies.toggleLoadingActivityCollapsedState(message, dependencies.isShowActivitiesEnabled() === false);
-    dependencies.invalidateMessageCache(message);
-    const messageContainer = dependencies.resolveMessageContainer(messageId);
-    if (!(messageContainer instanceof HTMLElement)) {
+const toggleLoadingActivityItem = (dependencies: LoadingActivityToggleDependencies, messageId: string): void => {
+    const conversation = dependencies.session.getCurrentConversation();
+    const conversationId = normalizeConversationId(conversation?.id);
+    if (conversation === null || conversationId === null) {
+        return;
+    }
+    const { message } = dependencies.presentation.resolveMessageReference(conversation, messageId);
+    if (message === null || message.role !== 'assistant') {
+        return;
+    }
+    const messageContainer = dependencies.presentation.resolveMessageContainer(messageId);
+    const messagesArea = messageContainer?.closest(CHAT_SELECTORS.MESSAGES_AREA);
+    if (!(messageContainer instanceof HTMLElement) || !(messagesArea instanceof HTMLElement) || !messagesArea.isConnected) {
         return;
     }
     const messageTextNode = dom.resolve('.message-text', messageContainer);
     if (!(messageTextNode instanceof HTMLElement)) {
         return;
     }
-    const viewportStability = captureAssistantViewportStability(messageTextNode);
+    cancelLoadingActivityTransition(messageTextNode);
     const documentRef = messageTextNode.ownerDocument;
     const sequence = beginLoadingActivityToggleSequence(documentRef, messageId);
-    const animationState: LoadingActivityAnimationState = beginLoadingActivityAnimations(documentRef, messageId, sequence);
-    scheduleLoadingActivityAnimationCleanup(documentRef, messageId, sequence, documentRef.defaultView, resolveLoadingActivityToggleFallbackDurationMs(messageTextNode));
-    cancelLoadingActivityTransition(messageTextNode);
-    const hoveredLoadingHeader = resolveHoveredLoadingHeaderState(messageTextNode);
-    const persistedContentRect = resolvePersistedContentMotionSnapshot(messageTextNode);
-    if (nextCollapsed) {
-        await animateCollapseNodes(messageTextNode, documentRef, messageId, sequence, animationState);
-        if (!isLatestLoadingActivityToggleSequence(documentRef, messageId, sequence)) {
+    beginLoadingActivityAnimations(documentRef, messageId, sequence);
+    const persistedContent = resolvePersistedContentMotionSnapshot(messageTextNode);
+    const startHeight = measureLayoutBox(messageTextNode).height;
+    const nextCollapsed = dependencies.presentation.toggleLoadingActivityCollapsedState(message, !dependencies.presentation.isShowActivitiesEnabled());
+    dependencies.presentation.invalidateMessageCache(message);
+    let committed = false;
+    try {
+        const currentConversation = dependencies.session.getCurrentConversation();
+        if (normalizeConversationId(currentConversation?.id) !== conversationId || currentConversation === null) {
             return;
         }
+        const currentMessage = dependencies.presentation.resolveMessageReference(currentConversation, messageId).message;
+        if (currentMessage === null || currentMessage.role !== 'assistant') {
+            return;
+        }
+        dependencies.presentation.invalidateMessageCache(currentMessage);
+        const result = patchRenderedAssistantMessageInConversation({ optionalUI: (selector, parent) => (parent ? dom.resolve(selector, parent) : messagesArea.matches(selector) ? messagesArea : dom.resolve(selector, messagesArea)), messageManager: dependencies.presentation.assistantRenderPort }, { conversation: currentConversation, conversationId, message: currentMessage, comparisonTurn: null, forceSettledAssistantActions: false, intent: 'activityToggle' });
+        if (result === null) {
+            return;
+        }
+        committed = true;
+        dependencies.presentation.invalidateActiveStreamDomCache(conversationId, result.messageDomId);
+        if (result.requiresPostRender) {
+            dependencies.presentation.postRender(result.root);
+        }
+        const committedText = resolveAssistantMessageParts(result.root)?.text ?? null;
+        if (committedText === messageTextNode) {
+            animateMessageTextTransition(messageTextNode, documentRef, messageId, sequence, startHeight, nextCollapsed, persistedContent);
+        } else {
+            clearLoadingActivityAnimations(documentRef, messageId, sequence);
+        }
+    } finally {
+        if (!committed) {
+            dependencies.presentation.toggleLoadingActivityCollapsedState(message, nextCollapsed);
+            dependencies.presentation.invalidateMessageCache(message);
+            clearLoadingActivityAnimations(documentRef, messageId, sequence);
+        }
     }
-    if (!messageContainer.isConnected || !messageTextNode.isConnected) {
-        return;
-    }
-    const startHeight = measureLayoutBox(messageTextNode).height;
-    applyAssistantMessageTextMarkup(messageTextNode, dependencies.renderMessageTextContent(message));
-    dependencies.postRender(messageTextNode);
-    restoreAssistantViewportStability(viewportStability);
-    preserveLoadingHeaderHoverState(messageTextNode, hoveredLoadingHeader, documentRef, messageId, sequence);
-    animateMessageTextTransition(messageTextNode, documentRef, messageId, sequence, startHeight, nextCollapsed, animationState, persistedContentRect);
 };
 
 export { toggleLoadingActivityItem };

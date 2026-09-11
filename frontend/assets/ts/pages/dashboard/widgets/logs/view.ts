@@ -6,6 +6,7 @@ import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { requireDocument } from '@core/environment/public.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { formatUtcLogTimestamp } from '@core/localization/public.ts';
 import type { LogEntry } from '@core/logvalidation/types.ts';
 import { bindLogSelectionCopy, LogStreamView, normalizeLogMessage, setLogEntryClipboardText } from '@features/logging/public.ts';
 import type { NotificationType } from '@core/ui/notifications/types.ts';
@@ -106,7 +107,7 @@ class DashboardLogsView {
         setLogEntryClipboardText(line, entry);
         const timestamp = doc.createElement('span');
         timestamp.className = 'log-timestamp';
-        timestamp.textContent = entry['timestamp'];
+        timestamp.textContent = formatUtcLogTimestamp(entry['timestamp']);
         const component = doc.createElement('span');
         component.className = 'log-component';
         component.textContent = entry['component'] ?? '';

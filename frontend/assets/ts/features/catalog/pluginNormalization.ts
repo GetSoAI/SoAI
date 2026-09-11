@@ -76,6 +76,10 @@ const getPluginCompatibility = (plugin: Plugin | null | undefined): Compatibilit
     return normalizeCompatibility(plugin);
 };
 
+const isHardwareCompatibilityAcknowledged = (plugin: Plugin | null | undefined, compatibility: CompatibilityInfo): boolean => {
+    return Boolean(compatibility.reason && compatibility.canOverride && !compatibility.isOverridden && plugin?.userEnabledOnce === true);
+};
+
 function getCircuitBreakerInfo(plugin: Plugin & { circuitBreaker: NonNullable<Plugin['circuitBreaker']> }): CircuitBreakerInfo;
 function getCircuitBreakerInfo(plugin: Plugin | null | undefined): CircuitBreakerInfo | null;
 function getCircuitBreakerInfo(plugin: Plugin | null | undefined): CircuitBreakerInfo | null {
@@ -123,6 +127,7 @@ function normalizePlugin(plugin: Plugin | null | undefined): Readonly<Normalized
 function normalizePlugin(plugin: Plugin | null | undefined): Readonly<NormalizedPlugin> | null | undefined {
     if (!plugin) return plugin;
     const compatibility = getPluginCompatibility(plugin);
+    const hasAcknowledgedHardwareIncompatibility = isHardwareCompatibilityAcknowledged(plugin, compatibility);
     const breakerInfo = getCircuitBreakerInfo(plugin);
     const name = plugin.name;
     const stateValue = toUpperCase(plugin.state || PLUGIN_STATUS_UNKNOWN) || PLUGIN_STATUS_UNKNOWN;
@@ -150,7 +155,7 @@ function normalizePlugin(plugin: Plugin | null | undefined): Readonly<Normalized
           }
         : null;
     let nextState = stateValue;
-    if (permanentlyDisabled) {
+    if (!compatibility.isCompatible && !hasAcknowledgedHardwareIncompatibility) {
         nextState = PLUGIN_STATUS_INCOMPATIBLE;
     } else if (compatibility.isOverridden && nextState === PLUGIN_STATUS_INCOMPATIBLE) {
         nextState = PLUGIN_STATUS_STOPPED;
@@ -161,11 +166,12 @@ function normalizePlugin(plugin: Plugin | null | undefined): Readonly<Normalized
     const result: NormalizedPlugin = {
         state: nextState,
         isEnabled: enabled,
-        isAvailable: permanentlyDisabled ? false : (plugin.isAvailable ?? compatibility.isCompatible),
+        isAvailable: permanentlyDisabled ? false : (plugin.isAvailable ?? (compatibility.isCompatible || hasAcknowledgedHardwareIncompatibility)),
         permanentlyDisabled: permanentlyDisabled,
         compatibility,
         isPersistent: plugin.isPersistent ?? false,
         isBuiltin: plugin.isBuiltin ?? false,
+        userEnabledOnce: plugin.userEnabledOnce ?? false,
         circuitBreaker: normalizedBreaker,
         circuitBreakerWasEnabled: normalizedBreaker?.wasEnabled ?? plugin.circuitBreakerWasEnabled ?? enabledCandidate
     };
@@ -175,6 +181,6 @@ function normalizePlugin(plugin: Plugin | null | undefined): Readonly<Normalized
     return Object.freeze(result);
 }
 
-export { getPluginCompatibility, getCircuitBreakerInfo, isPluginPermanentlyDisabled, isCircuitBreakerActive, normalizePlugin, resolveProviderMode, PROVIDER_MODE };
+export { getPluginCompatibility, getCircuitBreakerInfo, isHardwareCompatibilityAcknowledged, isPluginPermanentlyDisabled, isCircuitBreakerActive, normalizePlugin, resolveProviderMode, PROVIDER_MODE };
 export type ProviderMode = ProviderModeValue;
 export type { CompatibilityInfo, CircuitBreakerInfo, ProviderModeValue };

@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)][string]$InstallRoot,
-    [ValidateSet('Uninstall','Upgrade')][string]$Mode = 'Uninstall'
+    [ValidateSet('Uninstall','ArchiveUninstall','Upgrade','Stop')][string]$Mode = 'Uninstall',
+    [string]$ManifestPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -30,6 +31,12 @@ function Resolve-ChildPath {
     return $combined
 }
 
+function Test-RetainedUpdateStorageName {
+    param([Parameter(Mandatory=$true)][string]$EntryName)
+    return $EntryName.StartsWith('.soai_update_transaction_', [StringComparison]::OrdinalIgnoreCase) -or
+        $EntryName.StartsWith('.soai_update_cleanup_', [StringComparison]::OrdinalIgnoreCase)
+}
+
 function Assert-SafeInstallRoot {
     param([Parameter(Mandatory=$true)][string]$Root)
     $full = Resolve-FullPath $Root
@@ -53,7 +60,7 @@ function Assert-SafeInstallRoot {
     $looksLikeSoAI = (Test-Path -LiteralPath (Join-Path $full 'soai.exe')) -and
         (Test-Path -LiteralPath (Join-Path $full 'backend')) -and
         (Test-Path -LiteralPath (Join-Path $full 'frontend'))
-    if ($Mode -eq 'Uninstall' -and !(Test-Path -LiteralPath $marker)) {
+    if ($Mode -in @('Uninstall', 'ArchiveUninstall') -and !(Test-Path -LiteralPath $marker)) {
         $rootChildren = @()
         if (Test-Path -LiteralPath $full -PathType Container) {
             $rootChildren = @(Get-ChildItem -LiteralPath $full -Force -ErrorAction Stop)
@@ -66,10 +73,48 @@ function Assert-SafeInstallRoot {
             throw "SoAI install marker is missing. Refusing to uninstall from $full."
         }
     }
-    if ($Mode -eq 'Upgrade' -and !(Test-Path -LiteralPath $marker) -and !$looksLikeSoAI) {
+    if ($Mode -in @('Upgrade', 'Stop') -and !(Test-Path -LiteralPath $marker) -and !$looksLikeSoAI) {
         throw "The target does not look like a SoAI installation: $full"
     }
+    if ($Mode -in @('Uninstall', 'ArchiveUninstall') -and (Test-Path -LiteralPath $full -PathType Container)) {
+        foreach ($entry in Get-ChildItem -LiteralPath $full -Force -ErrorAction Stop) {
+            if (Test-RetainedUpdateStorageName -EntryName $entry.Name) {
+                throw 'A software update awaits recovery or cleanup. Reopen SoAI to complete it before uninstalling. No application files were removed.'
+            }
+        }
+    }
     return $full
+}
+
+function Assert-SoAIStopped {
+    param([Parameter(Mandatory=$true)][string]$Root)
+    $runtimePython = Join-Path $Root 'soai_main_venv\Scripts\python.exe'
+    $source = @'
+import logging, os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], 'backend'))
+from app.updater.soai_instance import is_instance_lock_held, resolve_instance_lock_path
+from core.bootstrap.runtime_record_path import resolve_runtime_record_path
+from core.runtime.instance_record import read_verified_runtime_instance_record
+logger = logging.getLogger('installer.stop')
+root = sys.argv[1]
+record = read_verified_runtime_instance_record(resolve_runtime_record_path(root, logger=logger), base_dir=root)
+if record is not None or is_instance_lock_held(logger=logger, lock_path=resolve_instance_lock_path(base_path=root)):
+    raise RuntimeError('The installed application is still running or its instance lock cannot be verified.')
+'@
+    $arguments = '-c "' + $source + '" "' + $Root + '"'
+    $probe = Start-Process -FilePath $runtimePython -ArgumentList $arguments -WorkingDirectory $Root -WindowStyle Hidden -PassThru -ErrorAction Stop
+    if (!$probe) {
+        throw 'The installed application shutdown could not be verified. No application files were removed.'
+    }
+    try {
+        Wait-ForOwnedProcessExit -Process $probe -TimeoutMilliseconds 60000
+        if ($probe.ExitCode -ne 0) {
+            throw 'The installed application shutdown could not be verified. No application files were removed.'
+        }
+    }
+    finally {
+        $probe.Dispose()
+    }
 }
 
 function Stop-SoAI {
@@ -79,16 +124,56 @@ function Stop-SoAI {
         return
     }
     Write-Step 'Stopping SoAI...'
-    $process = Start-Process -FilePath $launcher -ArgumentList @('stop') -WorkingDirectory $Root -WindowStyle Hidden -PassThru -ErrorAction SilentlyContinue
+    $process = Start-Process -FilePath $launcher -ArgumentList @('stop') -WorkingDirectory $Root -WindowStyle Hidden -PassThru -ErrorAction Stop
     if (!$process) {
-        return
+        throw 'The installed SoAI stop command could not be started.'
     }
-    if (!$process.WaitForExit(60000)) {
+    try {
+        Wait-ForOwnedProcessExit -Process $process -TimeoutMilliseconds 60000
+        if ($process.ExitCode -ne 0) {
+            Assert-SoAIStopped -Root $Root
+        }
+    }
+    finally {
+        $process.Dispose()
+    }
+    foreach ($candidate in [Diagnostics.Process]::GetProcessesByName('soai')) {
         try {
-            $process.Kill()
+            if ($candidate.HasExited) {
+                continue
+            }
+            $null = $candidate.Handle
+            $executable = $candidate.MainModule.FileName
+            if (![string]::Equals($executable, $launcher, [StringComparison]::OrdinalIgnoreCase)) {
+                continue
+            }
+            $null = $candidate.CloseMainWindow()
+            Wait-ForOwnedProcessExit -Process $candidate -TimeoutMilliseconds 10000
         }
         catch {
+            if (!$candidate.HasExited) {
+                throw
+            }
         }
+        finally {
+            $candidate.Dispose()
+        }
+    }
+}
+
+function Wait-ForOwnedProcessExit {
+    param(
+        [Parameter(Mandatory=$true)][Diagnostics.Process]$Process,
+        [Parameter(Mandatory=$true)][int]$TimeoutMilliseconds
+    )
+    if ($Process.WaitForExit($TimeoutMilliseconds)) {
+        return
+    }
+    if (!$Process.HasExited) {
+        $Process.Kill()
+    }
+    if (!$Process.WaitForExit(10000)) {
+        throw 'An owned SoAI process could not be stopped. No application files were removed.'
     }
 }
 
@@ -133,10 +218,49 @@ function Remove-DirectoryIfPresent {
     Remove-DirectoryTree -Path $Path
 }
 
+function Remove-SourceBytecode {
+    param([Parameter(Mandatory=$true)][string]$SourcePath)
+    if ([IO.Path]::GetExtension($SourcePath) -notin @('.py', '.pyw')) {
+        return
+    }
+    $cachePath = Join-Path ([IO.Path]::GetDirectoryName($SourcePath)) '__pycache__'
+    if (!(Test-Path -LiteralPath $cachePath)) {
+        return
+    }
+    $cacheDirectory = Get-Item -LiteralPath $cachePath -Force -ErrorAction Stop
+    if (!$cacheDirectory.PSIsContainer -or
+        ($cacheDirectory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw 'The Python bytecode cache is not a regular directory; source replacement was refused.'
+    }
+    $moduleName = [Regex]::Escape([IO.Path]::GetFileNameWithoutExtension($SourcePath))
+    $cachePattern = '^' + $moduleName + '\.[^.]+(?:\.opt-[^.]+)?\.pyc$'
+    foreach ($entry in Get-ChildItem -LiteralPath $cachePath -Force -ErrorAction Stop) {
+        if ($entry.Name -notmatch $cachePattern) {
+            continue
+        }
+        if ($entry.PSIsContainer -or
+            ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw 'A Python bytecode cache entry is not a regular file; source replacement was refused.'
+        }
+        Remove-FileIfPresent -Path $entry.FullName
+    }
+}
+
 function Remove-ManifestFiles {
-    param([Parameter(Mandatory=$true)][string]$Root)
-    $manifest = Join-Path $Root 'installer-support\installed-files.txt'
+    param(
+        [Parameter(Mandatory=$true)][string]$Root,
+        [string]$ExplicitManifestPath = ''
+    )
+    $manifest = if ([string]::IsNullOrWhiteSpace($ExplicitManifestPath)) {
+        Join-Path $Root 'installer-support\installed-files.txt'
+    }
+    else {
+        Resolve-FullPath $ExplicitManifestPath
+    }
     if (!(Test-Path -LiteralPath $manifest)) {
+        if (![string]::IsNullOrWhiteSpace($ExplicitManifestPath)) {
+            throw "The required SoAI cleanup manifest is missing: $manifest"
+        }
         return
     }
     foreach ($line in Get-Content -LiteralPath $manifest) {
@@ -148,6 +272,11 @@ function Remove-ManifestFiles {
             continue
         }
         $target = Resolve-ChildPath -Root $Root -Child $relative
+        if ($Mode -eq 'Upgrade' -and
+            [string]::Equals($target, (Join-Path $Root 'soai.exe'), [StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
+        Remove-SourceBytecode -SourcePath $target
         Remove-FileIfPresent $target
     }
 }
@@ -167,20 +296,27 @@ function Remove-Shortcuts {
 
 function Remove-EmptyDirectories {
     param([Parameter(Mandatory=$true)][string]$Root)
+    if (!$Root.StartsWith('\\?\', [StringComparison]::Ordinal)) {
+        if ($Root.StartsWith('\\', [StringComparison]::Ordinal)) {
+            $Root = '\\?\UNC\' + $Root.Substring(2)
+        }
+        else {
+            $Root = '\\?\' + $Root
+        }
+    }
     if (!(Test-Path -LiteralPath $Root -PathType Container)) {
         return
     }
-    Get-ChildItem -LiteralPath $Root -Recurse -Directory -Force |
-        Sort-Object FullName -Descending |
-        ForEach-Object {
-            try {
-                if (!(Get-ChildItem -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue)) {
-                    Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue
-                }
-            }
-            catch {
-            }
+    foreach ($directory in Get-ChildItem -LiteralPath $Root -Directory -Force -ErrorAction Stop) {
+        if ((Test-RetainedUpdateStorageName -EntryName $directory.Name) -or
+            ($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            continue
         }
+        Remove-EmptyDirectories -Root $directory.FullName
+        if (!(Get-ChildItem -LiteralPath $directory.FullName -Force -ErrorAction Stop)) {
+            Remove-Item -LiteralPath $directory.FullName -Force -ErrorAction Stop
+        }
+    }
 }
 
 function Remove-InstallRootIfEmpty {
@@ -206,18 +342,25 @@ function Remove-InstallRootIfEmpty {
 
 $root = Assert-SafeInstallRoot $InstallRoot
 Stop-SoAI -Root $root
-Remove-Shortcuts
+
+if ($Mode -eq 'Stop') {
+    return
+}
 
 if ($Mode -eq 'Upgrade') {
     Write-Step 'Removing files from the previous SoAI install manifest...'
-    Remove-ManifestFiles -Root $root
+    Remove-FileIfPresent (Join-Path $root 'installer-support\.soai-launcher.pending')
+    Remove-ManifestFiles -Root $root -ExplicitManifestPath $ManifestPath
     Remove-DirectoryIfPresent (Join-Path $root 'webview2')
     Remove-EmptyDirectories -Root $root
     return
 }
 
 Write-Step 'Removing SoAI files and app data...'
-Remove-ManifestFiles -Root $root
+if ($Mode -eq 'Uninstall') {
+    Remove-Shortcuts
+}
+Remove-ManifestFiles -Root $root -ExplicitManifestPath $ManifestPath
 foreach ($relative in @(
     'backend',
     'frontend',
@@ -237,6 +380,8 @@ foreach ($relative in @(
 
 foreach ($relative in @(
     '.soai-install-root',
+    '.soai_install_manifest.json',
+    '.soai_install_in_progress',
     'soai.exe',
     'Uninstall.exe',
     'soai-app.ico',

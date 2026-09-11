@@ -4,12 +4,11 @@
 import type { AssistantTimelinePayload } from '@core/realtime/eventcontracts/assistantTimelineTypes.ts';
 import { resolveChronologicalRenderAnchor } from '@features/chat/assistanteventtimeline/timelineChronology.ts';
 import { assertToolActivityChronologyMetadata, mapDecodedAssistantTimelineTool, mergeToolActivityEntry } from '@features/chat/assistanteventtimeline/toolPayloadMapper.ts';
-import type { AssistantTimelineIndexState } from '@features/chat/assistanteventtimeline/timelineIndexState.ts';
+import type { AssistantTimelineIndexState, ToolActivitySource } from '@features/chat/assistanteventtimeline/timelineIndexState.ts';
 import type { ToolActivityItem } from '@features/chat/ChatTypes.ts';
 import { validateSequenceIndexOwner, validateSparseSequenceIndexOwner } from '@features/chat/assistanteventtimeline/timelineSequenceIndexValidation.ts';
-import { resolveToolResultMediaStateSignature } from '@features/chat/toolactivity/toolMediaSignatures.ts';
 import { shouldReplaceToolProjection } from '@features/chat/toolactivity/toolProjectionFreshness.ts';
-import { resolveToolActivityStatusRank } from '@features/chat/toolactivity/toolActivityStatus.ts';
+import { isTerminalToolActivityStatus, resolveToolActivityStatusRank } from '@features/chat/toolactivity/toolActivityStatus.ts';
 import { mergeHydratedToolResultIntoProjection } from '@features/chat/toolactivity/toolProjectionMutation.ts';
 
 const TOOL_SEQUENCE_OWNER_ERROR = 'Assistant event timeline tool sequence_index cannot map to multiple call_id values.';
@@ -17,10 +16,32 @@ const TOOL_SEQUENCE_CONTIGUOUS_ERROR = 'Assistant event timeline tool sequence_i
 
 interface ToolProjectionApplyResult {
     callId: string;
-    projectionOnly: boolean;
+    source: ToolActivitySource;
 }
 
-const isTerminalToolStatus = (status: ToolActivityItem['status']): boolean => status === 'completed' || status === 'cancelled' || status === 'error';
+const TOOL_SOURCE_STATE_ERROR = 'Assistant event timeline tool source state is inconsistent.';
+
+const resolveToolActivitySource = (state: AssistantTimelineIndexState, callId: string, existing: ToolActivityItem | undefined): ToolActivitySource | undefined => {
+    const source = state.toolSourceByCallId.get(callId);
+    if ((existing === undefined) !== (source === undefined)) {
+        throw new Error(TOOL_SOURCE_STATE_ERROR);
+    }
+    if (source === 'lifecycle' && !state.toolLifecycleStatusRankByCallId.has(callId)) {
+        throw new Error(TOOL_SOURCE_STATE_ERROR);
+    }
+    if (source === 'projection' && state.toolLifecycleStatusRankByCallId.has(callId)) {
+        throw new Error(TOOL_SOURCE_STATE_ERROR);
+    }
+    return source;
+};
+
+const applyProjectionMediaHydration = (state: AssistantTimelineIndexState, existing: ToolActivityItem, mapped: ToolActivityItem): void => {
+    const mediaHydrated = mergeHydratedToolResultIntoProjection(existing, mapped);
+    if (mediaHydrated !== null) {
+        state.toolActivityByCallId.set(mapped.callId, mediaHydrated);
+        state.cachedToolActivity = null;
+    }
+};
 
 const isDurationOnlyProjectionUpdate = (existing: ToolActivityItem, incoming: ToolActivityItem): boolean => {
     if (existing.status !== 'running' || incoming.status !== 'running') {
@@ -84,10 +105,6 @@ const copyToolActivityWithRenderAnchor = (mapped: ToolActivityItem, contentIndex
     return { ...mapped, contentIndexBefore: contentIndexBefore };
 };
 
-const isImageProjectionUpdate = (existing: ToolActivityItem, incoming: ToolActivityItem): boolean => {
-    return shouldReplaceToolProjection(existing, incoming) && resolveToolResultMediaStateSignature(existing.result, { toolLeafName: incoming.toolName }) !== resolveToolResultMediaStateSignature(incoming.result, { toolLeafName: incoming.toolName });
-};
-
 const applyToolCallLifecycleUpdate = (state: AssistantTimelineIndexState, sequence: number, payload: AssistantTimelinePayload, eventType: string, eventVisibleTextLength: number): boolean => {
     if (payload.tool === undefined) {
         throw new Error(`Assistant event timeline ${eventType} payload is invalid.`);
@@ -97,6 +114,7 @@ const applyToolCallLifecycleUpdate = (state: AssistantTimelineIndexState, sequen
     mapped.signatureSequence = sequence;
 
     const existing = state.toolActivityByCallId.get(mapped.callId);
+    resolveToolActivitySource(state, mapped.callId, existing);
     if (existing !== undefined) {
         assertToolActivityChronologyMetadata(existing, mapped);
     }
@@ -108,8 +126,7 @@ const applyToolCallLifecycleUpdate = (state: AssistantTimelineIndexState, sequen
     const insertedNewToolSegment = previousLifecycleStatusRank === undefined;
     const merged = existing
         ? mergeToolActivityEntry(existing, mapped, {
-              preserveAdvancedStatus: true,
-              replaceTerminalOutput: isTerminalToolStatus(mapped.status),
+              replaceTerminalOutput: isTerminalToolActivityStatus(mapped.status),
               replaceLiveOutput: false
           })
         : mapped;
@@ -119,7 +136,7 @@ const applyToolCallLifecycleUpdate = (state: AssistantTimelineIndexState, sequen
     if (insertedNewToolSegment) {
         state.toolRenderSequenceByCallId.set(mapped.callId, sequence);
     }
-    state.projectionOnlyToolCallIds.delete(mapped.callId);
+    state.toolSourceByCallId.set(mapped.callId, 'lifecycle');
     state.toolLifecycleStatusRankByCallId.set(mapped.callId, incomingLifecycleStatusRank);
     state.toolRenderAnchorByCallId.set(mapped.callId, mapped.contentIndexBefore);
     state.toolActivityByCallId.set(mapped.callId, merged);
@@ -132,19 +149,29 @@ const applyToolCallProjectionUpdate = (state: AssistantTimelineIndexState, paylo
     const revision = typeof mapped.liveRevision === 'number' && Number.isFinite(mapped.liveRevision) ? mapped.liveRevision : 0;
     mapped.signatureSequence = revision;
     const existing = state.toolActivityByCallId.get(mapped.callId);
+    const source = resolveToolActivitySource(state, mapped.callId, existing);
     if (existing !== undefined) {
         assertToolActivityChronologyMetadata(existing, mapped);
     }
     const insertedNewToolSegment = !state.toolRenderSequenceByCallId.has(mapped.callId);
-    if (existing && state.processedLength > 0 && isTerminalToolStatus(existing.status) && !isImageProjectionUpdate(existing, mapped)) {
-        return { callId: mapped.callId, projectionOnly: state.projectionOnlyToolCallIds.has(mapped.callId) };
+    if (existing !== undefined) {
+        if (source === undefined) {
+            throw new Error(TOOL_SOURCE_STATE_ERROR);
+        }
+        if (source === 'lifecycle' && isTerminalToolActivityStatus(existing.status)) {
+            applyProjectionMediaHydration(state, existing, mapped);
+            return { callId: mapped.callId, source };
+        }
+        if (!shouldReplaceToolProjection(existing, mapped)) {
+            applyProjectionMediaHydration(state, existing, mapped);
+            return { callId: mapped.callId, source };
+        }
     }
     const durationOnlyProjectionUpdate = existing !== undefined && isDurationOnlyProjectionUpdate(existing, mapped);
     const replaceLiveOutput = existing !== undefined && existing.status === 'running' && mapped.status === 'running' && mapped.result !== undefined;
     const baseMerged =
         existing && !durationOnlyProjectionUpdate
             ? mergeToolActivityEntry(existing, mapped, {
-                  preserveAdvancedStatus: false,
                   replaceTerminalOutput: false,
                   replaceLiveOutput
               })
@@ -155,17 +182,19 @@ const applyToolCallProjectionUpdate = (state: AssistantTimelineIndexState, paylo
     validateSparseSequenceIndexOwner(state.toolCallIdBySequenceIndex, mapped.sequenceIndex, mapped.callId, TOOL_SEQUENCE_OWNER_ERROR);
     if (insertedNewToolSegment) {
         state.toolRenderSequenceByCallId.set(mapped.callId, resolveProjectionOnlyToolSequence(state, mapped));
-        state.projectionOnlyToolCallIds.add(mapped.callId);
+    }
+    if (existing === undefined) {
+        state.toolSourceByCallId.set(mapped.callId, 'projection');
     }
     state.toolRenderAnchorByCallId.set(mapped.callId, mapped.contentIndexBefore);
     if (existing && durationOnlyProjectionUpdate) {
         applyDurationOnlyProjectionMutation(existing, mapped, revision);
         state.cachedToolActivity = null;
-        return { callId: mapped.callId, projectionOnly: state.projectionOnlyToolCallIds.has(mapped.callId) };
+        return { callId: mapped.callId, source: source ?? 'projection' };
     }
     state.toolActivityByCallId.set(mapped.callId, merged);
     state.cachedToolActivity = null;
-    return { callId: mapped.callId, projectionOnly: state.projectionOnlyToolCallIds.has(mapped.callId) };
+    return { callId: mapped.callId, source: source ?? 'projection' };
 };
 
 export { applyToolCallLifecycleUpdate, applyToolCallProjectionUpdate };

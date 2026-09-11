@@ -131,7 +131,6 @@ class NotificationCenterView {
         dom.setAttribute(elements.button, 'aria-haspopup', 'true');
         dom.setAttribute(elements.button, 'aria-expanded', isVisible ? 'true' : 'false');
         dom.setAttribute(elements.center, 'aria-label', i18n.t('header.notificationCenter.aria.panel'));
-        dom.setAttribute(elements.count, 'aria-label', i18n.t('header.notificationCenter.aria.unreadCount'));
     }
 
     applyLocalization(elements: NotificationCenterElements, isExpanded: boolean): void {
@@ -154,13 +153,6 @@ class NotificationCenterView {
     setupIcons(elements: NotificationCenterElements): void {
         const iconMarkup = this.#getChevronIconMarkup();
         setIconSlot(elements.chevron, iconMarkup, { className: elements.chevron.className });
-    }
-
-    updateBadge(elements: NotificationCenterElements, snapshot: NotificationsListResponse | null): number {
-        const unread = snapshot ? snapshot.unreadCount : 0;
-        dom.setText(elements.count, unread > 0 ? String(unread) : '');
-        toggleHidden(elements.count, unread <= 0);
-        return unread;
     }
 
     render(elements: NotificationCenterElements, snapshot: NotificationsListResponse | null, options: { state: NotificationCenterSnapshotState; isLoadingMore: boolean; expandedNotificationIds: ReadonlySet<string> }): void {

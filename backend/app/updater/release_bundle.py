@@ -15,12 +15,15 @@ from app.updater.release_assets import (
     resolve_manifest_assets,
     resolve_release_assets,
 )
-from app.updater.release_gateway import build_update_archive_gateway_url
+from app.updater.release_gateway import (
+    build_update_archive_gateway_url,
+    build_update_installer_gateway_url,
+)
 from app.updater.release_manifest import (
     parse_release_manifest_bytes,
-    select_update_archive,
+    select_release_artifact,
 )
-from app.updater.release_manifest_types import ReleaseManifestV1, ReleaseUpdateArchive
+from app.updater.release_manifest_types import ReleaseInstaller, ReleaseManifestV1
 from app.updater.release_signature import (
     release_public_key_fingerprint,
     verify_release_manifest_signature,
@@ -28,8 +31,10 @@ from app.updater.release_signature import (
 from core.errors.exceptions import ValidationError
 from core.errors.external_service_exception import ExternalServiceError
 from core.errors.http_recoverable import HTTP_RECOVERABLE_EXCEPTIONS
+from core.meta.software_update_platforms import MACOS_UPDATE_PLATFORMS
 
 if TYPE_CHECKING:
+    from app.updater.release_manifest_types import ReleaseArtifact
     from core.types.json import JSONValue
 
 __all__ = (
@@ -46,10 +51,10 @@ MAX_RELEASE_CHECKSUM_BYTES = 1024
 @dataclass(frozen=True, slots=True)
 class PreparedReleaseBundle:
     manifest: ReleaseManifestV1
-    archive_record: ReleaseUpdateArchive
+    artifact_record: ReleaseArtifact
     assets: ResolvedReleaseAssets
-    expected_archive_sha256: str
-    archive_download_url: str
+    expected_artifact_sha256: str
+    artifact_download_url: str
     updater: UpdaterComposition
 
 
@@ -102,30 +107,22 @@ def _download_bounded_asset(
         raise ExternalServiceError(f"{label} download failed.", cause=exception) from exception
 
 
-def _parse_checksum_sidecar(sidecar_bytes: bytes, *, archive: ReleaseUpdateArchive) -> str:
+def _parse_checksum_sidecar(sidecar_bytes: bytes, *, artifact: ReleaseArtifact) -> str:
     try:
         sidecar_text = sidecar_bytes.decode("utf-8", errors="strict")
     except UnicodeDecodeError as exception:
         raise ValidationError("Release checksum sidecar must be valid UTF-8.") from exception
-    expected_line = f"{archive.sha256}  {archive.name}\n"
+    expected_line = f"{artifact.sha256}  {artifact.name}\n"
     if sidecar_text != expected_line:
-        raise ValidationError("Release checksum sidecar does not exactly match the signed archive.")
-    return archive.sha256
+        raise ValidationError(
+            "Release checksum sidecar does not exactly match the signed artifact."
+        )
+    return artifact.sha256
 
 
 def _require_asset_size(content: bytes, *, expected_size: int, label: str) -> None:
     if len(content) != expected_size:
         raise ValidationError(f"{label} size does not match the GitHub release asset record.")
-
-
-def _require_installed_core_compatibility(
-    manifest: ReleaseManifestV1,
-    updater: UpdaterComposition,
-) -> None:
-    if updater.edition == "soai-os" and manifest.core_version != updater.core_version:
-        raise ValidationError(
-            "SoAI OS release Core version does not match the installed Core version."
-        )
 
 
 def prepare_release_bundle(
@@ -141,6 +138,7 @@ def prepare_release_bundle(
         release_info,
         version=version,
         edition=updater.edition,
+        platform_id=platform_id,
     )
     manifest_bytes = _download_bounded_asset(
         url=manifest_assets.manifest.url,
@@ -174,21 +172,26 @@ def prepare_release_bundle(
         manifest_bytes,
         expected_version=version,
         expected_edition=updater.edition,
+        expected_platform_id=(
+            platform_id
+            if updater.edition == "soai-core" and platform_id in MACOS_UPDATE_PLATFORMS
+            else None
+        ),
     )
     if manifest.public_trust.release_signing_key_sha256 != release_public_key_fingerprint(
         selected_public_key_path
     ):
         raise ValidationError("Release manifest public trust does not match the signing key.")
-    _require_installed_core_compatibility(manifest, updater)
-    archive_record = select_update_archive(manifest, platform_id=platform_id)
+    artifact_record = select_release_artifact(manifest, platform_id=platform_id)
     assets = resolve_release_assets(
         release_info,
-        archive=archive_record,
+        artifact=artifact_record,
         version=version,
         edition=updater.edition,
+        platform_id=platform_id,
     )
-    if assets.archive.size_bytes != archive_record.size_bytes:
-        raise ValidationError("GitHub archive size does not match the signed release manifest.")
+    if assets.artifact.size_bytes != artifact_record.size_bytes:
+        raise ValidationError("GitHub artifact size does not match the signed release manifest.")
     checksum_bytes = _download_bounded_asset(
         url=assets.checksum.url,
         timeout=timeout,
@@ -200,20 +203,27 @@ def prepare_release_bundle(
         expected_size=assets.checksum.size_bytes,
         label="Release checksum",
     )
-    expected_archive_sha256 = _parse_checksum_sidecar(
+    expected_artifact_sha256 = _parse_checksum_sidecar(
         checksum_bytes,
-        archive=archive_record,
+        artifact=artifact_record,
     )
-    archive_download_url = build_update_archive_gateway_url(
-        version=manifest.version,
-        edition=manifest.edition,
-        platform_id=platform_id,
-    )
+    if isinstance(artifact_record, ReleaseInstaller):
+        artifact_download_url = build_update_installer_gateway_url(
+            version=manifest.version,
+            edition=manifest.edition,
+            platform_id=platform_id,
+        )
+    else:
+        artifact_download_url = build_update_archive_gateway_url(
+            version=manifest.version,
+            edition=manifest.edition,
+            platform_id=platform_id,
+        )
     return PreparedReleaseBundle(
         manifest=manifest,
-        archive_record=archive_record,
+        artifact_record=artifact_record,
         assets=assets,
-        expected_archive_sha256=expected_archive_sha256,
-        archive_download_url=archive_download_url,
+        expected_artifact_sha256=expected_artifact_sha256,
+        artifact_download_url=artifact_download_url,
         updater=updater,
     )

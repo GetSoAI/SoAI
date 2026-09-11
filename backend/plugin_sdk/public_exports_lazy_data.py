@@ -20,6 +20,18 @@ from core.plugins.sdk_public_exports import (
 __all__ = ()
 
 LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (
+        "core.plugins.logo_contract",
+        (
+            "LOGO_FILENAMES",
+            "MAX_LOGO_SOURCE_BYTES",
+            "MAX_LOGO_DIMENSION",
+            "MAX_LOGO_OUTPUT_BYTES",
+            "PluginLogoSource",
+            "PluginLogoResult",
+        ),
+    ),
+    ("core.plugins.logo_images", ("sanitize_plugin_logo",)),
     ("core.archives.errors", ("ArchiveLinkTargetNotFoundError",)),
     (
         "plugin_sdk.contracts.archive_extraction",

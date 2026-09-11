@@ -103,6 +103,13 @@
         width: 100%;
         letter-spacing: normal;
     }
+    .ui-metric-badge.ui-metric-badge--status-full .ui-metric-value[data-progress]::after {
+        flex: 0 0 auto;
+        margin-left: auto;
+        padding-left: var(--space-2);
+        content: attr(data-progress);
+        font-variant-numeric: tabular-nums;
+    }
     .ui-metric-badge.ui-metric-badge--status-full[data-action]:hover {
         --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 6%, var(--glass-underlay-surface));
         border-color: var(--status-color);

@@ -58,21 +58,10 @@
             font-size: var(--font-size-body-sm);
         }
 
-        :where(.chat-container) .chat-input-wrapper {
-            left: var(--chat-composer-inset-inline);
-            right: var(--chat-composer-inset-inline);
-            bottom: calc(0.5rem + var(--ui-safe-area-inset-bottom));
-            padding: var(--chat-input-wrapper-padding);
-        }
-
         :where(.chat-container) .chat-previews-container {
             --chat-previews-container-bottom: calc(80px + var(--ui-safe-area-inset-bottom));
             --chat-previews-container-left: 1.5rem;
             --chat-previews-container-right: 1.5rem;
-        }
-
-        :where(.chat-container) .chat-input {
-            font-size: var(--font-size-sm);
         }
 
         :where(.chat-container) .file-preview-item.image :is(img, .file-preview-image-placeholder) {

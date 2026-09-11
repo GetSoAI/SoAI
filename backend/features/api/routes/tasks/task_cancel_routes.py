@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
-from fastapi import Depends, Request
+from typing import TYPE_CHECKING, NoReturn
+
+from fastapi import Depends, Request, status
 from fastapi.responses import JSONResponse
 
 from core.errors.exception_logging import log_exception
@@ -27,10 +29,21 @@ from features.api.runtime.errors import (
 )
 from features.api.runtime.restart import check_restart_status
 
+if TYPE_CHECKING:
+    from core.tasks.task import Task
+
 __all__ = ("register_routes",)
 
 LOGGER_NAME = "SoAI.features.api.task_cancel_routes"
 OPERATION = "api_tasks.cancel_task"
+
+
+def _raise_terminal_task_error(request: Request, task: Task) -> NoReturn:
+    raise_bad_request(
+        request,
+        f"Task already in terminal state: {task.status.value}",
+        error_type="invalid_state",
+    )
 
 
 def register_routes(routers: ApiRouters) -> None:
@@ -65,11 +78,7 @@ def register_routes(routers: ApiRouters) -> None:
             raise_not_found(request, f"Task not found: {task_id}")
         require_task_visibility(request, task, current_user)
         if task.status.is_terminal():
-            raise_bad_request(
-                request,
-                f"Task already in terminal state: {task.status.value}",
-                error_type="invalid_state",
-            )
+            _raise_terminal_task_error(request, task)
         try:
             updated_task = await cancel(
                 registry,
@@ -89,9 +98,12 @@ def register_routes(routers: ApiRouters) -> None:
             updated_task = await registry.get(task_id, force_refresh=True)
             if updated_task is None:
                 raise_not_found(request, f"Task not found: {task_id}")
+        if updated_task.status.is_terminal() and updated_task.cancellation_requested_at_ms is None:
+            _raise_terminal_task_error(request, updated_task)
         log_audit_event(request, "CANCEL_TASK", task_id)
         api_context.dependencies.metrics_manager.increment_counter("api", "tasks", "cancel")
         return JSONResponse(
+            status_code=status.HTTP_202_ACCEPTED,
             content={
                 "success": True,
                 "task_id": task_id,

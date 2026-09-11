@@ -60,7 +60,13 @@ async def ensure_plugin_safe_for_force_cleanup(
             await progress_callback(10, "Plugin process already stopped or not runnable.")
             await progress_callback(20, "Plugin process confirmed safe for cleanup.")
             return
-        await stop_plugin_if_running(self, plugin_name, reply_channel, task_id=task_id)
+        await stop_plugin_if_running(
+            self,
+            plugin_name,
+            reply_channel,
+            task_id=task_id,
+            exclude_cancellation_ids=frozenset((task_id,)),
+        )
     except PLUGIN_FORCE_CLEANUP_SAFETY_EXCEPTIONS as exception:
         log_exception(
             logger,

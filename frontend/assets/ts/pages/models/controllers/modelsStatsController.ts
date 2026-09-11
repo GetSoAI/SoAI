@@ -22,7 +22,7 @@ interface ModelsStatsControllerDependencies {
     toggleClassName: (element: Element, className: string, enabled: boolean) => void;
     updateHeaderStat: (id: string, label: string, value: number | string) => void;
     queueResponsiveLayoutUpdate: () => void;
-    getProviderPlugins: () => PluginRecord[];
+    getCatalogPlugins: () => PluginRecord[];
     getModelStatus: (model: ModelPropertyInput) => string;
     isExternalProviderModel: (model: ModelPropertyInput) => boolean;
     getModelPlugin: (model: ModelPropertyInput) => string;
@@ -99,10 +99,8 @@ const createModelsStatsController = (dependencies: ModelsStatsControllerDependen
             if (dependencies.getModelStatus(entry) === 'READY') stats.loaded++;
         }
 
-        const providerCount = dependencies.getProviderPlugins().reduce((total, plugin) => {
-            const pluginStatsRaw = plugin['stats'];
-            const pluginStats = isObject(pluginStatsRaw) ? pluginStatsRaw : null;
-            const countValue = pluginStats?.providerCount;
+        const providerCount = dependencies.getCatalogPlugins().reduce((total, plugin) => {
+            const countValue = plugin.stats?.providerCount;
             return total + (typeof countValue === 'number' ? countValue : 0);
         }, 0);
 

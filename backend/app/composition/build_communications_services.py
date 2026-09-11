@@ -163,6 +163,7 @@ def build_communications_services(
     )
     sync_actor = CommunicationsSyncActor(
         CommunicationsSyncActorDependencies(
+            startup_ready_event=deps.runtime_foundation.runtime_state.startup_ready_event,
             config=deps.config,
             database_users=deps.database_services.users,
             database_calendar=deps.database_services.calendar,

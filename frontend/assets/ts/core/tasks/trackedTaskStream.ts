@@ -18,6 +18,7 @@ interface TrackedTaskStreamSettlementOptions {
     tracker: TrackedTaskStreamTracker;
     stream: StreamActionHandle;
     keyPrefix: string;
+    trackingKey?: string;
     failMessage: string;
     keySeparator?: '.' | '-';
 }
@@ -35,10 +36,16 @@ const normalizeTrackedTaskStreamRecord = <T>(payload: T): JsonObject | null => {
 };
 
 const settleTrackedTaskStream = async (options: TrackedTaskStreamSettlementOptions): Promise<TrackedTaskStreamSettlement> => {
-    const key = generateSecureId({
-        prefix: options.keyPrefix,
-        separator: options.keySeparator ?? '-'
-    });
+    const key =
+        options.trackingKey === undefined
+            ? generateSecureId({
+                  prefix: options.keyPrefix,
+                  separator: options.keySeparator ?? '-'
+              })
+            : toTrimmedString(options.trackingKey);
+    if (!key) {
+        throw new Error('Tracked task stream key is required');
+    }
     options.tracker.track(key, options.stream);
     try {
         const payload = await options.stream.finished;

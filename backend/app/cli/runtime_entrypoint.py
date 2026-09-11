@@ -156,7 +156,7 @@ def runtime_entrypoint(
         log_exception(
             lifecycle_logger,
             exception,
-            message="Fatal error before main loop could start.",
+            message="Fatal error in application runtime or final event loop cleanup.",
             operation=OPERATION,
             level="critical",
         )
@@ -166,7 +166,7 @@ def runtime_entrypoint(
         log_exception(
             lifecycle_logger,
             coerced,
-            message="Unhandled exception before main loop could start.",
+            message="Unhandled exception in application runtime or final event loop cleanup.",
             operation=OPERATION,
             level="critical",
         )

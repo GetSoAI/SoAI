@@ -32,6 +32,8 @@ type NestedToolCall = {
     startedAtMs: number | null;
 };
 
+type DurableBackgroundToolActivity = Pick<ToolActivityItem, 'toolName' | 'status' | 'result'>;
+
 const RUNNING_ACTIVITY_COUNT_DELAY_MS = 10000;
 
 const isActiveStatus = (status: ToolActivityStatus): boolean => status === 'pending' || status === 'running';
@@ -107,7 +109,7 @@ const isCountedActivityRunning = (toolName: string, status: ToolActivityStatus, 
     return false;
 };
 
-const isSubagentSpawnRunning = (tool: ToolActivityItem): boolean => {
+const isSubagentSpawnRunning = (tool: DurableBackgroundToolActivity): boolean => {
     if (isActiveStatus(tool.status)) {
         return true;
     }
@@ -116,6 +118,10 @@ const isSubagentSpawnRunning = (tool: ToolActivityItem): boolean => {
     }
     const subagent = tryResolveAcceptedSubagentPayloadRecord(tool.result);
     return subagent !== null && isSubagentStatusValueActive(subagent['status']);
+};
+
+const isDurableBackgroundToolActivity = (tool: DurableBackgroundToolActivity): boolean => {
+    return isCountedActivityRunning(tool.toolName, tool.status, tool.result) || (normalizeToolLeafName(tool.toolName) === 'subagent_spawn' && isSubagentSpawnRunning(tool));
 };
 
 const isNestedSubagentSpawnRunning = (tool: NestedToolCall): boolean => {
@@ -276,5 +282,5 @@ const resolveCountedRunningActivitySummaryFingerprint = (message: ChatMessage): 
     return `${String(timelineLength)}|${projectionFingerprint}`;
 };
 
-export { applyToolActivityToRunningCounts, createRunningActivityCounts, resolveCountedRunningActivitySummaryFingerprint };
-export type { RunningActivityCounts, RunningActivityTarget };
+export { applyToolActivityToRunningCounts, createRunningActivityCounts, isDurableBackgroundToolActivity, resolveCountedRunningActivitySummaryFingerprint };
+export type { DurableBackgroundToolActivity, RunningActivityCounts, RunningActivityTarget };

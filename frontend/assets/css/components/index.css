@@ -139,10 +139,12 @@
 @import url('./chat/chat-authority-lock.css') layer(components);
 @import url('./controls/color-picker-options.css') layer(components);
 @import url('./chat/composer-and-input-actions.css') layer(components);
+@import url('./chat/chat-composer-layout.css') layer(components);
 @import url('./chat/conversation-color-picker.css') layer(components);
 @import url('./chat/conversation-item-actions-and-empty-state.css') layer(components);
 @import url('./chat/conversation-item-colors.css') layer(components);
 @import url('./layout/header-overflow-menu.css') layer(components);
+@import url('./chat/chat-composer-model-selector.css') layer(components);
 @import url('./chat/inline-activity-badge.css') layer(components);
 @import url('./chat/inline-activity-duration.css') layer(components);
 @import url('./chat/inline-activity-header-actions.css') layer(components);

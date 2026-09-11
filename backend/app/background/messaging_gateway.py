@@ -65,6 +65,7 @@ class MessagingGateway(MessagingGatewayProtocol):
         self._delivery_worker: MessagingDeliveryWorker | None = None
         self._interaction_worker: MessagingInteractionResolutionWorker | None = None
         self._reconcile_event = asyncio.Event()
+        self._initial_reconciliation_event = asyncio.Event()
         self._next_retention_cleanup_at = 0.0
         self._reporter = MessagingGatewayReporter()
 
@@ -164,6 +165,7 @@ class MessagingGateway(MessagingGatewayProtocol):
                     summary,
                     elapsed_ms=monotonic_ms() - started_ms,
                 )
+                self._initial_reconciliation_event.set()
             except HANDLED_RUNTIME_EXCEPTIONS as exception:
                 self._admission_open = False
                 if failure_attempt == 0:
@@ -186,6 +188,7 @@ class MessagingGateway(MessagingGatewayProtocol):
                     elapsed_ms=monotonic_ms() - started_ms,
                     retry_after_ms=int(retry_delay * 1000),
                 )
+                self._initial_reconciliation_event.set()
                 failure_attempt += 1
             try:
                 wait_event = (
@@ -204,6 +207,7 @@ class MessagingGateway(MessagingGatewayProtocol):
             return
         self._shutdown_event = asyncio.Event()
         self._reconcile_event = asyncio.Event()
+        self._initial_reconciliation_event = asyncio.Event()
         self._admission_open = False
         self._next_retention_cleanup_at = 0.0
         self._reporter = MessagingGatewayReporter()
@@ -249,10 +253,22 @@ class MessagingGateway(MessagingGatewayProtocol):
         self._reporter.report_started()
 
     @override
+    async def wait_for_initial_reconciliation(self, timeout: float) -> bool:
+        try:
+            await asyncio.wait_for(
+                self._initial_reconciliation_event.wait(),
+                timeout=timeout,
+            )
+        except TimeoutError:
+            return False
+        return True
+
+    @override
     async def shutdown(self) -> None:
         self._admission_open = False
         self._shutdown_event.set()
         self._reconcile_event.set()
+        self._initial_reconciliation_event.set()
         supervisor_task = self._supervisor_task
         self._supervisor_task = None
         await await_background_task_shutdown(

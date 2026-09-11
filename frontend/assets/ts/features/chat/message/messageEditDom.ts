@@ -3,6 +3,7 @@
 
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { dom } from '@core/dom/dom.ts';
+import { createBusyDisabledToken, getBusyDisabledToken, setBusyDisabledState, type BusyDisabledTarget } from '@core/ui/controls/busyDisabledState.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { createEditAttachmentStrip, renderEditTextareaMarkup } from '@features/chat/message/messageEditAttachmentDom.ts';
 
@@ -32,6 +33,23 @@ const beginMessageTextEditing = (container: HTMLElement, editableText: string, r
     return textarea;
 };
 
+const resolveMessageTextEditingBusyTargets = (container: HTMLElement): BusyDisabledTarget[] => {
+    return dom.resolveAll('.message-edit-input, .edit-message-cancel-btn, .message-edit-remove-attachment-btn', container).filter((element): element is BusyDisabledTarget => element instanceof HTMLButtonElement || element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement || element instanceof HTMLAnchorElement);
+};
+
+const setMessageTextEditingBusy = (container: HTMLElement, busy: boolean): void => {
+    for (const target of resolveMessageTextEditingBusyTargets(container)) {
+        if (busy) {
+            setBusyDisabledState(target, { isBusy: true, createToken: createBusyDisabledToken, reuseExistingToken: true, tooltip: null, spinner: 'none' });
+            continue;
+        }
+        const token = getBusyDisabledToken(target);
+        if (token !== null) {
+            setBusyDisabledState(target, { isBusy: false, token });
+        }
+    }
+};
+
 const restoreRenderedMessageText = (inputArguments: RestoreRenderedMessageTextArguments): void => {
     inputArguments.container.classList.remove('is-editing');
     const messageTextNode = dom.resolve('.message-text', inputArguments.container);
@@ -44,4 +62,4 @@ const restoreRenderedMessageText = (inputArguments: RestoreRenderedMessageTextAr
     inputArguments.postRender(messageTextNode);
 };
 
-export { beginMessageTextEditing, restoreRenderedMessageText };
+export { beginMessageTextEditing, restoreRenderedMessageText, setMessageTextEditingBusy };

@@ -35,6 +35,7 @@ __all__ = (
     "REQUIREMENTS_FILENAME",
     "bootstrap_python_dependencies_if_needed",
     "ensure_pip_ready",
+    "runtime_dependencies_need_install",
 )
 
 REQUIREMENTS_FILENAME = "requirements.txt"
@@ -60,6 +61,24 @@ def ensure_pip_ready(python_executable: str) -> None:
         return
     raise StateError(
         "pip is missing or broken inside the managed runtime environment. Delete the managed env directory and re-run bootstrap.",
+    )
+
+
+def runtime_dependencies_need_install(source_root: str, *, runtime_path: str) -> bool:
+    python_executable = get_venv_python_executable(runtime_path)
+    if not os.path.isfile(python_executable):
+        raise StateError(
+            "The installed managed Python runtime is unavailable for update preparation."
+        )
+    requirements_path = os.path.join(source_root, REQUIREMENTS_FILENAME)
+    requirements_hash = _runtime_dependency_source_hash(
+        repo_root_path=source_root,
+        requirements_path=requirements_path,
+    )
+    return _python_dependencies_need_install(
+        venv_path=runtime_path,
+        python_executable=python_executable,
+        requirements_hash=requirements_hash,
     )
 
 
@@ -109,6 +128,10 @@ def bootstrap_python_dependencies_if_needed(
             python_executable=resolved_python,
             requirements_path=requirements_path,
         )
+        if not _runtime_dependency_probes_pass(resolved_python):
+            raise StateError(
+                "Managed Python dependency preparation failed its runtime validation. Required modules must be available and pip check must pass before startup."
+            )
         _write_dependency_markers(venv_path=venv_path, requirements_hash=requirements_hash)
         return True
 
@@ -123,6 +146,10 @@ def _python_dependencies_need_install(
     marker_value = read_text_file(os.path.join(venv_path, DEPENDENCY_CHECK_MARKER_FILENAME))
     if stored_hash != requirements_hash or not marker_value:
         return True
+    return not _runtime_dependency_probes_pass(python_executable)
+
+
+def _runtime_dependency_probes_pass(python_executable: str) -> bool:
     import_probe = run_argv_capture(
         [
             python_executable,
@@ -134,14 +161,14 @@ def _python_dependencies_need_install(
         timeout=30,
     )
     if import_probe.return_code != 0:
-        return True
+        return False
     pip_check = run_argv_capture(
         [python_executable, "-m", "pip", "check"],
         encoding="utf-8",
         errors="replace",
         timeout=60,
     )
-    return pip_check.return_code != 0
+    return pip_check.return_code == 0
 
 
 def _install_python_dependencies(

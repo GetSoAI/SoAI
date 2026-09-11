@@ -4,6 +4,10 @@
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { createModuleLogger } from '@core/runtime/runtimeContext.ts';
+import { serverEpochMs } from '@core/time/clock.ts';
+import { settleTerminalAssistantActivities } from '@features/chat/assistanteventtimeline/terminalActivitySettlement.ts';
+import { createAssistantTimelineIndexState } from '@features/chat/assistanteventtimeline/timelineIndexState.ts';
+import { updateAssistantTimelineIndexState } from '@features/chat/assistanteventtimeline/timelineIndexUpdate.ts';
 import type { StreamRuntime } from '@features/chat/chatstreamservice/contracts.ts';
 import type { ChatStreamSession } from '@features/chat/chatstreamservice/types.ts';
 import { applyGenerationMetrics } from '@features/chat/chatstreamservice/streamMessageUpdates.ts';
@@ -21,6 +25,11 @@ const applyChatStreamTerminalState = (inputArguments: { session: ChatStreamSessi
         inputArguments.session.assistantMessage.finishReason = inputArguments.finishReason;
     }
     inputArguments.session.lastError = inputArguments.lastError;
+    const activitiesSettled = settleTerminalAssistantActivities(inputArguments.session.assistantMessage, inputArguments.status, serverEpochMs());
+    if (activitiesSettled) {
+        inputArguments.session.assistantTimelineIndexState = createAssistantTimelineIndexState();
+        updateAssistantTimelineIndexState(inputArguments.session.assistantTimelineIndexState, inputArguments.session.assistantMessage);
+    }
     if (inputArguments.status === 'error' && inputArguments.errorMessage !== null) {
         writeTerminalErrorToTimeline(inputArguments.session, inputArguments.errorMessage, inputArguments.errorCode, inputArguments.referenceId ?? inputArguments.session.requestId);
     }

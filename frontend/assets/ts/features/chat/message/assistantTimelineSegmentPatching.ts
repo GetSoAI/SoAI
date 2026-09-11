@@ -7,6 +7,7 @@ import { patchAssistantBodyChildrenInPlace } from '@features/chat/message/assist
 import { reconcileAssistantDom } from '@features/chat/message/assistantDomReconciler.ts';
 import type { AssistantDomStatePreservation } from '@features/chat/message/assistantDomState.ts';
 import { collectCanonicalStreamingTextChildNodes } from '@features/chat/message/assistantStreamingDomState.ts';
+import { formatAssistantBodySegmentSignature } from '@features/chat/message/assistantMessageMarkupParts.ts';
 import { patchInlineActivityHeaderChildrenInPlace } from '@features/chat/message/messageview/inlineActivityHeaderChildrenPatching.ts';
 import { COLLAPSED_LOADING_CONTENT_SELECTOR } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
 import { patchToolDetailsMarkup } from '@features/chat/message/assistantToolDetailsPatching.ts';
@@ -201,7 +202,7 @@ const patchInlineActionUpdateMarkup = (existing: HTMLElement, created: HTMLEleme
     return changed;
 };
 
-const patchCollapsedLoadingContentMarkup = (inputArguments: { existing: HTMLElement; created: HTMLElement; assistantDomState?: AssistantDomStatePreservation | null }): { patched: boolean; detailsChanged: boolean } => {
+const patchCollapsedLoadingContentMarkup = (inputArguments: { preserveActiveStreamingText?: boolean; existing: HTMLElement; created: HTMLElement; assistantDomState?: AssistantDomStatePreservation | null }): { patched: boolean; detailsChanged: boolean; retainedSignature?: string } => {
     let changed = false;
     if (syncClass(inputArguments.existing, inputArguments.created)) {
         changed = true;
@@ -216,17 +217,24 @@ const patchCollapsedLoadingContentMarkup = (inputArguments: { existing: HTMLElem
         nextContainer: inputArguments.created,
         assistantDomState: inputArguments.assistantDomState ?? null,
         disableInsertAnimation: true,
-        patchExistingChild: patchStreamingTimelineSegmentInPlace
+        patchExistingChild: (patchArguments) => patchStreamingTimelineSegmentInPlace({ ...patchArguments, preserveActiveStreamingText: inputArguments.preserveActiveStreamingText === true })
     });
     if (contentChanged === null) {
         return { patched: false, detailsChanged: false };
     }
-    return { patched: true, detailsChanged: changed || contentChanged };
+    return {
+        patched: true,
+        detailsChanged: changed || contentChanged,
+        ...(inputArguments.preserveActiveStreamingText === true ? { retainedSignature: formatAssistantBodySegmentSignature(inputArguments.existing.innerHTML) } : {})
+    };
 };
 
-export const patchStreamingTimelineSegmentInPlace = (inputArguments: { existing: HTMLElement; created: HTMLElement; assistantDomState?: AssistantDomStatePreservation | null; applyStreamingReveal?: boolean; streamingTextSettlementProof?: StreamingTextSettlementProof | null }): { patched: boolean; detailsChanged: boolean } => {
+export const patchStreamingTimelineSegmentInPlace = (inputArguments: { preserveActiveStreamingText?: boolean; existing: HTMLElement; created: HTMLElement; assistantDomState?: AssistantDomStatePreservation | null; applyStreamingReveal?: boolean; streamingTextSettlementProof?: StreamingTextSettlementProof | null }): { patched: boolean; detailsChanged: boolean; retainedSignature?: string } => {
     const { existing, created } = inputArguments;
     const applyStreamingReveal = inputArguments.applyStreamingReveal === true;
+    if (inputArguments.preserveActiveStreamingText === true && isStreamingTextRoot(existing) && isTimelineTextRoot(created)) {
+        return { patched: true, detailsChanged: false, retainedSignature: formatAssistantBodySegmentSignature(existing.innerHTML) };
+    }
     if (!existing.classList.contains('inline-activity') || !created.classList.contains('inline-activity')) {
         if (existing.classList.contains('inline-action-update') && created.classList.contains('inline-action-update')) {
             const detailsChanged = patchInlineActionUpdateMarkup(existing, created, applyStreamingReveal);
@@ -236,7 +244,7 @@ export const patchStreamingTimelineSegmentInPlace = (inputArguments: { existing:
             return { patched: false, detailsChanged: false };
         }
         if (existing.matches(COLLAPSED_LOADING_CONTENT_SELECTOR) && created.matches(COLLAPSED_LOADING_CONTENT_SELECTOR)) {
-            return patchCollapsedLoadingContentMarkup({ existing, created, assistantDomState: inputArguments.assistantDomState ?? null });
+            return patchCollapsedLoadingContentMarkup({ existing, created, preserveActiveStreamingText: inputArguments.preserveActiveStreamingText === true, assistantDomState: inputArguments.assistantDomState ?? null });
         }
         let changed = false;
         let completedStreamingTextInPlace = false;

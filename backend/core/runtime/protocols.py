@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from starlette.applications import Starlette
     from starlette.datastructures import URL, Address, Headers, State
 
-    from core.concurrency.task_groups import ManagedTaskGroup
+    from core.database.vacuum_result import DatabaseVacuumStartupResult
     from core.orchestrator.types import MCPToolContext
     from core.rate_limiting.moving_window import MovingWindowRateLimiter
     from core.runtime.api_endpoint import RuntimeApiEndpoint
@@ -23,10 +23,6 @@ if TYPE_CHECKING:
         SystemRestartRequesterProtocol,
     )
     from core.system.protocols import ManagedProcessProtocol
-    from core.tasks.protocols import (
-        TaskCancellationBinderProtocol,
-        TaskFinalizerTrackerProtocol,
-    )
 
 __all__ = (
     "ConnectionProtocol",
@@ -43,8 +39,6 @@ __all__ = (
     "RuntimePlatformViewProtocol",
     "RuntimeRepairPlaneViewProtocol",
     "RuntimeStateStoreProtocol",
-    "ServiceLifecycleProtocol",
-    "Shutdownable",
 )
 
 
@@ -154,6 +148,9 @@ class RuntimeHealthViewProtocol(
     @property
     def degraded_mode(self) -> bool: ...
 
+    @property
+    def database_maintenance(self) -> DatabaseVacuumStartupResult: ...
+
 
 class RuntimeStateStoreProtocol(RuntimeHealthViewProtocol, Protocol):
     @property
@@ -249,6 +246,8 @@ class RuntimeStateStoreProtocol(RuntimeHealthViewProtocol, Protocol):
 
     def set_degraded_mode(self, enabled: bool) -> None: ...
 
+    def set_database_maintenance(self, result: DatabaseVacuumStartupResult) -> None: ...
+
     def set_repair_plane(self, enabled: bool) -> None: ...
 
     def set_startup_ready(self) -> bool: ...
@@ -268,22 +267,6 @@ class RuntimeStateStoreProtocol(RuntimeHealthViewProtocol, Protocol):
     def set_prune_tokens_task(self, task: asyncio.Task[None] | None) -> None: ...
 
     def transfer_process_ownership(self, process_handle: ManagedProcessProtocol) -> None: ...
-
-
-class Shutdownable(Protocol):
-    async def shutdown(self) -> None: ...
-
-
-class ServiceLifecycleProtocol(Protocol):
-    shutdown_event: asyncio.Event
-    cancellation_binder: TaskCancellationBinderProtocol
-    finalizer_tracker: TaskFinalizerTrackerProtocol
-    managed_task_group: ManagedTaskGroup | None
-    disabled: bool
-
-    def enable(self) -> None: ...
-
-    def require_enabled(self, owner: str) -> None: ...
 
 
 class ConnectionProtocol(Protocol):

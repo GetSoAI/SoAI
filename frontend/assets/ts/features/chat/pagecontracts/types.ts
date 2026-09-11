@@ -15,7 +15,7 @@ import type { RagBatchUploadOptions } from '@core/api/endpoints/webuiRagUploads.
 import type { ArchivedConversationListOptions, WebuiChatEndpoints } from '@core/api/endpoints/webuiChatEndpoints.ts';
 import type { WebuiUser } from '@core/api/contracts/webuiUserContracts.ts';
 import type { ChatUiParameters } from '@core/types/chatParameters.ts';
-import type { ReadOnlyFileBrowserApi } from '@core/fileexplorerbrowser/types.ts';
+import type { HostFilesystemBrowserApi, ReadOnlyFileBrowserApi } from '@core/fileexplorerbrowser/types.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { ArchivedConversationsPageResponse, ArchivedConversationResponse, ConversationBatchDeleteResponse, ConversationDeleteAllResponse, ConversationMessageSyncCursorResponse, ConversationMessageWindowResponse, ConversationMessageWriteResponse, ConversationRunningActivityResponse, WebuiConversationResponse } from '@core/api/contracts/webuiConversationContracts.ts';
 import type { AskUserInteractionResolutionRequest, ComparisonTurnPreflightRequest, ComparisonTurnPreflightResponse, ConversationAttentionRenderedRequest, ConversationInteractionResolutionResponse, ConversationJsonExportRequest, ConversationMcpConfigResponse, ConversationMcpConfigUpdateRequest, ConversationMcpToolCatalogResponse, ConversationPendingInteractionResponse, ConversationPdfExportAcceptedResponse, ConversationPdfExportStartRequest, ConversationSearchConfigResponse, ConversationSearchConfigUpdateRequest, ConversationStreamStatusResponse, ConversationWorkspacePathConfigResponse, ConversationWorkspacePathConfigUpdateRequest, SecretPromptInteractionResolutionRequest, SoaiLinkResolveRequest, SoaiLinkResolveResponse, SoaiPathOpenResponse, SoaiPathOperationRequest, SoaiPathPreviewResponse, SoaiPathReadResponse, SoaiPathTokenResponse, ToolApprovalInteractionResolutionRequest } from '@core/api/contracts/webuiChatOperationContracts.ts';
@@ -59,7 +59,7 @@ interface ChatAuthApi {
 }
 
 interface ChatUsersApi {
-    workspaceBrowser: ReadOnlyFileBrowserApi;
+    workspaceBrowser: HostFilesystemBrowserApi;
 }
 
 interface ChatConversationMessagesApi {

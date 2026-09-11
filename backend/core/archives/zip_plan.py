@@ -49,19 +49,27 @@ class ZipPlanPolicy:
     )
 
     @classmethod
-    def plugin_package(cls) -> ZipPlanPolicy:
+    def strict_portable_paths(cls, *, resource_limits: ArchiveResourceLimits) -> ZipPlanPolicy:
         return cls(
             reject_backslashes=True,
             reject_colons=True,
             reject_empty_segments=True,
             reject_case_collisions=True,
             reject_unicode_collisions=True,
-            reject_prefix_conflicts=True,
-            resource_limits=replace(
-                default_archive_resource_limits(),
-                max_members=10_000,
-                max_materialized_entries=10_000,
+            resource_limits=resource_limits,
+        )
+
+    @classmethod
+    def plugin_package(cls) -> ZipPlanPolicy:
+        return replace(
+            cls.strict_portable_paths(
+                resource_limits=replace(
+                    default_archive_resource_limits(),
+                    max_members=10_000,
+                    max_materialized_entries=10_000,
+                ),
             ),
+            reject_prefix_conflicts=True,
         )
 
 

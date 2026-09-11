@@ -33,7 +33,8 @@ const CHAT_MOBILE_AUXILIARY_ACTION_DESCRIPTORS: ReadonlyArray<ChatMobileAuxiliar
     { id: 'voice_call', buttonClassNames: 'call-btn', actionId: CHAT_ACTIONS.TOGGLE_CALL, iconName: 'call', iconSlotType: 'standard' },
     { id: 'camera', buttonClassNames: 'camera-btn', actionId: CHAT_ACTIONS.OPEN_CAMERA, iconName: 'camera', iconSlotType: 'standard' },
     { id: 'attach', buttonClassNames: 'attach-add-btn', actionId: CHAT_ACTIONS.OPEN_ATTACH_MODAL, iconName: 'paperclip', iconSlotType: 'standard' },
-    { id: 'character_map', buttonClassNames: CHAT_CHARACTER_MAP_BUTTON_CLASS, actionId: CHAT_ACTIONS.OPEN_CHARACTER_MAP, iconName: 'file-font', iconSlotType: 'standard' },
+    { id: 'character_map', buttonClassNames: CHAT_CHARACTER_MAP_BUTTON_CLASS, actionId: CHAT_ACTIONS.OPEN_CHARACTER_MAP, iconName: 'character-map', iconSlotType: 'standard' },
+    { id: 'new_conversation', buttonClassNames: 'new-conversation-input-btn', actionId: CHAT_ACTIONS.NEW_CONVERSATION, iconName: 'add', iconSlotType: 'standard' },
     { id: 'prompts', buttonClassNames: 'goto-prompts-btn', actionId: CHAT_ACTIONS.GOTO_PROMPTS, iconName: 'prompt', iconSlotType: 'standard' }
 ]);
 
@@ -73,6 +74,8 @@ const renderOptionLabel = (sanitizer: SanitizerApi, descriptor: ChatMobileAuxili
             return i18n.html(sanitizer, 'chat.configuration.inputActions.auxiliary.options.camera');
         case 'attach':
             return i18n.html(sanitizer, 'chat.configuration.inputActions.auxiliary.options.attach');
+        case 'new_conversation':
+            return i18n.html(sanitizer, 'chat.header.newConversation');
         case 'character_map':
             return i18n.html(sanitizer, 'chat.characterMap.mobileOption');
         case 'prompts':
@@ -106,6 +109,8 @@ const resolveButtonLabel = (descriptor: ChatMobileAuxiliaryActionDescriptor): st
             return i18n.t('chat.input.openCamera');
         case 'attach':
             return i18n.t('chat.input.attachAdd');
+        case 'new_conversation':
+            return i18n.t('chat.header.newConversation');
         case 'character_map':
             return i18n.t('chat.characterMap.open');
         case 'prompts':

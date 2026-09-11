@@ -82,6 +82,9 @@
                 "deleteMessage": "Hiermee verwijder je \"{title}\" en de geplande uitvoeringen ervan. Bestaande chattranscripten blijven beschikbaar.",
                 "deleteTitle": "Automatisering verwijderen?"
             },
+            "errors": {
+                "oneShotStartNotFuture": "Eenmalige automatiseringen moeten in de toekomst beginnen. Kies een later starttijdstip."
+            },
             "preferencesCorrupt": {
                 "message": "De voorkeuren voor de automatiseringspagina zijn ongeldig. Stel de voorkeuren opnieuw in om door te gaan.",
                 "reset": "Automatiseringsvoorkeuren opnieuw instellen",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "Vereis goedkeuring voordat tools in dit gesprek worden uitgevoerd.",
                 "newConversationInheritLastSettings": "Laatste instellingen gebruiken voor nieuwe chats",
                 "newConversationInheritLastSettingsHint": "Nieuwe chats starten met je laatst gebruikte model-, tool- en kennisinstellingen.",
+                "ctrlEnterSend": "Ctrl + Enter om te verzenden",
+                "ctrlEnterSendHint": "Indien ingeschakeld verzend je met Ctrl + Enter en begin je een nieuwe regel met Enter. Indien uitgeschakeld verzend je met Enter en begin je een nieuwe regel met Shift + Enter.",
                 "knowledge": {
                     "downloadModel": "Model downloaden",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "Antwoord stoppen"
                         },
+                        "soai_documentation": {
+                            "1": "SoAI-documentatie doorzoeken",
+                            "detail": {
+                                "1": "SoAI-documentatie doorzoeken: {detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "Tekst vervangen",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "Huidige map",
+                "filesystemRoot": "Bestandssysteemhoofdmap",
                 "empty": "Geen mappen gevonden.",
                 "forbidden": "Je hebt geen toegang tot deze map.",
                 "loadFailed": "Mappen laden mislukt.",
+                "validationFailed": "De geselecteerde map kon niet worden gevalideerd.",
                 "loading": "Mappen laden...",
                 "manualAbsolutePathRequired": "Voer een absoluut pad in (bijv. /path of C:\\path).",
                 "manualPath": "Geselecteerde map",
@@ -2474,7 +2487,8 @@
                 "loading": "Laden",
                 "resolution": "Resolutie",
                 "size": "Grootte",
-                "zoom": "Zoom"
+                "zoom": "Zoom",
+                "position": "Afbeelding {current} van {total}"
             },
             "sourceInfo": {
                 "conversationPath": "Gesprekspad",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "Widgets"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "Sommige GPU-bedieningsfuncties konden niet worden gedetecteerd. Beschikbare functies blijven bruikbaar.",
+                "capabilitiesStale": "De GPU-bediening wordt opnieuw verbonden. Laatst bijgewerkt: {age}.",
+                "capabilitiesRetained": "De GPU-bediening is niet beschikbaar. Gegevens van {age} worden weergegeven.",
+                "slotsStale": "De opgeslagen GPU-instellingen worden opnieuw verbonden. Laatst bijgewerkt: {age}.",
+                "slotsRetained": "De opgeslagen GPU-instellingen zijn niet beschikbaar. Gegevens van {age} worden weergegeven.",
+                "capabilitiesUnavailable": "GPU-bediening is niet beschikbaar.",
+                "slotsUnavailable": "Opgeslagen GPU-instellingen zijn niet beschikbaar."
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "Openen"
                 },
                 "aria": {
-                    "panel": "Meldingencentrum",
-                    "unreadCount": "Ongelezen meldingen"
+                    "panel": "Meldingencentrum"
                 },
                 "messages": {
                     "noNotifications": "Geen meldingen",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "Doorgaan",
                 "externalLinkMessage": "De SoAI-website openen in een nieuw browsertabblad?"
             },
-            "description": "Vind je weg in SoAI",
+            "description": "Vind je weg in SoAI.",
             "documentationUrl": "Documentatie",
             "intro": {
                 "aboutButton": "Over SoAI",
@@ -4236,8 +4258,7 @@
             "description": "AI-modellen beheren voor plugins en providers.",
             "searchPlaceholder": "Modellen zoeken...",
             "empty": {
-                "downloadFirst": "Je eerste model downloaden",
-                "getStarted": "Ga aan de slag door je eerste model te downloaden.",
+                "getStarted": "Begin door je eerste model toe te voegen.",
                 "noMatch": "Geen modellen komen overeen met je filters",
                 "noModels": "Geen modellen gevonden",
                 "tryAdjusting": "Pas je zoekopdracht of filtercriteria aan."
@@ -4702,7 +4723,7 @@
                 "title": "Dashboard"
             },
             "fileExplorer": {
-                "description": "Blader door SoAI OS-bestanden en beheer ze.",
+                "description": "Blader door SoAI-bestanden en beheer ze.",
                 "title": "Bestanden"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "Geen",
                 "reasons": {
                     "broken": "Pluginbestand is beschadigd of bevat syntaxisfouten. Verwijder het en download het opnieuw.",
+                    "dependencyMissing": "Vereiste pluginafhankelijkheden zijn niet beschikbaar: {dependencies}.",
                     "gpu": "Vereist GPU ({required}). Gedetecteerde leveranciers: {detected}. Overschrijf dit om de CPU-modus te gebruiken (werkt mogelijk niet).",
                     "gpuShort": "GPU-controle mislukt. Vereist: {required}. Gedetecteerd: {detected}. Schakel om toch door te gaan.",
                     "hardwareShort": "Niet voldaan aan hardwarevereisten. Vereist: {required}. Huidig: {current}. Schakel om toch door te gaan.",
                     "os": "Vereist {required}. Gedetecteerd: {detected}. Overschrijf dit op eigen risico.",
+                    "osCard": "Vereist {required}. Gedetecteerd: {detected}.",
                     "osShort": "Besturingssysteem komt niet overeen. Vereist: {required}. Gedetecteerd: {detected}. Schakel om toch in te schakelen.",
                     "version": "Vereist SoAI {required}. Huidig: {current}. Werk SoAI bij om deze plugin te gebruiken."
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "Opdracht om alle plugins te stoppen is verzonden.",
                 "stopSuccess": "Plugin {plugin} gestopt",
                 "updateCheckFailed": "Controleren op updates mislukt",
-                "uploadAccepted": "Pluginupload geaccepteerd",
                 "uploadFailed": "Uploaden van plugin mislukt"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "Plugins",
                 "prompts": "Prompts"
             },
-            "description": "Zoek in modellen, plugins, hardware en meer",
+            "description": "Zoek in modellen, plugins, hardware en meer.",
             "deviceDescriptions": {
                 "cpuCores": "{count} cores",
                 "cpuThreads": "{count} threads",
@@ -7669,7 +7691,8 @@
                 "upToDate": "Up-to-date"
             },
             "confirmations": {
-                "installSystem": "Weet je zeker dat je systeemupdate {version} wilt installeren? Hierdoor wordt de SoAI-applicatie opnieuw gestart."
+                "installSystem": "Weet je zeker dat je systeemupdate {version} wilt installeren? Hierdoor wordt de SoAI-applicatie opnieuw gestart.",
+                "installSystemWithInstaller": "Weet je zeker dat je systeemupdate {version} wilt installeren? Hierdoor wordt het Windows-installatieprogramma uitgevoerd en SoAI opnieuw gestart."
             },
             "description": "Controleer en installeer updates voor de SoAI-applicatie.",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "Wachtwoord bevestigen",
-                    "placeholder": "Voer het wachtwoord opnieuw in."
+                    "placeholder": "Wachtwoord herhalen"
                 },
                 "creating": "Maken...",
                 "description": "Maak je beheerdersaccount. Dit heeft volledige toegang tot deze SoAI-instantie.",

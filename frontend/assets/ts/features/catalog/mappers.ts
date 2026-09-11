@@ -8,7 +8,7 @@ import { isObject, isString } from '@core/typeGuards.ts';
 import type { CompatibilityInfo, Plugin } from '@core/types/catalogPluginTypes.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
-import { getPluginCompatibility, PROVIDER_MODE, resolveProviderMode } from '@features/catalog/pluginNormalization.ts';
+import { getPluginCompatibility, isHardwareCompatibilityAcknowledged, PROVIDER_MODE, resolveProviderMode } from '@features/catalog/pluginNormalization.ts';
 import type { StoredPlugin } from '@features/catalog/types.ts';
 
 const isRuntimeStateUnavailable = (state: string, compatibility: CompatibilityInfo): boolean => {
@@ -37,6 +37,7 @@ const toCatalogPlugin = (plugin: StoredPlugin): Plugin => {
     if (plugin.permanentlyDisabled !== undefined) result.permanentlyDisabled = plugin.permanentlyDisabled;
     if (plugin.isPersistent !== undefined) result.isPersistent = plugin.isPersistent;
     if (plugin.isBuiltin !== undefined) result.isBuiltin = plugin.isBuiltin;
+    if (plugin.userEnabledOnce !== undefined) result.userEnabledOnce = plugin.userEnabledOnce;
     if (plugin.circuitBreakerWasEnabled !== undefined) result.circuitBreakerWasEnabled = plugin.circuitBreakerWasEnabled;
     if (plugin.incompatibility !== undefined) result.incompatibility = plugin.incompatibility;
     if (plugin.capabilities !== undefined) result.capabilities = plugin.capabilities;
@@ -55,7 +56,7 @@ const isProviderPluginOperational = (plugin: PluginRecord | null | undefined): b
     }
     const state = toUpperCase(candidateObject['state']);
     const compatibility = getPluginCompatibility(candidateObject);
-    if (compatibility.permanentlyDisabled || !compatibility.isCompatible) return false;
+    if (compatibility.permanentlyDisabled || (!compatibility.isCompatible && !isHardwareCompatibilityAcknowledged(candidateObject, compatibility))) return false;
     if (isProviderRuntimeStateUnavailable(state, compatibility)) return false;
     return true;
 };

@@ -21,7 +21,7 @@ export const CHAT_MODEL_CONTROL_ACTION_SELECT_MODEL = 'chat:model-control-select
 export const CHAT_MODEL_CONTROL_ACTION_ADD_MODEL = 'chat:model-control-add-model';
 export const CHAT_MODEL_CONTROL_ACTION_REMOVE_MODEL = 'chat:model-control-remove-model';
 
-type ModelControlScope = 'sidebar' | 'header' | 'empty-state' | 'configuration';
+type ModelControlScope = 'sidebar' | 'composer' | 'empty-state' | 'configuration';
 
 type ModelControlMenuOpenState = { scope: ModelControlScope; slotIndex: number } | null;
 

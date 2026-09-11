@@ -150,7 +150,13 @@ class SyncSingleflight[KeyT, ResultT]:
             return copy.deepcopy(result)
         return self._result_copier(result)
 
-    def execute_or_wait(self, key: KeyT, computation: Callable[[], ResultT]) -> ResultT:
+    def execute_or_wait(
+        self,
+        key: KeyT,
+        computation: Callable[[], ResultT],
+        *,
+        timeout: float | None = None,
+    ) -> ResultT:
         is_leader = False
         flight: SyncFlightState[ResultT]
         with self._registry_lock:
@@ -162,11 +168,14 @@ class SyncSingleflight[KeyT, ResultT]:
             else:
                 flight = existing_flight
         if not is_leader:
-            return self._wait_for_flight(flight)
+            return self._wait_for_flight(flight, timeout)
         return self._execute_flight(key, flight, computation)
 
-    def _wait_for_flight(self, flight: SyncFlightState[ResultT]) -> ResultT:
-        flight.event.wait()
+    def _wait_for_flight(
+        self, flight: SyncFlightState[ResultT], timeout: float | None = None
+    ) -> ResultT:
+        if not flight.event.wait(timeout=timeout):
+            raise TimeoutError("Timed out waiting for shared computation.")
         if flight.error is not None:
             raise flight.error
         if not flight.has_result:

@@ -5,6 +5,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.conversations.assistant_terminal_finalization import (
+    TerminalAssistantMessageFinalization,
+)
 from features.assistant_timeline.loading_activity_payloads import (
     build_loading_activity_event_payload,
     sync_runtime_event_sequence_with_database,
@@ -14,7 +17,6 @@ from features.assistant_timeline.publish import (
     publish_chat_stream_event,
 )
 from features.assistant_timeline.terminal_event_publication import (
-    TerminalAssistantMessageFinalization,
     persist_and_publish_terminal_chat_stream_event,
 )
 

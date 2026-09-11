@@ -3,6 +3,7 @@
 
 import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { requireDocument } from '@core/environment/public.ts';
+import { formatUtcLogTimestamp } from '@core/localization/public.ts';
 import type { LogEntry } from '@core/logvalidation/types.ts';
 import { normalizeLogMessage, setLogEntryClipboardText } from '@features/logging/public.ts';
 
@@ -22,7 +23,7 @@ const buildLogEntryNode = (entry: LogEntry, sequence: number): HTMLElement => {
 
     const timestamp = doc.createElement('span');
     timestamp.className = 'log-timestamp';
-    timestamp.textContent = String(entry['timestamp'] ?? '');
+    timestamp.textContent = formatUtcLogTimestamp(String(entry['timestamp'] ?? ''));
 
     const component = doc.createElement('span');
     component.className = 'log-component';

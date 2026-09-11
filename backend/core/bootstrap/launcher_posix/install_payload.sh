@@ -31,6 +31,20 @@ soai_install__managed_root_entries() {
         soai.sh \
         soai.command \
         soai.exe \
+        soai-app.ico \
+        Microsoft.Web.WebView2.Core.dll \
+        Microsoft.Web.WebView2.WinForms.dll \
+        WebView2Loader.dll \
+        msvcp140.dll \
+        msvcp140_1.dll \
+        msvcp140_2.dll \
+        msvcp140_atomic_wait.dll \
+        msvcp140_codecvt_ids.dll \
+        vcruntime140.dll \
+        vcruntime140_1.dll \
+        python \
+        runtime-assets \
+        installer-support \
         install-soai-from-release.sh \
         install-soai-from-release.command \
         install-soai-from-release.bat \

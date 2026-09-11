@@ -22,26 +22,32 @@ const resolveTimeline = (message: ChatMessage): AssistantEventTimelineItem[] => 
 
 const applyToolCallProjections = (state: AssistantTimelineIndexState, message: ChatMessage): void => {
     const projections = message.toolCallProjections;
-    const observedProjectionOnlyCallIds = new Set<string>();
+    const observedProjectionCallIds = new Set<string>();
     if (!isArray(projections) || projections.length === 0) {
-        removeMissingProjectionOnlyToolCalls(state, observedProjectionOnlyCallIds);
+        removeMissingProjectionToolCalls(state, observedProjectionCallIds);
         return;
     }
     for (const projection of projections) {
         const applied = applyToolCallProjectionUpdate(state, projection, resolveAssistantVisibleContentLength(state));
-        if (applied.projectionOnly) {
-            observedProjectionOnlyCallIds.add(applied.callId);
+        if (applied.source === 'projection') {
+            observedProjectionCallIds.add(applied.callId);
         }
     }
-    removeMissingProjectionOnlyToolCalls(state, observedProjectionOnlyCallIds);
+    removeMissingProjectionToolCalls(state, observedProjectionCallIds);
 };
 
-const removeMissingProjectionOnlyToolCalls = (state: AssistantTimelineIndexState, observedCallIds: Set<string>): void => {
-    let changed = false;
-    for (const callId of state.projectionOnlyToolCallIds) {
-        if (observedCallIds.has(callId)) {
+const removeMissingProjectionToolCalls = (state: AssistantTimelineIndexState, observedCallIds: Set<string>): void => {
+    const missingCallIds: string[] = [];
+    for (const [callId, source] of state.toolSourceByCallId) {
+        if (source !== 'projection' || observedCallIds.has(callId)) {
             continue;
         }
+        missingCallIds.push(callId);
+    }
+    if (missingCallIds.length === 0) {
+        return;
+    }
+    for (const callId of missingCallIds) {
         const existing = state.toolActivityByCallId.get(callId);
         if (existing !== undefined) {
             state.toolCallIdBySequenceIndex.delete(existing.sequenceIndex);
@@ -50,14 +56,7 @@ const removeMissingProjectionOnlyToolCalls = (state: AssistantTimelineIndexState
         state.toolRenderSequenceByCallId.delete(callId);
         state.toolRenderAnchorByCallId.delete(callId);
         state.toolLifecycleStatusRankByCallId.delete(callId);
-        changed = true;
-    }
-    if (!changed) {
-        return;
-    }
-    state.projectionOnlyToolCallIds.clear();
-    for (const callId of observedCallIds) {
-        state.projectionOnlyToolCallIds.add(callId);
+        state.toolSourceByCallId.delete(callId);
     }
     state.cachedToolActivity = null;
 };

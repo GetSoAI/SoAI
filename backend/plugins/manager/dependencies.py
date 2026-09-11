@@ -9,9 +9,11 @@ from collections.abc import Callable
 import httpx2
 
 from core.concurrency.bounded_blocking import BoundedBlockingPool
+from core.concurrency.ttl_cache import TTLCache
 from core.config.protocols import ConfigManagerProtocol, ConfigProtocol
 from core.di.validation import require_dependencies
 from core.events.protocols import EventBusProtocol
+from core.files.file_identity import FileIdentity
 from core.formatting.protocols import FormatBytesCallable
 from core.hardware.protocols import (
     DatabaseHardwareProtocol,
@@ -29,6 +31,7 @@ from core.models.protocols import (
 )
 from core.models.protocols_database import ModelDatabasePurgeServiceProtocol
 from core.orchestrator.routing_config import RoutingConfig
+from core.plugins.logo_contract import PluginLogoResult
 from core.plugins.protocols_database import DatabasePluginsProtocol
 from core.plugins.protocols_instance import FilesProtocol
 from core.plugins.protocols_lifecycle import PluginLifecycleProtocol
@@ -146,6 +149,8 @@ class PluginManagerInfrastructureDependencies:
     environment_manager: PluginEnvironmentManagerProtocol
     managed_ipc_worker_factory: ManagedIpcWorkerFactoryProtocol
     ipc_encoding_pool: BoundedBlockingPool
+    logo_preparation_pool: BoundedBlockingPool
+    logo_cache: TTLCache[tuple[str, FileIdentity], PluginLogoResult]
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -164,6 +169,8 @@ class PluginManagerInfrastructureDependencies:
             task_registry=self.task_registry,
             environment_manager=self.environment_manager,
             ipc_encoding_pool=self.ipc_encoding_pool,
+            logo_preparation_pool=self.logo_preparation_pool,
+            logo_cache=self.logo_cache,
             managed_ipc_worker_factory=self.managed_ipc_worker_factory,
         )
 

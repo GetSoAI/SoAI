@@ -168,7 +168,13 @@ async def perform_plugin_deletion(
     plugin_archive_exists = os.path.exists(get_plugin_file_path(self, plugin_name))
     await progress_callback(5, "Checking plugin runtime state before deletion...")
     if (not is_incompatible) and initial_state not in RUNTIME_TERMINATED_STATES:
-        await stop_plugin_if_running(self, plugin_name, reply_channel, task_id=task_id)
+        await stop_plugin_if_running(
+            self,
+            plugin_name,
+            reply_channel,
+            task_id=task_id,
+            exclude_cancellation_ids=frozenset((task_id,)),
+        )
     else:
         await progress_callback(20, "Plugin is already stopped or not runnable.")
         await _wait_for_authoritative_delete_start_state(

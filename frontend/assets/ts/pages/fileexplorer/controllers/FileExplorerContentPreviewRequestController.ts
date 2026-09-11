@@ -4,6 +4,7 @@
 class FileExplorerContentPreviewRequestController {
     #sequence = 0;
     #path: string | null = null;
+    #abort = new AbortController();
 
     normalizePath(path: string, message: string): string {
         const normalized = path.trim();
@@ -13,7 +14,13 @@ class FileExplorerContentPreviewRequestController {
         return normalized;
     }
 
+    signal(): AbortSignal {
+        return this.#abort.signal;
+    }
+
     begin(path: string): number {
+        this.#abort.abort();
+        this.#abort = new AbortController();
         this.#sequence += 1;
         this.#path = path;
         return this.#sequence;
@@ -32,6 +39,7 @@ class FileExplorerContentPreviewRequestController {
     }
 
     clear(): void {
+        this.#abort.abort();
         this.#sequence += 1;
         this.#path = null;
     }

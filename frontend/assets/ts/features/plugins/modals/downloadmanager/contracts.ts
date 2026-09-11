@@ -5,10 +5,11 @@ import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import type { RequestOptions } from '@core/api/types/request.ts';
 import type { OperationProgressData } from '@core/operationprogress/types.ts';
+import type { StreamTaskRuntimeContract } from '@core/realtime/streammanager/actions/contracts.ts';
 import type { StreamActionHandle, StreamHandleTrackerContract } from '@core/routing/pages/pagetypes/public.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { StreamActionHandlers } from '@core/types/streamTypes.ts';
-import type { JsonValue } from '@core/types/jsonValues.ts';
+import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { RequiredClassNames } from '@core/ui/classNames.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
@@ -19,12 +20,17 @@ interface StreamHandlerCallbacks {
     onProgress?(data: JsonValue | null | undefined): void;
 }
 
-interface OperationMeta {
+interface OperationMeta extends JsonObject {
     type: string;
     pluginName: string;
     url: string;
     source: string;
 }
+
+type AcceptedTaskTrackingOptions = NonNullable<Parameters<StreamTaskRuntimeContract['trackAcceptedTask']>[1]> & {
+    handlers: StreamActionHandlers;
+    operation: OperationMeta;
+};
 
 interface ProgressReporter {
     update(key: string, data: OperationProgressData): void;
@@ -70,6 +76,7 @@ interface PluginDownloadExecutionPort {
     streams: StreamHandleTrackerContract;
     cancelDownload(key: string): void;
     createStreamHandlers(key: string, message: string, callbacks: StreamHandlerCallbacks): StreamActionHandlers;
+    trackAcceptedTask(taskId: Parameters<StreamTaskRuntimeContract['trackAcceptedTask']>[0], options: AcceptedTaskTrackingOptions): ReturnType<StreamTaskRuntimeContract['trackAcceptedTask']>;
     startTaskAction(
         url: string,
         options: {

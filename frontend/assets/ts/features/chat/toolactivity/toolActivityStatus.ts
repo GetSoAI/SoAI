@@ -9,6 +9,8 @@ const isToolActivityStatus = (value: JsonValue | undefined): value is ToolActivi
     return isString(value) && (value === 'pending' || value === 'running' || value === 'completed' || value === 'cancelled' || value === 'error');
 };
 
+const isTerminalToolActivityStatus = (status: ToolActivityStatus): boolean => status === 'completed' || status === 'cancelled' || status === 'error';
+
 const resolveToolActivityStatusRank = (status: ToolActivityStatus): number => {
     if (status === 'pending') {
         return 0;
@@ -25,4 +27,4 @@ const resolveToolActivityStatusRank = (status: ToolActivityStatus): number => {
     return 4;
 };
 
-export { isToolActivityStatus, resolveToolActivityStatusRank };
+export { isTerminalToolActivityStatus, isToolActivityStatus, resolveToolActivityStatusRank };

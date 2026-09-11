@@ -39,7 +39,7 @@
 
     :where(.chat-container) .message-streaming-status {
         min-width: 0;
-        flex: 0 1 auto;
+        flex: 1 1 0;
         max-width: min(36rem, calc(78 * var(--ui-viewport-width-unit)));
         font-size: var(--font-size-xs);
         color: var(--text-tertiary);

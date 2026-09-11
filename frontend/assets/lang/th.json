@@ -82,6 +82,9 @@
                 "deleteMessage": "การดำเนินการนี้จะลบ \"{title}\" และการรันตามกำหนดเวลาของงานนี้ บันทึกการสนทนาที่มีอยู่จะยังคงใช้งานได้.",
                 "deleteTitle": "ลบงานอัตโนมัติ?"
             },
+            "errors": {
+                "oneShotStartNotFuture": "งานอัตโนมัติแบบครั้งเดียวต้องเริ่มในอนาคต เลือกเวลาเริ่มที่ช้ากว่านี้"
+            },
             "preferencesCorrupt": {
                 "message": "การตั้งค่าหน้างานอัตโนมัติไม่ถูกต้อง รีเซ็ตการตั้งค่าเพื่อดำเนินการต่อ.",
                 "reset": "รีเซ็ตการตั้งค่างานอัตโนมัติ",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "ต้องได้รับการอนุมัติก่อนเรียกใช้เครื่องมือในการสนทนานี้.",
                 "newConversationInheritLastSettings": "ใช้การตั้งค่าล่าสุดสำหรับแชตใหม่",
                 "newConversationInheritLastSettingsHint": "แชตใหม่จะเริ่มด้วยโมเดล เครื่องมือ และการตั้งค่าความรู้ที่คุณใช้ล่าสุด.",
+                "ctrlEnterSend": "Ctrl + Enter เพื่อส่ง",
+                "ctrlEnterSendHint": "เมื่อเปิดใช้งาน ให้ส่งด้วย Ctrl + Enter และขึ้นบรรทัดใหม่ด้วย Enter เมื่อปิดใช้งาน ให้ส่งด้วย Enter และขึ้นบรรทัดใหม่ด้วย Shift + Enter",
                 "knowledge": {
                     "downloadModel": "ดาวน์โหลดโมเดล",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "กำลังหยุดการตอบ"
                         },
+                        "soai_documentation": {
+                            "1": "กำลังค้นหาเอกสาร SoAI",
+                            "detail": {
+                                "1": "กำลังค้นหาเอกสาร SoAI: {detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "กำลังแทนที่ข้อความ",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "โฟลเดอร์ปัจจุบัน",
+                "filesystemRoot": "รากของระบบไฟล์",
                 "empty": "ไม่พบโฟลเดอร์.",
                 "forbidden": "คุณไม่มีสิทธิ์เข้าถึงโฟลเดอร์นี้.",
                 "loadFailed": "โหลดโฟลเดอร์ไม่สำเร็จ.",
+                "validationFailed": "ไม่สามารถตรวจสอบโฟลเดอร์ที่เลือกได้",
                 "loading": "กำลังโหลดโฟลเดอร์...",
                 "manualAbsolutePathRequired": "ป้อนพาธแบบสัมบูรณ์ (เช่น /path หรือ C:\\path).",
                 "manualPath": "โฟลเดอร์ที่เลือก",
@@ -2474,7 +2487,8 @@
                 "loading": "กำลังโหลด",
                 "resolution": "ความละเอียด",
                 "size": "ขนาด",
-                "zoom": "ซูม"
+                "zoom": "ซูม",
+                "position": "ภาพที่ {current} จาก {total}"
             },
             "sourceInfo": {
                 "conversationPath": "พาธการสนทนา",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "วิดเจ็ต"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "ตรวจไม่พบบางส่วนของการควบคุม GPU ส่วนที่พร้อมใช้งานยังคงใช้ได้",
+                "capabilitiesStale": "กำลังเชื่อมต่อการควบคุม GPU อีกครั้ง อัปเดตล่าสุด: {age}",
+                "capabilitiesRetained": "การควบคุม GPU ไม่พร้อมใช้งาน กำลังแสดงข้อมูลจาก {age}",
+                "slotsStale": "กำลังเชื่อมต่อการตั้งค่า GPU ที่บันทึกไว้อีกครั้ง อัปเดตล่าสุด: {age}",
+                "slotsRetained": "การตั้งค่า GPU ที่บันทึกไว้ไม่พร้อมใช้งาน กำลังแสดงข้อมูลจาก {age}",
+                "capabilitiesUnavailable": "ไม่สามารถใช้การควบคุม GPU ได้",
+                "slotsUnavailable": "ไม่สามารถใช้การตั้งค่า GPU ที่บันทึกไว้ได้"
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "เปิด"
                 },
                 "aria": {
-                    "panel": "ศูนย์การแจ้งเตือน",
-                    "unreadCount": "การแจ้งเตือนที่ยังไม่ได้อ่าน"
+                    "panel": "ศูนย์การแจ้งเตือน"
                 },
                 "messages": {
                     "noNotifications": "ไม่มีการแจ้งเตือน",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "ดำเนินการต่อ",
                 "externalLinkMessage": "เปิดเว็บไซต์ SoAI ในแท็บใหม่ของเบราว์เซอร์หรือไม่?"
             },
-            "description": "เรียนรู้การใช้งาน SoAI",
+            "description": "เรียนรู้การใช้งาน SoAI.",
             "documentationUrl": "เอกสารประกอบ",
             "intro": {
                 "aboutButton": "เกี่ยวกับ SoAI",
@@ -4236,8 +4258,7 @@
             "description": "จัดการโมเดล AI จากปลั๊กอินและผู้ให้บริการต่าง ๆ.",
             "searchPlaceholder": "ค้นหาโมเดล...",
             "empty": {
-                "downloadFirst": "ดาวน์โหลดโมเดลแรกของคุณ",
-                "getStarted": "เริ่มต้นด้วยการดาวน์โหลดโมเดลแรกของคุณ.",
+                "getStarted": "เริ่มต้นด้วยการเพิ่มโมเดลแรกของคุณ",
                 "noMatch": "ไม่มีโมเดลที่ตรงกับตัวกรองของคุณ",
                 "noModels": "ไม่พบโมเดล",
                 "tryAdjusting": "ลองปรับคำค้นหาหรือเกณฑ์ตัวกรอง."
@@ -4702,7 +4723,7 @@
                 "title": "แดชบอร์ด"
             },
             "fileExplorer": {
-                "description": "เรียกดูและจัดการไฟล์ SoAI OS.",
+                "description": "เรียกดูและจัดการไฟล์ SoAI.",
                 "title": "ไฟล์"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "ไม่มี",
                 "reasons": {
                     "broken": "ไฟล์ปลั๊กอินเสียหายหรือมีข้อผิดพลาดทางไวยากรณ์ โปรดลบแล้วดาวน์โหลดใหม่.",
+                    "dependencyMissing": "ไม่พบปลั๊กอินที่จำเป็นต่อการทำงาน: {dependencies}.",
                     "gpu": "ต้องใช้ GPU ({required}) ผู้ผลิตที่ตรวจพบ: {detected} กำหนดทับเพื่อใช้โหมด CPU (อาจใช้งานไม่ได้).",
                     "gpuShort": "ตรวจสอบ GPU ไม่ผ่าน ต้องใช้: {required} ตรวจพบ: {detected} สลับเพื่อดำเนินการต่อ.",
                     "hardwareShort": "ไม่เป็นไปตามข้อกำหนดฮาร์ดแวร์ ต้องใช้: {required} ปัจจุบัน: {current} สลับเพื่อดำเนินการต่อ.",
                     "os": "ต้องใช้ {required} ตรวจพบ: {detected} กำหนดทับโดยยอมรับความเสี่ยงเอง.",
+                    "osCard": "ต้องใช้ {required} ตรวจพบ: {detected}.",
                     "osShort": "OS ไม่ตรงกัน ต้องใช้: {required} ตรวจพบ: {detected} สลับเพื่อเปิดใช้งานต่อไป.",
                     "version": "ต้องใช้ SoAI {required} ปัจจุบัน: {current} อัปเดต SoAI เพื่อใช้ปลั๊กอินนี้."
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "ส่งคำสั่งให้หยุดปลั๊กอินทั้งหมดแล้ว.",
                 "stopSuccess": "หยุดปลั๊กอิน {plugin} สำเร็จ",
                 "updateCheckFailed": "ตรวจหาการอัปเดตไม่สำเร็จ",
-                "uploadAccepted": "ยอมรับการอัปโหลดปลั๊กอินแล้ว",
                 "uploadFailed": "อัปโหลดปลั๊กอินไม่สำเร็จ"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "ปลั๊กอิน",
                 "prompts": "พรอมต์"
             },
-            "description": "ค้นหาในโมเดล ปลั๊กอิน ฮาร์ดแวร์ และอื่นๆ",
+            "description": "ค้นหาในโมเดล ปลั๊กอิน ฮาร์ดแวร์ และอื่นๆ.",
             "deviceDescriptions": {
                 "cpuCores": "{count} คอร์",
                 "cpuThreads": "{count} เธรด",
@@ -7669,7 +7691,8 @@
                 "upToDate": "เป็นเวอร์ชันล่าสุด"
             },
             "confirmations": {
-                "installSystem": "ต้องการติดตั้งอัปเดตระบบ {version} หรือไม่? การดำเนินการนี้จะเริ่มแอปพลิเคชัน SoAI ใหม่."
+                "installSystem": "ต้องการติดตั้งอัปเดตระบบ {version} หรือไม่? การดำเนินการนี้จะเริ่มแอปพลิเคชัน SoAI ใหม่.",
+                "installSystemWithInstaller": "ต้องการติดตั้งอัปเดตระบบ {version} หรือไม่? การดำเนินการนี้จะเรียกใช้โปรแกรมติดตั้ง Windows และเริ่ม SoAI ใหม่."
             },
             "description": "ตรวจสอบและติดตั้งอัปเดตสำหรับแอปพลิเคชัน SoAI.",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "ยืนยันรหัสผ่าน",
-                    "placeholder": "ป้อนรหัสผ่านอีกครั้ง"
+                    "placeholder": "กรอกรหัสผ่านอีกครั้ง"
                 },
                 "creating": "กำลังสร้าง...",
                 "description": "สร้างบัญชีผู้ดูแลระบบของคุณ บัญชีนี้มีสิทธิ์เข้าถึง SoAI อินสแตนซ์นี้อย่างเต็มรูปแบบ.",

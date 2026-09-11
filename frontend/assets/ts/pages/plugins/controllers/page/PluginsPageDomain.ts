@@ -138,6 +138,7 @@ class PluginsPageDomain {
                 this.runtime.presentationController.revealRecentItem();
             },
             onCommit: (context) => {
+                this.runtime.progressController.synchronizeCommittedItems(context.mountedElements);
                 armCollectionCardRevealTargetsForCommit(context.enteringElements);
                 this.#infrastructure.pageElements.enableCheckerboard(context.container, '.plugin-card, .plugins-list-row', context.rangeStart);
                 this.#infrastructure.layout.queueResponsive();

@@ -11,6 +11,7 @@ import type { SortDirection } from '@core/ui/tables/sortableTable.ts';
 
 interface ModelsUiRefs {
     root: HTMLElement;
+    downloadProgress: HTMLElement;
     grid: HTMLElement;
     listBody: HTMLElement;
     viewModeToggleButton: HTMLButtonElement;

@@ -1,13 +1,14 @@
 /* SoAI - Shared UI media controller [frontend/assets/ts/core/ui/modals/contentpreview/mediaController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ImageViewerGestureActions } from '@core/ui/modals/contentpreview/imageViewerPaging.ts';
 import { dom } from '@core/dom/dom.ts';
 import { isEditableKeyboardTarget } from '@core/dom/editableTargets.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { requireContentPreviewMediaHost, requireContentPreviewTextHost, requireContentPreviewTextStatsHost, requireContentPreviewTitleHost } from '@core/ui/modals/contentpreview/dom.ts';
 import { mountContentPreviewImageViewer, type ContentPreviewImageViewerController } from '@core/ui/modals/contentpreview/imageViewer.ts';
-import { createMediaErrorBanner, hideMediaError, wireMediaErrorBannerForIframe, wireMediaErrorBannerForImage, wireMediaErrorBannerForMediaElement } from '@core/ui/modals/contentpreview/mediaErrorBanner.ts';
+import { createMediaErrorBanner, hideMediaError, showMediaError, wireMediaErrorBannerForIframe, wireMediaErrorBannerForMediaElement } from '@core/ui/modals/contentpreview/mediaErrorBanner.ts';
 import { createContentPreviewSourceReferenceStrip } from '@core/ui/modals/contentpreview/sourceReference.ts';
 import { hideContentPreviewTextStats } from '@core/ui/modals/contentpreview/textStats.ts';
 import { createContentPreviewAudioViewer } from '@core/ui/modals/contentpreview/audioViewer.ts';
@@ -19,7 +20,6 @@ type ContentPreviewMediaController = {
     beginImageNavigation: (direction: ContentPreviewImageNavigationDirection, loadingLabel: string) => void;
     completeImageNavigation: (modalRoot: HTMLElement, request: ContentPreviewMediaRequest, direction: ContentPreviewImageNavigationDirection) => Promise<boolean>;
     cancelImageNavigation: () => void;
-    isImageNavigationPending: () => boolean;
     reset: (modalRoot: HTMLElement) => void;
     dispose: () => void;
 };
@@ -85,9 +85,10 @@ const renderDocumentPlaceholder = (host: HTMLElement, request: ContentPreviewDoc
     host.appendChild(container);
 };
 
-const createContentPreviewMediaController = (resources: ResourceTracker): ContentPreviewMediaController => {
+const createContentPreviewMediaController = (resources: ResourceTracker, imageActions: Pick<ImageViewerGestureActions, 'requestNavigation' | 'requestClose'>): ContentPreviewMediaController => {
     let activeCleanup: (() => void) | null = null;
     let activeImageViewer: ContentPreviewImageViewerController | null = null;
+    let activeImageRequest: ContentPreviewMediaRequest | null = null;
 
     const disposeActive = (): void => {
         if (!activeCleanup) {
@@ -97,6 +98,7 @@ const createContentPreviewMediaController = (resources: ResourceTracker): Conten
         activeCleanup = null;
         activeImageViewer = null;
         cleanup();
+        activeImageRequest = null;
     };
 
     const reset = (modalRoot: HTMLElement): void => {
@@ -174,6 +176,8 @@ const createContentPreviewMediaController = (resources: ResourceTracker): Conten
         try {
             if (mediaRequest.type === 'image') {
                 const imageViewer = mountContentPreviewImageViewer({
+                    actions: imageActions,
+                    onImageStatus: (status) => (status === 'failed' ? showMediaError(errorBanner) : hideMediaError(errorBanner)),
                     container: mediaHost,
                     title: mediaRequest.title,
                     sourceUrl,
@@ -182,16 +186,13 @@ const createContentPreviewMediaController = (resources: ResourceTracker): Conten
                     sourceReference: mediaRequest.sourceReference
                 });
                 activeImageViewer = imageViewer;
-                const image = dom.resolve('img.content-preview-image', mediaHost);
-                if (!(image instanceof HTMLImageElement)) {
-                    throw new Error('Content preview image element is missing');
-                }
-                const disposeErrorBanner = wireMediaErrorBannerForImage(image, errorBanner);
+                activeImageRequest = mediaRequest;
                 activeCleanup = (): void => {
-                    disposeErrorBanner();
                     imageViewer.dispose();
                     mediaHost.textContent = '';
-                    releaseMediaSourceUrl(mediaRequest);
+                    if (activeImageRequest) {
+                        releaseMediaSourceUrl(activeImageRequest);
+                    }
                 };
                 return;
             }
@@ -275,18 +276,23 @@ const createContentPreviewMediaController = (resources: ResourceTracker): Conten
                     sourceUrl: coerceNonEmpty(request.sourceUrl, 'sourceUrl'),
                     title: request.title,
                     imageMetadata: request.imageMetadata,
-                    sourceReference: request.sourceReference
+                    sourceReference: request.sourceReference,
+                    imageNavigation: request.imageNavigation ?? null
                 },
                 direction
             );
             if (!committed) {
                 return false;
             }
+            const previousRequest = activeImageRequest;
+            activeImageRequest = request;
+            if (previousRequest && previousRequest.sourceUrl !== request.sourceUrl) {
+                releaseMediaSourceUrl(previousRequest);
+            }
             requireContentPreviewTitleHost(modalRoot).textContent = request.title;
             return true;
         },
         cancelImageNavigation: (): void => activeImageViewer?.cancelNavigation(),
-        isImageNavigationPending: (): boolean => activeImageViewer?.isNavigationPending() === true,
         reset,
         dispose: () => disposeActive()
     };

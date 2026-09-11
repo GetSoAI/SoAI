@@ -51,6 +51,7 @@ from orchestrator.lifecycle.runtime_mutations_config_reload import (
 )
 
 if TYPE_CHECKING:
+    from core.state.plugin_state_generation import PluginStateGeneration
     from orchestrator.lifecycle.runtime_mutation_types import (
         DroppedReloadRuntimeMutation,
         RuntimeMutationFuture,
@@ -151,10 +152,20 @@ class OrchestratorLifecycleRuntimeMutations:
             details={"plugin_name": command.plugin_name},
         )
 
-    async def submit_recovery(self, plugin_name: str, reason: str) -> None:
+    async def submit_recovery(
+        self,
+        plugin_name: str,
+        reason: str,
+        *,
+        expected_generation: PluginStateGeneration | None = None,
+    ) -> None:
         await self._submit_command(
             plugin_name,
-            RecoveryRuntimeMutationCommand(plugin_name=plugin_name, reason=reason),
+            RecoveryRuntimeMutationCommand(
+                plugin_name=plugin_name,
+                reason=reason,
+                expected_generation=expected_generation,
+            ),
         )
 
     async def shutdown(self, timeout_seconds: float) -> None:

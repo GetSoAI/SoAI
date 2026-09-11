@@ -6,38 +6,23 @@ from __future__ import annotations
 import copy
 from typing import TYPE_CHECKING
 
-from core.hardware.protocols import GpuSlotStorageManagerProtocol, NvmlGateProtocol
-from core.logging.protocols import TraceLogger
+from core.hardware.protocols import GpuSlotStorageManagerProtocol
 from hardware.gpu_tuning.service_dependencies import GpuServiceDependencies
-from hardware.gpu_tuning.slot_payload import load_locked_devices_payload
+from hardware.gpu_tuning.slot_payload import observe_locked_slot_inventory
 from hardware.gpu_tuning.slot_state import build_live_state
-from hardware.vendors.nvidia.smi import NvidiaSettingsController
+from hardware.vendors.vendor_types import NVIDIA_VENDOR
 
 if TYPE_CHECKING:
     from core.system.protocols import CommandExecutorProtocol
     from core.types.json import JSONDict
 
-__all__ = (
-    "create_nvidia_settings_controller",
-    "enrich_gpu_capabilities_with_slots",
-)
+__all__ = ("enrich_gpu_capabilities_with_slots",)
 
 
 def _apply_live_state(cap_entry: JSONDict, live_state: JSONDict) -> None:
     cap_entry.update(live_state)
     cap_entry.pop("live", None)
     cap_entry["live"] = live_state
-
-
-def create_nvidia_settings_controller(
-    controller_logger: TraceLogger,
-    nvml_gate: NvmlGateProtocol,
-) -> NvidiaSettingsController | None:
-    if not (nvml_gate.runtime_platform.is_linux and nvml_gate.nvidia_settings_available):
-        return None
-    controller = NvidiaSettingsController(controller_logger=controller_logger)
-    controller_logger.trace("nvidia-settings controller initialized for Linux NVIDIA GPU control")
-    return controller
 
 
 def enrich_gpu_capabilities_with_slots(
@@ -52,16 +37,19 @@ def enrich_gpu_capabilities_with_slots(
     raw_gpus = capabilities.get("gpus")
     if not isinstance(raw_gpus, dict):
         return capabilities
-    with storage.lock:
-        devices_payload = load_locked_devices_payload(
-            executor=executor,
-            storage=storage,
-            detailed_gpu_info=detailed_gpu_info,
-            gpu_services=gpu_services,
-            allow_create=True,
-        )
+    observation = observe_locked_slot_inventory(
+        executor=executor,
+        storage=storage,
+        detailed_gpu_info=detailed_gpu_info,
+        gpu_services=gpu_services,
+        allow_create=True,
+    )
+    nvidia_available = observation.nvidia_inventory_available
+    devices_payload = copy.deepcopy(observation.payload.get("devices"))
     for index, cap_entry in list(raw_gpus.items()):
         if not isinstance(cap_entry, dict):
+            continue
+        if not nvidia_available and cap_entry.get("vendor") == NVIDIA_VENDOR:
             continue
         device_id_raw = cap_entry.get("device_id")
         device_id = str(device_id_raw) if device_id_raw is not None else f"gpu-index-{index}"

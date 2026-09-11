@@ -23,8 +23,10 @@ __all__ = (
 
 if TYPE_CHECKING:
     from core.concurrency.bounded_blocking import BoundedBlockingPool
+    from core.concurrency.ttl_cache import TTLCache
     from core.config.protocols import ConfigManagerProtocol, ConfigProtocol
     from core.events.protocols import EventBusProtocol
+    from core.files.file_identity import FileIdentity
     from core.formatting.protocols import FormatBytesCallable
     from core.hardware.protocols import (
         DatabaseHardwareProtocol,
@@ -41,6 +43,7 @@ if TYPE_CHECKING:
         ParameterManagerProtocol,
     )
     from core.orchestrator.routing_config import RoutingConfig
+    from core.plugins.logo_contract import PluginLogoResult
     from core.plugins.protocols_database import DatabasePluginsProtocol
     from core.plugins.protocols_instance import FilesProtocol
     from core.plugins.protocols_lifecycle import PluginLifecycleProtocol
@@ -109,6 +112,10 @@ class PluginManagerCoreDependenciesProtocol(Protocol):
 
 
 class PluginManagerInfrastructureDependenciesProtocol(Protocol):
+    @property
+    def logo_preparation_pool(self) -> BoundedBlockingPool: ...
+    @property
+    def logo_cache(self) -> TTLCache[tuple[str, FileIdentity], PluginLogoResult]: ...
     @property
     def hw_manager(self) -> HardwareManagerProtocol: ...
     @property

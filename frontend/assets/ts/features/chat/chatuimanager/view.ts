@@ -38,7 +38,7 @@ const renderExecutionControls = (context: ChatUIManagerContext, controlState: Ch
         context.dependencies.updateProperty(actionBtn, 'disabled', !controlState.canSend);
     }
 
-    const iconName = mode === 'stop' ? 'stop' : 'send';
+    const iconName = mode === 'stop' ? 'stop' : 'arrow-up';
     context.dependencies.updateHTML(actionBtn, context.dependencies.getCachedIcon(iconName, CHAT_ICON_SIZE_MD));
 
     const label = mode === 'stop' ? i18n.t('chat.input.stop') : mode === 'steer' ? i18n.t('chat.input.steer') : mode === 'queue' ? i18n.t('chat.input.queue') : i18n.t('chat.input.send');

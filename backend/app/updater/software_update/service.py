@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from app.backup.restore_journal import require_no_pending_restore
 from app.updater.dependencies import SoftwareUpdateServiceDependencies
 from app.updater.software_update.check_logging import log_software_update_check_result
 from app.updater.software_update.install_flow import run_software_update_install_flow
@@ -17,7 +18,7 @@ from app.updater.software_update.status_query import (
 from app.updater.software_update.target_validation import validate_update_target
 from app.updater.software_update.update_lock import guarded_software_update_lock
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import StateError, ValidationError
+from core.errors.exceptions import ConflictError, SecurityError, StateError, ValidationError
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -63,10 +64,11 @@ class SoftwareUpdateService:
             "=" * 60,
         )
         try:
+            require_no_pending_restore(deps.base_path)
             with guarded_software_update_lock(
                 base_path=deps.base_path,
-                platform_name=deps.platform_name,
                 logger=deps.logger,
+                edition=deps.updater.edition,
             ):
                 if not recover_interrupted_update_transactions(deps.base_path, deps.logger):
                     deps.logger.error("Update aborted: interrupted update recovery failed.")
@@ -86,7 +88,7 @@ class SoftwareUpdateService:
                 operation=OPERATION_APPLICATION_UPDATER_RUN_SOFTWARE_UPDATE_LOCK,
             )
             return 1
-        except StateError as exception:
+        except (ConflictError, SecurityError, StateError) as exception:
             log_handled_exception(
                 deps.logger,
                 exception,

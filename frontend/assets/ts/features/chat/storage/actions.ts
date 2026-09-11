@@ -3,8 +3,7 @@
 
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { isNumber, isString } from '@core/typeGuards.ts';
-import { buildPersistedMessageCursorKey, resolvePersistedMessageCursor } from '@features/chat/message/persistedMessageIdentity.ts';
+import { buildPersistedMessageCursorKey, resolveFallbackMessagePersistenceKey, resolvePersistedMessageCursor } from '@features/chat/message/persistedMessageIdentity.ts';
 import { parseBackendConversationList, requirePersistableConversation } from '@features/chat/storage/conversationPayloadParsing.ts';
 import { countPersistedConversationMessages, loadConversationMessages } from '@features/chat/storage/messageWindowLoading.ts';
 import { persistConversationMessagesToBackendAppendTail, persistConversationMessagesToBackendReplace, persistMessageDeleteToBackend, persistMessageTruncateToBackend, persistUserMessageResubmitToBackend, type MessageWriteResult } from '@features/chat/storage/messagePersistence.ts';
@@ -22,15 +21,6 @@ const resolveCanonicalCursorKey = (message: ConversationMessage): string | null 
     return buildPersistedMessageCursorKey(cursor);
 };
 
-const resolveFallbackMessageKey = (message: ConversationMessage): string | null => {
-    const timestamp = message['timestamp'];
-    const role = message['role'];
-    if (!isNumber(timestamp) || !Number.isSafeInteger(timestamp) || timestamp < 0 || !isString(role) || !role.trim()) {
-        return null;
-    }
-    return `${String(timestamp)}:${role.trim().toLowerCase()}`;
-};
-
 const incrementCount = (counts: Map<string, number>, key: string): void => {
     counts.set(key, (counts.get(key) ?? 0) + 1);
 };
@@ -41,7 +31,7 @@ const buildFallbackCounts = (messages: readonly ConversationMessage[]): Map<stri
         if (resolveCanonicalCursorKey(message) !== null) {
             continue;
         }
-        const fallbackKey = resolveFallbackMessageKey(message);
+        const fallbackKey = resolveFallbackMessagePersistenceKey(message);
         if (fallbackKey !== null) {
             incrementCount(counts, fallbackKey);
         }
@@ -80,7 +70,7 @@ const applyMessageWriteResult = async (manager: ChatStorageActionsRuntime, conve
             if (cursorKey !== null) {
                 canonicalByCursor.set(cursorKey, message);
             }
-            const fallbackKey = resolveFallbackMessageKey(message);
+            const fallbackKey = resolveFallbackMessagePersistenceKey(message);
             if (fallbackKey !== null) {
                 canonicalByFallback.set(fallbackKey, message);
                 incrementCount(canonicalFallbackCounts, fallbackKey);
@@ -98,7 +88,7 @@ const applyMessageWriteResult = async (manager: ChatStorageActionsRuntime, conve
                 }
                 return message;
             }
-            const fallbackKey = resolveFallbackMessageKey(message);
+            const fallbackKey = resolveFallbackMessagePersistenceKey(message);
             if (fallbackKey === null || localFallbackCounts.get(fallbackKey) !== 1 || canonicalFallbackCounts.get(fallbackKey) !== 1) {
                 return message;
             }

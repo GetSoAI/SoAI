@@ -103,7 +103,6 @@ interface AutomationMcpCatalog {
 interface AutomationWorkspaceAccess {
     currentWorkspacePath: string;
     browserApi: ReadOnlyFileBrowserApi;
-    allowManualAbsoluteSelectionOutsideRoot: boolean;
 }
 
 interface CreateAutomationPayload {

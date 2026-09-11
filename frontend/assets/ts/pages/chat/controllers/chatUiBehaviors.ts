@@ -22,7 +22,6 @@ const CHAT_REPOSITIONABLE_HEADER_ACTION_SELECTORS: readonly string[] = ['.header
 
 interface UiBehaviorPresentationPort extends PageDomOwnerHost {
     getCachedIcon(name: IconName, options?: IconOptions): TrustedHtml;
-    updateHeaderModelSelectorVisibility(): void;
     updatePageActionsMenuState(): void;
     getViewportWidth(): number;
     isMobileSidebarViewport(): boolean;
@@ -96,7 +95,6 @@ const commitSidebarState = (host: UiBehaviorHost, sidebar: Element, open: boolea
     }
     host.presentation.updatePageActionsMenuState();
     syncChatHeaderActionLayout(host);
-    host.presentation.updateHeaderModelSelectorVisibility();
 };
 
 const applySidebarState = async (host: UiBehaviorHost): Promise<void> => {

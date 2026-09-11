@@ -14,7 +14,7 @@ from core.metrics.protocols import DatabaseMetricsProtocol
 from core.plugins.protocols_database import DatabasePluginsProtocol
 
 if TYPE_CHECKING:
-    from core.runtime.protocols import ServiceLifecycleProtocol
+    from core.lifecycle.protocols import ServiceLifecycleProtocol
 
 __all__ = ("MetricsManagerDependencies",)
 

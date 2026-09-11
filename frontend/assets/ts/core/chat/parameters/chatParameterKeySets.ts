@@ -5,7 +5,7 @@ import type { ChatParameters } from '@core/chat/parameters/types.ts';
 
 type ChatParameterKey = Extract<keyof ChatParameters, string>;
 
-const LOCAL_ONLY_CHAT_PARAMETER_KEYS: ReadonlyArray<ChatParameterKey> = Object.freeze(['widescreenMode', 'richTextEnabled', 'inlineMultimediaPreviewsEnabled', 'hideRealModel', 'autoTitleGeneration', 'hideAutomationRuns', 'hideMessagingConversations', 'showActivities', 'notifyOnCompletion', 'notifyOnError', 'microphoneSoundEffectsEnabled', 'inputActionVoiceEnabled', 'inputActionCallEnabled', 'inputActionFileUploadEnabled', 'inputActionCameraEnabled', 'inputActionPromptsEnabled', 'inputActionTokenCounterEnabled', 'inputActionCharacterMapEnabled', 'inputActionMobileAuxiliaryAction', 'conversationPdfExportEnabled', 'voiceTtsModel', 'voiceSttModel', 'voiceTtsVoice', 'voiceTtsSpeed']);
+const LOCAL_ONLY_CHAT_PARAMETER_KEYS: ReadonlyArray<ChatParameterKey> = Object.freeze(['widescreenMode', 'richTextEnabled', 'inlineMultimediaPreviewsEnabled', 'hideRealModel', 'autoTitleGeneration', 'hideAutomationRuns', 'hideMessagingConversations', 'showActivities', 'notifyOnCompletion', 'notifyOnError', 'microphoneSoundEffectsEnabled', 'inputActionVoiceEnabled', 'inputActionCallEnabled', 'inputActionFileUploadEnabled', 'inputActionCameraEnabled', 'inputActionPromptsEnabled', 'inputActionTokenCounterEnabled', 'inputActionNewConversationEnabled', 'inputActionCharacterMapEnabled', 'inputActionMobileAuxiliaryAction', 'conversationPdfExportEnabled', 'ctrlEnterSendEnabled', 'voiceTtsModel', 'voiceSttModel', 'voiceTtsVoice', 'voiceTtsSpeed']);
 
 const LOCAL_ONLY_CHAT_PARAMETER_KEY_SET: ReadonlySet<string> = new Set<ChatParameterKey>(LOCAL_ONLY_CHAT_PARAMETER_KEYS);
 
@@ -13,7 +13,7 @@ const CHAT_PRESET_PARAMETER_KEYS: ReadonlyArray<ChatParameterKey> = Object.freez
 
 const CHAT_PRESET_PARAMETER_KEY_SET: ReadonlySet<string> = new Set<ChatParameterKey>(CHAT_PRESET_PARAMETER_KEYS);
 
-const EXCLUDED_REQUEST_PARAMETERS: ReadonlyArray<ChatParameterKey> = Object.freeze(['widescreenMode', 'richTextEnabled', 'inlineMultimediaPreviewsEnabled', 'textZoom', 'hideRealModel', 'autoTitleGeneration', 'hideAutomationRuns', 'hideMessagingConversations', 'showActivities', 'notifyOnCompletion', 'notifyOnError', 'microphoneSoundEffectsEnabled', 'inputActionVoiceEnabled', 'inputActionCallEnabled', 'inputActionFileUploadEnabled', 'inputActionCameraEnabled', 'inputActionPromptsEnabled', 'inputActionTokenCounterEnabled', 'inputActionCharacterMapEnabled', 'inputActionMobileAuxiliaryAction', 'conversationPdfExportEnabled', 'toolsEnabled', 'toolApprovalRequired', 'newConversationInheritLastSettings', 'voiceTtsModel', 'voiceSttModel', 'voiceTtsVoice', 'voiceTtsSpeed']);
+const EXCLUDED_REQUEST_PARAMETERS: ReadonlyArray<ChatParameterKey> = Object.freeze(['widescreenMode', 'richTextEnabled', 'inlineMultimediaPreviewsEnabled', 'textZoom', 'hideRealModel', 'autoTitleGeneration', 'hideAutomationRuns', 'hideMessagingConversations', 'showActivities', 'notifyOnCompletion', 'notifyOnError', 'microphoneSoundEffectsEnabled', 'inputActionVoiceEnabled', 'inputActionCallEnabled', 'inputActionFileUploadEnabled', 'inputActionCameraEnabled', 'inputActionPromptsEnabled', 'inputActionTokenCounterEnabled', 'inputActionNewConversationEnabled', 'inputActionCharacterMapEnabled', 'inputActionMobileAuxiliaryAction', 'conversationPdfExportEnabled', 'ctrlEnterSendEnabled', 'toolsEnabled', 'toolApprovalRequired', 'newConversationInheritLastSettings', 'voiceTtsModel', 'voiceSttModel', 'voiceTtsVoice', 'voiceTtsSpeed']);
 
 const EXCLUDED_REQUEST_PARAMETER_KEY_SET: ReadonlySet<string> = new Set<ChatParameterKey>(EXCLUDED_REQUEST_PARAMETERS);
 
@@ -43,7 +43,7 @@ const CHAT_PARAMETER_SEND_FLAG_KEY_SET: ReadonlySet<string> = new Set<ChatParame
 
 const STORED_CHAT_PARAMETER_KEYS: ReadonlyArray<ChatParameterKey> = Object.freeze([...BACKEND_OWNED_CHAT_PARAMETER_KEYS, ...CHAT_PARAMETER_SEND_FLAG_KEYS]);
 
-const CHAT_STORAGE_BOOLEAN_PARAMETER_KEYS: ReadonlyArray<ChatParameterKey> = Object.freeze(['widescreenMode', 'richTextEnabled', 'inlineMultimediaPreviewsEnabled', 'autoTitleGeneration', 'hideAutomationRuns', 'hideMessagingConversations', 'showActivities', 'notifyOnCompletion', 'notifyOnError', 'microphoneSoundEffectsEnabled', 'inputActionVoiceEnabled', 'inputActionCallEnabled', 'inputActionFileUploadEnabled', 'inputActionCameraEnabled', 'inputActionPromptsEnabled', 'inputActionTokenCounterEnabled', 'inputActionCharacterMapEnabled', 'conversationPdfExportEnabled', ...CHAT_PARAMETER_SEND_FLAG_KEYS]);
+const CHAT_STORAGE_BOOLEAN_PARAMETER_KEYS: ReadonlyArray<ChatParameterKey> = Object.freeze(['widescreenMode', 'richTextEnabled', 'inlineMultimediaPreviewsEnabled', 'autoTitleGeneration', 'hideAutomationRuns', 'hideMessagingConversations', 'showActivities', 'notifyOnCompletion', 'notifyOnError', 'microphoneSoundEffectsEnabled', 'inputActionVoiceEnabled', 'inputActionCallEnabled', 'inputActionFileUploadEnabled', 'inputActionCameraEnabled', 'inputActionPromptsEnabled', 'inputActionTokenCounterEnabled', 'inputActionNewConversationEnabled', 'inputActionCharacterMapEnabled', 'conversationPdfExportEnabled', 'ctrlEnterSendEnabled', ...CHAT_PARAMETER_SEND_FLAG_KEYS]);
 
 const CHAT_STORAGE_BOOLEAN_PARAMETER_KEY_SET: ReadonlySet<string> = new Set<ChatParameterKey>(CHAT_STORAGE_BOOLEAN_PARAMETER_KEYS);
 
@@ -90,9 +90,11 @@ const CHAT_PARAMETER_WIRE_KEYS: Readonly<Partial<Record<ChatParameterKey, string
     inputActionCameraEnabled: 'input_action_camera_enabled',
     inputActionPromptsEnabled: 'input_action_prompts_enabled',
     inputActionTokenCounterEnabled: 'input_action_token_counter_enabled',
+    inputActionNewConversationEnabled: 'input_action_new_conversation_enabled',
     inputActionCharacterMapEnabled: 'input_action_character_map_enabled',
     inputActionMobileAuxiliaryAction: 'input_action_mobile_auxiliary_action',
     conversationPdfExportEnabled: 'conversation_pdf_export_enabled',
+    ctrlEnterSendEnabled: 'ctrl_enter_send_enabled',
     toolsEnabled: 'tools_enabled',
     toolApprovalRequired: 'tool_approval_required',
     newConversationInheritLastSettings: 'new_conversation_inherit_last_settings',
@@ -138,9 +140,11 @@ const CHAT_WIRE_TO_PARAMETER_KEYS: Readonly<Record<string, ChatParameterKey>> = 
     'input_action_camera_enabled': 'inputActionCameraEnabled',
     'input_action_prompts_enabled': 'inputActionPromptsEnabled',
     'input_action_token_counter_enabled': 'inputActionTokenCounterEnabled',
+    'input_action_new_conversation_enabled': 'inputActionNewConversationEnabled',
     'input_action_character_map_enabled': 'inputActionCharacterMapEnabled',
     'input_action_mobile_auxiliary_action': 'inputActionMobileAuxiliaryAction',
     'conversation_pdf_export_enabled': 'conversationPdfExportEnabled',
+    'ctrl_enter_send_enabled': 'ctrlEnterSendEnabled',
     'tools_enabled': 'toolsEnabled',
     'tool_approval_required': 'toolApprovalRequired',
     'new_conversation_inherit_last_settings': 'newConversationInheritLastSettings',

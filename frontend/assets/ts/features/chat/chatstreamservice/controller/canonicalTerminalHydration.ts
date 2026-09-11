@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
+import { APIError, isNetworkError, isRequestTimeoutError } from '@core/apiError.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import { hasTerminalThinkingActivityStatusRegression } from '@features/chat/assistanteventtimeline/activityState.ts';
-import { resolveAssistantTimelineOverlays } from '@features/chat/assistanteventtimeline/timelineIndexResolution.ts';
-import { createAssistantTimelineIndexState } from '@features/chat/assistanteventtimeline/timelineIndexState.ts';
-import { updateAssistantTimelineIndexState } from '@features/chat/assistanteventtimeline/timelineIndexUpdate.ts';
+import { hasUnsettledTerminalAssistantActivities } from '@features/chat/assistanteventtimeline/terminalActivitySettlement.ts';
 import { resolveAssistantTimelineProgress } from '@features/chat/chatstreamservice/assistantStreamMessageState.ts';
 import { resolveChatComparisonTurnMeta } from '@features/chat/comparisonTurnMetadata.ts';
 import type { ChatStreamMessageSavedReconciliation } from '@features/chat/chatstreamservice/messageSavedReconciliation.ts';
@@ -90,12 +90,6 @@ const hasCompleteCanonicalComparison = (context: CanonicalTerminalHydrationConte
     return canonicalVariants.size >= comparisonRun.variantCount;
 };
 
-const hasActiveToolProjection = (message: ChatMessage): boolean => {
-    const timelineState = createAssistantTimelineIndexState();
-    updateAssistantTimelineIndexState(timelineState, message);
-    return resolveAssistantTimelineOverlays(message, timelineState).toolActivity.some((tool) => tool.status === 'pending' || tool.status === 'running');
-};
-
 const hasMonotonicCanonicalAssistant = (context: CanonicalTerminalHydrationContext, conversationId: string, assistantMessage: ChatMessage | null): boolean => {
     if (assistantMessage === null) {
         return true;
@@ -132,8 +126,14 @@ const describeCanonicalAssistantProgress = (context: CanonicalTerminalHydrationC
     return `assistant=present,timeline=${String(canonicalProgress.entryCount)}/${String(streamedProgress.entryCount)},revision=${String(canonicalProgress.assistantRevision)}/${String(streamedProgress.assistantRevision)},text=${String(canonicalText.length)}/${String(streamedText.length)},textPrefix=${String(canonicalText.startsWith(streamedText))}`;
 };
 
-const waitForCanonicalRetry = async (context: CanonicalTerminalHydrationContext): Promise<void> => {
-    await context.timers.waitForTimeout(RECONCILIATION_RETRY_INTERVAL_MS);
+const isRetryableCanonicalReadError = (error: Error): boolean => {
+    if (isNetworkError(error) || isRequestTimeoutError(error)) return true;
+    return error instanceof APIError && (error.status === 408 || error.status === 425 || error.status === 429 || error.status >= 500);
+};
+
+const waitForCanonicalRetry = async (context: CanonicalTerminalHydrationContext, error?: Error): Promise<void> => {
+    const retryAfterMs = error instanceof APIError && typeof error.retryAfterSeconds === 'number' && Number.isFinite(error.retryAfterSeconds) ? Math.max(0, error.retryAfterSeconds * 1000) : 0;
+    await context.timers.waitForTimeout(Math.max(RECONCILIATION_RETRY_INTERVAL_MS, retryAfterMs));
 };
 
 const hasSettledCanonicalTools = (context: CanonicalTerminalHydrationContext, conversationId: string, assistantMessage: ChatMessage | null, requireToolSettlement: boolean): boolean => {
@@ -141,7 +141,7 @@ const hasSettledCanonicalTools = (context: CanonicalTerminalHydrationContext, co
         return true;
     }
     const canonicalAssistant = findCanonicalAssistantMessage(context.dependencies.conversations.get(conversationId), assistantMessage);
-    return canonicalAssistant !== null && !hasActiveToolProjection(canonicalAssistant);
+    return canonicalAssistant === null || !hasUnsettledTerminalAssistantActivities(canonicalAssistant);
 };
 
 const loadCanonicalTerminalMessages = async (context: CanonicalTerminalHydrationContext, request: CanonicalTerminalHydrationRequest): Promise<boolean> => {
@@ -150,7 +150,16 @@ const loadCanonicalTerminalMessages = async (context: CanonicalTerminalHydration
     const requireToolSettlement = request.requireToolSettlement;
     let attempt = 0;
     while (true) {
-        await context.dependencies.storageManager.loadConversationMessages(conversationId, { force: true, mergeStreamingAssistants: false });
+        try {
+            await context.dependencies.storageManager.loadConversationMessages(conversationId, { force: true, mergeStreamingAssistants: false });
+        } catch (error) {
+            const runtimeError = ensureError(error);
+            if (!isRetryableCanonicalReadError(runtimeError) || attempt === RECONCILIATION_MAX_ATTEMPTS - 1) throw runtimeError;
+            await waitForCanonicalRetry(context, runtimeError);
+            if (context.disposed || !request.isCurrentTerminalization()) return false;
+            attempt += 1;
+            continue;
+        }
         const conversation = context.dependencies.conversations.get(conversationId);
         for (const message of conversation?.messages ?? []) {
             if (isChatMessage(message) && message.role === 'assistant') {

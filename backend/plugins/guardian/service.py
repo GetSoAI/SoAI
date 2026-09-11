@@ -25,6 +25,7 @@ from core.plugins.protocols_guardian import (
     PluginGuardianProtocol,
 )
 from core.runtime.soai_identifiers import create_system_id
+from core.state.plugin_state_generation import PluginStateGeneration
 from core.state.state_names import (
     ORCH_STATE_ERROR,
     ORCH_STATE_QUARANTINED,
@@ -224,7 +225,12 @@ class PluginGuardian(PluginGuardianProtocol):
             reason,
         )
 
-    async def guarded_recover_plugin(self, plugin_name: str, reason: str) -> None:
+    async def guarded_recover_plugin(
+        self,
+        plugin_name: str,
+        reason: str,
+        expected_generation: PluginStateGeneration,
+    ) -> None:
         logger = get_logger(GUARDIAN_LOGGER_NAME)
         self.state_history.pop(plugin_name, None)
         recovery_timeout = coerce_float_from_json(
@@ -234,7 +240,11 @@ class PluginGuardian(PluginGuardianProtocol):
         )
         try:
             await asyncio.wait_for(
-                self.orchestrator.recovery.handle_plugin_recovery(plugin_name, reason),
+                self.orchestrator.recovery.handle_plugin_recovery(
+                    plugin_name,
+                    reason,
+                    expected_generation=expected_generation,
+                ),
                 timeout=recovery_timeout,
             )
         except TimeoutError:

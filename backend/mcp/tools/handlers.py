@@ -63,6 +63,7 @@ from mcp.tools.rss import tool_rss_read
 from mcp.tools.shell import tool_shell
 from mcp.tools.shell_output_tools import tool_shell_output_read, tool_shell_output_search
 from mcp.tools.shell_write_stdin import tool_shell_write_stdin
+from mcp.tools.soai_documentation import tool_soai_documentation
 from mcp.tools.stop_conversation import tool_stop_conversation
 from mcp.tools.subagent_tools import (
     tool_subagent_cancel,
@@ -226,6 +227,10 @@ def _build_utility_tool_handlers(
         ),
     }
     if include_internal:
+        handlers["soai_documentation"] = build_handler(
+            "soai_documentation",
+            bind_tool(tool_soai_documentation),
+        )
         handlers["stop_conversation"] = build_handler(
             "stop_conversation",
             bind_tool(tool_stop_conversation),

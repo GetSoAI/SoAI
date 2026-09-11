@@ -164,6 +164,7 @@ def assemble_application_bootstrap_state(
         ),
         domain_event_outbox_dispatcher=DomainEventOutboxDispatcher(
             DomainEventOutboxDispatcherDependencies(
+                startup_ready_event=deps.runtime_foundation.runtime_state.startup_ready_event,
                 config=deps.config,
                 database_core=deps.database_services.core,
                 event_bus=deps.event_bus,
@@ -174,6 +175,7 @@ def assemble_application_bootstrap_state(
         ),
         mutation_command_supervisor=MutationCommandSupervisor(
             MutationCommandSupervisorDependencies(
+                startup_ready_event=deps.runtime_foundation.runtime_state.startup_ready_event,
                 database_tasks=deps.database_services.tasks,
                 database_plugins=deps.database_services.plugins,
                 event_bus=deps.event_bus,

@@ -6,7 +6,10 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from app.composition.hardware_gpu_tuning_composition import build_gpu_tuning_service
+from app.composition.hardware_gpu_tuning_composition import (
+    build_gpu_tuning_service,
+    create_nvidia_settings_controller,
+)
 from app.composition.hardware_manager_composition import build_hardware_manager
 from app.composition.hardware_null_services import build_null_hardware_services
 from app.composition.hardware_preset_configuration import (
@@ -114,6 +117,9 @@ def build_hardware_services(
         gpu_info_cache_service=gpu_info_cache_service,
         gpu_vendor_detection_service=gpu_vendor_detection_service,
     )
+    nvidia_settings_controller = create_nvidia_settings_controller(
+        hardware_logger, nvidia_nvml_gate
+    )
     gpu_capabilities_service = GpuCapabilitiesService(
         GpuCapabilitiesServiceDependencies(
             cache_ttl_seconds=hardware_manager_settings.cache_ttl,
@@ -121,6 +127,7 @@ def build_hardware_services(
             gpu_info_cache_service=gpu_info_cache_service,
             gpu_vendor_detection_service=gpu_vendor_detection_service,
             nvidia_nvml_gate=nvidia_nvml_gate,
+            nvidia_settings_controller=nvidia_settings_controller,
             nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
             operation="hardware.get_gpu_capabilities.probe",
             thread_name="soai-gpu-capabilities",
@@ -170,6 +177,7 @@ def build_hardware_services(
         nvidia_nvml_gate=nvidia_nvml_gate,
         nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
         gpu_capabilities_service=gpu_capabilities_service,
+        nvidia_settings_controller=nvidia_settings_controller,
         gpu_operation_lock=gpu_operation_lock,
         activity_registry=activity_registry,
         runtime_flags=runtime_flags,
@@ -190,6 +198,7 @@ def build_hardware_services(
         nvidia_nvml_gate=nvidia_nvml_gate,
         nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
         gpu_capabilities_service=gpu_capabilities_service,
+        nvidia_settings_controller=nvidia_settings_controller,
         hardware_manager_settings=hardware_manager_settings,
         command_executor=command_executor,
         hardware_logger=hardware_logger,

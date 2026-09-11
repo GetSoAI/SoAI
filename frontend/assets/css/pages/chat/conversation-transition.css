@@ -2,7 +2,7 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer pages {
-    :where([data-section='chat'], [data-page-scope='chat']) .chat-main-container--conversation-transition :is(.chat-input-area, .chat-previews-container, .agent-todo-panel-container, .chat-advanced-scroll, .chat-header-model-selector, .chat-header-overflow .page-actions__menu, .header-favorite-btn:not(.chat-mobile-auxiliary-action), .tools-toggle-btn:not(.chat-mobile-auxiliary-action), .plan-bar-toggle-btn) {
+    :where([data-section='chat'], [data-page-scope='chat']) .chat-main-container--conversation-transition :is(.chat-input-area, .chat-previews-container, .agent-todo-panel-container, .chat-advanced-scroll, .chat-header-overflow .page-actions__menu, .header-favorite-btn:not(.chat-mobile-auxiliary-action), .tools-toggle-btn:not(.chat-mobile-auxiliary-action), .plan-bar-toggle-btn) {
         visibility: hidden;
         pointer-events: none;
     }

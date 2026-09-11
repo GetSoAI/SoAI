@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
 from orchestrator.lifecycle.config_reload_result import (
     PluginConfigReloadOutcome,
@@ -86,7 +86,7 @@ async def run_runtime_mutation_worker(
                 entries_lock=entries_lock,
             )
             raise
-        except RECOVERABLE_EXCEPTIONS as exception:
+        except HANDLED_RUNTIME_EXCEPTIONS as exception:
             coerced_exception = coerce_to_soai_error(
                 exception,
                 operation="orchestrator.lifecycle.runtime_mutations.run_worker",
@@ -189,7 +189,11 @@ async def execute_runtime_mutation_command(
     if isinstance(command, ClearQuarantineRuntimeMutationCommand):
         return await deps.clear_quarantine_handler(command.command)
     if isinstance(command, RecoveryRuntimeMutationCommand):
-        await deps.recovery_handler(command.plugin_name, command.reason)
+        await deps.recovery_handler(
+            command.plugin_name,
+            command.reason,
+            command.expected_generation,
+        )
         return None
     raise StateError(
         "Unsupported runtime mutation command.",

@@ -55,6 +55,7 @@ OPERATION = "mutation_command_supervisor.worker"
 
 @dataclass(frozen=True, slots=True)
 class MutationCommandSupervisorDependencies:
+    startup_ready_event: asyncio.Event
     database_tasks: DatabaseTasksProtocol
     database_plugins: DatabasePluginsProtocol
     event_bus: EventBusProtocol
@@ -67,6 +68,7 @@ class MutationCommandSupervisorDependencies:
     def __post_init__(self) -> None:
         require_dependencies(
             owner="MutationCommandSupervisorDependencies",
+            startup_ready_event=self.startup_ready_event,
             database_tasks=self.database_tasks,
             database_plugins=self.database_plugins,
             event_bus=self.event_bus,
@@ -235,6 +237,7 @@ class MutationCommandSupervisor:
         return started
 
     async def _run(self) -> None:
+        await self._deps.startup_ready_event.wait()
         while not self._shutdown_event.is_set():
             await self.dispatch_available()
             try:

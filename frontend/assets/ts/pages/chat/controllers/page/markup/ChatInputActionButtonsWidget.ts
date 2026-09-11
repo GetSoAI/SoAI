@@ -14,12 +14,13 @@ type ChatInputActionDescriptor = Readonly<{
 const resolveChatInputActionDescriptors = (context: ChatPageMarkupContext): readonly ChatInputActionDescriptor[] => {
     const strings = context.strings;
     return [
-        { actionId: CHAT_ACTIONS.TOGGLE_RECORDING, buttonClassName: 'microphone-btn', label: strings.startRecording, stopLabel: strings.stopRecording },
-        { actionId: CHAT_ACTIONS.TOGGLE_CALL, buttonClassName: 'call-btn', label: strings.voiceCallStart },
-        { actionId: CHAT_ACTIONS.OPEN_CAMERA, buttonClassName: 'camera-btn', label: strings.openCamera },
-        { actionId: CHAT_ACTIONS.OPEN_ATTACH_MODAL, buttonClassName: 'attach-add-btn', label: strings.attachAdd },
+        { actionId: CHAT_ACTIONS.NEW_CONVERSATION, buttonClassName: 'new-conversation-input-btn', label: strings.newConversation },
         { actionId: CHAT_ACTIONS.OPEN_CHARACTER_MAP, buttonClassName: CHAT_CHARACTER_MAP_BUTTON_CLASS, label: strings.openCharacterMap },
-        { actionId: CHAT_ACTIONS.GOTO_PROMPTS, buttonClassName: 'goto-prompts-btn', label: strings.gotoPrompts }
+        { actionId: CHAT_ACTIONS.GOTO_PROMPTS, buttonClassName: 'goto-prompts-btn', label: strings.gotoPrompts },
+        { actionId: CHAT_ACTIONS.TOGGLE_CALL, buttonClassName: 'call-btn', label: strings.voiceCallStart },
+        { actionId: CHAT_ACTIONS.TOGGLE_RECORDING, buttonClassName: 'microphone-btn', label: strings.startRecording, stopLabel: strings.stopRecording },
+        { actionId: CHAT_ACTIONS.OPEN_CAMERA, buttonClassName: 'camera-btn', label: strings.openCamera },
+        { actionId: CHAT_ACTIONS.OPEN_ATTACH_MODAL, buttonClassName: 'attach-add-btn', label: strings.attachAdd }
     ];
 };
 
@@ -50,10 +51,21 @@ const renderChatInputActionMenuButtonHtml = (action: ChatInputActionDescriptor):
     return `<button type="button" class="${action.buttonClassName} ui-button chat-input-action chat-header-action chat-composer-overflow-action" data-action="${action.actionId}"${renderMicrophoneLabelDataAttributes(action)}${renderMenuKeepOpenAttribute(action)} ${renderLabelAttributes(action.label)}>${renderActionIconSlots(action)}<span class="chat-input-action-label chat-action-label">${securityApi.escapeHtml(action.label)}</span></button>`;
 };
 
-const renderChatInputActionButtonsInline = (context: ChatPageMarkupContext): string => {
-    return resolveChatInputActionDescriptors(context)
-        .map((action) => renderChatInputActionInlineButtonHtml(action))
-        .join('');
+const renderChatInputActionButtonsInline = (context: ChatPageMarkupContext): { leading: string; auxiliary: string } => {
+    const strings = context.strings;
+    const tokenCounterButton = `<button type="button" class="chat-token-counter-btn chat-token-counter-inline ui-icon-button u-hidden" data-action="chat:cycle-token-counter" ${renderLabelAttributes(strings.tokenCounterTooltip)} aria-pressed="false"><span class="chat-token-counter-label">${strings.tokenCounterInactive}</span></button>`;
+    let leading = '';
+    const auxiliary: string[] = [];
+    for (const action of resolveChatInputActionDescriptors(context)) {
+        const button = renderChatInputActionInlineButtonHtml(action);
+        if (action.actionId === CHAT_ACTIONS.NEW_CONVERSATION) {
+            leading = button;
+        } else {
+            auxiliary.push(button);
+        }
+    }
+    auxiliary.push(tokenCounterButton);
+    return { leading, auxiliary: auxiliary.join('') };
 };
 
 const renderChatHeaderOverflowComposerButtons = (context: ChatPageMarkupContext): string => {

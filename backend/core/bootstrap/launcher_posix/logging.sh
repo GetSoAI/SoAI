@@ -16,7 +16,7 @@ soai_managed_runtime__die() {
 soai_launcher__info() {
     printf "%s%s%s %s-%s %s[SoAI/Linux_Launcher]%s %s-%s %sINFO%s %s-%s %s\n" \
         "$SOAI_LAUNCHER_COLOR_SEP" \
-        "$(date '+%Y-%m-%d %H:%M:%S')" \
+        "$(date -u '+%Y-%m-%d %H:%M:%S UTC')" \
         "$SOAI_LAUNCHER_COLOR_RESET" \
         "$SOAI_LAUNCHER_COLOR_SEP" \
         "$SOAI_LAUNCHER_COLOR_RESET" \
@@ -34,7 +34,7 @@ soai_launcher__info() {
 soai_launcher__warn() {
     printf "%s%s%s %s-%s %s[SoAI/Linux_Launcher]%s %s-%s %sWARN%s %s-%s %s\n" \
         "$SOAI_LAUNCHER_COLOR_SEP" \
-        "$(date '+%Y-%m-%d %H:%M:%S')" \
+        "$(date -u '+%Y-%m-%d %H:%M:%S UTC')" \
         "$SOAI_LAUNCHER_COLOR_RESET" \
         "$SOAI_LAUNCHER_COLOR_SEP" \
         "$SOAI_LAUNCHER_COLOR_RESET" \

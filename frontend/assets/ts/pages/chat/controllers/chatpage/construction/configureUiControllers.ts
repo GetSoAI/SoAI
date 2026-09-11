@@ -52,7 +52,6 @@ const createUiBehaviorsHost = (page: ChatUiRuntimeDependencies) => {
         presentation: {
             pageDom: page.pageDom,
             getCachedIcon: (name, iconOptions) => page.presentation.cachedIcon(name, iconOptions),
-            updateHeaderModelSelectorVisibility: () => page.presentation.updateHeaderModelSelectorVisibility(),
             updatePageActionsMenuState: () => page.updatePageActionsMenuState(),
             getViewportWidth: () => measureLayoutViewport(page.dom.getDocument()).width,
             isMobileSidebarViewport: () => measureLayoutViewport(page.dom.getDocument()).width <= CHAT_SIDEBAR_OVERLAY_BREAKPOINT_PX

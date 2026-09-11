@@ -200,6 +200,11 @@ const initializeMessageManager = (page: ChatControllerInitializationContext): vo
                 return attachmentManager.getDraftRevision();
             },
             getWorkerRenderEpoch: () => page.sessions.taskScope.concurrency.getWorkerRenderEpoch(),
+            invalidateActiveStreamDomCache: (conversationId, messageDomId) => {
+                if (page.runtime.turnRuntime.hasStreaming()) {
+                    page.runtime.turnRuntime.requireStreaming().invalidateMessageDomCache(conversationId, messageDomId);
+                }
+            },
             updateConversationRenderCache: (conversationId, messageDomId, signature) => updateConversationRenderCacheEntry({ cache: page.state.viewState.conversationRenderCache, conversationId, messageDomId, signature }),
             revealActivityElement: (element) => {
                 page.runtime.composerSurface.requireUi().revealElementFromUserAction(element, { behavior: 'smooth', block: 'center', inline: 'nearest' });

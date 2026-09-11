@@ -94,7 +94,7 @@ class UpdatesPageWorkflowController {
     }
 
     async #checkForUpdates(): Promise<void> {
-        if (this.#checkingUpdates) {
+        if (this.#checkingUpdates || this.#systemController?.installationInProgress) {
             return;
         }
         const checkButton = this.#resolveCheckButton();
@@ -140,7 +140,7 @@ class UpdatesPageWorkflowController {
                 sanitizeAttribute: (value) => this.#dependencies.pageContext.sanitizer.attribute(value),
                 sanitizeUrl: (value, options) => this.#dependencies.pageContext.sanitizer.url(value, options),
                 getIconSync: (name, options) => this.#dependencies.services.getIconSync(name, options),
-                showOverlay: (value) => this.#dependencies.restartOverlay.show(value),
+                showOverlay: (value, options) => this.#dependencies.restartOverlay.show(value, options),
                 resolveInstallButton: () => this.#resolveInstallButton(),
                 wait: (milliseconds) => this.#wait(milliseconds)
             },

@@ -13,12 +13,32 @@ interface SoftwareUpdateCheckResponse {
     releaseUrl: string | null;
     publishedAt: string | null;
     releaseNotes: string | null;
+    platformId: string | null;
+    deliveryType: SoftwareUpdateDeliveryType;
+    installSupported: boolean;
 }
 
 interface SoftwareUpdateAcceptedResponse {
     status: 'accepted';
     message: string;
+    platformId: string;
+    deliveryType: Exclude<SoftwareUpdateDeliveryType, null>;
 }
+
+type SoftwareUpdateDeliveryType = 'complete_archive' | 'installer' | null;
+
+const readSoftwareUpdateDeliveryType = <T>(value: T, label: string): SoftwareUpdateDeliveryType => {
+    if (value === null) {
+        return null;
+    }
+    if (value === 'complete_archive') {
+        return 'complete_archive';
+    }
+    if (value === 'installer') {
+        return 'installer';
+    }
+    throw new TypeError(`${label} must be complete_archive, installer, or null.`);
+};
 
 const decodeSoftwareUpdateCheckResponse = (value: ApiResponsePayload): SoftwareUpdateCheckResponse => {
     const record = requireRecord(value, 'Software update check response');
@@ -29,7 +49,10 @@ const decodeSoftwareUpdateCheckResponse = (value: ApiResponsePayload): SoftwareU
         message: readNullableTrimmedStringValue(record['message'], 'Software update check response.message'),
         releaseUrl: readNullableTrimmedStringValue(record['release_url'], 'Software update check response.release_url'),
         publishedAt: readNullableTrimmedStringValue(record['published_at'], 'Software update check response.published_at'),
-        releaseNotes: readNullableTrimmedStringValue(record['release_notes'], 'Software update check response.release_notes')
+        releaseNotes: readNullableTrimmedStringValue(record['release_notes'], 'Software update check response.release_notes'),
+        platformId: readNullableTrimmedStringValue(record['platform_id'], 'Software update check response.platform_id'),
+        deliveryType: readSoftwareUpdateDeliveryType(record['delivery_type'], 'Software update check response.delivery_type'),
+        installSupported: readRequiredBooleanValue(record['install_supported'], 'Software update check response.install_supported')
     };
 };
 
@@ -39,11 +62,17 @@ const decodeSoftwareUpdateAcceptedResponse = (value: ApiResponsePayload): Softwa
     if (status !== 'accepted') {
         throw new TypeError('Software update response.status must be accepted.');
     }
+    const deliveryType = readSoftwareUpdateDeliveryType(record['delivery_type'], 'Software update response.delivery_type');
+    if (deliveryType === null) {
+        throw new TypeError('Software update response.delivery_type cannot be null.');
+    }
     return {
         status,
-        message: readRequiredTrimmedString(record, 'message', 'Software update response.message')
+        message: readRequiredTrimmedString(record, 'message', 'Software update response.message'),
+        platformId: readRequiredTrimmedString(record, 'platform_id', 'Software update response.platform_id'),
+        deliveryType
     };
 };
 
 export { decodeSoftwareUpdateAcceptedResponse, decodeSoftwareUpdateCheckResponse };
-export type { SoftwareUpdateAcceptedResponse, SoftwareUpdateCheckResponse };
+export type { SoftwareUpdateAcceptedResponse, SoftwareUpdateCheckResponse, SoftwareUpdateDeliveryType };

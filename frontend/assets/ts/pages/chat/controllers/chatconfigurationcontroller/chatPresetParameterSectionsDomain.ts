@@ -12,8 +12,8 @@ type ParameterPresetSectionId = 'general' | 'appearance' | 'completion' | 'voice
 type ChatParameterKey = Extract<keyof ChatParameters, string>;
 
 const PARAMETER_SECTION_KEYS: Readonly<Record<ParameterPresetSectionId, ReadonlyArray<ChatParameterKey>>> = Object.freeze({
-    general: Object.freeze(['hideRealModel', 'conversationPdfExportEnabled', 'newConversationInheritLastSettings']),
-    appearance: Object.freeze(['textZoom', 'widescreenMode', 'richTextEnabled', 'inlineMultimediaPreviewsEnabled', 'autoTitleGeneration', 'showActivities', 'hideAutomationRuns', 'hideMessagingConversations', 'notifyOnCompletion', 'notifyOnError', 'microphoneSoundEffectsEnabled', 'inputActionVoiceEnabled', 'inputActionCallEnabled', 'inputActionFileUploadEnabled', 'inputActionCameraEnabled', 'inputActionPromptsEnabled', 'inputActionTokenCounterEnabled', 'inputActionCharacterMapEnabled', 'inputActionMobileAuxiliaryAction']),
+    general: Object.freeze(['hideRealModel', 'conversationPdfExportEnabled', 'newConversationInheritLastSettings', 'ctrlEnterSendEnabled']),
+    appearance: Object.freeze(['textZoom', 'widescreenMode', 'richTextEnabled', 'inlineMultimediaPreviewsEnabled', 'autoTitleGeneration', 'showActivities', 'hideAutomationRuns', 'hideMessagingConversations', 'notifyOnCompletion', 'notifyOnError', 'microphoneSoundEffectsEnabled', 'inputActionVoiceEnabled', 'inputActionCallEnabled', 'inputActionFileUploadEnabled', 'inputActionCameraEnabled', 'inputActionPromptsEnabled', 'inputActionTokenCounterEnabled', 'inputActionNewConversationEnabled', 'inputActionCharacterMapEnabled', 'inputActionMobileAuxiliaryAction']),
     completion: Object.freeze(['contextWindowTokens', 'reasoningEffort', 'reasoningEffortSendEnabled', 'maxCompletionTokens', 'maxCompletionTokensSendEnabled', 'agentMaxIterations', 'temperature', 'topP', 'topPSendEnabled', 'frequencyPenalty', 'frequencyPenaltySendEnabled', 'presencePenalty', 'presencePenaltySendEnabled', 'stop', 'stopSendEnabled', 'topLogprobs', 'logprobsSendEnabled', 'serviceTier']),
     voice: Object.freeze(['voiceTtsModel', 'voiceSttModel'])
 });

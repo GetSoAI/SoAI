@@ -47,9 +47,11 @@ interface ChatUiParameters extends ChatRequestParameters {
     inputActionCameraEnabled: boolean;
     inputActionPromptsEnabled: boolean;
     inputActionTokenCounterEnabled: boolean;
+    inputActionNewConversationEnabled: boolean;
     inputActionCharacterMapEnabled: boolean;
     inputActionMobileAuxiliaryAction: ChatMobileAuxiliaryAction;
     conversationPdfExportEnabled: boolean;
+    ctrlEnterSendEnabled: boolean;
     toolsEnabled: boolean;
     toolApprovalRequired: boolean;
     newConversationInheritLastSettings: boolean;

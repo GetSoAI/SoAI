@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from app.updater.internal_protocols import UpdaterApiClientProtocol
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import SoAIError
@@ -11,7 +13,13 @@ from core.logging.protocols import LoggerProtocol
 from core.system_api.route_paths import SOAI_TASKS_PREFIX
 from core.validation.runtime import is_success_payload
 
-__all__ = ("log_software_update_task",)
+if TYPE_CHECKING:
+    from app.updater.dependencies import SoftwareUpdateServiceDependencies
+
+__all__ = (
+    "log_software_update_task",
+    "log_software_update_task_for_dependencies",
+)
 
 OPERATION = "application_updater.software_update.log_task"
 TASK_LOGGING_EXCEPTIONS = RECOVERABLE_EXCEPTIONS + (SoAIError,)
@@ -22,6 +30,7 @@ def log_software_update_task(
     logger: LoggerProtocol,
     api_client: UpdaterApiClientProtocol,
     api_timeout: float,
+    task_id: str,
     from_version: str,
     to_version: str,
     status: str,
@@ -40,6 +49,7 @@ def log_software_update_task(
             timeout=api_timeout,
             headers=request_headers,
             body={
+                "task_id": task_id,
                 "from_version": from_version,
                 "to_version": to_version,
                 "status": status,
@@ -68,3 +78,23 @@ def log_software_update_task(
             level="debug",
         )
     return False
+
+
+def log_software_update_task_for_dependencies(
+    deps: SoftwareUpdateServiceDependencies,
+    *,
+    task_id: str,
+    to_version: str,
+    status: str,
+    message: str | None = None,
+) -> bool:
+    return log_software_update_task(
+        logger=deps.logger,
+        api_client=deps.api_client,
+        api_timeout=deps.api_timeout,
+        task_id=task_id,
+        from_version=deps.local_version or "unknown",
+        to_version=to_version,
+        status=status,
+        message=message,
+    )

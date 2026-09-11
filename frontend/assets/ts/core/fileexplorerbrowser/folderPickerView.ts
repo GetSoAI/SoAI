@@ -16,9 +16,11 @@ import { getIconSync, type IconOptions } from '@core/ui/icons/iconservice/public
 
 interface FolderPickerLabels {
     currentFolder: string;
+    filesystemRoot: string;
     manualPath: string;
     manualAbsolutePathRequired: string;
     loadFailed: string;
+    validationFailed: string;
     search: string;
     searchPlaceholder: string;
     loading: string;
@@ -98,11 +100,12 @@ const renderFolderPickerResetButton = (labels: FolderPickerLabels, modalId: stri
     return renderModalFooterActionButton({ id: modalUiId(modalId, 'reset'), text: labels.reset });
 };
 
-const renderFolderPickerModalMarkup = (options: { modalId: string; labels: FolderPickerLabels; nameColumnLabel: string; allowManualPathEntry?: boolean }): { body: TrustedHtml; footerLeft: TrustedHtml; footerRight: TrustedHtml } => {
+const renderFolderPickerModalMarkup = (options: { modalId: string; labels: FolderPickerLabels; nameColumnLabel: string; allowManualPathEntry?: boolean; hostMode: boolean }): { body: TrustedHtml; footerLeft: TrustedHtml; footerRight: TrustedHtml } => {
     const manualInputMarkup = renderFolderPickerManualInput(options.modalId, options.labels, options.allowManualPathEntry === true);
     const resetButtonMarkup = renderFolderPickerResetButton(options.labels, options.modalId);
     const footerLeft = uiHtml`${renderModalFooterCloseButton({ modalId: options.modalId, id: modalUiId(options.modalId, 'cancel'), text: options.labels.cancel })}${resetButtonMarkup}`;
     const footerRight = renderModalFooterActionButton({ id: modalUiId(options.modalId, 'confirm'), text: options.labels.chooseCurrent, variant: 'accent' });
+    const rootSelector = options.hostMode ? uiHtml`<div class="form-col-side"><label for="${uiAttr(modalUiId(options.modalId, 'root'))}">${options.labels.filesystemRoot}</label><select id="${uiAttr(modalUiId(options.modalId, 'root'))}" class="form-input"></select></div>` : EMPTY_UI_HTML;
 
     const body = uiHtml`
         <div class="folder-picker-panel">
@@ -112,6 +115,7 @@ const renderFolderPickerModalMarkup = (options: { modalId: string; labels: Folde
                         <label for="${uiAttr(modalUiId(options.modalId, 'current'))}">${options.labels.currentFolder}</label>
                         <input id="${uiAttr(modalUiId(options.modalId, 'current'))}" class="form-input manual-models-path folder-picker-current-path" type="text" value="" readonly spellcheck="false" autocapitalize="off" autocomplete="off">
                     </div>
+                    ${rootSelector}
                 </div>
             </div>
             ${manualInputMarkup}

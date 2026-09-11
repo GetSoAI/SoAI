@@ -17,8 +17,8 @@ from core.events.types_files import (
 )
 from core.events.types_tasks import CancelTaskCommand
 from core.filesystem.async_queries import async_isdir
+from core.lifecycle.protocols import Shutdownable
 from core.logging.trace import get_logger
-from core.runtime.protocols import Shutdownable
 from core.tasks.cancellation_commands import cancel_via_registry
 from files.dependencies import FileManagerDependencies
 from files.handlers.content import handle_file_content

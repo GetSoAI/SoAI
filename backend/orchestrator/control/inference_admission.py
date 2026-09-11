@@ -140,13 +140,14 @@ async def accept_inference_request(
             exception,
             operation=OPERATION_ACCEPT_INFERENCE_REQUEST,
         )
-        log_exception(
-            logger,
-            coerced,
-            message="Failed to accept inference request.",
-            operation=OPERATION_ACCEPT_INFERENCE_REQUEST,
-            details={"tracking_id": context.tracking_id},
-        )
+        if persisted or not isinstance(coerced, ValidationError):
+            log_exception(
+                logger,
+                coerced,
+                message="Failed to accept inference request.",
+                operation=OPERATION_ACCEPT_INFERENCE_REQUEST,
+                details={"tracking_id": context.tracking_id},
+            )
         if not persisted:
             await control.queue.execution_reservations.release(context.tracking_id)
         raise

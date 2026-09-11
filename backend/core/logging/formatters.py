@@ -26,6 +26,7 @@ from core.logging.soai_error_log_formatting import (
     extract_soai_error_payload,
 )
 from core.serialization.json import serialize_json_compact_stable_strict
+from core.state.state_log_formatting import format_state_tokens_for_log
 from core.timing.formatting import timestamp_to_utc_format, timestamp_to_utc_iso_no_z
 
 if TYPE_CHECKING:
@@ -143,6 +144,8 @@ class UnifiedFormatter(logging.Formatter):
                 parts = first_line.split(" - ", 3)
                 timestamp, component, level_name, message = (parts + [""] * 4)[:4]
                 message = f"{message}{suffix}" if suffix else message
+                message = format_state_tokens_for_log(message)
+                remaining_lines = [format_state_tokens_for_log(line) for line in remaining_lines]
                 level_color = self._lc.get(record.levelname, self._sc["LEVEL_DEFAULT"])
                 separator = f"{self._sc['SEPARATOR']} - {self._rc}"
                 colored_first_line = separator.join(

@@ -3,7 +3,11 @@
 
 from __future__ import annotations
 
-from core.validation.strict_numbers import coerce_optional_non_negative_int_strict
+from core.conversations.assistant_terminal_finalization import (
+    TerminalAssistantMessageFinalization,
+)
+from core.openai.usage.serialization import is_aggregate_usage_source
+from core.types.json import JSONDict
 from features.assistant_timeline.activity_status_sets import (
     TIMELINE_ACTIVITY_STATUS_COMPLETED,
     TIMELINE_ACTIVITY_STATUS_RUNNING,
@@ -28,7 +32,6 @@ from features.assistant_timeline.stream_terminal_lifecycle import (
     complete_chat_stream_terminal_finalization,
 )
 from features.assistant_timeline.terminal_event_publication import (
-    TerminalAssistantMessageFinalization,
     persist_and_publish_terminal_chat_stream_event,
 )
 from features.assistant_timeline.tool_call_terminal_event_synthesis import (
@@ -37,6 +40,7 @@ from features.assistant_timeline.tool_call_terminal_event_synthesis import (
 from features.assistant_timeline.tool_events_flushing import flush_pending_tool_events
 from features.assistant_timeline.usage_preview_tracking import (
     finalize_runtime_usage_preview,
+    freeze_runtime_usage_preview,
 )
 from features.assistant_timeline.wait_for_user_activity import (
     complete_wait_for_user_activity_if_running,
@@ -45,35 +49,28 @@ from features.assistant_timeline.wait_for_user_activity import (
 __all__ = ("finalize_visible_chat_stream_success",)
 
 
-def _resolve_terminal_context_completion_tokens(
+def _finalize_terminal_usage_preview(
     *,
     context: ChatStreamFinalizeContext,
     snapshot: ChatStreamSuccessSnapshot,
-) -> int:
-    if snapshot.context_usage is not None:
-        return snapshot.context_usage.completion_tokens
-    usage_preview = context.runtime.usage_preview_snapshot
-    if usage_preview is None:
-        return 0
-    context_completion_tokens = coerce_optional_non_negative_int_strict(
-        usage_preview.get("context_completion_tokens"),
+) -> JSONDict | None:
+    usage = snapshot.usage
+    if usage is None:
+        return freeze_runtime_usage_preview(runtime=context.runtime)
+    context_usage = snapshot.context_usage
+    if context_usage is not None:
+        context_completion_tokens = context_usage.completion_tokens
+    elif not is_aggregate_usage_source(usage.usage_source):
+        context_completion_tokens = usage.completion_tokens
+    else:
+        return freeze_runtime_usage_preview(runtime=context.runtime)
+    return finalize_runtime_usage_preview(
+        runtime=context.runtime,
+        usage_prompt_tokens=usage.prompt_tokens,
+        completion_tokens=usage.completion_tokens,
+        context_completion_tokens=context_completion_tokens,
+        usage_source=usage.usage_source,
     )
-    return context_completion_tokens or 0
-
-
-def _resolve_terminal_context_usage_source(
-    *,
-    context: ChatStreamFinalizeContext,
-    snapshot: ChatStreamSuccessSnapshot,
-) -> str:
-    if snapshot.context_usage is not None:
-        return snapshot.context_usage.usage_source
-    usage_preview = context.runtime.usage_preview_snapshot
-    if usage_preview is not None:
-        source = usage_preview.get("source")
-        if isinstance(source, str) and source.strip():
-            return source.strip()
-    return "estimate"
 
 
 async def finalize_visible_chat_stream_success(
@@ -144,22 +141,9 @@ async def finalize_visible_chat_stream_success(
         message=snapshot.tool_call_terminal_message,
         preserve_active_owned_tool_calls=True,
     )
-    usage_preview = (
-        finalize_runtime_usage_preview(
-            runtime=context.runtime,
-            usage_prompt_tokens=snapshot.usage.prompt_tokens,
-            completion_tokens=snapshot.usage.completion_tokens,
-            context_completion_tokens=_resolve_terminal_context_completion_tokens(
-                context=context,
-                snapshot=snapshot,
-            ),
-            usage_source=_resolve_terminal_context_usage_source(
-                context=context,
-                snapshot=snapshot,
-            ),
-        )
-        if snapshot.usage is not None
-        else context.runtime.usage_preview_snapshot
+    usage_preview = _finalize_terminal_usage_preview(
+        context=context,
+        snapshot=snapshot,
     )
     await persist_and_publish_terminal_chat_stream_event(
         event_bus=context.event_bus,

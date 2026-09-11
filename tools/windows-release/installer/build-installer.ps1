@@ -91,11 +91,19 @@ if (Test-Path -LiteralPath $outputFile) {
 }
 $versionQuad = Convert-ToVersionQuad $Version
 $script = Join-Path $PSScriptRoot 'soai-installer.nsi'
+$payloadInclude = Join-Path $outputRoot 'payload-files.nsh'
+$payloadInstructions = @('File /x "soai.exe" "${PAYLOAD_DIR}\*"')
+foreach ($directory in Get-ChildItem -LiteralPath $payloadRoot -Directory -Force | Sort-Object Name) {
+    $escapedName = $directory.Name.Replace('$', '$$')
+    $payloadInstructions += 'File /r "${PAYLOAD_DIR}\' + $escapedName + '"'
+}
+Set-Content -LiteralPath $payloadInclude -Value $payloadInstructions -Encoding Unicode
 
 $defines = @(
     "/DPRODUCT_VERSION=$Version",
     "/DPRODUCT_VERSION_QUAD=$versionQuad",
     "/DPAYLOAD_DIR=$payloadRoot",
+    "/DPAYLOAD_FILES_INCLUDE=$payloadInclude",
     "/DOUTPUT_FILE=$outputFile",
     "/DLICENSE_FILE=$licenseFile",
     "/DESTIMATED_SIZE_KB=$estimatedSizeKb",

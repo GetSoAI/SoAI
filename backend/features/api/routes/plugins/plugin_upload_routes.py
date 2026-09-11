@@ -6,11 +6,12 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 
-from fastapi import Depends, Request
+from fastapi import Depends, Query, Request
 from fastapi.responses import JSONResponse
 
 from core.files.operations import async_remove
 from core.logging.trace import get_logger
+from core.mutations.identifiers import require_mutation_request_id
 from core.plugins.protocols_instance import PluginStagedUploadProtocol
 from core.state.access import AccessAction
 from core.tasks.type_catalog import TASK_TYPE_PLUGIN_UPLOAD
@@ -88,6 +89,10 @@ def register_routes(routers: ApiRouters) -> None:
     )
     async def upload_plugin(
         request: Request,
+        task_id: str | None = Query(
+            default=None,
+            description="Optional client-provided task identity for acceptance recovery.",
+        ),
         api_context: ApiContext = Depends(resolve_api_context),
     ) -> JSONResponse:
         plugin_manager_instance = api_context.dependencies.plugin_manager
@@ -97,6 +102,7 @@ def register_routes(routers: ApiRouters) -> None:
                 error_type="uploads_disabled",
                 message="Plugin uploads are disabled by the administrator.",
             )
+        requested_task_id = require_mutation_request_id(task_id) if task_id is not None else None
         staged = await _stage_plugin_upload(request, api_context)
         staged_path: str | None = staged.temp_path
         filename = staged.original_filename
@@ -108,6 +114,7 @@ def register_routes(routers: ApiRouters) -> None:
                 task_type=TASK_TYPE_PLUGIN_UPLOAD,
                 status_message="Uploading plugin package",
                 metadata={"operation": "plugin_upload", "filename": filename},
+                task_id=requested_task_id,
             )
             upload = _StagedPluginUpload(
                 original_filename=filename,

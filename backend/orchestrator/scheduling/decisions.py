@@ -99,6 +99,7 @@ class SchedulerDecisions:
                 lifecycle=self._deps.lifecycle,
                 dispatch_waiters=self._deps.dispatch_waiters,
                 fail_waiters=self._deps.outcomes.fail_waiters,
+                reevaluate_routing_key=self._reevaluate_routing_key,
             ),
         )
         database_tasks = self._deps.queue.task_registry.database_tasks
@@ -141,6 +142,11 @@ class SchedulerDecisions:
         self._action_selection.update_owner_running_limits(
             routing_config.owner_running_limits_default,
             dict(routing_config.owner_running_limits_by_owner_type),
+        )
+
+    async def _reevaluate_routing_key(self, routing_key: str) -> None:
+        await self._deps.queue_scheduler_work(
+            SchedulerWorkItem(SCHEDULER_WORK_TYPE_EVALUATE_ROUTING_KEY, routing_key),
         )
 
     def _spawn_action_task(self, action: SchedulerAction) -> asyncio.Task[None]:
@@ -216,12 +222,7 @@ class SchedulerDecisions:
             if action.action_type == SchedulerActionType.DISPATCH
         }
         if dispatch_keys:
-            dispatch_tasks = [
-                self._deps.queue_scheduler_work(
-                    SchedulerWorkItem(SCHEDULER_WORK_TYPE_EVALUATE_ROUTING_KEY, key),
-                )
-                for key in dispatch_keys
-            ]
+            dispatch_tasks = [self._reevaluate_routing_key(key) for key in dispatch_keys]
             await asyncio.gather(*dispatch_tasks, return_exceptions=False)
         if failures_to_process:
             fail_tasks = [

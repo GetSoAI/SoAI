@@ -4,6 +4,7 @@
 import type { AutomationCalendarTranslationKey } from '@core/i18n/translationkeys/automation/calendar.generated.ts';
 import type { AutomationCalendarSettingsTranslationKey } from '@core/i18n/translationkeys/automation/calendarSettings.generated.ts';
 import type { AutomationConfirmationsTranslationKey } from '@core/i18n/translationkeys/automation/confirmations.generated.ts';
+import type { AutomationErrorsTranslationKey } from '@core/i18n/translationkeys/automation/errors.generated.ts';
 import type { AutomationModalTranslationKey } from '@core/i18n/translationkeys/automation/modal.generated.ts';
 import type { AutomationNotificationsTranslationKey } from '@core/i18n/translationkeys/automation/notifications.generated.ts';
 import type { AutomationPaneTranslationKey } from '@core/i18n/translationkeys/automation/pane.generated.ts';
@@ -14,4 +15,4 @@ import type { AutomationStatusTranslationKey } from '@core/i18n/translationkeys/
 import type { AutomationToolbarTranslationKey } from '@core/i18n/translationkeys/automation/toolbar.generated.ts';
 import type { AutomationViewsTranslationKey } from '@core/i18n/translationkeys/automation/views.generated.ts';
 
-export type AutomationTranslationKey = AutomationCalendarTranslationKey | AutomationCalendarSettingsTranslationKey | AutomationConfirmationsTranslationKey | AutomationModalTranslationKey | AutomationNotificationsTranslationKey | AutomationPaneTranslationKey | AutomationPlaceholdersTranslationKey | AutomationPreferencesCorruptTranslationKey | AutomationRecurrenceTranslationKey | AutomationStatusTranslationKey | AutomationToolbarTranslationKey | AutomationViewsTranslationKey;
+export type AutomationTranslationKey = AutomationCalendarTranslationKey | AutomationCalendarSettingsTranslationKey | AutomationConfirmationsTranslationKey | AutomationErrorsTranslationKey | AutomationModalTranslationKey | AutomationNotificationsTranslationKey | AutomationPaneTranslationKey | AutomationPlaceholdersTranslationKey | AutomationPreferencesCorruptTranslationKey | AutomationRecurrenceTranslationKey | AutomationStatusTranslationKey | AutomationToolbarTranslationKey | AutomationViewsTranslationKey;

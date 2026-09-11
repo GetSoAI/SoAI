@@ -1,6 +1,8 @@
 /* SoAI - Shared file explorer browser paths [frontend/assets/ts/core/fileexplorerbrowser/paths.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isAbsoluteFilesystemPath } from '@core/filePathResolution.ts';
+
 const toVirtualPath = (value: string): string => {
     const trimmed = value.trim();
     const withRoot = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
@@ -9,20 +11,6 @@ const toVirtualPath = (value: string): string => {
         return '/';
     }
     return collapsed.length > 1 && collapsed.endsWith('/') ? collapsed.slice(0, -1) : collapsed;
-};
-
-const isAbsoluteOsPath = (value: string): boolean => {
-    const trimmed = value.trim();
-    if (!trimmed) {
-        return false;
-    }
-    if (trimmed.startsWith('/')) {
-        return true;
-    }
-    if (trimmed.startsWith('\\\\') || trimmed.startsWith('//')) {
-        return true;
-    }
-    return /^[A-Za-z]:[\\/]/.test(trimmed);
 };
 
 const joinVirtualPath = (parentPath: string, childName: string): string => {
@@ -126,7 +114,7 @@ const resolveAbsolutePath = (rootPathResolved: string | null, virtualPath: strin
 
 const resolveVirtualPathFromAbsolute = (rootPathResolved: string, absolutePath: string): string | null => {
     const trimmedAbsolute = absolutePath.trim();
-    if (!trimmedAbsolute || !isAbsoluteOsPath(trimmedAbsolute)) {
+    if (!trimmedAbsolute || !isAbsoluteFilesystemPath(trimmedAbsolute)) {
         return null;
     }
     const rootComparable = normalizeOsPathForComparison(rootPathResolved);
@@ -168,4 +156,4 @@ const resolveFileBrowserEnteredPath = (rootPathResolved: string | null, enteredP
     return toVirtualPath(trimmedPath);
 };
 
-export { basenameVirtualPath, isAbsoluteOsPath, joinVirtualPath, parentVirtualPath, resolveAbsolutePath, resolveFileBrowserEnteredPath, resolveVirtualPathFromAbsolute, toVirtualPath };
+export { basenameVirtualPath, joinVirtualPath, parentVirtualPath, resolveAbsolutePath, resolveFileBrowserEnteredPath, resolveVirtualPathFromAbsolute, toVirtualPath };

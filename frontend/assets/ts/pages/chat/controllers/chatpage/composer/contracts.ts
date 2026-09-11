@@ -3,7 +3,7 @@
 
 import type { ApiClient } from '@core/api/service.ts';
 import type { SecretPromptInteractionResolutionRequest } from '@core/api/contracts/webuiChatOperationContracts.ts';
-import type { ChatComposerDraftManager, ChatElicitationSession } from '@features/chat/public.ts';
+import type { ChatComposerDraftManager, ChatElicitationSession, ComposerDraftFlushOptions } from '@features/chat/public.ts';
 import type { ChatPreferencesManager } from '@pages/chat/controllers/chatpage/configuration/ChatPreferencesManager.ts';
 import type { ChatConversationViewContract } from '@pages/chat/controllers/chatpage/conversations/contracts.ts';
 import type { ChatComposerSurfaceRuntimeOwner } from '@pages/chat/controllers/chatpage/runtime/ChatComposerSurfaceRuntime.ts';
@@ -93,7 +93,7 @@ interface ChatComposerContract {
     focusInteraction(conversationId: string, interactionType: 'ask_user' | 'tool_approval' | 'vault_secret_request', taskId: string): void;
     initializeDraft(manager: ChatComposerDraftManager): void;
     draftManager(): ChatComposerDraftManager | null;
-    flushDraft(reason: string, options?: { keepalive?: boolean }): Promise<void>;
+    flushDraft(reason: string, options?: ComposerDraftFlushOptions): Promise<void>;
     disposeDraft(): void;
 }
 

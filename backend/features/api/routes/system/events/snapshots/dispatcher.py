@@ -10,7 +10,7 @@ from fastapi import WebSocket
 
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import ValidationError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.state.access import AccessAction
 from features.api.routes.system.events.internal_protocols import WebSocketMessageTypes
@@ -166,7 +166,7 @@ async def handle_snapshot_request(
             enqueue_warning_tracker=enqueue_warning_tracker,
             connection=connection,
         )
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except HANDLED_RUNTIME_EXCEPTIONS as exception:
         log_exception(
             get_logger(LOGGER_NAME),
             exception,

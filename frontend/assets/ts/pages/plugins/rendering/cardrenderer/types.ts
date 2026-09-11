@@ -29,6 +29,7 @@ interface PluginCardHost extends CardRendererHost {
     };
     presentation: {
         getPluginLogo(plugin: PluginRecord): string;
+        getPluginLogoFallback(plugin: PluginRecord): string;
         formatPluginName(name: string | undefined): string;
         getCircuitBreakerNotice(plugin: PluginRecord): string;
         getIncompatibleNotice(plugin: PluginRecord): string;

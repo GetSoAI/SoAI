@@ -9,6 +9,7 @@ __all__ = (
     "INTEL_VENDOR",
     "NVIDIA_VENDOR",
     "UNKNOWN_VENDOR",
+    "unobserved_vendors",
     "vendor_hints_or_all",
 )
 
@@ -17,6 +18,12 @@ AMD_VENDOR = "amd"
 INTEL_VENDOR = "intel"
 UNKNOWN_VENDOR = "unknown"
 GPU_VENDOR_TYPES: tuple[str, ...] = (NVIDIA_VENDOR, AMD_VENDOR, INTEL_VENDOR)
+
+
+def unobserved_vendors(*, nvidia_inventory_available: bool) -> frozenset[str]:
+    if nvidia_inventory_available:
+        return frozenset()
+    return frozenset({NVIDIA_VENDOR})
 
 
 def vendor_hints_or_all(detected_vendors: set[str]) -> set[str]:

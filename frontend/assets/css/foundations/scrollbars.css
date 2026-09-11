@@ -2,14 +2,18 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer foundations {
+    :root {
+        --ui-scrollbar-inline-size: 8px;
+    }
+
     :where(*) {
         scrollbar-color: var(--border-color) var(--glass-surface-light);
         scrollbar-width: thin;
     }
 
     ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: var(--ui-scrollbar-inline-size);
+        height: var(--ui-scrollbar-inline-size);
     }
 
     ::-webkit-scrollbar-track {

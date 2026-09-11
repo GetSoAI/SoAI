@@ -7,8 +7,8 @@ import asyncio
 from typing import TYPE_CHECKING, override
 
 from core.history.config_view import build_history_config_view
+from core.lifecycle.protocols import Shutdownable
 from core.logging.trace import get_logger
-from core.runtime.protocols import Shutdownable
 from core.tasks.action_queue import run_action_queue_processor_until_sentinel
 from core.timing.epoch import epoch_ms
 from core.timing.monotonic import monotonic_ms

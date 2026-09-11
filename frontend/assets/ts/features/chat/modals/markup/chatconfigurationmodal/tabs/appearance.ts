@@ -230,6 +230,18 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
   </div>
 
   <div class="form-group setting-change-surface">
+    <label for="${uiIdAttr('input-action-new-conversation-toggle')}">${strings.newConversation}</label>
+    ${buildToggleSwitchMarkup({
+        modalId,
+        token: 'input-action-new-conversation-toggle',
+        inputClassName: 'input-action-new-conversation-toggle',
+        checked: true,
+        labels: enabledDisabledLabels,
+        dataParameter: 'input_action_new_conversation_enabled'
+    })}
+  </div>
+
+  <div class="form-group setting-change-surface">
     <label for="${uiIdAttr('input-action-character-map-toggle')}">${strings.inputActionCharacterMap}</label>
     ${buildToggleSwitchMarkup({
         modalId,

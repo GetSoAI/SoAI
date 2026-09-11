@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
+import { errorHandler } from '@core/errorHandler.ts';
+import { runCleanup } from '@core/lifecycle/cleanup.ts';
 import { HeaderDropdownController } from '@core/layout/header/dropdownController.ts';
 import { LifecycleModel } from '@core/LifecycleModel.ts';
 import { NOTIFICATIONS_CENTER_SERVICE_ID } from '@core/notifications/protocols.ts';
@@ -19,6 +21,7 @@ import { NotificationCenterReadSynchronizer } from '@features/notifications/Noti
 import { NotificationCenterOperationController } from '@features/notifications/NotificationCenterOperationController.ts';
 import { NotificationCenterAttentionOpener } from '@features/notifications/NotificationCenterAttentionOpener.ts';
 import type { NotificationCenterElements } from '@features/notifications/uiTypes.ts';
+import { countBackgroundActivityOperations, createBackgroundActivityOperationFilter } from '@core/tasks/backgroundActivityPolicy.ts';
 
 class NotificationCenter extends LifecycleModel {
     readonly #dependencies: NotificationCenterDependencies;
@@ -35,6 +38,9 @@ class NotificationCenter extends LifecycleModel {
     #lastSnapshot: NotificationsListResponse | null = null;
     #lastSnapshotState: NotificationCenterSnapshotState = { status: 'loading', error: null };
     #expandedNotificationIds: Set<string> = new Set<string>();
+    #operationSubscription: (() => void) | null = null;
+    #unreadNotificationCount = 0;
+    #backgroundOperationCount = 0;
     readonly #websocketSubscriptions = new ResourceTracker();
 
     badgeCount = 0;
@@ -97,6 +103,10 @@ class NotificationCenter extends LifecycleModel {
         this.#view.applyAria(elements, this.isVisible);
         this.isExpanded = true;
         this.#view.applyLocalization(elements, this.isExpanded);
+        this.#operationSubscription = this.#dependencies.taskOperations.subscribeOperations(createBackgroundActivityOperationFilter(), (operations) => {
+            this.#backgroundOperationCount = countBackgroundActivityOperations(operations);
+            this.#syncBadge();
+        });
         bindNotificationCenterDomBindings({
             deleteNotification: (notificationId) => {
                 terminateHandledPromise(this.#operationController.deleteOne(notificationId));
@@ -131,6 +141,16 @@ class NotificationCenter extends LifecycleModel {
     }
 
     override async onDestroy(): Promise<void> {
+        const operationSubscription = this.#operationSubscription;
+        this.#operationSubscription = null;
+        runCleanup(operationSubscription, (runtimeError) => {
+            errorHandler.warn('NotificationCenter', 'Background operation subscription cleanup failed', runtimeError);
+        });
+        this.#unreadNotificationCount = 0;
+        this.#backgroundOperationCount = 0;
+        if (this.#elements) {
+            this.#syncBadge();
+        }
         if (this.isVisible) {
             this.hide();
         }
@@ -214,14 +234,22 @@ class NotificationCenter extends LifecycleModel {
         const elements = this.#requireElements();
         this.#view.applyAria(elements, this.isVisible);
         this.#view.applyLocalization(elements, this.isExpanded);
+        this.#syncBadge();
         this.#renderSnapshot(elements);
         this.#syncVisibleNotifications();
     }
 
     #syncRenderedSnapshot(): void {
         const elements = this.#requireElements();
-        this.badgeCount = this.#presentationFlow.syncSnapshot(this.#createSnapshotRenderRequest(elements));
+        this.#unreadNotificationCount = this.#lastSnapshot?.unreadCount ?? 0;
+        this.#syncBadge();
+        this.#presentationFlow.syncSnapshot(this.#createSnapshotRenderRequest(elements));
         this.#syncVisibleNotifications();
+    }
+
+    #syncBadge(): void {
+        const elements = this.#requireElements();
+        this.badgeCount = this.#presentationFlow.syncBadge(elements, this.#unreadNotificationCount, this.#backgroundOperationCount);
     }
 
     #renderSnapshot(elements: NotificationCenterElements): void {

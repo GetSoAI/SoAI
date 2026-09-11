@@ -14,10 +14,6 @@
         pointer-events: none;
     }
 
-    :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) ~ .chat-main-container .new-conversation-header-btn {
-        display: none;
-    }
-
     :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-sidebar-header {
         padding: var(--space-2);
         margin-bottom: var(--space-2);

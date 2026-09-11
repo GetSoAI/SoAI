@@ -6,9 +6,11 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable, Mapping
 from typing import TYPE_CHECKING
 
-from core.mcp.protocols_main import MCPSearchProtocol
+from core.mcp.protocols_main import MCPSearchProtocol, MCPServerProtocol
 from core.runtime.request_context import RequestContext
+from mcp.calendar.handlers import build_calendar_tool_handlers
 from mcp.handlers.tools.builder import build_mcp_rag_tool_handlers
+from mcp.mail.handlers import build_mail_tool_handlers
 from mcp.search.handlers import build_mcp_search_tool_handlers
 from mcp.shared.protocol_arguments import get_required_str
 from mcp.tools.handlers import build_internal_utility_tool_handlers
@@ -24,10 +26,11 @@ __all__ = ("build_builtin_tool_handlers",)
 
 
 def build_builtin_tool_handlers(
-    _context: RequestContext,
+    context: RequestContext,
     user_id: int,
     conv_id: str,
     *,
+    mcp_server: MCPServerProtocol,
     rag: MCPRAGInternalProtocol | None,
     mcp_search: MCPSearchProtocol | None,
     utility_tools: MCPUtilityTools,
@@ -35,6 +38,23 @@ def build_builtin_tool_handlers(
 ) -> dict[str, Callable[[JSONDict], Awaitable[JSONValue] | JSONValue]]:
     handlers: dict[str, Callable[[JSONDict], Awaitable[JSONValue] | JSONValue]] = dict(
         core_tool_handlers,
+    )
+    handlers.update(
+        build_mail_tool_handlers(
+            mcp_server.mail,
+            account_queries=mcp_server.mail_account_queries,
+            require_authenticated_user_id=lambda _: user_id,
+            request_context_provider=lambda: context,
+            notify_resource_updated=mcp_server.notify_resource_updated,
+        ),
+    )
+    handlers.update(
+        build_calendar_tool_handlers(
+            mcp_server.calendar,
+            account_queries=mcp_server.calendar_account_queries,
+            require_authenticated_user_id=lambda _: user_id,
+            notify_resource_updated=mcp_server.notify_resource_updated,
+        ),
     )
     if rag is not None:
         handlers.update(

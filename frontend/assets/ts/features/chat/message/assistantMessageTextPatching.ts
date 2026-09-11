@@ -1,54 +1,51 @@
 /* SoAI - Chat feature assistant message text patching [frontend/assets/ts/features/chat/message/assistantMessageTextPatching.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { dom } from '@core/dom/dom.ts';
 import { syncAttributes, syncClass } from '@core/dom/patching.ts';
 import type { AssistantDomStatePreservation } from '@features/chat/message/assistantDomState.ts';
 import { patchAssistantBodyChildrenInPlace } from '@features/chat/message/assistantBodyKeyedReconciler.ts';
 import { patchStreamingTimelineSegmentInPlace } from '@features/chat/message/assistantTimelineSegmentPatching.ts';
-import { ASSISTANT_BODY_KEY_ATTRIBUTE_NAME, ASSISTANT_BODY_SIGNATURE_ATTRIBUTE_NAME, buildAssistantBodyItems, resolveAssistantMessageResponseRoot } from '@features/chat/message/assistantMessageMarkupParts.ts';
+import { ASSISTANT_BODY_KEY_ATTRIBUTE_NAME, ASSISTANT_BODY_SIGNATURE_ATTRIBUTE_NAME, buildAssistantBodyItems, formatAssistantBodySegmentSignature, resolveAssistantMessageResponseRoot } from '@features/chat/message/assistantMessageMarkupParts.ts';
 import type { ChatMessageInsertAnimationOptions } from '@features/chat/message/messageMotion.ts';
-import { COLLAPSED_LOADING_CONTENT_DATA_ATTR, COLLAPSED_LOADING_CONTENT_DATA_VALUE, COLLAPSED_LOADING_CONTENT_SELECTOR, COLLAPSED_LOADING_SUMMARY_SELECTOR } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
+import { isRetainedLoadingContentElement, resolveDirectCollapsedLoadingContent, resolveDirectCollapsedLoadingSummary, COLLAPSED_LOADING_CONTENT_DATA_ATTR, COLLAPSED_LOADING_CONTENT_DATA_VALUE } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
 import { hasStreamSegments, resolveDirectStreamSegments } from '@features/chat/stream/streamSegmentsMarker.ts';
 
 const hasTerminalSensitiveStreamingBody = (response: HTMLElement): boolean => {
-    return hasStreamSegments(response) || dom.resolve(COLLAPSED_LOADING_SUMMARY_SELECTOR, response) !== null || dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, response) !== null;
+    return hasStreamSegments(response) || resolveDirectCollapsedLoadingSummary(response) !== null || resolveDirectCollapsedLoadingContent(response) !== null;
 };
 
-const isCollapsibleLoadingActivity = (element: HTMLElement): boolean => {
-    return element.classList.contains('inline-activity') && !element.classList.contains('inline-activity-type-loading');
-};
-
-const isExpandedLoadingContentChild = (element: HTMLElement): boolean => {
-    return !element.classList.contains('inline-action-update') && !isCollapsibleLoadingActivity(element) && !element.classList.contains('inline-activity-type-loading') && !element.classList.contains('assistant-activity-widgets') && !element.classList.contains('message-error');
-};
-
-const prepareCollapsedLoadingContentPatch = (existingResponse: HTMLElement, createdResponse: HTMLElement): void => {
-    if (dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, existingResponse) !== null || dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, createdResponse) === null) {
-        return;
+const prepareLoadingContentLayout = (existingResponse: HTMLElement, createdResponse: HTMLElement): boolean => {
+    const existingWrapper = resolveDirectCollapsedLoadingContent(existingResponse);
+    const createdWrapper = resolveDirectCollapsedLoadingContent(createdResponse);
+    if (existingWrapper instanceof HTMLElement && !(createdWrapper instanceof HTMLElement)) {
+        const streamSegments = resolveDirectStreamSegments(existingWrapper);
+        if (streamSegments !== null) {
+            streamSegments.replaceWith(...Array.from(streamSegments.childNodes));
+        }
+        existingWrapper.replaceWith(...Array.from(existingWrapper.childNodes));
+        return true;
     }
-    const contentChildren = Array.from(existingResponse.children).filter((child): child is HTMLElement => child instanceof HTMLElement && isExpandedLoadingContentChild(child));
-    const firstContentChild = contentChildren[0] ?? null;
-    if (firstContentChild === null) {
-        return;
+    if (existingWrapper !== null || !(createdWrapper instanceof HTMLElement)) {
+        return false;
     }
+    const streamSegments = resolveDirectStreamSegments(existingResponse);
+    if (streamSegments !== null && existingResponse.children.length === 1) {
+        streamSegments.replaceWith(...Array.from(streamSegments.childNodes));
+    }
+    const contentChildren = Array.from(existingResponse.children).filter((child): child is HTMLElement => child instanceof HTMLElement && isRetainedLoadingContentElement(child));
     const wrapper = existingResponse.ownerDocument.createElement('div');
     wrapper.setAttribute(COLLAPSED_LOADING_CONTENT_DATA_ATTR, COLLAPSED_LOADING_CONTENT_DATA_VALUE);
-    const createdWrapper = dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, createdResponse);
-    if (!(createdWrapper instanceof HTMLElement)) {
-        return;
-    }
     const wrapperKey = createdWrapper.getAttribute(ASSISTANT_BODY_KEY_ATTRIBUTE_NAME);
-    const wrapperSignature = createdWrapper.getAttribute(ASSISTANT_BODY_SIGNATURE_ATTRIBUTE_NAME);
-    if (!wrapperKey || !wrapperSignature) {
-        return;
+    if (!wrapperKey) {
+        throw new Error('Validated collapsed loading content is missing its key');
     }
     wrapper.setAttribute(ASSISTANT_BODY_KEY_ATTRIBUTE_NAME, wrapperKey);
-    wrapper.setAttribute(ASSISTANT_BODY_SIGNATURE_ATTRIBUTE_NAME, wrapperSignature);
-    existingResponse.insertBefore(wrapper, firstContentChild);
+    existingResponse.insertBefore(wrapper, contentChildren[0] ?? null);
     for (const child of contentChildren) {
         wrapper.appendChild(child);
     }
+    wrapper.setAttribute(ASSISTANT_BODY_SIGNATURE_ATTRIBUTE_NAME, formatAssistantBodySegmentSignature(wrapper.innerHTML));
+    return true;
 };
 
 type AssistantTextPatchRoots = {
@@ -73,6 +70,14 @@ const resolveAssistantTextPatchRoot = (textRoot: HTMLElement): AssistantTextPatc
     if (buildAssistantBodyItems(streamSegments ?? response) === null) {
         return null;
     }
+    const collapsedContent = resolveDirectCollapsedLoadingContent(response);
+    const collapsedSummary = resolveDirectCollapsedLoadingSummary(response);
+    if ((collapsedContent !== null && collapsedSummary === null) || (streamSegments !== null && collapsedContent !== null)) {
+        return null;
+    }
+    if (collapsedContent instanceof HTMLElement && buildAssistantBodyItems(resolveDirectStreamSegments(collapsedContent) ?? collapsedContent) === null) {
+        return null;
+    }
     return { response, streamSegments };
 };
 
@@ -87,7 +92,7 @@ const resolveAssistantTextPatchRoots = (existingText: HTMLElement, createdText: 
         createdResponse: created.response,
         existingStreamSegments: existing.streamSegments,
         createdStreamSegments: created.streamSegments,
-        createdCollapsedContent: dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, created.response)
+        createdCollapsedContent: resolveDirectCollapsedLoadingContent(created.response)
     };
 };
 
@@ -95,12 +100,12 @@ const hasCanonicalAssistantMessageTextBody = (textRoot: HTMLElement): boolean =>
 
 const canPatchAssistantMessageTextInPlace = (existingText: HTMLElement, createdText: HTMLElement): boolean => resolveAssistantTextPatchRoots(existingText, createdText) !== null;
 
-const patchAssistantMessageTextInPlace = (inputArguments: { existingText: HTMLElement; createdText: HTMLElement; suppressInsertAnimations?: ChatMessageInsertAnimationOptions['suppressInsertAnimations']; assistantDomState?: AssistantDomStatePreservation | null }): boolean | null => {
+const patchAssistantMessageTextInPlace = (inputArguments: { existingText: HTMLElement; createdText: HTMLElement; preserveActiveStreamingText?: boolean; suppressInsertAnimations?: ChatMessageInsertAnimationOptions['suppressInsertAnimations']; assistantDomState?: AssistantDomStatePreservation | null }): boolean | null => {
     const roots = resolveAssistantTextPatchRoots(inputArguments.existingText, inputArguments.createdText);
     if (roots === null) {
         return null;
     }
-    const { existingResponse, createdResponse, existingStreamSegments, createdStreamSegments, createdCollapsedContent } = roots;
+    const { existingResponse, createdResponse, createdStreamSegments, createdCollapsedContent } = roots;
     const terminalSensitiveStreamingBody = hasTerminalSensitiveStreamingBody(existingResponse);
     let changed = false;
     if (syncClass(inputArguments.existingText, inputArguments.createdText)) {
@@ -115,7 +120,10 @@ const patchAssistantMessageTextInPlace = (inputArguments: { existingText: HTMLEl
     if (syncAttributes({ target: existingResponse, source: createdResponse })) {
         changed = true;
     }
-    prepareCollapsedLoadingContentPatch(existingResponse, createdResponse);
+    if (prepareLoadingContentLayout(existingResponse, createdResponse)) {
+        changed = true;
+    }
+    const existingStreamSegments = resolveDirectStreamSegments(existingResponse);
     if (existingStreamSegments !== null && createdStreamSegments === null && !(createdCollapsedContent instanceof HTMLElement)) {
         existingStreamSegments.replaceWith(...Array.from(existingStreamSegments.childNodes));
         changed = true;
@@ -126,7 +134,7 @@ const patchAssistantMessageTextInPlace = (inputArguments: { existingText: HTMLEl
         nextContainer: patchTarget.nextContainer,
         assistantDomState: inputArguments.assistantDomState ?? null,
         disableInsertAnimation: terminalSensitiveStreamingBody || inputArguments.suppressInsertAnimations === true,
-        patchExistingChild: patchStreamingTimelineSegmentInPlace
+        patchExistingChild: (patchArguments) => patchStreamingTimelineSegmentInPlace({ ...patchArguments, preserveActiveStreamingText: inputArguments.preserveActiveStreamingText === true })
     });
     if (contentChanged === null) {
         return null;

@@ -82,6 +82,9 @@
                 "deleteMessage": "سيؤدي هذا إلى حذف \"{title}\" وعمليات التشغيل المجدولة له. ستظل نصوص الدردشة الحالية متاحة.",
                 "deleteTitle": "حذف الأتمتة؟"
             },
+            "errors": {
+                "oneShotStartNotFuture": "يجب أن تبدأ الأتمتة لمرة واحدة في المستقبل. اختر وقت بدء لاحقًا."
+            },
             "preferencesCorrupt": {
                 "message": "تفضيلات صفحة الأتمتة غير صالحة. أعد تعيين التفضيلات للمتابعة.",
                 "reset": "إعادة تعيين تفضيلات الأتمتة",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "اطلب الموافقة قبل تنفيذ الأدوات في هذه المحادثة.",
                 "newConversationInheritLastSettings": "استخدام آخر الإعدادات في الدردشات الجديدة",
                 "newConversationInheritLastSettingsHint": "تبدأ الدردشات الجديدة بآخر إعدادات استخدمتها للنموذج والأدوات والمعرفة.",
+                "ctrlEnterSend": "Ctrl + Enter للإرسال",
+                "ctrlEnterSendHint": "عند التفعيل، أرسل بالضغط على Ctrl + Enter وابدأ سطرًا جديدًا بالضغط على Enter. عند التعطيل، أرسل بالضغط على Enter وابدأ سطرًا جديدًا بالضغط على Shift + Enter.",
                 "knowledge": {
                     "downloadModel": "تنزيل النموذج",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "جارٍ إيقاف الاستجابة"
                         },
+                        "soai_documentation": {
+                            "1": "البحث في وثائق SoAI",
+                            "detail": {
+                                "1": "البحث في وثائق SoAI: {detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "جارٍ استبدال النص",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "المجلد الحالي",
+                "filesystemRoot": "جذر نظام الملفات",
                 "empty": "لم يتم العثور على مجلدات.",
                 "forbidden": "ليست لديك صلاحية الوصول إلى هذا المجلد.",
                 "loadFailed": "تعذّر تحميل المجلدات.",
+                "validationFailed": "تعذر التحقق من المجلد المحدد.",
                 "loading": "جارٍ تحميل المجلدات...",
                 "manualAbsolutePathRequired": "أدخل مسارًا مطلقًا (مثل /path أو C:\\path).",
                 "manualPath": "المجلد المحدد",
@@ -2474,7 +2487,8 @@
                 "loading": "جارٍ التحميل",
                 "resolution": "الدقة",
                 "size": "الحجم",
-                "zoom": "التكبير/التصغير"
+                "zoom": "التكبير/التصغير",
+                "position": "الصورة {current} من {total}"
             },
             "sourceInfo": {
                 "conversationPath": "مسار المحادثة",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "عناصر الواجهة"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "تعذّر اكتشاف بعض عناصر التحكم بوحدة معالجة الرسومات. تظل العناصر المتاحة قابلة للاستخدام.",
+                "capabilitiesStale": "جارٍ إعادة الاتصال بعناصر التحكم بوحدة معالجة الرسومات. آخر تحديث: {age}.",
+                "capabilitiesRetained": "عناصر التحكم بوحدة معالجة الرسومات غير متاحة. تُعرض بيانات من {age}.",
+                "slotsStale": "جارٍ إعادة الاتصال بإعدادات وحدة معالجة الرسومات المحفوظة. آخر تحديث: {age}.",
+                "slotsRetained": "إعدادات وحدة معالجة الرسومات المحفوظة غير متاحة. تُعرض بيانات من {age}.",
+                "capabilitiesUnavailable": "عناصر التحكم في وحدة معالجة الرسومات غير متاحة.",
+                "slotsUnavailable": "إعدادات وحدة معالجة الرسومات المحفوظة غير متاحة."
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "فتح"
                 },
                 "aria": {
-                    "panel": "مركز الإشعارات",
-                    "unreadCount": "الإشعارات غير المقروءة"
+                    "panel": "مركز الإشعارات"
                 },
                 "messages": {
                     "noNotifications": "لا توجد إشعارات",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "متابعة",
                 "externalLinkMessage": "هل تريد فتح موقع SoAI في علامة تبويب جديدة؟"
             },
-            "description": "التعرّف إلى SoAI",
+            "description": "التعرّف إلى SoAI.",
             "documentationUrl": "التوثيق",
             "intro": {
                 "aboutButton": "حول SoAI",
@@ -4236,8 +4258,7 @@
             "description": "إدارة نماذج الذكاء الاصطناعي عبر الإضافات والمزوّدين.",
             "searchPlaceholder": "البحث في النماذج...",
             "empty": {
-                "downloadFirst": "تنزيل نموذجك الأول",
-                "getStarted": "ابدأ بتنزيل نموذجك الأول.",
+                "getStarted": "ابدأ بإضافة نموذجك الأول.",
                 "noMatch": "لا توجد نماذج تطابق عوامل التصفية",
                 "noModels": "لم يتم العثور على نماذج",
                 "tryAdjusting": "جرّب تعديل معايير البحث أو التصفية."
@@ -4702,7 +4723,7 @@
                 "title": "لوحة المعلومات"
             },
             "fileExplorer": {
-                "description": "تصفح ملفات SoAI OS وأدرها.",
+                "description": "تصفح ملفات SoAI وأدرها.",
                 "title": "الملفات"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "بلا",
                 "reasons": {
                     "broken": "ملف الإضافة تالف أو يحتوي على أخطاء في الصياغة. احذفه وأعد تنزيله.",
+                    "dependencyMissing": "تبعيات الإضافة المطلوبة غير متاحة: {dependencies}.",
                     "gpu": "تتطلب GPU ({required}). المورّدون المكتشفون: {detected}. استخدم التجاوز لتشغيل وضع CPU (قد لا يعمل).",
                     "gpuShort": "فشل فحص GPU. المطلوب: {required}. المكتشف: {detected}. بدّل المفتاح للمتابعة.",
                     "hardwareShort": "متطلبات العتاد غير مستوفاة. المطلوب: {required}. الحالي: {current}. بدّل المفتاح للمتابعة.",
                     "os": "تتطلب {required}. المكتشف: {detected}. استخدم التجاوز على مسؤوليتك.",
+                    "osCard": "تتطلب {required}. المكتشف: {detected}.",
                     "osShort": "نظام التشغيل غير متطابق. المطلوب: {required}. المكتشف: {detected}. بدّل المفتاح للتفعيل على أي حال.",
                     "version": "تتطلب SoAI {required}. الحالي: {current}. حدّث SoAI لاستخدام هذه الإضافة."
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "تم إصدار أمر إيقاف جميع الإضافات.",
                 "stopSuccess": "تم إيقاف الإضافة {plugin} بنجاح",
                 "updateCheckFailed": "فشل التحقق من وجود تحديثات",
-                "uploadAccepted": "تم قبول رفع الإضافة",
                 "uploadFailed": "فشل رفع الإضافة"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "الإضافات",
                 "prompts": "المطالبات"
             },
-            "description": "ابحث في النماذج والإضافات والعتاد والمزيد",
+            "description": "ابحث في النماذج والإضافات والعتاد والمزيد.",
             "deviceDescriptions": {
                 "cpuCores": "{count} أنوية",
                 "cpuThreads": "{count} خيوط",
@@ -7669,7 +7691,8 @@
                 "upToDate": "محدّث"
             },
             "confirmations": {
-                "installSystem": "هل أنت متأكد من رغبتك في تثبيت تحديث النظام {version}؟ سيؤدي ذلك إلى إعادة تشغيل تطبيق SoAI."
+                "installSystem": "هل أنت متأكد من رغبتك في تثبيت تحديث النظام {version}؟ سيؤدي ذلك إلى إعادة تشغيل تطبيق SoAI.",
+                "installSystemWithInstaller": "هل أنت متأكد من رغبتك في تثبيت تحديث النظام {version}؟ سيؤدي ذلك إلى تشغيل مثبّت Windows وإعادة تشغيل SoAI."
             },
             "description": "تحقق من تحديثات تطبيق SoAI وثبّتها.",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "تأكيد كلمة المرور",
-                    "placeholder": "أدخل كلمة المرور مرة أخرى."
+                    "placeholder": "كرّر"
                 },
                 "creating": "جارٍ الإنشاء...",
                 "description": "أنشئ حساب المسؤول. سيكون لديه وصول كامل إلى نسخة SoAI هذه.",

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import shutil
 import uuid
 from collections.abc import Callable
@@ -33,7 +34,18 @@ __all__ = (
     "atomic_write_json_content",
     "atomic_write_text",
     "atomic_write_text_content",
+    "atomic_text_write_temporary_paths",
 )
+
+
+def atomic_text_write_temporary_paths(path: PathInput) -> tuple[str, ...]:
+    resolved = coerce_path(path)
+    parent = os.path.dirname(resolved) or os.curdir
+    pattern = re.compile(
+        rf"{re.escape(os.path.basename(resolved))}\.tmp\.[1-9][0-9]*\.[0-9a-f]{{32}}"
+    )
+    with os.scandir(parent) as entries:
+        return tuple(entry.path for entry in entries if pattern.fullmatch(entry.name))
 
 
 def atomic_create_text_content_exclusive(

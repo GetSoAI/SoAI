@@ -7,7 +7,10 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { createDeferred, type DeferredRejectionReason } from '@core/runtime/deferred.ts';
 import { TIMEOUTS } from '@core/constants.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
+import { serverEpochMs } from '@core/time/clock.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
+import { settleTerminalAssistantActivities } from '@features/chat/assistanteventtimeline/terminalActivitySettlement.ts';
+import { findCanonicalAssistantMessage } from '@features/chat/chatstreamservice/controller/canonicalAssistantIdentity.ts';
 import { reconcileCanonicalTerminalMessages } from '@features/chat/chatstreamservice/controller/canonicalTerminalHydration.ts';
 import { isChatTurnSuperseded } from '@features/chat/chatstreamservice/controller/turnSupersession.ts';
 import { clearStreamingContext, dropPendingStreamRender, getConversationStreamState, requireConversationStreamState, setStreamPhase } from '@features/chat/chatstreamservice/controller/state.ts';
@@ -114,6 +117,12 @@ export const scheduleRequestTerminalization = async (context: ChatStreamingContr
             });
         const recoverTerminalizationFailure = (error: DeferredRejectionReason): Error => {
             const runtimeError = ensureError(error);
+            const canonicalAssistant = findCanonicalAssistantMessage(context.dependencies.conversations.get(inputArguments.conversationId), assistantMessage);
+            if (canonicalAssistant !== null) {
+                if (settleTerminalAssistantActivities(canonicalAssistant, inputArguments.status, serverEpochMs())) {
+                    context.dependencies.messageManager.invalidateMessageCache(canonicalAssistant);
+                }
+            }
             if (!context.dependencies.chatStreamService.isStreaming(inputArguments.conversationId) || hasSupersedingStream()) {
                 clearStreamingContext(context, inputArguments.conversationId, { resolveTerminalization: false });
             }
@@ -133,7 +142,7 @@ export const scheduleRequestTerminalization = async (context: ChatStreamingContr
                     conversationId: inputArguments.conversationId,
                     assistantMessage,
                     assistantTimestamp: inputArguments.assistantTimestamp,
-                    requireToolSettlement: inputArguments.status !== 'complete' || currentState.phase === 'stopping',
+                    requireToolSettlement: true,
                     isCurrentTerminalization
                 });
                 if (!canonicalMessagesLoaded || context.disposed || !isCurrentTerminalization()) {

@@ -16,9 +16,10 @@ from app.cli.windows_console_service import (
 from core.bootstrap.runtime_directories import ensure_runtime_directory_environment
 from core.meta.paths import join_data_abs
 from core.runtime.platform import get_runtime_platform
-from core.system.process_launcher import spawn_handoff_process
+from core.system.process_launcher import DEVNULL_STREAM, spawn_handoff_process
 from core.system.process_replacement import (
     flush_process_replacement_output,
+    redirect_standard_streams_to_devnull,
     replace_current_process,
 )
 
@@ -67,6 +68,7 @@ def relaunch_application(
             env=os.environ.copy(),
         )
         return
+    redirect_standard_streams_to_devnull()
     os.chdir(backend_dir)
     replace_current_process(restart_argv)
 
@@ -95,4 +97,7 @@ def spawn_replacement_application(
         cwd=backend_dir,
         env=os.environ.copy(),
         start_new_session=True,
+        stdin=DEVNULL_STREAM,
+        stdout=DEVNULL_STREAM,
+        stderr=DEVNULL_STREAM,
     )

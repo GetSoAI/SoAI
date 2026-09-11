@@ -64,7 +64,6 @@ const composeChatSessions = (domain: ChatSessionDomainOwners, page: ChatSessionP
         state: { conversationState: domain.conversationState, settings: domain.settings },
         page: { taskScope: domain.taskScope, pageDom: page.pageDom, streaming: page.streaming },
         platform: { dom: platform.dom, stateManager: platform.stateManager, getDomContext: () => page.pageHost.getContext() },
-        presentation,
         comparisonNavigation
     });
     const conversationView = new ChatConversationViewController({

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
-import type { ChatComposerDraftManager, ChatElicitationSession } from '@features/chat/public.ts';
+import type { ChatComposerDraftManager, ChatElicitationSession, ComposerDraftFlushOptions } from '@features/chat/public.ts';
 import { resolveTokenCounterControllerForPage } from '@pages/chat/controllers/chatpage/construction/resolveTokenCounterController.ts';
 import type { ChatTokenCounterController } from '@pages/chat/widgets/tokencounter/ChatTokenCounterController.ts';
 
@@ -89,7 +89,7 @@ class ChatComposerSession {
         return this.#draft;
     }
 
-    async flushDraft(reason: string, options: { keepalive?: boolean } = {}): Promise<void> {
+    async flushDraft(reason: string, options: ComposerDraftFlushOptions = {}): Promise<void> {
         if (!this.#draft) throw new Error('Chat composer draft manager is not initialized');
         await this.#draft.flushNow(reason, options);
     }

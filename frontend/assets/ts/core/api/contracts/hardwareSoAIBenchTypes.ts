@@ -58,7 +58,7 @@ type GpuSoAIBenchScore = JsonObject &
         telemetryAvailable?: boolean | null;
         unavailableSensors?: string[] | null;
         failureReason?: string | null;
-        scoreConfidence?: string | null;
+        scoreConfidence?: number | null;
     };
 
 type GpuSoAIBenchSummary = JsonObject &
@@ -93,7 +93,7 @@ type GpuSoAIBenchSummary = JsonObject &
         openclMaxAllocBytes?: number | null;
         leaderboardEligible?: boolean | null;
         leaderboardRejectionReason?: string | null;
-        scoreConfidence?: string | null;
+        scoreConfidence?: number | null;
         message?: string | null;
         guidance?: string | null;
     };

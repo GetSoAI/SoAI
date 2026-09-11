@@ -42,6 +42,7 @@ async def prepare_plugin_task_for_request(
     task_type: TaskTypeId,
     status_message: str,
     metadata: dict[str, JSONValue],
+    task_id: str | None = None,
 ) -> PreparedPluginTask:
     context: RequestContext = request.state.context
     try:
@@ -51,6 +52,7 @@ async def prepare_plugin_task_for_request(
             task_type=task_type,
             status_message=status_message,
             metadata=dict(metadata),
+            task_id=task_id,
         )
     except TaskIDCollisionError as exception:
         handle_task_id_collision(request, exception)

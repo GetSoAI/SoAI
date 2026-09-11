@@ -54,12 +54,7 @@ const initializeChatSearchUi = (host: ChatSearchUiHost): void => {
         });
         host.setCurrentSearchBar(searchBar);
 
-        const favoriteButton = host.pageDom.optionalHTMLElement('.favorite-toggle-btn', container);
-        if (favoriteButton) {
-            searchBar.initializeBefore(container, favoriteButton);
-        } else {
-            searchBar.initialize(container);
-        }
+        searchBar.initialize(container);
     } else {
         existingSearchBar.updateOptions({ placeholder: i18n.t('chat.search.placeholder') });
     }

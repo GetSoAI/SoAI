@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 
 from core.concurrency.protocols import CancellationTokenProtocol
 from core.di.validation import require_dependencies
+from core.lifecycle.protocols import ServiceLifecycleProtocol
 from core.plugins.protocols_lifecycle import PluginLifecycleLocksProtocol
-from core.runtime.protocols import ServiceLifecycleProtocol
 from core.tasks.protocols import (
     CancellationCoordinatorProtocol,
     CancellationEventBusProtocol,

@@ -18,6 +18,7 @@ from core.config.file_permissions import (
     secure_runtime_config_paths,
 )
 from core.config.migrations.runner import upgrade_config_payload_to_current
+from core.config.path_resolution import resolve_default_config_schema_path
 from core.config.schema_reconciliation import reconcile_config_schema
 from core.config.value_validation import is_config_value
 from core.config.yaml_factory import build_roundtrip_yaml
@@ -35,7 +36,6 @@ __all__ = (
     "load_config_yaml_or_create",
     "reconcile_config_payload",
     "reconcile_config_payload_on_disk",
-    "resolve_default_config_schema_path",
     "write_config_yaml_sync",
 )
 
@@ -47,10 +47,6 @@ class ConfigSchemaDiskReconciliationResult:
     changed_paths: tuple[str, ...]
     applied_migrations: tuple[str, ...]
     created: bool
-
-
-def resolve_default_config_schema_path(config_path: str) -> str:
-    return os.path.join(os.path.dirname(config_path), "config.default.yaml")
 
 
 def ensure_default_config_schema_file(

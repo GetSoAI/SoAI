@@ -1,6 +1,8 @@
 /* SoAI - Frontend core Translation declarations for `chat` namespace section 04 [frontend/assets/ts/core/i18n/translationkeys/chat__section04.generated.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ChatVoiceCallModalTranslationKey } from '@core/i18n/translationkeys/chat/voiceCallModal.generated.ts';
+import type { ChatWaitForUserTranslationKey } from '@core/i18n/translationkeys/chat/waitForUser.generated.ts';
 import type { ChatWeatherTranslationKey } from '@core/i18n/translationkeys/chat/weather.generated.ts';
 
-export type ChatSection04TranslationKey = ChatWeatherTranslationKey;
+export type ChatSection04TranslationKey = ChatVoiceCallModalTranslationKey | ChatWaitForUserTranslationKey | ChatWeatherTranslationKey;

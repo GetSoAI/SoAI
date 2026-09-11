@@ -32,7 +32,11 @@ soai_uninstall__managed_root_entries() {
         COMMERCIAL-SUPPORT-TERMS.md LICENSE.md README.md NOTICE LICENSING.md \
         PRIVACY.md ORGANIZATION-EVALUATION-TERMS.md DOCUMENTATION.md SECURITY.md \
         RELEASE_NOTES.md requirements.txt install-soai-macos.command install-soai-windows.ps1 install-soai-linux.sh \
-        soai.sh soai.command soai.exe install-soai-from-release.sh install-soai-from-release.command \
+        soai.sh soai.command soai.exe soai-app.ico \
+        Microsoft.Web.WebView2.Core.dll Microsoft.Web.WebView2.WinForms.dll WebView2Loader.dll \
+        msvcp140.dll msvcp140_1.dll msvcp140_2.dll msvcp140_atomic_wait.dll msvcp140_codecvt_ids.dll \
+        vcruntime140.dll vcruntime140_1.dll python runtime-assets installer-support \
+        install-soai-from-release.sh install-soai-from-release.command \
         install-soai-from-release.bat uninstall-soai-linux.sh
     if [ "$SOAI_UNINSTALL_EDITION" = "soai-os" ]; then
         printf "%s\n" soai_os

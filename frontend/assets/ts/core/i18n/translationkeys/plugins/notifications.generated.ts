@@ -48,5 +48,4 @@ export type PluginsNotificationsTranslationKey =
     | 'plugins.notifications.stopAllSuccess'
     | 'plugins.notifications.stopSuccess'
     | 'plugins.notifications.updateCheckFailed'
-    | 'plugins.notifications.uploadAccepted'
     | 'plugins.notifications.uploadFailed';

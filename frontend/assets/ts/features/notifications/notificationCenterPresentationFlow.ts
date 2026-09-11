@@ -2,12 +2,19 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { NotificationsListResponse } from '@core/notifications/types.ts';
+import { dom } from '@core/dom/dom.ts';
+import { i18n } from '@core/i18n/index.ts';
+import { formatTrackedTaskCounter } from '@core/tasks/taskCounterText.ts';
+import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
+import { toggleHidden } from '@core/ui/visibility.ts';
 import type { NotificationCenterSnapshotState } from '@features/notifications/NotificationCenterDataController.ts';
 import { synchronizeExpandedNotificationIds } from '@features/notifications/notificationCenterExpandedState.ts';
 import { NotificationCenterView } from '@features/notifications/NotificationCenterView.ts';
 import type { NotificationCenterElements } from '@features/notifications/uiTypes.ts';
 
 const NOTIFICATION_SCROLL_LOAD_THRESHOLD_PX = 64;
+const TASK_ONLY_BADGE_CLASS = 'header-badge--background-activity';
+const MIXED_BADGE_CLASS = 'header-badge--mixed-attention';
 
 interface NotificationCenterSnapshotRenderRequest {
     elements: NotificationCenterElements;
@@ -42,11 +49,28 @@ class NotificationCenterPresentationFlow {
         this.#loadMoreDependencies = loadMoreDependencies;
     }
 
-    syncSnapshot(request: NotificationCenterSnapshotRenderRequest): number {
+    syncSnapshot(request: NotificationCenterSnapshotRenderRequest): void {
         synchronizeExpandedNotificationIds(request.expandedNotificationIds, request.snapshot);
-        const badgeCount = this.#view.updateBadge(request.elements, request.snapshot);
         this.render(request);
-        return badgeCount;
+    }
+
+    syncBadge(elements: NotificationCenterElements, unreadNotificationCount: number, backgroundOperationCount: number): number {
+        const unreadCount = Math.max(0, unreadNotificationCount);
+        const operationCount = Math.max(0, backgroundOperationCount);
+        const displayedCount = unreadCount + operationCount;
+        const hasUnreadNotifications = unreadCount > 0;
+        const hasBackgroundOperations = operationCount > 0;
+        const notificationText = hasUnreadNotifications ? i18n.t('header.notificationCenter.titleWithCount', { count: unreadCount }) : '';
+        const operationText = hasBackgroundOperations ? formatTrackedTaskCounter(operationCount) : '';
+        const attentionText = hasUnreadNotifications && hasBackgroundOperations ? `${notificationText} · ${operationText}` : notificationText || operationText || i18n.t('header.notificationCenter.title');
+        dom.setText(elements.count, displayedCount > 0 ? String(displayedCount) : '');
+        dom.toggleClass(elements.count, TASK_ONLY_BADGE_CLASS, !hasUnreadNotifications && hasBackgroundOperations);
+        dom.toggleClass(elements.count, MIXED_BADGE_CLASS, hasUnreadNotifications && hasBackgroundOperations);
+        toggleHidden(elements.count, displayedCount === 0);
+        dom.setAttribute(elements.count, 'aria-label', attentionText);
+        dom.setAttribute(elements.button, 'aria-label', attentionText);
+        setTooltipText(elements.button, attentionText);
+        return displayedCount;
     }
 
     render(request: NotificationCenterSnapshotRenderRequest): void {

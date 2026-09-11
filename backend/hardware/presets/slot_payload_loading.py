@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from hardware.presets.inventory_snapshot import snapshot_gpu_inventory
 from hardware.presets.slot_storage import prune_slots_payload
+from hardware.vendors.vendor_types import unobserved_vendors
 
 if TYPE_CHECKING:
     from core.hardware.protocols import (
@@ -34,12 +35,13 @@ def load_gpu_slots_payload_unlocked(
     inventory: dict[str, JSONDict],
     prune: bool,
     allow_create: bool,
+    retained_vendors: frozenset[str] = frozenset(),
 ) -> JSONDict:
     payload, existed = storage.read_payload()
     changed = False
     if not existed and allow_create:
         changed = True
-    if prune and prune_slots_payload(payload, inventory):
+    if prune and prune_slots_payload(payload, inventory, retained_vendors=retained_vendors):
         changed = True
     if changed:
         storage.write_payload(payload)
@@ -55,6 +57,7 @@ def snapshot_inventory_and_load_slots_payload(
     gpu_vendor_detection_service: GPUVendorDetectionServiceProtocol,
     nvidia_nvml_gate: NvmlGateProtocol,
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
+    nvidia_inventory_available: bool,
     prune: bool,
     allow_create: bool,
     inventory: dict[str, JSONDict] | None = None,
@@ -75,6 +78,9 @@ def snapshot_inventory_and_load_slots_payload(
             inventory=inventory_snapshot,
             prune=prune,
             allow_create=allow_create,
+            retained_vendors=unobserved_vendors(
+                nvidia_inventory_available=nvidia_inventory_available,
+            ),
         )
     return inventory_snapshot, payload
 
@@ -105,4 +111,7 @@ def load_gpu_slots_payload(
             inventory=inventory,
             prune=prune,
             allow_create=allow_create,
+            retained_vendors=unobserved_vendors(
+                nvidia_inventory_available=nvidia_capabilities_cache_service.inventory_available()
+            ),
         )

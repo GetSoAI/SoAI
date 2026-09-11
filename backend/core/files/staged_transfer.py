@@ -13,7 +13,6 @@ from dataclasses import dataclass
 from core.config.byte_sizes import MIB_BYTES
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import PayloadTooLargeError, ValidationError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.filesystem.open_files import open_binary
 from core.logging.protocols import StandardLogger
 from core.logging.trace import get_logger
@@ -97,9 +96,11 @@ def stage_chunks_to_temp_file(
     logger = get_logger(LOGGER_NAME)
     total_bytes = 0
     digest = hashlib.sha256()
-    with tempfile.NamedTemporaryFile(delete=False, dir=temp_dir, suffix=suffix) as temp_file:
-        temp_file_path = temp_file.name
-        try:
+    temp_file_path: str | None = None
+    staging_complete = False
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, dir=temp_dir, suffix=suffix) as temp_file:
+            temp_file_path = temp_file.name
             for raw_chunk in chunks:
                 chunk = _coerce_chunk(raw_chunk)
                 if not chunk:
@@ -122,18 +123,20 @@ def stage_chunks_to_temp_file(
             temp_file.flush()
             if expected_size is not None and total_bytes != expected_size:
                 raise ValidationError("Transfer size mismatch.")
-            return StagedTransferResult(
-                file_path=temp_file_path,
-                size_bytes=total_bytes,
-                sha256_hex=digest.hexdigest().lower(),
-            )
-        except RECOVERABLE_EXCEPTIONS:
+        result = StagedTransferResult(
+            file_path=temp_file_path,
+            size_bytes=total_bytes,
+            sha256_hex=digest.hexdigest().lower(),
+        )
+        staging_complete = True
+        return result
+    finally:
+        if not staging_complete and temp_file_path is not None:
             _cleanup_staged_file(
                 temp_file_path,
                 "core.files.staged_transfer.stage_chunks_to_temp_file.cleanup",
                 logger,
             )
-            raise
 
 
 def compute_file_sha256(

@@ -1,0 +1,182 @@
+/* SoAI - Chat composer surface and layout [frontend/assets/css/components/chat/chat-composer-layout.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .chat-input-wrapper {
+        --chat-composer-control-size: var(--icon-button-size);
+        --chat-composer-separator-gap: var(--space-3);
+        --chat-input-surface-color: var(--glass-surface-strong);
+        --chat-input-border-color: var(--glass-border-strong);
+        --chat-input-text-color: var(--text-primary);
+        --chat-input-placeholder-color: var(--text-tertiary);
+        --chat-input-mode-border-color: color-mix(in srgb, var(--status-grey) 35%, var(--glass-border-strong));
+        --chat-input-mode-border-color-focus: var(--ui-button-neutral-color);
+        --chat-input-mode-label-color: color-mix(in srgb, var(--status-grey) 72%, var(--text-secondary));
+        --chat-input-mode-label-color-focus: var(--status-grey);
+        --chat-input-actions-content-opacity: 1;
+        position: absolute;
+        bottom: calc(0.5rem + var(--ui-safe-area-inset-bottom));
+        left: var(--chat-composer-inset-inline);
+        right: var(--chat-composer-inset-inline);
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        background: transparent;
+        border: none;
+        border-radius: var(--border-radius);
+        padding: var(--chat-input-wrapper-padding);
+        box-shadow: none;
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+        z-index: var(--z-raised);
+        min-height: calc(var(--chat-input-empty-height) + var(--chat-composer-control-size) + var(--space-2) + (var(--chat-input-wrapper-padding) * 2));
+    }
+
+    :where(.chat-container) .chat-input-wrapper:has(.chat-input[data-agent-mode='plan']) {
+        --chat-input-mode-border-color: color-mix(in srgb, var(--accent-purple) 35%, var(--glass-border-strong));
+        --chat-input-mode-border-color-focus: color-mix(in srgb, var(--accent-purple) 65%, var(--glass-border-strong));
+        --chat-input-mode-label-color: color-mix(in srgb, var(--accent-purple) 72%, var(--text-secondary));
+        --chat-input-mode-label-color-focus: var(--accent-purple);
+    }
+
+    :where(.chat-container) .chat-input-wrapper:has(.chat-input[data-agent-mode='execute']) {
+        --chat-input-mode-border-color: color-mix(in srgb, var(--status-orange) 35%, var(--glass-border-strong));
+        --chat-input-mode-border-color-focus: color-mix(in srgb, var(--status-orange) 65%, var(--glass-border-strong));
+        --chat-input-mode-label-color: color-mix(in srgb, var(--status-orange) 72%, var(--text-secondary));
+        --chat-input-mode-label-color-focus: var(--status-orange);
+    }
+
+    :where(.chat-container) .chat-input-wrapper.glass-surface-strong::before {
+        inset: var(--chat-input-wrapper-padding);
+        background: var(--chat-input-surface-color);
+        border: var(--border-width-1) solid var(--chat-input-border-color);
+        box-shadow: var(--glass-shadow-base);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast);
+    }
+
+    :where(.chat-container) .chat-input-wrapper:has(.chat-input:focus)::before {
+        border-top-left-radius: 0;
+        border-color: var(--chat-input-mode-border-color-focus);
+    }
+
+    :where(.chat-container) .chat-input {
+        flex: none;
+        width: 100%;
+        min-width: 0;
+        background: transparent;
+        border: var(--border-width-1) solid transparent;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+        box-shadow: none;
+        color: var(--chat-input-text-color);
+        font-size: var(--font-size-body-lg);
+        line-height: var(--chat-input-line-height);
+        resize: none;
+        padding: var(--chat-input-padding-y) var(--space-4);
+        margin: 0;
+        min-height: var(--chat-input-empty-height);
+        height: var(--chat-input-empty-height);
+        overflow-y: hidden;
+        font-family: inherit;
+        outline: none;
+    }
+
+    :where(.chat-container) .chat-input:focus-visible {
+        border-color: transparent;
+    }
+
+    :where(.chat-container) .chat-input.has-overflow {
+        overflow-y: auto;
+    }
+
+    :where(.chat-container) .chat-input::placeholder {
+        color: var(--chat-input-placeholder-color);
+    }
+
+    :where(.chat-container) .chat-input-actions {
+        container-type: inline-size;
+        position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: var(--chat-input-actions-gap);
+        flex-shrink: 0;
+        min-width: 0;
+        min-height: calc(var(--chat-composer-control-size) + var(--space-2));
+        padding: 0 var(--space-2) var(--space-2);
+    }
+
+    :where(.chat-container) .chat-input-actions :is(.chat-input-action-inline, .chat-mobile-auxiliary-action, .chat-composer-skeleton-button) {
+        width: var(--chat-composer-control-size);
+        min-width: var(--chat-composer-control-size);
+        height: var(--chat-composer-control-size);
+        min-height: var(--chat-composer-control-size);
+        flex: 0 0 var(--chat-composer-control-size);
+        border-radius: var(--border-radius);
+    }
+
+    :where(.chat-container) .chat-input-actions:is(.is-collapsed-into-header, .chat-input-actions--hydrating) > .new-conversation-input-btn {
+        display: none;
+    }
+
+    :where(.chat-container) .chat-input-actions .chat-token-counter-btn {
+        width: auto;
+        min-width: calc(var(--chat-composer-control-size) * 2 + var(--space-15));
+        height: var(--chat-composer-control-size);
+        min-height: var(--chat-composer-control-size);
+        flex: 0 0 auto;
+    }
+
+    :where(.chat-container) .chat-input-actions > .chat-action-btn {
+        position: relative;
+        width: var(--chat-composer-control-size);
+        min-width: var(--chat-composer-control-size);
+        height: var(--chat-composer-control-size);
+        min-height: var(--chat-composer-control-size);
+        flex: 0 0 var(--chat-composer-control-size);
+        border-radius: var(--border-radius);
+    }
+
+    :where(.chat-container) .chat-input-actions.chat-input-actions--hydrating > .chat-action-btn,
+    :where(.chat-container) .chat-input-actions:not(.is-collapsed-into-header):has(.chat-input-actions-inline > button:not(.u-hidden), > .chat-token-counter-inline:not(.u-hidden)) > .chat-action-btn,
+    :where(.chat-container) .chat-input-actions.is-collapsed-into-header:has(> .chat-mobile-auxiliary-action-slot:not(.u-hidden, [data-mobile-auxiliary-action='new_conversation']) > button:not(.u-hidden)) > .chat-action-btn {
+        margin-inline-start: calc((var(--chat-composer-separator-gap) * 2) + var(--border-width-1) - var(--chat-input-actions-gap));
+    }
+
+    :where(.chat-container) .chat-input-actions.chat-input-actions--hydrating > .chat-action-btn::before,
+    :where(.chat-container) .chat-input-actions:not(.is-collapsed-into-header):has(.chat-input-actions-inline > button:not(.u-hidden), > .chat-token-counter-inline:not(.u-hidden)) > .chat-action-btn::before,
+    :where(.chat-container) .chat-input-actions.is-collapsed-into-header:has(> .chat-mobile-auxiliary-action-slot:not(.u-hidden, [data-mobile-auxiliary-action='new_conversation']) > button:not(.u-hidden)) > .chat-action-btn::before {
+        content: '';
+        position: absolute;
+        inset-inline-start: calc(-1 * (var(--chat-composer-separator-gap) + (var(--border-width-1) * 2)));
+        inset-block: var(--space-2);
+        width: var(--border-width-1);
+        background: var(--glass-border-strong);
+        pointer-events: none;
+    }
+
+    :where(.chat-container) .chat-input-actions .chat-action-icon svg {
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+    }
+
+    :where(.chat-container) .chat-input-actions .character-map-btn {
+        --icon-size: 17px;
+    }
+
+    :where(.chat-container) .chat-input-actions :is(.new-conversation-input-btn, .character-map-btn) .chat-action-icon svg {
+        width: var(--icon-size);
+        height: var(--icon-size);
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where(.chat-container) .chat-input-wrapper {
+            --chat-composer-inset-inline: 0.75rem;
+            bottom: calc(0.75rem + var(--ui-safe-area-inset-bottom));
+        }
+    }
+}

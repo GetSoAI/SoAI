@@ -50,6 +50,7 @@ def get_tuning_capabilities_for_services(
         nvidia_nvml_gate=gpu_services.nvidia_nvml_gate,
         nvidia_capabilities_cache_service=gpu_services.nvidia_capabilities_cache_service,
         logger=logger,
+        nvidia_settings_controller=gpu_services.nvidia_settings_controller,
     )
 
 
@@ -66,4 +67,5 @@ async def async_get_tuning_capabilities(
         nvidia_nvml_gate=gpu_services.nvidia_nvml_gate,
         nvidia_capabilities_cache_service=gpu_services.nvidia_capabilities_cache_service,
         logger=logger,
+        nvidia_settings_controller=gpu_services.nvidia_settings_controller,
     )

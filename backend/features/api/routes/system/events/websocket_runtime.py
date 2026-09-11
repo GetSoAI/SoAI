@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 
 from core.concurrency.task_groups import (
     DEFAULT_CANCELLATION_TIMEOUT_SEC,
@@ -133,19 +134,25 @@ async def run_websocket_events(
             [bridge_task],
             logger=logger,
             task_label="websocket bridge task",
+            log_level=logging.DEBUG,
             timeout_sec=DEFAULT_CANCELLATION_TIMEOUT_SEC,
+            timeout_log_level=logging.DEBUG,
         )
         await cancel_and_await(
             [sender_task],
             logger=logger,
             task_label="websocket sender task",
+            log_level=logging.DEBUG,
             timeout_sec=DEFAULT_CANCELLATION_TIMEOUT_SEC,
+            timeout_log_level=logging.DEBUG,
         )
         await cancel_and_await(
             [receiver_task],
             logger=logger,
             task_label="websocket receiver task",
+            log_level=logging.DEBUG,
             timeout_sec=DEFAULT_CANCELLATION_TIMEOUT_SEC,
+            timeout_log_level=logging.DEBUG,
         )
         await cleanup_websocket_connection(
             event_bus=event_bus,

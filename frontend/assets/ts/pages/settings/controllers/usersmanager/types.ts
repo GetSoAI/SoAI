@@ -5,7 +5,8 @@ import type { DomEventHost, DomMutationHost, DomQueryHost, ExecutionHost, Notifi
 import type { OsOperationResponse } from '@core/api/contracts/osOperationContracts.ts';
 import type { OsSystemUserInfo, OsUserMappingResponse, OsUserSyncStatus } from '@core/api/contracts/osSystemContracts.ts';
 import type { FileExplorerListResponse, FileExplorerSearchResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
-import type { FileBrowserListOptions, FileBrowserSearchOptions } from '@core/fileexplorerbrowser/types.ts';
+import type { HostFileBrowserListOptions, HostFileBrowserSearchOptions } from '@core/fileexplorerbrowser/types.ts';
+import type { HostFilesystemLocateResponse, HostFilesystemRootsResponse } from '@core/api/contracts/hostFilesystemBrowserContracts.ts';
 import type { SignalOptions } from '@core/api/requestOptions.ts';
 import type { WebuiSession } from '@core/api/contracts/webuiSessionContracts.ts';
 import type { MessageResponse, WebuiUser } from '@core/api/contracts/webuiUserContracts.ts';
@@ -26,8 +27,10 @@ interface UsersManagerApiHost {
     changeUserPassword: (userId: number, operationId: string, current: string, newPassword: string, signal: AbortSignal) => Promise<IdentityMutationSuccess>;
     renameOwnUsername: (operationId: string, newUsername: string, currentPassword: string) => Promise<IdentityMutationSuccess>;
     renameUser: (userId: number, operationId: string, newUsername: string, currentPassword: string, signal: AbortSignal) => Promise<IdentityMutationSuccess>;
-    listWorkspaceBrowser: (options?: FileBrowserListOptions) => Promise<FileExplorerListResponse>;
-    searchWorkspaceBrowser: (options: FileBrowserSearchOptions) => Promise<FileExplorerSearchResponse>;
+    listWorkspaceBrowserRoots: (options?: SignalOptions) => Promise<HostFilesystemRootsResponse>;
+    locateWorkspaceBrowserPath: (path: string, options?: SignalOptions) => Promise<HostFilesystemLocateResponse>;
+    listWorkspaceBrowser: (options: HostFileBrowserListOptions) => Promise<FileExplorerListResponse>;
+    searchWorkspaceBrowser: (options: HostFileBrowserSearchOptions) => Promise<FileExplorerSearchResponse>;
     updateUserWorkspacePath: (userId: number, workspacePath: string | null) => Promise<WebuiUser>;
     deleteUser: (userId: number) => Promise<void>;
     logout: () => Promise<void>;

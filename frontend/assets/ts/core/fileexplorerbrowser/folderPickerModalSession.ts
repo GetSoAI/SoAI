@@ -20,7 +20,7 @@ import { formatDisplayPath, renderFolderPickerModalMarkup, renderFolderRows, res
 import { createFolderPickerModalManualPathController } from '@core/fileexplorerbrowser/folderPickerModalManualPathController.ts';
 import type { FolderPickerModalOptions, FolderPickerResult } from '@core/fileexplorerbrowser/folderPickerModalContracts.ts';
 import { runModalSession } from '@core/modals/modalSession.ts';
-import { isAbsoluteOsPath } from '@core/fileexplorerbrowser/paths.ts';
+import { resolveVirtualPathFromAbsolute } from '@core/fileexplorerbrowser/paths.ts';
 
 type FolderPickerSessionDependencies = {
     presenter: ModalPresenterApi;
@@ -52,6 +52,7 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
                 modalId,
                 labels: options.labels,
                 nameColumnLabel: i18n.t('fileExplorer.table.name'),
+                hostMode: options.source.type === 'host',
                 ...(options.allowManualPathEntry === true ? { allowManualPathEntry: true } : {})
             });
 
@@ -61,16 +62,18 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
 
             let elements: FolderPickerModalElements;
             try {
-                elements = resolveFolderPickerModalElements(modal, Boolean(options.labels.reset));
+                elements = resolveFolderPickerModalElements(modal, Boolean(options.labels.reset), options.source.type === 'host');
             } catch (error) {
                 clearScaffoldSlots();
                 throw error;
             }
-            const { currentPathElement, statusElement, tableElement, rowsElement, sortHeaderElement, searchInput, manualInput, confirmButton, cancelButton, resetButton } = elements;
+            const { currentPathElement, rootSelect, statusElement, tableElement, rowsElement, sortHeaderElement, searchInput, manualInput, confirmButton, cancelButton, resetButton } = elements;
 
             let sortState: SortState<'name'> = { column: 'name', direction: 'asc' };
             let lastRenderedDisplayPath = '';
             let manualPathController: ReturnType<typeof createFolderPickerModalManualPathController> | null = null;
+            let renderedRoots: readonly string[] = [];
+            let confirmationPending = false;
             const sortHeaders = requireSortableHeaders(tableElement, 'Folder picker');
 
             const updateSortIndicator = (): void => {
@@ -92,14 +95,27 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
 
             const updateConfirmButton = (): void => {
                 const state = browser.getState();
-                if (state.isLoading) {
-                    confirmButton.disabled = true;
-                    return;
-                }
-                const manualAbsoluteSelection = manualPathController ? manualPathController.getManualAbsoluteSelection() : null;
-                const manualAbsoluteInputAllowed = options.allowManualAbsoluteSelectionOutsideRoot === true && options.allowManualPathEntry === true && isAbsoluteOsPath(readTrimmedInputValue(manualInput));
                 const override = manualPathController ? manualPathController.getStatusOverrideMessage() : null;
-                confirmButton.disabled = Boolean((state.errorMessage && !manualAbsoluteSelection && !manualAbsoluteInputAllowed) || override);
+                confirmButton.disabled = confirmationPending || state.isLoading || !state.canConfirm || Boolean(override);
+            };
+
+            const syncRootSelector = (): void => {
+                if (!rootSelect) return;
+                const state = browser.getState();
+                if (renderedRoots !== state.rootPaths) {
+                    rootSelect.replaceChildren(
+                        ...state.rootPaths.map((rootPath) => {
+                            const option = document.createElement('option');
+                            option.value = rootPath;
+                            option.textContent = rootPath;
+                            return option;
+                        })
+                    );
+                    renderedRoots = state.rootPaths;
+                }
+                const activeRoot = state.pendingRootPath ?? state.workspacePathResolved;
+                rootSelect.value = state.rootPaths.find((rootPath) => activeRoot !== null && resolveVirtualPathFromAbsolute(rootPath, activeRoot) === '/') ?? activeRoot ?? '';
+                rootSelect.disabled = state.rootPaths.length === 0;
             };
 
             const syncStatus = (): void => {
@@ -112,11 +128,12 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
             };
 
             const browser = new DirectoryBrowserController({
-                api: options.api,
+                source: options.source,
                 entryFilter: (entry) => entry.isDirectory,
                 errorResolver: { resolve: resolveBrowserErrorMessage },
                 onStateChange: (state) => {
-                    const displayPath = formatDisplayPath(state.currentPath, state.workspacePathResolved);
+                    const displayPath = options.source.type === 'host' && state.workspacePathResolved === null ? '' : formatDisplayPath(state.currentPath, state.workspacePathResolved);
+                    currentPathElement.value = displayPath;
                     if (manualPathController) {
                         manualPathController.handleBrowserStateChange(displayPath);
                     } else {
@@ -126,6 +143,7 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
                         }
                     }
                     syncStatus();
+                    syncRootSelector();
                     renderRows();
                     updateConfirmButton();
                 }
@@ -135,7 +153,6 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
                 browser,
                 manualInput,
                 allowManualPathEntry: options.allowManualPathEntry === true,
-                allowManualAbsoluteSelectionOutsideRoot: options.allowManualAbsoluteSelectionOutsideRoot === true,
                 labels: options.labels,
                 syncStatus,
                 updateConfirmButton,
@@ -205,6 +222,15 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
             manualInput.addEventListener('input', manualPath.handleManualInputEvent, { signal });
             manualInput.addEventListener('keydown', manualPath.handleManualKeydown, { signal });
 
+            rootSelect?.addEventListener(
+                'change',
+                () => {
+                    manualPath.resetTracking();
+                    terminateHandledPromise(browser.changeRoot(rootSelect.value));
+                },
+                { signal }
+            );
+
             const handleCancelClick = (event: Event): void => {
                 event.preventDefault();
                 closeWith(null, 'cancel');
@@ -212,27 +238,26 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
             cancelButton.addEventListener('click', handleCancelClick, { signal });
 
             const confirmFolderSelection = async (): Promise<void> => {
+                if (confirmationPending) return;
+                confirmationPending = true;
+                updateConfirmButton();
                 try {
                     if (!(await manualPath.navigateToManualPath())) {
                         return;
                     }
-                    const selection = resolveFolderPickerSelection(browser);
-                    const manualAbsoluteSelection = manualPath.getManualAbsoluteSelection();
-                    if (manualAbsoluteSelection) {
-                        closeWith(
-                            {
-                                ...selection,
-                                virtualPath: '/',
-                                absolutePath: manualAbsoluteSelection,
-                                workspacePathResolved: null
-                            },
-                            'confirm'
-                        );
+                    if (!(await browser.validateSelection())) {
                         return;
                     }
+                    const selection = resolveFolderPickerSelection(browser);
                     closeWith(selection, 'confirm');
                 } catch (error) {
-                    manualPath.setStatusOverrideMessage(ensureError(error).message || options.labels.loading);
+                    ensureError(error);
+                    manualPath.setStatusOverrideMessage(options.labels.validationFailed);
+                } finally {
+                    confirmationPending = false;
+                    if (!signal.aborted) {
+                        updateConfirmButton();
+                    }
                 }
             };
 
@@ -262,8 +287,6 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
                     if (signal.aborted) {
                         return;
                     }
-                    const state = browser.getState();
-                    currentPathElement.value = formatDisplayPath(state.currentPath, state.workspacePathResolved);
                 })()
             );
 

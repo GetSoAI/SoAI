@@ -4,11 +4,10 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.events.types_base import Event
-from core.runtime.ownership import resolve_context_ownership
+from core.runtime.ownership import TaskOwnership, resolve_context_ownership
 from core.runtime.protocols import RequestOwnershipContextProtocol
 from core.tasks.creation import create, create_streaming_task
 from core.tasks.enums import TaskStatus
@@ -20,30 +19,9 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
 
 __all__ = (
-    "ModelActionTaskOwnership",
     "create_reply_bound_model_action_task",
     "create_streaming_model_action_task",
 )
-
-
-@dataclass(frozen=True, slots=True)
-class ModelActionTaskOwnership:
-    user_id: int
-    owner_id: str
-    owner_type: str
-    cancellation_id: str
-
-
-def _resolve_model_action_ownership(
-    context: RequestOwnershipContextProtocol | None,
-) -> ModelActionTaskOwnership:
-    user_id, owner_id, owner_type, cancellation_id = resolve_context_ownership(context)
-    return ModelActionTaskOwnership(
-        user_id=user_id,
-        owner_id=owner_id,
-        owner_type=owner_type,
-        cancellation_id=cancellation_id,
-    )
 
 
 async def create_reply_bound_model_action_task(
@@ -54,7 +32,7 @@ async def create_reply_bound_model_action_task(
 ) -> str | None:
     if task_registry.resolve_task_identity_for_reply_queue(reply_queue) is not None:
         return None
-    ownership = _resolve_model_action_ownership(context)
+    ownership = resolve_context_ownership(context)
     await create(
         task_registry,
         task_type=TASK_TYPE_BACKGROUND_JOB,
@@ -74,8 +52,8 @@ async def create_streaming_model_action_task(
     task_registry: TaskRegistryProtocol,
     context: RequestOwnershipContextProtocol | None,
     metadata: JSONDict,
-) -> tuple[Task, asyncio.Queue[Event], ModelActionTaskOwnership]:
-    ownership = _resolve_model_action_ownership(context)
+) -> tuple[Task, asyncio.Queue[Event], TaskOwnership]:
+    ownership = resolve_context_ownership(context)
     task, reply_queue = await create_streaming_task(
         task_registry,
         task_type=TASK_TYPE_BACKGROUND_JOB,

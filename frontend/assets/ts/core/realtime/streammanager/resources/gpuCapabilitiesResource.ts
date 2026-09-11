@@ -8,8 +8,6 @@ import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonV
 import { toJsonCompatibleObject } from '@core/primitives/clone.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
 
-const keys = Object.keys;
-
 const decodeStringList = (value: JsonValue | undefined, label: string): string[] | undefined => {
     if (value === undefined || value === null) return undefined;
     if (!Array.isArray(value) || !value.every(isString)) throw new TypeError(`${label} must be a string array`);
@@ -109,17 +107,8 @@ const isGpuCapabilitiesResource = (value: JsonValue | null | undefined): value i
     return isJsonObject(value) && isBoolean(value['success']) && isJsonObject(value['gpus']) && isJsonObject(value['gpusByDeviceId']) && isJsonObject(value['computeDrivers']) && isFiniteNumber(value['totalVramGb']);
 };
 
-const hasGpuEntries = (payload: GpuCapabilitiesResource): boolean => {
-    return keys(payload.gpusByDeviceId).length > 0 || keys(payload.gpus).length > 0;
-};
-
-const normalizeGpuCapabilitiesResource = (payload: JsonValue | null, context?: Pick<ResourceContext, 'previousValue'>): GpuCapabilitiesResource => {
-    const decoded = decodeGpuCapabilitiesResource(payload);
-    const previousValue = context?.previousValue ?? null;
-    if (!hasGpuEntries(decoded) && isGpuCapabilitiesResource(previousValue) && hasGpuEntries(previousValue)) {
-        return previousValue;
-    }
-    return decoded;
+const normalizeGpuCapabilitiesResource = (payload: JsonValue | null, _context?: Pick<ResourceContext, 'previousValue'>): GpuCapabilitiesResource => {
+    return decodeGpuCapabilitiesResource(payload);
 };
 
 export { isGpuCapabilitiesResource, normalizeGpuCapabilitiesResource };

@@ -11,7 +11,7 @@ import type { ChatTokenCounterController } from '@pages/chat/widgets/tokencounte
 import { insertTranscription, refreshChatInputUiState } from '@pages/chat/controllers/page/dom/input.ts';
 import { persistParametersToConversation } from '@pages/chat/controllers/chatpage/construction/persistConversationParameters.ts';
 import { syncToolApprovalRequiredToConversation, syncToolsEnabledToConversation, type SyncToolsEnabledHost } from '@pages/chat/controllers/chatpage/construction/syncToolsEnabled.ts';
-import type { ChatComposerDraftManager, ChatElicitationSession } from '@features/chat/public.ts';
+import type { ChatComposerDraftManager, ChatElicitationSession, ComposerDraftFlushOptions } from '@features/chat/public.ts';
 import type { ChatComposerContract, ChatComposerDependencies } from '@pages/chat/controllers/chatpage/composer/contracts.ts';
 import { applyInputActionVisibilityLifecycle } from '@pages/chat/controllers/chatpage/construction/inputActionVisibilityController.ts';
 import { ChatComposerSession } from '@pages/chat/controllers/chatpage/composer/ChatComposerSession.ts';
@@ -142,7 +142,7 @@ class ChatComposerController implements ChatComposerContract {
         return this.#session.draft;
     }
 
-    async flushDraft(reason: string, options: { keepalive?: boolean } = {}): Promise<void> {
+    async flushDraft(reason: string, options: ComposerDraftFlushOptions = {}): Promise<void> {
         await this.#session.flushDraft(reason, options);
     }
 

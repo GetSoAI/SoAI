@@ -200,7 +200,7 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
     const resizeDisposer = coordinator.subscribeResize((entries) => {
         minimap.markDirtyFromResize(entries);
         for (const entry of entries) {
-            if (entry.target === overlay || entry.target === messagesArea || entry.target === inputActions) {
+            if (entry.target === overlay || entry.target === messagesArea || entry.target === inputActions || entry.target === inputWrapper) {
                 scheduleGeometrySync();
                 return;
             }
@@ -210,6 +210,9 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
     const observedResizeDisposers = [coordinator.observeResize(messagesArea), coordinator.observeResize(overlay), coordinator.observeResize(messagesRoot)];
     if (inputActions) {
         observedResizeDisposers.push(coordinator.observeResize(inputActions));
+    }
+    if (inputWrapper) {
+        observedResizeDisposers.push(coordinator.observeResize(inputWrapper));
     }
     const mutationDisposer = coordinator.subscribeMutations((mutations) => {
         if (isDisposed) {

@@ -82,6 +82,9 @@
                 "deleteMessage": "\"{title}\" 및 예약된 실행이 삭제됩니다. 기존 채팅 기록은 계속 사용할 수 있습니다.",
                 "deleteTitle": "자동화를 삭제하시겠습니까?"
             },
+            "errors": {
+                "oneShotStartNotFuture": "일회성 자동화는 미래 시점에 시작해야 합니다. 더 늦은 시작 시간을 선택하세요."
+            },
             "preferencesCorrupt": {
                 "message": "자동화 페이지 환경설정이 올바르지 않습니다. 계속하려면 환경설정을 재설정하세요.",
                 "reset": "자동화 환경설정 재설정",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "이 대화에서 도구를 실행하기 전에 승인을 요구합니다.",
                 "newConversationInheritLastSettings": "새 채팅에 마지막 설정 사용",
                 "newConversationInheritLastSettingsHint": "새 채팅은 마지막으로 사용한 모델, 도구 및 지식 설정으로 시작합니다.",
+                "ctrlEnterSend": "Ctrl + Enter로 보내기",
+                "ctrlEnterSendHint": "사용하면 Ctrl + Enter로 보내고 Enter로 줄을 바꿉니다. 사용하지 않으면 Enter로 보내고 Shift + Enter로 줄을 바꿉니다.",
                 "knowledge": {
                     "downloadModel": "모델 다운로드",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "응답을 중지하는 중"
                         },
+                        "soai_documentation": {
+                            "1": "SoAI 문서 검색 중",
+                            "detail": {
+                                "1": "SoAI 문서 검색 중: {detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "텍스트 바꾸는 중",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "현재 폴더",
+                "filesystemRoot": "파일 시스템 루트",
                 "empty": "폴더를 찾을 수 없습니다.",
                 "forbidden": "이 폴더에 대한 액세스 권한이 없습니다.",
                 "loadFailed": "폴더를 불러오지 못했습니다.",
+                "validationFailed": "선택한 폴더를 확인할 수 없습니다.",
                 "loading": "폴더를 불러오는 중...",
                 "manualAbsolutePathRequired": "절대 경로를 입력하세요(예: /path 또는 C:\\path).",
                 "manualPath": "선택한 폴더",
@@ -2474,7 +2487,8 @@
                 "loading": "불러오는 중",
                 "resolution": "해상도",
                 "size": "크기",
-                "zoom": "확대/축소"
+                "zoom": "확대/축소",
+                "position": "이미지 {current} / {total}"
             },
             "sourceInfo": {
                 "conversationPath": "대화 경로",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "위젯"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "일부 GPU 제어 기능을 감지하지 못했습니다. 사용 가능한 기능은 계속 사용할 수 있습니다.",
+                "capabilitiesStale": "GPU 제어에 다시 연결하고 있습니다. 마지막 업데이트: {age}.",
+                "capabilitiesRetained": "GPU 제어를 사용할 수 없습니다. {age}의 데이터를 표시합니다.",
+                "slotsStale": "저장된 GPU 설정에 다시 연결하고 있습니다. 마지막 업데이트: {age}.",
+                "slotsRetained": "저장된 GPU 설정을 사용할 수 없습니다. {age}의 데이터를 표시합니다.",
+                "capabilitiesUnavailable": "GPU 제어를 사용할 수 없습니다.",
+                "slotsUnavailable": "저장된 GPU 설정을 사용할 수 없습니다."
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "열기"
                 },
                 "aria": {
-                    "panel": "알림 센터",
-                    "unreadCount": "읽지 않은 알림"
+                    "panel": "알림 센터"
                 },
                 "messages": {
                     "noNotifications": "알림 없음",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "계속",
                 "externalLinkMessage": "새 브라우저 탭에서 SoAI 웹사이트를 여시겠습니까?"
             },
-            "description": "SoAI 사용 안내",
+            "description": "SoAI 사용 안내.",
             "documentationUrl": "문서",
             "intro": {
                 "aboutButton": "SoAI 소개",
@@ -4236,8 +4258,7 @@
             "description": "플러그인과 공급자의 AI 모델을 관리합니다.",
             "searchPlaceholder": "모델 검색...",
             "empty": {
-                "downloadFirst": "첫 모델 다운로드",
-                "getStarted": "첫 모델을 다운로드하여 시작하세요.",
+                "getStarted": "첫 번째 모델을 추가하여 시작하세요.",
                 "noMatch": "필터와 일치하는 모델이 없습니다",
                 "noModels": "모델을 찾을 수 없습니다",
                 "tryAdjusting": "검색어나 필터 조건을 조정해 보세요."
@@ -4702,7 +4723,7 @@
                 "title": "대시보드"
             },
             "fileExplorer": {
-                "description": "SoAI OS 파일을 탐색하고 관리합니다.",
+                "description": "SoAI 파일을 탐색하고 관리합니다.",
                 "title": "Files"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "없음",
                 "reasons": {
                     "broken": "플러그인 파일이 손상되었거나 구문 오류가 있습니다. 삭제한 후 다시 다운로드하세요.",
+                    "dependencyMissing": "필수 플러그인 종속성을 사용할 수 없습니다: {dependencies}.",
                     "gpu": "GPU({required})가 필요합니다. 감지된 공급업체: {detected}. CPU 모드를 사용하려면 재정의하세요(작동하지 않을 수 있음).",
                     "gpuShort": "GPU 확인 실패. 필요: {required}. 감지됨: {detected}. 계속하려면 전환하세요.",
                     "hardwareShort": "하드웨어 요구 사항을 충족하지 않습니다. 필요: {required}. 현재: {current}. 계속하려면 전환하세요.",
                     "os": "{required}이(가) 필요합니다. 감지됨: {detected}. 위험을 감수하고 재정의하세요.",
+                    "osCard": "{required}이(가) 필요합니다. 감지됨: {detected}.",
                     "osShort": "OS 불일치. 필요: {required}. 감지됨: {detected}. 그래도 활성화하려면 전환하세요.",
                     "version": "SoAI {required}이(가) 필요합니다. 현재: {current}. 이 플러그인을 사용하려면 SoAI를 업데이트하세요."
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "모든 플러그인을 중지하는 명령을 실행했습니다.",
                 "stopSuccess": "플러그인 {plugin}을(를) 중지했습니다",
                 "updateCheckFailed": "업데이트를 확인하지 못했습니다",
-                "uploadAccepted": "플러그인 업로드가 접수되었습니다",
                 "uploadFailed": "플러그인을 업로드하지 못했습니다"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "플러그인",
                 "prompts": "프롬프트"
             },
-            "description": "모델, 플러그인, 하드웨어 등을 검색합니다",
+            "description": "모델, 플러그인, 하드웨어 등을 검색합니다.",
             "deviceDescriptions": {
                 "cpuCores": "{count}개 코어",
                 "cpuThreads": "{count}개 스레드",
@@ -7669,7 +7691,8 @@
                 "upToDate": "최신 상태"
             },
             "confirmations": {
-                "installSystem": "시스템 업데이트 {version}을(를) 설치하시겠습니까? SoAI 애플리케이션이 다시 시작됩니다."
+                "installSystem": "시스템 업데이트 {version}을(를) 설치하시겠습니까? SoAI 애플리케이션이 다시 시작됩니다.",
+                "installSystemWithInstaller": "시스템 업데이트 {version}을(를) 설치하시겠습니까? Windows 설치 프로그램이 실행되고 SoAI가 다시 시작됩니다."
             },
             "description": "SoAI 애플리케이션의 업데이트를 확인하고 설치합니다.",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "비밀번호 확인",
-                    "placeholder": "비밀번호를 다시 입력하세요."
+                    "placeholder": "비밀번호 재입력"
                 },
                 "creating": "생성 중...",
                 "description": "관리자 계정을 생성하세요. 이 계정은 해당 SoAI 인스턴스에 대한 전체 액세스 권한을 갖습니다.",

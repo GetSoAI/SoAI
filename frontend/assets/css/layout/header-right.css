@@ -52,6 +52,16 @@
         z-index: var(--z-raised);
     }
 
+    .header-right .header-badge.header-badge--background-activity {
+        background-color: color-mix(in srgb, var(--status-orange) 55%, var(--color-black));
+        color: var(--color-white);
+    }
+
+    .header-right .header-badge.header-badge--mixed-attention {
+        background-color: color-mix(in srgb, var(--status-yellow) 55%, var(--color-black));
+        color: var(--color-white);
+    }
+
     .header-right .clock-button {
         height: var(--icon-button-size);
         min-height: var(--icon-button-size);

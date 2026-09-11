@@ -1,6 +1,8 @@
 /* SoAI - Central assistant render transaction and render-signature commit [frontend/assets/ts/features/chat/message/assistantRenderTransaction.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { cancelLoadingActivityTransition } from '@features/chat/message/loadingActivityToggleRegistry.ts';
+import { resolveAssistantMessageParts } from '@features/chat/message/assistantMessageMarkupParts.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import type { ChatComparisonTurnRenderModel } from '@features/chat/comparisonTurnRenderModel.ts';
 import { collectAssistantDomState, type AssistantDomStatePreservation } from '@features/chat/message/assistantDomState.ts';
@@ -10,7 +12,7 @@ import { hasStreamingAssistantDom, normalizeSettledAssistantDom } from '@feature
 import { withAssistantViewportStability, type AssistantViewportStabilityScope } from '@features/chat/message/assistantViewportStability.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 
-type AssistantRenderIntent = 'streamingChrome' | 'runningUpdate' | 'terminalFinalize' | 'idleRefresh';
+type AssistantRenderIntent = 'streamingChrome' | 'runningUpdate' | 'terminalFinalize' | 'idleRefresh' | 'activityToggle';
 
 type AssistantRenderTransactionResult = {
     root: HTMLElement;
@@ -44,7 +46,7 @@ type AssistantTransactionCacheCommitArguments = {
 
 const shouldPreserveText = (intent: AssistantRenderIntent): boolean => intent === 'streamingChrome' || intent === 'runningUpdate' || intent === 'terminalFinalize';
 
-const shouldSuppressInsertAnimations = (intent: AssistantRenderIntent): boolean => intent === 'terminalFinalize' || intent === 'idleRefresh';
+const shouldSuppressInsertAnimations = (intent: AssistantRenderIntent): boolean => intent === 'terminalFinalize' || intent === 'idleRefresh' || intent === 'activityToggle';
 
 const shouldSettleLiveDom = (intent: AssistantRenderIntent): boolean => intent === 'terminalFinalize';
 
@@ -69,6 +71,10 @@ const commitAssistantTransactionRenderCache = (inputArguments: AssistantTransact
 
 const applyAssistantRenderTransaction = (inputArguments: AssistantRenderTransactionArguments): AssistantRenderTransactionResult => {
     const effectiveIntent = resolveEffectiveAssistantRenderIntent(inputArguments.existingMessageRoot, inputArguments.intent);
+    const messageText = resolveAssistantMessageParts(inputArguments.existingMessageRoot)?.text;
+    if (effectiveIntent !== 'activityToggle' && messageText !== undefined) {
+        cancelLoadingActivityTransition(messageText);
+    }
     const assistantDomState = inputArguments.assistantDomState ?? collectAssistantDomState(inputArguments.existingMessageRoot);
     const forceTextPatch = effectiveIntent === 'terminalFinalize' && inputArguments.forceSettledAssistantBody === true;
     let changed = false;
@@ -81,12 +87,14 @@ const applyAssistantRenderTransaction = (inputArguments: AssistantRenderTransact
             suppressInsertAnimations: boolean;
             assistantDomState: AssistantDomStatePreservation;
             forceTextPatch?: boolean;
+            activityToggle?: boolean;
         } = {
             existingMessageRoot: inputArguments.existingMessageRoot,
             mode: shouldPreserveText(effectiveIntent) ? 'preserveText' : 'full',
             suppressInsertAnimations: shouldSuppressInsertAnimations(effectiveIntent),
             assistantDomState,
-            ...(forceTextPatch ? { forceTextPatch: true } : {})
+            ...(forceTextPatch ? { forceTextPatch: true } : {}),
+            ...(effectiveIntent === 'activityToggle' ? { activityToggle: true } : {})
         };
         const applied =
             inputArguments.replacement === undefined

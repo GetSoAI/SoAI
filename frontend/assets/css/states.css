@@ -207,12 +207,6 @@
         transition: none;
     }
 
-    @container ui-viewport (width >= 1024px) {
-        .chat-header-model-selector.is-visible {
-            display: flex;
-        }
-    }
-
     .header-notification-tasks .header-task-manager-panel .dropdown-item.task-item {
         background: var(--task-item-row-bg);
     }
@@ -267,11 +261,11 @@
         --border-collection-row: color-mix(in srgb, var(--session-recent-overlay-accent) 58%, var(--glass-border-strong));
     }
 
-    .ui-collection-list__table tbody tr.session-recent-row {
+    .ui-collection-list__table tbody tr:is(.session-recent-row, .plugins-list-row.plugins-list-row--incompatible) {
         background: var(--surface-collection-row-background);
     }
 
-    .ui-collection-list__table tbody tr.session-recent-row > td {
+    .ui-collection-list__table tbody tr:is(.session-recent-row, .plugins-list-row.plugins-list-row--incompatible) > td {
         background: transparent;
         border-bottom-color: var(--border-collection-row);
     }
@@ -293,5 +287,10 @@
 
     .session-recent-row:hover {
         --surface-collection-row-background: var(--table-row-hover-background);
+    }
+
+    .plugins-list-row.plugins-list-row--incompatible {
+        --surface-collection-row-background: linear-gradient(135deg, color-mix(in srgb, var(--status-red) 20%, var(--glass-underlay-surface)), color-mix(in srgb, var(--status-red) 10%, var(--glass-underlay-surface)));
+        --border-collection-row: color-mix(in srgb, var(--status-red) 58%, var(--glass-border-strong));
     }
 }

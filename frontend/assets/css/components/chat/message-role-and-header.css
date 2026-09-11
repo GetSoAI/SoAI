@@ -42,7 +42,7 @@
         border: var(--border-width-1) solid var(--glass-border-chat-message-user);
     }
 
-    :where(.chat-container) :is(.chat-sidebar, .attached-files-preview, .ask-user-preview, .secret-prompt-preview, .tool-approval-preview, .input-queue-preview, .voice-recording-preview, .chat-main-container, .chat-input) {
+    :where(.chat-container) :is(.chat-sidebar, .attached-files-preview, .ask-user-preview, .secret-prompt-preview, .tool-approval-preview, .input-queue-preview, .voice-recording-preview, .chat-main-container) {
         border: var(--border-width-1) solid var(--glass-border-strong);
         border-radius: var(--border-radius);
     }

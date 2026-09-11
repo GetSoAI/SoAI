@@ -9,9 +9,10 @@ import type { ChatStreamResponseOptions } from '@features/chat/chatstreamservice
 import { captureConversationMutationSnapshot, restoreConversationMutationSnapshot } from '@features/chat/execution/conversationMutationSnapshot.ts';
 import { applyPrimaryChatExecutionModelToConversation, requireChatExecutionModelPreflight, requireNoActiveConversationExecution } from '@features/chat/modelExecutionPreflight.ts';
 import { applyEditedUserText, removeEditedUserAttachmentIndexes } from '@features/chat/message/messageEditing.ts';
+import { isChatMessage } from '@features/chat/message/chatMessageGuards.ts';
 import { isUserMessageRole } from '@features/chat/message/messageRole.ts';
 import { resolvePersistedMessageCursor } from '@features/chat/message/persistedMessageIdentity.ts';
-import type { MessageReferenceResolver } from '@features/chat/message/messageReferenceResolution.ts';
+import { captureMessageReferenceIdentity, resolveMessageReferenceFromIdentity, type MessageReferenceResolver } from '@features/chat/message/messageReferenceResolution.ts';
 import type { ChatStorageMessageRecord, LoadConversationMessagesOptions } from '@features/chat/storage/storageModels.ts';
 import { requireConversationId } from '@features/chat/validation/ids.ts';
 
@@ -33,6 +34,8 @@ type ChatMessageEditCommitDependencies = {
     resubmitUserMessage: (conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number; message: ChatStorageMessageRecord }) => Promise<void>;
 };
 
+type ChatMessageEditCommitSettlement = { status: 'committed'; currentMessage: ChatMessage | null } | { status: 'superseded' };
+
 const resolveMessageTimestamp = (message: ConversationMessage | null | undefined): number | null => {
     if (!isObject(message)) {
         return null;
@@ -45,12 +48,14 @@ const isServerWindowedConversation = (conversation: ConversationContract): boole
     return conversation.history !== undefined;
 };
 
-const commitChatMessageResubmissionInConversation = async (dependencies: ChatMessageEditCommitDependencies, inputArguments: { conversation: ConversationContract; conversationId: string; messageId: string; updatedText: string | null; removedAttachmentIndexes: readonly number[]; onCommitted: (() => void) | null }): Promise<void> => {
+const commitChatMessageResubmissionInConversation = async (dependencies: ChatMessageEditCommitDependencies, inputArguments: { conversation: ConversationContract; conversationId: string; messageId: string; updatedText: string | null; removedAttachmentIndexes: readonly number[]; onSettled: ((settlement: ChatMessageEditCommitSettlement) => void) | null }): Promise<void> => {
     const initialReference = dependencies.resolveMessageReference(inputArguments.conversation, inputArguments.messageId);
     const initialMessage = initialReference.message;
     if (!initialMessage || !isUserMessageRole(initialMessage) || initialReference.index < 0) {
+        inputArguments.onSettled?.({ status: 'superseded' });
         return;
     }
+    const targetIdentity = captureMessageReferenceIdentity(initialMessage);
 
     requireChatExecutionModelPreflight({
         conversation: inputArguments.conversation,
@@ -63,11 +68,14 @@ const commitChatMessageResubmissionInConversation = async (dependencies: ChatMes
 
     const conversation = dependencies.getCurrentConversation();
     if (conversation !== inputArguments.conversation || requireConversationId(conversation.id, 'Conversation') !== inputArguments.conversationId) {
+        inputArguments.onSettled?.({ status: 'superseded' });
         return;
     }
 
-    const targetIndex = conversation.messages.indexOf(initialMessage);
-    if (targetIndex < 0) {
+    const targetReference = resolveMessageReferenceFromIdentity(conversation, targetIdentity, isChatMessage);
+    const targetMessage = targetReference.message;
+    if (targetMessage === null || targetReference.index < 0 || !isUserMessageRole(targetMessage)) {
+        inputArguments.onSettled?.({ status: 'superseded' });
         return;
     }
     const modelPreflight = requireChatExecutionModelPreflight({
@@ -78,22 +86,24 @@ const commitChatMessageResubmissionInConversation = async (dependencies: ChatMes
     });
     const mutationSnapshot = captureConversationMutationSnapshot(conversation);
     let committed = false;
+    let canonicalReloadAttempted = false;
+    let streamConversation = conversation;
     try {
-        const editedMessage: ChatMessage = cloneStructured(initialMessage);
+        const editedMessage: ChatMessage = cloneStructured(targetMessage);
         removeEditedUserAttachmentIndexes(editedMessage, inputArguments.removedAttachmentIndexes);
         if (inputArguments.updatedText !== null) {
             applyEditedUserText(editedMessage, inputArguments.updatedText);
         }
-        const preservedTimestamp = resolveMessageTimestamp(initialMessage);
+        const preservedTimestamp = resolveMessageTimestamp(targetMessage);
         if (preservedTimestamp === null) {
             throw new Error('Edited user message timestamp is invalid.');
         }
         editedMessage.timestamp = preservedTimestamp;
         const editedRecord: ChatStorageMessageRecord = { ...editedMessage, role: editedMessage.role, timestamp: preservedTimestamp };
         applyPrimaryChatExecutionModelToConversation(conversation, modelPreflight.primaryModelId);
-        conversation.messages = [...conversation.messages.slice(0, targetIndex), editedMessage];
+        conversation.messages = [...conversation.messages.slice(0, targetReference.index), editedMessage];
         if (isServerWindowedConversation(conversation)) {
-            const cursor = resolvePersistedMessageCursor(initialMessage);
+            const cursor = resolvePersistedMessageCursor(targetMessage);
             if (cursor === null) {
                 throw new Error('Edited persisted user message cursor is missing.');
             }
@@ -106,13 +116,35 @@ const commitChatMessageResubmissionInConversation = async (dependencies: ChatMes
             await dependencies.saveAndSync(conversation);
         }
         committed = true;
-        if (inputArguments.onCommitted !== null) {
-            inputArguments.onCommitted();
+        const currentConversation = dependencies.getCurrentConversation();
+        const currentConversationMatches = currentConversation !== null && currentConversation.id === inputArguments.conversationId;
+        const currentReference = currentConversationMatches ? resolveMessageReferenceFromIdentity(currentConversation, targetIdentity, isChatMessage) : null;
+        if (currentConversationMatches && currentReference?.message !== null) {
+            streamConversation = currentConversation;
         }
-        await dependencies.renderCurrentConversation();
+        if (inputArguments.onSettled !== null) {
+            inputArguments.onSettled({ status: 'committed', currentMessage: currentReference?.message ?? null });
+        }
+        if (currentConversationMatches && (currentConversation !== conversation || currentReference?.message === null)) {
+            canonicalReloadAttempted = true;
+            await dependencies.loadConversationMessages(inputArguments.conversationId, { force: true });
+            const reloadedConversation = dependencies.getCurrentConversation();
+            if (reloadedConversation !== null && reloadedConversation.id === inputArguments.conversationId) {
+                const reloadedReference = resolveMessageReferenceFromIdentity(reloadedConversation, targetIdentity, isChatMessage);
+                if (reloadedReference.message === null || !isUserMessageRole(reloadedReference.message)) {
+                    throw new Error('Committed edited user message is missing after canonical reload.');
+                }
+                streamConversation = reloadedConversation;
+            }
+        }
+        if (dependencies.getCurrentConversation()?.id === inputArguments.conversationId) {
+            await dependencies.renderCurrentConversation();
+        }
     } catch (error) {
         if (committed) {
-            await dependencies.loadConversationMessages(inputArguments.conversationId, { force: true });
+            if (!canonicalReloadAttempted) {
+                await dependencies.loadConversationMessages(inputArguments.conversationId, { force: true });
+            }
             dependencies.invalidateChatMarkup('both');
             await dependencies.refreshConversationsUI();
             throw error;
@@ -122,15 +154,16 @@ const commitChatMessageResubmissionInConversation = async (dependencies: ChatMes
         throw error;
     }
     requireNoActiveConversationExecution({ conversationId: inputArguments.conversationId, isConversationExecuting: (candidateConversationId) => dependencies.isConversationExecuting(candidateConversationId), context: 'Chat message edit' });
-    await dependencies.streamResponse(conversation, {
+    await dependencies.streamResponse(streamConversation, {
         reportRequestFailure: false,
         skipInitialMessageSync: true
     });
 };
 
-const commitChatMessageResubmission = async (dependencies: ChatMessageEditCommitDependencies, inputArguments: { messageId: string; updatedText: string | null; removedAttachmentIndexes: readonly number[]; onCommitted: (() => void) | null }): Promise<void> => {
+const commitChatMessageResubmission = async (dependencies: ChatMessageEditCommitDependencies, inputArguments: { messageId: string; updatedText: string | null; removedAttachmentIndexes: readonly number[]; onSettled: ((settlement: ChatMessageEditCommitSettlement) => void) | null }): Promise<void> => {
     const conversation = dependencies.getCurrentConversation();
     if (!conversation) {
+        inputArguments.onSettled?.({ status: 'superseded' });
         return;
     }
     const conversationId = requireConversationId(conversation.id, 'Conversation');
@@ -142,18 +175,18 @@ const commitChatMessageResubmission = async (dependencies: ChatMessageEditCommit
             messageId: inputArguments.messageId,
             updatedText: inputArguments.updatedText,
             removedAttachmentIndexes: inputArguments.removedAttachmentIndexes,
-            onCommitted: inputArguments.onCommitted
+            onSettled: inputArguments.onSettled
         });
     });
 };
 
-const commitChatMessageEdit = async (dependencies: ChatMessageEditCommitDependencies, inputArguments: { messageId: string; updatedText: string; removedAttachmentIndexes: readonly number[]; onCommitted: () => void }): Promise<void> => {
-    await commitChatMessageResubmission(dependencies, { messageId: inputArguments.messageId, updatedText: inputArguments.updatedText, removedAttachmentIndexes: inputArguments.removedAttachmentIndexes, onCommitted: inputArguments.onCommitted });
+const commitChatMessageEdit = async (dependencies: ChatMessageEditCommitDependencies, inputArguments: { messageId: string; updatedText: string; removedAttachmentIndexes: readonly number[]; onSettled: (settlement: ChatMessageEditCommitSettlement) => void }): Promise<void> => {
+    await commitChatMessageResubmission(dependencies, { messageId: inputArguments.messageId, updatedText: inputArguments.updatedText, removedAttachmentIndexes: inputArguments.removedAttachmentIndexes, onSettled: inputArguments.onSettled });
 };
 
 const commitChatMessageResend = async (dependencies: ChatMessageEditCommitDependencies, inputArguments: { messageId: string }): Promise<void> => {
-    await commitChatMessageResubmission(dependencies, { messageId: inputArguments.messageId, updatedText: null, removedAttachmentIndexes: [], onCommitted: null });
+    await commitChatMessageResubmission(dependencies, { messageId: inputArguments.messageId, updatedText: null, removedAttachmentIndexes: [], onSettled: null });
 };
 
 export { commitChatMessageEdit, commitChatMessageResend };
-export type { ChatMessageEditCommitDependencies };
+export type { ChatMessageEditCommitDependencies, ChatMessageEditCommitSettlement };

@@ -88,12 +88,6 @@
             padding-right: var(--space-2);
         }
 
-        :where(.chat-container) .chat-input-wrapper {
-            left: 0.75rem;
-            right: 0.75rem;
-            bottom: calc(0.75rem + var(--ui-safe-area-inset-bottom));
-        }
-
         :where(.chat-container) .chat-previews-container {
             --chat-previews-container-bottom: calc(85px + var(--ui-safe-area-inset-bottom));
             --chat-previews-container-left: 3rem;

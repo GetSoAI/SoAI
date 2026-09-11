@@ -17,6 +17,10 @@ class ComposerDraftRevisionState {
         return this.#revisionByConversation.get(conversationId) ?? 0;
     }
 
+    observe(conversationId: string, revision: number): void {
+        if (revision > this.get(conversationId)) this.#revisionByConversation.set(conversationId, revision);
+    }
+
     discard(conversationId: string): void {
         this.#revisionByConversation.delete(conversationId);
         this.#conflictWarningConversations.delete(conversationId);

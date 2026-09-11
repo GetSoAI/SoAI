@@ -61,6 +61,7 @@ const createHardwareInteractionHandlers = (dependencies: HardwareInteractionEven
                 handleGpuSoAIBenchHistory: async (gpuIndex: string) => await dependencies.gpuController.handleGpuSoAIBenchHistoryClick(gpuIndex),
                 handleGpuSoAIBenchReopen: async (gpuIndex: string) => await dependencies.gpuController.handleGpuSoAIBenchReopenClick(gpuIndex),
                 handleGpuSoAIBenchToggle: (gpuIndex: string) => dependencies.gpuController.handleGpuSoAIBenchToggleClick(gpuIndex),
+                retryGpuResources: () => dependencies.gpuController.retryResources(),
                 handleGpuReset: async (gpuIndex: string) => await dependencies.gpuController.resetGpuSettings(gpuIndex),
                 handleGpuSaveMode: (clickEvent: MouseEvent, gpuIndex: string) => {
                     dependencies.gpuController.handleGpuSaveButtonClick(clickEvent, gpuIndex);

@@ -38,6 +38,7 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
             streams: foundation.streams,
             cancelDownload: operations.cancelDownload,
             createStreamHandlers: (key: string, message: string, streamCallbacks: Parameters<DownloadManagerHost['execution']['createStreamHandlers']>[2]) => operations.createStreamHandlers(key, message, streamCallbacks),
+            trackAcceptedTask: (taskId: string, options: Parameters<DownloadManagerHost['execution']['trackAcceptedTask']>[1]) => operations.trackAcceptedTask(taskId, options),
             startTaskAction: (url: string, options: Parameters<DownloadManagerHost['execution']['startTaskAction']>[1]) => operations.startTaskAction(url, options),
             api: foundation.api,
             createOperationProgressReporter: operations.createOperationProgressReporter

@@ -6,12 +6,13 @@ import { i18n } from '@core/i18n/index.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
 import { getPluginSystemRequirementMessages } from '@core/plugins/systemRequirements.ts';
 import { PLUGIN_STATUS_BACKEND_INSTALLING, PLUGIN_STATUS_BACKEND_NOT_INSTALLED, PLUGIN_STATUS_BACKEND_UPDATING, PLUGIN_STATUS_INSTALL_ERROR } from '@core/state/pluginStatus.ts';
-import type { PluginBackendUpdateStatus } from '@core/api/contracts/pluginManagementContracts.ts';
+import type { BackendVariantsResponse, PluginBackendUpdateStatus } from '@core/api/contracts/pluginManagementContracts.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import { setElementDisabledState } from '@features/plugins/contracts/pluginPageSupport.ts';
 import type { BackendManagerSecurity } from '@features/plugins/modals/backend/backendTypes.ts';
 import { bindBackendWebsiteLinkClick } from '@features/plugins/modals/backend/backendWebsiteLinkEvents.ts';
 import { buildBackendWebsiteLink, getBackendWebsiteUrl } from '@features/plugins/modals/backend/backendWebsiteLink.ts';
+import { normalizeBackendVariantOptions } from '@features/plugins/modals/backend/backendVariantOptions.ts';
 import { setBackendVariantSelectorDisabled } from '@features/plugins/modals/backend/backendVariantSelector.ts';
 import type { ManageBackendManagerHost, ManageClassNames, ManageState } from '@features/plugins/modals/backend/managebackendmodal/types.ts';
 
@@ -23,6 +24,12 @@ interface ManageInfoViewDependencies {
 interface ManageButtonsViewDependencies {
     host: ManageBackendManagerHost;
     classNames: ManageClassNames;
+}
+
+interface ManageVariantInfoViewPort {
+    requireHTMLElement(selector: string | Element, context?: Element): HTMLElement;
+    updateText(target: Element | string, text: string): void;
+    updateAttribute(target: Element | string, attribute: string, value: string | null): void;
 }
 
 interface ManageUpdateViewDependencies extends ManageButtonsViewDependencies {
@@ -57,6 +64,7 @@ const renderManageBackendInfo = (dependencies: ManageInfoViewDependencies, modal
         ${backendVersion ? `<div class="plugin-info-details"><span class="plugin-info-version plugin-backend-version">${i18n.t('plugins.modal.manageBackend.backend_version', { version: esc(backendVersion) })}</span></div>` : ''}
         <div class="plugin-info-details"><span class="plugin-info-version">${i18n.t('plugins.modal.manageBackend.pluginVersion', { version: esc(pluginVersion) })}</span><span class="plugin-info-author">${i18n.t('plugins.modal.manageBackend.author', { author: esc(author) })}</span></div>
         <div class="plugin-info-details"><span class="plugin-info-status">${i18n.t('plugins.modal.manageBackend.backendStatus', { status: esc(backendStatus) })}</span></div>
+        <div id="${modalUiId(modalId, 'installed-variant')}" class="plugin-info-details plugin-backend-variant" hidden></div>
         ${buildBackendWebsiteLink(websiteLinkId, getBackendWebsiteUrl(plugin), dependencies.security)}
         </div>
         ${needsInstallBadge}
@@ -72,6 +80,13 @@ const renderManageBackendInfo = (dependencies: ManageInfoViewDependencies, modal
     if (led && statusManager) {
         statusManager.updateIndicator(led, dependencies.host.status.getPluginStatus(plugin));
     }
+};
+
+const renderManageBackendVariantInfo = (view: ManageVariantInfoViewPort, modalId: string, modalRoot: HTMLElement, payload: BackendVariantsResponse): void => {
+    const variant = view.requireHTMLElement(modalUiSelector(modalId, 'installed-variant'), modalRoot);
+    const installedLabel = normalizeBackendVariantOptions(payload).installedLabel;
+    view.updateText(variant, installedLabel ?? '');
+    view.updateAttribute(variant, 'hidden', installedLabel === null ? '' : null);
 };
 
 const renderManageBackendWarning = (dependencies: ManageInfoViewDependencies & { classNames: ManageClassNames }, modalId: string, modalRoot: HTMLElement, plugin: PluginRecord): void => {
@@ -228,4 +243,4 @@ const clearManageBackendModalView = (dependencies: ManageButtonsViewDependencies
     }
 };
 
-export { clearManageBackendModalView, hideManageBackendUpdateControls, renderManageBackendInfo, renderManageBackendWarning, resetManageBackendButtons, setManageBackendButtonsDisabled, showManageBackendNoUpdateAvailable, showManageBackendUpdateAvailable, syncManageBackendFooterActions };
+export { clearManageBackendModalView, hideManageBackendUpdateControls, renderManageBackendInfo, renderManageBackendVariantInfo, renderManageBackendWarning, resetManageBackendButtons, setManageBackendButtonsDisabled, showManageBackendNoUpdateAvailable, showManageBackendUpdateAvailable, syncManageBackendFooterActions };

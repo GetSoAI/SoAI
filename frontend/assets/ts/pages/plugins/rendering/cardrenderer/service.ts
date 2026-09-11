@@ -70,12 +70,16 @@ class PluginCardRenderer extends BaseCardRenderer<PluginRecord | null | undefine
         const overrideActive = Boolean(compatibility?.isOverridden);
         const pendingToggleTarget = this.host.actions.getPendingToggleTarget(plugin);
         const forceToggleUnchecked = toggleLocked || hardwareIncompatible || circuitBreakerActive;
+        const compatibilityIncompatible = permanentlyDisabled || hardwareIncompatible;
         const toggleChecked = resolveToggleChecked(plugin.isEnabled, plugin.state, forceToggleUnchecked, pendingToggleTarget);
         const toggleLabel = resolveToggleLabelText(permanentlyDisabled, quarantined, overrideRequired, overrideActive, toggleChecked);
         const safeName = this.host.presentation.sanitizeText(this.host.presentation.formatPluginName(plugin.name) || i18n.t('common.unknown'));
+        const listTitle = compatibilityIncompatible ? `${safeName} (${this.host.presentation.sanitizeText(i18n.t('plugins.status.incompatible'))})` : safeName;
         const description = this.host.presentation.sanitizeText(plugin.descriptionSoaiplugin?.trim() ?? '');
         const typeLabel = plugin.isBuiltin ? i18n.t('plugins.badges.builtin') : i18n.t('plugins.badges.thirdparty');
         const statusClass = this.buildClassList([data.statusBadgeClass]);
+        const pluginLogo = this.host.presentation.getPluginLogo(plugin);
+        const pluginLogoFallback = this.host.presentation.getPluginLogoFallback(plugin);
         const facts: readonly PluginListFact[] = [
             {
                 metricKey: 'version',
@@ -87,12 +91,12 @@ class PluginCardRenderer extends BaseCardRenderer<PluginRecord | null | undefine
             { metricKey: 'type', label: i18n.t('plugins.badges.type'), value: typeLabel, clickable: false }
         ];
         const markup = `
-            <tr class="${this.builder.combineClasses('plugins-list-row', data.statusClass, !toggleChecked ? this.constants.classNames.disabled : '', this.host.actions.isNewItem(plugin) ? 'session-recent-row' : '')}" data-render-mode="list" data-action="${PLUGINS_ACTION_OPEN_PLUGIN}" data-plugin="${this.host.presentation.sanitizeText(data.cardId)}" data-status="${this.host.presentation.sanitizeText(data.status)}" data-circuit-breaker="${circuitBreakerActive ? 'active' : 'inactive'}">
+            <tr class="${this.builder.combineClasses('plugins-list-row', data.statusClass, compatibilityIncompatible ? 'plugins-list-row--incompatible' : '', !toggleChecked ? this.constants.classNames.disabled : '', this.host.actions.isNewItem(plugin) ? 'session-recent-row' : '')}" data-render-mode="list" data-action="${PLUGINS_ACTION_OPEN_PLUGIN}" data-plugin="${this.host.presentation.sanitizeText(data.cardId)}" data-status="${this.host.presentation.sanitizeText(data.status)}" data-circuit-breaker="${circuitBreakerActive ? 'active' : 'inactive'}">
                 <td class="plugins-list-cell plugins-list-cell-main">
-                    <button type="button" class="plugins-list-open" data-action="${PLUGINS_ACTION_OPEN_PLUGIN}" ${renderLabelAttributes(safeName)}>
+                    <button type="button" class="plugins-list-open" data-action="${PLUGINS_ACTION_OPEN_PLUGIN}" ${renderLabelAttributes(listTitle)}>
                         <span class="plugins-list-title-row">
-                            ${this.host.presentation.getPluginLogo(plugin) ? `<img src="${this.host.presentation.sanitizeText(this.host.presentation.getPluginLogo(plugin))}" alt="" class="plugin-logo-small" />` : ''}
-                            <span class="plugins-list-title" data-tooltip="${safeName}">${safeName}</span>
+                            ${pluginLogo ? `<img src="${this.host.presentation.sanitizeText(pluginLogo)}" data-plugin-logo-fallback="${this.host.presentation.sanitizeText(pluginLogoFallback)}" alt="" class="plugin-logo-small" />` : ''}
+                            <span class="plugins-list-title" data-tooltip="${listTitle}">${listTitle}</span>
                         </span>
                         <span class="plugins-list-description">${description}</span>
                     </button>

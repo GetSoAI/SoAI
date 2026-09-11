@@ -4,7 +4,8 @@
 import { buildFolderPickerLabels } from '@core/fileexplorerbrowser/folderPickerLabels.ts';
 import { showFolderPickerModal, type FolderPickerResult } from '@core/fileexplorerbrowser/folderPickerModal.ts';
 import { resolveFolderPickerPathOverride } from '@core/fileexplorerbrowser/folderPickerPathOverride.ts';
-import { isAbsoluteOsPath, resolveAbsolutePath } from '@core/fileexplorerbrowser/paths.ts';
+import { resolveAbsolutePath } from '@core/fileexplorerbrowser/paths.ts';
+import { isAbsoluteFilesystemPath } from '@core/filePathResolution.ts';
 import type { WorkspaceBrowserAccess } from '@core/fileexplorerbrowser/workspaceBrowserAccess.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 
@@ -28,7 +29,7 @@ const resolveWorkspaceDisplayPath = (workspacePath: string | null | undefined, c
     const fallback = toTrimmedString(currentWorkspacePath);
     const value = toTrimmedString(workspacePath);
     if (!value) return fallback || null;
-    if (isAbsoluteOsPath(value)) return value;
+    if (isAbsoluteFilesystemPath(value)) return value;
     return resolveAbsolutePath(fallback, value) ?? value;
 };
 
@@ -60,16 +61,15 @@ class WorkspacePathDraft {
     async open(options: { access: WorkspaceBrowserAccess; readOnly: boolean; canApply: () => boolean; strings: WorkspacePathPickerStrings }): Promise<boolean> {
         if (options.readOnly) return false;
         const currentPath = this.#displayPath;
-        const pathIsAbsolute = currentPath ? isAbsoluteOsPath(currentPath) : false;
+        const pathIsAbsolute = currentPath ? isAbsoluteFilesystemPath(currentPath) : false;
         const result = await showFolderPickerModal({
-            api: options.access.browserApi,
+            source: { type: 'workspace', api: options.access.browserApi },
             title: options.strings.title,
             message: options.strings.message,
             labels: buildFolderPickerLabels({ chooseCurrent: options.strings.chooseCurrent }),
             ...(currentPath && pathIsAbsolute ? { initialAbsolutePathToBrowse: currentPath } : {}),
             ...(currentPath && !pathIsAbsolute ? { initialVirtualPath: currentPath } : {}),
-            allowManualPathEntry: true,
-            allowManualAbsoluteSelectionOutsideRoot: options.access.allowManualAbsoluteSelectionOutsideRoot
+            allowManualPathEntry: true
         });
         if (!result || !options.canApply()) return false;
         if (result.resultType === 'reset') {

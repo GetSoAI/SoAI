@@ -45,6 +45,7 @@ async def reconcile_stale_active_tasks_on_startup(
     grace_seconds: int = 2,
     exclude_owner_types: tuple[str, ...] = (),
     exclude_task_types: tuple[str, ...] = (),
+    exclude_task_ids: tuple[str, ...] = (),
     failure_message: str = "Server restarted",
     limit: int = 20000,
 ) -> StaleTaskReconciliationResult:
@@ -80,6 +81,8 @@ async def reconcile_stale_active_tasks_on_startup(
                     "Stale task query returned a row without a task identifier.",
                     operation=OPERATION,
                 )
+            if task_id_value in exclude_task_ids:
+                continue
             try:
                 updated = await finalize(
                     registry,

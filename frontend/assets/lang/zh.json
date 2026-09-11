@@ -82,6 +82,9 @@
                 "deleteMessage": "这将删除“{title}”及其计划运行。现有聊天记录仍会保留。",
                 "deleteTitle": "删除自动化？"
             },
+            "errors": {
+                "oneShotStartNotFuture": "一次性自动化必须在未来的时间开始。请选择更晚的开始时间。"
+            },
             "preferencesCorrupt": {
                 "message": "自动化页面偏好设置无效。请重置偏好设置以继续。",
                 "reset": "重置自动化偏好设置",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "在此对话中执行工具前需要批准。",
                 "newConversationInheritLastSettings": "新聊天使用上次设置",
                 "newConversationInheritLastSettingsHint": "新聊天会使用你上次使用的模型、工具和知识库设置。",
+                "ctrlEnterSend": "使用 Ctrl + Enter 发送",
+                "ctrlEnterSendHint": "启用后，按 Ctrl + Enter 发送，按 Enter 换行。停用后，按 Enter 发送，按 Shift + Enter 换行。",
                 "knowledge": {
                     "downloadModel": "下载模型",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "正在停止响应"
                         },
+                        "soai_documentation": {
+                            "1": "正在搜索 SoAI 文档",
+                            "detail": {
+                                "1": "正在搜索 SoAI 文档：{detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "正在替换文本",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "当前文件夹",
+                "filesystemRoot": "文件系统根目录",
                 "empty": "未找到文件夹。",
                 "forbidden": "你无权访问此文件夹。",
                 "loadFailed": "加载文件夹失败。",
+                "validationFailed": "无法验证所选文件夹。",
                 "loading": "正在加载文件夹...",
                 "manualAbsolutePathRequired": "请输入绝对路径（例如 /path 或 C:\\path）。",
                 "manualPath": "所选文件夹",
@@ -2474,7 +2487,8 @@
                 "loading": "加载中",
                 "resolution": "分辨率",
                 "size": "大小",
-                "zoom": "缩放"
+                "zoom": "缩放",
+                "position": "第 {current} 张图片，共 {total} 张"
             },
             "sourceInfo": {
                 "conversationPath": "对话路径",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "小组件"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "无法检测到部分 GPU 控制功能。可用的功能仍可使用。",
+                "capabilitiesStale": "正在重新连接 GPU 控制功能。上次更新：{age}。",
+                "capabilitiesRetained": "GPU 控制功能不可用。正在显示{age}的数据。",
+                "slotsStale": "正在重新连接已保存的 GPU 设置。上次更新：{age}。",
+                "slotsRetained": "已保存的 GPU 设置不可用。正在显示{age}的数据。",
+                "capabilitiesUnavailable": "GPU 控制不可用。",
+                "slotsUnavailable": "已保存的 GPU 设置不可用。"
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "打开"
                 },
                 "aria": {
-                    "panel": "通知中心",
-                    "unreadCount": "未读通知"
+                    "panel": "通知中心"
                 },
                 "messages": {
                     "noNotifications": "没有通知",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "继续",
                 "externalLinkMessage": "是否在新的浏览器标签页中打开 SoAI 网站？"
             },
-            "description": "了解 SoAI 的各项功能",
+            "description": "了解 SoAI 的各项功能。",
             "documentationUrl": "文档",
             "intro": {
                 "aboutButton": "关于 SoAI",
@@ -4236,8 +4258,7 @@
             "description": "管理插件和提供商中的 AI 模型。",
             "searchPlaceholder": "搜索模型...",
             "empty": {
-                "downloadFirst": "下载你的第一个模型",
-                "getStarted": "下载你的第一个模型即可开始使用。",
+                "getStarted": "添加第一个模型即可开始。",
                 "noMatch": "没有与筛选条件匹配的模型",
                 "noModels": "未找到模型",
                 "tryAdjusting": "请尝试调整搜索或筛选条件。"
@@ -4702,7 +4723,7 @@
                 "title": "仪表盘"
             },
             "fileExplorer": {
-                "description": "浏览和管理 SoAI OS 文件。",
+                "description": "浏览和管理 SoAI 文件。",
                 "title": "文件"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "无",
                 "reasons": {
                     "broken": "插件文件已损坏或存在语法错误。请删除后重新下载。",
+                    "dependencyMissing": "无法使用必需的插件依赖项：{dependencies}。",
                     "gpu": "需要 GPU（{required}）。检测到的厂商：{detected}。可覆盖此限制以使用 CPU 模式（可能无法工作）。",
                     "gpuShort": "GPU 检查失败。要求：{required}。检测到：{detected}。切换开关以继续。",
                     "hardwareShort": "未满足硬件要求。要求：{required}。当前：{current}。切换开关以继续。",
                     "os": "需要 {required}。检测到：{detected}。覆盖此限制需自行承担风险。",
+                    "osCard": "需要 {required}。检测到：{detected}。",
                     "osShort": "操作系统不匹配。要求：{required}。检测到：{detected}。切换开关以仍然启用。",
                     "version": "需要 SoAI {required}。当前：{current}。请更新 SoAI 以使用此插件。"
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "已发出停止所有插件的命令。",
                 "stopSuccess": "插件 {plugin} 已成功停止",
                 "updateCheckFailed": "检查更新失败",
-                "uploadAccepted": "已接受插件上传",
                 "uploadFailed": "上传插件失败"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "插件",
                 "prompts": "提示词"
             },
-            "description": "搜索模型、插件、硬件等内容",
+            "description": "搜索模型、插件、硬件等内容。",
             "deviceDescriptions": {
                 "cpuCores": "{count} 个核心",
                 "cpuThreads": "{count} 个线程",
@@ -7669,7 +7691,8 @@
                 "upToDate": "已是最新"
             },
             "confirmations": {
-                "installSystem": "确定要安装系统更新 {version} 吗？这将重启 SoAI 应用。"
+                "installSystem": "确定要安装系统更新 {version} 吗？这将重启 SoAI 应用。",
+                "installSystemWithInstaller": "确定要安装系统更新 {version} 吗？这将运行 Windows 安装程序并重启 SoAI。"
             },
             "description": "检查并安装 SoAI 应用更新。",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "确认密码",
-                    "placeholder": "再次输入密码。"
+                    "placeholder": "再次输入密码"
                 },
                 "creating": "正在创建...",
                 "description": "创建管理员账户。该账户拥有此 SoAI 实例的完整访问权限。",

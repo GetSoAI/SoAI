@@ -18,12 +18,13 @@ from core.sqlite.policy import (
     resolve_sqlite_database_target,
 )
 from core.state.errors import DatabaseUnavailableError
-from database.core.wal_checkpoint import run_truncate_wal_checkpoint
+from database.core.wal_checkpoint import WalCheckpointResult, run_truncate_wal_checkpoint
 from database.core.wal_lifecycle_policy import (
     ANCHOR_READ_SQL,
     USER_VERSION_READ_SQL,
     WalLifecycleDependencies,
 )
+from database.core.wal_rotation_busy_backoff import WalRotationBusyBackoff
 
 __all__ = ("WalLifecycleSession",)
 
@@ -31,6 +32,14 @@ LOGGER_NAME = "SoAI.database.core.wal_lifecycle"
 WAL_LIFECYCLE_EXCEPTIONS: tuple[type[Exception], ...] = (
     *HANDLED_RUNTIME_EXCEPTIONS,
     sqlite3.Error,
+)
+ROTATION_BUSY_MESSAGE = (
+    "Database WAL lifecycle rotation checkpoint remained busy with %d of %d frames "
+    "checkpointed after %d consecutive attempts over %.1f seconds "
+    "(%d further reports suppressed); retrying in %.1f seconds."
+)
+ROTATION_RECOVERED_MESSAGE = (
+    "Database WAL lifecycle rotation checkpoint completed after %d busy attempts over %.1f seconds."
 )
 
 
@@ -63,6 +72,10 @@ class WalLifecycleSession:
         self._anchor_connection: sqlite3.Connection | None = None
         self._next_rotation_check_monotonic = 0.0
         self._permissions_prepared = False
+        self._rotation_busy_backoff = WalRotationBusyBackoff(
+            base_interval_sec=dependencies.rotation_busy_retry_interval_sec,
+            maximum_interval_sec=dependencies.rotation_busy_retry_maximum_interval_sec,
+        )
 
     @property
     def writer_connection(self) -> sqlite3.Connection:
@@ -224,8 +237,22 @@ class WalLifecycleSession:
         try:
             wal_size = os.path.getsize(f"{self._dependencies.db_path}-wal")
         except FileNotFoundError:
+            self._report_rotation_health(now)
             return False
-        return wal_size > self._dependencies.rotation_size_bytes
+        if wal_size > self._dependencies.rotation_size_bytes:
+            return True
+        self._report_rotation_health(now)
+        return False
+
+    def _report_rotation_health(self, now: float) -> None:
+        recovery = self._rotation_busy_backoff.record_healthy(now=now)
+        if recovery is None:
+            return
+        get_logger(LOGGER_NAME).info(
+            ROTATION_RECOVERED_MESSAGE,
+            recovery.busy_rotations,
+            recovery.elapsed_seconds,
+        )
 
     def _rotate(self) -> None:
         try:
@@ -233,18 +260,10 @@ class WalLifecycleSession:
             self._close_anchor()
             connection = self.open_writer()
             checkpoint_result = run_truncate_wal_checkpoint(connection)
-            if checkpoint_result.busy:
-                get_logger(LOGGER_NAME).warning(
-                    "Database WAL lifecycle rotation checkpoint remained busy with %d of %d frames checkpointed; retrying in %.1f seconds.",
-                    checkpoint_result.checkpointed_frames,
-                    checkpoint_result.wal_frames,
-                    self._dependencies.rotation_busy_retry_interval_sec,
-                )
+            busy_retry_delay = self._report_rotation_checkpoint(checkpoint_result)
             self.open_anchor()
-            if checkpoint_result.busy:
-                self._next_rotation_check_monotonic = (
-                    time.monotonic() + self._dependencies.rotation_busy_retry_interval_sec
-                )
+            if busy_retry_delay is not None:
+                self._next_rotation_check_monotonic = time.monotonic() + busy_retry_delay
         except WAL_LIFECYCLE_EXCEPTIONS as exception:
             try:
                 self.close(checkpoint_truncate=False)
@@ -253,6 +272,27 @@ class WalLifecycleSession:
             raise DatabaseUnavailableError(
                 "Database WAL lifecycle could not be rotated safely.",
             ) from exception
+
+    def _report_rotation_checkpoint(self, checkpoint_result: WalCheckpointResult) -> float | None:
+        now = time.monotonic()
+        if not checkpoint_result.busy:
+            self._report_rotation_health(now)
+            return None
+        retry = self._rotation_busy_backoff.record_busy(now=now)
+        logger = get_logger(LOGGER_NAME)
+        report_arguments = (
+            checkpoint_result.checkpointed_frames,
+            checkpoint_result.wal_frames,
+            retry.busy_rotations,
+            retry.elapsed_seconds,
+            retry.suppressed_reports,
+            retry.delay_seconds,
+        )
+        if retry.should_report:
+            logger.warning(ROTATION_BUSY_MESSAGE, *report_arguments)
+        else:
+            logger.debug(ROTATION_BUSY_MESSAGE, *report_arguments)
+        return retry.delay_seconds
 
     def _close_writer(self) -> None:
         connection = self._writer_connection

@@ -1,6 +1,7 @@
 /* SoAI - File explorer page control layer content preview modal controller [frontend/assets/ts/pages/fileexplorer/controllers/FileExplorerContentPreviewModalController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { FileExplorerContentPreviewImageCacheController } from '@pages/fileexplorer/controllers/FileExplorerContentPreviewImageCacheController.ts';
 import { isFileBrowserAudioPreviewMimeType, isFileBrowserImagePreviewMimeType, isFileBrowserTextPreviewMimeType, isFileBrowserVideoPreviewMimeType } from '@core/fileexplorerbrowser/mediaClassification.ts';
 import type { BufferedApiResponse } from '@core/api/bufferedResponse.ts';
 import type { FileBrowserMetadata } from '@core/fileexplorerbrowser/types.ts';
@@ -29,8 +30,8 @@ interface FileExplorerContentPreviewModalHost {
     modalPresenter: ModalPresenterApi;
     showNotification(message: string, type: NotificationType): void;
     readPath(path: string): Promise<{ path: string; content: string }>;
-    loadMetadata(path: string): Promise<FileBrowserMetadata>;
-    downloadResponse(path: string): Promise<BufferedApiResponse>;
+    loadMetadata(path: string, signal?: AbortSignal): Promise<FileBrowserMetadata>;
+    downloadResponse(path: string, signal?: AbortSignal): Promise<BufferedApiResponse>;
     downloadPath(path: string): Promise<void>;
     writeFile(path: string, content: string): Promise<void>;
     createFile(path: string, content: string): Promise<void>;
@@ -46,11 +47,13 @@ class FileExplorerContentPreviewModalController {
     readonly #state: FileExplorerContentPreviewModalStateController;
     readonly #imageNavigation: FileExplorerContentPreviewImageNavigationController;
     readonly #objectUrl = new FileExplorerContentPreviewObjectUrlController();
+    readonly #imageCache: FileExplorerContentPreviewImageCacheController;
     readonly #previewRequest = new FileExplorerContentPreviewRequestController();
     #wired = false;
 
     constructor(host: FileExplorerContentPreviewModalHost) {
         this.#host = host;
+        this.#imageCache = new FileExplorerContentPreviewImageCacheController(host);
         this.#state = new FileExplorerContentPreviewModalStateController(host);
         this.#imageNavigation = new FileExplorerContentPreviewImageNavigationController({
             getCurrentFolderImagePaths: () => this.#host.getCurrentFolderImagePaths(),
@@ -78,7 +81,12 @@ class FileExplorerContentPreviewModalController {
         });
     }
 
+    invalidatePreparedImages(): void {
+        this.#imageCache.clear();
+    }
+
     async show(path: string): Promise<void> {
+        this.#imageCache.clear();
         await this.#show(path, null);
     }
 
@@ -86,7 +94,7 @@ class FileExplorerContentPreviewModalController {
         const normalized = this.#previewRequest.normalizePath(path, 'File content preview modal requires a file path');
         const sequence = this.#previewRequest.begin(normalized);
         try {
-            const metadata = await this.#host.loadMetadata(normalized);
+            const metadata = await this.#host.loadMetadata(normalized, this.#previewRequest.signal());
             if (!this.#previewRequest.isCurrent(sequence)) {
                 return;
             }
@@ -95,15 +103,15 @@ class FileExplorerContentPreviewModalController {
             }
             const headerDescription = resolveFileExplorerPreviewHeaderDescription(metadata);
             if (isFileBrowserImagePreviewMimeType(metadata.mimeType)) {
-                await this.#showMedia(normalized, 'image', sequence, headerDescription, imageNavigationDirection);
+                await this.#showMedia(normalized, 'image', sequence, headerDescription, imageNavigationDirection, metadata);
                 return;
             }
             if (isFileBrowserAudioPreviewMimeType(metadata.mimeType)) {
-                await this.#showMedia(normalized, 'audio', sequence, headerDescription, null);
+                await this.#showMedia(normalized, 'audio', sequence, headerDescription, null, metadata);
                 return;
             }
             if (isFileBrowserVideoPreviewMimeType(metadata.mimeType)) {
-                await this.#showMedia(normalized, 'video', sequence, headerDescription, null);
+                await this.#showMedia(normalized, 'video', sequence, headerDescription, null, metadata);
                 return;
             }
             if (!isFileBrowserTextPreviewMimeType(metadata.mimeType)) {
@@ -155,8 +163,8 @@ class FileExplorerContentPreviewModalController {
         this.#objectUrl.replace(null);
     }
 
-    async #showMedia(path: string, type: FileExplorerContentPreviewMediaType, sequence: number, headerDescription: string, imageNavigationDirection: ContentPreviewImageNavigationDirection | null): Promise<void> {
-        const previewMedia = await createFileExplorerContentPreviewMedia(this.#host, path);
+    async #showMedia(path: string, type: FileExplorerContentPreviewMediaType, sequence: number, headerDescription: string, imageNavigationDirection: ContentPreviewImageNavigationDirection | null, metadata: FileBrowserMetadata): Promise<void> {
+        const previewMedia = type === 'image' ? await this.#imageCache.take(metadata, this.#previewRequest.signal()) : await createFileExplorerContentPreviewMedia(this.#host, path, this.#previewRequest.signal());
         if (!this.#previewRequest.isCurrent(sequence)) {
             revokeFileExplorerContentPreviewMediaUrl(previewMedia.sourceUrl);
             return;
@@ -187,6 +195,9 @@ class FileExplorerContentPreviewModalController {
             }
             this.#objectUrl.replace(previewMedia.sourceUrl);
             this.#state.setTextBaseline(path, '', { isNewFile: false });
+            if (request.imageNavigation) {
+                this.#imageCache.warm([request.imageNavigation.previousLoadingPath, request.imageNavigation.nextLoadingPath]);
+            }
             const modalRoot = this.#host.modalPresenter.requireElement(CONTENT_PREVIEW_MODAL_ID);
             this.#ensureWired(modalRoot);
             this.#save.attach({ resolveSaveButtons: () => [], enableHeaderAction: false, autoNotifyRoot: modalRoot });
@@ -243,6 +254,7 @@ class FileExplorerContentPreviewModalController {
 
     dispose(): void {
         this.#previewRequest.clear();
+        this.#imageCache.clear();
         this.#objectUrl.revoke();
         this.#resources.cleanup();
         this.#save.dispose();
@@ -260,6 +272,7 @@ class FileExplorerContentPreviewModalController {
 
     #onModalClose(): void {
         this.#previewRequest.clear();
+        this.#imageCache.clear();
         this.#objectUrl.revoke();
         this.#state.clear();
         this.#save.attach({ resolveSaveButtons: () => [], enableHeaderAction: false, autoNotifyRoot: null });

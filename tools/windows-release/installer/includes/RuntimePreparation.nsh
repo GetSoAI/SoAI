@@ -49,7 +49,7 @@ Function RuntimePrepStart
   StrCpy $RuntimePrepFailed 0
   StrCpy $RuntimePrepFinished 0
   Call CreateRuntimePrepWrapper
-  ExecShell "open" "$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -NonInteractive -File "$RuntimeWrapperPath"' SW_HIDE
+  ExecShell "open" "${SOAI_NATIVE_POWERSHELL}" '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -NonInteractive -File "$RuntimeWrapperPath"' SW_HIDE
 FunctionEnd
 Function ReadRuntimeErrorMessage
   StrCpy $1 "SoAI runtime preparation failed."
@@ -66,14 +66,17 @@ FunctionEnd
 Function RuntimePrepRunSilent
   DetailPrint "Preparing SoAI for first start..."
   Call CreateRuntimePrepWrapper
-  nsExec::ExecToLog '"$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -NonInteractive -File "$RuntimeWrapperPath"'
+  nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -NonInteractive -File "$RuntimeWrapperPath"'
   Pop $0
   ${If} $0 != 0
     Call ReadRuntimeErrorMessage
     DetailPrint "SoAI could not be prepared: $1"
     SetOutPath "$TEMP"
-    nsExec::ExecToLog '"$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$INSTDIR\installer-support\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Uninstall'
-    Pop $0
+    ${If} $UpgradePrepared == 1
+      Call RestoreExistingInstallRoot
+    ${Else}
+      Call CleanupFailedFreshInstall
+    ${EndIf}
     SetErrorLevel 1
     Abort
   ${EndIf}
@@ -85,14 +88,23 @@ Function RuntimePrepFinishFailed
   StrCpy $RuntimePrepFailed 1
   Call ReadRuntimeErrorMessage
   ${NSD_SetText} $RuntimePageStatusLabel "SoAI could not be prepared: $1"
-  ${NSD_SetText} $RuntimePageDetailLabel "Setup is removing the incomplete installation. Please wait until this setup window closes before running the installer again."
   SetOutPath "$TEMP"
-  nsExec::ExecToLog '"$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$INSTDIR\installer-support\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Uninstall'
-  Pop $0
-  ${If} $0 == 0
-    MessageBox MB_ICONSTOP|MB_OK "SoAI could not be prepared.$\r$\n$\r$\n$1$\r$\n$\r$\nThe incomplete installation has been removed. If this setup window is still open, close it before running the installer again."
+  ${If} $UpgradePrepared == 1
+    ${NSD_SetText} $RuntimePageDetailLabel "Setup is restoring the previous SoAI application files. Please wait until this setup window closes before running the installer again."
+    Call RestoreExistingInstallRoot
+    ${If} $UpgradeRollbackCompleted == 1
+      MessageBox MB_ICONSTOP|MB_OK "SoAI could not be prepared.$\r$\n$\r$\n$1$\r$\n$\r$\nThe previous SoAI application files were restored and user data was retained."
+    ${Else}
+      MessageBox MB_ICONSTOP|MB_OK "SoAI could not be prepared.$\r$\n$\r$\n$1$\r$\n$\r$\nSetup could not fully restore the previous application files. Restart Windows before running the installer again. User data was not removed."
+    ${EndIf}
   ${Else}
-    MessageBox MB_ICONSTOP|MB_OK "SoAI could not be prepared.$\r$\n$\r$\n$1$\r$\n$\r$\nSetup could not fully remove the incomplete installation. Wait for this setup window to close, then restart Windows and run the installer again."
+    ${NSD_SetText} $RuntimePageDetailLabel "Setup is removing the incomplete installation. Please wait until this setup window closes before running the installer again."
+    Call CleanupFailedFreshInstall
+    ${If} $0 == 0
+      MessageBox MB_ICONSTOP|MB_OK "SoAI could not be prepared.$\r$\n$\r$\n$1$\r$\n$\r$\nThe incomplete installation has been removed. If this setup window is still open, close it before running the installer again."
+    ${Else}
+      MessageBox MB_ICONSTOP|MB_OK "SoAI could not be prepared.$\r$\n$\r$\n$1$\r$\n$\r$\nSetup could not fully remove the incomplete installation. Wait for this setup window to close, then restart Windows and run the installer again."
+    ${EndIf}
   ${EndIf}
   Abort
 FunctionEnd

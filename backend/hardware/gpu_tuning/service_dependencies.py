@@ -14,6 +14,7 @@ from hardware.internal_protocols import (
     GPUInfoCacheServiceProtocol,
     GPUVendorDetectionServiceProtocol,
 )
+from hardware.vendors.nvidia.smi import NvidiaSettingsController
 
 __all__ = ("GpuServiceDependencies",)
 
@@ -24,6 +25,7 @@ class GpuServiceDependencies:
     gpu_vendor_detection_service: GPUVendorDetectionServiceProtocol
     nvidia_nvml_gate: NvmlGateProtocol
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol
+    nvidia_settings_controller: NvidiaSettingsController | None
 
     def __post_init__(self) -> None:
         require_dependencies(

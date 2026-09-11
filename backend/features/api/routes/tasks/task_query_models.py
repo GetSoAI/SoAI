@@ -26,6 +26,7 @@ class TaskCancelRequest(BaseModel):
 
 
 class SoftwareUpdateLogRequest(BaseModel):
+    task_id: str
     from_version: str
     to_version: str
     status: str

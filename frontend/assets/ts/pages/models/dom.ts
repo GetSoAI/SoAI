@@ -3,7 +3,7 @@
 
 import { dom } from '@core/dom/dom.ts';
 import { buildModelsFilters, buildModelsHeader, buildModelsSections } from '@pages/models/adapters/adapters.ts';
-import { GRID_ID } from '@pages/models/contracts/constants.ts';
+import { GRID_ID, MODELS_DOWNLOAD_PROGRESS_ID } from '@pages/models/contracts/constants.ts';
 import type { ModelsLayoutViewHost, ModelsUiRefs } from '@pages/models/types.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 
@@ -25,12 +25,13 @@ const buildModelPatchTargetSelector = (cardId: string): string => {
 export const requireModelsUi = (dependencies: PageDomOwnerHost): ModelsUiRefs => {
     const root = dependencies.pageDom.requireHTMLElement('[data-section="models"]');
     const grid = dependencies.pageDom.requireHTMLElement(`#${GRID_ID}`, root);
+    const downloadProgress = dependencies.pageDom.requireHTMLElement(`#${MODELS_DOWNLOAD_PROGRESS_ID}`, root);
     const listBody = dependencies.pageDom.requireHTMLElement('#models-list-body', root);
     const viewModeToggleButton = dependencies.pageDom.requireHTMLElement('#models-view-mode-toggle', root);
     if (!(viewModeToggleButton instanceof HTMLButtonElement)) {
         throw new TypeError('Models view mode toggle must be a button');
     }
-    return { root, grid, listBody, viewModeToggleButton };
+    return { root, downloadProgress, grid, listBody, viewModeToggleButton };
 };
 
 export const optionalModelsRoot = (dependencies: PageDomOwnerHost): HTMLElement | null => {

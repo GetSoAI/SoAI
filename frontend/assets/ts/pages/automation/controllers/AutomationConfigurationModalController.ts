@@ -138,12 +138,12 @@ class AutomationConfigurationModalController {
         this.#form.removeTurn(turnIndex);
     }
 
-    async openWorkspaceModal(api: ReadOnlyFileBrowserApi, allowManualAbsoluteSelectionOutsideRoot: boolean): Promise<boolean> {
+    async openWorkspaceModal(api: ReadOnlyFileBrowserApi): Promise<boolean> {
         if (!this.isOpen()) {
             return false;
         }
         const modalVersion = this.#modalVersion;
-        return await this.#form.openWorkspaceModal(api, allowManualAbsoluteSelectionOutsideRoot, () => this.#canApplyChildModal(modalVersion));
+        return await this.#form.openWorkspaceModal(api, () => this.#canApplyChildModal(modalVersion));
     }
 
     async openParametersModal(): Promise<boolean> {

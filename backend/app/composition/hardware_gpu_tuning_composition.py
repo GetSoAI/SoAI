@@ -26,6 +26,10 @@ from hardware.gpu_tuning.dependencies import HardwareGpuTuningServiceDependencie
 from hardware.gpu_tuning.service import HardwareGpuTuningService
 from hardware.presets.slot_storage import GpuSlotStorageManager
 from hardware.vendor_detection_service import GPUVendorDetectionService
+from hardware.vendors.nvidia.smi import (
+    NvidiaSettingsController,
+    NvidiaSettingsControllerDependencies,
+)
 
 if TYPE_CHECKING:
     from core.runtime.protocols import RuntimeFlagsViewProtocol
@@ -49,6 +53,7 @@ def build_gpu_tuning_service(
     gpu_info_cache_service: GPUInfoCacheService,
     gpu_vendor_detection_service: GPUVendorDetectionService,
     nvidia_nvml_gate: NvmlGateProtocol,
+    nvidia_settings_controller: NvidiaSettingsController | None,
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
     gpu_capabilities_service: GpuCapabilitiesService,
     gpu_operation_lock: asyncio.Lock,
@@ -73,6 +78,7 @@ def build_gpu_tuning_service(
             gpu_info_cache_service=gpu_info_cache_service,
             gpu_vendor_detection_service=gpu_vendor_detection_service,
             nvidia_nvml_gate=nvidia_nvml_gate,
+            nvidia_settings_controller=nvidia_settings_controller,
             nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
             gpu_operation_lock=gpu_operation_lock,
             activity_registry=activity_registry,
@@ -81,3 +87,16 @@ def build_gpu_tuning_service(
     )
     lifecycle_coordinator.register_actor(hardware_gpu_tuning)
     return hardware_gpu_tuning
+
+
+def create_nvidia_settings_controller(
+    controller_logger: TraceLogger,
+    nvml_gate: NvmlGateProtocol,
+) -> NvidiaSettingsController | None:
+    if not (nvml_gate.runtime_platform.is_linux and nvml_gate.nvidia_settings_available):
+        return None
+    controller = NvidiaSettingsController(
+        NvidiaSettingsControllerDependencies(logger=controller_logger)
+    )
+    controller_logger.trace("nvidia-settings controller initialized for Linux NVIDIA GPU control")
+    return controller

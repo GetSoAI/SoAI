@@ -8,7 +8,6 @@
 @import url('./toolbar.css') layer(pages);
 @import url('./panels.css') layer(pages);
 @import url('./week-header.css') layer(pages);
-@import url('./empty-day-labels.css') layer(pages);
 @import url('./forms.css') layer(pages);
 @import url('./tables.css') layer(pages);
 @import url('./cards.css') layer(pages);

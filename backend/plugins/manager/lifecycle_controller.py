@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 
+from core.concurrency.bounded_blocking import shutdown_bounded_pool_executor
 from core.errors.exceptions import StateError
 from core.events.subscriptions import unsubscribe_many
 from core.events.types_base import Event
@@ -175,6 +176,7 @@ class PluginManagerLifecycleController:
         await self._begin_shutdown_unlocked()
         logger.debug("PluginManager worker shutdown initiated.")
         await manager.worker_controller.shutdown()
+        shutdown_bounded_pool_executor(manager.dependencies.infrastructure.logo_preparation_pool)
         self._finalized = True
         logger.debug("PluginManager has been shut down.")
 

@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
-import os
 import re
 from typing import TYPE_CHECKING
 
+from core.concurrency.deadlines import MonotonicDeadline, deadline_after
 from core.system.commands import run_argv_capture
 from core.validation.coercion import coerce_int_from_scalar
 from hardware.gpu_capabilities.payloads import (
@@ -15,7 +15,6 @@ from hardware.gpu_capabilities.payloads import (
     update_control_capability_section,
 )
 from hardware.vendors.nvidia.smi import NvidiaSettingsController
-from hardware.vendors.nvidia.smi_display_environment import detect_display_environment
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -35,37 +34,50 @@ def apply_nvidia_settings_capabilities(
     logger: TraceLogger,
     vendor_id: int,
     gpu_caps: JSONDict,
+    *,
+    controller: NvidiaSettingsController,
+    deadline: MonotonicDeadline | None = None,
 ) -> bool:
-    env = _build_nvidia_settings_env(logger)
-    if env is None:
-        _mark_probe_failure(gpu_caps, "core_clock_mhz", "x_display")
-        _mark_probe_failure(gpu_caps, "mem_clock_mhz", "x_display")
-        _mark_probe_failure(gpu_caps, "fan_speed_percent", "x_display")
-        return False
-    _apply_clock_capability(
-        logger=logger,
-        env=env,
-        vendor_id=vendor_id,
-        gpu_caps=gpu_caps,
-        caps_key="core_clock_mhz",
-        attribute="GPUGraphicsClockOffset",
-    )
-    _apply_clock_capability(
-        logger=logger,
-        env=env,
-        vendor_id=vendor_id,
-        gpu_caps=gpu_caps,
-        caps_key="mem_clock_mhz",
-        attribute="GPUMemoryTransferRateOffset",
-    )
-    _apply_fan_capability(logger=logger, env=env, vendor_id=vendor_id, gpu_caps=gpu_caps)
-    return True
+    operation_deadline = deadline or deadline_after(10.0)
+    with controller.probe_environment(operation_deadline) as env:
+        if env is None:
+            _mark_probe_failure(gpu_caps, "core_clock_mhz", "x_display")
+            _mark_probe_failure(gpu_caps, "mem_clock_mhz", "x_display")
+            _mark_probe_failure(gpu_caps, "fan_speed_percent", "x_display")
+            return False
+        _apply_clock_capability(
+            logger=logger,
+            env=env,
+            deadline=operation_deadline,
+            vendor_id=vendor_id,
+            gpu_caps=gpu_caps,
+            caps_key="core_clock_mhz",
+            attribute="GPUGraphicsClockOffset",
+        )
+        _apply_clock_capability(
+            logger=logger,
+            env=env,
+            deadline=operation_deadline,
+            vendor_id=vendor_id,
+            gpu_caps=gpu_caps,
+            caps_key="mem_clock_mhz",
+            attribute="GPUMemoryTransferRateOffset",
+        )
+        _apply_fan_capability(
+            logger=logger,
+            env=env,
+            vendor_id=vendor_id,
+            gpu_caps=gpu_caps,
+            deadline=operation_deadline,
+        )
+        return True
 
 
 def _apply_clock_capability(
     *,
     logger: TraceLogger,
     env: Mapping[str, str],
+    deadline: MonotonicDeadline,
     vendor_id: int,
     gpu_caps: JSONDict,
     caps_key: str,
@@ -76,6 +88,7 @@ def _apply_clock_capability(
         logger,
         env,
         f"[gpu:{vendor_id}]/{attribute}[{perf_level}]",
+        deadline,
     )
     if query_output is None:
         _mark_probe_failure(gpu_caps, caps_key, failure_reason)
@@ -115,6 +128,7 @@ def _apply_fan_capability(
     *,
     logger: TraceLogger,
     env: Mapping[str, str],
+    deadline: MonotonicDeadline,
     vendor_id: int,
     gpu_caps: JSONDict,
 ) -> None:
@@ -122,11 +136,13 @@ def _apply_fan_capability(
         logger,
         env,
         f"[gpu:{vendor_id}]/GPUFanControlState",
+        deadline,
     )
     target_output, target_failure_reason = _query_nvidia_settings(
         logger,
         env,
         f"[fan:{vendor_id}]/GPUTargetFanSpeed",
+        deadline,
     )
     if state_output is None or target_output is None:
         _mark_probe_failure(
@@ -160,49 +176,19 @@ def _apply_fan_capability(
     )
 
 
-def _build_nvidia_settings_env(logger: TraceLogger) -> Mapping[str, str] | None:
-    controller = NvidiaSettingsController(controller_logger=logger)
-    controller_env = controller.ensure_display_environment()
-    if controller_env is not None:
-        return _validated_nvidia_settings_env(logger, controller_env)
-    display_environment = detect_display_environment(logger)
-    env = os.environ.copy()
-    display_value = display_environment.get("display")
-    env["DISPLAY"] = display_value if isinstance(display_value, str) and display_value else ":1"
-    xauthority_value = display_environment.get("xauthority")
-    if isinstance(xauthority_value, str) and xauthority_value:
-        env["XAUTHORITY"] = xauthority_value
-    return _validated_nvidia_settings_env(logger, env)
-
-
-def _validated_nvidia_settings_env(
-    logger: TraceLogger,
-    env: Mapping[str, str],
-) -> Mapping[str, str] | None:
-    result = run_argv_capture(
-        ["nvidia-settings", "-q", "gpus"],
-        env=env,
-        timeout=NVIDIA_SETTINGS_QUERY_TIMEOUT_SECONDS,
-    )
-    output = result.stdout + result.stderr
-    if result.return_code == 0 and output.strip():
-        return env
-    logger.trace(
-        "nvidia-settings capability preflight failed: %s",
-        output.strip(),
-    )
-    return None
-
-
 def _query_nvidia_settings(
     logger: TraceLogger,
     env: Mapping[str, str],
     target: str,
+    deadline: MonotonicDeadline,
 ) -> tuple[str | None, str | None]:
+    timeout = int(min(NVIDIA_SETTINGS_QUERY_TIMEOUT_SECONDS, deadline.remaining_seconds()))
+    if timeout < 1:
+        return (None, "timeout")
     result = run_argv_capture(
         ["nvidia-settings", "-q", target],
         env=env,
-        timeout=NVIDIA_SETTINGS_QUERY_TIMEOUT_SECONDS,
+        timeout=timeout,
     )
     output = result.stdout + result.stderr
     if result.return_code != 0:

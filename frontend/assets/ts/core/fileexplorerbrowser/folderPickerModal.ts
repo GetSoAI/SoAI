@@ -16,4 +16,4 @@ const showFolderPickerModal = async (options: FolderPickerModalOptions): Promise
 const FOLDER_PICKER_MODAL_DEFINITIONS: readonly ModalDefinition[] = Object.freeze([folderPickerModalDefinition]);
 
 export { FOLDER_PICKER_MODAL_DEFINITIONS, showFolderPickerModal };
-export type { FolderPickerResult };
+export type { FolderPickerModalOptions, FolderPickerResult };

@@ -14,9 +14,11 @@ from app.internal_protocols import LifecycleCoordinatorProtocol
 from app.updater.release_fetch import fetch_latest_release_async
 from core.concurrency.bounded_blocking import (
     BoundedThreadPoolConfig,
+    create_bounded_thread_pool,
     create_bounded_thread_pool_from_env,
 )
 from core.concurrency.singleflight import SyncSingleflight
+from core.concurrency.ttl_cache import TTLCache, TTLCacheDependencies
 from core.config.protocols import ConfigManagerProtocol, ConfigProtocol
 from core.events.protocols import EventBusProtocol
 from core.files.operations import ensure_dirs_exist
@@ -28,6 +30,7 @@ from core.hardware.protocols import (
     NvmlGateProtocol,
 )
 from core.hardware.protocols_storage import StorageManagerProtocol
+from core.licensing.types import Edition
 from core.logging.protocols import LoggingManagerProtocol
 from core.logging.trace import get_logger
 from core.metrics.protocols import MetricsManagerProtocol
@@ -183,6 +186,7 @@ async def build_plugin_manager(
     plugin_directory: str,
     backends_directory: str,
     updater_module_dependencies: ApplicationUpdaterModuleDependencies,
+    edition: Edition,
     lifecycle_coordinator: LifecycleCoordinatorProtocol,
     command_executor: CommandExecutorProtocol | None,
 ) -> PluginManager:
@@ -194,6 +198,7 @@ async def build_plugin_manager(
         ),
     )
     updater_factory = build_updater_factory(
+        edition=edition,
         module_dependencies_type=ApplicationUpdaterModuleDependencies,
         fetch_latest_release_async=fetch_latest_release_async,
     )
@@ -274,6 +279,13 @@ async def build_plugin_manager(
             ),
             environment_manager=plugin_worker_support.environment_manager,
             ipc_encoding_pool=ipc_encoding_pool,
+            logo_preparation_pool=create_bounded_thread_pool(
+                label="plugin-artwork",
+                thread_name_prefix="soai-plugin-artwork",
+                max_workers=2,
+                max_in_flight=4,
+            ),
+            logo_cache=TTLCache(TTLCacheDependencies(ttl_seconds=600.0, max_size=16)),
             managed_ipc_worker_factory=plugin_worker_support.managed_ipc_worker_factory,
         ),
         databases=PluginManagerDatabaseDependencies(

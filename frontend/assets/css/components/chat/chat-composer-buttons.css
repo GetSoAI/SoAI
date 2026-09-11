@@ -2,10 +2,30 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
-    :where(.chat-container) .microphone-btn {
+    :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .chat-input-actions :is(.chat-input-action-inline, .chat-mobile-auxiliary-action, .chat-model-control-primary, .chat-model-slot):not(:focus-visible, :active, .is-active, .is-open, .is-recording, .is-stop-mode, .is-processing, .is-tools-active, .is-warning, .is-critical, .chat-token-counter-btn, .chat-model-slot--placeholder, [aria-pressed='true'], [aria-expanded='true'], [aria-busy='true'], [data-agent-mode='plan'], [data-agent-mode='execute']):is(:not(:hover), :disabled, [aria-disabled='true']),
+    :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .chat-input-actions .chat-token-counter-btn:not(:hover, :focus-visible, :active, .is-warning, .is-critical),
+    :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .chat-input-actions > .chat-action-btn:disabled:not(.is-stop-mode, :focus-visible, :active) {
+        border-color: var(--chat-input-border-color);
+        background-color: var(--glass-surface-light);
+    }
+
+    :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .chat-input-actions :is(.chat-input-action-inline, .chat-mobile-auxiliary-action, .chat-token-counter-inline, .chat-model-control-primary, .chat-model-slot, .chat-action-btn):not(:hover, :focus-visible, :active, .is-open, .chat-model-slot--placeholder) {
+        background-image: none;
+        box-shadow: none;
+    }
+
+    :where(.chat-container) .chat-input-actions :is(.chat-input-action-inline, .chat-mobile-auxiliary-action, .chat-token-counter-inline, .chat-model-control-primary, .chat-model-slot, .chat-action-btn) {
         transition:
-            color var(--duration-200) var(--ease-default),
-            background-color var(--duration-200) var(--ease-default);
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            filter var(--transition-fast),
+            opacity var(--transition-fast);
+    }
+
+    :where(.chat-container) .chat-input-actions .model-selector--composer :is(.ui-icon-button, .ui-button):not(:focus-visible) {
+        box-shadow: none;
     }
 
     :where(.chat-container) .microphone-btn:is(.ui-button, .ui-icon-button) > .ui-icon.chat-action-icon:is(.microphone-btn-icon--microphone, .microphone-btn-icon--stop) {
@@ -48,9 +68,10 @@
 
         backdrop-filter: var(--glass-blur-base);
         box-shadow:
-            inset 0 1px 0 var(--surface-top-highlight-soft),
+            inset 2px 2px 4px var(--surface-inner-highlight-soft),
+            inset -2px -2px 4px var(--surface-inner-shadow-soft),
             0 2px 4px var(--surface-drop-shadow-soft),
-            0 0 0 1px var(--surface-top-highlight-muted);
+            0 0 0 1px var(--surface-outline-highlight-soft);
         flex-shrink: 0;
     }
 

@@ -3,6 +3,16 @@
 
 import { getLocalizationSnapshot } from '@core/localization/runtime.ts';
 
+const UTC_LABEL = ' UTC';
+const UNLABELED_UTC_LOG_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+
+const formatUtcLogTimestamp = (timestamp: string): string => {
+    if (!UNLABELED_UTC_LOG_TIMESTAMP_PATTERN.test(timestamp)) {
+        return timestamp;
+    }
+    return timestamp + UTC_LABEL;
+};
+
 const applyClockPreference = (options: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions => {
     const snapshot = getLocalizationSnapshot();
     if (options.hour === undefined) {
@@ -60,4 +70,4 @@ const formatLocalizedRelativeTime = (value: number, unit: Intl.RelativeTimeForma
     return new Intl.RelativeTimeFormat(getLocalizationSnapshot().locale, { numeric: 'auto' }).format(value, unit);
 };
 
-export { formatLocalizedDate, formatLocalizedDateParts, formatLocalizedRelativeTime };
+export { formatLocalizedDate, formatLocalizedDateParts, formatLocalizedRelativeTime, formatUtcLogTimestamp };

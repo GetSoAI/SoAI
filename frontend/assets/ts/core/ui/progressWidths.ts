@@ -30,6 +30,10 @@ const syncProgressUsageClass = (element: Element, percentUsed: number): void => 
     element.classList.add(resolveProgressUsageClass(percentUsed));
 };
 
+const clearProgressUsageClass = (element: Element): void => {
+    element.classList.remove(...PROGRESS_USAGE_CLASSES);
+};
+
 interface DeterminateProgressSyncOptions {
     fillElement: Element;
     progress: number;
@@ -83,4 +87,4 @@ const applyProgressWidths = (root: DOMQueryRoot, updateStyle: (element: Element,
     }
 };
 
-export { applyProgressWidths, PROGRESS_WIDTH_ATTRIBUTE, resolveProgressUsageClass, syncDeterminateProgress };
+export { applyProgressWidths, clearProgressUsageClass, PROGRESS_WIDTH_ATTRIBUTE, resolveProgressUsageClass, syncDeterminateProgress };

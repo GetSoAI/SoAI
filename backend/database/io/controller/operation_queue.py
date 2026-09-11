@@ -49,6 +49,9 @@ class DatabaseWriteOperationQueue:
         self._status_tracker.prune()
         return self._status_tracker.get_status(operation_id)
 
+    def has_pending_write_operations(self) -> bool:
+        return not self._queue.empty()
+
     async def queue_write_operation[*Ts, T](
         self,
         func: Callable[[sqlite3.Connection, *Ts], T],
@@ -84,7 +87,7 @@ class DatabaseWriteOperationQueue:
                 )
             except asyncio.CancelledError:
                 self._mark_cancelled_by_caller(operation_id, cancelled=cancelled, future=future)
-                logger.warning(
+                logger.debug(
                     "Cancelled while enqueuing database operation: %s (op_id=%s)",
                     operation_name,
                     operation_id,
@@ -103,7 +106,7 @@ class DatabaseWriteOperationQueue:
             except asyncio.CancelledError:
                 self._mark_cancelled_by_caller(operation_id, cancelled=cancelled, future=future)
                 status = self._status_tracker.get_status(operation_id)
-                logger.warning(
+                logger.debug(
                     "Cancelled while waiting for database operation result: %s (op_id=%s, status=%s)",
                     operation_name,
                     operation_id,

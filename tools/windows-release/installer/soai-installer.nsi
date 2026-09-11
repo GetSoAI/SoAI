@@ -11,6 +11,9 @@ SetCompressorDictSize 64
 !include "WinVer.nsh"
 !include "x64.nsh"
 !include "WinMessages.nsh"
+!include "FileFunc.nsh"
+
+!define SOAI_NATIVE_POWERSHELL "$WINDIR\Sysnative\WindowsPowerShell\v1.0\powershell.exe"
 
 !ifndef PBM_SETPOS
   !define PBM_SETPOS 0x0402
@@ -69,9 +72,11 @@ VIAddVersionKey /LANG=1033 "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey /LANG=1033 "FileDescription" "SoAI Windows Installer"
 VIAddVersionKey /LANG=1033 "FileVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey /LANG=1033 "ProductVersion" "${PRODUCT_VERSION}"
+VIAddVersionKey /LANG=1033 "Comments" "SoAI installer supports /PrepareUpdate extraction without installation."
 VIAddVersionKey /LANG=1033 "LegalCopyright" "SoAI"
 
 !define MUI_ABORTWARNING
+!define MUI_CUSTOMFUNCTION_ABORT AbortSoAIInstall
 !define MUI_ICON "assets\soai-installer.ico"
 !define MUI_UNICON "assets\soai-installer.ico"
 !define MUI_HEADERIMAGE
@@ -109,6 +114,12 @@ Var RuntimePageProgress
 Var RuntimePageDetailLabel
 Var RuntimePrepFailed
 Var RuntimePrepFinished
+Var UpgradeBackupRoot
+Var UpgradePrepared
+Var UpgradeRollbackCompleted
+Var InstallerMutexHandle
+Var InstallMutationStarted
+Var UpdateStageRoot
 
 !include "includes\InstallLifecycle.nsh"
 !include "includes\RuntimePreparation.nsh"
@@ -119,18 +130,34 @@ Section "SoAI" SEC_SOAI
   SetRegView 64
   AddSize ${RUNTIME_FOOTPRINT_RESERVE_KB}
 
-  Call StopExistingSoAI
-  Call PrepareExistingInstallRoot
+  ${If} $UpdateStageRoot == ""
+    Call PrepareInstallerTransactionTools
+    Call StopExistingSoAI
+    Call PrepareExistingInstallRoot
 
+    StrCpy $InstallMutationStarted 1
+    CreateDirectory "$INSTDIR"
+    FileOpen $0 "$INSTDIR\.soai-install-root" w
+    FileWrite $0 "SoAI Windows Installer Root$\r$\n"
+    FileWrite $0 "Version=${PRODUCT_VERSION}$\r$\n"
+    FileClose $0
+  ${Else}
+    Call ValidateUpdateStageRoot
+    StrCpy $INSTDIR "$UpdateStageRoot"
+  ${EndIf}
   SetOutPath "$INSTDIR"
-  File /r "${PAYLOAD_DIR}\*"
+  ClearErrors
+  !include "${PAYLOAD_FILES_INCLUDE}"
+  ${If} ${Errors}
+    SetErrorLevel 1
+    Abort
+  ${EndIf}
+  Call InstallCandidateLauncher
+  ${If} $UpdateStageRoot != ""
+    Goto done
+  ${EndIf}
   Push 35
   Call SetInstallerProgress
-
-  FileOpen $0 "$INSTDIR\.soai-install-root" w
-  FileWrite $0 "SoAI Windows Installer Root$\r$\n"
-  FileWrite $0 "Version=${PRODUCT_VERSION}$\r$\n"
-  FileClose $0
 
   IfSilent 0 done
     Call RuntimePrepRunSilent
@@ -145,11 +172,11 @@ Section "Uninstall"
   IfFileExists "$INSTDIR\installer-support\Remove-SoAI.ps1" 0 cleanup_registry
     DetailPrint "Removing SoAI runtime, app files, and data..."
     SetOutPath "$TEMP"
-    nsExec::ExecToLog '"$WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$INSTDIR\installer-support\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Uninstall'
+    nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$INSTDIR\installer-support\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Uninstall'
     Pop $0
     ${If} $0 != 0
       ${IfNot} ${Silent}
-        MessageBox MB_ICONSTOP|MB_OK "SoAI cleanup did not complete. Close SoAI, wait for any running setup or launcher window to exit, and try uninstalling again."
+        MessageBox MB_ICONSTOP|MB_OK "SoAI cleanup did not complete. Close any running setup or launcher. If an update awaits recovery, reopen SoAI to complete it before retrying uninstall."
       ${EndIf}
       SetErrorLevel 1
       Abort

@@ -2,19 +2,18 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { FolderPickerLabels } from '@core/fileexplorerbrowser/folderPickerView.ts';
-import type { ReadOnlyFileBrowserApi } from '@core/fileexplorerbrowser/types.ts';
+import type { FileBrowserSource } from '@core/fileexplorerbrowser/types.ts';
 
 type FolderPickerResult = { resultType: 'selected'; virtualPath: string; absolutePath: string | null; workspacePathResolved: string | null } | { resultType: 'reset' };
 
 interface FolderPickerModalOptions {
-    api: ReadOnlyFileBrowserApi;
+    source: FileBrowserSource;
     title: string;
     message: string;
     labels: FolderPickerLabels;
     initialVirtualPath?: string;
     initialAbsolutePathToBrowse?: string;
     allowManualPathEntry?: boolean;
-    allowManualAbsoluteSelectionOutsideRoot?: boolean;
 }
 
 export type { FolderPickerModalOptions, FolderPickerResult };

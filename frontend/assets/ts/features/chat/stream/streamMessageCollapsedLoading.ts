@@ -64,11 +64,12 @@ const patchCollapsedLoadingStreamingContent = (inputArguments: RenderStreamingMe
         return { supported: true, changed: false };
     }
     const segments = resolveCollapsedLoadingContentSegments(resolvedSegments ?? inputArguments.messageManager.resolveMessageContentSegments(inputArguments.message));
-    const { streamSegments, streamText } = ensureStreamingSegmentsContainer(currentContent, inputArguments.cached);
+    const { streamSegments } = ensureStreamingSegmentsContainer(currentContent, inputArguments.cached);
     const timelineResult = patchTimelineChildren(inputArguments.message, inputArguments.cached, inputArguments.messageManager, streamSegments, segments);
     if (!timelineResult.supported) {
         return { supported: false, changed: false };
     }
+    const { streamText } = ensureStreamingSegmentsContainer(currentContent, inputArguments.cached);
     let changed = timelineResult.updated;
     const activeTextSync = syncActiveStreamingTextRun({
         activeTextRun: timelineResult.activeTextRun,

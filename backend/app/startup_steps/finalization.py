@@ -14,12 +14,18 @@ from app.background.chat_stream_registry_reaper import run_chat_stream_registry_
 from app.startup_beep import emit_startup_beep_if_enabled
 from app.startup_steps.dependencies import StartupStepDependencies
 from app.types_application import ApplicationContext
+from app.updater.software_update.activation import commit_ready_update_activation
+from app.updater.software_update.activation_state import find_pending_update_activation
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.network.urls import build_host_port_url
 from core.runtime.environment_flags import is_soai_no_browser
-from core.timing.constants import RESPONSIVE_TIMEOUT_SEC, STANDARD_DELAY_SEC
+from core.tasks.software_update_result import (
+    prepare_software_update_activation_task,
+    reconcile_software_update_result,
+)
+from core.timing.constants import BACKGROUND_TIMEOUT_SEC, RESPONSIVE_TIMEOUT_SEC, STANDARD_DELAY_SEC
 from core.timing.monotonic import monotonic_ms
 
 __all__ = ("StartupFinalizationStep",)
@@ -151,18 +157,47 @@ class StartupFinalizationStep:
                 "startup.transition_delay_ms",
                 transition_scheduled_ms,
             )
-            recalc_started_ms = monotonic_ms()
-            transitioned_state = await state_aggregator.recalculate_and_set_main_state(
-                "post_startup_transition",
+            if (
+                application_context.runtime.shutdown_event.is_set()
+                or application_context.runtime.system_stop_event.is_set()
+            ):
+                return
+            pending_update = find_pending_update_activation(application_context.paths.base_dir)
+            if pending_update is not None:
+                await prepare_software_update_activation_task(
+                    application_context.services.tasks.task_registry,
+                    base_path=application_context.paths.base_dir,
+                    task_id=pending_update.task_id,
+                    from_version=pending_update.from_version,
+                    to_version=pending_update.to_version,
+                )
+            activated_update = commit_ready_update_activation(
+                base_path=application_context.paths.base_dir,
+                edition=application_context.edition_composition.updater.edition,
+                product_version=application_context.edition_composition.updater.product_version,
+                config_path=application_context.paths.config_path,
+                repair_plane=application_context.runtime.repair_plane,
+                logger=application_context.logging.logger,
             )
-            self.deps.startup_timings.record_since_ms(
-                "startup.transition_recalculate_state_ms",
-                recalc_started_ms,
-            )
+            if not application_context.runtime.set_startup_ready():
+                application_context.logging.logger.info(
+                    "Startup readiness announcement skipped because shutdown has begun.",
+                )
+                return
+            if activated_update:
+                await reconcile_software_update_result(
+                    application_context.services.tasks.task_registry,
+                    base_path=application_context.paths.base_dir,
+                )
+            if (
+                application_context.runtime.shutdown_event.is_set()
+                or application_context.runtime.system_stop_event.is_set()
+            ):
+                return
             if application_context.services.storage.backup_service is not None:
                 try:
                     await application_context.services.storage.backup_service.start(
-                        wait_for_startup_ready=False,
+                        wait_for_startup_ready=True,
                     )
                 except RECOVERABLE_EXCEPTIONS as backup_start_exception:
                     log_exception(
@@ -176,11 +211,28 @@ class StartupFinalizationStep:
                 or application_context.runtime.system_stop_event.is_set()
             ):
                 return
-            if not application_context.runtime.set_startup_ready():
-                application_context.logging.logger.info(
-                    "Startup readiness announcement skipped because shutdown has begun.",
+            messaging_gateway = application_context.services.infrastructure.messaging_gateway
+            if messaging_gateway is not None:
+                reconciliation_completed = await messaging_gateway.wait_for_initial_reconciliation(
+                    BACKGROUND_TIMEOUT_SEC,
                 )
-                return
+                if not reconciliation_completed:
+                    application_context.logging.logger.warning(
+                        "Messaging Gateway initial reconciliation is still pending; admission remains closed.",
+                    )
+                if (
+                    application_context.runtime.shutdown_event.is_set()
+                    or application_context.runtime.system_stop_event.is_set()
+                ):
+                    return
+            recalc_started_ms = monotonic_ms()
+            transitioned_state = await state_aggregator.recalculate_and_set_main_state(
+                "post_startup_transition",
+            )
+            self.deps.startup_timings.record_since_ms(
+                "startup.transition_recalculate_state_ms",
+                recalc_started_ms,
+            )
             application_context.logging.gui_status(
                 "SoAI repair plane is ready."
                 if application_context.runtime.repair_plane

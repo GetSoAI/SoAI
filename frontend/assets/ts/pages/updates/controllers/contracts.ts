@@ -8,6 +8,7 @@ import type { TrustedHtml } from '@core/security/public.ts';
 import type { SetButtonLoadingOptions } from '@core/state/UIStateManager.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
+import type { RestartOverlayService } from '@pages/updates/contracts/contracts.ts';
 
 type UpdatesNotificationType = 'success' | 'error' | 'info' | 'warning';
 
@@ -30,7 +31,7 @@ interface UpdatesControllerSystemSurface extends UpdatesControllerSharedSurface 
     notify: (message: string, type?: UpdatesNotificationType) => void;
     setButtonLoading: (button: HTMLElement, isLoading: boolean, options?: SetButtonLoadingOptions) => void;
     sanitizeUrl: (value: string, options: { allowRelative: boolean; allowDataImage: boolean; allowBlob: boolean }) => string | null;
-    showOverlay: (value: string) => void;
+    showOverlay: RestartOverlayService['show'];
     resolveInstallButton: () => HTMLButtonElement | null;
     wait: (ms: number) => Promise<void>;
 }

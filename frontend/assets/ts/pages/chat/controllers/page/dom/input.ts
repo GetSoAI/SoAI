@@ -5,7 +5,7 @@ import { isInstanceOf } from '@core/typeGuards.ts';
 import { normalizeChatMobileAuxiliaryAction } from '@core/chat/parameters/mobileAuxiliaryAction.ts';
 import type { Conversation } from '@features/chat/public.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
-import { applyChatInputActionVisibility, updateChatHeaderModelSelectorVisibility } from '@pages/chat/controllers/chatUiVisibility.ts';
+import { applyChatInputActionVisibility } from '@pages/chat/controllers/chatUiVisibility.ts';
 import type { VisionSupportHost } from '@pages/chat/controllers/page/guards/modelVisionSupportController.ts';
 import type { ChatConversationDomHost, ChatIconResolver, ChatPageDomHost, ChatParameters } from '@pages/chat/controllers/page/dom/contracts.ts';
 import { syncCameraInputActionSupport } from '@pages/chat/controllers/page/dom/cameraController.ts';
@@ -41,6 +41,7 @@ const applyInputActionVisibility = (host: ChatInputActionHost & VisionSupportHos
             fileUploadEnabled: parameters.inputActionFileUploadEnabled === true,
             cameraEnabled: parameters.inputActionCameraEnabled === true,
             promptsEnabled: parameters.inputActionPromptsEnabled === true,
+            newConversationEnabled: parameters.inputActionNewConversationEnabled === true,
             characterMapEnabled: parameters.inputActionCharacterMapEnabled === true,
             tokenCounterEnabled: parameters.inputActionTokenCounterEnabled === true && auxiliaryAction !== 'token_counter',
             tokenCounterAuxiliaryEnabled: auxiliaryAction === 'token_counter'
@@ -101,9 +102,5 @@ const updateExportButtonVisibility = (host: ChatExportButtonHost): void => {
     }
 };
 
-const updateHeaderModelSelectorVisibility = (host: ChatPageDomHost, modelCount: number, sidebarOpen: boolean, detached: boolean): void => {
-    updateChatHeaderModelSelectorVisibility(host, { modelCount, sidebarOpen, detached });
-};
-
-export { applyInputActionVisibility, insertTranscription, refreshChatInputUiState, resizeChatInput, updateExportButtonVisibility, updateHeaderModelSelectorVisibility };
+export { applyInputActionVisibility, insertTranscription, refreshChatInputUiState, resizeChatInput, updateExportButtonVisibility };
 export type { ChatInputUiStateHost };

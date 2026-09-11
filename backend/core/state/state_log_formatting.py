@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+import re
+
 from core.errors.exceptions import ValidationError
-from core.logging.formatter_support import ANSI_RESET
+from core.logging.formatter_support import ANSI_CODE_PATTERN, ANSI_RESET
 from core.logging.palette import (
     ANSI_ASH,
     ANSI_BLUE,
@@ -49,10 +51,12 @@ from core.state.state_names import (
     PLUGIN_STATE_REMOVING_BACKEND,
     PLUGIN_STATE_STOPPED,
     PLUGIN_STATE_UPDATE_ERROR,
+    resolve_plugin_runtime_state_name,
 )
 
 __all__ = (
     "format_state_for_log",
+    "format_state_tokens_for_log",
     "format_state_transition_for_log",
 )
 
@@ -130,3 +134,15 @@ def format_state_transition_for_log(previous_state: str, new_state: str) -> str:
     previous_state_label = format_state_for_log(previous_state)
     new_state_label = format_state_for_log(new_state)
     return f"{previous_state_label} {_state_log_arrow()} {new_state_label}"
+
+
+def format_state_tokens_for_log(message: str) -> str:
+    def _format_token(match: re.Match[str]) -> str:
+        state = resolve_plugin_runtime_state_name(match.group(1))
+        return format_state_for_log(state) if state is not None else match.group(0)
+
+    return re.sub(
+        rf"(?<!\w)(?:{ANSI_CODE_PATTERN})*([A-Z][A-Z_]*)(?:{re.escape(ANSI_RESET)})?(?!\w)",
+        _format_token,
+        message,
+    )

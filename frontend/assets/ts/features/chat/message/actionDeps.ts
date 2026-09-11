@@ -1,6 +1,7 @@
 /* SoAI - Chat message action dependency contract [frontend/assets/ts/features/chat/message/actionDeps.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { AssistantMessageRenderPort } from '@features/chat/message/assistantMessageDomPatch.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
@@ -30,6 +31,7 @@ interface ChatMessageActionSessionPort {
 }
 
 interface ChatMessageActionPresentationPort {
+    assistantRenderPort: AssistantMessageRenderPort;
     domChangeTarget: EventTarget;
     getIcon: (name: IconName, options?: IconOptions) => TrustedHtml;
     resolveMessageReference: MessageReferenceResolver;
@@ -40,6 +42,7 @@ interface ChatMessageActionPresentationPort {
     isShowActivitiesEnabled: () => boolean;
     toggleLoadingActivityCollapsedState: (message: ChatMessage, defaultCollapsed: boolean) => boolean;
     invalidateMessageCache: (message: ChatMessage | null | undefined) => void;
+    invalidateActiveStreamDomCache: (conversationId: string, messageDomId: string) => void;
     postRender: (container: Element | null) => void;
 }
 

@@ -151,7 +151,7 @@ function Invoke-SoAINetworkInstall {
         if ($actualHash -ne $expectedHash) {
             throw 'SoAI Windows installer checksum verification failed.'
         }
-        Write-SoAIStatus 'Starting the verified SoAI Windows installer...'
+        Write-SoAIStatus 'Starting the checksum-verified SoAI Windows installer...'
         $process = Start-Process -FilePath $setupPath -Wait -PassThru
         if ($process.ExitCode -ne 0) {
             throw "SoAI Windows installer failed with exit code $($process.ExitCode)."

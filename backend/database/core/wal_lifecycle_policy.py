@@ -30,6 +30,7 @@ class WalLifecycleDependencies:
     rotation_size_bytes: int = SQLITE_JOURNAL_SIZE_LIMIT_BYTES
     rotation_check_interval_sec: float = 1.0
     rotation_busy_retry_interval_sec: float = 60.0
+    rotation_busy_retry_maximum_interval_sec: float = 900.0
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -39,6 +40,7 @@ class WalLifecycleDependencies:
             is_shared_memory_mode=self.is_shared_memory_mode,
             publish_connection=self.publish_connection,
             rotation_busy_retry_interval_sec=self.rotation_busy_retry_interval_sec,
+            rotation_busy_retry_maximum_interval_sec=self.rotation_busy_retry_maximum_interval_sec,
             rotation_check_interval_sec=self.rotation_check_interval_sec,
             rotation_size_bytes=self.rotation_size_bytes,
             write_pragmas=self.write_pragmas,
@@ -49,3 +51,7 @@ class WalLifecycleDependencies:
             raise ValueError("WAL lifecycle rotation check interval cannot be negative.")
         if self.rotation_busy_retry_interval_sec <= 0.0:
             raise ValueError("WAL lifecycle busy retry interval must be positive.")
+        if self.rotation_busy_retry_maximum_interval_sec < self.rotation_busy_retry_interval_sec:
+            raise ValueError(
+                "WAL lifecycle maximum busy retry interval cannot be below the base interval."
+            )

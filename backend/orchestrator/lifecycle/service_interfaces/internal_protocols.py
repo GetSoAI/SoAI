@@ -37,6 +37,7 @@ from orchestrator.lifecycle.state_access.internal_protocols import (
 
 if TYPE_CHECKING:
     from core.orchestrator.protocols_lifecycle import PluginStateProtocol
+    from core.state.plugin_state_generation import PluginStateGeneration
     from core.state.protocols import ImmutablePluginStates
     from core.tasks.task import Task
     from core.types.json import JSONDict, JSONValue
@@ -200,7 +201,13 @@ class OrchestratorLifecycleRuntimeMutationsProtocol(Protocol):
         self,
         command: ClearQuarantineCommand,
     ) -> list[SchedulerWorkItem]: ...
-    async def submit_recovery(self, plugin_name: str, reason: str) -> None: ...
+    async def submit_recovery(
+        self,
+        plugin_name: str,
+        reason: str,
+        *,
+        expected_generation: PluginStateGeneration | None = None,
+    ) -> None: ...
     async def discard_plugin(self, plugin_name: str) -> None: ...
     async def shutdown(self, timeout_seconds: float) -> None: ...
 
@@ -221,7 +228,13 @@ class OrchestratorLifecycleRecoveryProtocol(Protocol):
     def update_config(self, max_recovery_attempts: int) -> None: ...
     def bind_queue_purge(self, purge_callback: RecoveryQueuePurgeProtocol) -> None: ...
     async def purge_plugin_tasks(self, plugin_name: str, reason: str) -> None: ...
-    async def handle_plugin_recovery(self, plugin_name: str, reason: str) -> None: ...
+    async def handle_plugin_recovery(
+        self,
+        plugin_name: str,
+        reason: str,
+        *,
+        expected_generation: PluginStateGeneration | None = None,
+    ) -> None: ...
 
 
 class OrchestratorLifecycleModelLoadingProtocol(Protocol):

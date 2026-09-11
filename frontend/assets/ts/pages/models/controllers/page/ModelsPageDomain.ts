@@ -22,12 +22,12 @@ import { consumeRepeatableDropdownSelection } from '@core/ui/dropdown/selectCont
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import { MODEL_SEARCH_FIELD_RESOLVERS, PAGE_ID, STR_ALL, STR_NONE } from '@pages/models/contracts/modelsPageConstants.ts';
 import { getModelPlugin, resolveModelsItemCardId } from '@pages/models/controllers/modelsModelProperties.ts';
-import { handleModelsInitialAction } from '@pages/models/controllers/modelsPageInitialActions.ts';
 import { modelsLogger } from '@pages/models/controllers/ModelsPagePreClass.ts';
 import type { ModelsInfrastructure, ModelsRuntimeDependencies } from '@pages/models/controllers/page/contracts.ts';
 import { getModelsListSortValue, persistModelsProviderFilter } from '@pages/models/controllers/page/listSortingController.ts';
 import { createModelsMetricsPatchScheduler, ModelsMetricsPatchController } from '@pages/models/controllers/page/metricsPatchController.ts';
 import { ModelsPageLifecycleController } from '@pages/models/controllers/page/ModelsPageLifecycleController.ts';
+import { ModelsDownloadProgressController } from '@pages/models/controllers/ModelsDownloadProgressController.ts';
 import { ModelsPageSession } from '@pages/models/controllers/page/ModelsPageSession.ts';
 import { ModelsPluginCatalogController } from '@pages/models/controllers/page/ModelsPluginCatalogController.ts';
 import { createModelsPageCollectionConfig } from '@pages/models/controllers/page/pageConfig.ts';
@@ -68,6 +68,7 @@ class ModelsPageDomain {
     readonly bindings: ReturnType<typeof createModelsPageRuntimeBindings>;
     readonly pageLifecycleController: ModelsPageLifecycleController;
     readonly metricsPatchController: ModelsMetricsPatchController;
+    readonly downloadProgress: ModelsDownloadProgressController;
     readonly #infrastructure: ModelsInfrastructure;
     readonly #pageHost: PageHost;
     readonly #behavior: CollectionCompositionBehavior;
@@ -76,6 +77,14 @@ class ModelsPageDomain {
     constructor({ pageDependencies, infrastructure, storage, pageHost, pageLifecycle, collectionOwners }: ModelsPageDomainOptions) {
         this.#infrastructure = infrastructure;
         this.#pageHost = pageHost;
+        this.downloadProgress = new ModelsDownloadProgressController({
+            domOwner: infrastructure,
+            requestCollectionRender: () => {
+                if (this.collections.runtime) {
+                    this.#renderItems();
+                }
+            }
+        });
         this.session = new ModelsPageSession(pageDependencies.catalogStore);
         const config = createModelsPageCollectionConfig();
         this.state = new ModelsPageState({ pageId: PAGE_ID, collectionKey: config.collectionKey, collectionOptions: config.collectionOptions, defaultSort: config.defaultSort });
@@ -110,7 +119,8 @@ class ModelsPageDomain {
         this.dependencies = this.#createDependencies(pageLifecycle);
         this.bindings = createModelsPageRuntimeBindings(this.dependencies, {
             logInvalidActionModel: (action, model) => modelsLogger('error', 'Model action click missing model record', { action, model }),
-            handleActionError: (error) => infrastructure.feedback.handle(error, 'Models click handler failed', { notify: true })
+            handleActionError: (error) => infrastructure.feedback.handle(error, 'Models click handler failed', { notify: true }),
+            shouldShowNormalEmptyState: (modelCount) => this.downloadProgress.shouldShowNormalEmptyState(modelCount)
         });
         const managers = this.bindings.managerBundle;
         const controllers = this.bindings.controllerBundle;
@@ -120,7 +130,8 @@ class ModelsPageDomain {
             initialActionHost: controllers.initialActionHost,
             viewModeHost: this.bindings.viewModeHost,
             populateProviderFilter: () => controllers.statsController.populateProviderFilter(),
-            updateStats: () => controllers.statsController.updateStats()
+            updateStats: () => controllers.statsController.updateStats(),
+            initializeDownloadProgress: () => this.downloadProgress.initialize()
         });
         this.metricsPatchController = new ModelsMetricsPatchController(
             {
@@ -177,6 +188,9 @@ class ModelsPageDomain {
             },
             onSnapshot: (snapshot: ResourceSnapshot) => {
                 this.session.consumeModelsSnapshot(snapshot);
+                if (snapshot.hasAuthoritativeSnapshot) {
+                    this.downloadProgress.acceptAuthoritativeSnapshot(snapshot.items.length);
+                }
                 return null;
             },
             preparePresentation: (context) => this.bindings.controllerBundle.groupingController.preparePresentation(context.filtered.map((model) => normalizeModelRecordStrict(model, 'ModelsPage.preparePresentation'))),
@@ -210,7 +224,12 @@ class ModelsPageDomain {
     #renderItems(): void {
         const collection = this.collections.runtime;
         if (!collection) throw new Error('ModelsPage requires collection to be initialized');
-        renderModelsItemsForRuntime({ getFilteredItems: () => collection.getFiltered(), getAllItems: () => collection.getAll(), renderCollection: (payload) => this.bindings.managerBundle.cardController.renderCollection(payload) });
+        renderModelsItemsForRuntime({
+            getFilteredItems: () => collection.getFiltered(),
+            getAllItems: () => collection.getAll(),
+            syncAuthoritativeModelCount: (modelCount) => this.downloadProgress.syncAuthoritativeModelCount(modelCount),
+            renderCollection: (payload) => this.bindings.managerBundle.cardController.renderCollection(payload)
+        });
     }
 
     initializeView(): void {
@@ -266,11 +285,8 @@ class ModelsPageDomain {
         this.bindings.applySortSelection(consumeRepeatableDropdownSelection(target));
     }
 
-    async handleInitialAction(parameters: JsonObject | null): Promise<void> {
-        await handleModelsInitialAction(this.bindings.controllerBundle.initialActionHost, parameters);
-    }
-
     async destroy(): Promise<void> {
+        this.downloadProgress.destroy();
         this.metricsPatchController.dispose();
         const managers = this.bindings.managerBundle;
         await destroyModelsPageFromRuntime({ downloadModalManager: managers.downloadModalManager, editModelModalManager: managers.editModelModalManager, renameModelModalManager: managers.renameModelModalManager, providersManager: managers.providersManager, virtualModelsManager: managers.virtualModelsManager, catalogSubscriptions: { cleanup: () => this.catalog.cleanup() }, pluginLookup: this.session.pluginLookup, grouping: this.session.grouping, deletingItems: this.session.deletingItems, cardController: managers.cardController });

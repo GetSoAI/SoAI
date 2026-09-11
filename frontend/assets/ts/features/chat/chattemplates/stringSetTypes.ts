@@ -121,6 +121,8 @@ interface ChatTemplateStringSet extends ChatParameterControlsStrings {
     toolApprovalRequiredHint: string;
     newConversationInheritLastSettings: string;
     newConversationInheritLastSettingsHint: string;
+    ctrlEnterSend: string;
+    ctrlEnterSendHint: string;
     voiceTitle: string;
     voiceTtsModel: string;
     voiceTtsModelAuto: string;

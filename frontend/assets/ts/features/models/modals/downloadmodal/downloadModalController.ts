@@ -15,6 +15,7 @@ import { handleManualDiscovery, handleManualOpenFileExplorer, handleManualPathCo
 import { handleVariantCheck } from '@features/models/modals/downloadmodal/manager/variantEvents.ts';
 import { handleDownloadTabClick, handlePluginSelectChange, handleProviderPluginSelectChange, handleProviderTabClick, handleVariantInputChange, openDownloadModelModal, updateDownloadBadge, updateDownloadButtonState, updateSelectedModelDisplay } from '@features/models/modals/downloadmodal/manager/view.ts';
 import { MODELS_DOWNLOAD_MODAL_ID } from '@features/models/modals/constants.ts';
+import { MODEL_DOWNLOAD_OPERATION_FILTER } from '@features/models/modelDownloadOperation.ts';
 
 type DownloadModalController = {
     modalId: string;
@@ -45,7 +46,7 @@ const createDownloadModalController = (dependencies: { host: DownloadModalHost }
         operationPanel?.detach();
         operationPanel = createTaskOperationPanel({
             container: modalUiId(modalId, 'operation-progress-list'),
-            filter: { types: ['model-download'] }
+            filter: MODEL_DOWNLOAD_OPERATION_FILTER
         });
         operationPanel.attach();
     };

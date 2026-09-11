@@ -117,30 +117,6 @@
     }
 
     @container ui-viewport (width <= 768px) {
-        :where(.chat-container) .chat-input-actions.is-collapsed-into-header:not(.chat-input-actions--hydrating) {
-            padding: 0;
-            border: none;
-            background: transparent;
-            -webkit-backdrop-filter: none;
-
-            backdrop-filter: none;
-        }
-
-        :where(.chat-container) .chat-input-actions.is-collapsed-into-header:not(.chat-input-actions--hydrating) > .chat-action-btn {
-            width: max(var(--chat-input-actions-height), var(--icon-button-size));
-            height: max(var(--chat-input-actions-height), var(--icon-button-size));
-            min-width: max(var(--chat-input-actions-height), var(--icon-button-size));
-            min-height: max(var(--chat-input-actions-height), var(--icon-button-size));
-        }
-
-        :where(.chat-container) .chat-input-actions.is-collapsed-into-header:not(.chat-input-actions--hydrating) .chat-mobile-auxiliary-action {
-            width: max(var(--chat-input-actions-height), var(--icon-button-size));
-            height: max(var(--chat-input-actions-height), var(--icon-button-size));
-            min-width: max(var(--chat-input-actions-height), var(--icon-button-size));
-            min-height: max(var(--chat-input-actions-height), var(--icon-button-size));
-            flex-basis: max(var(--chat-input-actions-height), var(--icon-button-size));
-        }
-
         :where(.chat-container) .chat-input-actions.is-collapsed-into-header .chat-token-counter-inline {
             display: none;
         }
@@ -165,19 +141,11 @@
     }
 
     :where(.chat-container) .chat-input-wrapper.chat-input-wrapper--conversation-scrolled {
-        --chat-input-actions-surface-color: color-mix(in srgb, var(--glass-surface-strong) 50%, transparent);
-        --chat-input-actions-border-color: color-mix(in srgb, var(--glass-border-strong) 50%, transparent);
         --chat-input-actions-content-opacity: 0.3;
     }
 
     :where(.chat-container) .chat-input-wrapper.chat-input-wrapper--conversation-scrolled:is(:hover, :focus-within) {
-        --chat-input-actions-surface-color: var(--glass-surface-strong);
-        --chat-input-actions-border-color: var(--glass-border-strong);
         --chat-input-actions-content-opacity: 1;
-    }
-
-    :where(.chat-container) .chat-input-wrapper.chat-input-wrapper--conversation-scrolled:focus-within {
-        --chat-input-actions-border-color: var(--glass-border-strong);
     }
 
     .chat-container .chat-input-area .square-btn svg {

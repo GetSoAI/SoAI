@@ -1,6 +1,7 @@
 /* SoAI - File explorer page control layer data controller [frontend/assets/ts/pages/fileexplorer/controllers/FileExplorerDataController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { buildSignalRequestOptions } from '@core/api/requestOptions.ts';
 import { FILE_EXPLORER_SORT_COLUMN_DEFAULT_DIRECTIONS, FILE_EXPLORER_SORT_COLUMNS, sortFileExplorerEntries, type FileExplorerSortColumn } from '@core/fileexplorerbrowser/entrySorting.ts';
 import { DirectoryListingController } from '@core/fileexplorerbrowser/directoryListingController.ts';
 import { isFileBrowserImagePreviewMimeType } from '@core/fileexplorerbrowser/mediaClassification.ts';
@@ -71,6 +72,7 @@ class FileExplorerDataController {
             getIconSync: dependencies.host.getIconSync,
             isRecentEntry: (entry) => dependencies.recentUploads.isEntryRecent(entry),
             revealRows: () => dependencies.rowsReveal.reveal(),
+            armCommittedRows: (rows) => dependencies.rowsReveal.armCommittedRows(rows),
             onCommit: () => this.#handleRowsCommit(dependencies.onRowsCommitted),
             onError: (error) => this.#handleError(error, 'File Explorer row rendering failed')
         });
@@ -144,8 +146,8 @@ class FileExplorerDataController {
         return found && (await this.#rowsRenderer.revealPath(normalizedPath));
     }
 
-    async loadMetadata(path: string): Promise<FileBrowserMetadata> {
-        return parseFileBrowserMetadataPayload(await this.#host.api.metadata(toVirtualPath(path)));
+    async loadMetadata(path: string, signal?: AbortSignal): Promise<FileBrowserMetadata> {
+        return parseFileBrowserMetadataPayload(await this.#host.api.metadata(toVirtualPath(path), buildSignalRequestOptions({ signal })));
     }
 
     async readPath(path: string): Promise<{ path: string; content: string }> {

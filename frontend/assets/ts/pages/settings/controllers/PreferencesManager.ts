@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
+import { requireClosestElement } from '@core/dom/attributes.ts';
 import { readFiniteInputValueOrNull } from '@core/dom/formValues.ts';
 import { narrowInput, narrowSelect } from '@core/dom/narrowElement.ts';
 import { isDateFormatPreference, isMeasurementUnitsPreference, isRegionalLocalePreference } from '@core/localization/public.ts';
+import { setSettingItemApplicable } from '@core/settings/settingItemApplicability.ts';
 import { updateToggleLabel } from '@core/toggleSwitch.ts';
 import { setControlDisabledState } from '@core/ui/controls/disabledState.ts';
 import { UI_IDS } from '@features/settings/public.ts';
@@ -160,6 +162,12 @@ class PreferencesManager {
         secondsToggle.checked = clockSecondsEnabled;
         setControlDisabledState(secondsToggle, !headerClockEnabled);
         updateToggleLabel(secondsToggle, { checked: clockSecondsEnabled });
+        const secondsItem = requireClosestElement(secondsToggle, '.setting-item', 'Clock seconds toggle');
+        if (!(secondsItem instanceof HTMLElement)) {
+            throw new TypeError('Clock seconds setting item must be an HTMLElement');
+        }
+        setSettingItemApplicable(secondsItem, headerClockEnabled);
+        this.#host.filterSettings();
     }
 
     dispose(): void {

@@ -10,7 +10,7 @@ import { isProjectionEmpty } from '@features/chat/composerdraft/composerDraftEnt
 import { resolveComposerDraftKeepaliveOptions } from '@features/chat/composerdraft/composerDraftKeepalive.ts';
 import type { ComposerDraftMemoryStore } from '@features/chat/composerdraft/composerDraftMemoryStore.ts';
 import type { ComposerDraftSaveChain } from '@features/chat/composerdraft/composerDraftSaveChain.ts';
-import type { ComposerDraftManagerDependencies, ComposerDraftProjection } from '@features/chat/composerdraft/composerDraftTypes.ts';
+import type { ComposerDraftFlushOptions, ComposerDraftManagerDependencies, ComposerDraftProjection } from '@features/chat/composerdraft/composerDraftTypes.ts';
 
 interface ComposerDraftPersisterDependencies {
     readonly managerDependencies: ComposerDraftManagerDependencies;
@@ -21,6 +21,7 @@ interface ComposerDraftPersisterDependencies {
     readonly markApplied: (signature: string) => void;
     readonly getRevision: (conversationId: string) => number;
     readonly recordRevision: (conversationId: string, revision: number, conflicted: boolean) => void;
+    readonly observeRevision: (conversationId: string, revision: number) => void;
 }
 
 class ComposerDraftPersister {
@@ -32,6 +33,7 @@ class ComposerDraftPersister {
     readonly #markApplied: (signature: string) => void;
     readonly #getRevision: (conversationId: string) => number;
     readonly #recordRevision: (conversationId: string, revision: number, conflicted: boolean) => void;
+    readonly #observeRevision: (conversationId: string, revision: number) => void;
     #tooLongNotificationShown = false;
 
     constructor(initialize: ComposerDraftPersisterDependencies) {
@@ -43,9 +45,10 @@ class ComposerDraftPersister {
         this.#markApplied = initialize.markApplied;
         this.#getRevision = initialize.getRevision;
         this.#recordRevision = initialize.recordRevision;
+        this.#observeRevision = initialize.observeRevision;
     }
 
-    async persist(projection: ComposerDraftProjection, options: { keepalive?: boolean }): Promise<void> {
+    async persist(projection: ComposerDraftProjection, options: ComposerDraftFlushOptions): Promise<void> {
         const conversationId = projection.conversationId;
         if (!conversationId) {
             return;
@@ -76,11 +79,7 @@ class ComposerDraftPersister {
             const deleteDraft = async (isCurrent: () => boolean): Promise<void> => {
                 await this.#persistWithRevisionRetry(conversationId, projection.signature, isCurrent, async (baseRevision) => await this.#dependencies.api.delete(conversationId, buildComposerDraftMutationRequestOptions(this.#mutations.next(), baseRevision, resolveComposerDraftKeepaliveOptions(options.keepalive, undefined))));
             };
-            if (options.keepalive === true) {
-                await this.#saveChain.runImmediately(conversationId, deleteDraft);
-                return;
-            }
-            await this.#saveChain.enqueue(conversationId, deleteDraft);
+            await this.#dispatch(conversationId, options, deleteDraft);
             return;
         }
         const saveDraft = async (isCurrent: () => boolean): Promise<void> => {
@@ -94,11 +93,15 @@ class ComposerDraftPersister {
                 return await this.#dependencies.api.save(conversationId, payload, resolveComposerDraftKeepaliveOptions(options.keepalive, payload));
             });
         };
-        if (options.keepalive === true) {
-            await this.#saveChain.runImmediately(conversationId, saveDraft);
+        await this.#dispatch(conversationId, options, saveDraft);
+    }
+
+    async #dispatch(conversationId: string, options: ComposerDraftFlushOptions, operation: (isCurrent: () => boolean) => Promise<void>): Promise<void> {
+        if (options.immediate === true) {
+            await this.#saveChain.runImmediately(conversationId, operation);
             return;
         }
-        await this.#saveChain.enqueue(conversationId, saveDraft);
+        await this.#saveChain.enqueue(conversationId, operation);
     }
 
     async #persistWithRevisionRetry(conversationId: string, signature: string, isCurrent: () => boolean, execute: (baseRevision: number) => Promise<ConversationDraftResponse>): Promise<void> {
@@ -111,18 +114,27 @@ class ComposerDraftPersister {
                 throw error;
             }
             const authoritative = await this.#dependencies.api.get(conversationId);
-            if (!isCurrent()) return;
+            if (!isCurrent()) {
+                this.#observeRevision(conversationId, authoritative.revision);
+                return;
+            }
             this.#recordRevision(conversationId, authoritative.revision, true);
             response = await execute(authoritative.revision);
             retried = true;
         }
-        if (!isCurrent()) return;
+        if (!isCurrent()) {
+            this.#observeRevision(conversationId, response.revision);
+            return;
+        }
         const knownRevision = this.#getRevision(conversationId);
         if (response.revision < knownRevision) {
             this.#recordRevision(conversationId, knownRevision, true);
             if (retried) throw this.#revisionConflict();
             response = await execute(knownRevision);
-            if (!isCurrent()) return;
+            if (!isCurrent()) {
+                this.#observeRevision(conversationId, response.revision);
+                return;
+            }
             if (response.revision < this.#getRevision(conversationId)) {
                 throw this.#revisionConflict();
             }

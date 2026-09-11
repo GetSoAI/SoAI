@@ -60,6 +60,15 @@ from core.plugins.backend_variants import (
     require_backend_variant_id,
     resolve_cuda_backend_availability,
 )
+from core.plugins.logo_contract import (
+    LOGO_FILENAMES,
+    MAX_LOGO_DIMENSION,
+    MAX_LOGO_OUTPUT_BYTES,
+    MAX_LOGO_SOURCE_BYTES,
+    PluginLogoResult,
+    PluginLogoSource,
+)
+from core.plugins.logo_images import sanitize_plugin_logo
 from core.plugins.protocols_instance import FilesProtocol
 from core.plugins.protocols_runtime import (
     PluginHardwareRuntimeProtocol,
@@ -258,6 +267,13 @@ from plugin_sdk.runtime_network import (
 )
 
 __all__ = (
+    "LOGO_FILENAMES",
+    "MAX_LOGO_SOURCE_BYTES",
+    "MAX_LOGO_DIMENSION",
+    "MAX_LOGO_OUTPUT_BYTES",
+    "PluginLogoSource",
+    "PluginLogoResult",
+    "sanitize_plugin_logo",
     "AcceleratorMemoryExhaustedError",
     "ArchiveLinkTargetNotFoundError",
     "AUTO_BACKEND_VARIANT_ID",

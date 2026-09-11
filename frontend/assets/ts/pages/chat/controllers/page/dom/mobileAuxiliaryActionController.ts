@@ -23,6 +23,13 @@ const renderMobileAuxiliaryAction = (host: ChatPageDomHost, parameters: ChatPara
         throw new Error('Chat mobile auxiliary action slot is required');
     }
     const action = normalizeChatMobileAuxiliaryAction(parameters.inputActionMobileAuxiliaryAction);
+    if (action === 'new_conversation' || slot.dataset['mobileAuxiliaryAction'] === 'new_conversation') {
+        const anchor = host.pageDom.optionalHTMLElement(action === 'new_conversation' ? '.model-selector--composer' : '.chat-input-actions > .chat-action-btn');
+        if (!anchor) {
+            throw new Error('Chat mobile auxiliary placement requires a model selector and send control');
+        }
+        if (slot.nextElementSibling !== anchor) anchor.before(slot);
+    }
     if (action === 'none') {
         if (slot.dataset['mobileAuxiliaryAction'] !== 'none' || slot.childElementCount > 0) {
             host.pageDom.updateHtml(slot, EMPTY_UI_HTML, { escape: false });

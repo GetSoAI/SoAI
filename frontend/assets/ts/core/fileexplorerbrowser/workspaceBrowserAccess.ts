@@ -7,13 +7,11 @@ import type { ReadOnlyFileBrowserApi } from '@core/fileexplorerbrowser/types.ts'
 interface WorkspaceBrowserAccess {
     currentWorkspacePath: string;
     browserApi: ReadOnlyFileBrowserApi;
-    allowManualAbsoluteSelectionOutsideRoot: boolean;
 }
 
 interface WorkspaceBrowserAccessApi {
     getCurrentUser(): Promise<WebuiUser>;
     scopedBrowserApi: ReadOnlyFileBrowserApi;
-    adminBrowserApi: ReadOnlyFileBrowserApi;
 }
 
 const resolveWorkspaceBrowserAccess = async (api: WorkspaceBrowserAccessApi): Promise<WorkspaceBrowserAccess> => {
@@ -24,8 +22,7 @@ const resolveWorkspaceBrowserAccess = async (api: WorkspaceBrowserAccessApi): Pr
     }
     return {
         currentWorkspacePath,
-        browserApi: user.isAdmin ? api.adminBrowserApi : api.scopedBrowserApi,
-        allowManualAbsoluteSelectionOutsideRoot: user.isAdmin
+        browserApi: api.scopedBrowserApi
     };
 };
 

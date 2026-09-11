@@ -3,9 +3,14 @@
 
 from __future__ import annotations
 
+import errno
 import os
+import socket
+from dataclasses import dataclass
+from enum import Enum
 from typing import TYPE_CHECKING
 
+from core.concurrency.deadlines import MonotonicDeadline, deadline_after
 from core.errors.exception_logging import log_handled_exception
 from core.filesystem.open_files import open_text
 from core.system.commands import run_argv_capture
@@ -13,9 +18,16 @@ from core.system.process_launcher import SUBPROCESS_RECOVERABLE_EXCEPTIONS
 
 if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
-    from core.types.json import JSONDict
 
-__all__ = ("detect_display_environment",)
+__all__ = (
+    "detect_display_environment",
+    "enumerate_displays",
+    "display_target_occupied",
+    "validate_display",
+    "display_process_environment",
+    "DisplaySearchResult",
+    "DisplaySearchStatus",
+)
 
 OPERATION_HARDWARE_NVIDIA_DETECT_DISPLAY_ENVIRONMENT = "hardware_nvidia.detect_display_environment"
 X11_SOCKET_DIR_PARTS = ("tmp", ".X11-unix")
@@ -23,53 +35,135 @@ DISPLAY_MANAGER_RUNTIME_DIRS = ("gdm", "sddm", "lightdm")
 SDDM_RUNTIME_DIR_PARTS = ("run", "sddm")
 
 
-def detect_display_environment(logger: LoggerProtocol) -> JSONDict:
+class DisplaySearchStatus(Enum):
+    USABLE = "usable"
+    NO_DISPLAY = "no_display"
+    DEADLINE = "deadline"
+    TOOL_UNAVAILABLE = "tool_unavailable"
+    ACCESS_FAILURE = "access_failure"
+
+
+@dataclass(frozen=True, slots=True)
+class DisplaySearchResult:
+    status: DisplaySearchStatus
+    display: str | None = None
+    xauthority: str | None = None
+
+
+def display_process_environment(display: str, xauthority: str | None) -> dict[str, str]:
+    environment = os.environ.copy()
+    environment["DISPLAY"] = display
+    environment.pop("XAUTHORITY", None)
+    if xauthority is not None:
+        environment["XAUTHORITY"] = xauthority
+    return environment
+
+
+def detect_display_environment(
+    logger: LoggerProtocol,
+    deadline: MonotonicDeadline | None = None,
+) -> DisplaySearchResult:
+    discovery_deadline = deadline_after(4.0)
+    if deadline is not None:
+        discovery_deadline = MonotonicDeadline(
+            min(discovery_deadline.deadline_monotonic, deadline.deadline_monotonic)
+        )
+    failure = DisplaySearchStatus.NO_DISPLAY
     try:
-        displays = _active_displays()
-        xauthorities = _candidate_xauthorities()
+        enumerated_displays = enumerate_displays()
+        displays = enumerated_displays or (":0",)
+        xauthorities = _candidate_xauthorities(discovery_deadline)
         for display in displays:
+            if discovery_deadline.expired():
+                return DisplaySearchResult(DisplaySearchStatus.DEADLINE)
+            if not _display_may_listen(display, discovery_deadline):
+                continue
             for xauthority in xauthorities:
-                if _resolves_nvidia_gpu(display, xauthority):
-                    return {
-                        "has_display_manager": True,
-                        "display": display,
-                        "xauthority": xauthority,
-                        "needs_own_xserver": False,
-                    }
+                result = validate_display(display, xauthority, discovery_deadline)
+                if result.status in (
+                    DisplaySearchStatus.USABLE,
+                    DisplaySearchStatus.TOOL_UNAVAILABLE,
+                ):
+                    return result
+                if result.status in (
+                    DisplaySearchStatus.ACCESS_FAILURE,
+                    DisplaySearchStatus.DEADLINE,
+                ):
+                    failure = result.status
     except SUBPROCESS_RECOVERABLE_EXCEPTIONS as exception:
         log_handled_exception(
             logger,
             exception,
-            message="Failed to detect display environment for NVIDIA settings (non-critical).",
+            message="Failed to inspect NVIDIA display environment.",
             operation=OPERATION_HARDWARE_NVIDIA_DETECT_DISPLAY_ENVIRONMENT,
             level="debug",
         )
-    return {
-        "has_display_manager": False,
-        "display": ":1",
-        "xauthority": None,
-        "needs_own_xserver": True,
-    }
+        return DisplaySearchResult(DisplaySearchStatus.ACCESS_FAILURE)
+    if discovery_deadline.remaining_seconds() < 1:
+        return DisplaySearchResult(DisplaySearchStatus.DEADLINE)
+    return DisplaySearchResult(failure)
 
 
-def _resolves_nvidia_gpu(display: str, xauthority: str | None) -> bool:
-    env = os.environ.copy()
-    env["DISPLAY"] = display
-    if xauthority is not None:
-        env["XAUTHORITY"] = xauthority
-    elif "XAUTHORITY" in env:
-        del env["XAUTHORITY"]
+def _display_may_listen(display: str, deadline: MonotonicDeadline) -> bool:
+    socket_path = os.path.join(_x11_socket_dir(), f"X{display[1:]}")
+    for address in (socket_path, f"\0{socket_path}"):
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+                remaining = deadline.remaining_seconds()
+                if remaining <= 0:
+                    return False
+                connection.settimeout(min(0.2, remaining))
+                connection.connect(address)
+            return True
+        except OSError as exception:
+            if exception.errno not in (errno.ECONNREFUSED, errno.ENOENT):
+                return True
+    return False
+
+
+def display_target_occupied(display: str, deadline: MonotonicDeadline) -> bool:
+    socket_path = os.path.join(_x11_socket_dir(), f"X{display[1:]}")
+    for address in (socket_path, f"\0{socket_path}"):
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+                remaining = deadline.remaining_seconds()
+                if remaining <= 0:
+                    return True
+                connection.settimeout(min(0.2, remaining))
+                connection.connect(address)
+            return True
+        except OSError as exception:
+            if exception.errno not in (errno.ECONNREFUSED, errno.ENOENT):
+                return True
+    return False
+
+
+def validate_display(
+    display: str,
+    xauthority: str | None,
+    deadline: MonotonicDeadline,
+) -> DisplaySearchResult:
+    timeout = int(min(2.0, deadline.remaining_seconds()))
+    if timeout < 1:
+        return DisplaySearchResult(DisplaySearchStatus.DEADLINE)
     result = run_argv_capture(
         ["nvidia-settings", "-c", display, "-q", "gpus"],
-        env=env,
-        timeout=8,
+        env=display_process_environment(display, xauthority),
+        timeout=timeout,
     )
+    if result.return_code == 127:
+        return DisplaySearchResult(DisplaySearchStatus.TOOL_UNAVAILABLE)
+    if result.return_code == 124:
+        return DisplaySearchResult(DisplaySearchStatus.DEADLINE)
+    output = (result.stdout + result.stderr).lower()
+    if result.return_code == 0 and "[gpu:" in output:
+        return DisplaySearchResult(DisplaySearchStatus.USABLE, display, xauthority)
     if result.return_code != 0:
-        return False
-    return "[gpu:" in (result.stdout + result.stderr).lower()
+        return DisplaySearchResult(DisplaySearchStatus.ACCESS_FAILURE)
+    return DisplaySearchResult(DisplaySearchStatus.NO_DISPLAY)
 
 
-def _active_displays() -> tuple[str, ...]:
+def enumerate_displays() -> tuple[str, ...]:
     displays: list[str] = []
     try:
         socket_names = os.listdir(_x11_socket_dir())
@@ -81,16 +175,14 @@ def _active_displays() -> tuple[str, ...]:
         suffix = socket_name[1:]
         if suffix.isdigit():
             displays.append(f":{suffix}")
-    if not displays:
-        displays.append(":0")
     return tuple(displays)
 
 
-def _candidate_xauthorities() -> tuple[str | None, ...]:
+def _candidate_xauthorities(deadline: MonotonicDeadline | None = None) -> tuple[str | None, ...]:
     candidates: list[str | None] = []
-    for path in _xauthorities_from_running_xservers():
+    for path in _xauthorities_from_running_xservers(deadline):
         _append_unique(candidates, path)
-    for path in _xauthorities_from_runtime_dirs():
+    for path in _xauthorities_from_runtime_dirs(deadline):
         _append_unique(candidates, path)
     env_xauthority = os.environ.get("XAUTHORITY", "")
     if env_xauthority:
@@ -99,13 +191,15 @@ def _candidate_xauthorities() -> tuple[str | None, ...]:
     return tuple(candidates)
 
 
-def _xauthorities_from_running_xservers() -> list[str]:
+def _xauthorities_from_running_xservers(deadline: MonotonicDeadline | None = None) -> list[str]:
     paths: list[str] = []
     try:
         process_ids = os.listdir("/proc")
     except OSError:
         return paths
     for process_id in process_ids:
+        if deadline is not None and deadline.expired():
+            return paths
         if not process_id.isdigit():
             continue
         cmdline = _read_proc_cmdline(process_id)
@@ -137,14 +231,18 @@ def _auth_argument(cmdline: list[str]) -> str | None:
     return None
 
 
-def _xauthorities_from_runtime_dirs() -> list[str]:
+def _xauthorities_from_runtime_dirs(deadline: MonotonicDeadline | None = None) -> list[str]:
     paths: list[str] = []
     sddm_runtime_dir = _sddm_runtime_dir()
     for entry in _list_directory(sddm_runtime_dir):
         if entry.startswith("xauth"):
             paths.append(os.path.join(sddm_runtime_dir, entry))
     for runtime_root in _runtime_search_roots():
+        if deadline is not None and deadline.expired():
+            return paths
         for user_id_dir in _list_directory(runtime_root):
+            if deadline is not None and deadline.expired():
+                return paths
             user_runtime_path = os.path.join(runtime_root, user_id_dir)
             if not os.path.isdir(user_runtime_path):
                 continue

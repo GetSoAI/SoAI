@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
+import { decodePluginIncompatibility } from '@core/plugins/collectionSnapshot.ts';
 import { readRequiredNonNegativeIntegerValue } from '@core/types/payloadNumberReaders.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
 import { readNullableTrimmedStringValue, readRequiredBooleanValue, readRequiredTrimmedString } from '@core/types/payloadValueReaders.ts';
@@ -106,8 +107,8 @@ const decodePluginCompatibilityOverrideResponse = (value: ApiResponsePayload): P
     const incompatibility = record['incompatibility'];
     return {
         plugin: readRequiredTrimmedString(record, 'plugin', `${label}.plugin`),
-        state: typeof record['state'] === 'string' ? record['state'].trim() : '',
-        incompatibility: incompatibility === null || incompatibility === undefined ? null : requireRecord(incompatibility, `${label}.incompatibility`)
+        state: readRequiredTrimmedString(record, 'state', `${label}.state`),
+        incompatibility: decodePluginIncompatibility(incompatibility ?? null)
     };
 };
 

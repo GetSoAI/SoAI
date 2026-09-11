@@ -82,7 +82,7 @@ const decodeGpuSoAIBenchSummary = (value: JsonValue | undefined, label: string):
     assignString(value, decoded, 'opencl_device_vendor', 'openclDeviceVendor', label);
     assignString(value, decoded, 'opencl_driver_version', 'openclDriverVersion', label);
     assignString(value, decoded, 'leaderboard_rejection_reason', 'leaderboardRejectionReason', label);
-    assignString(value, decoded, 'score_confidence', 'scoreConfidence', label);
+    assignNumber(value, decoded, 'score_confidence', 'scoreConfidence', label);
     assignString(value, decoded, 'message', 'message', label);
     assignString(value, decoded, 'guidance', 'guidance', label);
     assignBoolean(value, decoded, 'telemetry_available', 'telemetryAvailable', label);

@@ -11,6 +11,7 @@ import type { TrustedHtml } from '@core/security/public.ts';
 import { StaticBasePage } from '@core/StaticBasePage.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import { PAGE_ID } from '@features/plugins/public.ts';
+import { bindPluginLogoFallbacks } from '@features/catalog/public.ts';
 import { isPluginsActionId } from '@pages/plugins/actions.ts';
 import { loadPluginsPageData } from '@pages/plugins/controllers/page/effects.ts';
 import { cleanupPluginsPageOnDestroy } from '@pages/plugins/controllers/page/events.ts';
@@ -59,6 +60,7 @@ class PluginsPage extends StaticBasePage {
 
     override async setupPage(parameters: JsonObject | null = null, context: { signal?: AbortSignal } = {}): Promise<void> {
         this.#domain.initializeView();
+        this.#domain.runtime.progressController.initializeOperationProgress();
         this.#domain.setupLastUsed();
         await super.setupPage(parameters, context);
     }
@@ -83,6 +85,7 @@ class PluginsPage extends StaticBasePage {
         if (!this.#domain.session.cardController) throw new Error('PluginsPage.setupEventListeners requires cardController to be initialized');
         const signal = this.pageLifecycle.beginListeners();
         const ui = requirePluginsUi({ getDomContext: () => this.pageHost.getContext() });
+        bindPluginLogoFallbacks(ui.root, signal);
         const runtime = this.#domain.runtime;
         bindPageActionDispatcher({
             root: ui.root,

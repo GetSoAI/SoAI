@@ -73,6 +73,7 @@ ORCHESTRATOR_STATE_TRANSITIONS: tuple[
             ORCH_STATE_LOADING,
             ORCH_STATE_READY_DIRTY,
             ORCH_STATE_READY,
+            PLUGIN_STATE_PERSISTENT_READY,
             ORCH_STATE_DISABLED,
         ),
     ),

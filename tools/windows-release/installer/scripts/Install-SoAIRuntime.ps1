@@ -9,13 +9,18 @@ param(
     [string]$VisualCppAppLocalUrl = 'https://www.nuget.org/api/v2/package/VCLibs.VCRuntime.140/1.0.4',
     [string]$VisualCppAppLocalSha256 = 'EA8FAD02D8DE9CA1AB4E1D20C282166B3386ADF91A9B143019D59507229EA375',
     [string]$StatusPath,
-    [int]$DependencyInstallTimeoutSeconds = 7200
+    [int]$DependencyInstallTimeoutSeconds = 7200,
+    [switch]$BootstrapOnly
 )
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $script:InstallProgress = 35
 $script:InstallStatusMessage = ''
+$script:InstallerDownloadRoot = Join-Path $env:TEMP (
+    "SoAI-Installer-" + [Guid]::NewGuid().ToString('N')
+)
+$script:ReleasedInstallerDownloadRoot = Join-Path $env:TEMP 'SoAI-Installer'
 
 function Write-Step {
     param([Parameter(Mandatory=$true)][string]$Message)
@@ -66,7 +71,7 @@ function Format-SoAILogLine {
     $trimmed = $Line.Trim()
     $match = [regex]::Match(
         $trimmed,
-        '^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?\s+-\s+\[[^\]]+\]\s+-\s+(TRACE|DEBUG|INFO|WARN|WARNING|ERROR|CRITICAL)\s+-\s+(.*)$'
+        '^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}| UTC)?\s+-\s+\[[^\]]+\]\s+-\s+(TRACE|DEBUG|INFO|WARN|WARNING|ERROR|FATAL|CRITICAL)\s+-\s+(.*)$'
     )
     if ($match.Success) {
         return $match.Groups[2].Value.Trim()
@@ -228,18 +233,43 @@ function Get-ProgressFingerprint {
             continue
         }
         if ($item.PSIsContainer) {
-            $latest = Get-ChildItem -LiteralPath $item.FullName -Recurse -File -Force -ErrorAction SilentlyContinue |
-                Sort-Object LastWriteTimeUtc -Descending |
-                Select-Object -First 1
-            if ($latest) {
-                [void]$parts.Add("$path|dir|$($latest.FullName)|$($latest.Length)|$($latest.LastWriteTimeUtc.Ticks)")
-            }
-            else {
+            $files = @(Get-ChildItem -LiteralPath $item.FullName -Recurse -File -Force -ErrorAction SilentlyContinue |
+                Sort-Object FullName)
+            if ($files.Count -eq 0) {
                 [void]$parts.Add("$path|dir|empty|$($item.LastWriteTimeUtc.Ticks)")
+                continue
             }
-            continue
+            [void]$parts.Add("$path|dir")
         }
-        [void]$parts.Add("$path|file|$($item.Length)|$($item.LastWriteTimeUtc.Ticks)")
+        else {
+            $files = @($item)
+        }
+        foreach ($file in $files) {
+            try {
+                $stream = [IO.File]::Open($file.FullName, [IO.FileMode]::Open, [IO.FileAccess]::Read, ([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
+                try { $length = $stream.Length }
+                finally { $stream.Dispose() }
+            }
+            catch [IO.FileNotFoundException], [IO.DirectoryNotFoundException] {
+                [void]$parts.Add("$($file.FullName)|missing")
+                continue
+            }
+            catch [UnauthorizedAccessException] {
+                [void]$parts.Add("$($file.FullName)|unavailable|access")
+                continue
+            }
+            catch [IO.IOException] {
+                if (($_.Exception.GetBaseException().HResult -band 0xFFFF) -notin @(32, 33)) { throw }
+                [void]$parts.Add("$($file.FullName)|unavailable|sharing")
+                continue
+            }
+            $file.Refresh()
+            if (!$file.Exists) {
+                [void]$parts.Add("$($file.FullName)|missing")
+                continue
+            }
+            [void]$parts.Add("$($file.FullName)|file|$length|$($file.LastWriteTimeUtc.Ticks)")
+        }
     }
     return ($parts -join "`n")
 }
@@ -636,7 +666,7 @@ function Install-VisualCppRuntime {
         return
     }
 
-    $downloadDir = Join-Path $env:TEMP 'SoAI-Installer'
+    $downloadDir = $script:InstallerDownloadRoot
     $redist = Join-Path $downloadDir 'vc_redist.x64.exe'
     Download-File -Uri $VisualCppRedistUrl -Destination $redist
     Assert-AuthenticodeValid -Path $redist -ExpectedPublisher 'Microsoft'
@@ -667,7 +697,7 @@ function Install-VisualCppRuntime {
 
 function Copy-AppLocalVisualCppRuntimeDlls {
     param([Parameter(Mandatory=$true)][string]$Root)
-    $downloadDir = Join-Path $env:TEMP 'SoAI-Installer'
+    $downloadDir = $script:InstallerDownloadRoot
     $package = Join-Path $downloadDir 'VCLibs.VCRuntime.140.1.0.4.nupkg'
     $packageZip = Join-Path $downloadDir 'VCLibs.VCRuntime.140.1.0.4.zip'
     $extractDir = Join-Path $downloadDir 'VCLibs.VCRuntime.140.1.0.4'
@@ -763,7 +793,7 @@ function Install-PythonRuntime {
         Remove-Item -LiteralPath $pythonDir -Recurse -Force
     }
 
-    $downloadDir = Join-Path $env:TEMP 'SoAI-Installer'
+    $downloadDir = $script:InstallerDownloadRoot
     $package = Join-Path $downloadDir "python-$PythonVersion.nupkg"
     $packageZip = Join-Path $downloadDir "python-$PythonVersion.zip"
     $extractDir = Join-Path $downloadDir "python-$PythonVersion-package"
@@ -796,7 +826,8 @@ function Install-Stage0BootstrapDependencies {
     & $pythonExe -m pip install --disable-pip-version-check --no-warn-script-location --upgrade `
         'ruamel-yaml==0.19.1' `
         'httpx2==2.10.0' `
-        'filelock==3.32.2'
+        'filelock==3.32.2' `
+        'psutil==7.2.2'
     if ($LASTEXITCODE -ne 0) {
         throw "Stage-0 bootstrap dependency installation failed with exit code $LASTEXITCODE."
     }
@@ -827,7 +858,7 @@ function Install-WebView2Runtime {
         return
     }
 
-    $downloadDir = Join-Path $env:TEMP 'SoAI-Installer'
+    $downloadDir = $script:InstallerDownloadRoot
     $bootstrapper = Join-Path $downloadDir 'MicrosoftEdgeWebView2Setup.exe'
     if (!(Test-Path -LiteralPath $bootstrapper)) {
         Download-File -Uri $WebView2BootstrapperUrl -Destination $bootstrapper
@@ -989,7 +1020,10 @@ print("runtime_artifacts_ready=True")
 }
 
 function Invoke-SoAIInstallCommandOnce {
-    param([Parameter(Mandatory=$true)][string]$Root)
+    param(
+        [Parameter(Mandatory=$true)][string]$Root,
+        [Parameter(Mandatory=$true)][string]$PackageCache
+    )
     $alias = New-TemporaryInstallDrive -Root $Root
     $aliasRoot = $alias.Root
     $shortTempRoot = $null
@@ -1018,8 +1052,7 @@ function Invoke-SoAIInstallCommandOnce {
         Set-InstallProgress -Progress 60 -Message 'Creating the SoAI managed Python environment.'
         $shortTempRoot = Join-Path $env:TEMP ("SoAI-Install-" + [Guid]::NewGuid().ToString('N').Substring(0, 12))
         $shortTemp = Join-Path $shortTempRoot 'tmp'
-        $shortPipCache = Join-Path $shortTempRoot 'pip-cache'
-        New-Item -ItemType Directory -Force -Path $shortTemp, $shortPipCache | Out-Null
+        New-Item -ItemType Directory -Force -Path $shortTemp | Out-Null
 
         $envValues = @{
             SOAI_TMP_DIR = $shortTemp
@@ -1027,7 +1060,7 @@ function Invoke-SoAIInstallCommandOnce {
             TEMP = $shortTemp
             TMP = $shortTemp
             PATH = Get-SoAIProcessPath -Root $Root
-            PIP_CACHE_DIR = $shortPipCache
+            PIP_CACHE_DIR = $PackageCache
             PIP_DEFAULT_TIMEOUT = '120'
             SOAI_VENV_PATH = $venvPath
             SOAI_STATE_DIR = $stateDir
@@ -1074,7 +1107,7 @@ function Invoke-SoAIInstallCommandOnce {
             TEMP = $shortTemp
             TMP = $shortTemp
             PATH = Get-SoAIProcessPath -Root $Root
-            PIP_CACHE_DIR = $shortPipCache
+            PIP_CACHE_DIR = $PackageCache
             PIP_DEFAULT_TIMEOUT = '120'
             SOAI_VENV_PATH = $realVenvPath
             SOAI_STATE_DIR = $realStateDir
@@ -1115,19 +1148,18 @@ function Invoke-SoAIInstallCommandOnce {
             -PhaseName 'post-update-hook' `
             -WorkingDirectory $realRepoRoot `
             -Executable $realVenvPython `
-            -Arguments @('-m', 'app.updater.post_update_hook') `
+            -Arguments @('-P', '-m', 'app.updater.post_update_hook') `
             -EnvironmentValues $realEnvValues `
             -TimeoutSeconds 1200 `
             -HeartbeatSeconds 30 `
             -HeartbeatMessage 'Finalizing SoAI installation' `
             -ProgressStart 92 `
             -ProgressEnd 95 | Out-Null
-        Remove-Item -LiteralPath $shortTempRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
     finally {
         Remove-TemporaryInstallDrive -Drive $alias.Drive
         if ($shortTempRoot) {
-            Remove-Item -LiteralPath $shortTempRoot -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-DirectoryTree -Path $shortTempRoot
         }
     }
 }
@@ -1138,23 +1170,45 @@ function Invoke-SoAIInstallCommand {
     if (!(Test-Path -LiteralPath $pythonExe)) {
         throw "SoAI app-local Python was not found: $pythonExe"
     }
-    Remove-IncompleteManagedVenv -Root $Root
-    for ($attempt = 1; $attempt -le 2; $attempt += 1) {
-        Remove-LocalPackageBuildArtifacts -Root $Root
-        try {
-            Invoke-SoAIInstallCommandOnce -Root $Root
+    $packageCache = Join-Path $env:TEMP ("SoAI-Packages-" + [Guid]::NewGuid().ToString('N'))
+    if (Test-Path -LiteralPath $packageCache) {
+        throw 'The private installer package cache path already exists.'
+    }
+    $cacheSecurity = New-Object Security.AccessControl.DirectorySecurity
+    $cacheSecurity.SetAccessRuleProtection($true, $false)
+    $cacheOwner = [Security.Principal.WindowsIdentity]::GetCurrent().User
+    $cacheSecurity.SetOwner($cacheOwner)
+    $cacheRule = New-Object Security.AccessControl.FileSystemAccessRule(
+        $cacheOwner,
+        [Security.AccessControl.FileSystemRights]::FullControl,
+        [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit',
+        [Security.AccessControl.PropagationFlags]::None,
+        [Security.AccessControl.AccessControlType]::Allow
+    )
+    $cacheSecurity.AddAccessRule($cacheRule)
+    [void][IO.Directory]::CreateDirectory($packageCache, $cacheSecurity)
+    try {
+        Remove-IncompleteManagedVenv -Root $Root
+        for ($attempt = 1; $attempt -le 2; $attempt += 1) {
             Remove-LocalPackageBuildArtifacts -Root $Root
-            return
-        }
-        catch {
-            Remove-LocalPackageBuildArtifacts -Root $Root
-            if ($attempt -eq 2 -or $script:LastFailedInstallPhase -in @('install-runtime-artifacts', 'post-update-hook')) {
-                throw
+            try {
+                Invoke-SoAIInstallCommandOnce -Root $Root -PackageCache $packageCache
+                Remove-LocalPackageBuildArtifacts -Root $Root
+                return
             }
-            Write-Step "SoAI managed environment preparation failed: $($_.Exception.Message)"
-            Write-Step 'Rebuilding the SoAI managed Python environment once...'
-            Remove-DirectoryTree -Path (Resolve-ChildPath -Root $Root -Child 'soai_main_venv')
+            catch {
+                Remove-LocalPackageBuildArtifacts -Root $Root
+                if ($attempt -eq 2 -or $script:LastFailedInstallPhase -in @('install-runtime-artifacts', 'post-update-hook')) {
+                    throw
+                }
+                Write-Step "SoAI managed environment preparation failed: $($_.Exception.Message)"
+                Write-Step 'Rebuilding the SoAI managed Python environment once...'
+                Remove-DirectoryTree -Path (Resolve-ChildPath -Root $Root -Child 'soai_main_venv')
+            }
         }
+    }
+    finally {
+        Remove-DirectoryTree -Path $packageCache
     }
 }
 
@@ -1179,6 +1233,14 @@ function Grant-RuntimeWriteAccess {
     $usersSidGrant = '*S-1-5-32-545:(OI)(CI)M'
     foreach ($relative in @('data', 'soai_main_venv', 'python')) {
         $path = Resolve-ChildPath -Root $Root -Child $relative
+        if (!$path.StartsWith('\\?\', [StringComparison]::Ordinal)) {
+            if ($path.StartsWith('\\', [StringComparison]::Ordinal)) {
+                $path = '\\?\UNC\' + $path.Substring(2)
+            }
+            else {
+                $path = '\\?\' + $path
+            }
+        }
         if (!(Test-Path -LiteralPath $path -PathType Container)) {
             continue
         }
@@ -1201,19 +1263,31 @@ function Test-SQLiteRuntimeAccess {
 }
 
 $resolvedInstallRoot = Resolve-FullPath $InstallRoot
-Set-InstallProgress -Progress 35 -Message "Preparing SoAI in $resolvedInstallRoot"
-Set-InstallProgress -Progress 38 -Message 'Checking Microsoft Edge WebView2 Runtime...'
-Install-WebView2Runtime
-Set-InstallProgress -Progress 43 -Message 'Preparing Microsoft Visual C++ runtime support...'
-Install-VisualCppRuntime -Root $resolvedInstallRoot
-Set-InstallProgress -Progress 48 -Message "Preparing app-local Python $PythonVersion runtime..."
-Install-PythonRuntime -Root $resolvedInstallRoot
-Set-InstallProgress -Progress 55 -Message 'Preparing SoAI bootstrap dependencies...'
-Install-Stage0BootstrapDependencies -Root $resolvedInstallRoot
-Invoke-SoAIInstallCommand -Root $resolvedInstallRoot
-Set-InstallProgress -Progress 96 -Message 'Writing SoAI installation state...'
-Write-InstallState -Root $resolvedInstallRoot
-Set-InstallProgress -Progress 97 -Message 'Configuring SoAI runtime permissions...'
-Grant-RuntimeWriteAccess -Root $resolvedInstallRoot
-Test-SQLiteRuntimeAccess -Root $resolvedInstallRoot
-Set-InstallProgress -Progress 98 -Message 'SoAI is ready to start.'
+try {
+    Set-InstallProgress -Progress 35 -Message "Preparing SoAI in $resolvedInstallRoot"
+    Set-InstallProgress -Progress 38 -Message 'Checking Microsoft Edge WebView2 Runtime...'
+    Install-WebView2Runtime
+    Set-InstallProgress -Progress 43 -Message 'Preparing Microsoft Visual C++ runtime support...'
+    Install-VisualCppRuntime -Root $resolvedInstallRoot
+    Set-InstallProgress -Progress 48 -Message "Preparing app-local Python $PythonVersion runtime..."
+    Install-PythonRuntime -Root $resolvedInstallRoot
+    Set-InstallProgress -Progress 55 -Message 'Preparing SoAI bootstrap dependencies...'
+    Install-Stage0BootstrapDependencies -Root $resolvedInstallRoot
+    if ($BootstrapOnly) {
+        Set-InstallProgress -Progress 98 -Message 'SoAI bootstrap runtime is ready.'
+    }
+    else {
+        Invoke-SoAIInstallCommand -Root $resolvedInstallRoot
+        Set-InstallProgress -Progress 96 -Message 'Writing SoAI installation state...'
+        Write-InstallState -Root $resolvedInstallRoot
+        Set-InstallProgress -Progress 97 -Message 'Configuring SoAI runtime permissions...'
+        Grant-RuntimeWriteAccess -Root $resolvedInstallRoot
+        Test-SQLiteRuntimeAccess -Root $resolvedInstallRoot
+        Set-InstallProgress -Progress 98 -Message 'SoAI is ready to start.'
+    }
+}
+finally {
+    Remove-DirectoryTree -Path $script:InstallerDownloadRoot
+    Remove-DirectoryTree -Path $script:ReleasedInstallerDownloadRoot
+}
+exit 0

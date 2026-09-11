@@ -150,20 +150,6 @@ soai_launcher__run_management() {
     exec "$python_bin" "$MAIN_PY_PATH" "$SOAI_LAUNCHER_COMMAND" "${SOAI_PASSTHROUGH_ARGS[@]}"
 }
 
-soai_launcher__elevate_for_installed_state() {
-    if [ "$(uname -s 2>/dev/null || true)" != "Linux" ] || [ "${EUID:-$(id -u)}" -eq 0 ]; then
-        return 0
-    fi
-    local launcher_state_dir="${SCRIPT_DIR}/data/state"
-    if [ ! -d "$launcher_state_dir" ] || [ -w "$launcher_state_dir" ]; then
-        return 0
-    fi
-    if ! command -v sudo >/dev/null 2>&1; then
-        soai_managed_runtime__die "SoAI requires root privileges for this installation, but sudo is unavailable." || return 1
-    fi
-    soai_launcher__info "Root privileges are required to manage this SoAI installation."
-    exec sudo -- "${SCRIPT_DIR}/${SOAI_EXPLICIT_LAUNCHER_RELATIVE_PATH}" "$@"
-}
 
 [ -f "$MAIN_PY_PATH" ] || { echo "ERROR: Missing backend entrypoint: ${MAIN_PY_PATH}" >&2; exit 1; }
 if soai_launcher__emit_information_if_requested "$@"; then

@@ -17,6 +17,11 @@ from core.config.byte_sizes import MIB_BYTES
 from core.errors.exceptions import ValidationError
 from core.files.content_hashing import hash_seekable_binary_stream_content
 from core.models.parameter_schema_document import validate_parameter_schema_document
+from core.plugins.logo_contract import (
+    LOGO_FILENAMES,
+    MAX_LOGO_SOURCE_BYTES,
+    PluginLogoSource,
+)
 from core.serialization.json_parsing import MAX_JSON_NESTING_DEPTH, parse_json_value
 from core.types.json import is_json_dict
 from plugins.package_archive import open_validated_plugin_package
@@ -26,8 +31,8 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
 
 __all__ = (
-    "PluginPackageSnapshot",
     "PluginPackageMemberDigest",
+    "PluginPackageSnapshot",
     "PluginPythonMemberAudit",
     "inspect_plugin_package_stream",
 )
@@ -65,6 +70,7 @@ class PluginPackageSnapshot:
     entrypoint: PluginPythonMemberAudit
     python_members: tuple[PluginPythonMemberAudit, ...]
     parameter_schema: JSONDict | None
+    logo_source: PluginLogoSource
 
 
 def _parse_python_member(
@@ -158,11 +164,35 @@ def _inspect_member_contents(
     plan: ValidatedZipPlan,
     python_plan_members: list[ValidatedZipMember],
     parameter_schema_member: ValidatedZipMember | None,
-) -> tuple[tuple[PluginPackageMemberDigest, ...], dict[str, bytes], bytes | None]:
+) -> tuple[tuple[PluginPackageMemberDigest, ...], dict[str, bytes], bytes | None, PluginLogoSource]:
     python_paths = {member.archive_path for member in python_plan_members}
     python_source_buffers = {member.archive_path: bytearray() for member in python_plan_members}
     parameter_schema_buffer = bytearray() if parameter_schema_member is not None else None
     member_digests: list[PluginPackageMemberDigest] = []
+    logo_members = [
+        member
+        for member in plan.members
+        if "/" not in member.archive_path.rstrip("/")
+        and member.archive_path.casefold().startswith("logo.")
+    ]
+    logo_member = logo_members[0] if len(logo_members) == 1 else None
+    logo_source = PluginLogoSource()
+    if logo_members:
+        if logo_member is None:
+            logo_source = PluginLogoSource(
+                rejection="Archive contains multiple root artwork candidates."
+            )
+        elif logo_member.is_directory or logo_member.archive_path not in LOGO_FILENAMES:
+            logo_source = PluginLogoSource(
+                rejection="Artwork must be a regular root logo.png or logo.webp."
+            )
+        elif not 1 <= logo_member.file_size <= MAX_LOGO_SOURCE_BYTES:
+            logo_source = PluginLogoSource(
+                rejection="Artwork source must contain between 1 and 1048576 bytes."
+            )
+        else:
+            logo_source = PluginLogoSource(filename=logo_member.archive_path)
+    logo_buffer = bytearray()
     for member in plan.members:
         if member.is_directory:
             continue
@@ -175,6 +205,14 @@ def _inspect_member_contents(
                     break
                 digest.update(chunk)
                 total_bytes += len(chunk)
+                if member is logo_member and logo_source.filename is not None:
+                    if total_bytes <= MAX_LOGO_SOURCE_BYTES:
+                        logo_buffer.extend(chunk)
+                    else:
+                        logo_buffer.clear()
+                        logo_source = PluginLogoSource(
+                            rejection="Artwork exceeds the source byte limit."
+                        )
                 if member.archive_path in python_paths:
                     python_source_buffers[member.archive_path].extend(chunk)
                 if parameter_schema_member is not None and member is parameter_schema_member:
@@ -201,6 +239,7 @@ def _inspect_member_contents(
         tuple(member_digests),
         {path: bytes(source_buffer) for path, source_buffer in python_source_buffers.items()},
         bytes(parameter_schema_buffer) if parameter_schema_buffer is not None else None,
+        PluginLogoSource(logo_source.filename, bytes(logo_buffer), logo_source.rejection),
     )
 
 
@@ -238,11 +277,13 @@ def inspect_plugin_package_stream(
         with open_validated_plugin_package(file_handle) as (zip_file, plan):
             python_plan_members = _python_plan_members(plan)
             parameter_schema_member = _parameter_schema_plan_member(plan)
-            member_digests, python_sources, parameter_schema_bytes = _inspect_member_contents(
-                zip_file,
-                plan,
-                python_plan_members,
-                parameter_schema_member,
+            member_digests, python_sources, parameter_schema_bytes, logo_source = (
+                _inspect_member_contents(
+                    zip_file,
+                    plan,
+                    python_plan_members,
+                    parameter_schema_member,
+                )
             )
             python_members = tuple(
                 _parse_python_member(
@@ -272,4 +313,5 @@ def inspect_plugin_package_stream(
         entrypoint=entrypoint,
         python_members=python_members,
         parameter_schema=parameter_schema,
+        logo_source=logo_source,
     )

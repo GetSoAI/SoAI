@@ -10,6 +10,8 @@ from starlette.responses import JSONResponse, Response
 from core.errors.exception_logging import log_exception
 from core.errors.http_recoverable import HTTP_RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
+from core.meta.software_update_platforms import delivery_type_for_platform
+from core.runtime.platform import get_runtime_platform
 from core.state.access import AccessAction
 from features.api.runtime.access_dependencies import (
     require_action_dependencies,
@@ -99,7 +101,20 @@ def register_routes(routers: ApiRouters) -> None:
                 "Software update returned an invalid outcome.",
                 error_type="update_failed",
             )
+        platform_id = get_runtime_platform().platform_id
+        delivery_type = delivery_type_for_platform(platform_id)
+        if platform_id is None or delivery_type is None:
+            raise_server_error(
+                request,
+                "Software update platform metadata is unavailable.",
+                error_type="update_failed",
+            )
         return JSONResponse(
             status_code=status.HTTP_202_ACCEPTED,
-            content={"status": "accepted", "message": message},
+            content={
+                "status": "accepted",
+                "message": message,
+                "platform_id": platform_id,
+                "delivery_type": delivery_type,
+            },
         )

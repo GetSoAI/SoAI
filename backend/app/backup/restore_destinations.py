@@ -38,9 +38,9 @@ def ensure_restore_destination_is_safe(destination_path: str) -> None:
     if not os.path.isabs(destination_path):
         raise SecurityError(f"Restore destination must be an absolute path: {destination_path}")
     candidate = os.path.abspath(destination_path)
-    if candidate == os.sep:
-        raise SecurityError("Refusing to restore to filesystem root.")
     drive, tail = os.path.splitdrive(candidate)
+    if not tail.strip(os.sep):
+        raise SecurityError("Refusing to restore to filesystem root.")
     prefix = (drive + os.sep) if drive else os.sep
     segments = tail.strip(os.sep).split(os.sep) if tail.strip(os.sep) else []
     for segment in segments:

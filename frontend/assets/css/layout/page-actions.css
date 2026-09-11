@@ -15,14 +15,13 @@
         gap: var(--header-button-gap);
     }
 
-    .page-actions__menu .ui-button {
+    :is(.page-actions__menu .ui-button, .ui-button--page-action) {
         height: var(--control-height);
         min-height: var(--control-height);
         padding: var(--control-padding-block-sm) var(--control-padding-inline);
     }
 
-    .page-actions__menu .ui-button svg,
-    .page-actions__menu .ui-button .ui-icon {
+    :is(.page-actions__menu .ui-button, .ui-button--page-action) :is(svg, .ui-icon) {
         width: var(--control-icon-size);
         height: var(--control-icon-size);
     }

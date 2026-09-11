@@ -64,8 +64,12 @@ class UpdatesSystemController {
         this.#updateInProgress = false;
     }
 
+    get installationInProgress(): boolean {
+        return this.#updateInProgress;
+    }
+
     async checkForUpdates(options?: UpdatesSystemCheckOptions): Promise<UpdatesOperationOutcome> {
-        if (this.#isChecking || !this.#checkButton) {
+        if (this.#isChecking || this.#updateInProgress || !this.#checkButton) {
             return { type: 'skipped', message: '', updatesCount: 0 };
         }
         const checkButton = this.#checkButton;
@@ -105,38 +109,47 @@ class UpdatesSystemController {
     }
 
     async installSystemUpdate(button: HTMLElement): Promise<UpdatesSystemInstallOutcome> {
-        if (this.#updateInProgress || !this.#currentUpdate || !this.#currentUpdate.updateAvailable) {
+        if (this.#updateInProgress || this.#isChecking || !this.#currentUpdate || !this.#currentUpdate.updateAvailable || !this.#currentUpdate.installSupported) {
             return { type: 'skipped', message: '', operationRevision: null };
         }
         const lifecycle = this.#lifecycleVersion;
         const latestVersion = this.#currentUpdate.latestVersion || i18n.t('updates.unknown');
         this.#updateInProgress = true;
         let operationRevision: number | null = null;
+        let updateAccepted = false;
         try {
+            if (this.#checkButton) {
+                this.#host.updateProperty(this.#checkButton, 'disabled', true);
+            }
             this.#syncInstallButtonState();
+            const confirmationMessage = this.#currentUpdate.deliveryType === 'installer' ? i18n.t('updates.confirmations.installSystemWithInstaller', { version: latestVersion }) : i18n.t('updates.confirmations.installSystem', { version: latestVersion });
             const confirmed = await requireDialogsService().showConfirmation({
                 title: i18n.t('updates.actions.installUpdate'),
-                message: i18n.t('updates.confirmations.installSystem', { version: latestVersion }),
+                message: confirmationMessage,
                 confirmText: i18n.t('updates.actions.installUpdate'),
                 cancelText: i18n.t('common.cancel'),
                 variant: 'info'
             });
-            if (!confirmed) {
+            if (!confirmed || lifecycle !== this.#lifecycleVersion) {
                 return { type: 'skipped', message: '', operationRevision: null };
             }
 
             operationRevision = this.#host.onInstallStarted();
+            if (this.#checkButton) {
+                this.#host.toggleHidden(this.#checkButton, true);
+            }
             this.#host.setButtonLoading(button, true, { loadingText: i18n.t('updates.status.updating') });
             this.#setStatus({
                 heading: i18n.t('updates.status.updating'),
                 detail: `${i18n.t('updates.metadata.latest_version')} ${latestVersion}`
             });
             await this.#host.api.updateSoAI();
+            updateAccepted = true;
             if (lifecycle !== this.#lifecycleVersion) {
                 return { type: 'skipped', message: '', operationRevision };
             }
             this.#host.notify(i18n.t('updates.notifications.systemUpdateInitiated'), 'success');
-            this.#host.showOverlay('update-soai');
+            this.#host.showOverlay('update-soai', { observeTransition: true });
             return { type: 'started', message: i18n.t('updates.notifications.systemUpdateInitiated'), operationRevision };
         } catch (error) {
             if (lifecycle !== this.#lifecycleVersion) {
@@ -155,11 +168,15 @@ class UpdatesSystemController {
             });
             return outcome;
         } finally {
-            this.#updateInProgress = false;
             if (operationRevision !== null) {
                 this.#host.setButtonLoading(button, false);
             }
             if (lifecycle === this.#lifecycleVersion) {
+                this.#updateInProgress = updateAccepted;
+                if (this.#checkButton && !updateAccepted) {
+                    this.#host.updateProperty(this.#checkButton, 'disabled', false);
+                    this.#host.toggleHidden(this.#checkButton, false);
+                }
                 this.#syncInstallButtonState();
             }
         }
@@ -233,7 +250,7 @@ class UpdatesSystemController {
         if (!installButton) {
             return;
         }
-        this.#host.updateProperty(installButton, 'disabled', !this.#currentUpdate?.updateAvailable || this.#updateInProgress);
+        this.#host.updateProperty(installButton, 'disabled', !this.#currentUpdate?.updateAvailable || !this.#currentUpdate.installSupported || this.#updateInProgress);
     }
 
     #handleCheckFailure(error: Error | null, notify = true): UpdatesOperationOutcome {

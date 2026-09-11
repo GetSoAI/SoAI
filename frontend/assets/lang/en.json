@@ -82,6 +82,9 @@
                 "deleteMessage": "This will delete \"{title}\" and its scheduled runs. Existing chat transcripts remain available.",
                 "deleteTitle": "Delete automation?"
             },
+            "errors": {
+                "oneShotStartNotFuture": "One-shot automations must start in the future. Choose a later start time."
+            },
             "preferencesCorrupt": {
                 "message": "Automation page preferences are invalid. Reset preferences to continue.",
                 "reset": "Reset automation preferences",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "Require approval before executing tools in this conversation.",
                 "newConversationInheritLastSettings": "Use last settings for new chats",
                 "newConversationInheritLastSettingsHint": "New chats start with your last used model, tools, and knowledge settings.",
+                "ctrlEnterSend": "Ctrl + Enter to send",
+                "ctrlEnterSendHint": "When enabled, send with Ctrl + Enter and start a new line with Enter. When disabled, send with Enter and start a new line with Shift + Enter.",
                 "knowledge": {
                     "downloadModel": "Download model",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "Stopping response"
                         },
+                        "soai_documentation": {
+                            "1": "Searching SoAI documentation",
+                            "detail": {
+                                "1": "Searching SoAI documentation: {detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "Replacing text",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "Current folder",
+                "filesystemRoot": "Filesystem root",
                 "empty": "No folders found.",
                 "forbidden": "You do not have access to this folder.",
                 "loadFailed": "Failed to load folders.",
+                "validationFailed": "The selected folder could not be validated.",
                 "loading": "Loading folders...",
                 "manualAbsolutePathRequired": "Enter an absolute path (e.g. /path or C:\\path).",
                 "manualPath": "Selected folder",
@@ -2474,7 +2487,8 @@
                 "loading": "Loading",
                 "resolution": "Resolution",
                 "size": "Size",
-                "zoom": "Zoom"
+                "zoom": "Zoom",
+                "position": "Image {current} of {total}"
             },
             "sourceInfo": {
                 "conversationPath": "Conversation path",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "Widgets"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "Some GPU controls could not be detected. Available controls remain usable.",
+                "capabilitiesStale": "GPU controls are reconnecting. Last updated {age}.",
+                "capabilitiesRetained": "GPU controls are unavailable. Showing data from {age}.",
+                "slotsStale": "Saved GPU settings are reconnecting. Last updated {age}.",
+                "slotsRetained": "Saved GPU settings are unavailable. Showing data from {age}.",
+                "capabilitiesUnavailable": "GPU controls are unavailable.",
+                "slotsUnavailable": "Saved GPU settings are unavailable."
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "Open"
                 },
                 "aria": {
-                    "panel": "Notification center",
-                    "unreadCount": "Unread notifications"
+                    "panel": "Notification center"
                 },
                 "messages": {
                     "noNotifications": "No notifications",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "Continue",
                 "externalLinkMessage": "Open the SoAI website in a new browser tab?"
             },
-            "description": "Find your way around SoAI",
+            "description": "Find your way around SoAI.",
             "documentationUrl": "Documentation",
             "intro": {
                 "aboutButton": "About SoAI",
@@ -4236,8 +4258,7 @@
             "description": "Manage AI models across plugins and providers.",
             "searchPlaceholder": "Search models...",
             "empty": {
-                "downloadFirst": "Download your first model",
-                "getStarted": "Get started by downloading your first model.",
+                "getStarted": "Get started by adding your first model.",
                 "noMatch": "No models match your filters",
                 "noModels": "No models found",
                 "tryAdjusting": "Try adjusting your search or filter criteria."
@@ -4702,7 +4723,7 @@
                 "title": "Dashboard"
             },
             "fileExplorer": {
-                "description": "Browse and manage SoAI OS files.",
+                "description": "Browse and manage SoAI files.",
                 "title": "Files"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "None",
                 "reasons": {
                     "broken": "Plugin file is corrupted or has syntax errors. Delete and re-download.",
+                    "dependencyMissing": "Required plugin dependencies are unavailable: {dependencies}.",
                     "gpu": "Requires GPU ({required}). Detected vendors: {detected}. Override to use CPU mode (may not work).",
                     "gpuShort": "GPU check failed. Required: {required}. Detected: {detected}. Toggle to continue.",
                     "hardwareShort": "Hardware requirements not met. Required: {required}. Current: {current}. Toggle to proceed.",
                     "os": "Requires {required}. Detected: {detected}. Override at your own risk.",
+                    "osCard": "Requires {required}. Detected: {detected}.",
                     "osShort": "OS mismatch. Required: {required}. Detected: {detected}. Toggle to enable anyway.",
                     "version": "Requires SoAI {required}. Current: {current}. Update SoAI to use this plugin."
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "Command to stop all plugins has been issued.",
                 "stopSuccess": "Plugin {plugin} stopped successfully",
                 "updateCheckFailed": "Failed to check for updates",
-                "uploadAccepted": "Plugin upload accepted",
                 "uploadFailed": "Failed to upload plugin"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "Plugins",
                 "prompts": "Prompts"
             },
-            "description": "Search through models, plugins, hardware, and more",
+            "description": "Search through models, plugins, hardware, and more.",
             "deviceDescriptions": {
                 "cpuCores": "{count} cores",
                 "cpuThreads": "{count} threads",
@@ -7669,7 +7691,8 @@
                 "upToDate": "Up to date"
             },
             "confirmations": {
-                "installSystem": "Are you sure you want to install system update {version}? This will restart the SoAI application."
+                "installSystem": "Are you sure you want to install system update {version}? This will restart the SoAI application.",
+                "installSystemWithInstaller": "Are you sure you want to install system update {version}? This will run the Windows installer and restart SoAI."
             },
             "description": "Check and install updates for the SoAI application.",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "Confirm password",
-                    "placeholder": "Enter the password again."
+                    "placeholder": "Repeat password"
                 },
                 "creating": "Creating...",
                 "description": "Create your admin account. It has full access to this SoAI instance.",

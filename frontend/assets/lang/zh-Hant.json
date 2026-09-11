@@ -82,6 +82,9 @@
                 "deleteMessage": "這將刪除「{title}」及其排程執行。現有的聊天記錄仍會保留。",
                 "deleteTitle": "刪除自動化？"
             },
+            "errors": {
+                "oneShotStartNotFuture": "一次性自動化必須在未來的時間開始。請選擇較晚的開始時間。"
+            },
             "preferencesCorrupt": {
                 "message": "自動化頁面的偏好設定無效。請重設偏好設定以繼續。",
                 "reset": "重設自動化偏好設定",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "在此對話中執行工具前需要核准。",
                 "newConversationInheritLastSettings": "新聊天使用上次設定",
                 "newConversationInheritLastSettingsHint": "新聊天會沿用您上次使用的模型、工具與知識設定。",
+                "ctrlEnterSend": "使用 Ctrl + Enter 傳送",
+                "ctrlEnterSendHint": "啟用後，按 Ctrl + Enter 傳送，按 Enter 換行。停用後，按 Enter 傳送，按 Shift + Enter 換行。",
                 "knowledge": {
                     "downloadModel": "下載模型",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "正在停止回覆"
                         },
+                        "soai_documentation": {
+                            "1": "正在搜尋 SoAI 文件",
+                            "detail": {
+                                "1": "正在搜尋 SoAI 文件：{detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "正在取代文字",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "目前資料夾",
+                "filesystemRoot": "檔案系統根目錄",
                 "empty": "找不到資料夾。",
                 "forbidden": "您無權存取此資料夾。",
                 "loadFailed": "無法載入資料夾。",
+                "validationFailed": "無法驗證所選資料夾。",
                 "loading": "正在載入資料夾...",
                 "manualAbsolutePathRequired": "輸入絕對路徑（例如 /path 或 C:\\path）。",
                 "manualPath": "所選資料夾",
@@ -2474,7 +2487,8 @@
                 "loading": "載入中",
                 "resolution": "解析度",
                 "size": "大小",
-                "zoom": "縮放"
+                "zoom": "縮放",
+                "position": "第 {current} 張圖片，共 {total} 張"
             },
             "sourceInfo": {
                 "conversationPath": "對話路徑",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "小工具"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "無法偵測到部分 GPU 控制功能。可用的功能仍可使用。",
+                "capabilitiesStale": "正在重新連線 GPU 控制功能。上次更新：{age}。",
+                "capabilitiesRetained": "GPU 控制功能無法使用。正在顯示{age}的資料。",
+                "slotsStale": "正在重新連線已儲存的 GPU 設定。上次更新：{age}。",
+                "slotsRetained": "已儲存的 GPU 設定無法使用。正在顯示{age}的資料。",
+                "capabilitiesUnavailable": "GPU 控制無法使用。",
+                "slotsUnavailable": "已儲存的 GPU 設定無法使用。"
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "開啟"
                 },
                 "aria": {
-                    "panel": "通知中心",
-                    "unreadCount": "未讀通知"
+                    "panel": "通知中心"
                 },
                 "messages": {
                     "noNotifications": "沒有通知",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "繼續",
                 "externalLinkMessage": "要在新的瀏覽器分頁中開啟 SoAI 網站嗎？"
             },
-            "description": "瞭解如何使用 SoAI",
+            "description": "瞭解如何使用 SoAI。",
             "documentationUrl": "說明文件",
             "intro": {
                 "aboutButton": "關於 SoAI",
@@ -4236,8 +4258,7 @@
             "description": "管理各外掛程式與提供者的 AI 模型。",
             "searchPlaceholder": "搜尋模型...",
             "empty": {
-                "downloadFirst": "下載第一個模型",
-                "getStarted": "下載第一個模型以開始使用。",
+                "getStarted": "新增第一個模型即可開始。",
                 "noMatch": "沒有符合篩選條件的模型",
                 "noModels": "找不到模型",
                 "tryAdjusting": "請嘗試調整搜尋或篩選條件。"
@@ -4702,7 +4723,7 @@
                 "title": "儀表板"
             },
             "fileExplorer": {
-                "description": "瀏覽及管理 SoAI OS 檔案。",
+                "description": "瀏覽及管理 SoAI 檔案。",
                 "title": "檔案"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "無",
                 "reasons": {
                     "broken": "外掛程式檔案已損毀或有語法錯誤。請刪除後重新下載。",
+                    "dependencyMissing": "無法使用必要的外掛程式相依項目：{dependencies}。",
                     "gpu": "需要 GPU（{required}）。偵測到的廠商：{detected}。可覆寫以使用 CPU 模式（可能無法運作）。",
                     "gpuShort": "GPU 檢查失敗。需要：{required}。偵測到：{detected}。切換開關即可繼續。",
                     "hardwareShort": "不符合硬體需求。需要：{required}。目前：{current}。切換開關即可繼續。",
                     "os": "需要 {required}。偵測到：{detected}。如要覆寫，風險請自行承擔。",
+                    "osCard": "需要 {required}。偵測到：{detected}。",
                     "osShort": "OS 不相符。需要：{required}。偵測到：{detected}。切換開關仍可啟用。",
                     "version": "需要 SoAI {required}。目前版本：{current}。請更新 SoAI 以使用此外掛程式。"
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "已發出停止所有外掛程式的命令。",
                 "stopSuccess": "外掛程式 {plugin} 已成功停止",
                 "updateCheckFailed": "無法檢查更新",
-                "uploadAccepted": "已接受外掛程式上傳",
                 "uploadFailed": "無法上傳外掛程式"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "外掛程式",
                 "prompts": "提示詞"
             },
-            "description": "搜尋模型、外掛程式、硬體等內容",
+            "description": "搜尋模型、外掛程式、硬體等內容。",
             "deviceDescriptions": {
                 "cpuCores": "{count} 個核心",
                 "cpuThreads": "{count} 個執行緒",
@@ -7669,7 +7691,8 @@
                 "upToDate": "已是最新版本"
             },
             "confirmations": {
-                "installSystem": "確定要安裝系統更新 {version} 嗎？這會重新啟動 SoAI 應用程式。"
+                "installSystem": "確定要安裝系統更新 {version} 嗎？這會重新啟動 SoAI 應用程式。",
+                "installSystemWithInstaller": "確定要安裝系統更新 {version} 嗎？這會執行 Windows 安裝程式並重新啟動 SoAI。"
             },
             "description": "檢查並安裝 SoAI 應用程式的更新。",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "確認密碼",
-                    "placeholder": "再次輸入密碼。"
+                    "placeholder": "再次輸入密碼"
                 },
                 "creating": "正在建立...",
                 "description": "建立您的系統管理員帳戶。此帳戶擁有此 SoAI 執行個體的完整存取權。",

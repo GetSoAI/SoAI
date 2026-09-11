@@ -3,7 +3,7 @@
 
 import { isArray } from '@core/typeGuards.ts';
 import type { HeaderActionDefinition, HeaderStatDefinition, IconDefinition } from '@core/routing/pages/pagetypes/public.ts';
-import type { AttributeProps, ButtonConfig, LayoutNodeValue, MarkupContent } from '@core/uiprimitives/types.ts';
+import type { AriaProps, AttributeProps, ButtonConfig, LayoutNodeValue, MarkupContent } from '@core/uiprimitives/types.ts';
 
 interface CardGridHeaderOptions {
     title: string;
@@ -29,6 +29,7 @@ interface CollectionSectionOptions {
     className: string;
     role?: string;
     tag?: string;
+    aria?: AriaProps;
 }
 
 interface CollectionSection {
@@ -37,6 +38,7 @@ interface CollectionSection {
     id: string;
     className: string;
     role: string;
+    aria?: AriaProps;
     children?: LayoutNodeValue;
 }
 
@@ -126,12 +128,13 @@ const buildCardGridHeader = ({ title, description, actions = [], stats = [], con
     return header;
 };
 
-const buildCollectionSection = ({ id, className, role = 'list', tag = 'div' }: CollectionSectionOptions): CollectionSection => ({
+const buildCollectionSection = ({ id, className, role = 'list', tag = 'div', aria }: CollectionSectionOptions): CollectionSection => ({
     type: 'section',
     tag,
     id,
     className,
-    role
+    role,
+    ...(aria ? { aria } : {})
 });
 
 const buildEmptyState = ({ id, className, title, description, icon, body, actions }: EmptyStateOptions): EmptyState => {

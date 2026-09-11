@@ -49,7 +49,11 @@ async def load_plugin_instance(
     async def _load_under_lock() -> PluginInstanceProtocol:
         resolved_preflight_result = preflight_result
         if force_reload:
-            resolved_preflight_result = await perform_plugin_preflight_checks(self, plugin_name)
+            if resolved_preflight_result is None:
+                resolved_preflight_result = await perform_plugin_preflight_checks(
+                    self,
+                    plugin_name,
+                )
             await teardown_plugin_runtime(
                 self,
                 plugin_name,

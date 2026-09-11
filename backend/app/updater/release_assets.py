@@ -13,11 +13,11 @@ from app.updater.release_contract import (
     release_manifest_asset_name,
     release_manifest_signature_asset_name,
 )
-from app.updater.release_manifest_types import ReleaseUpdateArchive
 from core.errors.exceptions import ValidationError
 from core.network.urls import require_absolute_http_url
 
 if TYPE_CHECKING:
+    from app.updater.release_manifest_types import ReleaseArtifact
     from core.types.json import JSONValue
 
 __all__ = (
@@ -45,7 +45,7 @@ class ResolvedManifestAssets:
 class ResolvedReleaseAssets:
     manifest: ReleaseAsset
     signature: ReleaseAsset
-    archive: ReleaseAsset
+    artifact: ReleaseAsset
     checksum: ReleaseAsset
 
 
@@ -89,12 +89,25 @@ def resolve_manifest_assets(
     *,
     version: str,
     edition: str,
+    platform_id: str,
 ) -> ResolvedManifestAssets:
     assets = _release_asset_map(release_info)
     return ResolvedManifestAssets(
-        manifest=_require_asset(assets, release_manifest_asset_name(version, edition=edition)),
+        manifest=_require_asset(
+            assets,
+            release_manifest_asset_name(
+                version,
+                edition=edition,
+                platform_id=platform_id,
+            ),
+        ),
         signature=_require_asset(
-            assets, release_manifest_signature_asset_name(version, edition=edition)
+            assets,
+            release_manifest_signature_asset_name(
+                version,
+                edition=edition,
+                platform_id=platform_id,
+            ),
         ),
     )
 
@@ -102,16 +115,29 @@ def resolve_manifest_assets(
 def resolve_release_assets(
     release_info: Mapping[str, JSONValue],
     *,
-    archive: ReleaseUpdateArchive,
+    artifact: ReleaseArtifact,
     version: str,
     edition: str,
+    platform_id: str,
 ) -> ResolvedReleaseAssets:
     assets = _release_asset_map(release_info)
     return ResolvedReleaseAssets(
-        manifest=_require_asset(assets, release_manifest_asset_name(version, edition=edition)),
-        signature=_require_asset(
-            assets, release_manifest_signature_asset_name(version, edition=edition)
+        manifest=_require_asset(
+            assets,
+            release_manifest_asset_name(
+                version,
+                edition=edition,
+                platform_id=platform_id,
+            ),
         ),
-        archive=_require_asset(assets, archive.name),
-        checksum=_require_asset(assets, checksum_asset_name(archive.name)),
+        signature=_require_asset(
+            assets,
+            release_manifest_signature_asset_name(
+                version,
+                edition=edition,
+                platform_id=platform_id,
+            ),
+        ),
+        artifact=_require_asset(assets, artifact.name),
+        checksum=_require_asset(assets, checksum_asset_name(artifact.name)),
     )

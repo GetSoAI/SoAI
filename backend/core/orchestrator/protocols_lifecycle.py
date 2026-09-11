@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from core.events.types_models_requests import InferenceRequestReceived
     from core.events.types_system import ConfigReloadedEvent
     from core.state.health_status import PluginHealthStatus
+    from core.state.plugin_state_generation import PluginStateGeneration
     from core.tasks.task import Task
     from core.types.json import JSONDict
 
@@ -171,7 +172,13 @@ class OrchestratorRecoveryProtocol(Protocol):
 
     async def purge_plugin_tasks(self, plugin_name: str, reason: str) -> None: ...
 
-    async def handle_plugin_recovery(self, plugin_name: str, reason: str) -> None: ...
+    async def handle_plugin_recovery(
+        self,
+        plugin_name: str,
+        reason: str,
+        *,
+        expected_generation: PluginStateGeneration | None = None,
+    ) -> None: ...
 
 
 class OrchestratorShutdownProtocol(Protocol):

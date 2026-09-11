@@ -20,6 +20,7 @@ from core.files.windows_handle_operations import (
     close_windows_handle,
     convert_windows_handle_to_file_descriptor,
 )
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.platform.os import is_windows
 from core.system.windows_ctypes import last_windows_error, load_kernel32
 
@@ -190,7 +191,7 @@ def _open_path_handle(path: str, *, read_content: bool, allow_delete: bool) -> i
         desired_access |= _DELETE
         share_mode |= _SHARE_DELETE
     handle = create_file(
-        _to_extended_path(path),
+        normalize_filesystem_path(path),
         desired_access,
         share_mode,
         None,
@@ -261,12 +262,3 @@ def _close_windows_path_resources(
     raise FileStorageSecurityError(
         "Failed to close managed Windows path handle.",
     ) from first_close_exception
-
-
-def _to_extended_path(path: str) -> str:
-    absolute_path = os.path.abspath(path)
-    if absolute_path.startswith("\\\\?\\"):
-        return absolute_path
-    if absolute_path.startswith("\\\\"):
-        return f"\\\\?\\UNC\\{absolute_path[2:]}"
-    return f"\\\\?\\{absolute_path}"

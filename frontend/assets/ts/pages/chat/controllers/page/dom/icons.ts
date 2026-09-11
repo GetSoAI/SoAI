@@ -14,9 +14,9 @@ const requireNewConversationControls = (host: ChatPageDomHost): void => {
         return;
     }
     const hasSidebarButton = host.pageDom.optionalHTMLElement('.new-conversation-btn');
-    const hasHeaderButton = host.pageDom.optionalHTMLElement('.new-conversation-header-btn');
-    if (!hasSidebarButton && !hasHeaderButton) {
-        throw new Error('Chat required UI missing: no elements found for selectors ".new-conversation-btn" or ".new-conversation-header-btn"');
+    const hasComposerButton = host.pageDom.optionalHTMLElement('.new-conversation-input-btn');
+    if (!hasSidebarButton && !hasComposerButton) {
+        throw new Error('Chat required UI missing: no elements found for selectors ".new-conversation-btn" or ".new-conversation-input-btn"');
     }
 };
 

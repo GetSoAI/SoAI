@@ -40,6 +40,7 @@ interface ChatRootComposerEventsPort {
     queueConversationInputFromComposer(intent: 'queued' | 'steer'): Promise<ConversationInputComposerOutcome>;
     getComposerAttachmentCount(): number;
     isCurrentConversationStreaming(): boolean;
+    isCtrlEnterSendRequired(): boolean;
 }
 
 interface ChatRootMessageEventsPort {

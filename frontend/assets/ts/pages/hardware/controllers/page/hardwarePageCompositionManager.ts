@@ -12,7 +12,7 @@ import type { PageServices } from '@core/routing/pages/basepagecore/PageServices
 import type { PageUi } from '@core/routing/pages/basepagecore/PageUi.ts';
 import type { PageLayout } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { PageStreaming } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
-import type { JsonValue } from '@core/types/jsonValues.ts';
+import type { ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
 import { HistoryChartControlsManager, HistoryChartRuntime } from '@features/charts/public.ts';
 import type { ExportPreviewModal } from '@features/exportpreview/public.ts';
@@ -142,7 +142,7 @@ const composeHardwarePageRuntime = (owners: HardwareCompositionOwners, dependenc
         },
         peekStreamManager: () => owners.streaming.runtime(),
         ensureDataSubscriptions: (options) => owners.streaming.ensureSubscriptions(options),
-        subscribeToData: (resource: string, handler: (value: JsonValue) => void) => owners.streaming.subscribeResourceValue(resource, handler),
+        subscribeToResourceState: (resource: string, listener: (snapshot: ResourceReconciliationSnapshot) => void) => owners.streaming.subscribeResourceState(resource, listener),
         trackDisposable: (resource, onDispose) => owners.pageResources.track(resource, onDispose),
         hasProcessPanel: () => layoutController.hasPanel('processes'),
         resources: owners.pageResources,

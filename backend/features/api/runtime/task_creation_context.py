@@ -45,21 +45,23 @@ async def create_working_task_from_request_context(
     status_message: str,
     metadata: dict[str, JSONValue],
     progress_total: int = 100,
+    task_id: str | None = None,
 ) -> CreatedWorkingTask:
     if is_orchestrated_inference_task_type(task_type):
         raise ValidationError(
             "create_working_task_from_request_context does not support orchestrated inference tasks.",
         )
     context = request.state.context
-    user_id, owner_id, owner_type, cancellation_id = resolve_context_ownership(context)
+    ownership = resolve_context_ownership(context)
     registry = await require_task_registry_or_raise(request, api_context.dependencies)
     task = await create(
         registry,
         task_type=task_type,
-        user_id=user_id,
-        owner_id=owner_id,
-        owner_type=owner_type,
-        cancellation_id=cancellation_id,
+        user_id=ownership.user_id,
+        owner_id=ownership.owner_id,
+        owner_type=ownership.owner_type,
+        task_id=task_id,
+        cancellation_id=ownership.cancellation_id,
         status=TaskStatus.WORKING,
         progress_total=progress_total,
         status_message=status_message,

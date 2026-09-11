@@ -14,7 +14,7 @@ import { requestContentPreviewTextSave } from '@core/ui/modals/contentpreview/sa
 import { normalizeContentPreviewOpenRequest } from '@core/ui/modals/contentpreview/requestValidation.ts';
 import { closeContentPreviewSessionState, createClosedContentPreviewSessionState, enterContentPreviewTextEditMode, exitContentPreviewTextEditMode, isContentPreviewTextSessionState, openContentPreviewSessionState, type ContentPreviewSessionState } from '@core/ui/modals/contentpreview/sessionState.ts';
 import { clearContentPreviewHeaderColorToolkit, renderContentPreviewMediaMode, renderContentPreviewTextMode } from '@core/ui/modals/contentpreview/sessionRendering.ts';
-import { wireContentPreviewModalEvents } from '@core/ui/modals/contentpreview/modalWiring.ts';
+import { wireContentPreviewModalEvents, runContentPreviewAsyncAction } from '@core/ui/modals/contentpreview/modalWiring.ts';
 import { createContentPreviewRuntimeActions } from '@core/ui/modals/contentpreview/runtimeActions.ts';
 import { createContentPreviewTextController } from '@core/ui/modals/contentpreview/textController.ts';
 import type { ContentPreviewImageNavigation, ContentPreviewImageNavigationDirection, ContentPreviewMediaRequest, ContentPreviewOpenRequest, ContentPreviewTextRequest } from '@core/ui/modals/contentpreview/types.ts';
@@ -27,7 +27,10 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
     const modalPresenter: ModalPresenterApi = requireModalPresenter();
 
     const textController = createContentPreviewTextController(resources);
-    const mediaController = createContentPreviewMediaController(resources);
+    const mediaController = createContentPreviewMediaController(resources, {
+        requestClose: () => runContentPreviewAsyncAction('imageDismiss', handleClose),
+        requestNavigation: (direction) => runContentPreviewAsyncAction('imageSwipe', direction === 'previous' ? actions.handleImagePrevious : actions.handleImageNext)
+    });
     const sessionRenderingDependencies = {
         resetMedia: (root: HTMLElement): void => mediaController.reset(root),
         resetText: (root: HTMLElement): void => textController.reset(root),
@@ -177,7 +180,7 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
             enterEditMode,
             requestSave: requestTextSave,
             handleEnhance: actions.handleEnhance,
-            canNavigateImage: (): boolean => modalPresenter.isOpen(CONTENT_PREVIEW_MODAL_ID) && getCurrentImageNavigation() !== null && !mediaController.isImageNavigationPending(),
+            canNavigateImage: (): boolean => modalPresenter.isOpen(CONTENT_PREVIEW_MODAL_ID) && getCurrentImageNavigation() !== null,
             handleImagePrevious: actions.handleImagePrevious,
             handleImageNext: actions.handleImageNext,
             shouldHandleInput: (): boolean => {
@@ -195,6 +198,7 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
 
         resources.addEventListener(modalRoot, 'core.modal.close', () => {
             const request = getCurrentRequest();
+            actions.resetImageNavigation();
             sessionState = closeContentPreviewSessionState();
             mediaController.dispose();
             textController.reset(modalRoot);
@@ -241,6 +245,7 @@ export const createContentPreviewModalRuntime = (): ContentPreviewServiceApi => 
         const modalRoot = requireModalRoot();
         wireOnce(modalRoot);
         const previousRequest = getCurrentRequest();
+        actions.resetImageNavigation();
         sessionState = openContentPreviewSessionState(normalizedRequest);
         if (normalizedRequest.type === 'text') {
             renderContentPreviewTextMode(sessionRenderingDependencies, modalRoot, normalizedRequest, previousRequest);

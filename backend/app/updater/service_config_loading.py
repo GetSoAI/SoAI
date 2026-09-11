@@ -3,19 +3,21 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from typing import TYPE_CHECKING
 
 from app.application_dependencies import ApplicationUpdaterModuleDependencies
 from app.config.schema_disk_reconciliation import (
     coerce_config_yaml_mapping,
-    ensure_default_config_schema_file,
     reconcile_config_payload,
-    resolve_default_config_schema_path,
 )
+from core.config.default_schema.schema import build_default_config_schema
 from core.config.layout import resolve_base_path
+from core.config.path_resolution import resolve_default_config_schema_path
 from core.config.value_validation import is_config_dict
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.filesystem.open_files import open_text
 from core.logging.trace import get_logger
@@ -24,10 +26,31 @@ from core.meta.paths import get_repo_root
 if TYPE_CHECKING:
     from core.config.protocols import ConfigProtocol
 
-__all__ = ("read_updater_config",)
+__all__ = ("read_updater_config", "require_unchanged_update_configuration")
 
 LOGGER_NAME = "SoAI.app.updater.service_config_loading"
 OPERATION = "updater.read_updater_config.schema_load"
+
+
+def require_unchanged_update_configuration(
+    *,
+    config_path: str,
+    base_path: str,
+    prepared_config: ConfigProtocol,
+    module_dependencies: ApplicationUpdaterModuleDependencies,
+) -> None:
+    read_ok, current_base_path, current_config = read_updater_config(
+        config_path=config_path, module_dependencies=module_dependencies
+    )
+    if not read_ok or current_config is None:
+        raise StateError("Update configuration cannot be revalidated before installation.")
+    if os.path.normcase(current_base_path) != os.path.normcase(base_path) or any(
+        current_config.get(section) != prepared_config.get(section)
+        for section in ("SYSTEM", "DATA", "PLUGINS", "MODELS")
+    ):
+        raise StateError(
+            "Configuration affecting protected update state changed during preparation. Retry the update after configuration changes finish."
+        )
 
 
 def read_updater_config(
@@ -35,7 +58,7 @@ def read_updater_config(
     config_path: str,
     module_dependencies: ApplicationUpdaterModuleDependencies,
 ) -> tuple[bool, str, ConfigProtocol | None]:
-    recoverable_exceptions = RECOVERABLE_EXCEPTIONS + (module_dependencies.yaml.YAMLError,)
+    recoverable_exceptions = RECOVERABLE_EXCEPTIONS + (OSError, module_dependencies.yaml.YAMLError)
     try:
         yaml_parser = module_dependencies.yaml.YAML(typ="safe")
         with open_text(config_path, encoding="utf-8") as file_handle:
@@ -49,10 +72,7 @@ def read_updater_config(
         default_path = resolve_default_config_schema_path(config_path)
         try:
             logger = get_logger(LOGGER_NAME)
-            schema = ensure_default_config_schema_file(
-                config_path=config_path,
-                logger=logger,
-            )
+            schema = build_default_config_schema()
             reconciliation = reconcile_config_payload(
                 payload=loaded,
                 schema=schema,

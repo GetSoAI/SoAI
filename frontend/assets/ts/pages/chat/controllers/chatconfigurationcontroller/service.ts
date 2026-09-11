@@ -19,6 +19,7 @@ const runAsyncConfigurationSideEffect = (operationId: string, operation: Promise
 const requiredConfigurationProjectionEffects = (commitState: CommitConfigurationEditStateResult): ConfigurationProjectionEffect[] => {
     const effects: ConfigurationProjectionEffect[] = ['storage', 'parameters', 'widescreen'];
     if (commitState.inputActionsChanged) effects.push('input-actions');
+    if (commitState.sendHotkeyChanged) effects.push('conversation-render');
     if (commitState.richTextChanged) effects.push('worker-rendering');
     if (commitState.richTextChanged || commitState.senderLabelChanged) effects.push('markup', 'conversation-render');
     if (commitState.conversationListFiltersChanged) effects.push('conversation-list');

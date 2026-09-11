@@ -29,12 +29,7 @@ const renderTimeGridSlots = (hourHeightPx: number): string => {
     return `<div class="automation-time-grid-slots" aria-hidden="true">` + Array.from({ length: 24 }, (_unusedValue, hour) => `<div class="automation-time-grid-slot" style="top:${uiAttr(String(hour * hourHeightPx)).html}px;height:${uiAttr(String(hourHeightPx)).html}px;"></div>`).join('') + `</div>`;
 };
 
-const renderEmptyDayLabel = (label: string, zones: readonly TimeGridZoneLayout[]): string => {
-    const normalizedLabel = label.trim();
-    return zones.length === 0 && normalizedLabel ? `<div class="automation-time-grid-empty-day-label">${uiText(normalizedLabel).html}</div>` : '';
-};
-
-const renderDayTimeGrid = (options: { label: string; dayName: string; isoDate: string; zones: readonly TimeGridZoneLayout[]; nowLineTopPx: number | null; hourHeightPx: number; hourLabels: readonly AutomationHourLabel[]; formatZoneTime: (utcMs: number) => string }): string => {
+const renderDayTimeGrid = (options: { label: string; isoDate: string; zones: readonly TimeGridZoneLayout[]; nowLineTopPx: number | null; hourHeightPx: number; hourLabels: readonly AutomationHourLabel[]; formatZoneTime: (utcMs: number) => string }): string => {
     const hourMarkers = options.hourLabels
         .slice(0, 24)
         .map((label, hour) => renderHourMarker(label, hour, options.hourHeightPx))
@@ -52,7 +47,7 @@ const renderDayTimeGrid = (options: { label: string; dayName: string; isoDate: s
         })
         .join('');
 
-    return `<div class="automation-time-grid automation-time-grid--day" data-automation-view="day">` + `${heading}` + `<div class="automation-time-grid-scroll-inner">` + `${nowIndicator}` + `<div class="automation-time-grid-gutter"><div class="automation-time-grid-hours">${hourMarkers}</div></div>` + `<div class="automation-time-grid-canvas automation-time-grid-canvas--day checkerboard-light" role="button" tabindex="0" aria-label="${uiAttr(options.label).html}" data-action="${uiAttr(AUTOMATION_ACTION_TIME_GRID_CREATE_AT).html}" data-automation-day-canvas="true" data-keyboard-minutes="540" data-date="${uiAttr(options.isoDate).html}">` + `<div class="automation-time-grid-canvas-inner">` + `${renderTimeGridSlots(options.hourHeightPx)}${renderEmptyDayLabel(options.dayName, options.zones)}${blocks}` + `</div>` + `</div>` + `</div>` + `</div>`;
+    return `<div class="automation-time-grid automation-time-grid--day" data-automation-view="day">` + `${heading}` + `<div class="automation-time-grid-scroll-inner">` + `${nowIndicator}` + `<div class="automation-time-grid-gutter"><div class="automation-time-grid-hours">${hourMarkers}</div></div>` + `<div class="automation-time-grid-canvas automation-time-grid-canvas--day checkerboard-light" role="button" tabindex="0" aria-label="${uiAttr(options.label).html}" data-action="${uiAttr(AUTOMATION_ACTION_TIME_GRID_CREATE_AT).html}" data-automation-day-canvas="true" data-keyboard-minutes="540" data-date="${uiAttr(options.isoDate).html}">` + `<div class="automation-time-grid-canvas-inner">` + `${renderTimeGridSlots(options.hourHeightPx)}${blocks}` + `</div>` + `</div>` + `</div>` + `</div>`;
 };
 
 const renderWeekTimeGrid = (options: { dayLabels: readonly string[]; dayIsoDates: readonly string[]; dayZones: readonly TimeGridZoneLayout[][]; todayIsoDate: string; selectedIsoDate: string; nowLine: { dayIndex: number; topPx: number } | null; hourHeightPx: number; hourLabels: readonly AutomationHourLabel[]; formatZoneTime: (utcMs: number) => string }): string => {

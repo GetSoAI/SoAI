@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from core.di.validation import require_dependencies
 from core.events.types_plugins import (
@@ -20,6 +21,9 @@ from orchestrator.lifecycle.config_reload_result import PluginConfigReloadResult
 from orchestrator.lifecycle.runtime_mutation_commands import RuntimeMutationStopRequest
 from orchestrator.types import OrchestratorDependencies
 
+if TYPE_CHECKING:
+    from core.state.plugin_state_generation import PluginStateGeneration
+
 __all__ = ("OrchestratorLifecycleRuntimeMutationsDependencies",)
 
 
@@ -33,7 +37,7 @@ class OrchestratorLifecycleRuntimeMutationsDependencies:
     disable_handler: Callable[[RequestPluginDisableCommand], Awaitable[None]]
     enable_handler: Callable[[RequestPluginEnableCommand], Awaitable[list[SchedulerWorkItem]]]
     clear_quarantine_handler: Callable[[ClearQuarantineCommand], Awaitable[list[SchedulerWorkItem]]]
-    recovery_handler: Callable[[str, str], Awaitable[None]]
+    recovery_handler: Callable[[str, str, PluginStateGeneration | None], Awaitable[None]]
 
     def __post_init__(self) -> None:
         require_dependencies(

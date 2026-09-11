@@ -152,6 +152,7 @@ async def build_manager_services(
         plugin_directory=plugin_directory,
         backends_directory=backends_directory,
         updater_module_dependencies=updater_module_dependencies,
+        edition=edition,
         lifecycle_coordinator=lifecycle_coordinator,
         infrastructure_services=infrastructure_services,
         preconditions=preconditions,

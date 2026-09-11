@@ -1,6 +1,7 @@
 /* SoAI - Chat message action controller factory [frontend/assets/ts/features/chat/message/actionControllerFactory.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { AssistantMessageRenderPort } from '@features/chat/message/assistantMessageDomPatch.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -13,6 +14,7 @@ import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
 import type { ChatMessageManagerDependencies } from '@features/chat/message/types.ts';
 
 interface ChatMessageActionControllerHost {
+    assistantRenderPort: AssistantMessageRenderPort;
     getIcon(name: IconName, options?: IconOptions): TrustedHtml;
     resolveMessageReference(conversation: ConversationContract | null, messageId: string): ResolvedMessageReference;
     resolveMessageContentSegments(message: ChatMessage | null | undefined): MessageSegment[];
@@ -35,6 +37,7 @@ const createChatMessageActions = (inputArguments: { dependencies: ChatMessageMan
             isModelAvailable: (modelId) => inputArguments.dependencies.session.isModelAvailable(modelId)
         },
         presentation: {
+            assistantRenderPort: inputArguments.host.assistantRenderPort,
             domChangeTarget: inputArguments.domChangeTarget,
             getIcon: (name, options) => inputArguments.host.getIcon(name, options),
             resolveMessageReference: (conversation, messageId) => inputArguments.host.resolveMessageReference(conversation, messageId),
@@ -45,6 +48,7 @@ const createChatMessageActions = (inputArguments: { dependencies: ChatMessageMan
             isShowActivitiesEnabled: () => inputArguments.host.isShowActivitiesEnabled(),
             toggleLoadingActivityCollapsedState: (message, defaultCollapsed) => inputArguments.host.toggleLoadingActivityCollapsedState(message, defaultCollapsed),
             invalidateMessageCache: (message) => inputArguments.host.invalidateMessageCache(message),
+            invalidateActiveStreamDomCache: (conversationId, messageDomId) => inputArguments.dependencies.rendering.invalidateActiveStreamDomCache(conversationId, messageDomId),
             postRender: (container) => inputArguments.host.postRender(container)
         },
         interaction: {

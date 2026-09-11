@@ -113,6 +113,15 @@ export function getConversationStreamState(context: ChatStreamingControllerConte
     return context.streamStateByConversationId.get(normalizedConversationId) ?? null;
 }
 
+export function invalidateMatchingStreamingElementCache(context: ChatStreamingControllerContext, conversationId: string, messageDomId: string): void {
+    const normalizedConversationId = normalizeConversationId(conversationId);
+    const cached = context.cachedStreamingElements;
+    if (!normalizedConversationId || cached === null || cached.conversationId !== normalizedConversationId || cached.messageDomId !== messageDomId) {
+        return;
+    }
+    context.cachedStreamingElements = null;
+}
+
 export function isConversationStreamingUiActive(context: ChatStreamingControllerContext, conversationId: string): boolean {
     const normalizedConversationId = normalizeConversationId(conversationId);
     if (!normalizedConversationId) {

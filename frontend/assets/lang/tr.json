@@ -82,6 +82,9 @@
                 "deleteMessage": "Bu işlem \"{title}\" öğesini ve zamanlanmış çalıştırmalarını silecek. Mevcut sohbet dökümleri kullanılabilir kalacak.",
                 "deleteTitle": "Otomasyon silinsin mi?"
             },
+            "errors": {
+                "oneShotStartNotFuture": "Tek seferlik otomasyonlar gelecekte başlamalıdır. Daha ileri bir başlangıç saati seçin."
+            },
             "preferencesCorrupt": {
                 "message": "Otomasyon sayfası tercihleri geçersiz. Devam etmek için tercihleri sıfırlayın.",
                 "reset": "Otomasyon tercihlerini sıfırla",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "Bu sohbette araçları çalıştırmadan önce onay isteyin.",
                 "newConversationInheritLastSettings": "Yeni sohbetlerde son ayarları kullan",
                 "newConversationInheritLastSettingsHint": "Yeni sohbetler, son kullandığınız model, araçlar ve bilgi ayarlarıyla başlar.",
+                "ctrlEnterSend": "Göndermek için Ctrl + Enter",
+                "ctrlEnterSendHint": "Etkinken Ctrl + Enter ile gönderin ve Enter ile yeni satıra geçin. Devre dışıyken Enter ile gönderin ve Shift + Enter ile yeni satıra geçin.",
                 "knowledge": {
                     "downloadModel": "Modeli indir",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "Yanıt durduruluyor"
                         },
+                        "soai_documentation": {
+                            "1": "SoAI belgelerinde arama",
+                            "detail": {
+                                "1": "SoAI belgelerinde arama: {detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "Metin değiştiriliyor",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "Geçerli klasör",
+                "filesystemRoot": "Dosya sistemi kökü",
                 "empty": "Klasör bulunamadı.",
                 "forbidden": "Bu klasöre erişiminiz yok.",
                 "loadFailed": "Klasörler yüklenemedi.",
+                "validationFailed": "Seçilen klasör doğrulanamadı.",
                 "loading": "Klasörler yükleniyor...",
                 "manualAbsolutePathRequired": "Mutlak bir yol girin (örn. /path veya C:\\path).",
                 "manualPath": "Seçilen klasör",
@@ -2474,7 +2487,8 @@
                 "loading": "Yükleniyor",
                 "resolution": "Çözünürlük",
                 "size": "Boyut",
-                "zoom": "Yakınlaştırma"
+                "zoom": "Yakınlaştırma",
+                "position": "Görsel {current} / {total}"
             },
             "sourceInfo": {
                 "conversationPath": "Konuşma yolu",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "Bileşenler"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "Bazı GPU denetimleri algılanamadı. Kullanılabilir denetimler kullanılmaya devam edilebilir.",
+                "capabilitiesStale": "GPU denetimlerine yeniden bağlanılıyor. Son güncelleme: {age}.",
+                "capabilitiesRetained": "GPU denetimleri kullanılamıyor. {age} alınan veriler gösteriliyor.",
+                "slotsStale": "Kayıtlı GPU ayarlarına yeniden bağlanılıyor. Son güncelleme: {age}.",
+                "slotsRetained": "Kayıtlı GPU ayarları kullanılamıyor. {age} alınan veriler gösteriliyor.",
+                "capabilitiesUnavailable": "GPU denetimleri kullanılamıyor.",
+                "slotsUnavailable": "Kaydedilen GPU ayarları kullanılamıyor."
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "Aç"
                 },
                 "aria": {
-                    "panel": "Bildirim merkezi",
-                    "unreadCount": "Okunmamış bildirimler"
+                    "panel": "Bildirim merkezi"
                 },
                 "messages": {
                     "noNotifications": "Bildirim yok",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "Devam et",
                 "externalLinkMessage": "SoAI web sitesi yeni bir tarayıcı sekmesinde açılsın mı?"
             },
-            "description": "SoAI içinde yolunuzu bulun",
+            "description": "SoAI içinde yolunuzu bulun.",
             "documentationUrl": "Belgeler",
             "intro": {
                 "aboutButton": "SoAI Hakkında",
@@ -4236,8 +4258,7 @@
             "description": "Eklentiler ve sağlayıcılardaki yapay zekâ modellerini yönetin.",
             "searchPlaceholder": "Modellerde ara...",
             "empty": {
-                "downloadFirst": "İlk modelinizi indirin",
-                "getStarted": "Başlamak için ilk modelinizi indirin.",
+                "getStarted": "İlk modelinizi ekleyerek başlayın.",
                 "noMatch": "Filtrelerinizle eşleşen model yok",
                 "noModels": "Model bulunamadı",
                 "tryAdjusting": "Arama veya filtre ölçütlerinizi ayarlamayı deneyin."
@@ -4702,7 +4723,7 @@
                 "title": "Gösterge paneli"
             },
             "fileExplorer": {
-                "description": "SoAI OS dosyalarına göz atın ve yönetin.",
+                "description": "SoAI dosyalarına göz atın ve yönetin.",
                 "title": "Dosyalar"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "Yok",
                 "reasons": {
                     "broken": "Eklenti dosyası bozuk veya sözdizimi hataları içeriyor. Silip yeniden indirin.",
+                    "dependencyMissing": "Gerekli eklenti bağımlılıkları kullanılamıyor: {dependencies}.",
                     "gpu": "GPU ({required}) gerektirir. Algılanan üreticiler: {detected}. CPU modunu kullanmak için geçersiz kılın (çalışmayabilir).",
                     "gpuShort": "GPU kontrolü başarısız. Gerekli: {required}. Algılanan: {detected}. Devam etmek için anahtarı değiştirin.",
                     "hardwareShort": "Donanım gereksinimleri karşılanmıyor. Gerekli: {required}. Mevcut: {current}. Devam etmek için anahtarı değiştirin.",
                     "os": "{required} gerektirir. Algılanan: {detected}. Riski size ait olmak üzere geçersiz kılın.",
+                    "osCard": "{required} gerektirir. Algılanan: {detected}.",
                     "osShort": "İşletim sistemi uyuşmazlığı. Gerekli: {required}. Algılanan: {detected}. Yine de etkinleştirmek için anahtarı değiştirin.",
                     "version": "SoAI {required} gerektirir. Mevcut: {current}. Bu eklentiyi kullanmak için SoAI'yi güncelleyin."
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "Tüm eklentileri durdurma komutu gönderildi.",
                 "stopSuccess": "{plugin} eklentisi başarıyla durduruldu",
                 "updateCheckFailed": "Güncellemeler denetlenemedi",
-                "uploadAccepted": "Eklenti yüklemesi kabul edildi",
                 "uploadFailed": "Eklenti yüklenemedi"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "Eklentiler",
                 "prompts": "İstemler"
             },
-            "description": "Modellerde, eklentilerde, donanımda ve daha fazlasında arama yapın",
+            "description": "Modellerde, eklentilerde, donanımda ve daha fazlasında arama yapın.",
             "deviceDescriptions": {
                 "cpuCores": "{count} çekirdek",
                 "cpuThreads": "{count} iş parçacığı",
@@ -7669,7 +7691,8 @@
                 "upToDate": "Güncel"
             },
             "confirmations": {
-                "installSystem": "{version} sistem güncellemesini yüklemek istediğinizden emin misiniz? Bu işlem SoAI uygulamasını yeniden başlatacak."
+                "installSystem": "{version} sistem güncellemesini yüklemek istediğinizden emin misiniz? Bu işlem SoAI uygulamasını yeniden başlatacak.",
+                "installSystemWithInstaller": "{version} sistem güncellemesini yüklemek istediğinizden emin misiniz? Windows yükleyicisi çalıştırılacak ve SoAI yeniden başlatılacak."
             },
             "description": "SoAI uygulaması için güncellemeleri denetleyin ve yükleyin.",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "Parolayı doğrula",
-                    "placeholder": "Parolayı tekrar girin."
+                    "placeholder": "Parolayı tekrarla"
                 },
                 "creating": "Oluşturuluyor...",
                 "description": "Yönetici hesabınızı oluşturun. Bu SoAI örneğine tam erişime sahiptir.",

@@ -26,6 +26,7 @@ from plugins.state.transition_logging import log_skipped_same_state_transition
 if TYPE_CHECKING:
     from core.state.state_names import PluginRuntimeStateName
     from core.types.json import JSONDict
+    from plugins.package_audit import PluginPackageAudit
 
 __all__ = (
     "handle_incompatible_plugin",
@@ -43,6 +44,7 @@ async def handle_incompatible_plugin(
     error: PluginIncompatibleError,
     *,
     plugin_data_override: JSONDict | None = None,
+    package_audit: PluginPackageAudit | None = None,
 ) -> None:
     logger = get_logger(LOGGER_NAME)
     plugin_name = error.plugin_name
@@ -53,6 +55,7 @@ async def handle_incompatible_plugin(
             manager,
             plugin_name,
             plugin_data_override=plugin_data_override,
+            package_audit=package_audit,
         )
     else:
         raise StateError(
@@ -60,6 +63,7 @@ async def handle_incompatible_plugin(
         )
     await manager.dependencies.databases.plugins.add_or_update_plugin(
         plugin_data,
+        state=PLUGIN_STATE_INCOMPATIBLE,
         incompatibility=compatibility,
         override=compatibility.is_overridden,
     )
@@ -122,6 +126,7 @@ async def handle_plugin_compatibility_failure(
     *,
     plugin_class_name: str | None,
     plugin_data_override: JSONDict,
+    package_audit: PluginPackageAudit | None = None,
 ) -> None:
     await handle_incompatible_plugin(
         manager,
@@ -131,6 +136,7 @@ async def handle_plugin_compatibility_failure(
             plugin_class_name=plugin_class_name,
         ),
         plugin_data_override=plugin_data_override,
+        package_audit=package_audit,
     )
 
 

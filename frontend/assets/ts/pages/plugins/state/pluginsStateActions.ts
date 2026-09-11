@@ -7,7 +7,7 @@ import type { JsonValue } from '@core/types/jsonValues.ts';
 import { disablePluginActionPath, enablePluginActionPath, stopPluginActionPath } from '@core/api/endpoints/uiPaths.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { toTrimmedString } from '@core/normalize.ts';
-import { PLUGIN_STATUS_DISABLED, PLUGIN_STATUS_INCOMPATIBLE, PLUGIN_STATUS_PERSISTENT_READY } from '@core/state/pluginStatus.ts';
+import { isPluginModelUnavailableStatus, PLUGIN_STATUS_DISABLED, PLUGIN_STATUS_INCOMPATIBLE, PLUGIN_STATUS_PERSISTENT_READY, PLUGIN_STATUS_STOPPED } from '@core/state/pluginStatus.ts';
 import type { PluginCompatibilityOverrideResponse } from '@core/api/contracts/pluginManagementContracts.ts';
 import type { SuccessfulMutationResponse } from '@core/api/contracts/successfulMutationContract.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
@@ -66,7 +66,7 @@ const releaseLocalToggleAdmission = (host: PluginsStateActionHost, pluginName: s
     host.rerenderPlugin(pluginName);
 };
 
-const applyCompatibilityOverrideResponse = (host: PluginsStateActionHost, pluginName: string, sourcePlugin: PluginRecord, response: PluginCompatibilityOverrideResponse | null): void => {
+const applyCompatibilityOverrideResponse = (host: PluginsStateActionHost, pluginName: string, sourcePlugin: PluginRecord, response: PluginCompatibilityOverrideResponse | null): PluginCompatibilityOverrideResponse => {
     if (!response || response.plugin !== pluginName) {
         throw new Error('Plugin compatibility override response did not include the requested plugin');
     }
@@ -75,10 +75,12 @@ const applyCompatibilityOverrideResponse = (host: PluginsStateActionHost, plugin
     host.commitCatalogPlugin(
         toJsonCompatibleValue({
             ...current,
-            state: responseState ? responseState : current.state,
+            state: responseState,
+            isEnabled: !isPluginModelUnavailableStatus(responseState),
             incompatibility: response.incompatibility ?? null
         })
     );
+    return response;
 };
 
 const setPluginCompatibilityOverride = async (host: PluginsStateActionHost, plugin: PluginRecord, override: boolean, event?: Event): Promise<void> =>
@@ -157,7 +159,11 @@ const togglePluginEnabledState = async (host: PluginsStateActionHost, plugin: Pl
                 const result = await host.runPageTask('plugins.applyCompatibilityOverride', () => host.api.plugins.overrideIncompatibility(pluginName, true), {
                     displayName: i18n.t('plugins.actions.overridePlugin')
                 });
-                applyCompatibilityOverrideResponse(host, pluginName, currentPlugin, result);
+                const overrideResponse = applyCompatibilityOverrideResponse(host, pluginName, currentPlugin, result);
+                if (overrideResponse.state === PLUGIN_STATUS_STOPPED) {
+                    host.feedback.show(i18n.t('plugins.notifications.pluginEnabled'), 'success');
+                    return;
+                }
             }
             const actionPath = isDisable ? disablePluginActionPath(pluginName) : enablePluginActionPath(pluginName);
             const taskResult = await host.runPluginTaskAction(`plugins.${isDisable ? 'disablePlugin' : 'enablePlugin'}`, actionPath, {

@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import math
+from typing import TYPE_CHECKING, Literal
 
 from core.errors.exceptions import ValidationError
 from core.openai.token_accounting import PromptOccupancy, build_token_usage_snapshot
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "finalize_runtime_usage_preview",
+    "freeze_runtime_usage_preview",
     "take_usage_preview_snapshot_for_emit",
     "update_runtime_completion_usage_preview_if_due",
 )
@@ -165,6 +167,116 @@ def finalize_runtime_usage_preview(
     runtime.usage_preview_completion_rate_tokens_per_second = 0.0
     runtime.usage_preview_last_completion_tokens = completion_tokens
     runtime.usage_preview_estimated_completion_tokens = completion_tokens
+    runtime.usage_preview_last_token_at_ms = None
+    return dict(snapshot)
+
+
+def _require_snapshot_token(snapshot: JSONDict, key: str) -> int:
+    value = snapshot.get(key)
+    if not is_non_negative_strict_int(value):
+        raise ValidationError(f"Runtime usage preview {key} must be a non-negative integer.")
+    return int(value)
+
+
+def freeze_runtime_usage_preview(
+    *,
+    runtime: AssistantTimelineRuntime,
+) -> JSONDict | None:
+    current_snapshot = runtime.usage_preview_snapshot
+    if current_snapshot is None:
+        runtime.usage_preview_completion_rate_tokens_per_second = 0.0
+        runtime.usage_preview_last_token_at_ms = None
+        return None
+    usage_prompt_tokens = _require_snapshot_token(current_snapshot, "prompt_tokens")
+    prompt_occupancy_tokens = _require_snapshot_token(
+        current_snapshot,
+        "prompt_occupancy_tokens",
+    )
+    completion_tokens = _require_snapshot_token(current_snapshot, "completion_tokens")
+    context_completion_tokens = _require_snapshot_token(
+        current_snapshot,
+        "context_completion_tokens",
+    )
+    expected_total_tokens = _require_snapshot_token(current_snapshot, "total_tokens")
+    expected_context_occupancy_tokens = _require_snapshot_token(
+        current_snapshot,
+        "context_occupancy_tokens",
+    )
+    snapshot_revision = _require_snapshot_token(current_snapshot, "preview_revision")
+    if snapshot_revision != runtime.usage_preview_revision:
+        raise ValidationError("Runtime usage preview revision is inconsistent.")
+    context_window_value = current_snapshot.get("context_window_tokens")
+    if context_window_value is not None and (
+        isinstance(context_window_value, bool)
+        or not isinstance(context_window_value, int)
+        or context_window_value <= 0
+    ):
+        raise ValidationError("Runtime usage preview context window is invalid.")
+    source_value = current_snapshot.get("source")
+    if not isinstance(source_value, str) or not source_value.strip():
+        raise ValidationError("Runtime usage preview source is invalid.")
+    precision_value = current_snapshot.get("precision")
+    if precision_value == "exact":
+        precision: Literal["exact", "estimated"] = "exact"
+    elif precision_value == "estimated":
+        precision = "estimated"
+    else:
+        raise ValidationError("Runtime usage preview precision is invalid.")
+    completion_rate_value = current_snapshot.get("completion_rate_tokens_per_second")
+    if (
+        isinstance(completion_rate_value, bool)
+        or not isinstance(completion_rate_value, int | float)
+        or not math.isfinite(float(completion_rate_value))
+        or completion_rate_value < 0
+    ):
+        raise ValidationError("Runtime usage preview completion rate is invalid.")
+    prompt_tokens_capped = current_snapshot.get("prompt_tokens_capped") is True
+    capped_reason_value = current_snapshot.get("prompt_tokens_capped_reason")
+    capped_reason = (
+        capped_reason_value.strip()
+        if isinstance(capped_reason_value, str) and capped_reason_value.strip()
+        else None
+    )
+    occupancy = PromptOccupancy(
+        prompt_tokens=prompt_occupancy_tokens,
+        capped=prompt_tokens_capped,
+        capped_reason=capped_reason,
+        precision=precision,
+    )
+    budget_value = current_snapshot.get("budget_tokens")
+    if budget_value is not None and not is_non_negative_strict_int(budget_value):
+        raise ValidationError("Runtime usage preview budget tokens are invalid.")
+    validated_snapshot = build_token_usage_snapshot(
+        occupancy=occupancy,
+        usage_prompt_tokens=usage_prompt_tokens,
+        completion_tokens=completion_tokens,
+        context_completion_tokens=context_completion_tokens,
+        context_window_tokens=(
+            int(context_window_value) if context_window_value is not None else None
+        ),
+        source=source_value,
+        budget_tokens=(int(budget_value) if budget_value is not None else None),
+        context_window_unverified=current_snapshot.get("context_window_unverified") is True,
+    )
+    if validated_snapshot["total_tokens"] != expected_total_tokens:
+        raise ValidationError("Runtime usage preview total token count is inconsistent.")
+    if validated_snapshot["context_occupancy_tokens"] != expected_context_occupancy_tokens:
+        raise ValidationError("Runtime usage preview context occupancy is inconsistent.")
+    current_fields = dict(current_snapshot)
+    current_fields.pop("preview_revision", None)
+    current_fields.pop("completion_rate_tokens_per_second", None)
+    validated_fields = dict(validated_snapshot)
+    validated_fields.pop("completion_rate_tokens_per_second", None)
+    if current_fields != validated_fields:
+        raise ValidationError("Runtime usage preview fields are inconsistent.")
+    runtime.usage_preview_revision += 1
+    snapshot = dict(current_snapshot)
+    snapshot["preview_revision"] = runtime.usage_preview_revision
+    snapshot["completion_rate_tokens_per_second"] = 0.0
+    runtime.usage_preview_snapshot = snapshot
+    runtime.usage_preview_last_completion_tokens = completion_tokens
+    runtime.usage_preview_estimated_completion_tokens = completion_tokens
+    runtime.usage_preview_completion_rate_tokens_per_second = 0.0
     runtime.usage_preview_last_token_at_ms = None
     return dict(snapshot)
 

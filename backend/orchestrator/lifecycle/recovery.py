@@ -17,6 +17,10 @@ from core.orchestrator.protocols_lifecycle import (
 )
 from core.plugins.persistent_runtime_truth import resolve_persistent_runtime_state
 from core.runtime.request_context import create_system_context
+from core.state.plugin_state_generation import (
+    PluginStateGeneration,
+    read_plugin_state_generation,
+)
 from core.state.state_names import (
     ORCH_STATE_ERROR,
     ORCH_STATE_QUARANTINED,
@@ -104,20 +108,57 @@ class OrchestratorLifecycleRecovery:
                 operation=OPERATION,
             )
 
-    async def handle_plugin_recovery(self, plugin_name: str, reason: str) -> None:
+    async def handle_plugin_recovery(
+        self,
+        plugin_name: str,
+        reason: str,
+        *,
+        expected_generation: PluginStateGeneration | None = None,
+    ) -> None:
         runtime_mutations = self._runtime_mutations
         if runtime_mutations is None:
             raise StateError(
                 "Runtime mutations must be bound before use.",
                 operation="orchestrator.lifecycle.recovery.handle_plugin_recovery",
             )
-        await runtime_mutations.submit_recovery(plugin_name, reason)
+        await runtime_mutations.submit_recovery(
+            plugin_name,
+            reason,
+            expected_generation=expected_generation,
+        )
 
-    async def execute_plugin_recovery(self, plugin_name: str, reason: str) -> None:
+    async def execute_plugin_recovery(
+        self,
+        plugin_name: str,
+        reason: str,
+        expected_generation: PluginStateGeneration | None = None,
+    ) -> None:
         logger = get_logger(LOGGER_NAME)
         logger.info("Attempting recovery for plugin %s: %s", plugin_name, reason)
         lifecycle = self._deps.orchestrator.plugin_manager.lifecycle
         async with lifecycle.plugin_lock_scope(plugin_name):
+            if expected_generation is not None:
+                plugin_states = (
+                    await self._deps.orchestrator.state_aggregator.get_all_plugin_states()
+                )
+                current_generation = read_plugin_state_generation(
+                    plugin_states,
+                    plugin_name,
+                )
+                if current_generation != expected_generation:
+                    logger.info(
+                        "Skipping recovery for '%s' because its state generation changed under the lifecycle lock from (%s, %s) to (%s, %s).",
+                        plugin_name,
+                        expected_generation.status,
+                        expected_generation.last_updated_monotonic,
+                        current_generation.status if current_generation is not None else None,
+                        (
+                            current_generation.last_updated_monotonic
+                            if current_generation is not None
+                            else None
+                        ),
+                    )
+                    return
             await self.purge_plugin_tasks(plugin_name, reason)
             attempt_count = await self._deps.state.increment_recovery_attempts(plugin_name)
             plugin_status = await self._deps.orchestrator.state_aggregator.get_plugin_status(

@@ -104,6 +104,7 @@ class TaskRegistry:
         self._reply_queue_identities = ReplyQueueIdentityBindings()
         self._cleanup_task: asyncio.Task[None] | None = None
         self.shutdown_event = asyncio.Event()
+        self._transferred_task_ids: set[str] = set()
         self._subscriptions_initialized = False
 
     def initialize_subscriptions(self) -> None:
@@ -273,5 +274,15 @@ class TaskRegistry:
             finalizer_tracker=self._finalizer_tracker,
         )
 
+    def transfer_task_ownership(self, task_id: str) -> None:
+        self._transferred_task_ids.add(
+            require_task_id(task_id, error_message="task_id is required.")
+        )
+
     async def shutdown(self) -> None:
-        self._cleanup_task = await shutdown_registry(self, self.shutdown_event, self._cleanup_task)
+        self._cleanup_task = await shutdown_registry(
+            self,
+            self.shutdown_event,
+            self._cleanup_task,
+            transferred_task_ids=frozenset(self._transferred_task_ids),
+        )

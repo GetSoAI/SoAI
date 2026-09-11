@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ApiClient } from '@core/api/service.ts';
+import type { TaskOperationsApi } from '@core/tasks/protocols.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import type { NotificationCenterStreamManager } from '@features/notifications/NotificationCenterDataController.ts';
 
@@ -14,6 +15,7 @@ interface NotificationCenterDependencies {
     header: NotificationCenterHeaderApi;
     apiClient: ApiClient;
     stream: NotificationCenterStreamManager;
+    taskOperations: TaskOperationsApi;
 }
 
 const validateNotificationCenterDependencies = (dependencies: NotificationCenterDependencies): void => {
@@ -31,6 +33,9 @@ const validateNotificationCenterDependencies = (dependencies: NotificationCenter
     }
     if (!dependencies.stream) {
         throw new Error('NotificationCenter requires stream owners');
+    }
+    if (!dependencies.taskOperations || !isFunction(dependencies.taskOperations.subscribeOperations)) {
+        throw new Error('NotificationCenter requires taskOperations');
     }
 };
 

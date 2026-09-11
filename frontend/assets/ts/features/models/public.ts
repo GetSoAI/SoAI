@@ -13,6 +13,7 @@ export type { RenameModelModalHost } from '@features/models/modals/renamemodal/R
 export { createDownloadModalController } from '@features/models/modals/downloadmodal/downloadModalController.ts';
 export type { DownloadModalController } from '@features/models/modals/downloadmodal/downloadModalController.ts';
 export type { DownloadModalHost } from '@features/models/modals/downloadmodal/downloadModalTypes.ts';
+export { MODEL_DOWNLOAD_OPERATION_FILTER, MODEL_DOWNLOAD_OPERATION_TYPE, MODEL_DOWNLOAD_OPERATION_TYPES } from '@features/models/modelDownloadOperation.ts';
 export { ProvidersManager } from '@features/models/modals/providersmodal/ProvidersManager.ts';
 export type { ProvidersManagerDependencies } from '@features/models/modals/providersmodal/contracts.ts';
 export { VirtualModelsManager } from '@features/models/modals/virtualmodelsmodal/VirtualModelsManager.ts';

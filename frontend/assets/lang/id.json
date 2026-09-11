@@ -82,6 +82,9 @@
                 "deleteMessage": "Tindakan ini akan menghapus \"{title}\" dan eksekusi terjadwalnya. Transkrip chat yang sudah ada tetap tersedia.",
                 "deleteTitle": "Hapus otomatisasi?"
             },
+            "errors": {
+                "oneShotStartNotFuture": "Otomatisasi sekali jalan harus dimulai di masa depan. Pilih waktu mulai yang lebih akhir."
+            },
             "preferencesCorrupt": {
                 "message": "Preferensi halaman otomatisasi tidak valid. Reset preferensi untuk melanjutkan.",
                 "reset": "Reset preferensi otomatisasi",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "Wajibkan persetujuan sebelum menjalankan alat dalam percakapan ini.",
                 "newConversationInheritLastSettings": "Gunakan pengaturan terakhir untuk chat baru",
                 "newConversationInheritLastSettingsHint": "Chat baru dimulai dengan model, alat, dan pengaturan pengetahuan yang terakhir Anda gunakan.",
+                "ctrlEnterSend": "Ctrl + Enter untuk mengirim",
+                "ctrlEnterSendHint": "Saat diaktifkan, kirim dengan Ctrl + Enter dan mulai baris baru dengan Enter. Saat dinonaktifkan, kirim dengan Enter dan mulai baris baru dengan Shift + Enter.",
                 "knowledge": {
                     "downloadModel": "Unduh model",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "Menghentikan respons"
                         },
+                        "soai_documentation": {
+                            "1": "Mencari dokumentasi SoAI",
+                            "detail": {
+                                "1": "Mencari dokumentasi SoAI: {detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "Mengganti teks",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "Folder saat ini",
+                "filesystemRoot": "Akar sistem file",
                 "empty": "Tidak ada folder ditemukan.",
                 "forbidden": "Anda tidak memiliki akses ke folder ini.",
                 "loadFailed": "Gagal memuat folder.",
+                "validationFailed": "Folder yang dipilih tidak dapat divalidasi.",
                 "loading": "Memuat folder...",
                 "manualAbsolutePathRequired": "Masukkan path absolut (mis. /path atau C:\\path).",
                 "manualPath": "Folder yang dipilih",
@@ -2474,7 +2487,8 @@
                 "loading": "Memuat",
                 "resolution": "Resolusi",
                 "size": "Ukuran",
-                "zoom": "Zoom"
+                "zoom": "Zoom",
+                "position": "Gambar {current} dari {total}"
             },
             "sourceInfo": {
                 "conversationPath": "Path percakapan",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "Widget"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "Beberapa kontrol GPU tidak dapat dideteksi. Kontrol yang tersedia tetap dapat digunakan.",
+                "capabilitiesStale": "Menghubungkan kembali kontrol GPU. Terakhir diperbarui {age}.",
+                "capabilitiesRetained": "Kontrol GPU tidak tersedia. Menampilkan data dari {age}.",
+                "slotsStale": "Menghubungkan kembali pengaturan GPU tersimpan. Terakhir diperbarui {age}.",
+                "slotsRetained": "Pengaturan GPU tersimpan tidak tersedia. Menampilkan data dari {age}.",
+                "capabilitiesUnavailable": "Kontrol GPU tidak tersedia.",
+                "slotsUnavailable": "Pengaturan GPU tersimpan tidak tersedia."
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "Buka"
                 },
                 "aria": {
-                    "panel": "Pusat notifikasi",
-                    "unreadCount": "Notifikasi belum dibaca"
+                    "panel": "Pusat notifikasi"
                 },
                 "messages": {
                     "noNotifications": "Tidak ada notifikasi",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "Lanjutkan",
                 "externalLinkMessage": "Buka situs web SoAI di tab browser baru?"
             },
-            "description": "Kenali cara menggunakan SoAI",
+            "description": "Kenali cara menggunakan SoAI.",
             "documentationUrl": "Dokumentasi",
             "intro": {
                 "aboutButton": "Tentang SoAI",
@@ -4236,8 +4258,7 @@
             "description": "Kelola model AI di berbagai plugin dan penyedia.",
             "searchPlaceholder": "Cari model...",
             "empty": {
-                "downloadFirst": "Unduh model pertama Anda",
-                "getStarted": "Mulai dengan mengunduh model pertama Anda.",
+                "getStarted": "Mulai dengan menambahkan model pertama Anda.",
                 "noMatch": "Tidak ada model yang cocok dengan filter Anda",
                 "noModels": "Tidak ada model ditemukan",
                 "tryAdjusting": "Coba sesuaikan kriteria pencarian atau filter Anda."
@@ -4702,7 +4723,7 @@
                 "title": "Dasbor"
             },
             "fileExplorer": {
-                "description": "Telusuri dan kelola file SoAI OS.",
+                "description": "Telusuri dan kelola file SoAI.",
                 "title": "File"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "Tidak ada",
                 "reasons": {
                     "broken": "File plugin rusak atau memiliki error sintaks. Hapus lalu unduh ulang.",
+                    "dependencyMissing": "Dependensi plugin yang diperlukan tidak tersedia: {dependencies}.",
                     "gpu": "Memerlukan GPU ({required}). Vendor terdeteksi: {detected}. Gunakan override untuk memakai mode CPU (mungkin tidak berfungsi).",
                     "gpuShort": "Pemeriksaan GPU gagal. Diperlukan: {required}. Terdeteksi: {detected}. Alihkan untuk melanjutkan.",
                     "hardwareShort": "Persyaratan perangkat keras tidak terpenuhi. Diperlukan: {required}. Saat ini: {current}. Alihkan untuk melanjutkan.",
                     "os": "Memerlukan {required}. Terdeteksi: {detected}. Gunakan override dengan risiko Anda sendiri.",
+                    "osCard": "Memerlukan {required}. Terdeteksi: {detected}.",
                     "osShort": "OS tidak cocok. Diperlukan: {required}. Terdeteksi: {detected}. Alihkan untuk tetap mengaktifkan.",
                     "version": "Memerlukan SoAI {required}. Saat ini: {current}. Perbarui SoAI untuk menggunakan plugin ini."
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "Perintah untuk menghentikan semua plugin telah dikirim.",
                 "stopSuccess": "Plugin {plugin} berhasil dihentikan",
                 "updateCheckFailed": "Gagal memeriksa pembaruan",
-                "uploadAccepted": "Unggahan plugin diterima",
                 "uploadFailed": "Gagal mengunggah plugin"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "Plugin",
                 "prompts": "Prompt"
             },
-            "description": "Cari di model, plugin, perangkat keras, dan lainnya",
+            "description": "Cari di model, plugin, perangkat keras, dan lainnya.",
             "deviceDescriptions": {
                 "cpuCores": "{count} inti",
                 "cpuThreads": "{count} thread",
@@ -7669,7 +7691,8 @@
                 "upToDate": "Sudah terbaru"
             },
             "confirmations": {
-                "installSystem": "Yakin ingin menginstal pembaruan sistem {version}? Ini akan memulai ulang aplikasi SoAI."
+                "installSystem": "Yakin ingin menginstal pembaruan sistem {version}? Ini akan memulai ulang aplikasi SoAI.",
+                "installSystemWithInstaller": "Yakin ingin menginstal pembaruan sistem {version}? Ini akan menjalankan penginstal Windows dan memulai ulang SoAI."
             },
             "description": "Periksa dan instal pembaruan untuk aplikasi SoAI.",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "Konfirmasi kata sandi",
-                    "placeholder": "Masukkan kembali kata sandi."
+                    "placeholder": "Ulangi"
                 },
                 "creating": "Membuat...",
                 "description": "Buat akun admin Anda. Akun ini memiliki akses penuh ke instance SoAI ini.",

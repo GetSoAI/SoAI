@@ -160,8 +160,17 @@ class LifecycleCoordinator:
         timeout: float,
         error_message: str,
     ) -> set[asyncio.Task[None]]:
+        deadline = time.monotonic() + timeout
+        pending = set(tasks)
         try:
-            _done, pending = await asyncio.wait(tasks, timeout=timeout)
+            while pending:
+                remaining = max(deadline - time.monotonic(), 0.0)
+                _done, pending = await asyncio.wait(
+                    pending, timeout=min(STANDARD_DELAY_SEC, remaining)
+                )
+                if not pending or time.monotonic() >= deadline:
+                    break
+                self._terminate_server_io(self._pending_servers(pending), drained_only=True)
         except (RuntimeError, ValueError) as error:
             log_exception(
                 self._logger,
@@ -225,7 +234,9 @@ class LifecycleCoordinator:
                 raise StateError("API server task exited before startup confirmation.")
             await asyncio.sleep(TIGHT_POLL_INTERVAL_SEC)
 
-    def _terminate_server_io(self, servers: list[UvicornServerProtocol]) -> int:
+    def _terminate_server_io(
+        self, servers: list[UvicornServerProtocol], *, drained_only: bool = False
+    ) -> int:
         terminated_connections = 0
         for server in servers:
             for uv_server in server.servers or []:
@@ -241,6 +252,11 @@ class LifecycleCoordinator:
                     )
             for connection in list(server.server_state.connections):
                 try:
+                    if drained_only and (
+                        not connection.transport.is_closing()
+                        or connection.transport.get_write_buffer_size() > 0
+                    ):
+                        continue
                     connection.transport.abort()
                     terminated_connections += 1
                 except (OSError, RuntimeError) as error:

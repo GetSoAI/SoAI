@@ -12,8 +12,8 @@ if TYPE_CHECKING:
 
     from core.config.protocols import ConfigProtocol
     from core.events.protocols import EventBusProtocol
+    from core.lifecycle.protocols import ServiceLifecycleProtocol
     from core.metrics.protocols import DatabaseMetricsProtocol
-    from core.runtime.protocols import ServiceLifecycleProtocol
     from core.tasks.protocols import TaskCancellationBinderProtocol
     from core.types.json import JSONDict
     from metrics.manager.operations import MetricsQueueFullThrottle

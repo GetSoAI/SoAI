@@ -8,7 +8,7 @@ import { APIError } from '@core/apiError.ts';
 import { showFolderPickerModal } from '@core/fileexplorerbrowser/folderPickerModal.ts';
 import { resolveFolderPickerPathOverride } from '@core/fileexplorerbrowser/folderPickerPathOverride.ts';
 import { buildFolderPickerLabels } from '@core/fileexplorerbrowser/folderPickerLabels.ts';
-import { isAbsoluteOsPath } from '@core/fileexplorerbrowser/paths.ts';
+import { isAbsoluteFilesystemPath } from '@core/filePathResolution.ts';
 import { resolveWorkspaceBrowserAccess } from '@core/fileexplorerbrowser/workspaceBrowserAccess.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { toTrimmedStringOrNull } from '@core/normalize.ts';
@@ -84,20 +84,18 @@ class ChatAttachBrowseWorkspacePathController {
         const chatApi = this.#host.shared.api;
         const access = await resolveWorkspaceBrowserAccess({
             getCurrentUser: () => chatApi.webui.auth.getMe(),
-            scopedBrowserApi: chatApi.fileExplorer,
-            adminBrowserApi: chatApi.webui.users.workspaceBrowser
+            scopedBrowserApi: chatApi.fileExplorer
         });
         const initialPath = typeof config.effectiveWorkspacePath === 'string' && config.effectiveWorkspacePath.trim() ? config.effectiveWorkspacePath.trim() : undefined;
-        const initialPathIsAbsolute = initialPath ? isAbsoluteOsPath(initialPath) : false;
+        const initialPathIsAbsolute = initialPath ? isAbsoluteFilesystemPath(initialPath) : false;
         const result = await showFolderPickerModal({
-            api: access.browserApi,
+            source: { type: 'workspace', api: access.browserApi },
             title: i18n.t('chat.configuration.filesFolder.pickerTitle'),
             message: i18n.t('chat.configuration.filesFolder.pickerMessage'),
             labels: buildFolderPickerLabels({
                 chooseCurrent: i18n.t('common.save')
             }),
             allowManualPathEntry: true,
-            allowManualAbsoluteSelectionOutsideRoot: access.allowManualAbsoluteSelectionOutsideRoot,
             ...(initialPath && initialPathIsAbsolute ? { initialAbsolutePathToBrowse: initialPath } : {}),
             ...(initialPath && !initialPathIsAbsolute ? { initialVirtualPath: initialPath } : {})
         });

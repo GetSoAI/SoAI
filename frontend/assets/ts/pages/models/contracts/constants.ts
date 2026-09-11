@@ -6,5 +6,6 @@ import { modelsPageConfig } from '@core/routing/pages/collections/collectionPage
 const MODELS_GRID = modelsPageConfig.grid;
 const MODEL_EMPTY_STATES = MODELS_GRID.emptyStateIds;
 const GRID_ID = MODELS_GRID.gridId;
+const MODELS_DOWNLOAD_PROGRESS_ID = 'models-download-progress';
 
-export { GRID_ID, MODELS_GRID, MODEL_EMPTY_STATES };
+export { GRID_ID, MODELS_DOWNLOAD_PROGRESS_ID, MODELS_GRID, MODEL_EMPTY_STATES };

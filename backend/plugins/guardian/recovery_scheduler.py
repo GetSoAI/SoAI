@@ -6,9 +6,9 @@ from __future__ import annotations
 from core.logging.protocols import LoggerProtocol
 from core.metrics.keyspace_base import DIRECTOR_REQUESTS_HEALTH_CHECK_RECOVERIES
 from core.runtime.soai_identifiers import create_system_id
-from core.state.state_transition_sets import ALL_TRANSIENT_STATES
+from core.state.plugin_state_generation import PluginStateGeneration
 from plugins.guardian.check_context import GuardianCheckContext
-from plugins.guardian.state_snapshot import get_plugin_status
+from plugins.guardian.state_snapshot import build_guardian_plugin_state_snapshot
 from plugins.protocols_internal.guardian.internal_protocols import (
     PluginGuardianInternalProtocol,
 )
@@ -22,11 +22,12 @@ async def schedule_guardian_recovery_tasks(
     check_context: GuardianCheckContext,
     plugins_to_recover: dict[str, str],
     logger: LoggerProtocol,
-) -> None:
+) -> set[str]:
     if self.shutdown_event.is_set():
-        return
+        return set()
     if not plugins_to_recover:
-        return
+        return set()
+    accepted_plugins: set[str] = set()
     async with self.recovery_initiation_lock:
         for plugin_name, reason in plugins_to_recover.items():
             if self.plugin_manager.lifecycle.is_plugin_locked(plugin_name):
@@ -35,9 +36,35 @@ async def schedule_guardian_recovery_tasks(
                     plugin_name,
                 )
                 continue
+            expected_snapshot = check_context.plugin_states.get(plugin_name)
+            current_states = build_guardian_plugin_state_snapshot(
+                await self.state_aggregator.get_all_plugin_states(),
+            )
+            current_snapshot = current_states.get(plugin_name)
+            if (
+                expected_snapshot is None
+                or expected_snapshot.last_updated_monotonic is None
+                or current_snapshot != expected_snapshot
+            ):
+                logger.info(
+                    "Skipping recovery for '%s' because its state generation changed from (%s, %s) to (%s, %s).",
+                    plugin_name,
+                    expected_snapshot.status if expected_snapshot is not None else None,
+                    (
+                        expected_snapshot.last_updated_monotonic
+                        if expected_snapshot is not None
+                        else None
+                    ),
+                    current_snapshot.status if current_snapshot is not None else None,
+                    (
+                        current_snapshot.last_updated_monotonic
+                        if current_snapshot is not None
+                        else None
+                    ),
+                )
+                continue
             async with self.recovery_tasks_lock:
-                current_status = get_plugin_status(check_context.plugin_states, plugin_name)
-                if plugin_name in self.recovery_tasks or current_status in ALL_TRANSIENT_STATES:
+                if plugin_name in self.recovery_tasks:
                     continue
                 if self.metrics:
                     self.metrics.increment_counter(
@@ -45,7 +72,14 @@ async def schedule_guardian_recovery_tasks(
                         plugin_name,
                     )
                 task = self.component_context.spawn_tracked_task(
-                    self.guarded_recover_plugin(plugin_name, reason),
+                    self.guarded_recover_plugin(
+                        plugin_name,
+                        reason,
+                        PluginStateGeneration(
+                            status=expected_snapshot.status,
+                            last_updated_monotonic=expected_snapshot.last_updated_monotonic,
+                        ),
+                    ),
                     name=f"plugin-guardian-recover-{plugin_name}",
                     logger=logger,
                     cancellation_binder=self.cancellation_binder,
@@ -59,3 +93,5 @@ async def schedule_guardian_recovery_tasks(
                     metadata={"reason": reason},
                 )
                 self.recovery_tasks[plugin_name] = task
+                accepted_plugins.add(plugin_name)
+    return accepted_plugins

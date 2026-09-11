@@ -17,6 +17,7 @@
         min-height: 0;
         overflow: hidden;
         touch-action: none;
+        overscroll-behavior: contain;
         cursor: grab;
         border-radius: 0;
     }
@@ -82,18 +83,10 @@
     }
 
     .content-preview-modal .content-preview-image-stage.is-animating {
-        transition: transform var(--duration-500) var(--ease-emphasized);
         will-change: transform;
     }
 
     .content-preview-modal .content-preview-image-stage.is-gesturing {
-        will-change: transform;
-    }
-
-    .content-preview-modal .content-preview-image-stage.is-zooming {
-        transition:
-            opacity var(--transition-fast),
-            transform var(--duration-250) var(--ease-smooth);
         will-change: transform;
     }
 

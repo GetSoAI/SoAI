@@ -18,6 +18,7 @@ from core.events.types_system import ConfigReloadedEvent
 from orchestrator.lifecycle.runtime_mutation_commands import RuntimeMutationStopRequest
 
 if TYPE_CHECKING:
+    from core.state.plugin_state_generation import PluginStateGeneration
     from orchestrator.lifecycle.runtime_mutation_types import (
         DroppedReloadRuntimeMutation,
         RuntimeMutationFuture,
@@ -88,6 +89,7 @@ class ClearQuarantineRuntimeMutationCommand:
 class RecoveryRuntimeMutationCommand:
     plugin_name: str
     reason: str
+    expected_generation: PluginStateGeneration | None
 
 
 @dataclass(slots=True)

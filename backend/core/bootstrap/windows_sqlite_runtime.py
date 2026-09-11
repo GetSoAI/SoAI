@@ -15,6 +15,7 @@ from core.archives.zip_directory_budget import validate_zip_directory_budget
 from core.archives.zip_plan import build_validated_zip_plan
 from core.archives.zip_plan_extraction import extract_validated_zip_members
 from core.bootstrap.files import compute_sha3_256
+from core.bootstrap.lock import acquire_interprocess_lock
 from core.bootstrap.runtime_directories import RuntimeDirectoryEnvironment
 from core.bootstrap.stage0_download import download_https_file_atomic
 from core.errors.exceptions import StateError
@@ -63,6 +64,8 @@ WINDOWS_SQLITE_ARCHIVE_SHA3_256_BYTES = (
 )
 WINDOWS_SQLITE_ARCHIVE_FILENAME = "sqlite-dll-win-x64-3530300.zip"
 WINDOWS_SQLITE_MAX_DOWNLOAD_BYTES = 4_194_304
+WINDOWS_SQLITE_LOCK_FILENAME = "soai.windows_sqlite_runtime.lock"
+WINDOWS_SQLITE_LOCK_TIMEOUT_SEC = 1200.0
 
 
 def _version_text(version: tuple[int, ...]) -> str:
@@ -227,29 +230,37 @@ def ensure_windows_sqlite_runtime(
     python_executable: str,
     offline_mode: bool,
 ) -> None:
-    installed_version = _probe_sqlite_version(python_executable)
-    if installed_version >= WINDOWS_SQLITE_MINIMUM_VERSION:
-        return
-    sqlite_dll_path = _resolve_owned_sqlite_dll(repo_root_path)
-    cache_directory = os.path.join(
-        runtime_directories.state_path,
-        "managed_runtime",
-        "sqlite",
+    lock_path = os.path.join(
+        runtime_directories.locks_path,
+        WINDOWS_SQLITE_LOCK_FILENAME,
     )
-    archive_path = os.path.join(cache_directory, WINDOWS_SQLITE_ARCHIVE_FILENAME)
-    if not _archive_is_verified(archive_path):
-        if offline_mode:
-            installed_text = _version_text(installed_version)
-            minimum_text = _version_text(WINDOWS_SQLITE_MINIMUM_VERSION)
-            raise StateError(
-                f"SYSTEM.RUNTIME.STAY_OFFLINE is enabled but Windows SQLite {installed_text} is unsafe. SQLite {minimum_text} or newer is required; run install-deps once online.",
-            )
-        _download_archive(archive_path)
-    _install_sqlite_dll(archive_path, sqlite_dll_path)
-    provisioned_version = _probe_sqlite_version(python_executable)
-    if provisioned_version != WINDOWS_SQLITE_VERSION:
-        expected_text = _version_text(WINDOWS_SQLITE_VERSION)
-        actual_text = _version_text(provisioned_version)
-        raise StateError(
-            f"Windows SQLite provisioning expected {expected_text}, but managed Python loaded {actual_text}.",
+    with acquire_interprocess_lock(
+        lock_path,
+        timeout_sec=WINDOWS_SQLITE_LOCK_TIMEOUT_SEC,
+    ):
+        installed_version = _probe_sqlite_version(python_executable)
+        if installed_version >= WINDOWS_SQLITE_MINIMUM_VERSION:
+            return
+        sqlite_dll_path = _resolve_owned_sqlite_dll(repo_root_path)
+        cache_directory = os.path.join(
+            runtime_directories.state_path,
+            "managed_runtime",
+            "sqlite",
         )
+        archive_path = os.path.join(cache_directory, WINDOWS_SQLITE_ARCHIVE_FILENAME)
+        if not _archive_is_verified(archive_path):
+            if offline_mode:
+                installed_text = _version_text(installed_version)
+                minimum_text = _version_text(WINDOWS_SQLITE_MINIMUM_VERSION)
+                raise StateError(
+                    f"SYSTEM.RUNTIME.STAY_OFFLINE is enabled but Windows SQLite {installed_text} is unsafe. SQLite {minimum_text} or newer is required; run install-deps once online.",
+                )
+            _download_archive(archive_path)
+        _install_sqlite_dll(archive_path, sqlite_dll_path)
+        provisioned_version = _probe_sqlite_version(python_executable)
+        if provisioned_version != WINDOWS_SQLITE_VERSION:
+            expected_text = _version_text(WINDOWS_SQLITE_VERSION)
+            actual_text = _version_text(provisioned_version)
+            raise StateError(
+                f"Windows SQLite provisioning expected {expected_text}, but managed Python loaded {actual_text}.",
+            )

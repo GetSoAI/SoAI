@@ -178,6 +178,10 @@
         gap: var(--space-1);
     }
 
+    :where([data-section='plugins'], [data-page-scope='plugins']) :is(.plugin-card, .plugins-list-row)[data-operation-active='true'] :is(.status-install-button, .ui-round-button--run-now) {
+        display: var(--hidden-display);
+    }
+
     :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-info-led {
         border-radius: var(--border-radius);
         margin-right: var(--space-2);

@@ -82,6 +82,9 @@
                 "deleteMessage": "Dadurch werden „{title}“ und die zugehörigen geplanten Ausführungen gelöscht. Vorhandene Chat-Transkripte bleiben verfügbar.",
                 "deleteTitle": "Automation löschen?"
             },
+            "errors": {
+                "oneShotStartNotFuture": "Einmalige Automationen müssen in der Zukunft beginnen. Wählen Sie eine spätere Startzeit."
+            },
             "preferencesCorrupt": {
                 "message": "Die Einstellungen der Automationsseite sind ungültig. Setzen Sie die Einstellungen zurück, um fortzufahren.",
                 "reset": "Automationseinstellungen zurücksetzen",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "Vor dem Ausführen von Tools in dieser Unterhaltung ist eine Genehmigung erforderlich.",
                 "newConversationInheritLastSettings": "Letzte Einstellungen für neue Chats verwenden",
                 "newConversationInheritLastSettingsHint": "Neue Chats starten mit den zuletzt verwendeten Einstellungen für Modell, Tools und Wissen.",
+                "ctrlEnterSend": "Ctrl + Enter zum Senden",
+                "ctrlEnterSendHint": "Wenn aktiviert, senden Sie mit Ctrl + Enter und beginnen mit Enter eine neue Zeile. Wenn deaktiviert, senden Sie mit Enter und beginnen mit Shift + Enter eine neue Zeile.",
                 "knowledge": {
                     "downloadModel": "Modell herunterladen",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "Antwort wird gestoppt"
                         },
+                        "soai_documentation": {
+                            "1": "SoAI-Dokumentation wird durchsucht",
+                            "detail": {
+                                "1": "SoAI-Dokumentation wird durchsucht: {detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "Text wird ersetzt",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "Aktueller Ordner",
+                "filesystemRoot": "Dateisystemstamm",
                 "empty": "Keine Ordner gefunden.",
                 "forbidden": "Sie haben keinen Zugriff auf diesen Ordner.",
                 "loadFailed": "Ordner konnten nicht geladen werden.",
+                "validationFailed": "Der ausgewählte Ordner konnte nicht überprüft werden.",
                 "loading": "Ordner werden geladen...",
                 "manualAbsolutePathRequired": "Geben Sie einen absoluten Pfad ein (z. B. /path oder C:\\path).",
                 "manualPath": "Ausgewählter Ordner",
@@ -2474,7 +2487,8 @@
                 "loading": "Wird geladen",
                 "resolution": "Auflösung",
                 "size": "Größe",
-                "zoom": "Zoom"
+                "zoom": "Zoom",
+                "position": "Bild {current} von {total}"
             },
             "sourceInfo": {
                 "conversationPath": "Unterhaltungspfad",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "Widgets"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "Einige GPU-Steuerfunktionen konnten nicht erkannt werden. Verfügbare Funktionen bleiben nutzbar.",
+                "capabilitiesStale": "Die GPU-Steuerung wird erneut verbunden. Zuletzt aktualisiert: {age}.",
+                "capabilitiesRetained": "Die GPU-Steuerung ist nicht verfügbar. Angezeigt werden Daten von {age}.",
+                "slotsStale": "Die gespeicherten GPU-Einstellungen werden erneut verbunden. Zuletzt aktualisiert: {age}.",
+                "slotsRetained": "Die gespeicherten GPU-Einstellungen sind nicht verfügbar. Angezeigt werden Daten von {age}.",
+                "capabilitiesUnavailable": "GPU-Steuerungen sind nicht verfügbar.",
+                "slotsUnavailable": "Gespeicherte GPU-Einstellungen sind nicht verfügbar."
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "Öffnen"
                 },
                 "aria": {
-                    "panel": "Benachrichtigungszentrale",
-                    "unreadCount": "Ungelesene Benachrichtigungen"
+                    "panel": "Benachrichtigungszentrale"
                 },
                 "messages": {
                     "noNotifications": "Keine Benachrichtigungen",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "Fortfahren",
                 "externalLinkMessage": "SoAI-Website in einem neuen Browser-Tab öffnen?"
             },
-            "description": "Orientierung in SoAI",
+            "description": "Orientierung in SoAI.",
             "documentationUrl": "Dokumentation",
             "intro": {
                 "aboutButton": "Über SoAI",
@@ -4236,8 +4258,7 @@
             "description": "KI-Modelle über Plugins und Anbieter hinweg verwalten.",
             "searchPlaceholder": "Modelle suchen...",
             "empty": {
-                "downloadFirst": "Erstes Modell herunterladen",
-                "getStarted": "Laden Sie Ihr erstes Modell herunter, um loszulegen.",
+                "getStarted": "Fügen Sie zunächst Ihr erstes Modell hinzu.",
                 "noMatch": "Keine Modelle entsprechen Ihren Filtern",
                 "noModels": "Keine Modelle gefunden",
                 "tryAdjusting": "Passen Sie Ihre Such- oder Filterkriterien an."
@@ -4702,7 +4723,7 @@
                 "title": "Dashboard"
             },
             "fileExplorer": {
-                "description": "SoAI OS-Dateien durchsuchen und verwalten.",
+                "description": "SoAI-Dateien durchsuchen und verwalten.",
                 "title": "Dateien"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "Keine",
                 "reasons": {
                     "broken": "Die Plugin-Datei ist beschädigt oder enthält Syntaxfehler. Löschen Sie sie und laden Sie sie erneut herunter.",
+                    "dependencyMissing": "Erforderliche Plugin-Abhängigkeiten sind nicht verfügbar: {dependencies}.",
                     "gpu": "Erfordert GPU ({required}). Erkannte Hersteller: {detected}. Überschreiben Sie die Prüfung, um den CPU-Modus zu verwenden (funktioniert möglicherweise nicht).",
                     "gpuShort": "GPU-Prüfung fehlgeschlagen. Erforderlich: {required}. Erkannt: {detected}. Schalten Sie den Schalter um, um fortzufahren.",
                     "hardwareShort": "Hardwareanforderungen nicht erfüllt. Erforderlich: {required}. Aktuell: {current}. Schalten Sie den Schalter um, um fortzufahren.",
                     "os": "Erfordert {required}. Erkannt: {detected}. Überschreiben auf eigene Gefahr.",
+                    "osCard": "Erfordert {required}. Erkannt: {detected}.",
                     "osShort": "Betriebssystem stimmt nicht überein. Erforderlich: {required}. Erkannt: {detected}. Schalten Sie den Schalter um, um es dennoch zu aktivieren.",
                     "version": "Erfordert SoAI {required}. Aktuell: {current}. Aktualisieren Sie SoAI, um dieses Plugin zu verwenden."
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "Der Befehl zum Stoppen aller Plugins wurde erteilt.",
                 "stopSuccess": "Plugin {plugin} erfolgreich gestoppt",
                 "updateCheckFailed": "Updates konnten nicht geprüft werden",
-                "uploadAccepted": "Plugin-Upload angenommen",
                 "uploadFailed": "Plugin konnte nicht hochgeladen werden"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "Plugins",
                 "prompts": "Prompts"
             },
-            "description": "Modelle, Plugins, Hardware und mehr durchsuchen",
+            "description": "Modelle, Plugins, Hardware und mehr durchsuchen.",
             "deviceDescriptions": {
                 "cpuCores": "{count} Kerne",
                 "cpuThreads": "{count} Threads",
@@ -7669,7 +7691,8 @@
                 "upToDate": "Aktuell"
             },
             "confirmations": {
-                "installSystem": "Möchten Sie das Systemupdate {version} wirklich installieren? Dadurch wird die SoAI-Anwendung neu gestartet."
+                "installSystem": "Möchten Sie das Systemupdate {version} wirklich installieren? Dadurch wird die SoAI-Anwendung neu gestartet.",
+                "installSystemWithInstaller": "Möchten Sie das Systemupdate {version} wirklich installieren? Dadurch wird das Windows-Installationsprogramm ausgeführt und SoAI neu gestartet."
             },
             "description": "Prüfen und installieren Sie Updates für die SoAI-Anwendung.",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "Passwort bestätigen",
-                    "placeholder": "Geben Sie das Passwort erneut ein."
+                    "placeholder": "Passwort wiederholen"
                 },
                 "creating": "Wird erstellt...",
                 "description": "Erstellen Sie Ihr Administratorkonto. Es hat vollständigen Zugriff auf diese SoAI-Instanz.",

@@ -11,6 +11,9 @@ export interface NormalizedUpdatePayload {
     releaseUrl: string;
     releaseNotes: string;
     publishedAt: string;
+    platformId: string;
+    deliveryType: 'complete_archive' | 'installer' | null;
+    installSupported: boolean;
 }
 
 export interface UpdatesUiRefs {

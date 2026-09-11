@@ -18,6 +18,7 @@ __all__ = (
     "AdminUserCreate",
     "AdminUserRoleUpdate",
     "AdminUserWorkspacePathUpdate",
+    "AdminWorkspaceBrowserLocate",
     "LoginPayload",
     "SessionRotationRecoveryPayload",
     "WEBUI_PASSWORD_MIN_LENGTH",
@@ -148,6 +149,11 @@ class AdminUserRoleUpdate(BaseModel):
 
 class AdminUserWorkspacePathUpdate(BaseModel):
     workspace_path: str | None = None
+
+
+class AdminWorkspaceBrowserLocate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    path: str
 
 
 class UserPreferencesUpdate(BaseModel):

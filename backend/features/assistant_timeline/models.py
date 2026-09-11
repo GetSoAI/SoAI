@@ -182,6 +182,7 @@ class AssistantTimelineRuntime:
     terminal_finalization_started: bool = False
     terminal_event_emitted: bool = False
     terminal_event_published: bool = False
+    terminal_persistence_attempted: bool = False
     terminal_persistence_completed: bool = False
     assistant_placeholder_persisted: bool = False
     quota_key_id: str | None = None

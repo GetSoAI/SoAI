@@ -2,149 +2,85 @@
 # SoAI - POSIX launcher update recovery policy [backend/core/bootstrap/launcher_posix/update_recovery.sh]
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-soai_launcher__is_update_preserved_item() {
-    local item_name="$1"
-    case "$item_name" in
-        .soai_update_transaction_*|logs|temp|data|cache|models|backends|config|node_modules|*_venv|*.pyc|__pycache__)
-            return 0
-            ;;
-    esac
-    return 1
-}
-
-soai_launcher__remove_non_preserved_update_items() {
-    local transaction_path="$1"
-    local item_path
-    local item_name
-    shopt -s nullglob dotglob
-    for item_path in "${SCRIPT_DIR}"/*; do
-        item_name="$(basename "$item_path")"
-        if soai_launcher__is_update_preserved_item "$item_name"; then
-            continue
-        fi
-        rm -rf -- "$item_path"
-    done
-    shopt -u nullglob dotglob
-}
-
-soai_launcher__move_update_old_items_back() {
-    local old_path="$1"
-    local old_item
-    local item_name
-    local destination_item
-    shopt -s nullglob dotglob
-    for old_item in "${old_path}"/*; do
-        item_name="$(basename "$old_item")"
-        destination_item="${SCRIPT_DIR}/${item_name}"
-        if [ -e "$destination_item" ] || [ -L "$destination_item" ]; then
-            rm -rf -- "$destination_item"
-        fi
-        mv -- "$old_item" "$destination_item"
-    done
-    shopt -u nullglob dotglob
-}
-
-soai_launcher__path_mtime_epoch() {
-    local path="$1"
-    if stat -c %Y "$path" >/dev/null 2>&1; then
-        stat -c %Y "$path"
-        return 0
-    fi
-    if stat -f %m "$path" >/dev/null 2>&1; then
-        stat -f %m "$path"
-        return 0
-    fi
-    return 1
-}
-
-soai_launcher__stale_update_lock_without_live_pid() {
-    local lock_dir="$1"
-    local stale_after_seconds=120
-    local modified_ts=""
-    local now_ts=""
-    local age_seconds=0
-    modified_ts="$(soai_launcher__path_mtime_epoch "$lock_dir" 2>/dev/null || true)"
-    case "$modified_ts" in
-        ''|*[!0-9]*)
-            return 1
-            ;;
-    esac
-    now_ts="$(date +%s 2>/dev/null || true)"
-    case "$now_ts" in
-        ''|*[!0-9]*)
-            return 1
-            ;;
-    esac
-    age_seconds=$((now_ts - modified_ts))
-    [ "$age_seconds" -ge "$stale_after_seconds" ]
-}
-
-soai_launcher__update_lock_active() {
+soai_launcher__legacy_update_lock_active() {
     local lock_dir="${SCRIPT_DIR}/data/locks/soai.update.lock.d"
-    local pid_file="${lock_dir}/pid"
-    local lock_pid
-    if [ ! -d "$lock_dir" ]; then
+    if [ -e "${lock_dir}/process.json" ] || [ -L "${lock_dir}/process.json" ]; then
         return 1
     fi
-    if [ ! -f "$pid_file" ]; then
-        if soai_launcher__stale_update_lock_without_live_pid "$lock_dir"; then
-            rmdir -- "$lock_dir" >/dev/null 2>&1 || return 0
-            return 1
-        fi
-        return 0
+    local pid_file="${lock_dir}/pid"
+    local lock_pid
+    if [ -L "$lock_dir" ] || [ ! -d "$lock_dir" ] || [ -L "$pid_file" ] || [ ! -f "$pid_file" ]; then
+        return 1
     fi
     lock_pid="$(cat "$pid_file" 2>/dev/null || true)"
     case "$lock_pid" in
-        ''|*[!0-9]*)
-            if soai_launcher__stale_update_lock_without_live_pid "$lock_dir"; then
-                rm -f -- "$pid_file" >/dev/null 2>&1 || return 0
-                rmdir -- "$lock_dir" >/dev/null 2>&1 || return 0
-                return 1
-            fi
-            return 0
-            ;;
+        ''|0|*[!0-9]*) return 1 ;;
     esac
-    if kill -0 "$lock_pid" >/dev/null 2>&1; then
+    kill -0 "$lock_pid" >/dev/null 2>&1
+}
+
+soai_launcher__elevate_for_installed_state() {
+    if [ "$(uname -s 2>/dev/null || true)" != "Linux" ] || [ "${EUID:-$(id -u)}" -eq 0 ]; then
         return 0
     fi
-    rm -f -- "$pid_file" >/dev/null 2>&1 || true
-    rmdir -- "$lock_dir" >/dev/null 2>&1 || true
-    return 1
+    local launcher_state_dir="${SCRIPT_DIR}/data/state"
+    if [ ! -d "$launcher_state_dir" ] || [ -w "$launcher_state_dir" ]; then
+        return 0
+    fi
+    if ! command -v sudo >/dev/null 2>&1; then
+        echo "ERROR: SoAI requires root privileges for this installation, but sudo is unavailable." >&2
+        return 1
+    fi
+    soai_launcher__info "Root privileges are required to manage this SoAI installation."
+    exec sudo -- "${SCRIPT_DIR}/${SOAI_EXPLICIT_LAUNCHER_RELATIVE_PATH}" "$@"
 }
 
 soai_launcher__recover_update_transactions() {
     local transaction_path
-    local old_path
+    local recovery_required=0
+    local recovery_backend="${SCRIPT_DIR}/backend"
+    local retained_backend_count=0
     shopt -s nullglob
-    for transaction_path in "${SCRIPT_DIR}"/.soai_update_transaction_*; do
-        [ -d "$transaction_path" ] || continue
-        if soai_launcher__update_lock_active; then
-            echo "ERROR: SoAI software update is in progress; startup recovery is deferred." >&2
-            shopt -u nullglob
-            return 1
+    for transaction_path in "${SCRIPT_DIR}"/.soai_update_transaction_* "${SCRIPT_DIR}"/.soai_update_cleanup_*; do
+        recovery_required=1
+        if [[ "$transaction_path" = "${SCRIPT_DIR}/.soai_update_transaction_"* ]] \
+            && [ -f "${transaction_path}/rollback_required" ] \
+            && [ -f "${transaction_path}/old_complete" ] \
+            && [ ! -f "${transaction_path}/success_complete" ] \
+            && [ ! -f "${transaction_path}/rollback_complete" ] \
+            && [ -d "${transaction_path}/old/backend" ]; then
+            if [ -L "$transaction_path" ] || [ -L "${transaction_path}/old" ] || [ -L "${transaction_path}/old/backend" ]; then
+                echo "ERROR: Retained update recovery storage cannot be a symbolic link; evidence was preserved." >&2
+                return 1
+            fi
+            recovery_backend="${transaction_path}/old/backend"
+            retained_backend_count=$((retained_backend_count + 1))
         fi
-        if [ -f "${transaction_path}/success_complete" ]; then
-            rm -rf -- "$transaction_path"
-            continue
-        fi
-        if [ ! -f "${transaction_path}/rollback_required" ]; then
-            rm -rf -- "$transaction_path"
-            continue
-        fi
-        old_path="${transaction_path}/old"
-        if [ ! -d "$old_path" ]; then
-            echo "ERROR: Cannot recover update transaction without rollback directory: ${transaction_path}" >&2
-            shopt -u nullglob
-            return 1
-        fi
-        if [ -f "${transaction_path}/old_complete" ]; then
-            soai_launcher__remove_non_preserved_update_items "$transaction_path"
-        fi
-        soai_launcher__move_update_old_items_back "$old_path" || {
-            shopt -u nullglob
-            return 1
-        }
-        rm -rf -- "$transaction_path"
     done
     shopt -u nullglob
+    [ "$recovery_required" = "1" ] || return 0
+    soai_launcher__elevate_for_installed_state "$@" || return 1
+    if [ "$retained_backend_count" -gt 1 ]; then
+        echo "ERROR: Multiple update originals require repair; recovery cannot select an implementation safely." >&2
+        return 1
+    fi
+    if soai_launcher__legacy_update_lock_active; then
+        echo "ERROR: SoAI software update is in progress; startup recovery is deferred." >&2
+        return 1
+    fi
+    local runtime_path="${SOAI_VENV_PATH:-${SCRIPT_DIR}/soai_main_venv}"
+    case "$runtime_path" in
+        /*) ;;
+        *) runtime_path="${SCRIPT_DIR}/${runtime_path}" ;;
+    esac
+    local python_path="${runtime_path}/bin/python"
+    if [ ! -x "$python_path" ]; then
+        echo "ERROR: Update recovery requires the installed managed Python runtime; transaction evidence was retained." >&2
+        return 1
+    fi
+    (
+        cd "$recovery_backend" || exit 1
+        PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$recovery_backend" \
+            "$python_path" -S -m app.updater.software_update.recovery_bootstrap "$SCRIPT_DIR"
+    )
 }

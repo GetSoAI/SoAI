@@ -3,13 +3,19 @@
 
 @layer pages {
     :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='BACKEND_INSTALLING'] {
+        --status-color: var(--status-orange);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='BACKEND_UPDATING'] {
         --status-color: var(--status-blue);
+    }
+
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary:is([data-status='BACKEND_INSTALLING'], [data-status='BACKEND_UPDATING']) {
         --ui-metric-badge-surface: color-mix(in srgb, var(--status-color) 3%, var(--glass-underlay-surface));
         border-color: color-mix(in srgb, var(--status-color) 40%, var(--glass-border-strong));
     }
 
-    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='BACKEND_INSTALLING'] .ui-metric-label,
-    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary[data-status='BACKEND_INSTALLING'] .ui-metric-value {
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-card .ui-metric-badge.ui-metric-badge--secondary:is([data-status='BACKEND_INSTALLING'], [data-status='BACKEND_UPDATING']) :is(.ui-metric-label, .ui-metric-value) {
         color: color-mix(in srgb, var(--status-color) 85%, var(--text-secondary));
     }
 

@@ -30,6 +30,11 @@ __all__ = ()
 OPERATION_PLUGIN_GUARDIAN_GUARDIAN_HEALTH_CHECK_LOOP = "plugin_guardian.guardianhealth_check_loop"
 
 
+async def _application_shutdown_in_progress(self: PluginGuardianInternalProtocol) -> bool:
+    main_state = await self.state_aggregator.get_main_state()
+    return main_state.get("state") == SoAIMainState.STOPPING.value
+
+
 def _compute_guardian_sleep_delay(
     interval: float,
     jitter_fraction: float,
@@ -60,6 +65,8 @@ async def health_check_loop(self: PluginGuardianInternalProtocol) -> None:
                 shutdown_requested = False
             if shutdown_requested or self.shutdown_event.is_set():
                 break
+            if await _application_shutdown_in_progress(self):
+                break
             check_context = await build_guardian_check_context(self)
             if self.shutdown_event.is_set():
                 break
@@ -85,10 +92,17 @@ async def health_check_loop(self: PluginGuardianInternalProtocol) -> None:
                     operation=OPERATION_PLUGIN_GUARDIAN_GUARDIAN_HEALTH_CHECK_LOOP,
                     level="warning",
                 )
+            accepted_recoveries = await schedule_guardian_recovery_tasks(
+                self,
+                check_context=check_context,
+                plugins_to_recover=plugins_to_recover,
+                logger=logger,
+            )
             try:
                 await update_health_metrics(
                     self,
                     check_context=check_context,
+                    recovering_plugins=accepted_recoveries,
                 )
             except RECOVERABLE_EXCEPTIONS as exception:
                 log_exception(
@@ -98,12 +112,6 @@ async def health_check_loop(self: PluginGuardianInternalProtocol) -> None:
                     operation=OPERATION_PLUGIN_GUARDIAN_GUARDIAN_HEALTH_CHECK_LOOP,
                     level="warning",
                 )
-            await schedule_guardian_recovery_tasks(
-                self,
-                check_context=check_context,
-                plugins_to_recover=plugins_to_recover,
-                logger=logger,
-            )
         except asyncio.CancelledError:
             break
         except RECOVERABLE_EXCEPTIONS as exception:

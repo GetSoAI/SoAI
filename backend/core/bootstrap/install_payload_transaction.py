@@ -12,9 +12,19 @@ from core.bootstrap.install_payload import (
     validate_existing_install_edition,
     write_install_manifest,
 )
+from core.files.temp_files import create_secure_temp_directory
+from core.filesystem.atomic_write_primitives import fsync_directory
+from core.filesystem.file_sync import fsync_install_entry
+from core.filesystem.path_coercion import normalize_filesystem_path
+from core.filesystem.windows_access_control import copy_windows_discretionary_acl
 from core.meta.paths import join_data_abs
 
-__all__ = ("copy_managed_payload",)
+__all__ = (
+    "copy_install_entry",
+    "copy_managed_payload",
+    "install_entry_copy_size",
+    "replace_install_entry",
+)
 
 if TYPE_CHECKING:
     from core.hardware.protocols_storage import (
@@ -118,28 +128,36 @@ def _managed_payload_copy_size(
 ) -> int:
     total_size = 0
     for entry in root_entries:
-        total_size += _copy_size(os.path.join(source_root, entry))
-    total_size += _copy_size(join_data_abs(source_root, "vendor"))
+        total_size += install_entry_copy_size(os.path.join(source_root, entry))
+    total_size += install_entry_copy_size(join_data_abs(source_root, "vendor"))
     return total_size
 
 
-def _copy_size(source_entry: str) -> int:
-    if not os.path.exists(source_entry):
+def install_entry_copy_size(source_entry: str) -> int:
+    source_entry = normalize_filesystem_path(source_entry)
+    if not os.path.lexists(source_entry):
         return 0
-    if os.path.islink(source_entry) or os.path.isfile(source_entry):
+    if os.path.islink(source_entry):
+        return os.lstat(source_entry).st_size
+    if os.path.isfile(source_entry):
         return os.path.getsize(source_entry)
     total_size = 0
     for directory_path, directory_names, file_names in os.walk(
         source_entry,
         followlinks=False,
     ):
+        for directory_name in directory_names:
+            directory_entry = os.path.join(directory_path, directory_name)
+            if os.path.islink(directory_entry):
+                total_size += os.lstat(directory_entry).st_size
         directory_names[:] = [
             directory_name
             for directory_name in directory_names
             if not os.path.islink(os.path.join(directory_path, directory_name))
         ]
         for file_name in file_names:
-            total_size += os.path.getsize(os.path.join(directory_path, file_name))
+            file_entry = os.path.join(directory_path, file_name)
+            total_size += os.lstat(file_entry).st_size
     return total_size
 
 
@@ -149,19 +167,75 @@ def _copy_staging_payload(
     root_entries: tuple[str, ...],
 ) -> None:
     for entry in root_entries:
-        _copy_existing_entry(os.path.join(source, entry), staging)
-    _copy_existing_entry(join_data_abs(source, "vendor"), join_data_abs(staging))
+        source_entry = os.path.join(source, entry)
+        if os.path.exists(source_entry):
+            copy_install_entry(source_entry, staging)
+    vendor_source = join_data_abs(source, "vendor")
+    if os.path.exists(vendor_source):
+        copy_install_entry(vendor_source, join_data_abs(staging))
 
 
-def _copy_existing_entry(source_entry: str, target_parent: str) -> None:
-    if not os.path.exists(source_entry):
-        return
+def copy_install_entry(source_entry: str, target_parent: str) -> None:
+    source_entry = normalize_filesystem_path(source_entry)
+    target_parent = normalize_filesystem_path(target_parent)
     os.makedirs(target_parent, exist_ok=True)
     target_entry = os.path.join(target_parent, os.path.basename(source_entry))
     if os.path.isdir(source_entry) and not os.path.islink(source_entry):
-        shutil.copytree(source_entry, target_entry, symlinks=True, copy_function=shutil.copy2)
+        shutil.copytree(source_entry, target_entry, symlinks=True, copy_function=_copy_install_file)
+        if os.name == "nt":
+            for directory, _, _ in os.walk(source_entry, topdown=False, followlinks=False):
+                destination = os.path.join(target_entry, os.path.relpath(directory, source_entry))
+                copy_windows_discretionary_acl(directory, destination)
         return
-    shutil.copy2(source_entry, target_entry, follow_symlinks=False)
+    _copy_install_file(source_entry, target_entry, follow_symlinks=False)
+
+
+def _copy_install_file(source: str, destination: str, *, follow_symlinks: bool = True) -> str:
+    copied_path = shutil.copy2(source, destination, follow_symlinks=follow_symlinks)
+    if os.name == "nt" and not os.path.islink(source):
+        copy_windows_discretionary_acl(source, copied_path)
+    return copied_path
+
+
+def replace_install_entry(source_entry: str, target_parent: str, *, staging_root: str) -> None:
+    source_entry = normalize_filesystem_path(source_entry)
+    target_parent = normalize_filesystem_path(target_parent)
+    staging_root = normalize_filesystem_path(staging_root)
+    os.makedirs(target_parent, exist_ok=True)
+    target_entry = os.path.join(target_parent, os.path.basename(source_entry))
+    if os.path.isdir(source_entry) and not os.path.islink(source_entry):
+        if os.path.lexists(target_entry) and (
+            not os.path.isdir(target_entry) or os.path.islink(target_entry)
+        ):
+            _safe_remove(target_parent, target_entry)
+        os.makedirs(target_entry, exist_ok=True)
+        source_names = os.listdir(source_entry)
+        for name in source_names:
+            replace_install_entry(
+                os.path.join(source_entry, name), target_entry, staging_root=staging_root
+            )
+        for name in os.listdir(target_entry):
+            if name not in source_names:
+                _safe_remove(target_entry, os.path.join(target_entry, name))
+        shutil.copystat(source_entry, target_entry, follow_symlinks=False)
+        if os.name == "nt":
+            copy_windows_discretionary_acl(source_entry, target_entry)
+        fsync_directory(target_entry, strict=True)
+        fsync_directory(target_parent, strict=True)
+        return
+    scratch = create_secure_temp_directory(prefix=".replacement_", directory=staging_root)
+    try:
+        copy_install_entry(source_entry, scratch)
+        staged_entry = os.path.join(scratch, os.path.basename(source_entry))
+        fsync_install_entry(staged_entry)
+        if os.path.isdir(target_entry) and not os.path.islink(target_entry):
+            _safe_remove(target_parent, target_entry)
+        os.replace(staged_entry, target_entry)
+        fsync_directory(target_parent, strict=True)
+        fsync_directory(scratch, strict=True)
+    finally:
+        _safe_remove(staging_root, scratch)
+        fsync_directory(staging_root, strict=True)
 
 
 def _backup_staged_entries(
@@ -230,7 +304,8 @@ def _safe_remove(target: str, path: str) -> None:
         raise ValueError(f"Refusing to remove install target root: {path}")
     if os.path.commonpath([target_root, candidate]) != target_root:
         raise ValueError(f"Refusing to remove path outside install target: {path}")
-    if not os.path.exists(candidate):
+    candidate = normalize_filesystem_path(candidate)
+    if not os.path.lexists(candidate):
         return
     if os.path.isdir(candidate) and not os.path.islink(candidate):
         shutil.rmtree(candidate)

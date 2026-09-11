@@ -18,6 +18,8 @@ from core.errors.exception_logging import log_exception
 from core.errors.exceptions import SoAIError
 from core.filesystem.atomic_writes import atomic_write_text_content
 from core.filesystem.open_files import open_text
+from core.logging.configuration_constants import DEFAULT_LOG_DATE_FORMAT
+from core.logging.formatters import UnifiedFormatter
 from core.logging.trace import get_logger
 from core.tasks.type_catalog import TaskTypeCatalog, build_base_task_catalog
 from database.migrations.runtime import upgrade_database_path
@@ -52,11 +54,23 @@ def _restore_config_backup(
     secure_runtime_config_paths(config_path, backup_path)
 
 
-def main(task_catalog: TaskTypeCatalog) -> int:
+def _configure_logging() -> None:
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(
+        UnifiedFormatter(
+            "%(asctime)s - [SoAI/PostUpdateHook] - %(levelname)s - %(message)s",
+            DEFAULT_LOG_DATE_FORMAT,
+            use_colors=False,
+        ),
+    )
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s - [SoAI/PostUpdateHook] - %(levelname)s - %(message)s",
+        handlers=[console_handler],
     )
+
+
+def main(task_catalog: TaskTypeCatalog) -> int:
+    _configure_logging()
     logger = get_logger(LOGGER_NAME)
     repo_root = os.path.abspath(os.getcwd())
     config_path = ""

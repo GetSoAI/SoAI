@@ -150,7 +150,7 @@ export const patchStreamingKeyedChildren = (inputArguments: PatchStreamingKeyedC
         if (existing) {
             const patchResult = inputArguments.patchExistingChild({ existing, created, assistantDomState: getAssistantDomState(), applyStreamingReveal: policy.applyStreamingReveal });
             if (patchResult.patched) {
-                stampAssistantBodySegmentSignature(existing, desiredSignature);
+                stampAssistantBodySegmentSignature(existing, patchResult.retainedSignature ?? desiredSignature);
                 const nextAssistantDomState = getAssistantDomState();
                 if (nextAssistantDomState !== null) {
                     discardAssistantDomNode(existing, nextAssistantDomState);

@@ -170,6 +170,15 @@ class ChatModelControlRenderController {
     }
 
     #syncMenuHeight(menu: HTMLElement, scope: ModelControlScope): void {
+        if (scope === 'composer') {
+            const header = this.#host.pageDom.optionalHTMLElement('.chat-conversation-header');
+            if (!header) {
+                throw new Error('Composer model menu requires the conversation header boundary');
+            }
+            const availableHeight = measureLayoutBox(menu).bottom - measureLayoutBox(header).bottom;
+            dom.setStyle(menu, CHAT_MODEL_MENU_MAX_HEIGHT_PROPERTY, `${String(Math.max(0, availableHeight))}px`);
+            return;
+        }
         if (scope === 'empty-state') {
             this.#syncMenuHeightToBoundary(menu, this.#resolveInputWrapper());
             return;

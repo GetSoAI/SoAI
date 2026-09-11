@@ -30,6 +30,7 @@ from hardware.internal_protocols import (
     GPUInfoCacheServiceProtocol,
     GPUVendorDetectionServiceProtocol,
 )
+from hardware.vendors.nvidia.smi import NvidiaSettingsController
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
@@ -68,6 +69,7 @@ class HardwareManagerDependencies:
     gpu_capabilities_service: GpuCapabilitiesServiceProtocol
     nvidia_nvml_gate: NvmlGateProtocol
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol
+    nvidia_settings_controller: NvidiaSettingsController | None
     settings: HardwareManagerSettings
     command_executor: CommandExecutorProtocol
 

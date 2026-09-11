@@ -15,7 +15,9 @@ from core.bootstrap.install_arguments import ParsedInstallArguments
 from core.bootstrap.install_filesystem import unlink_if_exists
 from core.bootstrap.install_locks import (
     INSTALL_LOCK_ENV,
+    INSTALL_LOCK_TOKEN_ENV,
     acquire_lock_dir,
+    read_lock_token,
     release_lock_dir,
     wait_for_lock_dir_clear,
 )
@@ -199,6 +201,10 @@ def run_target_install_deps(
     command.extend(parsed_args.passthrough_args)
     env = dict(os.environ)
     env[INSTALL_LOCK_ENV] = lock_dir
+    lock_token = read_lock_token(lock_dir)
+    if lock_token is None:
+        raise ValidationError("SoAI install lock handoff token is missing or invalid.")
+    env[INSTALL_LOCK_TOKEN_ENV] = lock_token
     with spawn_managed_process(command, cwd=target_root, env=env) as process:
         exit_code = process.wait()
     if exit_code != 0:

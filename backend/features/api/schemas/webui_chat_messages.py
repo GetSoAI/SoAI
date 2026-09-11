@@ -167,6 +167,7 @@ class ChatContentSoaiKnowledgeUnavailablePart(SoAIV1StrictModel):
 
 class WebUIChatMessage(SoAIV1StrictModel):
     role: Literal["system", "developer", "user", "assistant", "tool"]
+    message_type: Literal["chat"] = Field(default="chat", exclude=True)
     timestamp: StrictInt = Field(default_factory=epoch_ms, ge=EPOCH_MS_MIN)
     assistant_turn_at_ms: StrictInt | None = Field(default=None, ge=EPOCH_MS_MIN)
     model_variant_index: StrictInt | None = Field(default=None, ge=0)

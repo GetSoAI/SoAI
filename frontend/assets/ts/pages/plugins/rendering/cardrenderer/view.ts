@@ -46,12 +46,14 @@ function renderCardContent(dependencies: RenderCardContentDependencies): string 
     const versionLabel = i18n.t('plugins.badges.version');
     const modelsLabel = i18n.t('plugins.badges.models');
     const newBadge = host.actions.isNewItem(plugin) ? renderRecentItemBadge((value) => sanitize(value)) : '';
+    const pluginLogo = host.presentation.getPluginLogo(plugin);
+    const pluginLogoFallback = host.presentation.getPluginLogoFallback(plugin);
 
     return `
         <div class="ui-collection-card__header plugin-card-header">
         <div class="ui-collection-card__title-bar plugin-title-bar">
         <div class="ui-collection-card__title plugin-title" data-full-title="${safeName}">
-        ${host.presentation.getPluginLogo(plugin) ? `<img src="${sanitize(host.presentation.getPluginLogo(plugin))}" alt="${safeName}" class="plugin-logo-small" />` : ''}
+        ${pluginLogo ? `<img src="${sanitize(pluginLogo)}" data-plugin-logo-fallback="${sanitize(pluginLogoFallback)}" alt="${safeName}" class="plugin-logo-small" />` : ''}
         <span class="ui-collection-card__title-text plugin-title-text" data-tooltip="${safeName}">${sanitize(host.presentation.formatPluginName(plugin.name) || unknownLabel)}</span>
         ${newBadge}
         </div>

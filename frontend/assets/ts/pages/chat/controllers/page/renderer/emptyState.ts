@@ -16,6 +16,7 @@ const getEmptyStateHTML = (host: ChatCurrentConversationRenderDependencies): Tru
         getCachedIcon: (name: IconName, options?: IconOptions) => host.presentation.cachedIcon(name, options),
         activeAgentMode: resolveAgentMode(conversation),
         authorityLock: resolveConversationAuthorityLock(conversation),
+        ctrlEnterSendRequired: host.settings.parameters.ctrlEnterSendEnabled === true,
         isMac: navigator.platform.toUpperCase().indexOf('MAC') >= 0
     });
 };

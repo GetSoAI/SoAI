@@ -13,6 +13,7 @@ from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import SoAIError, ValidationError
 from core.logging.trace import get_logger
+from core.meta.version import __version__
 from core.network.http_json import read_http_json_dict
 from core.network.outbound_http_profiles import (
     build_github_api_headers,
@@ -88,7 +89,9 @@ def fetch_latest_release_sync(
         with http_client_module.Client(timeout=float(timeout)) as client:
             discovery_response = client.get(
                 SOAI_RELEASE_DISCOVERY_URL,
-                headers=build_outbound_request_headers(profile_type="service_api"),
+                headers=build_outbound_request_headers(
+                    profile_type="service_api", extra_headers={"X-SoAI-Version": __version__}
+                ),
                 follow_redirects=False,
             )
             active_url = _resolve_discovery_response(discovery_response)
@@ -139,7 +142,9 @@ async def fetch_latest_release_async(
     try:
         discovery_response = await http_client.get(
             SOAI_RELEASE_DISCOVERY_URL,
-            headers=build_outbound_request_headers(profile_type="service_api"),
+            headers=build_outbound_request_headers(
+                profile_type="service_api", extra_headers={"X-SoAI-Version": __version__}
+            ),
             follow_redirects=False,
             timeout=float(timeout),
         )

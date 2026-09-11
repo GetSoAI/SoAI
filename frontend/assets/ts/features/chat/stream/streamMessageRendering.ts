@@ -1,10 +1,11 @@
 /* SoAI - Chat feature stream message rendering [frontend/assets/ts/features/chat/stream/streamMessageRendering.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { cancelLoadingActivityTransition } from '@features/chat/message/loadingActivityToggleRegistry.ts';
 import { renderCollapsedLoadingMessageContent } from '@features/chat/stream/streamMessageCollapsedLoading.ts';
 import { shouldUseInvisibleTimelineActivityFastPath } from '@features/chat/stream/streamActivityFastPath.ts';
-import { shouldRenderCollapsedLoadingSummary, shouldSkipStreamingTextDeltaPatch } from '@features/chat/stream/streamMessageRenderMode.ts';
-import { syncStreamingMessagePassiveState } from '@features/chat/stream/streamMessageRenderState.ts';
+import { hasCollapsedLoadingStructure, shouldRenderCollapsedLoadingSummary, shouldSkipStreamingTextDeltaPatch } from '@features/chat/stream/streamMessageRenderMode.ts';
+import { resetStreamingRenderCache, syncStreamingMessagePassiveState } from '@features/chat/stream/streamMessageRenderState.ts';
 import type { RenderStreamingMessageContentArguments, RenderStreamingMessageContentResult } from '@features/chat/stream/streamMessageRenderingContracts.ts';
 import { renderActiveStreamingMessageContent } from '@features/chat/stream/streamMessageStreamingContent.ts';
 
@@ -17,6 +18,15 @@ const renderStreamingMessageContent = (inputArguments: RenderStreamingMessageCon
             updatedMarkup: false,
             target: null
         };
+    }
+
+    if (inputArguments.patchType !== 'passive-state' && inputArguments.patchType !== 'none') {
+        cancelLoadingActivityTransition(target);
+    }
+    const mountedMode = hasCollapsedLoadingStructure(target) ? 'collapsedLoading' : 'streaming';
+    if (inputArguments.cached.renderMode !== null && inputArguments.cached.renderMode !== mountedMode) {
+        resetStreamingRenderCache(inputArguments.cached);
+        inputArguments.cached.lastCollapsedLoadingHtml = null;
     }
 
     if (shouldRenderCollapsedLoadingSummary(inputArguments.message, inputArguments.messageManager)) {

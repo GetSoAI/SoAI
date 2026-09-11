@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isNumber, isString } from '@core/typeGuards.ts';
-import type { ChatMessage } from '@features/chat/ChatTypes.ts';
+import type { ChatMessage, ConversationMessage } from '@features/chat/ChatTypes.ts';
 import type { MessageCursor } from '@features/chat/storage/storageModels.ts';
 
 const hasPersistedMessageId = (message: ChatMessage): boolean => {
@@ -39,4 +39,13 @@ const buildPersistedMessageCursorKey = (cursor: MessageCursor): string => {
     return `${String(cursor.createdAtMs)}:${String(cursor.id)}`;
 };
 
-export { buildPersistedMessageCursorKey, comparePersistedMessageCursors, hasPersistedMessageId, resolvePersistedMessageCursor };
+const resolveFallbackMessagePersistenceKey = (message: ConversationMessage): string | null => {
+    const timestamp = message['timestamp'];
+    const role = message['role'];
+    if (!isNumber(timestamp) || !Number.isSafeInteger(timestamp) || timestamp < 0 || !isString(role) || !role.trim()) {
+        return null;
+    }
+    return `${String(timestamp)}:${role.trim().toLowerCase()}`;
+};
+
+export { buildPersistedMessageCursorKey, comparePersistedMessageCursors, hasPersistedMessageId, resolveFallbackMessagePersistenceKey, resolvePersistedMessageCursor };

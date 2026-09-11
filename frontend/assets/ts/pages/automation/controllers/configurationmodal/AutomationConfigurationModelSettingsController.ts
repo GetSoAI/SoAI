@@ -98,13 +98,12 @@ class AutomationConfigurationModelSettingsController {
         };
     }
 
-    async openWorkspaceModal(api: ReadOnlyFileBrowserApi, allowManualAbsoluteSelectionOutsideRoot: boolean, canApply: () => boolean): Promise<boolean> {
+    async openWorkspaceModal(api: ReadOnlyFileBrowserApi, canApply: () => boolean): Promise<boolean> {
         if (
             await this.#workspace.open({
                 access: {
                     currentWorkspacePath: this.#workspace.getCurrentWorkspacePath(),
-                    browserApi: api,
-                    allowManualAbsoluteSelectionOutsideRoot
+                    browserApi: api
                 },
                 readOnly: this.#readOnly,
                 canApply,

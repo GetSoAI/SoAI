@@ -175,7 +175,7 @@ class StartupGateMiddleware:
             response = self._build_shutdown_rejection(request)
             await response(scope, receive, send)
             return
-        if startup_task not in done:
+        if startup_task not in done or not startup_event.is_set():
             response = self._build_startup_rejection(request)
             await response(scope, receive, send)
             return

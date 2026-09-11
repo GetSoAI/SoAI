@@ -8,6 +8,11 @@ import { readNullableFiniteIntegerValue, readRequiredFiniteIntegerValue, readReq
 import { readNullableTrimmedStringValue, readRequiredBooleanValue, readRequiredEnumValue, readRequiredStringValue, readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 
+interface DatabaseMaintenanceStatus {
+    status: 'not_run' | 'disabled' | 'not_due' | 'skipped' | 'completed' | 'degraded';
+    reason: string | null;
+}
+
 interface SystemHealthResponse {
     status: 'ok' | 'degraded';
     edition: 'soai-core' | 'soai-os';
@@ -20,6 +25,7 @@ interface SystemHealthResponse {
     port: number;
     preferredPort: number;
     fallbackActive: boolean;
+    databaseMaintenance?: DatabaseMaintenanceStatus;
 }
 interface InstanceNameResponse {
     instanceName: string | null;
@@ -119,13 +125,14 @@ const decodeMessage = (value: ApiResponsePayload, label: string): MessageRespons
 
 const decodeSystemHealth = (value: ApiResponsePayload): SystemHealthResponse => {
     const record = requireRecord(value, 'System health response');
-    assertExactRecordKeys(record, ['status', 'edition', 'power_operations', 'product', 'version', 'instance_id', 'instance_name', 'scheme', 'port', 'preferred_port', 'fallback_active'], 'System health response');
+    const maintenanceFields = record['database_maintenance'] === undefined ? [] : ['database_maintenance'];
+    assertExactRecordKeys(record, ['status', 'edition', 'power_operations', 'product', 'version', 'instance_id', 'instance_name', 'scheme', 'port', 'preferred_port', 'fallback_active', ...maintenanceFields], 'System health response');
     const port = readRequiredFiniteIntegerValue(record['port'], 'System health response.port');
     const preferredPort = readRequiredFiniteIntegerValue(record['preferred_port'], 'System health response.preferred_port');
     const fallbackActive = readRequiredBooleanValue(record['fallback_active'], 'System health response.fallback_active');
     if (port < 1 || port > 65535 || preferredPort < 1 || preferredPort > 65535) throw new TypeError('System health response ports must be from 1 through 65535');
     if (fallbackActive !== (port !== preferredPort)) throw new TypeError('System health response fallback state is inconsistent');
-    return {
+    const response: SystemHealthResponse = {
         status: readRequiredEnumValue(record['status'], 'System health response.status', ['ok', 'degraded']),
         edition: readRequiredEnumValue(record['edition'], 'System health response.edition', ['soai-core', 'soai-os']),
         powerOperations: readRequiredEnumValue(record['power_operations'], 'System health response.power_operations', ['healthy', 'degraded']),
@@ -138,6 +145,15 @@ const decodeSystemHealth = (value: ApiResponsePayload): SystemHealthResponse => 
         preferredPort,
         fallbackActive
     };
+    if (record['database_maintenance'] !== undefined) {
+        const maintenance = requireRecord(record['database_maintenance'], 'System health response.database_maintenance');
+        assertExactRecordKeys(maintenance, ['status', 'reason'], 'System health response.database_maintenance');
+        response.databaseMaintenance = {
+            status: readRequiredEnumValue(maintenance['status'], 'System health response.database_maintenance.status', ['not_run', 'disabled', 'not_due', 'skipped', 'completed', 'degraded']),
+            reason: readNullableTrimmedStringValue(maintenance['reason'], 'System health response.database_maintenance.reason')
+        };
+    }
+    return response;
 };
 
 const decodeInstanceNameResponse = (value: ApiResponsePayload): InstanceNameResponse => {

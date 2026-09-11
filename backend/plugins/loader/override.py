@@ -13,11 +13,14 @@ from core.runtime.request_context import create_system_context
 from core.state.compatibility import CompatibilityInfo, IncompatibilityReason
 from core.state.state_names import (
     ORCH_STATE_DISABLED,
+    PLUGIN_STATE_ABSENT,
     PLUGIN_STATE_INCOMPATIBLE,
+    PLUGIN_STATE_NOT_DETECTED,
     PLUGIN_STATE_STOPPED,
 )
 from core.types.json import JSONDict
 from plugins.identity import normalize_plugin_lookup_key
+from plugins.manager.alias_map import update_alias_map
 from plugins.manager.compatibility import compatibility_from_record
 from plugins.manifest.reader import read_plugin_manifest_from_disk
 from plugins.package_audit import audit_plugin_package
@@ -26,6 +29,7 @@ from plugins.protocols_internal.runtime.internal_protocols import (
 )
 from plugins.state.compatibility import build_compatibility_info
 from plugins.state.manifest_compatibility import check_plugin_manifest_compatibility
+from plugins.state.transition_publication import transition_plugin_state_and_wait
 
 __all__ = ("set_incompatibility_override",)
 
@@ -43,6 +47,23 @@ PLUGIN_OVERRIDE_SOURCE_AUDIT_EXCEPTIONS = (
     ValidationError,
     ValueError,
 )
+
+
+async def _enable_incompatibility_override(
+    manager: PluginManagerRuntimeProtocol,
+    plugin_name: str,
+    previous_state: str | None,
+) -> None:
+    await transition_plugin_state_and_wait(
+        manager,
+        plugin_name,
+        PLUGIN_STATE_STOPPED,
+        "User enabled incompatibility override.",
+        create_system_context("set_incompatibility_override"),
+        completion_deadline_monotonic=publication_completion_deadline(),
+    )
+    if previous_state in {PLUGIN_STATE_ABSENT, PLUGIN_STATE_NOT_DETECTED}:
+        await update_alias_map(manager)
 
 
 async def _resolve_override_record(
@@ -83,8 +104,22 @@ async def set_incompatibility_override(
         return compatibility
     if not compatibility.can_override:
         raise ValidationError(f"Plugin '{target_name}' incompatibility cannot be overridden.")
+    record_state_value = record.get("state")
+    record_state = record_state_value if isinstance(record_state_value, str) else None
     if override == compatibility.is_overridden:
+        if override and record_state in {
+            PLUGIN_STATE_INCOMPATIBLE,
+            PLUGIN_STATE_NOT_DETECTED,
+        }:
+            await audit_plugin_package(manager, target_name)
+            await _enable_incompatibility_override(
+                manager,
+                target_name,
+                record_state,
+            )
         return compatibility
+    if override:
+        await audit_plugin_package(manager, target_name)
     await manager.dependencies.databases.plugins.set_incompatibility_override(
         target_name,
         override,
@@ -95,18 +130,15 @@ async def set_incompatibility_override(
         compatibility.details,
         override,
     )
+    if override:
+        await _enable_incompatibility_override(
+            manager,
+            target_name,
+            record_state,
+        )
+        return base_info
     context = create_system_context("set_incompatibility_override")
     publication_deadline = publication_completion_deadline()
-    if override:
-        receipt = await manager.transition_plugin_manager_state(
-            target_name,
-            PLUGIN_STATE_STOPPED,
-            "User enabled incompatibility override.",
-            context,
-        )
-        if receipt is not None:
-            await receipt.wait_for_completion(publication_deadline)
-        return base_info
     try:
         package_audit = await audit_plugin_package(manager, target_name)
         manifest = read_plugin_manifest_from_disk(
@@ -141,14 +173,14 @@ async def set_incompatibility_override(
             target_name,
             info,
         )
-        receipt = await manager.transition_plugin_manager_state(
+        await transition_plugin_state_and_wait(
+            manager,
             target_name,
             PLUGIN_STATE_INCOMPATIBLE,
             message,
             context,
+            completion_deadline_monotonic=publication_deadline,
         )
-        if receipt is not None:
-            await receipt.wait_for_completion(publication_deadline)
         return info
     refreshed = await check_plugin_manifest_compatibility(
         target_name,
@@ -174,24 +206,24 @@ async def set_incompatibility_override(
             updated,
             state=target_state,
         )
-        receipt = await manager.transition_plugin_manager_state(
+        await transition_plugin_state_and_wait(
+            manager,
             target_name,
             target_state,
             updated.message or "Plugin marked as incompatible.",
             context,
+            completion_deadline_monotonic=publication_deadline,
         )
-        if receipt is not None:
-            await receipt.wait_for_completion(publication_deadline)
         return updated
     await manager.dependencies.databases.plugins.clear_incompatibility(
         target_name,
     )
-    receipt = await manager.transition_plugin_manager_state(
+    await transition_plugin_state_and_wait(
+        manager,
         target_name,
         PLUGIN_STATE_STOPPED,
         "Plugin compatibility verified after disabling override.",
         context,
+        completion_deadline_monotonic=publication_deadline,
     )
-    if receipt is not None:
-        await receipt.wait_for_completion(publication_deadline)
     return build_compatibility_info(None, "", {}, False)

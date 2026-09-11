@@ -13,6 +13,7 @@ using System.IO;
 using System.IO.Pipes;
 using System.Net;
 using System.Net.Security;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Cryptography.X509Certificates;
@@ -74,6 +75,19 @@ namespace SoAILauncher
                     return 1;
                 }
             }
+            try
+            {
+                if (UpdateRecovery.TryHandoff(paths, args))
+                {
+                    return 0;
+                }
+            }
+            catch (Exception exception)
+            {
+                LauncherDiagnostics.WriteStartupFailure(paths, exception);
+                MessageBox.Show("SoAI could not recover the interrupted update. Your recovery files have been retained. Close other SoAI windows and try again. If recovery still fails, keep the installation for repair.", "SoAI", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return 1;
+            }
             if (PrivilegeState.IsElevated())
             {
                 if (UnelevatedLauncher.IsHandoffCommand(args))
@@ -93,12 +107,186 @@ namespace SoAILauncher
                 MessageBox.Show("SoAI could not complete the standard desktop handoff.", "SoAI", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return 1;
             }
+            return RunDesktop(paths, args);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static int RunDesktop(LauncherPaths paths, string[] args)
+        {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             using (LauncherForm form = new LauncherForm(paths, args))
             {
                 Application.Run(form);
                 return form.ExitCode;
+            }
+        }
+    }
+
+    internal static class UpdateRecovery
+    {
+        private static void CompleteTerminalRecovery(LauncherPaths paths)
+        {
+            string cleanupPython = paths.ResolveBootstrapPythonExecutable();
+            string cleanupBackend = Path.Combine(paths.RootDirectory, "backend");
+            string cleanupCode = @"import sys
+from app.updater.software_update.recovery_bootstrap import resolve_update_recovery_package_paths
+sys.path.extend(resolve_update_recovery_package_paths(sys.argv[1]))
+from app.updater.software_update.install_transaction_recovery import recover_interrupted_update_transactions
+from core.logging.trace import get_logger
+recovered = recover_interrupted_update_transactions(
+    sys.argv[1], get_logger('SoAI.app.updater.windows_startup_cleanup'),
+    allow_pending_activation=True, allow_restoration=False,
+)
+raise SystemExit(0 if recovered else 1)
+";
+            string cleanupLog = Path.Combine(paths.RootDirectory, "data", "logs", "soai-recovery-cleanup-" + Guid.NewGuid().ToString("N") + ".log");
+            string previousPythonPath = Environment.GetEnvironmentVariable("PYTHONPATH");
+            string previousBytecode = Environment.GetEnvironmentVariable("PYTHONDONTWRITEBYTECODE");
+            try
+            {
+                Environment.SetEnvironmentVariable("PYTHONPATH", cleanupBackend);
+                Environment.SetEnvironmentVariable("PYTHONDONTWRITEBYTECODE", "1");
+                using (NativeBackendJob cleanup = NativeBackendJob.StartProcess(
+                    cleanupPython, "-P -S -c " + BackendProcess.Quote(cleanupCode) + " " + BackendProcess.Quote(paths.RootDirectory), paths.RootDirectory, cleanupLog))
+                {
+                    if (!cleanup.ProcessHandle.WaitForExit(60000))
+                    {
+                        throw new TimeoutException("Update transaction cleanup did not finish; preserve the recovery evidence.");
+                    }
+                    if (cleanup.ProcessHandle.ExitCode != 0)
+                    {
+                        throw new InvalidOperationException("Shared update cleanup rejected startup. See the recovery cleanup log.");
+                    }
+                }
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("PYTHONPATH", previousPythonPath);
+                Environment.SetEnvironmentVariable("PYTHONDONTWRITEBYTECODE", previousBytecode);
+            }
+        }
+
+        public static bool TryHandoff(LauncherPaths paths, string[] args)
+        {
+            string[] transactions = Directory.GetFileSystemEntries(paths.RootDirectory, ".soai_update_transaction_*");
+            if (transactions.Length == 0
+                && Directory.GetFileSystemEntries(paths.RootDirectory, ".soai_update_cleanup_*").Length == 0)
+            {
+                return false;
+            }
+            string recoveryPython = Path.Combine(paths.StandalonePythonDirectory, "python.exe");
+            string recoveryBackend = Path.Combine(paths.RootDirectory, "backend");
+            foreach (string transaction in transactions)
+            {
+                if ((File.GetAttributes(transaction) & FileAttributes.ReparsePoint) != 0 || !Directory.Exists(transaction))
+                {
+                    throw new InvalidOperationException("Update transaction storage is invalid; preserve it for repair.");
+                }
+                string retainedPython = Path.Combine(transaction, "recovery_runtime", "python.exe");
+                string retainedBackend = Path.Combine(transaction, "old", "backend");
+                if (File.Exists(retainedPython) && Directory.Exists(retainedBackend))
+                {
+                    recoveryPython = retainedPython;
+                    recoveryBackend = retainedBackend;
+                    break;
+                }
+            }
+            if (!File.Exists(recoveryPython) || !Directory.Exists(recoveryBackend))
+            {
+                throw new InvalidOperationException("Update recovery bootstrap is missing; preserve the installation for repair.");
+            }
+            string query = @"import json, sys
+from app.updater.software_update.recovery_bootstrap import resolve_update_recovery_package_paths
+sys.path.extend(resolve_update_recovery_package_paths(sys.argv[1]))
+from app.updater.software_update.install_transaction_recovery_plan import inspect_update_restorations
+print(json.dumps(inspect_update_restorations(sys.argv[1])))
+";
+            string queryLog = Path.Combine(paths.RootDirectory, "data", "logs", "soai-recovery-inspection-" + Guid.NewGuid().ToString("N") + ".log");
+            string previousPythonPath = Environment.GetEnvironmentVariable("PYTHONPATH");
+            string previousBytecode = Environment.GetEnvironmentVariable("PYTHONDONTWRITEBYTECODE");
+            try
+            {
+                Environment.SetEnvironmentVariable("PYTHONPATH", recoveryBackend);
+                Environment.SetEnvironmentVariable("PYTHONDONTWRITEBYTECODE", "1");
+                using (NativeBackendJob inspection = NativeBackendJob.StartProcess(
+                    recoveryPython, "-P -S -c " + BackendProcess.Quote(query) + " " + BackendProcess.Quote(paths.RootDirectory), paths.RootDirectory, queryLog))
+                {
+                    if (!inspection.ProcessHandle.WaitForExit(60000))
+                    {
+                        throw new TimeoutException("Update recovery inspection did not finish.");
+                    }
+                    if (inspection.ProcessHandle.ExitCode != 0)
+                    {
+                        throw new InvalidOperationException("Shared update recovery inspection rejected startup. See the recovery inspection log.");
+                    }
+                }
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("PYTHONPATH", previousPythonPath);
+                Environment.SetEnvironmentVariable("PYTHONDONTWRITEBYTECODE", previousBytecode);
+            }
+            string[] restorations = new JavaScriptSerializer().Deserialize<string[]>(File.ReadAllText(queryLog, Encoding.UTF8));
+            if (restorations == null)
+            {
+                throw new InvalidOperationException("Update recovery inspection returned no decision.");
+            }
+            File.Delete(queryLog);
+            if (restorations.Length == 0)
+            {
+                CompleteTerminalRecovery(paths);
+                return false;
+            }
+            string transactionPath = restorations[0];
+            string recoveryScript = Path.Combine(transactionPath, "old", "backend", "app", "updater", "windows_installer_handoff.ps1");
+            if (!File.Exists(recoveryScript))
+            {
+                throw new FileNotFoundException("The retained update recovery supervisor is missing.", recoveryScript);
+            }
+            string readyPath = Path.Combine(transactionPath, "launcher-recovery-" + Guid.NewGuid().ToString("N") + ".ready");
+            using (Process launcher = Process.GetCurrentProcess())
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo();
+                startInfo.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe");
+                startInfo.Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -File " + BackendProcess.Quote(recoveryScript)
+                    + " -InstallRoot " + BackendProcess.Quote(paths.RootDirectory)
+                    + " -TransactionPath " + BackendProcess.Quote(transactionPath)
+                    + " -ReadyPath " + BackendProcess.Quote(readyPath)
+                    + " -RecoveryLauncherPid " + launcher.Id.ToString(CultureInfo.InvariantCulture)
+                    + " -RecoveryLauncherStartTicks " + launcher.StartTime.ToUniversalTime().Ticks.ToString(CultureInfo.InvariantCulture);
+                string[] relaunchArguments = UnelevatedLauncher.CompleteHandoff(args);
+                if (relaunchArguments.Length > 0)
+                {
+                    startInfo.Arguments += " -RelaunchArguments " + BackendProcess.Quote(BackendProcess.BuildArgumentString(relaunchArguments));
+                }
+                startInfo.WorkingDirectory = paths.RootDirectory;
+                startInfo.UseShellExecute = true;
+                startInfo.Verb = "runas";
+                startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                using (Process supervisor = Process.Start(startInfo))
+                {
+                    if (supervisor == null)
+                    {
+                        throw new InvalidOperationException("The update recovery supervisor did not start.");
+                    }
+                    IntPtr supervisorHandle = supervisor.Handle;
+                    Stopwatch deadline = Stopwatch.StartNew();
+                    while (!supervisor.HasExited && deadline.Elapsed < TimeSpan.FromMinutes(2))
+                    {
+                        if (File.Exists(readyPath))
+                        {
+                            string acknowledgement = File.ReadAllText(readyPath, Encoding.UTF8).Trim();
+                            if (supervisorHandle == IntPtr.Zero || acknowledgement != supervisor.Id.ToString(CultureInfo.InvariantCulture))
+                            {
+                                throw new InvalidOperationException("The recovery acknowledgement does not identify its supervisor.");
+                            }
+                            return true;
+                        }
+                        Thread.Sleep(100);
+                    }
+                    throw new InvalidOperationException("The update recovery supervisor did not acknowledge exclusive ownership.");
+                }
             }
         }
     }
@@ -1492,6 +1680,7 @@ namespace SoAILauncher
 
         public static async Task<ElevatedBackendSession> StartAsync(LauncherPaths paths, string[] backendArgs, CancellationToken token)
         {
+            string parentEnvironment = CaptureParentEnvironment();
             string pipeName = "SoAI-Backend-" + Guid.NewGuid().ToString("N");
             string authenticationToken = Convert.ToBase64String(Guid.NewGuid().ToByteArray()) + Convert.ToBase64String(Guid.NewGuid().ToByteArray());
             NamedPipeServerStream pipe = new NamedPipeServerStream(
@@ -1551,6 +1740,25 @@ namespace SoAILauncher
                 {
                     throw new InvalidOperationException("The elevated SoAI runtime helper failed authentication.");
                 }
+                Task environmentWrite = writer.WriteLineAsync(parentEnvironment);
+                Task environmentWritten = await Task.WhenAny(environmentWrite, Task.Delay(TimeSpan.FromSeconds(10), token));
+                if (environmentWritten != environmentWrite)
+                {
+                    token.ThrowIfCancellationRequested();
+                    throw new TimeoutException("The administrator runtime environment could not be transferred within 10 seconds.");
+                }
+                await environmentWrite;
+                Task<string> environmentRead = reader.ReadLineAsync();
+                Task environmentCompleted = await Task.WhenAny(environmentRead, Task.Delay(TimeSpan.FromSeconds(10), token));
+                if (environmentCompleted != environmentRead)
+                {
+                    token.ThrowIfCancellationRequested();
+                    throw new TimeoutException("The administrator runtime helper did not acknowledge its environment within 10 seconds.");
+                }
+                if (!string.Equals(await environmentRead, "ENVIRONMENT_ACCEPTED", StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException("The administrator runtime helper rejected its environment.");
+                }
                 return new ElevatedBackendSession(pipe, reader, writer, helper);
             }
             catch
@@ -1561,6 +1769,32 @@ namespace SoAILauncher
                     BackendProcess.KillQuietly(helper);
                 }
                 throw;
+            }
+        }
+
+        private static string CaptureParentEnvironment()
+        {
+            List<string[]> environment = new List<string[]>();
+            System.Collections.IDictionary snapshot = Environment.GetEnvironmentVariables();
+            foreach (string name in snapshot.Keys)
+            {
+                if (snapshot[name] == null)
+                {
+                    throw new InvalidOperationException("The launcher environment snapshot contains an invalid value.");
+                }
+                environment.Add(new string[] { name, snapshot[name].ToString() });
+            }
+            using (MemoryStream payload = new MemoryStream())
+            using (BinaryWriter writer = new BinaryWriter(payload, new UTF8Encoding(false, true)))
+            {
+                writer.Write(environment.Count);
+                foreach (string[] entry in environment)
+                {
+                    writer.Write(entry[0]);
+                    writer.Write(entry[1]);
+                }
+                writer.Flush();
+                return "ENVIRONMENT\t" + Convert.ToBase64String(payload.ToArray());
             }
         }
 
@@ -1717,6 +1951,7 @@ namespace SoAILauncher
                     {
                         writer.AutoFlush = true;
                         writer.WriteLine("HELLO\t" + authenticationToken);
+                        ReceiveParentEnvironment(reader, writer);
                         return RunOwnedBackend(paths, backendArgs, pipe, reader, writer);
                     }
                 }
@@ -1727,6 +1962,80 @@ namespace SoAILauncher
                 return 1;
             }
         }
+
+        internal static void ReceiveParentEnvironment(StreamReader reader, StreamWriter writer)
+        {
+            Task<string> environmentRead = reader.ReadLineAsync();
+            if (!environmentRead.Wait(TimeSpan.FromSeconds(10)))
+            {
+                throw new TimeoutException("The launcher did not supply the administrator runtime environment within 10 seconds.");
+            }
+            string message = environmentRead.GetAwaiter().GetResult();
+            const string prefix = "ENVIRONMENT\t";
+            if (message == null || !message.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("The launcher environment transfer is missing or invalid.");
+            }
+            Dictionary<string, string> environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using (MemoryStream payload = new MemoryStream(Convert.FromBase64String(message.Substring(prefix.Length))))
+                using (BinaryReader decoder = new BinaryReader(payload, new UTF8Encoding(false, true)))
+                {
+                    int count = decoder.ReadInt32();
+                    if (count < 0 || count > payload.Length / 2)
+                    {
+                        throw new InvalidOperationException("The launcher environment entry count is invalid.");
+                    }
+                    for (int index = 0; index < count; index++)
+                    {
+                        string name = decoder.ReadString();
+                        string value = decoder.ReadString();
+                        if (string.IsNullOrEmpty(name) || name.IndexOf('=') >= 0 || name.IndexOf('\0') >= 0
+                            || value.IndexOf('\0') >= 0 || environment.ContainsKey(name))
+                        {
+                            throw new InvalidOperationException("The launcher environment contains invalid or duplicate entries.");
+                        }
+                        environment.Add(name, value);
+                    }
+                    if (payload.Position != payload.Length)
+                    {
+                        throw new InvalidOperationException("The launcher environment contains trailing data.");
+                    }
+                }
+            }
+            catch (ArgumentException)
+            {
+                throw new InvalidOperationException("The launcher environment transfer is malformed.");
+            }
+            catch (FormatException)
+            {
+                throw new InvalidOperationException("The launcher environment transfer is malformed.");
+            }
+            catch (IOException)
+            {
+                throw new InvalidOperationException("The launcher environment transfer is truncated or unreadable.");
+            }
+            foreach (string name in Environment.GetEnvironmentVariables().Keys)
+            {
+                if (!SetProcessEnvironmentVariable(name, null))
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "The administrator runtime environment could not be cleared.");
+                }
+            }
+            foreach (KeyValuePair<string, string> entry in environment)
+            {
+                if (!SetProcessEnvironmentVariable(entry.Key, entry.Value))
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "The administrator runtime environment could not be restored.");
+                }
+            }
+            writer.WriteLine("ENVIRONMENT_ACCEPTED");
+        }
+
+        [DllImport("kernel32.dll", EntryPoint = "SetEnvironmentVariableW", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetProcessEnvironmentVariable(string name, string value);
 
         private static int RunOwnedBackend(LauncherPaths paths, string[] backendArgs, NamedPipeClientStream pipe, StreamReader reader, StreamWriter writer)
         {
@@ -1879,7 +2188,7 @@ namespace SoAILauncher
         }
     }
 
-    internal sealed class NativeBackendJob : IDisposable
+    public sealed class NativeBackendJob : IDisposable
     {
         private const uint CREATE_SUSPENDED = 0x00000004;
         private const uint CREATE_NO_WINDOW = 0x08000000;
@@ -1892,8 +2201,11 @@ namespace SoAILauncher
         private const uint HANDLE_FLAG_INHERIT = 0x00000001;
         private const uint JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000;
         private const int JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9;
+        private const int JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION = 1;
+        private const uint WAIT_TIMEOUT = 258;
         private readonly Process process;
         private IntPtr jobHandle;
+        private bool committed;
 
         private NativeBackendJob(Process process, IntPtr jobHandle)
         {
@@ -1902,34 +2214,45 @@ namespace SoAILauncher
         }
 
         public bool HasExited { get { return process.HasExited; } }
+        public Process ProcessHandle { get { return process; } }
 
-        public static NativeBackendJob Start(LauncherPaths paths, string[] args)
+        internal static NativeBackendJob Start(LauncherPaths paths, string[] args)
         {
             string python = BackendProcess.ResolvePython(paths, args);
             BackendProcess.RequireBackendMain(paths);
             BackendProcess.ConfigureBackendEnvironment(paths);
+            return StartProcess(
+                python,
+                BackendProcess.Quote(paths.BackendMain) + BackendProcess.BuildArgumentString(args),
+                paths.RootDirectory,
+                Path.Combine(paths.RootDirectory, "data", "logs", "soai-launcher.log"));
+        }
+
+        public static NativeBackendJob StartProcess(string executable, string arguments, string workingDirectory, string logPath)
+        {
             STARTUPINFO startupInfo = new STARTUPINFO();
             startupInfo.cb = Marshal.SizeOf(typeof(STARTUPINFO));
             startupInfo.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
             startupInfo.wShowWindow = 0;
             PROCESS_INFORMATION processInfo;
-            StringBuilder commandLine = new StringBuilder(BackendProcess.Quote(python) + " " + BackendProcess.Quote(paths.BackendMain) + BackendProcess.BuildArgumentString(args));
-            string logDirectory = Path.Combine(paths.RootDirectory, "data", "logs");
+            StringBuilder commandLine = new StringBuilder(BackendProcess.Quote(executable) + " " + arguments);
+            string logDirectory = Path.GetDirectoryName(Path.GetFullPath(logPath));
             Directory.CreateDirectory(logDirectory);
             using (SafeFileHandle input = OpenNullInput())
-            using (FileStream output = new FileStream(Path.Combine(logDirectory, "soai-launcher.log"), FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
+            using (FileStream output = new FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
             {
                 startupInfo.hStdInput = input.DangerousGetHandle();
                 startupInfo.hStdOutput = output.SafeFileHandle.DangerousGetHandle();
                 startupInfo.hStdError = startupInfo.hStdOutput;
                 RequireInheritableHandle(startupInfo.hStdInput);
                 RequireInheritableHandle(startupInfo.hStdOutput);
-                if (!CreateProcess(python, commandLine, IntPtr.Zero, IntPtr.Zero, true, CREATE_SUSPENDED | CREATE_NO_WINDOW, IntPtr.Zero, paths.RootDirectory, ref startupInfo, out processInfo))
+                if (!CreateProcess(executable, commandLine, IntPtr.Zero, IntPtr.Zero, true, CREATE_SUSPENDED | CREATE_NO_WINDOW, IntPtr.Zero, workingDirectory, ref startupInfo, out processInfo))
                 {
                     throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to create the administrator backend process.");
                 }
             }
             IntPtr job = IntPtr.Zero;
+            Process process = null;
             try
             {
                 job = CreateJobObject(IntPtr.Zero, null);
@@ -1942,24 +2265,65 @@ namespace SoAILauncher
                 {
                     throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to assign the backend process to its rollback job.");
                 }
+                process = Process.GetProcessById(processInfo.dwProcessId);
+                if (WaitForSingleObject(process.Handle, 0) != WAIT_TIMEOUT)
+                {
+                    throw new InvalidOperationException("The suspended process exited before its lifetime could be retained.");
+                }
                 if (ResumeThread(processInfo.hThread) == UInt32.MaxValue)
                 {
                     throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to resume the backend process.");
                 }
-                Process process = Process.GetProcessById(processInfo.dwProcessId);
                 CloseHandle(processInfo.hThread);
                 CloseHandle(processInfo.hProcess);
                 return new NativeBackendJob(process, job);
             }
-            catch
+            catch (Exception startupFailure)
             {
+                if (process != null)
+                {
+                    process.Dispose();
+                }
+                List<Exception> failures = new List<Exception> { startupFailure };
+                try
+                {
+                    if (!TerminateProcess(processInfo.hProcess, 1) && WaitForSingleObject(processInfo.hProcess, 0) != 0)
+                    {
+                        throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to stop the incomplete backend startup.");
+                    }
+                    if (WaitForSingleObject(processInfo.hProcess, 10000) != 0)
+                    {
+                        throw new TimeoutException("The incomplete backend startup did not exit; recovery requires repair.");
+                    }
+                }
+                catch (Exception cleanupFailure)
+                {
+                    failures.Add(cleanupFailure);
+                }
+                finally
+                {
+                    CloseHandle(processInfo.hThread);
+                    CloseHandle(processInfo.hProcess);
+                }
                 if (job != IntPtr.Zero)
                 {
-                    CloseHandle(job);
+                    try
+                    {
+                        TerminateAndWaitForJob(job);
+                    }
+                    catch (Exception cleanupFailure)
+                    {
+                        failures.Add(cleanupFailure);
+                    }
+                    finally
+                    {
+                        CloseHandle(job);
+                    }
                 }
-                TerminateProcess(processInfo.hProcess, 1);
-                CloseHandle(processInfo.hThread);
-                CloseHandle(processInfo.hProcess);
+                if (failures.Count > 1)
+                {
+                    throw new AggregateException("Backend startup and process cleanup failed.", failures);
+                }
                 throw;
             }
         }
@@ -1985,16 +2349,52 @@ namespace SoAILauncher
         public void Commit()
         {
             SetKillOnJobClose(jobHandle, false);
+            committed = true;
         }
 
         public void Dispose()
         {
-            process.Dispose();
-            if (jobHandle != IntPtr.Zero)
+            if (jobHandle == IntPtr.Zero)
+            {
+                return;
+            }
+            try
+            {
+                process.Dispose();
+                if (!committed)
+                {
+                    TerminateAndWaitForJob(jobHandle);
+                }
+            }
+            finally
             {
                 CloseHandle(jobHandle);
                 jobHandle = IntPtr.Zero;
             }
+        }
+
+        private static void TerminateAndWaitForJob(IntPtr job)
+        {
+            if (!TerminateJobObject(job, 1))
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to stop the owned backend job; recovery requires repair.");
+            }
+            Stopwatch deadline = Stopwatch.StartNew();
+            do
+            {
+                JOBOBJECT_BASIC_ACCOUNTING_INFORMATION information;
+                if (!QueryInformationJobObject(job, JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION, out information, Marshal.SizeOf(typeof(JOBOBJECT_BASIC_ACCOUNTING_INFORMATION)), IntPtr.Zero))
+                {
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to verify backend job exit; recovery requires repair.");
+                }
+                if (information.ActiveProcesses == 0)
+                {
+                    return;
+                }
+                Thread.Sleep(25);
+            }
+            while (deadline.Elapsed < TimeSpan.FromSeconds(10));
+            throw new TimeoutException("Backend descendants remain active; recovery requires repair.");
         }
 
         private static void SetKillOnJobClose(IntPtr job, bool enabled)
@@ -2066,6 +2466,19 @@ namespace SoAILauncher
         }
 
         [StructLayout(LayoutKind.Sequential)]
+        private struct JOBOBJECT_BASIC_ACCOUNTING_INFORMATION
+        {
+            public long TotalUserTime;
+            public long TotalKernelTime;
+            public long ThisPeriodTotalUserTime;
+            public long ThisPeriodTotalKernelTime;
+            public uint TotalPageFaultCount;
+            public uint TotalProcesses;
+            public uint ActiveProcesses;
+            public uint TotalTerminatedProcesses;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
         private struct JOBOBJECT_EXTENDED_LIMIT_INFORMATION
         {
             public JOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimitInformation;
@@ -2087,6 +2500,15 @@ namespace SoAILauncher
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool AssignProcessToJobObject(IntPtr job, IntPtr process);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool TerminateJobObject(IntPtr job, uint exitCode);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool QueryInformationJobObject(IntPtr job, int informationClass, out JOBOBJECT_BASIC_ACCOUNTING_INFORMATION information, int informationLength, IntPtr returnLength);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool SetInformationJobObject(IntPtr job, int informationClass, ref JOBOBJECT_EXTENDED_LIMIT_INFORMATION information, int informationLength);

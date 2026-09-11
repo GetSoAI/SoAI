@@ -6,6 +6,7 @@ from __future__ import annotations
 import sqlite3
 from typing import TYPE_CHECKING
 
+from core.errors.exceptions import ValidationError
 from core.serialization.json import serialize_json_compact_stable_strict
 from core.timing.epoch import epoch_ms
 from core.types.json import JSONDict, is_json_dict
@@ -14,7 +15,10 @@ from database.core.json_codec import safe_json_deserialize_required_object
 if TYPE_CHECKING:
     from database.core.sqlite_values import SQLiteValue
 
-__all__ = ("sync_normalize_terminal_assistant_events",)
+__all__ = (
+    "build_terminal_assistant_event_payload_json",
+    "sync_normalize_terminal_assistant_events",
+)
 
 _TERMINAL_ACTIVITY_EVENT_TYPES = frozenset(
     (
@@ -104,6 +108,26 @@ def _normalize_event_payload(
     return serialize_json_compact_stable_strict(payload)
 
 
+def build_terminal_assistant_event_payload_json(
+    *,
+    event_type: str,
+    payload_json: str,
+    finish_reason: str | None,
+    terminal_reason: str | None,
+    now_ms: int,
+) -> str:
+    if event_type not in _TERMINAL_ACTIVITY_EVENT_TYPES:
+        return payload_json
+    normalized_payload_json = _normalize_event_payload(
+        payload_json=payload_json,
+        event_type=event_type,
+        terminal_status=_resolve_terminal_status(finish_reason),
+        terminal_reason=terminal_reason,
+        now_ms=now_ms,
+    )
+    return payload_json if normalized_payload_json is None else normalized_payload_json
+
+
 def sync_normalize_terminal_assistant_events(
     conn: sqlite3.Connection,
     *,
@@ -112,7 +136,6 @@ def sync_normalize_terminal_assistant_events(
     finish_reason: str | None,
     terminal_reason: str | None,
 ) -> None:
-    terminal_status = _resolve_terminal_status(finish_reason)
     now_ms = epoch_ms()
     rows = conn.execute(
         (
@@ -126,14 +149,16 @@ def sync_normalize_terminal_assistant_events(
     for sequence, event_type, payload_json in rows:
         if not isinstance(event_type, str) or event_type not in _TERMINAL_ACTIVITY_EVENT_TYPES:
             continue
-        normalized_payload_json = _normalize_event_payload(
+        if not isinstance(payload_json, str):
+            raise ValidationError("Assistant terminal activity payload_json must be text.")
+        normalized_payload_json = build_terminal_assistant_event_payload_json(
             payload_json=payload_json,
             event_type=event_type,
-            terminal_status=terminal_status,
+            finish_reason=finish_reason,
             terminal_reason=terminal_reason,
             now_ms=now_ms,
         )
-        if normalized_payload_json is None:
+        if normalized_payload_json == payload_json:
             continue
         conn.execute(
             (

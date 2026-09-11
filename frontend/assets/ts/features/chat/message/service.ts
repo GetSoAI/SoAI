@@ -54,7 +54,7 @@ class ChatMessageManager {
             renderConversationList: () => this.#dependencies.runtime.renderConversationList(),
             saveAndSync: (conversation) => this.#dependencies.runtime.saveAndSync(conversation),
             deleteMessageByCursor: (conversation, inputArguments) => this.#dependencies.runtime.deleteMessageByCursor(conversation, inputArguments),
-            isConversationExecuting: (conversationId) => this.#dependencies.session.isConversationExecuting(conversationId),
+            runConversationExecutionIfIdle: (conversationId, task) => this.#dependencies.runtime.runConversationExecutionIfIdle(conversationId, task),
             showNotification: (message, type) => this.#dependencies.interaction.showNotification(message, type),
             notifyConversationContentCommitted: () => this.#dependencies.interaction.notifyConversationContentCommitted(),
             getDeleteFailedText: () => i18n.t('chat.message.deleteFailed')
@@ -129,6 +129,7 @@ class ChatMessageManager {
             deleteUndoController: this.#deleteUndoController,
             modalCoordinator: this.#modalCoordinator,
             host: {
+                assistantRenderPort: this,
                 getIcon: (name, options) => this.#dependencies.presentation.getCachedIcon(name, options),
                 resolveMessageReference: (conversation, messageId) => this.#state.resolveMessageReference(conversation, messageId),
                 resolveMessageContentSegments: (message) => this.#state.resolveMessageContentSegments(message),

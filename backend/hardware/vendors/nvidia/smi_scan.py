@@ -85,7 +85,7 @@ def query_nvidia_gpus_via_smi(
 ) -> tuple[list[JSONDict], JSONDict]:
     _ = detailed
     logger = nvml_gate.logger
-    capabilities_cache_service.clear()
+    sequence = capabilities_cache_service.expire_inventory_snapshot()
     result = run_argv_capture(
         [
             "nvidia-smi",
@@ -96,6 +96,7 @@ def query_nvidia_gpus_via_smi(
     )
     if result.return_code != 0:
         logger.trace("nvidia-smi scan unavailable: %s", result.stderr.strip())
+        capabilities_cache_service.observe_inventory(sequence, "failed", [], "")
         return ([], {})
     drivers: JSONDict = {}
     gpus: list[JSONDict] = []
@@ -111,9 +112,13 @@ def query_nvidia_gpus_via_smi(
                 "version": runtime_info.cuda_version,
                 "driver_version": runtime_info.driver_version or runtime_info.cuda_version,
             }
-    for device_index, row in enumerate(_parse_nvidia_smi_csv(result.stdout, logger=logger)):
+    rows = _parse_nvidia_smi_csv(result.stdout, logger=logger)
+    complete = len(rows) == len([line for line in result.stdout.splitlines() if line.strip()])
+    driver_version = ""
+    for device_index, row in enumerate(rows):
         uuid_value = row[0]
         if not uuid_value:
+            complete = False
             logger.trace("Skipping NVIDIA GPU without UUID in nvidia-smi scan.")
             continue
         pci_bdf = normalize_pci_bdf(row[1])
@@ -151,4 +156,10 @@ def query_nvidia_gpus_via_smi(
                 "driver_version": driver_version,
             }
         gpus.append(gpu_entry)
+    capabilities_cache_service.observe_inventory(
+        sequence,
+        "complete" if complete else "partial",
+        gpus,
+        driver_version,
+    )
     return (gpus, drivers)

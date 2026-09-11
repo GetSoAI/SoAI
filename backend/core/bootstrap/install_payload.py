@@ -19,12 +19,15 @@ if TYPE_CHECKING:
     from core.hardware.protocols_storage import StorageManagerProtocol
 
 __all__ = (
+    "INSTALL_MANIFEST_FILENAME",
     "MANAGED_DOCUMENT_ENTRIES",
     "MANAGED_ROOT_ENTRIES",
     "managed_root_entries",
     "validate_existing_install_edition",
     "write_install_manifest",
 )
+
+INSTALL_MANIFEST_FILENAME = ".soai_install_manifest.json"
 
 MANAGED_DOCUMENT_ENTRIES: tuple[str, ...] = (
     "CHANGE-DATES.md",
@@ -57,6 +60,20 @@ MANAGED_ROOT_ENTRIES: tuple[str, ...] = (
     "soai.sh",
     "soai.command",
     "soai.exe",
+    "soai-app.ico",
+    "Microsoft.Web.WebView2.Core.dll",
+    "Microsoft.Web.WebView2.WinForms.dll",
+    "WebView2Loader.dll",
+    "msvcp140.dll",
+    "msvcp140_1.dll",
+    "msvcp140_2.dll",
+    "msvcp140_atomic_wait.dll",
+    "msvcp140_codecvt_ids.dll",
+    "vcruntime140.dll",
+    "vcruntime140_1.dll",
+    "python",
+    "runtime-assets",
+    "installer-support",
     "install-soai-from-release.sh",
     "install-soai-from-release.command",
     "install-soai-from-release.bat",
@@ -73,7 +90,7 @@ def managed_root_entries(edition: str) -> tuple[str, ...]:
 
 
 def validate_existing_install_edition(target: str, edition: str) -> None:
-    manifest_path = os.path.join(target, ".soai_install_manifest.json")
+    manifest_path = os.path.join(target, INSTALL_MANIFEST_FILENAME)
     if not os.path.exists(manifest_path):
         if os.path.isdir(os.path.join(target, "soai_os")) and edition != "soai-os":
             raise ValidationError("Existing SoAI OS target does not match update edition.")
@@ -104,7 +121,7 @@ def write_install_manifest(
     product_version: str,
     core_version: str,
 ) -> None:
-    manifest_path = os.path.join(target, ".soai_install_manifest.json")
+    manifest_path = os.path.join(target, INSTALL_MANIFEST_FILENAME)
     payload: dict[str, JSONValue] = {
         "schema_version": 1,
         "edition": edition,
@@ -132,6 +149,7 @@ def write_install_manifest(
             encoding="utf-8",
             errors="strict",
             fsync=True,
+            fsync_parent_directory=True,
         )
         claim.commit()
     marker_path = os.path.join(target, ".soai_install_in_progress")

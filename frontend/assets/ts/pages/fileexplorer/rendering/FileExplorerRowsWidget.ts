@@ -19,6 +19,7 @@ interface FileExplorerRowsWidgetOptions {
     getIconSync: (iconName: IconName, options?: IconOptions) => TrustedHtml;
     isRecentEntry: (entry: FileBrowserEntry) => boolean;
     revealRows: () => void;
+    armCommittedRows: (rows: readonly HTMLElement[]) => void;
     onCommit: () => void;
     onError: (error: Error) => void;
 }
@@ -68,9 +69,13 @@ class FileExplorerRowsWidget {
                 }
                 if (this.#loadedEndRendered) this.#settleLoadedEndWaiter(true);
                 this.#syncNetworkLoader();
-                if (!this.#isLoading && this.#revealOnCommit) {
-                    this.#revealOnCommit = false;
-                    options.revealRows();
+                if (!this.#isLoading) {
+                    if (this.#revealOnCommit) {
+                        this.#revealOnCommit = false;
+                        options.revealRows();
+                    } else {
+                        options.armCommittedRows(context.enteringElements);
+                    }
                 }
                 options.onCommit();
             },

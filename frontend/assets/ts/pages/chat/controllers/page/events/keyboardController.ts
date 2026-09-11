@@ -183,6 +183,11 @@ const handleRootKeydown = (host: ChatRootEventsHost, event: Event): void => {
         dispatchSendOrStopHotkey(host, event, 'chat:sendOrStopHotkey');
         return;
     }
+    if (chatInput && event.key === 'Enter' && !event.shiftKey && !event.altKey && !event.isComposing && !event.repeat && !host.composer.isCtrlEnterSendRequired()) {
+        event.preventDefault();
+        dispatchSendOrStopHotkey(host, event, 'chat:sendOrStopHotkey');
+        return;
+    }
     if (target.matches('.message-edit-input') && event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
         event.preventDefault();
         if (host.composer.isCurrentConversationStreaming()) {

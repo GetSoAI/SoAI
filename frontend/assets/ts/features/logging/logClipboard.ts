@@ -4,6 +4,7 @@
 import type { LogEntry } from '@core/logvalidation/types.ts';
 import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { formatUtcLogTimestamp } from '@core/localization/public.ts';
 import type { NotificationType } from '@core/ui/notifications/types.ts';
 import { normalizeLogMessage } from '@features/logging/logMessage.ts';
 
@@ -18,7 +19,7 @@ interface LogSelectionCopyBinding {
 }
 
 const formatLogEntryForClipboard = (entry: LogEntry): string => {
-    return [entry.timestamp, entry.component, entry.level, normalizeClipboardLogMessage(entry)].map((field) => normalizeClipboardField(field)).join('\t');
+    return [formatUtcLogTimestamp(entry.timestamp), entry.component, entry.level, normalizeClipboardLogMessage(entry)].map((field) => normalizeClipboardField(field)).join('\t');
 };
 
 const normalizeClipboardLogMessage = (entry: LogEntry): string => {

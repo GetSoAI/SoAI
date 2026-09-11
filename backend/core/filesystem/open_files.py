@@ -20,6 +20,7 @@ __all__ = (
     "create_binary_owner_only",
     "open_binary",
     "open_regular_binary_no_symlink",
+    "open_regular_file_descriptor_no_symlink",
     "open_text",
     "read_regular_file_no_symlink",
 )
@@ -108,19 +109,22 @@ def create_binary_owner_only(path: PathInput) -> io.BufferedWriter:
     return file_handle
 
 
-def open_regular_binary_no_symlink(
+def open_regular_file_descriptor_no_symlink(
     path: PathInput,
     *,
+    writable: bool = False,
     not_found_message: str = "File source not found.",
     symlink_message: str = "File source must be a regular file, not a symlink.",
     open_message: str = "File source could not be opened.",
     inspect_message: str = "File source could not be inspected.",
     regular_file_message: str = "File source must be a regular file.",
-) -> io.BufferedReader:
+) -> int:
     resolved = coerce_path(path)
     if os.path.islink(resolved):
         raise ValidationError(symlink_message)
     open_flags = secure_read_only_open_flags(directory=False) if os.name == "posix" else os.O_RDONLY
+    if writable:
+        open_flags |= os.O_RDWR
     try:
         file_descriptor = os.open(resolved, open_flags)
     except FileNotFoundError as exception:
@@ -137,6 +141,26 @@ def open_regular_binary_no_symlink(
     if not stat.S_ISREG(file_status.st_mode):
         os.close(file_descriptor)
         raise ValidationError(regular_file_message)
+    return file_descriptor
+
+
+def open_regular_binary_no_symlink(
+    path: PathInput,
+    *,
+    not_found_message: str = "File source not found.",
+    symlink_message: str = "File source must be a regular file, not a symlink.",
+    open_message: str = "File source could not be opened.",
+    inspect_message: str = "File source could not be inspected.",
+    regular_file_message: str = "File source must be a regular file.",
+) -> io.BufferedReader:
+    file_descriptor = open_regular_file_descriptor_no_symlink(
+        path,
+        not_found_message=not_found_message,
+        symlink_message=symlink_message,
+        open_message=open_message,
+        inspect_message=inspect_message,
+        regular_file_message=regular_file_message,
+    )
     try:
         file_handle = os.fdopen(file_descriptor, "rb")
     except OSError as exception:

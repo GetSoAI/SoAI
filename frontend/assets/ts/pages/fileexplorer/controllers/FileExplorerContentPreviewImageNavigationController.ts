@@ -34,6 +34,7 @@ class FileExplorerContentPreviewImageNavigationController {
             throw new Error('File Explorer image navigation could not resolve adjacent paths');
         }
         return Object.freeze({
+            position: { current: currentIndex + 1, total: paths.length },
             previousLabel: i18n.t('contentPreview.actions.previousImage'),
             nextLabel: i18n.t('contentPreview.actions.nextImage'),
             previousLoadingPath: previousPath,

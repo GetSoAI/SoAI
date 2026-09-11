@@ -4,7 +4,8 @@
 import { toTrimmedString } from '@core/normalize.ts';
 
 const isAbsoluteFilesystemPath = (value: string): boolean => {
-    return /^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('/') || value.startsWith('\\\\');
+    const normalizedValue = value.trim();
+    return /^[a-zA-Z]:[\\/]/.test(normalizedValue) || normalizedValue.startsWith('/') || normalizedValue.startsWith('\\\\') || normalizedValue.startsWith('//');
 };
 
 const getFilesystemParentPath = (value: string): string => {

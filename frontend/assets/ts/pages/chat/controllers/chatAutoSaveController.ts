@@ -3,6 +3,7 @@
 
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import type { ComposerDraftFlushOptions } from '@features/chat/public.ts';
 import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
 import { CHAT_AUTOSAVE_INTERVAL_MS } from '@pages/chat/contracts/constants.ts';
 
@@ -11,7 +12,7 @@ interface StorageManager {
 }
 
 interface ComposerDraftManager {
-    flushNow(reason: string, options?: { keepalive?: boolean }): Promise<void>;
+    flushNow(reason: string, options?: ComposerDraftFlushOptions): Promise<void>;
 }
 
 interface TimerHost {
@@ -30,10 +31,10 @@ interface ChatAutoSavePersistencePort extends PageResourcesOwnerHost {
 
 const setupAutoSave = (host: { persistence: ChatAutoSavePersistencePort }): { intervalId: number | null; dispose: () => void } => {
     const save = (): void => host.persistence.getStorageManager().saveState();
-    const flushDraft = (reason: string, keepalive: boolean): void => {
+    const flushDraft = (reason: string, options: ComposerDraftFlushOptions): void => {
         void host.persistence
             .getComposerDraftManager()
-            ?.flushNow(reason, keepalive ? { keepalive: true } : {})
+            ?.flushNow(reason, options)
             .catch((error) => {
                 errorHandler.warn('ChatPage', 'Failed to flush composer draft during autosave lifecycle', ensureError(error));
             });
@@ -43,16 +44,16 @@ const setupAutoSave = (host: { persistence: ChatAutoSavePersistencePort }): { in
     if (windowRef === null) throw new Error('Chat autosave requires a Window');
     const beforeUnloadCleanup = host.persistence.pageResources.on(windowRef, 'beforeunload', () => {
         save();
-        flushDraft('beforeunload', true);
+        flushDraft('beforeunload', { keepalive: true, immediate: true });
     });
     const pageHideCleanup = host.persistence.pageResources.on(windowRef, 'pagehide', () => {
         save();
-        flushDraft('pagehide', true);
+        flushDraft('pagehide', { keepalive: true, immediate: true });
     });
     const visibilityCleanup = host.persistence.pageResources.on(documentRef, 'visibilitychange', () => {
         if (documentRef.hidden) {
             save();
-            flushDraft('visibilitychange', true);
+            flushDraft('visibilitychange', { keepalive: true, immediate: true });
         }
     });
     const intervalId = host.persistence.timers.setTimer(save, CHAT_AUTOSAVE_INTERVAL_MS, { repeat: true });

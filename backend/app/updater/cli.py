@@ -78,6 +78,7 @@ def main(edition_composition: EditionComposition) -> None:
     general_group.add_argument("--debug", action="store_true", help="Enable debug level logging.")
     internal_group = parser.add_argument_group("Internal Options")
     internal_group.add_argument("--wait-for-pid", type=int, help=argparse.SUPPRESS)
+    internal_group.add_argument("--task-id", help=argparse.SUPPRESS)
     args = parser.parse_args()
     primary_flags = (
         args.update_software,

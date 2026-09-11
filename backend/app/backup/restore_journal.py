@@ -16,6 +16,10 @@ from app.backup.restore_journal_codec import (
     serialize_restore_journal_state,
     validate_restore_absolute_path,
 )
+from app.installation_transaction_admission import (
+    RESTORE_JOURNAL_RELATIVE_PATH,
+    guard_installation_transaction_admission,
+)
 from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exceptions import ConflictError, StateError
 from core.filesystem.atomic_write_primitives import fsync_directory
@@ -37,10 +41,10 @@ __all__ = (
     "get_restore_journal_path",
     "load_restore_journal",
     "remove_restore_journal",
+    "require_no_pending_restore",
     "transition_restore_journal",
 )
 
-_JOURNAL_RELATIVE_PATH = ("state", "backup_restore_journal.json")
 _MAX_JOURNAL_BYTES = 1024 * 1024
 
 
@@ -58,9 +62,16 @@ def _transition_is_allowed(
 
 
 def get_restore_journal_path(project_root: str) -> str:
-    journal_path = join_data_abs(project_root, *_JOURNAL_RELATIVE_PATH)
+    journal_path = join_data_abs(project_root, *RESTORE_JOURNAL_RELATIVE_PATH)
     ensure_restore_destination_is_safe(journal_path)
     return journal_path
+
+
+def require_no_pending_restore(project_root: str) -> None:
+    if os.path.lexists(get_restore_journal_path(project_root)):
+        raise ConflictError(
+            "A backup restore still requires recovery. Start the installed application to complete restore recovery before updating."
+        )
 
 
 def _sync_load_restore_journal(project_root: str) -> RestoreJournalState | None:
@@ -99,21 +110,20 @@ async def create_restore_journal(
     )
 
     def _sync_create() -> None:
-        journal_path = get_restore_journal_path(project_root)
-        if os.path.lexists(journal_path):
-            raise ConflictError("An unfinished backup restore transaction already exists.")
-        atomic_create_text_content_exclusive(
-            journal_path,
-            serialize_restore_journal_state(state),
-            errors="strict",
-            parent_mode=0o700,
-            fsync=True,
-            file_mode=0o600,
-            fsync_parent_directory=True,
-        )
-        journal_parent = os.path.dirname(journal_path)
-        fsync_directory(journal_parent, strict=True)
-        fsync_directory(os.path.dirname(journal_parent), strict=True)
+        with guard_installation_transaction_admission(project_root):
+            journal_path = get_restore_journal_path(project_root)
+            atomic_create_text_content_exclusive(
+                journal_path,
+                serialize_restore_journal_state(state),
+                errors="strict",
+                parent_mode=0o700,
+                fsync=True,
+                file_mode=0o600,
+                fsync_parent_directory=True,
+            )
+            journal_parent = os.path.dirname(journal_path)
+            fsync_directory(journal_parent, strict=True)
+            fsync_directory(os.path.dirname(journal_parent), strict=True)
 
     await run_joined_thread_call(_sync_create, task_name="backup-restore-journal-create")
     return state

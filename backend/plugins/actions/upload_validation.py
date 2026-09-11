@@ -5,10 +5,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from dataclasses import dataclass
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import SecurityError, StateError, ValidationError
+from core.errors.public_projection import project_public_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.files.operations import async_remove_if_exists
 from core.filesystem.async_queries import async_path_exists
@@ -23,9 +26,12 @@ from core.state.state_names import (
 from plugins.context_ids import resolve_task_id_from_context
 from plugins.fs_permissions import ensure_correct_permissions
 from plugins.internal_protocols import SendCompletionWithTaskProtocol
+from plugins.loader.incompatibility import handle_plugin_compatibility_failure
+from plugins.loader.preflight import perform_plugin_preflight_checks
 from plugins.manager.compatibility import compatibility_from_record
 from plugins.manager.initial_state import get_initial_plugin_manager_state
 from plugins.manager.instance_loading import load_plugin_instance
+from plugins.manifest.reader import read_plugin_manifest_from_disk
 from plugins.path_safety import normalize_plugin_filename
 
 if TYPE_CHECKING:
@@ -33,6 +39,7 @@ if TYPE_CHECKING:
     from core.events.types_plugins import UploadPluginCommand
     from core.logging.protocols import LoggerProtocol
     from core.tasks.protocols import TaskRegistryProtocol
+    from plugins.package_audit import PluginPackageAudit
     from plugins.protocols_internal.runtime.internal_protocols import (
         PluginManagerRuntimeProtocol,
     )
@@ -42,14 +49,28 @@ __all__ = (
     "normalize_upload_target",
     "reject_upload_preflight_if_needed",
     "resolve_upload_failure_code",
+    "resolve_upload_failure_message",
     "resolve_upload_task_id",
     "safe_delete_upload_environment",
     "safe_remove_upload_file",
+    "UploadedPluginDisposition",
+    "UploadedPluginOutcome",
     "validate_loaded_plugin_compatibility",
     "validate_upload_destination_available",
 )
 
 OPERATION = "plugin_flow.process_upload_plugin_async"
+
+
+class UploadedPluginDisposition(StrEnum):
+    LOADED = "loaded"
+    RETAINED_INCOMPATIBLE = "retained_incompatible"
+
+
+@dataclass(frozen=True, slots=True)
+class UploadedPluginOutcome:
+    disposition: UploadedPluginDisposition
+    requires_backend_installation: bool
 
 
 def resolve_upload_task_id(command: UploadPluginCommand) -> str | None:
@@ -189,12 +210,62 @@ def resolve_upload_failure_code(exception: BaseException) -> int:
     return 500
 
 
+def resolve_upload_failure_message(exception: BaseException) -> str:
+    if isinstance(exception, ValidationError):
+        return str(exception)
+    return project_public_exception(exception).message
+
+
 async def load_and_validate_uploaded_plugin(
     manager: PluginManagerRuntimeProtocol,
     *,
     plugin_name: str,
-    final_path: str,
-) -> bool:
-    await ensure_correct_permissions(final_path)
-    await load_plugin_instance(manager, plugin_name, force_reload=True, already_serialized=True)
-    return await validate_loaded_plugin_compatibility(manager, plugin_name)
+    package_audit: PluginPackageAudit,
+) -> UploadedPluginOutcome:
+    await ensure_correct_permissions(package_audit.archive_path)
+    manifest = await asyncio.to_thread(
+        read_plugin_manifest_from_disk,
+        manager,
+        plugin_name,
+        package_audit=package_audit,
+    )
+    try:
+        preflight_result = await perform_plugin_preflight_checks(
+            manager,
+            plugin_name,
+            package_audit=package_audit,
+            manifest=manifest,
+        )
+    except PluginIncompatibleError as exception:
+        compatibility = exception.compatibility
+        incompatible_plugin_class_name = exception.plugin_class_name
+    else:
+        compatibility = preflight_result.compatibility
+        if not compatibility.reason or compatibility.is_overridden:
+            await load_plugin_instance(
+                manager,
+                plugin_name,
+                force_reload=True,
+                already_serialized=True,
+                preflight_result=preflight_result,
+            )
+            return UploadedPluginOutcome(
+                disposition=UploadedPluginDisposition.LOADED,
+                requires_backend_installation=await validate_loaded_plugin_compatibility(
+                    manager,
+                    plugin_name,
+                ),
+            )
+        incompatible_plugin_class_name = None
+    await handle_plugin_compatibility_failure(
+        manager,
+        plugin_name,
+        compatibility,
+        plugin_class_name=incompatible_plugin_class_name,
+        plugin_data_override=manifest,
+        package_audit=package_audit,
+    )
+    return UploadedPluginOutcome(
+        disposition=UploadedPluginDisposition.RETAINED_INCOMPATIBLE,
+        requires_backend_installation=False,
+    )

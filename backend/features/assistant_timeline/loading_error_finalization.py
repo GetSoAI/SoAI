@@ -5,6 +5,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.conversations.assistant_terminal_finalization import (
+    TerminalAssistantMessageFinalization,
+)
 from core.conversations.protocols_database_conversations import DatabaseMessagesProtocol
 from core.timing.epoch import epoch_ms
 from core.timing.monotonic import monotonic_ms
@@ -18,7 +21,7 @@ from features.assistant_timeline.loading_terminal_finalization import (
 )
 from features.assistant_timeline.models import AssistantTimelineRuntime
 from features.assistant_timeline.terminal_event_publication import (
-    TerminalAssistantMessageFinalization,
+    persist_and_publish_terminal_chat_stream_event,
 )
 
 if TYPE_CHECKING:
@@ -68,7 +71,9 @@ async def finalize_and_publish_loading_error(
     thinking_tail_duration_ms: int,
     message: str,
     code: str,
+    publish_loading_activity: bool = True,
 ) -> None:
+    loading_error_transition_already_started = runtime.loading_activity.status == "error"
     runtime.loading_activity.status = "error"
     runtime.loading_activity.duration_ms = duration_ms
     normalized_message = message.strip() if message.strip() else "Chat stream failed."
@@ -81,28 +86,40 @@ async def finalize_and_publish_loading_error(
         error_type=normalized_code,
     )
     runtime.terminal_finalization_started = True
+    terminal_payload = _build_error_event_payload(
+        runtime=runtime,
+        message=normalized_message,
+        code=normalized_code,
+    )
+    finalization = TerminalAssistantMessageFinalization(
+        finish_reason="error",
+        prompt_tokens=None,
+        completion_tokens=None,
+        total_tokens=None,
+        usage_source=None,
+        generation_latency_ms=duration_ms,
+        thinking_tail_duration_ms=thinking_tail_duration_ms,
+        terminal_reason=normalized_message,
+        terminal_code=normalized_code,
+    )
+    if not publish_loading_activity or loading_error_transition_already_started:
+        await persist_and_publish_terminal_chat_stream_event(
+            event_bus=event_bus,
+            runtime=runtime,
+            database_messages=database_messages,
+            event_type="error",
+            payload=terminal_payload,
+            finalization=finalization,
+        )
+        return
     await publish_loading_terminal_events(
         runtime=runtime,
         event_bus=event_bus,
         database_messages=database_messages,
         loading_activity=loading_error,
         terminal_event_type="error",
-        terminal_payload=_build_error_event_payload(
-            runtime=runtime,
-            message=normalized_message,
-            code=normalized_code,
-        ),
-        finalization=TerminalAssistantMessageFinalization(
-            finish_reason="error",
-            prompt_tokens=None,
-            completion_tokens=None,
-            total_tokens=None,
-            usage_source=None,
-            generation_latency_ms=duration_ms,
-            thinking_tail_duration_ms=thinking_tail_duration_ms,
-            terminal_reason=normalized_message,
-            terminal_code=normalized_code,
-        ),
+        terminal_payload=terminal_payload,
+        finalization=finalization,
     )
 
 

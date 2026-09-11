@@ -32,8 +32,12 @@ import { normalizeGpuControlTelemetryMap, updateGpuControlTelemetryLabels, type 
 import { getSlotEntryByIndex, syncAllGpuUiStates } from '@pages/hardware/controllers/gpucontrol/gpuControlSync.ts';
 import type { ConstructorOptions, GpuControlManagerDependencies, GpuSavedSettingsState, GpuSlotEntry, GpuSnapshot, GpuUiState, SecurityService } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 import { GpuSoAIBenchController } from '@pages/hardware/controllers/gpucontrol/soaibench/GpuSoAIBenchController.ts';
+import { renderGpuResourceStatus } from '@pages/hardware/rendering/gpuResourceStatusWidget.ts';
+import type { HardwareGpuResourceState } from '@pages/hardware/controllers/realtime/gpuResourceState.ts';
+import { HARDWARE_GPU_CAPABILITIES, HARDWARE_GPU_SLOTS } from '@core/realtime/streammanager/resources/ids.ts';
 
 const str = String;
+
 class GpuControlManager {
     readonly #save: SaveController;
     readonly #dependencies: GpuControlManagerDependencies;
@@ -44,6 +48,7 @@ class GpuControlManager {
     readonly #soaibench: GpuSoAIBenchController;
     #uiStateStore = new GpuControlUiStateStore();
     #domRequired = true;
+    #resourceState: HardwareGpuResourceState | null = null;
     #gpuCapabilitiesRenderSignature = '';
     #gpuSlotsRenderSignature = '';
     constructor(dependencies: GpuControlManagerDependencies, { security }: ConstructorOptions = {}) {
@@ -94,6 +99,7 @@ class GpuControlManager {
         throw new Error('GPU apply loop exceeded maximum iterations');
     }
     dispose(): void {
+        this.#resourceState?.invalidate();
         this.#soaibench.dispose();
         this.#save.dispose();
     }
@@ -105,12 +111,20 @@ class GpuControlManager {
         updateGpuControlTelemetryLabels(this.#dependencies.dom.getDocument(), this.gpuTelemetryByDeviceId);
     }
     setCapabilities(capabilities: GpuCapabilitiesResource): void {
-        const nextCapabilities = buildGpuCapabilitiesLookup(capabilities);
+        const nextCapabilities = capabilities.success ? buildGpuCapabilitiesLookup(capabilities) : null;
         const nextSignature = buildGpuCapabilitiesRenderSignature(nextCapabilities);
         const shouldRender = nextSignature !== this.#gpuCapabilitiesRenderSignature;
         this.gpuCapabilities = nextCapabilities;
         this.updateGpuStateFromSources({ render: shouldRender });
         this.#gpuCapabilitiesRenderSignature = nextSignature;
+    }
+    setResourceFreshness(state: HardwareGpuResourceState): void {
+        this.#resourceState = state;
+        renderGpuResourceStatus(this.#dependencies.dom.getDocument(), state, this.#domRequired, this.#dependencies.getIconSync);
+    }
+    async retryResources(): Promise<void> {
+        const streams = await this.#dependencies.resolveStreamManager();
+        await Promise.all([streams.refresh(HARDWARE_GPU_CAPABILITIES), streams.refresh(HARDWARE_GPU_SLOTS)]);
     }
     setSavedSettings(savedSettings: GpuSlotsBuilderResult | null): void {
         const nextSavedSettings = parseSavedSettingsState(savedSettings);
@@ -122,6 +136,8 @@ class GpuControlManager {
     }
     setDomRequired(required: boolean): void {
         this.#domRequired = required;
+        if (!required) this.#resourceState?.invalidate();
+        if (this.#resourceState) renderGpuResourceStatus(this.#dependencies.dom.getDocument(), this.#resourceState, required, this.#dependencies.getIconSync);
         if (!required && this.hasActiveGpuSaveMode()) {
             this.cancelAllGpuSaveModes();
             this.updateHeaderSaveAction();

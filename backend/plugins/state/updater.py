@@ -27,11 +27,13 @@ __all__ = ("build_updater_factory",)
 
 def build_updater_factory(
     *,
+    edition: str,
     module_dependencies_type: type[UpdaterModuleDependenciesProtocol],
     fetch_latest_release_async: FetchLatestSoAIReleaseAsyncProtocol,
 ) -> UpdaterFactory:
     return functools.partial(
         Updater,
+        edition=edition,
         module_dependencies_type=module_dependencies_type,
         fetch_latest_release_async=fetch_latest_release_async,
     )

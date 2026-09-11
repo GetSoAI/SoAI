@@ -31,7 +31,11 @@ const resolveFolderPickerSelection = (browser: DirectoryBrowserController): Fold
 const initializeFolderPickerBrowser = async (options: InitializeFolderPickerBrowserOptions): Promise<void> => {
     const initialVirtualPath = options.initialVirtualPath ? toVirtualPath(options.initialVirtualPath) : '/';
     options.resetManualInputTracking();
-    await options.browser.initialize(initialVirtualPath);
+    if (options.browser.getSourceType() === 'host') {
+        await options.browser.initialize(options.initialAbsolutePathToBrowse ? { initialAbsolutePath: options.initialAbsolutePathToBrowse } : {});
+        return;
+    }
+    await options.browser.initialize({ initialVirtualPath });
     if (options.browser.getState().errorMessage && initialVirtualPath !== '/') {
         options.resetManualInputTracking();
         await options.browser.navigate('/');

@@ -120,6 +120,7 @@ async def emit_thinking_phase(
         phase_identity=emission.phase_identity,
         phase_text=emission.phase_text,
         status=emission.status,
+        duration_ms=emission.duration_ms,
     )
     if phase_emitted:
         now_ms = emission.emitted_at_ms if emission.emitted_at_ms is not None else monotonic_ms()

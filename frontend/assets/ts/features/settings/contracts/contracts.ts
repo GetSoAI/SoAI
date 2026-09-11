@@ -17,7 +17,7 @@ import type { PasswordVaultResetResponse, WebuiUser } from '@core/api/contracts/
 import type { IdentityMutationSuccess } from '@core/api/contracts/webuiIdentityMutationContracts.ts';
 import type { SelfMutationRecoveryRequest } from '@core/auth/rotationRecovery.ts';
 import type { McpConnection, McpInteractionEntry, McpInteractionResolvePayload, McpOauthStartResponse, McpOauthStatusResponse, McpPromptEntry, McpResourceEntry, McpRootEntry, McpRootsResponse, McpSearchKeyEntry, McpSearchKeysResponse, McpServer, McpServerConnectionResponse, McpServerCreatePayload, McpServerCreateResponse, McpServerUpdatePayload, McpStatus, McpToolEntry } from '@core/mcp/contracts.ts';
-import type { ReadOnlyFileBrowserApi } from '@core/fileexplorerbrowser/types.ts';
+import type { HostFilesystemBrowserApi, ReadOnlyFileBrowserApi } from '@core/fileexplorerbrowser/types.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { ConversationDeleteAllResponse, WebuiConversationResponse } from '@core/api/contracts/webuiConversationContracts.ts';
 import type { ConversationSearchConfigResponse } from '@core/api/contracts/webuiChatOperationContracts.ts';
@@ -143,7 +143,7 @@ interface SettingsPageApi {
             list: (options?: { signal?: AbortSignal }) => Promise<WebuiUser[]>;
             create: (username: string, password: string, isAdmin: boolean) => Promise<WebuiUser>;
             update: (userId: number, isAdmin: boolean) => Promise<WebuiUser>;
-            workspaceBrowser: ReadOnlyFileBrowserApi;
+            workspaceBrowser: HostFilesystemBrowserApi;
             updateWorkspacePath: (userId: number, workspacePath: string | null) => Promise<WebuiUser>;
             delete: (userId: number) => Promise<void>;
         };

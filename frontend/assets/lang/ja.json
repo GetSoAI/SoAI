@@ -82,6 +82,9 @@
                 "deleteMessage": "「{title}」とそのスケジュールされた実行を削除します。既存のチャットトランスクリプトは引き続き利用できます。",
                 "deleteTitle": "オートメーションを削除しますか？"
             },
+            "errors": {
+                "oneShotStartNotFuture": "1回のみのオートメーションは未来の時刻に開始する必要があります。より後の開始時刻を選択してください。"
+            },
             "preferencesCorrupt": {
                 "message": "オートメーションページの設定が無効です。続行するには設定をリセットしてください。",
                 "reset": "オートメーション設定をリセット",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "この会話でツールを実行する前に承認を必須にします。",
                 "newConversationInheritLastSettings": "新しいチャットに前回の設定を使用",
                 "newConversationInheritLastSettingsHint": "新しいチャットは、最後に使用したモデル、ツール、ナレッジ設定で開始します。",
+                "ctrlEnterSend": "Ctrl + Enter で送信",
+                "ctrlEnterSendHint": "有効にすると、Ctrl + Enter で送信し、Enter で改行します。無効にすると、Enter で送信し、Shift + Enter で改行します。",
                 "knowledge": {
                     "downloadModel": "モデルをダウンロード",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "応答を停止中"
                         },
+                        "soai_documentation": {
+                            "1": "SoAI ドキュメントを検索中",
+                            "detail": {
+                                "1": "SoAI ドキュメントを検索中: {detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "テキストを置換中",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "現在のフォルダー",
+                "filesystemRoot": "ファイルシステムのルート",
                 "empty": "フォルダーが見つかりません。",
                 "forbidden": "このフォルダーへのアクセス権がありません。",
                 "loadFailed": "フォルダーの読み込みに失敗しました。",
+                "validationFailed": "選択したフォルダーを検証できませんでした。",
                 "loading": "フォルダーを読み込み中...",
                 "manualAbsolutePathRequired": "絶対パスを入力してください（例: /path または C:\\path）。",
                 "manualPath": "選択したフォルダー",
@@ -2474,7 +2487,8 @@
                 "loading": "読み込み中",
                 "resolution": "解像度",
                 "size": "サイズ",
-                "zoom": "ズーム"
+                "zoom": "ズーム",
+                "position": "画像 {current} / {total}"
             },
             "sourceInfo": {
                 "conversationPath": "会話パス",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "ウィジェット"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "一部のGPU制御機能を検出できませんでした。利用可能な機能は引き続き使用できます。",
+                "capabilitiesStale": "GPU制御に再接続しています。最終更新：{age}。",
+                "capabilitiesRetained": "GPU制御を利用できません。{age}のデータを表示しています。",
+                "slotsStale": "保存済みのGPU設定に再接続しています。最終更新：{age}。",
+                "slotsRetained": "保存済みのGPU設定を利用できません。{age}のデータを表示しています。",
+                "capabilitiesUnavailable": "GPUの制御を利用できません。",
+                "slotsUnavailable": "保存済みのGPU設定を利用できません。"
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "開く"
                 },
                 "aria": {
-                    "panel": "通知センター",
-                    "unreadCount": "未読通知"
+                    "panel": "通知センター"
                 },
                 "messages": {
                     "noNotifications": "通知はありません",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "続行",
                 "externalLinkMessage": "SoAI ウェブサイトを新しいブラウザタブで開きますか？"
             },
-            "description": "SoAI の使い方を確認する",
+            "description": "SoAI の使い方を確認する。",
             "documentationUrl": "ドキュメント",
             "intro": {
                 "aboutButton": "SoAI について",
@@ -4236,8 +4258,7 @@
             "description": "プラグインやプロバイダーをまたいで AI モデルを管理します。",
             "searchPlaceholder": "モデルを検索...",
             "empty": {
-                "downloadFirst": "最初のモデルをダウンロード",
-                "getStarted": "最初のモデルをダウンロードして始めましょう。",
+                "getStarted": "最初のモデルを追加して始めましょう。",
                 "noMatch": "フィルターに一致するモデルはありません",
                 "noModels": "モデルが見つかりません",
                 "tryAdjusting": "検索条件またはフィルター条件を調整してください。"
@@ -4702,7 +4723,7 @@
                 "title": "ダッシュボード"
             },
             "fileExplorer": {
-                "description": "SoAI OS のファイルを参照・管理します。",
+                "description": "SoAI のファイルを参照・管理します。",
                 "title": "ファイル"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "なし",
                 "reasons": {
                     "broken": "プラグインファイルが破損しているか、構文エラーがあります。削除して再ダウンロードしてください。",
+                    "dependencyMissing": "必要なプラグイン依存関係を利用できません: {dependencies}。",
                     "gpu": "GPU（{required}）が必要です。検出されたベンダー: {detected}。CPU モードを使用するにはオーバーライドしてください（動作しない場合があります）。",
                     "gpuShort": "GPU チェックに失敗しました。必要: {required}。検出: {detected}。続行するには切り替えてください。",
                     "hardwareShort": "ハードウェア要件を満たしていません。必要: {required}。現在: {current}。続行するには切り替えてください。",
                     "os": "{required} が必要です。検出: {detected}。自己責任でオーバーライドしてください。",
+                    "osCard": "{required} が必要です。検出: {detected}。",
                     "osShort": "OS が一致しません。必要: {required}。検出: {detected}。それでも有効にするには切り替えてください。",
                     "version": "SoAI {required} が必要です。現在: {current}。このプラグインを使用するには SoAI を更新してください。"
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "すべてのプラグインを停止するコマンドを送信しました。",
                 "stopSuccess": "プラグイン {plugin} を停止しました",
                 "updateCheckFailed": "更新の確認に失敗しました",
-                "uploadAccepted": "プラグインのアップロードを受け付けました",
                 "uploadFailed": "プラグインのアップロードに失敗しました"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "プラグイン",
                 "prompts": "プロンプト"
             },
-            "description": "モデル、プラグイン、ハードウェアなどを検索",
+            "description": "モデル、プラグイン、ハードウェアなどを検索。",
             "deviceDescriptions": {
                 "cpuCores": "{count} コア",
                 "cpuThreads": "{count} スレッド",
@@ -7669,7 +7691,8 @@
                 "upToDate": "最新です"
             },
             "confirmations": {
-                "installSystem": "システム更新 {version} をインストールしますか？SoAI アプリケーションが再起動します。"
+                "installSystem": "システム更新 {version} をインストールしますか？SoAI アプリケーションが再起動します。",
+                "installSystemWithInstaller": "システム更新 {version} をインストールしますか？Windows インストーラーを実行し、SoAI を再起動します。"
             },
             "description": "SoAI アプリケーションの更新を確認してインストールします。",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "パスワードを確認",
-                    "placeholder": "パスワードをもう一度入力してください。"
+                    "placeholder": "パスワードを再入力"
                 },
                 "creating": "作成中...",
                 "description": "管理者アカウントを作成します。この SoAI インスタンスへの完全なアクセス権を持ちます。",

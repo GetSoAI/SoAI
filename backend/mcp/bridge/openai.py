@@ -121,6 +121,7 @@ async def execute_openai_tool_call_bridge(
             request_context,
             user_id=user_id,
             conv_id=bridge_request.conv_id,
+            mcp_server=mcp_server,
             rag=rag,
             mcp_search=mcp_search,
             utility_tools=utility_tools,

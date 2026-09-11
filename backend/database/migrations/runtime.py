@@ -5,9 +5,10 @@ from __future__ import annotations
 
 import logging
 import os
+import sqlite3
 
 from core.bootstrap.lock import acquire_interprocess_lock
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import StateError, ValidationError
 from core.sqlite.connections import connect_sqlite
 from core.sqlite.file_permissions import secure_sqlite_file_permissions
 from core.sqlite.policy import (
@@ -17,9 +18,34 @@ from core.sqlite.policy import (
 )
 from core.tasks.type_catalog import TaskTypeCatalog
 from database.migrations.runner import upgrade_database_schema_to_current
-from database.schema_version import CURRENT_DATABASE_SCHEMA_VERSION
+from database.schema_version import (
+    CURRENT_DATABASE_SCHEMA_VERSION,
+    ensure_supported_database_schema_version,
+    read_database_schema_version,
+)
 
-__all__ = ("upgrade_database_path",)
+__all__ = ("upgrade_database_path", "validate_database_path_for_upgrade")
+
+
+def validate_database_path_for_upgrade(db_path: str | None) -> None:
+    if db_path is None or not db_path.strip():
+        raise ValidationError("db_path must be a non-empty string.")
+    if not os.path.lexists(db_path):
+        return
+    database_target, use_uri = resolve_sqlite_database_target(
+        os.path.abspath(db_path), is_shared_memory_mode=False, read_only=True
+    )
+    try:
+        connection = connect_sqlite(database_target, timeout=60.0, uri=use_uri)
+        try:
+            connection.execute("PRAGMA query_only = ON")
+            ensure_supported_database_schema_version(read_database_schema_version(connection))
+        finally:
+            connection.close()
+    except sqlite3.Error as exception:
+        raise StateError(
+            "Database upgrade preflight could not inspect persisted state."
+        ) from exception
 
 
 def upgrade_database_path(
@@ -34,6 +60,7 @@ def upgrade_database_path(
     if not lock_path.strip():
         raise ValidationError("lock_path must be a non-empty string.")
     with acquire_interprocess_lock(lock_path, timeout_sec=60.0):
+        validate_database_path_for_upgrade(db_path)
         db_dir = os.path.dirname(db_path)
         if db_dir:
             os.makedirs(db_dir, exist_ok=True)

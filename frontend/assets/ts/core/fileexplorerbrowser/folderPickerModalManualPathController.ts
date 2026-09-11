@@ -4,8 +4,9 @@
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { readTrimmedInputValue } from '@core/dom/formValues.ts';
 import { formatDisplayPath, type FolderPickerLabels } from '@core/fileexplorerbrowser/folderPickerView.ts';
-import { isAbsoluteOsPath, resolveVirtualPathFromAbsolute } from '@core/fileexplorerbrowser/paths.ts';
+import { resolveVirtualPathFromAbsolute } from '@core/fileexplorerbrowser/paths.ts';
 import { DirectoryBrowserController } from '@core/fileexplorerbrowser/service.ts';
+import { isAbsoluteFilesystemPath } from '@core/filePathResolution.ts';
 
 type FolderPickerManualPathController = {
     handleBrowserStateChange: (displayPath: string) => void;
@@ -15,14 +16,12 @@ type FolderPickerManualPathController = {
     resetTracking: () => void;
     setStatusOverrideMessage: (message: string | null) => void;
     getStatusOverrideMessage: () => string | null;
-    getManualAbsoluteSelection: () => string | null;
 };
 
 type FolderPickerManualPathControllerDependencies = {
     browser: DirectoryBrowserController;
     manualInput: HTMLInputElement;
     allowManualPathEntry: boolean;
-    allowManualAbsoluteSelectionOutsideRoot: boolean;
     labels: FolderPickerLabels;
     syncStatus: () => void;
     updateConfirmButton: () => void;
@@ -31,15 +30,13 @@ type FolderPickerManualPathControllerDependencies = {
 };
 
 const createFolderPickerModalManualPathController = (dependencies: FolderPickerManualPathControllerDependencies): FolderPickerManualPathController => {
-    const { browser, manualInput, allowManualPathEntry, allowManualAbsoluteSelectionOutsideRoot, labels, syncStatus, updateConfirmButton, getLastRenderedDisplayPath, setLastRenderedDisplayPath } = dependencies;
+    const { browser, manualInput, allowManualPathEntry, labels, syncStatus, updateConfirmButton, getLastRenderedDisplayPath, setLastRenderedDisplayPath } = dependencies;
     let manualInputDirty = false;
     let statusOverrideMessage: string | null = null;
-    let manualAbsoluteSelection: string | null = null;
 
     const resetTracking = (): void => {
         manualInputDirty = false;
         statusOverrideMessage = null;
-        manualAbsoluteSelection = null;
     };
 
     const getStatusOverrideMessage = (): string | null => statusOverrideMessage;
@@ -50,20 +47,16 @@ const createFolderPickerModalManualPathController = (dependencies: FolderPickerM
         updateConfirmButton();
     };
 
-    const getManualAbsoluteSelection = (): string | null => manualAbsoluteSelection;
-
     const handleBrowserStateChange = (displayPath: string): void => {
         setLastRenderedDisplayPath(displayPath);
         if (allowManualPathEntry !== true || manualInputDirty) {
             return;
         }
-        manualAbsoluteSelection = null;
         manualInput.value = displayPath;
     };
 
     const handleManualInputEvent = (): void => {
         manualInputDirty = readTrimmedInputValue(manualInput) !== getLastRenderedDisplayPath();
-        manualAbsoluteSelection = null;
         if (allowManualPathEntry !== true || !statusOverrideMessage) {
             return;
         }
@@ -76,46 +69,41 @@ const createFolderPickerModalManualPathController = (dependencies: FolderPickerM
         if (allowManualPathEntry !== true) {
             return true;
         }
-        manualAbsoluteSelection = null;
         const targetPath = readTrimmedInputValue(manualInput);
         const browserState = browser.getState();
         const displayedPath = formatDisplayPath(browserState.currentPath, browserState.workspacePathResolved);
         if (!targetPath || targetPath === displayedPath) {
             manualInputDirty = false;
             statusOverrideMessage = null;
-            manualAbsoluteSelection = null;
             syncStatus();
             return true;
         }
-        if (!isAbsoluteOsPath(targetPath)) {
+        if (!isAbsoluteFilesystemPath(targetPath)) {
             setStatusOverrideMessage(labels.manualAbsolutePathRequired);
+            return false;
+        }
+        if (browser.getSourceType() === 'host') {
+            statusOverrideMessage = null;
+            syncStatus();
+            const located = await browser.locate(targetPath);
+            if (located) {
+                manualInputDirty = false;
+                manualInput.value = getLastRenderedDisplayPath();
+                return true;
+            }
+            manualInputDirty = true;
             return false;
         }
         const workspacePathResolved = browserState.workspacePathResolved;
         if (!workspacePathResolved) {
-            if (allowManualAbsoluteSelectionOutsideRoot === true) {
-                manualAbsoluteSelection = targetPath;
-                statusOverrideMessage = null;
-                syncStatus();
-                updateConfirmButton();
-                return true;
-            }
             setStatusOverrideMessage(labels.loadFailed);
             return false;
         }
         const mappedVirtualPath = resolveVirtualPathFromAbsolute(workspacePathResolved, targetPath);
         if (!mappedVirtualPath) {
-            if (allowManualAbsoluteSelectionOutsideRoot === true) {
-                manualAbsoluteSelection = targetPath;
-                statusOverrideMessage = null;
-                syncStatus();
-                updateConfirmButton();
-                return true;
-            }
-            setStatusOverrideMessage(labels.manualAbsolutePathRequired);
+            setStatusOverrideMessage(labels.validationFailed);
             return false;
         }
-        manualAbsoluteSelection = null;
         statusOverrideMessage = null;
         syncStatus();
         await browser.navigate(mappedVirtualPath);
@@ -146,8 +134,7 @@ const createFolderPickerModalManualPathController = (dependencies: FolderPickerM
         navigateToManualPath,
         resetTracking,
         setStatusOverrideMessage,
-        getStatusOverrideMessage,
-        getManualAbsoluteSelection
+        getStatusOverrideMessage
     };
 };
 

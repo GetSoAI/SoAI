@@ -30,7 +30,7 @@ interface ChatCurrentConversationStatePort extends ChatComposerSurfaceRuntimeOwn
 
 interface ChatCurrentConversationUiPort extends ChatUiTaskScopeHost, ChatPagePresentationHost, PageDomOwnerHost, PageLifecycleOwnerHost {}
 
-interface ChatCurrentConversationRenderDependencies extends ChatCurrentConversationStatePort, ChatCurrentConversationUiPort {
+interface ChatCurrentConversationRenderDependencies extends ChatCurrentConversationStatePort, ChatCurrentConversationUiPort, ChatSettingsStateHost {
     pageContext: { sanitizer: SanitizerApi };
     emptyState: ChatPageEmptyState;
 }

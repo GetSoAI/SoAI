@@ -125,7 +125,7 @@ class AutomationEditorController {
     async openWorkspaceModal(): Promise<void> {
         const applied = await this.#saveSession.runChildModal(async () => {
             const workspaceAccess = await this.#dependencies.dataService.getWorkspaceAccess();
-            return await this.#modal.openWorkspaceModal(workspaceAccess.browserApi, workspaceAccess.allowManualAbsoluteSelectionOutsideRoot);
+            return await this.#modal.openWorkspaceModal(workspaceAccess.browserApi);
         });
         if (applied) {
             this.#saveSession.notifyChanged();

@@ -3,6 +3,7 @@
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
+import type { ConversationExecutionRunResult } from '@core/chat/protocols.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import type { ChatMessage, ConversationContract } from '@features/chat/ChatTypes.ts';
@@ -25,7 +26,7 @@ interface ChatMessageDeleteUndoControllerDependencies {
     renderConversationList: () => Promise<void>;
     saveAndSync: (conversation: ConversationContract) => Promise<void>;
     deleteMessageByCursor: (conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number }) => Promise<void>;
-    isConversationExecuting: (conversationId: string) => boolean;
+    runConversationExecutionIfIdle: (conversationId: string, task: () => Promise<void>) => Promise<ConversationExecutionRunResult>;
     showNotification: (message: string, type: NotificationType) => void;
     notifyConversationContentCommitted: () => void;
     getDeleteFailedText: () => string;
@@ -168,7 +169,7 @@ class ChatMessageDeleteUndoController {
             return;
         }
         const conversationKey = this.#conversationResolver.resolveKey(conversation);
-        await this.#enqueueCommit(conversationKey, () => this.#pendingRegistry.commitNowByRenderIdentity(conversationKey, normalizedMessageDomId));
+        await this.#enqueueCommit(conversationKey, () => this.#pendingRegistry.commitNowByRenderIdentity(conversationKey, normalizedMessageDomId), { requireExecutionLease: true });
     }
 
     async commitAllPendingDeletes(conversation: ConversationContract): Promise<void> {
@@ -180,6 +181,7 @@ class ChatMessageDeleteUndoController {
         for (const targetKey of pendingTargetKeys) {
             await this.#enqueueCommit(conversationKey, () => this.#pendingRegistry.commitNow(conversationKey, targetKey));
         }
+        await this.#commitQueue.waitForIdle(conversationKey);
     }
 
     resumePausedDeletesForConversation(conversation: ConversationContract): void {
@@ -191,107 +193,108 @@ class ChatMessageDeleteUndoController {
         if (this.#isDisposed) {
             return;
         }
-        if (this.#isConversationKeyExecuting(conversationKey)) {
-            this.#pendingRegistry.deferIfCurrent(conversationKey, targetKey, nonce);
-            return;
-        }
-        terminateHandledPromise(this.#enqueueCommit(conversationKey, () => this.#pendingRegistry.commitIfCurrent(conversationKey, targetKey, nonce), { throwOnFailure: false }));
+        terminateHandledPromise(this.#enqueueCommit(conversationKey, () => this.#pendingRegistry.commitIfCurrent(conversationKey, targetKey, nonce), { throwOnFailure: false, requireExecutionLease: true, onBusy: () => this.#pendingRegistry.deferIfCurrent(conversationKey, targetKey, nonce) }));
     }
 
-    #isConversationKeyExecuting(conversationKey: string): boolean {
-        const conversation = this.#conversationResolver.resolveConversationByKey(conversationKey);
-        const conversationId = typeof conversation?.id === 'string' ? conversation.id.trim() : '';
-        return Boolean(conversationId && this.#dependencies.isConversationExecuting(conversationId));
-    }
-
-    async #enqueueCommit(conversationKey: string, commit: () => { descriptor: PendingDeleteDescriptor | null }, options?: { throwOnFailure: boolean }): Promise<void> {
+    async #enqueueCommit(conversationKey: string, commit: () => { descriptor: PendingDeleteDescriptor | null }, options?: { throwOnFailure?: boolean; requireExecutionLease?: boolean; onBusy?: () => void }): Promise<void> {
         const throwOnFailure = options?.throwOnFailure ?? true;
         await this.#commitQueue.enqueue(
             conversationKey,
             async () => {
-                await this.#dependencies.runWithBoundary('chat:deleteMessageCommit', async () => {
-                    if (this.#isDisposed) {
-                        return;
-                    }
-                    const commitResult = commit();
-                    const descriptor = commitResult.descriptor;
-                    if (descriptor === null) {
-                        return;
-                    }
-
-                    const conversation = this.#conversationResolver.resolveConversationByKey(conversationKey);
-                    if (!conversation) {
-                        this.#pendingRegistry.settle(conversationKey, descriptor.targetKey);
-                        await this.#rerenderCurrentConversationIfMatching(conversationKey);
-                        return;
-                    }
-
-                    let rerenderedCurrentConversation = false;
-                    let removedLocalMessage: { index: number; message: ChatMessage } | null = null;
-                    try {
-                        if (descriptor.cursor !== null && conversation.id) {
-                            await this.#dependencies.deleteMessageByCursor(conversation, {
-                                createdAtMs: descriptor.cursor.createdAtMs,
-                                messageId: descriptor.cursor.id
-                            });
-                        } else if (descriptor.cursor === null) {
-                            const reference = this.#dependencies.resolveMessageReference(conversation, descriptor.renderIdentity);
-                            if (reference.message === null || reference.index < 0) {
-                                this.#pendingRegistry.settle(conversationKey, descriptor.targetKey);
-                                await this.#rerenderCurrentConversationIfMatching(conversationKey);
-                                return;
-                            }
-                            removedLocalMessage = { index: reference.index, message: reference.message };
-                            conversation.messages.splice(reference.index, 1);
-                            if (conversation.id) await this.#dependencies.saveAndSync(conversation);
+                const executeCommit = async (): Promise<void> =>
+                    await this.#dependencies.runWithBoundary('chat:deleteMessageCommit', async () => {
+                        if (this.#isDisposed) {
+                            return;
                         }
-                    } catch (error) {
-                        const runtimeError = ensureError(error);
-                        if (removedLocalMessage !== null) {
-                            const insertIndex = clampNumber(removedLocalMessage.index, 0, conversation.messages.length);
-                            conversation.messages.splice(insertIndex, 0, removedLocalMessage.message);
+                        const commitResult = commit();
+                        const descriptor = commitResult.descriptor;
+                        if (descriptor === null) {
+                            return;
                         }
-                        this.#pendingRegistry.settle(conversationKey, descriptor.targetKey);
-                        try {
+
+                        const conversation = this.#conversationResolver.resolveConversationByKey(conversationKey);
+                        if (!conversation) {
+                            this.#pendingRegistry.settle(conversationKey, descriptor.targetKey);
                             await this.#rerenderCurrentConversationIfMatching(conversationKey);
-                        } catch (recoveryError) {
-                            errorHandler.error('ChatMessageDeleteUndoController', 'Delete rollback conversation render failed', ensureError(recoveryError));
+                            return;
                         }
+
+                        let rerenderedCurrentConversation = false;
+                        let removedLocalMessage: { index: number; message: ChatMessage } | null = null;
                         try {
-                            this.#dependencies.invalidateChatMarkup('list');
-                            await this.#dependencies.renderConversationList();
-                        } catch (recoveryError) {
-                            errorHandler.error('ChatMessageDeleteUndoController', 'Delete rollback conversation list refresh failed', ensureError(recoveryError));
-                        }
-                        try {
-                            this.#dependencies.showNotification(this.#dependencies.getDeleteFailedText(), 'error');
-                        } catch (notificationError) {
-                            errorHandler.error('ChatMessageDeleteUndoController', 'Delete failure notification failed', ensureError(notificationError));
-                        }
-                        if (throwOnFailure) {
-                            throw runtimeError;
-                        }
-                        return;
-                    }
-                    this.#pendingRegistry.settle(conversationKey, descriptor.targetKey);
-                    if (descriptor.cursor !== null) {
-                        const deletedCursorKey = buildPersistedMessageCursorKey(descriptor.cursor);
-                        conversation.messages = conversation.messages.filter((message) => {
-                            const messageCursor = resolvePersistedMessageCursor(message);
-                            return messageCursor === null || buildPersistedMessageCursorKey(messageCursor) !== deletedCursorKey;
-                        });
-                    }
-                    rerenderedCurrentConversation = await this.#rerenderCurrentConversationIfMatching(conversationKey);
-                    this.#dependencies.invalidateChatMarkup('list');
-                    await this.#dependencies.renderConversationList();
-                    if (conversation.id && rerenderedCurrentConversation) {
-                        try {
-                            this.#dependencies.notifyConversationContentCommitted();
+                            if (descriptor.cursor !== null && conversation.id) {
+                                await this.#dependencies.deleteMessageByCursor(conversation, {
+                                    createdAtMs: descriptor.cursor.createdAtMs,
+                                    messageId: descriptor.cursor.id
+                                });
+                            } else if (descriptor.cursor === null) {
+                                const reference = this.#dependencies.resolveMessageReference(conversation, descriptor.renderIdentity);
+                                if (reference.message === null || reference.index < 0) {
+                                    this.#pendingRegistry.settle(conversationKey, descriptor.targetKey);
+                                    await this.#rerenderCurrentConversationIfMatching(conversationKey);
+                                    return;
+                                }
+                                removedLocalMessage = { index: reference.index, message: reference.message };
+                                conversation.messages.splice(reference.index, 1);
+                                if (conversation.id) await this.#dependencies.saveAndSync(conversation);
+                            }
                         } catch (error) {
-                            errorHandler.error('ChatMessageDeleteUndoController', 'Post-commit conversation notification failed', ensureError(error));
+                            const runtimeError = ensureError(error);
+                            if (removedLocalMessage !== null) {
+                                const insertIndex = clampNumber(removedLocalMessage.index, 0, conversation.messages.length);
+                                conversation.messages.splice(insertIndex, 0, removedLocalMessage.message);
+                            }
+                            this.#pendingRegistry.settle(conversationKey, descriptor.targetKey);
+                            try {
+                                await this.#rerenderCurrentConversationIfMatching(conversationKey);
+                            } catch (recoveryError) {
+                                errorHandler.error('ChatMessageDeleteUndoController', 'Delete rollback conversation render failed', ensureError(recoveryError));
+                            }
+                            try {
+                                this.#dependencies.invalidateChatMarkup('list');
+                                await this.#dependencies.renderConversationList();
+                            } catch (recoveryError) {
+                                errorHandler.error('ChatMessageDeleteUndoController', 'Delete rollback conversation list refresh failed', ensureError(recoveryError));
+                            }
+                            try {
+                                this.#dependencies.showNotification(this.#dependencies.getDeleteFailedText(), 'error');
+                            } catch (notificationError) {
+                                errorHandler.error('ChatMessageDeleteUndoController', 'Delete failure notification failed', ensureError(notificationError));
+                            }
+                            if (throwOnFailure) {
+                                throw runtimeError;
+                            }
+                            return;
                         }
+                        this.#pendingRegistry.settle(conversationKey, descriptor.targetKey);
+                        if (descriptor.cursor !== null) {
+                            const deletedCursorKey = buildPersistedMessageCursorKey(descriptor.cursor);
+                            conversation.messages = conversation.messages.filter((message) => {
+                                const messageCursor = resolvePersistedMessageCursor(message);
+                                return messageCursor === null || buildPersistedMessageCursorKey(messageCursor) !== deletedCursorKey;
+                            });
+                        }
+                        rerenderedCurrentConversation = await this.#rerenderCurrentConversationIfMatching(conversationKey);
+                        this.#dependencies.invalidateChatMarkup('list');
+                        await this.#dependencies.renderConversationList();
+                        if (conversation.id && rerenderedCurrentConversation) {
+                            try {
+                                this.#dependencies.notifyConversationContentCommitted();
+                            } catch (error) {
+                                errorHandler.error('ChatMessageDeleteUndoController', 'Post-commit conversation notification failed', ensureError(error));
+                            }
+                        }
+                    });
+                const conversation = this.#conversationResolver.resolveConversationByKey(conversationKey);
+                const conversationId = typeof conversation?.id === 'string' ? conversation.id.trim() : '';
+                if (options?.requireExecutionLease === true && conversationId) {
+                    const executionResult = await this.#dependencies.runConversationExecutionIfIdle(conversationId, executeCommit);
+                    if (executionResult.status === 'busy') {
+                        options.onBusy?.();
                     }
-                });
+                    return;
+                }
+                await executeCommit();
             },
             {
                 isKeyActive: (key: string): boolean => this.#pendingRegistry.isConversationActive(key),

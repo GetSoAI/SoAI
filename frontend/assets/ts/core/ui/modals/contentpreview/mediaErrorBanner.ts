@@ -29,24 +29,6 @@ const hideMediaError = (banner: HTMLElement): void => {
     banner.setAttribute('aria-hidden', 'true');
 };
 
-const wireMediaErrorBannerForImage = (image: HTMLImageElement, banner: HTMLElement): (() => void) => {
-    const onLoad = (): void => hideMediaError(banner);
-    const onError = (): void => showMediaError(banner);
-    image.addEventListener('load', onLoad);
-    image.addEventListener('error', onError);
-    if (image.complete) {
-        if (image.naturalWidth > 0) {
-            hideMediaError(banner);
-        } else {
-            showMediaError(banner);
-        }
-    }
-    return (): void => {
-        image.removeEventListener('load', onLoad);
-        image.removeEventListener('error', onError);
-    };
-};
-
 const wireMediaErrorBannerForMediaElement = (element: HTMLMediaElement, banner: HTMLElement): (() => void) => {
     const onLoaded = (): void => hideMediaError(banner);
     const onError = (): void => showMediaError(banner);
@@ -72,4 +54,4 @@ const wireMediaErrorBannerForIframe = (iframe: HTMLIFrameElement, banner: HTMLEl
     };
 };
 
-export { createMediaErrorBanner, hideMediaError, showMediaError, wireMediaErrorBannerForIframe, wireMediaErrorBannerForImage, wireMediaErrorBannerForMediaElement };
+export { createMediaErrorBanner, hideMediaError, showMediaError, wireMediaErrorBannerForIframe, wireMediaErrorBannerForMediaElement };

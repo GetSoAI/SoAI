@@ -41,7 +41,10 @@ if TYPE_CHECKING:
         ConversationInputFinalization,
     )
 
-__all__ = ("sync_finalize_streaming_assistant_message",)
+__all__ = (
+    "sync_finalize_streaming_assistant_message",
+    "sync_terminalize_input_with_assistant",
+)
 
 
 def _raise_missing_or_finalized(
@@ -158,7 +161,7 @@ def sync_finalize_streaming_assistant_message(
     if cursor.rowcount <= 0:
         _raise_missing_or_finalized(conn, conv_id, created_at_ms)
     if input_finalization is not None:
-        _terminalize_input_with_assistant(
+        sync_terminalize_input_with_assistant(
             conn,
             conv_id=conv_id,
             created_at_ms=created_at_ms,
@@ -181,7 +184,7 @@ def sync_finalize_streaming_assistant_message(
     )
 
 
-def _terminalize_input_with_assistant(
+def sync_terminalize_input_with_assistant(
     conn: sqlite3.Connection,
     *,
     conv_id: str,

@@ -73,20 +73,10 @@ const clearLoadingActivityAnimations = (documentRef: Document, messageId: string
     if (!current || current.sequence !== sequence) {
         return;
     }
-    animationMap.delete(messageId);
-};
-
-const scheduleLoadingActivityAnimationCleanup = (documentRef: Document, messageId: string, sequence: number, view: Window | null, delayMs: number): void => {
-    if (!view || typeof view.setTimeout !== 'function') {
-        clearLoadingActivityAnimations(documentRef, messageId, sequence);
-        return;
+    for (const animation of current.animations) {
+        animation.cancel();
     }
-    view.setTimeout(() => {
-        if (!isLatestLoadingActivityToggleSequence(documentRef, messageId, sequence)) {
-            return;
-        }
-        clearLoadingActivityAnimations(documentRef, messageId, sequence);
-    }, delayMs);
+    animationMap.delete(messageId);
 };
 
 const cancelLoadingActivityTransition = (element: HTMLElement): void => {
@@ -110,5 +100,5 @@ const isRegisteredLoadingActivityTransitionCleanup = (element: HTMLElement, clea
     return transitionCleanupByElement.get(element) === cleanup;
 };
 
-export { beginLoadingActivityAnimations, beginLoadingActivityToggleSequence, cancelLoadingActivityTransition, clearLoadingActivityAnimations, clearLoadingActivityTransitionCleanup, isLatestLoadingActivityToggleSequence, isRegisteredLoadingActivityTransitionCleanup, recordLoadingActivityAnimation, scheduleLoadingActivityAnimationCleanup, setLoadingActivityTransitionCleanup };
+export { beginLoadingActivityAnimations, beginLoadingActivityToggleSequence, cancelLoadingActivityTransition, clearLoadingActivityAnimations, clearLoadingActivityTransitionCleanup, isLatestLoadingActivityToggleSequence, isRegisteredLoadingActivityTransitionCleanup, recordLoadingActivityAnimation, setLoadingActivityTransitionCleanup };
 export type { LoadingActivityAnimationState };

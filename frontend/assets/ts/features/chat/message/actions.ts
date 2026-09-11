@@ -201,18 +201,7 @@ class ChatMessageActions {
                 break;
             case CHAT_ACTIONS.TOGGLE_LOADING_ACTIVITY_ITEM:
                 if (isAssistantMessageRole(message)) {
-                    await toggleLoadingActivityItem(
-                        {
-                            resolveMessageContainer: (candidateMessageId) => this.#dependencies.presentation.resolveMessageContainer(candidateMessageId),
-                            renderMessageTextContent: (candidateMessage) => this.#dependencies.presentation.renderMessageTextContent(candidateMessage),
-                            isShowActivitiesEnabled: () => this.#dependencies.presentation.isShowActivitiesEnabled(),
-                            toggleLoadingActivityCollapsedState: (candidateMessage, defaultCollapsed) => this.#dependencies.presentation.toggleLoadingActivityCollapsedState(candidateMessage, defaultCollapsed),
-                            invalidateMessageCache: (candidateMessage) => this.#dependencies.presentation.invalidateMessageCache(candidateMessage),
-                            postRender: (container) => this.#dependencies.presentation.postRender(container)
-                        },
-                        messageId,
-                        message
-                    );
+                    toggleLoadingActivityItem(this.#dependencies, messageId);
                 }
                 break;
             case CHAT_ACTIONS.REVEAL_RUNNING_ACTIVITY:

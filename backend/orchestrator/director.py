@@ -17,12 +17,12 @@ from core.events.types_models_requests import (
     InferenceRequestReceived,
 )
 from core.events.types_plugins import StopAllPluginsCommand
+from core.lifecycle.protocols import Shutdownable
 from core.logging.trace import get_logger
 from core.metrics.keyspace_base import (
     INACTIVITY_MONITOR_GAUGE_INACTIVE_MS,
     INACTIVITY_MONITOR_GAUGE_LAST_ACTIVITY,
 )
-from core.runtime.protocols import Shutdownable
 from core.runtime.request_context import create_system_context
 from core.runtime.soai_identifiers import create_system_id
 from core.tasks.asyncio_task_spawner import spawn_tracked_task

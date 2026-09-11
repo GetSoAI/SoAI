@@ -6,7 +6,7 @@ Thank you for wanting to help. Please read this before opening a pull request, b
 
 **Pull requests are closed without review and are never merged.** This is not a judgement about your code, and it is not a reflection of how the report was written. It is a structural decision about who owns SoAI's source.
 
-`LICENSE.md` section 10 states that outside code contributions are not accepted unless and until a contribution policy and rights process is published. This document is not that process. No such process is open today, and none is planned for the 1.0 line.
+`LICENSE.md` section 10 states that outside code contributions are not accepted unless and until a contribution policy and rights process is published. This document is not that process. No such process is currently open or planned.
 
 The reason is a promise made to every user. Each numbered official release of SoAI Core converts to the MIT License exactly four years after its first public distribution, on the immutable schedule in `CHANGE-DATES.md`. That promise is only deliverable if a single party holds the rights to every line of first-party source. Merging outside code — even a one-line fix, even with the best intent — would put source into SoAI that the Licensor cannot relicense, and the Change Date commitment would quietly become undeliverable. Declining contributions is how that commitment stays real.
 

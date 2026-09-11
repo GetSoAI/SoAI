@@ -8,6 +8,9 @@ from typing import TYPE_CHECKING
 from core.conversations.conversation_message_write_result import (
     ConversationMessageWriteResult,
 )
+from core.conversations.streaming_assistant_terminal_commit import (
+    StreamingAssistantTerminalCommitRequest,
+)
 from core.database.protocols import DatabaseCoreProtocol
 from core.serialization.json import serialize_json_compact_stable_strict
 from core.types.json import JSONDict
@@ -30,6 +33,9 @@ from database.repositories.users.message_streaming_assistant.message_transaction
     sync_append_streaming_assistant_placeholder,
     sync_delete_streaming_assistant_message,
     sync_update_streaming_assistant_content,
+)
+from database.repositories.users.message_streaming_assistant.terminal_commit_transactions import (
+    sync_commit_streaming_assistant_terminal,
 )
 
 if TYPE_CHECKING:
@@ -149,6 +155,29 @@ class DatabaseMessageStreamingRepository:
             terminal_reason,
             input_finalization,
             input_terminal_code,
+        )
+        notify_domain_event_outbox_dispatch_requested(self.event_bus)
+        return result
+
+    async def commit_streaming_assistant_terminal(
+        self: DatabaseDomainEventOwnerProtocol,
+        request: StreamingAssistantTerminalCommitRequest,
+    ) -> ConversationMessageWriteResult:
+        self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)
+        serialized_events = tuple(
+            (
+                sequence,
+                assistant_revision,
+                event_type,
+                serialize_json_compact_stable_strict(payload),
+                created_at_ms,
+            )
+            for sequence, assistant_revision, event_type, payload, created_at_ms in request.events
+        )
+        result = await self.core.writer.queue_write_operation(
+            sync_commit_streaming_assistant_terminal,
+            request,
+            serialized_events,
         )
         notify_domain_event_outbox_dispatch_requested(self.event_bus)
         return result

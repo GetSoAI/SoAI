@@ -1,6 +1,8 @@
 /* SoAI - Frontend core Translation declarations for `chat` namespace section 03 [frontend/assets/ts/core/i18n/translationkeys/chat__section03.generated.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ChatConfigurationTopLogprobsHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topLogprobsHint.generated.ts';
+import type { ChatConfigurationTopPTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topP.generated.ts';
 import type { ChatConfigurationTopPHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topPHint.generated.ts';
 import type { ChatConfigurationUserNameTranslationKey } from '@core/i18n/translationkeys/chat/configuration__user_name.generated.ts';
 import type { ChatConfigurationUserAvatarTranslationKey } from '@core/i18n/translationkeys/chat/configuration__userAvatar.generated.ts';
@@ -59,10 +61,10 @@ import type { ChatToolbarTranslationKey } from '@core/i18n/translationkeys/chat/
 import type { ChatToolCallOutputModalTranslationKey } from '@core/i18n/translationkeys/chat/toolCallOutputModal.generated.ts';
 import type { ChatUploadTranslationKey } from '@core/i18n/translationkeys/chat/upload.generated.ts';
 import type { ChatVoiceCallTranslationKey } from '@core/i18n/translationkeys/chat/voiceCall.generated.ts';
-import type { ChatVoiceCallModalTranslationKey } from '@core/i18n/translationkeys/chat/voiceCallModal.generated.ts';
-import type { ChatWaitForUserTranslationKey } from '@core/i18n/translationkeys/chat/waitForUser.generated.ts';
 
 export type ChatSection03TranslationKey =
+    | ChatConfigurationTopLogprobsHintTranslationKey
+    | ChatConfigurationTopPTranslationKey
     | ChatConfigurationTopPHintTranslationKey
     | ChatConfigurationUserNameTranslationKey
     | ChatConfigurationUserAvatarTranslationKey
@@ -120,6 +122,4 @@ export type ChatSection03TranslationKey =
     | ChatToolbarTranslationKey
     | ChatToolCallOutputModalTranslationKey
     | ChatUploadTranslationKey
-    | ChatVoiceCallTranslationKey
-    | ChatVoiceCallModalTranslationKey
-    | ChatWaitForUserTranslationKey;
+    | ChatVoiceCallTranslationKey;

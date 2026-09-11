@@ -29,6 +29,7 @@ __all__ = (
     "IpcRemoteRequestError",
     "ModelOutputContractError",
     "NotFoundError",
+    "OneShotAutomationStartNotFutureError",
     "PayloadTooLargeError",
     "PreconditionError",
     "ProcessError",
@@ -166,6 +167,10 @@ class ApiError(SoAIError):
 class ValidationError(SoAIError):
     code: str | int = ErrorType.INVALID_REQUEST.value
     http_status = 422
+
+
+class OneShotAutomationStartNotFutureError(ValidationError):
+    code: str | int = "automation_one_shot_start_not_future"
 
 
 class ModelOutputContractError(SoAIError):

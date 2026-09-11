@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
+from core.lifecycle.protocols import Shutdownable
 from core.models.model_context import ModelContext
 from core.runtime.platform import RuntimePlatform, get_runtime_platform, runtime_flags
-from core.runtime.protocols import Shutdownable
 from core.runtime.request_context import RequestContext, create_system_context
 
 __all__ = (

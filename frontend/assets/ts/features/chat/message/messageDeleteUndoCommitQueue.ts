@@ -52,6 +52,19 @@ class ChatMessageDeleteUndoCommitQueue {
 
         return nextTail;
     }
+
+    async waitForIdle(key: string): Promise<void> {
+        while (true) {
+            const tail = this.#tailByKey.get(key);
+            if (tail === undefined) {
+                return;
+            }
+            await tail;
+            if (this.#tailByKey.get(key) === tail) {
+                return;
+            }
+        }
+    }
 }
 
 export { ChatMessageDeleteUndoCommitQueue };

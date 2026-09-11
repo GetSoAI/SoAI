@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Collection
 from typing import TYPE_CHECKING, Literal
 
 from core.errors.exception_logging import log_exception
@@ -103,6 +104,7 @@ async def update_health_metrics(
     self: PluginGuardianInternalProtocol,
     *,
     check_context: GuardianCheckContext,
+    recovering_plugins: Collection[str] = (),
 ) -> None:
     logger = get_logger(GUARDIAN_LOGGER_NAME)
     plugin_names = collect_unlocked_guardian_plugin_names(check_context)
@@ -130,12 +132,15 @@ async def update_health_metrics(
             elif breaker_state == CircuitBreakerState.HALF_OPEN.value:
                 health = "recovering"
                 value = 2
-            elif plugin_name not in check_context.recovery_in_progress:
-                health = "ok"
-                value = 1
-            else:
+            elif (
+                plugin_name in check_context.recovery_in_progress
+                or plugin_name in recovering_plugins
+            ):
                 health = "recovering"
                 value = 2
+            else:
+                health = "ok"
+                value = 1
             await self.orchestrator.watchers.set_plugin_health_status(plugin_name, health)
             if self.metrics:
                 self.metrics.set_gauge(*DIRECTOR_GAUGE_PLUGIN_HEALTH, plugin_name, value=value)

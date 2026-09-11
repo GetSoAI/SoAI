@@ -7,9 +7,11 @@ import type { FolderPickerLabels } from '@core/fileexplorerbrowser/folderPickerV
 const buildFolderPickerLabels = (options: { chooseCurrent: string; reset?: string }): FolderPickerLabels => {
     const labels: FolderPickerLabels = {
         currentFolder: i18n.t('common.folderPicker.currentFolder'),
+        filesystemRoot: i18n.t('common.folderPicker.filesystemRoot'),
         manualPath: i18n.t('common.folderPicker.manualPath'),
         manualAbsolutePathRequired: i18n.t('common.folderPicker.manualAbsolutePathRequired'),
         loadFailed: i18n.t('common.folderPicker.loadFailed'),
+        validationFailed: i18n.t('common.folderPicker.validationFailed'),
         search: i18n.t('common.folderPicker.search'),
         searchPlaceholder: i18n.t('common.folderPicker.searchPlaceholder'),
         loading: i18n.t('common.folderPicker.loading'),

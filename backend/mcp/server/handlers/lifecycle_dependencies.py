@@ -96,6 +96,7 @@ class MCPLifecycleManagerDependencies:
     worker_builder: Callable[[MCPWorkerDependencies], MCPWorkerProtocol]
     load_search_api_keys: Callable[[], Awaitable[None]]
     register_tools: Callable[[], None]
+    register_local_tools: Callable[[], None]
     register_resources: Callable[[], None]
     register_prompts: Callable[[], None]
     exposed_tools: set[str] | None
@@ -139,6 +140,7 @@ class MCPLifecycleManagerDependencies:
             rag_processing_workers=self.rag_processing_workers,
             register_prompts=self.register_prompts,
             register_resources=self.register_resources,
+            register_local_tools=self.register_local_tools,
             register_tools=self.register_tools,
             server_mode_enabled=self.server_mode_enabled,
             session_cleanup_loop=self.session_cleanup_loop,

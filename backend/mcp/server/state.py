@@ -82,6 +82,9 @@ class MCPTaskState:
 @dataclass(slots=True)
 class MCPRegistrationState:
     registered_tools: dict[str, ToolHandler] = field(default_factory=dict[str, "ToolHandler"])
+    available_local_tools: dict[str, ToolHandler] = field(
+        default_factory=dict[str, "ToolHandler"],
+    )
     registered_resources: dict[str, ResourceHandler] = field(
         default_factory=dict[str, "ResourceHandler"],
     )

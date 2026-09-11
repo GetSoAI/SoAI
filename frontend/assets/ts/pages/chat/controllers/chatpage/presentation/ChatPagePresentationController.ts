@@ -12,7 +12,7 @@ import type { ChatUiTaskScopeHost } from '@pages/chat/controllers/chatpage/runti
 import { hideConversationColorPicker, showConversationColorPicker } from '@pages/chat/controllers/page/dom/colorPicker.ts';
 import type { ChatPageDomHost } from '@pages/chat/controllers/page/dom/contracts.ts';
 import { insertIcons } from '@pages/chat/controllers/page/dom/icons.ts';
-import { updateExportButtonVisibility, updateHeaderModelSelectorVisibility } from '@pages/chat/controllers/page/dom/input.ts';
+import { updateExportButtonVisibility } from '@pages/chat/controllers/page/dom/input.ts';
 import type { ChatPagePresentationContract } from '@pages/chat/controllers/chatpage/presentation/contracts.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 import { ChatColorToolkit, resolveConversationExecutionState, type Conversation } from '@features/chat/public.ts';
@@ -53,10 +53,6 @@ class ChatPagePresentationController implements ChatPagePresentationContract {
             currentConversation: () => this.#currentConversation(),
             isConversationExecuting: (conversationId) => this.#isConversationExecuting(conversationId)
         });
-    }
-
-    updateHeaderModelSelectorVisibility(): void {
-        updateHeaderModelSelectorVisibility(this.#page, this.#page.conversationState.models.length, this.#page.viewState.sidebarOpen, this.#page.services.isDetached());
     }
 
     insertIcons(): void {

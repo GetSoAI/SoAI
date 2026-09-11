@@ -72,14 +72,14 @@ const renderSelector = (dependencies: BackendVariantSelectorDependencies, target
     dependencies.host.view.updateHTML(target, selectorHtml, { escape: false });
 };
 
-const loadBackendVariantSelector = async (dependencies: BackendVariantSelectorDependencies, modalId: string, modalRoot: HTMLElement, pluginName: string, options: BackendVariantSelectorLoadOptions): Promise<boolean> => {
+const loadBackendVariantSelector = async (dependencies: BackendVariantSelectorDependencies, modalId: string, modalRoot: HTMLElement, pluginName: string, options: BackendVariantSelectorLoadOptions): Promise<BackendVariantsResponse | null> => {
     const target = dependencies.host.view.requireHTMLElement(modalUiSelector(modalId, 'variant-selector'), modalRoot);
     const loadingHtml = toTrustedUiHtml(`<div class="plugin-info-details">${i18n.t('plugins.modal.backendVariants.loading')}</div>`);
     dependencies.host.view.updateHTML(target, loadingHtml, { escape: false });
     try {
         const payload = await dependencies.host.operations.getBackendVariants(pluginName);
         if (!options.isCurrent()) {
-            return false;
+            return null;
         }
         renderSelector(dependencies, target, payload, options.disabled);
         const select = dependencies.host.view.optionalHTMLElement('.backend-variant-select', target);
@@ -92,15 +92,15 @@ const loadBackendVariantSelector = async (dependencies: BackendVariantSelectorDe
         dependencies.host.view.on(select, 'change', (): void => {
             terminateHandledPromise(saveBackendVariantSelection(dependencies, select, pluginName, options.isCurrent));
         });
-        return true;
+        return payload;
     } catch (error) {
         if (!options.isCurrent()) {
-            return false;
+            return null;
         }
         errorHandler.error('BackendVariantSelector', 'Failed to load backend variants', ensureError(error));
         const errorHtml = toTrustedUiHtml(`<div class="form-disclaimer">${i18n.t('plugins.modal.backendVariants.loadFailed')}</div>`);
         dependencies.host.view.updateHTML(target, errorHtml, { escape: false });
-        return false;
+        return null;
     }
 };
 

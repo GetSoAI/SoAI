@@ -10,6 +10,7 @@ const stopPluginActionPath = (pluginName: string): string => pluginActionPath(pl
 const enablePluginActionPath = (pluginName: string): string => pluginActionPath(pluginName, 'enable');
 const disablePluginActionPath = (pluginName: string): string => pluginActionPath(pluginName, 'disable');
 const pluginDeletePath = (pluginName: string): string => `/api/v1/plugins/${encodeSegment(pluginName)}`;
+const pluginLogoPath = (pluginName: string, revision: string): string => ['/api/v1/plugins', encodeSegment(pluginName), 'logo', `${encodeSegment(revision)}.png`].join('/');
 const pluginClonePath = (pluginName: string): string => `/api/v1/plugins/${encodeSegment(pluginName)}/clone`;
 const pluginDownloadPath = (): string => '/api/v1/plugins/download';
 const pluginUploadPath = (): string => '/api/v1/plugins/upload';
@@ -19,4 +20,4 @@ const notificationsMarkReadPath = (): string => '/api/v1/webui/notifications/mar
 const notificationPath = (notificationId: string): string => `${notificationsPath()}/${encodeSegment(notificationId)}`;
 const notificationOpenPath = (notificationId: string): string => `${notificationPath(notificationId)}/open`;
 
-export { disablePluginActionPath, enablePluginActionPath, modelPath, notificationOpenPath, notificationPath, notificationsMarkReadPath, notificationsPath, pluginClonePath, pluginDeletePath, pluginDownloadPath, pluginUploadPath, stopAllPluginsActionPath, stopPluginActionPath };
+export { disablePluginActionPath, enablePluginActionPath, modelPath, notificationOpenPath, notificationPath, notificationsMarkReadPath, notificationsPath, pluginClonePath, pluginDeletePath, pluginDownloadPath, pluginLogoPath, pluginUploadPath, stopAllPluginsActionPath, stopPluginActionPath };

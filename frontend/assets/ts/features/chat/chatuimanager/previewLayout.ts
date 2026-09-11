@@ -103,7 +103,8 @@ export function setupPreviewsContainerLayout(context: ChatUIManagerContext): voi
 
         const actionsRect = actions ? measureLayoutBox(actions) : null;
         const inputRect = measureLayoutBox(inputElement);
-        if (actionsRect && actionsRect.left < inputRect.right) {
+        const actionsOverlapInput = actionsRect !== null && actionsRect.left < inputRect.right && actionsRect.right > inputRect.left && actionsRect.top < inputRect.bottom && actionsRect.bottom > inputRect.top;
+        if (actionsOverlapInput) {
             clearPreviewsContainerInsets(context, previewsContainer);
             return;
         }

@@ -5,6 +5,7 @@
 @import url('./layout.css') layer(pages);
 @import url('./toolbar.css') layer(pages);
 @import url('./gpu-control-title.css') layer(pages);
+@import url('./gpu-resource-status.css') layer(pages);
 @import url('./overflow.css') layer(pages);
 @import url('./panels.css') layer(pages);
 @import url('./soaibench-state-motion.css') layer(pages);

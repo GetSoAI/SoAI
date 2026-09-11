@@ -35,6 +35,7 @@ from hardware.monitor import (
     HardwareMonitoringCoordinatorDependencies,
 )
 from hardware.vendor_detection_service import GPUVendorDetectionService
+from hardware.vendors.nvidia.smi import NvidiaSettingsController
 
 __all__ = ("build_hardware_manager",)
 
@@ -53,6 +54,7 @@ def build_hardware_manager(
     gpu_info_cache_service: GPUInfoCacheService,
     gpu_vendor_detection_service: GPUVendorDetectionService,
     nvidia_nvml_gate: NvmlGateProtocol,
+    nvidia_settings_controller: NvidiaSettingsController | None,
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
     gpu_capabilities_service: GpuCapabilitiesService,
     hardware_manager_settings: HardwareManagerSettings,
@@ -99,6 +101,7 @@ def build_hardware_manager(
             gpu_vendor_detection_service=gpu_vendor_detection_service,
             gpu_capabilities_service=gpu_capabilities_service,
             nvidia_nvml_gate=nvidia_nvml_gate,
+            nvidia_settings_controller=nvidia_settings_controller,
             nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
             settings=hardware_manager_settings,
             command_executor=command_executor,

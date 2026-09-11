@@ -15,8 +15,7 @@ from core.logging.trace import get_logger
 from core.mcp.agent_config_availability import filter_normalized_mcp_to_available_tools
 from core.mcp.tool_catalog import collect_mcp_tool_map
 from core.mcp.tool_catalog_scope import (
-    INTERNAL_ADMIN_MCP_TOOL_CATALOG_SCOPE,
-    PUBLIC_MCP_TOOL_CATALOG_SCOPE,
+    resolve_conversation_tool_catalog_scope,
 )
 from core.mcp.tool_context_preparation import prepare_mcp_tool_context
 from core.model_settings.request_projection import build_chat_execution_openai_request
@@ -60,7 +59,6 @@ from features.chat.conversation_turn_preparation import (
 
 if TYPE_CHECKING:
     from core.agent.settings_types import AgentSettings
-    from core.mcp.tool_catalog_scope import MCPToolCatalogScope
     from core.orchestrator.types import MCPToolContext
     from core.rag.knowledge_prompt_types import KnowledgePromptDeliveryClaim
     from features.agent.runtime.prepared_request_state import PreparedExecutionRequest
@@ -79,12 +77,6 @@ class PreparedConversationInputTurn:
     knowledge_prompt_claim: KnowledgePromptDeliveryClaim | None
     agent_settings: AgentSettings
     requested_model: str
-
-
-def _resolve_tool_catalog_scope(user_record: JSONDict) -> MCPToolCatalogScope:
-    if user_record.get("is_admin") is True:
-        return INTERNAL_ADMIN_MCP_TOOL_CATALOG_SCOPE
-    return PUBLIC_MCP_TOOL_CATALOG_SCOPE
 
 
 async def prepare_conversation_input_turn(
@@ -245,7 +237,9 @@ async def _prepare_tool_conversation_context(
     user_record = await api_dependencies.database_users.get_account_by_id(user_id)
     if not isinstance(user_record, dict):
         raise StateError("Conversation input owner is unavailable.")
-    tool_scope = _resolve_tool_catalog_scope(user_record)
+    tool_scope = resolve_conversation_tool_catalog_scope(
+        user_is_admin=user_record.get("is_admin") is True,
+    )
     tool_map = await collect_mcp_tool_map(
         api_dependencies.mcp_server,
         api_dependencies.mcp_remote,

@@ -8,6 +8,8 @@ __all__ = ("resolve_status_preview_argument_detail_keys",)
 
 def resolve_status_preview_argument_detail_keys(*, tool_name: str) -> tuple[str, ...]:
     normalized_tool_name = str(tool_name or "").strip()
+    if normalized_tool_name == "soai_documentation":
+        return ("query", "page")
     if normalized_tool_name.startswith("browser_"):
         return (
             "url",

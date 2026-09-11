@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { resolveLatestLoadingActivityFromMessage } from '@features/chat/assistanteventtimeline/activityState.ts';
+import { resolveTimelineSegmentKey } from '@features/chat/message/messageTimelineSegmentKeys.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { resolveLoadingActivityToggleEnabled } from '@features/chat/message/messageview/loadingActivityToggleEnabled.ts';
 import { COLLAPSED_LOADING_CONTENT_WRAPPER_ATTRIBUTE } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
@@ -180,6 +181,8 @@ const renderCollapsedLoadingSummary = (dependencies: CollapsedLoadingSummaryDepe
     if (loadingSegment === null) {
         return dependencies.renderTimelineSegmentsMarkup(segments.filter((segment) => !isCollapsedActivitySegment(segment)));
     }
+    const originalLoading = resolveLoadingSegment(segments);
+    const loadingKey = resolveTimelineSegmentKey(originalLoading.segment ?? loadingSegment, Math.max(originalLoading.index, 0), new Map<string, number>());
     const displayStatus = streamingPhase?.displayStatus ?? loadingSegment.status;
     const displaySegment = applyCollapsedLoadingPresentationTiming(loadingSegment, displayStatus, nowMs);
     const loadingMarkup = dependencies.renderLoadingActivityGroup(displaySegment, {
@@ -188,7 +191,7 @@ const renderCollapsedLoadingSummary = (dependencies: CollapsedLoadingSummaryDepe
         toggleEnabled: resolveLoadingActivityToggleEnabled(segments)
     });
     const contentSegments = resolveCollapsedLoadingContentSegments(segments);
-    const loadingHtml = dependencies.renderAssistantBodyItem(loadingMarkup, 'collapsed_loading_summary:1', loadingMarkup);
+    const loadingHtml = dependencies.renderAssistantBodyItem(loadingMarkup, loadingKey, loadingMarkup);
     const contentHtml = dependencies.renderTimelineSegmentsMarkup(contentSegments);
     const collapsedContent = dependencies.renderAssistantBodyItem(`<div ${COLLAPSED_LOADING_CONTENT_WRAPPER_ATTRIBUTE}>${contentHtml}</div>`, 'collapsed_loading_content:1', contentHtml);
     return `${loadingHtml}${collapsedContent}`;

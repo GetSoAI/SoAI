@@ -12,6 +12,9 @@ if TYPE_CHECKING:
     from core.conversations.conversation_message_write_result import (
         ConversationMessageWriteResult,
     )
+    from core.conversations.streaming_assistant_terminal_commit import (
+        StreamingAssistantTerminalCommitRequest,
+    )
     from core.types.json import JSONDict
 
 __all__ = ("DatabaseStreamingMessagesProtocol",)
@@ -51,6 +54,10 @@ class DatabaseStreamingMessagesProtocol(Protocol):
         terminal_reason: str | None = None,
         input_finalization: ConversationInputFinalization | None = None,
         input_terminal_code: str | None = None,
+    ) -> ConversationMessageWriteResult: ...
+    async def commit_streaming_assistant_terminal(
+        self,
+        request: StreamingAssistantTerminalCommitRequest,
     ) -> ConversationMessageWriteResult: ...
     async def delete_streaming_assistant_events(
         self,

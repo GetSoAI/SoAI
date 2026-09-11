@@ -90,6 +90,10 @@ const translateChatStreamAutomationToolPreviewKey = (previewKey: string, preview
             return i18n.t('chat.stream.preview.tools.shell_output_search.1', previewArguments).trim();
         case 'chat.stream.preview.tools.shell_output_search.detail.1':
             return i18n.t('chat.stream.preview.tools.shell_output_search.detail.1', previewArguments).trim();
+        case 'chat.stream.preview.tools.soai_documentation.1':
+            return i18n.t('chat.stream.preview.tools.soai_documentation.1', previewArguments).trim();
+        case 'chat.stream.preview.tools.soai_documentation.detail.1':
+            return i18n.t('chat.stream.preview.tools.soai_documentation.detail.1', previewArguments).trim();
         case 'chat.stream.preview.tools.stop_conversation.1':
             return i18n.t('chat.stream.preview.tools.stop_conversation.1', previewArguments).trim();
         case 'chat.stream.preview.tools.subagent_cancel.1':

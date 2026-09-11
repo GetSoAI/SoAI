@@ -80,7 +80,12 @@ async def _validate_automation_payload_model(
             model_virtual_model_service=api_context.dependencies.model_virtual_model_service,
         )
     except ValidationError as exception:
-        raise_invalid_request(request, str(exception), extra=exception.details)
+        raise_invalid_request(
+            request,
+            str(exception),
+            error_type=str(exception.code),
+            extra=exception.details,
+        )
 
 
 async def list_automations(

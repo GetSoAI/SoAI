@@ -33,6 +33,7 @@ type ContentPreviewImageViewerRefs = Readonly<{
     loadingStatus: HTMLDivElement;
     loadingPath: HTMLSpanElement;
     sourceReference: ContentPreviewSourceReferenceMetric | null;
+    position: HTMLSpanElement;
     previousButton: HTMLButtonElement | null;
     nextButton: HTMLButtonElement | null;
     resolution: ContentPreviewImageViewerInfoItem;
@@ -178,12 +179,19 @@ const createContentPreviewImageViewerDom = (container: HTMLElement, sourceUrl: s
     metadata.appendChild(metadataItems);
     metadata.appendChild(loadingStatus);
     info.appendChild(metadata);
+    const position = documentRef.createElement('span');
+    position.setAttribute('aria-live', 'polite');
+    position.hidden = !imageNavigation?.position;
+    if (imageNavigation?.position) {
+        position.textContent = i18n.t('contentPreview.imageInfo.position', imageNavigation.position);
+    }
     let previousButton: HTMLButtonElement | null = null;
     let nextButton: HTMLButtonElement | null = null;
     if (imageNavigation) {
         const navigation = createNavigationControls(documentRef, imageNavigation);
         previousButton = navigation.previousButton;
         nextButton = navigation.nextButton;
+        navigation.controls.insertBefore(position, navigation.previousButton);
         info.appendChild(navigation.controls);
     }
 
@@ -216,6 +224,7 @@ const createContentPreviewImageViewerDom = (container: HTMLElement, sourceUrl: s
         loadingStatus,
         loadingPath,
         sourceReference: sourceReferenceMetric,
+        position,
         previousButton,
         nextButton,
         resolution,
@@ -225,5 +234,17 @@ const createContentPreviewImageViewerDom = (container: HTMLElement, sourceUrl: s
     });
 };
 
-export { createContentPreviewImageViewerDom };
+const updateContentPreviewImageNavigation = (refs: ContentPreviewImageViewerRefs, navigation: ContentPreviewImageNavigation | null): void => {
+    refs.position.hidden = !navigation?.position;
+    refs.position.textContent = navigation?.position ? i18n.t('contentPreview.imageInfo.position', navigation.position) : '';
+    refs.previousButton?.parentElement?.classList.toggle('u-hidden', navigation === null);
+    if (navigation && refs.previousButton && refs.nextButton) {
+        refs.previousButton.setAttribute('aria-label', navigation.previousLabel);
+        refs.nextButton.setAttribute('aria-label', navigation.nextLabel);
+        setTooltipText(refs.previousButton, navigation.previousLabel);
+        setTooltipText(refs.nextButton, navigation.nextLabel);
+    }
+};
+
+export { createContentPreviewImageViewerDom, updateContentPreviewImageNavigation };
 export type { ContentPreviewImageViewerInfoItem, ContentPreviewImageViewerRefs };

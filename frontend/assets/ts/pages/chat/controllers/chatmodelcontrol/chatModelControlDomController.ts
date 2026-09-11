@@ -12,7 +12,7 @@ export const CHAT_MODEL_OPEN_TRIGGER_SELECTOR = '.chat-model-control-primary.is-
 
 export const requireChatModelControlScopeFromRoot = (root: Element): ModelControlScope => {
     const scopeValue = root.getAttribute('data-scope');
-    if (scopeValue === 'sidebar' || scopeValue === 'header' || scopeValue === 'empty-state' || scopeValue === 'configuration') {
+    if (scopeValue === 'sidebar' || scopeValue === 'composer' || scopeValue === 'empty-state' || scopeValue === 'configuration') {
         return scopeValue;
     }
     throw new Error('Chat model control root requires a valid data-scope');

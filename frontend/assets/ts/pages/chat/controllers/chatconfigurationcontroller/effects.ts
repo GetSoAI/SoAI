@@ -13,7 +13,9 @@ import type { ConfigurationControllerHost, ConfigurationControllerStateAccess } 
 
 type ChatParameterKey = Extract<keyof ChatParameters, string>;
 
-const INPUT_ACTION_PARAMETER_KEYS = Object.freeze(['inputActionVoiceEnabled', 'inputActionCallEnabled', 'inputActionFileUploadEnabled', 'inputActionCameraEnabled', 'inputActionPromptsEnabled', 'inputActionTokenCounterEnabled', 'inputActionCharacterMapEnabled', 'inputActionMobileAuxiliaryAction'] satisfies ReadonlyArray<ChatParameterKey>);
+const INPUT_ACTION_PARAMETER_KEYS = Object.freeze(['inputActionVoiceEnabled', 'inputActionCallEnabled', 'inputActionFileUploadEnabled', 'inputActionCameraEnabled', 'inputActionPromptsEnabled', 'inputActionTokenCounterEnabled', 'inputActionNewConversationEnabled', 'inputActionCharacterMapEnabled', 'inputActionMobileAuxiliaryAction'] satisfies ReadonlyArray<ChatParameterKey>);
+
+const SEND_HOTKEY_PARAMETER_KEYS = Object.freeze(['ctrlEnterSendEnabled'] satisfies ReadonlyArray<ChatParameterKey>);
 
 const BACKEND_OWNED_NO_CONVERSATION_PARAMETER_KEYS = Object.freeze(['new_conversation_inherit_last_settings', 'tools_enabled', 'tool_approval_required'] satisfies ReadonlyArray<ChatParameterKey>);
 const BACKEND_DEFAULT_PARAMETER_KEYS = Object.freeze([...STORED_CHAT_PARAMETER_KEYS, ...BACKEND_OWNED_NO_CONVERSATION_PARAMETER_KEYS]);
@@ -63,6 +65,7 @@ interface CommitConfigurationEditStateResult {
     richTextChanged: boolean;
     senderLabelChanged: boolean;
     inputActionsChanged: boolean;
+    sendHotkeyChanged: boolean;
     toolsEnabledChanged: boolean;
     toolApprovalRequiredChanged: boolean;
     conversationListFiltersChanged: boolean;
@@ -104,6 +107,7 @@ const commitConfigurationEditState = ({ stateAccess, host, editingParameters }: 
             richTextChanged: false,
             senderLabelChanged: false,
             inputActionsChanged: false,
+            sendHotkeyChanged: false,
             toolsEnabledChanged: false,
             toolApprovalRequiredChanged: false,
             conversationListFiltersChanged: false
@@ -146,6 +150,7 @@ const commitConfigurationEditState = ({ stateAccess, host, editingParameters }: 
         richTextChanged: previousRichText !== stateAccess.isRichTextEnabled(),
         senderLabelChanged: previousHideRealModel !== nextHideRealModel,
         inputActionsChanged: haveParametersChanged(previousParameters, nextParameters, INPUT_ACTION_PARAMETER_KEYS),
+        sendHotkeyChanged: haveParametersChanged(previousParameters, nextParameters, SEND_HOTKEY_PARAMETER_KEYS),
         toolsEnabledChanged: previousToolsEnabled !== nextToolsEnabled,
         toolApprovalRequiredChanged: previousToolApprovalRequired !== nextToolApprovalRequired,
         conversationListFiltersChanged: previousHideAutomationRuns !== nextHideAutomationRuns || previousHideMessagingConversations !== nextHideMessagingConversations

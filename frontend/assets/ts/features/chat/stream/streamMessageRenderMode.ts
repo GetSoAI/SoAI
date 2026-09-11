@@ -1,11 +1,11 @@
 /* SoAI - Chat feature stream message render mode [frontend/assets/ts/features/chat/stream/streamMessageRenderMode.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { dom } from '@core/dom/dom.ts';
 import { isArray, isString } from '@core/typeGuards.ts';
 import { resolveLatestLoadingActivityFromMessage } from '@features/chat/assistanteventtimeline/activityState.ts';
 import { timelineHasAssistantTextDeltaEvent } from '@features/chat/assistanteventtimeline/timelineTextDeltas.ts';
-import { COLLAPSED_LOADING_CONTENT_SELECTOR, COLLAPSED_LOADING_SUMMARY_SELECTOR, shouldCollapseLoadingActivities } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
+import { resolveAssistantMessageResponseRoot } from '@features/chat/message/assistantMessageMarkupParts.ts';
+import { resolveDirectCollapsedLoadingContent, resolveDirectCollapsedLoadingSummary, shouldCollapseLoadingActivities } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
 import { hasStreamSegments } from '@features/chat/stream/streamSegmentsMarker.ts';
 import { extractPlainTextFromContentPart } from '@features/chat/stream/streamMessageTextDeltaPatching.ts';
 import type { RenderStreamingMessageContentArguments } from '@features/chat/stream/streamMessageRenderingContracts.ts';
@@ -90,8 +90,9 @@ const shouldSkipStreamingTextDeltaPatch = (inputArguments: { message: RenderStre
 };
 
 const hasCollapsedLoadingStructure = (target: HTMLElement): boolean => {
-    const summary = dom.resolve(COLLAPSED_LOADING_SUMMARY_SELECTOR, target);
-    const content = dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, target);
+    const structureRoot = resolveAssistantMessageResponseRoot(target) ?? target;
+    const summary = resolveDirectCollapsedLoadingSummary(structureRoot);
+    const content = resolveDirectCollapsedLoadingContent(structureRoot);
     return summary instanceof HTMLElement && content instanceof HTMLElement;
 };
 

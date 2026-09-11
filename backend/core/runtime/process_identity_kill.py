@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import signal
+import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -21,7 +22,11 @@ from core.runtime.process_identity_signals import (
 if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
 
-__all__ = ("ProcessTreeKillResult", "force_kill_process_tree_matching_identity")
+__all__ = (
+    "ProcessTreeKillResult",
+    "force_kill_process_tree_matching_identity",
+    "force_kill_process_tree_matching_identity_blocking",
+)
 
 OPERATION_CORE_RUNTIME_PROCESS_IDENTITY_KILL = (
     "core.runtime.process_identity_kill.kill_process_tree"
@@ -39,19 +44,25 @@ def _kill_identity_checked_process(process: psutil.Process, expected_create_time
     result = send_signal_to_process_matching_identity_blocking(
         process,
         expected_create_time_ms,
-        signal.SIGKILL,
+        signal.SIGTERM if sys.platform == "win32" else signal.SIGKILL,
     )
     if result.process_not_found:
         raise psutil.NoSuchProcess(process.pid)
     return result.success
 
 
-def _kill_matching_process_tree_blocking(
+def force_kill_process_tree_matching_identity_blocking(
     pid: int,
     expected_create_time_ms: int,
     name_for_logging: str,
     logger: LoggerProtocol,
 ) -> ProcessTreeKillResult:
+    if pid <= 0:
+        return ProcessTreeKillResult(
+            success=False,
+            process_not_found=False,
+            identity_mismatched=False,
+        )
     try:
         parent = psutil.Process(pid)
         if not process_identity_matches(parent, expected_create_time_ms):
@@ -90,7 +101,18 @@ def _kill_matching_process_tree_blocking(
                 process_not_found=True,
                 identity_mismatched=False,
             )
-        psutil.wait_procs(killed_processes, timeout=3.0)
+        _, remaining_processes = psutil.wait_procs(killed_processes, timeout=3.0)
+        if remaining_processes:
+            logger.error(
+                "Identity-verified process cleanup for '%s' left %s processes running.",
+                name_for_logging,
+                len(remaining_processes),
+            )
+            return ProcessTreeKillResult(
+                success=False,
+                process_not_found=False,
+                identity_mismatched=False,
+            )
         logger.info(
             "Successfully killed identity-verified process tree for '%s' (PID: %s).",
             name_for_logging,
@@ -184,7 +206,7 @@ async def force_kill_process_tree_matching_identity(
         pid,
     )
     return await asyncio.to_thread(
-        _kill_matching_process_tree_blocking,
+        force_kill_process_tree_matching_identity_blocking,
         pid,
         expected_create_time_ms,
         name_for_logging,

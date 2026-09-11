@@ -18,27 +18,6 @@ interface ModelsActionHost {
 
 const ACTIVE_MODEL_STATUSES: Readonly<string[]> = Object.freeze(['READY', 'PROCESSING']);
 
-const PROVIDER_LOGO_PATHS: Readonly<Record<string, string>> = Object.freeze({
-    ollama: 'img/logo/ollama-plugin-logo.png',
-    vllm: 'img/logo/vllm-plugin-logo.png',
-    llamacpp: 'img/logo/llamacpp-plugin-logo.png',
-    external: 'img/logo/external-plugin-logo.png',
-    ctranslate2: 'img/logo/ctranslate2-plugin-logo.png',
-    embedding: 'img/logo/embedding-plugin-logo.png',
-    melotts: 'img/logo/melotts-plugin-logo.png',
-    whisper: 'img/logo/whisper-plugin-logo.png'
-});
-const BUILTIN_LOGO_FILES: Readonly<Record<string, string>> = Object.freeze({
-    ollama: 'ollama-plugin-logo.png',
-    vllm: 'vllm-plugin-logo.png',
-    llamacpp: 'llamacpp-plugin-logo.png',
-    external: 'external-plugin-logo.png',
-    ctranslate2: 'ctranslate2-plugin-logo.png',
-    embedding: 'embedding-plugin-logo.png',
-    melotts: 'melotts-plugin-logo.png',
-    whisper: 'whisper-plugin-logo.png'
-});
-
 const THIRD_PARTY_MODEL_LOGOS: Readonly<Record<string, string>> = Object.freeze({
     default: 'img/logo/third-party-model-logo.png',
     external: 'img/logo/third-party-model-external-logo.png'
@@ -61,6 +40,6 @@ const MODEL_ACTION_HANDLERS = Object.freeze({
     }
 } satisfies Record<string, ModelActionHandler>);
 
-export { ACTIVE_MODEL_STATUSES, BUILTIN_LOGO_FILES, MODEL_ACTION_HANDLERS, MODEL_STATUS_LOADING_VALUES, PLUGIN_STATUS_ERROR_VALUES, PLUGIN_STATUS_LOADING_VALUES, PLUGIN_STATUS_READY_VALUES, PROVIDER_LOGO_PATHS, THIRD_PARTY_MODEL_LOGOS, VIRTUAL_MODEL_LOGO };
+export { ACTIVE_MODEL_STATUSES, MODEL_ACTION_HANDLERS, MODEL_STATUS_LOADING_VALUES, PLUGIN_STATUS_ERROR_VALUES, PLUGIN_STATUS_LOADING_VALUES, PLUGIN_STATUS_READY_VALUES, THIRD_PARTY_MODEL_LOGOS, VIRTUAL_MODEL_LOGO };
 
 export type { ModelsActionHost };

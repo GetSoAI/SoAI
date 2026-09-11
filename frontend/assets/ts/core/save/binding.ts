@@ -12,8 +12,9 @@ import { SAVE_HEADER_PRIORITY_PAGE } from '@core/save/constants.ts';
 import type { BindSaveScopeOptions, SaveBinding, SaveRequestOutcome, SaveScope } from '@core/save/contracts.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import { setAriaBusyForElements } from '@core/ui/controls/ariaBusy.ts';
+import type { BusyDisabledToken } from '@core/ui/controls/busyDisabledState.ts';
 import { setControlDisabledState } from '@core/ui/controls/disabledState.ts';
-import { beginLoadingButton, clearLoadingButtonIfNeeded } from '@core/ui/loadingbuttons/service.ts';
+import { beginLoadingButton, endLoadingButton } from '@core/ui/loadingbuttons/service.ts';
 
 const ensureId = (value: string, context: string): string => {
     const trimmed = value.trim();
@@ -123,6 +124,14 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
     let disposed = false;
     let lastBusy: boolean | null = null;
     const boundSaveButtons = new WeakSet<HTMLButtonElement>();
+    const busySaveButtonTokens = new Map<HTMLButtonElement, BusyDisabledToken>();
+
+    const clearBusySaveButtons = (): void => {
+        for (const [button, token] of busySaveButtonTokens) {
+            endLoadingButton(button, token);
+        }
+        busySaveButtonTokens.clear();
+    };
 
     const applyDisabledState = (button: HTMLButtonElement, disabled: boolean): void => {
         setControlDisabledState(button, disabled);
@@ -160,6 +169,9 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
         if (onBusyChange && busyChanged) {
             onBusyChange(busy);
         }
+        if (!busy) {
+            clearBusySaveButtons();
+        }
         const buttons = requireSaveButtons(resolveSaveButtons);
         const dirtyClassName = options.buttonDirtyClassName;
         for (const button of buttons) {
@@ -168,9 +180,9 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
                 button.addEventListener('click', requestButtonSave, { signal });
             }
             if (busy) {
-                beginLoadingButton(button);
-            } else {
-                clearLoadingButtonIfNeeded(button);
+                if (!busySaveButtonTokens.has(button)) {
+                    busySaveButtonTokens.set(button, beginLoadingButton(button));
+                }
             }
             applyDisabledState(button, !canSave || busy);
             if (dirtyClassName) {
@@ -221,6 +233,7 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
             if (lastBusy === true) {
                 setAriaBusyForElements(busyRoots, false);
             }
+            clearBusySaveButtons();
             abort.abort();
             unsubscribe();
             headerActionController?.dispose();

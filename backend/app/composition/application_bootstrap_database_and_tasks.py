@@ -9,7 +9,9 @@ from typing import TYPE_CHECKING
 import httpx2
 
 from app.application_dependencies import ApplicationEnvironment, ApplicationPaths
-from app.composition.bootstrap_failure_cleanup import cleanup_database_task_bootstrap_failure
+from app.composition.bootstrap_failure_cleanup import (
+    cleanup_database_task_bootstrap_failure,
+)
 from app.composition.build_cancellation_system import CancellationSystem
 from app.composition.build_core_configuration import (
     build_application_routing_config,
@@ -90,6 +92,11 @@ async def build_database_config_manager_tasks_and_http_client(
             mutation_storage=mutation_storage,
             task_catalog=task_catalog,
         )
+        runtime_foundation.runtime_state.set_database_maintenance(
+            database_services.core.vacuum.startup_result
+        )
+        if database_services.core.vacuum.startup_result.status == "degraded":
+            runtime_foundation.runtime_state.set_degraded_mode(True)
         database_tasks = require_initialized(
             database_services.tasks,
             message="Database tasks must be initialized before task registry is built.",
@@ -143,6 +150,7 @@ async def build_database_config_manager_tasks_and_http_client(
         await reconcile_task_registry(
             task_registry=task_registry_result.registry,
             logger=application_logger,
+            base_path=environment.base_dir,
         )
         await reconcile_agent_turns_on_startup(
             database_agent_turn_process_boundary=database_services.agent_turn_process_boundary,

@@ -143,11 +143,13 @@ const createModelsPageRuntimeBindings = (
     dependencies: {
         logInvalidActionModel: (action: string, model: ResourceIncomingValue | null | undefined) => void;
         handleActionError: (error: Error) => void;
+        shouldShowNormalEmptyState: (modelCount: number) => boolean;
     }
 ): ModelsPageRuntimeBindings => {
     const enabledToggleState = createModelEnabledToggleState();
     const managerBundle = createModelsManagerBundle(runtime, {
-        getPendingToggleTarget: enabledToggleState.getPendingToggleTarget
+        getPendingToggleTarget: enabledToggleState.getPendingToggleTarget,
+        shouldShowNormalEmptyState: dependencies.shouldShowNormalEmptyState
     });
     const controllerBundle = createModelsControllerBundle(runtime, {
         modelProperties: managerBundle.modelProperties,

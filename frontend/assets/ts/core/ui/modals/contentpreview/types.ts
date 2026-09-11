@@ -51,6 +51,7 @@ export type ContentPreviewImageMetadata = Readonly<{
 }>;
 
 export type ContentPreviewImageNavigation = Readonly<{
+    position?: Readonly<{ current: number; total: number }>;
     previousLabel: string;
     nextLabel: string;
     previousLoadingPath: string;

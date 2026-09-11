@@ -70,6 +70,15 @@ def _is_transferred_process(
 ) -> bool:
     for process_handle in transferred_processes:
         if process_handle.pid != process.pid:
+            if process_handle.poll() is not None:
+                continue
+            try:
+                ancestors = process.parents()
+            except psutil.Error:
+                continue
+            if any(parent.pid == process_handle.pid for parent in ancestors):
+                if process_handle.poll() is None:
+                    return True
             continue
         if process_handle.poll() is None or not _running_processes([process]):
             return True

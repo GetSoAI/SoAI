@@ -12,8 +12,7 @@ from core.errors.exceptions import ValidationError
 from core.mcp.agent_config_normalization import AGENT_MCP_TOOL_SELECTION_FIELDS
 from core.mcp.tool_catalog import collect_mcp_tool_map
 from core.mcp.tool_catalog_scope import (
-    INTERNAL_ADMIN_MCP_TOOL_CATALOG_SCOPE,
-    PUBLIC_MCP_TOOL_CATALOG_SCOPE,
+    resolve_conversation_tool_catalog_scope,
 )
 from core.model_settings.normalization import normalize_chat_execution_settings
 from core.model_settings.request_projection import build_chat_execution_openai_request
@@ -140,10 +139,8 @@ async def _validate_mcp_catalog_selection(
     current_user: CurrentUser,
     mcp_config: JSONDict,
 ) -> JSONDict:
-    local_scope = (
-        INTERNAL_ADMIN_MCP_TOOL_CATALOG_SCOPE
-        if current_user["is_admin"]
-        else PUBLIC_MCP_TOOL_CATALOG_SCOPE
+    local_scope = resolve_conversation_tool_catalog_scope(
+        user_is_admin=current_user["is_admin"],
     )
     tool_map = await collect_mcp_tool_map(
         api_context.dependencies.mcp_server,

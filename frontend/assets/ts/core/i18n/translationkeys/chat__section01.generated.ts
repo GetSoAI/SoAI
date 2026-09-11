@@ -32,6 +32,8 @@ import type { ChatConfigurationAutoTitleGenerationTranslationKey } from '@core/i
 import type { ChatConfigurationAutoTitleGenerationHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__autoTitleGenerationHint.generated.ts';
 import type { ChatConfigurationCloseTranslationKey } from '@core/i18n/translationkeys/chat/configuration__close.generated.ts';
 import type { ChatConfigurationConfigurationModelTranslationKey } from '@core/i18n/translationkeys/chat/configuration__configurationModel.generated.ts';
+import type { ChatConfigurationCtrlEnterSendTranslationKey } from '@core/i18n/translationkeys/chat/configuration__ctrlEnterSend.generated.ts';
+import type { ChatConfigurationCtrlEnterSendHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__ctrlEnterSendHint.generated.ts';
 import type { ChatConfigurationDeleteTranslationKey } from '@core/i18n/translationkeys/chat/configuration__delete.generated.ts';
 import type { ChatConfigurationFilesFolderTranslationKey } from '@core/i18n/translationkeys/chat/configuration__filesFolder.generated.ts';
 import type { ChatConfigurationFrequencyPenaltyTranslationKey } from '@core/i18n/translationkeys/chat/configuration__frequencyPenalty.generated.ts';
@@ -59,8 +61,6 @@ import type { ChatConfigurationModelSettingsTranslationKey } from '@core/i18n/tr
 import type { ChatConfigurationNewConversationInheritLastSettingsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__itemNewConversationInheritLastSettings.generated.ts';
 import type { ChatConfigurationNewConversationInheritLastSettingsHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__itemNewConversationInheritLastSettingsHint.generated.ts';
 import type { ChatConfigurationNotificationsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__notifications.generated.ts';
-import type { ChatConfigurationNotifyOnCompletionTranslationKey } from '@core/i18n/translationkeys/chat/configuration__notify_on_completion.generated.ts';
-import type { ChatConfigurationNotifyOnErrorTranslationKey } from '@core/i18n/translationkeys/chat/configuration__notify_on_error.generated.ts';
 
 export type ChatSection01TranslationKey =
     | ChatActivityWidgetsTranslationKey
@@ -94,6 +94,8 @@ export type ChatSection01TranslationKey =
     | ChatConfigurationAutoTitleGenerationHintTranslationKey
     | ChatConfigurationCloseTranslationKey
     | ChatConfigurationConfigurationModelTranslationKey
+    | ChatConfigurationCtrlEnterSendTranslationKey
+    | ChatConfigurationCtrlEnterSendHintTranslationKey
     | ChatConfigurationDeleteTranslationKey
     | ChatConfigurationFilesFolderTranslationKey
     | ChatConfigurationFrequencyPenaltyTranslationKey
@@ -120,6 +122,4 @@ export type ChatSection01TranslationKey =
     | ChatConfigurationModelSettingsTranslationKey
     | ChatConfigurationNewConversationInheritLastSettingsTranslationKey
     | ChatConfigurationNewConversationInheritLastSettingsHintTranslationKey
-    | ChatConfigurationNotificationsTranslationKey
-    | ChatConfigurationNotifyOnCompletionTranslationKey
-    | ChatConfigurationNotifyOnErrorTranslationKey;
+    | ChatConfigurationNotificationsTranslationKey;

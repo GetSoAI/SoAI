@@ -4,9 +4,10 @@
 import { hasFunctionProperty, isObject } from '@core/typeGuards.ts';
 import type { SetButtonLoadingOptions } from '@core/state/UIStateManager.ts';
 import type { UpdatesEditionContribution } from '@core/edition/updatesContribution.ts';
+import type { OperationType, RestartOverlayShowOptions } from '@features/overlays/public.ts';
 
 interface RestartOverlayService {
-    show(value: string): void;
+    show(value: OperationType, options?: RestartOverlayShowOptions): void;
 }
 
 interface UpdatesPageDependencies {

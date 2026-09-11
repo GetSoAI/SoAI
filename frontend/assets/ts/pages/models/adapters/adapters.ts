@@ -2,14 +2,13 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
-import { buildCardGridHeader, buildCollectionSections, buildEmptyState } from '@core/routing/pages/collections/collectionViewBuilders.ts';
-import { renderLabelAttributes } from '@core/security/labelAttributes.ts';
+import { buildCardGridHeader, buildCollectionSection, buildCollectionSections, buildEmptyState } from '@core/routing/pages/collections/collectionViewBuilders.ts';
 import { uiHtml } from '@core/security/uiHtml.ts';
 import { renderListTable, type ListTableColumn } from '@core/uiprimitives/listTable.ts';
 import { renderSortControl } from '@core/uiprimitives/sortableList.ts';
 import { MODELS_ACTION_DOWNLOAD_MODEL, MODELS_ACTION_MANAGE_PROVIDERS, MODELS_ACTION_MANAGE_VIRTUAL_MODELS, MODELS_ACTION_OPEN_METRICS, MODELS_ACTION_OPEN_PROVIDER_TAB } from '@core/models/pageActions.ts';
 import { MODELS_ACTION_SORT_LIST, MODELS_ACTION_TOGGLE_VIEW_MODE } from '@pages/models/actions.ts';
-import { MODEL_EMPTY_STATES, MODELS_GRID } from '@pages/models/contracts/constants.ts';
+import { MODEL_EMPTY_STATES, MODELS_DOWNLOAD_PROGRESS_ID, MODELS_GRID } from '@pages/models/contracts/constants.ts';
 import type { ModelsLayoutViewHost } from '@pages/models/types.ts';
 import { createModelsSortControlDefinition, normalizeModelsSortState } from '@pages/models/controllers/page/listSortingController.ts';
 
@@ -105,7 +104,16 @@ const buildModelsSections = (page: Pick<ModelsLayoutViewHost, 'sortBy' | 'sortOr
                 icon: { name: 'search', options: { size: 48, strokeWidth: 1.5 } },
                 title: i18n.t('models.empty.noModels'),
                 description: i18n.t('models.empty.getStarted'),
-                body: `<button type="button" class="ui-button ui-variant-accent u-hidden" id="${MODEL_EMPTY_STATES.firstDownload}" data-action="${MODELS_ACTION_DOWNLOAD_MODEL}" ${renderLabelAttributes(i18n.t('models.empty.downloadFirst'))}>${i18n.t('models.empty.downloadFirst')}</button>`
+                actions: [
+                    {
+                        tag: 'button',
+                        className: 'ui-button ui-button--page-action ui-variant-accent',
+                        id: MODEL_EMPTY_STATES.firstDownload,
+                        attributes: { 'data-action': MODELS_ACTION_DOWNLOAD_MODEL },
+                        icon: { name: 'add', options: { size: 24, strokeWidth: 1.5 } },
+                        label: i18n.t('models.actions.addModel')
+                    }
+                ]
             }),
             buildEmptyState({
                 id: MODEL_EMPTY_STATES.filtered ?? '',
@@ -116,7 +124,15 @@ const buildModelsSections = (page: Pick<ModelsLayoutViewHost, 'sortBy' | 'sortOr
             })
         ]
     });
-    sections.splice(1, 0, {
+    sections.unshift(
+        buildCollectionSection({
+            id: MODELS_DOWNLOAD_PROGRESS_ID,
+            className: 'ui-operation-progress-list u-hidden',
+            role: 'region',
+            aria: { hidden: 'true', label: i18n.t('models.loading.downloading') }
+        })
+    );
+    sections.splice(2, 0, {
         type: 'section',
         tag: 'div',
         id: 'models-list-surface',

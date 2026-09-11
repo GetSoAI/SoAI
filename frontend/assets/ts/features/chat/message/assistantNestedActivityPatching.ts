@@ -6,7 +6,7 @@ import { patchOrderedChildren } from '@core/dom/orderedChildPatching.ts';
 import { insertClonedElementWithAssistantState, patchElementChildren, removeElementWithAssistantState, replaceElementWithClonedAssistantState, type AssistantElementPatchContext } from '@features/chat/message/assistantElementPatching.ts';
 import type { AssistantDomStatePreservation } from '@features/chat/message/assistantDomState.ts';
 
-type ActivityPatchResult = { patched: boolean; detailsChanged: boolean };
+type ActivityPatchResult = { patched: boolean; detailsChanged: boolean; retainedSignature?: string };
 type ActivityPatchContext = AssistantElementPatchContext;
 type ActivityPatchArguments = {
     existing: HTMLElement;

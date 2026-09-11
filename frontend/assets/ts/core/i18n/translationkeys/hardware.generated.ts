@@ -9,6 +9,7 @@ import type { HardwareDescriptionTranslationKey } from '@core/i18n/translationke
 import type { HardwareDevicesTranslationKey } from '@core/i18n/translationkeys/hardware/devices.generated.ts';
 import type { HardwareErrorsTranslationKey } from '@core/i18n/translationkeys/hardware/errors.generated.ts';
 import type { HardwareGpuTranslationKey } from '@core/i18n/translationkeys/hardware/gpu.generated.ts';
+import type { HardwareGpuResourcesTranslationKey } from '@core/i18n/translationkeys/hardware/gpuResources.generated.ts';
 import type { HardwareMetricsTranslationKey } from '@core/i18n/translationkeys/hardware/metrics.generated.ts';
 import type { HardwareModalsTranslationKey } from '@core/i18n/translationkeys/hardware/modals.generated.ts';
 import type { HardwareProcessesTranslationKey } from '@core/i18n/translationkeys/hardware/processes.generated.ts';
@@ -17,4 +18,4 @@ import type { HardwareSystemInfoTranslationKey } from '@core/i18n/translationkey
 import type { HardwareTitleTranslationKey } from '@core/i18n/translationkeys/hardware/title.generated.ts';
 import type { HardwareWidgetsTranslationKey } from '@core/i18n/translationkeys/hardware/widgets.generated.ts';
 
-export type HardwareTranslationKey = HardwareActionsTranslationKey | HardwareCardsTranslationKey | HardwareCommonTranslationKey | HardwareComponentsTranslationKey | HardwareDescriptionTranslationKey | HardwareDevicesTranslationKey | HardwareErrorsTranslationKey | HardwareGpuTranslationKey | HardwareMetricsTranslationKey | HardwareModalsTranslationKey | HardwareProcessesTranslationKey | HardwareSummaryTranslationKey | HardwareSystemInfoTranslationKey | HardwareTitleTranslationKey | HardwareWidgetsTranslationKey;
+export type HardwareTranslationKey = HardwareActionsTranslationKey | HardwareCardsTranslationKey | HardwareCommonTranslationKey | HardwareComponentsTranslationKey | HardwareDescriptionTranslationKey | HardwareDevicesTranslationKey | HardwareErrorsTranslationKey | HardwareGpuTranslationKey | HardwareGpuResourcesTranslationKey | HardwareMetricsTranslationKey | HardwareModalsTranslationKey | HardwareProcessesTranslationKey | HardwareSummaryTranslationKey | HardwareSystemInfoTranslationKey | HardwareTitleTranslationKey | HardwareWidgetsTranslationKey;

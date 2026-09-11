@@ -44,6 +44,7 @@ async def _load_active_task_snapshot(
     *,
     logger: StandardLogger,
     deadline: float,
+    transferred_task_ids: frozenset[str] = frozenset(),
 ) -> tuple[tuple[str, Task | None], ...]:
     tasks: list[tuple[str, Task | None]] = []
     seen_task_ids: set[str] = set()
@@ -59,6 +60,7 @@ async def _load_active_task_snapshot(
         if not rows:
             break
         page_task_entries: list[tuple[str, Task | None]] = []
+        page_has_new_task_ids = False
         for row in rows:
             task_id = row.get("task_id")
             if not isinstance(task_id, str) or not task_id:
@@ -66,6 +68,9 @@ async def _load_active_task_snapshot(
             if task_id in seen_task_ids:
                 continue
             seen_task_ids.add(task_id)
+            page_has_new_task_ids = True
+            if task_id in transferred_task_ids:
+                continue
             if await registry.database_tasks.mutation_requires_fenced_finalization(task_id):
                 continue
             prefetched_task: Task | None = None
@@ -92,7 +97,7 @@ async def _load_active_task_snapshot(
                 )
                 prefetched_task = None
             page_task_entries.append((task_id, prefetched_task))
-        if not page_task_entries:
+        if not page_has_new_task_ids:
             break
         tasks.extend(page_task_entries)
         offset += len(rows)
@@ -166,6 +171,8 @@ async def shutdown_registry(
     registry: TaskRegistryLifecycleView,
     shutdown_event: asyncio.Event,
     cleanup_task: asyncio.Task[None] | None,
+    *,
+    transferred_task_ids: frozenset[str] = frozenset(),
 ) -> asyncio.Task[None] | None:
     logger = get_logger(LOGGER_NAME)
     deadline = deadline_after(EXTENDED_TIMEOUT_SEC).deadline_monotonic
@@ -176,6 +183,7 @@ async def shutdown_registry(
                 registry,
                 logger=logger,
                 deadline=deadline,
+                transferred_task_ids=transferred_task_ids,
             )
             if not task_entries:
                 break

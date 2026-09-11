@@ -60,6 +60,7 @@ export interface PluginRecord extends Omit<Plugin, 'capabilities'> {
     id?: string;
     logo?: string;
     icon?: string;
+    logoRevision?: string | null;
     backendVersion?: string;
     disabledReason?: string | null;
     modalities?: string[];

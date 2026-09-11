@@ -47,6 +47,7 @@ async def cancel_and_await[TaskResult](
     message: str | None = None,
     log_level: int = logging.INFO,
     timeout_sec: float | None = None,
+    timeout_log_level: int = logging.WARNING,
 ) -> int:
     task_list: list[asyncio.Task[TaskResult]] = [task for task in tasks if task]
     if not task_list:
@@ -87,7 +88,8 @@ async def cancel_and_await[TaskResult](
         pending_task.add_done_callback(_consume_exception)
 
     if logger:
-        logger.warning(
+        logger.log(
+            timeout_log_level,
             "Timed out waiting %.2fs for %s cancellation; %s task(s) still pending.",
             timeout_sec,
             task_label,

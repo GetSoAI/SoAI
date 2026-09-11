@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { formatUtcLogTimestamp } from '@core/localization/public.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import type { TestModalRuntimeContext } from '@features/modeldetail/modals/testmodalmanager/internalContracts.ts';
 import type { TestModalLogEntry } from '@features/modeldetail/modals/TestModalManagerTypes.ts';
@@ -10,11 +11,12 @@ const LOG_DOM_FLUSH_DELAY_MS = 50;
 
 const formatLogEntry = (entry: TestModalLogEntry): string => {
     const timestamp = entry['timestamp'];
+    const formattedTimestamp = typeof timestamp === 'string' ? formatUtcLogTimestamp(timestamp) : timestamp;
     const component = entry['component'];
     const level = entry['level'];
     const text = entry['text'];
     const message = entry['message'];
-    return [timestamp, component, level, text || message].filter(Boolean).join(' | ');
+    return [formattedTimestamp, component, level, text || message].filter(Boolean).join(' | ');
 };
 
 const requireLogsContainer = (context: TestModalRuntimeContext): HTMLElement | null => {

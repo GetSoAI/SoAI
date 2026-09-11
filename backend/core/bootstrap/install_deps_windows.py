@@ -4,14 +4,16 @@
 from __future__ import annotations
 
 import os
+import secrets
 from dataclasses import dataclass
 
 from core.bootstrap.install_arguments import ParsedInstallArguments
 from core.bootstrap.install_locks import (
     INSTALL_LOCK_ENV,
+    INSTALL_LOCK_TOKEN_ENV,
     acquire_lock_dir,
     lock_dir_has_live_owner,
-    read_lock_pid,
+    read_lock_token,
     release_lock_dir,
 )
 from core.bootstrap.install_status import InstallStatusOptions, InstallStatusReporter
@@ -59,6 +61,10 @@ class WindowsInstallDepsSession:
         if not self.owns_lock:
             return
         release_lock_dir(self.lock_dir)
+        inherited_lock = os.environ.get(INSTALL_LOCK_ENV, "")
+        if os.path.abspath(inherited_lock) == os.path.abspath(self.lock_dir):
+            os.environ.pop(INSTALL_LOCK_ENV, None)
+            os.environ.pop(INSTALL_LOCK_TOKEN_ENV, None)
         self.owns_lock = False
 
 
@@ -71,6 +77,11 @@ def begin_windows_install_deps(
     if not _inherited_install_lock_is_valid(lock_dir):
         lock_dir = acquire_lock_dir(lock_dir)
         os.environ[INSTALL_LOCK_ENV] = lock_dir
+        lock_token = read_lock_token(lock_dir)
+        if lock_token is None:
+            release_lock_dir(lock_dir)
+            raise StateError("SoAI install lock handoff token is missing or invalid.")
+        os.environ[INSTALL_LOCK_TOKEN_ENV] = lock_token
         owns_lock = True
     reporter = InstallStatusReporter(
         InstallStatusOptions(
@@ -107,10 +118,11 @@ def _inherited_install_lock_is_valid(lock_dir: str) -> bool:
     inherited_lock = os.environ.get(INSTALL_LOCK_ENV, "")
     if os.path.abspath(inherited_lock) != os.path.abspath(lock_dir):
         return False
-    lock_pid = read_lock_pid(lock_dir)
-    if lock_pid is None:
+    inherited_token = os.environ.get(INSTALL_LOCK_TOKEN_ENV, "")
+    lock_token = read_lock_token(lock_dir)
+    if not inherited_token or lock_token is None:
         return False
-    return lock_pid in {os.getpid(), os.getppid()} and lock_dir_has_live_owner(lock_dir)
+    return secrets.compare_digest(inherited_token, lock_token) and lock_dir_has_live_owner(lock_dir)
 
 
 def _run_post_update_hook(repo_root_path: str, python_executable: str) -> None:

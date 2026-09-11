@@ -8,6 +8,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 
 function Resolve-FullPath {
     param([Parameter(Mandatory=$true)][string]$Path)
@@ -47,7 +48,7 @@ function Test-ExcludedDirectory {
     $normalized = $RelativePath.Trim('\').ToLowerInvariant()
     $parts = $normalized -split '\\'
     foreach ($part in $parts) {
-        if ($script:ExcludedAnyDirectoryNames.Contains($part)) {
+        if ($script:ExcludedAnyDirectoryNames.Contains($part) -or $part -like '*_check') {
             return $true
         }
     }
@@ -107,7 +108,10 @@ function Copy-FilteredTree {
 }
 
 function Assert-FilteredPayload {
-    param([Parameter(Mandatory=$true)][string]$PayloadRoot)
+    param(
+        [Parameter(Mandatory=$true)][string]$PayloadRoot,
+        [switch]$PermitBuiltPayloadFiles
+    )
     foreach ($item in Get-ChildItem -LiteralPath $PayloadRoot -Recurse -Force) {
         $relative = Get-RelativePath -Root $PayloadRoot -Path $item.FullName
         if ($item.PSIsContainer) {
@@ -116,10 +120,87 @@ function Assert-FilteredPayload {
             }
             continue
         }
+        $excludedFile = Test-ExcludedFile -RelativePath $relative -Name $item.Name
+        $builtPayloadFile = $PermitBuiltPayloadFiles -and $script:BuiltPayloadFiles.Contains($relative)
         if ((Test-ExcludedDirectory ([System.IO.Path]::GetDirectoryName($relative))) `
-            -or (Test-ExcludedFile -RelativePath $relative -Name $item.Name)) {
+            -or ($excludedFile -and !$builtPayloadFile)) {
             throw "Windows payload contains a generated or sensitive file: $relative"
         }
+    }
+}
+
+function Assert-WindowsLicenseInventory {
+    param([Parameter(Mandatory=$true)][string]$PayloadRoot)
+    $licensesRoot = Join-Path $PayloadRoot 'licenses'
+    if (!(Test-Path -LiteralPath $licensesRoot -PathType Container)) {
+        throw 'Windows payload lacks its licenses directory.'
+    }
+    $expected = @(
+        'Apache-2.0.txt',
+        'FRONTEND-THIRD-PARTY-LICENSES.txt',
+        'MIT.txt',
+        'MSVC-RUNTIME-NOTICE.txt',
+        'Microsoft-OpenJDK-NOTICE.txt',
+        'NSIS-LICENSE.txt',
+        'OFL.txt',
+        'OpenJDK-ADDITIONAL-LICENSE-INFO.txt',
+        'OpenJDK-GPLv2.txt',
+        'OpenSSL-NOTICE.txt',
+        'PLAYWRIGHT-CHROMIUM-NOTICES.txt',
+        'PYTHON-THIRD-PARTY-NOTICES.txt',
+        'Python-3.13-LICENSE.txt',
+        'SBOM-PYTHON-CYCLONEDX.json',
+        'TESSERACT-WINDOWS-RUNTIME-NOTICES.txt',
+        'THIRD_PARTY_BACKEND_LICENSES.md',
+        'THIRD_PARTY_LOGO_NOTICES.md',
+        'WINDOWS-THIRD-PARTY-NOTICES.txt',
+        'legal_document_catalog.json',
+        'libffi-NOTICE.txt',
+        'webview2'
+    ) | Sort-Object
+    $licenseEntries = @(Get-ChildItem -LiteralPath $licensesRoot -Force)
+    $actual = @($licenseEntries | Select-Object -ExpandProperty Name | Sort-Object)
+    if ((Compare-Object -ReferenceObject $expected -DifferenceObject $actual).Count -ne 0) {
+        throw 'Windows payload license inventory does not match the platform contract.'
+    }
+    $invalidLicenseEntries = @(
+        $licenseEntries | Where-Object {
+            ($_.Name -eq 'webview2' -and !$_.PSIsContainer) -or
+            ($_.Name -ne 'webview2' -and $_.PSIsContainer)
+        }
+    )
+    if ($invalidLicenseEntries.Count -ne 0) {
+        throw 'Windows payload license material has an invalid file type.'
+    }
+    $webViewLicensesRoot = Join-Path $licensesRoot 'webview2'
+    if (!(Test-Path -LiteralPath $webViewLicensesRoot -PathType Container)) {
+        throw 'Windows payload WebView2 license directory is invalid.'
+    }
+    $expectedWebViewLicenses = @(
+        'Microsoft.Web.WebView2.SDK-LICENSE.txt',
+        'Microsoft.Web.WebView2.SDK-NOTICE.txt',
+        'README.txt'
+    ) | Sort-Object
+    $webViewLicenseEntries = @(Get-ChildItem -LiteralPath $webViewLicensesRoot -Force)
+    $actualWebViewLicenses = @($webViewLicenseEntries | Select-Object -ExpandProperty Name | Sort-Object)
+    if ((Compare-Object -ReferenceObject $expectedWebViewLicenses -DifferenceObject $actualWebViewLicenses).Count -ne 0 `
+        -or @($webViewLicenseEntries | Where-Object { $_.PSIsContainer }).Count -ne 0) {
+        throw 'Windows payload WebView2 license inventory does not match the platform contract.'
+    }
+}
+
+function Assert-WindowsPlatformPayload {
+    param([Parameter(Mandatory=$true)][string]$PayloadRoot)
+    $posixLauncher = Join-Path $PayloadRoot 'backend\core\bootstrap\launcher_posix'
+    if (Test-Path -LiteralPath $posixLauncher) {
+        throw 'Windows payload contains POSIX launcher material.'
+    }
+    $foreignFiles = @(
+        Get-ChildItem -LiteralPath $PayloadRoot -Recurse -File -Force |
+            Where-Object { $_.Extension -in @('.sh', '.command') }
+    )
+    if ($foreignFiles.Count -ne 0) {
+        throw 'Windows payload contains foreign-platform executable material.'
     }
 }
 
@@ -147,6 +228,13 @@ $script:ExcludedAnyDirectoryNames = [System.Collections.Generic.HashSet[string]]
     '.tox',
     '.vite',
     '__pycache__',
+    '__snapshots__',
+    'fixtures',
+    'mockplugins',
+    'mocks',
+    'test',
+    'tests',
+    'unit',
     'coverage',
     'dist',
     'htmlcov',
@@ -178,6 +266,7 @@ $script:ExcludedRootDirectoryNames = [System.Collections.Generic.HashSet[string]
 ) | ForEach-Object { [void]$script:ExcludedRootDirectoryNames.Add($_) }
 
 $script:ExcludedRelativeDirectories = @(
+    'backend\core\bootstrap\launcher_posix',
     'data\backups',
     'data\backends',
     'data\cache',
@@ -208,7 +297,54 @@ $script:ExcludedRootFiles = [System.Collections.Generic.HashSet[string]]::new([S
     'data\secret.key'
 ) | ForEach-Object { [void]$script:ExcludedRootFiles.Add($_) }
 
+$script:BuiltLauncherRootFiles = @(
+    'soai.exe',
+    'soai-app.ico',
+    'Microsoft.Web.WebView2.Core.dll',
+    'Microsoft.Web.WebView2.WinForms.dll',
+    'WebView2Loader.dll'
+)
+
+$script:ManagedRuntimeAssetFiles = @(
+    'tesseract-5.5.3-windows-x64.zip',
+    'tesseract-5.5.3-windows-x64.json'
+)
+
+$script:BuiltPayloadFiles = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+@(
+    $script:BuiltLauncherRootFiles
+    $script:ManagedRuntimeAssetFiles | ForEach-Object { "runtime-assets\$_" }
+) | ForEach-Object { [void]$script:BuiltPayloadFiles.Add($_) }
+
 $script:ExcludedFilePatterns = @(
+    '.gitignore',
+    '.bandit',
+    '.depcheckrc',
+    '.editorconfig',
+    '.prettier*',
+    'prettier.config.*',
+    '.pylintrc',
+    '.coveragerc',
+    '.eslintrc*',
+    '.stylelintrc*',
+    'eslint.config.*',
+    'stylelint.config.*',
+    'conftest.py',
+    'mypy.ini',
+    'pyrightconfig.json',
+    'pytest.ini',
+    'requirements-dev.txt',
+    'ruff.toml',
+    '.ruff.toml',
+    'tox.ini',
+    'playwright.config.*',
+    'playwright-test.d.ts',
+    'vitest.config.*',
+    'tsconfig.playwright.json',
+    'test_*',
+    'test-*',
+    '*.test.*',
+    '*.spec.*',
     '.coverage',
     '.coverage.*',
     '.ds_store',
@@ -269,13 +405,12 @@ New-Item -ItemType Directory -Force -Path $payloadRoot | Out-Null
 
 Copy-FilteredTree -Source $script:ResolvedSourceRoot -Destination $payloadRoot
 Assert-FilteredPayload -PayloadRoot $payloadRoot
+Assert-WindowsPlatformPayload -PayloadRoot $payloadRoot
+Assert-WindowsLicenseInventory -PayloadRoot $payloadRoot
 
 $runtimeAssetsSource = Join-Path $script:ResolvedSourceRoot 'runtime-assets'
 $runtimeAssetsDestination = Join-Path $payloadRoot 'runtime-assets'
-$expectedRuntimeAssets = @(
-    'tesseract-5.5.3-windows-x64.zip',
-    'tesseract-5.5.3-windows-x64.json'
-)
+$expectedRuntimeAssets = $script:ManagedRuntimeAssetFiles
 New-Item -ItemType Directory -Force -Path $runtimeAssetsDestination | Out-Null
 foreach ($file in $expectedRuntimeAssets) {
     $source = Join-Path $runtimeAssetsSource $file
@@ -296,19 +431,21 @@ if ($packagedPluginConfigurations) {
     throw 'Windows payload contains runtime-generated plugin configuration.'
 }
 
-$editionReleaseInfo = [ordered]@{
+$editionReleaseInfo = ([ordered]@{
     artifact_type = 'complete'
     core_version = $Version
     edition = 'soai-core'
     product = 'SoAI'
     schema_version = 1
     version = $Version
-} | ConvertTo-Json -Depth 3
-Set-Content -LiteralPath (Join-Path $payloadRoot 'release-info-v1.json') `
-    -Value $editionReleaseInfo `
-    -Encoding UTF8
+} | ConvertTo-Json -Depth 3) + "`n"
+[IO.File]::WriteAllText(
+    (Join-Path $payloadRoot 'release-info-v1.json'),
+    $editionReleaseInfo,
+    [Text.UTF8Encoding]::new($false)
+)
 
-foreach ($file in @('soai.exe', 'soai-app.ico', 'Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.WinForms.dll', 'WebView2Loader.dll')) {
+foreach ($file in $script:BuiltLauncherRootFiles) {
     $source = Join-Path $launcherRoot $file
     if (!(Test-Path -LiteralPath $source)) {
         throw "Launcher build output is missing: $source"
@@ -320,17 +457,26 @@ $supportDir = Join-Path $payloadRoot 'installer-support'
 New-Item -ItemType Directory -Force -Path $supportDir | Out-Null
 Copy-Item -LiteralPath (Join-Path $releaseKitRoot 'installer\scripts\Install-SoAIRuntime.ps1') -Destination $supportDir -Force
 Copy-Item -LiteralPath (Join-Path $releaseKitRoot 'installer\scripts\Remove-SoAI.ps1') -Destination $supportDir -Force
+Copy-Item -LiteralPath (Join-Path $releaseKitRoot 'installer\scripts\Preserve-SoAIUpgrade.ps1') -Destination $supportDir -Force
 
-$releaseInfo = @{
+$releaseInfo = (@{
     product = 'SoAI'
     version = $Version
-} | ConvertTo-Json -Depth 3
-Set-Content -LiteralPath (Join-Path $supportDir 'release-info.json') -Value $releaseInfo -Encoding UTF8
+} | ConvertTo-Json -Depth 3) + "`n"
+[IO.File]::WriteAllText(
+    (Join-Path $supportDir 'release-info.json'),
+    $releaseInfo,
+    [Text.UTF8Encoding]::new($false)
+)
 
 $manifestPath = Join-Path $supportDir 'installed-files.txt'
 $files = Get-ChildItem -LiteralPath $payloadRoot -Recurse -File -Force |
     Sort-Object FullName |
     ForEach-Object { Get-RelativePath -Root $payloadRoot -Path $_.FullName }
 Set-Content -LiteralPath $manifestPath -Value $files -Encoding ASCII
+
+Assert-FilteredPayload -PayloadRoot $payloadRoot -PermitBuiltPayloadFiles
+Assert-WindowsPlatformPayload -PayloadRoot $payloadRoot
+Assert-WindowsLicenseInventory -PayloadRoot $payloadRoot
 
 Write-Host "Payload staged at: $payloadRoot"

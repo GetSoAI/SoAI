@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
     from core.hardware.protocols import HardwareManagerProtocol
     from core.orchestrator.protocols_lifecycle import OrchestratorLifecycleProtocol
+    from core.plugins.logo_contract import PluginLogoResult
     from core.plugins.protocols_instance import (
         PluginActionResponseProtocol,
         PluginInstanceProtocol,
@@ -64,6 +65,9 @@ class OpenAICapabilityPluginClassProtocol(Protocol):
 
 
 class PluginManagerProtocol(Protocol):
+    async def prepare_logo(
+        self, plugin_name: str, archive_hash: str
+    ) -> PluginLogoResult | None: ...
     @property
     def state(self) -> PluginManagerStateProtocol: ...
     @property

@@ -23,17 +23,20 @@ async def cleanup_uploading_placeholder(
     placeholder_created: bool,
     plugin_name: str | None,
     final_path: str | None,
-) -> None:
+) -> bool:
     logger = get_logger(LOGGER_NAME)
     if not placeholder_created or not plugin_name:
-        return
+        return False
     try:
         record = await manager.dependencies.databases.plugins.get_plugin_by_name(plugin_name)
         if not record:
-            return
+            return False
         if final_path and await async_path_exists(final_path):
-            return
-        await manager.dependencies.databases.plugins.permanently_delete_plugin_record(plugin_name)
+            return False
+        deleted = await manager.dependencies.databases.plugins.permanently_delete_plugin_record(
+            plugin_name
+        )
+        return bool(deleted)
     except RECOVERABLE_EXCEPTIONS as exception:
         log_exception(
             logger,
@@ -42,3 +45,4 @@ async def cleanup_uploading_placeholder(
             operation=OPERATION,
             details={"plugin": plugin_name},
         )
+        return False

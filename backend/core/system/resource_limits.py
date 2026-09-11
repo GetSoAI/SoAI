@@ -7,6 +7,8 @@ import logging
 import os
 import sys
 
+from core.logging.configuration_constants import DEFAULT_LOG_DATE_FORMAT
+from core.logging.formatters import UnifiedFormatter
 from core.logging.trace import get_logger
 from core.platform.os import is_windows
 
@@ -28,9 +30,9 @@ def configure_resource_limits() -> None:
     if not logger.handlers:
         handler = logging.StreamHandler(sys.stderr)
         handler.setFormatter(
-            logging.Formatter(
+            UnifiedFormatter(
                 "%(asctime)s - [SoAI/Bootstrap] - %(levelname)s - %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
+                DEFAULT_LOG_DATE_FORMAT,
             ),
         )
         logger.addHandler(handler)

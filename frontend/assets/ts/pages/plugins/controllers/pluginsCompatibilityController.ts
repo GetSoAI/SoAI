@@ -3,7 +3,7 @@
 
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { toTrimmedUpper } from '@core/normalize.ts';
+import { toTrimmedString, toTrimmedUpper } from '@core/normalize.ts';
 import { isArray, isFiniteNumber, isObject, isString } from '@core/typeGuards.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
@@ -19,6 +19,8 @@ interface PluginsCompatibilityControllerHost extends PageFeedbackOwnerHost {
     isCircuitBreakerActive(plugin: PluginRecord | string | null | undefined): boolean;
 }
 
+type CompatibilityMessagePresentation = 'full' | 'overrideNotice' | 'card';
+
 class PluginsCompatibilityController {
     #host: PluginsCompatibilityControllerHost;
 
@@ -26,24 +28,18 @@ class PluginsCompatibilityController {
         this.#host = host;
     }
 
-    formatCompatibilityList(values: ReadonlyArray<JsonValue | undefined>): string {
+    formatCompatibilityList(values: ReadonlyArray<JsonValue | undefined>, normalization: 'uppercase' | 'preserve' = 'uppercase'): string {
         if (!isArray(values)) {
             throw new Error('Compatibility list requires an array of values');
         }
-        const items = values
-            .map((value: JsonValue | undefined): string =>
-                String(value ?? '')
-                    .trim()
-                    .toUpperCase()
-            )
-            .filter(Boolean);
+        const items = values.map((value: JsonValue | undefined): string => (normalization === 'uppercase' ? toTrimmedUpper(value) : toTrimmedString(value))).filter(Boolean);
         if (!items.length) {
             throw new Error('Compatibility list is empty');
         }
         return items.join(', ');
     }
 
-    resolveCompatibilityMessage(compatibility: CompatibilityInfo | null | undefined, { preferShortHardware = false }: { preferShortHardware?: boolean } = {}): string {
+    resolveCompatibilityMessage(compatibility: CompatibilityInfo | null | undefined, presentation: CompatibilityMessagePresentation = 'full'): string {
         if (!compatibility || compatibility.isCompatible) {
             return '';
         }
@@ -59,12 +55,12 @@ class PluginsCompatibilityController {
             return { required, current };
         };
         const sanitizeCompatibilityMessage = this.#host.sanitizeCompatibilityMessage;
-        const useShortHardware = preferShortHardware && compatibility.canOverride === true;
+        const useCompactHardware = presentation !== 'full' && compatibility.canOverride === true;
 
         switch (compatibility.reason) {
             case 'VERSION_INCOMPATIBLE': {
                 const versionPair = getVersionPair();
-                if (useShortHardware) {
+                if (useCompactHardware) {
                     return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.reasons.hardwareShort', versionPair));
                 }
                 return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.reasons.version', versionPair));
@@ -79,10 +75,14 @@ class PluginsCompatibilityController {
                 if (!requiredOs.length || requiredOs.every((value: JsonValue | undefined): boolean => !String(value ?? '').trim())) {
                     throw new Error(`OS compatibility message missing required OS: ${JSON.stringify({ details: detailsObject, reason: compatibility.reason })}`);
                 }
-                if (useShortHardware) {
-                    return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.reasons.osShort', { required: this.formatCompatibilityList(requiredOs), detected }));
+                const required = this.formatCompatibilityList(requiredOs);
+                if (useCompactHardware) {
+                    if (presentation === 'card') {
+                        return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.reasons.osCard', { required, detected }));
+                    }
+                    return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.reasons.osShort', { required, detected }));
                 }
-                return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.reasons.os', { required: this.formatCompatibilityList(requiredOs), detected }));
+                return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.reasons.os', { required, detected }));
             }
             case 'GPU_REQUIRED': {
                 const requiredGpuCandidate = detailsObject['requiredGpu'];
@@ -93,7 +93,7 @@ class PluginsCompatibilityController {
                     throw new Error(`GPU compatibility message missing required GPU: ${JSON.stringify({ details: detailsObject, reason: compatibility.reason })}`);
                 }
                 const detectedGpu = detectedVendors.length && !detectedVendors.every((value: JsonValue | undefined): boolean => !String(value ?? '').trim()) ? this.formatCompatibilityList(detectedVendors) : i18n.t('plugins.compatibility.noneDetected');
-                if (useShortHardware) {
+                if (useCompactHardware) {
                     return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.reasons.gpuShort', { required: this.formatCompatibilityList(requiredGpu), detected: detectedGpu }));
                 }
                 return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.reasons.gpu', { required: this.formatCompatibilityList(requiredGpu), detected: detectedGpu }));
@@ -101,13 +101,21 @@ class PluginsCompatibilityController {
             case 'BROKEN_PLUGIN': {
                 return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.reasons.broken'));
             }
+            case 'DEPENDENCY_MISSING': {
+                const missingDependencies = detailsObject['missingDependencies'];
+                if (!isArray(missingDependencies)) {
+                    throw new Error(`Dependency compatibility message missing dependency list: ${JSON.stringify({ details: detailsObject, reason: compatibility.reason })}`);
+                }
+                const dependencies = this.formatCompatibilityList(missingDependencies, 'preserve');
+                return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.reasons.dependencyMissing', { dependencies }));
+            }
             default: {
                 const directMessage = sanitizeCompatibilityMessage(compatibility.message ?? '');
                 if (directMessage) {
                     return directMessage;
                 }
                 const versionPair = getVersionPair();
-                if (useShortHardware) {
+                if (useCompactHardware) {
                     return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.reasons.hardwareShort', versionPair));
                 }
                 return sanitizeCompatibilityMessage(i18n.t('plugins.compatibility.default', versionPair));
@@ -115,15 +123,13 @@ class PluginsCompatibilityController {
         }
     }
 
-    getIncompatibilityContext(plugin: PluginRecord | string | null | undefined): { message: string; iconName: IconName; variant: string } | null {
+    getIncompatibilityContext(plugin: PluginRecord | string | null | undefined, presentation: CompatibilityMessagePresentation): { message: string; iconName: IconName; variant: string } | null {
         const record = this.#host.resolvePluginRecord(plugin);
         const compatibility = this.#host.getPluginCompatibility(record);
         if (!compatibility?.reason || compatibility.isOverridden) {
             return null;
         }
-        const message = this.resolveCompatibilityMessage(compatibility, {
-            preferShortHardware: compatibility.canOverride === true
-        });
+        const message = this.resolveCompatibilityMessage(compatibility, presentation);
         if (!message) {
             return null;
         }
@@ -141,7 +147,7 @@ class PluginsCompatibilityController {
     }
 
     getIncompatibleNotice(plugin: PluginRecord | string | null | undefined): string {
-        const context = this.getIncompatibilityContext(plugin);
+        const context = this.getIncompatibilityContext(plugin, 'card');
         if (!context) {
             return '';
         }
@@ -190,7 +196,7 @@ class PluginsCompatibilityController {
     }
 
     getPluginIncompatibilityMessage(plugin: PluginRecord | string | null | undefined, { includeName = true }: { includeName?: boolean } = {}): string {
-        const context = this.getIncompatibilityContext(plugin);
+        const context = this.getIncompatibilityContext(plugin, 'overrideNotice');
         const reason = isString(context?.message) ? context.message.trim() : '';
         if (!reason) {
             return '';

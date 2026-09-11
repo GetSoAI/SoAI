@@ -76,7 +76,7 @@ const normalizeCatalogPlugins = (catalogStore: CatalogStore, plugins: ReadonlyAr
     for (const plugin of plugins) {
         const normalized = catalogStore.normalizePlugin(plugin);
         if (normalized) {
-            normalizedPlugins.push(normalized);
+            normalizedPlugins.push({ ...plugin, ...normalized });
         }
     }
     return normalizedPlugins;

@@ -45,7 +45,6 @@ class ChatUIManager {
             this.#context.state.messagesAreaInsetsDisposer = setupMessagesAreaInsets(this.#context);
         }
         setupPreviewsContainerLayout(this.#context);
-        this.#context.dependencies.composition.updateHeaderModelSelectorVisibility();
         setupAdvancedScrollPreview(this.#context);
         this.updateMicrophoneAvailability();
     }

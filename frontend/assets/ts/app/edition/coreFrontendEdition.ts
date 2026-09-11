@@ -4,6 +4,7 @@
 import type { FrontendEditionComposition } from '@app/edition/frontendEditionComposition.ts';
 import { BASE_BRANDING } from '@core/branding/constants.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { CORE_BACKGROUND_ACTIVITY_OPERATION_TYPES } from '@core/tasks/backgroundActivityPolicy.ts';
 
 const CORE_FRONTEND_EDITION: FrontendEditionComposition = Object.freeze({
     edition: 'soai-core',
@@ -30,7 +31,8 @@ const CORE_FRONTEND_EDITION: FrontendEditionComposition = Object.freeze({
     translationCatalogs: Object.freeze([]),
     taskCatalog: Object.freeze({
         taskTypeMappings: Object.freeze({}),
-        operationLabels: Object.freeze({})
+        operationLabels: Object.freeze({}),
+        backgroundActivityOperationTypes: CORE_BACKGROUND_ACTIVITY_OPERATION_TYPES
     }),
     branding: BASE_BRANDING,
     createDashboardIntro: () => null

@@ -5,6 +5,7 @@ import type { AssistantEventTimelineItem, ThinkingTimelineItem, ToolActivityItem
 import type { AssistantChronologyRenderEntry } from '@features/chat/assistanteventtimeline/timelineChronology.ts';
 
 type ActivitySegmentEntry = AssistantChronologyRenderEntry;
+type ToolActivitySource = 'lifecycle' | 'projection';
 
 export interface AssistantTimelineOverlays {
     toolActivity: ToolActivityItem[];
@@ -29,7 +30,7 @@ export interface AssistantTimelineIndexState {
     thinkingSequenceByCallId: Map<string, number>;
     thinkingRenderAnchorByPhaseId: Map<string, number>;
     toolRenderAnchorByCallId: Map<string, number>;
-    projectionOnlyToolCallIds: Set<string>;
+    toolSourceByCallId: Map<string, ToolActivitySource>;
     hasAssistantTextDeltas: boolean;
     assistantVisibleText: string;
     assistantVisibleTextCodePointLength: number;
@@ -61,7 +62,7 @@ const createAssistantTimelineIndexState = (): AssistantTimelineIndexState => {
         thinkingSequenceByCallId: new Map(),
         thinkingRenderAnchorByPhaseId: new Map(),
         toolRenderAnchorByCallId: new Map(),
-        projectionOnlyToolCallIds: new Set(),
+        toolSourceByCallId: new Map(),
         hasAssistantTextDeltas: false,
         assistantVisibleText: '',
         assistantVisibleTextCodePointLength: 0,
@@ -93,7 +94,7 @@ const resetAssistantTimelineIndexState = (state: AssistantTimelineIndexState): v
     state.thinkingSequenceByCallId.clear();
     state.thinkingRenderAnchorByPhaseId.clear();
     state.toolRenderAnchorByCallId.clear();
-    state.projectionOnlyToolCallIds.clear();
+    state.toolSourceByCallId.clear();
     state.hasAssistantTextDeltas = false;
     state.assistantVisibleText = '';
     state.assistantVisibleTextCodePointLength = 0;
@@ -114,4 +115,4 @@ const resetAssistantTimelineIndexState = (state: AssistantTimelineIndexState): v
 };
 
 export { createAssistantTimelineIndexState, resetAssistantTimelineIndexState };
-export type { ActivitySegmentEntry };
+export type { ActivitySegmentEntry, ToolActivitySource };

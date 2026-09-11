@@ -59,6 +59,7 @@ interface ChatMessageSessionPort {
 interface ChatMessageRenderingPort {
     getAttachmentDraftRevision: () => number;
     getWorkerRenderEpoch: () => number;
+    invalidateActiveStreamDomCache: (conversationId: string, messageDomId: string) => void;
     updateConversationRenderCache?: (conversationId: string, messageDomId: string, signature: string) => void;
     revealActivityElement: (element: HTMLElement) => void;
 }

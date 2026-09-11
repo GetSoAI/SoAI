@@ -8,6 +8,7 @@ import { showOperationFailureNotification } from '@core/ui/notifications/operati
 import type { NotificationType } from '@core/ui/notifications/types.ts';
 import type { AutomationEditorController } from '@pages/automation/controllers/AutomationEditorController.ts';
 import { clearSelectionIfMatchesAutomation, confirmDeleteAutomation, requireCheckboxInput, resolveAutomationById, runDeleteAutomation, runToggleAutomationEnabled } from '@pages/automation/controllers/automationManagementActions.ts';
+import { resolveAutomationOperationErrorMessage } from '@pages/automation/controllers/AutomationPageErrorNotifier.ts';
 import { AutomationUserNotifiedError } from '@pages/automation/controllers/AutomationUserNotifiedError.ts';
 import { requireAutomationToggleLabel } from '@pages/automation/dom.ts';
 import type { AutomationDataService } from '@features/automation/public.ts';
@@ -35,6 +36,7 @@ const notifyOperationFailed = (host: AutomationCrudActionHost, operation: string
     showOperationFailureNotification({
         error: runtimeError,
         operation,
+        errorMessage: resolveAutomationOperationErrorMessage(runtimeError),
         showNotification: (message, level): void => host.state.showNotification(message, level)
     });
 };

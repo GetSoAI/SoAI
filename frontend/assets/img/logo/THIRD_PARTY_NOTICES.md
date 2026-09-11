@@ -12,4 +12,4 @@ NVIDIA, AMD, and Intel hardware logos in this folder are used only to identify d
 
 SoAI does not claim ownership of third-party marks. SoAI does not claim that any third-party owner endorses SoAI, certifies SoAI, participates in SoAI, or is responsible for SoAI.
 
-If you own rights in an image, logo, name, mark, or other material included here and believe SoAI should change, remove, replace, or attribute it differently, contact me. The issue will be reviewed and fixed promptly when appropriate.
+If you own rights in an image, logo, name, mark, or other material included here and believe SoAI should change, remove, replace, or attribute it differently, contact `info@soai.to`. The concern will be reviewed and addressed promptly when appropriate.

@@ -17,6 +17,7 @@ from xml.etree.ElementTree import Element
 import pypdfium2
 from defusedxml import ElementTree
 
+from core.archives.resource_limits import default_archive_resource_limits
 from core.archives.zip_plan import (
     ValidatedZipMember,
     ZipPlanPolicy,
@@ -144,12 +145,8 @@ def _extract_ordered_archive_images(
         with zipfile.ZipFile(source_path) as archive:
             plan = build_validated_zip_plan(
                 archive,
-                policy=ZipPlanPolicy(
-                    reject_backslashes=True,
-                    reject_colons=True,
-                    reject_empty_segments=True,
-                    reject_case_collisions=True,
-                    reject_unicode_collisions=True,
+                policy=ZipPlanPolicy.strict_portable_paths(
+                    resource_limits=default_archive_resource_limits(),
                 ),
             )
             member_map = {member.archive_path: member for member in plan.members}

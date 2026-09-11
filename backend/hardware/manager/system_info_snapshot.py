@@ -36,6 +36,7 @@ from hardware.monitoring.disk_speed_snapshot import get_disk_speed_snapshot
 from hardware.monitoring.network_speed import get_network_speed
 from hardware.probe import sync_get_raw_capabilities
 from hardware.storage.disk_info import get_disk_info
+from hardware.vendors.nvidia.smi import NvidiaSettingsController
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
@@ -53,6 +54,7 @@ def collect_system_info_snapshot(
     gpu_info_cache_service: GPUInfoCacheServiceProtocol,
     gpu_vendor_detection_service: GPUVendorDetectionServiceProtocol,
     nvidia_nvml_gate: NvmlGateProtocol,
+    nvidia_settings_controller: NvidiaSettingsController | None,
     nvidia_capabilities_cache_service: NvidiaCapabilitiesCacheServiceProtocol,
     rapl_energy_cache: RaplEnergyCache,
     components: Sequence[str] | None,
@@ -103,6 +105,7 @@ def collect_system_info_snapshot(
                 nvidia_nvml_gate=nvidia_nvml_gate,
                 nvidia_capabilities_cache_service=nvidia_capabilities_cache_service,
                 gpu_info=gpu_snapshot,
+                nvidia_settings_controller=nvidia_settings_controller,
                 logger=logger,
             )
             capabilities = hw_gpu_tuning.enrich_gpu_capabilities(capabilities)

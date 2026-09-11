@@ -141,8 +141,8 @@ class AutomationConfigurationFormController {
         this.#turns.removeTurn(indexCandidate);
     }
 
-    async openWorkspaceModal(api: ReadOnlyFileBrowserApi, allowManualAbsoluteSelectionOutsideRoot: boolean, canApply: () => boolean): Promise<boolean> {
-        return await this.#modelSettings.openWorkspaceModal(api, allowManualAbsoluteSelectionOutsideRoot, canApply);
+    async openWorkspaceModal(api: ReadOnlyFileBrowserApi, canApply: () => boolean): Promise<boolean> {
+        return await this.#modelSettings.openWorkspaceModal(api, canApply);
     }
 
     async openParametersModal(canApply: () => boolean): Promise<boolean> {

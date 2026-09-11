@@ -9,10 +9,10 @@ from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.logging.trace import get_logger
 from features.api.runtime.context import ApiContext
-from features.assistant_timeline.publish import (
-    ensure_chat_stream_publish_lock,
-    flush_chat_stream_event_persistence,
+from features.assistant_timeline.assistant_text import (
+    flush_assistant_visible_chronology,
 )
+from features.assistant_timeline.publish import ensure_chat_stream_publish_lock
 
 __all__ = ("flush_matching_chat_stream_state_runtime",)
 
@@ -53,7 +53,11 @@ async def flush_matching_chat_stream_state_runtime(
                 and runtime.conv_id == conv_id
                 and runtime.assistant_turn_at_ms == assistant_turn_at_ms
                 and runtime.model_variant_index == model_variant_index
-                and bool(runtime.assistant_event_buffer)
+                and (
+                    runtime.assistant_delta_buffer_chars > 0
+                    or bool(runtime.assistant_event_buffer)
+                    or runtime.assistant_visible_chars > runtime.assistant_persisted_chars
+                )
             )
             if should_flush:
                 flush_future = asyncio.get_running_loop().create_future()
@@ -65,11 +69,12 @@ async def flush_matching_chat_stream_state_runtime(
         await _await_force_flush_future(flush_future)
         return
     try:
-        did_flush = await flush_chat_stream_event_persistence(
-            runtime,
-            api_context.dependencies.database_messages,
-            force=True,
+        await flush_assistant_visible_chronology(
+            runtime=runtime,
+            database_messages=api_context.dependencies.database_messages,
+            event_bus=api_context.dependencies.event_bus,
         )
+        did_flush = True
     except asyncio.CancelledError:
         if not flush_future.done():
             flush_future.set_result(False)

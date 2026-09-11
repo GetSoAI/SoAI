@@ -50,6 +50,13 @@ class FileExplorerRowsRevealController {
         this.releaseNextFrame();
     }
 
+    armCommittedRows(rows: readonly HTMLElement[]): void {
+        if (rows.length === 0 || areCollectionCardRevealAnimationsDisabled(this.#rowsBody)) {
+            return;
+        }
+        rows.forEach((row, index) => this.#armRevealTarget(row, index));
+    }
+
     holdRelease(): void {
         this.#autoRelease = false;
         this.#cancelPendingRelease();

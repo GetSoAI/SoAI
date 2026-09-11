@@ -82,6 +82,9 @@
                 "deleteMessage": "इससे \"{title}\" और इसके निर्धारित रन हट जाएँगे। मौजूदा चैट ट्रांसक्रिप्ट उपलब्ध रहेंगे।",
                 "deleteTitle": "ऑटोमेशन हटाएँ?"
             },
+            "errors": {
+                "oneShotStartNotFuture": "एक बार चलने वाले ऑटोमेशन भविष्य में शुरू होने चाहिए। बाद का प्रारंभ समय चुनें।"
+            },
             "preferencesCorrupt": {
                 "message": "ऑटोमेशन पेज की प्राथमिकताएँ अमान्य हैं। जारी रखने के लिए प्राथमिकताएँ रीसेट करें।",
                 "reset": "ऑटोमेशन प्राथमिकताएँ रीसेट करें",
@@ -647,6 +650,8 @@
                 "toolApprovalRequiredHint": "इस वार्तालाप में टूल निष्पादित करने से पहले अनुमोदन आवश्यक करें।",
                 "newConversationInheritLastSettings": "नई चैट के लिए पिछली सेटिंग्स उपयोग करें",
                 "newConversationInheritLastSettingsHint": "नई चैट आपके पिछली बार उपयोग किए गए मॉडल, टूल और ज्ञान सेटिंग्स से शुरू होती हैं।",
+                "ctrlEnterSend": "भेजने के लिए Ctrl + Enter",
+                "ctrlEnterSendHint": "सक्षम होने पर, Ctrl + Enter से भेजें और Enter से नई पंक्ति शुरू करें। अक्षम होने पर, Enter से भेजें और Shift + Enter से नई पंक्ति शुरू करें।",
                 "knowledge": {
                     "downloadModel": "मॉडल डाउनलोड करें",
                     "importFromFileExplorerPlaceholder": "/path/to/folder",
@@ -1925,6 +1930,12 @@
                         "stop_conversation": {
                             "1": "जवाब रोका जा रहा है"
                         },
+                        "soai_documentation": {
+                            "1": "SoAI दस्तावेज़ खोजा जा रहा है",
+                            "detail": {
+                                "1": "SoAI दस्तावेज़ खोजा जा रहा है: {detail}"
+                            }
+                        },
                         "replace_in_file": {
                             "1": "टेक्स्ट बदला जा रहा है",
                             "detail": {
@@ -2361,9 +2372,11 @@
             },
             "folderPicker": {
                 "currentFolder": "वर्तमान फ़ोल्डर",
+                "filesystemRoot": "फ़ाइल सिस्टम रूट",
                 "empty": "कोई फ़ोल्डर नहीं मिला।",
                 "forbidden": "आपको इस फ़ोल्डर तक पहुँच की अनुमति नहीं है।",
                 "loadFailed": "फ़ोल्डर लोड नहीं किए जा सके।",
+                "validationFailed": "चुने गए फ़ोल्डर की पुष्टि नहीं की जा सकी।",
                 "loading": "फ़ोल्डर लोड हो रहे हैं...",
                 "manualAbsolutePathRequired": "पूर्ण पथ दर्ज करें (जैसे /path या C:\\path)।",
                 "manualPath": "चयनित फ़ोल्डर",
@@ -2474,7 +2487,8 @@
                 "loading": "लोड हो रहा है",
                 "resolution": "रेज़ोल्यूशन",
                 "size": "आकार",
-                "zoom": "ज़ूम"
+                "zoom": "ज़ूम",
+                "position": "{total} में से छवि {current}"
             },
             "sourceInfo": {
                 "conversationPath": "वार्तालाप पथ",
@@ -3334,6 +3348,15 @@
                     "vram": "VRAM"
                 },
                 "title": "विजेट"
+            },
+            "gpuResources": {
+                "capabilitiesIncomplete": "कुछ GPU नियंत्रणों का पता नहीं चल सका। उपलब्ध नियंत्रणों का उपयोग किया जा सकता है।",
+                "capabilitiesStale": "GPU नियंत्रणों से फिर से कनेक्ट किया जा रहा है। पिछला अपडेट: {age}।",
+                "capabilitiesRetained": "GPU नियंत्रण उपलब्ध नहीं हैं। {age} के डेटा दिखाए जा रहे हैं।",
+                "slotsStale": "सहेजी गई GPU सेटिंग्स से फिर से कनेक्ट किया जा रहा है। पिछला अपडेट: {age}।",
+                "slotsRetained": "सहेजी गई GPU सेटिंग्स उपलब्ध नहीं हैं। {age} के डेटा दिखाए जा रहे हैं।",
+                "capabilitiesUnavailable": "GPU नियंत्रण उपलब्ध नहीं हैं।",
+                "slotsUnavailable": "GPU की सहेजी गई सेटिंग उपलब्ध नहीं हैं।"
             }
         },
         "header": {
@@ -3392,8 +3415,7 @@
                     "open": "खोलें"
                 },
                 "aria": {
-                    "panel": "सूचना केंद्र",
-                    "unreadCount": "अपठित सूचनाएँ"
+                    "panel": "सूचना केंद्र"
                 },
                 "messages": {
                     "noNotifications": "कोई सूचना नहीं",
@@ -3411,7 +3433,7 @@
                 "externalLinkConfirm": "जारी रखें",
                 "externalLinkMessage": "क्या आप SoAI वेबसाइट को नए ब्राउज़र टैब में खोलना चाहते हैं?"
             },
-            "description": "SoAI का उपयोग समझें",
+            "description": "SoAI का उपयोग समझें।",
             "documentationUrl": "दस्तावेज़ीकरण",
             "intro": {
                 "aboutButton": "SoAI के बारे में",
@@ -4236,8 +4258,7 @@
             "description": "प्लगइन और प्रदाताओं में AI मॉडल प्रबंधित करें।",
             "searchPlaceholder": "मॉडल खोजें...",
             "empty": {
-                "downloadFirst": "अपना पहला मॉडल डाउनलोड करें",
-                "getStarted": "शुरू करने के लिए अपना पहला मॉडल डाउनलोड करें।",
+                "getStarted": "अपना पहला मॉडल जोड़कर शुरुआत करें।",
                 "noMatch": "आपके फ़िल्टर से कोई मॉडल मेल नहीं खाता",
                 "noModels": "कोई मॉडल नहीं मिला",
                 "tryAdjusting": "अपनी खोज या फ़िल्टर मानदंड समायोजित करके देखें।"
@@ -4702,7 +4723,7 @@
                 "title": "डैशबोर्ड"
             },
             "fileExplorer": {
-                "description": "SoAI OS फ़ाइलें ब्राउज़ और प्रबंधित करें।",
+                "description": "SoAI फ़ाइलें ब्राउज़ और प्रबंधित करें।",
                 "title": "फ़ाइलें"
             },
             "hardware": {
@@ -4843,10 +4864,12 @@
                 "noneDetected": "कोई नहीं",
                 "reasons": {
                     "broken": "प्लगइन फ़ाइल खराब है या उसमें सिंटैक्स त्रुटियाँ हैं। इसे हटाकर फिर डाउनलोड करें।",
+                    "dependencyMissing": "आवश्यक प्लगइन निर्भरताएँ उपलब्ध नहीं हैं: {dependencies}।",
                     "gpu": "GPU ({required}) आवश्यक है। मिले वेंडर: {detected}। CPU मोड उपयोग करने के लिए ओवरराइड करें (शायद काम न करे)।",
                     "gpuShort": "GPU जाँच विफल। आवश्यक: {required}। मिला: {detected}। जारी रखने के लिए टॉगल करें।",
                     "hardwareShort": "हार्डवेयर आवश्यकताएँ पूरी नहीं हुईं। आवश्यक: {required}। वर्तमान: {current}। आगे बढ़ने के लिए टॉगल करें।",
                     "os": "{required} आवश्यक है। मिला: {detected}। अपने जोखिम पर ओवरराइड करें।",
+                    "osCard": "{required} आवश्यक है। मिला: {detected}।",
                     "osShort": "OS मेल नहीं खाता। आवश्यक: {required}। मिला: {detected}। फिर भी सक्षम करने के लिए टॉगल करें।",
                     "version": "SoAI {required} आवश्यक है। वर्तमान: {current}। इस प्लगइन का उपयोग करने के लिए SoAI अपडेट करें।"
                 }
@@ -5099,7 +5122,6 @@
                 "stopAllSuccess": "सभी प्लगइन रोकने का कमांड जारी किया गया है।",
                 "stopSuccess": "प्लगइन {plugin} सफलतापूर्वक रोका गया",
                 "updateCheckFailed": "अपडेट जाँचने में विफल",
-                "uploadAccepted": "प्लगइन अपलोड स्वीकार किया गया",
                 "uploadFailed": "प्लगइन अपलोड करने में विफल"
             },
             "providerMode": {
@@ -5484,7 +5506,7 @@
                 "plugins": "प्लगइन",
                 "prompts": "प्रॉम्प्ट्स"
             },
-            "description": "मॉडल, प्लगइन, हार्डवेयर और अन्य सामग्री में खोजें",
+            "description": "मॉडल, प्लगइन, हार्डवेयर और अन्य सामग्री में खोजें।",
             "deviceDescriptions": {
                 "cpuCores": "{count} कोर",
                 "cpuThreads": "{count} थ्रेड",
@@ -7669,7 +7691,8 @@
                 "upToDate": "अप टू डेट"
             },
             "confirmations": {
-                "installSystem": "क्या आप system update {version} इंस्टॉल करना चाहते हैं? इससे SoAI application पुनः शुरू होगा।"
+                "installSystem": "क्या आप system update {version} इंस्टॉल करना चाहते हैं? इससे SoAI application पुनः शुरू होगा।",
+                "installSystemWithInstaller": "क्या आप system update {version} इंस्टॉल करना चाहते हैं? इससे Windows installer चलेगा और SoAI पुनः शुरू होगा।"
             },
             "description": "SoAI application के updates जाँचें और इंस्टॉल करें।",
             "errors": {
@@ -7857,7 +7880,7 @@
             "userCreation": {
                 "confirmPassword": {
                     "label": "पासवर्ड की पुष्टि करें",
-                    "placeholder": "पासवर्ड दोबारा दर्ज करें।"
+                    "placeholder": "पासवर्ड दोहराएँ"
                 },
                 "creating": "बनाया जा रहा है...",
                 "description": "अपना admin account बनाएँ। इसे इस SoAI instance की पूर्ण पहुँच मिलेगी।",
