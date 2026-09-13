@@ -3,12 +3,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from fastapi import Depends, Request, status
 from starlette.responses import JSONResponse, Response
 
-from core.events.conversation_publication import publish_conversation_updated
+from core.errors.exceptions import StateError
 from core.messaging.account_models import MessagingAccountCreate, MessagingAccountUpdate
 from core.messaging.account_validation import require_messaging_platform
 from core.runtime.soai_identifiers import create_prefixed_hex_id
@@ -16,6 +14,10 @@ from features.api.routes.webui.messaging_account_mutation import (
     build_messaging_authorized_senders,
     resolve_messaging_update_credentials,
     serialize_messaging_credentials,
+)
+from features.api.routes.webui.messaging_account_post_commit import (
+    publish_messaging_settings_authority_changes,
+    reconcile_updated_messaging_account,
 )
 from features.api.runtime.container.api_routers import ApiRouters
 from features.api.runtime.context import ApiContext, resolve_api_context
@@ -27,6 +29,7 @@ from features.api.runtime.messaging_account_settings import (
 from features.api.schemas.messaging_accounts import (
     MessagingAccountCreateRequest,
     MessagingAccountDeleteRequest,
+    MessagingAccountLifecycleRequest,
     MessagingAccountUpdateRequest,
 )
 from features.messaging.account_callback_reconciliation import (
@@ -37,9 +40,6 @@ from features.messaging.account_principal_validation import resolve_messaging_pr
 from features.messaging.account_reconciliation import (
     reconcile_committed_messaging_account,
 )
-
-if TYPE_CHECKING:
-    from core.messaging.account_models import MessagingConversationVersion
 
 __all__ = ("register_routes",)
 
@@ -209,30 +209,61 @@ def register_routes(routers: ApiRouters) -> None:
         )
         if updated is None:
             raise_not_found(request, "Messaging account not found.")
-        try:
-            transport_account = await repository.get_transport_account(account_id, platform)
-            if transport_account is None:
-                raise_not_found(request, "Messaging account not found after update.")
-            updated = await reconcile_committed_messaging_account(
-                database_accounts=repository,
-                http_client=api_context.dependencies.http_client,
-                public_origin=(
-                    api_context.dependencies.config.get_str("SERVER.PUBLIC_ORIGIN") or ""
-                ),
-                account=transport_account,
-                replace_existing_callback=payload.replace_existing_callback,
-                refresh_owned_callback=True,
-            )
-        finally:
-            api_context.dependencies.messaging_gateway.request_reconcile()
-        versions = await repository.list_bound_conversation_versions(
-            current_user["id"],
-            account_id,
-        )
-        await _publish_settings_authority_changes(
+        updated = await reconcile_updated_messaging_account(
+            request=request,
             api_context=api_context,
             user_id=current_user["id"],
-            versions=versions,
+            account_id=account_id,
+            platform=platform,
+            replace_existing_callback=payload.replace_existing_callback,
+        )
+        return JSONResponse(content=updated)
+
+    @routers.webui.post("/messaging/accounts/{account_id}/lifecycle")
+    async def set_messaging_account_lifecycle(
+        request: Request,
+        account_id: str,
+        payload: MessagingAccountLifecycleRequest,
+        current_user: CurrentUser = Depends(get_current_user),
+        api_context: ApiContext = Depends(resolve_api_context),
+    ) -> Response:
+        repository = api_context.dependencies.database_messaging_accounts
+        existing = await repository.get_account(current_user["id"], account_id)
+        if existing is None:
+            raise_not_found(request, "Messaging account not found.")
+        platform = require_messaging_platform(str(existing.get("platform") or ""))
+        if payload.enabled:
+            credentials = await repository.get_credentials(current_user["id"], account_id)
+            if credentials is None:
+                raise StateError("Messaging account credentials are unavailable.")
+            await preflight_messaging_callback_ownership(
+                api_context.dependencies.http_client,
+                account={
+                    "account_id": account_id,
+                    "platform": platform,
+                    "credentials": credentials,
+                },
+                public_origin=api_context.dependencies.config.get_str(
+                    "SERVER.PUBLIC_ORIGIN",
+                )
+                or "",
+                replace_existing_callback=payload.replace_existing_callback,
+            )
+        changed = await repository.set_account_lifecycle_state(
+            current_user["id"],
+            account_id,
+            payload.expected_revision,
+            enabled=payload.enabled,
+        )
+        if changed is None:
+            raise_not_found(request, "Messaging account not found.")
+        updated = await reconcile_updated_messaging_account(
+            request=request,
+            api_context=api_context,
+            user_id=current_user["id"],
+            account_id=account_id,
+            platform=platform,
+            replace_existing_callback=payload.replace_existing_callback,
         )
         return JSONResponse(content=updated)
 
@@ -262,25 +293,9 @@ def register_routes(routers: ApiRouters) -> None:
         )
         api_context.dependencies.messaging_gateway.request_reconcile()
         if versions is not None:
-            await _publish_settings_authority_changes(
+            await publish_messaging_settings_authority_changes(
                 api_context=api_context,
                 user_id=current_user["id"],
                 versions=versions,
             )
         return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-async def _publish_settings_authority_changes(
-    *,
-    api_context: ApiContext,
-    user_id: int,
-    versions: tuple[MessagingConversationVersion, ...],
-) -> None:
-    for version in versions:
-        await publish_conversation_updated(
-            api_context.dependencies.event_bus,
-            user_id=user_id,
-            conv_id=version.conv_id,
-            last_modified_at_ms=version.last_modified_at_ms,
-            settings_authority_changed=True,
-        )

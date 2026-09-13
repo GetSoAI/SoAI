@@ -20,6 +20,7 @@ __all__ = (
     "DiscordMessagingCredentials",
     "MessagingAccountCreateRequest",
     "MessagingAccountDeleteRequest",
+    "MessagingAccountLifecycleRequest",
     "MessagingAccountUpdateRequest",
     "MessagingAuthorizedSenderRequest",
     "TelegramMessagingCredentials",
@@ -97,6 +98,12 @@ class MessagingAccountUpdateRequest(SoAIV1StrictModel):
 
 class MessagingAccountDeleteRequest(SoAIV1StrictModel):
     expected_revision: StrictInt = Field(..., ge=1)
+
+
+class MessagingAccountLifecycleRequest(SoAIV1StrictModel):
+    expected_revision: StrictInt = Field(..., ge=1)
+    enabled: StrictBool
+    replace_existing_callback: StrictBool = False
 
 
 def validate_messaging_credentials_platform(

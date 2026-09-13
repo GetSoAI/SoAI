@@ -29,9 +29,6 @@ __all__ = ("mark_managed_runtime_failed", "mark_worker_crashed")
 
 LOGGER_NAME = "SoAI.plugins.worker.controller_faults"
 OPERATION_WORKER_CRASH_TRANSITION = "plugins.worker.controller.worker_crash_transition"
-OPERATION_WORKER_CRASH_UNREGISTER_PARAMETERS = (
-    "plugins.worker.controller.worker_crash_unregister_parameters"
-)
 OPERATION_WORKER_CRASH_DETACH_LOG_STREAMING = (
     "plugins.worker.controller.worker_crash_detach_log_streaming"
 )
@@ -54,11 +51,12 @@ async def mark_worker_crashed(
     *,
     plugin_name: str,
     returncode: int | None,
-) -> None:
+) -> bool:
     logger = get_logger(LOGGER_NAME)
     transition_exception: BaseException | None = None
+    transitioned = False
     try:
-        await _transition_crashed_plugin(manager, plugin_name, returncode)
+        transitioned = await _transition_crashed_plugin(manager, plugin_name, returncode)
     except RECOVERABLE_EXCEPTIONS as exception:
         log_handled_exception(
             logger,
@@ -72,11 +70,12 @@ async def mark_worker_crashed(
             level="warning",
         )
         transition_exception = exception
-    await _unregister_crashed_plugin_parameters(manager, plugin_name)
     await _detach_crashed_plugin_log_streaming(manager, plugin_name)
     await _update_aliases_after_crash(manager, plugin_name)
     if transition_exception is not None:
         raise transition_exception
+
+    return transitioned
 
 
 async def mark_managed_runtime_failed(
@@ -102,26 +101,6 @@ async def mark_managed_runtime_failed(
         exit_status,
     )
     return True
-
-
-async def _unregister_crashed_plugin_parameters(
-    manager: PluginManagerRuntimeProtocol,
-    plugin_name: str,
-) -> None:
-    logger = get_logger(LOGGER_NAME)
-    try:
-        await manager.dependencies.models.parameter_manager.unregister_plugin_parameters(
-            plugin_name,
-        )
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_exception(
-            logger,
-            exception,
-            message="Failed to unregister parameters for crashed plugin worker.",
-            operation=OPERATION_WORKER_CRASH_UNREGISTER_PARAMETERS,
-            details={"plugin_name": plugin_name},
-            level="warning",
-        )
 
 
 async def _detach_crashed_plugin_log_streaming(
@@ -167,12 +146,12 @@ async def _transition_crashed_plugin(
     manager: PluginManagerRuntimeProtocol,
     plugin_name: str,
     returncode: int | None,
-) -> None:
+) -> bool:
     logger = get_logger(LOGGER_NAME)
     if manager.dependencies.infrastructure.lifecycle.shutdown_event.is_set():
-        return
+        return False
     if not await _crash_transition_is_allowed(manager, plugin_name):
-        return
+        return False
     try:
         receipt = await manager.transition_plugin_manager_state(
             plugin_name,
@@ -182,7 +161,7 @@ async def _transition_crashed_plugin(
         await wait_for_plugin_state_publication(receipt)
     except RECOVERABLE_EXCEPTIONS as exception:
         if not await _crash_transition_is_allowed(manager, plugin_name):
-            return
+            return False
         log_exception(
             logger,
             exception,
@@ -192,6 +171,8 @@ async def _transition_crashed_plugin(
             level="error",
         )
         raise
+
+    return True
 
 
 async def _crash_transition_is_allowed(

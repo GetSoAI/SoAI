@@ -895,8 +895,6 @@
                         "emptyDetail": "このモーダルの保留中の値からプリセットを作成し、含めるセクションを正確に選択してください。",
                         "emptyTitle": "最初の再利用可能な設定を作成",
                         "errorTitle": "プリセットライブラリを利用できません",
-                        "loadingDetail": "最新の保存済みプリセットを読み込み中…",
-                        "loadingTitle": "プリセットを読み込み中",
                         "noMatchesTitle": "一致するプリセットがありません",
                         "recoveryTitle": "対応が必要なプリセットがあります",
                         "staleTitle": "プリセット一覧が古い可能性があります"
@@ -6981,6 +6979,7 @@
                     "unavailable": "モデルカタログを利用できません"
                 },
                 "notifications": {
+                    "accountChanged": "操作が適用される前にこのメッセージングアカウントが変更されました。一覧を更新しました。内容を確認してから、もう一度お試しください。",
                     "accountDisabled": "メッセージングアカウントを無効にしました。",
                     "accountEnabled": "メッセージングアカウントを有効にしました。",
                     "accountRemoved": "メッセージングアカウントを削除しました。",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "アクティブ",
                 "error": "エラー",
+                "maintenance": "保守中",
                 "offline": "オフライン",
                 "reconnecting": "再接続中",
                 "ready": "準備完了",

@@ -20,6 +20,7 @@ from database.repositories.users.messaging_interaction_fencing import (
 if TYPE_CHECKING:
     from core.messaging.account_models import (
         MessagingAccountCreate,
+        MessagingAccountLifecycleState,
         MessagingAccountUpdate,
         MessagingAuthorizedSender,
     )
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "sync_create_messaging_account",
+    "sync_set_messaging_account_lifecycle_state",
     "sync_update_messaging_account",
 )
 
@@ -85,6 +87,28 @@ def _fence_removed_senders(
             failure_code="messaging_sender_revoked",
             now_ms=now_ms,
         )
+
+
+def _fence_disabled_account(
+    conn: sqlite3.Connection,
+    *,
+    account_id: str,
+    user_id: int,
+    now_ms: int,
+) -> None:
+    sync_fence_messaging_interactions(
+        conn,
+        account_id=account_id,
+        user_id=user_id,
+        resolved_at_ms=now_ms,
+    )
+    sync_fence_messaging_deliveries(
+        conn,
+        account_id=account_id,
+        user_id=user_id,
+        failure_code="messaging_account_disabled",
+        now_ms=now_ms,
+    )
 
 
 def sync_create_messaging_account(
@@ -201,19 +225,7 @@ def sync_update_messaging_account(
                 return None
             raise ConflictError("Messaging account changed before this update was applied.")
         if account.lifecycle_state == "disabled":
-            sync_fence_messaging_interactions(
-                conn,
-                account_id=account_id,
-                user_id=user_id,
-                resolved_at_ms=now_ms,
-            )
-            sync_fence_messaging_deliveries(
-                conn,
-                account_id=account_id,
-                user_id=user_id,
-                failure_code="messaging_account_disabled",
-                now_ms=now_ms,
-            )
+            _fence_disabled_account(conn, account_id=account_id, user_id=user_id, now_ms=now_ms)
         if not account.accept_messages_from_anyone:
             _fence_removed_senders(
                 conn,
@@ -243,4 +255,34 @@ def sync_update_messaging_account(
     result = sync_read_messaging_account(conn, user_id, account_id)
     if result is None:
         raise StateError("Messaging account disappeared after update.")
+    return result
+
+
+def sync_set_messaging_account_lifecycle_state(
+    conn: sqlite3.Connection,
+    user_id: int,
+    account_id: str,
+    expected_revision: int,
+    lifecycle_state: MessagingAccountLifecycleState,
+) -> JSONDict | None:
+    now_ms = epoch_ms()
+    updated = conn.execute(
+        """
+        UPDATE messaging_accounts
+        SET lifecycle_state = ?, revision = revision + 1,
+            health_code = NULL, health_checked_at_ms = NULL, updated_at_ms = ?
+        WHERE user_id = ? AND account_id = ? AND revision = ?
+          AND lifecycle_state != 'deleting'
+        """,
+        (lifecycle_state, now_ms, user_id, account_id, expected_revision),
+    ).rowcount
+    if updated != 1:
+        if sync_read_messaging_account(conn, user_id, account_id) is None:
+            return None
+        raise ConflictError("Messaging account changed before this update was applied.")
+    if lifecycle_state == "disabled":
+        _fence_disabled_account(conn, account_id=account_id, user_id=user_id, now_ms=now_ms)
+    result = sync_read_messaging_account(conn, user_id, account_id)
+    if result is None:
+        raise StateError("Messaging account disappeared after lifecycle update.")
     return result

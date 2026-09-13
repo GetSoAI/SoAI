@@ -93,8 +93,6 @@ class ModelParameterService:
                 self._deps.parameter_cache.get(universal_id),
                 return_exceptions=False,
             )
-            if cached and cached[1] >= database_version:
-                return cached
             model_info = await self._deps.model_get_info(universal_id)
             if not model_info:
                 return ({}, 0)
@@ -102,11 +100,20 @@ class ModelParameterService:
                 self._deps.param_manager,
                 str(model_info["plugin"]),
             )
-            parameters.update(
-                await self._deps.database_models.get_model_custom_parameters(universal_id),
-            )
-            await self._deps.parameter_cache.put(universal_id, parameters, database_version)
-            return (copy_json_dict(parameters), database_version)
+            if cached and cached[1] >= database_version:
+                custom_parameters, parameter_version = cached
+            else:
+                custom_parameters = await self._deps.database_models.get_model_custom_parameters(
+                    universal_id,
+                )
+                parameter_version = database_version
+                await self._deps.parameter_cache.put(
+                    universal_id,
+                    custom_parameters,
+                    parameter_version,
+                )
+            parameters.update(custom_parameters)
+            return (copy_json_dict(parameters), parameter_version)
 
     async def model_get_parameter_definitions(self, universal_id: str) -> JSONDict:
         _plugin_name, schema = await self._get_validated_parameter_schema(universal_id)

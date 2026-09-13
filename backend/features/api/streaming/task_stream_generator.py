@@ -18,7 +18,6 @@ from features.api.streaming.openai_stream_generator.generator import (
 from features.api.streaming.stream_generator_state import StreamGeneratorState
 from features.api.streaming.task_quota_metadata import (
     read_task_quota_budget_inputs,
-    resolve_request_max_completion_tokens,
     resolve_task_stream_model,
 )
 
@@ -79,13 +78,6 @@ def build_task_stream_generator(
             include_usage=include_usage,
             quota_reservation=quota_reservation,
             quota_prompt_tokens=quota_prompt_tokens,
-            max_completion_tokens=resolve_request_max_completion_tokens(
-                (
-                    task.orchestration_context.request_payload
-                    if task.orchestration_context is not None
-                    else None
-                ),
-            ),
             allow_image_events=allow_image_events,
         ),
     )

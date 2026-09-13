@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import aiosqlite
 
 from core.state.state_names import PLUGIN_STATE_ABSENT, PLUGIN_STATE_DELETING
-from core.types.json_value import coerce_json_dict
+from core.types.json_value import coerce_json_dict, filter_json_mapping_strict
 from database.core.query_execution import query_to_dicts
 
 if TYPE_CHECKING:
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 __all__ = (
     "get_all_listable_plugins_query",
     "get_all_plugins_query",
+    "get_authoritative_plugin_states_query",
     "get_latest_plugin_usage_query",
     "get_plugin_by_name_query",
 )
@@ -84,3 +85,30 @@ async def get_latest_plugin_usage_query(
         "SELECT plugin_name, last_used_at_ms, last_used_revision AS revision FROM plugins_catalog WHERE last_used_revision > 0 ORDER BY last_used_revision DESC LIMIT 1",
     )
     return coerce_json_dict(rows[0]) if rows else None
+
+
+async def get_authoritative_plugin_states_query(
+    database: aiosqlite.Connection,
+) -> list[JSONDict]:
+    rows = await query_to_dicts(
+        database,
+        """SELECT plugin.plugin_name, plugin.state,
+            COALESCE(publication.publication_sequence, 0) AS publication_sequence
+        FROM plugins_catalog AS plugin
+        LEFT JOIN (
+            SELECT plugin_name, MAX(id) AS publication_sequence
+            FROM plugin_authoritative_state_outbox GROUP BY plugin_name
+        ) AS publication ON publication.plugin_name = plugin.plugin_name
+        WHERE plugin.state NOT IN (?, ?, 'ACTIVATING')
+            AND NOT EXISTS (
+                SELECT 1 FROM plugin_clone_target_reservations AS reservation
+                WHERE reservation.target_plugin_name = plugin.plugin_name
+            )""",
+        (PLUGIN_STATE_ABSENT, PLUGIN_STATE_DELETING),
+    )
+    return [
+        filter_json_mapping_strict(
+            row, error_message="The authoritative plugin state snapshot is invalid."
+        )
+        for row in rows
+    ]

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { errorHandler } from '@core/errorHandler.ts';
+import { getMaintenanceCoordinator, type MaintenanceCoordinator } from '@core/maintenanceCoordinator.ts';
 import { resolveKernelService } from '@core/runtime/runtimeContext.ts';
 import type { TelemetryValue } from '@core/telemetry/contracts.ts';
 import { hasFunctionProperties, isFunction, isObject } from '@core/typeGuards.ts';
@@ -28,6 +29,7 @@ interface ErrorHandlerInterface {
 interface MainStateIndicatorComponentOptions {
     errorHandlerRef?: ErrorHandlerInterface;
     statusMonitorResolver?: () => StatusMonitor;
+    maintenanceCoordinatorResolver?: () => Pick<MaintenanceCoordinator, 'subscribe'>;
 }
 
 const isStatusMonitor = <T>(value: T): value is T & StatusMonitor => {
@@ -48,24 +50,30 @@ const resolveMainStatusMonitor = (): StatusMonitor => {
 class MainStateIndicatorComponent {
     element: HTMLElement | null;
     statusSubscription: (() => void) | null;
+    maintenanceSubscription: (() => void) | null;
     currentState: StateType;
     connectionInterrupted: boolean;
+    maintenanceActive: boolean;
     isCollapsed: boolean;
     initializationTask: Promise<void> | null;
     statusMonitor: StatusMonitor | null;
     errorHandler: ErrorHandlerInterface;
     statusMonitorResolver: () => StatusMonitor;
+    maintenanceCoordinatorResolver: () => Pick<MaintenanceCoordinator, 'subscribe'>;
 
-    constructor({ errorHandlerRef = errorHandler, statusMonitorResolver = resolveMainStatusMonitor }: MainStateIndicatorComponentOptions = {}) {
+    constructor({ errorHandlerRef = errorHandler, statusMonitorResolver = resolveMainStatusMonitor, maintenanceCoordinatorResolver = getMaintenanceCoordinator }: MainStateIndicatorComponentOptions = {}) {
         this.element = null;
         this.statusSubscription = null;
+        this.maintenanceSubscription = null;
         this.currentState = 'unknown';
         this.connectionInterrupted = false;
+        this.maintenanceActive = false;
         this.isCollapsed = false;
         this.initializationTask = null;
         this.statusMonitor = null;
         this.errorHandler = errorHandlerRef;
         this.statusMonitorResolver = statusMonitorResolver;
+        this.maintenanceCoordinatorResolver = maintenanceCoordinatorResolver;
     }
 
     async initialize(): Promise<HTMLElement | null> {
@@ -73,12 +81,15 @@ class MainStateIndicatorComponent {
             this.initializationTask = this.bootstrap();
         }
         await this.initializationTask;
+        this.render();
         return this.element;
     }
 
     async bootstrap(): Promise<void> {
         this.statusMonitor = this.statusMonitorResolver();
         this.validateDependencies();
+        this.maintenanceSubscription?.();
+        this.maintenanceSubscription = this.maintenanceCoordinatorResolver().subscribe((state) => this.setMaintenanceActive(state.active));
         this.element = this.createElement();
         await this.setupStatusMonitoring();
         if (this.isCollapsed) {
@@ -99,7 +110,7 @@ class MainStateIndicatorComponent {
     }
 
     createElement(): HTMLElement {
-        const indicator = createMainStateIndicatorUI(this.connectionInterrupted ? 'reconnecting' : this.currentState);
+        const indicator = createMainStateIndicatorUI(this.resolveDisplayState());
         indicator.id = 'main-state-indicator';
         return indicator;
     }
@@ -129,15 +140,29 @@ class MainStateIndicatorComponent {
 
     updateDisplay(state: StateType): void {
         this.currentState = state;
-        if (!this.element || this.connectionInterrupted) return;
-        updateMainStateIndicatorUI(this.element, this.currentState);
+        if (this.connectionInterrupted || this.maintenanceActive) return;
+        this.render();
     }
 
     setConnectionInterrupted(interrupted: boolean): void {
         if (this.connectionInterrupted === interrupted) return;
         this.connectionInterrupted = interrupted;
-        if (!this.element) return;
-        updateMainStateIndicatorUI(this.element, interrupted ? 'reconnecting' : this.currentState);
+        this.render();
+    }
+
+    setMaintenanceActive(active: boolean): void {
+        if (this.maintenanceActive === active) return;
+        this.maintenanceActive = active;
+        this.render();
+    }
+
+    resolveDisplayState(): StateType {
+        if (this.maintenanceActive) return 'maintenance';
+        return this.connectionInterrupted ? 'reconnecting' : this.currentState;
+    }
+
+    render(): void {
+        updateMainStateIndicatorUI(this.element, this.resolveDisplayState());
     }
 
     setCollapsed(collapsed: boolean): void {
@@ -161,11 +186,14 @@ class MainStateIndicatorComponent {
     destroy(): void {
         this.statusSubscription?.();
         this.statusSubscription = null;
+        this.maintenanceSubscription?.();
+        this.maintenanceSubscription = null;
         this.element?.remove();
         this.element = null;
         this.initializationTask = null;
         this.statusMonitor = null;
         this.connectionInterrupted = false;
+        this.maintenanceActive = false;
     }
 }
 export { MainStateIndicatorComponent };

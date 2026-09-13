@@ -34,11 +34,12 @@ def validate_responses_create_payload_or_response(
 ) -> dict[str, JSONValue] | JSONResponse:
     try:
         validated = ResponsesRequest.model_validate(payload_json)
-    except ValidationError as exception:
+    except ValidationError:
         return build_openai_invalid_request_response(
-            message=str(exception),
+            message="Invalid Responses request. Check field names and value types, then retry.",
             param=None,
             trace_id=trace_id,
+            code="invalid_request_error",
         )
     return dict(validated.model_dump(exclude_none=True))
 

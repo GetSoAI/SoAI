@@ -137,6 +137,11 @@ def prepare_inference_payload(
     if isinstance(messages_value, list) and not prepared_payload.get("stream", False):
         normalized_payload = dict(prepared_payload)
         normalized_payload["stream"] = True
+        stream_options = prepared_payload.get("stream_options")
+        normalized_payload["stream_options"] = {
+            **(stream_options if isinstance(stream_options, dict) else {}),
+            "include_usage": True,
+        }
     return (normalized_payload, next_request_timeout)
 
 

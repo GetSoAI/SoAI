@@ -41,10 +41,15 @@ def record_state_transition(
     *,
     observed_at: float,
 ) -> None:
-    if history and history[-1][0] == state:
-        history[-1] = (state, observed_at)
-        return
-    history.append((state, observed_at))
+    observations = sorted((*history, (state, observed_at)), key=lambda entry: entry[1])
+    ordered_history: deque[tuple[str, float]] = deque(maxlen=history.maxlen)
+    for observed_state, timestamp in observations:
+        if ordered_history and ordered_history[-1][0] == observed_state:
+            ordered_history[-1] = (observed_state, timestamp)
+        else:
+            ordered_history.append((observed_state, timestamp))
+    history.clear()
+    history.extend(ordered_history)
 
 
 def is_flapping(

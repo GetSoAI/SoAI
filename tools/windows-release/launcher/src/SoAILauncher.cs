@@ -387,6 +387,7 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
         private CoreWebView2Environment webViewEnvironment;
         private EndpointInfo activeEndpoint;
         private bool closeRequested;
+        private bool startupWindowRevealed;
 
         public int ExitCode { get; private set; }
 
@@ -405,6 +406,8 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
             this.Size = new Size(1320, 860);
             this.BackColor = Color.FromArgb(21, 21, 21);
             this.Icon = paths.TryLoadIcon();
+            this.Opacity = 0D;
+            this.ShowInTaskbar = false;
 
             this.webView = new WebView2();
             this.webView.Dock = DockStyle.Fill;
@@ -446,8 +449,21 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
             {
                 ExitCode = 1;
                 string diagnosticPath = LauncherDiagnostics.WriteStartupFailure(paths, ex);
+                RevealStartupWindow();
                 splash.ShowFailure(BuildStartupFailureMessage(ex, diagnosticPath));
             }
+        }
+
+        private void RevealStartupWindow()
+        {
+            if (startupWindowRevealed)
+            {
+                return;
+            }
+            startupWindowRevealed = true;
+            ShowInTaskbar = true;
+            Opacity = 1D;
+            Activate();
         }
 
         private static string BuildStartupFailureMessage(Exception ex, string diagnosticPath)
@@ -465,6 +481,7 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
             EndpointInfo existingEndpoint = await DiscoveryProbe.WaitForEndpointAsync(TimeSpan.FromMilliseconds(250), TimeSpan.FromSeconds(1), token);
             if (existingEndpoint != null && await HealthProbe.WaitForReadyAsync(existingEndpoint, TimeSpan.FromMilliseconds(250), TimeSpan.FromSeconds(1), token))
             {
+                RevealStartupWindow();
                 splash.SetStatus("SoAI is already running...");
                 return existingEndpoint;
             }
@@ -472,6 +489,7 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
             splash.SetStatus("Requesting administrator access for the SoAI runtime...");
             using (ElevatedBackendSession session = await ElevatedBackendSession.StartAsync(paths, BuildStartArguments(originalArgs), token))
             {
+                RevealStartupWindow();
                 return await session.WaitForReadyAsync(splash, BackendStartupTimeout, token);
             }
         }
@@ -2128,7 +2146,9 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
                     }
                     if (backend.HasExited)
                     {
-                        writer.WriteLine("ERROR\tSoAI stopped before it became ready.");
+                        int exitCode = backend.ExitCode;
+                        LauncherDiagnostics.WriteBackendExitFailure(paths, exitCode);
+                        writer.WriteLine("ERROR\tSoAI stopped before it became ready with backend exit code " + exitCode.ToString(CultureInfo.InvariantCulture) + ". Recent backend output was added to the startup diagnostic.");
                         return 1;
                     }
                     EndpointInfo endpoint = await DiscoveryProbe.TryResolveAsync(CancellationToken.None);
@@ -2214,6 +2234,7 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
         }
 
         public bool HasExited { get { return process.HasExited; } }
+        public int ExitCode { get { return process.ExitCode; } }
         public Process ProcessHandle { get { return process; } }
 
         internal static NativeBackendJob Start(LauncherPaths paths, string[] args)
@@ -2613,20 +2634,58 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
 
         internal static void ConfigureBackendEnvironment(LauncherPaths paths)
         {
+            ClearInheritedPythonEnvironment();
             Environment.SetEnvironmentVariable("PATH", BuildProcessPath(paths, Environment.GetEnvironmentVariable("PATH")));
             Environment.SetEnvironmentVariable("SOAI_GUI_LAUNCHED", "1");
             Environment.SetEnvironmentVariable("SOAI_NO_BROWSER", "1");
+            Environment.SetEnvironmentVariable("PYTHONPATH", paths.BackendDirectory);
+            Environment.SetEnvironmentVariable("PYTHONNOUSERSITE", "1");
             Environment.SetEnvironmentVariable("PYTHONUTF8", "1");
             Environment.SetEnvironmentVariable("PYTHONIOENCODING", "utf-8");
         }
 
         private static void ApplyBackendEnvironment(LauncherPaths paths, System.Collections.Specialized.StringDictionary environment)
         {
+            ClearInheritedPythonEnvironment(environment);
             environment["PATH"] = BuildProcessPath(paths, environment["PATH"]);
             environment["SOAI_GUI_LAUNCHED"] = "1";
             environment["SOAI_NO_BROWSER"] = "1";
+            environment["PYTHONPATH"] = paths.BackendDirectory;
+            environment["PYTHONNOUSERSITE"] = "1";
             environment["PYTHONUTF8"] = "1";
             environment["PYTHONIOENCODING"] = "utf-8";
+        }
+
+        private static void ClearInheritedPythonEnvironment()
+        {
+            List<string> names = new List<string>();
+            foreach (string name in Environment.GetEnvironmentVariables().Keys)
+            {
+                if (name.StartsWith("PYTHON", StringComparison.OrdinalIgnoreCase))
+                {
+                    names.Add(name);
+                }
+            }
+            foreach (string name in names)
+            {
+                Environment.SetEnvironmentVariable(name, null);
+            }
+        }
+
+        private static void ClearInheritedPythonEnvironment(System.Collections.Specialized.StringDictionary environment)
+        {
+            List<string> names = new List<string>();
+            foreach (string name in environment.Keys)
+            {
+                if (name.StartsWith("PYTHON", StringComparison.OrdinalIgnoreCase))
+                {
+                    names.Add(name);
+                }
+            }
+            foreach (string name in names)
+            {
+                environment.Remove(name);
+            }
         }
 
         internal static string BuildProcessPath(LauncherPaths paths, string inheritedPath)
@@ -2939,6 +2998,8 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
 
     internal static class LauncherDiagnostics
     {
+        private const int BackendOutputLimitBytes = 32768;
+
         public static void ClearStartupFailure(LauncherPaths paths)
         {
             try
@@ -2997,11 +3058,72 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
                 return string.Empty;
             }
         }
+
+        public static string WriteBackendExitFailure(LauncherPaths paths, int exitCode)
+        {
+            try
+            {
+                if (paths == null)
+                {
+                    return string.Empty;
+                }
+                Directory.CreateDirectory(paths.StateDirectory);
+                string path = Path.Combine(paths.StateDirectory, "launcher-startup-error.txt");
+                string backendLogPath = Path.Combine(paths.RootDirectory, "data", "logs", "soai-launcher.log");
+                StringBuilder builder = new StringBuilder();
+                builder.AppendLine("SoAI backend startup process failure");
+                builder.AppendLine();
+                builder.AppendLine("Backend exit code:");
+                builder.AppendLine(exitCode.ToString(CultureInfo.InvariantCulture));
+                builder.AppendLine();
+                builder.AppendLine("Backend output log:");
+                builder.AppendLine(backendLogPath);
+                builder.AppendLine();
+                builder.AppendLine("Recent backend output:");
+                builder.AppendLine(ReadLogTail(backendLogPath));
+                if (File.Exists(path))
+                {
+                    builder.Insert(0, Environment.NewLine);
+                }
+                File.AppendAllText(path, builder.ToString(), Encoding.UTF8);
+                return path;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static string ReadLogTail(string path)
+        {
+            if (!File.Exists(path))
+            {
+                return "The backend output log was not created.";
+            }
+            using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            {
+                long offset = Math.Max(0, stream.Length - BackendOutputLimitBytes);
+                stream.Seek(offset, SeekOrigin.Begin);
+                byte[] buffer = new byte[(int)(stream.Length - offset)];
+                int totalRead = 0;
+                while (totalRead < buffer.Length)
+                {
+                    int bytesRead = stream.Read(buffer, totalRead, buffer.Length - totalRead);
+                    if (bytesRead == 0)
+                    {
+                        break;
+                    }
+                    totalRead += bytesRead;
+                }
+                return Encoding.UTF8.GetString(buffer, 0, totalRead).Trim();
+            }
+        }
     }
 
     internal sealed class LauncherPaths
     {
         public string RootDirectory { get; private set; }
+        public string BackendDirectory { get; private set; }
         public string BackendMain { get; private set; }
         public string StateDirectory { get; private set; }
         public string FaviconPath { get; private set; }
@@ -3015,7 +3137,8 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
             string root = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             LauncherPaths paths = new LauncherPaths();
             paths.RootDirectory = root;
-            paths.BackendMain = Path.Combine(root, "backend", "main.py");
+            paths.BackendDirectory = Path.Combine(root, "backend");
+            paths.BackendMain = Path.Combine(paths.BackendDirectory, "main.py");
             paths.StateDirectory = Path.Combine(root, "data", "state");
             paths.FaviconPath = Path.Combine(root, "frontend", "favicon.ico");
             paths.AppIconPath = Path.Combine(root, "soai-app.ico");

@@ -36,7 +36,7 @@ class DatabasePluginCloneTransactions:
     def __init__(self, core: DatabaseCoreProtocol) -> None:
         self._core = core
 
-    async def commit(self, request: CloneCommitRequest) -> bool:
+    async def commit(self, request: CloneCommitRequest) -> int | None:
         return await self._core.writer.queue_write_operation(
             sync_commit_clone_transaction,
             request,

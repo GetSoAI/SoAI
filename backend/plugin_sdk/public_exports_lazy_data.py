@@ -63,6 +63,7 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
         "core.filesystem.hashing",
         ("calculate_directory_hash", "calculate_file_hash", "calculate_file_hash_sync"),
     ),
+    ("core.files.locking", ("guarded_file_lock",)),
     ("core.filesystem.size_calculation", ("get_path_size",)),
     (
         "core.openai.embedding",

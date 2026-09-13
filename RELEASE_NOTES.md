@@ -1,5 +1,38 @@
 # SoAI Release Notes
 
+## 1.1.1
+
+SoAI 1.1.1 changes Windows uninstall so it keeps application data by default, fixes several status and messaging controls in the WebUI, and keeps model and plugin state current through delayed events and restarts. OpenAI-compatible streamed responses now preserve multiple choices and their metadata.
+
+### Highlights
+
+- The Windows uninstaller now preserves application data by default. Users who want a complete removal can select an explicit option to delete accounts, configuration, chats, models, files, logs, and backups.
+- The WebUI reports system activity more accurately, including a distinct maintenance state and the correct runtime state for each model. Chat configuration also keeps a stable loading view until its settings are ready.
+- Plugin state and recovery now preserve the latest durable state across restarts and delayed events, preventing older events from replacing current status or triggering stale recovery work.
+
+### Improvements
+
+- The Windows launcher isolates the bundled Python environment from settings inherited from the host. When startup fails, it records the backend exit code and recent output so the cause is easier to find.
+- Prompt previews show the last-updated date and time. Long collections such as chats, files, models, plugins, and prompts now render 72 entries per page instead of 48, keeping more items in the active scrolling window.
+- OpenAI-compatible streamed responses now keep each choice's content and metadata independent, including reasoning, tool calls, token probabilities, usage, and performance measurements. Invalid provider output and malformed Responses API requests are rejected with safe public errors.
+- Model and plugin downloads validate resumed byte ranges before accepting them, preserving the last complete file when a server returns mismatched or incomplete data. Model variant discovery also gives clearer errors for invalid selections, missing repositories, access problems, and provider outages.
+- Duplicate model-start requests now share the active launch instead of starting the same plugin twice. Startup failures clean up owned backend processes and distinguish invalid settings from failures that can use failover, while plugin configuration reads use the latest saved values rather than a stale cached copy.
+- Real-time WebUI connections close when event delivery fails instead of continuing with apparently current data. The sidebar also avoids false reconnecting or offline flashes during refreshes, cancelled navigation, and successful reconnection.
+
+### Fixes
+
+- The Windows installer now provisions the Visual C++ runtime files needed by SoAI's bundled Python environment before dependency setup. Fresh Windows systems can install and start SoAI even when the Microsoft Visual C++ Runtime was not already present.
+- Enabling or disabling a Messaging account now applies the requested lifecycle change. Conflicts, failed provider activation, and accounts changed from another session produce a visible result instead of a misleading success state.
+- Model cards now attach starting, loading, processing, and stopping states only to the model using that backend process. External provider models also show real error and stopping states instead of being displayed as available.
+- Streaming responses are no longer stopped early by a second approximate token-limit check after the model backend has already applied the request limit.
+- The chat configuration modal no longer mixes section-level and preset-level loading indicators or exposes controls before their saved values have loaded.
+
+### Plugin updates
+
+- The vLLM plugin is updated to version 1.1.0 and supports vLLM 0.29.0, with installation profiles for CPU, CUDA 12.9 and 13.0, ROCm 7.2.3, Metal, TPU, and XPU.
+- The llama.cpp and Embedding plugins are updated to version 1.1.0 and use llama.cpp b10909, with updated model parameters and artifact handling.
+- The External plugin is updated to version 1.0.2. Model discovery tolerates incomplete provider model lists, and failed streamed requests retain the useful upstream HTTP error when the response body cannot be read.
+
 ## 1.1.0
 
 SoAI 1.1.0 expands installation and application updates across Linux, Windows, and macOS, redesigns the chat composer, and improves plugin management, streamed conversations, and recovery. All eight bundled plugins are included at version 1.0.1.

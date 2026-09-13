@@ -12,6 +12,7 @@ from core.errors.memory_exhaustion import (
     raise_for_memory_exhaustion,
 )
 from core.events.protocols import EventBusProtocol
+from core.files.locking import guarded_file_lock
 from core.filesystem.async_queries import (
     async_isdir,
     async_isfile,
@@ -198,7 +199,10 @@ from plugin_sdk.contracts.reserved_writes import (
     write_text_with_disk_reservation,
     write_text_with_disk_reservation_sync,
 )
-from plugin_sdk.contracts.safe_paths import resolve_plugin_backend_root, safe_join_under_base
+from plugin_sdk.contracts.safe_paths import (
+    resolve_plugin_backend_root,
+    safe_join_under_base,
+)
 from plugin_sdk.contracts.schema_cli_arguments import build_schema_cli_arguments
 from plugin_sdk.contracts.tar_zst_extraction import async_safe_tar_zst_extractall
 from plugin_sdk.contracts.transfer import (
@@ -290,7 +294,6 @@ __all__ = (
     "log_exception",
     "log_handled_exception",
     "ProgressPayload",
-    "ProgressTracker",
     "SpeedCalculator",
     "format_progress_bar",
     "get_progress_payload",
@@ -424,6 +427,7 @@ __all__ = (
     "get_config_float",
     "get_config_int",
     "get_config_str",
+    "guarded_file_lock",
     "guard_outbound_http_request",
     "is_block_private_network_egress_enabled",
     "is_loopback_host",

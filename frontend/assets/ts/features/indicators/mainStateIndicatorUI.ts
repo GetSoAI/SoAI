@@ -107,6 +107,8 @@ const resolveDefinitionDescription = (state: string): string => {
             return i18n.t('statusCatalog.main.active');
         case 'ERROR':
             return i18n.t('statusCatalog.main.error');
+        case 'MAINTENANCE':
+            return i18n.t('statusCatalog.main.maintenance');
         case 'RECONNECTING':
             return i18n.t('statusCatalog.main.reconnecting');
         case 'STOPPING':

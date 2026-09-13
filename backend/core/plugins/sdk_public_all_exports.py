@@ -162,6 +162,7 @@ PUBLIC_PLUGIN_SDK_EXPORTS: tuple[str, ...] = (
     "get_config_float",
     "get_config_int",
     "get_config_str",
+    "guarded_file_lock",
     "guard_outbound_http_request",
     "is_block_private_network_egress_enabled",
     "is_loopback_host",

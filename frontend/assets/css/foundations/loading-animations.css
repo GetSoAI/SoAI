@@ -45,6 +45,18 @@
         }
     }
 
+    @keyframes status-led-blink {
+        0%,
+        49% {
+            opacity: 1;
+        }
+
+        50%,
+        99% {
+            opacity: 0;
+        }
+    }
+
     @keyframes delete-shimmer {
         0%,
         100% {

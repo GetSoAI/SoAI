@@ -14,10 +14,21 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
 
 __all__ = (
+    "OpenAIStreamChoicePayload",
     "OpenAIStreamResultPayload",
     "OpenAIStreamResultPayloadInputs",
     "build_openai_stream_result_payload",
 )
+
+
+@dataclass(frozen=True, slots=True)
+class OpenAIStreamChoicePayload:
+    index: int
+    finish_reason: str | None
+    content: str
+    reasoning_content: str
+    tool_calls: list[JSONDict]
+    logprobs: JSONDict | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,10 +37,7 @@ class OpenAIStreamResultPayloadInputs:
     result_id: str | None
     result_created_at: int | None
     model: str | None
-    finish_reason: str | None
-    content: str
-    reasoning_content: str
-    tool_calls: list[JSONDict]
+    choices: list[OpenAIStreamChoicePayload]
     stored_usage: JSONDict | None
     override_usage: JSONDict | None
 
@@ -56,60 +64,29 @@ def _resolve_created_at(value: int | None) -> int:
     return value
 
 
-def _build_completion_payload(
-    *,
-    inputs: OpenAIStreamResultPayloadInputs,
-    result_id: str,
-    result_created_at: int,
-    usage_payload: JSONDict | None,
-) -> JSONDict:
-    payload: JSONDict = {
-        "id": result_id,
-        "object": "text_completion",
-        "created": result_created_at,
-        "model": inputs.model or "unknown",
-        "choices": [
-            {
-                "index": 0,
-                "text": inputs.content,
-                "logprobs": None,
-                "finish_reason": inputs.finish_reason or "stop",
-            },
-        ],
+def _build_completion_choice(choice: OpenAIStreamChoicePayload) -> JSONDict:
+    return {
+        "index": choice.index,
+        "text": choice.content,
+        "logprobs": choice.logprobs,
+        "finish_reason": choice.finish_reason or "stop",
     }
-    if usage_payload is not None:
-        payload["usage"] = usage_payload
-    return payload
 
 
-def _build_chat_payload(
-    *,
-    inputs: OpenAIStreamResultPayloadInputs,
-    result_id: str,
-    result_created_at: int,
-    usage_payload: JSONDict | None,
-) -> JSONDict:
-    message: JSONDict = {"role": "assistant", "content": inputs.content}
-    if inputs.reasoning_content:
-        message["reasoning_content"] = inputs.reasoning_content
-        message["reasoning"] = inputs.reasoning_content
-    if inputs.tool_calls:
-        message["tool_calls"] = [dict(tool_call) for tool_call in inputs.tool_calls]
+def _build_chat_choice(choice: OpenAIStreamChoicePayload) -> JSONDict:
+    message: JSONDict = {"role": "assistant", "content": choice.content}
+    if choice.reasoning_content:
+        message["reasoning_content"] = choice.reasoning_content
+        message["reasoning"] = choice.reasoning_content
+    if choice.tool_calls:
+        message["tool_calls"] = [dict(tool_call) for tool_call in choice.tool_calls]
     payload: JSONDict = {
-        "id": result_id,
-        "object": "chat.completion",
-        "created": result_created_at,
-        "model": inputs.model or "unknown",
-        "choices": [
-            {
-                "index": 0,
-                "message": message,
-                "finish_reason": inputs.finish_reason or "stop",
-            },
-        ],
+        "index": choice.index,
+        "message": message,
+        "finish_reason": choice.finish_reason or "stop",
     }
-    if usage_payload is not None:
-        payload["usage"] = usage_payload
+    if choice.logprobs is not None:
+        payload["logprobs"] = choice.logprobs
     return payload
 
 
@@ -118,28 +95,22 @@ def build_openai_stream_result_payload(
 ) -> OpenAIStreamResultPayload:
     usage_payload = _resolve_usage_payload(inputs)
     result_created_at = _resolve_created_at(inputs.result_created_at)
-    if inputs.result_format == "completions":
-        result_id = inputs.result_id or create_prefixed_hex_id("cmpl", separator="-")
-        payload = _build_completion_payload(
-            inputs=inputs,
-            result_id=result_id,
-            result_created_at=result_created_at,
-            usage_payload=usage_payload,
-        )
-        return OpenAIStreamResultPayload(
-            payload=payload,
-            result_id=result_id,
-            result_created_at=result_created_at,
-        )
-    result_id = inputs.result_id or create_prefixed_hex_id("chatcmpl", separator="-")
-    payload = _build_chat_payload(
-        inputs=inputs,
-        result_id=result_id,
-        result_created_at=result_created_at,
-        usage_payload=usage_payload,
+    is_chat = inputs.result_format == "chat"
+    result_id = inputs.result_id or create_prefixed_hex_id(
+        "chatcmpl" if is_chat else "cmpl", separator="-"
     )
+    payload: JSONDict = {
+        "id": result_id,
+        "object": "chat.completion" if is_chat else "text_completion",
+        "created": result_created_at,
+        "model": inputs.model or "unknown",
+        "choices": [
+            _build_chat_choice(choice) if is_chat else _build_completion_choice(choice)
+            for choice in inputs.choices
+        ],
+    }
+    if usage_payload is not None:
+        payload["usage"] = usage_payload
     return OpenAIStreamResultPayload(
-        payload=payload,
-        result_id=result_id,
-        result_created_at=result_created_at,
+        payload=payload, result_id=result_id, result_created_at=result_created_at
     )

@@ -70,8 +70,6 @@ export type ChatConfigurationPresetLibraryTranslationKey =
     | 'chat.configuration.presetLibrary.status.emptyDetail'
     | 'chat.configuration.presetLibrary.status.emptyTitle'
     | 'chat.configuration.presetLibrary.status.errorTitle'
-    | 'chat.configuration.presetLibrary.status.loadingDetail'
-    | 'chat.configuration.presetLibrary.status.loadingTitle'
     | 'chat.configuration.presetLibrary.status.noMatchesTitle'
     | 'chat.configuration.presetLibrary.status.recoveryTitle'
     | 'chat.configuration.presetLibrary.status.staleTitle'

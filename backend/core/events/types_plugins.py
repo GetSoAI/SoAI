@@ -213,6 +213,7 @@ class ProviderDiscoveryRequestedEvent(PluginScopedEvent):
 
 @dataclass(slots=True)
 class AuthoritativeStateChangeEvent(PluginScopedEvent):
+    publication_sequence: int = field(default=0, kw_only=True)
     previous_state: PluginRuntimeStateName
     new_state: PluginRuntimeStateName
     reason: str = ""

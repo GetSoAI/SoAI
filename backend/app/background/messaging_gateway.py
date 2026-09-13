@@ -33,7 +33,7 @@ from core.licensing.admission import LicensingOperationClass
 from core.licensing.enforcement import require_ordinary_licensing
 from core.logging.trace import get_logger
 from core.messaging.account_validation import require_messaging_account_id
-from core.messaging.protocols import MessagingGatewayProtocol
+from core.messaging.gateway.protocols import MessagingGatewayProtocol
 from core.runtime.soai_identifiers import create_system_id
 from core.tasks.progress import await_background_task_shutdown
 from core.tasks.supervised_task_spawner import spawn_supervised_tracked_task

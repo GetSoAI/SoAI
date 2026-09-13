@@ -895,8 +895,6 @@
                         "emptyDetail": "Skep 'n voorinstelling uit die voorbereide waardes in hierdie dialoog en kies presies watter afdelings dit moet insluit.",
                         "emptyTitle": "Bou jou eerste herbruikbare opstelling",
                         "errorTitle": "Voorinstellingsbiblioteek is nie beskikbaar nie",
-                        "loadingDetail": "Laai jou jongste gestoorde voorinstellings…",
-                        "loadingTitle": "Laai voorinstellings",
                         "noMatchesTitle": "Geen ooreenstemmende voorinstellings nie",
                         "recoveryTitle": "Sommige voorinstellings vereis aandag",
                         "staleTitle": "Voorinstellingslys is moontlik verouderd"
@@ -6981,6 +6979,7 @@
                     "unavailable": "Modelkatalogus nie beskikbaar nie"
                 },
                 "notifications": {
+                    "accountChanged": "Hierdie boodskaprekening het verander voordat die aksie toegepas is. Die lys is verfris; gaan dit na en probeer weer.",
                     "accountDisabled": "Boodskaprekening gedeaktiveer.",
                     "accountEnabled": "Boodskaprekening geaktiveer.",
                     "accountRemoved": "Boodskaprekening verwyder.",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "Aktief",
                 "error": "Fout",
+                "maintenance": "Onderhoud",
                 "offline": "Vanlyn",
                 "reconnecting": "Herkoppel",
                 "ready": "Gereed",

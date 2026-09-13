@@ -268,14 +268,16 @@ class AuthoritativePluginStateTransitions:
         completion_waiter = await self._deps.waiters.create(event.event_id)
         transition_recorded = False
         try:
-            await self._deps.database_core.writer.queue_write_operation(
-                sync_record_authoritative_plugin_state_transition,
-                event.plugin_name,
-                event.new_state,
-                event.event_id,
-                type(event).__name__,
-                payload_json,
-                int(event.timestamp * 1000.0),
+            event.publication_sequence = (
+                await self._deps.database_core.writer.queue_write_operation(
+                    sync_record_authoritative_plugin_state_transition,
+                    event.plugin_name,
+                    event.new_state,
+                    event.event_id,
+                    type(event).__name__,
+                    payload_json,
+                    int(event.timestamp * 1000.0),
+                )
             )
             transition_recorded = True
         finally:

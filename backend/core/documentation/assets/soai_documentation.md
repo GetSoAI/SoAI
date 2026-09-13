@@ -536,7 +536,7 @@ The script refuses to operate on a running instance, a Git working tree, a broad
 
 ##### Windows installer deployment
 
-Close SoAI, then use **Uninstall SoAI** from the SoAI Start Menu folder or uninstall SoAI from the [Windows](https://www.microsoft.com/windows/) installed-apps settings. The installer registers `Uninstall.exe` for this purpose. The uninstaller stops SoAI, removes its shortcuts and registry entries, then removes files recorded by the install manifest and known SoAI-owned runtime and data directories. It leaves unrelated files beside the installation in place.
+Close SoAI, then use **Uninstall SoAI** from the SoAI Start Menu folder or uninstall SoAI from the [Windows](https://www.microsoft.com/windows/) installed-apps settings. The installer registers `Uninstall.exe` for this purpose. The uninstaller stops SoAI, removes its shortcuts, registry entries, application files, and managed runtime, and retains the installation's `data` directory by default. Select **Remove all SoAI application data** only when you also intend to delete accounts, configuration, chats, models, files, logs, and backups. For an intentional unattended full removal, run `Uninstall.exe /S /REMOVEAPPDATA`.
 
 ##### Windows complete-archive deployment
 
@@ -546,7 +546,7 @@ Stop the selected archive installation, then run its target-scoped uninstaller f
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\path\to\SoAI\installer-support\Remove-SoAI.ps1 -InstallRoot C:\path\to\SoAI -Mode ArchiveUninstall
 ```
 
-This removes that archive deployment without changing installer-created shortcuts or registry integration belonging to another SoAI installation. **It removes the selected target's data directory, so back up required data first.**
+This removes that archive deployment without changing installer-created shortcuts or registry integration belonging to another SoAI installation. It retains the selected target's `data` directory by default. Add `-RemoveApplicationData` only when you intend to remove all application data as well.
 
 ##### macOS installation removal
 
@@ -8570,6 +8570,7 @@ This table covers every OpenAPI operation in the current Core route composition,
 | `DELETE` | `/api/v1/webui/messaging/accounts/{account_id}` | Delete messaging account |
 | `GET` | `/api/v1/webui/messaging/accounts/{account_id}` | Get messaging account |
 | `PUT` | `/api/v1/webui/messaging/accounts/{account_id}` | Update messaging account |
+| `POST` | `/api/v1/webui/messaging/accounts/{account_id}/lifecycle` | Set messaging account lifecycle |
 | `GET` | `/api/v1/webui/messaging/mcp/tools` | List messaging MCP tools |
 | `DELETE` | `/api/v1/webui/notifications` | Clear notifications |
 | `GET` | `/api/v1/webui/notifications` | List notifications |
@@ -10172,9 +10173,9 @@ A deployment is one independently managed SoAI OS control plane with one licensi
 
 A successfully activated personal deployment validates its entitlement locally and needs no recurring online check. Organization evaluation and commercial use have separate terms and entitlement requirements. SoAI OS has no automatic MIT conversion or Core Change Date. See [Licensing administration](#licensing-administration) for the WebUI activation, recovery, and conversion controls.
 
-#### Change Dates and operative documents
+#### Source licensing and operative documents
 
-`CHANGE-DATES.md` at the root of the [SoAI repository](https://github.com/GetSoAI/SoAI) records a Change Date for each official Core release, set exactly four years after that release's first official public distribution and never postponed. Read the row for the release you run: on and after its recorded Change Date, that exact Core version is also available under the MIT License. Each row stands on its own, so it does not apply to SoAI OS and does not carry forward to a later Core release.
+Each official Core release becomes available under the MIT License exactly four years after its first official public distribution. This date cannot be postponed, does not apply to SoAI OS, and does not convert a later Core release early.
 
 ##### Read the operative documents
 

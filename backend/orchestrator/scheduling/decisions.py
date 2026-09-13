@@ -151,6 +151,10 @@ class SchedulerDecisions:
 
     def _spawn_action_task(self, action: SchedulerAction) -> asyncio.Task[None]:
         logger = get_logger(LOGGER_NAME)
+        if action.action_type == SchedulerActionType.START:
+            running = self._deps.scheduler_start_task_tracker.get_running(action.plugin_name)
+            if running is not None:
+                return running
         log_message, coro_factory = self._task_preparation.prepare(action)
         logger.debug("Scheduler decision (%s): %s", action.action_type.name, log_message)
         cancellation_id: str
@@ -175,7 +179,23 @@ class SchedulerDecisions:
         )
         if action.action_type == SchedulerActionType.START:
             self._deps.scheduler_start_task_tracker.track(action.plugin_name, task)
+            task.add_done_callback(
+                lambda completed: self._schedule_after_start(action, completed),
+            )
         return task
+
+    def _schedule_after_start(self, action: SchedulerAction, completed: asyncio.Task[None]) -> None:
+        if completed.cancelled():
+            return
+        _ = spawn_tracked_task(
+            self._reevaluate_routing_key(action.pending_key or action.universal_id),
+            name=f"orchestrator-scheduler-start-completed-{action.task.task_id}",
+            owner="scheduler_start_completed",
+            logger=get_logger(LOGGER_NAME),
+            cancellation_id=create_system_cancellation_id("scheduler_start_completed"),
+            cancellation_binder=self._deps.cancellation_binder,
+            finalizer_tracker=self._deps.finalizer_tracker,
+        )
 
     async def evaluate_and_execute(self, work_items: Collection[SchedulerWorkItem]) -> None:
         logger = get_logger(LOGGER_NAME)

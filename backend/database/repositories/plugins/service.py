@@ -23,6 +23,7 @@ from database.repositories.plugins.backend_variants import (
 from database.repositories.plugins.catalog_reads import (
     get_all_listable_plugins_query,
     get_all_plugins_query,
+    get_authoritative_plugin_states_query,
     get_latest_plugin_usage_query,
     get_plugin_by_name_query,
 )
@@ -104,6 +105,9 @@ class DatabasePlugins(DatabasePluginsOperations):
 
     async def get_all_listable_plugins(self, plugin_name: str | None = None) -> list[JSONDict]:
         return await self.core.reader.execute_read(get_all_listable_plugins_query, plugin_name)
+
+    async def get_authoritative_plugin_states(self) -> list[JSONDict]:
+        return await self.core.reader.execute_read(get_authoritative_plugin_states_query)
 
     async def get_all_plugins(self) -> list[JSONDict]:
         return await self.core.reader.execute_read(get_all_plugins_query)

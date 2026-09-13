@@ -6,10 +6,13 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
+from core.errors.error_types import ErrorType
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import SoAITimeoutError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.state.state_names import ORCH_STATE_ERROR, ORCH_STATE_STOPPED
+from core.timing.constants import RESPONSIVE_TIMEOUT_SEC
+from orchestrator.execution.failure_classification import classify_execution_failure
 from orchestrator.lifecycle.model_loading_cleanup import (
     stop_started_plugin_for_concurrent_lifecycle_state_change,
 )
@@ -52,7 +55,7 @@ async def handle_model_loading_exception(
     plugin_name: str,
     universal_id: str,
     load_timeout: float,
-    exception: BaseException,
+    exception: Exception,
     logger: LoggerProtocol,
     started_process: bool,
     plugin_instance: PluginInstanceProtocol | None,
@@ -127,8 +130,15 @@ async def handle_model_loading_exception(
                 logger=logger,
                 shutdown_event=deps.shutdown_event,
             )
+        failure = classify_execution_failure(universal_id, exception, load_timeout)
         return ModelLoadingResult.failed(
-            f"Model '{universal_id}' failed to load on plugin '{plugin_name}'.",
+            (
+                classification.reason
+                if failure.error_type == ErrorType.INVALID_REQUEST
+                else failure.user_message
+            ),
+            error_type=failure.error_type,
+            allow_failover=failure.allow_failover,
         )
     error_message = (
         f"Timed out loading plugin {plugin_name} after {load_timeout}s."
@@ -202,7 +212,7 @@ async def _terminate_model_load_backend(
             plugin_instance,
             plugin_name=plugin_name,
             database_plugins=deps.orchestrator.database_plugins,
-            graceful_budget_sec=0.0,
+            graceful_budget_sec=float(RESPONSIVE_TIMEOUT_SEC),
             logger=logger,
         )
         if not stop_outcome.terminated:

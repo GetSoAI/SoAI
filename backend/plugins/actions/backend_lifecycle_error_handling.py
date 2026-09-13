@@ -6,7 +6,9 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
+from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.public_projection import project_public_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.events.completion_waiting import await_publication_receipt
 from core.plugins.protocols_instance import PluginInstanceProtocol
@@ -14,7 +16,10 @@ from core.state.state_names import (
     PLUGIN_STATE_BACKEND_NOT_INSTALLED,
     PLUGIN_STATE_STOPPED,
 )
-from plugins.actions.backend_lifecycle_state import require_runtime_state
+from plugins.actions.backend_lifecycle_state import (
+    require_runtime_state,
+    resolve_retained_backend_state,
+)
 from plugins.actions.backend_lifecycle_validation import cleanup_partial_installation
 from plugins.actions.progress import (
     notify_operation_cancelled,
@@ -84,10 +89,17 @@ async def handle_lifecycle_cancelled(
                 else PLUGIN_STATE_STOPPED
             )
         )
+        if action in {"install_backend", "update_backend"}:
+            target_state = await resolve_retained_backend_state(
+                plugin_instance,
+                fallback_state=manager.policy.lifecycle_action_config[action].error,
+                absent_state=PLUGIN_STATE_BACKEND_NOT_INSTALLED,
+                logger=logger,
+            )
         receipt = await manager.transition_plugin_manager_state(
             plugin_name,
             target_state,
-            f"Task '{action}' cancelled by user. Rolled back to stable state.",
+            f"Task '{action}' cancelled. Backend state reconciled.",
             context,
         )
         await await_publication_receipt(receipt)
@@ -117,6 +129,7 @@ async def handle_lifecycle_failure(
     task_id: str | None,
     exception: Exception,
     mutation_fencing_token: int | None,
+    plugin_instance: PluginInstanceProtocol | None,
 ) -> bool:
     action_config = manager.policy.lifecycle_action_config[action]
     log_exception(
@@ -127,25 +140,45 @@ async def handle_lifecycle_failure(
         details={"trace_id": trace_id, "action": action, "plugin": display_name},
     )
     if send_completion_event:
+        public_error = project_public_exception(exception, trace_id=trace_id)
+        error = coerce_to_soai_error(exception, trace_id=trace_id)
+        message = public_error.message
+        if action in {"install_backend", "update_backend"}:
+            message = (
+                "Backend installation or update failed. Check the selected variant's runtime "
+                "requirements and server diagnostics, then retry."
+            )
         await send_completion_with_task(
             reply_channel,
             task_id,
             success=False,
-            message=f"Error: {exception}",
+            message=message,
+            error_message=message,
+            error_code=error.http_status,
+            error_type=str(public_error.code),
             mutation_fencing_token=mutation_fencing_token,
             task_registry=manager.dependencies.infrastructure.task_registry,
             send_task_complete_event_callable=manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
         )
     if is_part_of_delete:
         return False
+    target_state = action_config.error
+    if action in {"install_backend", "update_backend"}:
+        target_state = await resolve_retained_backend_state(
+            plugin_instance,
+            fallback_state=target_state,
+            absent_state=target_state,
+            logger=logger,
+        )
     logger.warning(
-        "Lifecycle task '%s' for '%s' failed or timed out. Reverting to a stable error state to prevent lock-up.",
+        "Lifecycle task '%s' for '%s' failed; publishing verified runtime state %s.",
         action,
         display_name,
+        target_state,
     )
     receipt = await manager.transition_plugin_manager_state(
         plugin_name,
-        action_config.error,
+        target_state,
         f"Task for '{action}' failed.",
         context,
     )

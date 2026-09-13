@@ -9,10 +9,10 @@ import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { CHAT_ACTIONS } from '@features/chat/public.ts';
 import type { ChatPresetLibraryViewState } from '@pages/chat/controllers/chatconfigurationcontroller/contracts.ts';
 
-type StatusPresentation = Readonly<{ modifier: string; icon: IconName | null; title: string; detail: string | null; action: 'refresh' | 'reset' | null }>;
+type StatusPresentation = Readonly<{ modifier: string; icon: IconName; title: string; detail: string | null; action: 'refresh' | 'reset' | null }>;
 
 const resolveStatusPresentation = (state: ChatPresetLibraryViewState, visibleRecordCount: number): StatusPresentation | null => {
-    if (state.phase === 'loading' && state.records.length === 0) return { modifier: 'loading', icon: null, title: i18n.t('chat.configuration.presetLibrary.status.loadingTitle'), detail: i18n.t('chat.configuration.presetLibrary.status.loadingDetail'), action: null };
+    if (state.phase === 'loading') return null;
     if (state.phase === 'error' && state.records.length === 0) return { modifier: 'error', icon: 'error', title: i18n.t('chat.configuration.presetLibrary.status.errorTitle'), detail: i18n.t('chat.configuration.presetLibrary.loadFailed'), action: 'refresh' };
     if (state.stale) return { modifier: 'warning', icon: 'warning', title: i18n.t('chat.configuration.presetLibrary.status.staleTitle'), detail: i18n.t('chat.configuration.presetLibrary.stale', { value: state.lastSuccessAtMs === null ? i18n.t('common.notAvailable') : formatDateTime(state.lastSuccessAtMs, false) }), action: 'refresh' };
     if (state.structurallyInvalidCount > 0) return { modifier: 'warning', icon: 'warning', title: i18n.t('chat.configuration.presetLibrary.status.recoveryTitle'), detail: i18n.t('chat.configuration.presetLibrary.structurallyInvalid', { count: state.structurallyInvalidCount }), action: 'reset' };
@@ -39,11 +39,7 @@ const renderChatPresetStatus = (state: ChatPresetLibraryViewState, visibleRecord
     status.replaceChildren();
     status.className = `chat-preset-status glass-surface-medium${presentation ? ` chat-preset-status--${presentation.modifier}` : ' u-hidden'}`;
     if (!presentation) return;
-    const indicator = presentation.icon ? createIconSlot(status.ownerDocument, getIconSync(presentation.icon, { size: 20, strokeWidth: 1.7 }), { className: 'chat-preset-status-icon' }) : status.ownerDocument.createElement('span');
-    if (!presentation.icon) {
-        indicator.className = 'loading-spinner chat-preset-status-spinner';
-        indicator.setAttribute('aria-hidden', 'true');
-    }
+    const indicator = createIconSlot(status.ownerDocument, getIconSync(presentation.icon, { size: 20, strokeWidth: 1.7 }), { className: 'chat-preset-status-icon' });
     const copy = status.ownerDocument.createElement('div');
     copy.className = 'chat-preset-status-copy';
     const title = status.ownerDocument.createElement('strong');

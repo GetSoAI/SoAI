@@ -31,7 +31,7 @@ const createChatConfigurationTabsHost = (options: ChatConfigurationTabsHostOptio
             element.classList.toggle('is-active', active);
         },
         resetConfigurationScroll: (modal: HTMLElement): void => {
-            const body = dom.resolve('.modal-body', modal);
+            const body = dom.resolve('.chat-configuration-scroll', modal);
             if (body instanceof HTMLElement) {
                 body.scrollTop = 0;
                 body.scrollLeft = 0;

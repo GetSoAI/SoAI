@@ -7,6 +7,7 @@ import time
 from dataclasses import dataclass
 from typing import override
 
+from core.concurrency.lock_registry import TTLAsyncLockRegistry, TTLAsyncLockRegistryDependencies
 from core.di.validation import require_dependencies
 from core.events.recent_event_tracker import RecentEventTracker
 from core.events.types_plugins import (
@@ -14,6 +15,7 @@ from core.events.types_plugins import (
     PluginRuntimeStateChangedEvent,
 )
 from core.logging.trace import get_logger
+from core.state.authoritative_state_ordering import is_stale_authoritative_state_event
 from core.state.protocols_publication import RuntimeStatePublicationSideEffectsProtocol
 from core.state.state_names import ORCH_STATE_STOPPED, PLUGIN_STATE_STOPPED
 from core.state.state_transition_sets import INTERRUPTIBLE_IDLE_STATES
@@ -50,21 +52,33 @@ class RuntimeStateSideEffects(RuntimeStatePublicationSideEffectsProtocol):
     def __init__(self, deps: RuntimeStateSideEffectsDependencies) -> None:
         self._deps = deps
         self._processed_state_change_events = RecentEventTracker()
+        self._publication_locks = TTLAsyncLockRegistry[str](
+            TTLAsyncLockRegistryDependencies(
+                ttl_seconds=7200.0,
+                max_size=500,
+                cleanup_interval_seconds=600.0,
+            )
+        )
 
     @override
     async def apply_local_publication(self, event: PluginRuntimeStateChangedEvent) -> None:
-        await self._apply_state_change_side_effects(event, log_transition=False)
-        await self._processed_state_change_events.mark_processed(event.event_id)
+        async with self._publication_locks.lock(event.plugin_name):
+            await self._apply_state_change_side_effects(event, log_transition=False)
+            await self._processed_state_change_events.mark_processed(event.event_id)
 
     @override
     async def apply_replayed_publication(
         self,
         event: PluginRuntimeStateChangedEvent | PluginInstallationStateChangedEvent,
     ) -> None:
-        if await self._processed_state_change_events.has_recent(event.event_id):
-            return
-        await self._apply_state_change_side_effects(event, log_transition=True)
-        await self._processed_state_change_events.mark_processed(event.event_id)
+        async with self._publication_locks.lock(event.plugin_name):
+            if await self._processed_state_change_events.has_recent(event.event_id):
+                return
+            current_states = await self._deps.orchestrator.state_aggregator.get_all_plugin_states()
+            if is_stale_authoritative_state_event(event, current_states.get(event.plugin_name)):
+                return
+            await self._apply_state_change_side_effects(event, log_transition=True)
+            await self._processed_state_change_events.mark_processed(event.event_id)
 
     async def _apply_state_change_side_effects(
         self,

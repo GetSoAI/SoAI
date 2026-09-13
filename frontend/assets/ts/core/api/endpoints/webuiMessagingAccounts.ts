@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { decodeMessagingAccount, decodeMessagingAccounts, decodeMessagingMcpCatalog, type MessagingAccount, type MessagingAccountCreate, type MessagingAccountUpdate } from '@core/api/contracts/messagingAccountContracts.ts';
-import { serializeMessagingAccountCreate, serializeMessagingAccountUpdate } from '@core/api/contracts/messagingAccountSerialization.ts';
+import { serializeMessagingAccountCreate, serializeMessagingAccountLifecycle, serializeMessagingAccountUpdate } from '@core/api/contracts/messagingAccountSerialization.ts';
 import { decodeNoContentResponse } from '@core/api/contracts/noContentContract.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import type { McpFormCatalog } from '@core/mcp/configTypes.ts';
@@ -12,6 +12,7 @@ interface WebuiMessagingAccountEndpoints {
     get(accountId: string): Promise<MessagingAccount>;
     create(account: MessagingAccountCreate): Promise<MessagingAccount>;
     update(accountId: string, account: MessagingAccountUpdate): Promise<MessagingAccount>;
+    setEnabled(accountId: string, expectedRevision: number, enabled: boolean): Promise<MessagingAccount>;
     delete(accountId: string, expectedRevision: number): Promise<void>;
     listMcpTools(): Promise<McpFormCatalog>;
 }
@@ -23,6 +24,7 @@ const createWebuiMessagingAccountEndpoints = (api: ApiClientContext): WebuiMessa
         get: async (accountId): Promise<MessagingAccount> => decodeMessagingAccount(await api.get(path(accountId))),
         create: async (account): Promise<MessagingAccount> => decodeMessagingAccount(await api.post('/api/v1/webui/messaging/accounts', serializeMessagingAccountCreate(account))),
         update: async (accountId, account): Promise<MessagingAccount> => decodeMessagingAccount(await api.put(path(accountId), serializeMessagingAccountUpdate(account))),
+        setEnabled: async (accountId, expectedRevision, enabled): Promise<MessagingAccount> => decodeMessagingAccount(await api.post(`/api/v1/webui/messaging/accounts/${api.encodePathSegment(accountId)}/lifecycle`, serializeMessagingAccountLifecycle(expectedRevision, enabled))),
         delete: async (accountId, expectedRevision): Promise<void> => {
             decodeNoContentResponse(await api.delete(path(accountId), { body: { 'expected_revision': expectedRevision } }), 'Messaging account delete response');
         },

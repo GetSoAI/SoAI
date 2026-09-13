@@ -6,6 +6,7 @@ import type { ModelCatalogResponse } from '@core/api/contracts/modelCatalogContr
 import { requireTrimmedDataAttribute } from '@core/dom/attributes.ts';
 import { bindDataActionListener, createDataActionDispatcher } from '@core/dom/dataActionBinding.ts';
 import { narrowHTMLElement } from '@core/dom/narrowElement.ts';
+import { ensureError, extractErrorCode, isErrorHttpStatus } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { McpFormCatalog } from '@core/mcp/configTypes.ts';
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
@@ -13,6 +14,7 @@ import { renderSettingsSection } from '@core/settings/settingsSectionRuntime.ts'
 import { setControlDisabledState } from '@core/ui/controls/disabledState.ts';
 import { MESSAGING_ACTION_ADD_ACCOUNT, MESSAGING_ACTION_DISABLE_ACCOUNT, MESSAGING_ACTION_EDIT_ACCOUNT, MESSAGING_ACTION_ENABLE_ACCOUNT, MESSAGING_ACTION_REMOVE_ACCOUNT, isMessagingActionId, type MessagingActionId } from '@features/settings/messaging/constants.ts';
 import { openMessagingAccountModal } from '@features/settings/messaging/modal.ts';
+import { resolveMessagingPersistenceError } from '@features/settings/messaging/modalPersistenceErrors.ts';
 import { buildMessagingModelOptions } from '@features/settings/messaging/modelOptions.ts';
 import { SettingsSectionLifecycle } from '@features/settings/sectionLifecycle.ts';
 import type { MessagingManagerDependencies, MessagingManagerHost, MessagingModelCatalogStatus, MessagingModelOption } from '@features/settings/messaging/types.ts';
@@ -194,27 +196,36 @@ class MessagingManager {
         this.#showSaveOutcome(result);
     }
 
-    #buildUpdate(account: MessagingAccount, enabled: boolean): MessagingAccountUpdate {
-        return {
-            expectedRevision: account.revision,
-            label: account.label,
-            credentials: null,
-            modelSettings: account.modelSettings,
-            locale: account.locale,
-            enabled,
-            plaintextSecretRepliesEnabled: account.plaintextSecretRepliesEnabled,
-            replaceExistingCallback: false,
-            acceptMessagesFromAnyone: account.acceptMessagesFromAnyone,
-            authorizedSenders: account.authorizedSenders
-        };
-    }
-
     async #setEnabled(account: MessagingAccount, enabled: boolean): Promise<void> {
         await this.#host.runWithBoundary('settings:messaging:setAccountEnabled', async (): Promise<void> => {
-            const updated = await this.#host.api.update(account.accountId, this.#buildUpdate(account, enabled));
-            this.#upsertAccount(updated);
-            this.#host.feedback.show(enabled ? i18n.t('settings.messaging.notifications.accountEnabled') : i18n.t('settings.messaging.notifications.accountDisabled'), 'success');
+            try {
+                const updated = await this.#host.api.setEnabled(account.accountId, account.revision, enabled);
+                this.#upsertAccount(updated);
+                if (enabled && updated.lifecycleState === 'degraded') {
+                    this.#host.feedback.show(i18n.t('settings.messaging.notifications.accountSavedDegraded'), 'error');
+                    return;
+                }
+                this.#host.feedback.show(enabled ? i18n.t('settings.messaging.notifications.accountEnabled') : i18n.t('settings.messaging.notifications.accountDisabled'), 'success');
+            } catch (error) {
+                await this.#reportLifecycleFailure(ensureError(error), account);
+            }
         });
+    }
+
+    async #reportLifecycleFailure(error: Error, account: MessagingAccount): Promise<void> {
+        const callbackConflict = isErrorHttpStatus(error, 409) && extractErrorCode(error) === 'messaging_callback_conflict';
+        if (isErrorHttpStatus(error, 404) || (isErrorHttpStatus(error, 409) && !callbackConflict)) {
+            this.#host.feedback.handle(error, 'Messaging account lifecycle change', { severity: 'warn' });
+            this.#host.feedback.show(i18n.t('settings.messaging.notifications.accountChanged'), 'error');
+            await this.reload();
+            return;
+        }
+        if (callbackConflict || isErrorHttpStatus(error, 400) || isErrorHttpStatus(error, 422)) {
+            this.#host.feedback.handle(error, 'Messaging account lifecycle change', { severity: 'warn' });
+            this.#host.feedback.show(resolveMessagingPersistenceError(error, account.platform), 'error');
+            return;
+        }
+        this.#host.feedback.handle(error, 'Messaging account lifecycle change', { notify: true });
     }
 
     async #deleteAccount(account: MessagingAccount): Promise<void> {

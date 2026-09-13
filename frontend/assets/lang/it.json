@@ -895,8 +895,6 @@
                         "emptyDetail": "Crea un preset dai valori preparati in questa finestra e scegli esattamente quali sezioni includere.",
                         "emptyTitle": "Crea la prima configurazione riutilizzabile",
                         "errorTitle": "Libreria dei preset non disponibile",
-                        "loadingDetail": "Caricamento degli ultimi preset salvati…",
-                        "loadingTitle": "Caricamento preset",
                         "noMatchesTitle": "Nessun preset corrispondente",
                         "recoveryTitle": "Alcuni preset richiedono attenzione",
                         "staleTitle": "L'elenco dei preset potrebbe non essere aggiornato"
@@ -6981,6 +6979,7 @@
                     "unavailable": "Catalogo modelli non disponibile"
                 },
                 "notifications": {
+                    "accountChanged": "Questo account di messaggistica è cambiato prima che l'azione venisse applicata. L'elenco è stato aggiornato; controllalo e riprova.",
                     "accountDisabled": "Account di messaggistica disabilitato.",
                     "accountEnabled": "Account di messaggistica abilitato.",
                     "accountRemoved": "Account di messaggistica rimosso.",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "Attivo",
                 "error": "Errore",
+                "maintenance": "Manutenzione",
                 "offline": "Offline",
                 "reconnecting": "Riconnessione",
                 "ready": "Pronto",

@@ -23,6 +23,8 @@ const isChatConfigurationModalOpenCurrent = (host: ChatConfigurationModalOpenHos
 
 const beginChatConfigurationModalOpen = (inputArguments: { host: ChatConfigurationModalOpenHost; tabsHost: ChatConfigurationTabsHost; modalBindingsHost: ChatConfigurationModalBindingsHost; modal: HTMLElement; onTabsReady: () => void }): void => {
     const openToken = inputArguments.host.taskScope.concurrency.beginRenderSequence(CHAT_CONFIGURATION_OPEN_SEQUENCE);
+    inputArguments.modal.dataset['chatConfigurationOpening'] = 'true';
+    inputArguments.tabsHost.resetConfigurationScroll(inputArguments.modal);
     void initializeChatConfigurationTabs(inputArguments.tabsHost, inputArguments.modal)
         .then((): void => {
             if (!isChatConfigurationModalOpenCurrent(inputArguments.host, inputArguments.modal, openToken)) {
@@ -35,6 +37,11 @@ const beginChatConfigurationModalOpen = (inputArguments: { host: ChatConfigurati
         .catch((error): void => {
             errorHandler.error('ChatPage', 'Failed to initialize chat configuration modal', ensureError(error));
             inputArguments.host.feedback.show(i18n.t('chat.configuration.notifications.loadFailed'), 'error');
+        })
+        .finally((): void => {
+            if (inputArguments.host.taskScope.concurrency.isRenderSequenceCurrent(CHAT_CONFIGURATION_OPEN_SEQUENCE, openToken)) {
+                delete inputArguments.modal.dataset['chatConfigurationOpening'];
+            }
         });
 };
 

@@ -44,9 +44,6 @@ from features.api.streaming.openai_stream_generator.generator import (
     create_stream_generator,
 )
 from features.api.streaming.stream_cancel import schedule_streaming_task_cancel
-from features.api.streaming.task_quota_metadata import (
-    resolve_request_max_completion_tokens,
-)
 from features.api.streaming.types import StreamDependencies
 
 if TYPE_CHECKING:
@@ -147,7 +144,6 @@ async def run_ws_model_test_stream(
             model=model_id,
             include_usage=True,
             emit_done_marker=True,
-            max_completion_tokens=resolve_request_max_completion_tokens(request_json),
         )
         async for chunk in stream_gen:
             if openai_ws_detach_event_is_set(runtime.detach_event):

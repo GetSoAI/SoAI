@@ -28,7 +28,7 @@ from plugin_sdk.contracts.disk_claims import claim_plugin_reserved_write
 from plugin_sdk.contracts.progress import DownloadProgressReporter
 from plugin_sdk.contracts.resumable_downloads import (
     open_resumable_download,
-    range_response_matches,
+    resolve_download_response_range,
     resume_offset,
 )
 from plugin_sdk.filesystem.directory_creation import ensure_parent_dirs_exist
@@ -94,11 +94,7 @@ async def async_stream_download_to_file(
     if resume_partial:
         resumed_bytes = await asyncio.to_thread(resume_offset, resume_path, max_bytes)
         if max_bytes is not None and resumed_bytes == max_bytes:
-            await asyncio.to_thread(os.replace, resume_path, destination_path)
-            if reporter is not None:
-                await reporter.report_async(resumed_bytes)
-                await reporter.finalize_async()
-            return
+            resumed_bytes = 0
         if resumed_bytes > 0:
             request_headers = {**request_headers, "Range": f"bytes={resumed_bytes}-"}
     try:
@@ -110,23 +106,20 @@ async def async_stream_download_to_file(
             timeout=timeout,
         ) as response:
             response.raise_for_status()
-            append_resume = resumed_bytes > 0 and range_response_matches(
-                status_code=response.status_code,
-                headers=response.headers,
-                offset=resumed_bytes,
-            )
-            if resumed_bytes > 0 and not append_resume:
-                resumed_bytes = 0
             metadata = read_http_download_response_metadata(
                 response.headers,
                 max_bytes=max_bytes,
             )
             declared_content_length = metadata.declared_content_length
-            declared_total_length = (
-                declared_content_length + resumed_bytes
-                if declared_content_length is not None
-                else None
+            response_range = resolve_download_response_range(
+                status_code=response.status_code,
+                headers=response.headers,
+                offset=resumed_bytes,
+                content_length=declared_content_length,
             )
+            resumed_bytes = response_range.offset
+            append_resume = resumed_bytes > 0
+            declared_total_length = response_range.total_length
             if max_bytes is not None and (
                 resumed_bytes > max_bytes
                 or (declared_total_length is not None and declared_total_length > max_bytes)

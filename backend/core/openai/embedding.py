@@ -107,7 +107,10 @@ def merge_embedding_batch_responses(
     expected_items: int,
     default_model: str | None = None,
 ) -> JSONDict:
+    if not is_strict_int(expected_items) or expected_items < 0:
+        raise ValidationError("Expected embedding count must be a non-negative integer.")
     combined_data: list[JSONDict] = []
+    global_indices: set[int] = set()
     combined_prompt_tokens = 0
     combined_total_tokens = 0
     usage_present = False
@@ -122,6 +125,8 @@ def merge_embedding_batch_responses(
             raise ValidationError("Embedding response size must be an int.")
         batch_offset = batch_offset_value
         batch_size = batch_size_value
+        if batch_offset < 0 or batch_size < 0 or batch_offset + batch_size > expected_items:
+            raise ValidationError("Embedding response batch is outside the expected input range.")
         response_payload = batch_result.get("response")
         if not isinstance(response_payload, dict):
             raise ValidationError("Embedding response payload must be a dict.")
@@ -149,8 +154,12 @@ def merge_embedding_batch_responses(
             if response_item_index in seen_indices:
                 raise ValidationError("Embedding response contains duplicate indices.")
             seen_indices.append(response_item_index)
+            global_index = batch_offset + response_item_index
+            if global_index in global_indices:
+                raise ValidationError("Embedding response batches contain overlapping indices.")
+            global_indices.add(global_index)
             combined_item = dict(response_item)
-            combined_item["index"] = batch_offset + response_item_index
+            combined_item["index"] = global_index
             combined_data.append(combined_item)
         usage_payload = response_payload.get("usage")
         if isinstance(usage_payload, dict):
@@ -161,7 +170,7 @@ def merge_embedding_batch_responses(
             total_tokens = _coerce_optional_usage_token_count(usage_payload.get("total_tokens"))
             if total_tokens is not None:
                 combined_total_tokens += total_tokens
-    if expected_items and len(combined_data) != expected_items:
+    if len(combined_data) != expected_items:
         raise ValidationError("Merged embeddings count does not match expected input count.")
 
     def _sort_key(data_item: JSONDict) -> int:

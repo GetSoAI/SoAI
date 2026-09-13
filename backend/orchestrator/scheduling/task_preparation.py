@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.di.validation import require_dependencies
 from core.errors.exceptions import StateError
+from orchestrator.internal_protocols import FailWaitersCallable
 from orchestrator.lifecycle.service_interfaces.internal_protocols import (
     OrchestratorLifecycleCoordinatorProtocol,
 )
@@ -30,7 +31,7 @@ __all__ = (
 class SchedulerTaskPreparationDependencies:
     lifecycle: OrchestratorLifecycleCoordinatorProtocol
     dispatch_waiters: Callable[[str, str, JSONDict], Awaitable[None]]
-    fail_waiters: Callable[[str, str], Awaitable[None]]
+    fail_waiters: FailWaitersCallable
     reevaluate_routing_key: Callable[[str], Awaitable[None]]
 
     def __post_init__(self) -> None:
@@ -96,6 +97,8 @@ class SchedulerTaskPreparation:
                             pending_key,
                             result.message
                             or f"Model '{action.universal_id}' failed to load on plugin '{plugin_name}'.",
+                            error_type=result.error_type,
+                            allow_failover=result.allow_failover,
                         )
                         return
                     if not result.loaded:

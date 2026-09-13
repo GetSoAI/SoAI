@@ -9,16 +9,11 @@ from core.errors.exceptions import ModelOutputContractError
 from core.events.types_models_streaming import StreamChunkEvent
 from core.logging.protocols import LoggerProtocol
 from core.openai.quota_enforcement_constants import (
-    STREAMING_MAX_TOKENS_CUTOFF_REASON,
     STREAMING_QUOTA_CUTOFF_REASON,
 )
-from core.openai.sse_frames import sse_done_chunk
 from core.openai.sse_validation import validate_openai_sse_frame
 from core.openai.stream_frame_processing import process_openai_stream_frame
-from core.openai.streaming_text_deltas import (
-    extract_openai_streaming_all_output_deltas,
-    extract_openai_streaming_output_deltas,
-)
+from core.openai.streaming_text_deltas import extract_openai_streaming_output_deltas
 from core.openai.streaming_tool_calls import rewrite_missing_tool_call_ids_in_sse_frame
 from features.api.streaming.openai_stream_generator.provider_error_frames import (
     raise_provider_sse_error_if_present,
@@ -49,7 +44,6 @@ def iter_stream_bytes_from_chunk_event(
     logger: LoggerProtocol,
     schedule_task_cancel: Callable[[str], None],
     allow_image_events: bool = False,
-    emit_done_marker: bool,
 ) -> Iterator[bytes]:
     try:
         frames = state.chunk_accumulator.feed(chunk_event.chunk)
@@ -86,23 +80,6 @@ def iter_stream_bytes_from_chunk_event(
         if filtered_chunk_text.strip():
             if state.collect_tool_calls:
                 filtered_chunk_text = _rewrite_sse_tool_call_ids(state, filtered_chunk_text)
-            max_token_budget = state.max_completion_token_budget
-            if max_token_budget is not None and max_token_budget.add_texts(
-                extract_openai_streaming_all_output_deltas(
-                    filtered_chunk_text,
-                    include_tool_calls=state.collect_tool_calls,
-                ),
-            ):
-                state.abort_stream = True
-                state.done_marker_observed = True
-                transcript = state.stream_transcript
-                if transcript is not None:
-                    transcript.set_finish_reason("length")
-                schedule_task_cancel(STREAMING_MAX_TOKENS_CUTOFF_REASON)
-                if emit_done_marker and not state.is_done_sent:
-                    yield sse_done_chunk()
-                    state.is_done_sent = True
-                break
             quota_budget = state.quota_completion_token_budget
             if quota_budget is not None and quota_budget.add_texts(
                 extract_openai_streaming_output_deltas(

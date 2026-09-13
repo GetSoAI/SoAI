@@ -32,7 +32,7 @@ def sync_record_authoritative_plugin_state_transition(
     event_type: str,
     payload_json: str,
     created_at_ms: int,
-) -> None:
+) -> int:
     updated = (
         conn.execute(
             """
@@ -50,7 +50,7 @@ def sync_record_authoritative_plugin_state_transition(
             operation="database.plugins.authoritative_state_outbox.record_transition",
             details={"plugin_name": plugin_name, "state": new_state},
         )
-    conn.execute(
+    cursor = conn.execute(
         """
         INSERT INTO plugin_authoritative_state_outbox (
             event_id,
@@ -71,6 +71,11 @@ def sync_record_authoritative_plugin_state_transition(
             int(created_at_ms),
         ),
     )
+
+    sequence = cursor.lastrowid
+    if sequence is None or sequence <= 0:
+        raise StateError("The authoritative state publication position is invalid.")
+    return sequence
 
 
 def sync_mark_authoritative_state_event_published(

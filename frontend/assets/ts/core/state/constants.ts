@@ -74,6 +74,7 @@ const MAIN_STATE_DEFINITIONS: StatusDefinitions = Object.freeze({
     READY: { color: 'green', description: '' },
     ACTIVE: { color: 'orange', description: '' },
     ERROR: { color: 'red', description: '' },
+    MAINTENANCE: { color: 'orange', description: '' },
     RECONNECTING: { color: 'red', description: '' },
     STOPPING: { color: 'blue', description: '' },
     UNKNOWN: { color: 'grey', description: '' }

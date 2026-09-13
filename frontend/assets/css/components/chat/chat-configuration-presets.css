@@ -148,11 +148,6 @@
         text-align: center;
     }
 
-    .chat-preset-status--loading {
-        justify-content: center;
-        text-align: center;
-    }
-
     .chat-preset-status-icon {
         display: grid;
         flex: 0 0 2.25rem;
@@ -169,10 +164,6 @@
         flex: 1 1 auto;
         gap: var(--space-05);
         min-width: 0;
-    }
-
-    .chat-preset-status--loading .chat-preset-status-copy {
-        flex: 0 1 auto;
     }
 
     .chat-preset-status-copy span {

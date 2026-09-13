@@ -25,6 +25,7 @@ from core.plugins.protocols_guardian import (
     PluginGuardianProtocol,
 )
 from core.runtime.soai_identifiers import create_system_id
+from core.state.authoritative_state_ordering import is_stale_authoritative_state_event
 from core.state.plugin_state_generation import PluginStateGeneration
 from core.state.state_names import (
     ORCH_STATE_ERROR,
@@ -186,10 +187,13 @@ class PluginGuardian(PluginGuardianProtocol):
     async def _handle_state_change_event(self, event: AuthoritativeStateChangeEvent) -> None:
         if await self._processed_state_change_events.has_recent(event.event_id):
             return
+        current_states = await self.state_aggregator.get_all_plugin_states()
+        if is_stale_authoritative_state_event(event, current_states.get(event.plugin_name)):
+            return
         record_state_transition(
             self.state_history[event.plugin_name],
             event.new_state,
-            observed_at=time.monotonic(),
+            observed_at=time.monotonic() - max(0.0, time.time() - event.timestamp),
         )
         await self._processed_state_change_events.mark_processed(event.event_id)
 

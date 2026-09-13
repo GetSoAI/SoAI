@@ -78,6 +78,7 @@ export type SettingsMessagingTranslationKey =
     | 'settings.messaging.modal.whatsappPermissionsRequired'
     | 'settings.messaging.modal.whatsappValidationFailed'
     | 'settings.messaging.modelCatalog.unavailable'
+    | 'settings.messaging.notifications.accountChanged'
     | 'settings.messaging.notifications.accountDisabled'
     | 'settings.messaging.notifications.accountEnabled'
     | 'settings.messaging.notifications.accountRemoved'

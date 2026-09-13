@@ -49,6 +49,12 @@ class MainStatusMonitor extends LifecycleModel {
         return generation === this.#generation && !this.#activityAbort.signal.aborted;
     }
 
+    #markUnknown(): void {
+        if (this.currentState === 'unknown') return;
+        this.currentState = 'unknown';
+        this.#subscribers.notify(this.currentState);
+    }
+
     async initialize(): Promise<void> {
         if (this.isInitialized) return;
         if (this.isDestroyed) this.resetLifecycleState();
@@ -113,6 +119,9 @@ class MainStatusMonitor extends LifecycleModel {
             isGenerationActive: (generationValue) => this.#isGenerationActive(generationValue),
             onValue: (value: SystemStatusResource): void => {
                 this.handleStatusUpdate(value, generation);
+            },
+            onError: (): void => {
+                this.#markUnknown();
             }
         });
         if (!this.#isGenerationActive(generation)) {
@@ -160,10 +169,7 @@ class MainStatusMonitor extends LifecycleModel {
         this.disconnect();
         this.initialFetchInFlight = null;
         this.#streamBridge.reset();
-        if (this.currentState !== 'unknown') {
-            this.currentState = 'unknown';
-            this.#subscribers.notify(this.currentState);
-        }
+        this.#markUnknown();
         this.#bindDataHubPromise = null;
         this.#dataHubBound = false;
     }

@@ -895,8 +895,6 @@
                         "emptyDetail": "Utwórz preset z wartości roboczych w tym oknie dialogowym i wybierz dokładnie, które sekcje ma zawierać.",
                         "emptyTitle": "Utwórz pierwszą konfigurację wielokrotnego użytku",
                         "errorTitle": "Biblioteka presetów jest niedostępna",
-                        "loadingDetail": "Ładowanie najnowszych zapisanych presetów…",
-                        "loadingTitle": "Ładowanie presetów",
                         "noMatchesTitle": "Brak pasujących presetów",
                         "recoveryTitle": "Niektóre presety wymagają uwagi",
                         "staleTitle": "Lista presetów może być nieaktualna"
@@ -6981,6 +6979,7 @@
                     "unavailable": "Katalog modeli jest niedostępny"
                 },
                 "notifications": {
+                    "accountChanged": "To konto komunikatora zmieniło się przed zastosowaniem akcji. Lista została odświeżona; sprawdź ją i spróbuj ponownie.",
                     "accountDisabled": "Konto komunikatora wyłączone.",
                     "accountEnabled": "Konto komunikatora włączone.",
                     "accountRemoved": "Konto komunikatora usunięte.",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "Aktywny",
                 "error": "Błąd",
+                "maintenance": "Konserwacja",
                 "offline": "Offline",
                 "reconnecting": "Ponowne łączenie",
                 "ready": "Gotowy",

@@ -895,8 +895,6 @@
                         "emptyDetail": "Create a preset from the staged values in this modal and choose exactly which sections it should include.",
                         "emptyTitle": "Build your first reusable setup",
                         "errorTitle": "Preset library unavailable",
-                        "loadingDetail": "Loading your latest saved presets…",
-                        "loadingTitle": "Loading presets",
                         "noMatchesTitle": "No matching presets",
                         "recoveryTitle": "Some presets need attention",
                         "staleTitle": "Preset list may be out of date"
@@ -6981,6 +6979,7 @@
                     "unavailable": "Model catalog unavailable"
                 },
                 "notifications": {
+                    "accountChanged": "This messaging account changed before the action was applied. The list was refreshed; review it and try again.",
                     "accountDisabled": "Messaging account disabled.",
                     "accountEnabled": "Messaging account enabled.",
                     "accountRemoved": "Messaging account removed.",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "Active",
                 "error": "Error",
+                "maintenance": "Maintenance",
                 "offline": "Offline",
                 "reconnecting": "Reconnecting",
                 "ready": "Ready",

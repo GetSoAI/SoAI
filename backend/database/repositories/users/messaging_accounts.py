@@ -51,6 +51,7 @@ from database.repositories.users.messaging_account_reconciliation import (
 )
 from database.repositories.users.messaging_account_writes import (
     sync_create_messaging_account,
+    sync_set_messaging_account_lifecycle_state,
     sync_update_messaging_account,
 )
 from database.repositories.users.messaging_progress_reads import (
@@ -231,6 +232,28 @@ class DatabaseMessagingAccounts:
                 encrypted,
                 fingerprint,
                 model_settings_json,
+            )
+
+    async def set_account_lifecycle_state(
+        self,
+        user_id: int,
+        account_id: str,
+        expected_revision: int,
+        *,
+        enabled: bool,
+    ) -> JSONDict | None:
+        if not isinstance(enabled, bool):
+            raise ValidationError("Messaging account enabled flag is invalid.")
+        normalized_user_id = require_strict_user_id(user_id)
+        normalized_account_id = require_messaging_account_id(account_id)
+        normalized_revision = require_messaging_revision(expected_revision)
+        async with self.account_lifecycle_lock(normalized_account_id):
+            return await self.core.writer.queue_write_operation(
+                sync_set_messaging_account_lifecycle_state,
+                normalized_user_id,
+                normalized_account_id,
+                normalized_revision,
+                "enabled" if enabled else "disabled",
             )
 
     async def record_reconciliation(

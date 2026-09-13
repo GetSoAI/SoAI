@@ -141,30 +141,33 @@ async def commit_clone_activation(
             "error_message": None,
         },
     )
-    committed = await plugin_manager.dependencies.databases.plugins.clone_transactions.commit(
-        CloneCommitRequest(
-            task_id=task_id,
-            target_plugin_name=plan.target_plugin_name,
-            fencing_token=fencing_token,
-            ready_state=outcome.initial_state,
-            completed_at_ms=completed_at_ms,
-            task_result_json=serialize_json_compact_stable(
-                {
-                    "target_plugin": plan.target_plugin_name,
-                    "display_name": display_name,
-                }
-            ),
-            task_status_message=message,
-            authoritative_event=CloneCommitOutboxRecord(
-                event_id=state_event_id,
-                event_type=type(state_event).__name__,
-                payload_json=encode_authoritative_plugin_state_event(state_event),
-            ),
-            domain_events=(loaded_event, config_event, task_complete_event),
+    publication_sequence = (
+        await plugin_manager.dependencies.databases.plugins.clone_transactions.commit(
+            CloneCommitRequest(
+                task_id=task_id,
+                target_plugin_name=plan.target_plugin_name,
+                fencing_token=fencing_token,
+                ready_state=outcome.initial_state,
+                completed_at_ms=completed_at_ms,
+                task_result_json=serialize_json_compact_stable(
+                    {
+                        "target_plugin": plan.target_plugin_name,
+                        "display_name": display_name,
+                    }
+                ),
+                task_status_message=message,
+                authoritative_event=CloneCommitOutboxRecord(
+                    event_id=state_event_id,
+                    event_type=type(state_event).__name__,
+                    payload_json=encode_authoritative_plugin_state_event(state_event),
+                ),
+                domain_events=(loaded_event, config_event, task_complete_event),
+            )
         )
     )
-    if not committed:
+    if publication_sequence is None:
         raise StateError("Clone activation lost durable commit ownership.")
+    state_event.publication_sequence = publication_sequence
     await plugin_manager.dependencies.infrastructure.state_aggregator.apply_authoritative_plugin_state_change(
         state_event
     )

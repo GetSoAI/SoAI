@@ -895,8 +895,6 @@
                         "emptyDetail": "Erstellen Sie aus den vorgemerkten Werten in diesem Dialog ein Preset und wählen Sie genau aus, welche Bereiche enthalten sein sollen.",
                         "emptyTitle": "Erstes wiederverwendbares Setup erstellen",
                         "errorTitle": "Preset-Bibliothek nicht verfügbar",
-                        "loadingDetail": "Ihre zuletzt gespeicherten Presets werden geladen…",
-                        "loadingTitle": "Presets werden geladen",
                         "noMatchesTitle": "Keine passenden Presets",
                         "recoveryTitle": "Einige Presets erfordern Aufmerksamkeit",
                         "staleTitle": "Die Preset-Liste ist möglicherweise veraltet"
@@ -6981,6 +6979,7 @@
                     "unavailable": "Modellkatalog nicht verfügbar"
                 },
                 "notifications": {
+                    "accountChanged": "Dieses Messaging-Konto wurde geändert, bevor die Aktion angewendet wurde. Die Liste wurde aktualisiert; prüfen Sie sie und versuchen Sie es erneut.",
                     "accountDisabled": "Messaging-Konto deaktiviert.",
                     "accountEnabled": "Messaging-Konto aktiviert.",
                     "accountRemoved": "Messaging-Konto entfernt.",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "Aktiv",
                 "error": "Fehler",
+                "maintenance": "Wartung",
                 "offline": "Offline",
                 "reconnecting": "Verbindung wird wiederhergestellt",
                 "ready": "Bereit",

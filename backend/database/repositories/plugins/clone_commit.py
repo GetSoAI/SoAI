@@ -140,9 +140,9 @@ def _preconditions_hold(
 def _insert_authoritative_event(
     connection: sqlite3.Connection,
     request: CloneCommitRequest,
-) -> None:
+) -> int:
     record = request.authoritative_event
-    connection.execute(
+    cursor = connection.execute(
         """INSERT INTO plugin_authoritative_state_outbox (
             event_id, plugin_name, event_type, payload_json, created_at_ms,
             status, attempts, next_attempt_at_ms
@@ -154,6 +154,10 @@ def _insert_authoritative_event(
             record.payload_json,
             request.completed_at_ms,
         ),
+    )
+
+    return require_positive_int_strict(
+        cursor.lastrowid, error_message="The clone state publication position is invalid."
     )
 
 
@@ -178,7 +182,7 @@ def _insert_domain_events(
     )
 
 
-def _apply_commit(connection: sqlite3.Connection, request: CloneCommitRequest) -> None:
+def _apply_commit(connection: sqlite3.Connection, request: CloneCommitRequest) -> int:
     plugin_updated = connection.execute(
         """UPDATE plugins_catalog SET state = ?, last_seen_at_ms = ?
         WHERE plugin_name = ? AND state = ?""",
@@ -191,7 +195,7 @@ def _apply_commit(connection: sqlite3.Connection, request: CloneCommitRequest) -
     ).rowcount
     if plugin_updated != 1:
         raise StateError("Clone provisional plugin record could not be promoted.")
-    _insert_authoritative_event(connection, request)
+    publication_sequence = _insert_authoritative_event(connection, request)
     _insert_domain_events(connection, request)
     task_updated = connection.execute(
         f"""UPDATE unified_tasks SET status = 'completed', result = ?, error_code = NULL,
@@ -241,14 +245,16 @@ def _apply_commit(connection: sqlite3.Connection, request: CloneCommitRequest) -
     if clone_updated != 1:
         raise StateError("Clone journal could not reach its logical commit point.")
 
+    return publication_sequence
+
 
 def sync_commit_clone_transaction(
     connection: sqlite3.Connection,
     request: CloneCommitRequest,
-) -> bool:
+) -> int | None:
     _validate_request(request)
     if not _preconditions_hold(connection, request):
-        return False
+        return None
     with SQLiteSavepoint(connection, "plugin_clone_commit"):
-        _apply_commit(connection, request)
-    return True
+        publication_sequence = _apply_commit(connection, request)
+    return publication_sequence

@@ -277,7 +277,7 @@ const renderChatPresetLibrary = (root: HTMLElement, state: ChatPresetLibraryView
     resolveElement(root, 'preset-toolbar').classList.toggle('u-hidden', state.editor !== null);
     const candidate = dom.resolve('.chat-preset-library', root);
     const stateSurface = candidate instanceof HTMLElement ? candidate : root;
-    stateSurface.dataset['chatPresetState'] = state.stale ? 'stale' : state.phase;
+    stateSurface.dataset['chatPresetState'] = state.phase === 'loading' ? 'loading' : state.stale ? 'stale' : state.phase;
     const search = resolveElement(root, 'preset-search');
     if (search instanceof HTMLInputElement && search.value !== state.searchQuery) search.value = state.searchQuery;
     const records = matchingRecords(state);

@@ -27,7 +27,8 @@ def normalize_hf_model_input(value: str) -> tuple[str, str | None]:
         candidate = raw[len(prefix) :]
     elif lower.startswith("http://") or lower.startswith("https://"):
         parsed = urlparse(raw)
-        if parsed.netloc.lower().endswith("huggingface.co"):
+        default_port = "443" if parsed.scheme == "https" else "80"
+        if parsed.netloc.lower() in ("huggingface.co", f"huggingface.co:{default_port}"):
             candidate = parsed.path
         else:
             return (raw, None)

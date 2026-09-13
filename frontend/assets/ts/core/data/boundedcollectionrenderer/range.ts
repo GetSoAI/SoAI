@@ -1,7 +1,7 @@
 /* SoAI - Bounded collection range calculations and sequence validation [frontend/assets/ts/core/data/boundedcollectionrenderer/range.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-const COLLECTION_PAGE_SIZE = 48;
+const COLLECTION_PAGE_SIZE = 72;
 const COLLECTION_RETAINED_PAGE_COUNT = 4;
 const COLLECTION_BUILD_FRAME_BUDGET_MS = 6;
 

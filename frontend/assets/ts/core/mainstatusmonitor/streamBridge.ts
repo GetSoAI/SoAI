@@ -63,7 +63,7 @@ class MainStatusStreamBridge {
         this.#streamManager = null;
     }
 
-    async connect(inputArguments: { generation: number; isGenerationActive: (generation: number) => boolean; onValue: (value: SystemStatusResource) => void }): Promise<boolean> {
+    async connect(inputArguments: { generation: number; isGenerationActive: (generation: number) => boolean; onValue: (value: SystemStatusResource) => void; onError: () => void }): Promise<boolean> {
         const generation = inputArguments.generation;
         const streamManager = this.resolveStreamManager();
         if (!inputArguments.isGenerationActive(generation)) {
@@ -87,6 +87,8 @@ class MainStatusStreamBridge {
             }
             if (snapshot.status === 'ready' && snapshot.value) {
                 inputArguments.onValue(snapshot.value);
+            } else if (snapshot.status === 'error') {
+                inputArguments.onError();
             }
         });
         if (typeof unsubscribe === 'function') {

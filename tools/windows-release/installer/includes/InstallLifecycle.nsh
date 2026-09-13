@@ -170,6 +170,38 @@ Function un.onInit
   ${Else}
     StrCpy $INSTDIR "$EXEDIR"
   ${EndIf}
+  StrCpy $UninstallRemoveData 0
+  ${GetParameters} $0
+  ClearErrors
+  ${GetOptions} $0 "/REMOVEAPPDATA" $1
+  ${IfNot} ${Errors}
+    StrCpy $UninstallRemoveData 1
+  ${EndIf}
+FunctionEnd
+Function un.UninstallOptionsPageCreate
+  IfSilent 0 +2
+    Abort
+  nsDialogs::Create 1018
+  Pop $0
+  ${If} $0 == error
+    Abort
+  ${EndIf}
+  ${NSD_CreateLabel} 0u 0u 100% 28u "Choose whether the application data stored inside this SoAI installation should also be removed."
+  Pop $0
+  ${NSD_CreateCheckbox} 0u 38u 100% 28u "Remove all SoAI application data, including accounts, configuration, chats, models, files, logs, and backups"
+  Pop $UninstallRemoveDataCheckbox
+  ${If} $UninstallRemoveData == 1
+    ${NSD_Check} $UninstallRemoveDataCheckbox
+  ${EndIf}
+  nsDialogs::Show
+FunctionEnd
+Function un.UninstallOptionsPageLeave
+  ${NSD_GetState} $UninstallRemoveDataCheckbox $0
+  ${If} $0 == ${BST_CHECKED}
+    StrCpy $UninstallRemoveData 1
+  ${Else}
+    StrCpy $UninstallRemoveData 0
+  ${EndIf}
 FunctionEnd
 Function StopExistingSoAI
   IfFileExists "$INSTDIR\soai.exe" 0 done
@@ -316,7 +348,7 @@ Function CleanupUpgradeBackup
   ${EndIf}
 FunctionEnd
 Function CleanupFailedFreshInstall
-  nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$PLUGINSDIR\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Uninstall -ManifestPath "$PLUGINSDIR\installed-files.txt"'
+  nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$PLUGINSDIR\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Uninstall -ManifestPath "$PLUGINSDIR\installed-files.txt" -RemoveApplicationData'
   Pop $0
   ${If} $0 == 0
     StrCpy $InstallMutationStarted 0

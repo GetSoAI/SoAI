@@ -895,8 +895,6 @@
                         "emptyDetail": "Créez un préréglage à partir des valeurs en attente dans cette fenêtre et choisissez précisément les sections qu’il doit inclure.",
                         "emptyTitle": "Créez votre première configuration réutilisable",
                         "errorTitle": "Bibliothèque de préréglages indisponible",
-                        "loadingDetail": "Chargement de vos derniers préréglages enregistrés…",
-                        "loadingTitle": "Chargement des préréglages",
                         "noMatchesTitle": "Aucun préréglage correspondant",
                         "recoveryTitle": "Certains préréglages nécessitent votre attention",
                         "staleTitle": "La liste des préréglages n’est peut-être pas à jour"
@@ -6981,6 +6979,7 @@
                     "unavailable": "Catalogue de modèles indisponible"
                 },
                 "notifications": {
+                    "accountChanged": "Ce compte de messagerie a été modifié avant l’application de l’action. La liste a été actualisée ; vérifiez-la, puis réessayez.",
                     "accountDisabled": "Compte de messagerie désactivé.",
                     "accountEnabled": "Compte de messagerie activé.",
                     "accountRemoved": "Compte de messagerie supprimé.",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "Actif",
                 "error": "Erreur",
+                "maintenance": "Maintenance",
                 "offline": "Hors ligne",
                 "reconnecting": "Reconnexion",
                 "ready": "Prêt",

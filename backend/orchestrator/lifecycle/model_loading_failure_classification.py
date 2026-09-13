@@ -6,7 +6,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from core.errors.error_types import ErrorType
-from core.errors.exceptions import IpcRemoteRequestError
+from core.errors.exceptions import ConfigurationError, IpcRemoteRequestError, ValidationError
+from core.errors.public_projection import project_public_exception
 from orchestrator.execution.failure_classification import resolve_remote_error_code
 from orchestrator.lifecycle.model_loading_result import ModelScopedLoadError
 
@@ -29,18 +30,28 @@ class ModelLoadFailureClassification:
 
 
 def classify_model_load_failure(exception: BaseException) -> ModelLoadFailureClassification:
+    public_reason = project_public_exception(exception).message
+    if isinstance(exception, ValidationError | ConfigurationError):
+        return ModelLoadFailureClassification(
+            model_scoped=True,
+            reason="Model startup settings are invalid. Review the model parameters and backend configuration.",
+        )
     if isinstance(exception, ModelScopedLoadError):
         return ModelLoadFailureClassification(
             model_scoped=False,
-            reason=exception.message,
+            reason=public_reason,
         )
     if isinstance(exception, IpcRemoteRequestError):
         remote_error_code = resolve_remote_error_code(exception)
         return ModelLoadFailureClassification(
             model_scoped=remote_error_code in MODEL_SCOPED_REMOTE_ERROR_CODES,
-            reason=exception.message,
+            reason=(
+                "Model startup settings are invalid. Review the model parameters and backend configuration."
+                if remote_error_code == ErrorType.INVALID_REQUEST.value
+                else public_reason
+            ),
         )
     return ModelLoadFailureClassification(
         model_scoped=False,
-        reason=str(exception),
+        reason=public_reason,
     )

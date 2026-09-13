@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
+from core.concurrency.cancellation_cleanup import cancellation_cleanup
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import SoAIError, StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
@@ -253,21 +254,23 @@ async def execute_lifecycle_task(
             )
         return True
     except asyncio.CancelledError:
-        await handle_lifecycle_cancelled(
-            manager,
-            logger,
-            action=action,
-            display_name=display_name,
-            plugin_name=plugin_name,
-            context=context,
-            trace_id=trace_id,
-            original_state=original_state,
-            plugin_instance=plugin_instance,
-            is_part_of_delete=is_part_of_delete,
-            send_completion_event=send_completion_event,
-            reply_channel=reply_channel,
-            task_id=task_id,
-            mutation_fencing_token=mutation_fencing_token,
+        await cancellation_cleanup(
+            handle_lifecycle_cancelled(
+                manager,
+                logger,
+                action=action,
+                display_name=display_name,
+                plugin_name=plugin_name,
+                context=context,
+                trace_id=trace_id,
+                original_state=original_state,
+                plugin_instance=plugin_instance,
+                is_part_of_delete=is_part_of_delete,
+                send_completion_event=send_completion_event,
+                reply_channel=reply_channel,
+                task_id=task_id,
+                mutation_fencing_token=mutation_fencing_token,
+            )
         )
         raise
     except SoAIError as exception:
@@ -285,6 +288,7 @@ async def execute_lifecycle_task(
             task_id=task_id,
             exception=exception,
             mutation_fencing_token=mutation_fencing_token,
+            plugin_instance=plugin_instance,
         )
         if should_return_false:
             return False

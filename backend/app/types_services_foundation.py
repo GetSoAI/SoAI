@@ -56,7 +56,7 @@ if TYPE_CHECKING:
     from core.hardware.protocols_storage import StorageManagerProtocol
     from core.logging.protocols import LoggingManagerProtocol
     from core.mail.protocols import MailServiceProtocol
-    from core.messaging.protocols import MessagingGatewayProtocol
+    from core.messaging.gateway.protocols import MessagingGatewayProtocol
     from core.metrics.protocols import MetricsManagerProtocol
     from core.notifications.protocols import ConversationAttentionCoordinatorProtocol
     from core.openai.token_counter import PromptTokenCounter

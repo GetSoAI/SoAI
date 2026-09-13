@@ -31,10 +31,7 @@ from features.api.streaming.openai_stream_generator.generator import (
     create_stream_generator,
 )
 from features.api.streaming.sse_responses import create_sse_response
-from features.api.streaming.task_quota_metadata import (
-    read_task_quota_budget_inputs,
-    resolve_request_max_completion_tokens,
-)
+from features.api.streaming.task_quota_metadata import read_task_quota_budget_inputs
 from features.api.streaming.types import StreamDependencies
 
 if TYPE_CHECKING:
@@ -92,7 +89,6 @@ def create_inference_streaming_response(
             include_usage=include_usage,
             quota_reservation=quota_reservation,
             quota_prompt_tokens=quota_prompt_tokens,
-            max_completion_tokens=resolve_request_max_completion_tokens(request_json),
             allow_image_events=allow_image_events,
             emit_done_marker=stream_transform is None,
             schedule_tool_calls=stream_transform is None,

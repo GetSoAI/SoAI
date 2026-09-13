@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 __all__ = (
     "EnsurePluginQueueCallbackProtocol",
     "EventWithContextAndReplyProtocol",
+    "FailWaitersCallable",
     "GuardianRefProtocol",
     "OrchestratorActiveInferenceProtocol",
     "OrchestratorCapacityProtocol",
@@ -103,6 +104,17 @@ class OrchestratorTaskOutcomesProtocol(Protocol):
         routing_key: str,
         reason: str,
         *,
+        error_type: ErrorType = ErrorType.SERVER_ERROR,
+    ) -> None: ...
+
+
+class FailWaitersCallable(Protocol):
+    async def __call__(
+        self,
+        routing_key: str,
+        reason: str,
+        *,
+        allow_failover: bool = True,
         error_type: ErrorType = ErrorType.SERVER_ERROR,
     ) -> None: ...
 

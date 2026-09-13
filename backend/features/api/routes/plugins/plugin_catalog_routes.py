@@ -6,9 +6,12 @@ from __future__ import annotations
 from fastapi import Depends, Query, Request, status
 from starlette.responses import JSONResponse, Response
 
+from core.errors.error_types import ErrorType
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import IpcRemoteRequestError, ValidationError
+from core.errors.external_service_exception import ExternalServiceError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.ipc.remote_error_metadata import REMOTE_ERROR_CODE_KEY
 from core.logging.trace import get_logger
 from core.manual_install_paths import build_manual_install_path_payload
 from core.models.remote_model_search_error import RemoteModelSearchError
@@ -26,6 +29,7 @@ from features.api.runtime.context import (
 )
 from features.api.runtime.errors import (
     raise_bad_gateway,
+    raise_bad_request,
     raise_not_found,
     raise_offline_mode,
     raise_server_error,
@@ -113,6 +117,28 @@ def register_routes(routers: ApiRouters) -> None:
                 include_speed_tests=include_speed_tests,
             )
             return [ModelVariant.model_validate(entry) for entry in raw_variants]
+        except IpcRemoteRequestError as exception:
+            remote_code = (exception.details or {}).get(REMOTE_ERROR_CODE_KEY)
+            if remote_code == ErrorType.INVALID_REQUEST.value:
+                raise_bad_request(
+                    request,
+                    "The model selection was rejected. Check the model identifier, repository token, and access permissions, then retry.",
+                )
+            if remote_code == ErrorType.NOT_FOUND.value:
+                raise_not_found(
+                    request,
+                    "The model repository or revision was not found. Check its identifier and access permissions.",
+                )
+            if remote_code == ExternalServiceError.code:
+                raise_bad_gateway(
+                    request,
+                    "The model repository could not be reached. Check network access and retry.",
+                )
+            raise_server_error(
+                request,
+                "The plugin failed to process the variant discovery request.",
+                error_type="plugin_error",
+            )
         except PluginIncompatibleError as exception:
             handle_plugin_incompatible_error(request, exception)
         except (ValidationError, ValueError) as exception:

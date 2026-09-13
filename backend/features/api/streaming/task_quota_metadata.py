@@ -6,13 +6,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
-from core.openai.output_token_cap import OUTPUT_TOKEN_CAP_FIELDS
 from core.quotas.token_reservation_payloads import (
     read_token_quota_prompt_tokens,
     resolve_token_quota_reservation,
 )
 from core.tasks.task import Task
-from core.validation.integers import is_strict_int
 from core.validation.strings import coerce_optional_trimmed_str
 
 if TYPE_CHECKING:
@@ -20,7 +18,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "read_task_quota_budget_inputs",
-    "resolve_request_max_completion_tokens",
     "resolve_task_stream_model",
 )
 
@@ -45,16 +42,3 @@ def resolve_task_stream_model(task: Task, explicit_model: str | None) -> str | N
         return normalized_explicit_model
     _quota_reservation, _prompt_tokens, model_hint = read_task_quota_budget_inputs(task)
     return model_hint
-
-
-def resolve_request_max_completion_tokens(
-    request_payload: Mapping[str, JSONValue] | None,
-) -> int | None:
-    payload: Mapping[str, JSONValue] = (
-        request_payload if isinstance(request_payload, Mapping) else {}
-    )
-    for key in OUTPUT_TOKEN_CAP_FIELDS:
-        value = payload.get(key)
-        if is_strict_int(value) and int(value) >= 0:
-            return int(value)
-    return None

@@ -15,7 +15,7 @@ from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.files.operations import async_remove
 from core.files.path_policy import safe_join_relative_under_base_lexical
-from core.filesystem.async_queries import async_isdir, async_listdir
+from core.filesystem.async_queries import async_isdir, async_islink, async_listdir
 from core.timing.epoch import epoch_seconds_float
 from mcp.tools.shell_transcript_paths import SHELL_TRANSCRIPT_TEMP_DIRNAME
 
@@ -115,25 +115,24 @@ class TempFilesCleanupStep:
                         description="Temporary cleanup path",
                     )
                     try:
-                        if filename == SHELL_TRANSCRIPT_TEMP_DIRNAME:
-                            await asyncio.to_thread(shutil.rmtree, full_path)
-                            logging_context.lifecycle_logger.warning(
-                                "Removed stale temporary file: %s",
-                                full_path,
-                            )
-                            continue
                         is_file_explorer_session_file = bool(
                             file_explorer_archive_pattern.match(filename)
                             or file_explorer_listing_pattern.match(filename),
                         )
                         if (
-                            multipart_staged_upload_pattern.match(filename)
+                            filename == SHELL_TRANSCRIPT_TEMP_DIRNAME
+                            or multipart_staged_upload_pattern.match(filename)
                             or is_file_explorer_session_file
                             or epoch_seconds_float()
                             - await asyncio.to_thread(os.path.getmtime, full_path)
                             > 3600
                         ):
-                            await async_remove(full_path)
+                            if await async_isdir(full_path) and not await async_islink(
+                                full_path,
+                            ):
+                                await asyncio.to_thread(shutil.rmtree, full_path)
+                            else:
+                                await async_remove(full_path)
                             logging_context.lifecycle_logger.warning(
                                 "Removed stale temporary file: %s",
                                 full_path,

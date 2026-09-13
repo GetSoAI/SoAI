@@ -20,6 +20,7 @@ from core.tasks.task import Task
 from orchestrator.scheduling.action_construction import (
     SchedulerActionInputs,
     build_dispatch_action,
+    build_reload_action,
 )
 from orchestrator.scheduling.action_generation_dependencies import (
     SchedulerActionGenerationDependencies,
@@ -188,7 +189,21 @@ async def _determine_action_for_state(
             evaluation.max_concurrent_plugins,
             active_non_persistent_count,
         )
-    if plugin_status in {ORCH_STATE_READY, ORCH_STATE_READY_DIRTY}:
+    if plugin_status == ORCH_STATE_READY_DIRTY:
+        return PluginActionResult(
+            outcome="action",
+            action=build_reload_action(
+                SchedulerActionInputs(
+                    priority_order=evaluation.context.priority_assignment.priority_order,
+                    universal_id=evaluation.universal_id,
+                    plugin_name=evaluation.plugin_name,
+                    task=evaluation.task,
+                    model_info=evaluation.model_info,
+                    pending_key=evaluation.pending_key,
+                ),
+            ),
+        )
+    if plugin_status == ORCH_STATE_READY:
         return await handle_ready_plugin(
             deps,
             evaluation.task,

@@ -697,38 +697,48 @@ function Install-VisualCppRuntime {
 
 function Copy-AppLocalVisualCppRuntimeDlls {
     param([Parameter(Mandatory=$true)][string]$Root)
-    $downloadDir = $script:InstallerDownloadRoot
-    $package = Join-Path $downloadDir 'VCLibs.VCRuntime.140.1.0.4.nupkg'
-    $packageZip = Join-Path $downloadDir 'VCLibs.VCRuntime.140.1.0.4.zip'
-    $extractDir = Join-Path $downloadDir 'VCLibs.VCRuntime.140.1.0.4'
-    if (!(Test-Path -LiteralPath $package)) {
-        Download-File -Uri $VisualCppAppLocalUrl -Destination $package -Sha256 $VisualCppAppLocalSha256 -Kind Zip
-    }
-    else {
-        Assert-Hash -Path $package -Sha256 $VisualCppAppLocalSha256
-    }
+    $dllNames = Get-RequiredVisualCppRuntimeDllNames
+    $system32 = Join-Path $env:WINDIR 'System32'
+    $systemMissing = @(Get-MissingVisualCppRuntimeFiles -Directory $system32 -DllNames $dllNames)
+    $sourceDir = $system32
+    if ($systemMissing.Count -ne 0) {
+        $downloadDir = $script:InstallerDownloadRoot
+        $package = Join-Path $downloadDir 'VCLibs.VCRuntime.140.1.0.4.nupkg'
+        $packageZip = Join-Path $downloadDir 'VCLibs.VCRuntime.140.1.0.4.zip'
+        $extractDir = Join-Path $downloadDir 'VCLibs.VCRuntime.140.1.0.4'
+        if (!(Test-Path -LiteralPath $package)) {
+            Download-File -Uri $VisualCppAppLocalUrl -Destination $package -Sha256 $VisualCppAppLocalSha256 -Kind Zip
+        }
+        else {
+            Assert-Hash -Path $package -Sha256 $VisualCppAppLocalSha256
+        }
 
-    $sourceDir = Join-Path $extractDir 'runtimes\win-x64\native'
-    if (!(Test-Path -LiteralPath $sourceDir -PathType Container)) {
-        Remove-Item -LiteralPath $extractDir -Recurse -Force -ErrorAction SilentlyContinue
-        Copy-Item -LiteralPath $package -Destination $packageZip -Force
-        Expand-Archive -LiteralPath $packageZip -DestinationPath $extractDir -Force
-    }
-    if (!(Test-Path -LiteralPath $sourceDir -PathType Container)) {
-        throw 'The app-local Visual C++ runtime package did not contain runtimes\win-x64\native.'
+        $sourceDir = Join-Path $extractDir 'runtimes\win-x64\native'
+        if (!(Test-Path -LiteralPath $sourceDir -PathType Container)) {
+            Remove-Item -LiteralPath $extractDir -Recurse -Force -ErrorAction SilentlyContinue
+            Copy-Item -LiteralPath $package -Destination $packageZip -Force
+            Expand-Archive -LiteralPath $packageZip -DestinationPath $extractDir -Force
+        }
+        if (!(Test-Path -LiteralPath $sourceDir -PathType Container)) {
+            throw 'The app-local Visual C++ runtime package did not contain runtimes\win-x64\native.'
+        }
     }
 
     $targets = New-Object System.Collections.Generic.List[string]
     [void]$targets.Add((Resolve-FullPath $Root))
+    $pythonDir = Resolve-ChildPath -Root $Root -Child 'python'
+    if (Test-Path -LiteralPath $pythonDir -PathType Container) {
+        [void]$targets.Add($pythonDir)
+    }
     $venvScripts = Resolve-ChildPath -Root $Root -Child 'soai_main_venv\Scripts'
     if (Test-Path -LiteralPath $venvScripts -PathType Container) {
         [void]$targets.Add($venvScripts)
     }
 
-    foreach ($dllName in (Get-RequiredVisualCppRuntimeDllNames)) {
+    foreach ($dllName in $dllNames) {
         $source = Join-Path $sourceDir $dllName
         if (!(Test-Path -LiteralPath $source -PathType Leaf)) {
-            throw "The app-local Visual C++ runtime package is missing $dllName."
+            throw "The selected Visual C++ runtime source is missing $dllName."
         }
         foreach ($target in $targets) {
             Copy-Item -LiteralPath $source -Destination (Join-Path $target $dllName) -Force
@@ -1085,8 +1095,8 @@ function Invoke-SoAIInstallCommandOnce {
             -HeartbeatMessage 'Creating the SoAI managed Python environment' `
             -ProgressStart 60 `
             -ProgressEnd 66 | Out-Null
-        Copy-AppLocalVisualCppRuntimeDlls -Root $Root
         Copy-AppLocalPythonRuntimeDlls -Root $Root
+        Copy-AppLocalVisualCppRuntimeDlls -Root $Root
 
         Invoke-LoggedCommand `
             -Root $Root `
@@ -1271,6 +1281,7 @@ try {
     Install-VisualCppRuntime -Root $resolvedInstallRoot
     Set-InstallProgress -Progress 48 -Message "Preparing app-local Python $PythonVersion runtime..."
     Install-PythonRuntime -Root $resolvedInstallRoot
+    Copy-AppLocalVisualCppRuntimeDlls -Root $resolvedInstallRoot
     Set-InstallProgress -Progress 55 -Message 'Preparing SoAI bootstrap dependencies...'
     Install-Stage0BootstrapDependencies -Root $resolvedInstallRoot
     if ($BootstrapOnly) {

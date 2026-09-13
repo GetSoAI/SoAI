@@ -24,7 +24,6 @@ class OpenAIStreamRuntimeState:
     stream_id: str | None
     stream_object: str | None
     quota_completion_token_budget: StreamingTokenBudgetTracker | None
-    max_completion_token_budget: StreamingTokenBudgetTracker | None
     collect_tool_calls: bool
     tool_call_ids_by_index: dict[int, str] = field(default_factory=dict[int, str])
     tool_call_ids_by_ordinal: dict[int, str] = field(default_factory=dict[int, str])

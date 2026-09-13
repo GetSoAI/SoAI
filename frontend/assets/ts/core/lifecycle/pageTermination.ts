@@ -24,8 +24,13 @@ const isPersistedPageHideEvent = (event: Event): boolean => {
 
 const registerPageTerminationListeners = (): (() => void) => {
     const eventHub = getEventHub();
-    const handleBeforeUnload = (): void => {
+    const handleBeforeUnload = (event: Event): void => {
         markPageTerminating();
+        setTimeout(() => {
+            if (event.defaultPrevented) {
+                pageTerminating = false;
+            }
+        }, 0);
     };
     const handlePageHide = (event: Event): void => {
         if (isPersistedPageHideEvent(event)) {
@@ -33,11 +38,18 @@ const registerPageTerminationListeners = (): (() => void) => {
         }
         markPageTerminating();
     };
+    const handlePageShow = (event: Event): void => {
+        if (isPersistedPageHideEvent(event)) {
+            pageTerminating = false;
+        }
+    };
     eventHub.addEventListener('beforeunload', handleBeforeUnload, { passive: true });
     eventHub.addEventListener('pagehide', handlePageHide, { passive: true });
+    eventHub.addEventListener('pageshow', handlePageShow, { passive: true });
     return (): void => {
         eventHub.removeEventListener('beforeunload', handleBeforeUnload);
         eventHub.removeEventListener('pagehide', handlePageHide);
+        eventHub.removeEventListener('pageshow', handlePageShow);
     };
 };
 
@@ -45,4 +57,4 @@ const resetPageTerminatingForTests = (): void => {
     pageTerminating = false;
 };
 
-export { isPageTerminating, markPageTerminating, registerPageTerminationListeners, resetPageTerminatingForTests };
+export { isPageTerminating, isPersistedPageHideEvent, markPageTerminating, registerPageTerminationListeners, resetPageTerminatingForTests };

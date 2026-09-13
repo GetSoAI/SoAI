@@ -3,7 +3,7 @@
 
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { renderModalBody, renderModalScaffoldMarkup, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
+import { renderModalBody, renderModalLoadingState, renderModalScaffoldMarkup, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { toTrustedHtml, type TrustedHtml } from '@core/security/public.ts';
 import { uiHtml } from '@core/security/uiHtml.ts';
@@ -36,7 +36,7 @@ const buildChatConfigurationModalMarkup = (context: ChatPageMarkupContext): Trus
 
     const bodyMarkup = [buildGeneralTabMarkup(context), buildAppearanceTabMarkup(context), buildCompletionTabMarkup(context), buildVoiceTabMarkup(context), buildFilesFolderTabMarkup(context), buildKnowledgeTabMarkup(context), buildMemoryTabMarkup(context), buildMcpTabMarkup(context), buildPresetsTabMarkup(context)].join('');
 
-    const body = renderModalBody(toTrustedHtml(bodyMarkup));
+    const body = renderModalBody(uiHtml`<div class="chat-configuration-scroll">${toTrustedHtml(bodyMarkup)}</div>${renderModalLoadingState({ text: i18n.t('common.loading'), overlay: true, className: 'chat-configuration-loading' })}`);
 
     const footer = renderSplitModalFooter({
         left: renderModalFooterCloseButton({ modalId, text: strings.close, ariaLabel: strings.closeLabel }),

@@ -16,13 +16,9 @@ from core.openai.sse_events import format_openai_stream_error_chunk
 from core.openai.sse_frame_accumulator import OpenAISSEFrameAccumulator
 from core.openai.sse_frames import sse_done_chunk
 from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
-from core.openai.streaming_token_budget import (
-    StreamingTokenBudgetTracker,
-    build_streaming_token_budget,
-)
+from core.openai.streaming_token_budget import build_streaming_token_budget
 from core.runtime.request_context import RequestContext
 from core.streaming.protocols import StreamGeneratorStateProtocol
-from core.validation.integers import is_strict_int
 from features.api.streaming.internal_protocols import (
     OpenAIStreamApiDependenciesProtocol,
 )
@@ -62,7 +58,6 @@ async def create_stream_generator(
     include_usage: bool = False,
     quota_reservation: JSONDict | None = None,
     quota_prompt_tokens: int | None = None,
-    max_completion_tokens: int | None = None,
     allow_image_events: bool = False,
     collect_tool_calls: bool = True,
 ) -> AsyncGenerator[bytes]:
@@ -118,13 +113,6 @@ async def create_stream_generator(
             stream_dependencies.prompt_token_counter,
             model_name=model,
         )
-    max_token_budget: StreamingTokenBudgetTracker | None = None
-    if is_strict_int(max_completion_tokens) and int(max_completion_tokens) >= 0:
-        max_token_budget = StreamingTokenBudgetTracker(
-            stream_dependencies.prompt_token_counter,
-            token_limit=int(max_completion_tokens),
-            model_name=model,
-        )
     state = OpenAIStreamRuntimeState(
         is_done_sent=False,
         is_stream_successful=True,
@@ -136,7 +124,6 @@ async def create_stream_generator(
         stream_id=None,
         stream_object=stream_object_hint,
         quota_completion_token_budget=token_budget,
-        max_completion_token_budget=max_token_budget,
         collect_tool_calls=resolved_collect_tool_calls,
         tool_call_ids_by_index={},
         tool_call_ids_by_ordinal={},

@@ -19,6 +19,7 @@ from core.state.plugin_health_resolution import plugin_state_is_available
 from core.state.state_names import (
     ORCH_STATE_LOADING,
     ORCH_STATE_STARTING,
+    ORCH_STATE_STOPPING,
     PLUGIN_STATE_PERSISTENT_READY,
 )
 from core.state.state_transition_sets import LOADED_ORCHESTRATOR_STATES
@@ -55,10 +56,11 @@ async def build_formatted_model_list(
     get_plugin_info_cached: Callable[[str], Awaitable[JSONDict | None]],
 ) -> dict[str, list[JSONDict]]:
     models_by_plugin: dict[str, list[JSONDict]] = defaultdict(list)
-    loaded_model_map: dict[str, str] = {}
-    loaded_state_set = {
+    runtime_model_map: dict[str, str] = {}
+    runtime_identity_state_set = {
         ORCH_STATE_STARTING,
         ORCH_STATE_LOADING,
+        ORCH_STATE_STOPPING,
         PLUGIN_STATE_PERSISTENT_READY,
         *LOADED_ORCHESTRATOR_STATES,
     }
@@ -75,8 +77,8 @@ async def build_formatted_model_list(
             if isinstance(details, Mapping)
             else None
         )
-        if universal_id and plugin_status in loaded_state_set:
-            loaded_model_map[plugin_name] = universal_id
+        if universal_id and plugin_status in runtime_identity_state_set:
+            runtime_model_map[plugin_name] = universal_id
     plugin_info_map: dict[str, JSONDict] = {}
     backend_status_map: dict[str, JSONDict] = {}
     if catalog_snapshot.plugin_names:
@@ -165,7 +167,7 @@ async def build_formatted_model_list(
             catalog_snapshot.providers_map,
             backend_status_map,
             plugin_info_map,
-            loaded_model_map,
+            runtime_model_map,
             has_custom_map.get(universal_id, False),
             catalog_snapshot.display_name_map,
         )

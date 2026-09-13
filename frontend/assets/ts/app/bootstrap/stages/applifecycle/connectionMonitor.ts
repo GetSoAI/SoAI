@@ -6,6 +6,7 @@ import { requireAuthManager } from '@core/auth/runtime.ts';
 import type { ConnectionStatus } from '@core/connectionstatus/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { isPageTerminating } from '@core/lifecycle/pageTermination.ts';
 import { createWebSocketContractBinding, subscribeManagedWebSocketContracts } from '@core/realtime/websocketBatchSubscription.ts';
 import { WEBSOCKET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/registry.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
@@ -89,7 +90,7 @@ const monitorLifecycleConnectionStatus = ({ connectionStatus, restartOverlay, ma
     };
 
     const unsubscribe = connectionStatus.subscribe((event) => {
-        if (event.type === 'connected') {
+        if (event.type === 'connected' || (event.connected && !lastConnected)) {
             markConnected();
             return;
         }
@@ -111,7 +112,9 @@ const monitorLifecycleConnectionStatus = ({ connectionStatus, restartOverlay, ma
                                 if (isMonitoring) wsClient.resumeAfterSessionRotation();
                             })
                             .catch((error) => {
-                                if (isMonitoring) errorHandler.warn('AppLifecycle', 'Rotated session recovery failed', ensureError(error));
+                                if (!isMonitoring) return;
+                                mainStateIndicator.setConnectionInterrupted(true);
+                                errorHandler.warn('AppLifecycle', 'Rotated session recovery failed', ensureError(error));
                             });
                         return;
                     }
@@ -130,6 +133,7 @@ const monitorLifecycleConnectionStatus = ({ connectionStatus, restartOverlay, ma
                         clearConnectionLossTimer();
                         return;
                     }
+                    if (isPageTerminating()) return;
                     markDisconnected();
                 }
             })

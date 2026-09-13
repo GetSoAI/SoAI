@@ -33,4 +33,10 @@ const serializeMessagingAccountUpdate = (account: MessagingAccountUpdate): JsonO
     'credentials': account.credentials === null ? null : serializeMessagingCredentials(account.credentials)
 });
 
-export { serializeMessagingAccountCreate, serializeMessagingAccountUpdate };
+const serializeMessagingAccountLifecycle = (expectedRevision: number, enabled: boolean): JsonObject => ({
+    'expected_revision': expectedRevision,
+    'enabled': enabled,
+    'replace_existing_callback': false
+});
+
+export { serializeMessagingAccountCreate, serializeMessagingAccountLifecycle, serializeMessagingAccountUpdate };

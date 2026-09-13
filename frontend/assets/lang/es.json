@@ -895,8 +895,6 @@
                         "emptyDetail": "Crea un preajuste a partir de los valores preparados en este cuadro de diálogo y elige exactamente qué secciones debe incluir.",
                         "emptyTitle": "Crea tu primera configuración reutilizable",
                         "errorTitle": "Biblioteca de preajustes no disponible",
-                        "loadingDetail": "Cargando tus últimos preajustes guardados…",
-                        "loadingTitle": "Cargando preajustes",
                         "noMatchesTitle": "No hay preajustes coincidentes",
                         "recoveryTitle": "Algunos preajustes requieren atención",
                         "staleTitle": "La lista de preajustes puede estar desactualizada"
@@ -6981,6 +6979,7 @@
                     "unavailable": "Catálogo de modelos no disponible"
                 },
                 "notifications": {
+                    "accountChanged": "Esta cuenta de mensajería cambió antes de aplicar la acción. La lista se actualizó; revísala e inténtalo de nuevo.",
                     "accountDisabled": "Cuenta de mensajería deshabilitada.",
                     "accountEnabled": "Cuenta de mensajería habilitada.",
                     "accountRemoved": "Cuenta de mensajería eliminada.",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "Activo",
                 "error": "Error",
+                "maintenance": "Mantenimiento",
                 "offline": "Sin conexión",
                 "reconnecting": "Reconectando",
                 "ready": "Listo",

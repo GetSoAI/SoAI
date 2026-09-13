@@ -895,8 +895,6 @@
                         "emptyDetail": "Maak een preset van de klaargezette waarden in dit venster en kies precies welke secties deze moet bevatten.",
                         "emptyTitle": "Maak je eerste herbruikbare configuratie",
                         "errorTitle": "Presetbibliotheek niet beschikbaar",
-                        "loadingDetail": "Je laatst opgeslagen presets laden…",
-                        "loadingTitle": "Presets laden",
                         "noMatchesTitle": "Geen overeenkomende presets",
                         "recoveryTitle": "Sommige presets vereisen aandacht",
                         "staleTitle": "Presetlijst is mogelijk verouderd"
@@ -6981,6 +6979,7 @@
                     "unavailable": "Modelcatalogus niet beschikbaar"
                 },
                 "notifications": {
+                    "accountChanged": "Dit berichtenaccount is gewijzigd voordat de actie werd toegepast. De lijst is vernieuwd; controleer deze en probeer het opnieuw.",
                     "accountDisabled": "Berichtenaccount uitgeschakeld.",
                     "accountEnabled": "Berichtenaccount ingeschakeld.",
                     "accountRemoved": "Berichtenaccount verwijderd.",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "Actief",
                 "error": "Fout",
+                "maintenance": "Onderhoud",
                 "offline": "Offline",
                 "reconnecting": "Opnieuw verbinden",
                 "ready": "Gereed",

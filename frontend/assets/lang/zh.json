@@ -895,8 +895,6 @@
                         "emptyDetail": "从此模态框中的暂存值创建预设，并准确选择要包含的部分。",
                         "emptyTitle": "创建你的第一个可复用配置",
                         "errorTitle": "预设库不可用",
-                        "loadingDetail": "正在加载你最新保存的预设…",
-                        "loadingTitle": "正在加载预设",
                         "noMatchesTitle": "没有匹配的预设",
                         "recoveryTitle": "部分预设需要处理",
                         "staleTitle": "预设列表可能已过期"
@@ -6981,6 +6979,7 @@
                     "unavailable": "模型目录不可用"
                 },
                 "notifications": {
+                    "accountChanged": "此消息账户在操作生效前已被更改。列表已刷新，请检查后重试。",
                     "accountDisabled": "消息账户已禁用。",
                     "accountEnabled": "消息账户已启用。",
                     "accountRemoved": "消息账户已移除。",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "活跃",
                 "error": "错误",
+                "maintenance": "维护中",
                 "offline": "离线",
                 "reconnecting": "正在重新连接",
                 "ready": "已就绪",

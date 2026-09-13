@@ -11,7 +11,6 @@ from core.events.types_base import Event
 from core.openai.model_output_contract_errors import (
     is_invalid_tool_call_json_contract_error,
 )
-from core.openai.quota_enforcement_constants import STREAMING_MAX_TOKENS_CUTOFF_REASON
 from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
 from core.openai.token_accounting import (
     build_prompt_occupancy_metadata,
@@ -75,10 +74,10 @@ def _build_runner_cancel_callbacks(
         cancelled = await cancellation_history.is_cancelled(effective_cancellation_id)
         if not cancelled:
             return (False, None)
-        reason = await cancellation_history.get_reason(effective_cancellation_id)
-        if reason == STREAMING_MAX_TOKENS_CUTOFF_REASON:
-            return (False, None)
-        return (True, reason)
+        return (
+            True,
+            await cancellation_history.get_reason(effective_cancellation_id),
+        )
 
     return (should_skip_error_chunk, read_cancel_state)
 

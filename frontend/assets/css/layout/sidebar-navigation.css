@@ -165,4 +165,8 @@
         display: block;
         margin: 0;
     }
+
+    .main-state-indicator[data-state='MAINTENANCE'] .status-indicator {
+        animation: status-led-blink var(--duration-1000) var(--ease-linear) infinite;
+    }
 }

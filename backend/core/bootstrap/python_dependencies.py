@@ -43,10 +43,18 @@ PYTHON_DEPS_LOCK_FILENAME = "soai.python_deps.lock"
 DEPENDENCY_PROBE_IMPORTS: tuple[str, ...] = (
     "fastapi",
     "httpx2",
+    "numpy",
     "pydantic",
     "playwright",
+    "rerankers",
     "tika",
     "uvicorn",
+)
+X64_NATIVE_DEPENDENCY_PROBE_IMPORTS: tuple[str, ...] = (
+    "torch",
+    "cv2",
+    "onnxruntime",
+    "rapidocr_onnxruntime",
 )
 
 
@@ -253,8 +261,17 @@ def _runtime_dependency_source_hash(*, repo_root_path: str, requirements_path: s
 
 
 def _build_dependency_probe_script() -> str:
-    import_names = ", ".join(repr(name) for name in DEPENDENCY_PROBE_IMPORTS)
-    return f"import importlib.util, sys\nmissing = [name for name in ({import_names},) if importlib.util.find_spec(name) is None]\nraise SystemExit(1 if missing else 0)\n"
+    imports = [f"import {name}" for name in DEPENDENCY_PROBE_IMPORTS]
+    native_imports = [f"    import {name}" for name in X64_NATIVE_DEPENDENCY_PROBE_IMPORTS]
+    return "\n".join(
+        (
+            "import platform",
+            'if platform.machine() in ("AMD64", "x86_64"):',
+            *native_imports,
+            *imports,
+            "",
+        )
+    )
 
 
 def _write_dependency_markers(*, venv_path: str, requirements_hash: str) -> None:

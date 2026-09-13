@@ -895,8 +895,6 @@
                         "emptyDetail": "Crie uma predefinição com os valores preparados neste modal e escolha exatamente quais seções ela deve incluir.",
                         "emptyTitle": "Crie sua primeira configuração reutilizável",
                         "errorTitle": "Biblioteca de predefinições indisponível",
-                        "loadingDetail": "Carregando suas predefinições salvas mais recentes…",
-                        "loadingTitle": "Carregando predefinições",
                         "noMatchesTitle": "Nenhuma predefinição correspondente",
                         "recoveryTitle": "Algumas predefinições precisam de atenção",
                         "staleTitle": "A lista de predefinições pode estar desatualizada"
@@ -6981,6 +6979,7 @@
                     "unavailable": "Catálogo de modelos indisponível"
                 },
                 "notifications": {
+                    "accountChanged": "Esta conta de mensagens foi alterada antes de a ação ser aplicada. A lista foi atualizada; revise-a e tente novamente.",
                     "accountDisabled": "Conta de mensagens desativada.",
                     "accountEnabled": "Conta de mensagens ativada.",
                     "accountRemoved": "Conta de mensagens removida.",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "Ativo",
                 "error": "Erro",
+                "maintenance": "Manutenção",
                 "offline": "Offline",
                 "reconnecting": "Reconectando",
                 "ready": "Pronto",

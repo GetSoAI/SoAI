@@ -895,8 +895,6 @@
                         "emptyDetail": "Tạo cấu hình đặt sẵn từ các giá trị đang chờ trong hộp thoại này và chọn chính xác các phần cần đưa vào.",
                         "emptyTitle": "Tạo thiết lập có thể tái sử dụng đầu tiên",
                         "errorTitle": "Thư viện cấu hình đặt sẵn không khả dụng",
-                        "loadingDetail": "Đang tải các cấu hình đặt sẵn mới nhất đã lưu…",
-                        "loadingTitle": "Đang tải cấu hình đặt sẵn",
                         "noMatchesTitle": "Không có cấu hình đặt sẵn phù hợp",
                         "recoveryTitle": "Một số cấu hình đặt sẵn cần được xử lý",
                         "staleTitle": "Danh sách cấu hình đặt sẵn có thể đã lỗi thời"
@@ -6981,6 +6979,7 @@
                     "unavailable": "Danh mục mô hình không khả dụng"
                 },
                 "notifications": {
+                    "accountChanged": "Tài khoản nhắn tin này đã thay đổi trước khi thao tác được áp dụng. Danh sách đã được làm mới; hãy kiểm tra rồi thử lại.",
                     "accountDisabled": "Đã tắt tài khoản nhắn tin.",
                     "accountEnabled": "Đã bật tài khoản nhắn tin.",
                     "accountRemoved": "Đã gỡ tài khoản nhắn tin.",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "Đang hoạt động",
                 "error": "Lỗi",
+                "maintenance": "Đang bảo trì",
                 "offline": "Ngoại tuyến",
                 "reconnecting": "Đang kết nối lại",
                 "ready": "Sẵn sàng",

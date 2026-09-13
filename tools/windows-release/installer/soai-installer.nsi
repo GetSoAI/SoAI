@@ -96,6 +96,7 @@ Page custom RuntimePrepPageCreate RuntimePrepPageLeave
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
+UninstPage custom un.UninstallOptionsPageCreate un.UninstallOptionsPageLeave
 !insertmacro MUI_UNPAGE_INSTFILES
 
 !insertmacro MUI_LANGUAGE "English"
@@ -108,6 +109,8 @@ Var LastRuntimeStatusMessage
 Var RuntimePollTicks
 Var RuntimeNoStatusTicks
 Var RuntimeCurrentProgress
+Var UninstallRemoveData
+Var UninstallRemoveDataCheckbox
 Var RuntimePageDialog
 Var RuntimePageStatusLabel
 Var RuntimePageProgress
@@ -170,9 +173,15 @@ Section "Uninstall"
   SetRegView 64
 
   IfFileExists "$INSTDIR\installer-support\Remove-SoAI.ps1" 0 cleanup_registry
-    DetailPrint "Removing SoAI runtime, app files, and data..."
+    StrCpy $1 ""
+    ${If} $UninstallRemoveData == 1
+      DetailPrint "Removing SoAI runtime, application files, and application data..."
+      StrCpy $1 " -RemoveApplicationData"
+    ${Else}
+      DetailPrint "Removing SoAI runtime and application files while retaining application data..."
+    ${EndIf}
     SetOutPath "$TEMP"
-    nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$INSTDIR\installer-support\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Uninstall'
+    nsExec::ExecToLog '"${SOAI_NATIVE_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass -NonInteractive -File "$INSTDIR\installer-support\Remove-SoAI.ps1" -InstallRoot "$INSTDIR" -Mode Uninstall$1'
     Pop $0
     ${If} $0 != 0
       ${IfNot} ${Silent}

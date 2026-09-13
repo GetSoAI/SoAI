@@ -12,16 +12,23 @@ from core.models.provider_backing import get_model_provider_id, is_provider_back
 from core.models.source_identifier import require_source_model_id, write_source_model_id
 from core.openai.effective_profile import compute_effective_openai_model_profile
 from core.state.plugin_health_resolution import plugin_state_is_available
+from core.state.provider_backed_availability import (
+    PROVIDER_BACKED_IGNORED_PLUGIN_STATES,
+)
 from core.state.state_names import (
     ORCH_STATE_LOADING,
     ORCH_STATE_PROCESSING,
     ORCH_STATE_STARTING,
     ORCH_STATE_STOPPED,
+    ORCH_STATE_STOPPING,
     PLUGIN_STATE_ABSENT,
     PLUGIN_STATE_NOT_DETECTED,
     PLUGIN_STATE_PERSISTENT_READY,
 )
-from core.state.state_transition_sets import LOADED_ORCHESTRATOR_STATES
+from core.state.state_transition_sets import (
+    DISPATCH_READY_STATES,
+    LOADED_ORCHESTRATOR_STATES,
+)
 from core.validation.boolean_coercion import (
     coerce_bool_with_default,
     coerce_payload_bool,
@@ -42,6 +49,14 @@ __all__ = (
 )
 
 LOGGER_NAME = "SoAI.models.list_formatting_single_model"
+EXCLUSIVE_MODEL_RUNTIME_STATES = frozenset(
+    {
+        ORCH_STATE_STARTING,
+        ORCH_STATE_LOADING,
+        ORCH_STATE_PROCESSING,
+        ORCH_STATE_STOPPING,
+    },
+)
 
 
 def get_model_display_name(
@@ -76,13 +91,35 @@ def is_model_orphaned(model_data: JSONDict) -> bool:
     )
 
 
+def _resolve_model_runtime_status(
+    *,
+    plugin_status: str,
+    universal_id: str | None,
+    runtime_model_universal_id: str | None,
+    shared_model_runtime: bool,
+    provider_backed: bool,
+) -> str:
+    if shared_model_runtime:
+        if plugin_status in DISPATCH_READY_STATES:
+            return PLUGIN_STATE_PERSISTENT_READY
+        if provider_backed and plugin_status in PROVIDER_BACKED_IGNORED_PLUGIN_STATES:
+            return PLUGIN_STATE_PERSISTENT_READY
+        return plugin_status
+    if (
+        plugin_status in EXCLUSIVE_MODEL_RUNTIME_STATES
+        and universal_id != runtime_model_universal_id
+    ):
+        return ORCH_STATE_STOPPED
+    return plugin_status
+
+
 def format_single_model_for_list(
     model_data: JSONDict,
     plugin_states: ImmutablePluginStates,
     provider_map: dict[str, JSONDict],
     backend_status_map: dict[str, JSONDict],
     plugin_info_map: dict[str, JSONDict],
-    loaded_model_map: dict[str, str],
+    runtime_model_map: dict[str, str],
     model_has_custom_parameters: bool,
     display_name_map: dict[str, str],
 ) -> JSONDict:
@@ -130,7 +167,24 @@ def format_single_model_for_list(
                     if provider_entry.get(last_key) is not None
                 },
             )
-    plugin_status = plugin_state.get("status", PLUGIN_STATE_NOT_DETECTED)
+    plugin_status_value = plugin_state.get("status", PLUGIN_STATE_NOT_DETECTED)
+    plugin_status = (
+        plugin_status_value if isinstance(plugin_status_value, str) else PLUGIN_STATE_NOT_DETECTED
+    )
+    persistent_runtime = coerce_bool_with_default(
+        plugin_info.get("persistent") if plugin_info is not None else None,
+        default=False,
+        strict=True,
+    )
+    shared_model_runtime = persistent_runtime or provider_backed
+    runtime_model_universal_id = runtime_model_map.get(plugin_name)
+    model_runtime_status = _resolve_model_runtime_status(
+        plugin_status=plugin_status,
+        universal_id=universal_id,
+        runtime_model_universal_id=runtime_model_universal_id,
+        shared_model_runtime=shared_model_runtime,
+        provider_backed=provider_backed,
+    )
     is_enabled = coerce_bool_with_default(model_data.get("is_enabled"), default=True, strict=True)
     response: JSONDict = {
         "id": display_name,
@@ -142,17 +196,9 @@ def format_single_model_for_list(
         "has_alias": has_alias,
         "model_repository": (plugin_info.get("model_repository") if plugin_info else None),
         "description": model_data.get("description", ""),
-        "is_loaded": (
-            plugin_status in LOADED_ORCHESTRATOR_STATES
-            or plugin_status == PLUGIN_STATE_PERSISTENT_READY
-        )
-        and universal_id == loaded_model_map.get(plugin_name),
-        "plugin_status": (
-            ORCH_STATE_STOPPED
-            if plugin_status in [ORCH_STATE_STARTING, ORCH_STATE_LOADING, ORCH_STATE_PROCESSING]
-            and universal_id != loaded_model_map.get(plugin_name)
-            else plugin_status
-        ),
+        "is_loaded": (not shared_model_runtime and plugin_status in LOADED_ORCHESTRATOR_STATES)
+        and universal_id == runtime_model_universal_id,
+        "plugin_status": model_runtime_status,
         "status": model_data.get("status", "active"),
         "is_enabled": is_enabled,
         "is_available": plugin_state_is_available(plugin_state, provider_backed=provider_backed)

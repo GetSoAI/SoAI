@@ -109,7 +109,6 @@ async def run_stream_event_loop(
                     logger=logger,
                     schedule_task_cancel=schedule_task_cancel,
                     allow_image_events=allow_image_events,
-                    emit_done_marker=emit_done_marker,
                 ):
                     yield stream_bytes
             except OpenAIStreamAbortRequested as exception:

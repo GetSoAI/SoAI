@@ -174,7 +174,13 @@ async def reconcile_committed_messaging_account(
             raise StateError("Messaging account disappeared before reconciliation.")
         latest_fence = require_messaging_account_fence(latest)
         if latest_fence != fence:
-            return latest
+            public_latest = await database_accounts.get_account(
+                latest_fence.user_id,
+                latest_fence.account_id,
+            )
+            if public_latest is None:
+                raise StateError("Messaging account disappeared before reconciliation.")
+            return public_latest
         return await _reconcile_messaging_account_locked(
             database_accounts=database_accounts,
             http_client=http_client,

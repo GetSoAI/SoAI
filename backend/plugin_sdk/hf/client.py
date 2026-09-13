@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 from urllib.parse import quote
@@ -215,8 +216,17 @@ async def hf_fetch_repo_variants(
                 size_value = None
         download_path = quote(path)
         download_uri = f"https://huggingface.co/{repo_segment}/resolve/{branch}/{download_path}"
-        checksum_value = node.get("oid") or node.get("sha")
-        checksum = checksum_value if isinstance(checksum_value, str) else ""
+        checksum = ""
+        lfs_metadata = node.get("lfs")
+        if lfs_metadata is not None:
+            checksum_value = lfs_metadata.get("oid") if isinstance(lfs_metadata, dict) else None
+            if not isinstance(checksum_value, str) or not re.fullmatch(
+                r"[0-9a-fA-F]{64}", checksum_value
+            ):
+                raise RemoteModelSearchError(
+                    "The model repository returned invalid file checksum metadata. Retry model search."
+                )
+            checksum = checksum_value.lower()
         variant = RemoteModelSearchVariant(
             id=f"{repo_id}:{path}",
             name=os.path.basename(path),

@@ -34,7 +34,6 @@ __all__ = (
     "DatabaseMessagingAccountsProtocol",
     "DatabaseMessagingDeliveriesProtocol",
     "DatabaseMessagingIngressProtocol",
-    "MessagingGatewayProtocol",
 )
 
 
@@ -87,6 +86,15 @@ class DatabaseMessagingAccountsProtocol(Protocol):
         account_id: str,
         expected_revision: int,
         account: MessagingAccountUpdate,
+    ) -> JSONDict | None: ...
+
+    async def set_account_lifecycle_state(
+        self,
+        user_id: int,
+        account_id: str,
+        expected_revision: int,
+        *,
+        enabled: bool,
     ) -> JSONDict | None: ...
 
     async def record_reconciliation(
@@ -299,27 +307,3 @@ class DatabaseMessagingIngressProtocol(Protocol):
         account_id: str,
         connection_generation: int,
     ) -> None: ...
-
-
-class MessagingGatewayProtocol(Protocol):
-    def request_reconcile(self) -> None: ...
-
-    async def start(self) -> None: ...
-
-    async def wait_for_initial_reconciliation(self, timeout: float) -> bool: ...
-
-    async def shutdown(self) -> None: ...
-
-    async def admit_event(
-        self,
-        *,
-        account_id: str,
-        event: NormalizedMessagingEvent,
-    ) -> JSONDict: ...
-
-    async def get_webhook_account(
-        self,
-        *,
-        account_id: str,
-        platform: str,
-    ) -> JSONDict | None: ...

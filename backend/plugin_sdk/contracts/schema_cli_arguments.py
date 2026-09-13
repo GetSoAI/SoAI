@@ -55,6 +55,8 @@ def _render_array(
     cli_name: str,
     value: list[JSONValue],
 ) -> list[str]:
+    if definition.get("rendering") == "json":
+        return [cli_name, serialize_json_compact_stable(value)]
     if not value:
         return []
     rendered_items = [_render_scalar(item).strip() for item in value]
@@ -110,6 +112,13 @@ def build_schema_cli_arguments(
                 raise ValidationError(f"Boolean flag parameter '{parameter_name}' must be boolean.")
             if value:
                 arguments.append(cli_name)
+            elif "false_cli_name" in definition_value:
+                false_cli_name = definition_value.get("false_cli_name")
+                if not isinstance(false_cli_name, str) or not false_cli_name.strip():
+                    raise ValidationError(
+                        f"Boolean flag parameter '{parameter_name}' has invalid false_cli_name."
+                    )
+                arguments.append(false_cli_name.strip())
             continue
         if isinstance(value, list):
             arguments.extend(_render_array(parameter_name, definition_value, cli_name, value))
@@ -119,7 +128,11 @@ def build_schema_cli_arguments(
         )
         if not rendered_value:
             raise ValidationError(f"Parameter '{parameter_name}' must not be empty.")
-        if rendered_value.lower() == "auto" and definition_value.get("default") == "auto":
+        if (
+            rendered_value.lower() == "auto"
+            and definition_value.get("default") == "auto"
+            and definition_value.get("render_default_value") is not True
+        ):
             continue
         arguments.extend((cli_name, rendered_value))
     return arguments

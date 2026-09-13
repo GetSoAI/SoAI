@@ -23,7 +23,7 @@ const buildPresetsTabMarkup = (context: ChatPageMarkupContext): string => {
         <button type="button" class="ui-button ui-variant-accent chat-preset-new-action" data-action="chat:new-preset" aria-label="${i18n.attr(sanitizer, 'chat.configuration.presetLibrary.newAction')}" data-tooltip="${i18n.attr(sanitizer, 'chat.configuration.presetLibrary.newAction')}"><span id="${uiIdAttr('preset-add-icon')}" class="ui-icon" aria-hidden="true"></span><span>${i18n.html(sanitizer, 'chat.configuration.presetLibrary.newAction')}</span></button>
       </div>
     </div>
-    <div id="${uiIdAttr('preset-status')}" class="chat-preset-status chat-preset-status--loading glass-surface-medium" role="status" aria-live="polite"><span class="loading-spinner chat-preset-status-spinner" aria-hidden="true"></span><span>${i18n.html(sanitizer, 'common.loading')}</span></div>
+    <div id="${uiIdAttr('preset-status')}" class="chat-preset-status u-hidden" role="status" aria-live="polite"></div>
     <div id="${uiIdAttr('preset-editor')}" class="chat-preset-editor glass-surface-full u-hidden"></div>
     <div id="${uiIdAttr('preset-list')}" class="ui-collection-grid chat-preset-list" role="list" aria-label="${i18n.attr(sanitizer, 'chat.configuration.presetLibrary.listLabel')}"></div>
     <div class="chat-preset-library-utility glass-surface-medium">

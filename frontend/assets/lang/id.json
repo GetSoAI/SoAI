@@ -895,8 +895,6 @@
                         "emptyDetail": "Buat preset dari nilai sementara dalam modal ini dan pilih dengan tepat bagian mana yang akan disertakan.",
                         "emptyTitle": "Buat pengaturan pertama yang dapat digunakan kembali",
                         "errorTitle": "Pustaka preset tidak tersedia",
-                        "loadingDetail": "Memuat preset tersimpan terbaru Anda…",
-                        "loadingTitle": "Memuat preset",
                         "noMatchesTitle": "Tidak ada preset yang cocok",
                         "recoveryTitle": "Beberapa preset memerlukan perhatian",
                         "staleTitle": "Daftar preset mungkin sudah tidak mutakhir"
@@ -6981,6 +6979,7 @@
                     "unavailable": "Katalog model tidak tersedia"
                 },
                 "notifications": {
+                    "accountChanged": "Akun perpesanan ini berubah sebelum tindakan diterapkan. Daftar telah dimuat ulang; periksa lalu coba lagi.",
                     "accountDisabled": "Akun perpesanan dinonaktifkan.",
                     "accountEnabled": "Akun perpesanan diaktifkan.",
                     "accountRemoved": "Akun perpesanan dihapus.",
@@ -7497,6 +7496,7 @@
             "main": {
                 "active": "Aktif",
                 "error": "Kesalahan",
+                "maintenance": "Pemeliharaan",
                 "offline": "Offline",
                 "reconnecting": "Menghubungkan ulang",
                 "ready": "Siap",

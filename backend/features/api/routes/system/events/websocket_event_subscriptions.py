@@ -14,6 +14,7 @@ from core.concurrency.queue_ops import (
     QueueDropTracker,
     log_queue_drop_with_tracker,
 )
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.events.protocols import (
     ConvIdPartitionKeyProtocol,
     EventBusProtocol,
@@ -223,68 +224,77 @@ def register_websocket_event_subscriptions(
     drop_tracker = QueueDropTracker(_WEBSOCKET_SUBSCRIPTION_DROP_WARNING_INTERVAL_SECONDS)
 
     async def event_handler(event: Event) -> None:
-        event_type = type(event)
-        await refresh_websocket_effective_actions(connection)
-        reconcile_websocket_event_subscriptions(
-            event_bus=event_bus,
-            connection=connection,
-            event_handler=event_handler,
-        )
-        can_receive = connection.can_receive_event(event_type)
-        if not can_receive:
-            return
-        if await _handle_session_invalidation_event(event, connection, shutdown_event):
-            return
-        if not event_visible_to_user(
-            event,
-            current_user=connection.user,
-            files=api_context.dependencies.files,
-            mcp_server=api_context.dependencies.mcp_server,
-        ):
-            return
-        if not await attachment_event_visible_to_connection(event, connection=connection):
-            return
-        if not _notification_event_visible_to_connection(event, connection):
-            return
-        if event_type not in connection.subscribed_types:
-            return
-        if is_websocket_chat_presentation_event_type(event_type):
-            selected_conversation_id = connection.chat_presentation_conversation_id
-            if (
-                selected_conversation_id is None
-                or not isinstance(event, ConvIdPartitionKeyProtocol)
-                or event.conv_id != selected_conversation_id
+        try:
+            event_type = type(event)
+            await refresh_websocket_effective_actions(connection)
+            reconcile_websocket_event_subscriptions(
+                event_bus=event_bus,
+                connection=connection,
+                event_handler=event_handler,
+            )
+            can_receive = connection.can_receive_event(event_type)
+            if not can_receive:
+                return
+            if await _handle_session_invalidation_event(event, connection, shutdown_event):
+                return
+            if not event_visible_to_user(
+                event,
+                current_user=connection.user,
+                files=api_context.dependencies.files,
+                mcp_server=api_context.dependencies.mcp_server,
             ):
                 return
-        event_data = event_to_transport_payload(event)
-        queue_label = f"WebSocket for {connection.user.get('username', 'unknown')}"
-        if _event_requires_critical_chronology(event):
-            await _enqueue_critical_event_or_shutdown(
-                connection=connection,
-                event_data=event_data,
-                queue_label=queue_label,
-                shutdown_event=shutdown_event,
-                drop_tracker=drop_tracker,
-            )
-            return
-        if event_type in REALTIME_AGENT_ACTION_EVENT_TYPES:
-            await _enqueue_agent_action_event_or_shutdown(
-                connection=connection,
-                event_data=event_data,
-                queue_label=queue_label,
-                shutdown_event=shutdown_event,
-                drop_tracker=drop_tracker,
-            )
-            return
-        if event_type in REALTIME_AGENT_DELTA_EVENT_TYPES:
+            if not await attachment_event_visible_to_connection(event, connection=connection):
+                return
+            if not _notification_event_visible_to_connection(event, connection):
+                return
+            if event_type not in connection.subscribed_types:
+                return
+            if is_websocket_chat_presentation_event_type(event_type):
+                selected_conversation_id = connection.chat_presentation_conversation_id
+                if (
+                    selected_conversation_id is None
+                    or not isinstance(event, ConvIdPartitionKeyProtocol)
+                    or event.conv_id != selected_conversation_id
+                ):
+                    return
+            event_data = event_to_transport_payload(event)
+            queue_label = f"WebSocket for {connection.user.get('username', 'unknown')}"
+            if _event_requires_critical_chronology(event):
+                await _enqueue_critical_event_or_shutdown(
+                    connection=connection,
+                    event_data=event_data,
+                    queue_label=queue_label,
+                    shutdown_event=shutdown_event,
+                    drop_tracker=drop_tracker,
+                )
+                return
+            if event_type in REALTIME_AGENT_ACTION_EVENT_TYPES:
+                await _enqueue_agent_action_event_or_shutdown(
+                    connection=connection,
+                    event_data=event_data,
+                    queue_label=queue_label,
+                    shutdown_event=shutdown_event,
+                    drop_tracker=drop_tracker,
+                )
+                return
+            if event_type in REALTIME_AGENT_DELTA_EVENT_TYPES:
+                enqueue_event_or_warn(
+                    enqueue_warning_tracker,
+                    connection.queue,
+                    event_data,
+                    queue_label,
+                )
+                return
             enqueue_event_or_warn(
-                enqueue_warning_tracker,
-                connection.queue,
-                event_data,
-                queue_label,
+                enqueue_warning_tracker, connection.queue, event_data, queue_label
             )
-            return
-        enqueue_event_or_warn(enqueue_warning_tracker, connection.queue, event_data, queue_label)
+        except asyncio.CancelledError:
+            shutdown_event.set()
+            raise
+        except HANDLED_RUNTIME_EXCEPTIONS:
+            shutdown_event.set()
+            raise
 
     reconcile_websocket_event_subscriptions(
         event_bus=event_bus,

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from core.errors.error_types import ErrorType
 from core.errors.exceptions import StateError
 
 __all__ = ("ModelLoadingResult", "ModelScopedLoadError")
@@ -19,6 +20,8 @@ class ModelLoadingResult:
     loaded: bool
     terminal_failure: bool
     message: str | None = None
+    error_type: ErrorType = ErrorType.SERVER_ERROR
+    allow_failover: bool = True
 
     @classmethod
     def success(cls) -> ModelLoadingResult:
@@ -29,5 +32,17 @@ class ModelLoadingResult:
         return cls(loaded=False, terminal_failure=False)
 
     @classmethod
-    def failed(cls, message: str) -> ModelLoadingResult:
-        return cls(loaded=False, terminal_failure=True, message=message)
+    def failed(
+        cls,
+        message: str,
+        *,
+        error_type: ErrorType = ErrorType.SERVER_ERROR,
+        allow_failover: bool = True,
+    ) -> ModelLoadingResult:
+        return cls(
+            loaded=False,
+            terminal_failure=True,
+            message=message,
+            error_type=error_type,
+            allow_failover=allow_failover,
+        )

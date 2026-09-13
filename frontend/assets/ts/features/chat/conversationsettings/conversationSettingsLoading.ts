@@ -150,7 +150,9 @@ const beginConversationSettingsHydration = (targets: ConversationSettingsHydrati
         container.setAttribute(HYDRATION_TOKEN_ATTR, token);
         container.setAttribute(HYDRATION_SCOPE_ATTR, 'true');
         setAriaBusy(container, true);
-        container.appendChild(createHydrationOverlay(token));
+        if (!container.closest('.chat-configuration-scroll')) {
+            container.appendChild(createHydrationOverlay(token));
+        }
         for (const control of queryHydrationControls(container)) {
             if (control.classList.contains('chat-configuration-save-btn') || getBusyDisabledToken(control) !== null) {
                 continue;

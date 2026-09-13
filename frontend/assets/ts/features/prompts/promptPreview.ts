@@ -5,6 +5,7 @@ import type { PromptRequest, PromptResponse } from '@core/api/contracts/promptCo
 import { dom } from '@core/dom/dom.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { formatDateTimeMinute } from '@core/primitives/dateTime.ts';
 import { downloadFile, sanitizeDownloadFilename } from '@core/primitives/download.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import { CONTENT_PREVIEW_MODAL_ID } from '@core/ui/modals/contentpreview/constants.ts';
@@ -52,6 +53,8 @@ const resolvePromptBaseline = (prompt: PromptRecord): ContentPreviewTextBaseline
         promptColor: prompt.color
     });
 
+const resolvePromptHeaderDescription = (prompt: PromptRecord | null): string | null => (prompt ? formatDateTimeMinute(prompt.modifiedAtMs) : null);
+
 const buildPromptFilename = (name: string): string => {
     const fallback = i18n.t('prompts.unnamedPrompt');
     return `${sanitizeDownloadFilename(name || fallback, fallback)}.txt`;
@@ -92,7 +95,7 @@ const presentPromptContentPreview = (host: PromptPreviewHost, session: PromptPre
         createTextContentPreviewRequest({
             scope: 'prompts',
             type: 'text',
-            headerDescription: null,
+            headerDescription: resolvePromptHeaderDescription(session.prompt),
             baseline,
             editable: true,
             isUnsavedDraft: session.promptId === null,
@@ -151,6 +154,7 @@ const presentPromptContentPreview = (host: PromptPreviewHost, session: PromptPre
                 host.notifySaveChanged?.();
                 return Object.freeze({
                     baseline: resolvePromptBaseline(latest),
+                    headerDescription: resolvePromptHeaderDescription(latest),
                     sourceReference: null
                 });
             },

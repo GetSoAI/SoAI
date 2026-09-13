@@ -11,14 +11,14 @@ from core.concurrency.lock_registry import (
     TTLAsyncLockRegistry,
     TTLAsyncLockRegistryDependencies,
 )
-from core.errors.exception_logging import log_exception
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.errors.exceptions import StateError
 from core.events.types_plugins import (
     PluginInstallationStateChangedEvent,
     PluginRuntimeStateChangedEvent,
 )
 from core.logging.protocols import TraceLogger
 from core.logging.trace import get_logger
+from core.state.authoritative_state_ordering import is_stale_authoritative_state_event
 from core.state.state_log_formatting import (
     format_state_for_log,
     format_state_transition_for_log,
@@ -29,6 +29,7 @@ from core.state.state_names import (
 )
 from core.timing.epoch import epoch_ms
 from core.types.json import JSONDict
+from core.validation.strict_numbers import require_non_negative_int_strict
 from orchestrator.state.dependencies import PluginStateStoreDependencies
 from orchestrator.state.plugin_state_queries import (
     get_all_plugin_store_states,
@@ -49,8 +50,6 @@ if TYPE_CHECKING:
 __all__ = ("PluginStateStore",)
 
 LOGGER_NAME = "SoAI.orchestrator.state.plugin_state_store"
-OPERATION_PLUGIN_STATE_STORE_APPLY_STATE_CHANGE = "plugin_state_store.apply_state_change"
-OPERATION_PLUGIN_STATE_STORE_BOOTSTRAP_FROM_DATABASE = "plugin_state_store.bootstrap_from_database"
 
 
 class PluginStateStore:
@@ -83,47 +82,54 @@ class PluginStateStore:
         )
 
     async def bootstrap_from_database(self) -> None:
-        try:
-            all_plugins = await self._database_plugins.get_all_listable_plugins()
-            bootstrapped_count = 0
-            now_ms = int(epoch_ms())
-            now_monotonic = time.monotonic()
-            async with self.global_lock:
-                for plugin_record in all_plugins:
-                    plugin_name_value = plugin_record.get("plugin_name")
-                    persisted_state_value = plugin_record.get("state")
-                    if not isinstance(plugin_name_value, str) or not plugin_name_value:
-                        continue
-                    if not isinstance(persisted_state_value, str) or not persisted_state_value:
-                        continue
-                    plugin_state = get_or_create_plugin_state(self.plugin_states, plugin_name_value)
-                    plugin_state.update(
-                        {
-                            "status": persisted_state_value,
-                            "authority": "database_bootstrap",
-                            "reason": "Bootstrapped from database on startup",
-                            "last_updated_ms": now_ms,
-                            "last_updated_monotonic": now_monotonic,
-                        },
-                    )
-                    bootstrapped_count += 1
-                if bootstrapped_count > 0:
-                    self.state_version += 1
-                    self.invalidate_snapshot_cache()
-            self.logger.debug("Bootstrapped %s plugin states from database.", bootstrapped_count)
-        except RECOVERABLE_EXCEPTIONS as exception:
-            log_exception(
-                self.logger,
-                exception,
-                message="Failed to bootstrap plugin states from database",
-                operation=OPERATION_PLUGIN_STATE_STORE_BOOTSTRAP_FROM_DATABASE,
+        all_plugins = await self._database_plugins.get_authoritative_plugin_states()
+        records: list[tuple[str, str, int]] = []
+        for plugin_record in all_plugins:
+            plugin_name = plugin_record.get("plugin_name")
+            persisted_state = plugin_record.get("state")
+            if not isinstance(plugin_name, str) or not plugin_name:
+                raise StateError("The stored plugin identity is invalid.")
+            if not isinstance(persisted_state, str) or not persisted_state:
+                raise StateError("The stored plugin state is invalid.")
+            sequence = require_non_negative_int_strict(
+                plugin_record.get("publication_sequence", 0),
+                error_message="The stored state publication position is invalid.",
             )
+            records.append((plugin_name, persisted_state, sequence))
+        now_ms = int(epoch_ms())
+        now_monotonic = time.monotonic()
+        async with self.global_lock:
+            for plugin_name, persisted_state, sequence in records:
+                plugin_state = get_or_create_plugin_state(self.plugin_states, plugin_name)
+                plugin_state.update(
+                    {
+                        "status": persisted_state,
+                        "publication_sequence": sequence,
+                        "authority": "database_bootstrap",
+                        "reason": "Bootstrapped from database on startup",
+                        "last_updated_ms": now_ms,
+                        "last_updated_monotonic": now_monotonic,
+                    },
+                )
+            if records:
+                self.state_version += 1
+                self.invalidate_snapshot_cache()
+        self.logger.debug("Bootstrapped %s plugin states from database.", len(records))
 
     async def apply_state_change(
         self,
         event: PluginInstallationStateChangedEvent | PluginRuntimeStateChangedEvent,
     ) -> bool:
-        try:
+        async with self.global_lock:
+            current_monotonic = time.monotonic()
+            self._prune_purged_plugins(current_monotonic)
+            if event.plugin_name in self._purged_plugins:
+                self.logger.trace(
+                    "Ignoring state change for purged plugin '%s'",
+                    event.plugin_name,
+                )
+                return False
+        async with self.plugin_locks.lock(event.plugin_name):
             async with self.global_lock:
                 current_monotonic = time.monotonic()
                 self._prune_purged_plugins(current_monotonic)
@@ -133,97 +139,85 @@ class PluginStateStore:
                         event.plugin_name,
                     )
                     return False
-            async with self.plugin_locks.lock(event.plugin_name):
-                async with self.global_lock:
-                    current_monotonic = time.monotonic()
-                    self._prune_purged_plugins(current_monotonic)
-                    if event.plugin_name in self._purged_plugins:
-                        self.logger.trace(
-                            "Ignoring state change for purged plugin '%s'",
-                            event.plugin_name,
-                        )
-                        return False
-                    current_state = get_or_create_plugin_state(
-                        self.plugin_states,
-                        event.plugin_name,
-                    )
-                    previous_status = current_state.get("status")
-                    previous_authority = current_state.get("authority")
-                    previous_reason = current_state.get("reason")
-                    details_value = current_state.get("details")
-                    previous_details = (
-                        dict(details_value) if isinstance(details_value, dict) else {}
-                    )
-                    new_details = dict(previous_details)
-                    details_changed = False
-                    if (
-                        isinstance(event, PluginRuntimeStateChangedEvent)
-                        and isinstance(event.details, dict)
-                        and event.details
-                    ):
-                        for key, value in event.details.items():
-                            if new_details.get(key) != value:
-                                details_changed = True
-                            new_details[key] = value
-                    if event.new_state == PLUGIN_STATE_STOPPED and new_details:
-                        new_details = {}
-                        details_changed = True
-                    status_changed = previous_status != event.new_state
-                    metadata_changed = (
-                        previous_authority != event.authority
-                        or previous_reason != event.reason
-                        or details_changed
-                    )
-                    state_changed = status_changed or metadata_changed
-                    if not state_changed:
-                        current_state.update(
-                            {
-                                "last_updated_ms": int(epoch_ms()),
-                                "last_updated_monotonic": current_monotonic,
-                            },
-                        )
-                        self.invalidate_snapshot_cache()
-                        return False
-                    self.state_version += 1
+                current_state = self.plugin_states.get(event.plugin_name)
+                if is_stale_authoritative_state_event(event, current_state):
+                    return False
+                current_state = get_or_create_plugin_state(
+                    self.plugin_states,
+                    event.plugin_name,
+                )
+                sequence_changed = (
+                    current_state.get("publication_sequence", 0) != event.publication_sequence
+                )
+                previous_status = current_state.get("status")
+                previous_authority = current_state.get("authority")
+                previous_reason = current_state.get("reason")
+                details_value = current_state.get("details")
+                previous_details = dict(details_value) if isinstance(details_value, dict) else {}
+                new_details = dict(previous_details)
+                details_changed = False
+                if (
+                    isinstance(event, PluginRuntimeStateChangedEvent)
+                    and isinstance(event.details, dict)
+                    and event.details
+                ):
+                    for key, value in event.details.items():
+                        if new_details.get(key) != value:
+                            details_changed = True
+                        new_details[key] = value
+                if event.new_state == PLUGIN_STATE_STOPPED and new_details:
+                    new_details = {}
+                    details_changed = True
+                status_changed = previous_status != event.new_state
+                metadata_changed = (
+                    sequence_changed
+                    or previous_authority != event.authority
+                    or previous_reason != event.reason
+                    or details_changed
+                )
+                state_changed = status_changed or metadata_changed
+                if not state_changed:
                     current_state.update(
                         {
-                            "status": event.new_state,
-                            "authority": event.authority,
-                            "reason": event.reason,
                             "last_updated_ms": int(epoch_ms()),
                             "last_updated_monotonic": current_monotonic,
                         },
                     )
-                    current_state["details"] = new_details
                     self.invalidate_snapshot_cache()
-                    transition = (
-                        format_state_transition_for_log(event.previous_state, event.new_state)
-                        if status_changed
-                        else f"{format_state_for_log(event.new_state)} (metadata update)"
+                    return False
+                self.state_version += 1
+                current_state.update(
+                    {
+                        "status": event.new_state,
+                        "publication_sequence": event.publication_sequence,
+                        "authority": event.authority,
+                        "reason": event.reason,
+                        "last_updated_ms": int(epoch_ms()),
+                        "last_updated_monotonic": current_monotonic,
+                    },
+                )
+                current_state["details"] = new_details
+                self.invalidate_snapshot_cache()
+                transition = (
+                    format_state_transition_for_log(event.previous_state, event.new_state)
+                    if status_changed
+                    else f"{format_state_for_log(event.new_state)} (metadata update)"
+                )
+                if status_changed:
+                    self.logger.info(
+                        "State aggregated for '%s': %s (by %s)",
+                        event.plugin_name,
+                        transition,
+                        event.authority,
                     )
-                    if status_changed:
-                        self.logger.info(
-                            "State aggregated for '%s': %s (by %s)",
-                            event.plugin_name,
-                            transition,
-                            event.authority,
-                        )
-                    else:
-                        self.logger.trace(
-                            "State aggregated for '%s': %s (by %s)",
-                            event.plugin_name,
-                            transition,
-                            event.authority,
-                        )
-                    return status_changed
-        except RECOVERABLE_EXCEPTIONS as exception:
-            log_exception(
-                self.logger,
-                exception,
-                message=f"Error handling state change for {event.plugin_name}",
-                operation=OPERATION_PLUGIN_STATE_STORE_APPLY_STATE_CHANGE,
-            )
-            return False
+                else:
+                    self.logger.trace(
+                        "State aggregated for '%s': %s (by %s)",
+                        event.plugin_name,
+                        transition,
+                        event.authority,
+                    )
+                return status_changed
 
     async def apply_purge(self, plugin_name: str) -> bool:
         async with self.plugin_locks.lock(plugin_name), self.global_lock:

@@ -8,10 +8,34 @@
     }
 
     .chat-configuration-modal .modal-body {
-        overflow-x: clip;
-        overflow-y: auto;
+        --chat-configuration-loading-display: none;
+        --chat-configuration-content-visibility: visible;
+
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 0;
         max-width: 100%;
         min-width: 0;
+    }
+
+    .chat-configuration-scroll {
+        visibility: var(--chat-configuration-content-visibility);
+        overflow-x: clip;
+        overflow-y: auto;
+        min-height: 0;
+        flex: 1;
+        padding: var(--modal-body-padding);
+    }
+
+    .chat-configuration-modal .chat-configuration-loading {
+        display: var(--chat-configuration-loading-display);
+    }
+
+    .chat-configuration-modal:is([data-chat-configuration-opening='true'], :has(.tab-content.is-active[data-chat-settings-hydration-scope='true'], .tab-content.is-active [data-chat-settings-hydration-scope='true'], .tab-content.is-active [data-chat-preset-state='loading'])) .modal-body {
+        --chat-configuration-loading-display: flex;
+        --chat-configuration-content-visibility: hidden;
     }
 
     .chat-configuration-modal .form-group,

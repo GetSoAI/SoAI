@@ -91,7 +91,10 @@ async def get_plugin_configuration(
 ) -> JSONDict:
     self.dependencies.infrastructure.lifecycle.require_enabled("Plugin manager")
     await _require_supports_configuration(self, plugin_name)
-    loaded_config = await self.dependencies.infrastructure.config_manager.load_config(plugin_name)
+    loaded_config = await self.dependencies.infrastructure.config_manager.load_config(
+        plugin_name,
+        force_reload=True,
+    )
     if loaded_config is None:
         return {}
     normalized = normalize_for_json(loaded_config)

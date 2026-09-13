@@ -104,6 +104,7 @@ class AuthoritativePluginStateOutboxProcessor:
                 details={"outbox_id": claimed_row.outbox_id, "event_type": claimed_row.event_type},
             )
             return
+        event.publication_sequence = claimed_row.outbox_id
         completion = EventDispatchCompletion()
         try:
             await self._event_bus.publish(event, wait_for_completion=completion)

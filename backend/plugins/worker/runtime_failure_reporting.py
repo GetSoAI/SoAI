@@ -19,6 +19,7 @@ from plugins.worker.controller_faults import mark_managed_runtime_failed
 __all__ = (
     "WorkerRuntimeFailureReporter",
     "report_managed_runtime_failure",
+    "schedule_runtime_recovery",
 )
 
 RUNTIME_COMPONENT_PATTERN = r"[a-z0-9](?:[a-z0-9_.-]{0,63})"
@@ -79,6 +80,16 @@ async def report_managed_runtime_failure(
     )
     if not transitioned:
         return
+    schedule_runtime_recovery(manager, plugin_name=normalized_plugin_name, reason=reason)
+
+
+def schedule_runtime_recovery(
+    manager: PluginManagerRuntimeProtocol,
+    *,
+    plugin_name: str,
+    reason: str,
+) -> None:
+    normalized_plugin_name = require_plugin_name(plugin_name)
     orchestrator_lifecycle = manager.orchestrator_lifecycle
     if orchestrator_lifecycle is None:
         raise StateError("Plugin runtime recovery scheduling is unavailable.")

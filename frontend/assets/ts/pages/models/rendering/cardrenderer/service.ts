@@ -83,20 +83,15 @@ const resolveModelStatusPresentation = (model: ModelRecord, host: ModelStatusPre
             statusClass: host.status.presenter.getCollectionStatusClass(status)
         };
     }
-    if (host.status.isExternalProviderModel(model)) {
-        const normalizedStatus = host.status.presenter.normalizeStatus(model.pluginStatus);
-        if (normalizedStatus === 'PROCESSING') {
-            return {
-                badgeClass: host.status.presenter.getCollectionBadgeClass(normalizedStatus),
-                label: i18n.t('models.status.processing'),
-                statusClass: host.status.presenter.getCollectionStatusClass(normalizedStatus)
-            };
-        }
+    if (host.status.isExternalProviderModel(model) && status === 'PERSISTENT_READY') {
         return {
             badgeClass: 'status-persistentgreen',
             label: i18n.t('models.status.available'),
             statusClass: host.status.presenter.getCollectionStatusClass('PERSISTENT_READY')
         };
+    }
+    if (status === 'PROCESSING') {
+        label = i18n.t('models.status.processing');
     }
     if (status === 'STOPPED') {
         label = i18n.t('models.status.unloaded');

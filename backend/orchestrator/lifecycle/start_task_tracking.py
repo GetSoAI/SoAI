@@ -9,7 +9,7 @@ from core.concurrency.context import create_system_cancellation_id
 from core.errors.cancellation import raise_cancelled_error
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import SoAIError
+from core.errors.exceptions import SoAIError, StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import (
     HANDLED_RUNTIME_EXCEPTIONS,
@@ -32,7 +32,13 @@ class SchedulerStartTaskTracker:
     def __init__(self) -> None:
         self._tasks: dict[str, asyncio.Task[None]] = {}
 
+    def get_running(self, plugin_name: str) -> asyncio.Task[None] | None:
+        task = self._tasks.get(plugin_name)
+        return task if task is not None and not task.done() else None
+
     def track(self, plugin_name: str, task: asyncio.Task[None]) -> None:
+        if self.get_running(plugin_name) is not None:
+            raise StateError("A model startup task is already running for this plugin.")
         self._tasks[plugin_name] = task
         task.add_done_callback(
             lambda completed_task: self._forget_done(plugin_name, completed_task),
