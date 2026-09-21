@@ -30,6 +30,15 @@ interface GpuSoAIBenchSettingsSnapshot {
     memClockMhz?: number | null;
 }
 
+type GpuSoAIBenchPhaseDiagnostics = JsonObject & {
+    alu: number;
+    compute: number;
+    matrix: number;
+    latency: number;
+    memory: number;
+    mixed: number;
+};
+
 type GpuSoAIBenchMetricFields = {
     overallScore?: number | null | undefined;
     computeScore?: number | null | undefined;
@@ -69,10 +78,17 @@ type GpuSoAIBenchSummary = JsonObject &
         powerDrawWatts?: number | null;
         utilization?: number | null;
         telemetryAvailable?: boolean | null;
+        telemetrySampleCount?: number | null;
+        temperatureSampleCount?: number | null;
+        powerSampleCount?: number | null;
+        utilizationSampleCount?: number | null;
         throttleDetected?: boolean | null;
         unavailableSensors?: string[] | null;
         warmupPassesCompleted?: number | null;
+        warmupActiveSeconds?: number | null;
         measuredPassesCompleted?: number | null;
+        phaseVariationPercent?: GpuSoAIBenchPhaseDiagnostics | null;
+        phaseDriftPercent?: GpuSoAIBenchPhaseDiagnostics | null;
         currentPassType?: string | null;
         currentPassIndex?: number | null;
         currentPassTotal?: number | null;
@@ -111,6 +127,9 @@ interface GpuSoAIBenchRun {
     failureReason?: string | null | undefined;
     leaderboardEligible?: boolean | undefined;
     leaderboardRejectionReason?: string | null | undefined;
+    scoreClassification?: 'current' | 'legacy' | 'unsupported_legacy' | undefined;
+    legacyScore?: boolean | undefined;
+    publicationEligible?: boolean | undefined;
     scoreVariancePercent?: number | null | undefined;
     matchBasis?: string | null | undefined;
     startedAtMs?: number | null | undefined;
@@ -155,6 +174,9 @@ type GpuSoAIBenchHistoryRun = GpuSoAIBenchMetricFields & {
     certification: OpaqueJsonObject;
     leaderboardEligible: boolean;
     leaderboardRejectionReason?: string | null | undefined;
+    scoreClassification: string;
+    legacyScore: boolean;
+    publicationEligible: boolean;
     failureReason?: string | null | undefined;
     unsupportedReason?: string | null | undefined;
     matchBasis?: string | null | undefined;
@@ -162,4 +184,14 @@ type GpuSoAIBenchHistoryRun = GpuSoAIBenchMetricFields & {
     taskId?: string | null | undefined;
 };
 
-export type { GpuIdentity, GpuSoAIBenchHistoryRun, GpuSoAIBenchMetricFields, GpuSoAIBenchRun, GpuSoAIBenchScore, GpuSoAIBenchSettingsSnapshot, GpuSoAIBenchStartRequest, GpuSoAIBenchSummary };
+interface GpuSoAIBenchPublicationReceipt {
+    state: 'published' | 'already_published' | 'held_for_review';
+    submissionId: string;
+    publicUrl: string;
+    scoreVersion: 'soaibench-v2';
+    overallScore: number;
+    validation: 'validated' | 'flagged';
+    duplicate: boolean;
+}
+
+export type { GpuIdentity, GpuSoAIBenchHistoryRun, GpuSoAIBenchMetricFields, GpuSoAIBenchPhaseDiagnostics, GpuSoAIBenchPublicationReceipt, GpuSoAIBenchRun, GpuSoAIBenchScore, GpuSoAIBenchSettingsSnapshot, GpuSoAIBenchStartRequest, GpuSoAIBenchSummary };

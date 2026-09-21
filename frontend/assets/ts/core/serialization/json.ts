@@ -146,6 +146,10 @@ const stableJsonStringify = <T>(value: T): string => {
     return stableJsonStringifyInternal(value, createReferenceStack());
 };
 
+const prettyJsonStringify = (value: JsonValue): string => {
+    return JSON.stringify(value, null, 2);
+};
+
 const parseJsonValueText = (value: string): JsonValue => {
     const parsed = JSON.parse(value);
     if (!isJsonValue(parsed)) {
@@ -278,5 +282,5 @@ const tryParseJsonText = (value: string): JsonValue | null => {
     }
 };
 
-export { parseJsonObjectText, parseJsonTextOrString, parseOptionalJsonArrayText, parseOptionalJsonObjectText, parseOptionalJsonScalarRecordText, parseOptionalJsonStringArrayText, parseOptionalJsonStringRecordText, parseRequiredJsonObjectText, parseRequiredJsonText, safeJsonStringify, stableJsonStringify, tryParseJsonText };
+export { parseJsonObjectText, parseJsonTextOrString, parseOptionalJsonArrayText, parseOptionalJsonObjectText, parseOptionalJsonScalarRecordText, parseOptionalJsonStringArrayText, parseOptionalJsonStringRecordText, parseRequiredJsonObjectText, parseRequiredJsonText, prettyJsonStringify, safeJsonStringify, stableJsonStringify, tryParseJsonText };
 export type { SafeJsonStringifyOptions };

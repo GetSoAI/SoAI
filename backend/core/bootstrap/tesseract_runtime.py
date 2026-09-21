@@ -16,6 +16,7 @@ from core.bootstrap.managed_archive_extraction import extract_managed_asset_arch
 from core.bootstrap.managed_install_marker import read_managed_install_marker
 from core.errors.exceptions import StateError
 from core.filesystem.open_files import open_text
+from core.media.tesseract_data import require_complete_tesseract_data, require_tesseract_model
 from core.meta.paths import join_data_abs
 from core.platform.os import is_windows
 from core.runtime.platform import get_runtime_platform
@@ -158,6 +159,7 @@ def _install_windows_runtime(repo_root_path: str) -> tuple[str, str]:
         executable = os.path.join(staging_directory, "tesseract.exe")
         data_directory = os.path.join(staging_directory, "tessdata")
         _require_valid_runtime(executable, data_directory)
+        require_complete_tesseract_data(data_directory)
         marker_payload = {
             "archive_sha256": expected_sha256,
             "release": TESSERACT_RELEASE,
@@ -222,8 +224,7 @@ def _require_windows_x64() -> None:
 def _require_valid_runtime(executable: str, data_directory: str) -> None:
     if not os.path.isfile(executable):
         raise StateError("Managed Tesseract executable is missing.")
-    if not os.path.isfile(os.path.join(data_directory, "eng.traineddata")):
-        raise StateError("Managed Tesseract English language data is missing.")
+    require_tesseract_model(data_directory, "eng")
     environment = dict(os.environ)
     environment["TESSDATA_PREFIX"] = data_directory
     version_result = run_argv_capture(

@@ -2,13 +2,14 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { LatestRequestController } from '@core/concurrency/latestRequest.ts';
 import { dispatchCustomEvent, getGlobalScope } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { isArray, isFunction, isString, hasOwn } from '@core/typeGuards.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { initializeLanguageService } from '@core/languageservice/events.ts';
 import { loadLanguageFile, loadLanguageFlags, loadManifest } from '@core/languageservice/effects.ts';
-import { EVENT_CHANGE, LANGUAGE_CACHE_KEY, PRIMARY_LANGUAGE, SERVICE_NAME } from '@core/languageservice/constants.ts';
+import { EVENT_CHANGE, PRIMARY_LANGUAGE, SERVICE_NAME } from '@core/languageservice/constants.ts';
 import { resolveStorage } from '@core/languageservice/adapters.ts';
 import { isTranslationObject } from '@core/languageservice/guards.ts';
 import { formatLocalizedDate, formatLocalizedNumber, getResolvedLocalizationLocale } from '@core/localization/public.ts';
@@ -31,9 +32,11 @@ class LanguageService {
     manifest: LanguageManifest | null = null;
     initialized: boolean = false;
     initializePromise: Promise<void> | null = null;
-    cacheKey: string = LANGUAGE_CACHE_KEY;
     catalogPaths: readonly string[] = Object.freeze([]);
     resources: ResourceTracker = new ResourceTracker();
+    #requestedLanguage: string = PRIMARY_LANGUAGE;
+    readonly #languageRequests = new LatestRequestController();
+    #languageNotificationTimer: number | null = null;
 
     configureCatalogs(catalogPaths: readonly string[]): void {
         if (this.initialized || this.initializePromise !== null || this.loadedLanguages.size > 0) {
@@ -100,20 +103,34 @@ class LanguageService {
         if (!this.languages.has(code)) {
             throw new Error(`Unsupported language: ${code}`);
         }
-        await this.loadLanguageFile(code);
-        this.currentLanguage = code;
-        this.applyDocumentLanguage();
+        this.#requestedLanguage = code;
+        await this.#languageRequests.runLatest(async (request) => {
+            if (code === this.currentLanguage && this.loadedLanguages.has(code)) {
+                return;
+            }
+            await this.loadLanguageFile(code);
+            if (request.isStale()) {
+                return;
+            }
+            this.currentLanguage = code;
+            this.applyDocumentLanguage();
 
-        const storage = resolveStorage();
-        if (storage?.setLanguage) {
-            storage.setLanguage(code);
-        } else {
-            this.notifyLanguageChange(code);
-        }
+            const storage = resolveStorage();
+            if (storage?.setLanguage) {
+                storage.setLanguage(code);
+            }
+            if (this.initialized) {
+                this.#scheduleLanguageChangeNotification(code);
+            }
+        });
     }
 
     getLanguage(): string {
         return this.currentLanguage;
+    }
+
+    isLanguageRequestSettled(code: string): boolean {
+        return code === this.currentLanguage && code === this.#requestedLanguage;
     }
 
     getAvailableLanguages(): LanguageEntryWithFlag[] {
@@ -129,6 +146,18 @@ class LanguageService {
 
     notifyLanguageChange(code: string): void {
         dispatchCustomEvent(EVENT_CHANGE, { language: code });
+    }
+
+    #scheduleLanguageChangeNotification(code: string): void {
+        if (this.#languageNotificationTimer !== null) {
+            this.resources.clearTimeout(this.#languageNotificationTimer);
+        }
+        this.#languageNotificationTimer = this.resources.setTimeout(() => {
+            this.#languageNotificationTimer = null;
+            if (this.isLanguageRequestSettled(code)) {
+                this.notifyLanguageChange(code);
+            }
+        }, 0);
     }
 
     t(key: string, parameters: JsonRecord = {}): string {
@@ -224,7 +253,9 @@ class LanguageService {
     }
 
     reset(): void {
+        this.#languageRequests.invalidate();
         this.resources.cleanup();
+        this.#languageNotificationTimer = null;
         this.resources = new ResourceTracker();
         this.languages.clear();
         this.loadedLanguages.clear();
@@ -232,6 +263,7 @@ class LanguageService {
         this.languageFlags.clear();
         this.manifest = null;
         this.currentLanguage = PRIMARY_LANGUAGE;
+        this.#requestedLanguage = PRIMARY_LANGUAGE;
         this.defaultLanguage = PRIMARY_LANGUAGE;
         this.initialized = false;
         this.initializePromise = null;

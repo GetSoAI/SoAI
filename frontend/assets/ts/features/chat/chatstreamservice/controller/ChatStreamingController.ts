@@ -93,27 +93,31 @@ class ChatStreamingController {
         if (!normalizedConversationId || this.#context.disposed || !this.#context.presentationActive) {
             return;
         }
-        const isCurrentConversation = normalizeConversationId(this.#context.dependencies.state.getCurrentConversationId()) === normalizedConversationId;
-        if (isCurrentConversation && this.#context.presentationActive) {
-            await this.#context.dependencies.storageManager.loadConversationMessages(normalizedConversationId, {
-                force: true,
-                mergeStreamingAssistants: true
-            });
-            if (this.#context.disposed || !this.#context.presentationActive || this.#context.presentationGeneration !== presentationGeneration || normalizeConversationId(this.#context.dependencies.state.getCurrentConversationId()) !== normalizedConversationId) {
-                return;
-            }
-            this.#context.dependencies.presentation.invalidateChatMarkup('current');
-            await this.#context.dependencies.presentation.renderCurrentConversation();
-        }
-        await this.#context.dependencies.chatStreamService.syncConversationStatus(normalizedConversationId);
+        const reconciliation = await this.#context.dependencies.chatStreamService.syncConversationStatus(normalizedConversationId);
         if (this.#context.disposed || !this.#context.presentationActive || this.#context.presentationGeneration !== presentationGeneration) {
             return;
         }
         reconcileInactiveSyncedConversation(this.#context, normalizedConversationId);
-        if (this.#context.presentationActive && isCurrentConversation && normalizeConversationId(this.#context.dependencies.state.getCurrentConversationId()) === normalizedConversationId) {
-            this.#context.dependencies.presentation.invalidateChatMarkup('current');
-            await this.#context.dependencies.presentation.renderCurrentConversation();
+        if (!reconciliation.canonicalLoad) {
+            return;
         }
+        const terminalizationPending = (getConversationStreamState(this.#context, normalizedConversationId)?.terminalizationPromise ?? null) !== null;
+        if (terminalizationPending) {
+            await waitForTerminalReconciliation(this.#context, normalizedConversationId);
+            return;
+        }
+        if (this.#context.disposed || !this.#context.presentationActive || this.#context.presentationGeneration !== presentationGeneration || this.#context.dependencies.chatStreamService.isStreaming(normalizedConversationId) || normalizeConversationId(this.#context.dependencies.state.getCurrentConversationId()) !== normalizedConversationId) {
+            return;
+        }
+        await this.#context.dependencies.storageManager.loadConversationMessages(normalizedConversationId, {
+            force: true,
+            mergeStreamingAssistants: false
+        });
+        if (this.#context.disposed || !this.#context.presentationActive || this.#context.presentationGeneration !== presentationGeneration || this.#context.dependencies.chatStreamService.isStreaming(normalizedConversationId) || normalizeConversationId(this.#context.dependencies.state.getCurrentConversationId()) !== normalizedConversationId) {
+            return;
+        }
+        this.#context.dependencies.presentation.invalidateChatMarkup('current');
+        await this.#context.dependencies.presentation.renderCurrentConversation();
     }
 
     async resolveStartAdmission(conversationId: string, signal?: AbortSignal | null): Promise<ChatStreamStartAdmission> {

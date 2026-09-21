@@ -773,7 +773,7 @@ When an agent delegates work, subagent activity appears in the same timeline wit
 
 Turn **Render rich text (Markdown)** on or off under **Chat configuration** > **Appearance**. Rich text gives code blocks a copy action and makes Markdown table headers sortable. Plain-text mode shows the original message text. If Markdown rendering fails, SoAI keeps the message and shows safe plain text.
 
-Turn on **Inline multimedia previews** in the same tab to show supported media links and file references inside the timeline. Use **Show activities** to expand or collapse thinking, processing, tool use, and waiting states. Hover over a message, or focus it with the keyboard, to show the actions that apply to it.
+Under **Chat configuration > Appearance**, turn on **Inline multimedia previews** to show supported media links and file references inside the timeline. **Show activities** chooses whether activity details begin expanded or collapsed. While a response is running, select its loading activity to show or hide the individual activities and their details. The collapsed loading activity continues to show what the model is doing in real time. Turn off **Show activities elapsed time** to stop updating the timer while an activity runs; the final duration still appears after the activity ends. Select **Save** after changing these settings. Hover over a message, or focus it with the keyboard, to show the actions that apply to it.
 
 | Message action | What it does |
 | --- | --- |
@@ -1118,7 +1118,7 @@ If **Add attachments** is not visible, open **Chat configuration**, choose **App
 | --- | --- |
 | Add attachments and Upload | Enable **Chat configuration** > **Appearance** > **Input actions** > **Upload file**. This setting is enabled by default. |
 | Camera action and Scan | Enable **Camera** in the same Input actions section. It is off by default. Scan also needs camera support and permission from the browser. The Camera composer action can open Scan even when Upload file is off. |
-| Flip camera and Capture | These controls become available after the camera stream starts. After capture, they are replaced by **Retake** and **Use photo**. |
+| Switch camera and Capture | These controls become available after the camera stream starts. After capture, they are replaced by **Retake** and **Use photo**. |
 | Knowledge Delete | **Delete** appears beside documents that have finished processing, including completed, unreadable, and failed entries. Processing entries remain in the progress list until they finish. |
 | Knowledge Reindex | **Reindex** appears after the collection has at least one document. It becomes available after you configure an embedding model. |
 | Workspace Preview and Attach | These footer actions appear after you select a Workspace search result. Workspace results also require **Files reading** ([`FILE_EXPLORER_READ`](#acl-FILE_EXPLORER_READ)). |
@@ -1192,7 +1192,7 @@ The provider receives a prepared projection of each attachment. SoAI chooses it 
 
 Common image formats can be attached through Upload, Workspace, a SoAI link, or Scan. A vision-capable model receives normalized visual input within the configured pixel and encoded-size limits. OCR text can accompany the image. If visual preparation fails and OCR succeeded, SoAI can still use the extracted text.
 
-**Scan** captures a browser camera frame as a JPEG. **Flip camera** requests the other facing mode on devices that offer one. Select **Capture**, use **Retake** if needed, then select **Use photo**. A vision-capable selected model receives prepared visual input. Other cases use the document and OCR path. Camera support and permission come from the browser and operating system.
+**Scan** captures a browser camera frame as a JPEG. **Switch camera** requests the other facing mode on devices that offer one. Select **Capture**, use **Retake** if needed, then select **Use photo**. A vision-capable selected model receives prepared visual input. Other cases use the document and OCR path. Camera support and permission come from the browser and operating system.
 
 ##### Video and audio
 
@@ -1228,6 +1228,8 @@ SoAI has parsers for these practical groups:
 | Unavailable after sending | A transcript card or request-time notice says that a linked source no longer matches, no longer exists, or is no longer accessible. | Find the current workspace item and attach it again. |
 
 Removing an unsent direct attachment cancels its remaining processing and removes its managed storage when safe. After a message is sent, its cards remain part of the transcript. Available cards can expose preview, open, or download actions according to the source and your access.
+
+When the saved file behind an attachment is missing or no longer matches its record, SoAI does not serve its content. The preview reports that the attachment is unavailable. To use the file again, open **Add attachments**, choose **Upload**, select **Upload file**, and add it to a new message.
 
 #### Current default limits
 
@@ -1273,6 +1275,7 @@ Knowledge controls are also conditional. **Reindex** appears once the collection
 | Chat is missing from the sidebar | No selectable conversation model has unlocked Chat in this browser. | Open [Models catalog](#models-catalog) and download or add a chat-capable model that is loaded or available. |
 | Knowledge stays unsearchable | Indexing is incomplete, RAG is off, the Knowledge tools are unavailable, no embedding model is available, or the conversation model lacks tool calling. | Enable RAG, finish embedding, and wait for completion. Then verify the Knowledge tools and the conversation model's tool-calling capability. |
 | Scan is unavailable | Camera is hidden, unsupported, blocked, or has no permission. | Enable the Camera input action, use HTTPS or `localhost`, and allow camera access in the browser. |
+| The camera does not start | Another application may be using the camera, or the browser could not start it. | Close the other camera session, check browser permission, and open Scan again. |
 | The model cannot interpret an image or video | The selected model lacks vision, the catalog capability is wrong, or OCR and transcription found too little. | Choose a verified vision model in [Models catalog](#models-catalog), or provide a text description. |
 
 #### Related documentation
@@ -1375,7 +1378,9 @@ Loading the enhancement model list and running an enhancement require **Public i
 
 #### Insert a prompt in Chat
 
-Open **Chat**, select the saved-prompts action in the composer, then choose a template. Select **Manage prompts** in that picker when you need to return to the full Prompts page. Inserting a template copies its text into the composer; you can edit it before sending without changing the saved prompt.
+To show the prompt button, open a conversation, select **Chat configuration > Appearance**, turn on **Saved prompts**, and select **Save**. Select the saved-prompts action in the composer, then choose a template. Select **Manage prompts** in that picker when you need to return to the full Prompts page. Inserting a template copies its text into the composer; you can edit it before sending without changing the saved prompt.
+
+You can also open a prompt on the **Prompts** page, select **Copy**, and paste the text into the Chat composer. To send the prompt as a file instead, use **Select** on the Prompts page, choose the prompt, and select **Download**. In Chat, open **Add attachments**, choose **Upload**, and attach the downloaded file. These options leave you free to edit the prompt as message text or keep it as a file attachment.
 
 #### Related documentation
 
@@ -1482,7 +1487,7 @@ SoAI checks the provider and reads its model list. The Models page then lists ea
 
 Search matches a model's display name, alias, source ID, plugin, provider, or description. Sort the results by name, type, provider, plugin, status, or size. Use **All plugins** to show one plugin, and use the view button to switch between cards and a compact table.
 
-The summary above the catalog shows model counts, loaded models, external providers, requests, the last-used model, and the total size reported for the catalog. Each model entry identifies its source, type, status, and parameter state. It also shows model size and request or token totals when SoAI has those values.
+The summary above the catalog shows model counts, loaded models, external providers, requests, the last-used model, and the total size reported for the catalog. Each model entry identifies its source, type, status, and parameter state. Models imported from an external provider use the **Cloud** type. Entries also show model size and request or token totals when SoAI has those values.
 
 ##### Manage a model
 
@@ -1984,7 +1989,9 @@ In the SoAI WebUI, select the **Settings** button at the right of the header, th
 
 ##### Set language and regional preferences
 
-**Settings > General** contains interface language, clock format, regional locale, date format, measurement units, notification duration, interface scale, notification sounds, header clock, seconds display, and the live status overlay. Language changes WebUI text. Locale, date, and measurement options change how values are displayed, not the stored timestamps or measurements.
+**Settings > General** contains interface language, OCR extraction language, clock format, regional locale, date format, measurement units, notification duration, interface scale, notification sounds, header clock, seconds display, and the live status overlay. Interface language changes WebUI text. Locale, date, and measurement options change how values are displayed, not the stored timestamps or measurements.
+
+To change the language used by Tesseract for future image and document text extraction, choose **OCR extraction language**, then select the page-header **Save**. SoAI tries RapidOCR first and uses Tesseract as a fallback. The setting does not reprocess text that SoAI has already extracted. Languages that are not installed are marked as unavailable, while installed languages remain selectable.
 
 ##### Choose theme, color, and motion
 
@@ -1997,6 +2004,8 @@ Turn on **Disable animations**, turn off **Glass effects**, and turn off **Code 
 Keep only the Dashboard elements you read, use list view for large Models, Plugins, Prompts, or Files collections, and leave live pages such as Hardware, Metrics, and Logs when monitoring is finished. Each additional browser tab or detached Chat window has its own frontend runtime and WebSocket connection, so close copies you no longer need.
 
 #### Arrange navigation and pages
+
+Under **Settings > Theme > Sidebar**, choose a **Default page**, then select the page-header **Save**. SoAI opens that page after you connect. If it is unavailable or the account can no longer access it, SoAI opens Dashboard.
 
 1. Open **Settings > Theme > Sidebar**.
 2. Under **Visible pages**, select **Edit**.
@@ -2021,6 +2030,8 @@ Dashboard, Metrics, and Hardware have movable sections on screens wide enough fo
 #### Customize chat presentation
 
 In a conversation, open **Chat configuration**. Its General tab controls the display names and photos for you and the model, the conversation model, technical model-ID visibility, PDF export, and whether new chats reuse the latest model, tool, and Knowledge choices. Appearance controls text zoom, widescreen mode, rich-text rendering, previews, automatic titles, activity display, notifications, microphone sounds, message-box actions, and whether automation or messaging conversations appear in the chat list.
+
+**Show activities** chooses whether response activity details begin expanded or collapsed. While a response is running, select its loading activity to show or hide the individual activities and their details. The collapsed loading activity continues to show what the model is doing in real time. Turn off **Show activities elapsed time** to stop updating the timer while an activity runs; its final duration still appears after it ends. Select **Save** after changing these settings.
 
 Most chat choices wait for the Chat configuration Save action. Photo upload and removal save to the account as soon as the operation succeeds. **Display choices are not sent to the model as inference parameters.** See [Conversation context, compaction, and history](#conversation-context-compaction-and-history) for request-affecting controls.
 
@@ -4875,7 +4886,7 @@ The **Hardware** page exposes the same controls under **GPU controls**, labelled
 
 Two profiles. `soaibench` is the certified SoAIBench workload, which is the one to use for a number you want to compare against anything else. `stress_test` pushes the card hard to see whether it stays stable, which is what you want after changing clocks.
 
-`temperature_limit_celsius` stops the run when the card reaches that temperature and defaults to 100 C for certified SoAIBench. Lower it when you are testing an overclock, so the run aborts before the card gets hot rather than after.
+`temperature_limit_celsius` is optional and has no default. When supplied, it is a caller-selected telemetry checkpoint: a reading above the limit stops the run after the active [OpenCL](https://www.khronos.org/opencl/) phase finishes. It does not replace the GPU's supported operating limits or cooling controls.
 
 Runs are asynchronous. An agent starts one, polls `status`, and reads the result when it finishes. The **Hardware** page has the same thing as **Bench**, **Stress**, **Stop**, and **History** buttons on the GPU panel.
 
@@ -5529,7 +5540,7 @@ The **Backup** tab appears only to an Administrator with **Backup administration
 3. On a supported [Linux](https://www.kernel.org/), [macOS](https://www.apple.com/macos/), or [Windows](https://www.microsoft.com/windows/) installation, select **Install update** and confirm the dialog.
 4. Wait for the updating screen to reconnect before using SoAI again.
 
-The update service checks the signed release manifest, its signing key, the selected edition, and the downloaded release artifact before applying it. It stages the change in an update transaction and keeps rollback data until the updated application completes startup successfully. SoAI restarts the application when the update was started from a running instance.
+The update service checks the signed release manifest, its signing key, the selected edition, and the downloaded release artifact before applying it. It stages the change in an update transaction and keeps rollback data until the updated application completes startup successfully. During startup, SoAI applies required database and settings migrations to the existing data directory. User accounts, conversations, settings, attachments, files, models, plugins, automations, and benchmark history remain in place. SoAI restarts the application when the update was started from a running instance.
 
 ##### Conditions that disable automatic updates
 
@@ -5899,7 +5910,7 @@ The rest is ordinary discipline. Change one control at a time so a failure has o
 3. Watch temperature, power, and status while it runs, and select **Stop** to end a stress run early.
 4. After a run exists, use the **History** control in the GPU panel to compare or export previous results.
 
-A stress run started from this page lasts at most 60 seconds and ends on its own, so **Stop** only shortens it. That run has no temperature limit either: a certified **Bench** run aborts when the card passes 100 C, while the stress profile stops when it finishes, when you stop it, or when the card gives out. Watch the temperature yourself during a stress run, or start the run through `hardware_benchmark` with an explicit `temperature_limit_celsius`, which is the only way to set one. The benchmark controls report an explicit unsupported result when the selected GPU or runtime cannot run the requested profile, and a host whose cooling, power delivery, or operating limits are unknown is not a host to stress-test.
+A stress run started from this page lasts at most 60 seconds and ends on its own, so **Stop** only shortens it. The page continues to show live hardware data during a run. The `hardware_benchmark` tool accepts a `temperature_limit_celsius` checkpoint for either profile. Readings above that limit stop the run after the active [OpenCL](https://www.khronos.org/opencl/) phase. The benchmark controls report an explicit unsupported result when the selected GPU or runtime cannot run the requested profile.
 
 ##### Save and reuse a slot
 
@@ -6627,6 +6638,8 @@ Models needs **Model read access** ([`MODEL_READ`](#acl-MODEL_READ)), Plugins ne
 3. Turn **Header clock** off if you do not need it, which stops its timer entirely and takes the seconds display with it.
 4. Turn **Live status overlay** off if you do not use it.
 5. Select **Save**.
+
+To reduce repeated chat updates during long streamed responses or agent tasks, open **Chat configuration > Appearance** and turn off **Show activities elapsed time**. SoAI then stops refreshing the running duration while each activity is in progress and shows its final duration when it ends. This reduces repeated interface updates and can lower CPU use on the client. Activity status and live progress remain visible. Select **Save** in Chat configuration after changing the setting.
 
 Both **Show seconds** and **Live status overlay** are off by default, so these are worth confirming before you go looking elsewhere. The overlay subscribes to connection, latency, queue, and event telemetry and refreshes its diagnostics every 15 seconds, and turning it off removes the overlay, its listeners, and that timer without disabling server monitoring.
 
@@ -7846,16 +7859,16 @@ SoAIBench is SoAI's [OpenCL](https://www.khronos.org/opencl/) GPU benchmark and 
 
 **SoAIBench requires an enabled hardware manager and a GPU that passes its [OpenCL](https://www.khronos.org/opencl/) preflight.** Before it starts, SoAI matches the selected hardware device to the [OpenCL](https://www.khronos.org/opencl/) inventory. The workload checks allocation limits while it starts. A GPU can appear in **Hardware** and still return **Unsupported** for SoAIBench.
 
-SoAI permits one active benchmark or stress run per GPU. A second run on that device is rejected while the active run holds the device.
+Only 1 benchmark or stress run can be active per GPU. A second run on that device is rejected while the active run holds the device.
 
 #### Profiles in the SoAI WebUI
 
 | Profile | WebUI behavior |
 | --- | --- |
-| Standard | Opens the certified SoAIBench dialog. It runs one warmup pass and five measured passes with a default temperature limit of 100 °C. |
+| Standard | Opens the certified SoAIBench dialog. It runs at least 120 seconds of active warm-up work, followed by 5 measured passes. |
 | Stress | Starts the mixed stress workload immediately. The WebUI uses a 60-second quick stress run and does not provide a temperature-limit field. |
 
-Standard results can qualify for certification when their telemetry and pass checks succeed. Stress is for observing thermal or instability behavior and has no certified result.
+Standard results are certified after all 5 measured passes produce valid workload and score evidence. Optional telemetry remains descriptive. Eligible Standard results can be shared with the public SoAIBench leaderboard. Stress is for observing thermal or instability behavior and has no certified result.
 
 #### Open SoAIBench
 
@@ -7886,9 +7899,9 @@ To clear a pending adjustment, select **Apply** and wait for it to finish. When 
 1. In the SoAI WebUI, open **Hardware** and find the selected GPU's **GPU controls** panel.
 2. Select **Test**, then select **Bench**.
 3. Review the **SoAIBench** dialog and select **Start**.
-4. Keep the dialog open to follow warmup, measured passes, and the final report.
+4. Keep the dialog open to follow warm-up, measured passes, and the final report.
 
-The WebUI starts a Standard run in certified mode. It performs one warmup pass and five measured passes; the benchmark service applies the default 100 °C temperature limit. The WebUI does not offer a quick Standard option or a temperature-limit input for this flow. Closing the dialog requests a stop for an active certified run.
+The WebUI starts a Standard run in certified mode. It performs at least 120 seconds of active warm-up work, followed by 5 measured passes. Closing the dialog requests a stop for an active certified run.
 
 ##### Run the stress workload
 
@@ -7897,13 +7910,13 @@ The WebUI starts a Standard run in certified mode. It performs one warmup pass a
 3. Watch the GPU's live hardware data while it runs.
 4. Select **Stop** if you need to end it before completion.
 
-The WebUI stress action starts a 60-second quick mixed workload. **It has no temperature-limit field and no default temperature limit, so monitor the host while it runs.** A **Stop** request is recorded first; the run becomes terminal after the active [OpenCL](https://www.khronos.org/opencl/) operation ends.
+The WebUI stress action starts a 60-second quick mixed workload and displays live hardware data while it runs. A **Stop** request is recorded first; the run becomes terminal after the active [OpenCL](https://www.khronos.org/opencl/) operation ends.
 
 #### Permissions and consistent test conditions
 
 Starting Standard or Stress requires **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)), while stopping a run requires **Recovery administration** ([`RECOVERY_ADMIN`](#acl-RECOVERY_ADMIN)); the default Administrator role has both permissions. The GPU controls panel is absent without **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)), and a run can return **Unsupported** when the [OpenCL](https://www.khronos.org/opencl/) preflight cannot use the selected device.
 
-One active run is allowed per GPU. The terminal statuses are **Completed**, **Unstable**, **Failed**, **Cancelled**, **Stopped**, **Unsupported**, and **Indeterminate**. Read the result and its reason before comparing it with another run.
+Only 1 run can be active per GPU. The terminal statuses are **Completed**, **Unstable**, **Failed**, **Cancelled**, **Stopped**, **Unsupported**, and **Indeterminate**. Read the result and its reason before comparing it with another run.
 
 ##### Use consistent test conditions
 
@@ -7918,19 +7931,19 @@ Record the GPU, driver, [OpenCL](https://www.khronos.org/opencl/) runtime, power
 
 ### Methodology, scoring, and certification [page: methodology-scoring-and-certification]
 
-SoAIBench V1 is a synthetic [OpenCL](https://www.khronos.org/opencl/) benchmark. It measures defined compute, memory, mixed, and dispatch-latency workloads on one selected GPU. It does not run an inference model, so its scores are not tokens per second and should not be used as a substitute for model-specific benchmarks.
+SoAIBench is a synthetic [OpenCL](https://www.khronos.org/opencl/) benchmark. It measures defined compute, memory, mixed, and dispatch-latency workloads on one selected GPU. It does not run an inference model, so its scores are not tokens per second and should not be used as a substitute for model-specific benchmarks.
 
 #### Workload and scoring
 
-A Standard pass runs ALU, general compute, dense matrix, memory, mixed compute and memory, and latency phases. The compute result is the arithmetic mean of ALU GOPS, matrix GOPS, general-compute GOPS, and the mixed phase's compute GOPS. The memory result is the arithmetic mean of the dedicated and mixed memory throughput values. The latency phase reports microseconds and dispatches per second, then converts them to a latency score.
+A Standard pass runs ALU, general compute, dense matrix, memory, mixed compute and memory, and latency phases. The compute result is the arithmetic mean of ALU GOPS, matrix GOPS, general-compute GOPS, and the mixed phase's compute GOPS. The memory result is the arithmetic mean of the dedicated and mixed memory throughput values. The latency phase reports microseconds and dispatches per second and retains its diagnostic score separately.
 
-The `soaibench-v1` Standard overall score uses 62 percent compute, 26 percent memory, and 12 percent latency. Each component is clamped at zero before weighting, the stability multiplier is applied, and the overall score is rounded to an integer.
+The Standard overall score is calculated directly from 40 percent compute throughput and 60 percent memory throughput. Throughput inputs are clamped at zero and rounded to 6 decimal places before the weighted score is rounded to an integer. The latency score does not affect the overall score. This composite is a benchmark index with differently scaled input units; it is not normalized and does not predict tokens per second.
 
 ##### Certified aggregation
 
-The WebUI Standard flow runs one warmup pass followed by five measured passes. The warmup does not enter the final score. SoAI takes the median compute, memory, latency, ALU, and matrix result across the measured passes, then computes the final weighted score. Duration and sample count are summed across measured passes.
+The WebUI Standard flow completes at least 120 seconds of active workload warm-up followed by 5 measured passes. Compilation, process startup, result readback, and CPU validation do not count toward warm-up. Every measured phase runs completed workload batches for at least 1 second. Warm-up does not enter the final score. SoAI takes the median compute, memory, latency, ALU, and matrix result across measured passes, then computes the final weighted score. Duration and completed-work counts are summed across measured passes.
 
-A completed run is leaderboard-eligible only when all five measured passes exist, telemetry is available, no throttling was detected, maximum temperature telemetry exists and stays at or below the run limit, and the coefficient of variation of pass scores is at most 10 percent. The WebUI uses a 100 °C limit for its certified Standard run. **Failure to qualify does not erase the completed result; the report records its rejection reason.**
+A certified result is leaderboard-eligible after all 5 measured passes provide valid positive workload, accounting, and numerical sample evidence. Throughput variation, signed throughput drift, and available temperature, power, utilization, and authoritative throttling observations are descriptive and do not alter the score or eligibility by an arbitrary threshold.
 
 ##### Stress workload
 
@@ -7942,7 +7955,7 @@ A result records the selected device identity, runtime environment, settings sna
 
 ##### Make comparisons valid
 
-- Compare only the same profile and score version.
+- Compare only results produced by the same profile and scoring method.
 - Keep GPU model, driver, [OpenCL](https://www.khronos.org/opencl/) runtime, power and clock settings, cooling, and host load consistent.
 - Use certified Standard results for repeatable score comparisons.
 - Use model and backend benchmarks when the question is token throughput, time to first token, or inference latency.
@@ -7957,7 +7970,7 @@ A difference in SoAIBench score identifies a difference in this synthetic worklo
 
 ### Interpreting results [page: interpreting-results]
 
-A SoAIBench result combines score fields with the device identity, settings snapshot, runtime context, and telemetry gathered during the run. The recorded score version is `soaibench-v1`.
+A SoAIBench result combines score fields with the device identity, settings snapshot, runtime context, and telemetry gathered during the run.
 
 #### Open and export results in the SoAI WebUI
 
@@ -7968,24 +7981,37 @@ A SoAIBench result combines score fields with the device identity, settings snap
 
 The Standard run dialog also exposes its terminal report and a **Download** action for the displayed run. History and exports require **Hardware read access** ([`HARDWARE_READ`](#acl-HARDWARE_READ)). In the current WebUI, the **History** button sits in **GPU controls**, so it also requires **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)). It appears when SoAI has any run record for that GPU, including an active run.
 
+#### Share an eligible score
+
+A **Share** action appears when a completed, certified Standard run contains all 5 measured passes and the evidence required for publication. Sharing requires **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)). New GPU scores are welcome, especially for GPU models that are not represented on the leaderboard yet.
+
+1. Open the GPU's **History** dialog.
+2. Select **Share** beside an eligible result.
+3. Review the publication preview. It contains the score, 5 measured passes, public GPU and runtime details, benchmark settings, and available sensor evidence.
+4. Confirm the publication. If it succeeds, SoAI provides the public result link.
+
+The publication does not include the SoAI account identity, files, configuration, analytics, or general telemetry. A result held for review does not count toward the leaderboard until the review is complete. If sharing times out, use **Share** again; SoAI reconciles the same publication instead of creating another submission.
+
+To remove an eligible run from SoAI, open **History** and select **Delete local history** beside it. An active or indeterminate run cannot be deleted. A run prepared for or published to the leaderboard also remains in local history so SoAI can preserve its publication state.
+
 #### Read the score fields
 
 | Profile | Score composition |
 | --- | --- |
-| Standard | 62 percent compute, 26 percent memory, and 12 percent latency. Results include overall, compute, memory, and latency scores. |
+| Standard | 40 percent compute throughput and 60 percent memory throughput. The diagnostic latency score is reported separately and does not affect overall. |
 | Stress | 70 percent compute and 30 percent memory. Stress has no latency score. |
 
 The run report can also include compute, ALU, and matrix throughput, memory throughput, latency, duration, sample count, temperature, power, throttling, and [OpenCL](https://www.khronos.org/opencl/) device details. Available fields depend on the run and its telemetry.
 
 #### Understand certification and status
 
-**A Standard run in certified mode can complete without qualifying for certification.** Eligibility requires five measured passes, available telemetry, no detected throttling, a known maximum temperature at or below the run limit, and score variance no greater than 10 percent.
+**A Standard run in certified mode becomes eligible after 120 seconds of active workload warm-up and all 5 measured passes provide valid workload, accounting, and numerical sample evidence.** Each measured phase lasts at least 1 second. Optional telemetry, authoritative throttling observations, throughput variance, and signed drift remain visible descriptive evidence and do not alter the score or eligibility through an arbitrary threshold. Historical results retain their recorded eligibility and rejection reason.
 
 **Unsupported** means the preflight or runtime could not use that GPU. Treat **Unstable**, **Failed**, **Cancelled**, **Stopped**, and **Indeterminate** as results that need their recorded reason before any comparison. The WebUI always starts certified Standard runs. History can also contain a quick Standard run created through a non-WebUI client.
 
 #### Compare like with like
 
-Compare the same profile, score version, GPU model, driver, [OpenCL](https://www.khronos.org/opencl/) runtime, settings, cooling condition, and host load. Do not compare Stress scores with certified Standard scores. **SoAIBench uses synthetic [OpenCL](https://www.khronos.org/opencl/) workloads, so its GOPS and memory figures are not model-token throughput measurements.** For repeatable setup, see [Running benchmarks](#running-benchmarks).
+Compare the same profile, scoring method, GPU model, driver, [OpenCL](https://www.khronos.org/opencl/) runtime, settings, cooling condition, and host load. Do not compare Stress scores with certified Standard scores. **SoAIBench uses synthetic [OpenCL](https://www.khronos.org/opencl/) workloads, so its GOPS and memory figures are not model-token throughput measurements.** For repeatable setup, see [Running benchmarks](#running-benchmarks).
 
 #### Related documentation
 
@@ -8247,7 +8273,10 @@ This table covers every OpenAPI operation in the current Core route composition,
 | `GET` | `/api/v1/hardware/gpu/soaibench/history/export` | Export SoAIBench history CSV API |
 | `GET` | `/api/v1/hardware/gpu/soaibench/runs` | List SoAIBench history API |
 | `POST` | `/api/v1/hardware/gpu/soaibench/runs` | Start SoAIBench run API |
+| `DELETE` | `/api/v1/hardware/gpu/soaibench/runs/{run_id}` | Delete SoAIBench local run API |
 | `GET` | `/api/v1/hardware/gpu/soaibench/runs/{run_id}` | Get SoAIBench run API |
+| `POST` | `/api/v1/hardware/gpu/soaibench/runs/{run_id}/publication` | Publish SoAIBench run API |
+| `GET` | `/api/v1/hardware/gpu/soaibench/runs/{run_id}/publication/preview` | Preview SoAIBench publication API |
 | `POST` | `/api/v1/hardware/gpu/soaibench/runs/{run_id}/stop` | Stop SoAIBench run API |
 | `GET` | `/api/v1/hardware/history` | Get hardware history |
 | `GET` | `/api/v1/hardware/processes` | List processes |
@@ -8515,6 +8544,8 @@ This table covers every OpenAPI operation in the current Core route composition,
 | `POST` | `/api/v1/webui/conversations/{conv_id}/messages` | Append conversation messages |
 | `PUT` | `/api/v1/webui/conversations/{conv_id}/messages` | Update conversation messages |
 | `POST` | `/api/v1/webui/conversations/{conv_id}/messages/delete` | Delete conversation message |
+| `POST` | `/api/v1/webui/conversations/{conv_id}/messages/regenerate` | Regenerate conversation message |
+| `GET` | `/api/v1/webui/conversations/{conv_id}/messages/regenerate/status` | Get conversation regeneration status |
 | `POST` | `/api/v1/webui/conversations/{conv_id}/messages/resubmit` | Resubmit conversation user message |
 | `GET` | `/api/v1/webui/conversations/{conv_id}/messages/running-activity` | Get conversation running activity |
 | `GET` | `/api/v1/webui/conversations/{conv_id}/messages/sync-cursor` | Get conversation message sync cursor |
@@ -8542,6 +8573,7 @@ This table covers every OpenAPI operation in the current Core route composition,
 | `POST` | `/api/v1/webui/conversations/{conv_id}/soai-paths/read` | Read SoAI path |
 | `POST` | `/api/v1/webui/conversations/{conv_id}/soai-paths/token` | Token SoAI path |
 | `GET` | `/api/v1/webui/conversations/{conv_id}/stream-status` | Get conversation stream status |
+| `POST` | `/api/v1/webui/conversations/{conv_id}/stream/cancel` | Cancel conversation stream |
 | `PATCH` | `/api/v1/webui/conversations/{conv_id}/title` | Update conversation metadata |
 | `GET` | `/api/v1/webui/conversations/{conv_id}/workspace-path` | Get conversation workspace path config |
 | `PATCH` | `/api/v1/webui/conversations/{conv_id}/workspace-path` | Patch conversation workspace path config |
@@ -8577,6 +8609,7 @@ This table covers every OpenAPI operation in the current Core route composition,
 | `POST` | `/api/v1/webui/notifications/mark-read` | Mark notifications read |
 | `DELETE` | `/api/v1/webui/notifications/{notification_id}` | Delete notification |
 | `POST` | `/api/v1/webui/notifications/{notification_id}/open` | Open notification |
+| `GET` | `/api/v1/webui/ocr/languages` | Get ocr languages |
 | `DELETE` | `/api/v1/webui/openai-api-keys` | Handle delete all [OpenAI](https://openai.com/) API keys |
 | `GET` | `/api/v1/webui/openai-api-keys` | Handle list [OpenAI](https://openai.com/) API keys |
 | `POST` | `/api/v1/webui/openai-api-keys` | Handle create [OpenAI](https://openai.com/) API key |

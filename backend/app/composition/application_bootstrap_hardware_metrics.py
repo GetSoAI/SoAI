@@ -6,11 +6,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.application_dependencies import ApplicationEnvironment
-from app.composition.bootstrap_requirements import require_initialized_dependency
 from app.composition.build_cancellation_system import CancellationSystem
 from app.composition.build_hardware import build_hardware_services
 from app.composition.build_metrics import build_metrics_and_state_services
 from app.composition.build_runtime import RuntimeFoundation
+from app.composition.service_preconditions import require_initialized
 from app.internal_protocols import MetricsAwareEventBusProtocol
 from app.types_services_database import DatabaseServices
 from core.config.runtime_config import Config
@@ -75,9 +75,9 @@ def build_hardware_and_metrics_services(
         config=config,
         base_dir=environment.base_dir,
         event_bus=event_bus,
-        database_hardware=require_initialized_dependency(
+        database_hardware=require_initialized(
             database_services.hardware,
-            "Database hardware",
+            message="Database hardware is required but was not initialized.",
         ),
         cancellation_binder=cancellation_system.binder,
         finalizer_tracker=cancellation_system.finalizer_tracker,
@@ -96,21 +96,21 @@ def build_hardware_and_metrics_services(
         files=files,
         base_dir=environment.base_dir,
         event_bus=event_bus,
-        database_writer=require_initialized_dependency(
+        database_writer=require_initialized(
             database_services.core,
-            "Database core",
+            message="Database core is required but was not initialized.",
         ).writer,
-        database_metrics=require_initialized_dependency(
+        database_metrics=require_initialized(
             database_services.metrics,
-            "Database metrics",
+            message="Database metrics is required but was not initialized.",
         ),
-        database_hardware=require_initialized_dependency(
+        database_hardware=require_initialized(
             database_services.hardware,
-            "Database hardware",
+            message="Database hardware is required but was not initialized.",
         ),
-        database_plugins=require_initialized_dependency(
+        database_plugins=require_initialized(
             database_services.plugins,
-            "Database plugins",
+            message="Database plugins is required but was not initialized.",
         ),
         cancellation_binder=cancellation_system.binder,
         finalizer_tracker=cancellation_system.finalizer_tracker,

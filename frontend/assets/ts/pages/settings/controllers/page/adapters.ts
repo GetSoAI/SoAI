@@ -42,6 +42,7 @@ const createCoreSettingsManagers = (page: SettingsRuntimeContext, state: Setting
     state.themeManager = new ThemeManager({
         host: createThemeManagerHost(page, state, callbacks),
         canManageSolidBackground: page.owners.auth.isAdmin(),
+        getGrantedActions: (): ReadonlySet<string> => state.grantedActions,
         dashboardProductTitle: () => page.edition.dashboardTitle,
         updatePreferenceToggleLabel: callbacks.updatePreferenceToggleLabel
     });

@@ -79,7 +79,13 @@ def register_routes(routers: ApiRouters) -> None:
                 request,
                 "Conversation not found or you do not have permission to access it.",
             )
-        return JSONResponse(content=serialize_message_window_result(read_result))
+        return JSONResponse(
+            content=await serialize_message_window_result(
+                read_result,
+                api_context=api_context,
+                current_user=current_user,
+            )
+        )
 
     @routers.webui.get("/conversations/{conv_id}/messages/running-activity")
     async def get_conversation_running_activity(
@@ -102,7 +108,13 @@ def register_routes(routers: ApiRouters) -> None:
                 request,
                 "Conversation not found or you do not have permission to access it.",
             )
-        return JSONResponse(content=serialize_running_activity_snapshot(snapshot))
+        return JSONResponse(
+            content=await serialize_running_activity_snapshot(
+                snapshot,
+                api_context=api_context,
+                current_user=current_user,
+            )
+        )
 
     @routers.webui.get(
         "/conversations/{conv_id}/assistant-turns/{assistant_turn_at_ms}/variants/{model_variant_index}/stream-state",
@@ -146,7 +158,14 @@ def register_routes(routers: ApiRouters) -> None:
             )
         except ValidationError as exception:
             raise_invalid_request(request, str(exception))
-        return JSONResponse(content=serialize_assistant_stream_state(payload))
+        return JSONResponse(
+            content=await serialize_assistant_stream_state(
+                payload,
+                api_context=api_context,
+                current_user=current_user,
+                conv_id=conv_id,
+            )
+        )
 
     @routers.webui.get("/conversations/{conv_id}/messages/sync-cursor")
     async def get_conversation_message_sync_cursor(

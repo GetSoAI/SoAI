@@ -1,10 +1,19 @@
-"""SoAI - SoAIBench V1 stable failure reasons [backend/hardware/soaibench/errors.py]"""
+"""SoAI - SoAIBench stable failure reasons [backend/hardware/soaibench/errors.py]"""
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
+from core.errors.exceptions import StateError
+from core.types.json import JSONDict
+
 __all__ = (
     "SoAIBenchUnsupported",
+    "SoAIBenchRunningWithoutOwner",
+    "SoAIBenchCompanionFailure",
+    "SoAIBenchCompanionFinalizationError",
+    "SoAIBenchHeartbeatSuperseded",
     "unsupported_guidance",
 )
 
@@ -12,11 +21,45 @@ __all__ = (
 class SoAIBenchUnsupported(Exception):
     reason: str
     message: str
+    diagnostic: str | None
 
-    def __init__(self, reason: str, message: str) -> None:
-        super().__init__(reason, message)
+    def __init__(self, reason: str, message: str, diagnostic: str | None = None) -> None:
+        super().__init__(reason, message, diagnostic)
         self.reason = reason
         self.message = message
+        self.diagnostic = diagnostic
+
+
+class SoAIBenchRunningWithoutOwner(StateError):
+    __slots__ = ()
+
+
+@dataclass(frozen=True, slots=True)
+class SoAIBenchCompanionFailure:
+    code: str
+    exception: BaseException
+
+
+class SoAIBenchCompanionFinalizationError(Exception):
+    durable_run: JSONDict
+    failures: tuple[SoAIBenchCompanionFailure, ...]
+
+    def __init__(
+        self,
+        durable_run: JSONDict,
+        failures: tuple[SoAIBenchCompanionFailure, ...],
+    ) -> None:
+        super().__init__(durable_run, failures)
+        self.durable_run = durable_run
+        self.failures = failures
+
+
+class SoAIBenchHeartbeatSuperseded(Exception):
+    durable_run: JSONDict
+
+    def __init__(self, durable_run: JSONDict) -> None:
+        super().__init__(durable_run)
+        self.durable_run = durable_run
 
 
 def unsupported_guidance(reason: str) -> str:
@@ -35,6 +78,8 @@ def unsupported_guidance(reason: str) -> str:
         return "Install or update the selected GPU vendor driver so OpenCL exposes the same GPU."
     if reason == "opencl_device_match_ambiguous":
         return "OpenCL exposed multiple matching GPUs; select a GPU with a unique UUID or PCI identity."
+    if reason == "opencl_device_identity_conflict":
+        return "Refresh GPU inventory and update the vendor driver before retrying SoAIBench."
     if reason == "gpu_driver_inactive":
         return (
             "Install a compatible GPU driver and reboot so the selected GPU binds to that driver."

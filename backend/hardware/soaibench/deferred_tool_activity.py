@@ -18,20 +18,17 @@ from core.tool_calls.deferred_tool_call_streamer import (
     DeferredToolCallActivity,
     DeferredToolCallStreamer,
 )
-from core.tool_calls.status_values import (
-    TOOL_CALL_STATUS_CANCELLED,
-    TOOL_CALL_STATUS_COMPLETED,
-    TOOL_CALL_STATUS_ERROR,
-)
 from core.validation.strict_numbers import coerce_optional_non_negative_int_strict
 from hardware.soaibench.responses import run_response
+from hardware.soaibench.terminal_projection import terminal_projection
 from hardware.soaibench.types import SoAIBenchRunStatus
 
 if TYPE_CHECKING:
     from core.hardware.protocols_soaibench import DatabaseSoAIBenchProtocol
-    from core.types.json import JSONDict, JSONValue
+    from core.types.json import JSONDict
 
 __all__ = (
+    "finalize_soaibench_deferred_tool_activity",
     "finalize_soaibench_deferred_tool_activity_preserving",
     "mark_soaibench_deferred_tool_activity_accepted",
 )
@@ -91,6 +88,25 @@ async def finalize_soaibench_deferred_tool_activity_preserving(
         )
 
 
+async def finalize_soaibench_deferred_tool_activity(
+    activity: DeferredToolCallActivity | None,
+    *,
+    run: JSONDict,
+    task_id: str,
+) -> None:
+    if activity is None:
+        return
+    terminal_run = dict(run)
+    terminal_run["task_id"] = task_id
+    projection = terminal_projection(terminal_run)
+    await DeferredToolCallStreamer(deps=activity.streamer_deps).finalize(
+        status=projection.tool_status,
+        duration_ms=_duration_ms(terminal_run),
+        error_message=projection.tool_error_message,
+        result_payload=run_response(terminal_run, accepted=False),
+    )
+
+
 async def _finalize_soaibench_deferred_tool_activity(
     activity: DeferredToolCallActivity,
     *,
@@ -107,22 +123,11 @@ async def _finalize_soaibench_deferred_tool_activity(
     status_value = str(run.get("status") or "").strip()
     if status_value == SoAIBenchRunStatus.RUNNING.value:
         raise StateError("SoAIBench deferred tool activity cannot finalize a running run.")
-    run["task_id"] = task_id
-    result_payload = run_response(run, accepted=False)
-    await DeferredToolCallStreamer(deps=activity.streamer_deps).finalize(
-        status=_tool_call_status(status_value),
-        duration_ms=_duration_ms(run),
-        error_message=_error_message(status_value, result_payload),
-        result_payload=result_payload,
+    await finalize_soaibench_deferred_tool_activity(
+        activity,
+        run=run,
+        task_id=task_id,
     )
-
-
-def _tool_call_status(run_status: str) -> str:
-    if run_status == SoAIBenchRunStatus.COMPLETED.value:
-        return TOOL_CALL_STATUS_COMPLETED
-    if run_status in {SoAIBenchRunStatus.CANCELLED.value, SoAIBenchRunStatus.STOPPED.value}:
-        return TOOL_CALL_STATUS_CANCELLED
-    return TOOL_CALL_STATUS_ERROR
 
 
 def _duration_ms(run: JSONDict) -> int:
@@ -134,34 +139,3 @@ def _duration_ms(run: JSONDict) -> int:
     if completed_at_ms is not None and started_at_ms is not None:
         return max(0, completed_at_ms - started_at_ms)
     return 0
-
-
-def _error_message(status_value: str, result_payload: JSONDict) -> str | None:
-    if status_value == SoAIBenchRunStatus.COMPLETED.value:
-        return None
-    if status_value == SoAIBenchRunStatus.STOPPED.value:
-        return "SoAIBench stopped."
-    if status_value == SoAIBenchRunStatus.CANCELLED.value:
-        return "SoAIBench cancelled."
-    message = _summary_message(result_payload)
-    if message:
-        return message
-    reason = _first_text(
-        result_payload.get("failure_reason"),
-        result_payload.get("unsupported_reason"),
-    )
-    return reason or "SoAIBench failed."
-
-
-def _summary_message(result_payload: JSONDict) -> str | None:
-    summary_value = result_payload.get("summary")
-    if not isinstance(summary_value, dict):
-        return None
-    return _first_text(summary_value.get("message"), summary_value.get("guidance"))
-
-
-def _first_text(*values: JSONValue) -> str | None:
-    for value in values:
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    return None

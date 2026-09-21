@@ -6,9 +6,7 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { isActiveRequest } from '@features/chat/chatstreamservice/controller/actions/requestTracking.ts';
 import { resolveComparisonGroupRequestId } from '@features/chat/chatstreamservice/comparisonRequestIdentity.ts';
 import { renderCurrentConversationSafely } from '@features/chat/chatstreamservice/controller/renderScheduling.ts';
-import { clearStreamingContext, getConversationStreamState, setStreamPhase } from '@features/chat/chatstreamservice/controller/state.ts';
-import { scheduleRequestTerminalization } from '@features/chat/chatstreamservice/controller/terminalLifecycle.ts';
-import { reportChatStreamTerminalizationFailureOnce } from '@features/chat/chatstreamservice/controller/terminalizationError.ts';
+import { clearStreamingContext, getConversationStreamState, setStreamPhase, syncStreamingControls } from '@features/chat/chatstreamservice/controller/state.ts';
 import { resetConversationTerminalization, waitForTerminalReconciliation } from '@features/chat/chatstreamservice/controller/terminalizationState.ts';
 import type { ChatStreamingControllerContext, ConversationStreamState } from '@features/chat/chatstreamservice/controller/types.ts';
 import type { ChatStreamMessageSavedReconciliation } from '@features/chat/chatstreamservice/messageSavedReconciliation.ts';
@@ -43,7 +41,8 @@ const markComparisonRunAborting = (state: ConversationStreamState): void => {
 };
 
 const acceptStreamingServiceUpdateLifecycle = (context: ChatStreamingControllerContext, inputArguments: { conversationId: string; state: ConversationStreamState; requestId: string | null; assistantTimestamp: number | null }): void => {
-    if (inputArguments.state.phase === 'stopping') {
+    if (inputArguments.state.phase === 'stopping' || inputArguments.state.phase === 'stop_failed') {
+        syncStreamingControls(context);
         return;
     }
     const streamIdentityChanged = inputArguments.state.requestId !== inputArguments.requestId || inputArguments.state.assistantTimestamp !== inputArguments.assistantTimestamp;
@@ -68,7 +67,7 @@ const acceptTerminalServiceUpdateLifecycle = (context: ChatStreamingControllerCo
     }
 };
 
-const reconcileMismatchedTerminalServiceUpdate = (context: ChatStreamingControllerContext, inputArguments: { conversationId: string; state: ConversationStreamState; updateRequestId: string | null; status: 'complete' | 'error' | 'cancelled' }): void => {
+const reconcileMismatchedTerminalServiceUpdate = (context: ChatStreamingControllerContext, inputArguments: { conversationId: string; state: ConversationStreamState; updateRequestId: string | null }): void => {
     if (context.dependencies.chatStreamService.isStreaming(inputArguments.conversationId)) {
         return;
     }
@@ -77,24 +76,9 @@ const reconcileMismatchedTerminalServiceUpdate = (context: ChatStreamingControll
         context.errorHandler?.debug?.('ChatStream', `Ignoring foreign terminal update during pending stream start for ${inputArguments.conversationId}`);
         return;
     }
-    const stateAssistantTimestamp = inputArguments.state.assistantTimestamp;
-    if (typeof stateAssistantTimestamp === 'number' && Number.isFinite(stateAssistantTimestamp)) {
-        void scheduleRequestTerminalization(context, {
-            conversationId: inputArguments.conversationId,
-            requestId: inputArguments.state.requestId,
-            assistantTimestamp: stateAssistantTimestamp,
-            status: inputArguments.status
-        }).catch((error) => {
-            const runtimeError = ensureError(error);
-            reportChatStreamTerminalizationFailureOnce(runtimeError, (failure) => context.dependencies.reportRequestFailure(failure));
-            context.errorHandler?.debug?.('ChatStream', `Mismatched terminal reconciliation failed for ${inputArguments.conversationId}`, runtimeError);
-        });
-        return;
-    }
-    clearStreamingContext(context, inputArguments.conversationId);
     if (!context.disposed && context.presentationActive && context.dependencies.state.getCurrentConversationId() === inputArguments.conversationId) {
         context.dependencies.presentation.invalidateChatMarkup('current');
-        terminateHandledPromise(renderCurrentConversationSafely(context, `Failed to render current conversation after mismatched terminal cleanup for ${inputArguments.conversationId}`));
+        terminateHandledPromise(renderCurrentConversationSafely(context, `Failed to reconcile historical terminal messages for ${inputArguments.conversationId}`));
     }
 };
 

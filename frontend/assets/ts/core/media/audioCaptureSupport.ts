@@ -3,6 +3,7 @@
 
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { classifyMediaCaptureError } from '@core/media/mediaCaptureErrors.ts';
 
 interface CapturedAudioUtterance {
     blob: Blob;
@@ -24,21 +25,18 @@ const resolveAudioContextConstructor = (): typeof AudioContext => {
 };
 
 const resolveGetUserMediaError = (error: Error): string => {
-    const runtimeError = ensureError(error);
-    const name = runtimeError.name;
-    if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
-        return i18n.t('chat.audio.permissionDenied');
+    switch (classifyMediaCaptureError(ensureError(error))) {
+        case 'permission':
+            return i18n.t('chat.audio.permissionDenied');
+        case 'missing_device':
+            return i18n.t('chat.audio.noDevice');
+        case 'busy_device':
+            return i18n.t('chat.audio.deviceBusy');
+        case 'insecure_context':
+            return i18n.t('chat.audio.notSupported');
+        case 'unknown':
+            return i18n.t('chat.audio.initFailed');
     }
-    if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-        return i18n.t('chat.audio.noDevice');
-    }
-    if (name === 'NotReadableError' || name === 'TrackStartError') {
-        return i18n.t('chat.audio.deviceBusy');
-    }
-    if (name === 'SecurityError') {
-        return i18n.t('chat.audio.notSupported');
-    }
-    return i18n.t('chat.audio.initFailed');
 };
 
 export { clamp01, resolveAudioContextConstructor, resolveGetUserMediaError };

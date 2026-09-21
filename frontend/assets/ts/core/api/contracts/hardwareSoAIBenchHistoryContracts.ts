@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { GpuSoAIBenchHistoryRun, GpuSoAIBenchSettingsSnapshot } from '@core/api/contracts/hardwareSoAIBenchTypes.ts';
-import { readSoAIBenchOptionalNumber, readSoAIBenchOptionalString } from '@core/api/contracts/hardwareSoAIBenchReaders.ts';
+import { readSoAIBenchClassification, readSoAIBenchOptionalNumber, readSoAIBenchOptionalString } from '@core/api/contracts/hardwareSoAIBenchReaders.ts';
 import { decodeGpuSoAIBenchSummary, serializeGpuSoAIBenchSummary } from '@core/api/contracts/hardwareSoAIBenchSummaryContracts.ts';
 import { toJsonCompatibleObject } from '@core/primitives/clone.ts';
 import { hasOwn, isNonNegativeInteger } from '@core/typeGuards.ts';
@@ -63,8 +63,9 @@ const decodeSettingsSnapshot = (value: JsonValue | undefined, label: string): Gp
 const decodeGpuSoAIBenchHistoryRun = (value: JsonValue, label: string): GpuSoAIBenchHistoryRun => {
     const record = requireRecord(value, label);
     if (hasOwn(record, 'runId') || hasOwn(record, 'createdByUserId') || hasOwn(record, 'overallScore') || hasOwn(record, 'settingsSnapshot') || hasOwn(record, 'staleHardware')) {
-        throw new TypeError(`${label} must use canonical V1 wire fields`);
+        throw new TypeError(`${label} must use canonical wire fields`);
     }
+    const classification = readSoAIBenchClassification(record, label);
     return {
         runId: readRequiredTrimmedStringValue(record['run_id'], `${label}.run_id`),
         createdByUserId: requiredNonNegativeInteger(record, 'created_by_user_id', label),
@@ -106,6 +107,9 @@ const decodeGpuSoAIBenchHistoryRun = (value: JsonValue, label: string): GpuSoAIB
         certification: decodeOpaqueObject(record['certification'], `${label}.certification`),
         leaderboardEligible: readRequiredBooleanValue(record['leaderboard_eligible'], `${label}.leaderboard_eligible`),
         leaderboardRejectionReason: optionalText(record, 'leaderboard_rejection_reason', label),
+        scoreClassification: classification.scoreClassification,
+        legacyScore: classification.legacyScore,
+        publicationEligible: classification.publicationEligible,
         scoreVariancePercent: readSoAIBenchOptionalNumber(record, 'score_variance_percent', label),
         failureReason: optionalText(record, 'failure_reason', label),
         unsupportedReason: optionalText(record, 'unsupported_reason', label),
@@ -163,6 +167,9 @@ const serializeGpuSoAIBenchHistoryRun = (run: GpuSoAIBenchHistoryRun): JsonObjec
     certification: run.certification,
     'leaderboard_eligible': run.leaderboardEligible,
     ...(run.leaderboardRejectionReason !== undefined ? { 'leaderboard_rejection_reason': run.leaderboardRejectionReason } : {}),
+    'score_classification': run.scoreClassification,
+    'legacy_score': run.legacyScore,
+    'publication_eligible': run.publicationEligible,
     ...(run.scoreVariancePercent !== undefined ? { 'score_variance_percent': run.scoreVariancePercent } : {}),
     ...(run.failureReason !== undefined ? { 'failure_reason': run.failureReason } : {}),
     ...(run.unsupportedReason !== undefined ? { 'unsupported_reason': run.unsupportedReason } : {}),

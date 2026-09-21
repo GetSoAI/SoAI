@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     )
     from core.tasks.task import Task
     from core.types.json import JSONDict
+    from core.users.protocols_database import DatabaseUsersProtocol
     from mcp.rag.indexing.chunking import DocumentChunker
     from mcp.storage.internal_protocols import MCPStorageProtocol
     from mcp.worker.reindex_lock_registry import ReindexLockRegistry
@@ -45,6 +46,7 @@ class MCPWorkerProtocol(Protocol):
 
     config: ConfigProtocol
     database_conversation_knowledge_attachments: DatabaseConversationKnowledgeAttachmentsProtocol
+    database_users: DatabaseUsersProtocol
     database_files: DatabaseFilesProtocol
     database_knowledge_prompt_state: DatabaseKnowledgePromptStateProtocol
     event_bus: EventBusProtocol

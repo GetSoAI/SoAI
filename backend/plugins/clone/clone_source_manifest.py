@@ -11,6 +11,7 @@ from typing import Literal
 
 from core.errors.exceptions import StateError, ValidationError
 from core.files.content_hashing import hash_descriptor_content
+from core.files.directory_descriptor_scope import open_secure_directory_descriptor
 from core.files.secure_open_flags import secure_read_only_open_flags
 
 __all__ = (
@@ -178,14 +179,9 @@ def scan_clone_source(root_handle: int) -> tuple[CloneSourceEntry, ...]:
 
 
 def inspect_secure_directory_source(source: str) -> CloneSourceSnapshot:
-    if os.name == "nt":
-        raise StateError("Secure clone copying requires directory-relative no-follow support.")
-    source_handle = os.open(
+    with open_secure_directory_descriptor(
         source,
-        secure_read_only_open_flags(directory=True),
-    )
-    try:
+        unsupported_message="Secure clone copying requires directory-relative no-follow support.",
+    ) as source_handle:
         manifest = scan_clone_source(source_handle)
         return build_clone_source_snapshot(manifest)
-    finally:
-        os.close(source_handle)

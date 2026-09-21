@@ -8,6 +8,7 @@ from starlette.responses import Response
 
 from core.errors.exceptions import ValidationError
 from core.files.managed_file_deletion import delete_managed_file
+from core.files.managed_storage_errors import FileStorageSecurityError
 from core.files.storage_root_resolution import resolve_managed_files_storage_root
 from core.logging.trace import get_logger
 from core.timing.epoch import epoch_ms
@@ -30,6 +31,10 @@ from features.api.runtime.context import (
 )
 from features.api.runtime.current_user import CurrentUser, get_current_user
 from features.api.runtime.errors import raise_not_found
+from features.api.runtime.webui_attachments.physical_file_snapshot import (
+    load_soai_file_record,
+    open_verified_soai_file_descriptor,
+)
 
 __all__ = ("register_physical_attachment_file_routes",)
 
@@ -56,26 +61,35 @@ def register_physical_attachment_file_routes(routers: ApiRouters) -> None:
                 user_id=current_user["id"],
             )
             attachment = access.attachment
-            file_record = await get_attachment_file_catalog_record(
+            if thumbnail == 1 and download == 0:
+                if attachment.get("preview_type") != "image":
+                    raise ValidationError("Attachment thumbnail requires an image attachment.")
+            file_record = await load_soai_file_record(
                 database_files=api_context.dependencies.database_files,
-                attachment=attachment,
                 user_id=current_user["id"],
+                attachment=attachment,
             )
+            if file_record is None:
+                raise_not_found(request, "Attachment not found.")
             storage_root = resolve_managed_files_storage_root(
                 api_context.dependencies.config,
                 api_context.dependencies.files,
             )
+            try:
+                managed = await open_verified_soai_file_descriptor(
+                    storage_root,
+                    record=file_record,
+                    attachment=attachment,
+                )
+            except FileStorageSecurityError:
+                raise_not_found(request, "Attachment not found.")
             if thumbnail == 1 and download == 0:
-                if str(attachment["preview_type"]) != "image":
-                    raise ValidationError("Attachment thumbnail requires an image attachment.")
                 return await open_attachment_thumbnail_response(
-                    storage_root=storage_root,
-                    file_path=file_record["file_path"],
+                    managed=managed,
                     filename=str(attachment["filename"]),
                 )
             return await open_attachment_streaming_response(
-                storage_root=storage_root,
-                file_path=file_record["file_path"],
+                managed=managed,
                 filename=str(attachment["filename"]),
                 mime_type=str(attachment["mime_type"]),
                 download=download == 1,

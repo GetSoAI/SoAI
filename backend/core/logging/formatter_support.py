@@ -55,6 +55,8 @@ def _normalize_acronym_token(token: str) -> str:
             return "MCP"
         case "Nvml":
             return "NVML"
+        case "Pdf":
+            return "PDF"
         case "Pty":
             return "PTY"
         case "Rag":

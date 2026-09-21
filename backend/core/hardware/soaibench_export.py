@@ -8,7 +8,10 @@ from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
 from core.files.export import build_timestamped_export_filename, iter_export_csv_bytes
+from core.hardware.soaibench_persistence import SOAIBENCH_GPU_HISTORY_IDENTITY_FIELDS
+from core.hardware.soaibench_score_fields import SOAIBENCH_SCORE_FIELDS
 from core.serialization.json import serialize_json_compact_stable_strict
+from core.types.json_value import coerce_json_dict_or_empty
 
 if TYPE_CHECKING:
     from core.files.export import CSVRow, CSVValue
@@ -22,29 +25,12 @@ __all__ = (
 
 _SCALAR_FIELDS: tuple[str, ...] = (
     "run_id",
-    "device_id",
-    "gpu_name",
-    "gpu_model_key",
-    "vendor",
-    "driver_version",
-    "gpu_uuid",
-    "pci_bdf",
-    "gpu_index",
+    *SOAIBENCH_GPU_HISTORY_IDENTITY_FIELDS,
     "profile",
     "benchmark_mode",
     "status",
     "score_version",
-    "overall_score",
-    "compute_score",
-    "memory_score",
-    "latency_score",
-    "stability_multiplier",
-    "compute_gops",
-    "alu_gops",
-    "matrix_gops",
-    "memory_gbs",
-    "latency_us",
-    "latency_dispatches_per_second",
+    *SOAIBENCH_SCORE_FIELDS,
     "started_at_ms",
     "completed_at_ms",
     "last_heartbeat_at_ms",
@@ -68,8 +54,10 @@ _JSON_DETAIL_FIELDS: tuple[tuple[str, str], ...] = (
     ("environment_json", "environment"),
     ("certification_json", "certification"),
 )
+_ENVIRONMENT_FIELDS: tuple[str, ...] = ("cpu_name", "system_ram_gb", "soai_version")
 SOAIBENCH_HISTORY_EXPORT_FIELDS: tuple[str, ...] = (
     *_SCALAR_FIELDS,
+    *_ENVIRONMENT_FIELDS,
     "settings_snapshot_json",
     "summary_json",
     "passes_json",
@@ -94,6 +82,9 @@ async def _iter_soaibench_history_csv_rows(runs: list[JSONDict]) -> AsyncIterato
         row: dict[str, CSVValue] = {}
         for field in _SCALAR_FIELDS:
             row[field] = _csv_scalar(run.get(field), field=field)
+        environment = coerce_json_dict_or_empty(run.get("environment"))
+        for field in _ENVIRONMENT_FIELDS:
+            row[field] = _csv_scalar(environment.get(field), field=field)
         for output_field, source_field in _JSON_DETAIL_FIELDS:
             row[output_field] = _json_detail(run.get(source_field))
         yield row

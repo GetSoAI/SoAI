@@ -158,6 +158,9 @@ class AdminWorkspaceBrowserLocate(BaseModel):
 
 class UserPreferencesUpdate(BaseModel):
     preferences: dict[str, PydanticJSONValue]
+    intended_user_id: int | None = Field(
+        default=None, strict=True, gt=0, le=JAVASCRIPT_SAFE_INTEGER_MAX
+    )
 
 
 class WebuiAndroidSessionRename(BaseModel):

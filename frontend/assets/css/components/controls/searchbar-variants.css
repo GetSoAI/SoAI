@@ -35,11 +35,11 @@
         --searchbar-shadow-focus: var(--searchbar-shadow);
     }
 
-    .searchbar-container--control .searchbar-icon {
+    .searchbar-container--control :is(.searchbar-icon, .searchbar-clear) {
         right: 0.75rem;
     }
 
-    .searchbar-container--collection .searchbar-icon {
+    .searchbar-container--collection :is(.searchbar-icon, .searchbar-clear) {
         right: 0.75rem;
     }
 

@@ -7,11 +7,12 @@ import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { compactQueryWhitespace } from '@features/chat/toolactivity/payloadTextParsing.ts';
 import { renderInlineActivityChrome } from '@features/chat/message/messageview/inlineActivityChrome.ts';
 import { renderInlineStatusActivityLifecycleKeyAttribute } from '@features/chat/message/inlineStatusActivityIdentity.ts';
+import { resolveInlineActivityName } from '@features/chat/message/messageview/inlineActivityName.ts';
 import { renderInlineToolActivityMarkup } from '@features/chat/message/messageview/inlineToolActivityMarkup.ts';
 import { resolveInlineToolActivityPresentation } from '@features/chat/message/messageview/inlineToolActivityPresentation.ts';
 import { renderMarkdownContent } from '@features/chat/message/messageview/renderMarkdown.ts';
-import { THINKING_PREVIEW_ATTRIBUTE_NAMES, clampInlineLabel, formatThinkingPreviewLabel, resolveThinkingInitialPreview, resolveThinkingLatestCompletePreview } from '@features/chat/message/messageview/inlineActivityText.ts';
-import { renderInlineActivityHeaderRow, renderInlineActivityLeadingIcon, renderInlineActivityPreview } from '@features/chat/message/messageview/inlineActivityHeaderRow.ts';
+import { clampInlineLabel, formatThinkingPreviewLabel, resolveThinkingInitialPreview, resolveThinkingLatestCompletePreview } from '@features/chat/message/messageview/inlineActivityText.ts';
+import { renderInlineActivityHeaderRow, renderInlineActivityLeadingIcon, renderInlineActivityStreamedPreview } from '@features/chat/message/messageview/inlineActivityHeaderRow.ts';
 import type { ChatMessageRenderHost, InlineActionUpdateSegment, InlineLoadingActivitySegment, InlineProcessingActivitySegment, InlineThinkingActivitySegment, InlineToolActivitySegment, InlineWaitForUserActivitySegment, MessageRenderOptions } from '@features/chat/message/messageview/types.ts';
 import { INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE, INLINE_ACTIVITY_DETAILS_SIGNATURE_ATTRIBUTE } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
 import { resolveInlineActivityDetailsSignature } from '@features/chat/message/messageSegmentSignatures.ts';
@@ -22,7 +23,6 @@ const renderInlineSimpleActivity = (
     host: ChatMessageRenderHost,
     inputArguments: {
         segment: InlineLoadingActivitySegment | InlineProcessingActivitySegment | InlineWaitForUserActivitySegment;
-        label: string;
         iconName: IconName;
         extraClassName: string;
         toggleAction?: string;
@@ -43,7 +43,7 @@ const renderInlineSimpleActivity = (
         leadingIconHtml,
         statusLedHtml: chrome.statusDotHtml,
         mainIconHtml: chrome.mainIconHtml,
-        name: inputArguments.label,
+        name: resolveInlineActivityName(segment),
         previewHtml: chrome.previewHtml,
         durationHtml: chrome.durationHtml,
         actionId: inputArguments.toggleAction,
@@ -67,11 +67,7 @@ const renderThinkingHeaderQuery = (host: ChatMessageRenderHost, status: 'running
     const initialPreview = resolveThinkingInitialPreview(text);
     const latestCompletePreview = resolveThinkingLatestCompletePreview(text);
     const visiblePreview = status === 'running' ? initialPreview : latestCompletePreview || initialPreview;
-    const visibleLabel = formatThinkingPreviewLabel(visiblePreview);
-    const visibleAttribute = visibleLabel;
-    const latestAttribute = formatThinkingPreviewLabel(latestCompletePreview);
-    const rootAttributes = `${THINKING_PREVIEW_ATTRIBUTE_NAMES.root}="true"` + ` ${THINKING_PREVIEW_ATTRIBUTE_NAMES.status}="${host.escapeAttribute(status)}"` + ` ${THINKING_PREVIEW_ATTRIBUTE_NAMES.visible}="${host.escapeAttribute(visibleAttribute)}"` + ` ${THINKING_PREVIEW_ATTRIBUTE_NAMES.latest}="${host.escapeAttribute(latestAttribute)}"`;
-    return renderInlineActivityPreview(host, { text: visibleLabel, rootAttributes });
+    return renderInlineActivityStreamedPreview(host, { status, visible: formatThinkingPreviewLabel(visiblePreview), latest: formatThinkingPreviewLabel(latestCompletePreview) });
 };
 
 const renderThinkingDetailsContent = (host: ChatMessageRenderHost, content: string): string => {
@@ -99,7 +95,6 @@ const renderInlineThinkingActivity = (host: ChatMessageRenderHost, segment: Inli
     }
 
     const leadingIconHtml = renderInlineActivityLeadingIcon(host, { variant: 'expander', iconName: 'chevron-right', options: { size: 10, strokeWidth: 4 } });
-    const label = i18n.t('chat.thinking.label');
     const chrome = renderInlineActivityChrome(host, {
         segment,
         defaultIconName: 'thinking',
@@ -115,7 +110,7 @@ const renderInlineThinkingActivity = (host: ChatMessageRenderHost, segment: Inli
         leadingIconHtml,
         statusLedHtml: chrome.statusDotHtml,
         mainIconHtml: chrome.mainIconHtml,
-        name: label,
+        name: resolveInlineActivityName(segment),
         previewHtml: chrome.previewHtml,
         durationHtml: chrome.durationHtml,
         actionId: 'chat:toggle-tool-activity-item',
@@ -139,7 +134,6 @@ const renderInlineLoadingActivity = (host: ChatMessageRenderHost, segment: Inlin
     const toggleAction = toggleEnabled ? (typeof options.loadingActivityToggleAction === 'string' ? options.loadingActivityToggleAction : 'chat:toggle-loading-activity-item') : undefined;
     return renderInlineSimpleActivity(host, {
         segment,
-        label: i18n.t('chat.loading.label'),
         iconName: 'clock',
         extraClassName: 'inline-activity-type-loading',
         ...(typeof toggleAction === 'string' ? { toggleAction } : {})
@@ -149,7 +143,6 @@ const renderInlineLoadingActivity = (host: ChatMessageRenderHost, segment: Inlin
 const renderInlineProcessingActivity = (host: ChatMessageRenderHost, segment: InlineProcessingActivitySegment): string => {
     return renderInlineSimpleActivity(host, {
         segment,
-        label: i18n.t('chat.processing.label'),
         iconName: 'hardware',
         extraClassName: 'inline-activity-type-processing'
     });
@@ -158,7 +151,6 @@ const renderInlineProcessingActivity = (host: ChatMessageRenderHost, segment: In
 const renderInlineWaitForUserActivity = (host: ChatMessageRenderHost, segment: InlineWaitForUserActivitySegment): string => {
     return renderInlineSimpleActivity(host, {
         segment,
-        label: i18n.t('chat.waitForUser.label'),
         iconName: 'clock',
         extraClassName: 'inline-activity-type-wait-for-user'
     });

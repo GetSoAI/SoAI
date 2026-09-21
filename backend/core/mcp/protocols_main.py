@@ -371,7 +371,20 @@ class MCPServerProtocol(ToolCallExecutorProtocol, Protocol):
         content_index_before: int,
         thinking_index_before: int,
     ) -> JSONValue: ...
-    async def cancel_openai_shell_sessions(self, *, user_id: int, conv_id: str) -> int: ...
+    def snapshot_openai_shell_sessions(
+        self,
+        *,
+        user_id: int,
+        conv_id: str,
+    ) -> tuple[tuple[int, str], ...]: ...
+
+    async def cancel_captured_openai_shell_sessions(
+        self,
+        *,
+        user_id: int,
+        conv_id: str,
+        sessions: tuple[tuple[int, str], ...],
+    ) -> int: ...
     async def cancel_user_shell_sessions(self, *, user_id: int) -> int: ...
     async def notify_resource_updated(self, uri: str) -> None: ...
 

@@ -36,12 +36,19 @@ from features.agent.runtime.model_tool_calling import (
 from features.agent.runtime.request_message_source import AgenticRequestMessageSource
 from features.agent.runtime.request_messages import strip_internal_message_metadata
 from features.agent.session.runtime_resolution import resolve_agent_runtime_settings
+from features.api.runtime.chat_prompt_augmentation import (
+    build_webui_chat_extra_system_messages,
+)
+from features.api.runtime.content_preview_feedback import parse_content_preview_feedback
 from features.api.runtime.conversation_mcp_knowledge import (
     apply_knowledge_managed_mcp_overlay,
     resolve_conversation_knowledge_mcp_state,
 )
 from features.api.runtime.knowledge_prompt_delivery import (
     release_knowledge_prompt_claim_noncritical,
+)
+from features.api.runtime.preview_contract_feedback import (
+    parse_preview_contract_feedback,
 )
 from features.api.runtime.tool_request.conversation_context import (
     ToolRequestConversationContext,
@@ -91,6 +98,7 @@ async def prepare_conversation_input_turn(
     assistant_turn_at_ms: int,
     model_variant_index: int,
     request_id: str,
+    regeneration_request: JSONDict | None,
 ) -> PreparedConversationInputTurn:
     runtime_settings = await resolve_agent_runtime_settings(
         api_dependencies,
@@ -173,6 +181,13 @@ async def prepare_conversation_input_turn(
         mode="real_send",
         request_id=request_id,
     )
+    feedback_payload = regeneration_request or {}
+    chat_system_messages = build_webui_chat_extra_system_messages(
+        persisted_messages=canonical_history,
+        content_preview_feedback=parse_content_preview_feedback(feedback_payload),
+        preview_contract_feedback=parse_preview_contract_feedback(feedback_payload),
+        assistant_turn_at_ms=assistant_turn_at_ms,
+    )
     try:
         prepared_turn = await prepare_conversation_turn_request(
             api_dependencies,
@@ -193,7 +208,7 @@ async def prepare_conversation_input_turn(
             prune_empty_messages=True,
             stream=True,
             source_policy="interactive_conversation",
-            extra_system_messages=knowledge_prompt.system_messages,
+            extra_system_messages=(*chat_system_messages, *knowledge_prompt.system_messages),
         )
     except CancelledError:
         await uncancel_then_cleanup(

@@ -18,6 +18,9 @@ __all__ = (
 
 
 def base_summary_from_run(run: JSONDict) -> JSONDict:
+    materialized = run.get("summary")
+    if isinstance(materialized, dict):
+        return dict(materialized)
     raw = run.get("summary_json")
     if isinstance(raw, str):
         return parse_optional_json_dict(raw, field="summary_json") or {}

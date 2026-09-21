@@ -1,4 +1,4 @@
-"""SoAI - GPU identity normalization helpers [backend/core/hardware/gpu_identity_normalization.py]"""
+"""SoAI - GPU identity normalization [backend/core/hardware/gpu_identity_normalization.py]"""
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 from __future__ import annotations
@@ -9,9 +9,10 @@ __all__ = (
     "normalize_identity_name",
     "normalize_model_key",
     "normalize_pci_bdf",
+    "normalize_physical_pci_bdf",
 )
 
-_IDENTITY_TOKEN_PATTERN_TEXT = r"[^a-z0-9]+"
+_IDENTITY_SEPARATOR_PATTERN_TEXT = r"[^a-z0-9]+"
 _PCI_BDF_PATTERN_TEXT = (
     r"(?:(?P<domain>[0-9a-fA-F]{4}):)?"
     r"(?P<bus>[0-9a-fA-F]{2}):"
@@ -21,13 +22,13 @@ _PCI_BDF_PATTERN_TEXT = (
 
 
 def normalize_identity_name(value: str) -> str:
-    return re.sub(_IDENTITY_TOKEN_PATTERN_TEXT, "", value.lower())
+    return re.sub(_IDENTITY_SEPARATOR_PATTERN_TEXT, "", value.lower())
 
 
 def normalize_model_key(name: str | None) -> str | None:
     if name is None:
         return None
-    normalized = re.sub(_IDENTITY_TOKEN_PATTERN_TEXT, "-", name.lower()).strip("-")
+    normalized = re.sub(_IDENTITY_SEPARATOR_PATTERN_TEXT, "-", name.lower()).strip("-")
     return normalized or None
 
 
@@ -37,3 +38,13 @@ def normalize_pci_bdf(value: str) -> str:
         return ""
     function = match.group("function") or "0"
     return f"{match.group('bus').lower()}:{match.group('slot').lower()}.{function}"
+
+
+def normalize_physical_pci_bdf(value: str) -> str:
+    match = re.search(_PCI_BDF_PATTERN_TEXT, value)
+    if match is None:
+        return ""
+    function = match.group("function") or "0"
+    address = f"{match.group('bus').lower()}:{match.group('slot').lower()}.{function}"
+    domain = match.group("domain")
+    return f"{domain.lower()}:{address}" if domain is not None else address

@@ -121,7 +121,7 @@ const buildConversationMessagesMarkup = (host: ChatCurrentConversationRenderDepe
         parts.push(renderMessageWindowLoadingMarkup('before'));
     }
     traverseConversationRenderEntries(host, inputArguments.renderEntries, inputArguments.isCurrentStreaming, (entry, domId, signature) => {
-        const markup = renderConversationEntryMarkup(host, entry);
+        const markup = renderConversationEntryMarkup(host, entry, inputArguments.conversationKey);
         setConversationRenderCacheSignature({ cache, domId, signature });
         cache.domIdsInOrder.push(domId);
         parts.push(markup);
@@ -170,6 +170,7 @@ const renderCurrentConversationMessageState = (inputArguments: RenderCurrentConv
                 const reconcileResult = ConversationMessageDomReconcileController.reconcileConversationDom({
                     host: inputArguments.host,
                     container: inputArguments.container,
+                    conversationId: inputArguments.conversationKey,
                     renderEntries: inputArguments.renderEntries,
                     renderSignatureByDomId: nextSignatureByDomId,
                     expectedDomIds: renderPlan.domIdSet,
@@ -189,6 +190,7 @@ const renderCurrentConversationMessageState = (inputArguments: RenderCurrentConv
 
             ConversationMessageDomReconcileController.refreshMessageMarkupIfNeeded({
                 host: inputArguments.host,
+                conversationId: inputArguments.conversationKey,
                 refreshes: entryRefreshes,
                 cache,
                 isCurrentStreaming: inputArguments.isCurrentStreaming

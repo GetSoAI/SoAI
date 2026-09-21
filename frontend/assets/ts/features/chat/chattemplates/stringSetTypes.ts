@@ -48,6 +48,8 @@ interface ChatTemplateStringSet extends ChatParameterControlsStrings {
     autoTitleGenerationHint: string;
     showActivities: string;
     showActivitiesHint: string;
+    showActivityElapsedTime: string;
+    showActivityElapsedTimeHint: string;
     hideAutomationRuns: string;
     hideAutomationRunsHint: string;
     hideMessagingConversations: string;

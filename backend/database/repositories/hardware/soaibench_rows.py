@@ -39,11 +39,11 @@ RUN_COLUMNS = (
     "update_seq, duration_ms, sample_count, settings_snapshot_json, summary_json, "
     "pass_results_json, environment_json, certification_json, leaderboard_eligible, "
     "leaderboard_rejection_reason, score_variance_percent, failure_reason, "
-    "unsupported_reason, created_by_tool"
+    "unsupported_reason, publication_source_supported, created_by_tool"
 )
 RUN_PLACEHOLDERS = (
     "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-    "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+    "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 )
 
 
@@ -61,6 +61,7 @@ def materialize_row(row: SQLiteRowDict) -> JSONDict:
     payload["environment"] = _json_field(payload, "environment_json")
     payload["certification"] = _json_field(payload, "certification_json")
     payload["leaderboard_eligible"] = payload.get("leaderboard_eligible") == 1
+    payload["publication_source_supported"] = payload.get("publication_source_supported") == 1
     payload.pop("settings_snapshot_json", None)
     payload.pop("summary_json", None)
     payload.pop("pass_results_json", None)

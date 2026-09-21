@@ -15,7 +15,7 @@
         align-items: center;
         gap: var(--space-2);
         width: 100%;
-        padding: var(--space-15) var(--space-2);
+        padding: var(--space-15) calc(var(--control-round-button-size) + var(--space-1)) var(--space-15) var(--space-2);
         border: none;
         background: transparent;
         color: inherit;
@@ -31,39 +31,9 @@
         z-index: var(--z-above-sibling);
     }
 
-    .file-preview-item.document.chat-attachment-overflow-item--removable {
-        position: relative;
-        align-items: stretch;
-        gap: 0;
-        padding: 0;
-        cursor: default;
-    }
-
-    .chat-attachment-overflow-body {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        width: 100%;
-        padding: var(--space-2) var(--space-25);
-        border: none;
-        background: transparent;
-        color: inherit;
-        font: inherit;
-        text-align: left;
-        cursor: pointer;
-    }
-
-    .chat-attachment-overflow-delete.ui-round-button {
-        position: absolute;
-        top: -6px;
-        right: -6px;
-        z-index: var(--z-above-sibling);
-    }
-
     @container ui-viewport (width <= 900px) {
-        :where(.chat-container) .chat-attachment-summary-card-body,
-        .chat-attachment-overflow-body {
-            padding: var(--space-1) var(--space-2);
+        :where(.chat-container) .chat-attachment-summary-card-body {
+            padding: var(--space-1) calc(var(--control-round-button-size) + var(--space-1)) var(--space-1) var(--space-2);
         }
     }
 }

@@ -82,6 +82,7 @@ export type MetricsCardsTranslationKey =
     | 'metrics.cards.requestDistribution.actions.showTokens'
     | 'metrics.cards.requestDistribution.actions.toggleChartType'
     | 'metrics.cards.requestDistribution.emptyState'
+    | 'metrics.cards.requestDistribution.legend.others'
     | 'metrics.cards.requestDistribution.titles.apiKeys'
     | 'metrics.cards.requestDistribution.titles.models'
     | 'metrics.cards.requestDistribution.titles.plugins'

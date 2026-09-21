@@ -146,9 +146,12 @@ const beginInlineActivityDetailsPendingState = (activity: HTMLElement): void => 
         return;
     }
     state.loadingFrame = view.requestAnimationFrame(() => {
+        if (state.activity !== activity || (key !== null && pendingStateByActivityKey.get(key) !== state)) {
+            return;
+        }
         state.loadingFrame = null;
         if (!activity.isConnected) {
-            if (key !== null) {
+            if (key !== null && pendingStateByActivityKey.get(key) === state && state.activity === activity) {
                 pendingStateByActivityKey.delete(key);
             }
             return;
@@ -177,13 +180,16 @@ const ensureInlineActivityDetailsPendingState = (activity: HTMLElement): void =>
 
 const clearInlineActivityDetailsPendingState = (activity: HTMLElement): void => {
     const key = resolvePendingStateKey(activity);
-    const state = key === null ? createPendingState() : (pendingStateByActivityKey.get(key) ?? createPendingState());
+    const registeredState = key === null ? null : (pendingStateByActivityKey.get(key) ?? null);
+    const state = registeredState ?? createPendingState();
     activity.removeAttribute(INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE);
     activity.removeAttribute(INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE);
-    clearLoadingFrame(activity, state);
-    restoreCloseButton(activity, state);
-    state.activity = null;
-    if (key !== null) {
+    if (registeredState === null || state.activity === activity) {
+        clearLoadingFrame(activity, state);
+        restoreCloseButton(activity, state);
+        state.activity = null;
+    }
+    if (key !== null && registeredState === state && state.activity === null) {
         pendingStateByActivityKey.delete(key);
     }
 };
@@ -201,11 +207,18 @@ const stabilizeInlineActivityDetailsOpeningLayout = (activity: HTMLElement): voi
 };
 
 const completeInlineActivityDetailsOpenState = (activity: HTMLElement): void => {
+    const resetScrollPosition = activity.getAttribute('data-collapsed') === 'true';
     activity.removeAttribute(INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE);
     stabilizeInlineActivityDetailsOpeningLayout(activity);
     activity.setAttribute('data-collapsed', 'false');
     activity.removeAttribute('data-collapsing');
     clearInlineActivityDetailsPendingState(activity);
+    if (resetScrollPosition) {
+        const detailsRoot = resolveDirectInlineActivityDetailsRoot(activity);
+        if (detailsRoot instanceof HTMLElement) {
+            detailsRoot.scrollTop = 0;
+        }
+    }
 };
 
 const resetInlineActivityDetailsClosedState = (activity: HTMLElement): void => {

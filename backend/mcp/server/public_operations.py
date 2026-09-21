@@ -16,9 +16,10 @@ from mcp.server.internal_protocols import (
     OpenAIExecutionServerProtocol,
 )
 from mcp.server.openai_execution import (
-    cancel_openai_shell_sessions_method,
+    cancel_captured_openai_shell_sessions_method,
     cancel_user_shell_sessions_method,
     execute_openai_tool_call_method,
+    snapshot_openai_shell_sessions_method,
 )
 from mcp.server.request_methods import (
     handle_mcp_request_method,
@@ -103,16 +104,26 @@ class MCPServerOperations:
             thinking_index_before=thinking_index_before,
         )
 
-    async def cancel_openai_shell_sessions(
+    def snapshot_openai_shell_sessions(
         self: OpenAIExecutionServerProtocol,
         *,
         user_id: int,
         conv_id: str,
+    ) -> tuple[tuple[int, str], ...]:
+        return snapshot_openai_shell_sessions_method(self, user_id=user_id, conv_id=conv_id)
+
+    async def cancel_captured_openai_shell_sessions(
+        self: OpenAIExecutionServerProtocol,
+        *,
+        user_id: int,
+        conv_id: str,
+        sessions: tuple[tuple[int, str], ...],
     ) -> int:
-        return await cancel_openai_shell_sessions_method(
+        return await cancel_captured_openai_shell_sessions_method(
             self,
             user_id=user_id,
             conv_id=conv_id,
+            sessions=sessions,
         )
 
     async def cancel_user_shell_sessions(

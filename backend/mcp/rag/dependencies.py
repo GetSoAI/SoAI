@@ -22,7 +22,6 @@ if TYPE_CHECKING:
         ModelInformationServiceProtocol,
         ModelResolutionServiceProtocol,
     )
-    from core.users.protocols_database import DatabaseUsersProtocol
     from mcp.worker.dependencies import MCPWorkerDependencies
     from mcp.worker.internal_protocols import MCPWorkerProtocol
 
@@ -31,7 +30,6 @@ __all__ = ("MCPRAGDependencies",)
 
 @dataclass(frozen=True, slots=True)
 class MCPRAGDependencies(MCPWorkerCoreDependencies):
-    database_users: DatabaseUsersProtocol
     database_conversations: DatabaseConversationsProtocol
     http_client: httpx2.AsyncClient
     chroma_path: str
@@ -48,7 +46,6 @@ class MCPRAGDependencies(MCPWorkerCoreDependencies):
             owner="MCPRAGDependencies",
             chroma_path=self.chroma_path,
             database_conversations=self.database_conversations,
-            database_users=self.database_users,
             embedding_timeout=self.embedding_timeout,
             http_client=self.http_client,
             managed_ipc_worker_builder=self.managed_ipc_worker_builder,

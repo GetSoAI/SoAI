@@ -17,6 +17,8 @@ from core.files.types import ParseExecutionContext
 from core.logging.trace import get_logger
 from core.media.config import resolve_media_parse_timeout
 from core.timing.constants import LONG_IDLE_TIMEOUT_SEC
+from core.users.ocr_preferences import resolve_user_ocr_language
+from core.validation.strict_numbers import require_non_negative_int_strict
 from mcp.worker.processing.durable_job_payloads import lease_identity_from_job_payload
 from mcp.worker.processing.durable_job_runtime import renew_durable_processing_lease
 from mcp.worker.processors.chunk_embed import process_chunk_embed_store
@@ -70,7 +72,10 @@ async def process_uploaded_document(
     chunking_strategy = job.get("chunking_strategy")
     chunking_strategy = chunking_strategy if isinstance(chunking_strategy, str) else "token_based"
     user_id_value = job.get("user_id")
-    user_id = user_id_value if isinstance(user_id_value, int) else 0
+    user_id = require_non_negative_int_strict(
+        user_id_value, error_message="Job missing valid user_id for document upload"
+    )
+    ocr_language = await resolve_user_ocr_language(self.database_users, user_id)
     file_size_value = job.get("file_size")
     if not isinstance(file_size_value, int) or file_size_value <= 0:
         raise ValidationError("Job missing valid file_size for document upload")
@@ -107,6 +112,7 @@ async def process_uploaded_document(
         parsed = await parser.parse(
             ParseExecutionContext(
                 source_path=temp_file,
+                ocr_language=ocr_language,
                 cancellation_token=token,
                 progress_callback=report_parse_progress,
                 display_name=filename,

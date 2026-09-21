@@ -7,10 +7,10 @@ import type { JsonValue } from '@core/types/jsonValues.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { renderContentImmediately, transitionContentElements } from '@core/animations/contentFadeTransition.ts';
-import { buildApiKeyRequestDistributionDataset, buildModelRequestDistributionDataset, buildModelTokenDistributionDataset, buildPluginRequestDistributionDataset, type RequestDistributionDataset, type RequestDistributionSource } from '@core/models/requestDistribution.ts';
+import { buildModelRequestDistributionDataset, buildModelTokenDistributionDataset, buildPluginRequestDistributionDataset, buildRequestDistributionDatasetFromInputs, type RequestDistributionDataset, type RequestDistributionSource } from '@core/models/requestDistribution.ts';
 import { renderRequestDistributionChartMarkup, renderRequestDistributionEmptyStateMarkup } from '@core/models/requestdistributionglass/chartMarkup.ts';
 import { EMPTY_REQUEST_DISTRIBUTION_SIGNATURE, claimRequestDistributionRender, computeRequestDistributionChartSignature, computeRequestDistributionLegendSignature } from '@core/models/requestDistributionRenderState.ts';
-import { METRICS_REQUEST_DISTRIBUTION_SOURCE_STORAGE_KEY, buildRequestDistributionLegendItems, createRequestDistributionViewState, resolveRequestDistributionEmptyStateText, resolveRequestDistributionPalette, resolveRequestDistributionSourceToggleLabel, resolveRequestDistributionTitle, type RequestDistributionViewState } from '@core/models/requestDistributionRendering.ts';
+import { METRICS_REQUEST_DISTRIBUTION_SOURCE_STORAGE_KEY, buildRequestDistributionPresentation, createRequestDistributionViewState, resolveRequestDistributionEmptyStateText, resolveRequestDistributionOthersColor, resolveRequestDistributionPalette, resolveRequestDistributionSourceToggleLabel, resolveRequestDistributionTitle, type RequestDistributionViewState } from '@core/models/requestDistributionRendering.ts';
 import { formatCompactNumber } from '@core/primitives/compactNumber.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
 import { requireSortableHeaders, updateSortableTableIndicators } from '@core/ui/tables/sortableTable.ts';
@@ -99,7 +99,9 @@ const getDistributionViewState = (host: MetricsPageWidgetHost): RequestDistribut
 
 const syncDistributionSourceUi = (host: MetricsPageWidgetHost, viewState: RequestDistributionViewState): void => {
     const source = viewState.getSource();
-    host.owners.pageElements.setValue(METRICS_REQUEST_DISTRIBUTION_TITLE_ID, resolveRequestDistributionTitle(source), { allowNull: true });
+    const title = resolveRequestDistributionTitle(source);
+    host.owners.pageElements.setValue(METRICS_REQUEST_DISTRIBUTION_TITLE_ID, title, { allowNull: true });
+    host.owners.pageElements.setValue('#requestDistributionCard > .section-header > .section-header-main > .section-title', title, { allowNull: true });
     const button = host.operations.getCachedUI(METRICS_REQUEST_DISTRIBUTION_SOURCE_TOGGLE_ID);
     if (!button) {
         return;
@@ -111,13 +113,13 @@ const syncDistributionSourceUi = (host: MetricsPageWidgetHost, viewState: Reques
 
 const buildDistributionDataset = (host: MetricsPageWidgetHost, source: RequestDistributionSource): RequestDistributionDataset => {
     if (source === 'apiKey') {
-        const rows = host.state.currentApiKeyUsageRows?.map((row) => ({
-            keyId: row.keyId,
-            label: row.label,
-            prefix: row.prefix,
-            requestCount: row.requestCount
-        }));
-        return buildApiKeyRequestDistributionDataset(rows);
+        const inputs =
+            host.state.currentApiKeyUsageRows?.map((row) => ({
+                key: row.keyId,
+                label: row.label || row.prefix || row.keyId,
+                value: row.requestCount
+            })) ?? [];
+        return buildRequestDistributionDatasetFromInputs(inputs);
     }
     if (source === 'token') {
         return buildModelTokenDistributionDataset(host.state.currentMetrics?.billing?.tokensByModel);
@@ -153,7 +155,7 @@ const updateDistributionChart = (host: MetricsPageWidgetHost, options: UpdateDis
         }
         host.owners.pageDom.updateHtml(mount, renderRequestDistributionEmptyStateMarkup(resolveRequestDistributionEmptyStateText()));
     };
-    const renderLegend = (items: Array<{ label: string; value: string; swatchStyle: string }>, signature: string): void => {
+    const renderLegend = (items: Array<{ label: string; value: string; swatchStyle: string; separatorBefore?: boolean }>, signature: string): void => {
         if (!legendContentElement) {
             return;
         }
@@ -168,7 +170,8 @@ const updateDistributionChart = (host: MetricsPageWidgetHost, options: UpdateDis
             .map((item) => {
                 const label = host.owners.services.sanitizeText(item.label);
                 const value = host.owners.services.sanitizeText(item.value);
-                return `<li class="distribution-legend__item"><span class="distribution-legend__swatch" style="${item.swatchStyle}"></span><div class="distribution-legend__text"><span class="distribution-legend__label">${label}</span><span class="distribution-legend__value">${value}</span></div></li>`;
+                const itemClass = item.separatorBefore === true ? 'distribution-legend__item distribution-legend__item--others-boundary' : 'distribution-legend__item';
+                return `<li class="${itemClass}"><span class="distribution-legend__swatch" style="${item.swatchStyle}"></span><div class="distribution-legend__text"><span class="distribution-legend__label">${label}</span><span class="distribution-legend__value">${value}</span></div></li>`;
             })
             .join('');
         host.owners.pageDom.updateHtml(legendContentElement, toTrustedUiHtml(`<ul class="distribution-legend">${markup}</ul>`));
@@ -220,28 +223,38 @@ const updateDistributionChart = (host: MetricsPageWidgetHost, options: UpdateDis
         commitDistributionSurfaces(renderEmptyChart, () => renderLegend([], EMPTY_REQUEST_DISTRIBUTION_SIGNATURE), true);
         return;
     }
-    const legendSource = buildRequestDistributionLegendItems(dataset.entries, (value) => host.metricsServices.metricsFormatter.number(value, '0'), colors);
+    const kind = viewState.getChartKind();
+    const rect = measureLayoutBox(mount);
+    const width = rect.width;
+    const height = rect.height;
+    if (width <= 0 || height <= 0 || !isFiniteNumber(width) || !isFiniteNumber(height)) {
+        commitDistributionSurfaces(renderEmptyChart, () => renderLegend([], EMPTY_REQUEST_DISTRIBUTION_SIGNATURE), true);
+        return;
+    }
+    const presentation = buildRequestDistributionPresentation(
+        dataset,
+        kind,
+        width,
+        height,
+        (value) => host.metricsServices.metricsFormatter.number(value, '0'),
+        colors,
+        resolveRequestDistributionOthersColor((token) => host.owners.services.getStyleProperty(token))
+    );
+    const legendSource = presentation.legendItems;
     const legendSignature = computeRequestDistributionLegendSignature(legendSource);
     const legendItems = legendSource.map((entry) => ({
         label: host.owners.services.sanitizeText(entry.label),
         value: host.owners.services.sanitizeText(entry.detail),
-        swatchStyle: entry.swatchStyle
+        swatchStyle: entry.swatchStyle,
+        ...(entry.separatorBefore === true ? { separatorBefore: true } : {})
     }));
     const renderChart = (): void => {
         setEmptyChartLayout(false);
-        const rect = measureLayoutBox(mount);
-        const width = rect.width;
-        const height = rect.height;
-        if (width <= 0 || height <= 0 || !isFiniteNumber(width) || !isFiniteNumber(height)) {
-            renderEmptyChart();
-            return;
-        }
-        const kind = viewState.getChartKind();
-        if (!claimRequestDistributionRender(mount, computeRequestDistributionChartSignature({ kind, width, height, colors, dataset }))) {
+        if (!claimRequestDistributionRender(mount, computeRequestDistributionChartSignature({ kind, width, height, colors, dataset: presentation.chartDataset }))) {
             return;
         }
         try {
-            host.owners.pageDom.updateHtml(mount, renderRequestDistributionChartMarkup({ width, height, dataset, colors, kind }));
+            host.owners.pageDom.updateHtml(mount, renderRequestDistributionChartMarkup({ width, height, dataset: presentation.chartDataset, colors, kind }));
         } catch (error) {
             errorHandler.warn('MetricsPage', 'Request distribution chart render failed', ensureError(error));
             renderEmptyChart();

@@ -42,6 +42,9 @@ const isActivityDurationEligible = (activity: HTMLElement, displayMode: ChatActi
     if (displayMode === 'all') {
         return true;
     }
+    if (displayMode === 'settledOnly') {
+        return false;
+    }
     if (activity.matches(RUNNING_ASSISTANT_HEADER_SELECTOR) || activity.classList.contains('message-role-activity')) {
         return false;
     }

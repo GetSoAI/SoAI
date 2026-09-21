@@ -4,6 +4,7 @@
 import { readOptionalHardwareNumber, readOptionalHardwareString } from '@core/api/contracts/hardwareContractReaders.ts';
 import { decodeGpuSoAIBenchScore, serializeGpuSoAIBenchScore } from '@core/api/contracts/hardwareSoAIBenchScoreContracts.ts';
 import { decodeGpuSoAIBenchSummary, serializeGpuSoAIBenchSummary } from '@core/api/contracts/hardwareSoAIBenchSummaryContracts.ts';
+import { readSoAIBenchClassification } from '@core/api/contracts/hardwareSoAIBenchReaders.ts';
 import type { GpuIdentity, GpuSoAIBenchRun } from '@core/api/contracts/hardwareSoAIBenchTypes.ts';
 import { toJsonCompatibleObject } from '@core/primitives/clone.ts';
 import { hasOwn, isNonNegativeInteger } from '@core/typeGuards.ts';
@@ -65,6 +66,7 @@ const decodeGpuIdentity = (value: JsonValue | undefined, label: string): GpuIden
 
 const decodeGpuSoAIBenchRun = (value: JsonValue, label: string): GpuSoAIBenchRun => {
     const record = requireRecord(value, label);
+    const classification = readSoAIBenchClassification(record, label);
     return {
         runId: readOptionalHardwareString(record, 'run_id', label),
         taskId: optionalNullableString(record, 'task_id', label),
@@ -78,6 +80,9 @@ const decodeGpuSoAIBenchRun = (value: JsonValue, label: string): GpuSoAIBenchRun
         failureReason: optionalNullableString(record, 'failure_reason', label),
         leaderboardEligible: optionalBoolean(record, 'leaderboard_eligible', label),
         leaderboardRejectionReason: optionalNullableString(record, 'leaderboard_rejection_reason', label),
+        scoreClassification: classification.scoreClassification,
+        legacyScore: classification.legacyScore,
+        publicationEligible: classification.publicationEligible,
         scoreVariancePercent: optionalNullableNumber(record, 'score_variance_percent', label),
         matchBasis: optionalNullableString(record, 'match_basis', label),
         startedAtMs: optionalTimestamp(record, 'started_at_ms', label),
@@ -120,6 +125,9 @@ const serializeGpuSoAIBenchRun = (run: GpuSoAIBenchRun): JsonObject => ({
     ...(run.failureReason !== undefined ? { 'failure_reason': run.failureReason } : {}),
     ...(run.leaderboardEligible !== undefined ? { 'leaderboard_eligible': run.leaderboardEligible } : {}),
     ...(run.leaderboardRejectionReason !== undefined ? { 'leaderboard_rejection_reason': run.leaderboardRejectionReason } : {}),
+    ...(run.scoreClassification !== undefined ? { 'score_classification': run.scoreClassification } : {}),
+    ...(run.legacyScore !== undefined ? { 'legacy_score': run.legacyScore } : {}),
+    ...(run.publicationEligible !== undefined ? { 'publication_eligible': run.publicationEligible } : {}),
     ...(run.scoreVariancePercent !== undefined ? { 'score_variance_percent': run.scoreVariancePercent } : {}),
     ...(run.matchBasis !== undefined ? { 'match_basis': run.matchBasis } : {}),
     ...(run.startedAtMs !== undefined ? { 'started_at_ms': run.startedAtMs } : {}),

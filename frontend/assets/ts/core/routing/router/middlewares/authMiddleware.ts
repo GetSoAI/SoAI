@@ -22,7 +22,7 @@ const createAuthEnforcementNavigationMiddleware = (auth: AuthService, storage: S
         }
         if (auth.isAuthenticated && (route.component === AUTH_ROUTE_LOGIN || route.component === AUTH_ROUTE_WIZARD)) {
             if (context.router === null) {
-                throw new Error('Navigation context router must expose parseRoute');
+                throw new Error('Navigation context router must expose parseRoute and getDefaultRoute');
             }
             const redirectAfterLogin = storage.getRedirectAfterLogin();
             const target = resolveAuthenticatedRouteTarget(context.router, {

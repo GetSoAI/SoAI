@@ -12,8 +12,29 @@
         --chat-stream-spinner-fade-duration: 300ms;
     }
 
+    :where(.chat-container) :where(.chat-message.assistant:hover, .chat-message.user > .message-content--with-header.message-content:hover, .chat-message.is-editing) .message-action-buttons {
+        opacity: 1;
+    }
+
     :where(.chat-container) .message-actions[data-user-input-required='true'] .message-action-buttons {
         display: none;
+    }
+
+    :where(.chat-container) .message-action-buttons-left {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-width: 0;
+        justify-content: flex-end;
+    }
+
+    :where(.chat-container) .message-action-buttons-left > .message-action {
+        opacity: 0.25;
+        transition: opacity var(--transition-fast);
+    }
+
+    :where(.chat-container) :where(.chat-message.assistant:hover, .chat-message.user > .message-content--with-header.message-content:hover, .chat-message.is-editing) .message-action-buttons-left > .message-action {
+        opacity: 1;
     }
 
     :where(.chat-container) .chat-messages-area[data-chat-executing='true'] .resend-message-btn {
@@ -50,19 +71,7 @@
         min-width: 0;
     }
 
-    :where(.chat-container) .chat-message.assistant .message-action-buttons--assistant .message-action-buttons-left > .message-action {
-        opacity: 0.4;
-        transition: opacity var(--transition-fast);
-    }
-
-    :where(.chat-container) .conversation-item:hover .delete-conversation,
-    :where(.chat-container) .chat-message:hover .message-action-buttons,
-    :where(.chat-container) .chat-message.is-editing .message-action-buttons {
-        opacity: 1;
-    }
-
-    :where(.chat-container) .chat-message.assistant:hover .message-action-buttons--assistant .message-action-buttons-left > .message-action,
-    :where(.chat-container) .chat-message.assistant.is-editing .message-action-buttons--assistant .message-action-buttons-left > .message-action {
+    :where(.chat-container) .conversation-item:hover .delete-conversation {
         opacity: 1;
     }
 
@@ -82,10 +91,16 @@
         box-shadow: var(--glass-shadow-base);
     }
 
-    :where(.chat-container) .message-action.ui-icon-button.ui-icon-button-small,
-    :where(.chat-container) .conversation-action-btn.ui-icon-button.ui-icon-button-small,
-    :where(.chat-container) .chat-inline-media-card__copy.code-copy-btn {
-        border-radius: var(--border-radius);
+    :where(.chat-container) .message-action-buttons-left > .message-action.ui-icon-button.ui-icon-button-small,
+    :where(.chat-container) .conversation-item-actions > .conversation-action-btn.ui-icon-button.ui-icon-button-small,
+    .archived-conversation-actions > .archived-conversation-action.ui-icon-button.ui-icon-button-small {
+        width: var(--icon-button-size-small);
+        height: var(--icon-button-size-small);
+        min-width: var(--icon-button-size-small);
+        min-height: var(--icon-button-size-small);
+        border-radius: var(--border-radius-small-button);
+
+        --icon-size: var(--chat-message-action-icon-size);
     }
 
     :where(.chat-container) .message-code-block .code-copy-btn.ui-icon-button.ui-icon-button-small,
@@ -139,7 +154,6 @@
         cursor: pointer;
     }
 
-    :where(.chat-container) .message-action-buttons-left > .message-action.ui-icon-button.ui-icon-button-small,
     :where(.chat-container) .message-action-buttons-right > .message-action.ui-icon-button.ui-icon-button-small {
         width: var(--chat-message-action-button-size);
         height: var(--chat-message-action-button-size);

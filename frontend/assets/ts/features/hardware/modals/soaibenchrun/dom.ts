@@ -12,6 +12,7 @@ const SELECTORS = {
     copy: modalUiSelector(HARDWARE_SOAIBENCH_RUN_MODAL_ID, 'copy'),
     download: modalUiSelector(HARDWARE_SOAIBENCH_RUN_MODAL_ID, 'download'),
     history: modalUiSelector(HARDWARE_SOAIBENCH_RUN_MODAL_ID, 'history'),
+    publish: modalUiSelector(HARDWARE_SOAIBENCH_RUN_MODAL_ID, 'publish'),
     start: modalUiSelector(HARDWARE_SOAIBENCH_RUN_MODAL_ID, 'start')
 };
 
@@ -35,7 +36,9 @@ const requireDownloadButton = (host: SoAIBenchRunModalHost, modalRoot: HTMLEleme
     return requireButtonElement(host, SELECTORS.download, 'SoAIBench run download button', modalRoot);
 };
 
-type SoAIBenchRunFooterActionMode = 'start' | 'stop' | 'stopping';
+const requirePublishButton = (host: SoAIBenchRunModalHost, modalRoot: HTMLElement): HTMLButtonElement => requireButtonElement(host, SELECTORS.publish, 'SoAIBench run publish button', modalRoot);
+
+type SoAIBenchRunFooterActionMode = 'start' | 'retry' | 'stop' | 'stopping';
 
 const setStartButtonState = (host: SoAIBenchRunModalHost, modalRoot: HTMLElement, options: { hidden: boolean; disabled: boolean; mode: SoAIBenchRunFooterActionMode; label: string; ariaLabel: string }): void => {
     const button = requireStartButton(host, modalRoot);
@@ -45,8 +48,8 @@ const setStartButtonState = (host: SoAIBenchRunModalHost, modalRoot: HTMLElement
     button.setAttribute('aria-label', options.ariaLabel);
     setTooltipText(button, options.ariaLabel);
     button.setAttribute('aria-disabled', options.disabled ? 'true' : 'false');
-    button.classList.remove('ui-variant-accent', 'ui-variant-danger');
-    button.classList.add(options.mode === 'start' ? 'ui-variant-accent' : 'ui-variant-danger');
+    button.classList.remove('ui-variant-accent', 'ui-variant-neutral', 'ui-variant-danger');
+    button.classList.add(options.mode === 'start' ? 'ui-variant-accent' : options.mode === 'retry' ? 'ui-variant-neutral' : 'ui-variant-danger');
 };
 
 const setHistoryButtonState = (host: SoAIBenchRunModalHost, modalRoot: HTMLElement, options: { visible: boolean; disabled: boolean }): void => {
@@ -70,5 +73,21 @@ const setExportButtonState = (host: SoAIBenchRunModalHost, modalRoot: HTMLElemen
     }
 };
 
-export { requireRunBody, setExportButtonState, setHistoryButtonState, setStartButtonState };
+const setPublicationButtonState = (host: SoAIBenchRunModalHost, modalRoot: HTMLElement, visible: boolean): void => {
+    const button = requirePublishButton(host, modalRoot);
+    button.hidden = !visible;
+    button.disabled = !visible;
+    button.setAttribute('aria-disabled', visible ? 'false' : 'true');
+};
+
+const setRunControlsDisabled = (host: SoAIBenchRunModalHost, modalRoot: HTMLElement, disabled: boolean): void => {
+    for (const button of [requireStartButton(host, modalRoot), requireHistoryButton(host, modalRoot), requireCopyButton(host, modalRoot), requireDownloadButton(host, modalRoot), requirePublishButton(host, modalRoot)]) {
+        if (!button.hidden) {
+            button.disabled = disabled;
+            button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+        }
+    }
+};
+
+export { requireRunBody, setExportButtonState, setHistoryButtonState, setPublicationButtonState, setRunControlsDisabled, setStartButtonState };
 export type { SoAIBenchRunFooterActionMode };

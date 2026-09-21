@@ -19,12 +19,42 @@ __all__ = (
     "coerce_optional_int",
     "require_float",
     "require_int",
+    "require_non_negative_exact_int",
     "require_non_negative_int",
     "require_nonempty_str",
     "require_optional_str",
+    "require_positive_exact_int",
     "require_positive_int",
     "require_str",
 )
+
+
+def require_positive_exact_int(
+    value: JSONValue,
+    *,
+    type_message: str,
+    range_message: str,
+) -> int:
+    normalized = coerce_exact_int_or_none(value)
+    if normalized is None:
+        raise ValidationError(type_message)
+    if normalized <= 0:
+        raise ValidationError(range_message)
+    return normalized
+
+
+def require_non_negative_exact_int(
+    value: JSONValue,
+    *,
+    type_message: str,
+    range_message: str,
+) -> int:
+    normalized = coerce_exact_int_or_none(value)
+    if normalized is None:
+        raise ValidationError(type_message)
+    if normalized < 0:
+        raise ValidationError(range_message)
+    return normalized
 
 
 def require_int(value: JSONValue, *, field: str) -> int:

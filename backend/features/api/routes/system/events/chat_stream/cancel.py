@@ -17,14 +17,14 @@ from features.api.routes.system.events.chat_stream.command_payload_parsing impor
     connection_has_chat_command_access,
     extract_chat_command_payload_hints,
 )
+from features.api.runtime.chat_stream_registry_types import execution_owns_runtime
 from features.api.runtime.request_user_resolution import resolve_request_user_id
 from features.assistant_timeline.models import AssistantTimelineRuntime
-from features.chat.conversation_input_cancellation import (
-    prepare_forced_steers_before_cancellation,
-)
 from features.chat.conversation_stream_cancellation import (
     cancel_conversation_stream_runtime,
-    mark_conversation_stream_runtime_cancellation_requested,
+)
+from features.chat.conversation_stream_cancellation_operation import (
+    accept_chat_stream_cancellation,
 )
 
 if TYPE_CHECKING:
@@ -108,7 +108,7 @@ async def handle_chat_stream_cancel(
             message="No active chat stream exists for conv_id.",
         )
         return
-    if request_id and runtime.request_id != request_id:
+    if request_id and not execution_owns_runtime(request_id, runtime):
         await enqueue_chat_stream_command_error(
             connection,
             conv_id=conv_id,
@@ -151,20 +151,24 @@ async def handle_chat_stream_cancel(
             message=str(exception),
         )
         return
-    if force_pending_steers:
-        await prepare_forced_steers_before_cancellation(
-            api_context.dependencies,
-            user_id=user_id,
-            conv_id=conv_id,
-            request_id=runtime.request_id,
-        )
-    mark_conversation_stream_runtime_cancellation_requested(runtime, reason)
-    _ = schedule_ws_chat_stream_cancel(
-        api_context=api_context,
+    accepted = await accept_chat_stream_cancellation(
+        api_dependencies=api_context.dependencies,
         context=request.state.context,
-        runtime=runtime,
+        user_id=user_id,
+        conv_id=conv_id,
+        request_id=request_id or runtime.request_id,
+        force_pending_steers=force_pending_steers,
         reason=reason,
     )
+    if accepted.status == "superseded":
+        await enqueue_chat_stream_command_error(
+            connection,
+            conv_id=conv_id,
+            request_id=request_id,
+            phase="cancel",
+            code="not_found_error",
+            message="No active chat stream matches request_id.",
+        )
 
 
 def schedule_ws_chat_stream_cancel(
@@ -174,13 +178,16 @@ def schedule_ws_chat_stream_cancel(
     runtime: AssistantTimelineRuntime,
     reason: str,
 ) -> Task[None]:
-    task = create_ephemeral_task(
-        cancel_conversation_stream_runtime(
+    async def cancel_runtime() -> None:
+        await cancel_conversation_stream_runtime(
             api_dependencies=api_context.dependencies,
             context=context,
             runtime=runtime,
             reason=reason,
-        ),
+        )
+
+    task = create_ephemeral_task(
+        cancel_runtime(),
         name=f"ws-chat-stream-cancel-{runtime.conv_id}",
     )
     api_context.dependencies.application_control.track_background_task(task)

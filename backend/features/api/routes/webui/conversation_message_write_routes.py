@@ -11,6 +11,9 @@ from core.events.conversation_publication import (
     publish_conversation_updated_and_message_saved,
 )
 from core.types.json import JSONDict
+from features.api.routes.webui.conversation_lifecycle_admission import (
+    run_idle_conversation_lifecycle_operation,
+)
 from features.api.routes.webui.conversation_message_write_outputs import (
     publish_message_write_knowledge_events,
     serialize_message_write_result,
@@ -97,11 +100,16 @@ def register_routes(routers: ApiRouters) -> None:
                 conversation_record=conversation_record,
                 api_context=api_context,
             )
-            write_result = await api_context.dependencies.database_messages.overwrite_messages(
-                conv_id,
-                current_user["id"],
-                serialized_messages,
-                payload.expected_last_modified_at_ms,
+            write_result = await run_idle_conversation_lifecycle_operation(
+                api_context,
+                user_id=current_user["id"],
+                conv_id=conv_id,
+                operation=lambda: api_context.dependencies.database_messages.overwrite_messages(
+                    conv_id,
+                    current_user["id"],
+                    serialized_messages,
+                    payload.expected_last_modified_at_ms,
+                ),
             )
         except ConflictError as exception:
             raise_conflict(request, str(exception))
@@ -140,11 +148,16 @@ def register_routes(routers: ApiRouters) -> None:
                 conversation_record=conversation_record,
                 api_context=api_context,
             )
-            write_result = await api_context.dependencies.database_messages.append_messages(
-                conv_id,
-                current_user["id"],
-                serialized_messages,
-                payload.expected_last_modified_at_ms,
+            write_result = await run_idle_conversation_lifecycle_operation(
+                api_context,
+                user_id=current_user["id"],
+                conv_id=conv_id,
+                operation=lambda: api_context.dependencies.database_messages.append_messages(
+                    conv_id,
+                    current_user["id"],
+                    serialized_messages,
+                    payload.expected_last_modified_at_ms,
+                ),
             )
         except ConflictError as exception:
             raise_conflict(request, str(exception))
@@ -188,15 +201,18 @@ def register_routes(routers: ApiRouters) -> None:
                 conversation_record=conversation_record,
                 api_context=api_context,
             )
-            write_result = (
-                await api_context.dependencies.database_messages.resubmit_user_message_by_cursor(
+            write_result = await run_idle_conversation_lifecycle_operation(
+                api_context,
+                user_id=current_user["id"],
+                conv_id=conv_id,
+                operation=lambda: api_context.dependencies.database_messages.resubmit_user_message_by_cursor(
                     conv_id,
                     current_user["id"],
                     created_at_ms=payload.created_at_ms,
                     message_id=payload.message_id,
                     message=messages[0],
                     expected_last_modified_at_ms=payload.expected_last_modified_at_ms,
-                )
+                ),
             )
         except ConflictError as exception:
             raise_conflict(request, str(exception))
@@ -227,14 +243,17 @@ def register_routes(routers: ApiRouters) -> None:
                 conv_id=conv_id,
                 user_id=current_user["id"],
             )
-            write_result = (
-                await api_context.dependencies.database_messages.truncate_messages_from_cursor(
+            write_result = await run_idle_conversation_lifecycle_operation(
+                api_context,
+                user_id=current_user["id"],
+                conv_id=conv_id,
+                operation=lambda: api_context.dependencies.database_messages.truncate_messages_from_cursor(
                     conv_id,
                     current_user["id"],
                     created_at_ms=payload.created_at_ms,
                     message_id=payload.message_id,
                     expected_last_modified_at_ms=payload.expected_last_modified_at_ms,
-                )
+                ),
             )
         except ConflictError as exception:
             raise_conflict(request, str(exception))
@@ -264,14 +283,17 @@ def register_routes(routers: ApiRouters) -> None:
                 conv_id=conv_id,
                 user_id=current_user["id"],
             )
-            write_result = (
-                await api_context.dependencies.database_messages.delete_message_by_cursor(
+            write_result = await run_idle_conversation_lifecycle_operation(
+                api_context,
+                user_id=current_user["id"],
+                conv_id=conv_id,
+                operation=lambda: api_context.dependencies.database_messages.delete_message_by_cursor(
                     conv_id,
                     current_user["id"],
                     created_at_ms=payload.created_at_ms,
                     message_id=payload.message_id,
                     expected_last_modified_at_ms=payload.expected_last_modified_at_ms,
-                )
+                ),
             )
         except ConflictError as exception:
             raise_conflict(request, str(exception))

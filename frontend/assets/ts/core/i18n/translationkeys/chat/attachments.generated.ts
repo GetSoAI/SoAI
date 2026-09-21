@@ -42,6 +42,7 @@ export type ChatAttachmentsTranslationKey =
     | 'chat.attachments.parseErrorNotification'
     | 'chat.attachments.removeFailedBeforeSend'
     | 'chat.attachments.removeTooltip'
+    | 'chat.attachments.showMore'
     | 'chat.attachments.soaiPathLinkAdded.plural'
     | 'chat.attachments.soaiPathLinkAdded.singular'
     | 'chat.attachments.status.error'
@@ -50,4 +51,5 @@ export type ChatAttachmentsTranslationKey =
     | 'chat.attachments.status.ready'
     | 'chat.attachments.status.referenceOnly'
     | 'chat.attachments.status.separator'
-    | 'chat.attachments.status.soaiPathLink';
+    | 'chat.attachments.status.soaiPathLink'
+    | 'chat.attachments.unavailableReupload';

@@ -3,15 +3,30 @@
 
 from __future__ import annotations
 
-__all__ = ("PUBLIC_PLUGIN_SDK_EXPORTS",)
+__all__ = (
+    "OUTBOUND_HEADER_EXPORTS",
+    "PLUGIN_LOGO_EXPORTS",
+    "PUBLIC_PLUGIN_SDK_EXPORTS",
+)
 
-PUBLIC_PLUGIN_SDK_EXPORTS: tuple[str, ...] = (
+PLUGIN_LOGO_EXPORTS: tuple[str, ...] = (
     "LOGO_FILENAMES",
     "MAX_LOGO_SOURCE_BYTES",
     "MAX_LOGO_DIMENSION",
     "MAX_LOGO_OUTPUT_BYTES",
     "PluginLogoSource",
     "PluginLogoResult",
+)
+OUTBOUND_HEADER_EXPORTS: tuple[str, ...] = (
+    "build_artifact_download_headers",
+    "build_github_api_headers",
+    "build_model_registry_headers",
+    "build_outbound_request_headers",
+    "merge_outbound_headers",
+)
+
+PUBLIC_PLUGIN_SDK_EXPORTS: tuple[str, ...] = (
+    *PLUGIN_LOGO_EXPORTS,
     "sanitize_plugin_logo",
     "ArchiveLinkTargetNotFoundError",
     "AcceleratorMemoryExhaustedError",
@@ -80,11 +95,7 @@ PUBLIC_PLUGIN_SDK_EXPORTS: tuple[str, ...] = (
     "compose_openai_provider_url",
     "extract_context_overflow_validation",
     "normalize_openai_provider_query_params",
-    "build_artifact_download_headers",
-    "build_github_api_headers",
-    "build_model_registry_headers",
-    "build_outbound_request_headers",
-    "merge_outbound_headers",
+    *OUTBOUND_HEADER_EXPORTS,
     "PLUGIN_MODULE_PREFIX",
     "ParameterDefinition",
     "PluginConfigurationError",

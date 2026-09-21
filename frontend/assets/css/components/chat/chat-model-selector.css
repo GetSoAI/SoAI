@@ -12,6 +12,7 @@
         max-width: min(420px, 100%);
         max-height: min(420px, var(--chat-model-menu-max-height));
         overflow: auto;
+        background-color: var(--soai-dropdown-surface);
         border-radius: var(--border-radius);
         padding: 0;
         z-index: calc(var(--z-overlay) + 2);

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from core.errors.exceptions import StateError
 from core.tasks.type_catalog import TaskTypeCatalog
-from database.migrations.registry import DATABASE_MIGRATION_STEPS, DatabaseMigrationStep
+from database.migrations.registry import DatabaseMigrationStep, build_database_migration_steps
 from database.schema_creation import sync_create_database_schema
 from database.schema_version import (
     CURRENT_DATABASE_SCHEMA_VERSION,
@@ -55,7 +55,7 @@ def upgrade_database_schema_to_current(
         sync_create_database_schema(conn, task_catalog)
         return (from_version, CURRENT_DATABASE_SCHEMA_VERSION)
 
-    indexed = _index_steps(DATABASE_MIGRATION_STEPS)
+    indexed = _index_steps(build_database_migration_steps())
     working_version = from_version
     while working_version < CURRENT_DATABASE_SCHEMA_VERSION:
         step = indexed.get(working_version)

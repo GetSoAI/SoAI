@@ -6,7 +6,7 @@ import { checkerboardService } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { toTrimmedLower } from '@core/normalize.ts';
 import { uiAttr, uiHtml } from '@core/security/uiHtml.ts';
-import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
+import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 import { createPluginGpuBindingConfigValue, PLUGIN_GPU_ALL_ID, PLUGIN_GPU_BINDING_KEY, type PluginGpuBindingEntry, type PluginGpuBindingSelectorState } from '@features/plugins/modals/config/gpuBindingTypes.ts';
 import type { ConfigManagerHost, ConfigurationManager, SecurityService } from '@features/plugins/modals/config/types.ts';
 
@@ -76,7 +76,6 @@ const renderPluginGpuBindingSelector = (state: PluginGpuBindingSelectorState | n
     }
     const selectedIds = selectedIdSet(state.selectedIds);
     const searchLabel = i18n.t('plugins.modal.config.gpuSearchButton');
-    const searchIcon = getIconSync('search', { size: 16, strokeWidth: 1.5 });
     return uiHtml`
         <section class="plugin-gpu-binding-selector" data-plugin-gpu-binding-selector>
             <div class="plugin-gpu-binding-header">
@@ -87,7 +86,7 @@ const renderPluginGpuBindingSelector = (state: PluginGpuBindingSelectorState | n
                 <div class="form-col-main">
                     <div class="searchbar-container searchbar-container--collection">
                         <input type="text" class="form-input searchbar-input plugin-gpu-binding-search" placeholder="${uiAttr(i18n.t('plugins.modal.config.gpuSearchPlaceholder'))}" autocomplete="off" aria-label="${uiAttr(searchLabel)}">
-                        <span class="searchbar-icon">${searchIcon}</span>
+                        ${renderSearchFieldActions()}
                     </div>
                 </div>
                 <div class="form-col-secondary form-col-action">

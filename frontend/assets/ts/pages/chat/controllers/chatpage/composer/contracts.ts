@@ -60,6 +60,7 @@ interface ChatComposerContract {
     toggleCall(): void;
     cycleTokenCounter(): void;
     cancelConversationInput(conversationId: string, inputId: string): Promise<void>;
+    retryConversationRegeneration(conversationId: string, inputId: string): Promise<void>;
     resolveAskUserPrompt(conversationId: string, taskId: string, action: 'submit' | 'cancel'): Promise<void>;
     resolveSecretPrompt(conversationId: string, taskId: string, request: SecretPromptInteractionResolutionRequest): Promise<void>;
     resolveToolApprovalPrompt(conversationId: string, taskId: string, action: 'approve' | 'deny'): Promise<void>;

@@ -27,7 +27,7 @@ from core.messaging.account_validation import (
 from core.security.secret_crypto import encrypt_required_secret
 from core.serialization.json import serialize_json_compact_stable_strict
 from core.types.json import JSONDict
-from core.validation.integers import require_positive_exact_int
+from core.validation.requirements import require_positive_exact_int
 from core.validation.strings import coerce_optional_trimmed_str
 
 __all__ = (

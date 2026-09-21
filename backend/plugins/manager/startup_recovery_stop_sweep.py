@@ -10,6 +10,7 @@ from core.config.numeric import coerce_positive_float
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.events.completion_waiting import await_publication_receipt
 from core.logging.trace import get_logger
 from core.runtime.backend_process_tracking import (
     BackendProcessIdentity,
@@ -21,9 +22,6 @@ from core.runtime.backend_process_tracking_db import (
     cleanup_tracked_backend_processes_from_database,
 )
 from core.state.state_names import PLUGIN_STATE_STOPPED
-from plugins.manager.startup_recovery_publication import (
-    wait_for_startup_recovery_publication,
-)
 
 if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
@@ -139,7 +137,7 @@ async def perform_startup_backend_stop_sweep(manager: PluginManagerRuntimeProtoc
             PLUGIN_STATE_STOPPED,
             "Startup recovery: stop sweep completed.",
         )
-        await wait_for_startup_recovery_publication(receipt)
+        await await_publication_receipt(receipt)
         stop_sweep.discard(plugin_name)
     stop_sweep.clear()
 

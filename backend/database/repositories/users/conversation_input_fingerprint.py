@@ -25,6 +25,7 @@ def build_conversation_input_content_fingerprint(
     model_settings: JSONDict | None,
     source_metadata: JSONDict,
     media_descriptors: list[JSONValue],
+    regeneration_request: JSONDict | None = None,
 ) -> str:
     payload: JSONDict = {
         "input_type": input_type,
@@ -37,5 +38,7 @@ def build_conversation_input_content_fingerprint(
         "source_metadata": source_metadata,
         "media_descriptors": media_descriptors,
     }
+    if regeneration_request is not None:
+        payload["regeneration_request"] = regeneration_request
     serialized = serialize_json_compact_stable(payload)
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()

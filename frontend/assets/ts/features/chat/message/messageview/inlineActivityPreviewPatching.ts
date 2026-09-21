@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { haveEqualChildNodes, syncAttribute, syncClass } from '@core/dom/patching.ts';
-import { THINKING_PREVIEW_ATTRIBUTE_NAMES } from '@features/chat/message/messageview/inlineActivityText.ts';
+import { STREAMED_PREVIEW_ATTRIBUTE_NAMES } from '@features/chat/message/messageview/inlineActivityText.ts';
 import { resolveHeaderChildren, resolveInlineActivityPreviewText } from '@features/chat/message/messageview/inlineActivityHeaderChildrenDomOps.ts';
 
 const haveSameClassSet = (left: HTMLElement, right: HTMLElement): boolean => {
@@ -19,22 +19,22 @@ const haveSameClassSet = (left: HTMLElement, right: HTMLElement): boolean => {
     return true;
 };
 
-const isThinkingPreviewNode = (preview: HTMLElement | null): preview is HTMLElement => {
-    return preview?.getAttribute(THINKING_PREVIEW_ATTRIBUTE_NAMES.root) === 'true';
+const isStreamedPreviewNode = (preview: HTMLElement | null): preview is HTMLElement => {
+    return preview?.getAttribute(STREAMED_PREVIEW_ATTRIBUTE_NAMES.root) === 'true';
 };
 
-const patchThinkingPreview = (existingPreview: HTMLElement, createdPreview: HTMLElement): boolean => {
+const patchStreamedPreview = (existingPreview: HTMLElement, createdPreview: HTMLElement): boolean => {
     let changed = false;
     if (syncClass(existingPreview, createdPreview)) {
         changed = true;
     }
-    if (syncAttribute({ target: existingPreview, source: createdPreview, name: THINKING_PREVIEW_ATTRIBUTE_NAMES.root })) {
+    if (syncAttribute({ target: existingPreview, source: createdPreview, name: STREAMED_PREVIEW_ATTRIBUTE_NAMES.root })) {
         changed = true;
     }
-    if (syncAttribute({ target: existingPreview, source: createdPreview, name: THINKING_PREVIEW_ATTRIBUTE_NAMES.status })) {
+    if (syncAttribute({ target: existingPreview, source: createdPreview, name: STREAMED_PREVIEW_ATTRIBUTE_NAMES.status })) {
         changed = true;
     }
-    if (syncAttribute({ target: existingPreview, source: createdPreview, name: THINKING_PREVIEW_ATTRIBUTE_NAMES.latest })) {
+    if (syncAttribute({ target: existingPreview, source: createdPreview, name: STREAMED_PREVIEW_ATTRIBUTE_NAMES.latest })) {
         changed = true;
     }
     const existingText = resolveInlineActivityPreviewText(existingPreview);
@@ -48,11 +48,11 @@ const patchThinkingPreview = (existingPreview: HTMLElement, createdPreview: HTML
     if (syncClass(existingText, createdText)) {
         changed = true;
     }
-    const status = createdPreview.getAttribute(THINKING_PREVIEW_ATTRIBUTE_NAMES.status);
+    const status = createdPreview.getAttribute(STREAMED_PREVIEW_ATTRIBUTE_NAMES.status);
     if (status === 'running') {
         return changed;
     }
-    if (syncAttribute({ target: existingPreview, source: createdPreview, name: THINKING_PREVIEW_ATTRIBUTE_NAMES.visible })) {
+    if (syncAttribute({ target: existingPreview, source: createdPreview, name: STREAMED_PREVIEW_ATTRIBUTE_NAMES.visible })) {
         changed = true;
     }
     if (existingText.textContent !== createdText.textContent) {
@@ -84,14 +84,14 @@ const patchInlineActivityPreviewNode = (existingHeader: HTMLElement, createdHead
         existingHeader.appendChild(cloned);
         return true;
     }
-    const existingIsThinkingPreview = isThinkingPreviewNode(existingPreview);
-    const createdIsThinkingPreview = isThinkingPreviewNode(createdPreview);
-    if (existingIsThinkingPreview && createdIsThinkingPreview) {
-        return patchThinkingPreview(existingPreview, createdPreview);
+    const existingIsStreamedPreview = isStreamedPreviewNode(existingPreview);
+    const createdIsStreamedPreview = isStreamedPreviewNode(createdPreview);
+    if (existingIsStreamedPreview && createdIsStreamedPreview) {
+        return patchStreamedPreview(existingPreview, createdPreview);
     }
     const existingHidden = existingPreview.hasAttribute('hidden');
     const createdHidden = createdPreview.hasAttribute('hidden');
-    if (existingIsThinkingPreview !== createdIsThinkingPreview || !haveSameClassSet(existingPreview, createdPreview) || existingHidden !== createdHidden || !haveEqualChildNodes(existingPreview, createdPreview)) {
+    if (existingIsStreamedPreview !== createdIsStreamedPreview || !haveSameClassSet(existingPreview, createdPreview) || existingHidden !== createdHidden || !haveEqualChildNodes(existingPreview, createdPreview)) {
         existingPreview.replaceWith(createdPreview.cloneNode(true));
         return true;
     }

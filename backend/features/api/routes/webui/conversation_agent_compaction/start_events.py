@@ -58,6 +58,11 @@ async def publish_manual_compaction_start_events(
             ),
             replace_assistant_at_ms=start_state.replace_assistant_at_ms,
             replace_tool_call_id=start_state.replace_tool_call_id,
+            turn_claim=start_state.turn_claim,
+            manual_regeneration_request_json=start_state.manual_regeneration_request_json,
+            manual_regeneration_expected_revision=(
+                start_state.manual_regeneration_expected_revision
+            ),
         ),
     )
     await publish_agent_event(

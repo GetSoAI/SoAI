@@ -71,12 +71,13 @@
         display: none;
     }
 
-    :where(.chat-container) .conversation-action-btn.message-action.ui-icon-button.ui-icon-button-small {
-        width: var(--chat-round-action-button-size);
-        height: var(--chat-round-action-button-size);
-        min-width: var(--chat-round-action-button-size);
-        min-height: var(--chat-round-action-button-size);
+    :where(.chat-container) .conversation-item-actions > .conversation-action-btn.message-action.ui-icon-button.ui-icon-button-small {
+        width: var(--icon-button-size-small);
+        height: var(--icon-button-size-small);
+        min-width: var(--icon-button-size-small);
+        min-height: var(--icon-button-size-small);
         padding: 0;
+        border-radius: var(--border-radius-small-button);
     }
 
     :where(.chat-container) .chat-message .message-actions {
@@ -209,7 +210,6 @@
         align-items: center;
     }
 
-    :where(.chat-container) .message-action-buttons-left,
     :where(.chat-container) .message-action-buttons-right {
         display: flex;
         align-items: center;

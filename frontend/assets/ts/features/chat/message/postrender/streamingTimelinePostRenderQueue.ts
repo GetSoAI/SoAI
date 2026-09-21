@@ -3,7 +3,7 @@
 
 import { createMicrotaskScheduler } from '@core/primitives/microtaskScheduler.ts';
 import { reconcileStreamingSpinnerStatusSubtree } from '@features/chat/stream/streamMessageSpinnerStatusRuntime.ts';
-import { reconcileThinkingPreviewSubtree } from '@features/chat/stream/streamThinkingPreviewRuntime.ts';
+import { reconcileStreamedPreviewSubtree } from '@features/chat/stream/streamedPreviewRuntime.ts';
 
 type StreamingTimelineRenderKey = {
     conversationId: string;
@@ -95,7 +95,7 @@ class StreamingTimelinePostRenderQueue {
         }
         let changed = false;
         for (const target of this.#collectCurrentTargets()) {
-            reconcileThinkingPreviewSubtree(target);
+            reconcileStreamedPreviewSubtree(target);
             reconcileStreamingSpinnerStatusSubtree(target);
             changed = true;
         }

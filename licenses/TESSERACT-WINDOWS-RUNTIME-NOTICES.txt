@@ -2,16 +2,16 @@ SoAI Managed Windows Tesseract Runtime Notices
 ==============================================
 
 The Windows distribution contains a minimal x64 runtime extracted from the
-UB Mannheim Tesseract installer and the English language data published by
+UB Mannheim Tesseract installer and the supported language and auxiliary data published by
 the Tesseract project. SoAI installs these files only inside its managed data
-directory. The runtime is used only for raster content that requires OCR after
-Apache Tika parsing and for which SoAI has a supported raster extraction path.
+directory. The runtime supplies Tesseract OCR for supported document rasters, image
+fallbacks, and video frames.
 
 Tesseract OCR and tessdata
 --------------------------
 
 Projects: Tesseract OCR and tessdata_fast
-Versions: Tesseract 5.5.3 runtime; tessdata_fast 4.1.0 English data
+Versions: Tesseract 5.5.3 runtime; tessdata_fast 4.1.0 language and auxiliary data
 License: Apache License 2.0
 Sources: https://github.com/tesseract-ocr/tesseract
          https://github.com/tesseract-ocr/tessdata_fast
@@ -21,7 +21,7 @@ Windows runtime build and dynamically linked libraries
 ------------------------------------------------------
 
 Binary source: UB Mannheim Tesseract Windows installer
-https://github.com/UB-Mannheim/tesseract/wiki
+https://github.com/UB-Mannheim/tesseract
 
 The binary runtime dynamically links the libraries shipped by that upstream
 installer, including Leptonica, libarchive, libcurl, Cairo, GLib, Pango,

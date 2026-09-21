@@ -121,7 +121,7 @@ class LayoutHeader extends LifecycleModel {
         }
         await loadHeaderIcons({ getDom: (key) => this.getDom(key), icons: this.icons });
         this.#hamburgerDispose = bindHeaderHamburgerMenu(this.#hamburgerDispose, { getDom: (key) => this.getDom(key), on: (target, event, handler) => this.lifecycleResources.addEventListener(target, event, handler), handleClick: async (event) => await this.handleHamburgerClick(event) });
-        bindHeaderSidebarCollapse({ getDom: (key) => this.getDom(key), resolveSidebar: () => this.resolveService('core.layout.sidebar', isSidebarService, 'Sidebar service'), isMobilePortrait: () => this.isMobilePortrait(), on: (target, event, handler) => this.lifecycleResources.addEventListener(target, event, handler) });
+        bindHeaderSidebarCollapse({ getDom: (key) => this.getDom(key), resolveSidebar: () => this.resolveService('core.layout.sidebar', isSidebarService, 'Sidebar service'), isMobilePortrait: () => this.isMobilePortrait(), on: (target, event, handler, options) => this.lifecycleResources.addEventListener(target, event, handler, options) });
         applyHeaderLocalization({ controllers: this.controllers, controllerOrder: this.#controllerOrder, getDom: (key) => this.getDom(key) });
         setupHeaderGlobalClickHandler({ getDomMany: (keys) => this.getDomMany(keys), closeDropdowns: this.closeDropdowns, on: (target, event, handler) => this.lifecycleResources.addEventListener(target, event, handler) });
         bindHeaderGlobalEvents({

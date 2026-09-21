@@ -3,6 +3,7 @@
 
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import { checkerboardService, type ElementOptions } from '@core/dom/dom.ts';
+import { resolveFileEntryIconName } from '@core/fileexplorerbrowser/entryIconResolution.ts';
 import { replaceChildrenFromTrustedHtml } from '@core/dom/html.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { formatBytes } from '@core/primitives/byteSize.ts';
@@ -83,6 +84,8 @@ const renderRagDocumentsList = ({ host, container, emptyState, documents, count,
     const fragment = documentRef.createDocumentFragment();
     documents.forEach((item) => {
         const row = host.createElement('div', { class: 'rag-document-item' });
+        const leadingIcon = host.createElement('span', { class: 'file-preview-leading-icon rag-document-leading-icon', 'aria-hidden': 'true' });
+        replaceChildrenFromTrustedHtml({ element: leadingIcon, html: getIconSync(resolveFileEntryIconName({ name: item.filename, isDirectory: false }), { size: 20, strokeWidth: 1.5 }), context: leadingIcon });
         const info = host.createElement('div', { class: 'rag-document-info' });
         const header = host.createElement('div', { class: 'rag-document-header' });
         const name = host.createElement('div', { class: 'rag-document-name' });
@@ -168,6 +171,7 @@ const renderRagDocumentsList = ({ host, container, emptyState, documents, count,
         setTooltipText(deleteBtn, deleteLabel);
         replaceChildrenFromTrustedHtml({ element: deleteBtn, html: getIconSync('close', { size: 14, strokeWidth: 1.5 }), context: deleteBtn });
         host.appendToElement(actions, deleteBtn);
+        host.appendToElement(row, leadingIcon);
         host.appendToElement(row, info);
         host.appendToElement(row, actions);
         fragment.appendChild(row);

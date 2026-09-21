@@ -95,6 +95,7 @@ const patchRenderedAssistantMessageInConversation = (
     }
     const markup = host.messageManager.renderMessage({
         message: inputArguments.message,
+        conversationId,
         index: messageIdentity.index,
         comparisonTurn: inputArguments.comparisonTurn,
         presentation: host.messageManager.resolveMessageRenderPresentation(inputArguments.conversation, inputArguments.message, messageIdentity.index),

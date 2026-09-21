@@ -129,6 +129,7 @@
     .archived-conversation-item.is-selected {
         --archived-conversation-overlay-inset-left: var(--border-width-3);
         --archived-conversation-left-rail-color: var(--ui-tone-green);
+        --archived-conversation-before-surface: var(--ui-tone-green-surface-selected);
         background: var(--ui-tone-green-surface-selected);
     }
 

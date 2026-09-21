@@ -4,6 +4,7 @@
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { resolveGetUserMediaError } from '@core/media/audioCaptureSupport.ts';
 import { stopMediaStreamTracks } from '@core/media/mediaCleanup.ts';
 import { isFunction, isString } from '@core/typeGuards.ts';
 import { resolveSupportedRecordingMimeType, transcribeAudioBlob, type WebuiMediaApiClient } from '@features/chat/api/webuiMediaAudio.ts';
@@ -74,7 +75,7 @@ class ChatAudioManager {
         this.#onStateChange('idle');
         this.#cleanup();
         this.#snapshotController.fail(title);
-        this.#onError(error, title, { notify: true });
+        this.#onError(error, title, { notify: false });
     }
 
     #finishIdle(): void {
@@ -139,18 +140,13 @@ class ChatAudioManager {
             };
 
             this.#mediaRecorder.start();
-            this.#setState('recording');
+            this.#beginState('recording');
         } catch (error) {
             if (!this.#isActiveSession(recordingSessionId)) {
                 return;
             }
             const err = ensureError(error);
-            const isPermissionDenied = err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError';
-            if (isPermissionDenied) {
-                this.#handleError(err, i18n.t('chat.audio.permissionDenied'));
-            } else {
-                this.#handleError(err, i18n.t('chat.audio.initFailed'));
-            }
+            this.#handleError(err, resolveGetUserMediaError(err));
         }
     }
 

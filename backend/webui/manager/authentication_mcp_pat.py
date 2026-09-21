@@ -20,9 +20,10 @@ from webui.manager.auth_inactive_record_failure import (
 )
 from webui.manager.bearer_token_auth_flow import (
     prepare_bearer_token_auth_attempt,
-    report_invalid_bearer_record_failure,
+    report_bearer_record_failure,
     resolve_bearer_token_id_or_failure,
     resolve_bearer_token_throttle,
+    resolve_bearer_user_record_or_failure,
 )
 
 __all__ = ("evaluate_mcp_pat_authentication",)
@@ -112,22 +113,22 @@ async def evaluate_mcp_pat_authentication(
     token_id_value = token_id_or_failure
     owner_id = coerce_int_from_scalar(token_record.get("user_id"))
     if owner_id is None:
-        return await report_invalid_bearer_record_failure(
+        return await report_bearer_record_failure(
             failure_reporter=failure_reporter,
             attempt=attempt,
             fingerprint=fingerprint,
+            reason="invalid_record",
             use_reason_as_failure_category=False,
         )
     user_record = await database_users.get_human_user_by_id(int(owner_id))
-    if not isinstance(user_record, dict):
-        return await failure_reporter.report_failure(
-            "You are not authenticated.",
-            "missing_user",
-            bucket_identifiers=attempt.bucket_identifiers,
-            fingerprint=fingerprint[:12],
-        )
-    resolved_user = dict(user_record)
-    resolved_user.pop("hashed_password", None)
+    resolved_user = await resolve_bearer_user_record_or_failure(
+        user_record,
+        failure_reporter=failure_reporter,
+        attempt=attempt,
+        use_reason_as_failure_category=False,
+    )
+    if isinstance(resolved_user, AuthenticationDecision):
+        return resolved_user
     await token_store.record_last_used(token_id_value, now_ms=now_ms)
     await reset_auth_guard_failures(guard, attempt.bucket_identifiers)
     payload = {

@@ -83,9 +83,6 @@ const initializeChatStreamingController = (page: ChatControllerInitializationCon
         throw new Error('ChatPage requires model availability state');
     }
     const streamManagerDependencies: ChatStreamingControllerDependencies = {
-        cancelAgentTurn: async (conversationId, turnId, options) => {
-            return await page.platform.api.webui.chat.agent.cancelTurn(conversationId, turnId, options);
-        },
         uiManager,
         messageManager,
         storageManager,
@@ -125,7 +122,6 @@ const initializeChatStreamingController = (page: ChatControllerInitializationCon
         getRequestParameters: () => page.state.settings.requestParameters(),
         getWorkingParameters: () => page.runtime.configurationRuntime.requireConfiguration().getWorkingParameters(),
         resolveAgentModeForConversation: (conversationId) => page.runtime.turnRuntime.requireAgent().resolveModeForConversation(conversationId),
-        resolveAgentRunningTurnId: (conversationId) => page.runtime.turnRuntime.requireAgent().resolveRunningTurnId(conversationId),
         isAgentRenderingActive: (conversationId) => page.runtime.turnRuntime.requireAgent().isRenderingActive(conversationId),
         createStreamRenderRuntime: (context) => createChatStreamRenderCoordinator(context)
     };
@@ -157,6 +153,7 @@ const initializeConversationInputsManager = (page: ChatControllerInitializationC
     page.runtime.turnRuntime.initializeConversationInputs(
         new ChatConversationInputsManager({
             conversationInputsApi,
+            regenerationApi: page.platform.api.webui.chat.messages,
             getCurrentConversationId: () => page.state.conversationState.currentConversationId,
             logWarning: (message, error) => {
                 errorHandler.warn('ConversationInputs', message, error);

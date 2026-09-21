@@ -18,6 +18,7 @@ class ConversationInputStateStore {
     readonly #settlementObservationsByConversationId = new Map<string, Map<string, SettlementObservation>>();
     readonly #syncVersionByConversationId = new Map<string, number>();
     readonly #headInputIdByConversationId = new Map<string, string>();
+    readonly #pendingAdmissionsByConversationId = new Map<string, number>();
     #lastRenderedConversationId: string | null = null;
 
     reset(): void {
@@ -26,13 +27,14 @@ class ConversationInputStateStore {
         this.#settlementObservationsByConversationId.clear();
         this.#syncVersionByConversationId.clear();
         this.#headInputIdByConversationId.clear();
+        this.#pendingAdmissionsByConversationId.clear();
         this.#lastRenderedConversationId = null;
     }
 
     getQueuedInputs(conversationId: string): ConversationInput[] {
         const stored = this.#inputsByConversationId.get(conversationId);
         const headInputId = this.#headInputIdByConversationId.get(conversationId);
-        return stored ? stored.filter((input) => input.inputId !== headInputId) : [];
+        return stored ? stored.filter((input) => input.inputId !== headInputId && !input.isRegeneration) : [];
     }
 
     upsertAdmittedInput(conversationId: string, input: ConversationInput, isDispatchableHead: boolean): void {
@@ -41,6 +43,10 @@ class ConversationInputStateStore {
         if (!normalizedConversationId || !normalizedInputId) {
             return;
         }
+        if (this.#settlementObservationsByConversationId.get(normalizedConversationId)?.has(normalizedInputId)) {
+            return;
+        }
+        this.#invalidateSync(normalizedConversationId);
         const activeInputIds = this.#activeInputIdsByConversationId.get(normalizedConversationId) ?? new Set<string>();
         activeInputIds.add(normalizedInputId);
         this.#activeInputIdsByConversationId.set(normalizedConversationId, activeInputIds);
@@ -57,6 +63,24 @@ class ConversationInputStateStore {
             return left.inputId.localeCompare(right.inputId, getCurrentLocale());
         });
         this.#inputsByConversationId.set(normalizedConversationId, next);
+    }
+
+    beginAdmission(conversationId: string): void {
+        const pending = this.#pendingAdmissionsByConversationId.get(conversationId) ?? 0;
+        this.#pendingAdmissionsByConversationId.set(conversationId, pending + 1);
+    }
+
+    completeAdmission(conversationId: string): void {
+        const pending = this.#pendingAdmissionsByConversationId.get(conversationId) ?? 0;
+        if (pending > 1) {
+            this.#pendingAdmissionsByConversationId.set(conversationId, pending - 1);
+            return;
+        }
+        this.#pendingAdmissionsByConversationId.delete(conversationId);
+        const observations = this.#settlementObservationsByConversationId.get(conversationId);
+        for (const inputId of observations?.keys() ?? []) {
+            this.#removeCompletedObservation(conversationId, inputId);
+        }
     }
 
     recordCancelledInput(conversationId: string, inputId: string): void {
@@ -249,6 +273,9 @@ class ConversationInputStateStore {
     }
 
     #removeCompletedObservation(conversationId: string, inputId: string): void {
+        if ((this.#pendingAdmissionsByConversationId.get(conversationId) ?? 0) > 0) {
+            return;
+        }
         const observations = this.#settlementObservationsByConversationId.get(conversationId);
         const observation = observations?.get(inputId);
         if (!observation?.eventObserved || !observation.listObserved || !observation.reconciled) {

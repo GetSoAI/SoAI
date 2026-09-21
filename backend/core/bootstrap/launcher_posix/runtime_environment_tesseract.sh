@@ -6,7 +6,10 @@ soai_managed_runtime__tesseract_is_valid() {
     local env_dir="$1"
     local tesseract_binary="${env_dir}/bin/tesseract"
     local tesseract_data="${env_dir}/share/tessdata"
-    if [ ! -x "$tesseract_binary" ] || [ ! -f "${tesseract_data}/eng.traineddata" ]; then
+    if [ -z "$env_dir" ] || [ ! -d "$tesseract_data" ] || [ -L "$tesseract_data" ] || \
+            [ ! -x "$tesseract_binary" ] || [ ! -f "${tesseract_data}/eng.traineddata" ] || \
+            [ ! -s "${tesseract_data}/eng.traineddata" ] || \
+            [ -L "${tesseract_data}/eng.traineddata" ]; then
         return 1
     fi
     local version_output=""
@@ -16,29 +19,6 @@ soai_managed_runtime__tesseract_is_valid() {
         return 1
     fi
     TESSDATA_PREFIX="$tesseract_data" "$tesseract_binary" --list-langs 2>/dev/null | grep -Fxq 'eng'
-}
-
-soai_managed_runtime__prune_tesseract_languages() {
-    local env_dir="$1"
-    local tesseract_data="${env_dir}/share/tessdata"
-    if [ -z "$env_dir" ] || [ ! -d "$tesseract_data" ] || [ -L "$tesseract_data" ]; then
-        soai_managed_runtime__die "Managed Tesseract language directory is invalid: ${tesseract_data}" || return 1
-    fi
-    local language_file=""
-    for language_file in "$tesseract_data"/*.traineddata; do
-        if [ ! -e "$language_file" ]; then
-            continue
-        fi
-        if [ "${language_file##*/}" = "eng.traineddata" ]; then
-            continue
-        fi
-        if [ ! -f "$language_file" ] || [ -L "$language_file" ]; then
-            soai_managed_runtime__die "Managed Tesseract language entry is invalid: ${language_file}" || return 1
-        fi
-        rm -f -- "$language_file" || {
-            soai_managed_runtime__die "Failed to prune unused managed Tesseract language data: ${language_file}" || return 1
-        }
-    done
 }
 
 soai_managed_runtime__publish_tesseract_environment() {
@@ -53,7 +33,6 @@ soai_managed_runtime__ensure_tesseract() {
     local micromamba_version="${3:-2.5.0}"
     local offline_mode="${4:-0}"
     if soai_managed_runtime__tesseract_is_valid "$env_dir"; then
-        soai_managed_runtime__prune_tesseract_languages "$env_dir" || return 1
         soai_managed_runtime__publish_tesseract_environment "$env_dir"
         return 0
     fi
@@ -84,6 +63,5 @@ soai_managed_runtime__ensure_tesseract() {
         soai_managed_runtime__warn "Managed Tesseract 5.5.3 English OCR validation failed. Raster-only document OCR will report unavailable."
         return 0
     fi
-    soai_managed_runtime__prune_tesseract_languages "$env_dir" || return 1
     soai_managed_runtime__publish_tesseract_environment "$env_dir"
 }

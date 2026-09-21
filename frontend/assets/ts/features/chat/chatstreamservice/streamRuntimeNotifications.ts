@@ -12,6 +12,7 @@ import type { ChatStreamNotificationQueue } from '@features/chat/chatstreamservi
 type ChatStreamRuntimeAdmissionState = {
     markStreaming(session: { conversationId: string; requestId: string; assistantTimestamp: number; assistantTurnTimestamp: number; modelVariantIndex: number }): void;
     markTerminalizing(session: { conversationId: string; requestId: string; assistantTimestamp: number; assistantTurnTimestamp: number; modelVariantIndex: number }): void;
+    markCancellationTerminal(conversationId: string): void;
 };
 
 type ChatStreamRuntimeNotificationDependencies = {
@@ -20,6 +21,7 @@ type ChatStreamRuntimeNotificationDependencies = {
     conversationTitles: ChatStreamConversationTitleResolution;
     admissionState: ChatStreamRuntimeAdmissionState;
     terminalNotifications: ChatStreamTerminalNotificationCoordinator;
+    settleStopTerminal(conversationId: string, requestId: string): void;
 };
 
 const createChatStreamRuntime = (inputArguments: ChatStreamRuntimeNotificationDependencies): StreamRuntime => ({
@@ -28,7 +30,12 @@ const createChatStreamRuntime = (inputArguments: ChatStreamRuntimeNotificationDe
             return;
         }
         if (mutation?.type === 'terminal' || session.status !== 'streaming') {
-            inputArguments.admissionState.markTerminalizing(session);
+            if (session.stopOperationPending === true) {
+                inputArguments.admissionState.markCancellationTerminal(session.conversationId);
+            } else {
+                inputArguments.admissionState.markTerminalizing(session);
+            }
+            inputArguments.settleStopTerminal(session.conversationId, session.requestId);
         } else if (session.countsAsStreaming === true) {
             inputArguments.admissionState.markStreaming(session);
         }

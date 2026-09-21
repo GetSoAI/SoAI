@@ -11,7 +11,7 @@ import { requireSortableHeaders, resolveSortableAriaSortValue, updateSortableTab
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { HARDWARE_SOAIBENCH_HISTORY_MODAL_ID } from '@features/hardware/modals/constants.ts';
 import { SOAIBENCH_HISTORY_COLUMNS, resolveSoAIBenchHistoryColumnLabel, type SoAIBenchHistoryColumnDefinition } from '@features/hardware/modals/soaibenchhistory/columns.ts';
-import { HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION, HARDWARE_SOAIBENCH_HISTORY_SORT_ACTION } from '@features/hardware/modals/soaibenchhistory/constants.ts';
+import { HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION, HARDWARE_SOAIBENCH_HISTORY_SORT_ACTION } from '@features/hardware/modals/soaibenchhistory/constants.ts';
 import type { SoAIBenchHistorySortState } from '@features/hardware/modals/soaibenchhistory/sorting.ts';
 import type { SoAIBenchHistoryDisplayRow, SoAIBenchHistoryModalHost } from '@features/hardware/modals/soaibenchhistory/types.ts';
 
@@ -150,7 +150,7 @@ const setFooterActionsDisabled = (host: SoAIBenchHistoryModalHost, modalRoot: HT
     }
 };
 
-const createActionButton = (documentRef: Document, host: SoAIBenchHistoryModalHost, action: string, runId: string, iconName: 'copy' | 'download', className: string, label: string): HTMLButtonElement => {
+const createActionButton = (documentRef: Document, host: SoAIBenchHistoryModalHost, action: string, runId: string, iconName: 'copy' | 'download' | 'share' | 'close', className: string, label: string): HTMLButtonElement => {
     const button = documentRef.createElement('button');
     button.type = 'button';
     button.className = className;
@@ -169,8 +169,19 @@ const createActionsCell = (documentRef: Document, host: SoAIBenchHistoryModalHos
     group.className = 'hardware-soaibench-history-row-actions';
     group.appendChild(createActionButton(documentRef, host, HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION, row.runId, 'copy', 'ui-round-button ui-round-button--inline ui-round-button--copy', i18n.t('hardware.modals.soaibenchHistory.ariaLabels.copyRun')));
     group.appendChild(createActionButton(documentRef, host, HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION, row.runId, 'download', 'ui-round-button ui-round-button--inline hardware-soaibench-history-download-round-btn', i18n.t('hardware.modals.soaibenchHistory.ariaLabels.downloadRun')));
+    if (row.publicationEligible) group.appendChild(createActionButton(documentRef, host, HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION, row.runId, 'share', 'ui-round-button ui-round-button--inline ui-round-button--violet', i18n.t('hardware.soaibenchPublication.ariaLabel')));
+    if (row.localDeletionEligible) group.appendChild(createActionButton(documentRef, host, HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION, row.runId, 'close', 'ui-round-button ui-round-button--inline ui-round-button--delete', i18n.t('hardware.soaibenchPublication.deleteLocalHistory')));
     cell.appendChild(group);
     return cell;
+};
+
+const setRunActionsDisabled = (modalRoot: HTMLElement, runId: string, disabled: boolean): void => {
+    const actionButtons = dom.resolveAll('button[data-run-id]', modalRoot).filter((element): element is HTMLButtonElement => element instanceof HTMLButtonElement);
+    for (const element of actionButtons) {
+        if (element.dataset['runId'] !== runId) continue;
+        element.disabled = disabled;
+        element.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    }
 };
 
 const resetHistoryState = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLElement): void => {
@@ -211,4 +222,4 @@ const renderHistoryRows = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLEleme
     syncSortIndicators(host, modalRoot, sortState);
 };
 
-export { renderHistoryRows, resetHistoryState, setFooterActionsDisabled, setLoadingVisible, syncSortIndicators };
+export { renderHistoryRows, resetHistoryState, setFooterActionsDisabled, setLoadingVisible, setRunActionsDisabled, syncSortIndicators };

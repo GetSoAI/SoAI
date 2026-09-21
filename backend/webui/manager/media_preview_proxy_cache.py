@@ -7,18 +7,25 @@ import asyncio
 import hashlib
 import os
 import uuid
+from dataclasses import dataclass
+from typing import NamedTuple
 
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import SoAIError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.filesystem.atomic_writes import atomic_write_text_content
 from core.filesystem.open_files import open_text
+from core.hardware.protocols_storage import DiskSpaceReservationLeaseProtocol
+from core.hardware.reservation_claims import claim_reserved_write
 from core.logging.protocols import LoggerProtocol
 from core.logging.trace import get_logger
 from core.serialization.json import serialize_json_pretty_sorted
 from core.serialization.json_parsing import parse_json_value
 from core.timing.epoch import epoch_seconds_float
 from core.types.json import JSONDict, is_json_dict
+from webui.manager.media_preview_proxy_cache_metadata_schema import (
+    build_media_preview_cache_metadata_v1,
+)
 from webui.manager.media_preview_proxy_cache_pruning import prune_cache_dir
 
 __all__ = (
@@ -26,7 +33,10 @@ __all__ = (
     "build_cache_temp_path",
     "build_proxy_cache_key",
     "ensure_cache_dir_exists",
+    "MediaPreviewCachePaths",
+    "prepare_reserved_cache_file_promotion",
     "promote_cache_file_with_metadata_text",
+    "ReservedCacheFilePromotion",
     "prune_cache_dir",
     "remove_temp_file_if_present",
     "serialize_cache_metadata_text",
@@ -43,6 +53,11 @@ CACHE_METADATA_WRITE_EXCEPTIONS: tuple[type[Exception], ...] = (
     SoAIError,
     *RECOVERABLE_EXCEPTIONS,
 )
+
+
+class MediaPreviewCachePaths(NamedTuple):
+    data_path: str
+    meta_path: str
 
 
 async def remove_temp_file_if_present(
@@ -75,7 +90,7 @@ def build_proxy_cache_key(url: str) -> str:
     return digest
 
 
-def build_cache_paths(cache_dir: str, key: str) -> tuple[str, str]:
+def build_cache_paths(cache_dir: str, key: str) -> MediaPreviewCachePaths:
     normalized_dir = str(cache_dir or "").strip()
     if not normalized_dir:
         raise ValidationError("Cache directory must be provided.")
@@ -84,7 +99,7 @@ def build_cache_paths(cache_dir: str, key: str) -> tuple[str, str]:
         raise ValidationError("Cache key must be provided.")
     data_path = os.path.join(normalized_dir, f"{normalized_key}.bin")
     meta_path = os.path.join(normalized_dir, f"{normalized_key}.json")
-    return (data_path, meta_path)
+    return MediaPreviewCachePaths(data_path=data_path, meta_path=meta_path)
 
 
 def build_cache_temp_path(cache_dir: str, key: str) -> str:
@@ -125,6 +140,52 @@ async def promote_cache_file_with_metadata_text(
                 level="warning",
             )
         raise
+
+
+@dataclass(frozen=True, slots=True)
+class ReservedCacheFilePromotion:
+    temp_path: str
+    paths: MediaPreviewCachePaths
+    metadata_text: str
+
+    @property
+    def metadata_size(self) -> int:
+        return len(self.metadata_text.encode("utf-8"))
+
+    async def promote(self, reservation: DiskSpaceReservationLeaseProtocol | None) -> None:
+        with claim_reserved_write(reservation, size_bytes=self.metadata_size):
+            await promote_cache_file_with_metadata_text(
+                temp_path=self.temp_path,
+                data_path=self.paths.data_path,
+                meta_path=self.paths.meta_path,
+                metadata_text=self.metadata_text,
+            )
+
+
+def prepare_reserved_cache_file_promotion(
+    *,
+    temp_path: str,
+    paths: MediaPreviewCachePaths,
+    source_url: str,
+    final_url: str,
+    content_type: str,
+    bytes_written: int,
+    declared_content_length: int | None,
+) -> ReservedCacheFilePromotion:
+    metadata_text = serialize_cache_metadata_text(
+        build_media_preview_cache_metadata_v1(
+            source_url=source_url,
+            final_url=final_url,
+            content_type=content_type,
+            bytes_written=bytes_written,
+            declared_content_length=declared_content_length,
+        ),
+    )
+    return ReservedCacheFilePromotion(
+        temp_path=temp_path,
+        paths=paths,
+        metadata_text=metadata_text,
+    )
 
 
 async def try_read_cache_metadata(meta_path: str) -> JSONDict | None:

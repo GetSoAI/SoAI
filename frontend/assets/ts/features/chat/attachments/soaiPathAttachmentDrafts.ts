@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { generateSecureId } from '@core/primitives/idGenerator.ts';
-import type { ChatAttachment } from '@features/chat/ChatTypes.ts';
+import type { ChatAttachment, ChatAttachmentDraftSource } from '@features/chat/ChatTypes.ts';
 import { resolveSoaiPathDraftRecordPreviewType, resolveSoaiPathDraftRecordTitle, type SoaiPathDraftRecord } from '@features/chat/attachments/soaiPathDraftRecords.ts';
 
 const SOAI_PATH_LINK_MIME_TYPE = 'application/x-soai-path-link';
 
-const createSoaiPathAttachment = (record: SoaiPathDraftRecord): ChatAttachment => {
+const createSoaiPathAttachment = (record: SoaiPathDraftRecord, draftSource: Extract<ChatAttachmentDraftSource, 'browse' | 'soaiLink'>): ChatAttachment => {
     return {
         id: generateSecureId({ prefix: 'soai-path-link', format: 'hex' }),
         file: null,
@@ -16,6 +16,7 @@ const createSoaiPathAttachment = (record: SoaiPathDraftRecord): ChatAttachment =
         type: SOAI_PATH_LINK_MIME_TYPE,
         isImage: resolveSoaiPathDraftRecordPreviewType(record) === 'image',
         parseStatus: 'ready',
+        draftSource,
         soaiPathRecord: record
     };
 };

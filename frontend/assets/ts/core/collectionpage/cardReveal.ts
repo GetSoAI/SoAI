@@ -150,7 +150,11 @@ const stageCollectionGridCardReveal = (section: HTMLElement | null, grid: HTMLEl
 const armCollectionCardRevealTargetsForCommit = (nodes: readonly HTMLElement[]): void => {
     const document = nodes[0]?.ownerDocument;
     if (document === undefined || nodes.length === 0 || areCollectionCardRevealAnimationsDisabled(document)) return;
-    nodes.forEach((node, index) => armCollectionCardRevealTargetsAtIndex(node, index));
+    const targetsByNode = nodes.map(resolveCollectionCardRevealTargets);
+    targetsByNode.forEach((targets, index) => {
+        const delay = formatCollectionCardRevealDelay(index);
+        targets.forEach((target) => armCollectionCardRevealTarget(target, delay));
+    });
 };
 
 export { COLLECTION_CARD_REVEAL_LIMIT, areCollectionCardRevealAnimationsDisabled, armCollectionCardRevealTargets, armCollectionCardRevealTargetsAtIndex, armCollectionCardRevealTargetsForCommit, clearCollectionCardRevealHydrating, hasCollectionCardRevealTargetArmed, isCollectionCardRevealHydrating, markCollectionCardRevealHydrating, readCollectionCardRevealDelay, releaseCollectionCardReveal, stageCollectionCardReveal, stageCollectionGridCardReveal };

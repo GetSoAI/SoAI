@@ -89,9 +89,7 @@ class ModelCardRenderer extends BaseCardRenderer<ModelData | null, CardData> {
                 <td class="models-list-cell models-list-metrics">
                     <div class="ui-collection-list__facts models-list-metrics-facts">${buildModelListMetrics(model, this.host)}</div>
                 </td>
-                <td class="models-list-cell models-list-status ui-collection-list__state">
-                    ${statusContent}
-                </td>
+                <td class="models-list-cell models-list-status ui-collection-list__state">${statusContent}</td>
                 <td class="models-list-cell models-list-actions ui-collection-list__actions">${actionButtons}</td>
             </tr>
         `;
@@ -158,16 +156,8 @@ class ModelCardRenderer extends BaseCardRenderer<ModelData | null, CardData> {
                             <span class="model-plugin-name ui-collection-card__toggle-label">${providerLabel}</span>
                             ${modelTypeBadge}
                         </div>
-                        <div class="ui-collection-card__metrics-grid model-metrics-display">
-                            ${metricsMarkup}
-                        </div>
-                        <div class="ui-collection-card__status-grid model-metrics-status">
-                            <div class="ui-metric-item">
-                                <div class="ui-metric-badge ui-metric-badge--status-full ${metricStatusBadgeClass}">
-                                    <span class="ui-metric-value">${statusLabel}</span>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="ui-collection-card__metrics-grid model-metrics-display">${metricsMarkup}</div>
+                        <div class="ui-collection-card__status-grid model-metrics-status"><div class="ui-metric-item"><div class="ui-metric-badge ui-metric-badge--status-full ${metricStatusBadgeClass}"><span class="ui-metric-value">${statusLabel}</span></div></div></div>
                     </div>
                 </div>
                 <div class="model-card-footer">

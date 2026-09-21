@@ -57,6 +57,7 @@ interface CollectionBuild<TItem> {
     lookup: ReadonlyMap<string, TItem>;
     range: CollectionRange;
     dirtyIds: ReadonlySet<string>;
+    existingNodes: ReadonlyMap<string, HTMLElement>;
     plannedNodes: HTMLElement[];
     enteringElements: HTMLElement[];
     cursor: number;

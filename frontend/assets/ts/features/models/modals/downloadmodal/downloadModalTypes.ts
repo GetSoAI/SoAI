@@ -113,6 +113,7 @@ interface DownloadModalExecutionPort {
     streams: StreamTracker;
     variantProbe: VariantProbeController;
     getAvailablePlugins(): PluginRecord[];
+    waitForModelCatalogChange(signal: AbortSignal): Promise<void>;
     refreshModelsAfterCatalogMutation(): void;
     requireStreamManager(): StreamManagerContract;
     createStreamHandlers(streamId: string, message: string, options: { onProgress?: (event: JsonValue | null | undefined) => void }): StreamActionHandlers;

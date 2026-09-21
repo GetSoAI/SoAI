@@ -1,7 +1,7 @@
 /* SoAI - Shared page context contracts [frontend/assets/ts/core/pagecontext/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { NotificationType } from '@core/ui/notifications/notifications.ts';
+import type { NotificationType } from '@core/ui/notifications/types.ts';
 import type { SanitizeUrlOptions } from '@core/security/urlSanitizer.ts';
 import type { TelemetryEvent, TelemetryEventInput, TelemetryMetric, TelemetryStatus } from '@core/telemetry/contracts.ts';
 

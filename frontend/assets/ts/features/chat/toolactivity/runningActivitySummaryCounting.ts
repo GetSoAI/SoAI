@@ -32,7 +32,7 @@ type NestedToolCall = {
     startedAtMs: number | null;
 };
 
-type DurableBackgroundToolActivity = Pick<ToolActivityItem, 'toolName' | 'status' | 'result'>;
+type DurableBackgroundToolActivity = Pick<NestedToolCall, 'toolName' | 'status'> & { result?: JsonValue | undefined };
 
 const RUNNING_ACTIVITY_COUNT_DELAY_MS = 10000;
 
@@ -124,15 +124,17 @@ const isDurableBackgroundToolActivity = (tool: DurableBackgroundToolActivity): b
     return isCountedActivityRunning(tool.toolName, tool.status, tool.result) || (normalizeToolLeafName(tool.toolName) === 'subagent_spawn' && isSubagentSpawnRunning(tool));
 };
 
-const isNestedSubagentSpawnRunning = (tool: NestedToolCall): boolean => {
-    if (isActiveStatus(tool.status)) {
+const hasRunningBackgroundWork = (tool: DurableBackgroundToolActivity): boolean => {
+    if (isDurableBackgroundToolActivity(tool)) {
         return true;
     }
-    if (!isCompletedStatus(tool.status)) {
+    if (normalizeToolLeafName(tool.toolName) !== 'subagent_spawn') {
         return false;
     }
-    const subagent = tryResolveAcceptedSubagentPayloadRecord(tool.result);
-    return subagent !== null && isSubagentStatusValueActive(subagent['status']);
+    return resolveNestedToolCalls(tool.result).some((rawToolCall) => {
+        const toolCall = parseNestedToolCall(rawToolCall);
+        return toolCall !== null && hasRunningBackgroundWork(toolCall);
+    });
 };
 
 const newerRunningActivityTarget = (current: RunningActivityTarget | null, candidate: RunningActivityTarget): RunningActivityTarget => {
@@ -211,7 +213,7 @@ const countNestedRunningWork = (result: JsonValue | undefined, parentCallId: str
         }
         if (normalizeToolLeafName(toolCall.toolName) === 'subagent_spawn') {
             const subagentTarget = targetFromNestedTool(parentCallId, ancestorCallIds, toolCall);
-            if (isNestedSubagentSpawnRunning(toolCall)) {
+            if (isSubagentSpawnRunning(toolCall)) {
                 applyRunningTargetCount(counts, subagentTarget, nowMs, 'subagent');
             }
             const nestedParentCallId = subagentTarget === null ? buildSubagentChildToolCallId(parentCallId, toolCall.callId) : subagentTarget.callId;
@@ -282,5 +284,5 @@ const resolveCountedRunningActivitySummaryFingerprint = (message: ChatMessage): 
     return `${String(timelineLength)}|${projectionFingerprint}`;
 };
 
-export { applyToolActivityToRunningCounts, createRunningActivityCounts, isDurableBackgroundToolActivity, resolveCountedRunningActivitySummaryFingerprint };
+export { applyToolActivityToRunningCounts, createRunningActivityCounts, hasRunningBackgroundWork, isDurableBackgroundToolActivity, resolveCountedRunningActivitySummaryFingerprint };
 export type { DurableBackgroundToolActivity, RunningActivityCounts, RunningActivityTarget };

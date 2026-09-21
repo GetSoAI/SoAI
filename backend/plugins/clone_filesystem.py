@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from core.config.byte_sizes import MIB_BYTES
 from core.errors.exceptions import StateError, ValidationError
 from core.files.content_hashing import hash_descriptor_content
+from core.files.directory_descriptor_scope import open_secure_directory_descriptor
 from core.files.secure_open_flags import secure_read_only_open_flags
 from core.hardware.reserved_writes import write_reserved_bytes
 from plugins.clone.clone_source_manifest import (
@@ -205,13 +206,10 @@ def copy_model_tree(
     expected_required_bytes: int | None = None,
     expected_source_digest: bytes | None = None,
 ) -> None:
-    if os.name == "nt":
-        raise StateError("Secure clone copying requires directory-relative no-follow support.")
-    source_handle = os.open(
+    with open_secure_directory_descriptor(
         source,
-        secure_read_only_open_flags(directory=True),
-    )
-    try:
+        unsupported_message="Secure clone copying requires directory-relative no-follow support.",
+    ) as source_handle:
         source_stat = os.fstat(source_handle)
         if not stat.S_ISDIR(source_stat.st_mode):
             raise ValidationError("Clone model source must be a regular directory.")
@@ -261,5 +259,3 @@ def copy_model_tree(
             os.fsync(destination_handle)
         finally:
             os.close(destination_handle)
-    finally:
-        os.close(source_handle)

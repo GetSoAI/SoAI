@@ -53,6 +53,7 @@ class MCPWorker:
 
     def __init__(self, deps: MCPWorkerDependencies) -> None:
         self._deps = deps
+        self.database_users = deps.database_users
         self.database_files = deps.database_files
         self.database_conversation_knowledge_attachments = (
             deps.database_conversation_knowledge_attachments

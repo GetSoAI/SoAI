@@ -6,16 +6,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from core.di.validation import require_dependencies
-from core.tasks.protocols import (
-    CancellationCoordinatorProtocol,
-    CancellationEventBusProtocol,
-    CancellationHistoryProtocol,
-    TaskCancellationBinderProtocol,
-    TaskFinalizerTrackerProtocol,
-    TaskTypeRoutingServiceProtocol,
-    TokenCollectionProtocol,
+from core.app.protocols import (
+    CancellationSystemProtocol,
+    CommunicationsServicesProtocol,
 )
+from core.app.service_groups import HardwareRuntimeServices
+from core.di.validation import require_dependencies
+from core.tasks.protocols import TaskTypeRoutingServiceProtocol
 from core.tasks.protocols_query import TaskRegistryQueryView
 
 if TYPE_CHECKING:
@@ -29,7 +26,6 @@ if TYPE_CHECKING:
         AuthoritativePluginStateDispatcher,
     )
     from app.background.automation_service import AutomationService
-    from app.background.communications_sync_actor import CommunicationsSyncActor
     from app.background.conversation_input_dispatcher import ConversationInputDispatcher
     from app.background.conversation_pdf_export_sweeper import ConversationPdfExportSweeper
     from app.background.database_receipt_sweeper import DatabaseReceiptSweeper
@@ -41,22 +37,11 @@ if TYPE_CHECKING:
         PluginCircuitBreakerNotificationService,
     )
     from app.background.webui_attachment_sweeper import WebuiAttachmentSweeper
-    from core.calendar.protocols import CalendarServiceProtocol
     from core.config.protocols import ConfigManagerProtocol
     from core.config.runtime_config import Config
     from core.events.protocols import DurableEventDeliveryProtocol, EventBusProtocol
-    from core.external_accounts.linked_account_types import LinkedAccountCapabilities
-    from core.external_accounts.protocols import ExternalAccountsServiceProtocol
-    from core.hardware.protocols import (
-        HardwareControlServiceProtocol,
-        HardwareGpuTuningProtocol,
-        HardwareManagerProtocol,
-    )
-    from core.hardware.protocols_soaibench import SoAIBenchServiceProtocol
-    from core.hardware.protocols_storage import StorageManagerProtocol
     from core.logging.protocols import LoggingManagerProtocol
-    from core.mail.protocols import MailServiceProtocol
-    from core.messaging.gateway.protocols import MessagingGatewayProtocol
+    from core.messaging.protocols_gateway import MessagingGatewayProtocol
     from core.metrics.protocols import MetricsManagerProtocol
     from core.notifications.protocols import ConversationAttentionCoordinatorProtocol
     from core.openai.token_counter import PromptTokenCounter
@@ -69,7 +54,6 @@ if TYPE_CHECKING:
         StateAggregatorProtocol,
     )
     from core.system.protocols import CommandExecutorProtocol
-    from core.terminal.protocols import TerminalServiceProtocol
     from tasks.registry.registry import TaskRegistry
 
 __all__ = (
@@ -119,22 +103,12 @@ class InfrastructureServices:
     automation_service: AutomationService
     conversation_input_dispatcher: ConversationInputDispatcher
     http_client: AsyncClient
-    hw_manager: HardwareManagerProtocol
-    hw_gpu_tuning: HardwareGpuTuningProtocol
-    hardware_control: HardwareControlServiceProtocol
-    hardware_soaibench: SoAIBenchServiceProtocol
-    terminal: TerminalServiceProtocol
-    storage_manager: StorageManagerProtocol
+    hardware: HardwareRuntimeServices
     prompt_token_counter: PromptTokenCounter
     command_executor: CommandExecutorProtocol | None
     secret_handle_store: SecretHandleStore
-    external_accounts: ExternalAccountsServiceProtocol
-    mail_accounts: LinkedAccountCapabilities
-    calendar_accounts: LinkedAccountCapabilities
-    mail: MailServiceProtocol
-    calendar: CalendarServiceProtocol
+    communications: CommunicationsServicesProtocol
     conversation_attention: ConversationAttentionCoordinatorProtocol
-    communications_sync_actor: CommunicationsSyncActor
     messaging_gateway: MessagingGatewayProtocol | None = None
 
     def __post_init__(self) -> None:
@@ -157,32 +131,17 @@ class InfrastructureServices:
             automation_service=self.automation_service,
             conversation_input_dispatcher=self.conversation_input_dispatcher,
             http_client=self.http_client,
-            hw_manager=self.hw_manager,
-            hw_gpu_tuning=self.hw_gpu_tuning,
-            hardware_control=self.hardware_control,
-            hardware_soaibench=self.hardware_soaibench,
-            terminal=self.terminal,
-            storage_manager=self.storage_manager,
+            hardware=self.hardware,
             prompt_token_counter=self.prompt_token_counter,
             secret_handle_store=self.secret_handle_store,
-            external_accounts=self.external_accounts,
-            mail_accounts=self.mail_accounts,
-            calendar_accounts=self.calendar_accounts,
-            mail=self.mail,
-            calendar=self.calendar,
+            communications=self.communications,
             conversation_attention=self.conversation_attention,
-            communications_sync_actor=self.communications_sync_actor,
         )
 
 
 @dataclass(slots=True, frozen=True)
 class TaskServices:
-    cancellation_coordinator: CancellationCoordinatorProtocol
-    cancellation_history: CancellationHistoryProtocol
-    cancellation_event_bus: CancellationEventBusProtocol
-    token_collection: TokenCollectionProtocol
-    task_cancellation_binder: TaskCancellationBinderProtocol
-    task_finalizer_tracker: TaskFinalizerTrackerProtocol
+    cancellation: CancellationSystemProtocol
     task_type_routing_service: TaskTypeRoutingServiceProtocol
     task_registry: TaskRegistry
     task_registry_queries: TaskRegistryQueryView
@@ -190,12 +149,7 @@ class TaskServices:
     def __post_init__(self) -> None:
         require_dependencies(
             owner="TaskServices",
-            cancellation_coordinator=self.cancellation_coordinator,
-            cancellation_history=self.cancellation_history,
-            cancellation_event_bus=self.cancellation_event_bus,
-            token_collection=self.token_collection,
-            task_cancellation_binder=self.task_cancellation_binder,
-            task_finalizer_tracker=self.task_finalizer_tracker,
+            cancellation=self.cancellation,
             task_type_routing_service=self.task_type_routing_service,
             task_registry=self.task_registry,
             task_registry_queries=self.task_registry_queries,

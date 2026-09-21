@@ -6,11 +6,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from core.errors.exceptions import ValidationError
-from core.validation.integers import (
+from core.validation.numbers import coerce_float_from_json
+from core.validation.requirements import (
     require_non_negative_exact_int,
     require_positive_exact_int,
 )
-from core.validation.numbers import coerce_float_from_json
 from core.validation.strings import coerce_optional_trimmed_str
 
 __all__ = (

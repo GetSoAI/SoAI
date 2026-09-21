@@ -11,7 +11,7 @@ const CHAT_ATTACH_MODAL_ACTIONS = Object.freeze({
     CAMERA_SHUTTER: 'chat-attach-modal:camera-shutter',
     CAMERA_RETAKE: 'chat-attach-modal:camera-retake',
     CAMERA_USE: 'chat-attach-modal:camera-use',
-    CAMERA_FLIP: 'chat-attach-modal:camera-flip',
+    CAMERA_SWITCH: 'chat-attach-modal:camera-switch',
     BROWSE_SELECT: 'chat-attach-modal:browse-select',
     BROWSE_OPEN: 'chat-attach-modal:browse-open',
     BROWSE_SORT: 'chat-attach-modal:browse-sort',
@@ -20,6 +20,7 @@ const CHAT_ATTACH_MODAL_ACTIONS = Object.freeze({
     BROWSE_ATTACH: 'chat-attach-modal:browse-attach',
     KNOWLEDGE_IMPORT: 'chat-attach-modal:knowledge-import',
     KNOWLEDGE_REINDEX: 'chat-attach-modal:knowledge-reindex',
+    REMOVE_ALL: 'chat-attach-modal:remove-all',
     ATTACH_FOLDER: 'chat-attach-modal:attach-folder',
     ATTACH_DOCUMENTS: 'chat-attach-modal:attach-documents'
 });

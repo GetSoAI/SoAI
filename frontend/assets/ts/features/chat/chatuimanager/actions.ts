@@ -5,10 +5,9 @@ import { prefersReducedMotion } from '@core/animations/prefersReducedMotion.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { renderExpandedActivityDetails, resolveActivityToggleContext, resolveCurrentActivityToggleContext, type ResolvedActivityToggleContext } from '@features/chat/chatuimanager/toolActivityExpansion.ts';
 import { detailsRootHasPopulatedContent, readInlineActivityDetailsRootSignature } from '@features/chat/message/inlineActivityDetailsLifecycle.ts';
-import { INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE, buildInlineActivityDetailsIdentityKey, resolveDirectInlineActivityDetailsRoot } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
+import { INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE, resolveDirectInlineActivityDetailsRoot } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
 import { completeInlineActivityDetailsOpenState, isInlineActivityDetailsPending, resetInlineActivityDetailsClosedState } from '@features/chat/message/inlineActivityDetailsPendingState.ts';
 import { captureAssistantViewportStability, withCapturedAssistantViewportStability } from '@features/chat/message/assistantViewportStability.ts';
-import { applyKeyedScrollableState, readKeyedScrollableState } from '@features/chat/stream/streamScrollableState.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 
 const COLLAPSE_SETTLED_TRANSITION_PROPERTY = 'opacity';
@@ -77,10 +76,6 @@ export async function toggleToolActivityItem(context: ChatUIManagerContext, head
             callId: resolved.callId,
             timelineSequenceIndex: resolved.identity.timelineSequenceIndex
         });
-        const preserved = readKeyedScrollableState(item);
-        if (preserved) {
-            context.state.inlineActivityScrollStateByKey.set(buildInlineActivityDetailsIdentityKey(resolved.identity), preserved);
-        }
     } else {
         const existingDetails = resolveDirectInlineActivityDetailsRoot(item);
         const existingSignature = existingDetails instanceof HTMLElement ? readInlineActivityDetailsRootSignature(existingDetails) : null;
@@ -143,16 +138,12 @@ export async function toggleToolActivityItem(context: ChatUIManagerContext, head
             });
         }
     } else {
-        const preserved = context.state.inlineActivityScrollStateByKey.get(buildInlineActivityDetailsIdentityKey(activeResolved.identity)) ?? null;
         if (!activeItem.isConnected) {
             updateInlineActivityCollapsedState(context, activeResolved, nextCollapsed);
             return;
         }
         withCapturedAssistantViewportStability(viewportStability, () => {
             completeInlineActivityDetailsOpenState(activeItem);
-            if (preserved) {
-                applyKeyedScrollableState(activeItem, preserved);
-            }
         });
     }
 

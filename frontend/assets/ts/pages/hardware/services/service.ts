@@ -13,7 +13,7 @@ import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import { requestWebSocketSnapshotRecord } from '@core/websocketclient/snapshotPayload.ts';
 import { ExportPreviewModal } from '@features/exportpreview/public.ts';
-import { SoAIBenchHistoryModal, SoAIBenchRunModal, SystemInfoModal } from '@features/hardware/public.ts';
+import { SoAIBenchHistoryModal, SoAIBenchPublicationFlow, SoAIBenchRunModal, SystemInfoModal } from '@features/hardware/public.ts';
 import { createHardwareProcessController } from '@pages/hardware/adapters/adapters.ts';
 import type { HardwarePageDependencies } from '@pages/hardware/contracts/hardwarePageSupport.ts';
 import { normalizeHardwareNotificationType } from '@pages/hardware/controllers/effects.ts';
@@ -27,6 +27,8 @@ import { StorageCardRenderer } from '@pages/hardware/rendering/cards/StorageCard
 import type { HardwareGpuControllerDependencies, HardwareProcessControllerDependencies, HardwareUiDependencies } from '@pages/hardware/services/contracts.ts';
 import { ProcessTableManager } from '@pages/hardware/widgets/processes/service.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
+import { i18n } from '@core/i18n/index.ts';
+import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 
 const resolveHardwareStreamManager = async (streaming: HardwareGpuControllerDependencies['owners']['streaming'], options: { signal?: AbortSignal | null | undefined } = {}): Promise<StreamRefresher> => {
     throwIfAborted(options.signal ?? undefined);
@@ -139,7 +141,26 @@ const initializeHardwareUi = (
             showNotification: (message, type): void => owners.feedback.show(message, type)
         }
     });
+    const publicationFlow = new SoAIBenchPublicationFlow({
+        preview: (runId) => owners.api.hardware.gpuSoAIBench.preview(runId),
+        showResult: async (receipt, message) => {
+            await requireDialogsService().showExternalLinkModal({
+                url: receipt.publicUrl,
+                title: i18n.t('common.success'),
+                message,
+                cancelText: i18n.t('common.close'),
+                confirmText: i18n.t('common.ok')
+            });
+        },
+        publish: (runId) => owners.api.hardware.gpuSoAIBench.publish(runId),
+        confirm: (options) => requireDialogsService().showConfirmation(options),
+        showNotification: (message, type) => owners.feedback.show(message, type)
+    });
     const soaibenchHistoryModal = new SoAIBenchHistoryModal({
+        deleteLocalRun: async (runId) => {
+            await owners.api.hardware.gpuSoAIBench.deleteLocal(runId);
+        },
+        publishRun: (run, setDisabled) => publicationFlow.publish({ runId: run.runId, publicationEligible: run.publicationEligible, overallScore: run.telemetry.overallScore, measuredPasses: 5 }, setDisabled),
         host: createSoAIBenchHistoryModalHost({
             modals: owners.services.modals,
             downloadHistoryCsv: (deviceId: string): Promise<Response> => owners.api.hardware.gpuSoAIBench.exportHistory(deviceId),
@@ -156,6 +177,7 @@ const initializeHardwareUi = (
         })
     });
     const soaibenchRunModal = new SoAIBenchRunModal({
+        publishRun: (run, setDisabled) => publicationFlow.publish({ runId: run.runId, publicationEligible: run.publicationEligible, overallScore: run.metrics.overallScore, measuredPasses: run.metrics.measuredPassesCompleted }, setDisabled),
         host: {
             modals: owners.services.modals,
             requireHTMLElement: (selector: string | Element, context?: Element): HTMLElement => owners.pageDom.requireHTMLElement(selector, context),

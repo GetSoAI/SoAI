@@ -58,6 +58,7 @@ interface SystemManagerExecutionHost extends ExecutionHost {
 }
 
 interface SystemManagerWorkflowHost {
+    acquirePreferencesMutation: () => (() => void) | null;
     canRunSystemAction: (action: SystemManagerActionId) => boolean;
     setTimer: (functionValue: () => void, delay: number) => number;
     clearTimer: (timerId: number | null | undefined) => void;

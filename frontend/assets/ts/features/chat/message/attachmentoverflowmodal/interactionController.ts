@@ -10,7 +10,6 @@ import { TOOLBAR_CLASS_NAME } from '@features/chat/message/attachmentoverflowmod
 interface AttachmentOverflowInteractionControllerDependencies {
     onTab: (tab: AttachmentOverflowCategoryFilter) => void;
     onRetry: () => void;
-    onRemoveDraftKnowledge: (actionElement: HTMLElement) => void;
     onKnowledgePreview: (actionElement: HTMLElement) => void;
     onKnowledgePreviewFirst: (actionElement: HTMLElement) => void;
     onSoaiPathPreview: (actionElement: HTMLElement) => void;
@@ -67,11 +66,6 @@ class AttachmentOverflowInteractionController {
         if (action === 'retry') {
             event.preventDefault();
             this.#dependencies.onRetry();
-            return;
-        }
-        if (action === 'knowledge-remove-draft') {
-            event.preventDefault();
-            this.#dependencies.onRemoveDraftKnowledge(actionElement);
             return;
         }
         if (action === 'knowledge-preview') {

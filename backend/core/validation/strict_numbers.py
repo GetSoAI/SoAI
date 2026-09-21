@@ -17,6 +17,7 @@ __all__ = (
     "coerce_non_negative_int_strict_or_zero",
     "coerce_optional_non_negative_int_strict",
     "coerce_optional_positive_int_strict",
+    "require_finite_float_strict",
     "require_int_in_range_strict",
     "require_non_negative_int_strict",
     "require_optional_non_negative_int_strict",
@@ -57,6 +58,18 @@ def require_non_negative_int_strict(value: JSONValue, *, error_message: str) -> 
     if not is_non_negative_strict_int(value):
         raise ValidationError(error_message)
     return value
+
+
+def require_finite_float_strict(value: JSONValue, *, error_message: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise ValidationError(error_message)
+    try:
+        number = float(value)
+    except OverflowError as exception:
+        raise ValidationError(error_message) from exception
+    if not math.isfinite(number):
+        raise ValidationError(error_message)
+    return number
 
 
 def require_optional_non_negative_int_strict(value: JSONValue, *, error_message: str) -> int | None:

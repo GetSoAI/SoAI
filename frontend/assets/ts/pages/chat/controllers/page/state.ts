@@ -174,4 +174,6 @@ const isInlineMultimediaPreviewsEnabled = (parameters: ChatParameters): boolean 
 
 const isShowActivitiesEnabled = (parameters: ChatParameters): boolean => parameters.showActivities !== false;
 
-export { applyMcpConfigToConversationModelSettings, dispatchMessageAction, getCurrentConversation, isInlineMultimediaPreviewsEnabled, isRichTextEnabled, isShowActivitiesEnabled, isThinkingFeatureEnabled, reportRequestFailure, requireConversationIdFromElement, updateConversationWorkspacePathConfig };
+const isShowActivityElapsedTimeEnabled = (parameters: ChatParameters): boolean => parameters.showActivityElapsedTime !== false;
+
+export { applyMcpConfigToConversationModelSettings, dispatchMessageAction, getCurrentConversation, isInlineMultimediaPreviewsEnabled, isRichTextEnabled, isShowActivitiesEnabled, isShowActivityElapsedTimeEnabled, isThinkingFeatureEnabled, reportRequestFailure, requireConversationIdFromElement, updateConversationWorkspacePathConfig };

@@ -231,6 +231,8 @@ interface ChatAttachmentErrorHandler {
     (error: Error, title: string, options?: { notify?: boolean }): void;
 }
 
+type ChatAttachmentDraftSource = 'upload' | 'camera' | 'browse' | 'soaiLink';
+
 interface ChatAttachment {
     id: string;
     file: File | null;
@@ -264,6 +266,7 @@ interface ChatAttachment {
     extractedText?: string;
     extractionNote?: string;
     extractionTruncated?: boolean;
+    draftSource?: ChatAttachmentDraftSource;
     soaiPathRecord?: SoaiPathDraftRecord;
 }
 
@@ -278,4 +281,4 @@ interface ChatConversationUIManager {
     setAutoScrollEnabled(enabled: boolean): void;
 }
 
-export type { MessageRole, ImageReference, BaseSegment, TextSegment, ThinkingSegment, ImageSegment, ToolFunctionCall, ToolCallSegment, ToolCall, StructuredContentSegment, ChatContentSegment, ChatContent, SoaiCompactionPromptMessage, SoaiCompactionMarker, ChatMessage, ConversationMessage, ConversationContract, ToolActivityStatus, ToolActivityCodeDiff, ToolActivityItem, ThinkingTimelineAnchorType, ThinkingTimelineItem, AssistantEventTimelineItem, ChatErrorHandler, ChatAttachmentErrorHandler, ChatAttachment, ChatAttachmentUIManager, ChatConversationUIManager };
+export type { MessageRole, ImageReference, BaseSegment, TextSegment, ThinkingSegment, ImageSegment, ToolFunctionCall, ToolCallSegment, ToolCall, StructuredContentSegment, ChatContentSegment, ChatContent, SoaiCompactionPromptMessage, SoaiCompactionMarker, ChatMessage, ConversationMessage, ConversationContract, ToolActivityStatus, ToolActivityCodeDiff, ToolActivityItem, ThinkingTimelineAnchorType, ThinkingTimelineItem, AssistantEventTimelineItem, ChatErrorHandler, ChatAttachmentErrorHandler, ChatAttachment, ChatAttachmentDraftSource, ChatAttachmentUIManager, ChatConversationUIManager };

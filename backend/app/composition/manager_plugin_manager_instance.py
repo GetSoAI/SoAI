@@ -97,7 +97,7 @@ async def build_plugin_manager_instance(
         log_manager=log_manager,
         runtime_flags=runtime_flags,
         hardware_manager=hardware_manager,
-        storage_manager=infrastructure_services.storage_manager,
+        storage_manager=infrastructure_services.hardware.storage,
         event_bus=event_bus,
         metrics_manager=metrics_manager,
         config_manager=config_manager,

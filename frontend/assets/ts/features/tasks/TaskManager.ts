@@ -7,6 +7,7 @@ import { TASK_MANAGER_SERVICE_ID, type TaskLocalOperationUpdate, type TaskOperat
 import { isBoolean, isFunction } from '@core/typeGuards.ts';
 import { showNotification, type NotificationType } from '@core/ui/notifications/notifications.ts';
 import { TaskOperationApiController } from '@features/tasks/taskmanager/TaskOperationApiController.ts';
+import { TaskOperationCancellationController } from '@features/tasks/taskmanager/TaskOperationCancellationController.ts';
 import { TaskManagerActions } from '@features/tasks/taskmanager/TaskManagerActions.ts';
 import { bindTaskManagerInteractionBindings } from '@features/tasks/taskmanager/taskManagerInteractionBindings.ts';
 import type { TaskManagerDependencies, TaskManagerElements, TaskManagerStoreApi } from '@features/tasks/taskmanager/taskManagerTypes.ts';
@@ -20,6 +21,7 @@ class TaskManager extends LifecycleModel implements TaskOperationsApi {
     #store: TaskManagerStoreApi;
     #view: TaskManagerView;
     #actions: TaskManagerActions;
+    #operationCancellation: TaskOperationCancellationController;
     #operations: TaskOperationApiController;
     #elements: TaskManagerElements | null = null;
     #storeSubscription: (() => void) | null = null;
@@ -53,14 +55,20 @@ class TaskManager extends LifecycleModel implements TaskOperationsApi {
         this.#dependencies = dependencies;
         this.#store = dependencies.createStore();
         this.#view = new TaskManagerView({ store: this.#store, statusManager: dependencies.statusManager });
+        this.#operationCancellation = new TaskOperationCancellationController({
+            store: this.#store,
+            stream: dependencies.stream,
+            showNotification: (message: string, type: NotificationType) => showNotification(message, type)
+        });
         this.#actions = new TaskManagerActions({
             apiClient: dependencies.apiClient,
             stream: dependencies.stream,
             store: this.#store,
+            operationCancellation: this.#operationCancellation,
             showNotification: (message: string, type: NotificationType) => showNotification(message, type),
             hidePanel: () => this.#collapse()
         });
-        this.#operations = new TaskOperationApiController({ store: this.#store, actions: this.#actions });
+        this.#operations = new TaskOperationApiController({ store: this.#store, cancellation: this.#operationCancellation });
     }
 
     async initialize(): Promise<void> {
@@ -108,6 +116,7 @@ class TaskManager extends LifecycleModel implements TaskOperationsApi {
 
     override async onDestroy(): Promise<void> {
         this.#nextLifecycleGeneration();
+        this.#operationCancellation.reset();
         if (this.isExpanded) {
             if (this.#elements) {
                 this.collapse();

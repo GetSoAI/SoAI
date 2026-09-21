@@ -5,27 +5,32 @@ from __future__ import annotations
 
 import asyncio
 import os
-import sys
 from dataclasses import dataclass
 from html import escape
 from urllib.parse import urlparse
-from urllib.request import pathname2url, url2pathname
+from urllib.request import url2pathname
 
 from playwright.async_api import Error, Route, async_playwright
 
 from core.bootstrap.playwright_browser_state import is_expected_chromium_installed
 from core.bootstrap.runtime_directories import ensure_runtime_directory_environment
-from core.browser.playwright_installation import install_chromium_async
-from core.errors.exceptions import SoAITimeoutError, ValidationError
+from core.errors.exceptions import ServiceUnavailableError, SoAITimeoutError, ValidationError
 from core.errors.external_service_exception import ExternalServiceError
-from core.files.locking import async_guarded_file_lock
-from core.filesystem.open_files import open_text
+from core.files.path_policy import is_path_inside_directory
+from core.filesystem.open_files import open_binary, open_text
 from core.meta.paths import get_repo_root
+from core.serialization.base64_values import encode_base64_ascii
 
 __all__ = (
     "HtmlPdfRenderRequest",
+    "PdfBrowserUnavailableError",
+    "require_pdf_browser_ready",
     "render_html_file_to_pdf",
 )
+
+
+class PdfBrowserUnavailableError(ServiceUnavailableError):
+    code: str | int = "pdf_browser_unavailable"
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,7 +44,9 @@ class HtmlPdfRenderRequest:
 
 
 def _stylesheet_link_url(path: str) -> str:
-    return f"file://{pathname2url(os.path.abspath(path))}"
+    with open_binary(path, mode="rb") as handle:
+        stylesheet = handle.read()
+    return f"data:text/css;base64,{encode_base64_ascii(stylesheet)}"
 
 
 def _insert_stylesheet_link(document_html: str, stylesheet_path: str) -> str:
@@ -64,28 +71,29 @@ def _resolve_launch_args() -> list[str]:
     return []
 
 
-async def _ensure_chromium_available() -> None:
+def _is_pdf_browser_ready() -> bool:
     repo_root = get_repo_root()
-    runtime_environment = ensure_runtime_directory_environment(repo_root)
-    browsers_path = runtime_environment.playwright_browsers_path
-    if is_expected_chromium_installed(browsers_path=browsers_path):
+    try:
+        runtime_environment = ensure_runtime_directory_environment(repo_root)
+    except OSError:
+        return False
+    return is_expected_chromium_installed(
+        browsers_path=runtime_environment.playwright_browsers_path,
+    )
+
+
+async def require_pdf_browser_ready() -> None:
+    if await asyncio.to_thread(_is_pdf_browser_ready):
         return
-    lock_path = os.path.join(runtime_environment.locks_path, "playwright-chromium-install.lock")
-    async with async_guarded_file_lock(lock_path, timeout=600.0):
-        if is_expected_chromium_installed(browsers_path=browsers_path):
-            return
-        await install_chromium_async(
-            python_executable=sys.executable,
-            repo_root_path=repo_root,
-            timeout_sec=600,
-            force=False,
-        )
+    raise PdfBrowserUnavailableError(
+        "PDF export browser runtime is unavailable.",
+        operation="core.browser.html_pdf_renderer.require_browser",
+    )
 
 
 def _is_contained_path(candidate: str, allowed_roots: tuple[str, ...]) -> bool:
     return any(
-        candidate == root or candidate.startswith(root + os.sep)
-        for root in (os.path.realpath(entry) for entry in allowed_roots)
+        is_path_inside_directory(os.path.realpath(root), candidate) for root in allowed_roots
     )
 
 
@@ -133,10 +141,14 @@ async def _render_once(request: HtmlPdfRenderRequest) -> bytes:
     with open_text(request.html_path, mode="r", encoding="utf-8", errors="strict") as handle:
         document_html = handle.read()
     if stylesheet_path:
-        document_html = _insert_stylesheet_link(document_html, stylesheet_path)
-    await _ensure_chromium_available()
+        document_html = await asyncio.to_thread(
+            _insert_stylesheet_link,
+            document_html,
+            stylesheet_path,
+        )
     display_header_footer = bool(request.header_template) or bool(request.footer_template)
     async with async_playwright() as playwright:
+        await require_pdf_browser_ready()
         browser = await playwright.chromium.launch(
             headless=True,
             args=_resolve_launch_args(),
@@ -162,6 +174,7 @@ async def _render_once(request: HtmlPdfRenderRequest) -> bytes:
                     wait_until="load",
                     timeout=float(request.timeout_sec * 1000),
                 )
+                await page.evaluate("document.fonts.ready")
                 await page.emulate_media(media="print")
                 return await page.pdf(
                     format="A4",
@@ -191,4 +204,5 @@ async def render_html_file_to_pdf(request: HtmlPdfRenderRequest) -> bytes:
     except TimeoutError as exception:
         raise SoAITimeoutError("Chromium PDF rendering timed out.") from exception
     except Error as exception:
+        await require_pdf_browser_ready()
         raise ExternalServiceError("Chromium PDF rendering failed.") from exception

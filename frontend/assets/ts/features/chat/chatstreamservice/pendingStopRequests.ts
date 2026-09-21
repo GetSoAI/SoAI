@@ -3,7 +3,7 @@
 
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 
-const PENDING_STOP_REQUEST_TTL_MS = 4000;
+const PENDING_STOP_REQUEST_TTL_MS = 30000;
 
 interface PendingStopRequest {
     forcePendingSteers: boolean;

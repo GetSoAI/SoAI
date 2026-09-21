@@ -26,6 +26,7 @@ from core.files.storage_root_resolution import resolve_managed_files_storage_roo
 from core.logging.trace import get_logger
 from core.media.config import resolve_media_parse_timeout
 from core.timing.epoch import epoch_ms
+from core.users.ocr_preferences import resolve_user_ocr_language
 from core.validation.strict_numbers import require_non_negative_int_strict
 from features.api.runtime.webui_attachments.provider_text_settings import (
     read_provider_text_settings,
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
         FilesPathResolverProtocol,
     )
     from core.types.json import JSONDict
+    from core.users.protocols_database import DatabaseUsersProtocol
 
     type DirectAttachmentParseStatus = Literal["parsed", "failed", "stale"]
 
@@ -65,6 +67,7 @@ DIRECT_ATTACHMENT_PARSE_EXCEPTIONS: tuple[type[Exception], ...] = (
 class DirectAttachmentParseDependencies:
     config: ConfigProtocol
     files: FilesPathResolverProtocol
+    database_users: DatabaseUsersProtocol
     database_files: DatabaseFilesProtocol
     database_attachments: DatabaseConversationAttachmentsProtocol
     document_reader: DocumentReaderProtocol
@@ -76,6 +79,7 @@ class DirectAttachmentParseDependencies:
             owner="DirectAttachmentParseDependencies",
             config=self.config,
             files=self.files,
+            database_users=self.database_users,
             database_files=self.database_files,
             database_attachments=self.database_attachments,
             document_reader=self.document_reader,
@@ -170,6 +174,7 @@ async def parse_direct_attachment(
         error_message="Attachment user_id is invalid.",
     )
     try:
+        ocr_language = await resolve_user_ocr_language(deps.database_users, user_id)
         settings = read_provider_text_settings(deps.config)
         filename = _require_attachment_string(attachment, "filename")
         mime_type = _require_attachment_string(attachment, "mime_type")
@@ -180,6 +185,7 @@ async def parse_direct_attachment(
         )
         try:
             outcome = await classify_attachment_descriptor_for_provider(
+                ocr_language=ocr_language,
                 document_reader=deps.document_reader,
                 parser_registry_factory=deps.parser_registry_factory,
                 descriptor=descriptor,

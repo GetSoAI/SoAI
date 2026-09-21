@@ -76,6 +76,10 @@ const startChatStreamSession = async (inputArguments: StartChatStreamSessionArgu
     }
 
     const pendingStop = resolveStopRequest(inputArguments.pendingStopRequests, identity.convId, identity.requestId, nowMs);
+    if (pendingStop !== null) {
+        inputArguments.followerSessions.syncActiveStatusReconciliation();
+        return 'cancelled';
+    }
     const meta: ChatStreamSessionMeta = {
         conversationId: identity.convId,
         conversationTitle: options.conversationTitle,
@@ -99,11 +103,6 @@ const startChatStreamSession = async (inputArguments: StartChatStreamSessionArgu
         onFirstServerEvent: options.onFirstServerEvent
     });
     inputArguments.sessions.set(identity.convId, session);
-    if (pendingStop) {
-        session.pendingCancellation = { reason: pendingStop.reason, forcePendingSteers: pendingStop.forcePendingSteers };
-        abortController.abort();
-    }
-
     session.promise = runStreamSession(
         session,
         options.requestBody,

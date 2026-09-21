@@ -32,7 +32,7 @@ const handleAskUserCancelHotkey = (host: ChatRootEventsHost, target: Element, ev
     });
 };
 
-const dispatchSendOrStopHotkey = (host: ChatRootEventsHost, event: KeyboardEvent, operationId: string): boolean => {
+const dispatchComposerPrimaryHotkey = (host: ChatRootEventsHost, event: KeyboardEvent, operationId: string, action: typeof CHAT_ACTIONS.SEND_OR_STOP | typeof CHAT_ACTIONS.STOP_STREAMING = CHAT_ACTIONS.SEND_OR_STOP): boolean => {
     const sendButton = resolveSendButton(host);
     if (!(sendButton instanceof HTMLButtonElement)) {
         return false;
@@ -41,7 +41,11 @@ const dispatchSendOrStopHotkey = (host: ChatRootEventsHost, event: KeyboardEvent
     if (isActionElementDisabled(sendButton) && (admission === null || admission.phase === 'inactive')) {
         return true;
     }
-    host.shell.runUiTask(operationId, () => host.shell.dispatchDataAction('chat:send-or-stop', sendButton, event));
+    if (action === CHAT_ACTIONS.STOP_STREAMING) {
+        host.shell.dispatchDataAction(action, sendButton, event);
+    } else {
+        host.shell.runUiTask(operationId, () => host.shell.dispatchDataAction(action, sendButton, event));
+    }
     return true;
 };
 
@@ -99,7 +103,7 @@ const handleRootKeydown = (host: ChatRootEventsHost, event: Event): void => {
         const admission = host.composer.resolveCurrentTurnAdmission();
         if (admission?.canStop === true) {
             event.preventDefault();
-            dispatchSendOrStopHotkey(host, event, 'chat:stopStreamingHotkey');
+            dispatchComposerPrimaryHotkey(host, event, 'chat:stopStreamingHotkey', CHAT_ACTIONS.STOP_STREAMING);
             return;
         }
     }
@@ -180,12 +184,12 @@ const handleRootKeydown = (host: ChatRootEventsHost, event: Event): void => {
     }
     if (chatInput && event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
         event.preventDefault();
-        dispatchSendOrStopHotkey(host, event, 'chat:sendOrStopHotkey');
+        dispatchComposerPrimaryHotkey(host, event, 'chat:sendOrStopHotkey');
         return;
     }
     if (chatInput && event.key === 'Enter' && !event.shiftKey && !event.altKey && !event.isComposing && !event.repeat && !host.composer.isCtrlEnterSendRequired()) {
         event.preventDefault();
-        dispatchSendOrStopHotkey(host, event, 'chat:sendOrStopHotkey');
+        dispatchComposerPrimaryHotkey(host, event, 'chat:sendOrStopHotkey');
         return;
     }
     if (target.matches('.message-edit-input') && event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {

@@ -21,7 +21,7 @@ import { bootstrapSidebarLifecycle, refreshSidebarContent, teardownSidebarLifecy
 import { SidebarModelDependentNavigationGate } from '@core/layout/sidebar/modelDependentNavigation.ts';
 import { setSidebarActiveByPage, syncSidebarWithCurrentRoute } from '@core/layout/sidebar/navigation.ts';
 import { isSidebarStoragePluginIndicatorContract, type SidebarStoragePluginIndicatorContract } from '@core/layout/sidebar/pluginIndicator.ts';
-import { resolveSidebarIconMarkup, resolveSidebarLabel, resolveSidebarStorage, updateSidebarMainStateIndicator, waitForSidebarComponent } from '@core/layout/sidebar/service.ts';
+import { resolveSidebarIconMarkup, resolveSidebarLabel, resolveSidebarStorage, syncSidebarExpandedWidth, updateSidebarMainStateIndicator, waitForSidebarComponent } from '@core/layout/sidebar/service.ts';
 import { createInitialSidebarState, type SidebarState } from '@core/layout/sidebar/state.ts';
 import { closeSidebarMobile, compactSidebarState, isSidebarExpanded, toggleSidebarState, updateSidebarStateUI } from '@core/layout/sidebar/stateUi.ts';
 import { SidebarRenderer, type SidebarConfigEntry } from '@core/layout/sidebar/view.ts';
@@ -149,6 +149,9 @@ class LayoutSidebar extends LifecycleModel {
 
     #updateStateUi(): void {
         updateSidebarStateUI(this.#state, this.#domRefs, this.#versionController, () => updateSidebarMainStateIndicator(this.#componentRegistry, this.#state));
+        if (isSidebarExpanded(this.#state)) {
+            syncSidebarExpandedWidth(getSidebarDomRef(this.#domRefs, 'sidebar'));
+        }
     }
 
     async initialize(): Promise<void> {

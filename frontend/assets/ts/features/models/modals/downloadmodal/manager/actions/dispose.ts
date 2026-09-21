@@ -10,6 +10,8 @@ import { getManualDiscoveryState, getModelSearchState, resetManualDiscoveryState
 import { cancelModelSearchRequest, updateDownloadModalUI, updatePluginRequiredMarkers, updateSelectedModelDisplay } from '@features/models/modals/downloadmodal/manager/view.ts';
 
 const disposeDownloadModal = (runtime: DownloadModalManagerRuntime, { clearActiveDownloads = false }: { clearActiveDownloads?: boolean } = {}): void => {
+    runtime.state.providerDiscoveryAbort?.abort();
+    runtime.state.providerDiscoveryAbort = null;
     const modalId = runtime.modalId;
     const modalRoot = runtime.host.session.modals.requireElement(modalId);
     updateDownloadModalUI(runtime, 'download');

@@ -89,10 +89,10 @@ async def build_application_services(
                 bootstrap_state.runtime_foundation.runtime_state.system_restart_requester
             ),
         )
-    infrastructure_services.communications_sync_actor.attach_mcp_server(
+    infrastructure_services.communications.sync_actor.attach_mcp_server(
         model_context_protocol_services.coordinator.server,
     )
-    infrastructure_services.communications_sync_actor.attach_licensing_status(
+    infrastructure_services.communications.sync_actor.attach_licensing_status(
         licensing_status,
     )
     return ApplicationServiceComposition(

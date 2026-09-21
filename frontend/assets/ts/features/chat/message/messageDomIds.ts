@@ -16,6 +16,15 @@ const CONVERSATION_INPUT_MESSAGE_ID_FIELD = 'soaiConversationInputId';
 
 const normalizeMessageDomId = (messageId: string): string => toTrimmedString(messageId);
 
+const resolveMessageDomIdFromElement = (element: Element): string | null => {
+    const messageRoot = element.closest('.chat-message');
+    if (!(messageRoot instanceof HTMLElement)) {
+        return null;
+    }
+    const messageDomId = normalizeMessageDomId(messageRoot.getAttribute('data-id') ?? '');
+    return messageDomId ? messageDomId : null;
+};
+
 const buildAssistantVariantMessageDomId = (assistantTurnTimestamp: number, modelVariantIndex: number): string => {
     const identity = requireAssistantVariantIdentity({ assistantTurnTimestamp, modelVariantIndex, context: 'Assistant message DOM id' });
     return `${MESSAGE_DOM_ASSISTANT_VARIANT_PREFIX}${formatAssistantVariantIdentityKey(identity)}`;
@@ -154,7 +163,7 @@ const resolveIndexedMessageDomPosition = (messageId: string): number | null => {
     return parseNonNegativeIntegerFromStringOrNull(indexText);
 };
 
-export { normalizeMessageDomId, resolveAssistantVariantMessageIdentifier, resolveIndexedMessageDomPosition, resolveMessageDomId, resolveConversationInputMessageIdentifier, resolveConversationInputMessageIdentifierFromMessage, resolvePersistedMessageIdentifier };
+export { normalizeMessageDomId, resolveAssistantVariantMessageIdentifier, resolveIndexedMessageDomPosition, resolveMessageDomId, resolveMessageDomIdFromElement, resolveConversationInputMessageIdentifier, resolveConversationInputMessageIdentifierFromMessage, resolvePersistedMessageIdentifier };
 export { resolveStableMessageDomId };
 export { buildAssistantVariantMessageDomId, buildConversationInputMessageDomId };
 export { isIndexedToPersistedMessageDomIdUpgrade };

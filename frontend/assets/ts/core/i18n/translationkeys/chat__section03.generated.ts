@@ -1,6 +1,8 @@
 /* SoAI - Frontend core Translation declarations for `chat` namespace section 03 [frontend/assets/ts/core/i18n/translationkeys/chat__section03.generated.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ChatConfigurationToolApprovalRequiredHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__toolApprovalRequiredHint.generated.ts';
+import type { ChatConfigurationTopLogprobsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topLogprobs.generated.ts';
 import type { ChatConfigurationTopLogprobsHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topLogprobsHint.generated.ts';
 import type { ChatConfigurationTopPTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topP.generated.ts';
 import type { ChatConfigurationTopPHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topPHint.generated.ts';
@@ -59,10 +61,10 @@ import type { ChatToolActivityTranslationKey } from '@core/i18n/translationkeys/
 import type { ChatToolApprovalTranslationKey } from '@core/i18n/translationkeys/chat/toolApproval.generated.ts';
 import type { ChatToolbarTranslationKey } from '@core/i18n/translationkeys/chat/toolbar.generated.ts';
 import type { ChatToolCallOutputModalTranslationKey } from '@core/i18n/translationkeys/chat/toolCallOutputModal.generated.ts';
-import type { ChatUploadTranslationKey } from '@core/i18n/translationkeys/chat/upload.generated.ts';
-import type { ChatVoiceCallTranslationKey } from '@core/i18n/translationkeys/chat/voiceCall.generated.ts';
 
 export type ChatSection03TranslationKey =
+    | ChatConfigurationToolApprovalRequiredHintTranslationKey
+    | ChatConfigurationTopLogprobsTranslationKey
     | ChatConfigurationTopLogprobsHintTranslationKey
     | ChatConfigurationTopPTranslationKey
     | ChatConfigurationTopPHintTranslationKey
@@ -120,6 +122,4 @@ export type ChatSection03TranslationKey =
     | ChatToolActivityTranslationKey
     | ChatToolApprovalTranslationKey
     | ChatToolbarTranslationKey
-    | ChatToolCallOutputModalTranslationKey
-    | ChatUploadTranslationKey
-    | ChatVoiceCallTranslationKey;
+    | ChatToolCallOutputModalTranslationKey;

@@ -112,19 +112,21 @@ const renderInlineActivityDurationReserveStyleAttribute = (reserveCharacters: nu
     return ` style="${INLINE_ACTIVITY_DURATION_RESERVE_PROPERTY}:${String(Math.floor(reserveCharacters))}"`;
 };
 
-const renderInlineActivityDurationMarkup = (escapeHtml: (value: string) => string, label: string, options?: { extraAttributes?: string; reserveCharacters?: number | null }): string => {
+const renderInlineActivityDurationMarkup = (escapeHtml: (value: string) => string, label: string, options?: { extraAttributes?: string; reserveCharacters?: number | null; animateEntrance?: boolean | undefined }): string => {
     const extraAttributes = options?.extraAttributes ?? '';
     const reserveStyle = renderInlineActivityDurationReserveStyleAttribute(options?.reserveCharacters);
-    return `<span class="inline-activity-duration"${extraAttributes}${reserveStyle}>${escapeHtml(label)}</span>`;
+    const className = options?.animateEntrance === true ? 'inline-activity-duration inline-activity-duration--enter' : 'inline-activity-duration';
+    return `<span class="${className}"${extraAttributes}${reserveStyle}>${escapeHtml(label)}</span>`;
 };
 
-const renderInlineActivityDuration = (host: ChatMessageRenderHost, inputArguments: InlineActivityDurationArguments): string => {
+const renderInlineActivityDuration = (host: ChatMessageRenderHost, inputArguments: InlineActivityDurationArguments, options?: { animateEntrance?: boolean }): string => {
     const label = resolveInlineActivityDurationLabel(inputArguments);
     if (label === null) {
         return '';
     }
     return renderInlineActivityDurationMarkup((value) => host.escapeHtml(value), label, {
-        reserveCharacters: resolveInlineActivityDurationReserveCharacters(inputArguments)
+        reserveCharacters: resolveInlineActivityDurationReserveCharacters(inputArguments),
+        animateEntrance: options?.animateEntrance
     });
 };
 

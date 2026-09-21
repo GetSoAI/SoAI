@@ -47,6 +47,14 @@ const createUiPreferenceBindings = (
 
 const createPreferencesManagerHost = (page: SettingsRuntimeContext, state: SettingsPageState, callbacks: SettingsManagerCallbacks): PreferencesManagerHost => ({
     ...buildBaseHostBindings(page, callbacks),
+    createConfigurationManager: () => page.owners.services.createConfigurationManager(),
+    getCurrentUserId: () => page.owners.auth.getCurrentUser()?.id ?? null,
+    isDestroyed: () => page.controls.isDestroyed(),
+    loadOcrLanguages: (signal) => page.owners.api.webui.preferences.ocrLanguages({ signal }),
+    loadPreferences: (signal) => page.owners.api.webui.preferences.get({ signal }),
+    saveOcrPreference: (code, intendedUserId, signal) => page.owners.api.webui.preferences.update({ 'settings': { 'ocr_language': code } }, { signal, intendedUserId }),
+    syncManualDirtyField: callbacks.syncManualDirtyField,
+    notifySaveChanged: callbacks.notifySaveChanged,
     languageService: page.owners.languageService,
     storage: page.owners.storage,
     ...createUiPreferenceBindings(state),
@@ -241,6 +249,14 @@ const createSystemManagerHost = (page: SettingsRuntimeContext, state: SettingsPa
     },
     notifications: { feedback: page.owners.feedback },
     workflow: {
+        acquirePreferencesMutation: () => {
+            const release = state.preferencesAdmission.acquire();
+            if (!release) return null;
+            return () => {
+                release();
+                callbacks.notifySaveChanged();
+            };
+        },
         canRunSystemAction: (action: SystemManagerActionId): boolean => {
             if (action === SETTINGS_SYSTEM_RESET_CONFIGURATION_ACTION) return hasSettingsAction(state, 'CONFIG_PATCH');
             if (action === SETTINGS_SYSTEM_FACTORY_RESET_ACTION) {

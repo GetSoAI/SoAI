@@ -25,7 +25,6 @@ const resolveElement = (root: Element, token: string): HTMLElement => {
 };
 
 const hydrateStaticIcons = (root: Element): void => {
-    setIconSlot(resolveElement(root, 'preset-search-icon'), getIconSync('search', { size: 16, strokeWidth: 1.5 }), { className: 'searchbar-icon' });
     setIconSlot(resolveElement(root, 'preset-add-icon'), getIconSync('add', { size: 16, strokeWidth: 1.7 }));
 };
 

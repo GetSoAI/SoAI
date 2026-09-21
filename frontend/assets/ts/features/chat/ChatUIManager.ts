@@ -44,7 +44,7 @@ class ChatUIManager {
         if (!this.#context.state.messagesAreaInsetsDisposer) {
             this.#context.state.messagesAreaInsetsDisposer = setupMessagesAreaInsets(this.#context);
         }
-        setupPreviewsContainerLayout(this.#context);
+        setupPreviewsContainerLayout(this.#context, () => this.updateAttachmentsPreview());
         setupAdvancedScrollPreview(this.#context);
         this.updateMicrophoneAvailability();
     }

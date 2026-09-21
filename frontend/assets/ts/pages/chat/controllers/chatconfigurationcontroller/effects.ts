@@ -69,6 +69,7 @@ interface CommitConfigurationEditStateResult {
     toolsEnabledChanged: boolean;
     toolApprovalRequiredChanged: boolean;
     conversationListFiltersChanged: boolean;
+    activityDurationDisplayChanged: boolean;
 }
 
 interface CancelConfigurationEditStateOptions {
@@ -110,7 +111,8 @@ const commitConfigurationEditState = ({ stateAccess, host, editingParameters }: 
             sendHotkeyChanged: false,
             toolsEnabledChanged: false,
             toolApprovalRequiredChanged: false,
-            conversationListFiltersChanged: false
+            conversationListFiltersChanged: false,
+            activityDurationDisplayChanged: false
         };
     }
 
@@ -122,6 +124,7 @@ const commitConfigurationEditState = ({ stateAccess, host, editingParameters }: 
     const previousToolsEnabled = previousParameters.toolsEnabled === true;
     const previousToolApprovalRequired = previousParameters.toolApprovalRequired === true;
     const previousNewConversationInheritLastSettings = previousParameters.newConversationInheritLastSettings === true;
+    const previousShowActivityElapsedTime = previousParameters.showActivityElapsedTime !== false;
 
     const editedTextZoom = editingParameters.textZoom;
     if (isNumber(editedTextZoom) && editedTextZoom !== stateAccess.getTextZoom()) {
@@ -143,6 +146,7 @@ const commitConfigurationEditState = ({ stateAccess, host, editingParameters }: 
     const nextToolsEnabled = nextParameters.toolsEnabled === true;
     const nextToolApprovalRequired = nextParameters.toolApprovalRequired === true;
     const nextNewConversationInheritLastSettings = nextParameters.newConversationInheritLastSettings === true;
+    const nextShowActivityElapsedTime = nextParameters.showActivityElapsedTime !== false;
 
     return {
         committed: true,
@@ -153,7 +157,8 @@ const commitConfigurationEditState = ({ stateAccess, host, editingParameters }: 
         sendHotkeyChanged: haveParametersChanged(previousParameters, nextParameters, SEND_HOTKEY_PARAMETER_KEYS),
         toolsEnabledChanged: previousToolsEnabled !== nextToolsEnabled,
         toolApprovalRequiredChanged: previousToolApprovalRequired !== nextToolApprovalRequired,
-        conversationListFiltersChanged: previousHideAutomationRuns !== nextHideAutomationRuns || previousHideMessagingConversations !== nextHideMessagingConversations
+        conversationListFiltersChanged: previousHideAutomationRuns !== nextHideAutomationRuns || previousHideMessagingConversations !== nextHideMessagingConversations,
+        activityDurationDisplayChanged: previousShowActivityElapsedTime !== nextShowActivityElapsedTime
     };
 };
 

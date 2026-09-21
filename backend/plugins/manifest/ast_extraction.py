@@ -87,9 +87,9 @@ def extract_plugin_manifest_from_disk(
     package_audit: PluginPackageAudit,
 ) -> JSONDict:
     del manager
-    tree = package_audit.entrypoint.parsed_source
+    tree = package_audit.content.entrypoint.parsed_source
     if enforce_safety_validation and not package_audit.imports_validated:
-        for python_member in package_audit.python_members:
+        for python_member in package_audit.content.python_members:
             ensure_import_tree_has_no_forbidden_imports(plugin_name, python_member.parsed_source)
     class_node = get_plugin_class_node(tree)
     assignments = extract_class_assignments(class_node)
@@ -213,7 +213,9 @@ def extract_plugin_manifest_from_disk(
         ),
     )
     package_names = _extract_declared_package_names(manifest_payload)
-    dependency_trees = tuple(member.parsed_source for member in package_audit.python_members)
+    dependency_trees = tuple(
+        member.parsed_source for member in package_audit.content.python_members
+    )
     for dependency_tree in dependency_trees:
         ensure_declared_package_dependencies(plugin_name, dependency_tree, package_names)
     return manifest_payload

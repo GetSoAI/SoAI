@@ -10,7 +10,7 @@ import { toTrimmedString } from '@core/normalize.ts';
 import { EMPTY_UI_HTML, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 import { isArray, isPlainObject } from '@core/typeGuards.ts';
 import { NOTIFICATION_DISMISS_FADE_MS, NOTIFICATION_ICON_MAP, USER_NOTIFICATION_DURATIONS } from '@core/ui/notifications/constants.ts';
-import { showAndroidNativeNotification } from '@core/ui/notifications/nativeAndroidBridge.ts';
+import { copyTextWithBrowserClipboardFeedback } from '@core/ui/notifications/clipboardCopy.ts';
 import { createAutoDismissNotificationTimer } from '@core/ui/notifications/notificationTimer.ts';
 import { bindPersistentNotificationActions } from '@core/ui/notifications/persistentNotificationActions.ts';
 import { findRecentNotification, getNotificationContainer, isNotificationDismissed, isNotificationType, playNotificationSound, rememberRecentNotification, resolveNotificationDurationMs } from '@core/ui/notifications/service.ts';
@@ -88,12 +88,11 @@ const showNotification = (message: string, type: NotificationType = 'info', dura
     const lifecycle = createNotificationLifecycleController({ notification });
     const handleCloseClick = (): void => lifecycle.dismissWithFade();
     dom.resolve('.ui-notification__close', notification)?.addEventListener('click', handleCloseClick);
-    bindToastNotificationInteractions({ notification, lifecycle });
+    bindToastNotificationInteractions({ notification, lifecycle, copyNotificationMessage });
     dom.appendChild(container, notification);
     dom.flush();
     refreshToastNotificationInteractivity(notification);
     playNotificationSound(type);
-    showAndroidNativeNotification(normalizedMessage, type);
 
     if (effectiveDuration > 0) {
         const timerControls = createAutoDismissNotificationTimer({
@@ -182,7 +181,7 @@ const showPersistentNotification = (options: NotificationOptions | string, type?
     });
 
     dom.resolve('.ui-notification__close', notification)?.addEventListener('click', lifecycle.dismissWithFade);
-    bindToastNotificationInteractions({ notification, lifecycle });
+    bindToastNotificationInteractions({ notification, lifecycle, copyNotificationMessage });
     bindPersistentNotificationActions({
         notification,
         buttons: config.buttons,
@@ -193,7 +192,6 @@ const showPersistentNotification = (options: NotificationOptions | string, type?
     dom.flush();
     refreshToastNotificationInteractivity(notification);
     playNotificationSound(resolvedType);
-    showAndroidNativeNotification(normalizedMessage, resolvedType);
     return notification;
 };
 
@@ -268,6 +266,22 @@ const showUserNotification = (type: NotificationType, message: string, options: 
     if (options.showNotification ?? true) {
         showNotification(message, type, options.duration ?? USER_NOTIFICATION_DURATIONS[type]);
     }
+};
+
+const copyNotificationMessage = async (message: string): Promise<void> => {
+    await copyTextWithBrowserClipboardFeedback(
+        {
+            showNotification: (notificationMessage, type, duration): void => {
+                showNotification(notificationMessage, type, duration);
+            }
+        },
+        {
+            text: message,
+            successMessage: i18n.t('common.clipboard.copied'),
+            errorMessage: i18n.t('common.clipboard.copyFailed'),
+            unavailableMessage: i18n.t('common.clipboard.copyUnavailable')
+        }
+    );
 };
 
 const showUserError = (message: string, options: NotificationUserOptions = {}): void => {

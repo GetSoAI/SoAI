@@ -85,7 +85,7 @@ async def build_plugin_record_data(
                 manager,
                 plugin_name,
                 expected_archive_hash=(
-                    package_audit.archive_hash if package_audit is not None else None
+                    package_audit.content.archive_hash if package_audit is not None else None
                 ),
             )
             or {}
@@ -105,7 +105,7 @@ async def build_plugin_record_data(
     plugin_data["catalog_reconciled_at_ms"] = epoch_ms()
     if package_audit is not None:
         plugin_data["file_path"] = package_audit.archive_path
-        plugin_data["file_hash"] = package_audit.archive_hash
+        plugin_data["file_hash"] = package_audit.content.archive_hash
         return plugin_data
     plugin_file_path = get_plugin_file_path(manager, plugin_name)
     if await async_path_exists(plugin_file_path):

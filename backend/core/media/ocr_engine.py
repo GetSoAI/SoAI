@@ -24,6 +24,8 @@ from core.media.image_preprocessing import (
     ImagePreprocessorDependencies,
 )
 from core.media.opencv_backend import create_optional_opencv_api
+from core.media.tesseract_data import require_tesseract_data_root, require_tesseract_model
+from core.media.tesseract_languages import require_ocr_language
 from core.timing.constants import OCR_TIMEOUT_SEC
 
 if TYPE_CHECKING:
@@ -53,8 +55,7 @@ def configure_tesseract_runtime(executable: str, data_directory: str) -> None:
     resolved_data_directory = os.path.abspath(data_directory)
     if not os.path.isfile(resolved_executable):
         raise StateError("Managed Tesseract executable is missing.")
-    if not os.path.isdir(resolved_data_directory):
-        raise StateError("Managed Tesseract language data directory is missing.")
+    require_tesseract_data_root(resolved_data_directory)
     pytesseract.pytesseract.tesseract_cmd = resolved_executable
     os.environ["SOAI_TESSERACT_CMD"] = resolved_executable
     os.environ["TESSDATA_PREFIX"] = resolved_data_directory
@@ -184,12 +185,15 @@ def _get_bbox_x(bounding_box: OcrBoundingBox) -> float:
 def ocr_tesseract_image_to_text(
     image: Image.Image,
     *,
+    ocr_language: str,
     timeout_sec: float = OCR_TIMEOUT_SEC,
 ) -> str:
     require_module("pytesseract", feature="Tesseract OCR")
+    require_ocr_language(ocr_language)
     _configure_tesseract_from_environment()
+    require_tesseract_model(os.environ["TESSDATA_PREFIX"], ocr_language)
     try:
-        text = pytesseract.image_to_string(image, timeout=timeout_sec)
+        text = pytesseract.image_to_string(image, lang=ocr_language, timeout=timeout_sec)
     except RuntimeError as exception:
         if "timeout" in str(exception).casefold():
             raise TimeoutError("Image OCR timed out.") from exception
@@ -207,7 +211,8 @@ def _configure_tesseract_from_environment() -> None:
     configure_tesseract_runtime(executable, data_directory)
 
 
-def ocr_image_file(file_path: str) -> tuple[str, float]:
+def ocr_image_file(file_path: str, ocr_language: str) -> tuple[str, float]:
+    require_ocr_language(ocr_language)
     with Image.open(file_path) as opened:
         image = opened.convert("RGB")
         image_array = numpy.array(image)
@@ -237,5 +242,5 @@ def ocr_image_file(file_path: str) -> tuple[str, float]:
             return "\n".join(result[1] for result in accepted), sum(
                 result[2] for result in accepted
             ) / len(accepted)
-        text = ocr_tesseract_image_to_text(image)
+        text = ocr_tesseract_image_to_text(image, ocr_language=ocr_language)
         return text, 0.0

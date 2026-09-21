@@ -10,13 +10,13 @@ import type { ThemeViewContext } from '@pages/settings/controllers/thememanager/
 import { renderSolidBackgroundSubgroup, renderWallpaperSubgroup } from '@pages/settings/controllers/thememanager/wallpaperWidget.ts';
 
 const renderThemeSection = (context: ThemeViewContext): string => {
-    const subgroups = [renderAppearanceSubgroup(context), renderCodeBlocksSubgroup(context), renderEffectsSubgroup(context)];
+    const subgroups = [renderAppearanceSubgroup(context), renderEffectsSubgroup(context)];
     if (context.canManageWallpaper) {
         subgroups.push(renderWallpaperSubgroup(context));
     } else if (context.canManageSolidBackground) {
         subgroups.push(renderSolidBackgroundSubgroup(context));
     }
-    subgroups.push(...renderSecondaryThemeSubgroups(context));
+    subgroups.push(...renderSecondaryThemeSubgroups(context), renderCodeBlocksSubgroup(context));
 
     return renderSection({
         title: i18n.t('settings.theme.sectionTitle'),

@@ -33,6 +33,12 @@
         gap: var(--space-2);
     }
 
+    .distribution-legend__item--others-boundary {
+        margin-top: var(--space-1);
+        padding-top: var(--space-2);
+        border-top: var(--border-width-1) solid color-mix(in srgb, var(--surface-card-border) 72%, transparent);
+    }
+
     .hardware-memory-swap-process-row {
         min-width: 0;
         max-width: 100%;

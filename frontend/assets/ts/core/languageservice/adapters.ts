@@ -34,21 +34,21 @@ const resolveApiClient = async (): Promise<ApiClient> => {
     return candidate;
 };
 
-const getCacheVersion = (service: LanguageServiceRuntime): string => {
+const resolveCatalogRevision = (service: LanguageServiceRuntime): string => {
     const version = service.manifest?.version;
     const manifestVersion = isString(version) && version.trim() ? version.trim() : 'unversioned';
     return service.catalogPaths.length > 0 ? `${manifestVersion}:${service.catalogPaths.join(',')}` : manifestVersion;
 };
 
 const buildLanguageUrl = (service: LanguageServiceRuntime, code: string): string => {
-    const version = getCacheVersion(service);
-    const cacheToken = version ? `?v=${encodeSegment(version)}` : '';
+    const revision = resolveCatalogRevision(service);
+    const cacheToken = revision ? `?v=${encodeSegment(revision)}` : '';
     return resolveAssetUrl(`${LANGUAGES_PATH}/${code}.json${cacheToken}`);
 };
 
 const buildTranslationCatalogUrl = (service: LanguageServiceRuntime, catalogPath: string, code: string): string => {
-    const version = getCacheVersion(service);
-    return resolveAssetUrl(`${catalogPath}/${code}.json?v=${encodeSegment(version)}`);
+    const revision = resolveCatalogRevision(service);
+    return resolveAssetUrl(`${catalogPath}/${code}.json?v=${encodeSegment(revision)}`);
 };
 
-export { buildLanguageUrl, buildTranslationCatalogUrl, getCacheVersion, resolveApiClient, resolveAssetUrl, resolveStorage };
+export { buildLanguageUrl, buildTranslationCatalogUrl, resolveApiClient, resolveAssetUrl, resolveStorage };

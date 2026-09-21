@@ -6,6 +6,7 @@ import { i18n } from '@core/i18n/index.ts';
 import type { AttachmentOverflowModalShell } from '@features/chat/message/attachmentoverflowmodal/view.ts';
 import { renderAttachmentOverflowItem } from '@features/chat/message/attachmentoverflowmodal/rendering.ts';
 import type { AttachmentOverflowRecord } from '@features/chat/message/attachmentoverflowmodal/records.ts';
+import { prepareAttachmentThumbnailLifecycles } from '@features/chat/attachments/chatImageLoadLifecycle.ts';
 
 class AttachmentOverflowListRenderer {
     #renderer: BoundedCollectionRenderer<AttachmentOverflowRecord> | null = null;
@@ -38,7 +39,8 @@ class AttachmentOverflowListRenderer {
             resolveEmptyState: () => shell.empty,
             renderItem: (item) => renderAttachmentOverflowItem(item),
             resolveItemIdentifier: (element) => element.dataset['collectionId'] ?? null,
-            loadingLabel: () => i18n.t('chat.attachments.modal.loadingMore')
+            loadingLabel: () => i18n.t('chat.attachments.modal.loadingMore'),
+            onCommit: (context) => prepareAttachmentThumbnailLifecycles(context.container)
         });
         return this.#renderer;
     }

@@ -126,9 +126,15 @@ class PluginManagerOperations(PluginManagerTransferOperations):
     async def get_backend_variants(
         self: PluginManagerRuntimeProtocol,
         plugin_name: str,
+        *,
+        discover_installed_variant: bool = True,
     ) -> JSONDict:
         normalized_plugin_name = normalize_required_plugin_name(self, plugin_name)
-        return await get_backend_variants(self, normalized_plugin_name)
+        return await get_backend_variants(
+            self,
+            normalized_plugin_name,
+            discover_installed_variant=discover_installed_variant,
+        )
 
     async def save_backend_variant_selection(
         self: PluginManagerRuntimeProtocol,

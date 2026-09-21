@@ -26,29 +26,6 @@
         width: min(260px, 100%);
     }
 
-    :where(.chat-container) .file-preview-item.image.chat-attachment-summary-card {
-        width: min(260px, 100%);
-        min-width: 180px;
-        min-height: 74px;
-        align-items: center;
-        padding: var(--space-2);
-        overflow: hidden;
-    }
-
-    .chat-attachment-overflow-item.image img {
-        width: 48px;
-        height: 48px;
-        flex: 0 0 auto;
-        border-radius: var(--border-radius);
-        object-fit: cover;
-    }
-
-    :where(.chat-container) .file-preview-item.image.chat-attachment-summary-card img {
-        flex: 0 0 auto;
-        width: 56px;
-        height: 56px;
-    }
-
     :where(.chat-container) .chat-attachment-summary-card .file-info {
         flex: 1 1 auto;
     }
@@ -73,12 +50,12 @@
         border-color: var(--ui-button-border-hover);
     }
 
-    :where(.chat-container) button.file-preview-item.image.chat-attachment-summary-card--soai-link:focus:not(:focus-visible, :hover) {
+    :where(.chat-container) button.file-preview-item.chat-attachment-summary-card--soai-link:focus:not(:focus-visible, :hover) {
         border-color: var(--glass-border-subtle);
         color: var(--text-primary);
     }
 
-    :where(.chat-container) button.file-preview-item.image.chat-attachment-summary-card--soai-link.glass-surface-light:focus:not(:focus-visible, :hover) {
+    :where(.chat-container) button.file-preview-item.chat-attachment-summary-card--soai-link.glass-surface-light:focus:not(:focus-visible, :hover) {
         --glass-surface-bg: var(--chat-preview-neutral-base);
     }
 
@@ -86,12 +63,16 @@
         cursor: default;
     }
 
-    :where(.chat-container) .message-edit-attachment-strip .file-preview-item.image.chat-attachment-summary-card {
+    :where(.chat-container) .message-edit-attachment-strip .file-preview-item.chat-attachment-summary-card {
         overflow: visible;
     }
 
     :where(.chat-container) .message-edit-attachment-strip .remove-file-btn {
         opacity: 1;
+    }
+
+    :where(.chat-container) .chat-message.user .chat-attachment-summary-card {
+        margin-bottom: var(--space-2);
     }
 
     .chat-attachment-overflow-modal-body {
@@ -224,10 +205,6 @@
     button.chat-attachment-overflow-item {
         appearance: none;
         cursor: pointer;
-    }
-
-    .chat-attachment-overflow-item.image {
-        padding: var(--space-1);
     }
 
     .chat-attachment-overflow-item .file-info {

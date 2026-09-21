@@ -1,8 +1,9 @@
 /* SoAI - Durable conversation input admission and observation [frontend/assets/ts/features/chat/conversationinputs/ChatConversationInputsManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isNetworkError, isRequestTimeoutError } from '@core/apiError.ts';
 import { isAbortError, raceWithAbortSignal, throwIfAborted } from '@core/errors/abort.ts';
-import { ensureError } from '@core/errors/coerce.ts';
+import { ensureError, isErrorHttpStatus } from '@core/errors/coerce.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { containsSoaiPathToken } from '@core/soailinks/codec.ts';
 import { generateSecureId } from '@core/primitives/idGenerator.ts';
@@ -11,10 +12,13 @@ import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { isJsonObject, type JsonObject } from '@core/types/jsonValues.ts';
 import type { ConversationInputTerminalEvent, ConversationInputsChangedEvent } from '@core/realtime/eventcontracts/chatControlContracts.ts';
 import type { ConversationInputAdmission } from '@core/api/contracts/chatQueueDraftContracts.ts';
+import type { ConversationRegenerationReceipt, ConversationRegenerationRequest } from '@core/api/contracts/webuiMessageRegenerationContracts.ts';
 import type { ChatContentSegment } from '@features/chat/ChatTypes.ts';
-import type { ChatConversationInputsManagerDependencies, ConversationInput } from '@features/chat/conversationinputs/ConversationInputTypes.ts';
+import type { ChatConversationInputsManagerDependencies, ConversationInput, RetryableConversationRegeneration } from '@features/chat/conversationinputs/ConversationInputTypes.ts';
+import { ConversationRegenerationRetryStore } from '@features/chat/conversationinputs/ConversationRegenerationRetryStore.ts';
 import { ConversationInputStateStore } from '@features/chat/conversationinputs/ConversationInputStateStore.ts';
 import { syncConversationInputs } from '@features/chat/conversationinputs/conversationInputSync.ts';
+import { recoverAmbiguousRegenerationAdmission } from '@features/chat/conversationinputs/regenerationAdmissionRecovery.ts';
 import { serializeStorageContentPart } from '@features/chat/storage/messageNormalization.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 
@@ -26,6 +30,7 @@ class ChatConversationInputsManager {
     readonly #lifecycleController = new AbortController();
     readonly #clientId = windowIdentity.current();
     readonly #settlementReconciliationByConversationId = new Map<string, Promise<void>>();
+    readonly #regenerationRetries = new ConversationRegenerationRetryStore();
     #unsubscribe: (() => void) | null = null;
     #initialized = false;
     #disposed = false;
@@ -57,6 +62,7 @@ class ChatConversationInputsManager {
         this.#unsubscribe?.();
         this.#unsubscribe = null;
         this.#settlementReconciliationByConversationId.clear();
+        this.#regenerationRetries.reset();
         this.#store.reset();
     }
 
@@ -64,11 +70,68 @@ class ChatConversationInputsManager {
         return this.#store.getQueuedInputs(conversationId);
     }
 
+    getRetryableRegeneration(conversationId: string): RetryableConversationRegeneration | null {
+        return this.#regenerationRetries.get(conversationId);
+    }
+
+    async retryRegeneration(conversationId: string, inputId: string, expectedLastModifiedAtMs: number): Promise<void> {
+        const retry = this.#regenerationRetries.requireInput(conversationId, inputId);
+        await this.regenerate(retry.conversationId, {
+            expectedLastModifiedAtMs,
+            target: null,
+            retryInputId: inputId,
+            contentPreviewFeedback: retry.regeneration.contentPreviewFeedback,
+            previewContractFeedback: retry.regeneration.previewContractFeedback
+        });
+        this.#regenerationRetries.clearIfMatches(retry.conversationId, inputId);
+        this.#dependencies.updateInputQueuePreview();
+    }
+
     handleConversationRendered(conversationId: string | null): void {
         this.initialize();
         const changedConversationId = this.#store.recordRenderedConversation(conversationId);
         if (changedConversationId) {
+            this.#recoverLatestRegenerationNoncritical(changedConversationId);
             this.#syncNoncritical(changedConversationId, 'Failed to load conversation inputs');
+        }
+    }
+
+    async regenerate(conversationId: string, request: Omit<ConversationRegenerationRequest, 'clientId' | 'clientRequestId'>): Promise<ConversationRegenerationReceipt> {
+        this.initialize();
+        const normalizedConversationId = normalizeConversationId(conversationId);
+        if (!normalizedConversationId) throw new Error('Conversation regeneration requires a valid conversation id.');
+        const clientRequestId = generateSecureId({ prefix: 'regenerate_req', separator: '_' });
+        const admissionRequest: ConversationRegenerationRequest = {
+            ...request,
+            clientId: this.#clientId,
+            clientRequestId
+        };
+        const regenerationApi = this.#dependencies.regenerationApi;
+        if (!regenerationApi) throw new Error('Conversation regeneration API is unavailable.');
+        this.#store.beginAdmission(normalizedConversationId);
+        try {
+            let receipt: ConversationRegenerationReceipt;
+            try {
+                receipt = await regenerationApi.regenerate(normalizedConversationId, admissionRequest);
+            } catch (admissionError) {
+                const runtimeError = ensureError(admissionError);
+                if (!isNetworkError(runtimeError) && !isRequestTimeoutError(runtimeError)) {
+                    throw runtimeError;
+                }
+                receipt = await recoverAmbiguousRegenerationAdmission({
+                    conversationId: normalizedConversationId,
+                    clientId: this.#clientId,
+                    clientRequestId,
+                    admissionError: runtimeError,
+                    signal: this.#lifecycleController.signal,
+                    readStatus: async (statusConversationId, clientId, requestId) => await regenerationApi.regenerationStatus(statusConversationId, clientId, requestId)
+                });
+            }
+            this.#applyRegenerationReceipt(normalizedConversationId, receipt);
+            this.#syncNoncritical(normalizedConversationId, 'Failed to reconcile admitted conversation regeneration');
+            return receipt;
+        } finally {
+            this.#store.completeAdmission(normalizedConversationId);
         }
     }
 
@@ -153,6 +216,49 @@ class ChatConversationInputsManager {
         });
     }
 
+    #applyRegenerationReceipt(conversationId: string, receipt: ConversationRegenerationReceipt): void {
+        this.#regenerationRetries.observe(conversationId, receipt);
+        if (this.#dependencies.getCurrentConversationId() === conversationId) this.#dependencies.updateInputQueuePreview();
+        if (receipt.state === 'pending' || receipt.state === 'materializing' || receipt.state === 'running' || receipt.state === 'input_required') {
+            this.#store.upsertAdmittedInput(
+                conversationId,
+                {
+                    inputId: receipt.inputId,
+                    inputType: 'prompt',
+                    text: '',
+                    attachmentContent: [],
+                    acceptedAtMs: receipt.acceptedAtMs,
+                    state: receipt.state,
+                    isRegeneration: true
+                },
+                receipt.isDispatchableHead
+            );
+            if (this.#dependencies.getCurrentConversationId() === conversationId) this.#dependencies.updateInputQueuePreview();
+            return;
+        }
+        this.#store.recordTerminalInput(conversationId, receipt.inputId);
+        void this.#reconcilePendingSettlements(conversationId).catch((error) => {
+            if (!this.#lifecycleController.signal.aborted) {
+                this.#dependencies.logWarning('Failed to reconcile completed conversation regeneration', ensureError(error));
+            }
+        });
+    }
+
+    #recoverLatestRegenerationNoncritical(conversationId: string): void {
+        const regenerationApi = this.#dependencies.regenerationApi;
+        if (!regenerationApi) return;
+        void regenerationApi
+            .regenerationStatus(conversationId)
+            .then((receipt) => {
+                this.#applyRegenerationReceipt(conversationId, receipt);
+            })
+            .catch((error) => {
+                if (!isErrorHttpStatus(error, 404) && !this.#lifecycleController.signal.aborted) {
+                    this.#dependencies.logWarning('Failed to recover conversation regeneration', ensureError(error));
+                }
+            });
+    }
+
     #handleChangedEvent(event: ConversationInputsChangedEvent): void {
         if (this.#disposed) {
             return;
@@ -172,6 +278,7 @@ class ChatConversationInputsManager {
         if (this.#dependencies.getCurrentConversationId() === event.convId) {
             this.#dependencies.updateInputQueuePreview();
         }
+        this.#recoverLatestRegenerationNoncritical(event.convId);
         await this.#reconcilePendingSettlements(event.convId);
     }
 

@@ -17,7 +17,7 @@ type StreamTransportMode = 'owner' | 'follower';
 type HydratedSnapshotApplicationResult = 'active' | 'terminal';
 type StreamMutationType = 'replay' | 'initial-timeline' | 'text-delta' | 'timeline-event' | 'image' | 'terminal';
 type ChatStreamStartAdmission = 'inactive' | 'busy' | 'unknown';
-type ChatTurnAdmissionPhase = 'inactive' | 'starting' | 'streaming' | 'terminalizing' | 'reserved';
+type ChatTurnAdmissionPhase = 'inactive' | 'starting' | 'streaming' | 'stopping' | 'stop_failed' | 'terminalizing' | 'reserved';
 
 interface ChatStreamStopOptions {
     expectedRequestId?: string;
@@ -95,6 +95,7 @@ interface ChatStreamSession extends ChatStreamSessionMeta {
     assistantTimelineIndexState: AssistantTimelineIndexState;
     usagePreview: TokenUsageSnapshot | null;
     pendingCancellation: { reason: string; forcePendingSteers?: boolean } | null;
+    stopOperationPending?: boolean;
     ownerReleaseRequested: boolean;
     ownerReleaseListener: (() => void) | null;
     onFirstServerEvent?: (() => Promise<void>) | null;

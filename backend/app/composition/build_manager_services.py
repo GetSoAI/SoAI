@@ -234,7 +234,7 @@ async def build_manager_services(
             database_tool_calls=database_tool_calls,
             database_plugins=database_plugins,
         ),
-        storage_manager=infrastructure_services.storage_manager,
+        storage_manager=infrastructure_services.hardware.storage,
     )
     startup_timings.record_since_ms("assembly.manager.webui_manager_ms", step_started_ms)
     plugin_services = PluginServices(

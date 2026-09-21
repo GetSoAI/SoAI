@@ -186,6 +186,30 @@ class DatabaseAgentTurns:
 
         return await self.core.reader.execute_read(_query)
 
+    async def get_manual_regeneration_attempt(
+        self,
+        *,
+        conv_id: str,
+        user_id: int,
+        client_id: str,
+        client_request_id: str,
+    ) -> JSONDict | None:
+        async def _query(database: aiosqlite.Connection) -> JSONDict | None:
+            row = await query_one_to_dict(
+                database,
+                """
+                SELECT * FROM webui_agent_turns
+                WHERE conv_id = ? AND user_id = ?
+                  AND json_extract(manual_regeneration_request_json, '$.client_id') = ?
+                  AND json_extract(manual_regeneration_request_json, '$.client_request_id') = ?
+                LIMIT 1
+                """,
+                (conv_id, int(user_id), client_id, client_request_id),
+            )
+            return format_agent_turn_row(row)
+
+        return await self.core.reader.execute_read(_query)
+
     async def get_subagent_turn(
         self,
         *,

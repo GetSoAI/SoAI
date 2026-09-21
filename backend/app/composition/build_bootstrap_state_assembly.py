@@ -65,6 +65,7 @@ from app.types_services_foundation import (
     InfrastructureServices,
     TaskServices,
 )
+from core.app.service_groups import HardwareRuntimeServices
 from core.logging.trace import get_logger
 from core.secrets.handle_store import SecretHandleStore
 from features.chat.attention.coordinator import (
@@ -110,6 +111,7 @@ def assemble_application_bootstrap_state(
         event_bus=deps.event_bus,
         activity_registry=deps.hardware_activity_registry,
         shutdown_event=deps.runtime_foundation.runtime_state.shutdown_event,
+        http_client=deps.http_client,
     )
     infrastructure_services = InfrastructureServices(
         event_bus=deps.event_bus,
@@ -209,18 +211,21 @@ def assemble_application_bootstrap_state(
         conversation_input_dispatcher=ConversationInputDispatcher(
             ConversationInputDispatcherDependencies(
                 event_bus=deps.event_bus,
+                durable_event_delivery=deps.domain_event_delivery,
                 cancellation_binder=deps.cancellation_system.binder,
                 finalizer_tracker=deps.cancellation_system.finalizer_tracker,
                 runtime_state=deps.runtime_foundation.runtime_state,
             ),
         ),
         http_client=deps.http_client,
-        hw_manager=deps.hardware_manager,
-        hw_gpu_tuning=deps.hardware_gpu_tuning,
-        hardware_control=hardware_control,
-        hardware_soaibench=soaibench,
-        terminal=deps.terminal,
-        storage_manager=deps.storage_manager,
+        hardware=HardwareRuntimeServices(
+            manager=deps.hardware_manager,
+            gpu_tuning=deps.hardware_gpu_tuning,
+            control=hardware_control,
+            soaibench=soaibench,
+            terminal=deps.terminal,
+            storage=deps.storage_manager,
+        ),
         prompt_token_counter=deps.prompt_token_counter,
         command_executor=deps.command_executor,
         secret_handle_store=SecretHandleStore(
@@ -229,15 +234,10 @@ def assemble_application_bootstrap_state(
                 "TOOLS.MCP.SECRET_PROMPT.HANDLE_STORE_MAX_PER_USER",
             ),
         ),
-        external_accounts=communications_services.external_accounts,
-        mail_accounts=communications_services.mail_accounts,
-        calendar_accounts=communications_services.calendar_accounts,
-        mail=communications_services.mail,
-        calendar=communications_services.calendar,
+        communications=communications_services,
         conversation_attention=ConversationAttentionCoordinator(
             ConversationAttentionCoordinatorDependencies(monotonic_clock=time.monotonic),
         ),
-        communications_sync_actor=communications_services.sync_actor,
     )
     configuration_services = ConfigurationServices(
         config=deps.config,
@@ -248,12 +248,7 @@ def assemble_application_bootstrap_state(
         yaml_parser=YAML(typ="safe"),
     )
     task_services = TaskServices(
-        cancellation_coordinator=deps.cancellation_system.coordinator,
-        cancellation_history=deps.cancellation_system.history,
-        cancellation_event_bus=deps.cancellation_system.event_bus,
-        token_collection=deps.cancellation_system.token_collection,
-        task_cancellation_binder=deps.cancellation_system.binder,
-        task_finalizer_tracker=deps.cancellation_system.finalizer_tracker,
+        cancellation=deps.cancellation_system,
         task_type_routing_service=deps.task_type_routing_service,
         task_registry=deps.task_registry_result.registry,
         task_registry_queries=deps.task_registry_result.queries,

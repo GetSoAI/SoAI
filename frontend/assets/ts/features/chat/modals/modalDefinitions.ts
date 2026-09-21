@@ -12,7 +12,7 @@ import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } fr
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { uiAttr, uiHtml } from '@core/security/uiHtml.ts';
-import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
+import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 
 import type { FirstRunStateStorage } from '@core/firstrun/protocols.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
@@ -140,7 +140,7 @@ const renderChatPromptsPickerBody = (modalId: string): ReturnType<typeof uiHtml>
                     <div class="form-col-main ui-collection-search-row__field">
                         <div class="searchbar-container searchbar-container--collection">
                             <input type="text" id="${searchInputId}" class="form-input searchbar-input chat-prompts-picker-search-input" placeholder="${placeholder}" autocomplete="off">
-                            <span class="searchbar-icon">${getIconSync('search', { size: 16, strokeWidth: 1.5 })}</span>
+                            ${renderSearchFieldActions()}
                         </div>
                     </div>
                     <div class="form-col-secondary form-col-action ui-collection-search-row__action">

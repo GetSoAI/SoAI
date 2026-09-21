@@ -1,7 +1,7 @@
 /* SoAI - Shared models spheres [frontend/assets/ts/core/models/requestdistributionglass/spheres.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { toSurfaceColor } from '@core/models/requestDistributionColors.ts';
+import { resolveRequestDistributionColor, toSurfaceColor } from '@core/models/requestDistributionColors.ts';
 import { bodyTint, composeBackground, darkenFace, depthTint, glassFaceMarkup, groundShadowMarkup, lightenFace, radialSpecular, roundTo } from '@core/models/requestdistributionglass/glassMaterial.ts';
 import type { RequestDistributionGlassInput, RequestDistributionGlassParts } from '@core/models/requestdistributionglass/glassParts.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -16,8 +16,6 @@ interface SphereLayoutCell {
 const SPHERES_PADDING = 14;
 const SPHERES_MIN_RADIUS_RATIO = 0.32;
 const SPHERES_CELL_PADDING_RATIO = 0.78;
-const SPHERES_MAX_VISIBLE = 16;
-
 const computeGridDimensions = (count: number, width: number, height: number): { columns: number; rows: number } => {
     if (count <= 0) {
         return { columns: 1, rows: 1 };
@@ -72,13 +70,13 @@ const buildSpheresGlassParts = (input: RequestDistributionGlassInput): RequestDi
     if (input.width <= 0 || input.height <= 0 || input.colors.length === 0 || input.dataset.entries.length === 0) {
         return { defs: EMPTY_UI_HTML, bodies: EMPTY_UI_HTML, rims: EMPTY_UI_HTML };
     }
-    const entries = input.dataset.entries.slice(0, SPHERES_MAX_VISIBLE);
+    const entries = input.dataset.entries;
     const cells = layoutSphereCells(entries.length, input.width, input.height);
     const maxValue = entries.reduce((max, entry) => (entry.value > max ? entry.value : max), 0);
     const grounds: TrustedHtml[] = [];
     const bodies: TrustedHtml[] = [];
     entries.forEach((entry, index) => {
-        const color = input.colors[entry.swatchIndex % input.colors.length];
+        const color = resolveRequestDistributionColor(input.colors, entry.swatchIndex, entry.swatchColor);
         if (!color) {
             throw new Error('Request distribution chart color palette is missing an entry');
         }

@@ -54,6 +54,14 @@ const createChatAttachTabConfigs = (): TabConfig[] => [
     { id: chatAttachTabComponentId('knowledge'), label: i18n.t('chat.attachModal.tabKnowledge') }
 ];
 
+const syncChatAttachTabBadges = (host: ChatAttachAvailabilityHost, tabsComponent: TabsComponent): void => {
+    const counts = host.attachments.draftCounts();
+    for (const tab of CHAT_ATTACH_MODAL_TABS) {
+        const count = counts[tab];
+        tabsComponent.updateTabBadge(chatAttachTabComponentId(tab), count > 0 ? count : null);
+    }
+};
+
 const createChatAttachTabsComponent = async (modal: HTMLElement, activeTab: ChatAttachModalTab, onTabSelected: (tab: ChatAttachModalTab) => void): Promise<TabsComponent> => {
     const tabsContainer = requireChatAttachModalChild(modal, 'tabs');
     const tabsComponent = new TabsComponent(tabsContainer, {
@@ -128,16 +136,16 @@ const activateChatAttachTab = (modal: HTMLElement, tab: ChatAttachModalTab): voi
     }
 };
 
-const resolveInitialChatAttachTab = (modal: HTMLElement, options: ChatAttachModalOpenOptions): ChatAttachModalTab => {
-    if (options.initialTab) {
+const resolveInitialChatAttachTab = (host: ChatAttachAvailabilityHost, modal: HTMLElement, options: ChatAttachModalOpenOptions): ChatAttachModalTab => {
+    if (options.initialTab && isChatAttachTabAvailable(host, options.initialTab)) {
         return options.initialTab;
     }
     const lastUsedTab = modal.dataset['chatAttachActiveTab'] ?? null;
-    if (isChatAttachModalTab(lastUsedTab)) {
+    if (isChatAttachModalTab(lastUsedTab) && isChatAttachTabAvailable(host, lastUsedTab)) {
         return lastUsedTab;
     }
-    return 'upload';
+    return isChatAttachTabAvailable(host, 'upload') ? 'upload' : resolveFirstAvailableChatAttachTab(host);
 };
 
-export { activateChatAttachTab, createChatAttachTabsComponent, requireChatAttachTabAvailable, resolveInitialChatAttachTab, syncChatAttachTabAvailability };
+export { activateChatAttachTab, createChatAttachTabsComponent, requireChatAttachTabAvailable, resolveInitialChatAttachTab, syncChatAttachTabAvailability, syncChatAttachTabBadges };
 export type { ChatAttachModalOpenOptions, ChatAttachModalTab };

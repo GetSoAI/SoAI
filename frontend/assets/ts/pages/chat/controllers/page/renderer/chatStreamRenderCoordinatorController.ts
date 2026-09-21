@@ -117,13 +117,20 @@ const getOrCreateElementCache = (context: ChatStreamingControllerContext, messag
     return nextCache;
 };
 
-const renderMessageContent = (context: ChatStreamingControllerContext, render: PendingRender & { patchType: ActiveStreamRenderPatchType }): { handled: boolean; updatedMarkup: boolean; target: HTMLElement | null } => {
+type StreamRenderResult = {
+    handled: boolean;
+    requiresActivityDurationReconcile: boolean;
+    updatedMarkup: boolean;
+    target: HTMLElement | null;
+};
+
+const renderMessageContent = (context: ChatStreamingControllerContext, render: PendingRender & { patchType: ActiveStreamRenderPatchType }): StreamRenderResult => {
     const cached = getOrCreateElementCache(context, render.message, render.conversationId);
     if (!cached) {
         invalidateElementCache(context);
-        return { handled: false, updatedMarkup: false, target: null };
+        return { handled: false, requiresActivityDurationReconcile: true, updatedMarkup: false, target: null };
     }
-    const { handled, invalidatedCache, updatedMarkup, target } = renderStreamingMessageContent({
+    const { handled, invalidatedCache, requiresActivityDurationReconcile, updatedMarkup, target } = renderStreamingMessageContent({
         message: render.message,
         cached,
         patchType: render.patchType,
@@ -133,21 +140,21 @@ const renderMessageContent = (context: ChatStreamingControllerContext, render: P
     });
     if (invalidatedCache) {
         invalidateElementCache(context);
-        return { handled: false, updatedMarkup: false, target: null };
+        return { handled: false, requiresActivityDurationReconcile: true, updatedMarkup: false, target: null };
     }
     if (!(target instanceof HTMLElement)) {
         throw new Error('Streaming message render target is unavailable');
     }
-    return { handled, updatedMarkup, target };
+    return { handled, requiresActivityDurationReconcile, updatedMarkup, target };
 };
 
-const updateStreamingMessage = (context: ChatStreamingControllerContext, render: PendingRender & { patchType: ActiveStreamRenderPatchType }): { handled: boolean; updatedMarkup: boolean; target: HTMLElement | null } => {
+const updateStreamingMessage = (context: ChatStreamingControllerContext, render: PendingRender & { patchType: ActiveStreamRenderPatchType }): StreamRenderResult => {
     if (render.patchType === 'none') {
-        return { handled: false, updatedMarkup: false, target: null };
+        return { handled: false, requiresActivityDurationReconcile: true, updatedMarkup: false, target: null };
     }
     if (context.isRenderInProgress) {
         context.scheduleStreamRender?.(render);
-        return { handled: true, updatedMarkup: false, target: null };
+        return { handled: true, requiresActivityDurationReconcile: true, updatedMarkup: false, target: null };
     }
     context.isRenderInProgress = true;
     try {
@@ -208,7 +215,7 @@ const applyScheduledStreamRender = (context: ChatStreamingControllerContext, ren
         recoverMissingIncrementalPatchTarget(context, render.conversationId);
         return;
     }
-    if (renderResult.target) {
+    if (renderResult.target && renderResult.requiresActivityDurationReconcile) {
         context.reconcileActivityDurations?.(renderResult.target, render.conversationId);
     }
     if (shouldAutoScroll && render.patchType !== 'passive-state' && renderResult.updatedMarkup) {

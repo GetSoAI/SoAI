@@ -26,20 +26,17 @@ from core.webui_manager.protocols import (
     WebUIPageScreenshotServiceProtocol,
 )
 from webui.manager.media_preview_proxy_cache import (
+    MediaPreviewCachePaths,
     build_cache_paths,
     build_cache_temp_path,
     build_proxy_cache_key,
     ensure_cache_dir_exists,
-    promote_cache_file_with_metadata_text,
+    prepare_reserved_cache_file_promotion,
     prune_cache_dir,
     remove_temp_file_if_present,
-    serialize_cache_metadata_text,
 )
 from webui.manager.media_preview_proxy_cache_entries import (
     try_prepare_cached_page_screenshot_png,
-)
-from webui.manager.media_preview_proxy_cache_metadata_schema import (
-    build_media_preview_cache_metadata_v1,
 )
 from webui.manager.media_preview_remote_policy import RemoteMediaPolicy
 
@@ -116,13 +113,13 @@ class PageScreenshotService(WebUIPageScreenshotServiceProtocol):
         )
         cache_key_text = _build_cache_key_text(normalized_url)
         key = build_proxy_cache_key(cache_key_text)
-        data_path, meta_path = build_cache_paths(self._deps.cache_dir, key)
+        cache_paths = build_cache_paths(self._deps.cache_dir, key)
         await ensure_cache_dir_exists(self._deps.cache_dir)
 
         async with self._deps.locks.lock(key):
             cached = await try_prepare_cached_page_screenshot_png(
-                data_path=data_path,
-                meta_path=meta_path,
+                data_path=cache_paths.data_path,
+                meta_path=cache_paths.meta_path,
                 cache_ttl_seconds=self._deps.settings.preview_client_cache_ttl_sec,
             )
             if cached is not None:
@@ -130,8 +127,7 @@ class PageScreenshotService(WebUIPageScreenshotServiceProtocol):
             await self._store_page_screenshot_png_locked(
                 normalized_url=normalized_url,
                 key=key,
-                data_path=data_path,
-                meta_path=meta_path,
+                cache_paths=cache_paths,
                 image_bytes_png=image_data,
             )
 
@@ -154,13 +150,13 @@ class PageScreenshotService(WebUIPageScreenshotServiceProtocol):
         )
         cache_key_text = _build_cache_key_text(normalized_url)
         key = build_proxy_cache_key(cache_key_text)
-        data_path, meta_path = build_cache_paths(self._deps.cache_dir, key)
+        cache_paths = build_cache_paths(self._deps.cache_dir, key)
         await ensure_cache_dir_exists(self._deps.cache_dir)
 
         async with self._deps.locks.lock(key):
             cached = await try_prepare_cached_page_screenshot_png(
-                data_path=data_path,
-                meta_path=meta_path,
+                data_path=cache_paths.data_path,
+                meta_path=cache_paths.meta_path,
                 cache_ttl_seconds=self._deps.settings.preview_client_cache_ttl_sec,
             )
             if cached is not None:
@@ -183,14 +179,13 @@ class PageScreenshotService(WebUIPageScreenshotServiceProtocol):
             await self._store_page_screenshot_png_locked(
                 normalized_url=normalized_url,
                 key=key,
-                data_path=data_path,
-                meta_path=meta_path,
+                cache_paths=cache_paths,
                 image_bytes_png=screenshot_bytes,
             )
 
             cached = await try_prepare_cached_page_screenshot_png(
-                data_path=data_path,
-                meta_path=meta_path,
+                data_path=cache_paths.data_path,
+                meta_path=cache_paths.meta_path,
                 cache_ttl_seconds=self._deps.settings.preview_client_cache_ttl_sec,
             )
             if cached is not None:
@@ -202,24 +197,22 @@ class PageScreenshotService(WebUIPageScreenshotServiceProtocol):
         *,
         normalized_url: str,
         key: str,
-        data_path: str,
-        meta_path: str,
+        cache_paths: MediaPreviewCachePaths,
         image_bytes_png: bytes,
     ) -> None:
         logger = get_logger(LOGGER_NAME)
         temp_path = build_cache_temp_path(self._deps.cache_dir, key)
         try:
             image_size = len(image_bytes_png)
-            metadata_text = serialize_cache_metadata_text(
-                build_media_preview_cache_metadata_v1(
-                    source_url=normalized_url,
-                    final_url=normalized_url,
-                    content_type="image/png",
-                    bytes_written=image_size,
-                    declared_content_length=image_size,
-                ),
+            promotion = prepare_reserved_cache_file_promotion(
+                temp_path=temp_path,
+                paths=cache_paths,
+                source_url=normalized_url,
+                final_url=normalized_url,
+                content_type="image/png",
+                bytes_written=image_size,
+                declared_content_length=image_size,
             )
-            metadata_size = len(metadata_text.encode("utf-8"))
             with self._deps.storage_manager.reserve_many_disk_spaces(
                 requests=(
                     DiskSpaceReservationRequest(
@@ -232,8 +225,8 @@ class PageScreenshotService(WebUIPageScreenshotServiceProtocol):
                         },
                     ),
                     DiskSpaceReservationRequest(
-                        path=meta_path,
-                        required_bytes=metadata_size,
+                        path=cache_paths.meta_path,
+                        required_bytes=promotion.metadata_size,
                         operation=OPERATION_STORE,
                         details={
                             "purpose": "page_screenshot_cache_metadata",
@@ -244,13 +237,7 @@ class PageScreenshotService(WebUIPageScreenshotServiceProtocol):
             ) as reservation:
                 with claim_reserved_write(reservation, size_bytes=image_size):
                     await asyncio.to_thread(_write_binary_file, temp_path, image_bytes_png)
-                with claim_reserved_write(reservation, size_bytes=metadata_size):
-                    await promote_cache_file_with_metadata_text(
-                        temp_path=temp_path,
-                        data_path=data_path,
-                        meta_path=meta_path,
-                        metadata_text=metadata_text,
-                    )
+                await promotion.promote(reservation)
         except RECOVERABLE_EXCEPTIONS as exception:
             error = coerce_to_soai_error(exception, operation=OPERATION_STORE)
             log_exception(

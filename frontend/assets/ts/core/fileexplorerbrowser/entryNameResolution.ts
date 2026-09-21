@@ -1,7 +1,7 @@
 /* SoAI - File explorer entry name resolution [frontend/assets/ts/core/fileexplorerbrowser/entryNameResolution.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { FileBrowserRecord } from '@core/fileexplorerbrowser/types.ts';
+import type { FileEntryIconDescriptor } from '@core/fileexplorerbrowser/types.ts';
 
 interface FileEntryNameResolution {
     lowerName: string;
@@ -21,7 +21,7 @@ const resolveExtensionStart = (name: string): number => {
     return dotIndex;
 };
 
-const normalizeMimeType = (mimeType: string): string => mimeType.trim().toLowerCase();
+const normalizeMimeType = (mimeType: string | null | undefined): string => mimeType?.trim().toLowerCase() ?? '';
 
 const resolveMimeFamily = (mimeType: string): string => {
     const slashIndex = mimeType.indexOf('/');
@@ -31,7 +31,7 @@ const resolveMimeFamily = (mimeType: string): string => {
     return mimeType.slice(0, slashIndex);
 };
 
-const resolveFileEntryName = (entry: FileBrowserRecord): FileEntryNameResolution => {
+const resolveFileEntryName = (entry: FileEntryIconDescriptor): FileEntryNameResolution => {
     const normalizedName = normalizeName(entry.name);
     const lowerName = normalizedName.toLowerCase();
     const extensionStart = resolveExtensionStart(normalizedName);

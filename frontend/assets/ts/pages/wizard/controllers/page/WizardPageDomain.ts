@@ -299,7 +299,7 @@ class WizardPageDomain {
 
     async #navigateAfterCompletion(isSessionActivationRequired: boolean): Promise<void> {
         if (!isFunction(this.#dependencies.router.navigate)) throw new Error('WizardPage requires router.navigate for completion');
-        await this.#dependencies.router.navigate(isSessionActivationRequired ? AUTH_ROUTE_LOGIN : 'dashboard');
+        await this.#dependencies.router.navigate(isSessionActivationRequired ? AUTH_ROUTE_LOGIN : this.#dependencies.router.getDefaultRoute());
     }
 }
 

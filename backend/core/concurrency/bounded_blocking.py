@@ -127,7 +127,7 @@ class BoundedBlockingCancelledBase(asyncio.CancelledError):
     def cancel_future(self) -> None:
         return
 
-    async def wait_for_completion(self, timeout_sec: float) -> None:
+    async def wait_for_completion(self, timeout_sec: float | None) -> None:
         del timeout_sec
 
 
@@ -160,8 +160,11 @@ class BoundedBlockingCancelledError[ResultT](BoundedBlockingCancelledBase):
         self.future.cancel()
 
     @override
-    async def wait_for_completion(self, timeout_sec: float) -> None:
-        await asyncio.wait_for(asyncio.shield(self.future), timeout=timeout_sec)
+    async def wait_for_completion(self, timeout_sec: float | None) -> None:
+        if timeout_sec is None:
+            await asyncio.shield(self.future)
+        else:
+            await asyncio.wait_for(asyncio.shield(self.future), timeout=timeout_sec)
 
 
 def create_bounded_thread_pool(

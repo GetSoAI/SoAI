@@ -2,13 +2,15 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ensureError } from '@core/errors/coerce.ts';
+import { createAbortError } from '@core/errors/abort.ts';
+import { deepClone } from '@core/primitives/clone.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
 import { buildInlineActivityDetailsRequestKey, resolveInlineActivityDetailsSignatureFromMessage, type InlineActivityDetailsCancelRequest, type InlineActivityDetailsRenderRequest, type InlineActivityDetailsSignatureCheckRequest } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
 import { inlineActivityDetailsIdentitiesMatch, readInlineActivityDetailsSignature, resolveInlineActivityDetailsIdentity } from '@features/chat/message/inlineActivityDetailsLifecycle.ts';
 import { clearInlineActivityDetailsPendingState } from '@features/chat/message/inlineActivityDetailsPendingState.ts';
-import { normalizeMessageDomId } from '@features/chat/message/messageDomIds.ts';
-import { resolveChatMessageRenderSignature } from '@features/chat/message/messageRenderSignature.ts';
+import { resolveMessageDomIdFromElement } from '@features/chat/message/messageDomIds.ts';
 import { resolveAssistantMessageRevisionNumberFromMessage } from '@features/chat/message/messageSegmentsResolution.ts';
+import type { ChatMessage, ConversationContract } from '@features/chat/ChatTypes.ts';
 import type { ChatMessageRenderWorkerClient } from '@features/chat/message/renderworkers/chatMessageRenderWorkerClient.ts';
 import { commitInlineActivityDetailsRenderFailure, commitInlineActivityDetailsRenderSuccess } from '@features/chat/message/renderworkers/inlineActivityDetailsDomCommit.ts';
 import { hydrateInlineToolDetailsMessage } from '@features/chat/message/renderworkers/inlineActivityDetailsToolHydration.ts';
@@ -25,6 +27,8 @@ interface ChatMessageInlineActivityDetailsRendererDependencies {
     isConversationExecuting: (conversationId: string) => boolean;
     getWorkerRenderEpoch: () => number;
     getCurrentConversationId: () => string | null;
+    getCurrentConversation: () => ConversationContract | null;
+    resolveMessageForDomId: (conversation: ConversationContract, messageDomId: string) => ChatMessage | null;
     handleError: (error: Error, context: string) => void;
     postRenderEffects: (container: Element | null) => void;
     retryPendingRender: (container: Element | null) => void;
@@ -35,15 +39,6 @@ interface PendingInlineDetailsRender {
     signature: string;
     item: HTMLElement;
 }
-
-const resolveMessageDomIdFromItem = (item: HTMLElement): string | null => {
-    const messageRoot = item.closest('.chat-message');
-    if (!(messageRoot instanceof HTMLElement)) {
-        return null;
-    }
-    const messageDomId = normalizeMessageDomId(messageRoot.getAttribute('data-id') ?? '');
-    return messageDomId ? messageDomId : null;
-};
 
 class ChatMessageInlineActivityDetailsRenderer {
     readonly #dependencies: ChatMessageInlineActivityDetailsRendererDependencies;
@@ -95,11 +90,49 @@ class ChatMessageInlineActivityDetailsRenderer {
         );
     }
 
+    #resolveCurrentOwnedMessage(inputArguments: { requestKey: string; controller: AbortController; item: HTMLElement; identity: InlineActivityDetailsRenderRequest['identity']; conversationId: string; messageDomId: string; expectedType: InlineActivityDetailsRenderRequest['expectedType']; callId: string; signature: string; nowMs: number }): ChatMessage | null {
+        if (!this.#isCurrentRequest(inputArguments.requestKey, inputArguments.controller) || inputArguments.controller.signal.aborted || !inputArguments.item.isConnected) {
+            return null;
+        }
+        if (this.#dependencies.getCurrentConversationId() !== inputArguments.conversationId) {
+            return null;
+        }
+        const currentIdentity = resolveInlineActivityDetailsIdentity(inputArguments.item, inputArguments.conversationId);
+        if (currentIdentity === null || !inlineActivityDetailsIdentitiesMatch(currentIdentity, inputArguments.identity)) {
+            return null;
+        }
+        const conversation = this.#dependencies.getCurrentConversation();
+        if (conversation === null || conversation.id !== inputArguments.conversationId) {
+            return null;
+        }
+        const message = this.#dependencies.resolveMessageForDomId(conversation, inputArguments.messageDomId);
+        if (message === null) {
+            return null;
+        }
+        return this.#hasCurrentDetailsSignature(
+            {
+                item: inputArguments.item,
+                message,
+                expectedType: inputArguments.expectedType,
+                callId: inputArguments.callId,
+                timelineSequenceIndex: inputArguments.identity.timelineSequenceIndex,
+                signature: inputArguments.signature
+            },
+            inputArguments.nowMs
+        )
+            ? message
+            : null;
+    }
+
     #retryPendingRenderOnNextPostRender(requestKey: string, controller: AbortController, item: HTMLElement): void {
         this.#clearAbortController(requestKey, controller);
         if (item.isConnected) {
             this.#dependencies.retryPendingRender(item);
         }
+    }
+
+    #renderSettingsAreCurrent(settings: { isRichTextEnabled: boolean; codeRecognitionEnabled: boolean; isThinkingFeatureEnabled: boolean; isShowActivitiesEnabled: boolean; activityDurationDisplayMode: ChatActivityDurationDisplayMode }): boolean {
+        return this.#dependencies.isRichTextEnabled() === settings.isRichTextEnabled && this.#dependencies.isCodeRecognitionEnabled() === settings.codeRecognitionEnabled && this.#dependencies.isThinkingFeatureEnabled() === settings.isThinkingFeatureEnabled && this.#dependencies.isShowActivitiesEnabled() === settings.isShowActivitiesEnabled && this.#dependencies.getActivityDurationDisplayMode() === settings.activityDurationDisplayMode;
     }
 
     renderInlineActivityDetailsAsync(inputArguments: InlineActivityDetailsRenderRequest): void {
@@ -118,7 +151,7 @@ class ChatMessageInlineActivityDetailsRenderer {
             clearInlineActivityDetailsPendingState(inputArguments.item);
             return;
         }
-        const messageDomId = resolveMessageDomIdFromItem(inputArguments.item);
+        const messageDomId = resolveMessageDomIdFromElement(inputArguments.item);
         if (!messageDomId) {
             clearInlineActivityDetailsPendingState(inputArguments.item);
             return;
@@ -149,24 +182,34 @@ class ChatMessageInlineActivityDetailsRenderer {
         this.#abortByRequestKey.set(requestKey, { controller, signature, item: inputArguments.item });
 
         const epoch = this.#dependencies.getWorkerRenderEpoch();
-        const messageRevision = resolveAssistantMessageRevisionNumberFromMessage(inputArguments.message);
         const nowMs = serverEpochMs();
+        const renderSettings = {
+            isRichTextEnabled: this.#dependencies.isRichTextEnabled(),
+            codeRecognitionEnabled: this.#dependencies.isCodeRecognitionEnabled(),
+            isThinkingFeatureEnabled: this.#dependencies.isThinkingFeatureEnabled(),
+            isShowActivitiesEnabled: this.#dependencies.isShowActivitiesEnabled(),
+            activityDurationDisplayMode: this.#dependencies.getActivityDurationDisplayMode()
+        };
+        const messageSnapshot = deepClone(inputArguments.message);
+        const messageRevision = resolveAssistantMessageRevisionNumberFromMessage(messageSnapshot);
+        const context = { epoch, conversationId, messageDomId, messageRevision, stateSignature: `inline-details:${signature}` };
+        const isCurrentContext = (message: ChatMessage): boolean => isWorkerRenderContextCurrent(this.#dependencies, { expected: context, messageDomId, messageRevision: resolveAssistantMessageRevisionNumberFromMessage(message), stateSignature: context.stateSignature, signal: controller.signal }) && this.#renderSettingsAreCurrent(renderSettings);
 
         void hydrateInlineToolDetailsMessage({
             conversationId,
-            message: inputArguments.message,
+            message: messageSnapshot,
             expectedType: inputArguments.expectedType,
-            callId
+            callId,
+            signal: controller.signal
         })
             .then((renderMessage) => {
-                const messageSignature = resolveChatMessageRenderSignature(renderMessage, null);
+                const currentMessage = this.#resolveCurrentOwnedMessage({ requestKey, controller, item: inputArguments.item, identity, conversationId, messageDomId, expectedType: inputArguments.expectedType, callId, signature, nowMs });
+                if (currentMessage === null || !isCurrentContext(currentMessage)) {
+                    throw createAbortError('Inline activity details render was superseded.');
+                }
                 return this.#dependencies.client.renderInlineDetailsFromMessage({
-                    context: { epoch, conversationId, messageDomId, messageRevision, stateSignature: messageSignature },
-                    isRichTextEnabled: this.#dependencies.isRichTextEnabled(),
-                    codeRecognitionEnabled: this.#dependencies.isCodeRecognitionEnabled(),
-                    isThinkingFeatureEnabled: this.#dependencies.isThinkingFeatureEnabled(),
-                    isShowActivitiesEnabled: this.#dependencies.isShowActivitiesEnabled(),
-                    activityDurationDisplayMode: this.#dependencies.getActivityDurationDisplayMode(),
+                    context,
+                    ...renderSettings,
                     canonicalPlan: null,
                     isCurrentConversationExecuting: this.#dependencies.isConversationExecuting(conversationId),
                     nowMs,
@@ -190,38 +233,24 @@ class ChatMessageInlineActivityDetailsRenderer {
                     this.#clearAbortController(requestKey, controller);
                     return;
                 }
-                const currentIdentity = resolveInlineActivityDetailsIdentity(inputArguments.item, conversationId);
-                if (currentIdentity === null || !inlineActivityDetailsIdentitiesMatch(currentIdentity, identity)) {
-                    clearInlineActivityDetailsPendingState(inputArguments.item);
-                    this.#clearAbortController(requestKey, controller);
+                const currentMessage = this.#resolveCurrentOwnedMessage({ requestKey, controller, item: inputArguments.item, identity, conversationId, messageDomId, expectedType: inputArguments.expectedType, callId, signature, nowMs });
+                if (currentMessage === null) {
+                    this.#retryPendingRenderOnNextPostRender(requestKey, controller, inputArguments.item);
                     return;
                 }
-                const messageRevision = resolveAssistantMessageRevisionNumberFromMessage(inputArguments.message);
                 if (
                     !isWorkerRenderContextCurrent(this.#dependencies, {
                         expected: result.context,
                         messageDomId,
-                        messageRevision,
-                        stateSignature: result.context.stateSignature,
+                        messageRevision: resolveAssistantMessageRevisionNumberFromMessage(currentMessage),
+                        stateSignature: context.stateSignature,
                         signal: controller.signal
                     })
                 ) {
                     this.#retryPendingRenderOnNextPostRender(requestKey, controller, inputArguments.item);
                     return;
                 }
-                if (
-                    !this.#hasCurrentDetailsSignature(
-                        {
-                            item: inputArguments.item,
-                            message: inputArguments.message,
-                            expectedType: inputArguments.expectedType,
-                            callId,
-                            timelineSequenceIndex: identity.timelineSequenceIndex,
-                            signature
-                        },
-                        nowMs
-                    )
-                ) {
+                if (!this.#renderSettingsAreCurrent(renderSettings)) {
                     this.#retryPendingRenderOnNextPostRender(requestKey, controller, inputArguments.item);
                     return;
                 }
@@ -242,9 +271,9 @@ class ChatMessageInlineActivityDetailsRenderer {
                 if (!this.#isCurrentRequest(requestKey, controller)) {
                     return;
                 }
-                if (!inputArguments.item.isConnected) {
-                    clearInlineActivityDetailsPendingState(inputArguments.item);
-                    this.#clearAbortController(requestKey, controller);
+                const currentMessage = this.#resolveCurrentOwnedMessage({ requestKey, controller, item: inputArguments.item, identity, conversationId, messageDomId, expectedType: inputArguments.expectedType, callId, signature, nowMs });
+                if (currentMessage === null || !isCurrentContext(currentMessage)) {
+                    this.#retryPendingRenderOnNextPostRender(requestKey, controller, inputArguments.item);
                     return;
                 }
                 const runtimeError = ensureError(error);

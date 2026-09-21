@@ -4,6 +4,7 @@
 import { parseSingleRootElement } from '@core/dom/parseSingleRootElement.ts';
 import { computeHash } from '@core/primitives/hash.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
+import { hasAttachmentThumbnail, preserveStableAttachmentThumbnailVisuals } from '@features/chat/attachments/attachmentThumbnailDom.ts';
 
 interface AttachmentPreviewReconcilerContext {
     dependencies: {
@@ -17,6 +18,10 @@ interface AttachmentPreviewReconcilerContext {
 type AttachmentPreviewEntry = {
     id: string;
     html: TrustedHtml;
+};
+
+type AttachmentPreviewReconciliation = {
+    thumbnailsChanged: boolean;
 };
 
 const ATTACHMENT_UI_ID_ATTRIBUTE = 'data-attachment-ui-id';
@@ -51,7 +56,7 @@ const collectExistingElements = (preview: HTMLElement): Map<string, HTMLElement>
     return elements;
 };
 
-const patchEntryElement = (context: AttachmentPreviewReconcilerContext, current: HTMLElement, next: HTMLElement): void => {
+const patchEntryElement = (context: AttachmentPreviewReconcilerContext, current: HTMLElement, next: HTMLElement): boolean => {
     if (current.tagName !== next.tagName) {
         const entryId = current.getAttribute(ATTACHMENT_UI_ID_ATTRIBUTE) ?? 'untracked';
         throw new Error(`Attachment preview entry root element type changed for ${entryId}: ${current.tagName} -> ${next.tagName}`);
@@ -68,22 +73,28 @@ const patchEntryElement = (context: AttachmentPreviewReconcilerContext, current:
         }
         context.dependencies.updateAttribute(current, name, value);
     }
+    const thumbnailPreserved = preserveStableAttachmentThumbnailVisuals(current, next) > 0;
     current.replaceChildren();
     while (next.firstChild !== null) {
         current.appendChild(next.firstChild);
     }
+    return !thumbnailPreserved && hasAttachmentThumbnail(current);
 };
 
-const reconcileAttachmentPreview = (context: AttachmentPreviewReconcilerContext, preview: HTMLElement, entries: readonly AttachmentPreviewEntry[]): void => {
+const reconcileAttachmentPreview = (context: AttachmentPreviewReconcilerContext, preview: HTMLElement, entries: readonly AttachmentPreviewEntry[]): AttachmentPreviewReconciliation => {
     const existing = collectExistingElements(preview);
     const retainedIds = new Set<string>();
+    let thumbnailsChanged = false;
     for (const [index, entry] of entries.entries()) {
         retainedIds.add(entry.id);
         const current = existing.get(entry.id);
         const signature = resolveEntrySignature(entry);
         let element = current ?? createEntryElement(context, entry, signature);
+        if (current === undefined) {
+            thumbnailsChanged = hasAttachmentThumbnail(element) || thumbnailsChanged;
+        }
         if (current && current.getAttribute(ATTACHMENT_SIGNATURE_ATTRIBUTE) !== signature) {
-            patchEntryElement(context, current, createEntryElement(context, entry, signature));
+            thumbnailsChanged = patchEntryElement(context, current, createEntryElement(context, entry, signature)) || thumbnailsChanged;
             element = current;
         }
         const expectedCurrent = preview.children.item(index);
@@ -96,7 +107,8 @@ const reconcileAttachmentPreview = (context: AttachmentPreviewReconcilerContext,
             element.remove();
         }
     }
+    return { thumbnailsChanged };
 };
 
 export { reconcileAttachmentPreview };
-export type { AttachmentPreviewEntry };
+export type { AttachmentPreviewEntry, AttachmentPreviewReconciliation };

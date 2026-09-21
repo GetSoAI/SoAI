@@ -5,10 +5,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from cryptography.fernet import Fernet
-
 from core.config.protocols import ConfigProtocol
 from core.database.protocols import DatabaseCoreProtocol
+from core.hardware.soaibench_publication import SoAIBenchPublicationRecord
 from core.timing.epoch import epoch_ms
 from database.core.data_conversions import validate_retention_hours
 from database.core.operations import sync_prune_by_timestamp
@@ -32,6 +31,17 @@ from database.repositories.hardware.soaibench_history import (
     list_soaibench_history_query,
     list_soaibench_recent_for_user_query,
 )
+from database.repositories.hardware.soaibench_history_deletion import (
+    sync_delete_soaibench_local_run,
+)
+from database.repositories.hardware.soaibench_publication_records import (
+    materialize_soaibench_publication_record,
+)
+from database.repositories.hardware.soaibench_publications import (
+    get_soaibench_publication_query,
+    sync_finish_soaibench_publication,
+    sync_prepare_soaibench_publication,
+)
 from database.repositories.hardware.speed import (
     SpeedTestWritePayload,
     get_latest_network_speed_snapshot_query,
@@ -43,6 +53,10 @@ from database.repositories.hardware.speed import (
 )
 
 if TYPE_CHECKING:
+    from core.hardware.soaibench_persistence import (
+        SoAIBenchMutationResult,
+        SoAIBenchReconciliationResult,
+    )
     from core.types.json import JSONDict
 
 __all__ = ("DatabaseHardware",)
@@ -51,12 +65,10 @@ __all__ = ("DatabaseHardware",)
 class DatabaseHardware:
     core: DatabaseCoreProtocol
     config: ConfigProtocol
-    fernet: tuple[Fernet, ...]
 
     def __init__(self, deps: DatabaseRepositoryDependencies) -> None:
         self.core = deps.core
         self.config = deps.config
-        self.fernet = deps.fernet
 
     async def log_hardware_metrics(self, info: JSONDict) -> None:
         await self.core.writer.queue_write_operation(
@@ -152,8 +164,8 @@ class DatabaseHardware:
             identifier,
         )
 
-    async def create_soaibench_run(self, run: JSONDict) -> None:
-        await self.core.writer.queue_write_operation(
+    async def create_soaibench_run(self, run: JSONDict) -> SoAIBenchMutationResult:
+        return await self.core.writer.queue_write_operation(
             sync_create_soaibench_run,
             run,
         )
@@ -165,8 +177,8 @@ class DatabaseHardware:
         last_heartbeat_at_ms: int,
         sample_count: int,
         summary_json: str | None,
-    ) -> None:
-        await self.core.writer.queue_write_operation(
+    ) -> SoAIBenchMutationResult:
+        return await self.core.writer.queue_write_operation(
             sync_update_soaibench_heartbeat,
             run_id,
             last_heartbeat_at_ms,
@@ -174,8 +186,12 @@ class DatabaseHardware:
             summary_json,
         )
 
-    async def finish_soaibench_run(self, run_id: str, fields: JSONDict) -> None:
-        await self.core.writer.queue_write_operation(
+    async def finish_soaibench_run(
+        self,
+        run_id: str,
+        fields: JSONDict,
+    ) -> SoAIBenchMutationResult:
+        return await self.core.writer.queue_write_operation(
             sync_finish_soaibench_run,
             run_id,
             fields,
@@ -184,11 +200,13 @@ class DatabaseHardware:
     async def request_soaibench_stop(
         self,
         *,
+        user_id: int,
         run_id: str,
         stop_requested_at_ms: int,
-    ) -> bool:
+    ) -> SoAIBenchMutationResult:
         return await self.core.writer.queue_write_operation(
             sync_request_soaibench_stop,
+            user_id,
             run_id,
             stop_requested_at_ms,
         )
@@ -238,8 +256,65 @@ class DatabaseHardware:
             limit=limit,
         )
 
-    async def reconcile_soaibench_running_rows(self, completed_at_ms: int) -> int:
+    async def reconcile_soaibench_running_rows(
+        self,
+        completed_at_ms: int,
+    ) -> SoAIBenchReconciliationResult:
         return await self.core.writer.queue_write_operation(
             sync_reconcile_soaibench_running_rows,
             completed_at_ms,
         )
+
+    async def delete_soaibench_local_run(self, *, run_id: str, user_id: int) -> None:
+        await self.core.writer.queue_write_operation(
+            sync_delete_soaibench_local_run, run_id, user_id
+        )
+
+    async def get_soaibench_publication(
+        self,
+        *,
+        user_id: int,
+        run_id: str,
+    ) -> SoAIBenchPublicationRecord | None:
+        publication = await self.core.reader.execute_read(
+            get_soaibench_publication_query,
+            user_id,
+            run_id,
+        )
+        return (
+            None if publication is None else materialize_soaibench_publication_record(publication)
+        )
+
+    async def prepare_soaibench_publication(
+        self,
+        *,
+        user_id: int,
+        run_id: str,
+        canonical_submission_json: str,
+        prepared_at_ms: int,
+    ) -> SoAIBenchPublicationRecord:
+        publication = await self.core.writer.queue_write_operation(
+            sync_prepare_soaibench_publication,
+            run_id,
+            user_id,
+            canonical_submission_json,
+            prepared_at_ms,
+        )
+        return materialize_soaibench_publication_record(publication)
+
+    async def finish_soaibench_publication(
+        self,
+        *,
+        user_id: int,
+        run_id: str,
+        receipt_json: str,
+        published_at_ms: int,
+    ) -> SoAIBenchPublicationRecord:
+        publication = await self.core.writer.queue_write_operation(
+            sync_finish_soaibench_publication,
+            run_id,
+            user_id,
+            receipt_json,
+            published_at_ms,
+        )
+        return materialize_soaibench_publication_record(publication)

@@ -76,6 +76,21 @@ class ChatStreamAdmissionState {
         this.#setLifecycle(identity, 'terminalizing');
     }
 
+    markCancellationTerminal(conversationId: string): void {
+        const normalizedConversationId = normalizeConversationId(conversationId);
+        if (!normalizedConversationId) {
+            return;
+        }
+        this.#admissionByConversationId.set(normalizedConversationId, {
+            streamLifecycle: 'inactive',
+            canAcceptConversationInput: true,
+            canStartNextPrompt: false,
+            canAcceptSteerPrompt: false,
+            activeToolCallCount: 0
+        });
+        this.#identityByConversationId.delete(normalizedConversationId);
+    }
+
     markInactive(conversationId: string): void {
         const normalizedConversationId = normalizeConversationId(conversationId);
         if (!normalizedConversationId) {

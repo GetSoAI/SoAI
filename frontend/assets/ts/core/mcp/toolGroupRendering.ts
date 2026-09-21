@@ -10,8 +10,8 @@ import { createSearchTextIndex } from '@core/search/searchQuery.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { getBadgeColorClass } from '@core/ui/badgeColors.ts';
-import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
 import { createIconSlot } from '@core/ui/icons/view.ts';
+import { createSearchFieldActions } from '@core/ui/searchField.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 
 const TOOL_SEARCH_MIN_TOOLS = 6;
@@ -112,7 +112,7 @@ const renderToolSearchBar = (host: McpToolGroupRenderHost, toolSearchAction: str
         placeholder: i18n.t('chat.configuration.mcp.toolSearch.placeholder')
     });
     host.appendToElement(container, input);
-    host.appendToElement(container, createIconSlot(host.dom.getDocument(), getIconSync('search', { size: 16, strokeWidth: 1.5 }), { className: 'searchbar-icon' }));
+    host.appendToElement(container, [...createSearchFieldActions(host.dom.getDocument())]);
     return container;
 };
 

@@ -99,7 +99,7 @@ def initialize_unified_api_runtime(
                     database_agent_turns=services.databases.agent_turns,
                     database_tool_calls=services.databases.tool_calls,
                     task_registry_queries=services.tasks.task_registry_queries,
-                    token_collection=services.tasks.token_collection,
+                    token_collection=services.tasks.cancellation.token_collection,
                 ),
             ),
         )

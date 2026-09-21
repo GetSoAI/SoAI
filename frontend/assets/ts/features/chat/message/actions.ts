@@ -79,7 +79,8 @@ class ChatMessageActions {
         });
         this.#regenerationController = new ChatMessageRegenerationController({
             ...createMessageMutationSharedDependencies(this.#dependencies),
-            truncateMessagesFromCursor: (conversation, inputArguments) => this.#dependencies.runtime.truncateMessagesFromCursor(conversation, inputArguments)
+            regenerateConversation: (conversationId, payload) => this.#dependencies.runtime.regenerateConversation(conversationId, payload),
+            updateConversationModel: (conversationId, modelId) => this.#dependencies.runtime.updateConversationModel(conversationId, modelId)
         });
     }
 

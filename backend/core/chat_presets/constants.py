@@ -52,6 +52,7 @@ CHAT_PRESET_APPEARANCE_FIELDS = frozenset(
         "inline_multimedia_previews_enabled",
         "auto_title_generation",
         "show_activities",
+        "show_activity_elapsed_time",
         "hide_automation_runs",
         "hide_messaging_conversations",
         "notify_on_completion",

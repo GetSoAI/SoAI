@@ -10,7 +10,6 @@ from core.concurrency.cancellation import TaskCancelledError
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import RateLimitError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
@@ -21,11 +20,6 @@ from features.api.routes.system.events.websocket_chat_stream.completion_followup
 from features.api.routes.system.events.websocket_chat_stream.finalization import (
     finalize_ws_chat_stream_cancellation_noncritical,
     finalize_ws_chat_stream_error_noncritical,
-)
-from features.api.runtime.chat_execution.quota import (
-    ConversationTurnQuotaDenied,
-    ConversationTurnQuotaReservation,
-    reserve_conversation_turn_stream_quota,
 )
 from features.api.runtime.chat_execution.runtime_quota import (
     release_ws_chat_stream_runtime_quota_noncritical,
@@ -47,6 +41,9 @@ from features.assistant_timeline.loading_error_finalization import (
 )
 from features.assistant_timeline.status_preview_state import (
     resolve_latest_user_message_excerpt,
+)
+from features.chat.conversation_input_quota_reservation import (
+    reserve_conversation_input_turn_quota,
 )
 from features.chat.conversation_input_runtime import create_conversation_input_runtime
 from features.chat.conversation_input_stream_arms import (
@@ -113,41 +110,6 @@ async def _cancel_admitted_inference_noncritical(
         )
 
 
-async def _reserve_turn_quota(
-    api_dependencies: ApiDependencies,
-    *,
-    user_id: int,
-    prepared: PreparedConversationInputTurn,
-    runtime: AssistantTimelineRuntime,
-) -> None:
-    quota_result = await reserve_conversation_turn_stream_quota(
-        api_dependencies=api_dependencies,
-        user_id=user_id,
-        request_json=(
-            prepared.prepared_agent_request.final_payload
-            if prepared.prepared_agent_request is not None
-            else prepared.request_json
-        ),
-        logger=get_logger(LOGGER_NAME),
-    )
-    if isinstance(quota_result, ConversationTurnQuotaDenied):
-        raise RateLimitError(
-            quota_result.message,
-            details={
-                "window": quota_result.window,
-                "retry_at_ms": quota_result.retry_at_ms,
-            },
-        )
-    if not isinstance(quota_result, ConversationTurnQuotaReservation):
-        return
-    runtime.quota_key_id = quota_result.key_id
-    runtime.quota_token_reservation = quota_result.token_reservation
-    if isinstance(quota_result.token_reservation, dict):
-        prompt_tokens = quota_result.token_reservation.get("prompt_tokens")
-        if isinstance(prompt_tokens, int) and not isinstance(prompt_tokens, bool):
-            runtime.quota_prompt_tokens = prompt_tokens
-
-
 async def execute_conversation_input_variant(
     api_dependencies: ApiDependencies,
     *,
@@ -162,12 +124,15 @@ async def execute_conversation_input_variant(
         server_boot_id=server_boot_id,
     )
     runtime = execution.timeline
+    runtime.runner_task = asyncio.current_task()
     context = execution.request_context
     session: AssistantTimelineSession | None = None
     prepared: PreparedConversationInputTurn | None = None
     inference_admitted = False
     logger = get_logger(LOGGER_NAME)
     try:
+        if runtime.cancellation_requested:
+            raise asyncio.CancelledError
         await persist_streaming_assistant_placeholder(
             database_messages=api_dependencies.database_messages,
             runtime=runtime,
@@ -178,6 +143,12 @@ async def execute_conversation_input_variant(
             database_messages=api_dependencies.database_messages,
         )
         await publish_chat_stream_message_events(api_dependencies.event_bus, runtime)
+        regeneration_request_value = input_record.get("regeneration_request")
+        regeneration_request = (
+            dict(regeneration_request_value)
+            if isinstance(regeneration_request_value, dict)
+            else None
+        )
         prepared = await prepare_conversation_input_turn(
             api_dependencies,
             request_context=context,
@@ -189,6 +160,7 @@ async def execute_conversation_input_variant(
             assistant_turn_at_ms=runtime.assistant_turn_at_ms,
             model_variant_index=runtime.model_variant_index,
             request_id=runtime.request_id,
+            regeneration_request=regeneration_request,
         )
         status_preview_request_json = (
             prepared.prepared_agent_request.final_payload
@@ -199,11 +171,12 @@ async def execute_conversation_input_variant(
             status_preview_request_json,
         )
         runtime.model_id = prepared.requested_model
-        await _reserve_turn_quota(
+        await reserve_conversation_input_turn_quota(
             api_dependencies,
             user_id=execution.user_id,
             prepared=prepared,
             runtime=runtime,
+            logger=logger,
         )
         session = create_assistant_timeline_session(
             api_dependencies=api_dependencies,

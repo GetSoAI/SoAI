@@ -5,12 +5,10 @@ import { dom } from '@core/dom/dom.ts';
 
 type SidebarDomKey = 'sidebar' | 'backdrop' | 'hamburger' | 'mainContent' | 'versionSmall' | 'versionLarge' | 'versionContainer' | 'logoLarge' | 'logoSmall' | 'logoWrapper' | 'menu';
 
-const SIDEBAR_WIDTH = Object.freeze({ collapsed: 60, expanded: 260, mobile: 260 });
-
 const SIDEBAR_ROOT_SELECTOR = '.sidebar';
 const SIDEBAR_BACKDROP_SELECTOR = '.sidebar-backdrop';
 const SIDEBAR_LINK_SELECTOR = '.sidebar-link';
-const SIDEBAR_LABEL_SELECTOR = '.sidebar-label';
+const SIDEBAR_PAGE_LABEL_SELECTOR = '.sidebar-link[data-page] .sidebar-label';
 const SIDEBAR_MENU_SELECTOR = '.sidebar-menu';
 const SIDEBAR_EXPANDED_WIDTH_PROPERTY = '--sidebar-width-expanded';
 const SIDEBAR_BASE_WIDTH_PROPERTY = '--sidebar-width';
@@ -51,6 +49,6 @@ const resolveHTMLElement = (selector: string, context: Element | Document | null
     throw new Error(`Sidebar expected an Element for selector: ${selector}`);
 };
 
-export { ARIA_HIDDEN_ATTR, LOGO_LARGE_CLASS, LOGO_SMALL_CLASS, SIDEBAR_BACKDROP_SELECTOR, SIDEBAR_BASE_WIDTH_PROPERTY, SIDEBAR_COLLAPSED_CLASS, SIDEBAR_DOM_SELECTORS, SIDEBAR_EXPANDED_WIDTH_PROPERTY, SIDEBAR_LABEL_SELECTOR, SIDEBAR_LINK_SELECTOR, SIDEBAR_MENU_SELECTOR, SIDEBAR_ROOT_SELECTOR, SIDEBAR_WIDTH, STYLE_DISPLAY, STYLE_OPACITY, VERSION_LARGE_ID, VERSION_SMALL_ID, resolveHTMLElement };
+export { ARIA_HIDDEN_ATTR, LOGO_LARGE_CLASS, LOGO_SMALL_CLASS, SIDEBAR_BACKDROP_SELECTOR, SIDEBAR_BASE_WIDTH_PROPERTY, SIDEBAR_COLLAPSED_CLASS, SIDEBAR_DOM_SELECTORS, SIDEBAR_EXPANDED_WIDTH_PROPERTY, SIDEBAR_LINK_SELECTOR, SIDEBAR_MENU_SELECTOR, SIDEBAR_PAGE_LABEL_SELECTOR, SIDEBAR_ROOT_SELECTOR, STYLE_DISPLAY, STYLE_OPACITY, VERSION_LARGE_ID, VERSION_SMALL_ID, resolveHTMLElement };
 
 export type { SidebarDomKey };

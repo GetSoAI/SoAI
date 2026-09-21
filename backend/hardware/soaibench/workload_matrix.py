@@ -3,6 +3,14 @@
 
 from __future__ import annotations
 
+from core.hardware.soaibench_workloads import (
+    MATRIX_BATCH_DISPATCHES,
+    MATRIX_MAXIMUM_ELEMENTS,
+    MATRIX_OPERATION_FACTOR,
+    MATRIX_ROUNDS,
+    counted_operations,
+)
+from hardware.soaibench.opencl_session import OpenCLExecutionSession
 from hardware.soaibench.types import SoAIBenchGpuIdentity
 from hardware.soaibench.workload_common import (
     SoAIBenchPhaseResult,
@@ -12,13 +20,13 @@ from hardware.soaibench.workload_common import (
 __all__ = (
     "STANDARD_MATRIX_REPEATS",
     "execute_matrix_workload",
+    "matrix_counted_operations",
     "matrix_gops",
 )
 
-STANDARD_MATRIX_REPEATS = 160
-MATRIX_ROUNDS = 768
-MATRIX_ELEMENT_COUNT = 4_194_304
-MATRIX_OPERATIONS_PER_ROUND = 16
+STANDARD_MATRIX_REPEATS = MATRIX_BATCH_DISPATCHES
+MATRIX_ELEMENT_COUNT = MATRIX_MAXIMUM_ELEMENTS
+MATRIX_OPERATIONS_PER_ROUND = MATRIX_OPERATION_FACTOR
 
 MATRIX_KERNEL_SOURCE = """
 __kernel void soaibench_matrix_dense(__global float *data, const uint rounds) {
@@ -53,7 +61,10 @@ __kernel void soaibench_matrix_dense(__global float *data, const uint rounds) {
 """
 
 
-def execute_matrix_workload(identity: SoAIBenchGpuIdentity) -> SoAIBenchPhaseResult:
+def execute_matrix_workload(
+    identity: SoAIBenchGpuIdentity,
+    session: OpenCLExecutionSession | None = None,
+) -> SoAIBenchPhaseResult:
     return execute_opencl_phase(
         identity=identity,
         source=MATRIX_KERNEL_SOURCE,
@@ -62,10 +73,18 @@ def execute_matrix_workload(identity: SoAIBenchGpuIdentity) -> SoAIBenchPhaseRes
         repeats=STANDARD_MATRIX_REPEATS,
         summary_prefix="matrix",
         element_count=MATRIX_ELEMENT_COUNT,
+        session=session,
     )
 
 
 def matrix_gops(result: SoAIBenchPhaseResult) -> float:
-    operations = result.element_count * MATRIX_ROUNDS * result.sample_count
-    operations *= MATRIX_OPERATIONS_PER_ROUND
-    return operations / result.elapsed_seconds / 1_000_000_000.0
+    return matrix_counted_operations(result) / result.elapsed_seconds / 1_000_000_000.0
+
+
+def matrix_counted_operations(result: SoAIBenchPhaseResult) -> int:
+    return counted_operations(
+        "matrix",
+        result.element_count,
+        result.rounds,
+        result.dispatches,
+    )

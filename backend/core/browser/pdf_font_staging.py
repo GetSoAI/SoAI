@@ -10,7 +10,6 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from functools import cache
-from urllib.request import pathname2url
 
 from core.browser.pdf_font_manifest import (
     PdfFontEntry,
@@ -23,6 +22,7 @@ from core.errors.exceptions import ValidationError
 from core.filesystem.atomic_binary_writes import atomic_write_binary
 from core.filesystem.atomic_writes import atomic_write_text_content
 from core.filesystem.open_files import open_binary
+from core.serialization.base64_values import encode_base64_ascii
 
 __all__ = ("prune_pdf_font_cache", "stage_pdf_fonts")
 
@@ -41,6 +41,7 @@ def _cache_file_pattern() -> re.Pattern[str]:
 class _StagedPdfFont:
     entry: PdfFontEntry
     staged_path: str
+    content: bytes
 
 
 def _range_contains(font_range: PdfFontRange, codepoint: int) -> bool:
@@ -89,10 +90,17 @@ def _cache_file_name(entry: PdfFontEntry) -> str:
     return f"{entry.sha256}{os.path.splitext(entry.relative_path)[1]}"
 
 
-def _cache_font(source_path: str, cache_path: str, expected_sha256: str) -> None:
+def _cache_font(
+    source_path: str,
+    cache_path: str,
+    expected_sha256: str,
+    expected_size_bytes: int,
+) -> None:
     digest = hashlib.sha256()
+    copied_size_bytes = 0
 
     def copy_verified_font(handle: io.BufferedIOBase) -> None:
+        nonlocal copied_size_bytes
         with open_binary(source_path, mode="rb") as source:
             while True:
                 chunk = source.read(_COPY_CHUNK_BYTES)
@@ -100,10 +108,23 @@ def _cache_font(source_path: str, cache_path: str, expected_sha256: str) -> None
                     break
                 digest.update(chunk)
                 handle.write(chunk)
+                copied_size_bytes += len(chunk)
+        if copied_size_bytes != expected_size_bytes:
+            raise ValidationError("PDF font asset size does not match the manifest.")
         if digest.hexdigest().lower() != expected_sha256:
             raise ValidationError("PDF font asset digest does not match the manifest.")
 
     atomic_write_binary(cache_path, copy_verified_font)
+
+
+def _read_verified_font(path: str, entry: PdfFontEntry) -> bytes:
+    with open_binary(path, mode="rb") as handle:
+        content = handle.read()
+    if len(content) != entry.size_bytes:
+        raise ValidationError("PDF font cache size does not match the manifest.")
+    if hashlib.sha256(content).hexdigest().lower() != entry.sha256:
+        raise ValidationError("PDF font cache digest does not match the manifest.")
+    return content
 
 
 def _stage_font(entry: PdfFontEntry, source_root: str, cache_dir: str) -> _StagedPdfFont:
@@ -112,12 +133,30 @@ def _stage_font(entry: PdfFontEntry, source_root: str, cache_dir: str) -> _Stage
         raise ValidationError("PDF font asset is missing.")
     cache_path = os.path.join(cache_dir, _cache_file_name(entry))
     if not os.path.isfile(cache_path):
-        _cache_font(source_path, cache_path, entry.sha256)
-    return _StagedPdfFont(entry=entry, staged_path=cache_path)
+        _cache_font(source_path, cache_path, entry.sha256, entry.size_bytes)
+    return _StagedPdfFont(
+        entry=entry,
+        staged_path=cache_path,
+        content=_read_verified_font(cache_path, entry),
+    )
 
 
-def _css_url(path: str) -> str:
-    return f"file://{pathname2url(os.path.abspath(path))}"
+def _font_mime_type(path: str) -> str:
+    extension = os.path.splitext(path)[1].lower()
+    if extension == ".woff2":
+        return "font/woff2"
+    if extension == ".ttf":
+        return "font/ttf"
+    if extension == ".ttc":
+        return "font/collection"
+    if extension == ".otf":
+        return "font/otf"
+    raise ValidationError("PDF font asset type is unsupported.")
+
+
+def _font_data_uri(staged: _StagedPdfFont) -> str:
+    mime_type = _font_mime_type(staged.staged_path)
+    return f"data:{mime_type};base64,{encode_base64_ascii(staged.content)}"
 
 
 def _format_ranges(ranges: tuple[PdfFontRange, ...]) -> str:
@@ -136,7 +175,7 @@ def _build_font_face(staged: _StagedPdfFont) -> str:
     return (
         "@font-face { "
         f'font-family: "{entry.family}"; '
-        f'src: url("{_css_url(staged.staged_path)}"); '
+        f'src: url("{_font_data_uri(staged)}"); '
         f"font-style: {entry.style}; "
         f"font-weight: {entry.weight}; "
         "font-display: block; "

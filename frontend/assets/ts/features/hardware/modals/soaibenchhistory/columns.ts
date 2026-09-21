@@ -4,7 +4,7 @@
 import { i18n } from '@core/i18n/index.ts';
 import type { SortDirection } from '@core/ui/tables/sortableTable.ts';
 
-type SoAIBenchHistorySortColumn = 'profile' | 'status' | 'score' | 'phases' | 'certification' | 'temperature' | 'power' | 'duration' | 'started' | 'match' | 'settings' | 'stale' | 'reason';
+type SoAIBenchHistorySortColumn = 'profile' | 'status' | 'score' | 'phases' | 'stability' | 'certification' | 'temperature' | 'power' | 'duration' | 'started' | 'match' | 'settings' | 'stale' | 'reason';
 
 interface SoAIBenchHistoryColumnDefinition {
     key: SoAIBenchHistorySortColumn;
@@ -13,15 +13,16 @@ interface SoAIBenchHistoryColumnDefinition {
 }
 
 const SOAIBENCH_HISTORY_COLUMNS: readonly SoAIBenchHistoryColumnDefinition[] = Object.freeze([
+    { key: 'started', defaultDirection: 'desc', initialDirection: 'desc' },
     { key: 'profile', defaultDirection: 'asc', initialDirection: 'none' },
     { key: 'status', defaultDirection: 'asc', initialDirection: 'none' },
     { key: 'score', defaultDirection: 'desc', initialDirection: 'none' },
     { key: 'phases', defaultDirection: 'desc', initialDirection: 'none' },
+    { key: 'stability', defaultDirection: 'asc', initialDirection: 'none' },
     { key: 'certification', defaultDirection: 'asc', initialDirection: 'none' },
     { key: 'temperature', defaultDirection: 'desc', initialDirection: 'none' },
     { key: 'power', defaultDirection: 'desc', initialDirection: 'none' },
     { key: 'duration', defaultDirection: 'desc', initialDirection: 'none' },
-    { key: 'started', defaultDirection: 'desc', initialDirection: 'desc' },
     { key: 'match', defaultDirection: 'asc', initialDirection: 'none' },
     { key: 'settings', defaultDirection: 'desc', initialDirection: 'none' },
     { key: 'stale', defaultDirection: 'desc', initialDirection: 'none' },
@@ -47,6 +48,8 @@ const resolveSoAIBenchHistoryColumnLabel = (column: SoAIBenchHistorySortColumn):
             return i18n.t('hardware.modals.soaibenchHistory.columns.score');
         case 'phases':
             return i18n.t('hardware.modals.soaibenchHistory.columns.phases');
+        case 'stability':
+            return i18n.t('hardware.modals.soaibenchRun.metrics.variationAndDrift');
         case 'certification':
             return i18n.t('hardware.modals.soaibenchHistory.columns.certification');
         case 'temperature':

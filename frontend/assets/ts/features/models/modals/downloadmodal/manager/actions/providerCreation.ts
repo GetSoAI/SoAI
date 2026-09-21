@@ -52,24 +52,51 @@ const createExternalProvider = async (runtime: DownloadModalManagerRuntime): Pro
     }
     const confirmButton = runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'confirm-download'), modalRoot);
     const disableTargets = [runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'provider-plugin-select'), modalRoot), runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'provider-name'), modalRoot), runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'provider-api-url'), modalRoot), runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'provider-api-key'), modalRoot), runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'provider-models-filter'), modalRoot)];
+    const discoveryAbort = new AbortController();
+    runtime.state.providerDiscoveryAbort = discoveryAbort;
     runtime.state.isCreatingProvider = true;
     runtime.host.view.setButtonLoading(confirmButton, true, {
         loadingText: i18n.t('models.modal.addProvider.confirmProvider'),
         idleText: i18n.t('models.modal.addProvider.confirmProvider'),
         disableTargets
     });
+    let providerAccepted = false;
     try {
+        const catalogChange = runtime.host.execution.waitForModelCatalogChange(discoveryAbort.signal);
         await runtime.host.session.api.plugins.providers.add(plugin, payload);
-        runtime.state.acceptedCatalogMutation = true;
+        providerAccepted = true;
+        if (!discoveryAbort.signal.aborted) {
+            runtime.state.acceptedCatalogMutation = true;
+        }
         runtime.host.session.showNotification(i18n.t('models.notifications.providerCreateSuccess', { provider: name }), 'success');
-        closeDownloadModelModal(runtime);
-        await runtime.host.catalog.loadPlugins({ force: true });
-        runtime.host.catalog.updateProviderButtonVisibility();
+        runtime.host.view.setButtonLoading(confirmButton, true, {
+            loadingText: i18n.t('models.loading.models'),
+            idleText: i18n.t('models.modal.addProvider.confirmProvider'),
+            disableTargets
+        });
+        await catalogChange;
+        if (!discoveryAbort.signal.aborted && runtime.host.session.modals.isOpen(modalId)) {
+            closeDownloadModelModal(runtime);
+        }
+        try {
+            await runtime.host.catalog.loadPlugins({ force: true });
+            runtime.host.catalog.updateProviderButtonVisibility();
+        } catch (error) {
+            errorHandler.error('DownloadModalController', 'Provider was created but the plugin catalog refresh failed', ensureError(error));
+        }
     } catch (error) {
         const runtimeError = ensureError(error);
-        errorHandler.error('DownloadModalController', 'Failed to create external provider', runtimeError);
-        runtime.host.session.showNotification(i18n.t('models.notifications.providerCreateFailed'), 'error');
+        if (providerAccepted) {
+            errorHandler.error('DownloadModalController', 'Provider was created but post-accept processing failed', runtimeError);
+        } else {
+            errorHandler.error('DownloadModalController', 'Failed to create external provider', runtimeError);
+            runtime.host.session.showNotification(i18n.t('models.notifications.providerCreateFailed'), 'error');
+        }
     } finally {
+        discoveryAbort.abort();
+        if (runtime.state.providerDiscoveryAbort === discoveryAbort) {
+            runtime.state.providerDiscoveryAbort = null;
+        }
         runtime.state.isCreatingProvider = false;
         runtime.host.view.setButtonLoading(confirmButton, false, {
             loadingText: i18n.t('models.modal.addProvider.confirmProvider'),

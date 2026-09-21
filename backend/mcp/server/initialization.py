@@ -85,6 +85,7 @@ def create_mcp_server_intermediate_services(
     state = MCPServerState(shutdown_event=shutdown_event)
     state.background_tasks = background_tasks
     search_dependencies = MCPSearchDependencies(
+        database_users=deps.database_users,
         config=deps.config,
         database_plugins=deps.database_plugins,
         fernet=deps.database_plugins.fernet,

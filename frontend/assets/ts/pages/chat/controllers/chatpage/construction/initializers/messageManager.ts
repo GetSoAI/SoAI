@@ -48,7 +48,7 @@ const initializeMessageManager = (page: ChatControllerInitializationContext): vo
             isCodeRecognitionEnabled: () => page.state.settings.storage.getCodeRecognitionEnabled(),
             isInlineMultimediaPreviewsEnabled: () => page.state.settings.inlineMultimediaPreviewsEnabled(),
             isShowActivitiesEnabled: () => page.state.settings.showActivitiesEnabled(),
-            getActivityDurationDisplayMode: () => resolveActivityDurationDisplayMode(measureLayoutViewport(page.platform.dom.getDocument()).width, CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX),
+            getActivityDurationDisplayMode: () => resolveActivityDurationDisplayMode(measureLayoutViewport(page.platform.dom.getDocument()).width, CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX, page.state.settings.showActivityElapsedTimeEnabled()),
             dom: { getDocument: () => page.platform.dom.getDocument() },
             getAssistantAvatarUrl: () => page.state.settings.storage.getAssistantAvatar(),
             getUserAvatarUrl: () => page.state.settings.storage.getUserAvatar()
@@ -97,12 +97,6 @@ const initializeMessageManager = (page: ChatControllerInitializationContext): vo
                 }
                 await page.runtime.conversationRuntime.requireStorage().resubmitUserMessage(conversation, inputArguments);
             },
-            truncateMessagesFromCursor: async (conversation, inputArguments) => {
-                if (!page.runtime.conversationRuntime.hasStorage()) {
-                    throw new Error('ChatMessageManager requires a storage manager');
-                }
-                await page.runtime.conversationRuntime.requireStorage().truncateMessagesFromCursor(conversation, inputArguments);
-            },
             deleteMessageByCursor: async (conversation, inputArguments) => {
                 if (!page.runtime.conversationRuntime.hasStorage()) {
                     throw new Error('ChatMessageManager requires a storage manager');
@@ -135,6 +129,18 @@ const initializeMessageManager = (page: ChatControllerInitializationContext): vo
             renderCurrentConversation: () => page.sessions.conversationView.renderCurrent(),
             renderConversationList: () => page.sessions.conversationView.renderList(),
             refreshConversationsUI: () => page.sessions.conversationView.refresh(),
+            regenerateConversation: async (conversationId, payload) => {
+                await page.runtime.turnRuntime.requireConversationInputs().regenerate(conversationId, {
+                    expectedLastModifiedAtMs: payload.expectedLastModifiedAtMs,
+                    target: payload.target,
+                    retryInputId: null,
+                    contentPreviewFeedback: payload.contentPreviewFeedback,
+                    previewContractFeedback: payload.previewContractFeedback
+                });
+            },
+            updateConversationModel: async (conversationId, modelId) => {
+                await page.runtime.conversationRuntime.requireConversation().updateConversationSettings(conversationId, { model: modelId });
+            },
             regenerateCompactionInCurrentConversation: async (assistantTurnAtMs) => {
                 const agentService = page.runtime.turnRuntime.optionalAgent();
                 if (!agentService) {

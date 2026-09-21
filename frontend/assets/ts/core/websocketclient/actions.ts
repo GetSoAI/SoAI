@@ -153,10 +153,10 @@ const sendWebSocketMessage = async (options: SendWebSocketMessageOptions): Promi
     }
     throwIfAborted(options.signal);
     if (!options.isConnected()) {
-        throw new Error('WebSocket not connected');
+        throw new WebSocketReconnectInterruptionError('connection unavailable before message send');
     }
     if (!options.sendPayload(options.payload)) {
-        throw new Error('WebSocket not connected');
+        throw new WebSocketReconnectInterruptionError('connection unavailable during message send');
     }
 };
 const sendPong = (websocket: Pick<WebSocket, 'readyState' | 'send'> | null, log: WebSocketLogger): void => {

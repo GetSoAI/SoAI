@@ -45,6 +45,12 @@
         overflow: hidden;
     }
 
+    .ui-notification--entry-complete {
+        transform: none;
+        opacity: 1;
+        animation: none;
+    }
+
     .ui-notification--expandable {
         pointer-events: auto;
         cursor: pointer;

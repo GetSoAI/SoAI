@@ -27,7 +27,7 @@ const serializeMutationStatusRequest = (finalization: IdentityMutationFinalizati
               ...(finalization.requestedUsername === undefined ? {} : { 'requested_username': finalization.requestedUsername })
           };
 const serializeWorkspacePathRequest = (workspacePath: string | null): JsonObject => ({ 'workspace_path': workspacePath });
-const serializePreferencesUpdateRequest = (preferences: OpaqueJsonObject): JsonObject => ({ preferences });
+const serializePreferencesUpdateRequest = (preferences: OpaqueJsonObject, intendedUserId?: number): JsonObject => ({ preferences, ...(intendedUserId === undefined ? {} : { 'intended_user_id': intendedUserId }) });
 const serializeWizardCompleteRequest = (draftRevision: number, username: string, password: string, language: string): JsonObject => ({ 'schema_version': 1, 'draft_revision': draftRevision, username, password, language });
 
 export { serializeLoginRequest, serializeMutationStatusRequest, serializePasswordChangeRequest, serializePreferencesUpdateRequest, serializeSessionRotationRecoveryRequest, serializeUserAdminUpdateRequest, serializeUserCreateRequest, serializeUsernameRenameRequest, serializeWizardCompleteRequest, serializeWorkspacePathRequest };

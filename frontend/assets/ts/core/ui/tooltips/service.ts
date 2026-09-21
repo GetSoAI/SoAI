@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { syncTextContent } from '@core/dom/patching.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { bindTooltipServiceEvents } from '@core/ui/tooltips/tooltipEventBindings.ts';
 import { positionTooltipElement } from '@core/ui/tooltips/tooltipPositioning.ts';
@@ -157,7 +158,7 @@ class TooltipServiceImpl implements TooltipService {
             return;
         }
         this.#activeTarget = target;
-        tooltipElement.textContent = text;
+        syncTextContent(tooltipElement, text);
         positionTooltipElement({ target, tooltipElement });
         tooltipElement.classList.add(TOOLTIP_VISIBLE_CLASS);
         tooltipElement.setAttribute('aria-hidden', 'false');

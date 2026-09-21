@@ -24,8 +24,11 @@ from database.repositories.users.tool_call_read_operations import (
     get_tool_call_for_assistant_variant,
     get_tool_calls_for_assistant_turn,
     get_tool_calls_for_turn,
+    list_active_tool_calls_by_owner_task_prefix,
+    list_tool_calls_by_owner_task,
 )
 from database.repositories.users.tool_call_state_transactions import (
+    sync_finalize_active_tool_call_with_result,
     sync_finalize_tool_call_if_unfinished,
     sync_finalize_tool_call_if_unfinished_by_identity,
     sync_update_tool_call,
@@ -267,3 +270,51 @@ class DatabaseToolCalls:
 
     async def get_tool_calls_for_turn(self, conv_id: str, turn_id: str) -> list[JSONDict]:
         return await get_tool_calls_for_turn(self, conv_id, turn_id)
+
+    async def list_tool_calls_by_owner_task(
+        self,
+        *,
+        owner_task_id: str,
+        after_storage_call_id: str = "",
+        limit: int = 100,
+    ) -> list[JSONDict]:
+        return await list_tool_calls_by_owner_task(
+            self,
+            owner_task_id=owner_task_id,
+            after_storage_call_id=after_storage_call_id,
+            limit=limit,
+        )
+
+    async def list_active_tool_calls_by_owner_task_prefix(
+        self,
+        *,
+        owner_task_prefix: str,
+        after_storage_call_id: str = "",
+        limit: int = 100,
+    ) -> list[JSONDict]:
+        return await list_active_tool_calls_by_owner_task_prefix(
+            self,
+            owner_task_prefix=owner_task_prefix,
+            after_storage_call_id=after_storage_call_id,
+            limit=limit,
+        )
+
+    async def finalize_active_tool_call_with_result(
+        self,
+        storage_call_id: str,
+        *,
+        status: str,
+        tool_result: str,
+        error_message: str | None,
+        duration_ms: int,
+        completed_at_ms: int,
+    ) -> JSONDict | None:
+        return await self.core.writer.queue_write_operation(
+            sync_finalize_active_tool_call_with_result,
+            storage_call_id,
+            status,
+            tool_result,
+            error_message,
+            duration_ms,
+            completed_at_ms,
+        )

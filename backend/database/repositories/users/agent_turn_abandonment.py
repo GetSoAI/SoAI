@@ -14,14 +14,17 @@ from database.core.query_execution import (
     sync_fetch_one_as_dict,
 )
 from database.repositories.users.agent_turn_rows import format_agent_turn_row
+from database.repositories.users.manual_compaction_process_recovery import (
+    sync_recover_interrupted_manual_compaction,
+)
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
 
-__all__ = ("sync_abandon_running_turn_if_current",)
+__all__ = ("require_agent_turn_text", "sync_abandon_running_turn_if_current")
 
 
-def _require_text(value: str, field_name: str) -> str:
+def require_agent_turn_text(value: str, field_name: str) -> str:
     normalized = value.strip()
     if not normalized:
         raise ValidationError(f"Agent turn {field_name} is required.")
@@ -37,9 +40,9 @@ def sync_abandon_running_turn_if_current(
     execution_token: str,
     finished_at_ms: int,
 ) -> JSONDict | None:
-    normalized_conv_id = _require_text(conv_id, "conv_id")
-    normalized_turn_id = _require_text(turn_id, "turn_id")
-    normalized_execution_token = _require_text(execution_token, "execution_token")
+    normalized_conv_id = require_agent_turn_text(conv_id, "conv_id")
+    normalized_turn_id = require_agent_turn_text(turn_id, "turn_id")
+    normalized_execution_token = require_agent_turn_text(execution_token, "execution_token")
     if int(user_id) <= 0:
         raise ValidationError("Agent turn user_id is invalid.")
     if int(finished_at_ms) < 0:
@@ -47,6 +50,25 @@ def sync_abandon_running_turn_if_current(
     terminal_defaults = resolve_agent_turn_terminal_defaults(AGENT_TURN_STATUS_ABANDONED)
     default_error_message = terminal_defaults[1]
     default_error_type = terminal_defaults[2]
+    current_row = sync_fetch_one_as_dict(
+        sqlite_conn.execute(
+            "SELECT * FROM webui_agent_turns WHERE conv_id = ? AND user_id = ? AND turn_id = ? AND status = 'running' AND execution_token = ?",
+            (normalized_conv_id, int(user_id), normalized_turn_id, normalized_execution_token),
+        ),
+    )
+    formatted_current = format_agent_turn_row(current_row)
+    if formatted_current is not None and sync_recover_interrupted_manual_compaction(
+        sqlite_conn,
+        turn_record=formatted_current,
+        completed_at_ms=int(finished_at_ms),
+    ):
+        recovered_row = sync_fetch_one_as_dict(
+            sqlite_conn.execute(
+                "SELECT * FROM webui_agent_turns WHERE conv_id = ? AND user_id = ? AND turn_id = ?",
+                (normalized_conv_id, int(user_id), normalized_turn_id),
+            ),
+        )
+        return format_agent_turn_row(recovered_row)
     sqlite_conn.execute(
         """
         UPDATE webui_agent_turns

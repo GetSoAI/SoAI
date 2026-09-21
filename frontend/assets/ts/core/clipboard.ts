@@ -6,7 +6,7 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { isFunction, isString } from '@core/typeGuards.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import type { NotificationType } from '@core/ui/notifications/notifications.ts';
+import type { NotificationType } from '@core/ui/notifications/types.ts';
 import type { StringConvertibleValue } from '@core/pagecontext/contracts.ts';
 
 type NotificationHandler = (message: string, type: NotificationType) => void;

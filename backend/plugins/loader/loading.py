@@ -157,7 +157,7 @@ async def load_and_announce_plugin(
                 compatibility=compatibility,
                 existing_record=existing_record,
                 plugin_data=plugin_data,
-                file_hash=package_audit.archive_hash,
+                file_hash=package_audit.content.archive_hash,
                 final_instance=final_instance,
                 initial_state=initial_state,
                 reason=reason,

@@ -18,15 +18,10 @@ from core.state.state_names import (
     ORCH_STATE_DISABLED,
     ORCH_STATE_ERROR,
     PLUGIN_STATE_BACKEND_NOT_INSTALLED,
-    PLUGIN_STATE_BACKEND_UNINSTALL_ERROR,
-    PLUGIN_STATE_DELETE_ERROR,
     PLUGIN_STATE_INCOMPATIBLE,
-    PLUGIN_STATE_INSTALL_ERROR,
-    PLUGIN_STATE_LOAD_ERROR,
     PLUGIN_STATE_NOT_DETECTED,
-    PLUGIN_STATE_UPDATE_ERROR,
 )
-from core.state.state_transition_sets import ALL_TRANSIENT_STATES
+from core.state.state_transition_sets import ALL_TRANSIENT_STATES, OPERATIONAL_ERROR_STATES
 from core.validation.boolean_coercion import coerce_bool_with_default
 
 if TYPE_CHECKING:
@@ -77,13 +72,6 @@ def get_model_status_message(
         PLUGIN_STATE_BACKEND_NOT_INSTALLED,
     ]:
         return "Plugin backend is not installed."
-    if not provider_backed and status in [
-        PLUGIN_STATE_INSTALL_ERROR,
-        PLUGIN_STATE_LOAD_ERROR,
-        PLUGIN_STATE_UPDATE_ERROR,
-        PLUGIN_STATE_BACKEND_UNINSTALL_ERROR,
-        PLUGIN_STATE_DELETE_ERROR,
-        ORCH_STATE_ERROR,
-    ]:
+    if not provider_backed and (status in OPERATIONAL_ERROR_STATES or status == ORCH_STATE_ERROR):
         return f"Plugin is in an error state: {status}."
     return f"Plugin is busy: {status}." if status in ALL_TRANSIENT_STATES else ""

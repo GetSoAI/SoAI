@@ -92,7 +92,7 @@ class DiskSpeedWarmupStep:
                 continue
             seen_paths.add(resolved)
             try:
-                await application_context.services.infrastructure.hw_manager.build_variant_support_context(
+                await application_context.services.infrastructure.hardware.manager.build_variant_support_context(
                     resolved,
                     True,
                     database_hardware=application_context.services.databases.hardware,

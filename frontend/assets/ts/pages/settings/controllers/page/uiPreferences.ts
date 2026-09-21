@@ -44,6 +44,7 @@ const readUiPreferencesForCommit = (current: Record<string, JsonValue | null | u
     showScrollToTopButton: requireUiPrefsBoolean(current['showScrollToTopButton'], 'uiPrefs.showScrollToTopButton'),
     showMainStatusIndicator: requireUiPrefsBoolean(current['showMainStatusIndicator'], 'uiPrefs.showMainStatusIndicator'),
     dashboardLocked: requireUiPrefsBoolean(current['dashboardLocked'], 'uiPrefs.dashboardLocked'),
+    defaultPage: requireUiPrefsNullableString(current['defaultPage'], 'uiPrefs.defaultPage'),
     chartColorMode: requireUiPrefsChartColorMode(current['chartColorMode']),
     chartStaticColor: requireHexColor(current['chartStaticColor'], 'uiPrefs.chartStaticColor', false)
 });
@@ -142,6 +143,9 @@ const commitUiPreferences = async (page: SettingsRuntimeContext, state: Settings
 
     const dashboardLocked = preferences.dashboardLocked;
     storage.setDashboardLocked(dashboardLocked);
+
+    const defaultPage = preferences.defaultPage;
+    storage.setDefaultPage(defaultPage);
 
     const chartColorMode = preferences.chartColorMode;
     storage.setChartColorMode(chartColorMode);

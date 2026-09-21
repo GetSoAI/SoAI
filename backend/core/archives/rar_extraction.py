@@ -16,7 +16,7 @@ from core.errors.exceptions import StateError, ValidationError
 from core.files.path_policy import ensure_path_within_base_lexical
 from core.files.protocols_archives import RarArchiveMemberProtocol, RarFileProtocol
 from core.hardware.protocols_storage import StorageManagerProtocol
-from core.validation.integers import require_non_negative_exact_int
+from core.validation.requirements import require_non_negative_exact_int
 
 __all__ = ("safe_rar_extract_members",)
 

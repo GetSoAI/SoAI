@@ -167,11 +167,11 @@ async def _start_status_preview_request(
             return None
         request = build_status_preview_request(runtime=runtime)
         if request is None:
-            if trigger == "tool_call_completed":
+            if runtime.status_preview_pending_refresh:
                 runtime.status_preview_pending_refresh = False
             return None
         runtime.status_preview_last_started_monotonic_ms = now_ms
-        if trigger == "tool_call_completed":
+        if runtime.status_preview_pending_refresh:
             runtime.status_preview_pending_refresh = False
         return (request, runtime.status_preview_generation)
 

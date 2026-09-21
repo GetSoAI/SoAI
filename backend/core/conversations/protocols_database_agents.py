@@ -83,6 +83,15 @@ class DatabaseAgentTurnsProtocol(Protocol):
 
     async def get_turn(self, *, conv_id: str, user_id: int, turn_id: str) -> JSONDict | None: ...
 
+    async def get_manual_regeneration_attempt(
+        self,
+        *,
+        conv_id: str,
+        user_id: int,
+        client_id: str,
+        client_request_id: str,
+    ) -> JSONDict | None: ...
+
     async def get_subagent_turn(
         self,
         *,

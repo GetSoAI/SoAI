@@ -5,7 +5,7 @@ import { cloneChatParameters, resolveStoredParameters } from '@core/chat/paramet
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import type { ChatParameters, ChatStorageMessageRecord, Conversation, LoadConversationMessagesOptions } from '@features/chat/storage/storageModels.ts';
-import { deleteMessageByCursor, loadConversationCatalogFromBackend, loadConversationMessages, resubmitUserMessage, syncConversation, saveAndSync, truncateMessagesFromCursor } from '@features/chat/storage/actions.ts';
+import { deleteMessageByCursor, loadConversationCatalogFromBackend, loadConversationMessages, resubmitUserMessage, syncConversation, saveAndSync } from '@features/chat/storage/actions.ts';
 import { refreshRunningActivitySnapshot } from '@features/chat/storage/messageWindowLoading.ts';
 import { refreshConversationList } from '@features/chat/storage/conversationListRefresh.ts';
 import { requireConversationId } from '@features/chat/validation/ids.ts';
@@ -239,10 +239,6 @@ class ChatStorageManager {
 
     async resubmitUserMessage(conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number; message: ChatStorageMessageRecord }): Promise<void> {
         await resubmitUserMessage(this, conversation, inputArguments);
-    }
-
-    async truncateMessagesFromCursor(conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number }): Promise<void> {
-        await truncateMessagesFromCursor(this, conversation, inputArguments);
     }
 
     async deleteMessageByCursor(conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number }): Promise<void> {

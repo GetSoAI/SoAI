@@ -9,7 +9,7 @@ import { getLocation } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { AUTH_ROUTE_LOGIN, AUTH_ROUTE_WIZARD, DEFAULT_AUTHENTICATED_ROUTE, resolveAuthenticatedRouteTarget } from '@core/routing/router/authRouteTarget.ts';
+import { AUTH_ROUTE_LOGIN, AUTH_ROUTE_WIZARD, resolveAuthenticatedRouteTarget } from '@core/routing/router/authRouteTarget.ts';
 import type { PageInstance } from '@core/pagehost/types.ts';
 import type { NavigationDetail } from '@core/routing/router/types.ts';
 import type { Router } from '@core/routing/router/Router.ts';
@@ -121,9 +121,6 @@ export const resolveInitialRoute = async ({ isAuthenticated, needsWizard, router
         return AUTH_ROUTE_WIZARD;
     }
 
-    if (!hash) {
-        return DEFAULT_AUTHENTICATED_ROUTE;
-    }
     return resolveAuthenticatedRouteTarget(router, { currentRoute: hash });
 };
 

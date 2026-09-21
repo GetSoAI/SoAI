@@ -3,7 +3,7 @@
 
 class WebSocketReconnectInterruptionError extends Error {
     constructor(reason: string) {
-        super(`WebSocket reconnect interrupted an in-flight read: ${reason}`);
+        super(`WebSocket reconnect interrupted an operation: ${reason}`);
         this.name = 'WebSocketReconnectInterruptionError';
     }
 }

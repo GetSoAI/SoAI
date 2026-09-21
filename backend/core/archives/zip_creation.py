@@ -8,7 +8,7 @@ import unicodedata
 from core.archives.constants import accumulate_size, validate_member_name
 from core.errors.exceptions import PayloadTooLargeError, ValidationError
 from core.files.windows_reserved_names import WINDOWS_RESERVED_ZIP_NAMES
-from core.validation.integers import require_non_negative_exact_int
+from core.validation.requirements import require_non_negative_exact_int
 
 __all__ = (
     "PortableZipPathIndex",

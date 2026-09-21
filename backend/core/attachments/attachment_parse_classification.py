@@ -47,6 +47,7 @@ class AttachmentParseOutcome:
 
 async def _read_document(
     *,
+    ocr_language: str,
     document_reader: DocumentReaderProtocol,
     parser_registry_factory: FileParserRegistryFactoryProtocol,
     file_path: str,
@@ -56,6 +57,7 @@ async def _read_document(
 ) -> DocumentReadResult:
     return await document_reader.read_document_to_text(
         file_path=file_path,
+        ocr_language=ocr_language,
         parser_registry=parser_registry_factory(),
         parse_timeout_sec=parse_timeout_sec,
         max_chars=max_chars,
@@ -138,6 +140,7 @@ def read_result_outcome(*, image: bool, result: DocumentReadResult) -> Attachmen
 
 async def _classify_provider_file(
     *,
+    ocr_language: str,
     document_reader: DocumentReaderProtocol,
     parser_registry_factory: FileParserRegistryFactoryProtocol,
     file_path: str,
@@ -150,6 +153,7 @@ async def _classify_provider_file(
     image = is_image_type(mime_type, extension)
     try:
         result = await _read_document(
+            ocr_language=ocr_language,
             document_reader=document_reader,
             parser_registry_factory=parser_registry_factory,
             file_path=file_path,
@@ -171,6 +175,7 @@ async def _classify_provider_file(
 
 async def classify_attachment_for_provider(
     *,
+    ocr_language: str,
     document_reader: DocumentReaderProtocol,
     parser_registry_factory: FileParserRegistryFactoryProtocol,
     file_path: str,
@@ -182,6 +187,7 @@ async def classify_attachment_for_provider(
     if not os.path.isfile(file_path):
         return _missing_file_outcome()
     return await _classify_provider_file(
+        ocr_language=ocr_language,
         document_reader=document_reader,
         parser_registry_factory=parser_registry_factory,
         file_path=file_path,
@@ -194,6 +200,7 @@ async def classify_attachment_for_provider(
 
 async def classify_attachment_descriptor_for_provider(
     *,
+    ocr_language: str,
     document_reader: DocumentReaderProtocol,
     parser_registry_factory: FileParserRegistryFactoryProtocol,
     descriptor: int,
@@ -205,6 +212,7 @@ async def classify_attachment_descriptor_for_provider(
     descriptor_path = _provider_descriptor_path(descriptor)
     if descriptor_path is not None:
         return await _classify_provider_file(
+            ocr_language=ocr_language,
             document_reader=document_reader,
             parser_registry_factory=parser_registry_factory,
             file_path=descriptor_path,
@@ -219,6 +227,7 @@ async def classify_attachment_descriptor_for_provider(
     )
     try:
         return await _classify_provider_file(
+            ocr_language=ocr_language,
             document_reader=document_reader,
             parser_registry_factory=parser_registry_factory,
             file_path=temp_path,

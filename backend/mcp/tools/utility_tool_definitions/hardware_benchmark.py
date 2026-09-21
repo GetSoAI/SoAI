@@ -62,8 +62,10 @@ def build_hardware_benchmark_tool_definitions() -> dict[str, JSONDict]:
                     "type": ["number", "null"],
                     "minimum": SOAIBENCH_TEMPERATURE_LIMIT_MIN_CELSIUS,
                     "maximum": SOAIBENCH_TEMPERATURE_LIMIT_MAX_CELSIUS,
-                    "default": 100.0,
-                    "description": "Optional stop threshold. Certified SoAIBench defaults to 100C.",
+                    "description": (
+                        "Optional caller-selected temperature checkpoint stop threshold. "
+                        "There is no default, and an in-flight benchmark phase is not interrupted."
+                    ),
                 },
                 "history_limit": {
                     "type": ["integer", "null"],

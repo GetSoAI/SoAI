@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isArray, isNumber, isPlainObject, isString } from '@core/typeGuards.ts';
+import { serializeSoaiPathContentPart } from '@core/api/contracts/webuiSoaiPathSerialization.ts';
 import { stableJsonStringify } from '@core/serialization/json.ts';
 import type { InlineLoadingActivitySegment, InlineProcessingActivitySegment, InlineThinkingActivitySegment, InlineToolActivitySegment, InlineWaitForUserActivitySegment, MessageSegment } from '@features/chat/message/messageSegments.ts';
 import { resolveInlineActivityDisplayDurationMs, resolveInlineActivityDurationArguments } from '@features/chat/message/messageview/inlineActivityDuration.ts';
@@ -99,6 +100,21 @@ const resolveSegmentSignature = (segment: MessageSegment, nowMs: number): string
     }
     if (segment.type === 'thinking') {
         return ['thinking', resolveStringContentSignature(segment.value)].join('|');
+    }
+    if (segment.type === 'soai_file') {
+        return stableJsonStringify(['soai_file', segment.attachmentId, segment.fileId, segment.filename, segment.mimeType, segment.sizeBytes, segment.previewType, segment.attachmentRevision, segment.createdAtMs]);
+    }
+    if (segment.type === 'soai_path') {
+        return stableJsonStringify(['soai_path', segment.title, segment.virtualPath, segment.rootFingerprint, segment.entryType, serializeSoaiPathContentPart(segment.contentPart), segment.previewType ?? '', segment.mimeType ?? '', segment.sizeBytes ?? null]);
+    }
+    if (segment.type === 'soai_knowledge') {
+        return stableJsonStringify(['soai_knowledge', segment.knowledgeAttachmentId, segment.summaryId, segment.sourceType, segment.operationType, segment.title, segment.totalCount, segment.visibleCount, segment.hiddenCount, segment.statusCounts, segment.attachmentRevision, segment.firstEventId, segment.lastEventId, segment.createdAtMs, segment.finalizedAtMs]);
+    }
+    if (segment.type === 'soai_file_unavailable') {
+        return stableJsonStringify(['soai_file_unavailable', segment.filename, segment.mimeType, segment.sizeBytes, segment.previewType, segment.reason]);
+    }
+    if (segment.type === 'soai_knowledge_unavailable') {
+        return stableJsonStringify(['soai_knowledge_unavailable', segment.title, segment.sourceType, segment.reason]);
     }
     throw new Error('Unsupported message segment type for render signature');
 };

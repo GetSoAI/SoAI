@@ -13,7 +13,6 @@ import { createChatMessageActions } from '@features/chat/message/actionControlle
 import type { ChatMessageActions } from '@features/chat/message/actions.ts';
 import type { ChatMessageActionData } from '@features/chat/message/actionDeps.ts';
 import { ChatMessageDeleteUndoController } from '@features/chat/message/messageDeleteUndoController.ts';
-import type { AttachmentOverflowRecord } from '@features/chat/message/attachmentoverflowmodal/records.ts';
 import { ChatMessageModalCoordinator } from '@features/chat/message/modalCoordinator.ts';
 import type { ResolvedMessageReference } from '@features/chat/message/messageReferenceResolution.ts';
 import { ChatMessageState } from '@features/chat/message/state.ts';
@@ -173,10 +172,6 @@ class ChatMessageManager {
 
     invalidateMessageProjectionCache(message: ChatMessage | null | undefined): void {
         this.#state.invalidateMessageProjectionCache(message);
-    }
-
-    showAttachmentOverflowRecords(conversationId: string, records: readonly AttachmentOverflowRecord[]): void {
-        this.#modalCoordinator.showAttachmentOverflowRecords(conversationId, records);
     }
 
     isShowActivitiesEnabled(): boolean {

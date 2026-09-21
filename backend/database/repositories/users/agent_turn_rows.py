@@ -208,6 +208,17 @@ def format_agent_turn_row(row: SQLiteRowDict | None) -> JSONDict | None:
         "todo_revision": int(todo_revision),
         "todo_explanation": _parse_optional_content_text(row.get("todo_explanation")),
         "todo": todo,
+        "manual_regeneration_request": require_row_optional_json_object(
+            row.get("manual_regeneration_request_json"),
+            label="Agent turn row has invalid manual_regeneration_request_json.",
+            build_error=_build_row_error,
+        ),
+        "manual_regeneration_accepted_revision": require_optional_int(
+            row.get("manual_regeneration_accepted_revision"),
+            label="Agent turn row field 'manual_regeneration_accepted_revision'",
+            build_error=_build_row_error,
+            minimum=0,
+        ),
         "started_at_ms": started_at_ms,
         "updated_at_ms": updated_at_ms,
         "finished_at_ms": int(finished_at_ms) if finished_at_ms is not None else None,

@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
+from core.events.subscriptions import subscribe_many
 from core.events.types_base import Event
 from core.logging.trace import get_logger
 from core.runtime.soai_identifiers import create_system_id
@@ -19,7 +20,6 @@ from plugins.manager.alias_map import hydrate_alias_map_from_database
 from plugins.manager.inherited_backend_process_recovery import (
     reconcile_inherited_backend_processes,
 )
-from plugins.manager.lifecycle_bootstrap import register_plugin_manager_subscriptions
 from plugins.manager.lifecycle_readiness import publish_readiness_degraded_override
 from plugins.manager.startup_backend_process_cleanup import (
     cleanup_startup_tracked_backend_processes,
@@ -69,8 +69,8 @@ async def initialize_plugin_manager_startup(
     )
     step_started_ms = monotonic_ms()
     if not controller.subscriptions_registered:
-        register_plugin_manager_subscriptions(
-            manager,
+        subscribe_many(
+            manager.dependencies.infrastructure.event_bus,
             command_map,
         )
         controller.subscriptions_registered = True

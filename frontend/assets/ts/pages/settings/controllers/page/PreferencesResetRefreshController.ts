@@ -32,12 +32,15 @@ const PreferencesResetRefreshController = async (page: SettingsRuntimeContext, s
     }
 
     uiPrefsManager.initialize(createUiPrefsSnapshot(page));
+    await state.preferencesManager?.loadOcrPreference(true);
+    if (page.controls.isDestroyed()) return;
 
     renderAllContent(page, state);
     dependencies.rebindConfigForm();
     setupManagersEventListeners(page, state);
 
     filterSettings(page, state);
+    state.preferencesManager?.syncOcrDirtyState();
     dependencies.notifySaveChanged();
 };
 

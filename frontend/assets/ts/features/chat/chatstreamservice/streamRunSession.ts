@@ -175,6 +175,10 @@ const runStreamSession = async (session: ChatStreamSession, requestBody: JsonObj
             if (done) {
                 return;
             }
+            if (session.stopOperationPending === true) {
+                releaseOwnerLocally();
+                return;
+            }
             if (shouldReleaseChatStreamOwnerLocally(session)) {
                 releaseOwnerLocally();
                 return;

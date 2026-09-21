@@ -22,6 +22,9 @@ import type { Conversation, MessageSendingHost } from '@pages/chat/controllers/c
 const activeConversationPdfExports = new Set<string>();
 
 const resolveTaskFailureMessage = (task: TaskResponse): string => {
+    if (task.errorType === 'pdf_browser_unavailable') {
+        return i18n.t('chat.export.pdf.error.browserUnavailable');
+    }
     switch (task.errorCode) {
         case 409:
             return i18n.t('chat.export.pdf.error.conversationChanged');
@@ -153,4 +156,4 @@ const startAndDownloadConversationPdfExport = async (host: MessageSendingHost, c
     await runConversationPdfExportTask(host, accepted, fallbackFilename);
 };
 
-export { runExclusiveConversationPdfExport, startAndDownloadConversationPdfExport };
+export { resolveTaskFailureMessage, runExclusiveConversationPdfExport, startAndDownloadConversationPdfExport };

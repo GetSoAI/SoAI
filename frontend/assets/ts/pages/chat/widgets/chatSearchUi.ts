@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
-import type { TrustedHtml } from '@core/security/public.ts';
 import { SearchBar } from '@features/controls/public.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 
@@ -13,7 +12,6 @@ interface ChatSearchUiHost extends PageDomOwnerHost {
     resetSearchBar(): void;
     setCurrentSearchBar(searchBar: SearchBar): void;
     getCurrentSearchBar(): SearchBar | null;
-    getSearchIconMarkup(): TrustedHtml;
 }
 
 const initializeChatSearchUi = (host: ChatSearchUiHost): void => {
@@ -57,12 +55,6 @@ const initializeChatSearchUi = (host: ChatSearchUiHost): void => {
         searchBar.initialize(container);
     } else {
         existingSearchBar.updateOptions({ placeholder: i18n.t('chat.search.placeholder') });
-    }
-
-    const iconElement = host.pageDom.optionalHTMLElement('.searchbar-icon', container);
-    if (iconElement) {
-        const iconMarkup = host.getSearchIconMarkup();
-        host.pageDom.updateHtml(iconElement, iconMarkup);
     }
 
     const searchQuery = host.getSearchQuery();

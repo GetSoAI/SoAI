@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { RequestDistributionEntry } from '@core/models/requestDistribution.ts';
-import { toSurfaceColor } from '@core/models/requestDistributionColors.ts';
+import { resolveRequestDistributionColor, toSurfaceColor } from '@core/models/requestDistributionColors.ts';
 import { bodyTint, clipPathDef, clipUrl, composeBackground, darkenFace, depthTint, glassFaceMarkup, groundShadowMarkup, lightenFace, nextGlassClipId, radialSpecular, rimEllipse, rimPath, roundTo } from '@core/models/requestdistributionglass/glassMaterial.ts';
 import type { RequestDistributionGlassInput, RequestDistributionGlassParts } from '@core/models/requestdistributionglass/glassParts.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
@@ -56,7 +56,7 @@ const buildCoinBands = (entries: readonly RequestDistributionEntry[], colors: re
     let cursorY = geometry.pileBaseY;
     for (const entry of entries) {
         const bandHeight = (entry.value / totalValue) * geometry.pileHeight;
-        const resolvedColor = colors[entry.swatchIndex % colors.length];
+        const resolvedColor = resolveRequestDistributionColor(colors, entry.swatchIndex, entry.swatchColor);
         if (!resolvedColor) {
             throw new Error('Request distribution chart color palette is missing an entry');
         }

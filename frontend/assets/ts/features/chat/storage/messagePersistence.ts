@@ -200,18 +200,6 @@ const persistUserMessageResubmitToBackend = async (input: TargetedMessageResubmi
     );
 };
 
-const persistMessageTruncateToBackend = async (input: TargetedMessageMutationInput): Promise<MessageWriteResult> => {
-    const conversationId = requireConversationId(input.conversationId, 'Conversation');
-    const expectedLastModifiedAtMs = requireExpectedConversationVersion(input.expectedLastModifiedAtMs);
-    return parseMessageWriteResult(
-        await input.apiClient.webui.chat.messages.truncate(conversationId, {
-            expectedLastModifiedAtMs,
-            createdAtMs: input.createdAtMs,
-            messageId: input.messageId
-        })
-    );
-};
-
 const persistMessageDeleteToBackend = async (input: TargetedMessageMutationInput): Promise<MessageWriteResult> => {
     const conversationId = requireConversationId(input.conversationId, 'Conversation');
     const expectedLastModifiedAtMs = requireExpectedConversationVersion(input.expectedLastModifiedAtMs);
@@ -224,5 +212,5 @@ const persistMessageDeleteToBackend = async (input: TargetedMessageMutationInput
     );
 };
 
-export { persistConversationMessagesToBackendAppendTail, persistConversationMessagesToBackendReplace, persistMessageDeleteToBackend, persistMessageTruncateToBackend, persistUserMessageResubmitToBackend };
+export { persistConversationMessagesToBackendAppendTail, persistConversationMessagesToBackendReplace, persistMessageDeleteToBackend, persistUserMessageResubmitToBackend };
 export type { MessageWriteResult };

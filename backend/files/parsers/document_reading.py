@@ -71,6 +71,7 @@ class DocumentReadingPipeline(DocumentReaderProtocol):
         self,
         *,
         file_path: str,
+        ocr_language: str,
         parser_registry: dict[str, FileParserProtocol],
         parse_timeout_sec: float,
         max_chars: int,
@@ -100,6 +101,7 @@ class DocumentReadingPipeline(DocumentReaderProtocol):
         warnings: list[str] = []
         parse_context = ParseExecutionContext(
             source_path=resolved_path,
+            ocr_language=ocr_language,
             cancellation_token=cancellation_token,
             progress_callback=progress_callback,
             display_name=display_name,

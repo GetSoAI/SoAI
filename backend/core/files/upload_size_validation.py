@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from core.errors.exceptions import PayloadTooLargeError, ValidationError
-from core.validation.integers import require_non_negative_exact_int
+from core.validation.requirements import require_non_negative_exact_int
 
 __all__ = (
     "STAGED_UPLOAD_SIZE_MISMATCH_MESSAGE",

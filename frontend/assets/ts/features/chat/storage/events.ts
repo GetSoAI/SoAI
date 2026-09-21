@@ -12,27 +12,35 @@ import { parseBackendConversationUpdateEvent } from '@features/chat/storage/conv
 import type { ChatStorageManagerContract } from '@features/chat/storage/managerContracts.ts';
 import type { Conversation } from '@features/chat/storage/storageModels.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { isPageTerminating } from '@core/lifecycle/pageTermination.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { handleMessageSaved } from '@features/chat/storage/messageSavedEvents.ts';
 
 type ChatStorageEventsRuntime = Pick<ChatStorageManagerContract, 'api' | 'chatStreamService' | 'clearConversationSelection' | 'consumeMatchingLocalMessageWrite' | 'conversationManager' | 'errorHandler' | 'evictConversationMessages' | 'handleConversationDeleted' | 'handleConversationSettingsAuthorityChanged' | 'invalidateChatMarkup' | 'isActive' | 'loadConversationMessages' | 'refreshConversationListUI' | 'refreshConversationMetadataUI' | 'refreshConversationsUI' | 'showNotification' | 'state' | 'stopStreaming'>;
 
-const reportEventRefreshFailure = (manager: ChatStorageEventsRuntime, message: string, error: Error): void => {
-    if (!manager.isActive()) {
+const shouldIgnoreConversationEventFailure = <T>(manager: ChatStorageEventsRuntime, error: T): boolean => {
+    return !manager.isActive() || (isPageTerminating() && isAbortError(error));
+};
+
+const reportEventRefreshFailure = <T>(manager: ChatStorageEventsRuntime, message: string, errorValue: T): void => {
+    if (shouldIgnoreConversationEventFailure(manager, errorValue)) {
         return;
     }
+    const error = ensureError(errorValue);
     manager.errorHandler?.warn?.('ChatStorageManager', message, error);
     manager.showNotification(i18n.t('chat.errors.syncFailed'), 'error');
     void refreshConversationList(manager).catch((refreshError) => {
-        if (!manager.isActive()) {
+        if (shouldIgnoreConversationEventFailure(manager, refreshError)) {
             return;
         }
-        manager.errorHandler?.warn?.('ChatStorageManager', 'Failed to refresh conversations after a realtime sync error', ensureError(refreshError));
+        const runtimeError = ensureError(refreshError);
+        manager.errorHandler?.warn?.('ChatStorageManager', 'Failed to refresh conversations after a realtime sync error', runtimeError);
     });
 };
 
 const runConversationEventHandler = (manager: ChatStorageEventsRuntime, message: string, operation: () => Promise<void>): void => {
-    void operation().catch((error) => reportEventRefreshFailure(manager, message, ensureError(error)));
+    void operation().catch((error) => reportEventRefreshFailure(manager, message, error));
 };
 
 const markConversationPersisted = (manager: ChatStorageEventsRuntime, conversationId: string): void => {

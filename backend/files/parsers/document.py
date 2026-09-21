@@ -73,6 +73,7 @@ class TikaParser(FileParserProtocol):
                 context.source_path,
                 self._runtime.endpoint,
                 remaining_seconds,
+                context.ocr_language,
                 task_name="tika-document-parse",
             )
         raise_if_parse_cancelled(context)
@@ -83,6 +84,7 @@ def _parse_tika_document(
     file_path: str,
     endpoint: str,
     timeout_seconds: float,
+    ocr_language: str,
 ) -> ParsedDocument:
     parse_function = tika.parse1
     if not callable(parse_function):
@@ -91,6 +93,7 @@ def _parse_tika_document(
         "all",
         file_path,
         serverEndpoint=endpoint,
+        headers={"X-Tika-OCRLanguage": ocr_language},
         requestOptions={"timeout": timeout_seconds},
     )
     if status_code != 200:

@@ -6,10 +6,12 @@ from __future__ import annotations
 import aiosqlite
 
 from core.errors.exceptions import ValidationError
+from core.serialization.json_parsing import parse_json_dict
 from core.tool_calls.context_compaction_markers import (
-    extract_context_compaction_marker_from_message,
-    is_context_compaction_completed_marker,
+    CONTEXT_COMPACTION_TOOL_NAME,
+    is_context_compaction_result_boundary_removed,
 )
+from core.types.json_value import coerce_json_dict
 from core.validation.epoch import require_unix_epoch_ms
 from core.validation.integers import is_strict_int
 from database.core.flags import FEATURE_PROMPTS
@@ -21,17 +23,10 @@ from database.repositories.users.conversation_query_filters import (
 from database.repositories.users.internal_protocols import (
     DatabaseMessagesCoreOwnerProtocol,
 )
-from database.repositories.users.message_row_mapping import build_message_payload_from_row
 
 __all__ = (
     "get_context_compaction_tool_call_id_method",
     "resolve_manual_compaction_message_index_method",
-)
-
-_MESSAGE_COLUMNS = (
-    "id, role, message_type, content, created_at_ms, assistant_turn_at_ms, model_variant_index, "
-    "request_id, model_id, prompt_tokens, completion_tokens, total_tokens, usage_source, "
-    "generation_latency_ms, finish_reason, thinking_tail_duration_ms"
 )
 
 
@@ -155,27 +150,39 @@ async def get_context_compaction_tool_call_id_method(
         )
         row = await query_one_to_dict(
             database,
-            f"""
-            SELECT {_MESSAGE_COLUMNS}
-            FROM webui_messages
-            WHERE conv_id = ?
-              AND message_type = 'chat'
-              AND role = 'assistant'
-              AND created_at_ms = ?
-              AND assistant_turn_at_ms = created_at_ms
-              AND model_variant_index = 0
-            ORDER BY id ASC
+            """
+            SELECT tool.call_id, tool.status, tool.tool_result
+            FROM webui_messages AS message
+            JOIN webui_chat_tool_calls AS tool
+              ON tool.conv_id = message.conv_id
+             AND tool.assistant_turn_at_ms = message.assistant_turn_at_ms
+             AND tool.model_variant_index = message.model_variant_index
+            WHERE message.conv_id = ?
+              AND message.message_type = 'chat'
+              AND message.role = 'assistant'
+              AND message.created_at_ms = ?
+              AND message.assistant_turn_at_ms = message.created_at_ms
+              AND message.model_variant_index = 0
+              AND message.finalized_at_ms IS NOT NULL
+              AND tool.tool_name = ?
+              AND tool.status IN ('completed', 'error', 'cancelled')
+            ORDER BY tool.sequence_index DESC, tool.id DESC
             LIMIT 1
             """,
-            (conv_id, assistant_at_ms),
+            (conv_id, assistant_at_ms, CONTEXT_COMPACTION_TOOL_NAME),
         )
         if row is None:
             raise ValidationError("Compaction activity was not found.")
-        message = build_message_payload_from_row(row)
-        marker = extract_context_compaction_marker_from_message(message)
-        if marker is None or not is_context_compaction_completed_marker(marker):
-            raise ValidationError("Compaction activity was not found.")
-        tool_call_id_value = marker.get("tool_call_id")
+        result_value = row.get("tool_result")
+        if not isinstance(result_value, str) or not result_value.strip():
+            raise ValidationError("Compaction activity result is invalid.")
+        result = parse_json_dict(result_value, field="context compaction tool result")
+        details = coerce_json_dict(result.get("compaction"))
+        if details is None or details.get("trigger") != "manual":
+            raise ValidationError("Compaction activity is not a manual boundary.")
+        if is_context_compaction_result_boundary_removed(result):
+            raise ValidationError("Removed context compaction boundaries cannot be regenerated.")
+        tool_call_id_value = row.get("call_id")
         if isinstance(tool_call_id_value, str) and tool_call_id_value.strip():
             return tool_call_id_value.strip()
         raise ValidationError("Compaction activity requires a tool call id.")

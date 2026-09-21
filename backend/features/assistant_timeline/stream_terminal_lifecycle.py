@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from core.timing.monotonic import monotonic_ms
 from features.assistant_timeline.publish import ensure_chat_stream_publish_lock
@@ -24,6 +24,7 @@ __all__ = (
 
 async def begin_chat_stream_terminal_finalization(
     context: ChatStreamFinalizeContext,
+    terminal_outcome: Literal["cancelled", "completed", "error"],
 ) -> bool:
     lock = ensure_chat_stream_publish_lock(context.runtime)
     async with lock:
@@ -31,6 +32,10 @@ async def begin_chat_stream_terminal_finalization(
             return False
         if context.runtime.terminal_finalization_started:
             return False
+        outcome_claim = context.runtime.terminal_outcome_claim
+        if outcome_claim is not None and outcome_claim != terminal_outcome:
+            return False
+        context.runtime.terminal_outcome_claim = terminal_outcome
         context.runtime.terminal_finalization_started = True
         context.runtime.terminal_persistence_attempted = False
         context.runtime.terminal_persistence_completed = False
@@ -77,3 +82,5 @@ async def fail_chat_stream_terminal_finalization(
         if not context.runtime.terminal_event_emitted:
             context.runtime.terminal_finalization_started = False
             context.runtime.terminal_persistence_completed = False
+            if context.runtime.terminal_outcome_claim != "cancelled":
+                context.runtime.terminal_outcome_claim = None

@@ -7,14 +7,9 @@ import { modalUiId } from '@core/modals/uiIds.ts';
 import { uiAttr, uiHtml, uiText } from '@core/security/uiHtml.ts';
 import { renderStandardDropdownSelectControl } from '@core/ui/dropdown/selectControl.ts';
 import { renderRequiredFieldMarker } from '@core/ui/forms/requiredMarker.ts';
-import type { getIconSync } from '@core/ui/icons/iconservice/public.ts';
 
 import { EDIT_MODEL_MODAL_ACTION_COPY_SOURCE, EDIT_MODEL_MODAL_ACTION_DELETE, EDIT_MODEL_MODAL_ACTION_EDIT_PARAMETERS, EDIT_MODEL_MODAL_ACTION_RENAME, EDIT_MODEL_MODAL_ACTION_TEST_MODEL, EDIT_MODEL_MODAL_ACTION_TOGGLE_ENABLED, EDIT_MODEL_MODAL_ACTION_VIEW_INFO, MODELS_EDIT_MODEL_MODAL_ID, MODELS_PROVIDERS_MODAL_ID, MODELS_RENAME_MODEL_MODAL_ID, MODELS_VIRTUAL_MODELS_MODAL_ID, VIRTUAL_MODELS_MODAL_ACTION_CREATE_TAB, VIRTUAL_MODELS_MODAL_ACTION_LIST_TAB } from '@features/models/modals/constants.ts';
 import { buildConstituentPickerMarkup } from '@features/models/modals/virtualmodelsmodal/constituentpicker/markup.ts';
-
-interface VirtualModelsBodyHost {
-    getIconSync: typeof getIconSync;
-}
 
 const buildEditModelModalBody = (): TrustedHtml => {
     const modalId = MODELS_EDIT_MODEL_MODAL_ID;
@@ -114,9 +109,9 @@ const buildVirtualModelsTabs = (): TrustedHtml => {
     `;
 };
 
-const buildVirtualModelsBody = (host: VirtualModelsBodyHost): TrustedHtml => {
+const buildVirtualModelsBody = (): TrustedHtml => {
     const modalId = MODELS_VIRTUAL_MODELS_MODAL_ID;
-    const constituentPicker = buildConstituentPickerMarkup({ modalId, token: 'vm-models', getIconSync: host.getIconSync });
+    const constituentPicker = buildConstituentPickerMarkup({ modalId, token: 'vm-models' });
     return uiHtml`
         <div id="${modalUiId(modalId, 'vm-form-create')}" class="modal-form-section" role="tabpanel" aria-labelledby="${modalUiId(modalId, 'vm-tab-create')}">
             <div class="form-group setting-change-surface" id="${modalUiId(modalId, 'vm-name-field')}">
@@ -145,4 +140,3 @@ const buildVirtualModelsBody = (host: VirtualModelsBodyHost): TrustedHtml => {
 };
 
 export { buildEditModelModalBody, buildProvidersModalBody, buildRenameModelModalBody, buildVirtualModelsBody, buildVirtualModelsTabs };
-export type { VirtualModelsBodyHost };

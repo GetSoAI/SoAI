@@ -36,6 +36,8 @@ import type { ChatConfigurationSendParameterToggleTranslationKey } from '@core/i
 import type { ChatConfigurationServiceTierTranslationKey } from '@core/i18n/translationkeys/chat/configuration__serviceTier.generated.ts';
 import type { ChatConfigurationShowActivitiesTranslationKey } from '@core/i18n/translationkeys/chat/configuration__showActivities.generated.ts';
 import type { ChatConfigurationShowActivitiesHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__showActivitiesHint.generated.ts';
+import type { ChatConfigurationShowActivityElapsedTimeTranslationKey } from '@core/i18n/translationkeys/chat/configuration__showActivityElapsedTime.generated.ts';
+import type { ChatConfigurationShowActivityElapsedTimeHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__showActivityElapsedTimeHint.generated.ts';
 import type { ChatConfigurationSoaiSystemPromptTranslationKey } from '@core/i18n/translationkeys/chat/configuration__soaiSystemPrompt.generated.ts';
 import type { ChatConfigurationSoaiSystemPromptHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__soaiSystemPromptHint.generated.ts';
 import type { ChatConfigurationStopSequencesTranslationKey } from '@core/i18n/translationkeys/chat/configuration__stopSequences.generated.ts';
@@ -59,8 +61,6 @@ import type { ChatConfigurationTextZoomNormalTranslationKey } from '@core/i18n/t
 import type { ChatConfigurationTextZoomSmallTranslationKey } from '@core/i18n/translationkeys/chat/configuration__textZoomSmall.generated.ts';
 import type { ChatConfigurationTitleTranslationKey } from '@core/i18n/translationkeys/chat/configuration__title.generated.ts';
 import type { ChatConfigurationToolApprovalRequiredTranslationKey } from '@core/i18n/translationkeys/chat/configuration__toolApprovalRequired.generated.ts';
-import type { ChatConfigurationToolApprovalRequiredHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__toolApprovalRequiredHint.generated.ts';
-import type { ChatConfigurationTopLogprobsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topLogprobs.generated.ts';
 
 export type ChatSection02TranslationKey =
     | ChatConfigurationNotifyOnCompletionTranslationKey
@@ -98,6 +98,8 @@ export type ChatSection02TranslationKey =
     | ChatConfigurationServiceTierTranslationKey
     | ChatConfigurationShowActivitiesTranslationKey
     | ChatConfigurationShowActivitiesHintTranslationKey
+    | ChatConfigurationShowActivityElapsedTimeTranslationKey
+    | ChatConfigurationShowActivityElapsedTimeHintTranslationKey
     | ChatConfigurationSoaiSystemPromptTranslationKey
     | ChatConfigurationSoaiSystemPromptHintTranslationKey
     | ChatConfigurationStopSequencesTranslationKey
@@ -120,6 +122,4 @@ export type ChatSection02TranslationKey =
     | ChatConfigurationTextZoomNormalTranslationKey
     | ChatConfigurationTextZoomSmallTranslationKey
     | ChatConfigurationTitleTranslationKey
-    | ChatConfigurationToolApprovalRequiredTranslationKey
-    | ChatConfigurationToolApprovalRequiredHintTranslationKey
-    | ChatConfigurationTopLogprobsTranslationKey;
+    | ChatConfigurationToolApprovalRequiredTranslationKey;

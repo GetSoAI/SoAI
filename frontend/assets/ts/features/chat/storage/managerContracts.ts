@@ -54,7 +54,6 @@ interface ChatStorageManagerContract {
     syncConversation(conversation: Conversation): Promise<void>;
     saveAndSync(conversation: ConversationContract | null, options?: { force?: boolean; sync?: boolean; messageSyncMode?: 'replace' | 'append_tail' }): Promise<void>;
     resubmitUserMessage(conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number; message: ChatStorageMessageRecord }): Promise<void>;
-    truncateMessagesFromCursor(conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number }): Promise<void>;
     deleteMessageByCursor(conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number }): Promise<void>;
 }
 

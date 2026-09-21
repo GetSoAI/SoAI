@@ -24,15 +24,15 @@
 
     :where(.chat-container) .chat-page-empty-state {
         position: absolute;
-        inset: 0;
+        inset: calc(var(--chat-conversation-header-height) + var(--chat-plan-overlay-height)) 0 var(--chat-floating-input-inset);
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        padding: var(--space-8) var(--space-4) calc(var(--space-8) + var(--chat-input-bottom-offset));
+        justify-content: safe center;
+        padding: var(--space-8) var(--space-4);
         text-align: center;
         gap: var(--space-6);
-        animation: empty-state-appear var(--motion-empty-state-appear-duration) var(--ease-default) both;
+        animation: empty-state-appear var(--motion-empty-state-appear-duration) var(--ease-default) backwards;
         animation-delay: var(--motion-empty-state-appear-delay);
     }
 
@@ -74,6 +74,12 @@
         font-size: var(--font-size-base);
         color: var(--text-secondary);
         margin: 0;
+    }
+
+    @container ui-viewport (height <= 500px) {
+        :where(.chat-container) .chat-page-empty-state-subtitle {
+            display: none;
+        }
     }
 
     :where(.chat-container) .chat-page-empty-state[data-state='loading'] .chat-page-loading-row {
@@ -167,6 +173,7 @@
         min-width: 0;
         overflow-x: auto;
         padding: var(--space-2) var(--space-2);
+        scroll-snap-type: x mandatory;
     }
 
     :where(.chat-container) .chat-page-suggestion-nav {
@@ -204,9 +211,18 @@
         gap: var(--space-2);
         text-align: center;
         cursor: pointer;
+        scroll-snap-align: start;
         transition:
             background var(--transition-fast),
             border-color var(--transition-fast);
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where(.chat-container) .chat-page-suggestion-card {
+            width: clamp(104px, calc((100% - var(--space-3)) / 2), 140px);
+            min-height: 96px;
+            padding: var(--space-3);
+        }
     }
 
     :where(.chat-container) .chat-page-suggestion-card:hover {

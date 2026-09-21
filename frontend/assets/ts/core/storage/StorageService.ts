@@ -59,6 +59,7 @@ const createStorageService = (dependencies: StorageRuntimeDependencies) => {
         setDashboardImageCard: storageState.setDashboardImageCard,
         setDashboardImageCardFit: storageState.setDashboardImageCardFit,
         setDashboardMemo: storageState.setDashboardMemo,
+        setDefaultPage: storageState.setDefaultPage,
         setChartColorMode: presentationPreferences.setChartColorMode,
         setChartStaticColor: presentationPreferences.setChartStaticColor,
         setHeaderAutoHide: presentationPreferences.setHeaderAutoHide,
@@ -188,6 +189,7 @@ const createStorageService = (dependencies: StorageRuntimeDependencies) => {
         storageState.setDashboardImageCard(defaults.ui.dashboardImageCard);
         storageState.setDashboardImageCardFit(defaults.ui.dashboardImageCardFit);
         storageState.setDashboardMemo(defaults.ui.dashboardMemo);
+        storageState.setDefaultPage(defaults.ui.defaultPage);
         presentationPreferences.setHeaderAutoHide(defaults.ui.headerAutoHide);
         presentationPreferences.setShowScrollToTopButton(defaults.ui.showScrollToTopButton);
         storageState.setShowMainStatusIndicator(defaults.ui.showMainStatusIndicator);

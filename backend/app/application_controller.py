@@ -80,8 +80,8 @@ class ApplicationController:
                 http_client=self._context.services.infrastructure.http_client,
                 runtime_flags=self._context.services.configuration.runtime_flags,
                 module_dependencies=module_dependencies.runtime,
-                finalizer_tracker=self._context.services.tasks.task_finalizer_tracker,
-                task_cancellation_binder=(self._context.services.tasks.task_cancellation_binder),
+                finalizer_tracker=self._context.services.tasks.cancellation.finalizer_tracker,
+                task_cancellation_binder=(self._context.services.tasks.cancellation.binder),
                 core_routing_applicator=self._context.services.orchestrator.lifecycle.routing,
                 update_plugin_worker_runtime_flags=self._update_plugin_worker_runtime_flags,
             ),
@@ -113,7 +113,7 @@ class ApplicationController:
                 application_control=self._application_control,
                 runtime_flags=self._context.services.configuration.runtime_flags,
                 state_aggregator=self._context.services.infrastructure.state_aggregator,
-                terminal=self._context.services.infrastructure.terminal,
+                terminal=self._context.services.infrastructure.hardware.terminal,
             )
         )
         self._power_operation_supervisor = PowerOperationSupervisor(
@@ -126,8 +126,8 @@ class ApplicationController:
                         logger=get_logger(LOGGER_NAME),
                     )
                 ),
-                cancellation_binder=self._context.services.tasks.task_cancellation_binder,
-                finalizer_tracker=self._context.services.tasks.task_finalizer_tracker,
+                cancellation_binder=self._context.services.tasks.cancellation.binder,
+                finalizer_tracker=self._context.services.tasks.cancellation.finalizer_tracker,
                 logger=get_logger(LOGGER_NAME),
             )
         )

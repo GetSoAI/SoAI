@@ -215,33 +215,27 @@ class TaskManagerView {
                 const checkerboardClass = resolveCheckerboardClass(index);
                 const status = String(plugin.state ?? 'UNKNOWN').toUpperCase();
                 const isSynthetic = plugin.__synthetic === true;
-                const isPersistent = this.#store.isPersistentStatus(status);
+                const isPersistent = plugin.isPersistent === true || this.#store.isPersistentStatus(status);
                 const displayStatus = isSynthetic ? 'PROCESSING' : status;
                 const indicatorNode = this.#statusManager.createIndicator(displayStatus);
                 const indicatorMarkup = serializeElementToHtml(indicatorNode);
                 if (!indicatorMarkup) {
                     throw new Error(`Status manager failed to render indicator for ${displayStatus}`);
                 }
-                const ops = this.#store.getOperationsForPlugin(plugin);
-                const hasOps = ops.length > 0;
-                const hasCancel = ops.some((op) => op.cancelable);
-                const hasRealTask = ops.some((op) => {
-                    const meta = isObject(op.meta) ? op.meta : {};
-                    return isString(meta.taskId) && meta.taskId.trim();
-                });
-                const shouldCancelOperation = isSynthetic && hasCancel && hasRealTask;
-                const canStopPlugin = !isPersistent && !shouldCancelOperation;
+                const operations = this.#store.getOperationsForPlugin(plugin);
+                const hasActiveOperations = operations.length > 0;
+                const hasCancelableOperations = operations.some((operation) => operation.cancelable === true);
+                const shouldCancelOperations = hasCancelableOperations;
+                const canStopPlugin = !isPersistent && !isSynthetic && !hasActiveOperations;
                 const pluginActionName = (isString(plugin.name) && plugin.name.trim()) || (isString(plugin.identifier) && plugin.identifier.trim()) || (isString(plugin.plugin) && plugin.plugin.trim()) || pluginName;
-                const stopBtnTitle = shouldCancelOperation ? i18n.t('taskManager.actions.cancelOperation') : i18n.t('taskManager.actions.stopPlugin', { pluginName: pluginName });
+                const stopBtnTitle = shouldCancelOperations ? i18n.t('taskManager.actions.cancelOperation') : i18n.t('taskManager.actions.stopPlugin', { pluginName: pluginName });
                 const stopBtn =
-                    shouldCancelOperation || canStopPlugin
+                    shouldCancelOperations || canStopPlugin
                         ? `
                 <button type="button" class="task-stop-btn"
                 data-plugin="${securityApi.escapeHtml(pluginActionName)}"
                 data-plugin-key="${pluginKey ? securityApi.escapeHtml(pluginKey) : ''}"
-                data-synthetic="${isSynthetic}"
-                data-has-operations="${hasOps}"
-                data-can-cancel="${shouldCancelOperation}"
+                data-can-cancel="${shouldCancelOperations}"
                 data-tooltip="${securityApi.escapeHtml(stopBtnTitle)}"
                 aria-label="${securityApi.escapeHtml(stopBtnTitle)}">
                 ${this.#getStopIconMarkup().html}
@@ -256,7 +250,7 @@ class TaskManagerView {
             <div class="active-task-name">
             <span class="task-name-text">${securityApi.escapeHtml(pluginName)}</span>
             </div>
-            ${hasOps ? ops.map((op) => renderOperationRow(op, operationLabelDependencies)).join('') : ''}
+            ${hasActiveOperations ? operations.map((operation) => renderOperationRow(operation, operationLabelDependencies)).join('') : ''}
             </div>
             </div>
             ${stopBtn}

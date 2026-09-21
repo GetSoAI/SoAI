@@ -10,6 +10,7 @@ import { isSupportedChatImageFile } from '@features/chat/ChatAttachmentSupport.t
 import { createChatUploadFileTooLargeMessage, getChatUploadFileSizeLimit } from '@features/chat/attachments/attachmentValidation.ts';
 import { normalizeImageMimeTypeFromHeader } from '@features/chat/imageMimeSniffer.ts';
 import { optimizeCameraImageFileForVision } from '@features/chat/CameraVisionImageOptimizer.ts';
+import type { ChatAttachmentDraftSource } from '@features/chat/ChatTypes.ts';
 
 type ErrorHandler = (error: Error, title: string, options?: { notify?: boolean }) => void;
 
@@ -19,7 +20,7 @@ type HandleChatAttachmentUploadArguments = {
     files: File[];
     source: AttachmentUploadSource;
     visionSupported: boolean;
-    handleFiles: (files: File[], options?: { forceDocument?: boolean }) => Promise<void>;
+    handleFiles: (files: File[], options?: { forceDocument?: boolean; draftSource?: Extract<ChatAttachmentDraftSource, 'upload' | 'camera'> }) => Promise<void>;
     logger: ModuleLogger;
     errorHandler: ErrorHandler;
 };
@@ -54,7 +55,7 @@ const handleCameraUploads = async (inputArguments: HandleChatAttachmentUploadArg
     const errorTitle = i18n.t('chat.upload.errorTitle');
 
     if (!inputArguments.visionSupported || !getCameraVisionUploadEnabled()) {
-        await inputArguments.handleFiles(inputArguments.files, { forceDocument: true });
+        await inputArguments.handleFiles(inputArguments.files, { forceDocument: true, draftSource: 'camera' });
         return;
     }
 
@@ -116,7 +117,7 @@ const handleCameraUploads = async (inputArguments: HandleChatAttachmentUploadArg
     if (optimizedFiles.length === 0) {
         return;
     }
-    await inputArguments.handleFiles(optimizedFiles);
+    await inputArguments.handleFiles(optimizedFiles, { draftSource: 'camera' });
 };
 
 const handlePickerUploads = async (inputArguments: HandleChatAttachmentUploadArguments): Promise<void> => {
@@ -125,7 +126,7 @@ const handlePickerUploads = async (inputArguments: HandleChatAttachmentUploadArg
 
     const cameraVisionUploadEnabled = getCameraVisionUploadEnabled();
     if (!inputArguments.visionSupported || !cameraVisionUploadEnabled) {
-        await inputArguments.handleFiles(inputArguments.files, { forceDocument: true });
+        await inputArguments.handleFiles(inputArguments.files, { forceDocument: true, draftSource: 'upload' });
         return;
     }
 
@@ -190,10 +191,10 @@ const handlePickerUploads = async (inputArguments: HandleChatAttachmentUploadArg
     }
 
     if (optimizedVisionFiles.length > 0) {
-        await inputArguments.handleFiles(optimizedVisionFiles);
+        await inputArguments.handleFiles(optimizedVisionFiles, { draftSource: 'upload' });
     }
     if (forceDocumentCandidates.length > 0) {
-        await inputArguments.handleFiles(forceDocumentCandidates, { forceDocument: true });
+        await inputArguments.handleFiles(forceDocumentCandidates, { forceDocument: true, draftSource: 'upload' });
     }
 };
 

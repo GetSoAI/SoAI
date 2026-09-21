@@ -64,14 +64,13 @@
             --chat-previews-container-right: 1.5rem;
         }
 
-        :where(.chat-container) .file-preview-item.image :is(img, .file-preview-image-placeholder) {
-            width: 48px;
-            height: 48px;
-        }
-
         :where(.chat-container) .file-preview-item.document {
             min-width: 150px;
             padding: var(--space-1) var(--space-2);
+        }
+
+        :where(.chat-container) .attached-files-preview > .file-preview-item.document {
+            min-width: min(150px, calc((100% - var(--space-2)) / 2));
         }
 
         :where(.chat-container) .file-preview-item .file-name {
@@ -79,16 +78,34 @@
             max-width: 170px;
         }
 
-        :where(.chat-container) .file-preview-item .remove-file-btn {
-            width: var(--icon-button-size-small);
-            height: var(--icon-button-size-small);
-            top: -5px;
-            right: -5px;
-        }
-
         :where(.chat-container) .chat-page-model-indicator-select.page-header-filter-select {
             width: auto;
             max-width: 100%;
+        }
+    }
+
+    @container ui-viewport (width <= 360px) {
+        :where(.chat-container) .attached-files-preview {
+            --chat-mobile-attachment-overflow-width: calc(22px + (var(--space-2) * 2) + (var(--border-width-1) * 2));
+        }
+
+        :where(.chat-container) .attached-files-preview > .file-preview-item.document:not(.chat-attachment-summary-card--overflow) {
+            width: calc(100% - var(--chat-mobile-attachment-overflow-width) - var(--space-2) - var(--border-width-1));
+            min-width: calc(100% - var(--chat-mobile-attachment-overflow-width) - var(--space-2) - var(--border-width-1));
+            max-width: calc(100% - var(--chat-mobile-attachment-overflow-width) - var(--space-2) - var(--border-width-1));
+            flex: 0 0 calc(100% - var(--chat-mobile-attachment-overflow-width) - var(--space-2) - var(--border-width-1));
+        }
+
+        :where(.chat-container) .attached-files-preview > .file-preview-item.chat-attachment-summary-card--overflow {
+            width: var(--chat-mobile-attachment-overflow-width);
+            min-width: var(--chat-mobile-attachment-overflow-width);
+            max-width: var(--chat-mobile-attachment-overflow-width);
+            flex: 0 0 var(--chat-mobile-attachment-overflow-width);
+            justify-content: center;
+        }
+
+        :where(.chat-container) .attached-files-preview > .chat-attachment-summary-card--overflow > .file-info {
+            display: none;
         }
     }
 
@@ -172,7 +189,7 @@
         }
 
         :where(.chat-container) .message-text table.markdown-table :is(th, td) {
-            min-width: 7rem;
+            min-width: 8rem;
             overflow-wrap: normal;
             word-break: normal;
             hyphens: auto;

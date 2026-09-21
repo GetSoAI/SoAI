@@ -27,7 +27,50 @@ __all__ = (
     "get_tool_call_for_assistant_variant",
     "get_tool_calls_for_assistant_turn",
     "get_tool_calls_for_turn",
+    "list_active_tool_calls_by_owner_task_prefix",
+    "list_tool_calls_by_owner_task",
 )
+
+
+async def list_tool_calls_by_owner_task(
+    self: DatabaseMessagesCoreOwnerProtocol,
+    *,
+    owner_task_id: str,
+    after_storage_call_id: str,
+    limit: int,
+) -> list[JSONDict]:
+    async def _query(database: aiosqlite.Connection) -> list[JSONDict]:
+        rows = await query_to_dicts(
+            database,
+            "SELECT * FROM webui_chat_tool_calls WHERE owner_task_id = ? AND id > ? ORDER BY id ASC LIMIT ?",
+            (owner_task_id, after_storage_call_id, int(limit)),
+        )
+        formatted_rows: list[JSONDict] = []
+        for row in rows:
+            formatted = format_tool_call_row(row)
+            if formatted is not None:
+                formatted_rows.append(formatted)
+        return formatted_rows
+
+    return await self.core.reader.execute_read(_query)
+
+
+async def list_active_tool_calls_by_owner_task_prefix(
+    self: DatabaseMessagesCoreOwnerProtocol,
+    *,
+    owner_task_prefix: str,
+    after_storage_call_id: str,
+    limit: int,
+) -> list[JSONDict]:
+    async def _query(database: aiosqlite.Connection) -> list[JSONDict]:
+        rows = await query_to_dicts(
+            database,
+            "SELECT * FROM webui_chat_tool_calls WHERE status IN ('pending', 'running') AND substr(owner_task_id, 1, length(?)) = ? AND id > ? ORDER BY id ASC LIMIT ?",
+            (owner_task_prefix, owner_task_prefix, after_storage_call_id, int(limit)),
+        )
+        return [formatted for row in rows if (formatted := format_tool_call_row(row)) is not None]
+
+    return await self.core.reader.execute_read(_query)
 
 
 async def get_tool_call_by_storage_id(

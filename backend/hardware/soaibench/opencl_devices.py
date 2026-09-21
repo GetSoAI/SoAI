@@ -22,6 +22,7 @@ from hardware.soaibench.opencl_bindings import (
     OpenCLBindings,
     OpenCLUnsignedLong,
     check_opencl_result,
+    query_opencl_device_scalar,
 )
 from hardware.soaibench.opencl_device_info import OpenCLDeviceInfo
 from hardware.soaibench.opencl_loader import load_opencl_library
@@ -41,6 +42,7 @@ class OpenCLGpuDevice(OpenCLDeviceInfo):
     device_uuid: str | None
     pci_bdf: str | None
     ordinal: int
+    platform_device_index: int = 0
 
 
 def enumerate_opencl_gpu_devices() -> list[OpenCLGpuDevice]:
@@ -57,7 +59,7 @@ def enumerate_opencl_gpu_devices_for_bindings(
         platform_devices = _gpu_devices_for_platform(bindings, platform_handle)
         platform_name = _platform_string(bindings, platform_handle, CL_PLATFORM_NAME)
         platform_vendor = _platform_string(bindings, platform_handle, CL_PLATFORM_VENDOR)
-        for device_handle in platform_devices:
+        for platform_device_index, device_handle in enumerate(platform_devices):
             devices.append(
                 OpenCLGpuDevice(
                     platform_handle=platform_handle,
@@ -84,6 +86,7 @@ def enumerate_opencl_gpu_devices_for_bindings(
                     device_uuid=_optional_device_uuid(bindings, device_handle),
                     pci_bdf=optional_opencl_device_pci_bdf(bindings, device_handle),
                     ordinal=len(devices),
+                    platform_device_index=platform_device_index,
                 ),
             )
     if not devices:
@@ -196,15 +199,9 @@ def _optional_device_uuid(bindings: OpenCLBindings, device_handle: int) -> str |
 
 def _device_ulong(bindings: OpenCLBindings, device_handle: int, field: int) -> int:
     value = ctypes.c_ulonglong(0)
-    code = bindings.library.clGetDeviceInfo(
-        ctypes.c_void_p(device_handle),
-        field,
-        ctypes.sizeof(value),
-        ctypes.byref(value),
-        None,
-    )
-    check_opencl_result(int(code), "opencl_runtime_error", "OpenCL device memory query failed.")
-    return int(value.value)
+    code, result = query_opencl_device_scalar(bindings, device_handle, field, value)
+    check_opencl_result(code, "opencl_runtime_error", "OpenCL device memory query failed.")
+    return result
 
 
 def _info_string(

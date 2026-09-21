@@ -11,7 +11,7 @@ import { renderLabelAttributes, toTrustedUiHtml, type TrustedHtml } from '@core/
 import { EMPTY_UI_HTML, uiAttr, uiHtml, uiText } from '@core/security/uiHtml.ts';
 import { renderStandardDropdownSelectControl } from '@core/ui/dropdown/selectControl.ts';
 import { renderEmptyState } from '@core/ui/emptyState.ts';
-import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
+import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 import { CHARACTER_MAP_ACTIONS } from '@features/chat/charactermap/actions.ts';
 import { CHARACTER_MAP_DEFAULT_FONT_ID, CHARACTER_MAP_FONTS, type CharacterMapFontId } from '@features/chat/charactermap/fontCatalog.ts';
 import { CHAT_CHARACTER_MAP_MODAL_ID } from '@features/chat/modals/constants.ts';
@@ -46,7 +46,7 @@ const renderSearch = (modalId: string): TrustedHtml => {
                 <div class="form-col-main ui-collection-search-row__field">
                     <div class="searchbar-container searchbar-container--collection">
                         <input type="text" id="${uiAttr(searchId)}" class="form-input searchbar-input" placeholder="${uiAttr(i18n.t('chat.characterMap.searchPlaceholder'))}" autocomplete="off" spellcheck="false">
-                        <span class="searchbar-icon">${getIconSync('search', { size: 16, strokeWidth: 1.5 })}</span>
+                        ${renderSearchFieldActions()}
                     </div>
                 </div>
                 <div class="form-col-secondary form-col-action ui-collection-search-row__action">

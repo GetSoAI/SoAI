@@ -2,7 +2,7 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
-    :where(.chat-container) .file-preview-item {
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item {
         --chat-preview-neutral-base: color-mix(in srgb, var(--glass-surface-medium-base) 78%, transparent);
         --chat-preview-neutral-hover: color-mix(in srgb, var(--chat-preview-neutral-base) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
         --ui-button-bg: var(--chat-preview-neutral-base);
@@ -24,103 +24,46 @@
             color var(--duration-220) var(--ease-default);
     }
 
-    :where(.chat-container) .file-preview-item.glass-surface-light {
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item:has(> .remove-file-btn) {
+        padding-inline-end: calc(var(--control-round-button-size) + var(--space-1));
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item.glass-surface-light {
         --glass-surface-bg: var(--ui-button-bg);
         box-shadow: none;
     }
 
-    :where(.chat-container) .file-preview-item.glass-surface-light::before {
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item.glass-surface-light::before {
         background: var(--glass-surface-bg);
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
         transition: background var(--duration-220) var(--ease-default);
     }
 
-    :where(.chat-container) .file-preview-item:is(:hover, :focus-visible, :focus-within) {
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item:not(.chat-attachment-summary-card--overflow):is(:hover, :focus-visible, :has(:focus-visible)),
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item.chat-attachment-summary-card--overflow:is(:hover, :focus-visible) {
         border-color: var(--ui-button-border-hover);
         color: var(--ui-button-color-hover);
     }
 
-    :where(.chat-container) .file-preview-item.glass-surface-light:is(:hover, :focus-visible, :focus-within) {
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item.glass-surface-light:not(.chat-attachment-summary-card--overflow):is(:hover, :focus-visible, :has(:focus-visible)),
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item.glass-surface-light.chat-attachment-summary-card--overflow:is(:hover, :focus-visible) {
         --glass-surface-bg: var(--ui-button-bg-hover);
     }
 
-    :where(.chat-container) .file-preview-item.image {
-        padding: var(--space-1);
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item.file-preview-item--unavailable {
+        --ui-button-border-hover: var(--glass-border-subtle);
+        --ui-button-color-hover: var(--text-primary);
+        --ui-button-bg-hover: var(--chat-preview-neutral-base);
+        cursor: default;
+        transition: none;
     }
 
-    :where(.chat-container) .file-preview-item.image :is(img, .file-preview-image-placeholder) {
-        width: 56px;
-        height: 56px;
-        border-radius: var(--border-radius);
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item.file-preview-item--unavailable.glass-surface-light::before {
+        transition: none;
     }
 
-    :where(.chat-container) .file-preview-item.image img {
-        display: block;
-        object-fit: cover;
-    }
-
-    :where(.chat-container) .file-preview-item.image .file-preview-image-placeholder {
-        display: grid;
-        place-items: center;
-        border: var(--border-width-1) solid var(--glass-border-subtle);
-        background: var(--glass-surface-hover);
-    }
-
-    :where(.chat-container) .file-preview-item.image .file-preview-image-spinner.loading-spinner {
-        width: 18px;
-        height: 18px;
-        border-width: var(--border-width-150);
-        border-top-width: var(--border-width-150);
-    }
-
-    :where(.chat-container) .file-preview-item.image .file-preview-image-loading {
-        position: absolute;
-        inset: var(--space-1);
-        display: grid;
-        place-items: center;
-        border-radius: var(--border-radius);
-        background: color-mix(in srgb, var(--glass-surface-darker) 55%, transparent);
-        pointer-events: none;
-    }
-
-    :where(.chat-container) .file-preview-item.document {
-        min-width: 180px;
-    }
-
-    :where(.chat-container) .file-preview-item .file-info {
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-        gap: var(--space-05);
-    }
-
-    :where(.chat-container) .file-preview-item .file-name {
-        font-size: var(--font-size-xs);
-        color: var(--text-primary);
-        max-width: 220px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    :where(.chat-container) .file-preview-item .file-status {
-        font-size: var(--font-size-compact);
-        color: var(--text-secondary);
-        line-height: 1.2;
-        display: inline-flex;
-        align-items: center;
-        gap: var(--space-1);
-    }
-
-    :where(.chat-container) .file-preview-item .file-status-spinner.loading-spinner {
-        width: 12px;
-        height: 12px;
-        border-width: var(--border-width-1);
-        border-top-width: var(--border-width-1);
-    }
-
-    :where(.chat-container) .file-preview-leading-icon {
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-leading-icon {
         width: 22px;
         height: 22px;
         display: inline-flex;
@@ -130,7 +73,104 @@
         flex: 0 0 auto;
     }
 
-    :where(.chat-container) .file-preview-item.soai-path-link .file-status {
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .chat-attachment-visual {
+        position: relative;
+        display: grid;
+        flex: 0 0 44px;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        overflow: hidden;
+        border: var(--border-width-1) solid var(--glass-border-subtle);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-hover);
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .chat-attachment-visual > :is(.file-preview-leading-icon, img) {
+        grid-area: 1 / 1;
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .chat-attachment-visual > img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .chat-attachment-visual:not([data-attachment-image-state='loaded']) > img,
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .chat-attachment-visual[data-attachment-image-state='loaded'] > .file-preview-leading-icon {
+        visibility: hidden;
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .chat-attachment-visual .file-preview-image-spinner.loading-spinner {
+        width: 12px;
+        height: 12px;
+        border-width: var(--border-width-1);
+        border-top-width: var(--border-width-1);
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .chat-attachment-visual .file-preview-image-loading {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--glass-surface-darker) 55%, transparent);
+        pointer-events: none;
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item.document {
+        min-width: 180px;
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .attached-files-preview button.chat-attachment-summary-card--overflow {
+        margin-inline-start: auto;
+        appearance: none;
+        color: var(--text-primary);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item .file-info {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        overflow: hidden;
+        min-width: 0;
+        gap: var(--space-05);
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item .file-name {
+        font-size: var(--font-size-xs);
+        color: var(--text-primary);
+        max-width: 220px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item .file-status {
+        font-size: var(--font-size-compact);
+        color: var(--text-secondary);
+        line-height: 1.2;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item .file-status-spinner.loading-spinner {
+        width: 12px;
+        height: 12px;
+        border-width: var(--border-width-1);
+        border-top-width: var(--border-width-1);
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item.file-preview-item--unavailable .file-status > span:not(.chat-attachment-badge) {
+        color: var(--status-red);
+    }
+
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item.soai-path-link .file-status {
         width: fit-content;
         padding: var(--space-025) var(--space-1);
         border-radius: var(--border-radius);
@@ -139,15 +179,15 @@
         font-weight: var(--font-weight-semibold);
     }
 
-    :where(.chat-container) .file-preview-item .remove-file-btn {
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item .remove-file-btn {
         position: absolute;
         top: -4px;
         right: -4px;
         margin-left: 0;
-        width: 16px;
-        height: 16px;
-        min-width: 16px;
-        min-height: 16px;
+        width: var(--control-round-button-size);
+        height: var(--control-round-button-size);
+        min-width: var(--control-round-button-size);
+        min-height: var(--control-round-button-size);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -165,11 +205,11 @@
             transform var(--transition-fast);
     }
 
-    :where(.chat-container) .file-preview-item:is(:hover, :focus-within) .remove-file-btn {
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item:is(:hover, :has(:focus-visible)) .remove-file-btn {
         opacity: 1;
     }
 
-    :where(.chat-container) .file-preview-item .remove-file-btn:hover {
+    :where(.chat-container, .chat-attach-modal-body, .chat-attachment-overflow-modal-body) .file-preview-item .remove-file-btn:hover {
         transform: none;
     }
 }

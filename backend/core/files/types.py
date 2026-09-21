@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.files.extraction_state import ExtractionState
+from core.media.tesseract_languages import require_ocr_language
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -27,10 +28,14 @@ __all__ = (
 @dataclass(frozen=True, slots=True)
 class ParseExecutionContext:
     source_path: str
+    ocr_language: str
     cancellation_token: CancellationTokenProtocol | None
     progress_callback: ParseProgressCallback | None
     display_name: str | None
     extraction_deadline: float
+
+    def __post_init__(self) -> None:
+        require_ocr_language(self.ocr_language)
 
     def remaining_seconds(self) -> float:
         return max(0.0, self.extraction_deadline - time.monotonic())
@@ -38,6 +43,7 @@ class ParseExecutionContext:
     def with_source(self, source_path: str, display_name: str | None) -> ParseExecutionContext:
         return ParseExecutionContext(
             source_path=source_path,
+            ocr_language=self.ocr_language,
             cancellation_token=self.cancellation_token,
             progress_callback=self.progress_callback,
             display_name=display_name,

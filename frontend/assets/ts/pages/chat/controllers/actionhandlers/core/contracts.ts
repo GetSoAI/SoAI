@@ -60,7 +60,6 @@ interface ChatExecutionActionPort {
     admission(conversationId: string): ChatTurnAdmissionSnapshot;
     syncAdmission(conversationId: string): Promise<ChatTurnAdmissionSnapshot>;
     stop(options?: ChatStreamStopOptions): void;
-    waitForRequestExit(conversationId: string, requestId: string): Promise<void>;
     run(operationId: string, task: () => Promise<void> | void): void;
     boundary<T>(name: string, functionValue: () => Promise<T>): Promise<T>;
     send(options?: SendMessageOptions): Promise<void>;
@@ -73,12 +72,12 @@ interface ChatComposerActionPort {
     requireInput(): HTMLTextAreaElement;
     setInput(input: HTMLTextAreaElement, value: string): void;
     cancelConversationInput(conversationId: string, inputId: string): Promise<void>;
+    retryConversationRegeneration(conversationId: string, inputId: string): Promise<void>;
     resolveAskUser(conversationId: string, taskId: string, action: 'submit' | 'cancel'): Promise<void>;
     resolveSecret(conversationId: string, taskId: string, request: SecretPromptInteractionResolutionRequest): Promise<void>;
     resolveToolApproval(conversationId: string, taskId: string, action: 'approve' | 'deny'): Promise<void>;
     toggleCall(): void;
     toggleTools(): Promise<void>;
-    openAttachmentOverflow(): void;
     openCharacterMap(): void;
     updateInputState(): void;
     applyInputActionVisibility(): void;
@@ -86,10 +85,21 @@ interface ChatComposerActionPort {
     resolvePrimaryActionMode(): import('@features/chat/public.ts').ChatComposerActionMode;
 }
 
+interface ChatAttachDraftCounts {
+    upload: number;
+    camera: number;
+    browse: number;
+    soaiLink: number;
+    knowledge: number;
+}
+
+type ChatAttachDraftRemovalSource = keyof ChatAttachDraftCounts;
+
 interface ChatAttachmentActionPort {
     fileUploadEnabled(): boolean;
     cameraEnabled(): boolean;
     drafts(): readonly ChatAttachment[];
+    draftCounts(): ChatAttachDraftCounts;
     draftCommitEpoch(): number;
     subscribeDrafts(handler: () => void): () => void;
     requireFileInput(): HTMLInputElement;
@@ -97,9 +107,10 @@ interface ChatAttachmentActionPort {
     uploadFiles(files: File[]): Promise<void>;
     uploadFolder(files: File[]): Promise<void>;
     captureCamera(file: File): Promise<void>;
-    addSoaiPaths(records: readonly SoaiPathDraftRecord[]): number;
+    addSoaiPaths(records: readonly SoaiPathDraftRecord[], source: 'browse' | 'soaiLink'): number;
     removeFile(fileId: string): Promise<void>;
     removeKnowledge(knowledgeAttachmentId: string): Promise<void>;
+    removeAll(source: ChatAttachDraftRemovalSource): Promise<void>;
 }
 
 interface ChatAudioActionPort {
@@ -196,4 +207,4 @@ interface ChatActionHandlersHost {
     rag: ChatRagActionPort;
 }
 
-export type { ChatActionHandler, ChatActionHandlersHost, ChatAgentActionPort, ChatAttachmentActionPort, ChatAudioActionPort, ChatComposerActionPort, ChatConfigurationActionPort, ChatConversationActionPort, ChatConversationActionsControllerContract, ChatExecutionActionPort, ChatNavigationActionPort, ChatPresentationActionPort, ChatRagActionPort, ChatSharedActionPort, ChatToolbarActionPort };
+export type { ChatActionHandler, ChatActionHandlersHost, ChatAgentActionPort, ChatAttachDraftCounts, ChatAttachDraftRemovalSource, ChatAttachmentActionPort, ChatAudioActionPort, ChatComposerActionPort, ChatConfigurationActionPort, ChatConversationActionPort, ChatConversationActionsControllerContract, ChatExecutionActionPort, ChatNavigationActionPort, ChatPresentationActionPort, ChatRagActionPort, ChatSharedActionPort, ChatToolbarActionPort };

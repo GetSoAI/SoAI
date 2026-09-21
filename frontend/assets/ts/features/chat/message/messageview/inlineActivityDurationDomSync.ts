@@ -137,15 +137,20 @@ const syncRunningInlineActivityDuration = (activity: HTMLElement, nowMs: number)
     return syncRunningInlineActivityDurationsForActivities([activity], nowMs);
 };
 
-const syncSettledInlineActivityDuration = (activity: HTMLElement, durationMs: number): InlineActivityDurationSyncResult => {
+const syncSettledInlineActivityDuration = (activity: HTMLElement, durationMs: number, animateEntrance = false): InlineActivityDurationSyncResult => {
     const cacheEntry = resolveInlineActivityDomCacheEntry(activity);
     if (cacheEntry === null) {
         return { hasDuration: false, updated: false };
     }
-    return syncInlineActivityDurationForArguments(activity, cacheEntry, {
+    const hadDuration = cacheEntry.durationNode !== null && cacheEntry.durationNode.isConnected;
+    const result = syncInlineActivityDurationForArguments(activity, cacheEntry, {
         status: 'completed',
         durationMs
     });
+    if (animateEntrance && !hadDuration && cacheEntry.durationNode !== null) {
+        cacheEntry.durationNode.classList.add('inline-activity-duration--enter');
+    }
+    return result;
 };
 
 const removeInlineActivityDuration = (activity: HTMLElement): boolean => {

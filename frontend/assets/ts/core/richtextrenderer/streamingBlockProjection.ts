@@ -32,7 +32,21 @@ const FOOTNOTE_PATTERN = /\[\^[^\]]+\]/;
 const PREVIEW_TOKEN_START = '[[preview:';
 const INLINE_RICH_TEXT_PATTERN = /`|[*_]|~~|<|\[|https?:\/\//iu;
 const STREAMING_APPEND_BOUNDARY_PATTERN = /[\n`*_~<\[-]/u;
-const AMBIGUOUS_BLOCK_PREFIX_PATTERN = /^\s*(?:#|[-+]|(?:\d+\.?\s*))$/u;
+const AMBIGUOUS_BLOCK_PREFIX_PATTERN = /^[\t ]*(?:#{1,6}|[-+*]|\d+\.?)[\t ]*$/u;
+
+const resolveStreamingMutableRenderSource = (source: string): string => {
+    const trailingLineStart = source.lastIndexOf('\n') + 1;
+    if (!AMBIGUOUS_BLOCK_PREFIX_PATTERN.test(source.slice(trailingLineStart))) {
+        return source;
+    }
+    let insideFence = false;
+    for (const line of source.slice(0, trailingLineStart).split('\n')) {
+        if (isCodeFenceLine(line)) {
+            insideFence = !insideFence;
+        }
+    }
+    return insideFence ? source : source.slice(0, trailingLineStart);
+};
 
 const resolveBlockType = (source: string): StreamingRichBlockType => {
     const lines = source.trimEnd().split('\n');
@@ -140,14 +154,24 @@ const projectStreamingSuffix = (source: string, sourceOffset: number): Omit<Stre
     const localMutableStart = regions.at(-1)?.end ?? 0;
     const mutableSource = source.slice(localMutableStart);
     const mutableType = mutableSource.trim() ? resolveBlockType(mutableSource) : null;
+    const hasAmbiguousBlockPrefix = AMBIGUOUS_BLOCK_PREFIX_PATTERN.test(mutableSource.trim()) || resolveStreamingMutableRenderSource(mutableSource) !== mutableSource;
     return {
         immutableBlocks: regions.map((region) => createBlock(region, sourceOffset)),
         mutableStart: localMutableStart + sourceOffset,
-        plainTextAppendSafe: mutableType === 'paragraph' && !INLINE_RICH_TEXT_PATTERN.test(mutableSource) && !AMBIGUOUS_BLOCK_PREFIX_PATTERN.test(mutableSource)
+        plainTextAppendSafe: mutableType === 'paragraph' && !INLINE_RICH_TEXT_PATTERN.test(mutableSource) && !hasAmbiguousBlockPrefix
     };
 };
 
 const projectStreamingRichTextBlocks = (source: string, previousProjection: StreamingRichBlockProjection | null = null): StreamingRichBlockProjection => {
+    if (previousProjection !== null && source === previousProjection.source) {
+        return {
+            source,
+            immutableBlocks: previousProjection.immutableBlocks,
+            mutableStart: previousProjection.mutableStart,
+            plainTextAppendSafe: previousProjection.plainTextAppendSafe,
+            reusedImmutableBlockCount: previousProjection.immutableBlocks.length
+        };
+    }
     if (previousProjection !== null && source.startsWith(previousProjection.source)) {
         const suffix = projectStreamingSuffix(source.slice(previousProjection.mutableStart), previousProjection.mutableStart);
         return {
@@ -175,5 +199,5 @@ const streamingMarkdownAppendRequiresCanonicalRender = (existingPlainTextSuffix:
     return /https?:\/\//iu.test(`${existingPlainTextSuffix.slice(-8)}${appendText}`);
 };
 
-export { projectStreamingRichTextBlocks, resolveStreamingMutableSource, streamingMarkdownAppendRequiresCanonicalRender };
+export { projectStreamingRichTextBlocks, resolveStreamingMutableRenderSource, resolveStreamingMutableSource, streamingMarkdownAppendRequiresCanonicalRender };
 export type { StreamingRichBlock, StreamingRichBlockProjection, StreamingRichBlockType };

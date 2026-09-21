@@ -82,6 +82,27 @@ class HardwareActivityRegistry:
                 activity_type=active.activity_type,
                 owner_id=active.owner_id,
                 run_id=normalized_run_id,
+                degraded=active.degraded,
+            )
+            return True
+
+    async def mark_degraded(self, *, device_id: str, lease_id: str, reason: str) -> bool:
+        normalized_device_id = _require_non_empty(device_id, "device_id")
+        normalized_lease_id = _require_non_empty(lease_id, "lease_id")
+        _require_non_empty(reason, "reason")
+        async with self._lock:
+            active = self._leases_by_device.get(normalized_device_id)
+            if active is None or active.lease_id != normalized_lease_id:
+                return False
+            if active.degraded:
+                return True
+            self._leases_by_device[normalized_device_id] = HardwareActivityLease(
+                device_id=active.device_id,
+                lease_id=active.lease_id,
+                activity_type=active.activity_type,
+                owner_id=active.owner_id,
+                run_id=active.run_id,
+                degraded=True,
             )
             return True
 

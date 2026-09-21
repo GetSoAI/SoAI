@@ -111,12 +111,17 @@ def register_cancel_route(routers: ApiRouters) -> None:
         )
         logger = get_logger(LOGGER_NAME)
         context = request.state.context
+        shell_sessions = api_context.dependencies.mcp_server.snapshot_openai_shell_sessions(
+            user_id=current_user["id"],
+            conv_id=conversation_context.resolved_conv_id,
+        )
 
         async def cleanup_shell_sessions() -> None:
             try:
-                await api_context.dependencies.mcp_server.cancel_openai_shell_sessions(
+                await api_context.dependencies.mcp_server.cancel_captured_openai_shell_sessions(
                     user_id=current_user["id"],
                     conv_id=conversation_context.resolved_conv_id,
+                    sessions=shell_sessions,
                 )
             except RECOVERABLE_EXCEPTIONS as exception:
                 log_handled_exception(

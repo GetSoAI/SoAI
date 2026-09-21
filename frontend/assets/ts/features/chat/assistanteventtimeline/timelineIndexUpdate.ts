@@ -105,6 +105,23 @@ const resetTimelineIndexIfProcessedPrefixChanged = (state: AssistantTimelineInde
     }
 };
 
+type AssistantTimelineAcceptedAppend = {
+    baseTimeline: AssistantEventTimelineItem[];
+    baseRevision: number;
+    candidateRevision: number;
+};
+
+const acceptedAppendContinuesProcessedTimeline = (state: AssistantTimelineIndexState, timeline: AssistantEventTimelineItem[], acceptedAppend: AssistantTimelineAcceptedAppend | null): boolean => {
+    if (acceptedAppend === null || state.timelineReference !== acceptedAppend.baseTimeline || state.processedLength !== acceptedAppend.baseTimeline.length) {
+        return false;
+    }
+    if (acceptedAppend.baseRevision !== state.timelineLatestAssistantRevision || acceptedAppend.candidateRevision <= acceptedAppend.baseRevision || timeline.length !== acceptedAppend.baseTimeline.length + 1) {
+        return false;
+    }
+    const candidateEvent = timeline[timeline.length - 1];
+    return candidateEvent !== undefined && readAssistantRevision(candidateEvent) === acceptedAppend.candidateRevision;
+};
+
 const appendTimelineProjectionHash = (currentHash: string, eventSignature: string): string => {
     return formatHashSignature(`${currentHash}|${eventSignature}`);
 };
@@ -117,7 +134,7 @@ const readAssistantRevision = (event: AssistantEventTimelineItem): number => {
     return revision;
 };
 
-const updateAssistantTimelineIndexState = (state: AssistantTimelineIndexState, message: ChatMessage): void => {
+const updateAssistantTimelineIndexState = (state: AssistantTimelineIndexState, message: ChatMessage, options: { acceptedAppend?: AssistantTimelineAcceptedAppend | null } = {}): void => {
     if (!isAssistantMessageRole(message)) {
         return;
     }
@@ -131,7 +148,9 @@ const updateAssistantTimelineIndexState = (state: AssistantTimelineIndexState, m
         applyToolCallProjections(state, message);
         return;
     }
-    resetTimelineIndexIfProcessedPrefixChanged(state, timeline);
+    if (!acceptedAppendContinuesProcessedTimeline(state, timeline, options.acceptedAppend ?? null)) {
+        resetTimelineIndexIfProcessedPrefixChanged(state, timeline);
+    }
     state.timelineReference = timeline;
 
     for (let index = state.processedLength; index < timeline.length; index += 1) {
@@ -229,3 +248,4 @@ const updateAssistantTimelineIndexState = (state: AssistantTimelineIndexState, m
 };
 
 export { updateAssistantTimelineIndexState };
+export type { AssistantTimelineAcceptedAppend };

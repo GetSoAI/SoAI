@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ChatAttachment } from '@features/chat/public.ts';
+import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 
 interface ChatAttachDraftAttachmentListElements {
     status: HTMLElement;
@@ -36,6 +37,8 @@ interface ChatAttachKnowledgeElements {
 
 type ChatAttachDraftAttachmentListEntry = {
     attachment: ChatAttachment;
+    iconName: IconName;
+    previewUrl: string | null;
 };
 
 export type { ChatAttachDraftAttachmentListElements, ChatAttachDraftAttachmentListEntry, ChatAttachKnowledgeElements, ChatAttachSoaiLinkElements, ChatAttachUploadElements };

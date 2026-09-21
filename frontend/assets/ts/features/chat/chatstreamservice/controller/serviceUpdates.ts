@@ -139,8 +139,7 @@ export const handleServiceUpdate = async (context: ChatStreamingControllerContex
                 reconcileMismatchedTerminalServiceUpdate(context, {
                     conversationId,
                     state,
-                    updateRequestId,
-                    status: update.status
+                    updateRequestId
                 });
                 return;
             }
@@ -168,8 +167,7 @@ export const handleServiceUpdate = async (context: ChatStreamingControllerContex
             requestId: updateRequestId,
             assistantTimestamp: updateAssistantTimestamp
         });
-    }
-    if (!treatAsPassiveStreamUpdate && !isPassiveTimelinePatch) {
+    } else if (!treatAsPassiveStreamUpdate && !isPassiveTimelinePatch) {
         syncStreamingControls(context);
     }
 
@@ -278,6 +276,4 @@ export const handleServiceUpdate = async (context: ChatStreamingControllerContex
             });
         }
     }
-
-    syncStreamingControls(context);
 };

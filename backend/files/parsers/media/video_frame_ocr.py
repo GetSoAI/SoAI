@@ -121,6 +121,7 @@ async def read_video_ocr_frames(
                         await await_media_operation(
                             ocr_runtime.read_frame(
                                 frame_path=frame_path,
+                                ocr_language=context.ocr_language,
                                 timestamp_seconds=timestamp,
                                 timeout_seconds=min(
                                     context.remaining_seconds(),

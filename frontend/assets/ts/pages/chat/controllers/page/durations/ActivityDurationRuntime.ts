@@ -4,7 +4,8 @@
 import { syncRunningAssistantHeaderDuration, syncRunningInlineActivityDuration, type ChatActivityDurationDisplayMode } from '@features/chat/public.ts';
 import { ActivityDurationTickerState } from '@pages/chat/controllers/page/durations/ActivityDurationTickerState.ts';
 import { RUNNING_ASSISTANT_HEADER_SELECTOR, collectRunningActivities, intersectsViewport, isRunningActivity, resolveStartedAtMs, type RegisteredActivity } from '@pages/chat/controllers/page/durations/activityDurationRegistrationDomain.ts';
-import { ACTIVITY_DURATION_EXPANSION_ATTRIBUTES, reconcileActivityDurationPresentation } from '@pages/chat/controllers/page/durations/activityDurationPresentationDomain.ts';
+import { reconcileActivityDurationPresentation } from '@pages/chat/controllers/page/durations/activityDurationPresentationDomain.ts';
+import { ACTIVITY_DURATION_DISCOVERY_ATTRIBUTES, resolveActivityDurationMutationImpact } from '@pages/chat/controllers/page/durations/activityDurationMutationDomain.ts';
 
 type ActivityDurationObserver = {
     observe: (element: Element) => void;
@@ -37,7 +38,7 @@ class ActivityDurationRuntime {
     readonly #intersecting = new Set<HTMLElement>();
     readonly #tickerHealth = new ActivityDurationTickerState();
     readonly #visibilityListener: () => void;
-    readonly #expansionObserver: MutationObserver;
+    readonly #mutationObserver: MutationObserver;
     #generation = 1;
     #timerId: number | null = null;
     #scheduledDueEpochMs: number | null = null;
@@ -50,20 +51,28 @@ class ActivityDurationRuntime {
         this.#observer = (options.observerFactory ?? createBrowserObserver)((entries) => this.#handleIntersections(entries, generation), options.viewport);
         this.#visibilityListener = () => this.#handleVisibilityChange(generation);
         (options.documentRef ?? document).addEventListener('visibilitychange', this.#visibilityListener);
-        this.#expansionObserver = new MutationObserver((records) => this.#handleExpansionMutations(records, generation));
-        this.#expansionObserver.observe(options.viewport, { attributes: true, subtree: true, attributeFilter: [...ACTIVITY_DURATION_EXPANSION_ATTRIBUTES] });
+        this.#mutationObserver = new MutationObserver((records) => this.#handleMutations(records, generation));
+        this.#mutationObserver.observe(options.viewport, { attributes: true, childList: true, subtree: true, attributeFilter: ACTIVITY_DURATION_DISCOVERY_ATTRIBUTES });
     }
 
     reconcile(root: Element, conversationId: string): void {
         if (this.#disposed || conversationId !== this.#options.conversationId) {
             return;
         }
-        this.#prune();
-        const nowEpochMs = this.#options.nowEpochMs();
         const displayMode = this.#options.getDisplayMode();
+        this.#prune(displayMode);
+        this.#reconcile(root, conversationId, displayMode);
+        this.#schedule();
+    }
+
+    #reconcile(root: Element, conversationId: string, displayMode: ChatActivityDurationDisplayMode): void {
+        if (this.#disposed || conversationId !== this.#options.conversationId) {
+            return;
+        }
+        const nowEpochMs = this.#options.nowEpochMs();
         reconcileActivityDurationPresentation(root, displayMode, nowEpochMs);
         for (const activity of collectRunningActivities(root, displayMode)) {
-            if (!this.#owns(activity)) {
+            if (!this.#owns(activity, displayMode)) {
                 continue;
             }
             const startedAtMs = resolveStartedAtMs(activity);
@@ -76,7 +85,7 @@ class ActivityDurationRuntime {
                     existing.startedAtMs = startedAtMs;
                     existing.nextDueEpochMs = nowEpochMs;
                     if (this.#intersecting.has(activity)) {
-                        this.#syncActivity(activity, existing.nextDueEpochMs);
+                        this.#syncActivity(activity, existing.nextDueEpochMs, displayMode);
                     }
                 }
                 continue;
@@ -89,10 +98,9 @@ class ActivityDurationRuntime {
             this.#observer.observe(activity);
             if (this.#isVisible() && intersectsViewport(activity, this.#options.viewport)) {
                 this.#intersecting.add(activity);
-                this.#syncActivity(activity, nowEpochMs);
+                this.#syncActivity(activity, nowEpochMs, displayMode);
             }
         }
-        this.#schedule();
     }
 
     dispose(): void {
@@ -103,7 +111,7 @@ class ActivityDurationRuntime {
         this.#generation += 1;
         this.#cancelTimer();
         this.#observer.disconnect();
-        this.#expansionObserver.disconnect();
+        this.#mutationObserver.disconnect();
         this.#registered.clear();
         this.#intersecting.clear();
         this.#tickerHealth.reset();
@@ -114,13 +122,14 @@ class ActivityDurationRuntime {
         if (!this.#isCurrent(generation) || !this.#isVisible()) {
             return;
         }
+        const displayMode = this.#options.getDisplayMode();
         const nowEpochMs = this.#options.nowEpochMs();
         for (const entry of entries) {
             const activity = entry.target;
             if (!(activity instanceof HTMLElement) || !this.#registered.has(activity)) {
                 continue;
             }
-            if (!this.#owns(activity)) {
+            if (!this.#owns(activity, displayMode)) {
                 this.#unregister(activity);
                 continue;
             }
@@ -129,24 +138,26 @@ class ActivityDurationRuntime {
                 continue;
             }
             this.#intersecting.add(activity);
-            this.#syncActivity(activity, nowEpochMs);
+            this.#syncActivity(activity, nowEpochMs, displayMode);
         }
         this.#schedule();
     }
 
-    #handleExpansionMutations(records: readonly MutationRecord[], generation: number): void {
+    #handleMutations(records: readonly MutationRecord[], generation: number): void {
         if (!this.#isCurrent(generation)) {
             return;
         }
-        const activities = new Set<HTMLElement>();
-        for (const record of records) {
-            if (record.target instanceof HTMLElement && record.target.classList.contains('inline-activity')) {
-                activities.add(record.target);
-            }
+        const impact = resolveActivityDurationMutationImpact(records);
+        if (!impact.requiresPrune && impact.roots.size === 0) {
+            this.#schedule();
+            return;
         }
-        for (const activity of activities) {
-            this.reconcile(activity, this.#options.conversationId);
+        const displayMode = this.#options.getDisplayMode();
+        this.#prune(displayMode);
+        for (const root of impact.roots) {
+            this.#reconcile(root, this.#options.conversationId, displayMode);
         }
+        this.#schedule();
     }
 
     #handleVisibilityChange(generation: number): void {
@@ -158,12 +169,13 @@ class ActivityDurationRuntime {
             this.#resetHealth();
             return;
         }
-        this.#prune();
+        const displayMode = this.#options.getDisplayMode();
+        this.#prune(displayMode);
         const nowEpochMs = this.#options.nowEpochMs();
         for (const activity of this.#registered.keys()) {
             if (intersectsViewport(activity, this.#options.viewport)) {
                 this.#intersecting.add(activity);
-                this.#syncActivity(activity, nowEpochMs);
+                this.#syncActivity(activity, nowEpochMs, displayMode);
             } else {
                 this.#intersecting.delete(activity);
             }
@@ -182,20 +194,21 @@ class ActivityDurationRuntime {
             this.#tickerHealth.record(monotonicMs, Math.max(0, monotonicMs - this.#expectedDeadlineMs));
         }
         this.#expectedDeadlineMs = null;
-        this.#prune();
+        const displayMode = this.#options.getDisplayMode();
+        this.#prune(displayMode);
         const nowEpochMs = this.#options.nowEpochMs();
         for (const activity of this.#intersecting) {
             const registration = this.#registered.get(activity);
             if (registration && nowEpochMs >= registration.nextDueEpochMs) {
-                this.#syncActivity(activity, nowEpochMs);
+                this.#syncActivity(activity, nowEpochMs, displayMode);
             }
         }
         this.#schedule();
     }
 
-    #syncActivity(activity: HTMLElement, nowEpochMs: number): void {
+    #syncActivity(activity: HTMLElement, nowEpochMs: number, displayMode: ChatActivityDurationDisplayMode): void {
         const registration = this.#registered.get(activity);
-        if (!registration || !this.#registrationIsCurrent(activity, registration)) {
+        if (!registration || !this.#registrationIsCurrent(activity, registration, displayMode)) {
             this.#unregister(activity);
             return;
         }
@@ -249,9 +262,9 @@ class ActivityDurationRuntime {
         this.#expectedDeadlineMs = null;
     }
 
-    #prune(): void {
+    #prune(displayMode: ChatActivityDurationDisplayMode): void {
         for (const activity of Array.from(this.#registered.keys())) {
-            if (this.#owns(activity) && resolveStartedAtMs(activity) !== null) {
+            if (this.#owns(activity, displayMode) && resolveStartedAtMs(activity) !== null) {
                 continue;
             }
             this.#unregister(activity);
@@ -264,14 +277,14 @@ class ActivityDurationRuntime {
         this.#intersecting.delete(activity);
     }
 
-    #owns(activity: HTMLElement): boolean {
+    #owns(activity: HTMLElement, displayMode: ChatActivityDurationDisplayMode): boolean {
         const conversationRoot = activity.closest('[data-current-conversation-id]');
-        return activity.isConnected && this.#options.viewport.isConnected && this.#options.viewport.contains(activity) && conversationRoot instanceof HTMLElement && conversationRoot.getAttribute('data-current-conversation-id') === this.#options.conversationId && isRunningActivity(activity, this.#options.getDisplayMode());
+        return activity.isConnected && this.#options.viewport.isConnected && this.#options.viewport.contains(activity) && conversationRoot instanceof HTMLElement && conversationRoot.getAttribute('data-current-conversation-id') === this.#options.conversationId && isRunningActivity(activity, displayMode);
     }
 
-    #registrationIsCurrent(activity: HTMLElement, registration: RegisteredActivity): boolean {
+    #registrationIsCurrent(activity: HTMLElement, registration: RegisteredActivity, displayMode: ChatActivityDurationDisplayMode): boolean {
         const currentType = activity.matches(RUNNING_ASSISTANT_HEADER_SELECTOR) ? 'assistantHeader' : 'inline';
-        return this.#owns(activity) && registration.type === currentType && resolveStartedAtMs(activity) === registration.startedAtMs;
+        return this.#owns(activity, displayMode) && registration.type === currentType && resolveStartedAtMs(activity) === registration.startedAtMs;
     }
 
     #isVisible(): boolean {

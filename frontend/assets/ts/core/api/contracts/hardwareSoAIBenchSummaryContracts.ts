@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { readSoAIBenchOptionalBoolean, readSoAIBenchOptionalNumber, readSoAIBenchOptionalString, readSoAIBenchOptionalStringList } from '@core/api/contracts/hardwareSoAIBenchReaders.ts';
-import type { GpuSoAIBenchSummary } from '@core/api/contracts/hardwareSoAIBenchTypes.ts';
+import type { GpuSoAIBenchPhaseDiagnostics, GpuSoAIBenchSummary } from '@core/api/contracts/hardwareSoAIBenchTypes.ts';
 import { hasOwn } from '@core/typeGuards.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
+import { readRequiredFiniteNumberValue } from '@core/types/payloadNumberReaders.ts';
+import { assertExactRecordKeys } from '@core/types/payloadRecordReaders.ts';
 
 const assignNumber = (source: JsonObject, target: JsonObject, wireKey: string, domainKey: string, label: string): void => {
     const value = readSoAIBenchOptionalNumber(source, wireKey, label);
@@ -24,6 +26,21 @@ const assignBoolean = (source: JsonObject, target: JsonObject, wireKey: string, 
 const assignStringList = (source: JsonObject, target: JsonObject, wireKey: string, domainKey: string, label: string): void => {
     const value = readSoAIBenchOptionalStringList(source, wireKey, label);
     if (value !== undefined) target[domainKey] = value;
+};
+
+const decodePhaseDiagnostics = (value: JsonValue | undefined, label: string): GpuSoAIBenchPhaseDiagnostics | null | undefined => {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    if (!isJsonObject(value)) throw new TypeError(`${label} must be an object or null`);
+    assertExactRecordKeys(value, ['alu', 'compute', 'matrix', 'latency', 'memory', 'mixed'], label);
+    return {
+        alu: readRequiredFiniteNumberValue(value['alu'], `${label}.alu`),
+        compute: readRequiredFiniteNumberValue(value['compute'], `${label}.compute`),
+        matrix: readRequiredFiniteNumberValue(value['matrix'], `${label}.matrix`),
+        latency: readRequiredFiniteNumberValue(value['latency'], `${label}.latency`),
+        memory: readRequiredFiniteNumberValue(value['memory'], `${label}.memory`),
+        mixed: readRequiredFiniteNumberValue(value['mixed'], `${label}.mixed`)
+    };
 };
 
 const decodeWorkloadPhase = (source: JsonObject, target: JsonObject, wirePrefix: string, domainPrefix: string, label: string): void => {
@@ -51,6 +68,10 @@ const decodeGpuSoAIBenchSummary = (value: JsonValue | undefined, label: string):
     assignNumber(value, decoded, 'latency_dispatches_per_second', 'latencyDispatchesPerSecond', label);
     assignNumber(value, decoded, 'duration_ms', 'durationMs', label);
     assignNumber(value, decoded, 'sample_count', 'sampleCount', label);
+    assignNumber(value, decoded, 'telemetry_sample_count', 'telemetrySampleCount', label);
+    assignNumber(value, decoded, 'temperature_sample_count', 'temperatureSampleCount', label);
+    assignNumber(value, decoded, 'power_sample_count', 'powerSampleCount', label);
+    assignNumber(value, decoded, 'utilization_sample_count', 'utilizationSampleCount', label);
     assignNumber(value, decoded, 'score_variance_percent', 'scoreVariancePercent', label);
     assignNumber(value, decoded, 'temperature_limit_celsius', 'temperatureLimitCelsius', label);
     assignNumber(value, decoded, 'temperature_celsius', 'temperatureCelsius', label);
@@ -61,7 +82,12 @@ const decodeGpuSoAIBenchSummary = (value: JsonValue | undefined, label: string):
     assignNumber(value, decoded, 'core_utilization_percent', 'coreUtilizationPercent', label);
     assignNumber(value, decoded, 'utilization', 'utilization', label);
     assignNumber(value, decoded, 'warmup_passes_completed', 'warmupPassesCompleted', label);
+    assignNumber(value, decoded, 'warmup_active_seconds', 'warmupActiveSeconds', label);
     assignNumber(value, decoded, 'measured_passes_completed', 'measuredPassesCompleted', label);
+    const phaseVariationPercent = decodePhaseDiagnostics(value['phase_variation_percent'], `${label}.phase_variation_percent`);
+    const phaseDriftPercent = decodePhaseDiagnostics(value['phase_drift_percent'], `${label}.phase_drift_percent`);
+    if (phaseVariationPercent !== undefined) decoded.phaseVariationPercent = phaseVariationPercent;
+    if (phaseDriftPercent !== undefined) decoded.phaseDriftPercent = phaseDriftPercent;
     assignNumber(value, decoded, 'current_pass_index', 'currentPassIndex', label);
     assignNumber(value, decoded, 'current_pass_total', 'currentPassTotal', label);
     assignNumber(value, decoded, 'current_phase_index', 'currentPhaseIndex', label);
@@ -124,6 +150,10 @@ const serializeGpuSoAIBenchSummary = (summary: GpuSoAIBenchSummary): JsonObject 
     assignWireValue(summary, wire, 'latencyDispatchesPerSecond', 'latency_dispatches_per_second');
     assignWireValue(summary, wire, 'durationMs', 'duration_ms');
     assignWireValue(summary, wire, 'sampleCount', 'sample_count');
+    assignWireValue(summary, wire, 'telemetrySampleCount', 'telemetry_sample_count');
+    assignWireValue(summary, wire, 'temperatureSampleCount', 'temperature_sample_count');
+    assignWireValue(summary, wire, 'powerSampleCount', 'power_sample_count');
+    assignWireValue(summary, wire, 'utilizationSampleCount', 'utilization_sample_count');
     assignWireValue(summary, wire, 'scoreVariancePercent', 'score_variance_percent');
     assignWireValue(summary, wire, 'temperatureLimitCelsius', 'temperature_limit_celsius');
     assignWireValue(summary, wire, 'temperatureCelsius', 'temperature_celsius');
@@ -134,7 +164,10 @@ const serializeGpuSoAIBenchSummary = (summary: GpuSoAIBenchSummary): JsonObject 
     assignWireValue(summary, wire, 'coreUtilizationPercent', 'core_utilization_percent');
     assignWireValue(summary, wire, 'utilization', 'utilization');
     assignWireValue(summary, wire, 'warmupPassesCompleted', 'warmup_passes_completed');
+    assignWireValue(summary, wire, 'warmupActiveSeconds', 'warmup_active_seconds');
     assignWireValue(summary, wire, 'measuredPassesCompleted', 'measured_passes_completed');
+    assignWireValue(summary, wire, 'phaseVariationPercent', 'phase_variation_percent');
+    assignWireValue(summary, wire, 'phaseDriftPercent', 'phase_drift_percent');
     assignWireValue(summary, wire, 'currentPassType', 'current_pass_type');
     assignWireValue(summary, wire, 'currentPassIndex', 'current_pass_index');
     assignWireValue(summary, wire, 'currentPassTotal', 'current_pass_total');

@@ -8,6 +8,12 @@ import type { ChatStreamLifecycle, ChatStreamStartAdmission, ChatTurnAdmissionPh
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 
 const resolvePhase = (inputArguments: { streamLifecycle: ChatStreamLifecycle; canQueue: boolean; canStart: boolean; localUiActive: boolean; localPhase: StreamLifecyclePhase | null }): ChatTurnAdmissionPhase => {
+    if (inputArguments.localPhase === 'stopping') {
+        return 'stopping';
+    }
+    if (inputArguments.localPhase === 'stop_failed') {
+        return 'stop_failed';
+    }
     if (inputArguments.streamLifecycle === 'terminalizing') {
         return 'terminalizing';
     }
@@ -59,9 +65,9 @@ const buildTurnAdmissionSnapshot = (context: ChatStreamingControllerContext, con
         backendActive,
         localUiActive,
         activeStreamIdentity,
-        canStop: phase === 'starting' || phase === 'streaming' || phase === 'terminalizing',
+        canStop: phase === 'starting' || phase === 'streaming' || phase === 'stop_failed',
         canSendNow: phase === 'inactive' && canStart,
-        canQueuePrompt: phase === 'streaming' || phase === 'terminalizing' || phase === 'reserved',
+        canQueuePrompt: phase === 'streaming' || phase === 'stop_failed' || phase === 'stopping' || phase === 'terminalizing' || phase === 'reserved',
         canSteerPrompt: phase === 'streaming' && canSteer,
         streamLifecycle,
         startAdmission
@@ -75,7 +81,9 @@ const resolveSyncedTurnAdmissionSnapshot = async (context: ChatStreamingControll
     }
     await waitForTerminalReconciliation(context, normalizedConversationId, signal ?? null);
     const reconciliation = await context.dependencies.chatStreamService.syncConversationStatus(normalizedConversationId);
-    reconcileInactiveSyncedConversation(context, normalizedConversationId);
+    if (reconciliation.startAdmission === 'inactive') {
+        reconcileInactiveSyncedConversation(context, normalizedConversationId);
+    }
     const snapshot = buildTurnAdmissionSnapshot(context, normalizedConversationId);
     if (snapshot.phase === 'inactive') {
         return {

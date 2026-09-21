@@ -102,11 +102,15 @@ def darwin_gpu_vendor_matches(text: str) -> set[str]:
 def vendor_aliases(value: str) -> set[str]:
     normalized = normalize_identity_name(value)
     aliases = {normalized}
-    if NVIDIA_VENDOR in normalized:
+    if NVIDIA_VENDOR in normalized or normalized == "10de":
         aliases.add(NVIDIA_VENDOR)
-    if "advancedmicrodevices" in normalized or normalized == AMD_VENDOR:
+    if (
+        "advancedmicrodevices" in normalized
+        or normalized == AMD_VENDOR
+        or normalized in {"1002", "1022"}
+    ):
         aliases.add(AMD_VENDOR)
-    if INTEL_VENDOR in normalized:
+    if INTEL_VENDOR in normalized or normalized == "8086":
         aliases.add(INTEL_VENDOR)
     return aliases
 

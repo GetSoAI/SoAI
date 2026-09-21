@@ -4,29 +4,27 @@
 from __future__ import annotations
 
 import sqlite3
-from typing import TYPE_CHECKING
 
-from core.agent.todo_state_models import AgentTurnTodoState
-from core.agent.turn_record_fields import (
-    read_turn_int,
-    read_turn_optional_text,
-    read_turn_payload_entries,
-)
 from core.database.requests import (
     ManualCompactionAssistantEventRequest,
     ManualCompactionStartCommitRequest,
     ManualCompactionStartCommitResult,
 )
-from core.errors.exceptions import ValidationError
-from core.tool_calls.activity_snapshot_merging import upsert_tool_activity_snapshot
+from core.errors.exceptions import ConflictError, ValidationError
 from database.repositories.users.agent_event_sequence_transactions import (
     sync_reserve_agent_event_sequence_range,
 )
-from database.repositories.users.agent_turn_rows import format_agent_turn_row
-from database.repositories.users.agent_turn_transactions import load_turn_row
+from database.repositories.users.agent_turn_transactions import sync_claim_turn_state
+from database.repositories.users.conversation_input_active_state_reads import (
+    sync_read_active_conversation_input_summary,
+)
 from database.repositories.users.conversation_ownership import ensure_conversation_owned
+from database.repositories.users.conversation_stream_cancellation_state import (
+    sync_has_pending_chat_stream_cancellation,
+)
 from database.repositories.users.conversation_versioning import (
     sync_bump_conversation_last_modified_at_ms,
+    sync_require_expected_conversation_version,
 )
 from database.repositories.users.manual_compaction_assistant_events import (
     sync_append_manual_compaction_assistant_event,
@@ -34,25 +32,73 @@ from database.repositories.users.manual_compaction_assistant_events import (
 from database.repositories.users.manual_compaction_message_index import (
     sync_resolve_manual_compaction_message_index,
 )
+from database.repositories.users.manual_compaction_start_turns import (
+    sync_write_manual_compaction_start_turn,
+)
 from database.repositories.users.manual_compaction_terminal_targets import (
     sync_prepare_manual_compaction_start_target,
 )
-from database.repositories.users.manual_compaction_turn_state_support import (
-    build_manual_compaction_running_event,
-    build_manual_compaction_tool_calls,
-    build_manual_compaction_tool_created_event,
-    sync_write_manual_compaction_turn_state,
-)
 from database.repositories.users.message_count_sync import sync_count_stored_messages
 
-if TYPE_CHECKING:
-    from core.events.types_conversation import (
-        ToolCallCreatedEvent,
-        ToolCallStartedEvent,
-    )
-    from core.types.json import JSONDict
-
 __all__ = ("sync_commit_manual_compaction_start",)
+
+
+def _require_matching_turn_claim(request: ManualCompactionStartCommitRequest) -> None:
+    turn_state = request.turn_claim.turn_state
+    claim_identity = (
+        turn_state.conv_id,
+        turn_state.user_id,
+        turn_state.turn_id,
+        turn_state.execution_token,
+        turn_state.status,
+        turn_state.mode,
+        turn_state.max_iterations,
+        turn_state.iteration_index,
+        turn_state.turn_cancellation_id,
+    )
+    request_identity = (
+        request.conv_id,
+        request.user_id,
+        request.turn_id,
+        request.execution_token,
+        "running",
+        request.mode,
+        request.max_iterations,
+        request.iteration_index,
+        request.turn_cancellation_id,
+    )
+    if claim_identity != request_identity:
+        raise ValidationError("Manual compaction turn claim does not match its start request.")
+
+
+def _require_idle_conversation(
+    conn: sqlite3.Connection,
+    request: ManualCompactionStartCommitRequest,
+) -> None:
+    active_inputs = sync_read_active_conversation_input_summary(
+        conn,
+        request.conv_id,
+        int(request.user_id),
+    )
+    if active_inputs.has_active_inputs:
+        raise ConflictError("Compaction unavailable while conversation input work is active.")
+    if sync_has_pending_chat_stream_cancellation(
+        conn,
+        int(request.user_id),
+        request.conv_id,
+    ):
+        raise ConflictError("Compaction unavailable while cancellation is pending.")
+    running_turn = conn.execute(
+        """
+        SELECT 1 FROM webui_agent_turns
+        WHERE conv_id = ? AND user_id = ? AND turn_scope = 'root'
+          AND status = 'running' AND turn_id != ?
+        LIMIT 1
+        """,
+        (request.conv_id, int(request.user_id), request.turn_id),
+    ).fetchone()
+    if running_turn is not None:
+        raise ConflictError("Compaction unavailable while agent is running.")
 
 
 def sync_commit_manual_compaction_start(
@@ -60,6 +106,17 @@ def sync_commit_manual_compaction_start(
     request: ManualCompactionStartCommitRequest,
 ) -> ManualCompactionStartCommitResult:
     ensure_conversation_owned(conn, request.conv_id, int(request.user_id))
+    _require_matching_turn_claim(request)
+    _require_idle_conversation(conn, request)
+    if request.manual_regeneration_request_json is not None:
+        if request.manual_regeneration_expected_revision is None:
+            raise ValidationError("Manual compaction regeneration revision is required.")
+        sync_require_expected_conversation_version(
+            conn,
+            conv_id=request.conv_id,
+            expected_last_modified_at_ms=request.manual_regeneration_expected_revision,
+        )
+    sync_claim_turn_state(conn, request.turn_claim)
     assistant_at_ms = sync_prepare_manual_compaction_start_target(conn, request)
     message_index = sync_resolve_manual_compaction_message_index(
         conn,
@@ -74,13 +131,13 @@ def sync_commit_manual_compaction_start(
         updated_at_ms=int(assistant_at_ms),
     )
     tool_created_sequence = int(turn_started_sequence) + 1
-    _append_start_events(
+    append_manual_compaction_start_events(
         conn,
         request,
         assistant_at_ms=assistant_at_ms,
         message_index=message_index,
     )
-    _write_start_turn_state(
+    sync_write_manual_compaction_start_turn(
         conn,
         request,
         assistant_at_ms=assistant_at_ms,
@@ -89,6 +146,26 @@ def sync_commit_manual_compaction_start(
         tool_started_sequence=tool_started_sequence,
     )
     last_modified_at_ms = sync_bump_conversation_last_modified_at_ms(conn, request.conv_id)
+    if request.manual_regeneration_request_json is not None:
+        cursor = conn.execute(
+            """
+            UPDATE webui_agent_turns
+               SET manual_regeneration_request_json = ?,
+                   manual_regeneration_accepted_revision = ?
+             WHERE conv_id = ? AND user_id = ? AND turn_id = ?
+               AND execution_token = ? AND status = 'running'
+            """,
+            (
+                request.manual_regeneration_request_json,
+                last_modified_at_ms,
+                request.conv_id,
+                int(request.user_id),
+                request.turn_id,
+                request.execution_token,
+            ),
+        )
+        if cursor.rowcount != 1:
+            raise ValidationError("Manual compaction regeneration turn claim changed.")
     return ManualCompactionStartCommitResult(
         assistant_at_ms=int(assistant_at_ms),
         message_index=int(message_index),
@@ -100,7 +177,7 @@ def sync_commit_manual_compaction_start(
     )
 
 
-def _append_start_events(
+def append_manual_compaction_start_events(
     conn: sqlite3.Connection,
     request: ManualCompactionStartCommitRequest,
     *,
@@ -110,7 +187,7 @@ def _append_start_events(
     if len(request.assistant_events) != 2:
         raise ValidationError("Manual compaction start commit requires two assistant events.")
     for event in request.assistant_events:
-        _append_start_event(
+        append_manual_compaction_start_event(
             conn,
             request,
             event,
@@ -119,7 +196,7 @@ def _append_start_events(
         )
 
 
-def _append_start_event(
+def append_manual_compaction_start_event(
     conn: sqlite3.Connection,
     request: ManualCompactionStartCommitRequest,
     event: ManualCompactionAssistantEventRequest,
@@ -139,102 +216,3 @@ def _append_start_event(
         tool_payload=tool_payload,
         created_at_ms=int(assistant_at_ms),
     )
-
-
-def _write_start_turn_state(
-    conn: sqlite3.Connection,
-    request: ManualCompactionStartCommitRequest,
-    *,
-    assistant_at_ms: int,
-    message_index: int,
-    tool_created_sequence: int,
-    tool_started_sequence: int,
-) -> None:
-    turn_record = format_agent_turn_row(
-        load_turn_row(
-            conn,
-            conv_id=request.conv_id,
-            user_id=int(request.user_id),
-            turn_id=request.turn_id,
-        ),
-    )
-    if turn_record is None:
-        raise ValidationError("Manual compaction turn state is missing.")
-    if turn_record.get("execution_token") != request.execution_token:
-        raise ValidationError("Agent turn execution token is stale.")
-    updated_at_ms = max(
-        int(assistant_at_ms),
-        read_turn_int(turn_record, "updated_at_ms") or int(assistant_at_ms),
-    )
-    activities = upsert_tool_activity_snapshot(
-        read_turn_payload_entries(turn_record, "activities"),
-        event=_build_activity_event(
-            request,
-            assistant_at_ms=assistant_at_ms,
-            message_index=message_index,
-            status="pending",
-        ),
-        activity_sequence=int(tool_created_sequence),
-        text_length_before=0,
-    )
-    activities = upsert_tool_activity_snapshot(
-        activities,
-        event=_build_activity_event(
-            request,
-            assistant_at_ms=assistant_at_ms,
-            message_index=message_index,
-            status="running",
-        ),
-        activity_sequence=int(tool_started_sequence),
-        text_length_before=0,
-    )
-    sync_write_manual_compaction_turn_state(
-        conn,
-        existing_turn=turn_record,
-        request=request,
-        status="running",
-        mode=request.mode,
-        max_iterations=int(request.max_iterations),
-        iteration_index=int(request.iteration_index),
-        sequence=int(tool_started_sequence),
-        tool_calls=build_manual_compaction_tool_calls(
-            tool_call_id=request.tool_call_id,
-            tool_started_at_ms=int(assistant_at_ms),
-            duration_ms=0,
-        ),
-        tool_results=[],
-        activities=activities,
-        error_message=None,
-        error_type=None,
-        token_usage=None,
-        todo_state=_build_todo_state(turn_record),
-        started_at_ms=int(assistant_at_ms),
-        updated_at_ms=updated_at_ms,
-        finished_at_ms=None,
-    )
-
-
-def _build_todo_state(turn_record: JSONDict) -> AgentTurnTodoState:
-    todo_explanation = read_turn_optional_text(turn_record, "todo_explanation")
-    return AgentTurnTodoState(
-        todo=read_turn_payload_entries(turn_record, "todo"),
-        todo_explanation=todo_explanation,
-        todo_revision=read_turn_int(turn_record, "todo_revision") or 0,
-        todo_updated_at_ms=None,
-    )
-
-
-def _build_activity_event(
-    request: ManualCompactionStartCommitRequest,
-    *,
-    assistant_at_ms: int,
-    message_index: int,
-    status: str,
-) -> ToolCallCreatedEvent | ToolCallStartedEvent:
-    if status == "running":
-        return build_manual_compaction_running_event(
-            request,
-            assistant_at_ms=int(assistant_at_ms),
-            message_index=int(message_index),
-        )
-    return build_manual_compaction_tool_created_event(request, message_index=int(message_index))

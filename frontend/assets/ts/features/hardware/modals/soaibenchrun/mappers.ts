@@ -4,6 +4,7 @@
 import { toTrimmedString } from '@core/normalize.ts';
 import { decodeGpuSoAIBenchRun, serializeGpuSoAIBenchRun, type GpuSoAIBenchRun } from '@core/api/contracts/hardwareContracts.ts';
 import type { DecodedSoAIBenchRun } from '@core/realtime/streammanager/resources/soaibenchRunsResource.ts';
+import { isArray } from '@core/typeGuards.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import type { SoAIBenchRunMetrics, SoAIBenchRunRecord } from '@features/hardware/modals/soaibenchrun/types.ts';
 import { getSoAIBenchRunById, getSoAIBenchRunsForDevice } from '@features/hardware/soaibenchRunsIndex.ts';
@@ -22,6 +23,11 @@ const firstNumber = (...values: (number | null | undefined)[]): number | null =>
         if (value !== null && value !== undefined) return value;
     }
     return null;
+};
+
+const measuredPassCountFromEvidence = (passes: GpuSoAIBenchRun['passes']): number | null => {
+    const measured = passes?.['measured'];
+    return isArray(measured) ? measured.length : null;
 };
 
 const metricsFromRun = (run: GpuSoAIBenchRun): SoAIBenchRunMetrics => {
@@ -45,8 +51,11 @@ const metricsFromRun = (run: GpuSoAIBenchRun): SoAIBenchRunMetrics => {
         durationMs: firstNumber(score.durationMs, summary.durationMs),
         sampleCount: nullableInteger(score.sampleCount) ?? nullableInteger(summary.sampleCount),
         scoreVariancePercent: firstNumber(score.scoreVariancePercent, summary.scoreVariancePercent, run.scoreVariancePercent),
+        phaseVariationPercent: summary.phaseVariationPercent ?? null,
+        phaseDriftPercent: summary.phaseDriftPercent ?? null,
         warmupPassesCompleted: nullableInteger(summary.warmupPassesCompleted),
-        measuredPassesCompleted: nullableInteger(summary.measuredPassesCompleted),
+        warmupActiveSeconds: firstNumber(summary.warmupActiveSeconds),
+        measuredPassesCompleted: nullableInteger(summary.measuredPassesCompleted) ?? measuredPassCountFromEvidence(run.passes),
         currentPassType: nullableText(summary.currentPassType),
         currentPassIndex: nullableInteger(summary.currentPassIndex),
         currentPassTotal: nullableInteger(summary.currentPassTotal),
@@ -66,16 +75,23 @@ function presentRunRecord(value: GpuSoAIBenchRun, raw: JsonObject): SoAIBenchRun
     if (!runId || !deviceId || !status) {
         return null;
     }
+    const summary = value.summary ?? {};
     return {
         runId,
         deviceId,
         profile: toTrimmedString(value.profile) || 'standard',
         benchmarkMode: toTrimmedString(value.benchmarkMode) || 'quick',
         status,
+        startedAtMs: value.startedAtMs ?? null,
         active: value.active === true || status === 'running',
         updateSeq: nullableInteger(value.updateSeq) ?? 0,
         leaderboardEligible: value.leaderboardEligible === true,
         leaderboardRejectionReason: nullableText(value.leaderboardRejectionReason),
+        legacy: value.legacyScore === true,
+        publicationEligible: value.publicationEligible === true,
+        matchBasis: nullableText(value.matchBasis),
+        reasonMessage: nullableText(summary.message),
+        guidanceMessage: nullableText(summary.guidance),
         failureReason: nullableText(value.failureReason),
         unsupportedReason: nullableText(value.unsupportedReason),
         metrics: metricsFromRun(value),

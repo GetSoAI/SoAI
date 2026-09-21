@@ -7,11 +7,12 @@ from typing import TYPE_CHECKING
 
 from core.serialization.json_parsing import parse_optional_json_dict
 from core.types.json_value import coerce_json_dict_or_empty, copy_json_dict
+from hardware.soaibench.classification import classify_run
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
 
-__all__ = ("run_response",)
+__all__ = ("run_response", "score_payload")
 
 
 def run_response(
@@ -20,7 +21,7 @@ def run_response(
     accepted: bool,
     history: list[JSONDict] | None = None,
 ) -> JSONDict:
-    score = _score_payload(run)
+    score = score_payload(run)
     summary = _summary_payload(run)
     payload: JSONDict = {
         "success": True,
@@ -58,14 +59,15 @@ def run_response(
         "last_heartbeat_at_ms": run.get("last_heartbeat_at_ms"),
         "stop_requested_at_ms": run.get("stop_requested_at_ms"),
         "update_seq": run.get("update_seq"),
+        **classify_run(run),
     }
     if history is not None:
-        payload["history"] = [copy_json_dict(item) for item in history]
+        payload["history"] = [_classified_history_item(item) for item in history]
     return payload
 
 
-def _score_payload(run: JSONDict) -> JSONDict | None:
-    if run.get("score_version") != "soaibench-v1":
+def score_payload(run: JSONDict) -> JSONDict | None:
+    if run.get("score_version") not in {"soaibench-v1", "soaibench-v2"}:
         return None
     summary = _summary_payload(run)
     return {
@@ -105,13 +107,32 @@ def _score_payload(run: JSONDict) -> JSONDict | None:
 def _summary_payload(run: JSONDict) -> JSONDict:
     summary = coerce_json_dict_or_empty(run.get("summary"))
     if summary:
-        return summary
+        return _with_measured_pass_count(summary, run)
     summary_json = run.get("summary_json")
     if isinstance(summary_json, str):
-        return parse_optional_json_dict(summary_json, field="summary_json") or {}
-    return {}
+        return _with_measured_pass_count(
+            parse_optional_json_dict(summary_json, field="summary_json") or {},
+            run,
+        )
+    return _with_measured_pass_count({}, run)
+
+
+def _with_measured_pass_count(summary: JSONDict, run: JSONDict) -> JSONDict:
+    if "measured_passes_completed" in summary:
+        return summary
+    passes = coerce_json_dict_or_empty(run.get("passes"))
+    measured = passes.get("measured")
+    if not isinstance(measured, list):
+        return summary
+    return {**summary, "measured_passes_completed": len(measured)}
 
 
 def _run_value_or_summary(run: JSONDict, summary: JSONDict, key: str) -> JSONValue:
     value = run.get(key)
     return value if value is not None else summary.get(key)
+
+
+def _classified_history_item(run: JSONDict) -> JSONDict:
+    payload = copy_json_dict(run)
+    payload.update(classify_run(run))
+    return payload

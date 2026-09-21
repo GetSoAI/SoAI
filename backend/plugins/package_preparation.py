@@ -87,7 +87,7 @@ def _extract_package_snapshot(
         regular_file_message="Plugin package is no longer a regular file.",
     ) as file_handle:
         current_hash = hash_seekable_binary_stream_content(file_handle).sha256_hex
-        if current_hash != audit.archive_hash:
+        if current_hash != audit.content.archive_hash:
             raise StateError(
                 f"Plugin package for '{audit.plugin_name}' changed after audit.",
             )
@@ -99,7 +99,7 @@ def _extract_package_snapshot(
                 )
                 audited_summary = tuple(
                     (member.archive_path, member.file_size, member.zip_info.CRC)
-                    for member in audit.zip_plan.members
+                    for member in audit.content.zip_plan.members
                 )
                 if current_summary != audited_summary:
                     raise StateError(
@@ -122,7 +122,7 @@ async def _prepare_hash_directory(
     if _is_complete(package_root, audit):
         return PreparedPluginPackage(
             plugin_name=audit.plugin_name,
-            archive_hash=audit.archive_hash,
+            archive_hash=audit.content.archive_hash,
             package_root=package_root,
             entrypoint_path=entrypoint_path,
         )
@@ -136,12 +136,12 @@ async def _prepare_hash_directory(
             raise asyncio.CancelledError
     os.makedirs(package_cache_directory, exist_ok=True)
     staging_directory = create_persistent_staging_directory(
-        prefix=f".staging.{audit.archive_hash}.",
+        prefix=f".staging.{audit.content.archive_hash}.",
         directory=package_cache_directory,
     )
     completion_text = _completion_text(audit)
     completion_bytes = len(completion_text.encode("utf-8"))
-    required_bytes = audit.expanded_size + completion_bytes
+    required_bytes = audit.content.expanded_size + completion_bytes
     try:
         with manager.dependencies.infrastructure.storage_manager.reserve_disk_space(
             path=package_cache_directory,
@@ -149,7 +149,7 @@ async def _prepare_hash_directory(
             operation="plugins.package_preparation.prepare",
             details={
                 "plugin_name": audit.plugin_name,
-                "archive_hash": audit.archive_hash,
+                "archive_hash": audit.content.archive_hash,
                 "required_bytes": required_bytes,
             },
         ) as reservation:
@@ -186,7 +186,7 @@ async def _prepare_hash_directory(
             )
     return PreparedPluginPackage(
         plugin_name=audit.plugin_name,
-        archive_hash=audit.archive_hash,
+        archive_hash=audit.content.archive_hash,
         package_root=package_root,
         entrypoint_path=entrypoint_path,
     )
@@ -199,7 +199,7 @@ async def prepare_plugin_package(
     package_root = get_plugin_package_hash_directory(
         manager.paths.temp_directory,
         audit.plugin_name,
-        audit.archive_hash,
+        audit.content.archive_hash,
     )
     entrypoint_path = os.path.join(package_root, "__init__.py")
     package_cache_directory = os.path.dirname(package_root)
@@ -214,7 +214,7 @@ async def prepare_plugin_package(
         get_plugin_package_hash_lock_target(
             manager.paths.temp_directory,
             audit.plugin_name,
-            audit.archive_hash,
+            audit.content.archive_hash,
         )
     )
     os.makedirs(os.path.dirname(cache_lock_path), exist_ok=True)

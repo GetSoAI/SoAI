@@ -184,6 +184,7 @@ class AssistantTimelineRuntime:
     terminal_event_published: bool = False
     terminal_persistence_attempted: bool = False
     terminal_persistence_completed: bool = False
+    terminal_outcome_claim: Literal["cancelled", "completed", "error"] | None = None
     assistant_placeholder_persisted: bool = False
     quota_key_id: str | None = None
     quota_token_reservation: JSONDict | None = None

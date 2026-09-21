@@ -14,15 +14,17 @@ from core.tasks.cancellation_scope import (
 )
 from core.tasks.task_cancellation import cancel
 from core.validation.strings import coerce_optional_trimmed_str
+from features.assistant_timeline.models import AssistantTimelineRuntime
+from features.assistant_timeline.publish import ensure_chat_stream_publish_lock
 
 if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
     from core.runtime.request_context import RequestContext
     from features.api.runtime.container.types import ApiDependencies
-    from features.assistant_timeline.models import AssistantTimelineRuntime
 
 __all__ = (
     "cancel_conversation_stream_runtime",
+    "claim_conversation_stream_runtime_cancellation",
     "mark_conversation_stream_runtime_cancellation_requested",
 )
 
@@ -61,6 +63,30 @@ def mark_conversation_stream_runtime_cancellation_requested(
     if runtime.detach_event is None:
         runtime.detach_event = Event()
     runtime.detach_event.set()
+
+
+async def claim_conversation_stream_runtime_cancellation(
+    runtime: AssistantTimelineRuntime,
+    reason: str,
+) -> bool:
+    lock = ensure_chat_stream_publish_lock(runtime)
+    async with lock:
+        if (
+            runtime.terminal_outcome_claim == "cancelled"
+            and not runtime.terminal_finalization_started
+            and not runtime.terminal_event_emitted
+        ):
+            mark_conversation_stream_runtime_cancellation_requested(runtime, reason)
+            return True
+        if (
+            runtime.terminal_outcome_claim is not None
+            or runtime.terminal_finalization_started
+            or runtime.terminal_event_emitted
+        ):
+            return False
+        runtime.terminal_outcome_claim = "cancelled"
+        mark_conversation_stream_runtime_cancellation_requested(runtime, reason)
+        return True
 
 
 def _cancel_runner_task_directly(
@@ -116,100 +142,60 @@ async def _publish_and_verify_scope_cancel_noncritical(
     )
 
 
-async def _runtime_scope_cancelled(
-    *,
-    api_dependencies: ApiDependencies,
-    runtime: AssistantTimelineRuntime,
-    logger: LoggerProtocol,
-    trace_id: str,
-) -> bool:
-    cancellation_id = _resolve_runtime_cancellation_id(runtime)
-    if cancellation_id is None:
-        return False
-    try:
-        return await api_dependencies.cancellation_history.is_cancelled(cancellation_id)
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_handled_exception(
-            logger,
-            exception,
-            message="Failed to verify conversation stream task cancellation (non-critical).",
-            trace_id=trace_id,
-            operation=OPERATION_CANCEL_TASK,
-            level="debug",
-            details={
-                "conv_id": runtime.conv_id,
-                "request_id": runtime.request_id,
-                "cancellation_id": cancellation_id,
-            },
-        )
-        return False
-
-
 async def cancel_conversation_stream_runtime(
     *,
     api_dependencies: ApiDependencies,
     context: RequestContext,
     runtime: AssistantTimelineRuntime,
     reason: str,
-) -> None:
+) -> bool:
     logger = get_logger(LOGGER_NAME)
+    if runtime.terminal_finalization_started:
+        return True
+    cancellation_confirmed = _cancel_runner_task_directly(runtime, logger, context.trace_id)
     if _runtime_has_claimed_agent_turn(runtime):
         cancellation_id = _resolve_claimed_turn_cancellation_id(runtime)
         if cancellation_id:
-            cancelled = await _publish_and_verify_scope_cancel_noncritical(
+            cancellation_confirmed = await _publish_and_verify_scope_cancel_noncritical(
                 api_dependencies=api_dependencies,
                 context=context,
                 runtime=runtime,
                 reason=reason,
                 cancellation_id=cancellation_id,
             )
-            if not cancelled:
-                _cancel_runner_task_directly(runtime, logger, context.trace_id)
-            return
-        _cancel_runner_task_directly(runtime, logger, context.trace_id)
-        return
-    if _runtime_is_agentic(runtime) or not runtime.active_task_id:
+    elif _runtime_is_agentic(runtime) or not runtime.active_task_id:
         cancellation_id = _resolve_runtime_cancellation_id(runtime)
         if cancellation_id:
-            cancelled = await _publish_and_verify_scope_cancel_noncritical(
+            cancellation_confirmed = await _publish_and_verify_scope_cancel_noncritical(
                 api_dependencies=api_dependencies,
                 context=context,
                 runtime=runtime,
                 reason=reason,
                 cancellation_id=cancellation_id,
             )
-            if not cancelled:
-                _cancel_runner_task_directly(runtime, logger, context.trace_id)
-            return
-        _cancel_runner_task_directly(runtime, logger, context.trace_id)
-        return
-    task_id = runtime.active_task_id
-    try:
-        task = await cancel(
-            api_dependencies.task_registry,
-            task_id,
-            reason=reason,
-            context=context,
-        )
-        if task is not None and await _runtime_scope_cancelled(
-            api_dependencies=api_dependencies,
-            runtime=runtime,
-            logger=logger,
-            trace_id=context.trace_id,
-        ):
-            return
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_handled_exception(
-            logger,
-            exception,
-            message="Failed to cancel conversation stream task (non-critical).",
-            trace_id=context.trace_id,
-            operation=OPERATION_CANCEL_TASK,
-            level="debug",
-            details={
-                "conv_id": runtime.conv_id,
-                "request_id": runtime.request_id,
-                "task_id": task_id,
-            },
-        )
-    _cancel_runner_task_directly(runtime, logger, context.trace_id)
+    else:
+        task_id = runtime.active_task_id
+        try:
+            cancelled_task = await cancel(
+                api_dependencies.task_registry,
+                task_id,
+                reason=reason,
+                context=context,
+            )
+            cancellation_confirmed = cancelled_task is not None
+        except RECOVERABLE_EXCEPTIONS as exception:
+            log_handled_exception(
+                logger,
+                exception,
+                message="Failed to cancel conversation stream task (non-critical).",
+                trace_id=context.trace_id,
+                operation=OPERATION_CANCEL_TASK,
+                level="debug",
+                details={
+                    "conv_id": runtime.conv_id,
+                    "request_id": runtime.request_id,
+                    "task_id": task_id,
+                },
+            )
+            cancellation_confirmed = False
+    return cancellation_confirmed

@@ -7,7 +7,8 @@ import { formatBytes } from '@core/primitives/byteSize.ts';
 import { stableJsonStringify } from '@core/serialization/json.ts';
 import { serializeSoaiPathContentPart } from '@core/api/contracts/webuiSoaiPathSerialization.ts';
 import { getBadgeColorClass } from '@core/ui/badgeColors.ts';
-import { isSoaiFilePreviewType } from '@features/chat/attachments/attachmentPreviewTypes.ts';
+import { resolveFileEntryIconName } from '@core/fileexplorerbrowser/entryIconResolution.ts';
+import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { CHAT_ACTIONS } from '@features/chat/chatActionIds.ts';
 import { CHAT_ATTACHMENT_INLINE_LIMIT } from '@features/chat/chatConstants.ts';
 import { renderChatMultimediaPreviewOpenActionAttributes, resolveChatMultimediaPreviewSourceReferenceForUrl } from '@features/chat/message/multimediaPreviewDataset.ts';
@@ -27,31 +28,12 @@ const requireConversationId = (options: MessageRenderOptions): string => {
     return conversationId.trim();
 };
 
-const resolveSoaiFileIconName = (previewType: SoaiFileSegment['previewType']): 'file-image' | 'file-audio' | 'file-video' | 'file-text' | 'file-document' | 'file-generic' => {
-    if (previewType === 'image') {
-        return 'file-image';
-    }
-    if (previewType === 'audio') {
-        return 'file-audio';
-    }
-    if (previewType === 'video') {
-        return 'file-video';
-    }
-    if (previewType === 'text') {
-        return 'file-text';
-    }
-    if (previewType === 'document') {
-        return 'file-document';
-    }
-    return 'file-generic';
-};
-
 const renderBadge = (host: ChatMessageRenderHost, label: string): string => {
     const colorClass = host.escapeAttribute(getBadgeColorClass(`chat-attachment:${label}`));
     return `<span class="chat-attachment-badge ui-model-type-badge ui-badge--micro ${colorClass}">${host.escapeHtml(label)}</span>`;
 };
 
-const renderDocumentCardBody = (host: ChatMessageRenderHost, iconName: ReturnType<typeof resolveSoaiFileIconName> | 'folder' | 'file-database' | 'ellipsis', title: string, status: string, badge: string): string => {
+const renderDocumentCardBody = (host: ChatMessageRenderHost, iconName: IconName, title: string, status: string, badge: string): string => {
     const icon = host.getIconHtml(iconName, { size: 16, strokeWidth: 1.5 });
     return `<span class="file-preview-leading-icon" aria-hidden="true">${icon}</span><span class="file-info"><span class="file-name">${host.escapeHtml(title)}</span><span class="file-status">${badge}<span>${host.escapeHtml(status)}</span></span></span>`;
 };
@@ -71,13 +53,11 @@ type ImageSummaryCardArguments = {
     contentLength: number | null;
     sourceReference: ReturnType<typeof resolveChatMultimediaPreviewSourceReferenceForUrl> | { type: 'path'; value: string } | null;
     attributes: string;
+    iconName: IconName;
 };
 
 const renderImageSummaryCard = (host: ChatMessageRenderHost, inputArguments: ImageSummaryCardArguments): string => {
     const thumbnailSrc = host.sanitizeImage(inputArguments.thumbnailUrl);
-    if (thumbnailSrc === null) {
-        throw new Error('Image attachment preview URL failed sanitization');
-    }
     const actionAttributes = renderChatMultimediaPreviewOpenActionAttributes({
         type: 'image',
         previewUrl: inputArguments.previewUrl,
@@ -90,16 +70,19 @@ const renderImageSummaryCard = (host: ChatMessageRenderHost, inputArguments: Ima
         sourceReference: inputArguments.sourceReference,
         requireMetadata: false
     });
-    const status = inputArguments.status ? `<span>${host.escapeHtml(inputArguments.status)}</span>` : '';
-    return `<button type="button" class="file-preview-item image chat-attachment-summary-card ${host.escapeAttribute(inputArguments.className)} glass-surface-light glass-surface--bordered glass-surface--rounded"${inputArguments.attributes}${actionAttributes.html} aria-label="${host.escapeAttribute(inputArguments.label)}" data-tooltip="${host.escapeAttribute(inputArguments.label)}"><img src="${host.escapeAttribute(thumbnailSrc)}" alt="${host.escapeAttribute(inputArguments.title)}" loading="lazy" decoding="async"><span class="file-info"><span class="file-name">${host.escapeHtml(inputArguments.title)}</span><span class="file-status">${inputArguments.badge}${status}</span></span></button>`;
+    const status = `<span>${host.escapeHtml(inputArguments.status)}</span>`;
+    const icon = host.getIconHtml(inputArguments.iconName, { size: 20, strokeWidth: 1.5 });
+    const image = thumbnailSrc === null ? '' : `<img src="${host.escapeAttribute(thumbnailSrc)}" alt="${host.escapeAttribute(inputArguments.title)}" loading="lazy" decoding="async" data-chat-attachment-thumbnail="true">`;
+    const state = thumbnailSrc === null ? 'error' : 'loading';
+    return `<button type="button" class="file-preview-item document chat-attachment-summary-card ${host.escapeAttribute(inputArguments.className)} glass-surface-light glass-surface--bordered glass-surface--rounded"${inputArguments.attributes}${actionAttributes.html} aria-label="${host.escapeAttribute(inputArguments.label)}" data-tooltip="${host.escapeAttribute(inputArguments.label)}"><span class="chat-attachment-visual" data-attachment-image-state="${state}"><span class="file-preview-leading-icon" aria-hidden="true">${icon}</span>${image}</span><span class="file-info"><span class="file-name">${host.escapeHtml(inputArguments.title)}</span><span class="file-status">${inputArguments.badge}${status}</span></span></button>`;
 };
 
-const renderDocumentActionCard = (host: ChatMessageRenderHost, inputArguments: { className: string; iconName: ReturnType<typeof resolveSoaiFileIconName> | 'folder' | 'file-database' | 'ellipsis'; title: string; status: string; badge: string; label: string; actionAttributes: string; extraAttributes?: string }): string => {
+const renderDocumentActionCard = (host: ChatMessageRenderHost, inputArguments: { className: string; iconName: IconName; title: string; status: string; badge: string; label: string; actionAttributes: string; extraAttributes?: string }): string => {
     const body = renderDocumentCardBody(host, inputArguments.iconName, inputArguments.title, inputArguments.status, inputArguments.badge);
     return `<button type="button" class="file-preview-item document chat-attachment-summary-card ${host.escapeAttribute(inputArguments.className)} glass-surface-light glass-surface--bordered glass-surface--rounded"${inputArguments.actionAttributes}${inputArguments.extraAttributes ?? ''} aria-label="${host.escapeAttribute(inputArguments.label)}" data-tooltip="${host.escapeAttribute(inputArguments.label)}">${body}</button>`;
 };
 
-const renderDocumentStaticCard = (host: ChatMessageRenderHost, inputArguments: { className: string; iconName: ReturnType<typeof resolveSoaiFileIconName> | 'folder' | 'file-database' | 'ellipsis'; title: string; status: string; badge: string; label: string }): string => {
+const renderDocumentStaticCard = (host: ChatMessageRenderHost, inputArguments: { className: string; iconName: IconName; title: string; status: string; badge: string; label: string }): string => {
     const body = renderDocumentCardBody(host, inputArguments.iconName, inputArguments.title, inputArguments.status, inputArguments.badge);
     return `<div class="file-preview-item document chat-attachment-summary-card ${host.escapeAttribute(inputArguments.className)} glass-surface-light glass-surface--bordered glass-surface--rounded" aria-label="${host.escapeAttribute(inputArguments.label)}" data-tooltip="${host.escapeAttribute(inputArguments.label)}">${body}</div>`;
 };
@@ -113,6 +96,7 @@ const renderSoaiFileCard = (host: ChatMessageRenderHost, segment: SoaiFileSegmen
     const status = `${segment.mimeType} - ${formatBytes(segment.sizeBytes, 1)}`;
     const attachmentId = host.escapeAttribute(segment.attachmentId);
     const fileId = host.escapeAttribute(segment.fileId);
+    const iconName = resolveFileEntryIconName({ name: segment.filename, mimeType: segment.mimeType, isDirectory: false });
     if (segment.previewType === 'image') {
         return renderImageSummaryCard(host, {
             className: 'chat-attachment-summary-card--attachment',
@@ -128,13 +112,14 @@ const renderSoaiFileCard = (host: ChatMessageRenderHost, segment: SoaiFileSegmen
             contentType: segment.mimeType,
             contentLength: segment.sizeBytes,
             sourceReference: resolveChatMultimediaPreviewSourceReferenceForUrl(previewUrl),
-            attributes: ` data-soai-attachment-id="${attachmentId}" data-soai-file-id="${fileId}"`
+            attributes: ` data-soai-attachment-id="${attachmentId}" data-soai-file-id="${fileId}"`,
+            iconName
         });
     }
     const actionAttributes = ` data-action="${host.escapeAttribute(CHAT_ACTIONS.OPEN_SOAI_FILE_PREVIEW)}" data-soai-file-conversation-id="${host.escapeAttribute(conversationId)}" data-soai-file-preview-type="${host.escapeAttribute(segment.previewType)}" data-soai-file-preview-url="${host.escapeAttribute(previewUrl)}" data-soai-file-download-url="${host.escapeAttribute(downloadUrl)}" data-soai-file-title="${host.escapeAttribute(segment.filename)}" data-soai-file-content-type="${host.escapeAttribute(segment.mimeType)}" data-soai-file-content-length="${host.escapeAttribute(String(segment.sizeBytes))}"`;
     return renderDocumentActionCard(host, {
         className: 'chat-attachment-summary-card--attachment',
-        iconName: resolveSoaiFileIconName(segment.previewType),
+        iconName,
         title: segment.filename,
         status,
         badge,
@@ -154,7 +139,7 @@ const renderImageAttachmentCard = (host: ChatMessageRenderHost, segment: ImageSe
         previewUrl,
         openSourceUrl: previewUrl,
         title,
-        status: '',
+        status: i18n.t('chat.inlinePreviews.typeLabel.image'),
         badge,
         label: i18n.t('chat.attachments.openAttachment'),
         downloadName: title,
@@ -162,14 +147,15 @@ const renderImageAttachmentCard = (host: ChatMessageRenderHost, segment: ImageSe
         contentType: null,
         contentLength: null,
         sourceReference: resolveChatMultimediaPreviewSourceReferenceForUrl(previewUrl),
-        attributes: ''
+        attributes: '',
+        iconName: resolveFileEntryIconName({ name: title, isDirectory: false, mimeType: 'image/*' })
     });
 };
 
 const renderSoaiPathCard = (host: ChatMessageRenderHost, segment: SoaiPathSegment, options: MessageRenderOptions): string => {
     const badge = renderBadge(host, i18n.t('chat.attachments.badge.soaiLink'));
     const label = i18n.t('chat.attachments.openSoaiLink');
-    const iconName = segment.entryType === 'folder' ? 'folder' : resolveSoaiFileIconName(segment.previewType !== undefined && isSoaiFilePreviewType(segment.previewType) ? segment.previewType : 'file');
+    const iconName = resolveFileEntryIconName({ name: segment.title, mimeType: segment.mimeType ?? segment.contentPart.mimeType, isDirectory: segment.entryType === 'folder' });
     const status = segment.entryType === 'folder' ? segment.virtualPath : `${segment.entryType}${segment.sizeBytes === undefined ? '' : ` - ${formatBytes(segment.sizeBytes, 1)}`}`;
     const serializedContentPart = stableJsonStringify(serializeSoaiPathContentPart(segment.contentPart));
     const actionAttributes = ` data-action="${host.escapeAttribute(CHAT_ACTIONS.OPEN_SOAI_PATH_PREVIEW)}" data-soai-path-title="${host.escapeAttribute(segment.title)}" data-soai-path-content-part="${host.escapeAttribute(serializedContentPart)}"`;
@@ -198,7 +184,8 @@ const renderSoaiPathCard = (host: ChatMessageRenderHost, segment: SoaiPathSegmen
                 rootFingerprint: segment.rootFingerprint,
                 value: segment.virtualPath
             },
-            attributes: metadataAttributes
+            attributes: metadataAttributes,
+            iconName
         });
     }
     return renderDocumentActionCard(host, {
@@ -237,8 +224,8 @@ const renderUnavailableCard = (host: ChatMessageRenderHost, segment: SoaiFileUna
     const badgeLabel = isFile ? i18n.t('chat.attachments.badge.attachment') : i18n.t('chat.attachments.badge.knowledge');
     const badge = renderBadge(host, badgeLabel);
     return renderDocumentStaticCard(host, {
-        className: isFile ? 'chat-attachment-summary-card--attachment' : 'chat-attachment-summary-card--knowledge',
-        iconName: isFile ? resolveSoaiFileIconName(segment.previewType) : 'file-database',
+        className: isFile ? 'file-preview-item--unavailable chat-attachment-summary-card--attachment chat-attachment-summary-card--unavailable' : 'file-preview-item--unavailable chat-attachment-summary-card--knowledge chat-attachment-summary-card--unavailable',
+        iconName: isFile ? resolveFileEntryIconName({ name: segment.filename, mimeType: segment.mimeType, isDirectory: false }) : 'file-database',
         title,
         status: unavailableLabel,
         badge,

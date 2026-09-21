@@ -1,5 +1,51 @@
 # SoAI Release Notes
 
+## 1.2.0
+
+SoAI 1.2.0 brings a new SoAIBench scoring method and public leaderboard sharing, makes stopping and regenerating Chat responses more reliable, and improves streaming performance and attachment handling. It also adds per-user OCR language and activity timing preferences. Users can now choose which page SoAI opens when they connect to the WebUI; previously, it always opened the Dashboard.
+
+### Highlights
+
+- SoAIBench now warms up the GPU with active work for at least 120 seconds before running 5 measured passes. The overall score weights compute throughput at 40% and memory throughput at 60%, while latency remains available as a separate measurement.
+- Completed eligible results can be shared from the WebUI to the public SoAIBench leaderboard. We welcome new GPU scores, especially for models that are not represented yet.
+- Chat Stop remains tied to the response you intended to stop, including during reconnects, page reloads, and activity in another browser tab.
+- Regenerate can recover an accepted request after an interrupted connection without generating the same reply twice. SoAI also prevents conflicting sends, edits, deletions, compactions, and regenerations from changing the conversation at the same time.
+
+### SoAIBench
+
+- Before sharing a score, SoAI shows what will be sent: the benchmark result, 5 measured passes, public GPU and runtime information, benchmark settings, and available sensor readings. It does not include account identity, files, configuration, analytics, or unrelated telemetry.
+- Benchmark startup, stopping, and recovery are more reliable. Interrupted runs no longer leave the GPU busy, and retrying a share after a timeout reconciles the original attempt instead of creating another submission.
+- GPU matching works more reliably when a system exposes the same NVIDIA, AMD, or Intel device through more than one OpenCL platform. One OpenCL session is reused across the benchmark so setup work stays outside the measurements.
+- History has clearer diagnostics, stable headers while scrolling, and improved sorting. Copy and download reports now include compute and memory scores, utilization, sample counts, and run guidance when available. Unpublished completed runs can be removed from local history, while runs prepared for or sent to the leaderboard are kept so SoAI can reconcile their publication state.
+- Earlier scores remain in history, but the changed warm-up, measurements, and score weighting mean they should not be compared directly with scores created by this release.
+
+### Chat, attachments, and assistant activity
+
+- Long streaming responses perform less repeated rendering, which reduces Markdown movement and browser work without delaying live text or activity updates.
+- The loading activity can be expanded or collapsed while a response is running. When collapsed, it continues to show what the model is doing in real time without displaying every individual activity and its details. Under Chat configuration > Appearance, turning off Show activities elapsed time stops the running timer updates but still shows the final duration when an activity ends.
+- Saved attachments are checked before SoAI serves their content. A file that is missing or no longer matches its saved record is shown as unavailable with a prompt to upload it again.
+- Attachment cards, overflow browsing, thumbnails, camera capture, and composer resizing behave more consistently on desktop and compact layouts.
+- Reloading Chat, reconnecting, switching tabs, or deleting a conversation no longer duplicates, hides, or incorrectly revives active work.
+
+### WebUI and preferences
+
+- Settings now has a separate OCR extraction language for each user. Fresh setup initializes it from the selected interface language, and a saved change applies to future Tesseract extraction without a restart. Changing it does not reprocess text that SoAI has already extracted, and RapidOCR keeps its existing priority.
+- Users can now choose which page SoAI opens when they connect to the WebUI. Previously, SoAI always opened the Dashboard. If the selected page becomes unavailable or inaccessible, SoAI opens the Dashboard instead.
+- Large collections and the Models page update more smoothly. External models use a Cloud badge, provider discovery gives clearer progress and errors, and request distribution charts adapt to the data being shown.
+- Task cancellation reaches the operation that owns the work, including plugin operations, and the task panel no longer shows duplicate stop controls.
+- Chat controls, search fields, notifications, the sidebar, and empty states have more consistent behavior across narrow and short screens.
+
+### Platform and plugin fixes
+
+- Windows file checks no longer confuse distinct files, conversation PDF export waits until the document is ready, and SoAIBench uses the correct Windows OpenCL library loading path.
+- Changing the interface language no longer leaves parts of the WebUI in different languages if the new catalog cannot be loaded or saved.
+- Backend variant discovery handles missing plugins and delayed catalog updates without dropping valid choices.
+- The llama.cpp, Embedding, and vLLM plugins are updated to version 1.1.1 with stricter browser CORS defaults. A browser that connects directly to one of these plugin backends must use an allowed origin.
+
+### Upgrade notes
+
+- The database migration preserves conversations, settings, attachments, and SoAIBench history while adding the records needed for reliable regeneration and score sharing. Create and verify a backup before updating.
+
 ## 1.1.1
 
 SoAI 1.1.1 changes Windows uninstall so it keeps application data by default, fixes several status and messaging controls in the WebUI, and keeps model and plugin state current through delayed events and restarts. OpenAI-compatible streamed responses now preserve multiple choices and their metadata.

@@ -17,6 +17,7 @@ from core.errors.unexpected_exceptions import (
 from core.tasks.recovery import reconcile_stale_active_tasks_on_startup
 from core.tasks.software_update_result import reconcile_software_update_result
 from core.tasks.type_catalog import (
+    TASK_TYPE_HARDWARE_SOAIBENCH,
     TASK_TYPE_RAG_DOCUMENT_UPLOAD,
     TASK_TYPE_RAG_REINDEX,
     TASK_TYPE_RAG_WEB_FETCH_INGEST,
@@ -43,10 +44,12 @@ __all__ = (
 
 OPERATION_RECONCILE_AGENT_TURNS_STARTUP = "app.composition.reconcile_agent_turns_on_startup"
 OPERATION_RECONCILE_TASK_REGISTRY = "app.composition.reconcile_task_registry"
-_RAG_DOCUMENT_TASK_TYPES = frozenset(
+_DOMAIN_OWNED_TASK_TYPES = frozenset(
     (
         TASK_TYPE_RAG_DOCUMENT_UPLOAD,
         TASK_TYPE_RAG_WEB_FETCH_INGEST,
+        TASK_TYPE_RAG_REINDEX,
+        TASK_TYPE_HARDWARE_SOAIBENCH,
     ),
 )
 
@@ -82,7 +85,7 @@ async def reconcile_task_registry(
                 (pending_activation.task_id,) if pending_activation is not None else ()
             ),
             exclude_task_types=tuple(
-                sorted(_RAG_DOCUMENT_TASK_TYPES | {TASK_TYPE_RAG_REINDEX}),
+                sorted(_DOMAIN_OWNED_TASK_TYPES),
             ),
         )
     except HANDLED_RUNTIME_EXCEPTIONS as exception:

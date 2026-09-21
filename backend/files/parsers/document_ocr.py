@@ -145,6 +145,7 @@ class DocumentOcrCoordinator:
                     candidate.path,
                     self._preprocessor,
                     remaining_seconds,
+                    context.ocr_language,
                     task_name="document-ocr-tesseract",
                 )
             except FileNotFoundError:
@@ -217,6 +218,7 @@ def _ocr_raster_candidate(
     path: str,
     preprocessor: ImagePreprocessor | None,
     timeout_seconds: float,
+    ocr_language: str,
 ) -> str:
     deadline = time.monotonic() + timeout_seconds
     with Image.open(path) as opened:
@@ -232,6 +234,7 @@ def _ocr_raster_candidate(
                         raise TimeoutError("Document OCR timed out.")
                     text = ocr_tesseract_image_to_text(
                         variant,
+                        ocr_language=ocr_language,
                         timeout_sec=max(0.001, remaining_seconds),
                     )
                     normalized = _normalize_text(text)

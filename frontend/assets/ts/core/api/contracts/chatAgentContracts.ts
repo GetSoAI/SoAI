@@ -284,7 +284,12 @@ const decodeAgentMessageWrite = (value: ApiResponsePayload): AgentMessageWriteRe
 };
 
 const serializeAgentCompactionStartRequest = (model: string): JsonObject => ({ model });
-const serializeAgentCompactionRegenerateRequest = (assistantTurnAtMs: number): JsonObject => ({ 'assistant_turn_at_ms': assistantTurnAtMs });
+const serializeAgentCompactionRegenerateRequest = (payload: { assistantTurnAtMs: number; clientId: string; clientRequestId: string; expectedLastModifiedAtMs: number }): JsonObject => ({
+    'assistant_turn_at_ms': payload.assistantTurnAtMs,
+    'client_id': payload.clientId,
+    'client_request_id': payload.clientRequestId,
+    'expected_last_modified_at_ms': payload.expectedLastModifiedAtMs
+});
 const serializeAgentCompactionBoundaryRemovalRequest = (request: { assistantTurnAtMs: number; modelVariantIndex: number; toolCallId: string; expectedLastModifiedAtMs: number }): JsonObject => ({ 'assistant_turn_at_ms': request.assistantTurnAtMs, 'model_variant_index': request.modelVariantIndex, 'tool_call_id': request.toolCallId, 'expected_last_modified_at_ms': request.expectedLastModifiedAtMs });
 const serializeAgentShellToolStopRequest = (assistantTurnAtMs: number, modelVariantIndex: number, toolCallId: string): JsonObject => ({ 'assistant_turn_at_ms': assistantTurnAtMs, 'model_variant_index': modelVariantIndex, 'tool_call_id': toolCallId });
 

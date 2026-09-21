@@ -3,12 +3,13 @@
 
 from __future__ import annotations
 
-import asyncio
+from functools import partial
 from typing import TYPE_CHECKING
 
 from core.attachments.attachment_content_validation import (
     validate_soai_file_content_part,
 )
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exceptions import ValidationError
 from core.files.managed_storage_errors import FileStorageSecurityError
 from features.api.runtime.webui_attachments.physical_file_snapshot import (
@@ -90,7 +91,7 @@ async def _project_video_parts(
         return ([], "Video frames were omitted by the request projection limit.")
     try:
         snapshot = await load_verified_provider_descriptor_snapshot(
-            context,
+            context.storage_root,
             record=record,
             attachment=attachment,
         )
@@ -127,12 +128,18 @@ async def project_soai_file_for_provider(
 ) -> list[JSONDict]:
     canonical_part = validate_soai_file_content_part(part)
     attachment = await load_soai_file_attachment(
-        context,
+        context.dependencies.database_conversation_attachments,
+        conv_id=context.conv_id,
+        user_id=context.user_id,
         part=canonical_part,
     )
     if attachment is None:
         return _unavailable_part(canonical_part, reason="Attachment is unavailable.")
-    record = await load_soai_file_record(context, attachment=attachment)
+    record = await load_soai_file_record(
+        context.dependencies.database_files,
+        user_id=context.user_id,
+        attachment=attachment,
+    )
     if record is None:
         return _unavailable_part(attachment, reason="Attachment file is unavailable.")
     parse_state = _require_parse_state(attachment)
@@ -155,7 +162,7 @@ async def project_soai_file_for_provider(
     if attachment.get("preview_type") == "image" and context.vision_supported:
         try:
             snapshot = await load_verified_provider_descriptor_snapshot(
-                context,
+                context.storage_root,
                 record=record,
                 attachment=attachment,
             )
@@ -164,7 +171,7 @@ async def project_soai_file_for_provider(
         if snapshot is None:
             return _unavailable_part(attachment, reason="Attachment file content changed.")
         try:
-            shaped = await asyncio.to_thread(
+            image_shaper = partial(
                 shape_descriptor_image_for_provider,
                 descriptor=snapshot.descriptor,
                 declared_content_type=str(attachment.get("mime_type") or ""),
@@ -172,6 +179,10 @@ async def project_soai_file_for_provider(
                 max_encoded_chars=context.dependencies.config.get_int(
                     "SERVER.WEBUI.PROVIDER_IMAGE.MAX_ENCODED_CHARS",
                 ),
+            )
+            shaped = await run_joined_thread_call(
+                image_shaper,
+                task_name="webui-attachment-provider-image-shape",
             )
         finally:
             close_provider_descriptor_snapshot(snapshot)

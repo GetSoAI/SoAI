@@ -23,6 +23,9 @@ const isDurationRefreshVisible = (segment: MessageSegment, displayMode: ChatActi
     if (displayMode === 'all') {
         return true;
     }
+    if (displayMode === 'settledOnly') {
+        return false;
+    }
     return (segment.type === 'inline_tool_activity' || segment.type === 'inline_thinking_activity') && segment.collapsed === false;
 };
 

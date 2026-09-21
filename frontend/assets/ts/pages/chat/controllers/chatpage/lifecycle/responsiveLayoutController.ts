@@ -13,8 +13,9 @@ import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.
 import type { ChatModelSessionHost } from '@pages/chat/controllers/chatpage/models/contracts.ts';
 import type { ChatUiTaskScopeHost } from '@pages/chat/controllers/chatpage/runtime/ChatUiTaskScopeManager.ts';
 import { reconcileActivityDurationLifecycle } from '@pages/chat/controllers/chatpage/lifecycle/activityDurationLifecycleRuntime.ts';
+import type { ChatSettingsStateHost } from '@pages/chat/state/ChatSettingsStateManager.ts';
 
-interface ChatResponsiveLayoutDependencies extends ChatConversationStateHost, ChatRuntimeServicesHost, ChatConversationViewHost, ChatModelSessionHost, ChatUiTaskScopeHost, PageDomOwnerHost, ChatUiBehaviorsOwner {
+interface ChatResponsiveLayoutDependencies extends ChatConversationStateHost, ChatRuntimeServicesHost, ChatConversationViewHost, ChatModelSessionHost, ChatUiTaskScopeHost, ChatSettingsStateHost, PageDomOwnerHost, ChatUiBehaviorsOwner {
     document: Document;
 }
 
@@ -51,7 +52,7 @@ class ChatResponsiveLayoutSession {
     }
 
     #resolveActivityDurationDisplayMode(): ChatActivityDurationDisplayMode {
-        return resolveActivityDurationDisplayMode(measureLayoutViewport(this.#owners.document).width, CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX);
+        return resolveActivityDurationDisplayMode(measureLayoutViewport(this.#owners.document).width, CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX, this.#owners.settings.showActivityElapsedTimeEnabled());
     }
 }
 

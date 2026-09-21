@@ -5,15 +5,14 @@ import { i18n } from '@core/i18n/index.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import { uiAttr, uiHtml } from '@core/security/uiHtml.ts';
-import type { getIconSync } from '@core/ui/icons/iconservice/public.ts';
+import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 
 interface ConstituentPickerMarkupOptions {
     modalId: string;
     token: string;
-    getIconSync: typeof getIconSync;
 }
 
-const buildConstituentPickerMarkup = ({ modalId, token, getIconSync: getIcon }: ConstituentPickerMarkupOptions): TrustedHtml => {
+const buildConstituentPickerMarkup = ({ modalId, token }: ConstituentPickerMarkupOptions): TrustedHtml => {
     const searchInputId = modalUiId(modalId, `${token}-search`);
     const searchButtonId = modalUiId(modalId, `${token}-search-button`);
     const resultsId = modalUiId(modalId, `${token}-results`);
@@ -26,7 +25,7 @@ const buildConstituentPickerMarkup = ({ modalId, token, getIconSync: getIcon }: 
                 <div class="form-col-main">
                     <div class="searchbar-container searchbar-container--collection">
                         <input type="text" id="${searchInputId}" class="form-input searchbar-input" placeholder="${placeholder}" autocomplete="off">
-                        <span class="searchbar-icon">${getIcon('search', { size: 16, strokeWidth: 1.5 })}</span>
+                        ${renderSearchFieldActions()}
                     </div>
                 </div>
                 <div class="form-col-secondary form-col-action">

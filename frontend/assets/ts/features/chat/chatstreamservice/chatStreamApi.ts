@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { WebuiConversationMessageResponse } from '@core/api/contracts/webuiMessageContracts.ts';
-import type { ConversationStreamStatusResponse } from '@core/api/contracts/webuiChatOperationContracts.ts';
+import type { ConversationStreamCancelRequest, ConversationStreamCancelResponse, ConversationStreamStatusResponse } from '@core/api/contracts/webuiChatOperationContracts.ts';
 import { mapChatStreamStatusSnapshot, type ChatStreamStatusSnapshot } from '@features/chat/chatstreamservice/activeStreamStatus.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { normalizeMessageTimestamps } from '@features/chat/storage/chatStorageBackendMapping.ts';
@@ -16,6 +16,19 @@ interface ChatStreamApiClient {
             };
             streamStatus: {
                 get(conversationId: string, options?: RequestOptions): Promise<ConversationStreamStatusResponse>;
+            };
+        };
+    };
+}
+
+interface ChatStreamStopApiClient {
+    webui: {
+        chat: {
+            streamStatus: {
+                get(conversationId: string, options?: RequestOptions): Promise<ConversationStreamStatusResponse>;
+            };
+            streamCancellation: {
+                request(conversationId: string, payload: ConversationStreamCancelRequest, options?: RequestOptions): Promise<ConversationStreamCancelResponse>;
             };
         };
     };
@@ -39,4 +52,4 @@ const fetchChatStreamStatusSnapshot = async (apiClient: ChatStreamApiClient, con
 };
 
 export { fetchAssistantStreamState, fetchChatStreamStatusSnapshot };
-export type { ChatStreamApiClient };
+export type { ChatStreamApiClient, ChatStreamStopApiClient };

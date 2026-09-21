@@ -69,6 +69,9 @@ def _config_snapshot(config: ConfigProtocol) -> JSONDict:
                 "HUGGINGFACE_TOKEN": config.get_str("MODELS.CREDENTIALS.HUGGINGFACE_TOKEN"),
             },
             "MANAGER": {"PATHS": model_paths},
+            "ROUTING": {
+                "HTTP_CLIENT_TRUST_ENV": config.get_bool("MODELS.ROUTING.HTTP_CLIENT_TRUST_ENV"),
+            },
         },
         "PLUGINS": {"PATHS": plugin_paths},
     }

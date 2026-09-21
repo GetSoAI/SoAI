@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from core.config.merge import deep_merge
 from core.errors.exceptions import StateError, ValidationError
+from core.media.tesseract_languages import require_ocr_language
 from core.serialization.json import serialize_json_compact_stable_strict
 from core.serialization.json_parsing import MAX_JSON_NESTING_DEPTH, parse_json_value
 from core.types.json import JSONDict, JSONValue, is_json_value
@@ -38,6 +39,9 @@ def assert_supported_user_preferences(preferences: JSONDict) -> None:
         not isinstance(key, str) or not is_json_value(value) for key, value in preferences.items()
     ):
         raise ValidationError("User preferences must be JSON-compatible.")
+    settings = preferences.get("settings")
+    if isinstance(settings, dict) and "ocr_language" in settings:
+        require_ocr_language(settings["ocr_language"])
     for key in preferences:
         if key not in _ALLOWED_USER_PREFERENCES_TOP_LEVEL_KEYS:
             raise ValidationError("Unsupported user preferences payload key set.")

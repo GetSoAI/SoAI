@@ -49,6 +49,7 @@ class MediaOcrRuntimeProtocol(Protocol):
         self,
         *,
         frame_path: str,
+        ocr_language: str,
         timestamp_seconds: float,
         timeout_seconds: float,
     ) -> OcrFrameText: ...

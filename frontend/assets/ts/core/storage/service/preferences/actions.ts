@@ -226,6 +226,13 @@ const createPreferenceHandlers = ({ core, delegates, setTheme, saveDashboardLayo
             }
             warnInvalidPreference('dashboard_memo', value);
         },
+        defaultPage: (value: JsonValue | null | undefined): void => {
+            if (value === null || value === undefined || isString(value)) {
+                delegates.setDefaultPage(value === undefined ? null : value);
+                return;
+            }
+            warnInvalidPreference('default_page', value);
+        },
         chartColorMode: (value: JsonValue | null | undefined): void => {
             if (isString(value) && isChartColorModeType(value)) {
                 delegates.setChartColorMode(value);

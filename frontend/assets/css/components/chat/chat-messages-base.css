@@ -166,6 +166,10 @@
         border-color: transparent;
     }
 
+    :where(.chat-container) .chat-message.chat-message--compaction-boundary:has(> .message-content--compaction-boundary > .message-text > .message-response:empty) {
+        display: none;
+    }
+
     :where(.chat-container) .chat-message.chat-message--compaction-boundary.chat-message--compaction-boundary-inactive .inline-activity-type-tool[data-tool-leaf='context_compaction'] > .inline-activity-header {
         color: var(--text-secondary);
     }

@@ -37,7 +37,7 @@ async def resolve_subagent_settings(
     if not conversation_input_id:
         raise ValidationError("Subagents require a conversation input settings snapshot.")
     model_settings = copy_json_dict(
-        await api_dependencies.database_input_queue.get_input_execution_settings(
+        await api_dependencies.database_input_execution.get_input_execution_settings(
             input_id=conversation_input_id,
         ),
     )

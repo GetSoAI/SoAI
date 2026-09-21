@@ -4,32 +4,31 @@
 from __future__ import annotations
 
 import math
-import sys
 import time
-from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
+from core.hardware.soaibench_numerical import validate_sample_values
+from core.hardware.soaibench_workloads import (
+    DEFAULT_ELEMENT_COUNT,
+    ELEMENT_ALIGNMENT,
+    FLOAT_SIZE_BYTES,
+    sample_positions,
+)
 from core.types.json import JSONDict
 from hardware.soaibench.errors import SoAIBenchUnsupported
 from hardware.soaibench.opencl_program import (
-    create_buffer,
-    create_kernel,
-    create_program,
     enqueue_kernel,
     finish_queue,
-    read_float_buffer,
-    release_buffer,
-    release_kernel,
-    release_program,
-    set_buffer_arg,
+    read_float_buffer_positions,
     set_uint_arg,
 )
-from hardware.soaibench.opencl_runtime import (
-    OpenCLRuntime,
-    build_opencl_runtime,
-    release_opencl_runtime,
-)
+from hardware.soaibench.opencl_session import OpenCLExecutionSession
 from hardware.soaibench.types import SoAIBenchGpuIdentity
+from hardware.soaibench.workload_timing import measure_calibrated_batches
+
+if TYPE_CHECKING:
+    from hardware.soaibench.opencl_runtime import OpenCLRuntime
 
 __all__ = (
     "DEFAULT_ELEMENT_COUNT",
@@ -39,11 +38,8 @@ __all__ = (
     "execute_opencl_phase",
 )
 
-DEFAULT_ELEMENT_COUNT = 1_048_576
-FLOAT_SIZE_BYTES = 4
 KERNEL_OPERATION_ESTIMATE = 8
-CHECKSUM_SAMPLE_COUNT = 65_536
-ELEMENT_ALIGNMENT = 262_144
+CHECKSUM_SAMPLE_COUNT = 64
 MAX_DEVICE_MEMORY_PERCENT = 72
 MAX_ALLOC_MEMORY_PERCENT = 85
 
@@ -55,7 +51,11 @@ class SoAIBenchPhaseResult:
     checksum: int
     sample_count: int
     element_count: int
+    rounds: int
+    dispatches: int
     summary: JSONDict
+    sample_positions: tuple[int, ...] = ()
+    sample_values: tuple[float, ...] = ()
 
 
 def execute_opencl_phase(
@@ -68,45 +68,85 @@ def execute_opencl_phase(
     summary_prefix: str,
     element_count: int = DEFAULT_ELEMENT_COUNT,
     synchronize_each_repeat: bool = False,
+    initialization_kernel_name: str | None = None,
+    require_exact_element_count: bool = False,
+    stress: bool = False,
+    session: OpenCLExecutionSession | None = None,
 ) -> SoAIBenchPhaseResult:
     _validate_workload_shape(rounds=rounds, repeats=repeats, element_count=element_count)
-    runtime = build_opencl_runtime(identity)
-    program = 0
-    kernel = 0
-    buffer = 0
+    owned_session = session is None
+    execution_session = session or OpenCLExecutionSession(identity)
     started = time.monotonic()
     try:
-        resolved_element_count = _resolve_element_count(runtime, element_count)
+        runtime = execution_session.runtime_for(identity)
+        resolved_element_count = _resolve_element_count(
+            runtime,
+            element_count,
+            require_exact=require_exact_element_count,
+        )
         buffer_size_bytes = resolved_element_count * FLOAT_SIZE_BYTES
-        program = create_program(runtime, source)
-        kernel = create_kernel(runtime, program, kernel_name)
-        buffer = create_buffer(runtime, buffer_size_bytes)
-        set_buffer_arg(runtime, kernel, 0, buffer)
+        resources = execution_session.acquire(
+            identity=identity,
+            source=source,
+            kernel_name=kernel_name,
+            initialization_kernel_name=initialization_kernel_name,
+            element_count=resolved_element_count,
+            buffer_size_bytes=buffer_size_bytes,
+        )
+        kernel = resources.kernel
+        initialization_kernel = resources.initialization_kernel
+        buffer = resources.buffer
         set_uint_arg(runtime, kernel, 1, rounds)
-        phase_started = time.monotonic()
-        for _repeat in range(repeats):
-            enqueue_kernel(runtime, kernel, resolved_element_count)
-            if synchronize_each_repeat:
-                finish_queue(runtime)
-        if not synchronize_each_repeat:
+        if initialization_kernel:
+            set_uint_arg(runtime, initialization_kernel, 1, rounds)
+            enqueue_kernel(runtime, initialization_kernel, resolved_element_count)
             finish_queue(runtime)
-        elapsed = max(time.monotonic() - phase_started, 0.000001)
-        checksum_sample_count = min(CHECKSUM_SAMPLE_COUNT, resolved_element_count)
-        output = read_float_buffer(runtime, buffer, checksum_sample_count)
-        checksum = _checksum(output)
+
+        def run_batch(batch_dispatches: int) -> None:
+            for _repeat in range(batch_dispatches):
+                enqueue_kernel(runtime, kernel, resolved_element_count)
+                if synchronize_each_repeat:
+                    finish_queue(runtime)
+            if not synchronize_each_repeat:
+                finish_queue(runtime)
+
+        def reset_initial_state() -> None:
+            if initialization_kernel:
+                enqueue_kernel(runtime, initialization_kernel, resolved_element_count)
+                finish_queue(runtime)
+
+        timing = measure_calibrated_batches(
+            batch_dispatches=repeats,
+            run_batch=run_batch,
+            reset_initial_state=reset_initial_state,
+        )
+        positions = sample_positions(resolved_element_count)
+        sample_values = tuple(read_float_buffer_positions(runtime, buffer, positions))
+        validate_sample_values(
+            summary_prefix,
+            resolved_element_count,
+            rounds,
+            timing.dispatches,
+            positions,
+            sample_values,
+            stress=stress,
+        )
+        checksum = _checksum(list(sample_values))
         duration_ms = max(1, round((time.monotonic() - started) * 1000))
         return SoAIBenchPhaseResult(
-            elapsed_seconds=elapsed,
+            elapsed_seconds=timing.elapsed_seconds,
             duration_ms=duration_ms,
             checksum=checksum,
-            sample_count=repeats,
+            sample_count=timing.dispatches,
             element_count=resolved_element_count,
+            rounds=rounds,
+            dispatches=timing.dispatches,
             summary={
                 f"{summary_prefix}_checksum": checksum,
                 f"{summary_prefix}_elements": resolved_element_count,
                 f"{summary_prefix}_requested_elements": element_count,
                 f"{summary_prefix}_allocation_bytes": buffer_size_bytes,
-                f"{summary_prefix}_checksum_sample_count": checksum_sample_count,
+                f"{summary_prefix}_checksum_sample_count": len(positions),
                 "queue_api": runtime.queue_api,
                 "match_basis": runtime.match_basis,
                 "opencl_platform_name": runtime.platform_name,
@@ -117,84 +157,31 @@ def execute_opencl_phase(
                 "opencl_global_mem_bytes": runtime.global_mem_bytes,
                 "opencl_max_alloc_bytes": runtime.max_alloc_bytes,
             },
+            sample_positions=positions,
+            sample_values=sample_values,
         )
     finally:
-        _release_workload_resources(
-            runtime=runtime,
-            buffer=buffer,
-            kernel=kernel,
-            program=program,
-            primary_exception=sys.exception(),
-        )
+        if owned_session:
+            execution_session.close()
 
 
-def _release_workload_resources(
+def _resolve_element_count(
+    runtime: OpenCLRuntime,
+    requested_element_count: int,
     *,
-    runtime: OpenCLRuntime,
-    buffer: int,
-    kernel: int,
-    program: int,
-    primary_exception: BaseException | None,
-) -> None:
-    cleanup_failure: SoAIBenchUnsupported | None = None
-    for release, handle in (
-        (release_buffer, buffer),
-        (release_kernel, kernel),
-        (release_program, program),
-    ):
-        if handle:
-            cleanup_failure = _release_workload_handle(
-                release,
-                runtime,
-                handle,
-                primary_exception,
-                cleanup_failure,
-            )
-    try:
-        release_opencl_runtime(runtime)
-    except SoAIBenchUnsupported as exception:
-        cleanup_failure = _record_cleanup_failure(
-            exception,
-            primary_exception,
-            cleanup_failure,
-        )
-    if cleanup_failure is not None and primary_exception is None:
-        raise cleanup_failure
-
-
-def _release_workload_handle(
-    release: Callable[[OpenCLRuntime, int], None],
-    runtime: OpenCLRuntime,
-    handle: int,
-    primary_exception: BaseException | None,
-    cleanup_failure: SoAIBenchUnsupported | None,
-) -> SoAIBenchUnsupported | None:
-    try:
-        release(runtime, handle)
-    except SoAIBenchUnsupported as exception:
-        return _record_cleanup_failure(exception, primary_exception, cleanup_failure)
-    return cleanup_failure
-
-
-def _record_cleanup_failure(
-    exception: SoAIBenchUnsupported,
-    primary_exception: BaseException | None,
-    cleanup_failure: SoAIBenchUnsupported | None,
-) -> SoAIBenchUnsupported:
-    if primary_exception is not None:
-        primary_exception.add_note(
-            f"OpenCL cleanup failed: {exception.reason}: {exception.message}",
-        )
-    return cleanup_failure or exception
-
-
-def _resolve_element_count(runtime: OpenCLRuntime, requested_element_count: int) -> int:
+    require_exact: bool,
+) -> int:
     max_elements = min(
         _memory_budget_elements(runtime.global_mem_bytes, MAX_DEVICE_MEMORY_PERCENT),
         _memory_budget_elements(runtime.max_alloc_bytes, MAX_ALLOC_MEMORY_PERCENT),
     )
     if requested_element_count <= max_elements:
         return requested_element_count
+    if require_exact:
+        raise SoAIBenchUnsupported(
+            reason="opencl_memory_insufficient",
+            message="OpenCL device memory limits are too small for SoAIBench.",
+        )
     aligned_elements = _align_down(max_elements, ELEMENT_ALIGNMENT)
     if aligned_elements >= DEFAULT_ELEMENT_COUNT:
         return aligned_elements

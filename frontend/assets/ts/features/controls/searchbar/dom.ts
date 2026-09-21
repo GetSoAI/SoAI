@@ -4,6 +4,7 @@
 import { dom } from '@core/dom/dom.ts';
 import { narrowInput } from '@core/dom/narrowElement.ts';
 import { isElementNode, isString } from '@core/typeGuards.ts';
+import { createSearchFieldActions } from '@core/ui/searchField.ts';
 import type { NormalizedSearchBarOptions, SearchBarElements, SearchBarParentTarget } from '@features/controls/searchbar/types.ts';
 
 const resolveSearchBarParentElement = (target: SearchBarParentTarget): Element | null => {
@@ -38,7 +39,7 @@ const createSearchBarElements = (options: NormalizedSearchBarOptions): SearchBar
 
     container.appendChild(inputElement);
     if (options.showIcon) {
-        container.appendChild(dom.create('span', { className: 'searchbar-icon', includeIdClass: false }));
+        container.append(...createSearchFieldActions(container.ownerDocument));
     }
 
     dom.setStyle(container, 'width', options.width);

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dispatchCustomEvent } from '@core/environment/public.ts';
+import { EVENT_REQUEST } from '@core/languageservice/constants.ts';
 import { arraysEqual } from '@core/primitives/equality.ts';
 import { clockPreferenceStatesEqual, dispatchClockPreferenceChanged, readClockPreferenceState } from '@core/storage/clockPreferences.ts';
 import { CHANGED_EVENTS } from '@core/storage/service/constants.ts';
@@ -85,7 +86,7 @@ const mergeRemotePreferences = (context: MergeRemoteContext, remote: JsonValue |
     }
 
     if (ui.language !== oldLanguage) {
-        dispatch('soai:language:changed', { language: ui.language });
+        dispatch(EVENT_REQUEST, { language: ui.language });
     }
 };
 

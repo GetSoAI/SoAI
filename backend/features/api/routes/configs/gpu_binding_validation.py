@@ -178,7 +178,10 @@ async def _runtime_family_from_selected_backend_variant(
     config_name: str,
     api_context: ApiContext,
 ) -> GpuBindingRuntimeFamily | None:
-    payload = await api_context.dependencies.plugin_manager.get_backend_variants(config_name)
+    payload = await api_context.dependencies.plugin_manager.get_backend_variants(
+        config_name,
+        discover_installed_variant=False,
+    )
     selected_value = payload.get("selected_variant_id")
     if not isinstance(selected_value, str) or not selected_value.strip():
         return None
@@ -201,7 +204,10 @@ async def _runtime_family_from_backend_variant_id(
     backend_variant_id: str,
     api_context: ApiContext,
 ) -> GpuBindingRuntimeFamily | None:
-    payload = await api_context.dependencies.plugin_manager.get_backend_variants(config_name)
+    payload = await api_context.dependencies.plugin_manager.get_backend_variants(
+        config_name,
+        discover_installed_variant=False,
+    )
     options_value = payload.get("options")
     if not isinstance(options_value, list):
         return None

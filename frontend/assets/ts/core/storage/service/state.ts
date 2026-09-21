@@ -6,7 +6,7 @@ import { normalizeNonBlankStringOrNull } from '@core/storage/normalization.ts';
 import type { ClockFormatType, HardwareCache, ImageFitType, LogsCache, SessionData } from '@core/storage/types.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 
-const createStorageStateReaders = (core: StorageRuntime): { getChatTextZoom: (fallback?: number) => number; getRecentSearches: () => string[]; getHardwarePreferences: () => HardwareCache; getGPUSettings: (id: string) => JsonValue; getSession: () => SessionData; getRedirectAfterLogin: () => string | null; isWizardCompletionPending: () => boolean; isWizardCompleted: () => boolean; getClockFormat: () => ClockFormatType; getLanguage: () => string; getHiddenSidebarPages: () => string[]; getShowMainStatusIndicator: () => boolean; getHiddenDashboardElements: () => string[]; getDashboardLocked: () => boolean; getDashboardImageCard: () => string | null; getDashboardImageCardFit: () => ImageFitType; getDashboardMemo: () => string | null; getLogsPreferences: () => LogsCache; getLogLineLimit: (fallback?: number) => number; getLogsTextZoom: (fallback?: number) => number } => {
+const createStorageStateReaders = (core: StorageRuntime): { getChatTextZoom: (fallback?: number) => number; getRecentSearches: () => string[]; getHardwarePreferences: () => HardwareCache; getGPUSettings: (id: string) => JsonValue; getSession: () => SessionData; getRedirectAfterLogin: () => string | null; isWizardCompletionPending: () => boolean; isWizardCompleted: () => boolean; getClockFormat: () => ClockFormatType; getLanguage: () => string; getHiddenSidebarPages: () => string[]; getShowMainStatusIndicator: () => boolean; getHiddenDashboardElements: () => string[]; getDashboardLocked: () => boolean; getDashboardImageCard: () => string | null; getDashboardImageCardFit: () => ImageFitType; getDashboardMemo: () => string | null; getDefaultPage: () => string | null; getLogsPreferences: () => LogsCache; getLogLineLimit: (fallback?: number) => number; getLogsTextZoom: (fallback?: number) => number } => {
     const state = core.state;
     const getChatTextZoom = (fallback: number = state.defaults.chat.textZoom): number => {
         return state.cache.chat.textZoom ?? fallback;
@@ -36,6 +36,7 @@ const createStorageStateReaders = (core: StorageRuntime): { getChatTextZoom: (fa
     const getDashboardImageCard = (): string | null => state.cache.ui.dashboardImageCard ?? state.defaults.ui.dashboardImageCard;
     const getDashboardImageCardFit = (): ImageFitType => state.cache.ui.dashboardImageCardFit ?? state.defaults.ui.dashboardImageCardFit;
     const getDashboardMemo = (): string | null => normalizeNonBlankStringOrNull(state.cache.ui.dashboardMemo ?? state.defaults.ui.dashboardMemo);
+    const getDefaultPage = (): string | null => normalizeNonBlankStringOrNull(state.cache.ui.defaultPage ?? state.defaults.ui.defaultPage);
 
     const getLogsPreferences = (): LogsCache => core.clone(state.cache.logs);
     const getLogLineLimit = (fallback: number = state.defaults.logs.lineLimit): number => {
@@ -65,6 +66,7 @@ const createStorageStateReaders = (core: StorageRuntime): { getChatTextZoom: (fa
         getDashboardImageCard,
         getDashboardImageCardFit,
         getDashboardMemo,
+        getDefaultPage,
         getLogsPreferences,
         getLogLineLimit,
         getLogsTextZoom

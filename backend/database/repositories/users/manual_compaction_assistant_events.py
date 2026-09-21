@@ -29,7 +29,9 @@ def sync_append_manual_compaction_assistant_event(
 ) -> None:
     payload: JSONDict = {
         "assistant_at_ms": int(assistant_at_ms),
+        "assistant_turn_at_ms": int(assistant_at_ms),
         "assistant_revision": int(event.assistant_revision),
+        "model_variant_index": 0,
         "tool": tool_payload,
     }
     sync_append_streaming_assistant_event_row(

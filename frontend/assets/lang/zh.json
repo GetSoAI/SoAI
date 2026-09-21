@@ -411,9 +411,10 @@
             },
             "attachModal": {
                 "cameraDisabled": "相机拍摄已禁用。",
-                "cameraFlip": "切换摄像头",
+                "cameraSwitch": "切换摄像头",
                 "cameraNoCamera": "此浏览器中没有可用的摄像头。",
                 "cameraPermissionDenied": "摄像头权限被拒绝或摄像头不可用。",
+                "cameraBusy": "摄像头正被其他应用使用，或无法启动。",
                 "cameraPreparing": "正在准备摄像头...",
                 "cameraCaptureUnavailable": "此浏览器不支持相机拍摄。",
                 "cameraRetake": "重新拍摄",
@@ -449,6 +450,7 @@
                 "knowledgeImportButton": "从工作区加载",
                 "knowledgeSubtitle": "从设备添加更大批量的文件和文件夹，然后通过 RAG 在此对话中使用。其内容会经过分析和索引，因此处理时间比直接上传更长。",
                 "knowledgeTitle": "将文件和文件夹上传到知识库",
+                "removeAll": "全部移除",
                 "searchLabel": "搜索 SoAI 文件",
                 "searchPlaceholder": "搜索 SoAI 文件",
                 "soaiLinkInputLabel": "SoAI 链接",
@@ -486,10 +488,12 @@
                 "openAttachment": "打开附件",
                 "openKnowledge": "打开知识库附件",
                 "openSoaiLink": "打开 SoAI 链接",
+                "unavailableReupload": "此附件已不可用。请重新上传文件以进行预览。",
                 "overflowHidden": {
-                    "singular": "... +{count} 个已隐藏",
-                    "plural": "... +{count} 个已隐藏"
+                    "singular": "+{count} 个已隐藏",
+                    "plural": "+{count} 个已隐藏"
                 },
+                "showMore": "显示更多",
                 "modal": {
                     "emptyAll": "此消息未引用任何附件。",
                     "emptyAttachments": "此消息未引用任何文件附件。",
@@ -606,6 +610,8 @@
                 "autoTitleGenerationHint": "首次回复完成后，如果系统空闲，SoAI 可生成一次简短标题。",
                 "showActivities": "显示活动",
                 "showActivitiesHint": "禁用后，助手文本保持可见，活动会折叠到加载行后方；展开后恢复正常活动布局。",
+                "showActivityElapsedTime": "显示活动已用时间",
+                "showActivityElapsedTimeHint": "活动运行时更新已用时间。禁用后，最终时间仅在活动结束后显示，从而可降低 CPU 使用率",
                 "hideAutomationRuns": "隐藏自动化运行",
                 "hideAutomationRunsHint": "启用后，自动化运行对话会从侧边栏列表中隐藏。",
                 "hideMessagingConversations": "隐藏消息对话",
@@ -1081,6 +1087,7 @@
                     },
                     "emptyVariant": "此变体未捕获任何响应",
                     "error": {
+                        "browserUnavailable": "PDF 导出需要浏览器运行时。请在有网络连接的情况下重启 SoAI 以恢复该运行时，然后重试。",
                         "conversationChanged": "创建 PDF 期间对话发生了更改。请重新导出。",
                         "invalidRequest": "PDF 导出请求被拒绝。请再次尝试导出对话。",
                         "timedOut": "PDF 导出耗时过长，已取消。",
@@ -2409,6 +2416,9 @@
             "section": {
                 "defaultTitle": "部分"
             },
+            "search": {
+                "clear": "清除搜索"
+            },
             "secretInput": {
                 "hide": "隐藏密钥",
                 "show": "显示密钥"
@@ -3062,6 +3072,14 @@
                     "usage": "使用率 %"
                 }
             },
+            "soaibenchPublication": {
+                "deleteLocalHistory": "删除本地历史记录",
+                "action": "分享",
+                "ariaLabel": "分享此 SoAIBench 分数",
+                "unavailable": "没有可发布的 SoAIBench 运行结果",
+                "confirm": { "title": "分享 SoAIBench 分数？", "message": "要将分数 {score} 及其 {passes} 次测量结果发布到公开 SoAIBench 排行榜吗？", "description": "这会发送分数、五次测量结果、公开的 GPU 和运行时信息、基准测试设置，以及可选的传感器证据。不会发送账户身份、文件、配置、分析数据和一般遥测数据。soai.to 可以看到常规连接元数据，例如您的 IP 地址。" },
+                "outcomes": { "published": "已公开分享 SoAIBench 分数。", "alreadyPublished": "此 SoAIBench 分数已分享。", "heldForReview": "SoAIBench 结果因需审核身份或异常情况而暂被保留，尚未计入排行榜。", "offline": "SoAI 离线时无法分享分数。", "unavailable": "SoAIBench 发布服务当前不可用。", "timeout": "分享分数超时。请重试以核对同一次发布。", "rateLimited": "此连接分享的分数过多，请稍后重试。", "capacity": "SoAIBench 排行榜目前已达到容量上限。", "rejected": "SoAIBench 排行榜拒绝了此结果。", "conflict": "此发布与现有排行榜状态冲突。", "invalidResponse": "SoAIBench 排行榜返回了无效响应。", "retryAfter": "请在 {seconds} 秒后重试。" }
+            },
             "modals": {
                 "soaibenchHistory": {
                     "ariaLabels": {
@@ -3101,6 +3119,7 @@
                     "certification": {
                         "certified": "已认证",
                         "ineligible": "不符合资格：{reason}",
+                        "legacy": "旧版",
                         "quick": "快速",
                         "varianceSuffix": "{variance}% 方差"
                     },
@@ -3127,6 +3146,7 @@
                         "standard": "标准",
                         "stress": "压力测试"
                     },
+                    "reasons": { "opencl_numerical_mismatch": "OpenCL 工作负载数值验证失败。" },
                     "rowCopyUnavailable": "没有可复制的 SoAIBench 运行记录",
                     "staleHardware": "硬件匹配已过期",
                     "statuses": {
@@ -3147,6 +3167,7 @@
                         "copy": "复制 SoAIBench 运行记录",
                         "download": "下载 SoAIBench 运行记录",
                         "history": "打开 SoAIBench 历史记录",
+                        "retry": "重试认证 SoAIBench",
                         "stop": "停止认证 SoAIBench",
                         "stopping": "正在停止认证 SoAIBench",
                         "start": "启动认证 SoAIBench"
@@ -3179,9 +3200,11 @@
                         "matrixThroughput": "矩阵吞吐量",
                         "memoryBandwidth": "内存带宽",
                         "memoryScore": "内存得分",
+                        "measuredPasses": "已测量轮次",
                         "power": "功耗",
                         "sampleCount": "样本数",
                         "scoreVariance": "得分方差",
+                        "variationAndDrift": "波动 / 漂移",
                         "latency": "延迟",
                         "latencyScore": "延迟得分",
                         "status": "状态",
@@ -3210,6 +3233,7 @@
                         "warmupPhase": "预热：{phase}",
                         "warmup": "预热轮次已完成"
                     },
+                    "retry": "重试",
                     "scoreLabel": "SoAIBench 得分",
                     "sections": {
                         "expect": {
@@ -3221,7 +3245,7 @@
                             "title": "测量内容"
                         },
                         "runs": {
-                            "items": "OpenCL 工作负载|1 次预热|5 次测量|遥测快照|温度检查|方差和认证检查",
+                            "items": "OpenCL 工作负载|120 秒主动预热时段|5 次测量|遥测快照|温度检查|方差和认证检查",
                             "title": "运行方式"
                         }
                     },
@@ -3444,7 +3468,7 @@
                     "heading": "运行第一个模型",
                     "sectionTitle": "开始使用",
                     "intro": "SoAI 既能在本机运行模型，也能连接远程提供商。本地模型请完成第 1、2 步；远程模型从第 3 步开始。两种方式最后都进入 Chat。",
-                    "localBackend": "要在本地推理，请打开 Plugins 并选择引擎。进入管理 backend，选择与操作系统和硬件匹配的版本并安装。部分 backend 还需要受支持的 GPU 驱动或其他系统组件。",
+                    "localBackend": "要在本地推理，请打开 Plugins 并选择引擎。 选择“安装 backend”，再选择与操作系统和硬件匹配的版本并安装。 部分 backend 还需要受支持的 GPU 驱动或其他系统组件。",
                     "localModel": "backend 就绪后，打开 Models 并选择添加模型。你可以搜索并下载模型，也可以添加本机已有的模型文件。下载前，SoAI 会显示文件大小并估算内存需求。",
                     "remoteModel": "远程推理无需安装 backend。打开 Models，依次选择添加模型和添加提供商。选择 External，然后填写提供商名称、API URL、API 密钥及可选的模型筛选条件。",
                     "chat": "模型出现在目录后，打开 Chat，选择模型并发送消息。SoAI 会按需启动 backend；会话设置控制生成参数和工具权限。",
@@ -3470,7 +3494,7 @@
                     "heading": "使用模型、工具和文件",
                     "sectionTitle": "Chat 与智能体工具",
                     "conversations": "Chat 集中管理消息、模型选择、生成参数和工具权限。你可以在轮次之间更换模型、比较回答、把配置保存为 preset，或用文件夹整理会话。当前消息需要完整内容时附加文件；需要反复搜索索引资料时附加知识源。输入框可添加文件、文件夹和 SoAI 链接。",
-                    "tools": "Chat 模式用于对话。Plan 允许模型检查任务并拟定步骤，但不执行最终更改。Execute 允许模型使用已启用的工具。工具调用及结果会保留在会话中，受保护操作可要求确认。工具可搜索网络、控制浏览器、处理文件和终端、查询知识、处理媒体并连接邮件或日历。管理员决定可用的集成和凭据。智能体还能提问、维护计划并把工作拆成后台子任务。Automation 按计划执行一个或多个轮次，并把每次运行保留为会话。",
+                    "tools": "Chat 模式用于对话。 Plan 允许模型检查任务并拟定步骤。它会阻止标记为破坏性或缺少有效破坏性元数据的工具，但其他已选工具仍可能影响外部系统。 Execute 允许模型使用已启用的工具。 工具调用及结果会保留在会话中，受保护操作可要求确认。 工具可搜索网络、控制浏览器、处理文件和终端、查询知识、处理媒体并连接邮件或日历。 管理员决定可用的集成和凭据。 智能体还能提问、维护计划并把工作拆成后台子任务。 Automation 按计划执行一个或多个轮次，并把每次运行保留为会话。",
                     "mcp": "SoAI 可向已认证的 MCP 客户端开放工具，也能连接远程 MCP 服务器。管理员配置后，远程工具会与内置工具一同显示。",
                     "voice": "语音转文字模型可转录录音或麦克风输入；文字转语音模型可朗读回答；语音通话模式支持口头对话。"
                 },
@@ -3478,7 +3502,7 @@
                     "heading": "管理文件、知识和已保存的提示词",
                     "sectionTitle": "文件与知识",
                     "files": "Files 是 SoAI 的文件管理器。每个账户都有自己的文件夹；管理员也可让多个账户使用同一文件夹协作。你可以按路径搜索或浏览、上传文件或整个文件夹，并切换图标和列表视图。文本文件可在浏览器中创建和编辑；图片、音频、视频及其他文档可预览。文件和文件夹还可重命名、移动、复制、下载或删除。要在 Chat 中使用某项，请在 Files 选择附加，或从文件预览复制 SoAI 链接。SoAI 会读取现有文件，无需再上传副本。直接附件只属于当前消息，适合本次请求所需的特定文件或文件夹。",
-                    "knowledge": "会话需要在后续请求中查阅一组资料时，请使用 Knowledge。你可以索引设备上的文件和整个文件夹，也可载入 Files 中的文件夹。来源状态会显示解析、分块和 embedding 进度；处理完成后才会出现在搜索结果中。启用 Knowledge 工具的智能体还能把网页加入会话索引。可选择语义相似度、减少近似重复结果的 MMR，或结合语义和关键词匹配的 Hybrid。Knowledge 设置可调整 embedding 模型、分块方式、块大小与重叠、相似度阈值及发送给模型的段落数量。更换 embedding 模型后，请用 Reindex 重建集合。",
+                    "knowledge": "会话需要在后续请求中查阅一组资料时，请使用 Knowledge。 你可以索引设备上的文件和整个文件夹，也可载入 Files 中的文件夹。 来源状态会显示解析、分块和 embedding 进度；处理完成后才会出现在搜索结果中。 启用 Knowledge 工具的智能体还能把网页加入会话索引。 可选择语义相似度、减少近似重复结果的 MMR，或结合语义和关键词匹配的 Hybrid。 Knowledge 设置可调整 embedding 模型、分块方式、块大小与重叠、相似度阈值及发送给模型的段落数量。 更改 embedding 模型或分块设置后，请使用 Reindex 重建集合。",
                     "prompts": "Prompts 保存可重复使用的指令。你可以命名、设定颜色、按名称或内容搜索，并批量复制或下载。Chat 输入框中的已保存提示词选择器可直接插入内容。还可选择模型改写提示词，对比流式结果和原文，再把修订版保存为新提示词。"
                 },
                 "administration": {
@@ -3491,9 +3515,9 @@
                 "access": {
                     "heading": "控制连接者及其权限",
                     "sectionTitle": "账户与网络访问",
-                    "access": "全新安装在首个用户创建前只开放设置向导。完成设置后，<code>/v1/*</code> 在管理员创建首个 API 密钥前无需认证；此后每个请求都要有效的 bearer token。MCP 服务器需要个人访问令牌。",
-                    "users": "管理员可为文件、插件、GPU 控制、备份、Terminal、Power 及其他受保护区域分配权限。权限变更会作用于活动会话。每位用户都可查看并撤销自己的会话。",
-                    "network": "其他设备连接 SoAI 时请使用 HTTPS，并把实例放在可信局域网或 VPN 后。不要把 SoAI 直接暴露在开放互联网中。若仍计划这样做，请先阅读安全审计并配置主机以支持公开访问。离线模式会阻止公共地址连接。本地模型、已安装 backend、WebUI 和局域网服务仍可工作；远程提供商、下载、更新检查、网络工具、邮件和日历同步会停止。",
+                    "access": "全新安装在首个用户创建前只开放设置向导。 完成设置后，只要不存在 API 密钥，<code>/v1/*</code> 就无需认证。存在任何密钥时，请求都需要有效的 API 密钥。OpenAI 兼容路由以 bearer token 接受密钥；Anthropic 兼容路由也接受 <code>x-api-key</code>。 MCP 服务器需要个人访问令牌。",
+                    "users": "管理员可为文件、插件、GPU 控制、备份、Terminal、Power 及其他受保护区域分配权限。 权限变更会作用于活动会话。 拥有用户管理权限的管理员可以查看并撤销自己的活动会话。",
+                    "network": "其他设备连接 SoAI 时请使用 HTTPS，并把实例放在可信局域网或 VPN 后。不要把 SoAI 直接暴露在开放互联网中。若仍计划这样做，请先阅读安全审计并配置主机以支持公开访问。离线模式会阻止与公共地址的连接。本地模型、已安装的 backend、WebUI，以及专用网络中获准的提供商和 MCP 服务器会继续工作。公共提供商、下载、更新检查和公共网络工具会停止。邮件和日历的网络操作即使在专用网络中也会停止。",
                     "plugins": "<code>.soaiplugin</code> 文件包含可执行代码。只有在信任其来源和发布者时才安装插件。"
                 }
             },
@@ -3912,6 +3936,9 @@
                     "title": "插件使用情况"
                 },
                 "requestDistribution": {
+                    "legend": {
+                        "others": "其他"
+                    },
                     "actions": {
                         "showApiKeys": "显示按 API 密钥划分的请求",
                         "showModels": "显示按模型划分的请求",
@@ -7145,7 +7172,12 @@
                     }
                 },
                 "subgroupDescription": "配置语言、本地化、通知和界面行为。",
-                "subgroupTitle": "行为"
+                "subgroupTitle": "行为",
+                "ocrLanguage": {
+                    "label": "OCR提取语言",
+                    "help": "用于从图像和文档中提取文字的语言",
+                    "unavailable": "所选OCR语言或语言列表不可用。其他可用语言仍可使用。"
+                }
             },
             "saveButton": "保存",
             "saveButtonAriaLabel": "保存配置更改",
@@ -7176,6 +7208,10 @@
                     "label": "可见页面",
                     "save": "保存",
                     "sectionTitle": "侧边栏"
+                },
+                "defaultPage": {
+                    "help": "选择连接到 SoAI 时打开的页面",
+                    "label": "默认页面"
                 },
                 "statusIndicator": {
                     "help": "显示或隐藏侧边栏底部的系统状态指示器",

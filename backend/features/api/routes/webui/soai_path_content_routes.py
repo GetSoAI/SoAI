@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
-import asyncio
+import os
+from functools import partial
 from typing import TYPE_CHECKING
 
 from fastapi import Depends, Query, Request, status
 from starlette.responses import JSONResponse, Response
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exceptions import SecurityError, ValidationError
 from core.files.document_type_detection import extract_extension, is_image_type
 from core.serialization.json_parsing import parse_json_dict
@@ -85,11 +87,21 @@ def _same_target(stored: JSONDict, canonical: JSONDict) -> bool:
     return target_fingerprint_value(stored) == target_fingerprint_value(canonical)
 
 
+def _close_descriptor_if_present(descriptor: int | None) -> None:
+    if descriptor is not None:
+        os.close(descriptor)
+
+
 async def _open_verified_descriptor(*, effective_root: str, canonical: JSONDict) -> int | None:
-    return await asyncio.to_thread(
+    descriptor_loader = partial(
         open_verified_soai_path_file_descriptor,
         effective_root=effective_root,
         canonical=canonical,
+    )
+    return await run_joined_thread_call(
+        descriptor_loader,
+        task_name="webui-soai-path-content-open",
+        cancelled_result_cleanup=_close_descriptor_if_present,
     )
 
 
@@ -127,10 +139,14 @@ def register_routes(routers: ApiRouters) -> None:
             if descriptor is None:
                 return _unavailable_response()
             if int(thumbnail) == 1:
-                return await asyncio.to_thread(
+                thumbnail_renderer = partial(
                     open_descriptor_thumbnail_response,
                     descriptor=descriptor,
                     filename=_title(canonical),
+                )
+                return await run_joined_thread_call(
+                    thumbnail_renderer,
+                    task_name="webui-soai-path-content-thumbnail",
                 )
             return open_descriptor_streaming_response(
                 descriptor=descriptor,

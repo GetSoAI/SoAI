@@ -5,7 +5,7 @@ import type { SyntaxHighlighter } from '@core/syntaxhighlighter/public.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { ChatInlineMultimediaEnhancer } from '@features/chat/message/enhancers/ChatInlineMultimediaEnhancer.ts';
 import { syncAssistantBodyCacheFromDom } from '@features/chat/message/postrender/assistantBodyCacheSync.ts';
-import { prepareChatMessageImageLifecycles } from '@features/chat/message/postrender/chatImageLoadLifecycle.ts';
+import { prepareChatMessageImageLifecycles } from '@features/chat/attachments/chatImageLoadLifecycle.ts';
 import { runChatMessagePostRenderEffects } from '@features/chat/message/postrender/chatMessagePostRenderEffects.ts';
 import { applyKeyedScrollableState, readKeyedScrollableState } from '@features/chat/stream/streamScrollableState.ts';
 import { hasChatPostRenderCapability, type ChatPostRenderCapabilities } from '@features/chat/message/chatMessagePostRenderCapabilities.ts';

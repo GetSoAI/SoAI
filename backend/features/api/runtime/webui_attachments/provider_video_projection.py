@@ -7,6 +7,7 @@ import asyncio
 import os
 import time
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING
 
 from core.concurrency.joined_thread_call import run_joined_thread_call
@@ -95,12 +96,16 @@ async def _shape_frame(
 ) -> JSONDict | None:
     descriptor = os.open(frame_path, os.O_RDONLY)
     try:
-        shaped = await asyncio.to_thread(
+        image_shaper = partial(
             shape_descriptor_image_for_provider,
             descriptor=descriptor,
             declared_content_type="image/jpeg",
             config=config,
             max_encoded_chars=max_encoded_chars,
+        )
+        shaped = await run_joined_thread_call(
+            image_shaper,
+            task_name="provider-video-frame-image-shape",
         )
     finally:
         os.close(descriptor)

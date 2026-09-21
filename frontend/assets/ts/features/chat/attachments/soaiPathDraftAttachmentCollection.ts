@@ -1,7 +1,7 @@
 /* SoAI - SoAI path draft attachment collection [frontend/assets/ts/features/chat/attachments/soaiPathDraftAttachmentCollection.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { ChatAttachment } from '@features/chat/ChatTypes.ts';
+import type { ChatAttachment, ChatAttachmentDraftSource } from '@features/chat/ChatTypes.ts';
 import { createSoaiPathAttachment } from '@features/chat/attachments/soaiPathAttachmentDrafts.ts';
 import { isSoaiPathDraftRecord, type SoaiPathDraftRecord } from '@features/chat/attachments/soaiPathDraftRecords.ts';
 import type { SoaiPathImagePreviewLifecycle } from '@features/chat/attachments/soaiPathImagePreviewLifecycle.ts';
@@ -22,13 +22,13 @@ const loadSoaiPathAttachmentPreview = (collection: SoaiPathDraftAttachmentCollec
     collection.imagePreviewLifecycle.load(attachment, collection.isAttachmentPresent, collection.syncUi);
 };
 
-const addResolvedSoaiPathAttachments = (collection: SoaiPathDraftAttachmentCollection, records: readonly SoaiPathDraftRecord[]): number => {
+const addResolvedSoaiPathAttachments = (collection: SoaiPathDraftAttachmentCollection, records: readonly SoaiPathDraftRecord[], draftSource: Extract<ChatAttachmentDraftSource, 'browse' | 'soaiLink'>): number => {
     if (records.length === 0) {
         return 0;
     }
     let addedCount = 0;
     for (const record of records) {
-        const attachment = createSoaiPathAttachment(record);
+        const attachment = createSoaiPathAttachment(record, draftSource);
         collection.attachments.push(attachment);
         loadSoaiPathAttachmentPreview(collection, attachment);
         addedCount += 1;

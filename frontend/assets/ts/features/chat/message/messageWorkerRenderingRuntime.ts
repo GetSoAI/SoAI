@@ -88,6 +88,8 @@ class ChatMessageWorkerRenderingRuntime {
                 isConversationExecuting: (conversationId: string) => this.#dependencies.session.isConversationExecuting(conversationId),
                 getWorkerRenderEpoch: () => this.#dependencies.rendering.getWorkerRenderEpoch(),
                 getCurrentConversationId: () => this.#dependencies.session.getCurrentConversation()?.id ?? null,
+                getCurrentConversation: () => this.#dependencies.session.getCurrentConversation(),
+                resolveMessageForDomId: (conversation: ConversationContract, messageDomId: string) => this.#dependencies.state.resolveMessageReference(conversation, messageDomId).message,
                 handleError: (error: Error, context: string) => this.#handleError(error, context),
                 postRenderEffects: (container: Element | null) => this.#postRenderRequest(container, 'streamingTimeline'),
                 retryPendingRender: (container: Element | null) => this.#postRenderRequest(container, 'full')

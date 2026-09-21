@@ -104,12 +104,12 @@ class ChatMessageView {
         });
     }
 
-    #renderMessageTextContent(message: ChatMessage, presentation: ChatMessageRenderModel['presentation'], segments: MessageSegment[] | null, forceSettledAssistantBody: boolean): RenderedMessageTextContent {
+    #renderMessageTextContent(message: ChatMessage, presentation: ChatMessageRenderModel['presentation'], segments: MessageSegment[] | null, forceSettledAssistantBody: boolean, conversationId: string | null = this.#dependencies.getCurrentConversationId()): RenderedMessageTextContent {
         return renderMessageTextContent(
             {
                 nowMs: this.#renderHost.nowMs,
                 isShowActivitiesEnabled: () => this.#dependencies.presentationPreferences.isShowActivitiesEnabled(),
-                getCurrentConversationId: () => this.#dependencies.getCurrentConversationId(),
+                getCurrentConversationId: () => conversationId,
                 resolveMessageContentSegments: (candidateMessage) => this.#dependencies.resolveMessageContentSegments(candidateMessage),
                 getPreRenderedAssistantBodyHtml: (candidateMessage) => this.#dependencies.getPreRenderedAssistantBodyHtml(candidateMessage),
                 getLoadingActivityCollapsedState: (candidateMessage) => this.#dependencies.getLoadingActivityCollapsedState(candidateMessage),
@@ -117,12 +117,8 @@ class ChatMessageView {
                 renderTimelineSegmentsMarkup: (renderSegments) => this.#renderTimelineSegmentsMarkup(renderSegments),
                 renderAssistantBodyItem: (markup, key, signature) => injectAssistantBodyRootAttributes(this.#renderHost, markup, key, signature),
                 renderAssistantActivityWidgets: (renderSegments) => this.renderAssistantActivityWidgets(renderSegments),
-                renderLoadingActivityGroup: (segment, inputArguments) =>
-                    renderInlineLoadingActivityGroup(this.#renderHost, {
-                        segment,
-                        displayStatus: inputArguments.displayStatus,
-                        toggleEnabled: inputArguments.toggleEnabled
-                    }),
+                resolveRenderableSegments: (renderSegments) => this.#resolveRenderableSegments(renderSegments),
+                renderLoadingActivityGroup: (segment, inputArguments) => renderInlineLoadingActivityGroup(this.#renderHost, { segment, ...inputArguments }),
                 renderMessageErrorMarkup: (errorText) => renderMessageError(this.#renderHost, errorText),
                 handleMessageRenderError: (candidateMessage, error, context) => this.#renderFailurePresenter.renderWithPreservedContent(candidateMessage, error, context)
             },
@@ -143,6 +139,7 @@ class ChatMessageView {
 
     renderMessage(model: ChatMessageRenderModel, getModelTypeLabel: (modelId: string | null) => string | null): TrustedHtml {
         const message = model.message;
+        const conversationId = model.conversationId;
         const index = model.index;
         const role = model.presentation.normalizedRole;
 
@@ -202,7 +199,7 @@ class ChatMessageView {
             return toTrustedUiHtml(`<div class="chat-message${messageClassSuffix}" data-id="${this.escapeAttribute(messageDomId)}"${assistantSemanticIdentityAttributes}${renderChatPostRenderCapabilitiesAttribute('')}>${deletedMessageMarkup}</div>`);
         }
 
-        const textHtml = isInvalidComparisonTurn ? buildAssistantResponseMarkup({ bodyHtml: renderMessageError(this.#renderHost, i18n.t('chat.comparison.invalidTurn')) }) : this.#renderMessageTextContent(message, model.presentation, null, model.forceSettledAssistantBody === true).html;
+        const textHtml = isInvalidComparisonTurn ? buildAssistantResponseMarkup({ bodyHtml: renderMessageError(this.#renderHost, i18n.t('chat.comparison.invalidTurn')) }) : this.#renderMessageTextContent(message, model.presentation, null, model.forceSettledAssistantBody === true, conversationId).html;
         const actionsHtml = !compactionBoundary.renderActions
             ? ''
             : renderMessageActions(
@@ -211,7 +208,7 @@ class ChatMessageView {
                       escapeAttribute: (value) => this.escapeAttribute(value),
                       getIcon: (name, options) => this.#dependencies.getIcon(name, options).html,
                       isConversationExecuting: (conversationId) => this.#dependencies.isConversationExecuting(conversationId),
-                      getCurrentConversationId: () => this.#dependencies.getCurrentConversationId(),
+                      getCurrentConversationId: () => conversationId,
                       getCurrentRunningActivitySnapshot: () => this.#dependencies.getCurrentRunningActivitySnapshot(),
                       resolveRunningActivitySummaryForMarkup: (candidateMessage, nowMs) => this.#dependencies.resolveRunningActivitySummaryForMarkup(candidateMessage, nowMs)
                   },

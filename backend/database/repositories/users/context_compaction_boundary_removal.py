@@ -24,7 +24,13 @@ from core.tool_calls.context_compaction_markers import (
 from core.types.json_value import coerce_json_dict
 from core.validation.integers import is_strict_int
 from database.core.query_execution import sync_fetch_one_as_dict
+from database.repositories.users.conversation_input_active_state_reads import (
+    sync_read_active_conversation_input_summary,
+)
 from database.repositories.users.conversation_ownership import ensure_conversation_owned
+from database.repositories.users.conversation_stream_cancellation_state import (
+    sync_has_pending_chat_stream_cancellation,
+)
 from database.repositories.users.conversation_versioning import (
     sync_bump_conversation_last_modified_at_ms,
     sync_load_conversation_last_modified_at_ms,
@@ -188,6 +194,11 @@ def sync_remove_context_compaction_boundary(
     expected_last_modified_at_ms: int,
 ) -> ConversationMessageWriteResult:
     ensure_conversation_owned(conn, conv_id, user_id)
+    active_inputs = sync_read_active_conversation_input_summary(conn, conv_id, user_id)
+    if active_inputs.has_active_inputs:
+        raise ConflictError("Compaction unavailable while conversation input work is active.")
+    if sync_has_pending_chat_stream_cancellation(conn, user_id, conv_id):
+        raise ConflictError("Compaction unavailable while cancellation is pending.")
     _require_no_running_agent_turn(conn, conv_id=conv_id, user_id=user_id)
     sync_require_expected_conversation_version(
         conn,

@@ -31,6 +31,9 @@ if TYPE_CHECKING:
     from core.conversations.protocols_database_conversation_drafts import (
         DatabaseConversationDraftsProtocol,
     )
+    from core.conversations.protocols_database_conversation_input_execution import (
+        DatabaseConversationInputExecutionProtocol,
+    )
     from core.conversations.protocols_database_conversation_inputs import (
         DatabaseConversationInputsProtocol,
     )
@@ -46,6 +49,12 @@ if TYPE_CHECKING:
     )
     from core.conversations.protocols_database_password_vault import (
         DatabasePasswordVaultProtocol,
+    )
+    from core.conversations.protocols_database_regenerations import (
+        DatabaseConversationRegenerationsProtocol,
+    )
+    from core.conversations.protocols_database_stream_cancellations import (
+        DatabaseConversationStreamCancellationsProtocol,
     )
     from core.database.protocols import DatabaseOperationStatusProtocol
     from core.database.protocols_tasks import DatabaseTasksProtocol
@@ -81,6 +90,12 @@ __all__ = ("DatabaseServicesProtocol",)
 
 
 class DatabaseServicesProtocol(Protocol):
+    @property
+    def input_execution(self) -> DatabaseConversationInputExecutionProtocol: ...
+
+    @property
+    def regenerations(self) -> DatabaseConversationRegenerationsProtocol: ...
+
     @property
     def licensing(self) -> LicensingRepositoryProtocol: ...
 
@@ -178,6 +193,9 @@ class DatabaseServicesProtocol(Protocol):
 
     @property
     def input_queue(self) -> DatabaseConversationInputsProtocol: ...
+
+    @property
+    def stream_cancellations(self) -> DatabaseConversationStreamCancellationsProtocol: ...
 
     @property
     def chat_prompt_history(self) -> DatabaseChatPromptHistoryProtocol: ...

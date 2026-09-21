@@ -35,6 +35,7 @@
         --chat-previews-container-bottom: calc(80px + var(--ui-safe-area-inset-bottom));
         --chat-previews-container-gap: var(--space-2);
         --chat-previews-container-left: var(--space-14);
+        --chat-previews-container-focus-left: var(--chat-previews-container-left);
         --chat-previews-container-right: 3rem;
         bottom: var(--chat-previews-container-bottom);
         left: var(--chat-previews-container-left);
@@ -45,6 +46,11 @@
         display: flex;
         flex-direction: column;
         gap: var(--space-2);
+        transition: left var(--duration-300) var(--ease-smooth);
+    }
+
+    :where(.chat-container) .chat-main-container:has(.chat-input:focus) .chat-previews-container {
+        left: var(--chat-previews-container-focus-left);
     }
 
     :where(.chat-container) .chat-previews-container.u-hidden {

@@ -35,6 +35,7 @@ const serializeUiPreferences = (preferences: UiPreferences): JsonObject => ({
     'dashboard_image_card': preferences.dashboardImageCard,
     'dashboard_image_card_fit': preferences.dashboardImageCardFit,
     'dashboard_memo': preferences.dashboardMemo,
+    'default_page': preferences.defaultPage,
     'chart_color_mode': preferences.chartColorMode,
     'chart_static_color': preferences.chartStaticColor,
     'header_auto_hide': preferences.headerAutoHide,

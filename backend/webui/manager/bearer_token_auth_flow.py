@@ -20,15 +20,16 @@ from webui.manager.auth_failure_reporter import AuthFailureReporter
 from webui.manager.request_client_ip import resolve_request_client_ip
 
 if TYPE_CHECKING:
-    from core.types.json import JSONDict
+    from core.types.json import JSONDict, JSONValue
     from core.wallpaper.protocols import AuthGuardProtocol
 
 __all__ = (
     "BearerTokenAuthAttempt",
     "prepare_bearer_token_auth_attempt",
-    "report_invalid_bearer_record_failure",
+    "report_bearer_record_failure",
     "resolve_bearer_token_id_or_failure",
     "resolve_bearer_token_throttle",
+    "resolve_bearer_user_record_or_failure",
 )
 
 
@@ -134,26 +135,51 @@ async def resolve_bearer_token_id_or_failure(
         )
     token_id = validation.token_id
     if token_id is None:
-        return await report_invalid_bearer_record_failure(
+        return await report_bearer_record_failure(
             failure_reporter=failure_reporter,
             attempt=attempt,
             fingerprint=fingerprint,
+            reason="invalid_record",
             use_reason_as_failure_category=use_reason_as_failure_category,
         )
     return token_id
 
 
-async def report_invalid_bearer_record_failure(
+async def report_bearer_record_failure(
     *,
     failure_reporter: AuthFailureReporter,
     attempt: BearerTokenAuthAttempt,
     fingerprint: str,
+    reason: str,
     use_reason_as_failure_category: bool,
 ) -> AuthenticationDecision:
     return await failure_reporter.report_failure(
         "You are not authenticated.",
-        "invalid_record",
+        reason,
         bucket_identifiers=attempt.bucket_identifiers,
         fingerprint=fingerprint[:12],
-        failure_category="invalid_record" if use_reason_as_failure_category else None,
+        failure_category=reason if use_reason_as_failure_category else None,
     )
+
+
+async def resolve_bearer_user_record_or_failure(
+    user_record: JSONValue,
+    *,
+    failure_reporter: AuthFailureReporter,
+    attempt: BearerTokenAuthAttempt,
+    use_reason_as_failure_category: bool,
+) -> JSONDict | AuthenticationDecision:
+    if not isinstance(user_record, dict):
+        fingerprint = attempt.primary_fingerprint
+        if fingerprint is None:
+            raise StateError("Bearer user resolution requires a token fingerprint.")
+        return await report_bearer_record_failure(
+            failure_reporter=failure_reporter,
+            attempt=attempt,
+            fingerprint=fingerprint,
+            reason="missing_user",
+            use_reason_as_failure_category=use_reason_as_failure_category,
+        )
+    resolved_user = dict(user_record)
+    resolved_user.pop("hashed_password", None)
+    return resolved_user

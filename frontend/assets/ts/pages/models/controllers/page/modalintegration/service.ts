@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { getRequestAnimationFrame, getWindow } from '@core/environment/public.ts';
+import { signalAborted } from '@core/lifecycle/abortSignals.ts';
 import { MODELS, PROVIDERS } from '@core/realtime/streammanager/resources/ids.ts';
 import { serializeProviderSnapshotRequest } from '@core/plugins/pluginMutationContracts.ts';
 import { WEBSOCKET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/registry.ts';
 import { subscribeManagedWebSocketContract } from '@core/realtime/websocketBatchSubscription.ts';
 import type { EnsureCollectionStreamOptions } from '@core/routing/pages/pagetypes/public.ts';
+import { createDeferred } from '@core/runtime/deferred.ts';
 import { isJsonValue, type JsonValue } from '@core/types/jsonValues.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
 import { setAriaBusy } from '@core/ui/controls/ariaBusy.ts';
@@ -104,6 +106,27 @@ const createModelsModalManagers = (
             streams: infrastructure.streaming.pageTracker,
             variantProbe,
             getAvailablePlugins: () => session.availablePlugins,
+            waitForModelCatalogChange: (signal) => {
+                const completion = createDeferred<void>();
+                let settled = false;
+                let unsubscribe: (() => void) | null = null;
+                const finish = (): void => {
+                    if (settled) return;
+                    settled = true;
+                    signal.removeEventListener('abort', finish);
+                    const dispose = unsubscribe;
+                    unsubscribe = null;
+                    dispose?.();
+                    completion.resolve();
+                };
+                signal.addEventListener('abort', finish, { once: true });
+                if (signalAborted(signal)) {
+                    finish();
+                    return completion.promise;
+                }
+                unsubscribe = subscribeManagedWebSocketContract({ label: 'ModelsProviderDiscovery', contract: WEBSOCKET_EVENT_CONTRACTS.model.databaseChanged, handler: finish, signal });
+                return completion.promise;
+            },
             refreshModelsAfterCatalogMutation: () => {
                 infrastructure.pageLifecycle.runDetached('models:refreshAfterDownloadModalMutation', async () => {
                     await infrastructure.streaming.runtime().resources.refresh(MODELS, { allowDiscovery: true, throwOnError: true });

@@ -31,6 +31,7 @@ interface PreferenceDelegates {
     setDashboardImageCard(value: string | null): void;
     setDashboardImageCardFit(fit: ImageFitType): void;
     setDashboardMemo(value: string | null): void;
+    setDefaultPage(value: string | null): void;
     setChartColorMode(mode: string): void;
     setChartStaticColor(color: string): void;
     setHeaderAutoHide(enabled: boolean): void;

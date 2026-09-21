@@ -20,7 +20,7 @@ interface ChatComposerActionsHost {
     shared: ChatSharedActionPort;
 }
 
-type ChatComposerActionId = typeof CHAT_ACTIONS.SEND_OR_STOP | typeof CHAT_ACTIONS.CYCLE_TOKEN_COUNTER | typeof CHAT_ACTIONS.OPEN_CHARACTER_MAP | typeof CHAT_ACTIONS.OPEN_ATTACH_MODAL | typeof CHAT_ACTIONS.OPEN_CAMERA | typeof CHAT_ACTIONS.CANCEL_RAG_INGESTION | typeof CHAT_ACTIONS.TOGGLE_RECORDING | typeof CHAT_ACTIONS.CANCEL_RECORDING | typeof CHAT_ACTIONS.TOGGLE_CALL | typeof CHAT_ACTIONS.SAVE_CONFIGURATION | typeof CHAT_ACTIONS.SUGGESTION | typeof CHAT_ACTIONS.REMOVE_ATTACHED_FILE | typeof CHAT_ACTIONS.REMOVE_DRAFT_KNOWLEDGE_ATTACHMENT | typeof CHAT_ACTIONS.OPEN_COMPOSER_ATTACHMENT_OVERFLOW | typeof CHAT_ACTIONS.REMOVE_CONVERSATION_INPUT | typeof CHAT_ACTIONS.COPY_CODE_BLOCK | typeof CHAT_ACTIONS.TOGGLE_TOOL_ACTIVITY_ITEM;
+type ChatComposerActionId = typeof CHAT_ACTIONS.SEND_OR_STOP | typeof CHAT_ACTIONS.STOP_STREAMING | typeof CHAT_ACTIONS.CYCLE_TOKEN_COUNTER | typeof CHAT_ACTIONS.OPEN_CHARACTER_MAP | typeof CHAT_ACTIONS.OPEN_ATTACH_MODAL | typeof CHAT_ACTIONS.OPEN_CAMERA | typeof CHAT_ACTIONS.CANCEL_RAG_INGESTION | typeof CHAT_ACTIONS.TOGGLE_RECORDING | typeof CHAT_ACTIONS.CANCEL_RECORDING | typeof CHAT_ACTIONS.TOGGLE_CALL | typeof CHAT_ACTIONS.SAVE_CONFIGURATION | typeof CHAT_ACTIONS.SUGGESTION | typeof CHAT_ACTIONS.REMOVE_ATTACHED_FILE | typeof CHAT_ACTIONS.REMOVE_DRAFT_KNOWLEDGE_ATTACHMENT | typeof CHAT_ACTIONS.REMOVE_CONVERSATION_INPUT | typeof CHAT_ACTIONS.RETRY_CONVERSATION_REGENERATION | typeof CHAT_ACTIONS.COPY_CODE_BLOCK | typeof CHAT_ACTIONS.TOGGLE_TOOL_ACTIVITY_ITEM;
 
 const applySuggestionToInput = (host: ChatComposerActionsHost, actionElement: HTMLElement): void => {
     const input = host.composer.requireInput();
@@ -42,10 +42,7 @@ const resolveToolActivityToggleTaskId = (actionElement: HTMLElement): string => 
     return 'chat:toggleToolActivity';
 };
 
-const openChatAttachUploadModal = (host: ChatComposerActionsHost): void => {
-    if (!host.attachments.fileUploadEnabled()) {
-        throw new Error('Chat attachment upload is not available');
-    }
+const openChatAttachmentModal = (host: ChatComposerActionsHost): void => {
     openChatAttachModal(host);
 };
 
@@ -68,7 +65,8 @@ const createChatComposerActionHandlers = (host: ChatComposerActionsHost): Record
     });
     return {
         [CHAT_ACTIONS.SEND_OR_STOP]: (actionElement) => executeComposerPrimaryAction(host, actionElement),
-        [CHAT_ACTIONS.OPEN_ATTACH_MODAL]: () => openChatAttachUploadModal(host),
+        [CHAT_ACTIONS.STOP_STREAMING]: (actionElement) => executeComposerPrimaryAction(host, actionElement, true),
+        [CHAT_ACTIONS.OPEN_ATTACH_MODAL]: () => openChatAttachmentModal(host),
         [CHAT_ACTIONS.OPEN_CHARACTER_MAP]: () => host.composer.openCharacterMap(),
         [CHAT_ACTIONS.OPEN_CAMERA]: createPreventDefaultStoppedActionHandler((_actionElement: HTMLElement) => openChatCameraModal(host)),
         [CHAT_ACTIONS.CYCLE_TOKEN_COUNTER]: mappedDirectActions[CHAT_ACTIONS.CYCLE_TOKEN_COUNTER],
@@ -92,7 +90,6 @@ const createChatComposerActionHandlers = (host: ChatComposerActionsHost): Record
             }
             host.execution.run('chat:removeDraftKnowledgeAttachment', () => host.attachments.removeKnowledge(knowledgeAttachmentId));
         },
-        [CHAT_ACTIONS.OPEN_COMPOSER_ATTACHMENT_OVERFLOW]: () => host.composer.openAttachmentOverflow(),
         [CHAT_ACTIONS.REMOVE_CONVERSATION_INPUT]: (actionElement: HTMLElement) => {
             const inputId = host.presentation.actionData(actionElement, 'input-id');
             if (!inputId) {
@@ -101,6 +98,18 @@ const createChatComposerActionHandlers = (host: ChatComposerActionsHost): Record
             const conversationId = requireCurrentConversationId(host);
             runCollapsedUiTask(host, 'chat:removeConversationInput', async () => {
                 await host.composer.cancelConversationInput(conversationId, inputId);
+                host.composer.updateInputQueuePreview();
+                host.composer.updateInputState();
+            });
+        },
+        [CHAT_ACTIONS.RETRY_CONVERSATION_REGENERATION]: (actionElement: HTMLElement) => {
+            const inputId = host.presentation.actionData(actionElement, 'input-id');
+            if (!inputId) {
+                throw new Error('Conversation regeneration retry requires data-input-id');
+            }
+            const conversationId = requireCurrentConversationId(host);
+            runCollapsedUiTask(host, 'chat:retryConversationRegeneration', async () => {
+                await host.composer.retryConversationRegeneration(conversationId, inputId);
                 host.composer.updateInputQueuePreview();
                 host.composer.updateInputState();
             });

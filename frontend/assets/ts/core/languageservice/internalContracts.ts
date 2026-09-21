@@ -9,12 +9,12 @@ interface LanguageServiceRuntimeResources {
 
 interface LanguageServiceRuntime {
     applyDocumentLanguage(): void;
-    cacheKey: string;
     catalogPaths: readonly string[];
     currentLanguage: string;
     defaultLanguage: string;
     initialized: boolean;
     initializePromise: Promise<void> | null;
+    isLanguageRequestSettled: (code: string) => boolean;
     languageFlags: Map<string, string>;
     languages: Map<string, LanguageEntry>;
     loadedLanguages: Map<string, TranslationObject>;

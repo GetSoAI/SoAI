@@ -2,15 +2,18 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { closest, dom } from '@core/dom/dom.ts';
+import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { bindToastNotificationSwipeDismissal } from '@core/ui/notifications/toastNotificationSwipe.ts';
 import type { NotificationInteractionLifecycle } from '@core/ui/notifications/types.ts';
 
 const NOTIFICATION_CLICK_SUPPRESSION_MS = 350;
+const NOTIFICATION_DOUBLE_CLICK_DELAY_MS = 300;
 const NOTIFICATION_EXPANSION_MEASUREMENT_TOLERANCE_PX = 1;
 
 interface ToastNotificationInteractionOptions {
     notification: HTMLElement;
     lifecycle: NotificationInteractionLifecycle;
+    copyNotificationMessage: (message: string) => Promise<void>;
 }
 
 const isNotificationControlTarget = (target: EventTarget | null): boolean => {
@@ -31,6 +34,8 @@ const resolveMessageElement = (notification: HTMLElement): HTMLElement | null =>
     const message = dom.resolve('.ui-notification__message', notification);
     return message instanceof HTMLElement ? message : null;
 };
+
+const resolveNotificationMessage = (notification: HTMLElement): string => resolveMessageElement(notification)?.textContent?.trim() ?? '';
 
 const hasHiddenMessageContent = (notification: HTMLElement): boolean => {
     const message = resolveMessageElement(notification);
@@ -76,9 +81,10 @@ const refreshToastNotificationInteractivity = (notification: HTMLElement): void 
 };
 
 const bindToastNotificationInteractions = (options: ToastNotificationInteractionOptions): void => {
-    const { notification, lifecycle } = options;
+    const { notification, lifecycle, copyNotificationMessage } = options;
     let suppressNextClick = false;
     let suppressNextClickTimer: ReturnType<typeof setTimeout> | null = null;
+    let pendingSingleClickTimer: ReturnType<typeof setTimeout> | null = null;
 
     const isExpanded = (): boolean => dom.hasClass(notification, 'ui-notification--expanded');
     const isExpandable = (): boolean => dom.hasClass(notification, 'ui-notification--expandable');
@@ -95,6 +101,13 @@ const bindToastNotificationInteractions = (options: ToastNotificationInteraction
         clearClickSuppression();
         suppressNextClick = true;
         suppressNextClickTimer = setTimeout(clearClickSuppression, NOTIFICATION_CLICK_SUPPRESSION_MS);
+    };
+
+    const clearPendingSingleClick = (): void => {
+        if (pendingSingleClickTimer) {
+            clearTimeout(pendingSingleClickTimer);
+            pendingSingleClickTimer = null;
+        }
     };
 
     const toggleExpanded = (): void => {
@@ -124,22 +137,62 @@ const bindToastNotificationInteractions = (options: ToastNotificationInteraction
 
     const handleClick = (event: MouseEvent): void => {
         if (suppressNextClick) {
+            clearPendingSingleClick();
             clearClickSuppression();
             event.preventDefault();
             event.stopPropagation();
             return;
         }
+        if (event.button !== 0) {
+            clearPendingSingleClick();
+            return;
+        }
         if (isNotificationControlTarget(event.target)) {
+            clearPendingSingleClick();
             return;
         }
         if (hasActiveNotificationTextSelection(notification)) {
+            clearPendingSingleClick();
             return;
         }
-        toggleExpanded();
+        if (event.detail === 0) {
+            clearPendingSingleClick();
+            toggleExpanded();
+            return;
+        }
+        if (event.detail > 1) {
+            clearPendingSingleClick();
+            return;
+        }
+        clearPendingSingleClick();
+        pendingSingleClickTimer = setTimeout(() => {
+            pendingSingleClickTimer = null;
+            if (!notification.isConnected || dom.hasClass(notification, 'ui-notification--closing') || dom.hasClass(notification, 'ui-notification--swipe-dismissed')) {
+                return;
+            }
+            toggleExpanded();
+        }, NOTIFICATION_DOUBLE_CLICK_DELAY_MS);
+    };
+
+    const handleDoubleClick = (event: MouseEvent): void => {
+        if (event.button !== 0 || event.detail < 2) {
+            return;
+        }
+        clearPendingSingleClick();
+        if (isNotificationControlTarget(event.target)) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const message = resolveNotificationMessage(notification);
+        if (message) {
+            terminateHandledPromise(copyNotificationMessage(message));
+        }
     };
 
     dom.setAttribute(notification, 'aria-expanded', 'false');
     notification.addEventListener('click', handleClick);
+    notification.addEventListener('dblclick', handleDoubleClick);
     notification.addEventListener('mouseenter', handleMouseEnter);
     notification.addEventListener('mouseleave', handleMouseLeave);
     bindToastNotificationSwipeDismissal({

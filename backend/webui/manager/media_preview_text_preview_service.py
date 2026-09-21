@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 
 import httpx2
 
-from core.concurrency.ttl_cache import TTLCache, TTLCacheDependencies
 from core.di.validation import require_dependencies
 from core.errors.exceptions import ValidationError
 from core.files.content_types import (
@@ -19,9 +18,9 @@ from core.files.content_types import (
 )
 from core.media_preview.media_preview_models import TextPreview
 from core.media_preview.media_preview_settings import MediaPreviewSettings
-from core.network.urls import normalize_http_url
 from core.web.html_metadata import extract_html_text_excerpt
 from webui.manager.media_preview_fetcher import BoundedMediaFetcher
+from webui.manager.media_preview_memory_cache import NormalizedMediaPreviewCache
 from webui.manager.media_preview_remote_policy import RemoteMediaPolicy
 
 if TYPE_CHECKING:
@@ -53,9 +52,7 @@ class TextPreviewService:
 
     def __init__(self, deps: TextPreviewServiceDependencies) -> None:
         self._deps = deps
-        self._cache: TTLCache[str, TextPreview] = TTLCache(
-            TTLCacheDependencies(ttl_seconds=300.0, max_size=2048),
-        )
+        self._cache: NormalizedMediaPreviewCache[TextPreview] = NormalizedMediaPreviewCache()
 
     async def get_text_preview(
         self,
@@ -63,8 +60,7 @@ class TextPreviewService:
         runtime_flags: RuntimeFlagsViewProtocol,
         source_url: str,
     ) -> TextPreview:
-        normalized = normalize_http_url(source_url)
-        cached = self._cache.get(normalized)
+        normalized, cached = self._cache.lookup_source_url(source_url)
         if cached is not None:
             return cached
         await self._deps.policy.enforce(

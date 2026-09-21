@@ -4,7 +4,7 @@
 import { toTrustedUiHtml } from '@core/security/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { buildWorkspaceFolderFieldMarkup } from '@core/fileexplorerbrowser/workspaceFolderFieldMarkup.ts';
-import { renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
+import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
 import { MODAL_HEADER_CLOSE_SELECTOR } from '@core/modals/headerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
 import type { ModalOpenOptions } from '@core/modals/types.ts';
@@ -13,6 +13,7 @@ import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } fr
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { EMPTY_UI_HTML, staticUiHtml, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
+import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { CHAT_ATTACH_MODAL_ACTIONS } from '@features/chat/composerattachmodal/actions.ts';
 import { CHAT_ATTACH_MODAL_ID } from '@features/chat/modals/constants.ts';
@@ -47,17 +48,25 @@ const renderAttachActionRow = (buttons: readonly string[]) => {
     return toTrustedUiHtml(buttons.join(''));
 };
 
+const renderRemoveAllButton = (tokenPrefix: string) => {
+    const label = i18n.t('chat.attachModal.removeAll');
+    return uiHtml`<button id="${uiAttr(modalUiId(CHAT_ATTACH_MODAL_ID, `${tokenPrefix}-remove-all`))}" class="ui-button ui-variant-danger chat-attach-modal-action-button" type="button" aria-label="${uiAttr(label)}" data-tooltip="${uiAttr(label)}" data-action="${uiAttr(CHAT_ATTACH_MODAL_ACTIONS.REMOVE_ALL)}" disabled aria-disabled="true" hidden>${label}</button>`;
+};
+
+const renderDraftAttachmentStatus = (tokenPrefix: string) => uiHtml`<div id="${uiAttr(modalUiId(CHAT_ATTACH_MODAL_ID, `${tokenPrefix}-status`))}" class="chat-configuration-hint u-hidden inline-loading-status chat-attach-draft-attachment-status"></div>`;
+
+const renderDraftAttachmentCollection = (tokenPrefix: string) => uiHtml`<div id="${uiAttr(modalUiId(CHAT_ATTACH_MODAL_ID, `${tokenPrefix}-summary`))}" class="chat-configuration-hint u-hidden chat-attach-draft-attachment-summary"></div><div id="${uiAttr(modalUiId(CHAT_ATTACH_MODAL_ID, `${tokenPrefix}-list`))}" class="chat-attach-draft-attachment-list u-hidden"></div>`;
+
 const renderUploadPane = () => {
     const modalId = CHAT_ATTACH_MODAL_ID;
     return uiHtml`<section id="${uiAttr(modalUiId(modalId, 'pane-upload'))}" class="chat-attach-modal-pane is-active" role="tabpanel" aria-labelledby="${uiAttr(modalUiId(modalId, 'tab-upload'))}">
         ${renderTabHeader(i18n.t('chat.attachModal.uploadTitle'), i18n.t('chat.attachModal.uploadSubtitle'))}
-        <div id="${uiAttr(modalUiId(modalId, 'upload-status'))}" class="chat-configuration-hint u-hidden inline-loading-status chat-attach-draft-attachment-status"></div>
+        ${renderDraftAttachmentStatus('upload')}
         ${renderUnifiedAttachDropzone('dropzone', CHAT_ATTACH_MODAL_ACTIONS.CHOOSE_UPLOAD, i18n.t('chat.attachModal.uploadDropTitle'), i18n.t('chat.attachModal.dropzoneHint'))}
         <div class="chat-attach-modal-actions">
-            ${renderAttachActionRow([renderAttachActionButton('upload-file-button', CHAT_ATTACH_MODAL_ACTIONS.CHOOSE_FILE, i18n.t('chat.attachModal.uploadFileButton')).html, renderAttachActionButton('upload-folder-button', CHAT_ATTACH_MODAL_ACTIONS.CHOOSE_FOLDER, i18n.t('chat.attachModal.uploadFolderButton')).html])}
+            ${renderAttachActionRow([renderAttachActionButton('upload-file-button', CHAT_ATTACH_MODAL_ACTIONS.CHOOSE_FILE, i18n.t('chat.attachModal.uploadFileButton')).html, renderAttachActionButton('upload-folder-button', CHAT_ATTACH_MODAL_ACTIONS.CHOOSE_FOLDER, i18n.t('chat.attachModal.uploadFolderButton')).html, renderRemoveAllButton('upload').html])}
         </div>
-        <div id="${uiAttr(modalUiId(modalId, 'upload-summary'))}" class="chat-configuration-hint u-hidden chat-attach-draft-attachment-summary"></div>
-        <div id="${uiAttr(modalUiId(modalId, 'upload-list'))}" class="chat-attach-draft-attachment-list u-hidden"></div>
+        ${renderDraftAttachmentCollection('upload')}
     </section>`;
 };
 
@@ -87,12 +96,13 @@ const renderCameraPane = () => {
         ${renderCameraStage()}
         <div class="chat-attach-modal-camera-controls">
             <div class="chat-attach-modal-camera-control-row">
-                ${renderCameraButton('camera-flip', CHAT_ATTACH_MODAL_ACTIONS.CAMERA_FLIP, i18n.t('chat.attachModal.cameraFlip'), 'camera')}
+                ${renderCameraButton('camera-switch', CHAT_ATTACH_MODAL_ACTIONS.CAMERA_SWITCH, i18n.t('chat.attachModal.cameraSwitch'), 'camera')}
                 ${renderCameraShutterButton()}
                 ${renderCameraButton('camera-retake', CHAT_ATTACH_MODAL_ACTIONS.CAMERA_RETAKE, i18n.t('chat.attachModal.cameraRetake'), 'refresh')}
                 ${renderCameraButton('camera-use', CHAT_ATTACH_MODAL_ACTIONS.CAMERA_USE, i18n.t('chat.attachModal.cameraUse'), 'check')}
             </div>
         </div>
+        <div class="chat-attach-modal-camera-drafts">${renderDraftAttachmentStatus('camera')}${renderDraftAttachmentCollection('camera')}<div class="chat-attach-modal-actions">${renderRemoveAllButton('camera')}</div></div>
     </section>`;
 };
 
@@ -119,7 +129,7 @@ const renderBrowsePane = () => {
         </div>
         <div class="searchbar-container searchbar-container--collection chat-attach-modal-search">
             <input id="${uiAttr(modalUiId(modalId, 'search'))}" class="searchbar-input" type="search" aria-label="${uiAttr(searchLabel)}" placeholder="${uiAttr(i18n.t('chat.attachModal.searchPlaceholder'))}">
-            <span class="searchbar-icon" aria-hidden="true">${getIconSync('search', { size: 16, strokeWidth: 1.5 })}</span>
+            ${renderSearchFieldActions()}
         </div>
         <div id="${uiAttr(modalUiId(modalId, 'results'))}" class="chat-attach-modal-results" aria-live="polite">
             <div class="chat-attach-empty-state">
@@ -128,6 +138,9 @@ const renderBrowsePane = () => {
                 <p class="chat-attach-modal-hint">${i18n.t('chat.attachModal.browseEmptySubtitle')}</p>
             </div>
         </div>
+        ${renderDraftAttachmentStatus('browse')}
+        ${renderDraftAttachmentCollection('browse')}
+        <div class="chat-attach-modal-actions">${renderRemoveAllButton('browse')}</div>
     </section>`;
 };
 
@@ -136,11 +149,11 @@ const renderSoaiLinkPane = () => {
     const inputLabel = i18n.t('chat.attachModal.soaiLinkInputLabel');
     return uiHtml`<section id="${uiAttr(modalUiId(modalId, 'pane-soai-link'))}" class="chat-attach-modal-pane chat-attach-modal-soai-link" role="tabpanel" aria-labelledby="${uiAttr(modalUiId(modalId, 'tab-soai-link'))}" hidden aria-hidden="true">
         ${renderTabHeader(i18n.t('chat.attachModal.soaiLinkTitle'), i18n.t('chat.attachModal.soaiLinkSubtitle'))}
-        <div id="${uiAttr(modalUiId(modalId, 'soai-link-status'))}" class="chat-configuration-hint u-hidden inline-loading-status chat-attach-draft-attachment-status"></div>
+        ${renderDraftAttachmentStatus('soai-link')}
         <label class="visually-hidden" for="${uiAttr(modalUiId(modalId, 'soai-link-input'))}">${inputLabel}</label>
         <textarea id="${uiAttr(modalUiId(modalId, 'soai-link-input'))}" class="chat-attach-modal-soai-link-input" aria-label="${uiAttr(inputLabel)}" placeholder="${uiAttr(i18n.t('chat.attachModal.soaiLinkPlaceholder'))}" rows="5"></textarea>
-        <div id="${uiAttr(modalUiId(modalId, 'soai-link-summary'))}" class="chat-configuration-hint u-hidden chat-attach-draft-attachment-summary"></div>
-        <div id="${uiAttr(modalUiId(modalId, 'soai-link-list'))}" class="chat-attach-draft-attachment-list u-hidden"></div>
+        ${renderDraftAttachmentCollection('soai-link')}
+        <div class="chat-attach-modal-actions">${renderRemoveAllButton('soai-link')}</div>
     </section>`;
 };
 
@@ -158,7 +171,7 @@ const renderKnowledgePane = () => {
         <input type="file" id="${uiAttr(modalUiId(modalId, 'knowledge-folder-input'))}" class="u-hidden chat-attach-knowledge-folder-input" webkitdirectory directory multiple>
         ${renderUnifiedAttachDropzone('knowledge-dropzone', CHAT_ATTACH_MODAL_ACTIONS.CHOOSE_KNOWLEDGE_UPLOAD, i18n.t('chat.attachModal.knowledgeDropTitle'), i18n.t('chat.attachModal.knowledgeDropHint'))}
         <div class="chat-attach-modal-actions">
-            ${renderAttachActionRow([renderAttachActionButton('knowledge-file-button', CHAT_ATTACH_MODAL_ACTIONS.ATTACH_DOCUMENTS, i18n.t('chat.attachModal.uploadFileButton')).html, renderAttachActionButton('knowledge-folder-button', CHAT_ATTACH_MODAL_ACTIONS.ATTACH_FOLDER, i18n.t('chat.attachModal.uploadFolderButton')).html, renderKnowledgeSecondaryAction('knowledge-import', CHAT_ATTACH_MODAL_ACTIONS.KNOWLEDGE_IMPORT, i18n.t('chat.attachModal.knowledgeImportButton')).html, renderKnowledgeSecondaryAction('knowledge-reindex', CHAT_ATTACH_MODAL_ACTIONS.KNOWLEDGE_REINDEX, i18n.t('chat.configuration.knowledge.reindex'), true, true).html])}
+            ${renderAttachActionRow([renderAttachActionButton('knowledge-file-button', CHAT_ATTACH_MODAL_ACTIONS.ATTACH_DOCUMENTS, i18n.t('chat.attachModal.uploadFileButton')).html, renderAttachActionButton('knowledge-folder-button', CHAT_ATTACH_MODAL_ACTIONS.ATTACH_FOLDER, i18n.t('chat.attachModal.uploadFolderButton')).html, renderKnowledgeSecondaryAction('knowledge-import', CHAT_ATTACH_MODAL_ACTIONS.KNOWLEDGE_IMPORT, i18n.t('chat.attachModal.knowledgeImportButton')).html, renderKnowledgeSecondaryAction('knowledge-reindex', CHAT_ATTACH_MODAL_ACTIONS.KNOWLEDGE_REINDEX, i18n.t('chat.configuration.knowledge.reindex'), true, true).html, renderRemoveAllButton('knowledge').html])}
         </div>
         <div id="${uiAttr(modalUiId(modalId, 'knowledge-progress'))}" class="rag-upload-progress chat-attach-knowledge-progress"></div>
         <div id="${uiAttr(modalUiId(modalId, 'knowledge-summary'))}" class="chat-configuration-hint rag-documents-summary u-hidden inline-loading-status chat-attach-knowledge-summary"></div>
@@ -170,13 +183,8 @@ const renderAttachModalBody = () => {
     return uiHtml`<div class="chat-attach-modal-body">${renderUploadPane()}${renderCameraPane()}${renderBrowsePane()}${renderSoaiLinkPane()}${renderKnowledgePane()}</div>`;
 };
 
-const renderFooterActionButton = (token: string, action: string, label: string, variant: 'primary' | 'neutral') => {
-    const className = variant === 'primary' ? 'ui-button ui-variant-primary' : 'ui-button';
-    return uiHtml`<button id="${uiAttr(modalUiId(CHAT_ATTACH_MODAL_ID, token))}" class="${uiAttr(className)}" type="button" aria-label="${uiAttr(label)}" data-tooltip="${uiAttr(label)}" data-action="${uiAttr(action)}" disabled aria-disabled="true" hidden>${label}</button>`;
-};
-
 const renderAttachModalFooterActions = () => {
-    return toTrustedUiHtml([renderFooterActionButton('browse-preview', CHAT_ATTACH_MODAL_ACTIONS.BROWSE_PREVIEW, i18n.t('chat.attachModal.browsePreview'), 'neutral'), renderFooterActionButton('browse-attach', CHAT_ATTACH_MODAL_ACTIONS.BROWSE_ATTACH, i18n.t('chat.attachModal.browseAttach'), 'primary')].map((button) => button.html).join(''));
+    return toTrustedUiHtml([renderModalFooterActionButton({ id: modalUiId(CHAT_ATTACH_MODAL_ID, 'browse-preview'), action: CHAT_ATTACH_MODAL_ACTIONS.BROWSE_PREVIEW, text: i18n.t('chat.attachModal.browsePreview'), disabled: true, attributes: { hidden: true } }), renderModalFooterActionButton({ id: modalUiId(CHAT_ATTACH_MODAL_ID, 'browse-attach'), action: CHAT_ATTACH_MODAL_ACTIONS.BROWSE_ATTACH, text: i18n.t('chat.attachModal.browseAttach'), variant: 'primary', disabled: true, attributes: { hidden: true } })].map((button) => button.html).join(''));
 };
 
 const createChatAttachModalDefinition = (): ModalDefinition => {

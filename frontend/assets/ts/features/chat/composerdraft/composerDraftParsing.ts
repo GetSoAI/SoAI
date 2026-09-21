@@ -6,7 +6,7 @@ import type { ConversationDraftResponse } from '@core/api/contracts/chatQueueDra
 import { isPlainObject } from '@core/typeGuards.ts';
 import { toJsonCompatibleObject } from '@core/primitives/clone.ts';
 import { chatAttachmentFromPhysicalRecord } from '@features/chat/attachments/chatAttachmentFromPhysicalRecord.ts';
-import { normalizeSoaiFileStoragePart } from '@features/chat/attachments/soaiFileContentPart.ts';
+import { normalizeSoaiFileStoragePart, serializeSoaiFileContentPart } from '@features/chat/attachments/soaiFileContentPart.ts';
 import { parseSoaiPathDraftRecord, serializeSoaiPathDraftRecord, type SoaiPathDraftRecord } from '@features/chat/attachments/soaiPathDraftRecords.ts';
 import { buildProjectionSignature } from '@features/chat/composerdraft/composerDraftEntryProjection.ts';
 import type { ParsedComposerDraft } from '@features/chat/composerdraft/composerDraftTypes.ts';
@@ -42,7 +42,7 @@ const parseComposerDraftResponse = (conversationId: string, response: Conversati
         if (isPlainObject(entry)) {
             const normalizedFilePart = normalizeSoaiFileStoragePart(toJsonCompatibleObject(entry));
             if (normalizedFilePart !== null) {
-                contentEntries.push(normalizedFilePart);
+                contentEntries.push(serializeSoaiFileContentPart(normalizedFilePart));
                 continue;
             }
         }

@@ -9,7 +9,8 @@ import { generateSecureId } from '@core/primitives/idGenerator.ts';
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { WEBSOCKET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/registry.ts';
 import { subscribeManagedWebSocketContract } from '@core/realtime/websocketBatchSubscription.ts';
-import { sendWebSocketMessage } from '@core/websocketclient/service.ts';
+import { isWebSocketReconnectInterruption } from '@core/websocketclient/connectionInterruption.ts';
+import { getWebSocketClient } from '@core/websocketclient/service.ts';
 import { WEBSOCKET_MESSAGE_TYPES } from '@core/websocketEvents.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 import type { ChatPresentationState } from '@features/chat/chatstreamservice/contracts.ts';
@@ -161,19 +162,29 @@ class ChatPagePresenceService {
         if (!changed && !force) {
             return;
         }
-        void sendWebSocketMessage(
-            {
-                type: WEBSOCKET_MESSAGE_TYPES.CONVERSATION_PRESENCE_UPDATE,
-                'device_id': this.#deviceId,
-                'tab_id': this.#tabId,
-                'conversation_id': activeConversationId,
-                'is_visible': activeConversationId !== null,
-                'has_focus': activeConversationId !== null
-            },
-            { waitForConnection: false }
-        ).catch((error) => {
-            errorHandler.warn('ChatPagePresenceService', 'Failed to publish chat presence', ensureError(error));
-        });
+        const websocketClient = getWebSocketClient();
+        if (!websocketClient.isConnected()) {
+            return;
+        }
+        void websocketClient
+            .sendMessage(
+                {
+                    type: WEBSOCKET_MESSAGE_TYPES.CONVERSATION_PRESENCE_UPDATE,
+                    'device_id': this.#deviceId,
+                    'tab_id': this.#tabId,
+                    'conversation_id': activeConversationId,
+                    'is_visible': activeConversationId !== null,
+                    'has_focus': activeConversationId !== null
+                },
+                { waitForConnection: false }
+            )
+            .catch((error) => {
+                const runtimeError = ensureError(error);
+                if (isWebSocketReconnectInterruption(runtimeError)) {
+                    return;
+                }
+                errorHandler.warn('ChatPagePresenceService', 'Failed to publish chat presence', runtimeError);
+            });
     }
 
     #syncHeartbeat(activeConversationId: string | null): void {

@@ -1,6 +1,7 @@
 /* SoAI - Settings page state [frontend/assets/ts/pages/settings/controllers/page/state.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createExclusiveSaveAdmission, type SaveAdmission } from '@core/save/public.ts';
 import type { ConfigurationManager } from '@core/configurationManager.ts';
 import type { McpConnection, McpInteractionEntry, McpPromptEntry, McpResourceEntry, McpRootEntry, McpSearchKeyEntry, McpServer, McpStatus, McpToolEntry } from '@core/mcp/contracts.ts';
 import type { ApiKey, ApiKeyQuotaSummary, BackupEntry, BackupListLoadStatus, BackupOperationState, TabDefinition, WallpaperMetadata } from '@core/settings/contracts.ts';
@@ -37,6 +38,7 @@ interface SettingsDirtyStateSurface {
 }
 
 interface SettingsPageState {
+    preferencesAdmission: SaveAdmission;
     currentSection: string;
     advancedMode: boolean;
     advancedAccessEnabled: boolean;
@@ -105,6 +107,7 @@ interface SettingsPageState {
 const createInitialSettingsPageState = (restartOverlay: RestartOverlayService): SettingsPageState => {
     const defaultTab = NORMAL_TAB_DEFINITIONS[0];
     return {
+        preferencesAdmission: createExclusiveSaveAdmission(),
         currentSection: defaultTab ? defaultTab.id : 'general',
         advancedMode: false,
         advancedAccessEnabled: false,

@@ -68,12 +68,14 @@ def build_manual_compaction_terminal_outcome(
             if normalized_status == TOOL_CALL_STATUS_CANCELLED
             else MANUAL_COMPACTION_FAILED_MESSAGE
         )
+    compaction_details = dict(result_details) if result_details is not None else {}
+    compaction_details["trigger"] = "manual"
     result_payload: JSONValue = build_context_compaction_result_payload(
         status=normalized_status,
         output_text=str(result_text or ""),
         prompt_message=prompt_message,
         error_message=normalized_error_message,
-        compaction_details=result_details,
+        compaction_details=compaction_details,
         default_error_message=MANUAL_COMPACTION_FAILED_MESSAGE,
     )
     return ManualCompactionTerminalOutcome(

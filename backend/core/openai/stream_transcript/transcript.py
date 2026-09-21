@@ -183,12 +183,6 @@ class OpenAIStreamTranscript:
     def drain_new_tool_calls(self) -> list[JSONDict]:
         return self._primary.tool_calls.drain_new_tool_calls()
 
-    def set_finish_reason(self, finish_reason: str) -> None:
-        normalized = self._primary.normalize_finish_reason(finish_reason)
-        if not normalized:
-            return
-        self._primary.finish_reason = normalized
-
     def build_result_payload(self, usage: JSONDict | None = None) -> JSONDict:
         choices: list[OpenAIStreamChoicePayload] = []
         for index in sorted(self._observed_choices or {0}):

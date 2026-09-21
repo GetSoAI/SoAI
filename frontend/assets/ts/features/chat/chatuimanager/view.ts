@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
+import { reconcileElementChildrenFromTrustedHtml } from '@core/dom/childNodeReconciliation.ts';
+import { syncAttributeValue } from '@core/dom/patching.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { CHAT_ICON_SIZE_MD, CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
 import { resolveComposerControlState, type ChatComposerControlState } from '@features/chat/chatuimanager/composerControlState.ts';
@@ -29,21 +31,24 @@ const renderExecutionControls = (context: ChatUIManagerContext, controlState: Ch
     }
     const mode = nextIsExecuting && !nextIsChatStreaming && controlState.actionMode !== 'queue' ? 'send' : controlState.actionMode;
     context.dependencies.toggleClassName(actionBtn, 'is-stop-mode', mode === 'stop');
-    actionBtn.setAttribute('data-chat-action-mode', mode);
-    if (nextIsExecuting) {
+    syncAttributeValue(actionBtn, 'data-chat-action-mode', mode);
+    if (mode === 'stop') {
         const hasConversation = context.dependencies.session.getCurrentConversationId() !== null;
-        const disabled = mode === 'stop' || mode === 'steer' ? !nextIsChatStreaming || !hasConversation : mode === 'queue' ? !controlState.canQueue : true;
+        context.dependencies.updateProperty(actionBtn, 'disabled', !controlState.canStop || !hasConversation);
+    } else if (nextIsExecuting) {
+        const hasConversation = context.dependencies.session.getCurrentConversationId() !== null;
+        const disabled = mode === 'steer' ? !nextIsChatStreaming || !hasConversation : mode === 'queue' ? !controlState.canQueue : true;
         context.dependencies.updateProperty(actionBtn, 'disabled', disabled);
     } else {
         context.dependencies.updateProperty(actionBtn, 'disabled', !controlState.canSend);
     }
 
     const iconName = mode === 'stop' ? 'stop' : 'arrow-up';
-    context.dependencies.updateHTML(actionBtn, context.dependencies.getCachedIcon(iconName, CHAT_ICON_SIZE_MD));
+    reconcileElementChildrenFromTrustedHtml({ target: actionBtn, html: context.dependencies.getCachedIcon(iconName, CHAT_ICON_SIZE_MD) });
 
     const label = mode === 'stop' ? i18n.t('chat.input.stop') : mode === 'steer' ? i18n.t('chat.input.steer') : mode === 'queue' ? i18n.t('chat.input.queue') : i18n.t('chat.input.send');
     setTooltipText(actionBtn, label);
-    actionBtn.setAttribute('aria-label', label);
+    syncAttributeValue(actionBtn, 'aria-label', label);
 };
 
 export function applyExecutionControls(context: ChatUIManagerContext): void {

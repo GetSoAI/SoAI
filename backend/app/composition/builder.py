@@ -58,8 +58,8 @@ class ApplicationAssemblyBuilder:
         services_started_ms = monotonic_ms()
         try:
             api_runtime_singletons = build_api_runtime_singletons(
-                cancellation_binder=bootstrap_state.task_services.task_cancellation_binder,
-                finalizer_tracker=bootstrap_state.task_services.task_finalizer_tracker,
+                cancellation_binder=bootstrap_state.task_services.cancellation.binder,
+                finalizer_tracker=bootstrap_state.task_services.cancellation.finalizer_tracker,
                 config=bootstrap_state.configuration_services.config,
                 event_bus=bootstrap_state.event_bus,
             )
@@ -75,8 +75,8 @@ class ApplicationAssemblyBuilder:
                 wizard_repository=bootstrap_state.database_services.licensing_wizard,
                 database_plugins=bootstrap_state.database_services.plugins,
                 runtime_flags=bootstrap_state.configuration_services.runtime_flags,
-                cancellation_binder=(bootstrap_state.task_services.task_cancellation_binder),
-                finalizer_tracker=bootstrap_state.task_services.task_finalizer_tracker,
+                cancellation_binder=(bootstrap_state.task_services.cancellation.binder),
+                finalizer_tracker=bootstrap_state.task_services.cancellation.finalizer_tracker,
                 database_users=bootstrap_state.database_services.users,
                 runtime_state=bootstrap_state.runtime_foundation.runtime_state,
                 restart_requester=restart_requester,

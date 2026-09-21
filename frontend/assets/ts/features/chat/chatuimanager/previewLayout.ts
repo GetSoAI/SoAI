@@ -11,6 +11,7 @@ import { acquireMainTimelineCoordinator } from '@features/chat/mainTimelineCoord
 
 const CHAT_PREVIEWS_CONTAINER_BOTTOM_VAR = '--chat-previews-container-bottom';
 const CHAT_PREVIEWS_CONTAINER_LEFT_VAR = '--chat-previews-container-left';
+const CHAT_PREVIEWS_CONTAINER_FOCUS_LEFT_VAR = '--chat-previews-container-focus-left';
 const CHAT_PREVIEWS_CONTAINER_RIGHT_VAR = '--chat-previews-container-right';
 const CHAT_MAIN_CONTAINER_SELECTOR = '.chat-main-container';
 const CHAT_INPUT_ACTIONS_SELECTOR = '.chat-input-actions';
@@ -28,21 +29,24 @@ function applyPreviewsContainerInsets(context: ChatUIManagerContext, containerEl
     const bottomInset = Math.max(0, rawBottomInset);
     const clampedPopupWidth = clampNumber(popupWidth, 0, inputRect.width);
     const clampedExtraPadding = clampNumber(extraLeftPadding, 0, inputRect.width);
-    const leftInset = Math.max(0, rawLeftInset + clampedPopupWidth + clampedExtraPadding);
+    const leftInset = Math.max(0, rawLeftInset);
+    const focusedLeftInset = Math.max(0, rawLeftInset + clampedPopupWidth + clampedExtraPadding);
     const rightInset = Math.max(0, rawRightInset);
 
     context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_BOTTOM_VAR, `calc(${bottomInset}px + var(--chat-previews-container-gap))`);
     context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_LEFT_VAR, `${leftInset}px`);
+    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_FOCUS_LEFT_VAR, `${focusedLeftInset}px`);
     context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_RIGHT_VAR, `${rightInset}px`);
 }
 
 function clearPreviewsContainerInsets(context: ChatUIManagerContext, containerElement: HTMLElement): void {
     context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_BOTTOM_VAR, null);
     context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_LEFT_VAR, null);
+    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_FOCUS_LEFT_VAR, null);
     context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_RIGHT_VAR, null);
 }
 
-export function setupPreviewsContainerLayout(context: ChatUIManagerContext): void {
+export function setupPreviewsContainerLayout(context: ChatUIManagerContext, refreshAttachmentsPreview: () => void): void {
     if (context.state.attachedFilesPreviewLayoutDisposer) {
         return;
     }
@@ -82,7 +86,6 @@ export function setupPreviewsContainerLayout(context: ChatUIManagerContext): voi
 
     let popupResizeDisposer: (() => void) | null = null;
     let observedPopup: HTMLElement | null = null;
-
     const resolvePopupWidth = (): number => {
         const popupElement = context.dependencies.optionalUI(AGENT_MODE_POPUP_SELECTOR, wrapper);
         if (!(popupElement instanceof HTMLElement)) {
@@ -101,19 +104,13 @@ export function setupPreviewsContainerLayout(context: ChatUIManagerContext): voi
             return;
         }
 
-        const actionsRect = actions ? measureLayoutBox(actions) : null;
         const inputRect = measureLayoutBox(inputElement);
-        const actionsOverlapInput = actionsRect !== null && actionsRect.left < inputRect.right && actionsRect.right > inputRect.left && actionsRect.top < inputRect.bottom && actionsRect.bottom > inputRect.top;
-        if (actionsOverlapInput) {
-            clearPreviewsContainerInsets(context, previewsContainer);
-            return;
-        }
-
         const previewsRect = measureLayoutBox(previewsContainer);
         const verticalGap = inputRect.top - previewsRect.bottom;
         const extraLeftPadding = verticalGap > 0 ? verticalGap : 0;
 
         applyPreviewsContainerInsets(context, previewsContainer, mainContainer, wrapper, inputElement, resolvePopupWidth(), extraLeftPadding);
+        refreshAttachmentsPreview();
     };
 
     const scheduleUpdate = (): void => {

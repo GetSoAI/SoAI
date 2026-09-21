@@ -163,6 +163,13 @@ async def finalize_assistant_timeline_agentic(
                 token_usage
             ):
                 session.runtime.canonical_usage = token_usage
+    if session.runtime.cancellation_requested:
+        await finalize_assistant_timeline_cancelled(
+            session,
+            session.runtime.cancellation_reason or terminal_message or "Chat stream was cancelled.",
+            code="cancelled",
+        )
+        return
     if terminal_outcome == TOOL_CALL_STATUS_COMPLETED:
         finalized = await finalize_chat_stream_success(
             build_chat_stream_finalize_context(

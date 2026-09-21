@@ -42,6 +42,7 @@ __all__ = (
     "resolve_status_preview_next_due_ms",
     "resolve_status_preview_tool_detail",
     "resolve_status_preview_trigger",
+    "supersede_completed_tool_preview_with_running_thinking",
 )
 
 
@@ -128,7 +129,9 @@ def resolve_status_preview_trigger(*, runtime: AssistantTimelineRuntime, now_ms:
     ):
         return None
     if runtime.status_preview_pending_refresh:
-        return "tool_call_completed"
+        if runtime.status_preview_latest_completed_tool is not None:
+            return "tool_call_completed"
+        return "thinking_phase"
     if runtime.status_preview_latest_completed_tool is not None:
         return None
     if not runtime.status_preview_real_emitted:
@@ -153,6 +156,19 @@ def clear_status_preview_state(*, runtime: AssistantTimelineRuntime, now_ms: int
     runtime.status_preview_real_emitted = True
     runtime.status_preview_pending_refresh = False
     runtime.status_preview_latest_completed_tool = None
+
+
+def supersede_completed_tool_preview_with_running_thinking(
+    *, runtime: AssistantTimelineRuntime, status: str
+) -> bool:
+    if status != "running":
+        return False
+    if runtime.status_preview_latest_completed_tool is None:
+        return False
+    runtime.status_preview_generation += 1
+    runtime.status_preview_latest_completed_tool = None
+    runtime.status_preview_pending_refresh = True
+    return True
 
 
 def record_status_preview_tool_completion(

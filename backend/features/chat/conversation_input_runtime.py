@@ -6,8 +6,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from core.conversations.assistant_turn_variant_identity import AssistantTurnVariantIdentity
-from core.conversations.conversation_input_finalization import ConversationInputFinalization
+from core.conversations.assistant_turn_variant_identity import (
+    AssistantTurnVariantIdentity,
+)
+from core.conversations.conversation_input_finalization import (
+    ConversationInputFinalization,
+)
 from core.errors.exceptions import ConflictError, StateError
 from core.runtime.cancellation_ids import build_chat_stream_task_cancellation_id
 from core.runtime.request_context import RequestContext
@@ -149,7 +153,7 @@ async def create_conversation_input_runtime(
     )
 
     async def require_input_claim() -> None:
-        await api_dependencies.database_input_queue.require_active_claim(
+        await api_dependencies.database_input_execution.require_active_claim(
             input_id=input_id,
             claim_generation=claim_generation,
             claim_owner=claim_owner,

@@ -411,9 +411,10 @@
             },
             "attachModal": {
                 "cameraDisabled": "कैमरा कैप्चर अक्षम है।",
-                "cameraFlip": "कैमरा पलटें",
+                "cameraSwitch": "कैमरा बदलें",
                 "cameraNoCamera": "इस ब्राउज़र में कोई कैमरा उपलब्ध नहीं है।",
                 "cameraPermissionDenied": "कैमरा अनुमति अस्वीकार कर दी गई या कैमरा उपलब्ध नहीं है।",
+                "cameraBusy": "कैमरा किसी दूसरे ऐप द्वारा उपयोग में है या शुरू नहीं हो सका।",
                 "cameraPreparing": "कैमरा तैयार हो रहा है...",
                 "cameraCaptureUnavailable": "इस ब्राउज़र में कैमरा कैप्चर उपलब्ध नहीं है।",
                 "cameraRetake": "फिर से लें",
@@ -449,6 +450,7 @@
                 "knowledgeImportButton": "वर्कस्पेस से लोड करें",
                 "knowledgeSubtitle": "अपने डिवाइस से फ़ाइलों और फ़ोल्डरों के बड़े बैच जोड़ें, फिर RAG के ज़रिए इस वार्तालाप में उनका उपयोग करें। उनकी सामग्री का विश्लेषण और इंडेक्सिंग की जाती है, इसलिए सीधे अपलोड की तुलना में प्रोसेसिंग में अधिक समय लगता है।",
                 "knowledgeTitle": "फ़ाइलें और फ़ोल्डर ज्ञान में अपलोड करें",
+                "removeAll": "सभी हटाएँ",
                 "searchLabel": "SoAI फ़ाइलें खोजें",
                 "searchPlaceholder": "SoAI फ़ाइलें खोजें",
                 "soaiLinkInputLabel": "SoAI लिंक",
@@ -486,10 +488,12 @@
                 "openAttachment": "अटैचमेंट खोलें",
                 "openKnowledge": "ज्ञान अटैचमेंट खोलें",
                 "openSoaiLink": "SoAI लिंक खोलें",
+                "unavailableReupload": "यह अटैचमेंट अब उपलब्ध नहीं है। इसका पूर्वावलोकन करने के लिए फ़ाल फिर से अपलोड करें।",
                 "overflowHidden": {
-                    "singular": "... +{count} छिपे हुए",
-                    "plural": "... +{count} छिपे हुए"
+                    "singular": "+{count} छिपे हुए",
+                    "plural": "+{count} छिपे हुए"
                 },
+                "showMore": "और दिखाएं",
                 "modal": {
                     "emptyAll": "इस संदेश में किसी अटैचमेंट का संदर्भ नहीं है।",
                     "emptyAttachments": "इस संदेश में किसी फ़ाइल अटैचमेंट का संदर्भ नहीं है।",
@@ -606,6 +610,8 @@
                 "autoTitleGenerationHint": "पहला जवाब पूरा होने के बाद, यदि सिस्टम निष्क्रिय हो तो SoAI एक बार छोटा शीर्षक बना सकता है।",
                 "showActivities": "गतिविधियाँ दिखाएँ",
                 "showActivitiesHint": "अक्षम होने पर सहायक का टेक्स्ट दिखाई देता रहता है, जबकि गतिविधियाँ लोडिंग पंक्ति के पीछे समेट दी जाती हैं; फैलाने पर सामान्य गतिविधि लेआउट वापस आ जाता है।",
+                "showActivityElapsedTime": "गतिविधियों का बीता समय दिखाएँ",
+                "showActivityElapsedTimeHint": "गतिविधियाँ चलने के दौरान बीते समय को अपडेट करता है। अक्षम होने पर अंतिम समय गतिविधि समाप्त होने के बाद ही दिखाई देता है, जिससे CPU उपयोग कम हो सकता है",
                 "hideAutomationRuns": "ऑटोमेशन रन छिपाएँ",
                 "hideAutomationRunsHint": "सक्षम होने पर ऑटोमेशन रन वाले वार्तालाप साइडबार सूची से छिपे रहते हैं।",
                 "hideMessagingConversations": "मैसेजिंग वार्तालाप छिपाएँ",
@@ -1081,6 +1087,7 @@
                     },
                     "emptyVariant": "इस वेरिएंट के लिए कोई जवाब कैप्चर नहीं किया गया",
                     "error": {
+                        "browserUnavailable": "PDF एक्सपोर्ट के लिए ब्राउज़र रनटाइम आवश्यक है। इसे पुनर्स्थापित करने के लिए नेटवर्क एक्सेस के साथ SoAI को पुनः आरंभ करें, फिर दोबारा कोशिश करें।",
                         "conversationChanged": "PDF बनते समय वार्तालाप बदल गया। इसे फिर से एक्सपोर्ट करें।",
                         "invalidRequest": "PDF एक्सपोर्ट अनुरोध अस्वीकार कर दिया गया। वार्तालाप को फिर से एक्सपोर्ट करने की कोशिश करें।",
                         "timedOut": "PDF एक्सपोर्ट में बहुत समय लगा और उसे रद्द कर दिया गया।",
@@ -2409,6 +2416,9 @@
             "section": {
                 "defaultTitle": "अनुभाग"
             },
+            "search": {
+                "clear": "खोज साफ़ करें"
+            },
             "secretInput": {
                 "hide": "गोपनीय जानकारी छिपाएँ",
                 "show": "गोपनीय जानकारी दिखाएँ"
@@ -3062,6 +3072,14 @@
                     "usage": "उपयोग %"
                 }
             },
+            "soaibenchPublication": {
+                "deleteLocalHistory": "स्थानीय इतिहास हटाएँ",
+                "action": "साझा करें",
+                "ariaLabel": "यह SoAIBench स्कोर साझा करें",
+                "unavailable": "प्रकाशित करने योग्य कोई SoAIBench रन उपलब्ध नहीं है",
+                "confirm": { "title": "SoAIBench स्कोर साझा करें?", "message": "स्कोर {score} और उसके {passes} मापे गए पास सार्वजनिक SoAIBench लीडरबोर्ड पर प्रकाशित करें?", "description": "इसमें स्कोर, पाँच मापे गए पास, सार्वजनिक GPU और रनटाइम जानकारी, बेंचमार्क सेटिंग और वैकल्पिक सेंसर प्रमाण भेजे जाते हैं। खाता पहचान, फ़ाइलें, कॉन्फ़िगरेशन, विश्लेषण और सामान्य टेलीमेट्री शामिल नहीं किए जाते। soai.to आपके IP पते जैसे सामान्य कनेक्शन मेटाडेटा देख सकता है।" },
+                "outcomes": { "published": "SoAIBench स्कोर सार्वजनिक रूप से साझा किया गया।", "alreadyPublished": "यह SoAIBench स्कोर पहले ही साझा किया जा चुका है।", "heldForReview": "SoAIBench परिणाम को पहचान या असामान्यता की समीक्षा के लिए रोका गया है और अभी रैंकिंग में नहीं गिना गया है।", "offline": "SoAI के ऑफ़लाइन रहते स्कोर साझा नहीं किया जा सका।", "unavailable": "SoAIBench प्रकाशन सेवा उपलब्ध नहीं है।", "timeout": "स्कोर साझा करने की समय-सीमा समाप्त हो गई। उसी प्रकाशन का मिलान करने के लिए फिर प्रयास करें।", "rateLimited": "इस कनेक्शन से बहुत अधिक स्कोर साझा किए गए हैं। बाद में फिर प्रयास करें।", "capacity": "SoAIBench लीडरबोर्ड अभी पूरी क्षमता पर है।", "rejected": "SoAIBench लीडरबोर्ड ने यह परिणाम अस्वीकार कर दिया।", "conflict": "यह प्रकाशन मौजूदा लीडरबोर्ड स्थिति से टकराता है।", "invalidResponse": "SoAIBench लीडरबोर्ड ने अमान्य प्रतिक्रिया दी।", "retryAfter": "{seconds} सेकंड बाद फिर प्रयास करें।" }
+            },
             "modals": {
                 "soaibenchHistory": {
                     "ariaLabels": {
@@ -3101,6 +3119,7 @@
                     "certification": {
                         "certified": "प्रमाणित",
                         "ineligible": "अयोग्य: {reason}",
+                        "legacy": "पुराना",
                         "quick": "त्वरित",
                         "varianceSuffix": "{variance}% विचरण"
                     },
@@ -3127,6 +3146,7 @@
                         "standard": "मानक",
                         "stress": "स्ट्रेस"
                     },
+                    "reasons": { "opencl_numerical_mismatch": "OpenCL वर्कलोड का संख्यात्मक सत्यापन विफल हुआ।" },
                     "rowCopyUnavailable": "कॉपी करने के लिए कोई SoAIBench रन उपलब्ध नहीं है",
                     "staleHardware": "पुराना हार्डवेयर मिलान",
                     "statuses": {
@@ -3147,6 +3167,7 @@
                         "copy": "SoAIBench रन कॉपी करें",
                         "download": "SoAIBench रन डाउनलोड करें",
                         "history": "SoAIBench इतिहास खोलें",
+                        "retry": "प्रमाणित SoAIBench का पुनः प्रयास करें",
                         "stop": "प्रमाणित SoAIBench रोकें",
                         "stopping": "प्रमाणित SoAIBench रोका जा रहा है",
                         "start": "प्रमाणित SoAIBench शुरू करें"
@@ -3179,9 +3200,11 @@
                         "matrixThroughput": "मैट्रिक्स थ्रूपुट",
                         "memoryBandwidth": "मेमोरी बैंडविड्थ",
                         "memoryScore": "मेमोरी स्कोर",
+                        "measuredPasses": "मापे गए पास",
                         "power": "पावर",
                         "sampleCount": "नमूने",
                         "scoreVariance": "स्कोर विचरण",
+                        "variationAndDrift": "परिवर्तनशीलता / रुझान",
                         "latency": "विलंबता",
                         "latencyScore": "विलंबता स्कोर",
                         "status": "स्थिति",
@@ -3210,6 +3233,7 @@
                         "warmupPhase": "वार्मअप: {phase}",
                         "warmup": "वार्मअप पास पूरा हुआ"
                     },
+                    "retry": "पुनः प्रयास करें",
                     "scoreLabel": "SoAIBench स्कोर",
                     "sections": {
                         "expect": {
@@ -3221,7 +3245,7 @@
                             "title": "यह क्या मापता है"
                         },
                         "runs": {
-                            "items": "OpenCL वर्कलोड|1 वार्मअप पास|5 मापे गए पास|टेलीमेट्री स्नैपशॉट|तापमान जाँच|विचरण और प्रमाणन जाँच",
+                            "items": "OpenCL वर्कलोड|120 सेकंड का सक्रिय वार्मअप अंतराल|5 मापे गए पास|टेलीमेट्री स्नैपशॉट|तापमान जाँच|विचरण और प्रमाणन जाँच",
                             "title": "यह कैसे चलता है"
                         }
                     },
@@ -3444,7 +3468,7 @@
                     "heading": "अपना पहला मॉडल चलाएँ",
                     "sectionTitle": "शुरुआत",
                     "intro": "SoAI इस मशीन पर मॉडल चला सकता है या remote provider से जुड़ सकता है। लोकल मॉडल के लिए चरण 1 और 2 करें। remote मॉडल के लिए चरण 3 से शुरू करें। दोनों रास्ते Chat में जाते हैं।",
-                    "localBackend": "लोकल inference के लिए Plugins खोलकर engine चुनें। Manage backend खोलें, अपने OS और hardware के अनुसार build चुनकर install करें। कुछ backend को supported GPU driver या दूसरे system component चाहिए।",
+                    "localBackend": "लोकल inference के लिए Plugins खोलकर engine चुनें। Install backend चुनें, अपने OS और hardware के अनुसार build चुनकर install करें। कुछ backend को supported GPU driver या दूसरे system component चाहिए।",
                     "localModel": "backend तैयार होने पर Models में Add model चुनें। डाउनलोड के लिए मॉडल खोजें या मशीन पर मौजूद model file जोड़ें। डाउनलोड से पहले SoAI आकार और अनुमानित memory दिखाता है।",
                     "remoteModel": "remote inference में backend install करने की ज़रूरत नहीं है। Models में Add model, फिर Add provider चुनें। External चुनकर provider name, API URL, API key और optional model filter भरें।",
                     "chat": "मॉडल catalog में आने पर Chat खोलें, मॉडल चुनें और संदेश भेजें। SoAI ज़रूरत पर backend शुरू करता है; conversation settings generation parameter और tool access नियंत्रित करती हैं।",
@@ -3470,7 +3494,7 @@
                     "heading": "मॉडल, tool और file उपयोग करें",
                     "sectionTitle": "Chat और agent tool",
                     "conversations": "Chat संदेश, model choice, generation parameter और tool access साथ रखता है। turn के बीच मॉडल बदलें, उत्तर compare करें, setup को preset बनाएँ या conversation को folder में रखें। मौजूदा संदेश के लिए पूरा item चाहिए तो file attach करें; indexed material बार-बार खोजना हो तो knowledge source जोड़ें। composer में file, folder और SoAI link जोड़े जा सकते हैं।",
-                    "tools": "Chat बातचीत के लिए है। Plan अंतिम बदलाव किए बिना task देखकर steps तैयार करता है। Execute enabled tool से काम करता है। tool call और result transcript में रहते हैं; protected action approval माँग सकता है। tool web search, browser, file, terminal, knowledge, media, mail और calendar संभालते हैं। administrator उपलब्ध integration और credential तय करता है। agent सवाल पूछ सकता है, plan रख सकता है और काम background subtask में बाँट सकता है। Automation schedule पर turn चलाता है और हर run को conversation रखता है।",
+                    "tools": "Chat बातचीत के लिए है। Plan model को task देखने और steps तैयार करने देता है। यह destructive चिह्नित tool या valid destructive metadata के बिना tool रोकता है, लेकिन दूसरे चुने हुए tool बाहरी system को फिर भी प्रभावित कर सकते हैं। Execute enabled tool से काम करता है। tool call और result transcript में रहते हैं; protected action approval माँग सकता है। tool web search, browser, file, terminal, knowledge, media, mail और calendar संभालते हैं। administrator उपलब्ध integration और credential तय करता है। agent सवाल पूछ सकता है, plan रख सकता है और काम background subtask में बाँट सकता है। Automation schedule पर turn चलाता है और हर run को conversation रखता है।",
                     "mcp": "SoAI authenticated MCP client को tool दे सकता है और remote MCP server से जुड़ सकता है। administrator के configure करने पर remote tool built-in tool के पास दिखते हैं।",
                     "voice": "Speech-to-text मॉडल recording या microphone को text बनाते हैं। text-to-speech मॉडल उत्तर पढ़ते हैं; voice call mode बोलकर conversation करने देता है।"
                 },
@@ -3478,7 +3502,7 @@
                     "heading": "File, knowledge और saved prompt संभालें",
                     "sectionTitle": "File और knowledge",
                     "files": "Files, SoAI का file manager है। हर account का अपना folder होता है; administrator shared workspace के लिए कई account को एक folder दे सकता है। path से खोजें या जाएँ, file या पूरा folder upload करें और icon/list view बदलें। browser में text file बनाएँ और edit करें; image, audio, video और document preview करें। rename, move, copy, download और delete भी उपलब्ध हैं। Chat में लाने के लिए Files में Attach चुनें या file preview से SoAI link copy करें। SoAI दूसरी copy upload किए बिना stored item पढ़ता है। direct attachment मौजूदा message के लिए होता है।",
-                    "knowledge": "Conversation को बाद की request में collection देखना हो तो Knowledge उपयोग करें। device से file और folder index करें या Files का folder load करें। source status parsing, chunking और embedding दिखाता है; processing पूरी होने पर source search result में आता है। Knowledge tool वाला agent web page भी conversation index में डाल सकता है। semantic similarity, duplicate जैसे result घटाने वाला MMR, या semantic और keyword मिलाने वाला Hybrid चुनें। Knowledge settings में embedding model, chunk method, size, overlap, similarity threshold और model को भेजे जाने वाले passage की संख्या तय करें। embedding model बदलने पर Reindex करें।",
+                    "knowledge": "Conversation को बाद की request में collection देखना हो तो Knowledge उपयोग करें। device से file और folder index करें या Files का folder load करें। source status parsing, chunking और embedding दिखाता है; processing पूरी होने पर source search result में आता है। Knowledge tool वाला agent web page भी conversation index में डाल सकता है। semantic similarity, duplicate जैसे result घटाने वाला MMR, या semantic और keyword मिलाने वाला Hybrid चुनें। Knowledge settings में embedding model, chunk method, size, overlap, similarity threshold और model को भेजे जाने वाले passage की संख्या तय करें। embedding model या chunking setting बदलने पर collection को दोबारा बनाने के लिए Reindex करें।",
                     "prompts": "Prompts दोबारा उपयोग होने वाली instruction रखता है। नाम और रंग दें, नाम या content खोजें और कई prompt duplicate या download करें। Chat composer का saved prompt picker prompt डालता है। मॉडल से prompt rewrite कराएँ, streamed result को original से compare करें और revision को नया prompt बनाएँ।"
                 },
                 "administration": {
@@ -3491,9 +3515,9 @@
                 "access": {
                     "heading": "Connection और permission नियंत्रित करें",
                     "sectionTitle": "Account और network access",
-                    "access": "नई installation पहले user बनने तक केवल setup wizard दिखाती है। setup के बाद administrator की पहली API key बनने तक <code>/v1/*</code> बिना authentication request लेता है। फिर हर request को valid bearer token चाहिए। MCP server personal access token माँगता है।",
-                    "users": "Administrator file, plugin, GPU, backup, Terminal, Power और दूसरे protected area की permission देता है। बदलाव active session पर लागू होते हैं। user अपनी session देख और revoke कर सकता है।",
-                    "network": "दूसरे device जुड़ें तो HTTPS उपयोग करें और SoAI को trusted local network या VPN के पीछे रखें। इसे खुले internet पर रखना उचित नहीं है। फिर भी ऐसा करना हो तो पहले security audit पढ़ें और host को public access के लिए configure करें। Offline mode public address रोकता है। local model, installed backend, WebUI और local service चलते रहते हैं; remote provider, download, update check, web tool, mail और calendar sync रुकते हैं।",
+                    "access": "नई installation पहले user बनने तक केवल setup wizard दिखाती है। setup के बाद जब तक कोई API key नहीं है, <code>/v1/*</code> बिना authentication request लेता है। कोई भी key मौजूद होने पर request को valid API key चाहिए। OpenAI-compatible route इसे bearer token के रूप में लेते हैं; Anthropic-compatible route <code>x-api-key</code> भी लेते हैं। MCP server personal access token माँगता है।",
+                    "users": "Administrator file, plugin, GPU, backup, Terminal, Power और दूसरे protected area की permission देता है। बदलाव active session पर लागू होते हैं। user management access वाला administrator अपनी active session देख और revoke कर सकता है।",
+                    "network": "दूसरे device जुड़ें तो HTTPS उपयोग करें और SoAI को trusted local network या VPN के पीछे रखें। इसे खुले internet पर रखना उचित नहीं है। फिर भी ऐसा करना हो तो पहले security audit पढ़ें और host को public access के लिए configure करें। Offline mode public address से connection रोकता है। local model, installed backend, WebUI और private network पर allowed provider व MCP server चलते रहते हैं। public provider, download, update check और public web tool रुकते हैं। mail और calendar network operation private network पर भी रुकते हैं।",
                     "plugins": "<code>.soaiplugin</code> file में executable code होता है। source और publisher पर भरोसा होने पर ही plugin install करें।"
                 }
             },
@@ -3912,6 +3936,9 @@
                     "title": "प्लगइन उपयोग"
                 },
                 "requestDistribution": {
+                    "legend": {
+                        "others": "अन्य"
+                    },
                     "actions": {
                         "showApiKeys": "प्रति-API-key अनुरोध दिखाएँ",
                         "showModels": "प्रति-मॉडल अनुरोध दिखाएँ",
@@ -7145,7 +7172,12 @@
                     }
                 },
                 "subgroupDescription": "भाषा, localization, notifications और interface behavior कॉन्फ़िगर करें।",
-                "subgroupTitle": "व्यवहार"
+                "subgroupTitle": "व्यवहार",
+                "ocrLanguage": {
+                    "label": "OCR निष्कर्षण की भाषा",
+                    "help": "छवियों और दस्तावेज़ों से पाठ निकालने के लिए उपयोग की जाने वाली भाषा",
+                    "unavailable": "चुनी गई OCR भाषा या भाषाओं की सूची उपलब्ध नहीं है। अन्य उपलब्ध भाषाओं का उपयोग किया जा सकता है।"
+                }
             },
             "saveButton": "सहेजें",
             "saveButtonAriaLabel": "Configuration बदलाव सहेजें",
@@ -7176,6 +7208,10 @@
                     "label": "दिखाई देने वाले pages",
                     "save": "सहेजें",
                     "sectionTitle": "साइडबार"
+                },
+                "defaultPage": {
+                    "help": "वह पेज चुनें जो SoAI से कनेक्ट होने पर खुलता है",
+                    "label": "डिफ़ॉल्ट पेज"
                 },
                 "statusIndicator": {
                     "help": "Sidebar के नीचे system status indicator दिखाएँ या छिपाएँ",

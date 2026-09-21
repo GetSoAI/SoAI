@@ -236,6 +236,7 @@
     :where(.chat-container) .conversation-item.is-selected {
         --conversation-item-overlay-inset-left: var(--border-width-3);
         --conversation-item-left-rail-color: var(--ui-tone-green);
+        --conversation-item-before-surface: var(--ui-tone-green-surface-selected);
         background: var(--ui-tone-green-surface-selected);
     }
 

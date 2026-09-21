@@ -27,6 +27,7 @@ from core.media.ipc_gateway_lifecycle import (
     cleanup_failed_media_gateway_request,
     raise_after_media_gateway_request_failure,
 )
+from core.media.tesseract_languages import require_ocr_language
 from core.media.types import OcrFrameText
 from core.meta.paths import get_repo_root
 from core.system.subprocess_env import build_minimal_subprocess_env
@@ -63,9 +64,11 @@ class OcrGateway:
         self,
         *,
         frame_path: str,
+        ocr_language: str,
         timestamp_seconds: float,
         timeout_seconds: float,
     ) -> OcrFrameText:
+        require_ocr_language(ocr_language)
         async with self._request_lock:
             await self._ensure_started()
             try:
@@ -73,7 +76,7 @@ class OcrGateway:
                     _WORKER_ID,
                     method="read_frame",
                     request_id=secrets.token_hex(16),
-                    payload={"frame_path": frame_path},
+                    payload={"frame_path": frame_path, "ocr_language": ocr_language},
                     timeout_sec=timeout_seconds,
                 )
             except asyncio.CancelledError as exception:

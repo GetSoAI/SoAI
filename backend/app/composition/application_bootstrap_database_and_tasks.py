@@ -45,6 +45,9 @@ from core.orchestrator.routing_config import RoutingConfig
 from core.plugins.protocols_instance import FilesProtocol
 from core.runtime.flags_service import RuntimeFlagsService
 from core.tasks.type_catalog import TaskTypeCatalog
+from hardware.soaibench.startup_reconciliation import (
+    reconcile_soaibench_process_boundary,
+)
 
 if TYPE_CHECKING:
     from cryptography.fernet import Fernet
@@ -151,6 +154,13 @@ async def build_database_config_manager_tasks_and_http_client(
             task_registry=task_registry_result.registry,
             logger=application_logger,
             base_path=environment.base_dir,
+        )
+        await reconcile_soaibench_process_boundary(
+            database_hardware=database_services.hardware,
+            task_registry=task_registry_result.registry,
+            task_queries=task_registry_result.queries,
+            database_tool_calls=database_services.tool_calls,
+            logger=application_logger,
         )
         await reconcile_agent_turns_on_startup(
             database_agent_turn_process_boundary=database_services.agent_turn_process_boundary,

@@ -9,7 +9,7 @@ import { isNonNegativeInteger, isPositiveInteger } from '@core/typeGuards.ts';
 interface WebuiAgentEndpoints {
     cancelTurn(id: string, turnId: string, request: AgentTurnCancelRequest): Promise<AgentTurnCancelResponse>;
     startCompaction(id: string, payload: { model: string }): Promise<AgentCheckpointResponse>;
-    regenerateCompaction(id: string, payload: { assistantTurnAtMs: number }): Promise<AgentCheckpointResponse>;
+    regenerateCompaction(id: string, payload: { assistantTurnAtMs: number; clientId: string; clientRequestId: string; expectedLastModifiedAtMs: number }): Promise<AgentCheckpointResponse>;
     removeCompactionBoundary(id: string, payload: { assistantTurnAtMs: number; modelVariantIndex: number; toolCallId: string; expectedLastModifiedAtMs: number }): Promise<AgentMessageWriteResponse>;
     stopShellToolCall(id: string, payload: { assistantTurnAtMs: number; modelVariantIndex: number; toolCallId: string }): Promise<AgentShellToolStopResponse>;
     todoWrite(id: string, payload: AgentTodoWriteRequest): Promise<AgentTodoStateResponse>;
@@ -30,7 +30,12 @@ const createAgentEndpoints = (api: ApiClientContext, paths: WebuiConversationPat
             if (!Number.isInteger(payload.assistantTurnAtMs) || payload.assistantTurnAtMs <= 0) {
                 throw new Error('webui.chat.agent.regenerateCompaction requires a positive assistantTurnAtMs');
             }
-            return decodeAgentCheckpoint(await api.post(paths.agentCompactRegenerate(id), serializeAgentCompactionRegenerateRequest(payload.assistantTurnAtMs)));
+            const clientId = payload.clientId.trim();
+            const clientRequestId = payload.clientRequestId.trim();
+            if (!clientId || !clientRequestId || !isPositiveInteger(payload.expectedLastModifiedAtMs)) {
+                throw new Error('webui.chat.agent.regenerateCompaction requires complete request identity and revision');
+            }
+            return decodeAgentCheckpoint(await api.post(paths.agentCompactRegenerate(id), serializeAgentCompactionRegenerateRequest({ ...payload, clientId, clientRequestId })));
         },
         removeCompactionBoundary: async (id, payload): Promise<AgentMessageWriteResponse> => decodeAgentMessageWrite(await api.post(paths.agentCompactRemoveBoundary(id), serializeAgentCompactionBoundaryRemovalRequest(payload))),
         stopShellToolCall: async (id, payload): Promise<AgentShellToolStopResponse> => {

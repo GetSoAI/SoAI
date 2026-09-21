@@ -47,6 +47,7 @@ const bindToastNotificationSwipeDismissal = (options: ToastNotificationSwipeOpti
     const restoreSwipeState = (): void => {
         dom.removeClass(notification, ['ui-notification--swipe-active', 'ui-notification--swipe-dragging']);
         clearSwipeOffset(notification);
+        dom.addClass(notification, 'ui-notification--entry-complete');
     };
 
     const dismissBySwipe = (deltaX: number): void => {
@@ -78,7 +79,7 @@ const bindToastNotificationSwipeDismissal = (options: ToastNotificationSwipeOpti
             return false;
         }
         state.dragging = true;
-        dom.addClass(notification, 'ui-notification--swipe-dragging');
+        dom.addClass(notification, ['ui-notification--swipe-active', 'ui-notification--swipe-dragging']);
         setSwipeOffset(notification, deltaX);
         return true;
     };
@@ -212,7 +213,6 @@ const bindToastNotificationSwipeDismissal = (options: ToastNotificationSwipeOpti
             dragging: false
         };
         lifecycle.pauseAutoDismiss();
-        dom.addClass(notification, 'ui-notification--swipe-active');
         if (start.source === 'pointer') {
             startPointerGestureListeners();
             notification.setPointerCapture(start.pointerId);

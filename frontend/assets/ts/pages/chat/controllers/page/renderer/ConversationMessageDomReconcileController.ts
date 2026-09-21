@@ -44,7 +44,7 @@ class ConversationMessageDomReconcileController {
         return { byId, idsInOrder, entriesInOrder: nodes, duplicateNodes, unkeyedNodes, hasUnstableEntries: duplicateNodes.length > 0 || unkeyedNodes.length > 0 };
     }
 
-    static reconcileConversationDom(inputArguments: { host: ChatCurrentConversationRenderDependencies; container: Element; renderEntries: ConversationRenderEntry[]; renderSignatureByDomId: ReadonlyMap<string, string>; expectedDomIds: ReadonlySet<string>; existing: ExistingMessageNodes; cache: ConversationRenderCache; isCurrentStreaming: boolean }): { postRenderRequests: { root: HTMLElement; type: ChatPostRenderRequestType }[]; removedIds: string[]; finalNodesByDomId: Map<string, HTMLElement> } {
+    static reconcileConversationDom(inputArguments: { host: ChatCurrentConversationRenderDependencies; container: Element; conversationId: string; renderEntries: ConversationRenderEntry[]; renderSignatureByDomId: ReadonlyMap<string, string>; expectedDomIds: ReadonlySet<string>; existing: ExistingMessageNodes; cache: ConversationRenderCache; isCurrentStreaming: boolean }): { postRenderRequests: { root: HTMLElement; type: ChatPostRenderRequestType }[]; removedIds: string[]; finalNodesByDomId: Map<string, HTMLElement> } {
         const documentRef = inputArguments.container.ownerDocument;
         const existing = inputArguments.existing;
         const postRenderRequests: { root: HTMLElement; type: ChatPostRenderRequestType }[] = [];
@@ -78,7 +78,7 @@ class ConversationMessageDomReconcileController {
                 }
             }
             if (!node) {
-                const markup = renderConversationEntryMarkup(inputArguments.host, entry);
+                const markup = renderConversationEntryMarkup(inputArguments.host, entry, inputArguments.conversationId);
                 const insertion = applyConversationEntryMutation({
                     intent: 'insert',
                     documentRef,
@@ -165,7 +165,7 @@ class ConversationMessageDomReconcileController {
         return refreshes;
     }
 
-    static refreshMessageMarkupIfNeeded(inputArguments: { host: ChatCurrentConversationRenderDependencies; refreshes: readonly ConversationEntryRefresh[]; cache: ConversationRenderCache; isCurrentStreaming: boolean }): void {
+    static refreshMessageMarkupIfNeeded(inputArguments: { host: ChatCurrentConversationRenderDependencies; conversationId: string; refreshes: readonly ConversationEntryRefresh[]; cache: ConversationRenderCache; isCurrentStreaming: boolean }): void {
         for (const refresh of inputArguments.refreshes) {
             const { entry, node, nextSignature, decision } = refresh;
             const domId = entry.domId;
@@ -173,7 +173,7 @@ class ConversationMessageDomReconcileController {
                 if (entry.type !== 'message') {
                     throw new Error('Streaming conversation entry refresh requires a message render entry.');
                 }
-                const nextMarkup = renderConversationEntryMarkup(inputArguments.host, entry);
+                const nextMarkup = renderConversationEntryMarkup(inputArguments.host, entry, inputArguments.conversationId);
                 const mutation = applyConversationEntryMutation({
                     intent: 'streamUpdate',
                     existingRoot: node,
@@ -185,7 +185,7 @@ class ConversationMessageDomReconcileController {
                 setConversationRenderCacheSignature({ cache: inputArguments.cache, domId, signature: nextSignature });
                 continue;
             }
-            const nextMarkup = renderConversationEntryMarkup(inputArguments.host, entry);
+            const nextMarkup = renderConversationEntryMarkup(inputArguments.host, entry, inputArguments.conversationId);
             if (node.classList.contains('chat-comparison-turn')) {
                 if (entry.type !== 'comparisonTurn') {
                     throw new Error('Comparison turn refresh requires a comparison render entry.');

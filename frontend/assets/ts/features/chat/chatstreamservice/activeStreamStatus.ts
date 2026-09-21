@@ -41,6 +41,7 @@ type ActiveChatStreamStatus = ActiveChatStreamIdentity & {
 type InactiveChatStreamStatus = {
     active: false;
     conversationId: string;
+    requestId: string | null;
     startAdmission: 'inactive' | 'busy' | 'unknown';
     admission: ChatStreamAdmissionStatus;
 };
@@ -89,7 +90,11 @@ const mapChatStreamStatusSnapshot = (value: ConversationStreamStatusResponse): C
     }
     const admission = mapAdmissionStatus(value);
     if (value.active === false) {
-        return { active: false, conversationId, startAdmission: value.startAdmission, admission };
+        const requestId = toTrimmedStringOrNull(value.requestId);
+        if (value.requestId !== undefined && requestId === null) {
+            return null;
+        }
+        return { active: false, conversationId, requestId, startAdmission: value.startAdmission, admission };
     }
     const requestIdValue = value.requestId;
     const identity = resolveAssistantMessageIdentity({

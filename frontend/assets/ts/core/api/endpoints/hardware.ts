@@ -1,12 +1,15 @@
 /* SoAI - Shared frontend API endpoint layer hardware [frontend/assets/ts/core/api/endpoints/hardware.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { decodeSuccessfulMutationResponse, type SuccessfulMutationResponse } from '@core/api/contracts/successfulMutationContract.ts';
 import { buildSignalRequestOptions } from '@core/api/requestOptions.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import type { HardwareHistoryConfig, HardwareSnapshotOptions, KillProcessOptions } from '@core/api/types/hardware.ts';
 import type { ApiQueryParameters, RequestOptions } from '@core/api/types/request.ts';
 import { decodeGpuOperationResponse, decodeHardwareCapabilities, decodeHardwareExportResponse, decodeHardwareSnapshot, decodeKillProcessResponse, decodeOptionalHardwareHistory, type GpuOperationResponse, type GpuSettingsUpdateRequest, type GpuSlotStoreRequest, type GpuSoAIBenchStartRequest, type HardwareCapabilitiesResponse, type HardwareHistoryResponse, type HardwareSnapshotResponse, type KillProcessResponse } from '@core/api/contracts/hardwareContracts.ts';
 import { serializeGpuDeviceRequest, serializeGpuDeviceSettingsRequest, serializeGpuSlotApplyDeviceRequest, serializeGpuSlotBootRequest, serializeGpuSlotStoreRequest, serializeGpuSoAIBenchDeviceStartRequest, serializeKillProcessRestRequest } from '@core/api/contracts/hardwareRequestContracts.ts';
+import { decodeGpuSoAIBenchPublicationReceipt, decodeGpuSoAIBenchPublicationPreview } from '@core/api/contracts/hardwareSoAIBenchPublicationContracts.ts';
+import type { GpuSoAIBenchPublicationReceipt } from '@core/api/contracts/hardwareSoAIBenchTypes.ts';
 import { toLowerCase, toString, toTrimmedString } from '@core/normalize.ts';
 import { isDefined, isFiniteNumber, isNumber } from '@core/typeGuards.ts';
 import { minutesToMs } from '@core/time/durations.ts';
@@ -18,7 +21,7 @@ const createHardwareEndpoints = (
     capabilities: (options?: RequestOptions) => Promise<HardwareCapabilitiesResponse>;
     snapshot: (options?: HardwareSnapshotOptions) => Promise<HardwareSnapshotResponse>;
     gpuSettings: { updateDevice: (deviceId: string, settings: GpuSettingsUpdateRequest) => Promise<GpuOperationResponse> };
-    gpuSoAIBench: { start: (deviceId: string, payload: GpuSoAIBenchStartRequest) => Promise<GpuOperationResponse>; get: (runId: string) => Promise<GpuOperationResponse>; stop: (runId: string) => Promise<GpuOperationResponse>; history: (deviceId: string, limit: number) => Promise<GpuOperationResponse>; exportHistory: (deviceId: string) => Promise<Response> };
+    gpuSoAIBench: { deleteLocal: (runId: string) => Promise<SuccessfulMutationResponse>; preview: (runId: string) => Promise<string>; start: (deviceId: string, payload: GpuSoAIBenchStartRequest) => Promise<GpuOperationResponse>; get: (runId: string) => Promise<GpuOperationResponse>; stop: (runId: string) => Promise<GpuOperationResponse>; publish: (runId: string) => Promise<GpuSoAIBenchPublicationReceipt>; history: (deviceId: string, limit: number) => Promise<GpuOperationResponse>; exportHistory: (deviceId: string) => Promise<Response> };
     gpuSlots: { store: (deviceId: string, slot: string | number, slotPayload: GpuSlotStoreRequest, applyAtBoot?: boolean | undefined) => Promise<GpuOperationResponse>; preview: (deviceId: string, slot: string | number) => Promise<GpuOperationResponse>; apply: (deviceId: string, slot: string | number, applyAtBoot?: boolean | undefined) => Promise<GpuOperationResponse>; toggleBoot: (deviceId: string, slot: string | number, enabled: boolean) => Promise<GpuOperationResponse>; clear: (deviceId: string, slot: string | number) => Promise<GpuOperationResponse> };
     killProcess: (pid: string | number, options?: number | KillProcessOptions) => Promise<KillProcessResponse>;
     history: (config: HardwareHistoryConfig) => Promise<HardwareHistoryResponse | null>;
@@ -42,6 +45,11 @@ const createHardwareEndpoints = (
         },
         gpuSettings: { updateDevice: async (deviceId: string, settings: GpuSettingsUpdateRequest): Promise<GpuOperationResponse> => decodeGpuOperationResponse(await api.post('/api/v1/hardware/gpu/settings', serializeGpuDeviceSettingsRequest(deviceId, settings))) },
         gpuSoAIBench: {
+            deleteLocal: async (runId: string): Promise<SuccessfulMutationResponse> => decodeSuccessfulMutationResponse(await api.delete(`/api/v1/hardware/gpu/soaibench/runs/${api.encodePathSegment(runId)}`), 'SoAIBench local history deletion'),
+            preview: async (runId: string): Promise<string> => {
+                if (!runId) throw new Error('SoAIBench runId is required');
+                return decodeGpuSoAIBenchPublicationPreview(await api.get(`/api/v1/hardware/gpu/soaibench/runs/${api.encodePathSegment(runId)}/publication/preview`));
+            },
             start: async (deviceId: string, payload: GpuSoAIBenchStartRequest): Promise<GpuOperationResponse> => {
                 if (!deviceId) throw new Error('GPU deviceId is required');
                 return decodeGpuOperationResponse(await api.post('/api/v1/hardware/gpu/soaibench/runs', serializeGpuSoAIBenchDeviceStartRequest(deviceId, payload)));
@@ -53,6 +61,10 @@ const createHardwareEndpoints = (
             stop: async (runId: string): Promise<GpuOperationResponse> => {
                 if (!runId) throw new Error('SoAIBench runId is required');
                 return decodeGpuOperationResponse(await api.post(`/api/v1/hardware/gpu/soaibench/runs/${api.encodePathSegment(runId)}/stop`, {}));
+            },
+            publish: async (runId: string): Promise<GpuSoAIBenchPublicationReceipt> => {
+                if (!runId) throw new Error('SoAIBench runId is required');
+                return decodeGpuSoAIBenchPublicationReceipt(await api.post(`/api/v1/hardware/gpu/soaibench/runs/${api.encodePathSegment(runId)}/publication`));
             },
             history: async (deviceId: string, limit: number): Promise<GpuOperationResponse> => {
                 if (!deviceId) throw new Error('GPU deviceId is required');

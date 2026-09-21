@@ -12,7 +12,8 @@ import { modalUiId } from '@core/modals/uiIds.ts';
 import { securityApi, type TrustedHtml } from '@core/security/public.ts';
 import { EMPTY_UI_HTML, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
-import { getIconSync, type IconOptions } from '@core/ui/icons/iconservice/public.ts';
+import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
+import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 
 interface FolderPickerLabels {
     currentFolder: string;
@@ -123,7 +124,7 @@ const renderFolderPickerModalMarkup = (options: { modalId: string; labels: Folde
                 <label for="${uiAttr(modalUiId(options.modalId, 'search'))}">${options.labels.search}</label>
                 <div class="searchbar-container searchbar-container--collection folder-picker-searchbar">
                     <input id="${uiAttr(modalUiId(options.modalId, 'search'))}" class="form-input searchbar-input" type="search" placeholder="${uiAttr(options.labels.searchPlaceholder)}">
-                    <span class="searchbar-icon" aria-hidden="true">${getIconSync('search', { size: 16, strokeWidth: 1.5 })}</span>
+                    ${renderSearchFieldActions()}
                 </div>
             </div>
             <div class="folder-picker-status-slot">

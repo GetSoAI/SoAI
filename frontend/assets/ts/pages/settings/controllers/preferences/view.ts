@@ -1,11 +1,13 @@
 /* SoAI - Settings page preferences rendering [frontend/assets/ts/pages/settings/controllers/preferences/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { renderSettingsTitlebarRefreshButton } from '@core/settings/titlebarActions.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { DateFormatPreference, MeasurementUnitsPreference, RegionalLocalePreference } from '@core/localization/public.ts';
-import { createSettingsUiPreferenceFieldKey, type UiPreferenceKey } from '@core/settings/settingsFieldKeys.ts';
+import { createSettingsManualFieldKey, createSettingsUiPreferenceFieldKey, type UiPreferenceKey } from '@core/settings/settingsFieldKeys.ts';
 import { renderSection, renderSelectControl, renderSettingItem, renderSettingsGroup, renderSettingsSubgroup, renderSliderControl, renderToggleControl } from '@core/settings/settingsMarkup.ts';
 import type { ToggleLabelState } from '@core/toggleSwitch.ts';
+import { SETTINGS_ACTION_REFRESH_OCR } from '@pages/settings/actions.ts';
 import { UI_IDS } from '@features/settings/public.ts';
 import type { PreferenceSliderDefinition } from '@pages/settings/controllers/preferences/preferenceSlidersDomain.ts';
 
@@ -13,6 +15,10 @@ interface PreferencesSectionViewModel {
     identityContent: string;
     languageOptions: Array<{ value: string; label: string }>;
     currentLanguage: string;
+    ocrOptions: Array<{ value: string; label: string; disabled: boolean }>;
+    ocrLanguage: string;
+    ocrReady: boolean;
+    ocrAvailable: boolean;
     clockFormat: '12h' | '24h';
     regionalLocale: RegionalLocalePreference;
     dateFormat: DateFormatPreference;
@@ -22,7 +28,12 @@ interface PreferencesSectionViewModel {
     preferenceToggles: Array<{ id: string; uiPrefKey: UiPreferenceKey; label: string; help: string; checked: boolean; disabled: boolean; itemClassName?: string | undefined }>;
 }
 
-const renderPreferencesSection = ({ identityContent, languageOptions, currentLanguage, clockFormat, regionalLocale, dateFormat, measurementUnits, preferenceSliders, preferenceLabels, preferenceToggles }: PreferencesSectionViewModel): string => {
+const renderOcrLanguageControl = (options: PreferencesSectionViewModel['ocrOptions'], language: string, ready: boolean): string => {
+    const select = renderSelectControl({ id: 'ocr-language-select', options, selected: language, disabled: !ready });
+    return ready ? select : `${select}${renderSettingsTitlebarRefreshButton({ action: SETTINGS_ACTION_REFRESH_OCR, label: i18n.t('common.refresh') })}`;
+};
+
+const renderPreferencesSection = ({ identityContent, languageOptions, currentLanguage, ocrOptions, ocrLanguage, ocrReady, ocrAvailable, clockFormat, regionalLocale, dateFormat, measurementUnits, preferenceSliders, preferenceLabels, preferenceToggles }: PreferencesSectionViewModel): string => {
     const items = [
         renderSettingItem({
             label: i18n.t('settings.preferences.language.label'),
@@ -33,6 +44,12 @@ const renderPreferencesSection = ({ identityContent, languageOptions, currentLan
                 options: languageOptions,
                 selected: currentLanguage
             })
+        }),
+        renderSettingItem({
+            label: i18n.t('settings.preferences.ocrLanguage.label'),
+            help: ocrReady && ocrAvailable ? i18n.t('settings.preferences.ocrLanguage.help') : i18n.t('settings.preferences.ocrLanguage.unavailable'),
+            fieldKey: createSettingsManualFieldKey('ocr-language'),
+            control: renderOcrLanguageControl(ocrOptions, ocrLanguage, ocrReady)
         }),
         renderSettingItem({
             label: i18n.t('settings.preferences.clockFormat.label'),
@@ -135,4 +152,4 @@ const renderPreferencesSection = ({ identityContent, languageOptions, currentLan
     });
 };
 
-export { renderPreferencesSection };
+export { renderOcrLanguageControl, renderPreferencesSection };

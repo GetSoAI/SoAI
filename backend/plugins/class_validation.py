@@ -83,7 +83,7 @@ async def validate_plugin_safety(
                     level="debug",
                 )
                 return (False, f"Validation failed: {exception}")
-        current_hash = audit.archive_hash
+        current_hash = audit.content.archive_hash
         if not current_hash:
             return (False, "Could not calculate plugin hash")
         validation_cache_path = get_plugin_validation_cache_path(manager, plugin_name)
@@ -113,7 +113,7 @@ async def validate_plugin_safety(
             )
         try:
             if not audit.imports_validated:
-                for python_member in audit.python_members:
+                for python_member in audit.content.python_members:
                     ensure_import_tree_has_no_forbidden_imports(
                         plugin_name,
                         python_member.parsed_source,

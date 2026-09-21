@@ -45,7 +45,7 @@ async def await_task_finalizers(
     application_context: ApplicationContext,
     timeout_sec: float,
 ) -> None:
-    finalizer_tracker = application_context.services.tasks.task_finalizer_tracker
+    finalizer_tracker = application_context.services.tasks.cancellation.finalizer_tracker
     try:
         completed = await finalizer_tracker.await_all_finalizers(
             timeout=timeout_sec,

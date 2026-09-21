@@ -10,6 +10,7 @@ import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts
 import { acquireMainTimelineCoordinator } from '@features/chat/mainTimelineCoordinator.ts';
 
 const CSS_VAR_MESSAGES_PADDING_BOTTOM = '--chat-messages-padding-bottom';
+const CSS_VAR_FLOATING_INPUT_INSET = '--chat-floating-input-inset';
 const CSS_VAR_CONVERSATION_HEADER_HEIGHT = '--chat-conversation-header-height';
 const CSS_VAR_PLAN_OVERLAY_HEIGHT = '--chat-plan-overlay-height';
 const CSS_VAR_PLAN_HEADER_HEIGHT = '--chat-plan-header-height';
@@ -79,6 +80,7 @@ export const setupMessagesAreaInsets = (context: ChatUIManagerContext): (() => v
 
     const clearInsetStyles = (): void => {
         context.dependencies.dom.setStyle(messagesArea, CSS_VAR_MESSAGES_PADDING_BOTTOM, null);
+        context.dependencies.dom.setStyle(messagesArea, CSS_VAR_FLOATING_INPUT_INSET, null);
         context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_CONVERSATION_HEADER_HEIGHT, null);
         context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_OVERLAY_HEIGHT, null);
         context.dependencies.dom.setStyle(headerStyleTarget, CSS_VAR_PLAN_HEADER_HEIGHT, null);
@@ -133,6 +135,7 @@ export const setupMessagesAreaInsets = (context: ChatUIManagerContext): (() => v
         }
         const overlapPx = areaRect.bottom - Math.min(...overlayTops);
         const clampedOverlapPx = clampNumber(overlapPx, 0, areaRect.height);
+        context.dependencies.dom.setStyle(messagesArea, CSS_VAR_FLOATING_INPUT_INSET, `${Math.round(clampedOverlapPx)}px`);
         const padded = Math.max(baselinePaddingBottomPx, clampedOverlapPx + messageGapPx);
         context.dependencies.dom.setStyle(messagesArea, CSS_VAR_MESSAGES_PADDING_BOTTOM, `${Math.round(padded)}px`);
     };

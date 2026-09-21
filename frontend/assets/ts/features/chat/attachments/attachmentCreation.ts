@@ -6,7 +6,7 @@ import { generateSecureId } from '@core/primitives/idGenerator.ts';
 import { isImageMimeType } from '@core/media/mimeTypes.ts';
 import { isString } from '@core/typeGuards.ts';
 import { isSupportedChatImageFile } from '@features/chat/ChatAttachmentSupport.ts';
-import type { ChatAttachment } from '@features/chat/ChatTypes.ts';
+import type { ChatAttachment, ChatAttachmentDraftSource } from '@features/chat/ChatTypes.ts';
 import { normalizeImageMimeTypeFromHeader } from '@features/chat/imageMimeSniffer.ts';
 import { createChatUploadFileTooLargeMessage, getChatUploadFileSizeLimit, isChatUploadFileSizeAllowed, normalizeChatUploadFileName, resolveChatUploadUnsupportedTypeLabel } from '@features/chat/attachments/attachmentValidation.ts';
 
@@ -20,6 +20,7 @@ interface ChatAttachmentCreationDependencies {
 
 type ChatAttachmentCreationOptions = {
     forceDocument?: boolean;
+    draftSource?: Extract<ChatAttachmentDraftSource, 'upload' | 'camera'>;
 };
 
 class ChatAttachmentCreation {
@@ -64,7 +65,8 @@ class ChatAttachmentCreation {
             size: effectiveFile.size,
             type: effectiveFile.type,
             isImage: isImage,
-            parseStatus: 'processing'
+            parseStatus: 'processing',
+            draftSource: options.draftSource ?? 'upload'
         };
     }
 

@@ -4,6 +4,7 @@
 import { replaceChildrenIfChanged, syncElementShell } from '@core/dom/patching.ts';
 import { preserveChatMessageInlineState, restoreChatMessageInlineState } from '@features/chat/message/chatMessageInlineStatePreservation.ts';
 import { parseRenderedMarkupRoot } from '@features/chat/message/renderedMarkupRoot.ts';
+import { preserveStableAttachmentThumbnailVisuals } from '@features/chat/attachments/attachmentThumbnailDom.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 
 type ChatMessageRootPatchResult = {
@@ -69,6 +70,10 @@ const mapTypedChildren = <T extends string>(parent: HTMLElement, resolveType: (e
 
 const patchLeafElement = (target: HTMLElement, source: HTMLElement): boolean => {
     let changed = syncElementShell({ target, source });
+    if (preserveStableAttachmentThumbnailVisuals(target, source) > 0) {
+        target.replaceChildren(...Array.from(source.childNodes));
+        return true;
+    }
     if (replaceChildrenIfChanged(target, source)) {
         changed = true;
     }

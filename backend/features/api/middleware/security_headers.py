@@ -53,7 +53,7 @@ class SecurityHeadersMiddleware:
         "manifest-src 'self'",
     )
     DEFAULT_PERMISSIONS_POLICY = (
-        "camera=(), microphone=(self), geolocation=(), clipboard-write=(self)"
+        "camera=(self), microphone=(self), geolocation=(), clipboard-write=(self)"
     )
 
     def __init__(

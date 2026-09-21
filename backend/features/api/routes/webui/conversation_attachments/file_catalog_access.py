@@ -5,8 +5,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from core.attachments.attachment_constants import WEBUI_CHAT_ATTACHMENT_PURPOSE
-from core.errors.exceptions import ConflictError
+from core.errors.exceptions import ConflictError, ValidationError
+from features.api.runtime.webui_attachments.physical_file_snapshot import (
+    load_soai_file_record,
+)
 
 if TYPE_CHECKING:
     from core.files.database_types import FileCatalogRecordWithPath
@@ -22,19 +24,17 @@ async def get_attachment_file_catalog_record(
     attachment: JSONDict,
     user_id: int,
 ) -> FileCatalogRecordWithPath:
-    file_id = str(attachment.get("file_id") or "")
-    if not file_id:
+    file_id = attachment.get("file_id")
+    if not isinstance(file_id, str) or not file_id:
         raise ConflictError("Attachment file_id is invalid.")
-    file_record = await database_files.get_file_info_with_path(
-        file_id,
-        enforce_owner=True,
-        user_id=user_id,
-        api_key_id=None,
-    )
+    try:
+        file_record = await load_soai_file_record(
+            database_files,
+            user_id=user_id,
+            attachment=attachment,
+        )
+    except ValidationError as exception:
+        raise ConflictError(str(exception)) from exception
     if file_record is None:
         raise ConflictError("Attachment file catalog row is missing.")
-    if file_record["purpose"] != WEBUI_CHAT_ATTACHMENT_PURPOSE:
-        raise ConflictError("Attachment file purpose is invalid.")
-    if file_record["api_key_id"] is not None:
-        raise ConflictError("Attachment file ownership is invalid.")
     return file_record

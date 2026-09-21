@@ -17,6 +17,7 @@ from core.errors.http_recoverable import HTTP_RECOVERABLE_EXCEPTIONS
 from core.files.temp_files import create_secure_temp_file_descriptor
 from core.logging.trace import get_logger
 from core.network.urls import require_absolute_http_url
+from core.users.ocr_preferences import resolve_user_ocr_language
 from mcp.tools.argument_fields import reject_unexpected_parameters
 from mcp.tools.argument_scalars import parse_int
 from mcp.tools.error import MCPToolError
@@ -86,6 +87,9 @@ async def tool_read_document(self: MCPUtilityToolsProtocol, arguments: JSONDict)
         max_value=600,
     )
 
+    ocr_language = await resolve_user_ocr_language(
+        self.database_users, self.runtime_sessions.current_user_id()
+    )
     temp_path = None
     fetched_content_type = None
     final_url = None
@@ -106,6 +110,7 @@ async def tool_read_document(self: MCPUtilityToolsProtocol, arguments: JSONDict)
             )
         result = await self.document_reader.read_document_to_text(
             file_path=file_path_for_read,
+            ocr_language=ocr_language,
             parser_registry=self.parser_registry_factory(),
             parse_timeout_sec=float(parse_timeout_sec),
             max_chars=int(max_chars),

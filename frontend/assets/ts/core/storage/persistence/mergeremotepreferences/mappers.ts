@@ -176,6 +176,11 @@ const applyUiPatch = (patch: JsonValue | undefined, target: UiPreferences): void
         target.dashboardMemo = normalizeNonBlankStringOrNull(dashboardMemo ?? null);
     }
 
+    const defaultPage = patch['default_page'];
+    if (defaultPage === null || defaultPage === undefined || isString(defaultPage)) {
+        target.defaultPage = normalizeNonBlankStringOrNull(defaultPage ?? null);
+    }
+
     const chartColorMode = patch['chart_color_mode'];
     if (isChartColorModeType(chartColorMode)) {
         target.chartColorMode = chartColorMode;

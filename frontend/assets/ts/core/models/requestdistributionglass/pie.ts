@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { RequestDistributionSlice } from '@core/models/requestDistribution.ts';
-import { toSurfaceColor } from '@core/models/requestDistributionColors.ts';
+import { resolveRequestDistributionColor, toSurfaceColor } from '@core/models/requestDistributionColors.ts';
 import { bodyTint, clipPathDef, clipUrl, composeBackground, darkenFace, depthTint, glassFaceMarkup, groundShadowMarkup, lightenFace, nextGlassClipId, radialSpecular, rimPath, roundTo } from '@core/models/requestdistributionglass/glassMaterial.ts';
 import type { RequestDistributionGlassInput, RequestDistributionGlassParts } from '@core/models/requestdistributionglass/glassParts.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
@@ -97,7 +97,7 @@ const buildSideWall = (geometry: PieGeometry, slice: RequestDistributionSlice, b
 };
 
 const resolveSliceColor = (input: RequestDistributionGlassInput, slice: RequestDistributionSlice): string => {
-    const color = input.colors[slice.swatchIndex % input.colors.length];
+    const color = resolveRequestDistributionColor(input.colors, slice.swatchIndex, slice.swatchColor);
     if (!color) {
         throw new Error('Request distribution chart color palette is missing an entry');
     }

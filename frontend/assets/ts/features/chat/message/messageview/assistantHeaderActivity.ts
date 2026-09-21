@@ -10,7 +10,7 @@ import type { ChatComparisonTurnRenderModel } from '@features/chat/comparisonTur
 import { ASSISTANT_RESPONSE_STATUS_ATTRIBUTE } from '@features/chat/message/assistantHeaderCatalogStatus.ts';
 import { renderAssistantHeaderDuration, resolveAssistantHeaderDurationArguments } from '@features/chat/message/messageview/assistantHeaderDuration.ts';
 import { renderInlineActivityHeaderRow, renderInlineActivityIcon, renderInlineActivityLeadingIcon, renderInlineActivityPreview } from '@features/chat/message/messageview/inlineActivityHeaderRow.ts';
-import type { ChatActivityDurationDisplayMode } from '@features/chat/message/messageview/activityDurationDisplay.ts';
+import { shouldAnimateSettledActivityDuration, shouldRenderActivityDuration, type ChatActivityDurationDisplayMode } from '@features/chat/message/messageview/activityDurationDisplay.ts';
 
 const resolveAssistantActivityModelIndexText = (comparisonTurn: ChatComparisonTurnRenderModel | null): string => {
     const modelVariantIndex = comparisonTurn ? comparisonTurn.modelVariantIndex : 0;
@@ -63,8 +63,10 @@ const renderAssistantHeaderActivity = (
         hidden: modelTypeLabel === null
     });
     const nowMs = dependencies.nowMs();
-    const durationHtml = dependencies.getActivityDurationDisplayMode() === 'all' ? renderAssistantHeaderDuration((value: string): string => dependencies.escapeHtml(value), message, nowMs) : '';
     const durationArguments = resolveAssistantHeaderDurationArguments(message, nowMs);
+    const displayMode = dependencies.getActivityDurationDisplayMode();
+    const durationStatus = durationArguments?.status ?? 'pending';
+    const durationHtml = shouldRenderActivityDuration(displayMode, 'collapsed', durationStatus) ? renderAssistantHeaderDuration((value: string): string => dependencies.escapeHtml(value), message, nowMs, shouldAnimateSettledActivityDuration(displayMode, durationStatus)) : '';
     const startedAtMs = durationArguments?.startedAtMs;
     const startedAtAttr = durationArguments?.status === 'running' && typeof startedAtMs === 'number' && isEpochMsNumber(startedAtMs) ? ` data-assistant-started-at-ms="${dependencies.escapeAttribute(String(startedAtMs))}"` : '';
     const responseStatusAttr = durationArguments ? ` ${ASSISTANT_RESPONSE_STATUS_ATTRIBUTE}="${durationArguments.status}"` : '';

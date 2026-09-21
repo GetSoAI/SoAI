@@ -10,25 +10,28 @@ import { compactQueryWhitespace } from '@features/chat/toolactivity/payloadTextP
 import { renderInlineStatusActivityLifecycleKeyAttribute } from '@features/chat/message/inlineStatusActivityIdentity.ts';
 import { renderInlineActivityDuration, resolveInlineActivityDurationArguments } from '@features/chat/message/messageview/inlineActivityDuration.ts';
 import { renderInlineStatusDot, renderInlineStatusIcon } from '@features/chat/message/messageview/inlineActivityStatusRendering.ts';
-import { renderInlineActivityHeaderRow, renderInlineActivityLeadingIcon, renderInlineActivityPreview } from '@features/chat/message/messageview/inlineActivityHeaderRow.ts';
+import { renderInlineActivityHeaderRow, renderInlineActivityLeadingIcon, renderInlineActivityStreamedPreview } from '@features/chat/message/messageview/inlineActivityHeaderRow.ts';
+import { resolveInlineActivityName } from '@features/chat/message/messageview/inlineActivityName.ts';
 import { clampInlineLabel } from '@features/chat/message/messageview/inlineActivityText.ts';
 import type { ChatMessageRenderHost } from '@features/chat/message/messageview/types.ts';
-import { renderSettledActivityDurationAttribute, shouldRenderActivityDuration } from '@features/chat/message/messageview/activityDurationDisplay.ts';
+import { renderSettledActivityDurationAttribute, shouldAnimateSettledActivityDuration, shouldRenderActivityDuration } from '@features/chat/message/messageview/activityDurationDisplay.ts';
 
 interface RenderInlineLoadingActivityGroupArguments {
     segment: InlineLoadingActivitySegment;
     displayStatus: 'running' | 'completed' | 'cancelled' | 'error';
     durationStatus?: 'running' | 'completed' | 'cancelled' | 'error';
     toggleEnabled: boolean;
+    latestActivityName: string | null;
 }
 
-const renderInlineLoadingPreview = (host: ChatMessageRenderHost, segment: InlineLoadingActivitySegment): string => {
+const renderInlineLoadingPreview = (host: ChatMessageRenderHost, inputArguments: RenderInlineLoadingActivityGroupArguments): string => {
+    const segment = inputArguments.segment;
     const technicalReason = isString(segment.reason) ? compactQueryWhitespace(segment.reason) : '';
     const errorType = isString(segment.errorType) ? compactQueryWhitespace(segment.errorType) : '';
     const reason = errorType ? resolveChatStreamServerErrorMessage(technicalReason, errorType) : technicalReason;
     const detailText = [reason, errorType].filter((value) => value.length > 0).join(' · ');
-    const previewText = detailText ? clampInlineLabel(detailText, 120) : i18n.t('chat.loading.modelPreview');
-    return renderInlineActivityPreview(host, { text: previewText });
+    const previewText = detailText ? clampInlineLabel(detailText, 120) : (inputArguments.latestActivityName ?? i18n.t('chat.loading.modelPreview'));
+    return renderInlineActivityStreamedPreview(host, { status: inputArguments.displayStatus, visible: previewText, latest: previewText });
 };
 
 const renderInlineLoadingActivityGroup = (host: ChatMessageRenderHost, inputArguments: RenderInlineLoadingActivityGroupArguments): string => {
@@ -37,19 +40,24 @@ const renderInlineLoadingActivityGroup = (host: ChatMessageRenderHost, inputArgu
     const leadingIconHtml = renderInlineActivityLeadingIcon(host, { variant: 'hourglass', iconName: 'hourglass', options: { size: 8, strokeWidth: 1.5 } });
     const statusDotHtml = renderInlineStatusDot(host, inputArguments.displayStatus);
     const statusIconHtml = renderInlineStatusIcon(host, inputArguments.displayStatus, 'clock');
-    const previewHtml = renderInlineLoadingPreview(host, inputArguments.segment);
-    const durationHtml = shouldRenderActivityDuration(host.getActivityDurationDisplayMode(), 'collapsed')
-        ? renderInlineActivityDuration(host, {
-              ...resolveInlineActivityDurationArguments(inputArguments.segment, host.nowMs()),
-              status: durationStatus
-          })
+    const previewHtml = renderInlineLoadingPreview(host, inputArguments);
+    const displayMode = host.getActivityDurationDisplayMode();
+    const durationHtml = shouldRenderActivityDuration(displayMode, 'collapsed', durationStatus)
+        ? renderInlineActivityDuration(
+              host,
+              {
+                  ...resolveInlineActivityDurationArguments(inputArguments.segment, host.nowMs()),
+                  status: durationStatus
+              },
+              { animateEntrance: shouldAnimateSettledActivityDuration(displayMode, durationStatus) }
+          )
         : '';
     const headerHtml = renderInlineActivityHeaderRow(host, {
         tagName: 'div',
         leadingIconHtml,
         statusLedHtml: statusDotHtml,
         mainIconHtml: statusIconHtml,
-        name: i18n.t('chat.loading.label'),
+        name: resolveInlineActivityName(inputArguments.segment),
         previewHtml,
         durationHtml,
         actionId: inputArguments.toggleEnabled ? 'chat:toggle-loading-activity-item' : undefined,
@@ -64,3 +72,4 @@ const renderInlineLoadingActivityGroup = (host: ChatMessageRenderHost, inputArgu
 };
 
 export { renderInlineLoadingActivityGroup };
+export type { RenderInlineLoadingActivityGroupArguments };

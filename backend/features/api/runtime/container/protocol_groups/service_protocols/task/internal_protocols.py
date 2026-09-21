@@ -6,15 +6,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
+    from core.app.protocols import CancellationSystemProtocol
     from core.tasks.protocols import (
-        CancellationCoordinatorProtocol,
-        CancellationEventBusProtocol,
-        CancellationHistoryProtocol,
-        TaskCancellationBinderProtocol,
-        TaskFinalizerTrackerProtocol,
         TaskRegistryProtocol,
         TaskTypeRoutingServiceProtocol,
-        TokenCollectionProtocol,
     )
     from core.tasks.protocols_query import TaskRegistryQueryView
 
@@ -32,19 +27,4 @@ class TaskServicesProtocol(Protocol):
     def task_type_routing_service(self) -> TaskTypeRoutingServiceProtocol: ...
 
     @property
-    def cancellation_coordinator(self) -> CancellationCoordinatorProtocol: ...
-
-    @property
-    def cancellation_history(self) -> CancellationHistoryProtocol: ...
-
-    @property
-    def cancellation_event_bus(self) -> CancellationEventBusProtocol: ...
-
-    @property
-    def token_collection(self) -> TokenCollectionProtocol: ...
-
-    @property
-    def task_cancellation_binder(self) -> TaskCancellationBinderProtocol: ...
-
-    @property
-    def task_finalizer_tracker(self) -> TaskFinalizerTrackerProtocol: ...
+    def cancellation(self) -> CancellationSystemProtocol: ...

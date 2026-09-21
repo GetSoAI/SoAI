@@ -51,7 +51,7 @@ const copySoAIBenchRunExport = async (input: SoAIBenchRunExportActionInput): Pro
 
 const downloadSoAIBenchRunExport = (input: SoAIBenchRunExportActionInput): void => {
     const payload = buildExportPayload(input);
-    downloadFile(payload.text, payload.filename, 'text/plain');
+    downloadFile(payload.text, payload.filename, 'text/markdown');
     input.host.showNotification(i18n.t('common.notifications.downloadStarted'), 'download');
 };
 

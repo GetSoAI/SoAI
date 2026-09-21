@@ -2,27 +2,27 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer utilities {
-    html[data-notification-animation='fade'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing) {
+    html[data-notification-animation='fade'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing, .ui-notification--entry-complete) {
         transform: none;
         animation: effect-fade-enter var(--effect-notification-enter-duration) var(--ease-smooth) forwards;
     }
 
-    html[data-notification-animation='slide'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing) {
+    html[data-notification-animation='slide'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing, .ui-notification--entry-complete) {
         transform: translateY(100%);
         animation: effect-slide-enter var(--effect-notification-enter-duration) var(--ease-smooth) forwards;
     }
 
-    html[data-notification-animation='scale'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing) {
+    html[data-notification-animation='scale'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing, .ui-notification--entry-complete) {
         transform: scale(0.96);
         animation: effect-scale-enter calc(var(--effect-notification-enter-duration) * var(--effect-scale-duration-factor)) var(--ease-smooth) forwards;
     }
 
-    html[data-notification-animation='zoom'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing) {
+    html[data-notification-animation='zoom'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing, .ui-notification--entry-complete) {
         transform: scale(0.85);
         animation: effect-zoom-enter var(--effect-notification-enter-duration) var(--ease-spring) forwards;
     }
 
-    html[data-notification-animation='lateral'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing) {
+    html[data-notification-animation='lateral'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing, .ui-notification--entry-complete) {
         transform: translateX(100%);
         animation: effect-lateral-enter var(--effect-notification-enter-duration) var(--ease-smooth) forwards;
     }

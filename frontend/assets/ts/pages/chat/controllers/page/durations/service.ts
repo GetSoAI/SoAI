@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { monotonicMs, serverEpochMs } from '@core/time/clock.ts';
-import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
-import { CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX, resolveActivityDurationDisplayMode } from '@features/chat/public.ts';
+import type { ChatActivityDurationDisplayMode } from '@features/chat/public.ts';
 import { ActivityDurationRuntime } from '@pages/chat/controllers/page/durations/ActivityDurationRuntime.ts';
 
 type ActivityDurationRegistryTimerPort = {
@@ -18,7 +17,7 @@ type ActivityDurationRegistryRecord = {
 
 const registryByViewport = new WeakMap<HTMLElement, ActivityDurationRegistryRecord>();
 
-const initializeActivityDurationRegistry = (inputArguments: { viewport: HTMLElement; root: Element; conversationId: string; timers: ActivityDurationRegistryTimerPort }): void => {
+const initializeActivityDurationRegistry = (inputArguments: { viewport: HTMLElement; root: Element; conversationId: string; timers: ActivityDurationRegistryTimerPort; getDisplayMode: () => ChatActivityDurationDisplayMode }): void => {
     const current = registryByViewport.get(inputArguments.viewport);
     let record = current;
     if (record && record.conversationId !== inputArguments.conversationId) {
@@ -34,7 +33,7 @@ const initializeActivityDurationRegistry = (inputArguments: { viewport: HTMLElem
             nowMonotonicMs: monotonicMs,
             setTimer: (callback, delayMs) => inputArguments.timers.setTimer(callback, delayMs),
             clearTimer: (timerId) => inputArguments.timers.clearTimer(timerId),
-            getDisplayMode: () => resolveActivityDurationDisplayMode(measureLayoutViewport(inputArguments.viewport).width, CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX)
+            getDisplayMode: inputArguments.getDisplayMode
         });
         record = {
             conversationId: inputArguments.conversationId,

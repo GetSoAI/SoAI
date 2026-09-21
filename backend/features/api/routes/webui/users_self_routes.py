@@ -3,11 +3,16 @@
 
 from __future__ import annotations
 
+import os
+
 from fastapi import Depends, Request, Response
 from fastapi.responses import JSONResponse
 
-from core.errors.exceptions import NotFoundError, StateError
+from core.errors.exceptions import NotFoundError, StateError, ValidationError
+from core.media.tesseract_data import tesseract_model_available
+from core.media.tesseract_languages import get_tesseract_catalog
 from core.state.access import AccessAction
+from core.types.json import JSONDict
 from features.api.routes.webui.user_identity_validation import require_username
 from features.api.routes.webui.user_password_changes import change_webui_user_password
 from features.api.routes.webui.users_common import serialize_user_response
@@ -60,6 +65,26 @@ def register_routes(routers: ApiRouters) -> None:
         )
         return result.response
 
+    @router.get("/ocr/languages")
+    async def get_ocr_languages(
+        _current_user: CurrentUser = Depends(get_current_user),
+    ) -> Response:
+        data_directory = os.environ.get("TESSDATA_PREFIX", "")
+        payload: JSONDict = {
+            "languages": [
+                {
+                    "code": entry.code,
+                    "name": entry.name,
+                    "native_name": entry.native_name,
+                    "flag": entry.flag,
+                    "ui_locale": entry.ui_locale,
+                    "available": tesseract_model_available(data_directory, entry.code),
+                }
+                for entry in get_tesseract_catalog().languages
+            ]
+        }
+        return JSONResponse(content=payload)
+
     @router.get("/users/me/preferences")
     async def get_my_preferences(
         request: Request,
@@ -81,6 +106,12 @@ def register_routes(routers: ApiRouters) -> None:
         current_user: CurrentUser = Depends(get_current_user),
         api_context: ApiContext = Depends(resolve_api_context),
     ) -> Response:
+        settings = payload.preferences.get("settings")
+        if isinstance(settings, dict) and "ocr_language" in settings:
+            if payload.intended_user_id != current_user["id"]:
+                raise ValidationError(
+                    "OCR preference mutation requires the authenticated intended user."
+                )
         username = require_username(request, current_user)
         log_audit_event(request, "UPDATE_PREFERENCES", f"user:{username}")
         try:

@@ -2,14 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
-import { canAccessUiSurface, createAccessContextFromUser, createAccessRequirement } from '@core/access/accessPolicy.ts';
 import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { measureViewportBox } from '@core/layout/elementGeometry.ts';
 import type { NavigationEventDetail } from '@core/navigationEvents.ts';
 import type { Router } from '@core/routing/router/Router.ts';
 import { isString } from '@core/typeGuards.ts';
-import type { UserInfo } from '@core/layout/sidebar/contracts.ts';
 import { resolveHTMLElement, SIDEBAR_LINK_SELECTOR } from '@core/layout/sidebar/dom.ts';
 
 const SIDEBAR_ACTIVE_RAIL_CLASS = 'sidebar-active-rail';
@@ -154,17 +152,6 @@ const highlightSidebarItem = (menu: HTMLElement | null, pageId: string, type: st
     setTimer(() => dom.removeClass(link, className), 3000);
 };
 
-const updateSidebarAdminMenuItems = (menu: HTMLElement | null, adminOnlyItems: Set<string>, user: UserInfo | null): void => {
-    adminOnlyItems.forEach((pageId) => {
-        const link = menu ? resolveHTMLElement(`.sidebar-link[data-page="${pageId}"]`, menu) : null;
-        const container = link?.parentElement;
-        if (container) {
-            const canAccess = canAccessUiSurface(createAccessRequirement({ authenticated: true, admin: true }), createAccessContextFromUser(user));
-            dom.setStyle(container, 'display', canAccess ? '' : 'none');
-        }
-    });
-};
-
 const resolveRouteFromNavigationDetail = (detail: NavigationEventDetail | null = null): string | null => {
     const routeValue = detail?.['route'];
     return isString(routeValue) ? routeValue : null;
@@ -175,4 +162,4 @@ const resolveComponentFromNavigationDetail = (detail: NavigationEventDetail | nu
     return isString(componentValue) ? componentValue : null;
 };
 
-export { addSidebarNotificationBadge, highlightSidebarItem, navigateSidebarTo, resolveComponentFromNavigationDetail, resolveRouteFromNavigationDetail, setSidebarActiveByPage, setSidebarActiveLink, syncSidebarWithCurrentRoute, updateSidebarAdminMenuItems };
+export { addSidebarNotificationBadge, highlightSidebarItem, navigateSidebarTo, resolveComponentFromNavigationDetail, resolveRouteFromNavigationDetail, setSidebarActiveByPage, setSidebarActiveLink, syncSidebarWithCurrentRoute };

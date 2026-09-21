@@ -37,20 +37,9 @@ export const scheduleRequestTerminalization = async (context: ChatStreamingContr
             context.errorHandler?.debug?.('ChatStream', `Skipping mismatched terminalization while the service stream is active for ${inputArguments.conversationId}`);
             return;
         }
-        const stateAssistantTimestamp = state.assistantTimestamp;
-        if (typeof stateAssistantTimestamp === 'number' && Number.isFinite(stateAssistantTimestamp)) {
-            await scheduleRequestTerminalization(context, {
-                conversationId: inputArguments.conversationId,
-                requestId: state.requestId,
-                assistantTimestamp: stateAssistantTimestamp,
-                status: inputArguments.status
-            });
-            return;
-        }
-        clearStreamingContext(context, inputArguments.conversationId);
         if (!context.disposed && context.presentationActive && context.dependencies.state.getCurrentConversationId() === inputArguments.conversationId) {
             context.dependencies.presentation.invalidateChatMarkup('current');
-            await renderCurrentConversationSafely(context, `Failed to render current conversation after mismatched terminal cleanup for ${inputArguments.conversationId}`);
+            await renderCurrentConversationSafely(context, `Failed to reconcile historical terminal messages for ${inputArguments.conversationId}`);
         }
         return;
     }

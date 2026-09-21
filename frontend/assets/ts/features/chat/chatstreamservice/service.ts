@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { CHAT_STREAM_SERVICE_ID } from '@core/chat/protocols.ts';
-import type { ChatStreamApiClient } from '@features/chat/chatstreamservice/chatStreamApi.ts';
+import type { ChatStreamApiClient, ChatStreamStopApiClient } from '@features/chat/chatstreamservice/chatStreamApi.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { ChatStreamConversationTitleResolution, type ConversationTitleResolver } from '@features/chat/chatstreamservice/conversationTitleResolution.ts';
 import type { ChatPresentationInterests, ChatPresentationState, StreamRuntime } from '@features/chat/chatstreamservice/contracts.ts';
@@ -15,6 +15,7 @@ import { ChatStreamTerminalNotificationCoordinator } from '@features/chat/chatst
 import { createChatStreamRuntime } from '@features/chat/chatstreamservice/streamRuntimeNotifications.ts';
 import { disposeChatStreamServiceState } from '@features/chat/chatstreamservice/serviceDisposal.ts';
 import { stopChatStreamSession } from '@features/chat/chatstreamservice/serviceStop.ts';
+import { ChatStreamStopOperationOwner, type ChatStopOutcome } from '@features/chat/chatstreamservice/stopOperationOwner.ts';
 import { startChatStreamSession } from '@features/chat/chatstreamservice/serviceStart.ts';
 import { interruptChatStreamSession } from '@features/chat/chatstreamservice/streamInterrupt.ts';
 import { ChatStreamServiceLifecycle } from '@features/chat/chatstreamservice/serviceLifecycle.ts';
@@ -29,7 +30,7 @@ import { resolveActiveStreamingSession } from '@features/chat/chatstreamservice/
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 
 class ChatStreamService {
-    readonly #apiClient: ChatStreamApiClient;
+    readonly #apiClient: ChatStreamApiClient & ChatStreamStopApiClient;
     #sessions = new Map<string, ChatStreamSession>();
     #retainedToolTimeline: RetainedToolTimelineCoordinator;
     #listeners = new Set<StreamListener>();
@@ -38,6 +39,7 @@ class ChatStreamService {
     #ownerDispatch = new ChatStreamOwnerDispatch();
     #conversationTitles = new ChatStreamConversationTitleResolution();
     #admissionState = new ChatStreamAdmissionState();
+    #stopOperations: ChatStreamStopOperationOwner;
     #lifecycle = new ChatStreamServiceLifecycle();
     #notificationQueue = new ChatStreamNotificationQueue({
         sessions: this.#sessions,
@@ -47,16 +49,18 @@ class ChatStreamService {
     #activeStatusSyncRunner: ChatStreamActiveStatusSyncRunner;
     #presentationSession: ChatStreamPresentationSession;
     #webSocketControl: ChatStreamWebSocketControlLifecycle;
-    #runtime: StreamRuntime = createChatStreamRuntime({
-        requestDispositions: this.#requestDispositions,
-        notificationQueue: this.#notificationQueue,
-        conversationTitles: this.#conversationTitles,
-        admissionState: this.#admissionState,
-        terminalNotifications: this.#terminalNotifications
-    });
+    #runtime: StreamRuntime;
 
-    constructor(inputArguments: { apiClient: ChatStreamApiClient; presentationInterests: ChatPresentationInterests }) {
+    constructor(inputArguments: { apiClient: ChatStreamApiClient & ChatStreamStopApiClient; presentationInterests: ChatPresentationInterests }) {
         this.#apiClient = inputArguments.apiClient;
+        this.#runtime = createChatStreamRuntime({
+            requestDispositions: this.#requestDispositions,
+            notificationQueue: this.#notificationQueue,
+            conversationTitles: this.#conversationTitles,
+            admissionState: this.#admissionState,
+            terminalNotifications: this.#terminalNotifications,
+            settleStopTerminal: (conversationId, requestId) => this.#stopOperations.settleTerminal(conversationId, requestId)
+        });
         this.#retainedToolTimeline = new RetainedToolTimelineCoordinator({
             apiClient: this.#apiClient,
             sessions: this.#sessions,
@@ -71,6 +75,13 @@ class ChatStreamService {
             ownerDispatch: this.#ownerDispatch,
             requestDispositions: this.#requestDispositions,
             admissionState: this.#admissionState
+        });
+        this.#stopOperations = new ChatStreamStopOperationOwner(this.#apiClient, async (conversationId, requestId) => {
+            await this.#syncConversationStatusIfActive(conversationId, this.#lifecycle.generation());
+            const identity = this.#admissionState.getIdentity(conversationId);
+            if (identity !== null && identity.requestId !== requestId) return true;
+            const admission = this.#admissionState.get(conversationId);
+            return admission.streamLifecycle === 'inactive' && admission.canStartNextPrompt;
         });
         this.#presentationSession = new ChatStreamPresentationSession({
             apiClient: this.#apiClient,
@@ -139,6 +150,7 @@ class ChatStreamService {
         this.#activeStatusSyncRunner.dispose();
         this.#notificationQueue.dispose();
         this.#terminalNotifications.dispose();
+        this.#stopOperations.dispose();
         disposeChatStreamServiceState({
             sessions: this.#sessions,
             retainedToolTimeline: this.#retainedToolTimeline,
@@ -260,17 +272,18 @@ class ChatStreamService {
         });
     }
 
-    stop(input: { conversationId: string; reason?: string; requestId?: string; force?: boolean; forcePendingSteers?: boolean }): void {
+    stop(input: { conversationId: string; reason?: string; requestId?: string; force?: boolean; forcePendingSteers?: boolean; onTerminalEvidence?: () => void }): Promise<ChatStopOutcome> | null {
         this.#lifecycle.requireActive('stop');
-        stopChatStreamSession({
+        return stopChatStreamSession({
             sessions: this.#sessions,
             pendingStopRequests: this.#pendingStopRequests,
-            requestDispositions: this.#requestDispositions,
+            stopOperations: this.#stopOperations,
             conversationId: input.conversationId,
             ...(input.reason === undefined ? {} : { reason: input.reason }),
             ...(input.requestId === undefined ? {} : { requestId: input.requestId }),
             ...(input.force === undefined ? {} : { force: input.force }),
-            ...(input.forcePendingSteers === undefined ? {} : { forcePendingSteers: input.forcePendingSteers })
+            ...(input.forcePendingSteers === undefined ? {} : { forcePendingSteers: input.forcePendingSteers }),
+            ...(input.onTerminalEvidence === undefined ? {} : { onTerminalEvidence: input.onTerminalEvidence })
         });
     }
 

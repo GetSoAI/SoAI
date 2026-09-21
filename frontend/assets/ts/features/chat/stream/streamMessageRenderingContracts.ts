@@ -35,6 +35,7 @@ export interface RenderStreamingMessageContentArguments {
 export interface RenderStreamingMessageContentResult {
     handled: boolean;
     invalidatedCache: boolean;
+    requiresActivityDurationReconcile: boolean;
     updatedMarkup: boolean;
     target: Element | null;
 }

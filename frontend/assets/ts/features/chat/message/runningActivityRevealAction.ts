@@ -9,6 +9,8 @@ import { mapAssistantTimelineToolPayload } from '@features/chat/assistanteventti
 import type { ChatMessageActionData, ChatMessageActionsDependencies } from '@features/chat/message/actionDeps.ts';
 import { hasTerminalAssistantState } from '@features/chat/message/assistantTerminalState.ts';
 import { isChatMessage } from '@features/chat/message/chatMessageGuards.ts';
+import { toggleLoadingActivityItem } from '@features/chat/message/loadingActivityToggle.ts';
+import { COLLAPSED_LOADING_CONTENT_SELECTOR } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
 import { setRunningActivityRevealPending } from '@features/chat/message/messageRunningActivitySummaryMarkup.ts';
 import { buildAssistantVariantMessageDomId } from '@features/chat/message/messageDomIds.ts';
 import type { ConversationRunningActivitySnapshot, RunningActivityTargetSnapshot } from '@features/chat/storage/storageModels.ts';
@@ -33,6 +35,18 @@ const revealTargetFromContainer = (dependencies: ChatMessageActionsDependencies,
         }
     }
     return false;
+};
+
+const revealTargetInMessage = (dependencies: ChatMessageActionsDependencies, messageId: string, target: RunningActivityTargetSnapshot): boolean => {
+    const renderedContainer = dependencies.presentation.resolveMessageContainer(messageId);
+    if (renderedContainer === null) {
+        return false;
+    }
+    if (dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, renderedContainer) !== null) {
+        toggleLoadingActivityItem(dependencies, messageId);
+    }
+    const container = dependencies.presentation.resolveMessageContainer(messageId);
+    return container !== null && revealTargetFromContainer(dependencies, container, target.callId, target.ancestorCallIds);
 };
 
 const resolveTargetMessage = (conversation: NonNullable<ReturnType<ChatMessageActionsDependencies['session']['getCurrentConversation']>>, assistantTurnAtMs: number, modelVariantIndex: number): ChatMessage | null => {
@@ -96,8 +110,7 @@ const revealBackendRunningActivityTarget = async (dependencies: ChatMessageActio
         return;
     }
     const targetMessageId = buildAssistantVariantMessageDomId(target.assistantTurnAtMs, target.modelVariantIndex);
-    const targetContainer = dependencies.presentation.resolveMessageContainer(targetMessageId);
-    if (targetContainer !== null && revealTargetFromContainer(dependencies, targetContainer, target.callId, target.ancestorCallIds)) {
+    if (revealTargetInMessage(dependencies, targetMessageId, target)) {
         return;
     }
     await dependencies.runtime.loadConversationMessages(conversationId, {
@@ -110,8 +123,7 @@ const revealBackendRunningActivityTarget = async (dependencies: ChatMessageActio
         return;
     }
     await dependencies.runtime.renderCurrentConversation();
-    const loadedContainer = dependencies.presentation.resolveMessageContainer(targetMessageId);
-    if (loadedContainer !== null && revealTargetFromContainer(dependencies, loadedContainer, target.callId, target.ancestorCallIds)) {
+    if (revealTargetInMessage(dependencies, targetMessageId, target)) {
         return;
     }
     const targetMessage = resolveTargetMessage(loadedConversation, target.assistantTurnAtMs, target.modelVariantIndex);
@@ -121,8 +133,7 @@ const revealBackendRunningActivityTarget = async (dependencies: ChatMessageActio
         }
         dependencies.presentation.invalidateMessageCache(targetMessage);
         await dependencies.runtime.renderCurrentConversation();
-        const hydratedContainer = dependencies.presentation.resolveMessageContainer(targetMessageId);
-        if (hydratedContainer !== null && revealTargetFromContainer(dependencies, hydratedContainer, target.callId, target.ancestorCallIds)) {
+        if (revealTargetInMessage(dependencies, targetMessageId, target)) {
             return;
         }
     }

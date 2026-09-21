@@ -25,13 +25,9 @@ from core.state.protocols import StateAggregatorProtocol
 from core.state.state_names import (
     ORCH_STATE_DISABLED,
     ORCH_STATE_ERROR,
-    PLUGIN_STATE_BACKEND_UNINSTALL_ERROR,
-    PLUGIN_STATE_DELETE_ERROR,
     PLUGIN_STATE_INCOMPATIBLE,
-    PLUGIN_STATE_INSTALL_ERROR,
-    PLUGIN_STATE_LOAD_ERROR,
-    PLUGIN_STATE_UPDATE_ERROR,
 )
+from core.state.state_transition_sets import OPERATIONAL_ERROR_STATES
 from core.validation.boolean_coercion import coerce_bool_with_default
 from models.internal_protocols import (
     ModelMutationEffectsProtocol,
@@ -236,15 +232,10 @@ class VirtualModelService:
                 raise ValidationError(
                     f"Constituent model '{model.universal_id}' belongs to a disabled plugin.",
                 )
-            if plugin_status in [
-                PLUGIN_STATE_INSTALL_ERROR,
-                PLUGIN_STATE_LOAD_ERROR,
-                PLUGIN_STATE_UPDATE_ERROR,
-                PLUGIN_STATE_BACKEND_UNINSTALL_ERROR,
-                PLUGIN_STATE_DELETE_ERROR,
+            if plugin_status in OPERATIONAL_ERROR_STATES or plugin_status in (
                 ORCH_STATE_ERROR,
                 PLUGIN_STATE_INCOMPATIBLE,
-            ]:
+            ):
                 raise ValidationError(
                     f"Constituent model '{model.universal_id}' belongs to a plugin in error state '{plugin_status}'.",
                 )

@@ -5,9 +5,8 @@ import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { normalizeSearchDisplayQuery, matchesSearchFilterQuery } from '@core/search/searchQuery.ts';
 import type { SanitizerApi } from '@core/pagecontext/public.ts';
-import { renderLabelAttributes, type TrustedHtml } from '@core/security/public.ts';
-import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
-import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
+import { renderLabelAttributes } from '@core/security/public.ts';
+import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 
 const CHAT_MODEL_MENU_SEARCH_INPUT_SELECTOR = '.chat-model-menu-search-input';
 const CHAT_MODEL_MENU_OPTION_SELECTOR = '.chat-model-menu-option';
@@ -17,7 +16,6 @@ const CHAT_MODEL_MENU_EMPTY_SELECTOR = '.chat-model-menu-empty';
 
 type ChatModelMenuSearchRenderArguments = {
     sanitizer: SanitizerApi;
-    getCachedIcon: (name: IconName, options?: IconOptions) => TrustedHtml;
     query: string;
 };
 
@@ -32,8 +30,7 @@ const resolveChatModelMenuSearchQuery = (value: string): string => normalizeSear
 const renderChatModelMenuSearch = (inputArguments: ChatModelMenuSearchRenderArguments): string => {
     const stringValue = inputArguments.sanitizer;
     const placeholder = i18n.t('chat.modelControl.searchPlaceholder');
-    const searchIcon = inputArguments.getCachedIcon('search', { size: 16, strokeWidth: 1.5 });
-    return `<div class="chat-model-menu-search">` + `<div class="searchbar-container searchbar-container--control wide u-stretch">` + `<input type="text" class="searchbar-input chat-model-menu-search-input" value="${stringValue.attribute(inputArguments.query)}" placeholder="${stringValue.attribute(placeholder)}" autocomplete="off" ${renderLabelAttributes(placeholder)}>` + `<span class="searchbar-icon u-hide-mobile-portrait" aria-hidden="true">${searchIcon.html}</span>` + `</div>` + `</div>`;
+    return `<div class="chat-model-menu-search">` + `<div class="searchbar-container searchbar-container--control wide u-stretch">` + `<input type="text" class="searchbar-input chat-model-menu-search-input" value="${stringValue.attribute(inputArguments.query)}" placeholder="${stringValue.attribute(placeholder)}" autocomplete="off" ${renderLabelAttributes(placeholder)}>` + renderSearchFieldActions().html + `</div>` + `</div>`;
 };
 
 const renderChatModelMenuEmpty = (inputArguments: { sanitizer: SanitizerApi; hidden: boolean }): string => {

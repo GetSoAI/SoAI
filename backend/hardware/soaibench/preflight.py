@@ -5,87 +5,29 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from core.concurrency.bounded_blocking import (
-    BoundedBlockingTimeoutBase,
-    run_bounded_blocking_call,
-)
-from core.serialization.json import serialize_json_compact_stable
-from core.timing.epoch import epoch_ms
-from core.validation.numberish import require_int_from_numberish
 from hardware.soaibench.device_matching import match_opencl_device
-from hardware.soaibench.errors import SoAIBenchUnsupported, unsupported_guidance
+from hardware.soaibench.errors import SoAIBenchUnsupported
 from hardware.soaibench.opencl_devices import enumerate_opencl_gpu_devices
-from hardware.soaibench.types import SoAIBenchGpuIdentity, SoAIBenchRunStatus
+from hardware.soaibench.types import SoAIBenchGpuIdentity
 from hardware.vendors.vendor_metadata import vendor_aliases
 from hardware.vendors.vendor_types import NVIDIA_VENDOR
 
 if TYPE_CHECKING:
-    from core.concurrency.bounded_blocking import BoundedBlockingPool
-    from core.hardware.protocols_soaibench import DatabaseSoAIBenchProtocol
     from core.types.json import JSONDict
+    from hardware.soaibench.internal_protocols import SoAIBenchOpenCLExecutionProtocol
 
-__all__ = (
-    "finish_preflight_unsupported",
-    "run_preflight",
-)
+__all__ = ("preflight_blocking", "run_preflight")
 
 
 async def run_preflight(
     *,
-    opencl_pool: BoundedBlockingPool,
+    opencl_pool: SoAIBenchOpenCLExecutionProtocol,
     identity: SoAIBenchGpuIdentity,
 ) -> JSONDict:
-    try:
-        return await run_bounded_blocking_call(
-            opencl_pool,
-            _preflight_blocking,
-            identity,
-            timeout_sec=10.0,
-        )
-    except BoundedBlockingTimeoutBase as exception:
-        raise SoAIBenchUnsupported(
-            reason="opencl_runtime_error",
-            message="SoAIBench OpenCL preflight timed out.",
-        ) from exception
+    return await opencl_pool.preflight(identity, timeout_sec=10.0)
 
 
-async def finish_preflight_unsupported(
-    *,
-    database_hardware: DatabaseSoAIBenchProtocol,
-    run: JSONDict,
-    exception: SoAIBenchUnsupported,
-) -> JSONDict:
-    completed_at_ms = epoch_ms()
-    started_at_ms = require_int_from_numberish(run["started_at_ms"], field="started_at_ms")
-    await database_hardware.finish_soaibench_run(
-        str(run["run_id"]),
-        {
-            "status": SoAIBenchRunStatus.UNSUPPORTED.value,
-            "completed_at_ms": completed_at_ms,
-            "duration_ms": max(0, completed_at_ms - started_at_ms),
-            "sample_count": 0,
-            "summary_json": serialize_json_compact_stable(
-                {
-                    "message": exception.message,
-                    "guidance": unsupported_guidance(exception.reason),
-                },
-            ),
-            "unsupported_reason": exception.reason,
-        },
-    )
-    refreshed = await database_hardware.get_soaibench_run_for_user(
-        user_id=require_int_from_numberish(run["created_by_user_id"], field="created_by_user_id"),
-        run_id=str(run["run_id"]),
-    )
-    if refreshed is None:
-        raise SoAIBenchUnsupported(
-            reason="opencl_runtime_error",
-            message="SoAIBench terminal preflight row was not found.",
-        )
-    return refreshed
-
-
-def _preflight_blocking(identity: SoAIBenchGpuIdentity) -> JSONDict:
+def preflight_blocking(identity: SoAIBenchGpuIdentity) -> JSONDict:
     _validate_driver_binding(identity)
     candidates = enumerate_opencl_gpu_devices()
     match = match_opencl_device(identity, candidates)

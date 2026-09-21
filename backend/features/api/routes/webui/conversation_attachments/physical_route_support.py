@@ -15,6 +15,7 @@ from core.errors.exceptions import (
 )
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.files.managed_storage_errors import FileStorageSecurityError
+from core.validation.integers import is_strict_int
 from features.api.routes.webui.conversation_attachments.route_errors import (
     raise_attachment_route_error,
 )
@@ -76,6 +77,13 @@ async def require_physical_attachment_access(
     )
     if attachment is None:
         raise_not_found(request, "Attachment not found.")
+    if (
+        attachment.get("attachment_id") != attachment_id
+        or attachment.get("conv_id") != conversation_context.resolved_conv_id
+        or not is_strict_int(attachment.get("user_id"))
+        or attachment.get("user_id") != user_id
+    ):
+        raise ValidationError("Attachment access identity is invalid.")
     return PhysicalAttachmentAccess(
         conversation=conversation_context,
         attachment=attachment,

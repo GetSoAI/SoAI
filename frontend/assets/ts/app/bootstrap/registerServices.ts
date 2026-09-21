@@ -32,6 +32,7 @@ import { registerService } from '@core/serviceRegistration.ts';
 import { createSoaiOsCapabilities } from '@core/soaiOsCapabilities.ts';
 import { createStorageService } from '@core/storage/StorageService.ts';
 import { createSecretInputToggleService } from '@core/ui/secretInput.ts';
+import { createSearchFieldActionService } from '@core/ui/searchField.ts';
 import { createTooltipService } from '@core/ui/tooltips/public.ts';
 import { showNotification } from '@core/ui/notifications/notifications.ts';
 import { initializeSoundEffectsUnlock } from '@core/ui/sound/engine.ts';
@@ -63,6 +64,12 @@ export function registerAllServices(languageService: LanguageService): void {
     secretInputToggleService.initialize();
     registerService('core.secretInputToggle', secretInputToggleService, {
         moduleId: 'core.secretInputToggle',
+        initialized: true
+    });
+    const searchFieldActionService = createSearchFieldActionService(dom.getDocument());
+    searchFieldActionService.initialize();
+    registerService('core.searchFieldActions', searchFieldActionService, {
+        moduleId: 'core.searchFieldActions',
         initialized: true
     });
 

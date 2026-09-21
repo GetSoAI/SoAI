@@ -57,6 +57,7 @@ interface UiPreferences {
     dashboardImageCard: string | null;
     dashboardImageCardFit: ImageFitType;
     dashboardMemo: string | null;
+    defaultPage: string | null;
     chartColorMode: ChartColorModeType;
     chartStaticColor: string;
     headerAutoHide: boolean;

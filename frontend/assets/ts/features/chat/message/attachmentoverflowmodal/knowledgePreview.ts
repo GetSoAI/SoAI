@@ -17,7 +17,7 @@ import type { ChatKnowledgeAttachmentsApi } from '@features/chat/pagecontracts/t
 import type { AttachmentOverflowRecord } from '@features/chat/message/attachmentoverflowmodal/records.ts';
 
 type KnowledgePreviewDependencies = CopyActionDependencies & {
-    knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'previewItem' | 'useItems' | 'delete'>;
+    knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'previewItem' | 'useItems'>;
     isSessionActive: (sessionToken: number) => boolean;
     getAttachmentDraftRevision: () => number;
     onKnowledgeAttachmentChanged: (summary: KnowledgeAttachmentSummary) => void;
@@ -41,7 +41,7 @@ type KnowledgePreviewOpenFromElementArguments = {
 };
 
 class AttachmentOverflowKnowledgePreview {
-    readonly #knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'previewItem' | 'useItems' | 'delete'>;
+    readonly #knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'previewItem' | 'useItems'>;
     readonly #runWithBoundary: CopyActionDependencies['runWithBoundary'];
     readonly #isSessionActive: (sessionToken: number) => boolean;
     readonly #getAttachmentDraftRevision: () => number;
@@ -100,14 +100,6 @@ class AttachmentOverflowKnowledgePreview {
             sessionToken: inputArguments.sessionToken,
             draftRevision: inputArguments.draftRevision
         });
-    }
-
-    async removeDraftKnowledgeAttachment(conversationId: string, knowledgeAttachmentId: string): Promise<KnowledgeAttachmentSummary> {
-        return await this.#knowledgeAttachmentsApi.delete(conversationId, knowledgeAttachmentId);
-    }
-
-    notifyKnowledgeAttachmentChanged(summary: KnowledgeAttachmentSummary): void {
-        this.#onKnowledgeAttachmentChanged(summary);
     }
 
     async #runOpen(inputArguments: KnowledgePreviewOpenArguments, itemId: number, generation: number, signal: AbortSignal): Promise<void> {

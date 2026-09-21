@@ -13,7 +13,7 @@ import { serializeGpuSoAIBenchHistoryRequest } from '@core/api/contracts/hardwar
 import { HARDWARE_SOAIBENCH_HISTORY_MODAL_ID } from '@features/hardware/modals/constants.ts';
 import { copySoAIBenchRunExport, downloadSoAIBenchRunExport } from '@features/hardware/modals/soaibenchrun/exportActions.ts';
 import { exportRunFromHistoryRun } from '@features/hardware/modals/soaibenchrun/exportText.ts';
-import { renderHistoryRows, resetHistoryState, setFooterActionsDisabled, setLoadingVisible, syncSortIndicators } from '@features/hardware/modals/soaibenchhistory/dom.ts';
+import { renderHistoryRows, resetHistoryState, setFooterActionsDisabled, setLoadingVisible, setRunActionsDisabled, syncSortIndicators } from '@features/hardware/modals/soaibenchhistory/dom.ts';
 import { formatHistoryRows } from '@features/hardware/modals/soaibenchhistory/formatting.ts';
 import { formatSoAIBenchHistoryMarkdown } from '@features/hardware/modals/soaibenchhistory/markdown.ts';
 import { normalizeHistoryRuns } from '@features/hardware/modals/soaibenchhistory/mappers.ts';
@@ -26,15 +26,21 @@ class SoAIBenchHistoryModal {
     readonly modalId = HARDWARE_SOAIBENCH_HISTORY_MODAL_ID;
     readonly host: SoAIBenchHistoryModalHost;
     readonly #openToken = new SequenceToken();
+    readonly #deleteLocalRun: SoAIBenchHistoryModalDependencies['deleteLocalRun'];
+    readonly #publishRun: SoAIBenchHistoryModalDependencies['publishRun'];
+    readonly #publishingRunIds = new Set<string>();
+    readonly #deletingRunIds = new Set<string>();
     #request: SoAIBenchHistoryOpenRequest | null = null;
     #runs: readonly SoAIBenchHistoryRun[] = [];
     #sortState: SoAIBenchHistorySortState = HISTORY_SORT_DEFAULT_STATE;
 
-    constructor({ host }: SoAIBenchHistoryModalDependencies) {
+    constructor({ host, publishRun, deleteLocalRun }: SoAIBenchHistoryModalDependencies) {
         if (!host) {
             throw new Error('SoAIBenchHistoryModal requires a host');
         }
         this.host = host;
+        this.#publishRun = publishRun;
+        this.#deleteLocalRun = deleteLocalRun;
     }
 
     handleModalClosed(): void {
@@ -82,6 +88,26 @@ class SoAIBenchHistoryModal {
                 setLoadingVisible(this.host, modalRoot, false);
                 setFooterActionsDisabled(this.host, modalRoot, true);
                 throw error;
+            }
+        });
+    }
+
+    async deleteLocalRun(runId: string): Promise<void> {
+        return this.host.runWithBoundary('hardware:deleteLocalSoAIBenchHistory', async () => {
+            if (this.#deletingRunIds.has(runId)) return;
+            this.#requireRun(runId);
+            const request = this.#requireRequest();
+            const modalRoot = this.host.modals.requireElement(this.modalId);
+            this.#deletingRunIds.add(runId);
+            setRunActionsDisabled(modalRoot, runId, true);
+            try {
+                await this.#deleteLocalRun(runId);
+                if (this.#request !== request) return;
+                this.#runs = this.#runs.filter((run) => run.runId !== runId);
+                this.#renderRows(modalRoot);
+            } finally {
+                this.#deletingRunIds.delete(runId);
+                if (this.#request === request) setRunActionsDisabled(modalRoot, runId, false);
             }
         });
     }
@@ -138,6 +164,18 @@ class SoAIBenchHistoryModal {
         });
     }
 
+    async publishRun(runId: string): Promise<void> {
+        return this.host.runWithBoundary('hardware:publishSoAIBenchHistoryRun', async () => {
+            const run = this.#requireRun(runId);
+            const modalRoot = this.host.modals.requireElement(this.modalId);
+            await this.#publishRun(run, (disabled) => {
+                if (disabled) this.#publishingRunIds.add(runId);
+                else this.#publishingRunIds.delete(runId);
+                setRunActionsDisabled(modalRoot, runId, disabled);
+            });
+        });
+    }
+
     async download(): Promise<void> {
         return this.host.runWithBoundary('hardware:downloadSoAIBenchHistoryCsv', async () => {
             const request = this.#requireRequest();
@@ -149,6 +187,8 @@ class SoAIBenchHistoryModal {
 
     #renderRows(modalRoot: HTMLElement): void {
         renderHistoryRows(this.host, modalRoot, formatHistoryRows(this.#getSortedRuns()), this.#sortState);
+        for (const runId of this.#publishingRunIds) setRunActionsDisabled(modalRoot, runId, true);
+        for (const runId of this.#deletingRunIds) setRunActionsDisabled(modalRoot, runId, true);
     }
 
     #getSortedRuns(): SoAIBenchHistoryRun[] {

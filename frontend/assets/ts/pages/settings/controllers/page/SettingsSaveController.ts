@@ -9,16 +9,30 @@ import type { SettingsPageState } from '@pages/settings/controllers/page/state.t
 
 const SettingsSaveController = (page: SettingsRuntimeContext, state: SettingsPageState): SaveController => {
     return createSaveController({
+        admission: state.preferencesAdmission,
         headerContextId: 'settings',
         headerPriority: SAVE_HEADER_PRIORITY_PAGE,
         requestContextLabel: 'Settings save',
+        onSaveSettled: () => state.preferencesManager?.syncOcrDirtyState(),
         onSaveComplete: (): void => page.owners.feedback.show(i18n.t('settings.notifications.saveSuccess'), 'success'),
         units: [
+            {
+                id: 'settings-ocr-language',
+                hasChanges: () => state.preferencesManager?.hasOcrChanges() ?? false,
+                prepare: () => state.preferencesManager?.prepareOcrSave() ?? { save: () => ({ type: 'stop' }) },
+                save: () => state.preferencesManager?.prepareOcrSave().save()
+            },
             {
                 id: 'settings',
                 hasChanges: () => hasUnsavedChanges(state),
                 isValid: () => !state.dirtyStateManager?.hasInvalidFields(),
-                save: async () => saveSettings(page, state)
+                save: async () => {
+                    try {
+                        await saveSettings(page, state);
+                    } finally {
+                        state.preferencesManager?.syncOcrDirtyState();
+                    }
+                }
             },
             {
                 id: 'settings-acl',

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { DeferredRejectionReason } from '@core/runtime/deferred.ts';
-import type { AgentTurnCancelRequest, AgentTurnCancelResponse } from '@core/api/contracts/chatAgentContracts.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { ChatMessage, ConversationContract } from '@features/chat/ChatTypes.ts';
 import type { ResourceTracker } from '@core/resourcetracker/service.ts';
@@ -54,7 +53,7 @@ interface ChatStreamServiceInterface {
     syncSelectedConversationStatus(conversationId: string): Promise<void>;
     replayActiveStream(conversationId: string): void;
     start(options: ChatStreamStartOptions): Promise<ChatStreamStartOutcome>;
-    stop(options: { conversationId: string; reason?: string; requestId?: string; force?: boolean; forcePendingSteers?: boolean }): void;
+    stop(options: { conversationId: string; reason?: string; requestId?: string; force?: boolean; forcePendingSteers?: boolean; onTerminalEvidence?: () => void }): Promise<'terminal' | 'failed' | 'unconfirmed'> | null;
     interrupt(options: { conversationId: string; requestId?: string | null; reason?: string | null }): InterruptedStreamSnapshot | null;
     isRequestSuppressed(conversationId: string, requestId: string): boolean;
 }
@@ -83,7 +82,6 @@ export interface ChatStreamTerminalUpdate {
 }
 
 export interface ChatStreamingControllerDependencies {
-    cancelAgentTurn?: (conversationId: string, turnId: string, options: AgentTurnCancelRequest) => Promise<AgentTurnCancelResponse>;
     uiManager: ChatStreamingUiManager;
     messageManager: ChatStreamingMessageManager;
     storageManager: ChatStreamingStorageManager;
@@ -100,7 +98,6 @@ export interface ChatStreamingControllerDependencies {
     getRequestParameters(): JsonObject;
     getWorkingParameters(): ChatParameters;
     resolveAgentModeForConversation?(conversationId: string): 'chat' | 'plan' | 'execute';
-    resolveAgentRunningTurnId?(conversationId: string): string | null;
     isAgentRenderingActive?(conversationId: string): boolean;
     createStreamRenderRuntime(context: ChatStreamingControllerContext): ChatStreamRenderRuntime;
 }
@@ -127,7 +124,7 @@ export interface PendingRender {
     textAppend: StreamTextAppend | null;
 }
 
-export type StreamLifecyclePhase = 'idle' | 'starting' | 'streaming' | 'stopping' | 'terminalizing';
+export type StreamLifecyclePhase = 'idle' | 'starting' | 'streaming' | 'stopping' | 'stop_failed' | 'terminalizing';
 
 export interface ComparisonRunState {
     groupRequestId: string;

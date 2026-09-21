@@ -4,9 +4,9 @@
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { type RequestDistributionEntry, type RequestDistributionSource } from '@core/models/requestDistribution.ts';
-import { toSurfaceColor } from '@core/models/requestDistributionColors.ts';
-import { REQUEST_DISTRIBUTION_CHART_KINDS, type RequestDistributionChartKind } from '@core/models/requestDistributionKind.ts';
+import { buildRequestDistributionDatasetFromEntries, type RequestDistributionDataset, type RequestDistributionEntry, type RequestDistributionSource } from '@core/models/requestDistribution.ts';
+import { resolveRequestDistributionColor, toSurfaceColor } from '@core/models/requestDistributionColors.ts';
+import { getRequestDistributionVisibleEntryCapacity, REQUEST_DISTRIBUTION_CHART_KINDS, REQUEST_DISTRIBUTION_MAX_VISIBLE_ENTRIES, type RequestDistributionChartKind } from '@core/models/requestDistributionKind.ts';
 import { formatPercentFromFraction } from '@core/primitives/percent.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { CHART_COLOR_COUNT } from '@core/ui/chartColors.ts';
@@ -18,6 +18,12 @@ interface RequestDistributionLegendItem {
     swatchIndex: number;
     swatchColor: string;
     swatchStyle: string;
+    separatorBefore?: boolean;
+}
+
+interface RequestDistributionPresentation {
+    chartDataset: RequestDistributionDataset;
+    legendItems: RequestDistributionLegendItem[];
 }
 
 interface RequestDistributionViewState {
@@ -175,15 +181,15 @@ const resolveRequestDistributionPalette = (resolveColor: (token: string) => stri
     return colors;
 };
 
-const resolveLegendSwatchColor = (colors: readonly string[], swatchIndex: number): string => {
-    const resolved = colors[swatchIndex % colors.length];
-    return colors.length > 0 && resolved ? toSurfaceColor(resolved) : `var(--chart-color-${String(swatchIndex)})`;
+const resolveLegendSwatchColor = (colors: readonly string[], swatchIndex: number, explicitColor?: string): string => {
+    const resolved = resolveRequestDistributionColor(colors, swatchIndex, explicitColor);
+    return resolved ? toSurfaceColor(resolved) : `var(--chart-color-${String(swatchIndex)})`;
 };
 
 const buildRequestDistributionLegendItems = (entries: readonly RequestDistributionEntry[], formatValue: (value: number) => string, colors: readonly string[]): RequestDistributionLegendItem[] => {
     return entries.map((entry) => {
         const formattedValue = formatValue(entry.value);
-        const swatchColor = resolveLegendSwatchColor(colors, entry.swatchIndex);
+        const swatchColor = resolveLegendSwatchColor(colors, entry.swatchIndex, entry.swatchColor);
         return {
             label: entry.label,
             detail: `${formattedValue} • ${formatPercentFromFraction(entry.ratio)}`,
@@ -194,5 +200,61 @@ const buildRequestDistributionLegendItems = (entries: readonly RequestDistributi
     });
 };
 
-export { DASHBOARD_REQUEST_DISTRIBUTION_SOURCE_STORAGE_KEY, METRICS_REQUEST_DISTRIBUTION_SOURCE_STORAGE_KEY, buildRequestDistributionLegendItems, createRequestDistributionViewState, resolveRequestDistributionChartToggleLabel, resolveRequestDistributionEmptyStateText, resolveRequestDistributionPalette, resolveRequestDistributionSourceToggleLabel, resolveRequestDistributionTitle };
-export type { RequestDistributionChartKind, RequestDistributionLegendItem, RequestDistributionStorage, RequestDistributionViewState };
+const resolveRequestDistributionOthersColor = (resolveColor: (token: string) => string | null | undefined): string => resolveColor('--color-white')?.trim() || 'var(--color-white)';
+
+const REQUEST_DISTRIBUTION_MINIMUM_VISIBLE_RATIO = 0.02;
+
+const resolveRequestDistributionVisibleEntryCount = (entries: readonly RequestDistributionEntry[], capacity: number): number => {
+    if (entries.length <= capacity) {
+        return entries.length;
+    }
+    const geometryVisibleCount = Math.min(entries.length, capacity, REQUEST_DISTRIBUTION_MAX_VISIBLE_ENTRIES);
+    let visibleEntryCount = 0;
+    for (let index = 0; index < geometryVisibleCount; index += 1) {
+        const entry = entries[index];
+        if (!entry) {
+            break;
+        }
+        if (entry.ratio < REQUEST_DISTRIBUTION_MINIMUM_VISIBLE_RATIO) {
+            break;
+        }
+        visibleEntryCount = index + 1;
+    }
+    return Math.max(1, visibleEntryCount);
+};
+
+const buildRequestDistributionPresentation = (dataset: RequestDistributionDataset, kind: RequestDistributionChartKind, width: number, height: number, formatValue: (value: number) => string, colors: readonly string[], othersColor: string): RequestDistributionPresentation => {
+    const capacity = getRequestDistributionVisibleEntryCapacity(kind, width, height);
+    const visibleEntryCount = resolveRequestDistributionVisibleEntryCount(dataset.entries, capacity);
+    const visibleEntries = dataset.entries.slice(0, visibleEntryCount);
+    const hiddenEntries = dataset.entries.slice(visibleEntries.length);
+    if (hiddenEntries.length === 0) {
+        return {
+            chartDataset: buildRequestDistributionDatasetFromEntries(visibleEntries),
+            legendItems: buildRequestDistributionLegendItems(visibleEntries, formatValue, colors)
+        };
+    }
+    const othersEntry: RequestDistributionEntry = {
+        key: '__soai_request_distribution_others__',
+        label: i18n.t('metrics.cards.requestDistribution.legend.others'),
+        value: hiddenEntries.reduce((sum, entry) => sum + entry.value, 0),
+        ratio: hiddenEntries.reduce((sum, entry) => sum + entry.ratio, 0),
+        swatchIndex: 0,
+        swatchColor: othersColor
+    };
+    const whiteHiddenEntries = hiddenEntries.map((entry) => ({ ...entry, swatchColor: othersColor }));
+    const chartEntries = [...visibleEntries, othersEntry];
+    const legendEntries = [...visibleEntries, othersEntry, ...whiteHiddenEntries];
+    const legendItems = buildRequestDistributionLegendItems(legendEntries, formatValue, colors);
+    const firstHiddenLegendItem = legendItems[visibleEntries.length + 1];
+    if (firstHiddenLegendItem) {
+        firstHiddenLegendItem.separatorBefore = true;
+    }
+    return {
+        chartDataset: buildRequestDistributionDatasetFromEntries(chartEntries),
+        legendItems
+    };
+};
+
+export { DASHBOARD_REQUEST_DISTRIBUTION_SOURCE_STORAGE_KEY, METRICS_REQUEST_DISTRIBUTION_SOURCE_STORAGE_KEY, buildRequestDistributionLegendItems, buildRequestDistributionPresentation, createRequestDistributionViewState, resolveRequestDistributionChartToggleLabel, resolveRequestDistributionEmptyStateText, resolveRequestDistributionOthersColor, resolveRequestDistributionPalette, resolveRequestDistributionSourceToggleLabel, resolveRequestDistributionTitle };
+export type { RequestDistributionChartKind, RequestDistributionLegendItem, RequestDistributionPresentation, RequestDistributionStorage, RequestDistributionViewState };

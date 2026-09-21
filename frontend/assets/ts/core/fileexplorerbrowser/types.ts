@@ -75,6 +75,12 @@ interface FileBrowserMetadata {
 
 type FileBrowserRecord = FileBrowserEntry | FileBrowserMetadata;
 
+interface FileEntryIconDescriptor {
+    name: string;
+    mimeType?: string | null;
+    isDirectory: boolean;
+}
+
 interface FileBrowserReadPayload {
     path: string;
     content: string;
@@ -130,4 +136,4 @@ interface FileBrowserIconResolver {
     getIconSync(name: IconName, options?: IconOptions): TrustedHtml;
 }
 
-export type { DirectoryBrowserState, DirectoryListingBrowserState, FileBrowserEntry, FileBrowserErrorResolver, FileBrowserIconResolver, FileBrowserListOptions, FileBrowserListPayload, FileBrowserLoadResponse, FileBrowserMediaType, FileBrowserMetadata, FileBrowserReadPayload, FileBrowserRecord, FileBrowserSearchOptions, FileBrowserSource, FileBrowserState, HostFileBrowserListOptions, HostFileBrowserSearchOptions, HostFilesystemBrowserApi, ReadOnlyFileBrowserApi };
+export type { DirectoryBrowserState, DirectoryListingBrowserState, FileBrowserEntry, FileBrowserErrorResolver, FileBrowserIconResolver, FileBrowserListOptions, FileBrowserListPayload, FileBrowserLoadResponse, FileBrowserMediaType, FileBrowserMetadata, FileBrowserReadPayload, FileBrowserRecord, FileBrowserSearchOptions, FileBrowserSource, FileBrowserState, FileEntryIconDescriptor, HostFileBrowserListOptions, HostFileBrowserSearchOptions, HostFilesystemBrowserApi, ReadOnlyFileBrowserApi };

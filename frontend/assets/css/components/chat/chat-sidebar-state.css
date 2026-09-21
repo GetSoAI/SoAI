@@ -14,18 +14,6 @@
         pointer-events: none;
     }
 
-    :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-sidebar-header {
-        padding: var(--space-2);
-        margin-bottom: var(--space-2);
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-    }
-
-    :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-sidebar-header > * {
-        display: none;
-    }
-
     :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) .chat-sidebar-header {
         opacity: 1;
         pointer-events: auto;
@@ -38,23 +26,10 @@
         pointer-events: auto;
     }
 
-    :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .searchbar-container {
-        opacity: 0;
-        pointer-events: none;
-        position: absolute;
-    }
-
     :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) .searchbar-container {
         opacity: 1;
         pointer-events: auto;
         position: relative;
-    }
-
-    :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-toolbar-container,
-    :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .conversations-list,
-    :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .conversation-list-empty,
-    :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-search-container {
-        display: none;
     }
 
     :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) .chat-toolbar-container {
@@ -70,6 +45,33 @@
         position: relative;
     }
 
+    @container ui-viewport (width > 900px) {
+        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-sidebar-header {
+            padding: var(--space-2);
+            margin-bottom: var(--space-2);
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-sidebar-header > * {
+            display: none;
+        }
+
+        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .searchbar-container {
+            opacity: 0;
+            pointer-events: none;
+            position: absolute;
+        }
+
+        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-toolbar-container,
+        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .conversations-list,
+        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .conversation-list-empty,
+        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-search-container {
+            display: none;
+        }
+    }
+
     @container ui-viewport (width <= 1200px) {
         :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) {
             width: var(--chat-sidebar-width-mobile);
@@ -77,50 +79,42 @@
     }
 
     @container ui-viewport (width <= 900px) {
-        :where(.chat-container) .chat-sidebar.is-open ~ .chat-main-container .chat-input-wrapper,
-        :where(.chat-container) .chat-sidebar.is-open ~ .chat-main-container .conversation-title,
-        :where(.chat-container) .chat-sidebar.is-open ~ .chat-main-container .export-btn {
-            display: none;
-        }
-    }
-
-    @container ui-viewport (width <= 900px) {
         :where(.chat-container) .chat-sidebar {
+            position: absolute;
+            inset: 0;
+            z-index: var(--z-raised);
+            width: 100%;
             margin-right: 0;
+            transform: translateX(-100%);
+            visibility: hidden;
+            transition:
+                transform var(--duration-250) var(--ease-in-out),
+                opacity var(--duration-250) var(--ease-in-out),
+                visibility var(--duration-250) var(--ease-linear);
         }
 
-        :where(.chat-container) .chat-sidebar.is-open ~ .chat-main-container .attach-add-btn {
-            display: none;
-        }
-
-        :where(.chat-container) .chat-sidebar.mobile-open {
+        :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) {
             width: 100%;
             margin-right: 0;
         }
 
-        :where(.chat-container) .chat-main-container {
+        :where(.chat-container) .chat-sidebar.mobile-open {
+            transform: translateX(0);
+            visibility: visible;
+        }
+
+        :where(.chat-container) .chat-content-wrapper > .chat-main-container {
+            flex: 1 1 100%;
+            width: 100%;
             min-width: 0;
-            transition:
-                width var(--transition-normal),
-                opacity var(--transition-normal),
-                visibility 0s var(--ease-linear) 0s;
+            transform: translateX(0);
         }
 
         :where(.chat-container) .chat-sidebar.mobile-open ~ .chat-main-container {
-            flex: 0 0 0;
-            width: 0;
             opacity: 0;
+            transform: translateX(100%);
             visibility: hidden;
             pointer-events: none;
-            overflow: hidden;
-            transition:
-                width var(--transition-normal),
-                opacity var(--transition-normal),
-                visibility 0s var(--ease-linear) var(--transition-normal);
-        }
-
-        :where(.chat-container) .chat-sidebar.mobile-open ~ .chat-main-container .chat-conversation-header {
-            display: none;
         }
     }
 }

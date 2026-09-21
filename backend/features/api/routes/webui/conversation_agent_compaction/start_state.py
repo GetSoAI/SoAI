@@ -47,8 +47,6 @@ async def resolve_manual_compaction_start_state(
         api_context=api_context,
         current_user=current_user,
         prepared_state=prepared_state,
-        bind_owner="webui.agent_compaction.claim",
-        operation="webui.agent_compaction.resolve_start_state",
         replace_assistant_at_ms=None,
         replace_tool_call_id=None,
     )

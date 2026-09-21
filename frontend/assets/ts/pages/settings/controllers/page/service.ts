@@ -223,6 +223,7 @@ const loadData = async (page: SettingsRuntimeContext, state: SettingsPageState, 
         state.uiPrefsManager.onChange(() => callbacks.notifySaveChanged());
 
         initializeManagers(page, state, callbacks);
+        await state.preferencesManager?.loadOcrPreference();
         throwIfAborted(signal);
 
         if (state.messagingManager) {

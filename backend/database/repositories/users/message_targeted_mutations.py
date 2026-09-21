@@ -11,7 +11,7 @@ from core.conversations.conversation_message_storage_validation import (
 from core.conversations.conversation_message_write_result import (
     ConversationMessageWriteResult,
 )
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import StateError, ValidationError
 from core.timing.epoch import epoch_ms
 from core.types.json import JSONDict
 from core.validation.epoch import require_unix_epoch_ms
@@ -31,7 +31,7 @@ from database.repositories.users.message_content_integrity import (
 )
 from database.repositories.users.message_count_sync import sync_count_stored_messages
 from database.repositories.users.message_input_mutation_fence import (
-    require_message_rows_not_linked_to_active_inputs,
+    require_message_mutation_allowed,
 )
 from database.repositories.users.message_row_mapping import (
     build_message_payload_from_row,
@@ -59,6 +59,7 @@ def _delete_rows_after_cursor(
     conn: sqlite3.Connection,
     *,
     conv_id: str,
+    user_id: int,
     created_at_ms: int,
     message_id: int,
     inclusive: bool,
@@ -75,9 +76,10 @@ def _delete_rows_after_cursor(
         is not None
     ):
         raise ValidationError("System-owned control messages cannot be mutated.")
-    require_message_rows_not_linked_to_active_inputs(
+    require_message_mutation_allowed(
         conn,
         conv_id=conv_id,
+        user_id=user_id,
         where_sql=active_input_where_sql,
         params=params,
     )
@@ -124,6 +126,13 @@ def sync_resubmit_user_message_by_cursor(
     content_json = validated.get("content_json")
     if not isinstance(content_json, str):
         raise ValidationError("Edited message content is invalid.")
+    require_message_mutation_allowed(
+        conn,
+        conv_id=conv_id,
+        user_id=user_id,
+        where_sql="message.created_at_ms = ? AND message.id = ?",
+        params=(cursor_created_at_ms, cursor_message_id),
+    )
     content_length, content_sha256 = build_message_content_integrity(content_json)
     now = epoch_ms()
     canonical_row = sync_fetch_one_as_dict(
@@ -172,6 +181,7 @@ def sync_resubmit_user_message_by_cursor(
     _delete_rows_after_cursor(
         conn,
         conv_id=conv_id,
+        user_id=user_id,
         created_at_ms=cursor_created_at_ms,
         message_id=cursor_message_id,
         inclusive=False,
@@ -199,20 +209,44 @@ def sync_truncate_messages_from_cursor(
     )
     cursor_created_at_ms, cursor_message_id = _require_cursor(created_at_ms, message_id)
     target = conn.execute(
-        "SELECT message_type FROM webui_messages WHERE conv_id = ? AND created_at_ms = ? AND id = ?",
+        """
+        SELECT role, message_type, assistant_turn_at_ms
+        FROM webui_messages
+        WHERE conv_id = ? AND created_at_ms = ? AND id = ?
+        """,
         (conv_id, cursor_created_at_ms, cursor_message_id),
     ).fetchone()
-    if target is not None and target[0] == "control":
+    if target is None:
+        raise ValidationError("Target message was not found for truncation.")
+    if target[1] == "control":
         raise ValidationError("System-owned control messages cannot be deleted.")
+    deletion_created_at_ms = cursor_created_at_ms
+    deletion_message_id = cursor_message_id
+    if target[0] == "assistant" and is_strict_int(target[2]):
+        turn_boundary = conn.execute(
+            """
+            SELECT created_at_ms, id
+            FROM webui_messages
+            WHERE conv_id = ? AND role = 'assistant' AND assistant_turn_at_ms = ?
+            ORDER BY created_at_ms ASC, id ASC
+            LIMIT 1
+            """,
+            (conv_id, int(target[2])),
+        ).fetchone()
+        if turn_boundary is None:
+            raise ValidationError("Target assistant turn was not found for truncation.")
+        deletion_created_at_ms = int(turn_boundary[0])
+        deletion_message_id = int(turn_boundary[1])
     deleted = _delete_rows_after_cursor(
         conn,
         conv_id=conv_id,
-        created_at_ms=cursor_created_at_ms,
-        message_id=cursor_message_id,
+        user_id=user_id,
+        created_at_ms=deletion_created_at_ms,
+        message_id=deletion_message_id,
         inclusive=True,
     )
     if deleted <= 0:
-        raise ValidationError("Target message was not found for truncation.")
+        raise StateError("Validated truncation target was not deleted.")
     return ConversationMessageWriteResult(
         last_modified_at_ms=sync_bump_conversation_last_modified_at_ms(conn, conv_id),
         message_count=sync_count_stored_messages(conn, conv_id),
@@ -240,9 +274,10 @@ def sync_delete_message_by_cursor(
     ).fetchone()
     if target is not None and target[0] == "control":
         raise ValidationError("System-owned control messages cannot be deleted.")
-    require_message_rows_not_linked_to_active_inputs(
+    require_message_mutation_allowed(
         conn,
         conv_id=conv_id,
+        user_id=user_id,
         where_sql="message.created_at_ms = ? AND message.id = ?",
         params=(cursor_created_at_ms, cursor_message_id),
     )

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
+import { syncAttributeValue } from '@core/dom/patching.ts';
 import { applyAuthorityLockedButtonState, type ConversationAuthorityLock } from '@core/chat/conversationAuthorityLock.ts';
 import { getBusyDisabledToken } from '@core/ui/controls/busyDisabledState.ts';
 
@@ -30,9 +31,9 @@ const applyMcpToolsToggleButtonState = (button: Element, state: McpToolsToggleBu
     const unlockedDisabled = state.modeRequiresTools || state.conversationExecuting;
     const toggleToolsLabel = i18n.t('chat.header.toggleTools');
     button.classList.toggle('is-tools-active', active);
-    button.dataset['toolsModeLocked'] = state.modeRequiresTools ? 'true' : 'false';
-    button.dataset['toolsExecutionLocked'] = state.conversationExecuting ? 'true' : 'false';
-    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    syncAttributeValue(button, 'data-tools-mode-locked', state.modeRequiresTools ? 'true' : 'false');
+    syncAttributeValue(button, 'data-tools-execution-locked', state.conversationExecuting ? 'true' : 'false');
+    syncAttributeValue(button, 'aria-pressed', active ? 'true' : 'false');
     if (getBusyDisabledToken(button) !== null) {
         return;
     }

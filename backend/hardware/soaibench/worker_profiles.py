@@ -5,14 +5,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from hardware.soaibench.events import publish_soaibench_worker_update
 from hardware.soaibench.types import SoAIBenchBenchmarkMode, SoAIBenchProfile
 from hardware.soaibench.worker_certified import run_certified_standard
 from hardware.soaibench.worker_execution import run_stress
 from hardware.soaibench.worker_standard import run_standard
 
 if TYPE_CHECKING:
-    from core.concurrency.bounded_blocking import BoundedBlockingPool
+    from hardware.soaibench.internal_protocols import SoAIBenchOpenCLExecutionProtocol
     from hardware.soaibench.worker_context import (
         SoAIBenchWorkerEventContext,
         SoAIBenchWorkerRuntimeContext,
@@ -25,7 +24,7 @@ QUICK_STRESS_DURATION_SECONDS = 60.0
 
 async def run_selected_profile(
     *,
-    opencl_pool: BoundedBlockingPool,
+    opencl_pool: SoAIBenchOpenCLExecutionProtocol,
     runtime_context: SoAIBenchWorkerRuntimeContext,
     event_context: SoAIBenchWorkerEventContext,
     profile: SoAIBenchProfile,
@@ -50,7 +49,6 @@ async def run_selected_profile(
             opencl_pool=opencl_pool,
             runtime_context=runtime_context,
         )
-    await publish_soaibench_worker_update(event_context, "terminal")
 
 
 def _stress_duration_for_mode(benchmark_mode: SoAIBenchBenchmarkMode) -> float | None:

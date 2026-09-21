@@ -9,7 +9,7 @@ import type { AuthManagerContract, ComponentRegistryContract, UserInfo } from '@
 import { cacheSidebarDomRefs, clearSidebarMenu, getSidebarDomRef, getSidebarMenuElement } from '@core/layout/sidebar/domRefs.ts';
 import type { SidebarDisposerCandidate } from '@core/layout/sidebar/disposers.ts';
 import type { SidebarLifecycleDependencies, SidebarRefreshDependencies } from '@core/layout/sidebar/lifecycle.ts';
-import { navigateSidebarTo, syncSidebarWithCurrentRoute, updateSidebarAdminMenuItems } from '@core/layout/sidebar/navigation.ts';
+import { navigateSidebarTo, syncSidebarWithCurrentRoute } from '@core/layout/sidebar/navigation.ts';
 import type { SidebarLinkIndicatorController } from '@core/layout/sidebar/linkIndicator.ts';
 import { subscribeChatCompletionWatcher } from '@core/layout/sidebar/chatCompletionWatcher.ts';
 import { subscribeChatStreamingWatcher } from '@core/layout/sidebar/chatStreamingWatcher.ts';
@@ -119,7 +119,6 @@ const createSidebarDependencyBundle = (context: SidebarDependencyContext): Sideb
             context.rendering.setSidebarConfig(context.rendering.cloneDefaultConfig());
         },
         renderSidebarEntries: (entries: SidebarConfigEntry[]) => context.rendering.renderSidebarEntries(entries),
-        updateMenuItems: () => updateSidebarAdminMenuItems(getSidebarMenuElement(context.stateOwner.domRefs), context.stateOwner.adminOnlyItems, context.stateOwner.getCurrentUser()),
         syncExpandedWidth: () => updateExpandedWidth(),
         syncWithCurrentRoute: () => syncSidebarWithCurrentRoute(context.services.getRouter(), getSidebarMenuElement(context.stateOwner.domRefs), context.stateOwner.routeComponentMap),
         updateMainStateIndicator: () => updateSidebarMainStateIndicator(context.services.getComponentRegistry(), context.stateOwner.state),
@@ -154,6 +153,7 @@ const createSidebarDependencyBundle = (context: SidebarDependencyContext): Sideb
                 };
                 context.services.addSessionDisposer(context.services.on(window, 'resize', updateResponsiveState));
                 context.services.addSessionDisposer(context.services.on(window, INTERFACE_SCALE_CHANGED_EVENT, updateResponsiveState));
+                context.services.addSessionDisposer(context.services.on(document.fonts, 'loadingdone', updateResponsiveState));
             },
             refreshPluginIndicatorFromStorage: () => context.indicators.pluginIndicator.refreshFromStorage(),
             updateStateUI: () => updateStateUi(),

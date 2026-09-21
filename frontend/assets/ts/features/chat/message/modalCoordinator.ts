@@ -4,7 +4,6 @@
 import type { KnowledgeAttachmentSummary } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import type { ChatKnowledgeAttachmentsApi, ChatSoaiPathsApi } from '@features/chat/pagecontracts/types.ts';
-import type { AttachmentOverflowRecord } from '@features/chat/message/attachmentoverflowmodal/records.ts';
 import { ChatAttachmentOverflowModal } from '@features/chat/message/attachmentoverflowmodal/service.ts';
 import type { AttachmentOverflowShowArguments } from '@features/chat/message/attachmentoverflowmodal/showArgs.ts';
 import { ChatMessageInfoModal } from '@features/chat/message/messageinfomodal/service.ts';
@@ -52,14 +51,6 @@ class ChatMessageModalCoordinator {
 
     showAttachmentOverflow(inputArguments: AttachmentOverflowShowArguments): void {
         this.#attachmentOverflowModal.show(inputArguments);
-    }
-
-    showAttachmentOverflowRecords(conversationId: string, records: readonly AttachmentOverflowRecord[]): void {
-        this.#attachmentOverflowModal.show({
-            source: 'records',
-            conversationId,
-            records
-        });
     }
 }
 

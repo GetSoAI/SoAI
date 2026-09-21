@@ -38,6 +38,7 @@ interface ChatUiParameters extends ChatRequestParameters {
     hideAutomationRuns: boolean;
     hideMessagingConversations: boolean;
     showActivities?: boolean;
+    showActivityElapsedTime?: boolean;
     notifyOnCompletion: boolean;
     notifyOnError: boolean;
     microphoneSoundEffectsEnabled: boolean;

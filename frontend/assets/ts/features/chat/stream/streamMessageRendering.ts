@@ -15,6 +15,7 @@ const renderStreamingMessageContent = (inputArguments: RenderStreamingMessageCon
         return {
             handled: false,
             invalidatedCache: true,
+            requiresActivityDurationReconcile: true,
             updatedMarkup: false,
             target: null
         };
@@ -40,6 +41,7 @@ const renderStreamingMessageContent = (inputArguments: RenderStreamingMessageCon
         const result: RenderStreamingMessageContentResult = {
             handled: true,
             invalidatedCache: false,
+            requiresActivityDurationReconcile: true,
             updatedMarkup: passiveUpdated,
             target
         };
@@ -51,6 +53,7 @@ const renderStreamingMessageContent = (inputArguments: RenderStreamingMessageCon
         const result: RenderStreamingMessageContentResult = {
             handled: true,
             invalidatedCache: false,
+            requiresActivityDurationReconcile: true,
             updatedMarkup: syncStreamingMessagePassiveState({ message: inputArguments.message, target, messageManager: inputArguments.messageManager, cached: inputArguments.cached }),
             target
         };

@@ -59,6 +59,7 @@ async def finalize_chat_stream_cancelled(
         operation=OPERATION_CANCELLED,
         logger=get_logger(LOGGER_NAME),
         failure_message="Failed to finalize chat stream cancellation.",
+        terminal_outcome="cancelled",
         finalize_claimed=finalize_claimed,
     )
 

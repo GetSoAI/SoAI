@@ -4,8 +4,7 @@
 import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
-import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
-import { createIconSlot } from '@core/ui/icons/view.ts';
+import { createSearchFieldActions } from '@core/ui/searchField.ts';
 import { buildAdvancedMetricsInventory, filterAdvancedMetricsInventory, type AdvancedMetricsInventory } from '@features/metrics/modals/advancedMetricsInventory.ts';
 import { METRICS_ADVANCED_MODAL_ID } from '@features/metrics/modals/advancedMetricsConstants.ts';
 import type { MetricsAdvancedModalHost } from '@features/metrics/modals/advancedMetricsHost.ts';
@@ -114,11 +113,8 @@ const createAdvancedMetricsSearchInput = (content: HTMLElement, query: string): 
     }
     dom.setProperty(searchInput, 'value', query);
 
-    const iconMarkup = getIconSync('search', { size: 16, strokeWidth: 1.5 });
-    const searchIcon = createIconSlot(content.ownerDocument, iconMarkup, { className: 'searchbar-icon u-hide-mobile-portrait' });
-
     searchContainer.appendChild(searchInput);
-    searchContainer.appendChild(searchIcon);
+    searchContainer.append(...createSearchFieldActions(content.ownerDocument, 'u-hide-mobile-portrait'));
     searchRegion.appendChild(searchContainer);
     content.appendChild(searchRegion);
     return searchInput;

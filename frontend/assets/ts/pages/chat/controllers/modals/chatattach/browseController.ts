@@ -17,6 +17,7 @@ import { CHAT_ATTACH_BROWSE_SORT_COLUMN_DEFAULT_DIRECTIONS, CHAT_ATTACH_BROWSE_S
 import { renderBrowseMessage, setBrowseFooterButtonState } from '@pages/chat/controllers/modals/chatattach/chatAttachBrowseStateWidget.ts';
 import { ChatAttachBrowseWorkspaceOperations } from '@pages/chat/controllers/modals/chatattach/chatAttachBrowseWorkspaceController.ts';
 import type { ChatAttachBrowseElements } from '@pages/chat/controllers/modals/chatattach/chatAttachBrowseWidget.ts';
+import { ChatAttachDraftAttachmentListController } from '@pages/chat/controllers/modals/chatattach/ChatAttachDraftAttachmentListController.ts';
 
 const BROWSE_RESULT_LIMIT = 20;
 
@@ -26,6 +27,7 @@ class ChatAttachBrowseController {
     readonly #knowledgeOperations: ChatAttachBrowseKnowledgeOperations;
     readonly #workspaceOperations: ChatAttachBrowseWorkspaceOperations;
     readonly #workspacePathController: ChatAttachBrowseWorkspacePathController;
+    readonly #draftListController: ChatAttachDraftAttachmentListController;
     readonly #signal: AbortSignal;
     readonly #searchControllers: BrowseAbortControllerRegistry = new Set();
     #active = false;
@@ -44,12 +46,14 @@ class ChatAttachBrowseController {
         this.#knowledgeOperations = new ChatAttachBrowseKnowledgeOperations(host, signal);
         this.#workspaceOperations = new ChatAttachBrowseWorkspaceOperations(host, signal);
         this.#workspacePathController = new ChatAttachBrowseWorkspacePathController(host, elements, async () => this.#search());
+        this.#draftListController = new ChatAttachDraftAttachmentListController(host, elements.draftList, signal, 'browse');
         this.#syncFooter();
     }
 
     activate(): void {
         this.#active = true;
         this.#workspacePathController.activate();
+        this.#draftListController.activate();
         this.#syncFooter();
         this.#host.execution.run('chat:attachModalBrowseSearch', () => this.#search());
     }
@@ -57,6 +61,7 @@ class ChatAttachBrowseController {
     deactivate(): void {
         this.#active = false;
         this.#workspacePathController.deactivate();
+        this.#draftListController.deactivate();
         this.#selectionGeneration += 1;
         this.#abortBrowseActions();
         this.#abortSearch();

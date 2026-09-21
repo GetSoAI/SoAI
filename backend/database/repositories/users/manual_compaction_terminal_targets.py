@@ -50,7 +50,7 @@ def sync_prepare_manual_compaction_start_target(
     ).fetchone()
     latest_timestamp = int(latest_row[0]) if latest_row is not None else 0
     assistant_at_ms = max(int(request.requested_started_at_ms), latest_timestamp + 1)
-    _write_unfinished_assistant_row(
+    write_unfinished_manual_compaction_assistant_row(
         conn,
         request,
         assistant_at_ms=assistant_at_ms,
@@ -90,7 +90,7 @@ def _prepare_replacement_target(
         "DELETE FROM webui_assistant_message_events WHERE conv_id = ? AND assistant_at_ms = ?",
         (request.conv_id, assistant_at_ms),
     )
-    _write_unfinished_assistant_row(
+    write_unfinished_manual_compaction_assistant_row(
         conn,
         request,
         assistant_at_ms=assistant_at_ms,
@@ -98,7 +98,7 @@ def _prepare_replacement_target(
     )
 
 
-def _write_unfinished_assistant_row(
+def write_unfinished_manual_compaction_assistant_row(
     conn: sqlite3.Connection,
     request: ManualCompactionStartCommitRequest,
     *,
@@ -225,7 +225,7 @@ def _validate_replacement_tool_row(
           AND model_variant_index = 0
           AND call_id = ?
           AND tool_name = ?
-          AND status = 'completed'
+          AND status IN ('completed', 'error', 'cancelled')
         LIMIT 1
         """,
         (request.conv_id, int(assistant_at_ms), tool_call_id, CONTEXT_COMPACTION_TOOL_NAME),
@@ -236,6 +236,9 @@ def _validate_replacement_tool_row(
     if not isinstance(result_value, str) or not result_value.strip():
         raise ValidationError("Compaction assistant message target result is invalid.")
     result_payload = parse_json_dict(result_value, field="context compaction tool result")
+    compaction = coerce_json_dict(result_payload.get("compaction"))
+    if compaction is None or compaction.get("trigger") != "manual":
+        raise ValidationError("Compaction assistant message target is not a manual boundary.")
     if is_context_compaction_result_boundary_removed(result_payload):
         raise ValidationError("Removed context compaction boundaries cannot be regenerated.")
 

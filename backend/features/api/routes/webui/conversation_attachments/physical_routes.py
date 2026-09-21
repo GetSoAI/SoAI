@@ -103,6 +103,7 @@ def register_physical_attachment_routes(routers: ApiRouters) -> None:
             parse_dependencies = DirectAttachmentParseDependencies(
                 config=api_context.dependencies.config,
                 files=api_context.dependencies.files,
+                database_users=api_context.dependencies.database_users,
                 database_files=api_context.dependencies.database_files,
                 database_attachments=api_context.dependencies.database_conversation_attachments,
                 document_reader=api_context.dependencies.document_reader,

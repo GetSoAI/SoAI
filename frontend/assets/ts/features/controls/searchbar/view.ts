@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { NormalizedSearchBarOptions } from '@features/controls/searchbar/types.ts';
+import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 
 const renderSearchBar = (options: NormalizedSearchBarOptions): string => {
     const containerClasses = `searchbar-container ${options.containerClass ?? ''}`.trim();
@@ -14,7 +15,7 @@ const renderSearchBar = (options: NormalizedSearchBarOptions): string => {
                         class="${inputClasses}"
                         placeholder="${options.placeholder}"
                         autocomplete="off">
-                    ${options.showIcon ? '<span class="searchbar-icon"></span>' : ''}
+                    ${options.showIcon ? renderSearchFieldActions().html : ''}
                 </div>
             `;
 };

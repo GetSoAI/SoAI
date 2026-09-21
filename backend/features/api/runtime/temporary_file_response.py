@@ -212,7 +212,7 @@ def _unlink_open_posix_temporary_file(path: str) -> None:
 
 
 def _require_matching_identity(expected: FileIdentity, actual: FileIdentity) -> None:
-    if expected == actual and actual.is_regular_file:
+    if expected.matches_descriptor_snapshot(actual) and actual.is_regular_file:
         return
     raise StateError(
         "Temporary response file changed before delivery.",

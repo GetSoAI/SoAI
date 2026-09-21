@@ -27,7 +27,7 @@ const shouldReleaseChatStreamOwnerLocally = (session: ChatStreamSession): boolea
     if (session.transportMode !== 'owner') {
         return false;
     }
-    if (session.pendingCancellation !== null) {
+    if (session.pendingCancellation !== null || session.stopOperationPending === true) {
         return false;
     }
     return session.ownerReleaseRequested || isPageTerminating();

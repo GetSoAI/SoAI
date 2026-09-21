@@ -113,9 +113,18 @@ class SettingsPage extends StaticBasePage {
     bindPageEvents(): void {
         const signal = this.pageLifecycle.beginListeners();
         const ui = this.#ensureUi();
+        const refreshOcr = (): void => {
+            terminateHandledPromise(
+                this.pageLifecycle.run('settings:refreshOcr', async () => {
+                    await this.#state.preferencesManager?.refreshOcrPreference();
+                })
+            );
+        };
+        this.pageResources.on(window, 'focus', refreshOcr, { signal });
         this.#save.attach({ resolveSaveButtons: () => this.#resolveSaveButtons(ui), autoNotifyRoot: ui.root });
 
         const handlers = createSettingsActionHandlers({
+            refreshOcr,
             save: (): void => {
                 terminateHandledPromise(this.#save.requestSave());
             },

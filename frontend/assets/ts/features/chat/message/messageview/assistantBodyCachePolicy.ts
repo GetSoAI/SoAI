@@ -4,9 +4,10 @@
 import { isArray, isString } from '@core/typeGuards.ts';
 import { resolveLatestLoadingActivityFromMessage } from '@features/chat/assistanteventtimeline/activityState.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
+import { shouldCollapseLoadingActivities } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
 
 export const resolveShouldCacheSettledAssistantBody = (inputArguments: { message: ChatMessage; isShowActivitiesEnabled: boolean; collapsedState: boolean | null }): boolean => {
-    if (!inputArguments.isShowActivitiesEnabled || inputArguments.collapsedState === true) {
+    if (shouldCollapseLoadingActivities({ isShowActivitiesEnabled: inputArguments.isShowActivitiesEnabled, collapsedOverride: inputArguments.collapsedState })) {
         return false;
     }
     const loadingActivity = resolveLatestLoadingActivityFromMessage(inputArguments.message);

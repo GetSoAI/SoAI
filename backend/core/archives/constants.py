@@ -6,7 +6,7 @@ from __future__ import annotations
 import os
 
 from core.archives.errors import ArchivePathTraversalError
-from core.validation.integers import require_non_negative_exact_int
+from core.validation.requirements import require_non_negative_exact_int
 
 __all__ = ()
 

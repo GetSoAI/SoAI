@@ -37,10 +37,12 @@ interface WebuiConversationPaths {
     messageSyncCursor(id: string): string;
     messageRunningActivity(id: string): string;
     messageResubmit(id: string): string;
-    messageTruncate(id: string): string;
     messageDelete(id: string): string;
+    messageRegenerate(id: string): string;
+    messageRegenerationStatus(id: string, clientId?: string, clientRequestId?: string): string;
     jsonExport(id: string): string;
     streamStatus(id: string): string;
+    streamCancel(id: string): string;
     assistantTurnStreamState(id: string, assistantTurnAtMs: number, modelVariantIndex: number): string;
     comparisonPreflight(id: string): string;
     title(id: string): string;
@@ -109,10 +111,16 @@ const createWebuiConversationPaths = (api: ApiClientContext): WebuiConversationP
         messageSyncCursor: (id): string => `${base(id)}/messages/sync-cursor`,
         messageRunningActivity: (id): string => `${base(id)}/messages/running-activity`,
         messageResubmit: (id): string => `${base(id)}/messages/resubmit`,
-        messageTruncate: (id): string => `${base(id)}/messages/truncate`,
         messageDelete: (id): string => `${base(id)}/messages/delete`,
+        messageRegenerate: (id): string => `${base(id)}/messages/regenerate`,
+        messageRegenerationStatus: (id, clientId, clientRequestId): string => {
+            const path = `${base(id)}/messages/regenerate/status`;
+            if (!clientId || !clientRequestId) return path;
+            return `${path}?client_id=${encodeURIComponent(clientId)}&client_request_id=${encodeURIComponent(clientRequestId)}`;
+        },
         jsonExport: (id): string => `${base(id)}/export/json`,
         streamStatus: (id): string => `${base(id)}/stream-status`,
+        streamCancel: (id): string => `${base(id)}/stream/cancel`,
         assistantTurnStreamState: (id, assistantTurnAtMs, modelVariantIndex): string => `${base(id)}/assistant-turns/${encode(assistantTurnAtMs)}/variants/${encode(modelVariantIndex)}/stream-state`,
         comparisonPreflight: (id): string => `${base(id)}/comparison-turns/preflight`,
         title: (id): string => `${base(id)}/title`,

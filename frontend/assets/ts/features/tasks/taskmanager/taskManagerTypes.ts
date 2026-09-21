@@ -68,6 +68,16 @@ interface TaskManagerStoreApi {
     upsertOperation: (operation: TaskOperationEntry | null | undefined) => void;
 }
 
+interface CancellationBatchSummary {
+    requestedCount: number;
+    alreadyTerminalCount: number;
+    failedCount: number;
+}
+
+interface TaskOperationCancellationOwner {
+    cancelOperations: (operations: readonly OperationEntry[]) => Promise<CancellationBatchSummary>;
+}
+
 interface TaskManagerDependencies {
     dom: { getDocument: () => Document };
     statusManager: { createIndicator: (status: string) => HTMLElement };
@@ -77,4 +87,4 @@ interface TaskManagerDependencies {
     storage: { get: (key: string, defaultValue?: JsonValue | null) => JsonValue | null; set: (key: string, value: JsonValue | null) => void };
 }
 
-export type { TaskManagerStoreApi, OperationEntry, OperationMeta, PluginEntry, TaskManagerApi, TaskManagerDependencies, TaskManagerElements, TaskManagerStreamManager };
+export type { CancellationBatchSummary, TaskManagerStoreApi, TaskOperationCancellationOwner, OperationEntry, OperationMeta, PluginEntry, TaskManagerApi, TaskManagerDependencies, TaskManagerElements, TaskManagerStreamManager };

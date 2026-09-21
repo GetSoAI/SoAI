@@ -22,10 +22,7 @@ const initializeChatSearch = (host: ChatSearchDependencies): void => {
             setCurrentSearchBar: (searchBar) => {
                 host.viewState.searchBar = searchBar;
             },
-            getCurrentSearchBar: () => host.viewState.searchBar,
-            getSearchIconMarkup: () => {
-                return host.services.getIconSync('search', { size: 16, strokeWidth: 1.5 });
-            }
+            getCurrentSearchBar: () => host.viewState.searchBar
         };
     }
     initializeChatSearchUi(host.viewState.searchUiHost);

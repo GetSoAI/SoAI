@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from app.background.outbox_payload_parsing import (
+    coerce_outbox_bool,
     coerce_outbox_int,
     coerce_outbox_str,
 )
@@ -16,6 +17,8 @@ from core.events.types_conversation_durable import (
     ConversationControlCompletedEvent,
     ConversationInputTerminalEvent,
     ConversationInteractionRequiredEvent,
+    ConversationStreamCancellationRequestedEvent,
+    ConversationStreamCancellationSettledEvent,
 )
 from core.openai.model_settings_validation import validate_model_settings
 
@@ -36,8 +39,36 @@ def decode_conversation_outbox_event(
     | ConversationAttentionChangedEvent
     | ConversationInputTerminalEvent
     | ConversationInteractionRequiredEvent
+    | ConversationStreamCancellationRequestedEvent
+    | ConversationStreamCancellationSettledEvent
     | ConversationUpdatedEvent
 ):
+    if event_type == "ConversationStreamCancellationSettledEvent":
+        return ConversationStreamCancellationSettledEvent(
+            event_id=event_id,
+            timestamp=timestamp,
+            user_id=coerce_outbox_int(decoded.get("user_id"), label="user_id"),
+            conv_id=coerce_outbox_str(
+                decoded.get("conversation_id"),
+                label="conversation_id",
+            ),
+            request_id=coerce_outbox_str(decoded.get("request_id"), label="request_id"),
+        )
+    if event_type == "ConversationStreamCancellationRequestedEvent":
+        return ConversationStreamCancellationRequestedEvent(
+            event_id=event_id,
+            timestamp=timestamp,
+            user_id=coerce_outbox_int(decoded.get("user_id"), label="user_id"),
+            conv_id=coerce_outbox_str(
+                decoded.get("conversation_id"),
+                label="conversation_id",
+            ),
+            request_id=coerce_outbox_str(decoded.get("request_id"), label="request_id"),
+            force_pending_steers=coerce_outbox_bool(
+                decoded.get("force_pending_steers"),
+                label="force_pending_steers",
+            ),
+        )
     if event_type == "ConversationUpdatedEvent":
         last_modified_at_ms = coerce_outbox_int(
             decoded.get("last_modified_at_ms"),

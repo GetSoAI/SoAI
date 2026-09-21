@@ -9,14 +9,12 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { ensureStreamManagerReady } from '@core/realtime/streammanager/readiness.ts';
-import { getWebUiUserCancellationReason } from '@core/tasks/cancellationReasons.ts';
-import { isTerminalTaskStatus } from '@core/tasks/operationPayloads.ts';
 import { readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
-import { isObject, isString } from '@core/typeGuards.ts';
+import { isObject } from '@core/typeGuards.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
-import type { OperationEntry, OperationMeta, TaskManagerApi, TaskManagerStoreApi, TaskManagerStreamManager } from '@features/tasks/taskmanager/taskManagerTypes.ts';
+import type { OperationMeta, TaskManagerApi, TaskManagerStoreApi, TaskManagerStreamManager, TaskOperationCancellationOwner } from '@features/tasks/taskmanager/taskManagerTypes.ts';
 
 const ensureRequiredString = <T>(value: T, errorMessage: string): string => {
     return readRequiredTrimmedStringValue(value, errorMessage);
@@ -26,21 +24,9 @@ interface TaskManagerActionsDependencies {
     apiClient: TaskManagerApi;
     stream: TaskManagerStreamManager;
     store: TaskManagerStoreApi;
+    operationCancellation: TaskOperationCancellationOwner;
     showNotification: (message: string, type: NotificationType) => void;
     hidePanel: () => void;
-}
-
-interface CancellationBatchSummary {
-    requestedCount: number;
-    alreadyTerminalCount: number;
-    failedCount: number;
-}
-
-type OperationCancellationOutcome = 'requested' | 'alreadyTerminal';
-
-interface OperationCancellationAttempt {
-    outcome: OperationCancellationOutcome | 'failed';
-    error: Error | null;
 }
 
 class TaskManagerActions {
@@ -94,7 +80,7 @@ class TaskManagerActions {
             return;
         }
 
-        const cancellationPromise = this.#requestCancellationBatch(cancelable);
+        const cancellationPromise = this.#dependencies.operationCancellation.cancelOperations(cancelable);
         const pluginStopPromise =
             stopCount > 0
                 ? handleApiResult(this.#dependencies.apiClient.post(stopAllPluginsActionPath(), null), {
@@ -112,8 +98,6 @@ class TaskManagerActions {
                 () => false
             )
         ]);
-        this.#notifyCancellationSummary(cancellationSummary, cancelCount);
-
         if (pluginsStopped && cancellationSummary.failedCount === 0) {
             this.#dependencies.hidePanel();
         }
@@ -137,99 +121,7 @@ class TaskManagerActions {
     async cancelOperationsForPlugin(key: string): Promise<void> {
         const normalized = ensureRequiredString(key, 'TaskManager requires a plugin key to cancel operations');
         const operations = this.#dependencies.store.getCancelableOperationsForPluginKey(normalized);
-        const summary = await this.#requestCancellationBatch(operations);
-        this.#notifyCancellationSummary(summary, operations.length);
-    }
-
-    async cancelOperation(operation: OperationEntry): Promise<void> {
-        try {
-            const outcome = await this.#requestOperationCancellation(operation);
-            if (outcome === 'requested') {
-                this.#dependencies.showNotification(i18n.plural('taskManager.notifications.cancelOperationsSuccess', 1, { count: 1 }), 'success');
-            }
-        } catch (error) {
-            const runtimeError = ensureError(error);
-            errorHandler.warn('TaskManager', 'Task cancellation request failed', runtimeError);
-            this.#dependencies.showNotification(i18n.t('taskManager.notifications.cancelOperationFailed'), 'error');
-            throw runtimeError;
-        }
-    }
-
-    async #requestOperationCancellation(operation: OperationEntry): Promise<OperationCancellationOutcome> {
-        if (!operation || !isObject(operation)) {
-            throw new Error('TaskManager requires an operation to cancel');
-        }
-        const operationId = ensureRequiredString(operation.id, 'Operation identifier is required for cancellation');
-        const meta = isObject(operation.meta) ? operation.meta : {};
-        const rawStatus = meta.taskStatus;
-        if (isTerminalTaskStatus(rawStatus)) {
-            this.#dependencies.store.removeOperationById(operationId);
-            return 'alreadyTerminal';
-        }
-
-        const taskId = isString(meta.taskId) ? String(meta.taskId).trim() : '';
-        const cancellation = await this.#dependencies.stream.tasks.requestTaskCancellation(taskId || operationId, getWebUiUserCancellationReason());
-        if (isTerminalTaskStatus(cancellation.status)) {
-            this.#dependencies.store.removeOperationById(operationId);
-            return 'requested';
-        }
-        this.#dependencies.store.upsertOperation({
-            ...operation,
-            cancelable: false,
-            meta: { ...meta, taskId: cancellation.taskId, taskStatus: cancellation.status }
-        });
-        return 'requested';
-    }
-
-    async #requestCancellationBatch(operations: OperationEntry[]): Promise<CancellationBatchSummary> {
-        const attempts = await Promise.all(
-            operations.map(async (operation): Promise<OperationCancellationAttempt> => {
-                try {
-                    return { outcome: await this.#requestOperationCancellation(operation), error: null };
-                } catch (error) {
-                    const cancellationError = ensureError(error);
-                    errorHandler.debug('TaskManager', 'Task cancellation request failed', cancellationError);
-                    return { outcome: 'failed', error: cancellationError };
-                }
-            })
-        );
-        const summary: CancellationBatchSummary = { requestedCount: 0, alreadyTerminalCount: 0, failedCount: 0 };
-        const failures: Error[] = [];
-        for (const attempt of attempts) {
-            if (attempt.outcome === 'requested') summary.requestedCount += 1;
-            if (attempt.outcome === 'alreadyTerminal') summary.alreadyTerminalCount += 1;
-            if (attempt.outcome === 'failed') summary.failedCount += 1;
-            if (attempt.error) failures.push(attempt.error);
-        }
-        if (failures.length > 0) {
-            errorHandler.warn('TaskManager', 'One or more task cancellation requests failed', new AggregateError(failures, 'Task cancellation request batch failed'));
-        }
-        return summary;
-    }
-
-    #notifyCancellationSummary(summary: CancellationBatchSummary, totalCount: number): void {
-        if (summary.failedCount > 0 && summary.requestedCount > 0) {
-            this.#dependencies.showNotification(
-                i18n.t('taskManager.notifications.cancelOperationsPartial', {
-                    requestedCount: summary.requestedCount,
-                    totalCount,
-                    failedCount: summary.failedCount
-                }),
-                'warning'
-            );
-            return;
-        }
-        if (summary.failedCount > 0) {
-            this.#dependencies.showNotification(i18n.plural('taskManager.notifications.cancelOperationsFailed', summary.failedCount, { count: summary.failedCount }), 'error');
-            return;
-        }
-        if (summary.requestedCount > 0) {
-            this.#dependencies.showNotification(i18n.plural('taskManager.notifications.cancelOperationsSuccess', summary.requestedCount, { count: summary.requestedCount }), 'success');
-            return;
-        }
-        if (summary.alreadyTerminalCount > 0) {
-            this.#dependencies.showNotification(i18n.t('taskManager.notifications.cancelOperationsAlreadyFinished'), 'info');
-        }
+        await this.#dependencies.operationCancellation.cancelOperations(operations);
     }
 
     async #runTaskAction(endpoint: string, operation: OperationMeta, successMessage: string, errorMessage: string): Promise<void> {

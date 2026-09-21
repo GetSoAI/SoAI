@@ -3,7 +3,7 @@
 
 type SettingsFieldKeyType = 'config' | 'ui' | 'manual';
 
-type UiPreferenceKey = 'accentColor' | 'animationSpeed' | 'chartColorMode' | 'chartStaticColor' | 'clockFormat' | 'clockSecondsEnabled' | 'codeRecognitionEnabled' | 'dashboardLocked' | 'dateFormat' | 'glassEnabled' | 'headerAutoHide' | 'headerClockEnabled' | 'interfaceScale' | 'language' | 'measurementUnits' | 'modalAnimation' | 'notificationAnimation' | 'notificationDuration' | 'pageAnimation' | 'promptEnhancerModel' | 'reduceMotions' | 'regionalLocale' | 'showMainStatusIndicator' | 'showScrollToTopButton' | 'solidBackground' | 'soundEffects' | 'surfaceColor' | 'liveStatusOverlayEnabled' | 'theme' | 'wallpaperOverlay';
+type UiPreferenceKey = 'accentColor' | 'animationSpeed' | 'chartColorMode' | 'chartStaticColor' | 'clockFormat' | 'clockSecondsEnabled' | 'codeRecognitionEnabled' | 'dashboardLocked' | 'dateFormat' | 'defaultPage' | 'glassEnabled' | 'headerAutoHide' | 'headerClockEnabled' | 'interfaceScale' | 'language' | 'measurementUnits' | 'modalAnimation' | 'notificationAnimation' | 'notificationDuration' | 'pageAnimation' | 'promptEnhancerModel' | 'reduceMotions' | 'regionalLocale' | 'showMainStatusIndicator' | 'showScrollToTopButton' | 'solidBackground' | 'soundEffects' | 'surfaceColor' | 'liveStatusOverlayEnabled' | 'theme' | 'wallpaperOverlay';
 
 interface ParsedSettingsFieldKey {
     fieldType: SettingsFieldKeyType;

@@ -9,6 +9,7 @@ from ctypes.util import find_library
 
 from core.runtime.opencl_environment import configure_opencl_runtime_environment
 from core.runtime.platform import get_runtime_platform
+from core.system.windows_ctypes import load_windows_library
 from hardware.soaibench.errors import SoAIBenchUnsupported
 
 __all__ = ("load_opencl_library",)
@@ -16,10 +17,13 @@ __all__ = ("load_opencl_library",)
 
 def load_opencl_library() -> ctypes.CDLL:
     configure_opencl_runtime_environment()
+    platform = get_runtime_platform()
     names = _candidate_library_names()
     last_error = ""
     for name in names:
         try:
+            if platform.is_windows and platform.architecture not in {"arm64", "aarch64"}:
+                return load_windows_library(name)
             return ctypes.CDLL(name)
         except OSError as exception:
             last_error = str(exception)

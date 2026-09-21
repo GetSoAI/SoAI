@@ -7,7 +7,12 @@ import asyncio
 import os
 from typing import TYPE_CHECKING
 
-from core.browser.html_pdf_renderer import HtmlPdfRenderRequest, render_html_file_to_pdf
+from core.browser.html_pdf_renderer import (
+    HtmlPdfRenderRequest,
+    PdfBrowserUnavailableError,
+    render_html_file_to_pdf,
+    require_pdf_browser_ready,
+)
 from core.browser.html_pdf_templates import (
     build_pdf_footer_template,
     build_pdf_header_template,
@@ -122,6 +127,7 @@ async def _render_and_write(
         render_lock_path,
         timeout=float(settings.render_timeout_sec + 60),
     ):
+        await require_pdf_browser_ready()
         await validate_conversation_pdf_export_snapshot(
             api_context=api_context,
             user_id=user_id,
@@ -269,6 +275,19 @@ async def run_conversation_pdf_export_render_task(
             error_code=409,
             error_message=str(exception),
             status_message="PDF export blocked",
+        )
+    except PdfBrowserUnavailableError as exception:
+        cleanup_conversation_pdf_task_directory(paths.task_dir)
+        await finalize_task_safely(
+            registry=registry,
+            task_id=task_id,
+            status=TaskStatus.FAILED,
+            operation=OPERATION_CONVERSATION_PDF_EXPORT_FAIL,
+            trace_id=trace_id,
+            error_code=exception.http_status,
+            error_type=str(exception.code),
+            error_message=str(exception),
+            status_message="PDF export browser unavailable",
         )
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
         cleanup_conversation_pdf_task_directory(paths.task_dir)

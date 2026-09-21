@@ -53,6 +53,7 @@ const applyPhysicalAttachmentPayloadToChatAttachment = (attachment: ChatAttachme
     attachment.mimeType = payload.mimeType;
     attachment.sizeBytes = payload.sizeBytes;
     attachment.previewType = payload.previewType;
+    attachment.isImage = payload.previewType === 'image';
     attachment.providerMode = payload.providerMode;
     attachment.providerTextTruncated = payload.providerTextTruncated;
     attachment.parseState = payload.parseState;

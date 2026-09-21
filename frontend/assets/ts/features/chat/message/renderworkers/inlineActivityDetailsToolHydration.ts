@@ -16,6 +16,7 @@ interface InlineActivityDetailsHydrationRequest {
     message: ChatMessage;
     expectedType: InlineActivityLookupType;
     callId: string;
+    signal: AbortSignal;
 }
 
 const resolveAssistantTurnTimestamp = (message: ChatMessage): number | null => {
@@ -58,7 +59,8 @@ const hydrateInlineToolDetailsMessage = async (request: InlineActivityDetailsHyd
             callId: normalizedCallId,
             assistantTurnAtMs: assistantTurnAtMs,
             modelVariantIndex: modelVariantIndex
-        })
+        }),
+        { signal: request.signal }
     );
     const projection = mapAssistantTimelineToolPayload(snapshot);
     if (projection === null || projection.callId !== normalizedCallId || !toolProjectionProvidesHydratedDetails(projection)) {

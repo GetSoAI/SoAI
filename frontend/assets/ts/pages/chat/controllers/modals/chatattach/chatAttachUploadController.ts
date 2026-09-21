@@ -19,7 +19,7 @@ class ChatAttachUploadController {
         this.#host = host;
         this.#elements = elements;
         this.#signal = signal;
-        this.#draftListController = new ChatAttachDraftAttachmentListController(host, elements.draftList, signal);
+        this.#draftListController = new ChatAttachDraftAttachmentListController(host, elements.draftList, signal, 'upload');
         this.#bind();
         this.#syncControls();
     }

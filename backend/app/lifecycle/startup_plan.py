@@ -99,7 +99,7 @@ def build_background_startup_entries(
                 component_name="Communications Sync Actor",
                 metric_key="startup.background.communications_sync_start_ms",
                 deps=deps,
-                action=infrastructure_services.communications_sync_actor.start,
+                action=infrastructure_services.communications.sync_actor.start,
             ),
         )
     )
@@ -155,11 +155,15 @@ def build_core_actor_startup_entries(
             component_name="Inactivity Monitor",
             action=inactivity_monitor_instance.start,
         ),
+        startup_entry(
+            component_name="SoAIBench",
+            action=infrastructure_services.hardware.soaibench.reconcile_startup,
+        ),
     ]
     if hardware_activation_enabled and not setup_required:
 
         async def _start_hardware_monitoring() -> None:
-            await infrastructure_services.hw_manager.start_monitoring()
+            await infrastructure_services.hardware.manager.start_monitoring()
 
         entries.extend(
             (
@@ -168,12 +172,8 @@ def build_core_actor_startup_entries(
                     action=_start_hardware_monitoring,
                 ),
                 startup_entry(
-                    component_name="SoAIBench",
-                    action=infrastructure_services.hardware_soaibench.reconcile_startup,
-                ),
-                startup_entry(
                     component_name="Hardware GPU Tuning",
-                    action=infrastructure_services.hw_gpu_tuning.apply_startup_gpu_settings,
+                    action=infrastructure_services.hardware.gpu_tuning.apply_startup_gpu_settings,
                 ),
             ),
         )

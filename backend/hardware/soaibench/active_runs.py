@@ -29,11 +29,24 @@ class ActiveSoAIBenchRuns:
         self._runs_by_id: dict[str, ActiveSoAIBenchRun] = {}
         self._run_ids_by_device: dict[str, str] = {}
 
+    def bind_pending(self, run: ActiveSoAIBenchRun) -> None:
+        self._validate_identity(run)
+        if run.worker is not None:
+            raise ValidationError("pending run cannot have a worker.")
+        self._bind(run)
+
     def bind_tracked_worker(self, run: ActiveSoAIBenchRun) -> None:
-        if not run.run_id or not run.device_id or not run.lease_id:
-            raise ValidationError("run_id, device_id, and lease_id are required.")
+        self._validate_identity(run)
         if run.worker is None:
             raise ValidationError("worker is required.")
+        self._bind(run)
+
+    @staticmethod
+    def _validate_identity(run: ActiveSoAIBenchRun) -> None:
+        if not run.run_id or not run.device_id or not run.lease_id:
+            raise ValidationError("run_id, device_id, and lease_id are required.")
+
+    def _bind(self, run: ActiveSoAIBenchRun) -> None:
         active_device_run_id = self._run_ids_by_device.get(run.device_id)
         if active_device_run_id is not None and active_device_run_id != run.run_id:
             raise ValidationError("device already has an active SoAIBench run.")

@@ -25,21 +25,23 @@ from core.archives.zip_plan import (
 )
 from core.archives.zip_plan_extraction import extract_validated_zip_members
 from core.errors.exceptions import StateError
+from core.files.extensions.documents import (
+    DOCX_EXTENSIONS,
+    PPTX_EXTENSIONS,
+    XLSX_EXTENSIONS,
+)
 from core.files.image_candidates import is_supported_image_candidate
 from files.parsers.document_ocr_types import RasterCandidate
 from files.parsers.document_text_slicing import is_extraction_readable
 
 __all__ = ("extract_ordered_document_rasters", "supports_document_raster_extraction")
 
-_WORD_ARCHIVE_EXTENSIONS = frozenset(("docx", "docm", "dotx", "dotm"))
-_PRESENTATION_ARCHIVE_EXTENSIONS = frozenset(("pptx", "pptm", "potx", "potm", "ppsx", "ppsm"))
-_SPREADSHEET_ARCHIVE_EXTENSIONS = frozenset(("xlsx", "xlsm", "xltx", "xltm"))
 _OPEN_DOCUMENT_ARCHIVE_EXTENSIONS = frozenset(("odt", "ods", "odp"))
 _SUPPORTED_ARCHIVE_EXTENSIONS = frozenset(
     (
-        *_WORD_ARCHIVE_EXTENSIONS,
-        *_PRESENTATION_ARCHIVE_EXTENSIONS,
-        *_SPREADSHEET_ARCHIVE_EXTENSIONS,
+        *DOCX_EXTENSIONS,
+        *PPTX_EXTENSIONS,
+        *XLSX_EXTENSIONS,
         *_OPEN_DOCUMENT_ARCHIVE_EXTENSIONS,
         "epub",
     )
@@ -82,11 +84,11 @@ def extract_ordered_document_rasters(
 
 
 def _resolve_archive_root_member(extension: str) -> str | None:
-    if extension in _WORD_ARCHIVE_EXTENSIONS:
+    if extension in DOCX_EXTENSIONS:
         return "word/document.xml"
-    if extension in _PRESENTATION_ARCHIVE_EXTENSIONS:
+    if extension in PPTX_EXTENSIONS:
         return "ppt/presentation.xml"
-    if extension in _SPREADSHEET_ARCHIVE_EXTENSIONS:
+    if extension in XLSX_EXTENSIONS:
         return "xl/workbook.xml"
     if extension in _OPEN_DOCUMENT_ARCHIVE_EXTENSIONS:
         return "content.xml"

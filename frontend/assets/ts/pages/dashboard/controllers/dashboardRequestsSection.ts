@@ -11,7 +11,7 @@ import { buildApiKeyRequestDistributionDataset, buildModelRequestDistributionDat
 import type { RequestDistributionChartSizeWatcher } from '@core/models/requestDistributionChartSizing.ts';
 import { renderRequestDistributionChartMarkup, renderRequestDistributionEmptyStateMarkup } from '@core/models/requestdistributionglass/chartMarkup.ts';
 import { EMPTY_REQUEST_DISTRIBUTION_SIGNATURE, claimRequestDistributionRender, computeRequestDistributionChartSignature, computeRequestDistributionLegendSignature } from '@core/models/requestDistributionRenderState.ts';
-import { buildRequestDistributionLegendItems, resolveRequestDistributionEmptyStateText, resolveRequestDistributionPalette, resolveRequestDistributionSourceToggleLabel, resolveRequestDistributionTitle, type RequestDistributionLegendItem, type RequestDistributionViewState } from '@core/models/requestDistributionRendering.ts';
+import { buildRequestDistributionPresentation, resolveRequestDistributionEmptyStateText, resolveRequestDistributionOthersColor, resolveRequestDistributionPalette, resolveRequestDistributionSourceToggleLabel, resolveRequestDistributionTitle, type RequestDistributionLegendItem, type RequestDistributionViewState } from '@core/models/requestDistributionRendering.ts';
 import { formatCompactNumber } from '@core/primitives/compactNumber.ts';
 import { isJsonObject, isJsonValue, type JsonValue } from '@core/types/jsonValues.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
@@ -80,7 +80,7 @@ const buildDashboardRequestsLegendList = (host: DashboardHost, legendItems: read
     legendItems.forEach((entry) => {
         const label = host.sanitizeText(entry.label);
         const detail = host.sanitizeText(entry.detail);
-        const item = host.createElement('li', { className: 'distribution-legend__item' });
+        const item = host.createElement('li', { className: entry.separatorBefore === true ? 'distribution-legend__item distribution-legend__item--others-boundary' : 'distribution-legend__item' });
         const itemElement = narrowHTMLElement(item, 'requests legend item');
         const swatch = host.createElement('span', { className: 'distribution-legend__swatch' });
         const swatchElement = narrowHTMLElement(swatch, 'requests legend swatch');
@@ -150,7 +150,23 @@ const createDashboardRequestsSectionRenderer = (dependencies: DashboardRequestsR
         }
 
         const legendColors = resolveRequestDistributionPalette((token) => host.getStyleProp(token));
-        const legendItems = dataset === null ? [] : buildRequestDistributionLegendItems(dataset.entries, (value) => formatCompactNumber(value), legendColors);
+        const kind = dependencies.viewState.getChartKind();
+        const rect = measureElementLayoutDimensions(surfaces.mount);
+        const chartSize = Math.min(rect.width, rect.height);
+        const presentation =
+            dataset === null || chartSize <= 0
+                ? null
+                : buildRequestDistributionPresentation(
+                      dataset,
+                      kind,
+                      chartSize,
+                      chartSize,
+                      (value) => formatCompactNumber(value),
+                      legendColors,
+                      resolveRequestDistributionOthersColor((token) => host.getStyleProp(token))
+                  );
+        const chartDataset = presentation?.chartDataset ?? null;
+        const legendItems = presentation?.legendItems ?? [];
         const legendSignature = computeRequestDistributionLegendSignature(legendItems);
 
         const setEmptyChartLayout = (isEmpty: boolean): void => {
@@ -165,25 +181,20 @@ const createDashboardRequestsSectionRenderer = (dependencies: DashboardRequestsR
             host.replaceElementContent(surfaces.mount, renderRequestDistributionEmptyStateMarkup(resolveRequestDistributionEmptyStateText()), { escape: false });
         };
         const renderChart = (): void => {
-            if (dataset === null || !dataset.entries.length || !legendColors.length) {
+            if (chartDataset === null || !chartDataset.entries.length || !legendColors.length) {
                 renderEmptyChart();
                 return;
             }
             setEmptyChartLayout(false);
-            const rect = measureElementLayoutDimensions(surfaces.mount);
-            const width = rect.width;
-            const height = rect.height;
-            if (width <= 0 || height <= 0) {
+            if (chartSize <= 0) {
                 renderEmptyChart();
                 return;
             }
-            const chartSize = Math.min(width, height);
-            const kind = dependencies.viewState.getChartKind();
-            if (!claimRequestDistributionRender(surfaces.mount, computeRequestDistributionChartSignature({ kind, width: chartSize, height: chartSize, colors: legendColors, dataset }))) {
+            if (!claimRequestDistributionRender(surfaces.mount, computeRequestDistributionChartSignature({ kind, width: chartSize, height: chartSize, colors: legendColors, dataset: chartDataset }))) {
                 return;
             }
             try {
-                const markup = renderRequestDistributionChartMarkup({ width: chartSize, height: chartSize, dataset, colors: legendColors, kind });
+                const markup = renderRequestDistributionChartMarkup({ width: chartSize, height: chartSize, dataset: chartDataset, colors: legendColors, kind });
                 host.replaceElementContent(surfaces.mount, markup, { escape: false });
             } catch (error) {
                 errorHandler.warn('DashboardPage', 'Request distribution chart render failed', ensureError(error));
@@ -218,8 +229,7 @@ const createDashboardRequestsSectionRenderer = (dependencies: DashboardRequestsR
         dependencies.viewState.attachChartKindCycle(
             surfaces.mount,
             () => {
-                transitionContentElements({ elements: [surfaces.mount], render: renderChart });
-                renderLegend();
+                renderRequestsSection({ transition: true });
             },
             {
                 shouldCycle: () => surfaces.mount.getAttribute('data-request-distribution-chart-active') === 'true'

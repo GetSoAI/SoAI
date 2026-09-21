@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from core.assistant_timeline.presentation_projection import (
     project_assistant_event_timeline,
 )
@@ -23,6 +25,12 @@ from features.api.routes.webui.conversation_attachments.events import (
     publish_unique_knowledge_attachment_summaries,
 )
 from features.api.runtime.context import ApiContext
+from features.api.runtime.webui_attachments.message_read_projection import (
+    project_message_attachments_for_read,
+)
+
+if TYPE_CHECKING:
+    from features.api.runtime.user_types import CurrentUser
 
 __all__ = (
     "publish_message_write_knowledge_events",
@@ -47,8 +55,20 @@ def _serialize_message_read_projection(message: JSONDict) -> JSONDict:
     return serialized
 
 
-def serialize_assistant_stream_state(message: JSONDict) -> JSONDict:
-    return _serialize_message_read_projection(message)
+async def serialize_assistant_stream_state(
+    message: JSONDict,
+    *,
+    api_context: ApiContext,
+    current_user: CurrentUser,
+    conv_id: str,
+) -> JSONDict:
+    projected_messages = await project_message_attachments_for_read(
+        dependencies=api_context.dependencies,
+        conv_id=conv_id,
+        user_id=current_user["id"],
+        messages=(message,),
+    )
+    return _serialize_message_read_projection(projected_messages[0])
 
 
 async def publish_message_write_knowledge_events(
@@ -88,12 +108,21 @@ def _serialize_message_cursor(cursor: ConversationMessageCursor | None) -> JSOND
     }
 
 
-def serialize_message_window_result(read_result: ConversationMessageWindowResult) -> JSONDict:
+async def serialize_message_window_result(
+    read_result: ConversationMessageWindowResult,
+    *,
+    api_context: ApiContext,
+    current_user: CurrentUser,
+) -> JSONDict:
+    projected_messages = await project_message_attachments_for_read(
+        dependencies=api_context.dependencies,
+        conv_id=read_result.conv_id,
+        user_id=current_user["id"],
+        messages=read_result.messages,
+    )
     return {
         "conv_id": read_result.conv_id,
-        "messages": [
-            _serialize_message_read_projection(message) for message in read_result.messages
-        ],
+        "messages": [_serialize_message_read_projection(message) for message in projected_messages],
         "returned_count": read_result.returned_count,
         "loaded_count_hint": read_result.loaded_count_hint,
         "total_count": read_result.total_count,
@@ -105,13 +134,22 @@ def serialize_message_window_result(read_result: ConversationMessageWindowResult
     }
 
 
-def serialize_running_activity_snapshot(
+async def serialize_running_activity_snapshot(
     snapshot: ConversationRunningActivitySnapshot,
+    *,
+    api_context: ApiContext,
+    current_user: CurrentUser,
 ) -> JSONDict:
+    projected_messages = await project_message_attachments_for_read(
+        dependencies=api_context.dependencies,
+        conv_id=snapshot.conv_id,
+        user_id=current_user["id"],
+        messages=snapshot.running_messages,
+    )
     return {
         "conv_id": snapshot.conv_id,
         "running_messages": [
-            _serialize_message_read_projection(message) for message in snapshot.running_messages
+            _serialize_message_read_projection(message) for message in projected_messages
         ],
         "last_modified_at_ms": snapshot.last_modified_at_ms,
     }

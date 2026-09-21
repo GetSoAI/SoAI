@@ -76,6 +76,14 @@ def build_conversation_inputs_schema_sql() -> str:
                 CHECK(input_required_at_ms IS NULL OR input_required_at_ms >= {EPOCH_MS_MIN}),
             terminal_at_ms INTEGER CHECK(terminal_at_ms IS NULL OR terminal_at_ms >= {EPOCH_MS_MIN}),
             updated_at_ms INTEGER NOT NULL CHECK(updated_at_ms >= {EPOCH_MS_MIN}),
+            regeneration_request_json TEXT
+                CHECK(regeneration_request_json IS NULL OR (
+                    json_valid(regeneration_request_json)
+                    AND json_type(regeneration_request_json)='object'
+                )),
+            regeneration_accepted_revision INTEGER
+                CHECK(regeneration_accepted_revision IS NULL OR regeneration_accepted_revision >= {EPOCH_MS_MIN})
+                CHECK((regeneration_request_json IS NULL) = (regeneration_accepted_revision IS NULL)),
             CHECK(input_type != 'prompt' OR model_settings_json IS NOT NULL),
             CHECK(input_type = 'prompt' OR model_settings_json IS NULL),
             CHECK(transport_origin != 'chat' OR (client_id IS NOT NULL AND messaging_ingress_id IS NULL)),
@@ -106,7 +114,7 @@ def build_conversation_inputs_schema_sql() -> str:
             ON webui_conversation_inputs(user_id, conv_id, accepted_at_ms DESC, id DESC);
         CREATE UNIQUE INDEX IF NOT EXISTS idx_conversation_inputs_materialized_message
             ON webui_conversation_inputs(materialized_message_id)
-            WHERE materialized_message_id IS NOT NULL;
+            WHERE materialized_message_id IS NOT NULL AND regeneration_request_json IS NULL;
         CREATE INDEX IF NOT EXISTS idx_conversation_inputs_claim
             ON webui_conversation_inputs(claim_server_boot_id, claim_owner, state);
         CREATE UNIQUE INDEX IF NOT EXISTS idx_conversation_inputs_one_executing

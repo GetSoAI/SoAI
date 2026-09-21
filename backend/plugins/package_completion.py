@@ -59,7 +59,7 @@ class PluginPackageCompletionRecord:
 
 def _content_tree_sha256(audit: PluginPackageAudit) -> str:
     digest = hashlib.sha256()
-    for member in audit.member_digests:
+    for member in audit.content.member_digests:
         path_bytes = member.destination_path.encode("utf-8")
         digest.update(len(path_bytes).to_bytes(8, byteorder="big"))
         digest.update(path_bytes)
@@ -72,10 +72,10 @@ def build_plugin_package_completion_record(
     audit: PluginPackageAudit,
 ) -> PluginPackageCompletionRecord:
     return PluginPackageCompletionRecord(
-        archive_hash=audit.archive_hash,
-        expanded_bytes=audit.expanded_size,
+        archive_hash=audit.content.archive_hash,
+        expanded_bytes=audit.content.expanded_size,
         content_tree_sha256=_content_tree_sha256(audit),
-        member_count=len(audit.zip_plan.members),
+        member_count=len(audit.content.zip_plan.members),
     )
 
 
@@ -145,7 +145,7 @@ def _expected_tree_paths(
     audit: PluginPackageAudit,
 ) -> tuple[set[str], dict[str, tuple[int, str]]]:
     expected_directories: set[str] = set()
-    for member in audit.zip_plan.members:
+    for member in audit.content.zip_plan.members:
         if member.is_directory:
             expected_directories.add(member.destination_path)
         parent_path = os.path.dirname(member.destination_path)
@@ -154,7 +154,7 @@ def _expected_tree_paths(
             parent_path = os.path.dirname(parent_path)
     expected_files = {
         member.destination_path: (member.file_size, member.sha256_hex)
-        for member in audit.member_digests
+        for member in audit.content.member_digests
     }
     return expected_directories, expected_files
 

@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
     from hardware.soaibench.active_runs import ActiveSoAIBenchRuns
     from hardware.soaibench.dependencies import SoAIBenchServiceDependencies
+    from hardware.soaibench.types import SoAIBenchGpuIdentity
 
 __all__ = ("SoAIBenchRegistrationContext",)
 
@@ -21,6 +22,7 @@ class SoAIBenchRegistrationContext:
     deps: SoAIBenchServiceDependencies
     active_runs: ActiveSoAIBenchRuns
     run: JSONDict
+    identity: SoAIBenchGpuIdentity
     run_id: str
     task_id: str
     device_id: str

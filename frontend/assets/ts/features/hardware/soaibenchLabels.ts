@@ -56,4 +56,42 @@ const resolveSoAIBenchStatusLabel = (value: string | null): string => {
     }
 };
 
-export { formatUnexpectedSoAIBenchIdentifierLabel, resolveSoAIBenchProfileLabel, resolveSoAIBenchStatusLabel };
+const resolveSoAIBenchMatchBasisLabel = (value: string | null): string => {
+    if (!value) {
+        return notAvailable();
+    }
+    switch (value) {
+        case 'device_id':
+            return i18n.t('hardware.modals.soaibenchHistory.matchBases.device_id');
+        case 'gpu_uuid':
+            return i18n.t('hardware.modals.soaibenchHistory.matchBases.gpu_uuid');
+        case 'pci_bdf':
+            return i18n.t('hardware.modals.soaibenchHistory.matchBases.pci_bdf');
+        case 'gpu_model_key':
+            return i18n.t('hardware.modals.soaibenchHistory.matchBases.gpu_model_key');
+        case 'vendor_name':
+            return i18n.t('hardware.modals.soaibenchHistory.matchBases.vendor_name');
+        case 'vendor_name_ordinal':
+            return i18n.t('hardware.modals.soaibenchHistory.matchBases.vendor_name_ordinal');
+        case 'stale':
+            return i18n.t('hardware.modals.soaibenchHistory.matchBases.stale');
+        default:
+            return formatUnexpectedSoAIBenchIdentifierLabel(value);
+    }
+};
+
+const resolveSoAIBenchReasonLabel = (reasonMessage: string | null, failureReason: string | null, unsupportedReason: string | null, staleHardware: boolean): string | null => {
+    const rawReason = failureReason || unsupportedReason;
+    if (rawReason === 'opencl_numerical_mismatch') {
+        return i18n.t('hardware.modals.soaibenchHistory.reasons.opencl_numerical_mismatch');
+    }
+    if (reasonMessage) {
+        return reasonMessage;
+    }
+    if (rawReason) {
+        return formatUnexpectedSoAIBenchIdentifierLabel(rawReason);
+    }
+    return staleHardware ? i18n.t('hardware.modals.soaibenchHistory.staleHardware') : null;
+};
+
+export { formatUnexpectedSoAIBenchIdentifierLabel, resolveSoAIBenchMatchBasisLabel, resolveSoAIBenchProfileLabel, resolveSoAIBenchReasonLabel, resolveSoAIBenchStatusLabel };

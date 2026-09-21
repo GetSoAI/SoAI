@@ -5,8 +5,9 @@ import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { securityApi } from '@core/security/public.ts';
 import { getBadgeColorClass } from '@core/ui/badgeColors.ts';
-import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
+import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
+import { replaceChildrenFromTrustedHtml } from '@core/dom/html.ts';
 import type { AttachmentOverflowRecord } from '@features/chat/message/attachmentoverflowmodal/records.ts';
 
 const resolveBadgeText = (type: AttachmentOverflowRecord['type']): string => {
@@ -20,19 +21,29 @@ const resolveBadgeText = (type: AttachmentOverflowRecord['type']): string => {
 };
 
 const appendRecordPreview = (row: HTMLElement, record: AttachmentOverflowRecord): void => {
+    const icon = dom.getDocument().createElement('span');
+    icon.className = 'file-preview-leading-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    replaceChildrenFromTrustedHtml({ element: icon, html: getIconSync(record.iconName, { size: 20, strokeWidth: 1.5 }), context: icon });
     if (record.previewUrl === null) {
+        row.append(icon);
         return;
     }
+    const visual = dom.getDocument().createElement('span');
+    visual.className = 'chat-attachment-visual';
     const src = securityApi.sanitizeImageSource(record.previewUrl);
-    if (src === null) {
-        throw new Error('Attachment overflow preview URL failed sanitization');
+    visual.setAttribute('data-attachment-image-state', src === null ? 'error' : 'loading');
+    visual.append(icon);
+    if (src !== null) {
+        const image = dom.getDocument().createElement('img');
+        image.src = src;
+        image.alt = record.title;
+        image.loading = 'lazy';
+        image.decoding = 'async';
+        image.setAttribute('data-chat-attachment-thumbnail', 'true');
+        visual.append(image);
     }
-    const image = dom.getDocument().createElement('img');
-    image.src = src;
-    image.alt = record.title;
-    image.loading = 'lazy';
-    image.decoding = 'async';
-    row.append(image);
+    row.append(visual);
 };
 
 const configureButtonRow = (row: HTMLButtonElement, record: AttachmentOverflowRecord): void => {
@@ -48,12 +59,6 @@ const configureButtonRow = (row: HTMLButtonElement, record: AttachmentOverflowRe
 const configureKnowledgeItemRow = (row: HTMLButtonElement, record: AttachmentOverflowRecord): void => {
     row.type = 'button';
     row.setAttribute('aria-label', record.title);
-    if (record.unavailableReason !== null) {
-        row.disabled = true;
-        row.setAttribute('aria-disabled', 'true');
-        setTooltipText(row, record.unavailableReason);
-        return;
-    }
     row.dataset['attachmentOverflowAction'] = 'knowledge-preview';
     row.dataset['collectionId'] = record.id;
     setTooltipText(row, record.title);
@@ -84,40 +89,12 @@ const configureStaticRow = (row: HTMLElement, record: AttachmentOverflowRecord):
     setTooltipText(row, label);
 };
 
-const appendDraftKnowledgeDeleteButton = (row: HTMLElement, record: AttachmentOverflowRecord): void => {
-    if (!record.draftRemovable || record.knowledgeAttachmentId === null) {
-        return;
-    }
-    const button = dom.getDocument().createElement('button');
-    button.type = 'button';
-    button.className = 'ui-round-button ui-round-button--inline ui-round-button--delete chat-attachment-overflow-delete';
-    button.dataset['attachmentOverflowAction'] = 'knowledge-remove-draft';
-    button.dataset['knowledgeAttachmentId'] = record.knowledgeAttachmentId;
-    const label = i18n.t('chat.attachments.removeTooltip');
-    button.setAttribute('aria-label', label);
-    setTooltipText(button, label);
-    dom.setHTML(button, getIconSync('close', { size: 14, strokeWidth: 1.5 }), { escape: false });
-    row.append(button);
-};
-
-const renderRemovableKnowledgeRow = (record: AttachmentOverflowRecord): HTMLDivElement => {
+const renderUnavailableRow = (record: AttachmentOverflowRecord): HTMLDivElement => {
     const row = dom.getDocument().createElement('div');
-    row.className = 'file-preview-item document chat-attachment-overflow-item chat-attachment-overflow-item--knowledge chat-attachment-overflow-item--removable glass-surface-light glass-surface--bordered glass-surface--rounded';
-    row.dataset['collectionId'] = record.id;
+    row.className = `file-preview-item document file-preview-item--unavailable chat-attachment-overflow-item chat-attachment-overflow-item--${record.type} chat-attachment-overflow-item--unavailable glass-surface-light glass-surface--bordered glass-surface--rounded`;
     configureStaticRow(row, record);
-    const body = dom.getDocument().createElement('button');
-    body.type = 'button';
-    body.className = 'chat-attachment-overflow-body';
-    body.dataset['attachmentOverflowAction'] = 'knowledge-preview-first';
-    if (record.knowledgeAttachmentId !== null) {
-        body.dataset['knowledgeAttachmentId'] = record.knowledgeAttachmentId;
-    }
-    body.setAttribute('aria-label', record.title);
-    setTooltipText(body, record.title);
-    appendRecordPreview(body, record);
-    appendRecordInfo(body, record);
-    row.append(body);
-    appendDraftKnowledgeDeleteButton(row, record);
+    appendRecordPreview(row, record);
+    appendRecordInfo(row, record);
     return row;
 };
 
@@ -141,9 +118,12 @@ const appendRecordInfo = (row: HTMLElement, record: AttachmentOverflowRecord): v
 };
 
 const renderAttachmentOverflowItem = (record: AttachmentOverflowRecord): HTMLElement => {
+    if (record.unavailableReason !== null) {
+        return renderUnavailableRow(record);
+    }
     if (record.type === 'knowledgeItem') {
         const row = dom.getDocument().createElement('button');
-        row.className = `file-preview-item ${record.previewUrl === null ? 'document' : 'image'} chat-attachment-overflow-item chat-attachment-overflow-item--${record.type} glass-surface-light glass-surface--bordered glass-surface--rounded`;
+        row.className = `file-preview-item document chat-attachment-overflow-item chat-attachment-overflow-item--${record.type} glass-surface-light glass-surface--bordered glass-surface--rounded`;
         configureKnowledgeItemRow(row, record);
         appendRecordPreview(row, record);
         appendRecordInfo(row, record);
@@ -151,18 +131,15 @@ const renderAttachmentOverflowItem = (record: AttachmentOverflowRecord): HTMLEle
     }
     if (record.type === 'soaiLink' && record.soaiPathContentPart !== null) {
         const row = dom.getDocument().createElement('button');
-        row.className = `file-preview-item ${record.previewUrl === null ? 'document' : 'image'} chat-attachment-overflow-item chat-attachment-overflow-item--${record.type} glass-surface-light glass-surface--bordered glass-surface--rounded`;
+        row.className = `file-preview-item document chat-attachment-overflow-item chat-attachment-overflow-item--${record.type} glass-surface-light glass-surface--bordered glass-surface--rounded`;
         configureSoaiPathRow(row, record);
         appendRecordPreview(row, record);
         appendRecordInfo(row, record);
         return row;
     }
     if (record.href === null && record.knowledgeAttachmentId !== null) {
-        if (record.draftRemovable) {
-            return renderRemovableKnowledgeRow(record);
-        }
         const row = dom.getDocument().createElement('button');
-        row.className = `file-preview-item ${record.previewUrl === null ? 'document' : 'image'} chat-attachment-overflow-item chat-attachment-overflow-item--${record.type} glass-surface-light glass-surface--bordered glass-surface--rounded`;
+        row.className = `file-preview-item document chat-attachment-overflow-item chat-attachment-overflow-item--${record.type} glass-surface-light glass-surface--bordered glass-surface--rounded`;
         row.dataset['collectionId'] = record.id;
         configureButtonRow(row, record);
         appendRecordPreview(row, record);
@@ -171,7 +148,7 @@ const renderAttachmentOverflowItem = (record: AttachmentOverflowRecord): HTMLEle
     }
     if (record.href === null) {
         const row = dom.getDocument().createElement('div');
-        row.className = `file-preview-item ${record.previewUrl === null ? 'document' : 'image'} chat-attachment-overflow-item chat-attachment-overflow-item--${record.type} glass-surface-light glass-surface--bordered glass-surface--rounded`;
+        row.className = `file-preview-item document chat-attachment-overflow-item chat-attachment-overflow-item--${record.type} glass-surface-light glass-surface--bordered glass-surface--rounded`;
         row.dataset['collectionId'] = record.id;
         configureStaticRow(row, record);
         appendRecordPreview(row, record);
@@ -179,7 +156,7 @@ const renderAttachmentOverflowItem = (record: AttachmentOverflowRecord): HTMLEle
         return row;
     }
     const row = dom.getDocument().createElement('a');
-    row.className = `file-preview-item ${record.previewUrl === null ? 'document' : 'image'} chat-attachment-overflow-item chat-attachment-overflow-item--${record.type} glass-surface-light glass-surface--bordered glass-surface--rounded`;
+    row.className = `file-preview-item document chat-attachment-overflow-item chat-attachment-overflow-item--${record.type} glass-surface-light glass-surface--bordered glass-surface--rounded`;
     row.dataset['collectionId'] = record.id;
     configureAnchorRow(row, record);
     appendRecordPreview(row, record);

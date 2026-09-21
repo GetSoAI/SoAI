@@ -41,6 +41,7 @@ const getDefaultChatParameters = (): ChatParameters => {
         hideAutomationRuns: false,
         hideMessagingConversations: false,
         showActivities: true,
+        showActivityElapsedTime: true,
         notifyOnCompletion: false,
         notifyOnError: true,
         microphoneSoundEffectsEnabled: true,

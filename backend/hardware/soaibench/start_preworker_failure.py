@@ -6,8 +6,10 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.exceptions import StateError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.serialization.json import serialize_json_compact_stable
 from core.timing.epoch import epoch_ms
@@ -31,18 +33,16 @@ async def finish_preworker_failure_preserving(
     reason: str | None,
     message: str,
     primary_exception: BaseException,
-) -> None:
-    current_task = asyncio.current_task()
-    if current_task is not None:
-        while current_task.cancelling():
-            current_task.uncancel()
+) -> JSONDict | None:
     try:
-        await _finish_preworker_failure(
-            deps=deps,
-            run=run,
-            status=status,
-            reason=reason,
-            message=message,
+        return await uncancel_then_cleanup(
+            _finish_preworker_failure(
+                deps=deps,
+                run=run,
+                status=status,
+                reason=reason,
+                message=message,
+            ),
         )
     except asyncio.CancelledError as cleanup_exception:
         primary_exception.add_note(
@@ -61,6 +61,7 @@ async def finish_preworker_failure_preserving(
             operation=PREWORKER_FAILURE_OPERATION,
             level="warning",
         )
+    return None
 
 
 async def _finish_preworker_failure(
@@ -70,10 +71,10 @@ async def _finish_preworker_failure(
     status: SoAIBenchRunStatus,
     reason: str | None,
     message: str,
-) -> None:
+) -> JSONDict:
     completed_at_ms = epoch_ms()
     started_at_ms = require_int_from_numberish(run["started_at_ms"], field="started_at_ms")
-    await deps.database_hardware.finish_soaibench_run(
+    mutation = await deps.database_hardware.finish_soaibench_run(
         str(run["run_id"]),
         {
             "status": status.value,
@@ -84,3 +85,6 @@ async def _finish_preworker_failure(
             "failure_reason": reason,
         },
     )
+    if mutation.run is None:
+        raise StateError("SoAIBench pre-worker terminal row was not materialized.")
+    return mutation.run

@@ -242,7 +242,8 @@
 
     @container ui-viewport (width <= 480px) {
         :where(.chat-container) .chat-page-empty-state {
-            padding: var(--space-4) var(--space-2);
+            padding: var(--space-2);
+            gap: var(--space-4);
         }
 
         :where(.chat-container) :is(.chat-message.assistant, .chat-message.user) > .message-content > .message-actions {

@@ -57,7 +57,8 @@ def apply_hardware_soaibench_schema(conn: sqlite3.Connection) -> None:
             score_variance_percent REAL,
             failure_reason TEXT,
             unsupported_reason TEXT,
-            created_by_tool TEXT NOT NULL
+            created_by_tool TEXT NOT NULL,
+            publication_source_supported INTEGER NOT NULL DEFAULT 0 CHECK(publication_source_supported IN (0, 1))
         ) STRICT;
         CREATE INDEX IF NOT EXISTS idx_hardware_gpu_soaibench_user_device_started
             ON hardware_gpu_soaibench_runs(created_by_user_id, device_id, started_at_ms DESC);
@@ -74,5 +75,26 @@ def apply_hardware_soaibench_schema(conn: sqlite3.Connection) -> None:
         CREATE UNIQUE INDEX IF NOT EXISTS idx_hardware_gpu_soaibench_active_device
             ON hardware_gpu_soaibench_runs(device_id)
             WHERE status = 'running';
+        CREATE TABLE IF NOT EXISTS hardware_gpu_soaibench_publications (
+            run_id TEXT PRIMARY KEY
+                CHECK(length(run_id) = 32 AND run_id NOT GLOB '*[^0-9a-f]*'),
+            created_by_user_id INTEGER NOT NULL CHECK(created_by_user_id > 0),
+            installation_id TEXT NOT NULL
+                CHECK(length(installation_id) = 36 AND installation_id = lower(installation_id)),
+            canonical_submission_json TEXT NOT NULL
+                CHECK(length(CAST(canonical_submission_json AS BLOB)) BETWEEN 2 AND 262144)
+                CHECK(json_valid(canonical_submission_json) AND json_type(canonical_submission_json) = 'object'),
+            state TEXT NOT NULL CHECK(state IN ('prepared', 'published')),
+            prepared_at_ms INTEGER NOT NULL CHECK(prepared_at_ms >= 0),
+            published_at_ms INTEGER CHECK(published_at_ms IS NULL OR published_at_ms >= prepared_at_ms),
+            receipt_json TEXT
+                CHECK(receipt_json IS NULL OR length(CAST(receipt_json AS BLOB)) BETWEEN 2 AND 16384)
+                CHECK(receipt_json IS NULL OR (json_valid(receipt_json) AND json_type(receipt_json) = 'object')),
+            CHECK(
+                (state = 'prepared' AND published_at_ms IS NULL AND receipt_json IS NULL)
+                OR
+                (state = 'published' AND published_at_ms IS NOT NULL AND receipt_json IS NOT NULL)
+            )
+        ) STRICT;
         """,
     )

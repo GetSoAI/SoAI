@@ -1,7 +1,7 @@
 /* SoAI - Chat message edit attachment DOM controls [frontend/assets/ts/features/chat/message/messageEditAttachmentDom.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
+import type { TrustedHtml } from '@core/security/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { optionalNonNegativeIntegerAttribute } from '@core/dom/attributes.ts';
 import { replaceChildrenFromTrustedHtml } from '@core/dom/html.ts';
@@ -29,9 +29,7 @@ const normalizeEditAttachmentCard = (card: HTMLElement): HTMLElement => {
             normalized.setAttribute(attribute.name, attribute.value);
         }
     }
-    for (const child of Array.from(card.childNodes)) {
-        normalized.append(child.cloneNode(true));
-    }
+    normalized.append(...Array.from(card.childNodes));
     card.replaceWith(normalized);
     return normalized;
 };
@@ -41,10 +39,7 @@ const createEditAttachmentStrip = (messageTextNode: HTMLElement, removeIcon: Tru
     if (!(sourceStrip instanceof HTMLElement)) {
         return null;
     }
-    const strip = sourceStrip.cloneNode(true);
-    if (!(strip instanceof HTMLElement)) {
-        return null;
-    }
+    const strip = sourceStrip;
     strip.classList.add('message-edit-attachment-strip');
     const removeLabel = i18n.t('chat.attachments.removeTooltip');
     const cards = dom.resolveAll('.chat-attachment-summary-card', strip);
@@ -71,10 +66,7 @@ const createEditAttachmentStrip = (messageTextNode: HTMLElement, removeIcon: Tru
     return strip;
 };
 
-const renderEditTextareaMarkup = (attachmentStrip: HTMLElement | null): TrustedHtml => {
-    const stripMarkup = attachmentStrip === null ? '' : attachmentStrip.outerHTML;
-    return uiHtml`<textarea class="message-edit-input"></textarea>${toTrustedUiHtml(stripMarkup)}`;
-};
+const renderEditTextareaMarkup = (): TrustedHtml => uiHtml`<textarea class="message-edit-input"></textarea>`;
 
 const resolveRemovedEditAttachmentIndexes = (container: HTMLElement): number[] => {
     const removed = new Set<number>();

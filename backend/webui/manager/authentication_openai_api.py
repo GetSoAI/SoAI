@@ -32,9 +32,10 @@ from webui.manager.auth_inactive_record_failure import (
 )
 from webui.manager.bearer_token_auth_flow import (
     prepare_bearer_token_auth_attempt,
-    report_invalid_bearer_record_failure,
+    report_bearer_record_failure,
     resolve_bearer_token_id_or_failure,
     resolve_bearer_token_throttle,
+    resolve_bearer_user_record_or_failure,
 )
 
 if TYPE_CHECKING:
@@ -217,10 +218,11 @@ async def evaluate_openai_api_authentication(
         )
     assigned_user_id_value = key_record.get("assigned_user_id")
     if assigned_user_id_value is not None and not is_strict_user_id(assigned_user_id_value):
-        return await report_invalid_bearer_record_failure(
+        return await report_bearer_record_failure(
             failure_reporter=failure_reporter,
             attempt=attempt,
             fingerprint=fingerprint,
+            reason="invalid_record",
             use_reason_as_failure_category=True,
         )
     assigned_user_id = assigned_user_id_value if isinstance(assigned_user_id_value, int) else None
@@ -232,16 +234,15 @@ async def evaluate_openai_api_authentication(
             if database_users is not None
             else None
         )
-        if not isinstance(user_record, dict):
-            return await failure_reporter.report_failure(
-                "You are not authenticated.",
-                "missing_user",
-                bucket_identifiers=attempt.bucket_identifiers,
-                fingerprint=fingerprint[:12],
-                failure_category="missing_user",
-            )
-        resolved_user = dict(user_record)
-        resolved_user.pop("hashed_password", None)
+        resolved_user_or_failure = await resolve_bearer_user_record_or_failure(
+            user_record,
+            failure_reporter=failure_reporter,
+            attempt=attempt,
+            use_reason_as_failure_category=True,
+        )
+        if isinstance(resolved_user_or_failure, AuthenticationDecision):
+            return resolved_user_or_failure
+        resolved_user = resolved_user_or_failure
     await reset_auth_guard_failures(guard, attempt.bucket_identifiers)
     payload = {
         "key_id": key_id,

@@ -5,6 +5,7 @@ import { formatBytes } from '@core/primitives/byteSize.ts';
 import type { KnowledgeAttachmentItem, KnowledgeAttachmentItemsResponse } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import type { KnowledgeStatusFilter } from '@features/chat/message/attachmentoverflowmodal/filters.ts';
 import type { AttachmentOverflowRecord } from '@features/chat/message/attachmentoverflowmodal/records.ts';
+import { resolveFileEntryIconName } from '@core/fileexplorerbrowser/entryIconResolution.ts';
 
 type KnowledgeCursor = {
     itemIndex: number;
@@ -52,13 +53,13 @@ const parseKnowledgeItemRecord = (value: KnowledgeAttachmentItem, knowledgeAttac
         title: value.filename,
         status: statusParts.join(' - '),
         href: null,
-        draftRemovable: false,
         knowledgeAttachmentId,
         knowledgeItemId: value.id,
         documentId: value.documentId,
         unavailableReason,
         previewUrl: null,
-        soaiPathContentPart: null
+        soaiPathContentPart: null,
+        iconName: resolveFileEntryIconName({ name: value.filename, isDirectory: false })
     };
 };
 

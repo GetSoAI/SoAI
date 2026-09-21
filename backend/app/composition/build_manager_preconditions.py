@@ -37,7 +37,7 @@ def build_manager_preconditions(
         message="HTTP client must be initialized before managers are built.",
     )
     hardware_manager = require_initialized(
-        infrastructure_services.hw_manager,
+        infrastructure_services.hardware.manager,
         message="Hardware manager must be initialized before managers are built.",
     )
     command_executor = infrastructure_services.command_executor
@@ -166,27 +166,27 @@ def build_manager_preconditions(
         message="Agent plan repository must be initialized before managers are built.",
     )
     cancellation_coordinator = require_initialized(
-        task_services.cancellation_coordinator,
+        task_services.cancellation.coordinator,
         message="Cancellation coordinator must be initialized before managers are built.",
     )
     cancellation_history = require_initialized(
-        task_services.cancellation_history,
+        task_services.cancellation.history,
         message="Cancellation history must be initialized before managers are built.",
     )
     cancellation_event_bus = require_initialized(
-        task_services.cancellation_event_bus,
+        task_services.cancellation.event_bus,
         message="Cancellation event bus must be initialized before managers are built.",
     )
     token_collection = require_initialized(
-        task_services.token_collection,
+        task_services.cancellation.token_collection,
         message="Token collection must be initialized before managers are built.",
     )
     cancellation_binder = require_initialized(
-        task_services.task_cancellation_binder,
+        task_services.cancellation.binder,
         message="Task cancellation binder must be initialized before managers are built.",
     )
     finalizer_tracker = require_initialized(
-        task_services.task_finalizer_tracker,
+        task_services.cancellation.finalizer_tracker,
         message="Task finalizer tracker must be initialized before managers are built.",
     )
     return ManagerPreconditions(

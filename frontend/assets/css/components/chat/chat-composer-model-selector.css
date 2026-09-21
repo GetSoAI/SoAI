@@ -13,7 +13,21 @@
     }
 
     :where(.chat-container) .model-selector.model-selector--composer.page-header-filter-select[data-chat-model-control='true'] .chat-model-control {
-        position: static;
+        position: relative;
+    }
+
+    :where(.chat-container) .page-header-filter-select.model-selector--composer.model-selector:has(> .chat-model-control--multi.chat-model-control) {
+        flex: 1 1 176px;
+        width: auto;
+        max-width: 100%;
+        margin-inline-end: 0;
+    }
+
+    :where(.chat-container) .page-header-filter-select.model-selector--composer.model-selector > .chat-model-control--multi.chat-model-control > .chat-model-slots {
+        width: max-content;
+        max-width: 100%;
+        padding-inline-end: var(--space-2);
+        scrollbar-gutter: auto;
     }
 
     :where(.chat-container) .model-selector.model-selector--composer.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary.ui-button {
@@ -58,6 +72,12 @@
             flex-basis: 112px;
             width: 112px;
             max-width: 112px;
+        }
+
+        :where(.chat-container) .page-header-filter-select.model-selector--composer.model-selector:has(> .chat-model-control--multi.chat-model-control) {
+            flex-basis: 112px;
+            width: auto;
+            max-width: 100%;
         }
     }
 }

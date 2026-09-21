@@ -9,6 +9,9 @@ from core.errors.exceptions import ValidationError
 from features.api.routes.webui.conversation_agent_compaction.prepared_start_state_finalization import (
     finalize_prepared_manual_compaction_start_state,
 )
+from features.api.routes.webui.conversation_agent_compaction.regenerate_command import (
+    serialize_manual_compaction_regeneration_command,
+)
 from features.api.routes.webui.conversation_agent_compaction.start_state_claims import (
     ManualCompactionStartState,
 )
@@ -61,8 +64,10 @@ async def resolve_manual_compaction_regenerate_start_state(
         api_context=api_context,
         current_user=current_user,
         prepared_state=prepared_state,
-        bind_owner="webui.agent.compact.regenerate.claim",
-        operation="webui.agent.compact.regenerate.resolve_start_state",
         replace_assistant_at_ms=payload.assistant_turn_at_ms,
         replace_tool_call_id=replace_tool_call_id,
+        manual_regeneration_request_json=(
+            serialize_manual_compaction_regeneration_command(payload)
+        ),
+        manual_regeneration_expected_revision=payload.expected_last_modified_at_ms,
     )

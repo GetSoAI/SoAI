@@ -34,6 +34,7 @@ interface NavigationRequest {
 
 interface NavigationRouterHost {
     parseRoute: (route: string) => { route: RouteEntry; parameters: RouteParameters } | null;
+    getDefaultRoute: () => string;
 }
 
 interface NavigationContext {

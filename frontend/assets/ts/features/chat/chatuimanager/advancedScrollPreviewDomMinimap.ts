@@ -146,10 +146,12 @@ export const createAdvancedScrollPreviewDomMinimapRuntime = (input: { coordinato
                 earliestDirtyIndex = earliestDirtyIndex === null ? index : Math.min(earliestDirtyIndex, index);
             }
         }
-        const projectionChanged = lastProjection === null || lastProjection.heightPx !== heightPx || lastProjection.hasUsableWidth !== hasUsableWidth || lastProjection.scrollHeight !== scrollHeight;
-        if (cloneOrderDirty) earliestDirtyIndex = 0;
-        if (projectionChanged) earliestDirtyIndex = 0;
-        const dirtyIndex = refreshDirtyGeometry();
+        const projectionViewportChanged = lastProjection === null || lastProjection.heightPx !== heightPx || lastProjection.hasUsableWidth !== hasUsableWidth;
+        const scrollHeightChanged = lastProjection === null || lastProjection.scrollHeight !== scrollHeight;
+        const projectionChanged = projectionViewportChanged || scrollHeightChanged;
+        if (cloneOrderDirty || projectionViewportChanged || (scrollHeightChanged && earliestDirtyIndex === null)) earliestDirtyIndex = 0;
+        const geometryDirtyIndex = refreshDirtyGeometry();
+        const projectionDirtyIndex = projectionChanged ? 0 : geometryDirtyIndex;
         lastProjection = { hasUsableWidth, heightPx, scrollHeight };
         const entries: MinimapMeasuredEntry[] = [];
         const orderedIds: string[] | null = cloneOrderDirty ? [] : null;
@@ -162,7 +164,7 @@ export const createAdvancedScrollPreviewDomMinimapRuntime = (input: { coordinato
             }
             const messageId = rawMessageId.trim();
             orderedIds?.push(messageId);
-            if (dirtyIndex === null || index < dirtyIndex) continue;
+            if (projectionDirtyIndex === null || index < projectionDirtyIndex) continue;
             const geometry = sourceGeometryById.get(messageId);
             if (!geometry) {
                 throw new Error('Advanced scroll preview source geometry is incomplete after reconciliation.');

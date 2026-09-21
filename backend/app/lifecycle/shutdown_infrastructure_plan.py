@@ -35,7 +35,7 @@ def build_pre_shutdown_quiesce_entries(
         LifecycleEntry(
             component_name="Communications Sync Actor",
             phase="pre_shutdown_quiesce",
-            action=application_context.services.infrastructure.communications_sync_actor.shutdown,
+            action=application_context.services.infrastructure.communications.sync_actor.shutdown,
             timeout_sec=component_timeout_sec,
             critical=False,
         ),
@@ -97,7 +97,7 @@ def build_hardware_shutdown_entries(
             component_name="Hardware Dirty Shutdown Flag",
             phase="shutdown",
             action=(
-                application_context.services.infrastructure.hw_gpu_tuning.clear_dirty_shutdown_flag
+                application_context.services.infrastructure.hardware.gpu_tuning.clear_dirty_shutdown_flag
             ),
             timeout_sec=component_timeout_sec,
             critical=False,

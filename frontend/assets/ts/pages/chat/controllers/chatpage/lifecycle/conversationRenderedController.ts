@@ -10,8 +10,9 @@ import type { ChatRuntimeServicesHost } from '@pages/chat/state/ChatRuntimeServi
 import type { ChatConversationRenderOutcome, ChatConversationViewHost } from '@pages/chat/controllers/chatpage/conversations/contracts.ts';
 import type { ChatModelSessionHost } from '@pages/chat/controllers/chatpage/models/contracts.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
+import type { ChatSettingsStateHost } from '@pages/chat/state/ChatSettingsStateManager.ts';
 
-interface ChatPageConversationRenderedHost extends ChatComposerSurfaceRuntimeOwner, ChatTurnRuntimeOwner, ChatConversationStateHost, ChatRuntimeServicesHost, ChatConversationViewHost, ChatModelSessionHost, PageDomOwnerHost {}
+interface ChatPageConversationRenderedHost extends ChatComposerSurfaceRuntimeOwner, ChatTurnRuntimeOwner, ChatConversationStateHost, ChatSettingsStateHost, ChatRuntimeServicesHost, ChatConversationViewHost, ChatModelSessionHost, PageDomOwnerHost {}
 
 interface ChatConversationRenderedControllerDependencies {
     host: ChatPageConversationRenderedHost;

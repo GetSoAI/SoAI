@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dispatchCustomEvent } from '@core/environment/public.ts';
+import { EVENT_REQUEST } from '@core/languageservice/constants.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { toJsonCompatibleObject, toJsonCompatibleValue } from '@core/primitives/clone.ts';
 import { arraysEqual } from '@core/primitives/equality.ts';
@@ -112,6 +113,7 @@ const createStorageSyncAdapterHandlers = (context: StorageSyncAdapterContext): S
             const previousHiddenSidebarPages = state.cache.ui.hiddenSidebarPages.slice();
             const previousShowMainStatusIndicator = state.cache.ui.showMainStatusIndicator;
             const previousCodeRecognitionEnabled = state.cache.ui.codeRecognitionEnabled;
+            const previousLanguage = state.cache.ui.language;
             const previousClockPreferences = readClockPreferenceState(state.cache.ui);
             const parsedCache = parseStorageCache(snapshot.cache, {
                 clone: adapters.clone,
@@ -165,6 +167,9 @@ const createStorageSyncAdapterHandlers = (context: StorageSyncAdapterContext): S
             }
             if (state.cache.ui.codeRecognitionEnabled !== previousCodeRecognitionEnabled) {
                 dispatchCustomEvent(CHANGED_EVENTS.codeRecognition, { enabled: state.cache.ui.codeRecognitionEnabled });
+            }
+            if (state.cache.ui.language !== previousLanguage) {
+                dispatchCustomEvent(EVENT_REQUEST, { language: state.cache.ui.language });
             }
             const nextClockPreferences = readClockPreferenceState(state.cache.ui);
             if (!clockPreferenceStatesEqual(previousClockPreferences, nextClockPreferences)) {

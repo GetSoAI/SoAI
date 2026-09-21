@@ -10,7 +10,12 @@ import { getElement, setElementVisibility } from '@features/chat/chatuimanager/d
 import { buildChatFilePreviewItemDocumentMarkup } from '@features/chat/chatuimanager/filePreviewItemDocumentMarkup.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 
-const resolveConversationInputStateLabel = (state: ConversationInputState): string => {
+type ConversationInputPreviewState = ConversationInputState | 'regeneration_failed';
+
+const resolveConversationInputStateLabel = (state: ConversationInputPreviewState): string => {
+    if (state === 'regeneration_failed') {
+        return i18n.t('pageOutlet.retry');
+    }
     if (state === 'materializing') {
         return i18n.t('chat.inputQueue.state.materializing');
     }
@@ -23,9 +28,9 @@ const resolveConversationInputStateLabel = (state: ConversationInputState): stri
     return '';
 };
 
-const isConversationInputRemovable = (state: ConversationInputState): boolean => state === 'pending' || state === 'materializing';
+const isConversationInputRemovable = (state: ConversationInputPreviewState): boolean => state === 'pending' || state === 'materializing';
 
-const isConversationInputExecuting = (state: ConversationInputState): boolean => state === 'materializing' || state === 'running';
+const isConversationInputExecuting = (state: ConversationInputPreviewState): boolean => state === 'materializing' || state === 'running';
 
 export function updateInputQueuePreview(context: ChatUIManagerContext): void {
     const inputQueuePreview = getElement(context, 'inputQueuePreview');
@@ -64,6 +69,8 @@ export function updateInputQueuePreview(context: ChatUIManagerContext): void {
 
     const removeLabel = i18n.t('chat.attachments.removeTooltip');
     const removeIcon = context.dependencies.getCachedIcon('close', { size: 12, strokeWidth: 2.2 });
+    const retryLabel = i18n.t('pageOutlet.retry');
+    const retryIcon = context.dependencies.getCachedIcon('refresh', { size: 12, strokeWidth: 2.2 });
 
     const rows = validPrompts.map((entry) => {
         const inputType = entry.inputType === 'steer' ? 'steer' : 'prompt';
@@ -79,11 +86,12 @@ export function updateInputQueuePreview(context: ChatUIManagerContext): void {
         const statusTextParts = [resolveConversationInputStateLabel(entry.state), truncated, attachmentSuffixText].filter((part) => Boolean(part));
         const statusLabel = statusTextParts.join(' ');
         const removeButtonMarkup = isConversationInputRemovable(entry.state) ? uiHtml`<button type="button" class="remove-file-btn" data-action="chat:remove-conversation-input" data-input-id="${uiAttr(entry.inputId)}" aria-label="${uiAttr(removeLabel)}" data-tooltip="${uiAttr(removeLabel)}">${removeIcon}</button>` : uiHtml``;
+        const retryButtonMarkup = entry.state === 'regeneration_failed' ? uiHtml`<button type="button" class="remove-file-btn" data-action="chat:retry-conversation-regeneration" data-input-id="${uiAttr(entry.inputId)}" aria-label="${uiAttr(retryLabel)}" data-tooltip="${uiAttr(retryLabel)}">${retryIcon}</button>` : uiHtml``;
         return buildChatFilePreviewItemDocumentMarkup({
             nameHtml,
             statusHtml: uiText(statusLabel),
             showSpinner: isConversationInputExecuting(entry.state),
-            actionButtonMarkup: removeButtonMarkup
+            actionButtonMarkup: entry.state === 'regeneration_failed' ? retryButtonMarkup : removeButtonMarkup
         });
     });
 

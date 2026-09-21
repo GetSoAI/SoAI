@@ -21,6 +21,7 @@ if TYPE_CHECKING:
         TaskCancellationBinderProtocol,
         TaskRegistryProtocol,
     )
+    from hardware.soaibench.internal_protocols import SoAIBenchPublicationProtocol
     from hardware.soaibench.opencl_pool import SoAIBenchOpenCLPool
 
 __all__ = ("SoAIBenchServiceDependencies",)
@@ -37,6 +38,7 @@ class SoAIBenchServiceDependencies:
     opencl_pool: SoAIBenchOpenCLPool
     shutdown_event: asyncio.Event
     logger: LoggerProtocol
+    publication_service: SoAIBenchPublicationProtocol
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -48,6 +50,7 @@ class SoAIBenchServiceDependencies:
             hardware_manager=self.hardware_manager,
             logger=self.logger,
             opencl_pool=self.opencl_pool,
+            publication_service=self.publication_service,
             shutdown_event=self.shutdown_event,
             task_registry=self.task_registry,
         )

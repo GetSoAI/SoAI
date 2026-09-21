@@ -29,7 +29,6 @@ if TYPE_CHECKING:
     from features.api.runtime.context import ApiContext
 
 __all__ = (
-    "build_manual_tool_call_id",
     "coerce_compaction_history",
     "resolve_agent_mode_and_budget",
     "resolve_compaction_model_and_budget",
@@ -39,10 +38,6 @@ __all__ = (
 )
 
 VALID_CHAT_ROLES = frozenset({"system", "user", "assistant", "tool"})
-
-
-def build_manual_tool_call_id(turn_id: str) -> str:
-    return f"context_compaction:{turn_id}"
 
 
 def _coerce_message_content(value: JSONValue) -> str | list[JSONDict]:

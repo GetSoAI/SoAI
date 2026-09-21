@@ -26,9 +26,6 @@ from database.repositories.users.message_streaming_assistant.event_transactions 
     sync_append_streaming_assistant_events_batch,
     sync_delete_streaming_assistant_events,
 )
-from database.repositories.users.message_streaming_assistant.message_finalization_transactions import (
-    sync_finalize_streaming_assistant_message,
-)
 from database.repositories.users.message_streaming_assistant.message_transactions import (
     sync_append_streaming_assistant_placeholder,
     sync_delete_streaming_assistant_message,
@@ -39,9 +36,6 @@ from database.repositories.users.message_streaming_assistant.terminal_commit_tra
 )
 
 if TYPE_CHECKING:
-    from core.conversations.conversation_input_finalization import (
-        ConversationInputFinalization,
-    )
     from core.events.protocols import EventBusProtocol
 
 __all__ = ("DatabaseMessageStreamingRepository",)
@@ -119,45 +113,6 @@ class DatabaseMessageStreamingRepository:
             assistant_at_ms,
             serialized,
         )
-
-    async def finalize_streaming_assistant_message(
-        self: DatabaseDomainEventOwnerProtocol,
-        conv_id: str,
-        user_id: int,
-        *,
-        created_at_ms: int,
-        request_id: str | None,
-        finish_reason: str | None,
-        prompt_tokens: int | None,
-        completion_tokens: int | None,
-        total_tokens: int | None,
-        usage_source: str | None,
-        generation_latency_ms: int | None,
-        thinking_tail_duration_ms: int | None,
-        terminal_reason: str | None = None,
-        input_finalization: ConversationInputFinalization | None = None,
-        input_terminal_code: str | None = None,
-    ) -> ConversationMessageWriteResult:
-        self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)
-        result = await self.core.writer.queue_write_operation(
-            sync_finalize_streaming_assistant_message,
-            conv_id,
-            user_id,
-            created_at_ms,
-            request_id,
-            finish_reason,
-            prompt_tokens,
-            completion_tokens,
-            total_tokens,
-            usage_source,
-            generation_latency_ms,
-            thinking_tail_duration_ms,
-            terminal_reason,
-            input_finalization,
-            input_terminal_code,
-        )
-        notify_domain_event_outbox_dispatch_requested(self.event_bus)
-        return result
 
     async def commit_streaming_assistant_terminal(
         self: DatabaseDomainEventOwnerProtocol,

@@ -17,9 +17,9 @@ const EMPTY_REQUEST_DISTRIBUTION_SIGNATURE = 'empty';
 
 const renderedSignatures = new WeakMap<HTMLElement, string>();
 
-const describeEntry = (entry: RequestDistributionEntry): string => `${entry.key}${String(entry.value)}${String(entry.swatchIndex)}`;
+const describeEntry = (entry: RequestDistributionEntry): string => `${entry.key}${String(entry.value)}${String(entry.swatchIndex)}${entry.swatchColor ?? ''}`;
 
-const describeLegendItem = (item: RequestDistributionLegendItem): string => `${item.label}${item.detail}${item.swatchColor}`;
+const describeLegendItem = (item: RequestDistributionLegendItem): string => `${item.label}${item.detail}${item.swatchColor}${item.separatorBefore === true ? '1' : '0'}`;
 
 const computeRequestDistributionChartSignature = (input: RequestDistributionChartRenderInput): string => {
     const geometry = `${input.kind}${String(input.width)}${String(input.height)}`;

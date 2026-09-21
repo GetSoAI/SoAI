@@ -5,7 +5,7 @@ import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { MAX_CHAT_COMPOSER_TEXT_LENGTH } from '@core/chat/protocols.ts';
 import { decodeWebuiMessageContentPart, type WebuiMessageContentPart } from '@core/api/contracts/webuiMessageContentPartContract.ts';
 import { readRequiredNonNegativeIntegerValue, readRequiredPositiveIntegerValue } from '@core/types/payloadNumberReaders.ts';
-import { readRequiredJsonObjectArrayValue, requireRecord } from '@core/types/payloadRecordReaders.ts';
+import { readNullableJsonObjectValue, readRequiredJsonObjectArrayValue, requireRecord } from '@core/types/payloadRecordReaders.ts';
 import { readRequiredBooleanValue, readRequiredEnumValue, readRequiredNonEmptyStringValue, readRequiredStringValue } from '@core/types/payloadValueReaders.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 
@@ -19,6 +19,7 @@ interface ConversationInput {
     attachmentContent: WebuiMessageContentPart[];
     acceptedAtMs: number;
     state: ConversationInputState;
+    isRegeneration: boolean;
 }
 
 interface ConversationInputAdmission extends ConversationInput {
@@ -75,14 +76,16 @@ const decodeConversationInput = (value: JsonValue, index: number): ConversationI
     const record = requireRecord(value, label);
     const text = readRequiredStringValue(record['text'], `${label}.text`);
     const attachmentContent = decodeAttachmentContent(record['attachment_content'], `${label}.attachment_content`);
-    if (!text.trim() && attachmentContent.length === 0) throw new TypeError(`${label} must include text or attachment_content.`);
+    const isRegeneration = readNullableJsonObjectValue(record['regeneration_request'], `${label}.regeneration_request`) !== null;
+    if (!text.trim() && attachmentContent.length === 0 && !isRegeneration) throw new TypeError(`${label} must include text or attachment_content.`);
     return {
         inputId: readRequiredNonEmptyStringValue(record['input_id'], `${label}.input_id`).trim(),
         inputType: readRequiredEnumValue(record['input_type'], `${label}.input_type`, ['prompt', 'steer', 'control']),
         text: text.trim(),
         attachmentContent: attachmentContent,
         acceptedAtMs: readRequiredPositiveIntegerValue(record['accepted_at_ms'], `${label}.accepted_at_ms`),
-        state: readRequiredEnumValue(record['state'], `${label}.state`, ['pending', 'materializing', 'running', 'input_required'])
+        state: readRequiredEnumValue(record['state'], `${label}.state`, ['pending', 'materializing', 'running', 'input_required']),
+        isRegeneration
     };
 };
 

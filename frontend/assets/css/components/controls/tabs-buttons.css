@@ -100,9 +100,9 @@
     }
 
     .tabs-nav-button:hover:not(:disabled, [aria-disabled='true']) {
-        background: color-mix(in srgb, var(--glass-surface-interactive) var(--hover-layer-moderate-base), var(--hover-layer-mix-base) var(--hover-layer-moderate));
-        border-color: color-mix(in srgb, var(--accent-green) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
-        color: color-mix(in srgb, var(--accent-green) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
+        background: var(--ui-button-bg-hover);
+        border-color: var(--ui-button-border-hover);
+        color: var(--ui-button-color-hover);
     }
 
     @container ui-viewport (width <= 768px) {

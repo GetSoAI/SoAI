@@ -28,6 +28,7 @@ interface DownloadModalState {
     modelSearch: ModelSearchState;
     manualDiscovery: ManualDiscoveryState;
     isCreatingProvider: boolean;
+    providerDiscoveryAbort: AbortController | null;
     acceptedCatalogMutation: boolean;
     currentPlugin?: PluginRecord | null;
 }
@@ -57,6 +58,7 @@ const createInitialDownloadModalState = (): DownloadModalState => {
         },
         manualDiscovery: createInitialManualDiscoveryState(),
         isCreatingProvider: false,
+        providerDiscoveryAbort: null,
         acceptedCatalogMutation: false
     };
 };

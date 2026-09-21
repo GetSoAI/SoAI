@@ -21,7 +21,7 @@ interface HeaderSidebarCollapseContext {
     getDom: (key: string) => HTMLElement | null;
     resolveSidebar: () => SidebarService;
     isMobilePortrait: () => boolean;
-    on: (target: EventTarget, event: string, handler: (event: Event) => void) => (() => void) | void;
+    on: (target: EventTarget, event: string, handler: (event: Event) => void, options?: AddEventListenerOptions) => (() => void) | void;
 }
 
 interface HeaderClickContext {
@@ -128,8 +128,13 @@ const applyHeaderLocalization = (context: HeaderLocalizationContext): void => {
 };
 
 const bindHeaderSidebarCollapse = (context: HeaderSidebarCollapseContext): void => {
-    if (!context.getDom('header')) {
+    const header = context.getDom('header');
+    const hamburger = context.getDom('hamburger');
+    if (!header) {
         throw new Error('Header root is missing; cannot wire sidebar collapse behavior');
+    }
+    if (!hamburger) {
+        throw new Error('Header hamburger is missing; cannot wire sidebar collapse behavior');
     }
 
     const sidebar = context.resolveSidebar();
@@ -150,6 +155,23 @@ const bindHeaderSidebarCollapse = (context: HeaderSidebarCollapseContext): void 
     context.on(getWindow(), 'resize', () => {
         update();
     });
+    context.on(
+        header,
+        'click',
+        (event: Event) => {
+            const target = event.target;
+            if (!isNode(target)) {
+                return;
+            }
+            if (hamburger.contains(target)) {
+                return;
+            }
+            if (sidebar.isExpanded()) {
+                sidebar.compactSidebar();
+            }
+        },
+        { capture: true }
+    );
     update();
 };
 

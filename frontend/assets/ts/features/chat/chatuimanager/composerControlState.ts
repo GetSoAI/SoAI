@@ -24,6 +24,7 @@ export interface ChatComposerControlState {
     streamLifecycle: ChatStreamLifecycle;
     actionMode: ChatComposerActionMode;
     hasText: boolean;
+    canStop: boolean;
     canSend: boolean;
     canQueue: boolean;
 }
@@ -84,6 +85,9 @@ const resolveButtonMode = (admission: ChatTurnAdmissionSnapshot, hasText: boolea
     const hasPayload = hasText || hasReadyAttachments;
     if (admission.phase === 'inactive') {
         return 'send';
+    }
+    if (admission.phase === 'stopping' || admission.phase === 'stop_failed' || admission.phase === 'terminalizing') {
+        return 'stop';
     }
     if (!hasPayload) {
         return admission.canStop ? 'stop' : 'send';
@@ -165,6 +169,7 @@ export const resolveComposerControlState = (context: ChatUIManagerContext): Chat
         streamLifecycle,
         actionMode,
         hasText: payload.hasText,
+        canStop: admission.canStop,
         canSend: readiness.canSend,
         canQueue: readiness.canQueue
     };

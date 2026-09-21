@@ -14,21 +14,25 @@ import { findActiveRunForDevice, findActiveStandardRunForDevice, findRunById, is
 import { SoAIBenchRunModalRenderer } from '@features/hardware/modals/soaibenchrun/renderer.ts';
 import { SoAIBenchRunSessionState } from '@features/hardware/modals/soaibenchrun/sessionState.ts';
 import { resolveSoAIBenchRunStartResult } from '@features/hardware/modals/soaibenchrun/startResult.ts';
+import { stopAcceptedRunAfterClosedStart } from '@features/hardware/modals/soaibenchrun/startSettlement.ts';
 import type { SoAIBenchRunModalDependencies, SoAIBenchRunModalHost, SoAIBenchRunOpenRequest, SoAIBenchRunRecord, SoAIBenchRunSession } from '@features/hardware/modals/soaibenchrun/types.ts';
 import { hasSoAIBenchHistoryForDevice } from '@features/hardware/soaibenchRunsIndex.ts';
+import { setRunControlsDisabled } from '@features/hardware/modals/soaibenchrun/dom.ts';
 
 class SoAIBenchRunModal {
     readonly modalId = HARDWARE_SOAIBENCH_RUN_MODAL_ID;
     readonly host: SoAIBenchRunModalHost;
     readonly #renderer: SoAIBenchRunModalRenderer;
     readonly #state = new SoAIBenchRunSessionState();
+    readonly #publishRun: SoAIBenchRunModalDependencies['publishRun'];
     #skipStopOnClose = false;
 
-    constructor({ host }: SoAIBenchRunModalDependencies) {
+    constructor({ host, publishRun }: SoAIBenchRunModalDependencies) {
         if (!host) {
             throw new Error('SoAIBenchRunModal requires a host');
         }
         this.host = host;
+        this.#publishRun = publishRun;
         this.#renderer = new SoAIBenchRunModalRenderer({
             host,
             modalId: this.modalId,
@@ -40,6 +44,11 @@ class SoAIBenchRunModal {
 
     handleModalClosed(): void {
         const session = this.#state.session;
+        if (!this.#skipStopOnClose && session?.starting) {
+            session.stopWhenStartSettles = true;
+            this.#renderer.destroyProgress();
+            return;
+        }
         if (!this.#skipStopOnClose && session?.runId && !session.cancelRequested && (!this.#state.latestRun || !isTerminalSoAIBenchStatus(this.#state.latestRun.status))) {
             terminateHandledPromise(this.cancelActiveRun());
             return;
@@ -75,6 +84,11 @@ class SoAIBenchRunModal {
             this.#renderProgressForSession(null);
             try {
                 const refreshed = await this.host.refreshSoAIBenchRuns();
+                if (session.stopWhenStartSettles) {
+                    await stopAcceptedRunAfterClosedStart(this.host, session, { runsPayload: refreshed });
+                    this.#clearClosedStartingSession(session);
+                    return;
+                }
                 if (!this.#isCurrentSession(session)) {
                     return;
                 }
@@ -91,12 +105,21 @@ class SoAIBenchRunModal {
                     return;
                 }
                 const result = decodeGpuOperationResponse(await requestWebSocketSnapshotRecord('hardware.gpu.soaibench.start', serializeGpuSoAIBenchDeviceStartRequest(session.deviceId, { profile: 'standard', benchmarkMode: 'certified' })));
+                if (session.stopWhenStartSettles) {
+                    await stopAcceptedRunAfterClosedStart(this.host, session, { result });
+                    this.#clearClosedStartingSession(session);
+                    return;
+                }
                 if (!this.#isCurrentSession(session)) {
                     return;
                 }
                 this.#handleStartResult(session, result);
                 await this.#refreshRunsAfterMutation(session);
             } catch (error) {
+                if (session.stopWhenStartSettles) {
+                    await stopAcceptedRunAfterClosedStart(this.host, session);
+                    this.#clearClosedStartingSession(session);
+                }
                 if (this.#isCurrentSession(session) && !session.runId) {
                     this.#renderIntroForSession();
                 }
@@ -153,6 +176,14 @@ class SoAIBenchRunModal {
         });
     }
 
+    publishRun(): Promise<void> {
+        return this.host.runWithBoundary('hardware:publishSoAIBenchRun', async () => {
+            const run = this.#state.requireLatestRun(i18n.t('hardware.soaibenchPublication.unavailable'));
+            const modalRoot = this.host.modals.requireElement(this.modalId);
+            await this.#publishRun(run, (disabled) => setRunControlsDisabled(this.host, modalRoot, disabled));
+        });
+    }
+
     cancelActiveRun(): Promise<void> {
         return this.#cancelActiveRun();
     }
@@ -188,7 +219,6 @@ class SoAIBenchRunModal {
         if (!session) {
             return;
         }
-        this.#renderer.setHistoryAvailable(this.#hasHistoryForSession());
         const nextRun = session.runId ? findRunById(value, session.runId) : findActiveStandardRunForDevice(value, session.deviceId);
         if (!nextRun) {
             return;
@@ -197,6 +227,13 @@ class SoAIBenchRunModal {
             return;
         }
         this.#state.attachRun(nextRun);
+        if (session.stopWhenStartSettles) {
+            if (!isTerminalSoAIBenchStatus(nextRun.status)) {
+                terminateHandledPromise(stopAcceptedRunAfterClosedStart(this.host, session));
+            }
+            return;
+        }
+        this.#renderer.setHistoryAvailable(this.#hasHistoryForSession());
         if (isTerminalSoAIBenchStatus(nextRun.status)) {
             session.cancelRequested = false;
             this.#renderReportForSession(nextRun);
@@ -238,6 +275,15 @@ class SoAIBenchRunModal {
             return;
         }
         this.handleRunsUpdate(refreshed);
+    }
+
+    #clearClosedStartingSession(session: SoAIBenchRunSession): void {
+        session.starting = false;
+        if (this.#isCurrentSession(session)) {
+            this.#state.session = null;
+            this.#state.latestRun = null;
+            this.#state.terminalReason = null;
+        }
     }
 
     #isCurrentSession(session: SoAIBenchRunSession): boolean {

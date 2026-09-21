@@ -25,10 +25,10 @@ async def finalize_prepared_manual_compaction_start_state(
     api_context: ApiContext,
     current_user: CurrentUser,
     prepared_state: ManualCompactionPreparedState,
-    bind_owner: str,
-    operation: str,
     replace_assistant_at_ms: int | None,
     replace_tool_call_id: str | None,
+    manual_regeneration_request_json: str | None = None,
+    manual_regeneration_expected_revision: int | None = None,
 ) -> ManualCompactionStartState:
     message_index = await resolve_manual_compaction_start_message_index(
         api_context=api_context,
@@ -38,7 +38,6 @@ async def finalize_prepared_manual_compaction_start_state(
     )
     return await finalize_manual_compaction_start_state(
         request=request,
-        api_context=api_context,
         user_id=current_user["id"],
         conv_id=prepared_state.resolved_conv_id,
         model=prepared_state.model,
@@ -50,8 +49,8 @@ async def finalize_prepared_manual_compaction_start_state(
         started_at_ms=prepared_state.started_at_ms,
         message_index=message_index,
         todo_state=prepared_state.todo_state,
-        bind_owner=bind_owner,
-        operation=operation,
         replace_assistant_at_ms=replace_assistant_at_ms,
         replace_tool_call_id=replace_tool_call_id,
+        manual_regeneration_request_json=manual_regeneration_request_json,
+        manual_regeneration_expected_revision=manual_regeneration_expected_revision,
     )

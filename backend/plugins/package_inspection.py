@@ -25,15 +25,18 @@ from core.plugins.logo_contract import (
 from core.serialization.json_parsing import MAX_JSON_NESTING_DEPTH, parse_json_value
 from core.types.json import is_json_dict
 from plugins.package_archive import open_validated_plugin_package
+from plugins.package_content import (
+    PluginPackageContent,
+    PluginPackageMemberDigest,
+    PluginPythonMemberAudit,
+)
 from plugins.package_paths import COMPLETION_RECORD_NAME
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
 
 __all__ = (
-    "PluginPackageMemberDigest",
     "PluginPackageSnapshot",
-    "PluginPythonMemberAudit",
     "inspect_plugin_package_stream",
 )
 
@@ -46,29 +49,8 @@ PLUGIN_ENTRYPOINT = "__init__.py"
 
 
 @dataclass(frozen=True, slots=True)
-class PluginPythonMemberAudit:
-    logical_path: str
-    source_text: str
-    parsed_source: ast.Module
-    file_size: int
-
-
-@dataclass(frozen=True, slots=True)
-class PluginPackageMemberDigest:
-    logical_path: str
-    destination_path: str
-    file_size: int
-    sha256_hex: str
-
-
-@dataclass(frozen=True, slots=True)
 class PluginPackageSnapshot:
-    archive_hash: str
-    zip_plan: ValidatedZipPlan
-    expanded_size: int
-    member_digests: tuple[PluginPackageMemberDigest, ...]
-    entrypoint: PluginPythonMemberAudit
-    python_members: tuple[PluginPythonMemberAudit, ...]
+    content: PluginPackageContent
     parameter_schema: JSONDict | None
     logo_source: PluginLogoSource
 
@@ -306,12 +288,14 @@ def inspect_plugin_package_stream(
         member for member in python_members if member.logical_path == PLUGIN_ENTRYPOINT
     )
     return PluginPackageSnapshot(
-        archive_hash=archive_hash,
-        zip_plan=plan,
-        expanded_size=plan.total_uncompressed_size,
-        member_digests=member_digests,
-        entrypoint=entrypoint,
-        python_members=python_members,
+        content=PluginPackageContent(
+            archive_hash=archive_hash,
+            zip_plan=plan,
+            expanded_size=plan.total_uncompressed_size,
+            member_digests=member_digests,
+            entrypoint=entrypoint,
+            python_members=python_members,
+        ),
         parameter_schema=parameter_schema,
         logo_source=logo_source,
     )

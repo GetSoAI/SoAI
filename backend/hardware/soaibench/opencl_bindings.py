@@ -32,6 +32,7 @@ __all__ = (
     "OpenCLUnsignedLong",
     "OpenCLBindings",
     "check_opencl_result",
+    "query_opencl_device_scalar",
 )
 
 CL_SUCCESS = 0
@@ -213,6 +214,22 @@ class OpenCLBindings:
                 reason="opencl_symbol_missing",
                 message=str(exception),
             ) from exception
+
+
+def query_opencl_device_scalar(
+    bindings: OpenCLBindings,
+    device_handle: int,
+    field: int,
+    value: ctypes.c_uint | ctypes.c_ulonglong,
+) -> tuple[int, int]:
+    code = bindings.library.clGetDeviceInfo(
+        ctypes.c_void_p(device_handle),
+        field,
+        ctypes.sizeof(value),
+        ctypes.byref(value),
+        None,
+    )
+    return int(code), int(value.value)
 
 
 def check_opencl_result(code: int, reason: str, message: str) -> None:

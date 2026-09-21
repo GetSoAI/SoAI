@@ -2,6 +2,24 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    @keyframes inline-activity-duration-enter {
+        from {
+            opacity: 0;
+            max-inline-size: 0;
+            min-inline-size: 0;
+            margin-inline-start: calc(-1 * var(--space-2));
+            transform: translateX(-0.45rem);
+        }
+
+        to {
+            opacity: 1;
+            max-inline-size: calc(var(--inline-activity-duration-reserve) * 1ch);
+            min-inline-size: calc(var(--inline-activity-duration-reserve) * 1ch);
+            margin-inline-start: 0;
+            transform: translateX(0);
+        }
+    }
+
     :where(.chat-container) .inline-activity-duration {
         --inline-activity-duration-reserve: 0;
         display: inline-block;
@@ -15,5 +33,10 @@
         text-align: end;
         white-space: nowrap;
         min-inline-size: calc(var(--inline-activity-duration-reserve) * 1ch);
+    }
+
+    :where(.chat-container) .inline-activity-duration--enter {
+        overflow: hidden;
+        animation: inline-activity-duration-enter var(--duration-200) var(--ease-out);
     }
 }

@@ -3,7 +3,7 @@
 
 import { createOperationProgressReporter } from '@core/operationprogress/public.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { requireRunBody, setExportButtonState, setHistoryButtonState, setStartButtonState, type SoAIBenchRunFooterActionMode } from '@features/hardware/modals/soaibenchrun/dom.ts';
+import { requireRunBody, setExportButtonState, setHistoryButtonState, setPublicationButtonState, setStartButtonState, type SoAIBenchRunFooterActionMode } from '@features/hardware/modals/soaibenchrun/dom.ts';
 import { isTerminalSoAIBenchStatus } from '@features/hardware/modals/soaibenchrun/mappers.ts';
 import type { SoAIBenchRunModalHost, SoAIBenchRunOpenRequest, SoAIBenchRunProgressRuntime, SoAIBenchRunRecord } from '@features/hardware/modals/soaibenchrun/types.ts';
 import { progressDetailsForRun, progressMessageForRun, progressPercentForRun, renderRunIntro, renderRunProgressShell, renderRunReport } from '@features/hardware/modals/soaibenchrun/view.ts';
@@ -48,6 +48,7 @@ class SoAIBenchRunModalRenderer {
         this.#setFooterButton('start', false);
         setHistoryButtonState(this.#host, modalRoot, { visible: historyAvailable, disabled: false });
         setExportButtonState(this.#host, modalRoot, false);
+        setPublicationButtonState(this.#host, modalRoot, false);
     }
 
     renderProgress(inputArguments: SoAIBenchRunRenderRequest): void {
@@ -57,6 +58,7 @@ class SoAIBenchRunModalRenderer {
         this.#setFooterButton(inputArguments.cancelRequested ? 'stopping' : 'stop', !(inputArguments.run?.runId || inputArguments.runId) || inputArguments.cancelRequested);
         setHistoryButtonState(this.#host, modalRoot, { visible: inputArguments.historyAvailable, disabled: false });
         setExportButtonState(this.#host, modalRoot, isExportableRun(inputArguments.run));
+        setPublicationButtonState(this.#host, modalRoot, inputArguments.run?.publicationEligible === true);
         const container = this.#host.requireHTMLElement('#hardware-soaibench-run-modal-progress', modalRoot);
         this.#progress.reporter = createOperationProgressReporter(container, {
             showCancel: true,
@@ -79,9 +81,10 @@ class SoAIBenchRunModalRenderer {
         this.destroyProgress();
         const modalRoot = this.#modalRoot();
         this.#host.setHTML(requireRunBody(this.#host, modalRoot), renderRunReport({ request: inputArguments.request, run: inputArguments.run, cancelRequested: false, terminalReason: inputArguments.terminalReason }));
-        this.#setFooterButton('start', false);
+        this.#setFooterButton('retry', false);
         setHistoryButtonState(this.#host, modalRoot, { visible: inputArguments.historyAvailable, disabled: false });
         setExportButtonState(this.#host, modalRoot, isExportableRun(inputArguments.run));
+        setPublicationButtonState(this.#host, modalRoot, inputArguments.run?.publicationEligible === true);
     }
 
     setHistoryAvailable(available: boolean): void {
@@ -99,8 +102,8 @@ class SoAIBenchRunModalRenderer {
 
     #setFooterButton(mode: SoAIBenchRunFooterActionMode, disabled: boolean): void {
         const modalRoot = this.#modalRoot();
-        const label = mode === 'start' ? i18n.t('hardware.modals.soaibenchRun.start') : mode === 'stop' ? i18n.t('hardware.modals.soaibenchRun.stop') : i18n.t('hardware.modals.soaibenchRun.stopping');
-        const ariaLabel = mode === 'start' ? i18n.t('hardware.modals.soaibenchRun.ariaLabels.start') : mode === 'stop' ? i18n.t('hardware.modals.soaibenchRun.ariaLabels.stop') : i18n.t('hardware.modals.soaibenchRun.ariaLabels.stopping');
+        const label = mode === 'start' ? i18n.t('hardware.modals.soaibenchRun.start') : mode === 'retry' ? i18n.t('hardware.modals.soaibenchRun.retry') : mode === 'stop' ? i18n.t('hardware.modals.soaibenchRun.stop') : i18n.t('hardware.modals.soaibenchRun.stopping');
+        const ariaLabel = mode === 'start' ? i18n.t('hardware.modals.soaibenchRun.ariaLabels.start') : mode === 'retry' ? i18n.t('hardware.modals.soaibenchRun.ariaLabels.retry') : mode === 'stop' ? i18n.t('hardware.modals.soaibenchRun.ariaLabels.stop') : i18n.t('hardware.modals.soaibenchRun.ariaLabels.stopping');
         setStartButtonState(this.#host, modalRoot, { hidden: false, disabled, mode, label, ariaLabel });
     }
 }

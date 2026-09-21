@@ -13,10 +13,6 @@ import httpx2
 from core.attachments.protocols_database import (
     DatabaseConversationKnowledgeAttachmentsProtocol,
 )
-from core.automation.protocols_database import (
-    DatabaseAutomationRunsProtocol,
-    DatabaseAutomationsProtocol,
-)
 from core.calendar.protocols import CalendarServiceProtocol
 from core.config.protocols import ConfigProtocol
 from core.conversations.protocols_database_agents import (
@@ -28,10 +24,6 @@ from core.conversations.protocols_database_conversation_records import (
     DatabaseConversationsProtocol,
 )
 from core.conversations.protocols_database_conversations import DatabaseMessagesProtocol
-from core.conversations.protocols_database_defaults import (
-    DatabaseChatIdentityDefaultsProtocol,
-    DatabaseChatModelDefaultsProtocol,
-)
 from core.conversations.protocols_database_password_vault import (
     DatabasePasswordVaultProtocol,
 )
@@ -63,7 +55,6 @@ from core.notifications.protocols_database import DatabaseNotificationsProtocol
 from core.plugins.protocols_database import DatabasePluginsProtocol
 from core.prompts.protocols_database import DatabasePromptsProtocol
 from core.rag.protocols import DatabaseKnowledgePromptStateProtocol
-from core.read_video.protocols_database import DatabaseReadVideoJobsProtocol
 from core.runtime.protocols import RuntimeFlagsViewProtocol
 from core.runtime.request_context import RequestContext
 from core.secrets.handle_store import SecretHandleStore
@@ -78,10 +69,10 @@ from core.tasks.protocols import (
 from core.tasks.protocols_query import TaskRegistryQueryView
 from core.terminal.protocols import TerminalServiceProtocol
 from core.tool_calls.current_tool_call import CurrentToolCallIdentity
-from core.tool_calls.protocols import DatabaseToolCallsProtocol
 from core.users.protocols_database import DatabaseUsersProtocol
 from mcp.registry.internal_protocols import MCPConnectionRegistryProtocol
 from mcp.server.component_factory import ComponentFactoryInputs, MCPServerComponents
+from mcp.shared_persistence_dependencies import MCPSharedPersistence
 
 if TYPE_CHECKING:
     from core.mcp.protocols_main import ReadAudioGatewayProtocol
@@ -97,7 +88,7 @@ __all__ = ("MCPServerDependencies",)
 
 
 @dataclass(frozen=True, slots=True)
-class MCPServerDependencies:
+class MCPServerDependencies(MCPSharedPersistence):
     config: ConfigProtocol
     licensing_status: LicensingStatusProtocol
     storage_manager: StorageManagerProtocol
@@ -123,12 +114,6 @@ class MCPServerDependencies:
     database_notifications: DatabaseNotificationsProtocol
     conversation_attention: ConversationAttentionCoordinatorProtocol
     database_password_vault: DatabasePasswordVaultProtocol
-    database_automations: DatabaseAutomationsProtocol
-    database_chat_identity_defaults: DatabaseChatIdentityDefaultsProtocol
-    database_chat_model_defaults: DatabaseChatModelDefaultsProtocol
-    database_automation_runs: DatabaseAutomationRunsProtocol
-    database_tool_calls: DatabaseToolCallsProtocol
-    database_read_video: DatabaseReadVideoJobsProtocol
     database_plugins: DatabasePluginsProtocol
     database_tasks: DatabaseTasksProtocol
     event_bus: EventBusProtocol
@@ -197,12 +182,6 @@ class MCPServerDependencies:
             database_notifications=self.database_notifications,
             conversation_attention=self.conversation_attention,
             database_password_vault=self.database_password_vault,
-            database_automation_runs=self.database_automation_runs,
-            database_automations=self.database_automations,
-            database_chat_identity_defaults=self.database_chat_identity_defaults,
-            database_chat_model_defaults=self.database_chat_model_defaults,
-            database_tool_calls=self.database_tool_calls,
-            database_read_video=self.database_read_video,
             database_plugins=self.database_plugins,
             database_prompts=self.database_prompts,
             database_tasks=self.database_tasks,
@@ -234,3 +213,4 @@ class MCPServerDependencies:
             token_collection=self.token_collection,
             secret_handle_store=self.secret_handle_store,
         )
+        self.validate_shared_persistence("MCPServerDependencies")

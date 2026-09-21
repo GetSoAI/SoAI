@@ -39,6 +39,7 @@ import type { CommonPreviousTranslationKey } from '@core/i18n/translationkeys/co
 import type { CommonProcessingTranslationKey } from '@core/i18n/translationkeys/common/processing.generated.ts';
 import type { CommonRefreshTranslationKey } from '@core/i18n/translationkeys/common/refresh.generated.ts';
 import type { CommonSaveTranslationKey } from '@core/i18n/translationkeys/common/save.generated.ts';
+import type { CommonSearchTranslationKey } from '@core/i18n/translationkeys/common/search.generated.ts';
 import type { CommonSecretInputTranslationKey } from '@core/i18n/translationkeys/common/secretInput.generated.ts';
 import type { CommonSectionTranslationKey } from '@core/i18n/translationkeys/common/section.generated.ts';
 import type { CommonSortingTranslationKey } from '@core/i18n/translationkeys/common/sorting.generated.ts';
@@ -93,6 +94,7 @@ export type CommonTranslationKey =
     | CommonProcessingTranslationKey
     | CommonRefreshTranslationKey
     | CommonSaveTranslationKey
+    | CommonSearchTranslationKey
     | CommonSecretInputTranslationKey
     | CommonSectionTranslationKey
     | CommonSortingTranslationKey

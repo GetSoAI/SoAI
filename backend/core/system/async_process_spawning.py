@@ -44,6 +44,7 @@ async def spawn_async_process(
     cwd: str | None = None,
     start_new_session: bool = False,
     creationflags: int = 0,
+    limit: int = 65_536,
 ) -> asyncio.subprocess.Process:
     argv_list = normalize_async_process_argv(argv)
     return await asyncio.create_subprocess_exec(
@@ -55,6 +56,7 @@ async def spawn_async_process(
         cwd=cwd,
         start_new_session=start_new_session,
         creationflags=resolve_subprocess_creationflags(creationflags),
+        limit=limit,
     )
 
 

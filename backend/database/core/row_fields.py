@@ -10,10 +10,12 @@ from core.validation.epoch import require_unix_epoch_ms
 from core.validation.integers import (
     coerce_exact_int_or_none,
     is_strict_int,
+)
+from core.validation.record_fields import require_int, require_non_empty_str
+from core.validation.requirements import (
     require_non_negative_exact_int,
     require_positive_exact_int,
 )
-from core.validation.record_fields import require_int, require_non_empty_str
 from database.core.json_codec import (
     safe_json_deserialize_required_list,
     safe_json_deserialize_required_object,

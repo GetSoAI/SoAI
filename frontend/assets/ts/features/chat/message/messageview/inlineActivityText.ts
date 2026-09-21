@@ -3,11 +3,11 @@
 
 import { isString } from '@core/typeGuards.ts';
 
-const THINKING_PREVIEW_ATTRIBUTE_NAMES = Object.freeze({
-    root: 'data-thinking-preview',
-    status: 'data-thinking-preview-status',
-    visible: 'data-thinking-preview-visible',
-    latest: 'data-thinking-preview-latest'
+const STREAMED_PREVIEW_ATTRIBUTE_NAMES = Object.freeze({
+    root: 'data-streamed-preview',
+    status: 'data-streamed-preview-status',
+    visible: 'data-streamed-preview-visible',
+    latest: 'data-streamed-preview-latest'
 });
 
 const THINKING_SENTENCE_TERMINATORS = new Set(['.', '!', '?', '…', '。', '！', '？']);
@@ -220,4 +220,4 @@ const formatThinkingPreviewLabel = (preview: string): string => {
     return stripTrailingPreviewDot(normalizedPreview);
 };
 
-export { THINKING_PREVIEW_ATTRIBUTE_NAMES, clampInlineLabel, formatThinkingPreviewLabel, resolveThinkingInitialPreview, resolveThinkingLatestCompletePreview, stripTrailingPreviewDot };
+export { STREAMED_PREVIEW_ATTRIBUTE_NAMES, clampInlineLabel, formatThinkingPreviewLabel, resolveThinkingInitialPreview, resolveThinkingLatestCompletePreview, stripTrailingPreviewDot };

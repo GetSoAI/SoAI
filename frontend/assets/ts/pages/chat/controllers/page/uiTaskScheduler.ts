@@ -21,6 +21,9 @@ const resolveChatUiTaskRoute = (operationId: string): UiTaskRoute => {
     if (isModelControlOperation(operationId)) {
         return { key: 'chat:modelControl', policy: 'serialize' };
     }
+    if (operationId.startsWith('chat:stopStreaming:')) {
+        return { key: operationId, policy: 'drop-if-busy' };
+    }
     if (operationId === 'chat:presetLibrary:refresh') {
         return { key: 'chat:presetLibrary', policy: 'latest-wins' };
     }

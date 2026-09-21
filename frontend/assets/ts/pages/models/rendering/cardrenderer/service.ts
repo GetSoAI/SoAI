@@ -131,7 +131,7 @@ const buildModelTypeBadge = (model: ModelData, host: ModelCardHost): string => {
         return '';
     }
     const badgeClass = getBadgeColorClass(rawType);
-    const label = host.presentation.sanitizeText(rawType.toUpperCase());
+    const label = host.presentation.sanitizeText(host.status.isExternalProviderModel(model) ? i18n.t('models.types.cloud') : rawType.toUpperCase());
     return `<div class="ui-model-type-badges ui-model-type-badges--inline"><span class="ui-model-type-badge ${badgeClass}">${label}</span></div>`;
 };
 

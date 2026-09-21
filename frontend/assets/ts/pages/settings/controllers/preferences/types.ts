@@ -1,7 +1,9 @@
 /* SoAI - Settings page preferences contracts [frontend/assets/ts/pages/settings/controllers/preferences/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { JsonValue } from '@core/types/jsonValues.ts';
+import type { ConfigurationManager } from '@core/configurationManager.ts';
+import type { OcrLanguage } from '@core/api/contracts/ocrLanguageContracts.ts';
+import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { DateFormatPreference, MeasurementUnitsPreference, RegionalLocalePreference } from '@core/localization/public.ts';
 import type { LanguageEntryWithFlag } from '@core/languageservice/types.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
@@ -41,6 +43,14 @@ interface PreferencesLanguageService {
 }
 
 interface PreferencesManagerHost extends PageDomOwnerHost, PageResourcesOwnerHost, PageFeedbackOwnerHost {
+    createConfigurationManager: () => ConfigurationManager;
+    getCurrentUserId: () => number | null;
+    isDestroyed: () => boolean;
+    loadOcrLanguages: (signal: AbortSignal) => Promise<readonly OcrLanguage[]>;
+    loadPreferences: (signal: AbortSignal) => Promise<JsonObject>;
+    saveOcrPreference: (code: string, intendedUserId: number, signal: AbortSignal) => Promise<JsonObject>;
+    syncManualDirtyField: (key: string, modified: boolean, valid: boolean) => void;
+    notifySaveChanged: () => void;
     languageService: PreferencesLanguageService;
     storage: PreferencesStorage;
     getUiPrefValue: (key: UiPreferenceKey) => JsonValue | null | undefined;

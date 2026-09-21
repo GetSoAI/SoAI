@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from asyncio import CancelledError
 from collections.abc import Awaitable, Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_coercion import coerce_to_soai_error
@@ -72,9 +72,10 @@ async def run_chat_stream_terminal_finalization(
     operation: str,
     logger: LoggerProtocol,
     failure_message: str,
+    terminal_outcome: Literal["cancelled", "completed", "error"],
     finalize_claimed: Callable[[], Awaitable[None]],
 ) -> bool:
-    if not await begin_chat_stream_terminal_finalization(context):
+    if not await begin_chat_stream_terminal_finalization(context, terminal_outcome):
         return False
     try:
         await finalize_claimed()
@@ -105,7 +106,9 @@ async def run_chat_stream_terminal_finalization(
         )
         if context.runtime.terminal_persistence_attempted:
             raise
-        if not await begin_chat_stream_terminal_finalization(context):
+        if terminal_outcome == "cancelled":
+            raise
+        if not await begin_chat_stream_terminal_finalization(context, "error"):
             raise StateError(
                 "Chat stream terminal failure recovery claim is unavailable.",
             ) from exception

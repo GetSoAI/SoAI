@@ -10,6 +10,7 @@ import { CONVERSATION_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/conv
 import { LIFECYCLE_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/lifecycleContracts.ts';
 import { LICENSING_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/licensingContracts.ts';
 import { MCP_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/mcpContracts.ts';
+import { MODEL_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/modelContracts.ts';
 import { NOTIFICATION_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/notificationContracts.ts';
 import { PROVIDER_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/providerContracts.ts';
 import { TASK_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/taskContracts.ts';
@@ -27,6 +28,7 @@ const WEBSOCKET_EVENT_CONTRACTS = Object.freeze({
     licensing: LICENSING_EVENT_CONTRACTS,
     terminal: TERMINAL_EVENT_CONTRACTS,
     mcp: MCP_EVENT_CONTRACTS,
+    model: MODEL_EVENT_CONTRACTS,
     notification: NOTIFICATION_EVENT_CONTRACTS,
     provider: PROVIDER_EVENT_CONTRACTS,
     task: TASK_EVENT_CONTRACTS,
@@ -93,6 +95,7 @@ const listWebSocketEventContracts = () =>
         WEBSOCKET_EVENT_CONTRACTS.mcp.serverConnected,
         WEBSOCKET_EVENT_CONTRACTS.mcp.serverDisconnected,
         WEBSOCKET_EVENT_CONTRACTS.mcp.toolInvoked,
+        WEBSOCKET_EVENT_CONTRACTS.model.databaseChanged,
         WEBSOCKET_EVENT_CONTRACTS.notification.created,
         WEBSOCKET_EVENT_CONTRACTS.notification.markedRead,
         WEBSOCKET_EVENT_CONTRACTS.notification.deleted,

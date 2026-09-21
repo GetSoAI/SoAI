@@ -4,7 +4,7 @@
 import { getGlobalScope } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { isFunction, isObject, isString } from '@core/typeGuards.ts';
-import { EVENT_CHANGE, SERVICE_NAME, log } from '@core/languageservice/constants.ts';
+import { EVENT_REQUEST, SERVICE_NAME, log } from '@core/languageservice/constants.ts';
 import { loadLanguageFlags, loadManifest } from '@core/languageservice/effects.ts';
 import { resolveStorage } from '@core/languageservice/adapters.ts';
 import { resolveInitialLanguagePreference } from '@core/languageservice/state.ts';
@@ -15,7 +15,10 @@ import { ensureError } from '@core/errors/coerce.ts';
 const resolveEventTarget = (): EventTarget | null => {
     const scope = getGlobalScope();
     const candidate = scope.window;
-    return candidate instanceof EventTarget ? candidate : null;
+    if (!candidate || !isFunction(candidate.addEventListener) || !isFunction(candidate.removeEventListener)) {
+        return null;
+    }
+    return candidate;
 };
 
 const registerStorageReadyListener = (service: LanguageServiceRuntime): void => {
@@ -37,14 +40,14 @@ const registerStorageReadyListener = (service: LanguageServiceRuntime): void => 
     );
 };
 
-const registerLanguageChangeListener = (service: LanguageServiceRuntime): void => {
+const registerLanguageRequestListener = (service: LanguageServiceRuntime): void => {
     const eventTarget = resolveEventTarget();
     if (!eventTarget) {
         return;
     }
     service.resources.addEventListener(
         eventTarget,
-        EVENT_CHANGE,
+        EVENT_REQUEST,
         (event: Event) => {
             if (!(typeof CustomEvent === 'function' && event instanceof CustomEvent)) {
                 return;
@@ -55,7 +58,7 @@ const registerLanguageChangeListener = (service: LanguageServiceRuntime): void =
                 return;
             }
             const language = languageValue.trim();
-            if (language === service.currentLanguage) {
+            if (service.isLanguageRequestSettled(language)) {
                 return;
             }
             void service.setLanguage(language).catch((error) => {
@@ -105,8 +108,8 @@ const initializeLanguageService = async (service: LanguageServiceRuntime): Promi
     }
 
     if (eventTarget) {
-        registerLanguageChangeListener(service);
+        registerLanguageRequestListener(service);
     }
 };
 
-export { initializeLanguageService, registerLanguageChangeListener, registerStorageReadyListener, synchronizeLanguagePreference };
+export { initializeLanguageService, registerLanguageRequestListener, registerStorageReadyListener, synchronizeLanguagePreference };

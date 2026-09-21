@@ -7,14 +7,22 @@ import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.conversations.assistant_turn_variant_identity import (
     AssistantTurnVariantIdentity,
 )
 from core.errors.exceptions import StateError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.timing.epoch import epoch_ms
+from core.timing.monotonic import monotonic_ms
 from features.assistant_timeline.assistant_placeholder_publication import (
     persist_streaming_assistant_placeholder,
+)
+from features.assistant_timeline.conversation_events import (
+    publish_chat_stream_message_events,
+)
+from features.assistant_timeline.loading_cancelled_finalization import (
+    finalize_and_publish_loading_cancelled,
 )
 from features.assistant_timeline.message_write_versions import (
     require_assistant_timeline_message_write,
@@ -25,6 +33,7 @@ from features.automation.events import publish_automation_conversation_message_e
 from features.automation.execution_stream_lifecycle import (
     cleanup_failed_automation_stream_reservation,
     register_automation_stream_runtime,
+    release_automation_stream_runtime,
 )
 
 if TYPE_CHECKING:
@@ -148,13 +157,42 @@ async def reserve_turn_assistant_message(
         task_cancellation_id=task_cancellation_id,
     )
     await register_automation_stream_runtime(api_dependencies, runtime)
+    runtime.runner_task = asyncio.current_task()
     try:
+        if runtime.cancellation_requested:
+            raise asyncio.CancelledError
         await persist_streaming_assistant_placeholder(
             database_messages=api_dependencies.database_messages,
             runtime=runtime,
         )
     except asyncio.CancelledError:
-        await cleanup_failed_automation_stream_reservation(api_dependencies, runtime)
+        if runtime.cancellation_requested and runtime.assistant_placeholder_persisted:
+            await uncancel_then_cleanup(
+                finalize_and_publish_loading_cancelled(
+                    runtime=runtime,
+                    event_bus=api_dependencies.event_bus,
+                    database_messages=api_dependencies.database_messages,
+                    duration_ms=max(0, monotonic_ms() - runtime.started_at_monotonic_ms),
+                    thinking_tail_duration_ms=0,
+                    reason=runtime.cancellation_reason or "Chat stream was cancelled.",
+                ),
+            )
+            await publish_chat_stream_message_events(api_dependencies.event_bus, runtime)
+            await release_automation_stream_runtime(api_dependencies, runtime)
+        elif runtime.cancellation_requested:
+            await api_dependencies.database_stream_cancellations.settle_local(
+                conv_id=runtime.conv_id,
+                user_id=runtime.user_id,
+                request_id=runtime.request_id,
+            )
+            await cleanup_failed_automation_stream_reservation(api_dependencies, runtime)
+            await api_dependencies.chat_stream_registry.clear_cancellation_intent_if_same(
+                user_id=runtime.user_id,
+                conv_id=runtime.conv_id,
+                request_id=runtime.request_id,
+            )
+        else:
+            await cleanup_failed_automation_stream_reservation(api_dependencies, runtime)
         raise
     except HANDLED_RUNTIME_EXCEPTIONS:
         await cleanup_failed_automation_stream_reservation(api_dependencies, runtime)

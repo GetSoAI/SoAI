@@ -45,7 +45,7 @@ from core.logging.protocols import LoggingManagerProtocol
 from core.mail.protocols import MailServiceProtocol
 from core.mcp.protocols_main import MCPRemoteProtocol, MCPServerProtocol
 from core.mcp.tool_catalog_cache import MCPToolCatalogCache
-from core.messaging.gateway.protocols import MessagingGatewayProtocol
+from core.messaging.protocols_gateway import MessagingGatewayProtocol
 from core.metrics.protocols import MetricsManagerProtocol
 from core.notifications.protocols import ConversationAttentionCoordinatorProtocol
 from core.orchestrator.routing_config import RoutingConfig

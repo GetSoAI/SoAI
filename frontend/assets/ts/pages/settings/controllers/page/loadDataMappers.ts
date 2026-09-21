@@ -36,6 +36,7 @@ const createUiPrefsSnapshot = (page: SettingsRuntimeContext): JsonObject => {
         showScrollToTopButton: storage.getShowScrollToTopButton(),
         showMainStatusIndicator: storage.getShowMainStatusIndicator(),
         dashboardLocked: storage.getDashboardLocked(),
+        defaultPage: storage.getDefaultPage(),
         chartColorMode: storage.getChartColorMode(),
         chartStaticColor: storage.getChartStaticColor()
     };

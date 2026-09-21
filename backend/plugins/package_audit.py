@@ -9,7 +9,6 @@ import os
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from core.archives.zip_plan import ValidatedZipPlan
 from core.errors.exceptions import NotFoundError, StateError, ValidationError
 from core.filesystem.open_files import open_regular_binary_no_symlink
 from core.logging.trace import get_logger
@@ -27,11 +26,10 @@ from plugins.manifest.ast_contracts import (
     get_plugin_class_node,
 )
 from plugins.manifest.class_field_contract import PLUGIN_FIELD_PACKAGE_DEPENDENCIES
+from plugins.package_content import PluginPackageContent
 from plugins.package_dependency_validation import ensure_declared_package_dependencies
 from plugins.package_inspection import (
-    PluginPackageMemberDigest,
     PluginPackageSnapshot,
-    PluginPythonMemberAudit,
     inspect_plugin_package_stream,
 )
 from plugins.path_safety import get_plugin_file_path
@@ -57,12 +55,7 @@ LOGGER_NAME = "SoAI.plugins.package_audit"
 class PluginPackageAudit:
     plugin_name: str
     archive_path: str
-    archive_hash: str
-    zip_plan: ValidatedZipPlan
-    expanded_size: int
-    member_digests: tuple[PluginPackageMemberDigest, ...]
-    entrypoint: PluginPythonMemberAudit
-    python_members: tuple[PluginPythonMemberAudit, ...]
+    content: PluginPackageContent
     imports_validated: bool
     parameter_schema: JSONDict | None
     logo: PluginLogoResult = field(default_factory=lambda: PluginLogoResult(status="absent"))
@@ -98,17 +91,17 @@ def _audit_snapshot(
 ) -> PluginPackageAudit:
     if (
         enforce_hash_policy
-        and get_blocked_plugin_hash_compatibility(snapshot.archive_hash) is not None
+        and get_blocked_plugin_hash_compatibility(snapshot.content.archive_hash) is not None
     ):
-        raise build_blocked_plugin_hash_error(plugin_name, snapshot.archive_hash)
-    class_node = get_plugin_class_node(snapshot.entrypoint.parsed_source)
+        raise build_blocked_plugin_hash_error(plugin_name, snapshot.content.archive_hash)
+    class_node = get_plugin_class_node(snapshot.content.entrypoint.parsed_source)
     assignments = extract_class_assignments(class_node)
     packages = eval_required_literal(assignments, PLUGIN_FIELD_PACKAGE_DEPENDENCIES)
     if not is_str_list(packages):
         raise ValidationError("Plugin PACKAGE_DEPENDENCIES must be a list of strings.")
     package_names = list(packages)
     if enforce_import_scan:
-        for python_member in snapshot.python_members:
+        for python_member in snapshot.content.python_members:
             ensure_import_tree_has_no_forbidden_imports(
                 plugin_name,
                 python_member.parsed_source,
@@ -128,12 +121,7 @@ def _audit_snapshot(
     return PluginPackageAudit(
         plugin_name=plugin_name,
         archive_path=archive_path,
-        archive_hash=snapshot.archive_hash,
-        zip_plan=snapshot.zip_plan,
-        expanded_size=snapshot.expanded_size,
-        member_digests=snapshot.member_digests,
-        entrypoint=snapshot.entrypoint,
-        python_members=snapshot.python_members,
+        content=snapshot.content,
         imports_validated=enforce_import_scan,
         logo=logo,
         parameter_schema=(

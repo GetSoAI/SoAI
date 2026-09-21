@@ -3,8 +3,7 @@
 
 import { errorHandler } from '@core/errorHandler.ts';
 import { hasOwn, isArray, isObject, isString } from '@core/typeGuards.ts';
-import { buildLanguageUrl, buildTranslationCatalogUrl, resolveApiClient, resolveAssetUrl, resolveStorage } from '@core/languageservice/adapters.ts';
-import { writeCachedTranslations, readCachedTranslations, syncCacheContainer } from '@core/languageservice/state.ts';
+import { buildLanguageUrl, buildTranslationCatalogUrl, resolveApiClient, resolveAssetUrl } from '@core/languageservice/adapters.ts';
 import { mergeTranslationObjects, normalizeTranslationRoot, parseLanguageManifest, resolveManifestDefaultLanguage } from '@core/languageservice/mappers.ts';
 import { FLAGS_FILE, LANGUAGES_PATH, MANIFEST_FILE, SERVICE_NAME } from '@core/languageservice/constants.ts';
 import type { LanguageServiceRuntime } from '@core/languageservice/internalContracts.ts';
@@ -45,7 +44,6 @@ const loadManifest = async (service: LanguageServiceRuntime): Promise<void> => {
     if (!service.languages.has(service.defaultLanguage)) {
         throw new Error('Manifest default language is not present in language list');
     }
-    syncCacheContainer(service, resolveStorage());
 };
 
 const loadLanguageFlags = async (service: LanguageServiceRuntime): Promise<void> => {
@@ -77,13 +75,7 @@ const loadLanguageFile = async (service: LanguageServiceRuntime, code: string): 
         return pending;
     }
 
-    const store = resolveStorage();
     const promise = (async (): Promise<TranslationObject> => {
-        const cached = readCachedTranslations(service, store, code);
-        if (cached) {
-            service.loadedLanguages.set(code, cached);
-            return cached;
-        }
         try {
             const apiClient = await resolveApiClient();
             const path = buildLanguageUrl(service, code);
@@ -100,7 +92,6 @@ const loadLanguageFile = async (service: LanguageServiceRuntime, code: string): 
                 normalized = mergeTranslationObjects(normalized, normalizeTranslationRoot(catalogData['translations']));
             }
             service.loadedLanguages.set(code, normalized);
-            writeCachedTranslations(service, store, code, normalized);
             return normalized;
         } catch (error) {
             const runtimeError = ensureError(error);

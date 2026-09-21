@@ -13,6 +13,7 @@ interface RequestDistributionEntry {
     value: number;
     ratio: number;
     swatchIndex: number;
+    swatchColor?: string;
 }
 
 interface RequestDistributionSlice {
@@ -20,6 +21,7 @@ interface RequestDistributionSlice {
     swatchIndex: number;
     startAngle: number;
     endAngle: number;
+    swatchColor?: string;
 }
 
 interface RequestDistributionDataset {
@@ -152,17 +154,20 @@ const buildRequestDistributionSlices = (entries: readonly RequestDistributionEnt
             key: entry.key,
             swatchIndex: entry.swatchIndex,
             startAngle,
-            endAngle
+            endAngle,
+            ...(entry.swatchColor ? { swatchColor: entry.swatchColor } : {})
         };
     });
 };
 
+const buildRequestDistributionDatasetFromEntries = (entries: readonly RequestDistributionEntry[]): RequestDistributionDataset => ({
+    entries: [...entries],
+    slices: buildRequestDistributionSlices(entries)
+});
+
 const buildRequestDistributionDatasetFromInputs = (items: readonly RequestDistributionInput[]): RequestDistributionDataset => {
     const entries = collectRequestDistributionEntries(items);
-    return {
-        entries,
-        slices: buildRequestDistributionSlices(entries)
-    };
+    return buildRequestDistributionDatasetFromEntries(entries);
 };
 
 const buildModelRequestDistributionDataset = (requestsByModel: JsonValue | undefined, requestsByVirtualModel: JsonValue | undefined): RequestDistributionDataset => {
@@ -178,5 +183,5 @@ const buildPluginRequestDistributionDataset = (plugins: JsonValue | undefined): 
 const buildApiKeyRequestDistributionDataset = (apiKeys: JsonValue | undefined): RequestDistributionDataset => buildRequestDistributionDatasetFromInputs(collectApiKeyRequestDistributionInputs(apiKeys));
 const buildModelTokenDistributionDataset = (tokensByModel: JsonValue | undefined): RequestDistributionDataset => buildRequestDistributionDatasetFromInputs(collectRequestDistributionMapInputs(tokensByModel, resolveModelDistributionLabel));
 
-export { buildApiKeyRequestDistributionDataset, buildModelRequestDistributionDataset, buildModelTokenDistributionDataset, buildPluginRequestDistributionDataset };
-export type { RequestDistributionDataset, RequestDistributionEntry, RequestDistributionSlice, RequestDistributionSource };
+export { buildApiKeyRequestDistributionDataset, buildModelRequestDistributionDataset, buildModelTokenDistributionDataset, buildPluginRequestDistributionDataset, buildRequestDistributionDatasetFromEntries, buildRequestDistributionDatasetFromInputs };
+export type { RequestDistributionDataset, RequestDistributionEntry, RequestDistributionInput, RequestDistributionSlice, RequestDistributionSource };

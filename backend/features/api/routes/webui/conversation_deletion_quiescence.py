@@ -32,6 +32,7 @@ class ConversationExecutionSnapshot:
     active_task_count: int
     active_automation_run_count: int
     unfinalized_assistant_stream: bool
+    stream_lease_active: bool
     cancellation_ids: tuple[str, ...]
 
     @property
@@ -42,7 +43,9 @@ class ConversationExecutionSnapshot:
 
     @property
     def active(self) -> bool:
-        return self.execution_active or self.unfinalized_assistant_stream
+        return (
+            self.execution_active or self.unfinalized_assistant_stream or self.stream_lease_active
+        )
 
 
 async def _load_execution_snapshot(
@@ -56,6 +59,7 @@ async def _load_execution_snapshot(
         active_tasks,
         unfinalized_assistant_stream,
         active_automation_run_ids,
+        stream_registry_snapshot,
     ) = await asyncio.gather(
         api_context.dependencies.database_agent_turns.get_running_root_turn(
             conv_id=conv_id,
@@ -76,6 +80,10 @@ async def _load_execution_snapshot(
             user_id,
             conv_id=conv_id,
         ),
+        api_context.dependencies.chat_stream_registry.snapshot(
+            user_id=user_id,
+            conv_id=conv_id,
+        ),
         return_exceptions=False,
     )
     cancellation_ids: list[str] = []
@@ -94,6 +102,10 @@ async def _load_execution_snapshot(
         active_task_count=len(active_tasks),
         active_automation_run_count=len(active_automation_run_ids),
         unfinalized_assistant_stream=unfinalized_assistant_stream,
+        stream_lease_active=(
+            stream_registry_snapshot.runtime is not None
+            or stream_registry_snapshot.reservation is not None
+        ),
         cancellation_ids=tuple(cancellation_ids),
     )
 

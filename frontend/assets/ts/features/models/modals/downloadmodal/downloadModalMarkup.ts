@@ -9,6 +9,7 @@ import { renderDropdownSelectControl } from '@core/ui/dropdown/selectControl.ts'
 import { renderRequiredFieldMarker } from '@core/ui/forms/requiredMarker.ts';
 import type { getIconSync } from '@core/ui/icons/iconservice/public.ts';
 import { renderSecretInputControl, resolveSecretInputType } from '@core/ui/secretInput.ts';
+import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 import { MODELS_DOWNLOAD_MODAL_ID } from '@features/models/modals/constants.ts';
 
 type DownloadModalViewHost = {
@@ -64,7 +65,7 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
                         <div class="form-col-main">
                             <div class="searchbar-container searchbar-container--collection">
                                 <input type="text" id="${modalUiId(modalId, 'model-search-input')}" class="form-input searchbar-input" placeholder="" autocomplete="off">
-                                <span class="searchbar-icon">${page.getIconSync('search', { size: 16, strokeWidth: 1.5 })}</span>
+                                ${renderSearchFieldActions()}
                             </div>
                         </div>
                         <div class="form-col-secondary form-col-action">
@@ -96,7 +97,7 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
                             <div class="form-col-main">
                                 <div class="searchbar-container searchbar-container--collection">
                                     <input type="text" id="${modalUiId(modalId, 'variant-search-input')}" class="form-input searchbar-input" placeholder="${uiAttr(i18n.t('models.modal.addModel.variantSearchPlaceholder'))}" autocomplete="off">
-                                    <span class="searchbar-icon">${page.getIconSync('search', { size: 16, strokeWidth: 1.5 })}</span>
+                                    ${renderSearchFieldActions()}
                                 </div>
                             </div>
                             <div class="form-col-secondary form-col-action">

@@ -32,7 +32,9 @@ class SoAIBenchRunSessionState {
             updateSeq: activeRun?.updateSeq ?? 0,
             token: Symbol('hardware-soaibench-run-modal'),
             cancelRequested: false,
-            starting: false
+            starting: false,
+            stopWhenStartSettles: false,
+            stopRequestSent: false
         };
         this.latestRun = activeRun;
         this.terminalReason = null;

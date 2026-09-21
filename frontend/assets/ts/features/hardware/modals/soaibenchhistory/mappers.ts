@@ -32,6 +32,8 @@ const extractTelemetry = (run: GpuSoAIBenchHistoryRun): SoAIBenchHistoryTelemetr
     const summary = run.summary ?? {};
     return {
         overallScore: firstNullableNumber(run.overallScore, summary.overallScore),
+        computeScore: firstNullableNumber(run.computeScore, summary.computeScore),
+        memoryScore: firstNullableNumber(run.memoryScore, summary.memoryScore),
         aluGops: firstNullableNumber(run.aluGops, summary.aluGops),
         matrixGops: firstNullableNumber(run.matrixGops, summary.matrixGops),
         latencyScore: firstNullableNumber(run.latencyScore, summary.latencyScore),
@@ -41,7 +43,9 @@ const extractTelemetry = (run: GpuSoAIBenchHistoryRun): SoAIBenchHistoryTelemetr
         memoryGbs: firstNullableNumber(run.memoryGbs, summary.memoryGbs),
         maxTemperatureCelsius: firstNullableNumber(summary.maxTemperatureCelsius, summary.temperatureCelsius),
         avgPowerWatts: firstNullableNumber(summary.avgPowerWatts),
-        maxPowerWatts: firstNullableNumber(summary.maxPowerWatts)
+        maxPowerWatts: firstNullableNumber(summary.maxPowerWatts),
+        coreUtilizationPercent: firstNullableNumber(run.coreUtilizationPercent, summary.coreUtilizationPercent, summary.utilization),
+        sampleCount: firstNullableNumber(run.sampleCount, summary.sampleCount)
     };
 };
 
@@ -70,7 +74,14 @@ const normalizeHistoryRun = (value: GpuSoAIBenchHistoryRun): SoAIBenchHistoryRun
         leaderboardEligible: value.leaderboardEligible === true,
         leaderboardRejectionReason: firstNullableText(value.leaderboardRejectionReason, summary.leaderboardRejectionReason),
         scoreVariancePercent: firstNullableNumber(value.scoreVariancePercent, summary.scoreVariancePercent),
+        phaseVariationPercent: summary.phaseVariationPercent ?? null,
+        phaseDriftPercent: summary.phaseDriftPercent ?? null,
+        warmupActiveSeconds: firstNullableNumber(summary.warmupActiveSeconds),
+        legacy: value.legacyScore,
+        publicationEligible: value.publicationEligible,
         settingsSnapshotAvailable: Object.keys(value.settingsSnapshot).length > 0,
+        reasonMessage: nullableText(summary.message),
+        guidanceMessage: nullableText(summary.guidance),
         failureReason: nullableText(value.failureReason),
         unsupportedReason: nullableText(value.unsupportedReason),
         matchBasis: firstNullableText(value.matchBasis, summary.matchBasis),

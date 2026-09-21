@@ -13,11 +13,11 @@ from core.validation.numbers import coerce_float_from_json
 from hardware.soaibench.types import SoAIBenchBenchmarkMode, SoAIBenchProfile
 
 __all__ = (
-    "CERTIFIED_DEFAULT_TEMPERATURE_LIMIT_CELSIUS",
     "CERTIFIED_MEASURED_PASSES",
-    "CERTIFIED_SCORE_VARIANCE_LIMIT_PERCENT",
+    "CERTIFIED_WARMUP_SECONDS",
     "CERTIFIED_WARMUP_PASSES",
     "OWNER_TYPE",
+    "TASK_ID_PREFIX",
     "parse_benchmark_mode",
     "parse_profile",
     "parse_temperature_limit_celsius",
@@ -25,10 +25,10 @@ __all__ = (
 )
 
 OWNER_TYPE = "hardware_soaibench"
-CERTIFIED_DEFAULT_TEMPERATURE_LIMIT_CELSIUS = 100.0
+TASK_ID_PREFIX = "hardware-soaibench-"
 CERTIFIED_MEASURED_PASSES = 5
-CERTIFIED_SCORE_VARIANCE_LIMIT_PERCENT = 10.0
 CERTIFIED_WARMUP_PASSES = 1
+CERTIFIED_WARMUP_SECONDS = 120.0
 
 
 def parse_profile(profile: str) -> SoAIBenchProfile:
@@ -68,4 +68,4 @@ def parse_temperature_limit_celsius(value: JSONValue | None) -> float | None:
 
 
 def task_id_for_run(run_id: str) -> str:
-    return f"hardware-soaibench-{run_id}"
+    return f"{TASK_ID_PREFIX}{run_id}"

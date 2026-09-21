@@ -36,10 +36,7 @@ const isRetainedLoadingContentElement = (element: HTMLElement): boolean => {
 };
 
 const shouldCollapseLoadingActivities = (inputArguments: { isShowActivitiesEnabled: boolean; collapsedOverride: boolean | null }): boolean => {
-    if (!inputArguments.isShowActivitiesEnabled) {
-        return true;
-    }
-    return inputArguments.collapsedOverride === true;
+    return inputArguments.collapsedOverride ?? !inputArguments.isShowActivitiesEnabled;
 };
 
 export { isRetainedLoadingContentElement, resolveDirectCollapsedLoadingContent, resolveDirectCollapsedLoadingSummary, COLLAPSED_LOADING_CONTENT_DATA_ATTR, COLLAPSED_LOADING_CONTENT_DATA_VALUE, COLLAPSED_LOADING_CONTENT_SELECTOR, COLLAPSED_LOADING_CONTENT_WRAPPER_ATTRIBUTE, COLLAPSED_LOADING_SUMMARY_SELECTOR, shouldCollapseLoadingActivities };

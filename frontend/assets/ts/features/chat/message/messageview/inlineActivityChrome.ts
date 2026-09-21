@@ -7,7 +7,7 @@ import { renderInlineActivityDuration, resolveInlineActivityDurationArguments } 
 import { renderInlineActivityPreview } from '@features/chat/message/messageview/inlineActivityHeaderRow.ts';
 import { renderInlineStatusDot, renderInlineStatusIcon } from '@features/chat/message/messageview/inlineActivityStatusRendering.ts';
 import type { ChatMessageRenderHost, InlineLoadingActivitySegment, InlineProcessingActivitySegment, InlineThinkingActivitySegment, InlineToolActivitySegment, InlineWaitForUserActivitySegment } from '@features/chat/message/messageview/types.ts';
-import { renderSettledActivityDurationAttribute, shouldRenderActivityDuration, type ChatActivityDurationExpansionState } from '@features/chat/message/messageview/activityDurationDisplay.ts';
+import { renderSettledActivityDurationAttribute, shouldAnimateSettledActivityDuration, shouldRenderActivityDuration, type ChatActivityDurationExpansionState } from '@features/chat/message/messageview/activityDurationDisplay.ts';
 
 type InlineActivityChromeSegment = InlineLoadingActivitySegment | InlineProcessingActivitySegment | InlineWaitForUserActivitySegment | InlineThinkingActivitySegment | InlineToolActivitySegment;
 
@@ -39,11 +39,12 @@ const renderInlineActivityChrome = (
     const mainIconHtml = inputArguments.mainIconHtml ?? renderInlineStatusIcon(host, inputArguments.segment.status, inputArguments.defaultIconName ?? 'plugin');
     const previewHtml = inputArguments.previewHtml ?? renderInlinePreviewIfPresent(host, inputArguments.previewText ?? '');
     const startedAtMs = inputArguments.segment.startedAtMs;
+    const displayMode = host.getActivityDurationDisplayMode();
     return {
         statusClass: `inline-activity-status-${inputArguments.segment.status}`,
         statusDotHtml: renderInlineStatusDot(host, inputArguments.segment.status),
         mainIconHtml,
-        durationHtml: shouldRenderActivityDuration(host.getActivityDurationDisplayMode(), inputArguments.expansionState) ? renderInlineActivityDuration(host, resolveInlineActivityDurationArguments(inputArguments.segment, host.nowMs())) : '',
+        durationHtml: shouldRenderActivityDuration(displayMode, inputArguments.expansionState, inputArguments.segment.status) ? renderInlineActivityDuration(host, resolveInlineActivityDurationArguments(inputArguments.segment, host.nowMs()), { animateEntrance: shouldAnimateSettledActivityDuration(displayMode, inputArguments.segment.status) }) : '',
         previewHtml,
         startedAtAttr: typeof startedAtMs === 'number' && isEpochMsNumber(startedAtMs) ? ` data-started-at-ms="${host.escapeAttribute(String(startedAtMs))}"` : '',
         settledDurationAttr: renderSettledActivityDurationAttribute((value) => host.escapeAttribute(value), inputArguments.segment.status, inputArguments.segment.durationMs)

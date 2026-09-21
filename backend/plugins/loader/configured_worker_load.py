@@ -43,7 +43,7 @@ async def load_plugin_worker_with_config(
         plugin_name=plugin_name,
         plugin_package_root=prepared_package.package_root,
         plugin_entrypoint_path=prepared_package.entrypoint_path,
-        plugin_file_hash=package_audit.archive_hash,
+        plugin_file_hash=package_audit.content.archive_hash,
         package_dependencies=list(preflight_result.dependency_snapshot.package_names),
         plugin_config=dict(initial_config),
     )
@@ -63,7 +63,7 @@ async def load_plugin_worker_with_config(
             plugin_name=plugin_name,
             plugin_package_root=prepared_package.package_root,
             plugin_entrypoint_path=prepared_package.entrypoint_path,
-            plugin_file_hash=package_audit.archive_hash,
+            plugin_file_hash=package_audit.content.archive_hash,
             package_dependencies=list(preflight_result.dependency_snapshot.package_names),
             plugin_config=resolved_config,
         )
@@ -72,7 +72,7 @@ async def load_plugin_worker_with_config(
     await collect_plugin_package_cache(
         manager,
         plugin_name,
-        current_archive_hash=package_audit.archive_hash,
+        current_archive_hash=package_audit.content.archive_hash,
     )
     return ConfiguredPluginWorkerLoad(
         instance=final_instance,

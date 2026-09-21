@@ -5,7 +5,7 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { ChangeNotificationSource } from '@core/primitives/changeNotificationSource.ts';
 import type { ConversationAttachmentChangedEvent } from '@core/realtime/eventcontracts/attachmentContracts.ts';
 import { isArray } from '@core/typeGuards.ts';
-import type { ChatAttachment } from '@features/chat/ChatTypes.ts';
+import type { ChatAttachment, ChatAttachmentDraftSource } from '@features/chat/ChatTypes.ts';
 import { buildChatAttachmentContentFragmentsFromAttachments, type ContentFragment } from '@features/chat/attachments/attachmentContentFragments.ts';
 import { ChatAttachmentCreation } from '@features/chat/attachments/attachmentCreation.ts';
 import type { ChatAttachmentManagerOptions } from '@features/chat/attachments/attachmentManagerContracts.ts';
@@ -131,7 +131,7 @@ class ChatAttachmentManager {
         });
     }
 
-    addResolvedSoaiPathRecords(records: readonly SoaiPathDraftRecord[]): number {
+    addResolvedSoaiPathRecords(records: readonly SoaiPathDraftRecord[], draftSource: Extract<ChatAttachmentDraftSource, 'browse' | 'soaiLink'> = 'soaiLink'): number {
         const addedCount = addResolvedSoaiPathAttachments(
             {
                 attachments: this.#files,
@@ -139,7 +139,8 @@ class ChatAttachmentManager {
                 isAttachmentPresent: (attachmentId) => this.#files.some((file) => file.id === attachmentId),
                 syncUi: () => this.#syncUiAfterAttachmentsChanged()
             },
-            records
+            records,
+            draftSource
         );
         if (addedCount > 0) {
             this.#bumpDraftRevision();
@@ -225,7 +226,7 @@ class ChatAttachmentManager {
         }
     }
 
-    async handleFiles(files: File[], options: { forceDocument?: boolean } = {}): Promise<void> {
+    async handleFiles(files: File[], options: { forceDocument?: boolean; draftSource?: Extract<ChatAttachmentDraftSource, 'upload' | 'camera'> } = {}): Promise<void> {
         if (!isArray(files) || files.length === 0) {
             return;
         }

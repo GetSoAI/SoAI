@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { getAuthManager } from '@core/auth/public.ts';
+import { i18n } from '@core/i18n/index.ts';
 import { WEBSOCKET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/registry.ts';
 import { subscribeManagedWebSocketContract } from '@core/realtime/websocketBatchSubscription.ts';
 import { isPlainObject } from '@core/typeGuards.ts';
-import { ChatAttachmentManager, ChatAttachmentProcessor, ChatAudioManager, ChatConversationSettingsManager, ChatTtsManager, ChatUIManager, cloneSoaiPathDraftRecordContentPart, normalizeConversationId, type ConversationSettingsHost, type SoaiPathDraftRecord } from '@features/chat/public.ts';
+import { ChatAttachmentManager, ChatAttachmentProcessor, ChatAudioManager, ChatConversationSettingsManager, ChatTtsManager, ChatUIManager, cloneSoaiPathDraftRecordContentPart, normalizeConversationId, type ConversationInputPreview, type ConversationSettingsHost, type SoaiPathDraftRecord } from '@features/chat/public.ts';
 import type { ChatControllerInitializationContext, Logger } from '@pages/chat/controllers/chatpage/construction/initializers/contracts.ts';
 import { requestConversationMessageWindow } from '@pages/chat/controllers/chatpage/construction/initializers/messageWindowPagingController.ts';
 import { isThinkingFeatureEnabled } from '@pages/chat/controllers/page/state.ts';
@@ -85,13 +86,24 @@ const initializeUIManager = (page: ChatControllerInitializationContext): void =>
                         return null;
                     }
                     const prompts = manager.getQueuedPrompts(conversationId);
-                    return prompts.map((prompt) => ({
+                    const previews: ConversationInputPreview[] = prompts.map((prompt) => ({
                         inputId: prompt.inputId,
                         inputType: prompt.inputType === 'steer' ? 'steer' : 'prompt',
                         state: prompt.state,
                         text: prompt.text,
                         attachmentContent: prompt.attachmentContent
                     }));
+                    const retryable = manager.getRetryableRegeneration(conversationId);
+                    if (retryable) {
+                        previews.push({
+                            inputId: retryable.inputId,
+                            inputType: 'prompt',
+                            state: 'regeneration_failed',
+                            text: i18n.t('pageOutlet.retry'),
+                            attachmentContent: []
+                        });
+                    }
+                    return previews;
                 },
                 saveChatState: (force: boolean | undefined) => page.runtime.conversationRuntime.requireStorage().saveChatState(force),
                 requestMessageWindow: (direction) => requestConversationMessageWindow(page, pendingMessageWindowRequests, direction)

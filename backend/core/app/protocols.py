@@ -11,9 +11,27 @@ __all__ = (
     "ApplicationControlProtocol",
     "ApplicationRuntimeCoordinatorProtocol",
     "BannerSystemProtocol",
+    "CancellationSystemProtocol",
+    "CommunicationsServicesProtocol",
+    "CommunicationsSyncProtocol",
 )
 
 if TYPE_CHECKING:
+    from core.calendar.protocols import CalendarServiceProtocol
+    from core.external_accounts.linked_account_types import LinkedAccountCapabilities
+    from core.external_accounts.protocols import ExternalAccountsServiceProtocol
+    from core.licensing.protocols import LicensingStatusProtocol
+    from core.mail.protocols import MailServiceProtocol
+    from core.mcp.protocols_main import MCPServerProtocol
+    from core.tasks.protocols import (
+        CancellationCoordinatorProtocol,
+        CancellationEventBusProtocol,
+        CancellationHistoryProtocol,
+        TaskCancellationBinderProtocol,
+        TaskFinalizerTrackerProtocol,
+        TokenCollectionProtocol,
+    )
+
     type ApplicationUpdateOutcome = Literal[
         "accepted",
         "conflict",
@@ -58,3 +76,53 @@ class ApplicationControlProtocol(Protocol):
     ) -> asyncio.Task[None] | None: ...
 
     def track_background_task(self, task: asyncio.Task[None]) -> None: ...
+
+
+class CommunicationsSyncProtocol(Protocol):
+    def attach_mcp_server(self, server: MCPServerProtocol | None) -> None: ...
+
+    def attach_licensing_status(self, licensing_status: LicensingStatusProtocol) -> None: ...
+
+    async def start(self) -> None: ...
+
+    async def shutdown(self) -> None: ...
+
+
+class CommunicationsServicesProtocol(Protocol):
+    @property
+    def external_accounts(self) -> ExternalAccountsServiceProtocol: ...
+
+    @property
+    def mail(self) -> MailServiceProtocol: ...
+
+    @property
+    def calendar(self) -> CalendarServiceProtocol: ...
+
+    @property
+    def mail_accounts(self) -> LinkedAccountCapabilities: ...
+
+    @property
+    def calendar_accounts(self) -> LinkedAccountCapabilities: ...
+
+    @property
+    def sync_actor(self) -> CommunicationsSyncProtocol: ...
+
+
+class CancellationSystemProtocol(Protocol):
+    @property
+    def token_collection(self) -> TokenCollectionProtocol: ...
+
+    @property
+    def history(self) -> CancellationHistoryProtocol: ...
+
+    @property
+    def event_bus(self) -> CancellationEventBusProtocol: ...
+
+    @property
+    def finalizer_tracker(self) -> TaskFinalizerTrackerProtocol: ...
+
+    @property
+    def binder(self) -> TaskCancellationBinderProtocol: ...
+
+    @property
+    def coordinator(self) -> CancellationCoordinatorProtocol: ...

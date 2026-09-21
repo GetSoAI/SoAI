@@ -1,12 +1,14 @@
 /* SoAI - Chat attach modal camera capture runtime [frontend/assets/ts/features/chat/composerattachmodal/cameraCapture.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { waitForTimerDelay } from '@core/concurrency/timerDelay.ts';
-import { getWindow } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { classifyMediaCaptureError } from '@core/media/mediaCaptureErrors.ts';
+import { stopMediaStreamTracks } from '@core/media/mediaCleanup.ts';
 import { createDeferred } from '@core/runtime/deferred.ts';
+import { isFunction } from '@core/typeGuards.ts';
+import { listCameraDeviceIds, openCameraStream, selectNextCameraDeviceId } from '@features/chat/composerattachmodal/cameraStreamAcquisition.ts';
 
 interface ChatAttachCameraElements {
     pane: HTMLElement;
@@ -17,7 +19,7 @@ interface ChatAttachCameraElements {
     shutterButton: HTMLButtonElement;
     retakeButton: HTMLButtonElement;
     useButton: HTMLButtonElement;
-    flipButton: HTMLButtonElement;
+    switchButton: HTMLButtonElement;
 }
 
 interface ChatAttachCameraRuntime {
@@ -27,27 +29,11 @@ interface ChatAttachCameraRuntime {
     capture(): Promise<void>;
     retake(): Promise<void>;
     useCapturedFile(): Promise<File | null>;
-    flipCamera(): Promise<void>;
+    switchCamera(): Promise<void>;
     dispose(): void;
 }
 
-type CameraFacingMode = 'environment' | 'user';
-
-const PERMISSION_RETRY_DELAY_MS = 800;
-
-const probeCameraPermissionState = async (): Promise<PermissionState | null> => {
-    const permissions = navigator.permissions;
-    if (!permissions || typeof permissions.query !== 'function') {
-        return null;
-    }
-    try {
-        const status = await permissions.query({ name: 'camera' });
-        return status.state;
-    } catch (error) {
-        errorHandler.debug('ChatAttachCamera', 'Camera permission state is not queryable', ensureError(error));
-        return null;
-    }
-};
+type CameraStreamStatus = 'stopped' | 'starting' | 'ready';
 
 const setButtonState = (button: HTMLButtonElement, enabled: boolean): void => {
     button.disabled = !enabled;
@@ -57,15 +43,6 @@ const setButtonState = (button: HTMLButtonElement, enabled: boolean): void => {
 const setButtonAvailability = (button: HTMLButtonElement, visible: boolean, enabled: boolean): void => {
     button.hidden = !visible;
     setButtonState(button, visible && enabled);
-};
-
-const stopStream = (stream: MediaStream | null): void => {
-    if (stream === null) {
-        return;
-    }
-    for (const track of stream.getTracks()) {
-        track.stop();
-    }
 };
 
 const renderStatus = (element: HTMLElement, text: string): void => {
@@ -78,7 +55,7 @@ const setCameraState = (elements: ChatAttachCameraElements, state: string): void
 };
 
 const syncStageAspectRatio = (elements: ChatAttachCameraElements, width: number, height: number): void => {
-    elements.stage.style.setProperty('--chat-attach-camera-aspect-ratio', `${width} / ${height}`);
+    elements.pane.style.setProperty('--chat-attach-camera-aspect-ratio', `${width} / ${height}`);
 };
 
 const createJpegBlob = (canvas: HTMLCanvasElement): Promise<Blob> => {
@@ -111,16 +88,17 @@ const requireVideoFrame = (video: HTMLVideoElement): { width: number; height: nu
 };
 
 const resolveCameraStartFailureMessage = (error: Error): string => {
-    if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-        return i18n.t('chat.attachModal.cameraNoCamera');
+    switch (classifyMediaCaptureError(error)) {
+        case 'permission':
+            return i18n.t('chat.attachModal.cameraPermissionDenied');
+        case 'missing_device':
+            return i18n.t('chat.attachModal.cameraNoCamera');
+        case 'busy_device':
+            return i18n.t('chat.attachModal.cameraBusy');
+        case 'insecure_context':
+        case 'unknown':
+            return i18n.t('chat.attachModal.cameraCaptureUnavailable');
     }
-    if (error.name === 'NotReadableError' || error.name === 'TrackStartError' || error.name === 'AbortError') {
-        return i18n.t('chat.attachModal.cameraCaptureUnavailable');
-    }
-    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        return i18n.t('chat.attachModal.cameraPermissionDenied');
-    }
-    return i18n.t('chat.attachModal.cameraCaptureUnavailable');
 };
 
 const createCameraCaptureRuntime = (elements: ChatAttachCameraElements, signal: AbortSignal): ChatAttachCameraRuntime => {
@@ -128,9 +106,10 @@ const createCameraCaptureRuntime = (elements: ChatAttachCameraElements, signal: 
     let active = false;
     let stream: MediaStream | null = null;
     let capturedFile: File | null = null;
-    let facingMode: CameraFacingMode = 'environment';
+    let selectedDeviceId: string | null = null;
+    let cameraDeviceIds: readonly string[] = [];
     let operationSequence = 0;
-    let streamReady = false;
+    let streamStatus: CameraStreamStatus = 'stopped';
 
     const nextOperationSequence = (): number => {
         operationSequence += 1;
@@ -140,9 +119,9 @@ const createCameraCaptureRuntime = (elements: ChatAttachCameraElements, signal: 
     const isCurrentOperation = (sequence: number): boolean => active && !signal.aborted && sequence === operationSequence;
 
     const syncControls = (): void => {
-        const canUseCamera = active && enabled && streamReady;
+        const canUseCamera = active && enabled && streamStatus === 'ready';
         const hasCapture = capturedFile !== null;
-        setButtonAvailability(elements.flipButton, !hasCapture, canUseCamera);
+        setButtonAvailability(elements.switchButton, !hasCapture && cameraDeviceIds.length > 1, active && enabled && streamStatus !== 'starting');
         setButtonAvailability(elements.shutterButton, !hasCapture, canUseCamera);
         setButtonAvailability(elements.retakeButton, hasCapture, active && enabled);
         setButtonAvailability(elements.useButton, hasCapture, active && enabled);
@@ -162,13 +141,20 @@ const createCameraCaptureRuntime = (elements: ChatAttachCameraElements, signal: 
     };
 
     const stopActiveStream = (): void => {
-        stopStream(stream);
+        stopMediaStreamTracks(stream);
         stream = null;
-        streamReady = false;
+        streamStatus = 'stopped';
         elements.video.srcObject = null;
     };
 
-    const start = async (): Promise<void> => {
+    const failStart = (error: Error): void => {
+        errorHandler.warn('ChatAttachCamera', 'Camera stream request failed', error);
+        stopActiveStream();
+        setCameraState(elements, 'unavailable');
+        renderStatus(elements.status, resolveCameraStartFailureMessage(error));
+    };
+
+    const start = async (deviceId: string | null): Promise<void> => {
         const sequence = nextOperationSequence();
         stopActiveStream();
         clearCapture();
@@ -179,61 +165,46 @@ const createCameraCaptureRuntime = (elements: ChatAttachCameraElements, signal: 
             return;
         }
         const mediaDevices = navigator.mediaDevices;
-        if (!mediaDevices || typeof mediaDevices.getUserMedia !== 'function') {
+        if (!mediaDevices || !isFunction(mediaDevices.getUserMedia)) {
             renderStatus(elements.status, i18n.t('chat.attachModal.cameraNoCamera'));
             setCameraState(elements, 'unsupported');
             syncControls();
             return;
         }
+        selectedDeviceId = deviceId;
+        streamStatus = 'starting';
         setCameraState(elements, 'preparing');
         renderStatus(elements.status, i18n.t('chat.attachModal.cameraPreparing'));
+        syncControls();
         try {
-            const constraints: MediaStreamConstraints = { audio: false, video: { facingMode } };
-            let nextStream: MediaStream;
-            try {
-                nextStream = await mediaDevices.getUserMedia(constraints);
-            } catch (firstError) {
-                const coercedFirst = ensureError(firstError);
-                const isPermissionError = coercedFirst.name === 'NotAllowedError' || coercedFirst.name === 'PermissionDeniedError';
-                if (isPermissionError && isCurrentOperation(sequence)) {
-                    const permissionState = await probeCameraPermissionState();
-                    if (permissionState !== 'granted') {
-                        throw coercedFirst;
-                    }
-                    await waitForTimerDelay(getWindow(), PERMISSION_RETRY_DELAY_MS, signal);
-                    if (!isCurrentOperation(sequence)) {
-                        return;
-                    }
-                    nextStream = await mediaDevices.getUserMedia(constraints);
-                } else {
-                    throw coercedFirst;
-                }
-            }
+            const opened = await openCameraStream({ mediaDevices, deviceId, signal, isCurrent: () => isCurrentOperation(sequence) });
             if (!isCurrentOperation(sequence)) {
-                stopStream(nextStream);
+                stopMediaStreamTracks(opened.stream);
                 return;
             }
-            stream = nextStream;
+            stream = opened.stream;
+            selectedDeviceId = opened.deviceId;
             elements.video.srcObject = stream;
             await elements.video.play();
             const frame = requireVideoFrame(elements.video);
-            syncStageAspectRatio(elements, frame.width, frame.height);
             if (!isCurrentOperation(sequence)) {
-                stopActiveStream();
                 return;
             }
-            streamReady = true;
+            syncStageAspectRatio(elements, frame.width, frame.height);
+            streamStatus = 'ready';
             setCameraState(elements, 'streaming');
             renderStatus(elements.status, '');
         } catch (error) {
             if (!isCurrentOperation(sequence)) {
                 return;
             }
-            const runtimeError = ensureError(error);
-            errorHandler.warn('ChatAttachCamera', 'Camera stream request failed', runtimeError);
-            setCameraState(elements, 'unavailable');
-            renderStatus(elements.status, resolveCameraStartFailureMessage(runtimeError));
+            failStart(ensureError(error));
         }
+        const deviceIds = await listCameraDeviceIds(mediaDevices);
+        if (!isCurrentOperation(sequence)) {
+            return;
+        }
+        cameraDeviceIds = deviceIds;
         syncControls();
     };
 
@@ -244,7 +215,7 @@ const createCameraCaptureRuntime = (elements: ChatAttachCameraElements, signal: 
         },
         async activate(): Promise<void> {
             active = true;
-            await start();
+            await start(selectedDeviceId);
         },
         deactivate(): void {
             active = false;
@@ -254,7 +225,7 @@ const createCameraCaptureRuntime = (elements: ChatAttachCameraElements, signal: 
             syncControls();
         },
         async capture(): Promise<void> {
-            if (!active || !enabled || !streamReady || capturedFile !== null) {
+            if (!active || !enabled || streamStatus !== 'ready' || capturedFile !== null) {
                 return;
             }
             const sequence = nextOperationSequence();
@@ -282,13 +253,13 @@ const createCameraCaptureRuntime = (elements: ChatAttachCameraElements, signal: 
             if (!active) {
                 return;
             }
-            await start();
+            await start(selectedDeviceId);
         },
         async useCapturedFile(): Promise<File | null> {
             if (!active || !enabled) {
                 return null;
             }
-            if (capturedFile === null && !streamReady) {
+            if (capturedFile === null && streamStatus !== 'ready') {
                 return null;
             }
             if (capturedFile === null) {
@@ -296,12 +267,15 @@ const createCameraCaptureRuntime = (elements: ChatAttachCameraElements, signal: 
             }
             return capturedFile;
         },
-        async flipCamera(): Promise<void> {
-            if (!active || capturedFile !== null) {
+        async switchCamera(): Promise<void> {
+            if (!active || !enabled || capturedFile !== null || streamStatus === 'starting') {
                 return;
             }
-            facingMode = facingMode === 'environment' ? 'user' : 'environment';
-            await start();
+            const nextDeviceId = selectNextCameraDeviceId(cameraDeviceIds, selectedDeviceId);
+            if (nextDeviceId === null || nextDeviceId === selectedDeviceId) {
+                return;
+            }
+            await start(nextDeviceId);
         },
         dispose(): void {
             active = false;

@@ -34,6 +34,7 @@ async def fetch_url(
     self: WebContentFetcherProtocol,
     url: str,
     *,
+    ocr_language: str,
     progress_callback: ProgressCallbackProtocol | None = None,
 ) -> FetchedContent:
     normalized_url = normalize_http_url(url)
@@ -205,6 +206,7 @@ async def fetch_url(
         raise ValidationError(f"Failed to fetch {url}: no content returned")
     return await process_fetched_url_content(
         self,
+        ocr_language=ocr_language,
         content=content,
         content_type=content_type,
         final_url=final_url,

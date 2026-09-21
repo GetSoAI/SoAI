@@ -11,6 +11,7 @@ import { getWindow } from '@core/environment/public.ts';
 import { uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 import { isFunction, isNullOrUndefined, isString } from '@core/typeGuards.ts';
 import { TabsComponent } from '@core/ui/controls/Tabs.ts';
+import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 import type { TabsOptions } from '@core/ui/controls/tabs/types.ts';
 import type { AttachViewportResizeOptions, CreateStandardSearchOptions, GridPosition, StandardSearchResult, UnsavedChangesGuardOptions } from '@core/routing/pages/pagetypes/public.ts';
 import type { BasePageLayoutHost } from '@core/routing/pages/basepagelayout/contracts.ts';
@@ -77,15 +78,8 @@ const createStandardSearch = (page: BasePageLayoutHost, _state: BasePageLayoutSt
     if (!isString(placeholder) || !placeholder.trim()) {
         throw err('Search placeholder is required');
     }
-    const searchIconClass = showIconOnMobile ? 'searchbar-icon' : 'searchbar-icon u-hide-mobile-portrait';
-    page.updateHTML(
-        container,
-        uiHtml`<div class="searchbar-container searchbar-container--control wide u-stretch"><input type="text" class="searchbar-input" placeholder="${uiAttr(placeholder.trim())}" id="${uiAttr(inputId)}"><span class="${uiAttr(searchIconClass)}">${page.services.getIconSync('search', {
-            size: 16,
-            strokeWidth: 1.5
-        })}</span></div>`,
-        { escape: false }
-    );
+    const searchActionClass = showIconOnMobile ? '' : 'u-hide-mobile-portrait';
+    page.updateHTML(container, uiHtml`<div class="searchbar-container searchbar-container--control wide u-stretch"><input type="text" class="searchbar-input" placeholder="${uiAttr(placeholder.trim())}" id="${uiAttr(inputId)}">${renderSearchFieldActions(searchActionClass)}</div>`, { escape: false });
     page.setDataAttribute(container, 'searchInitialized', 'true');
     page.flushDOMUpdates();
     const resolvedInput = dom.resolve('input.searchbar-input', container);

@@ -7,6 +7,7 @@ import type { NotificationApi, PageContext } from '@core/pagecontext/public.ts';
 import { getRouteDefinitions, getSidebarComponentTargets } from '@core/routeregistry/service.ts';
 import type { SidebarComponentTargets } from '@core/routeregistry/contracts.ts';
 import { RouterComponentLoader } from '@core/routing/router/componentLoader.ts';
+import { resolveDefaultAuthenticatedRoute } from '@core/routing/router/authRouteTarget.ts';
 import { resolveRouteTitle } from '@core/routing/router/navigation.ts';
 import { normalizeNavigationRequest } from '@core/routing/router/navigationRequest.ts';
 import { assertRouterDependencies } from '@core/routing/router/contracts.ts';
@@ -97,6 +98,7 @@ class Router {
                 getWindow,
                 getRouteFromHash: () => this.getRouteFromHash(),
                 parseRoute: (target: string) => this.parseRoute(target),
+                getDefaultRoute: () => this.getDefaultRoute(),
                 navigate: async (target: string, options: NavigationOptions) => this.navigate(target, options),
                 errorHandler: this.errorHandler,
                 renderCriticalError: (message: string) => renderRouterError(this.dom, this.contentContainer, 'critical', message, reloadHandler),
@@ -134,6 +136,9 @@ class Router {
     parseRoute(routePath: string): { route: RouteEntry; parameters: RouteParameters } | null {
         return parseRoutePath(routePath, this.routes, this.dynamicRoutes);
     }
+    getDefaultRoute(): string {
+        return resolveDefaultAuthenticatedRoute(this.storage.getDefaultPage(), this.auth);
+    }
     async navigate(target: string | NavigationTarget, options: NavigationOptions = {}): Promise<void> {
         return this.routerBoundary.execute(async () => {
             const request = normalizeNavigationRequest(target, options);
@@ -158,7 +163,7 @@ class Router {
     }
     async #navigateInternal(request: NavigationRequest, signal: AbortSignal): Promise<void> {
         await executeNavigationRequest({
-            router: { parseRoute: (path: string) => this.parseRoute(path) },
+            router: { parseRoute: (path: string) => this.parseRoute(path), getDefaultRoute: () => this.getDefaultRoute() },
             state: {
                 currentRoute: this.currentRoute,
                 setCurrentRoute: (route: string) => {

@@ -11,6 +11,12 @@ from core.conversations.protocols_database_message_streaming import (
 from core.errors.exceptions import ValidationError
 from core.timing.epoch import epoch_ms
 from features.assistant_timeline.models import AssistantTimelineRuntime
+from features.assistant_timeline.status_preview_scheduler import (
+    wake_status_preview_scheduler,
+)
+from features.assistant_timeline.status_preview_state import (
+    supersede_completed_tool_preview_with_running_thinking,
+)
 from features.assistant_timeline.thinking_phase import build_thinking_phase
 from features.assistant_timeline.visible_activity_event_emission import (
     flush_assistant_text_then_publish_visible_event_locked,
@@ -104,6 +110,12 @@ async def upsert_thinking_phase(
             "thinking_phase": phase_payload,
         },
     )
+    should_wake_status_preview = supersede_completed_tool_preview_with_running_thinking(
+        runtime=runtime,
+        status=status,
+    )
+    if should_wake_status_preview:
+        wake_status_preview_scheduler(runtime)
     return True
 
 

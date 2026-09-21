@@ -29,6 +29,7 @@
         --chat-input-bottom-offset: calc(var(--space-16) + var(--space-6));
         --chat-input-actions-height: var(--chat-input-empty-height);
         --chat-messages-padding-bottom: calc(var(--chat-input-bottom-offset) + var(--ui-safe-area-inset-bottom));
+        --chat-floating-input-inset: var(--chat-messages-padding-bottom);
         --chat-attached-files-max-height: calc(230px + 4rem);
         --chat-message-image-max-dimension: 300px;
         --chat-pointer-size: 7px;
@@ -123,6 +124,16 @@
         overflow: visible;
         border-radius: var(--border-radius);
         transition: --chat-plan-divider-height var(--duration-220) var(--ease-default);
+    }
+
+    @container ui-viewport (width <= 900px) {
+        :where([data-section='chat'], [data-page-scope='chat']) .chat-main-container {
+            transition:
+                --chat-plan-divider-height var(--duration-220) var(--ease-default),
+                transform var(--duration-250) var(--ease-in-out),
+                opacity var(--duration-250) var(--ease-in-out),
+                visibility var(--duration-250) var(--ease-linear);
+        }
     }
 
     body.detached-window :where([data-section='chat'], [data-page-scope='chat']) .chat-main-container {

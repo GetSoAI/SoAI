@@ -6,25 +6,21 @@ import { isArray } from '@core/typeGuards.ts';
 import { resolveLoadingActivityErrorText } from '@features/chat/assistanteventtimeline/loadingActivityErrorText.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { resolveLoadingActivityToggleEnabled } from '@features/chat/message/messageview/loadingActivityToggleEnabled.ts';
-import type { InlineLoadingActivitySegment, MessageSegment } from '@features/chat/message/messageSegments.ts';
+import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
 import { buildAssistantResponseMarkup } from '@features/chat/message/assistantResponseMarkup.ts';
 import { shouldCollapseLoadingActivities } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
-import { renderCollapsedLoadingSummary } from '@features/chat/message/messageview/collapsedLoadingSummaryRendering.ts';
+import { renderCollapsedLoadingSummary, type CollapsedLoadingSummaryDependencies } from '@features/chat/message/messageview/collapsedLoadingSummaryRendering.ts';
 import type { MessageRenderOptions, RenderedMessageTextContent } from '@features/chat/message/messageview/types.ts';
 import type { ChatMessageRenderPresentation } from '@features/chat/message/messageRenderPresentation.ts';
 
-interface RenderMessageTextContentDependencies {
-    nowMs: () => number;
+interface RenderMessageTextContentDependencies extends CollapsedLoadingSummaryDependencies {
     isShowActivitiesEnabled: () => boolean;
     getCurrentConversationId: () => string | null;
     resolveMessageContentSegments: (message: ChatMessage) => MessageSegment[];
     getPreRenderedAssistantBodyHtml: (message: ChatMessage) => string | null;
     getLoadingActivityCollapsedState: (message: ChatMessage) => boolean | null;
     renderSegmentsWithOptions: (segments: MessageSegment[], options?: MessageRenderOptions) => string;
-    renderTimelineSegmentsMarkup: (segments: MessageSegment[]) => string;
-    renderAssistantBodyItem: (markup: string, key: string, signature: string) => string;
     renderAssistantActivityWidgets: (segments: readonly MessageSegment[]) => string;
-    renderLoadingActivityGroup: (segment: InlineLoadingActivitySegment, inputArguments: { displayStatus: InlineLoadingActivitySegment['status']; durationStatus?: InlineLoadingActivitySegment['status']; toggleEnabled: boolean }) => string;
     renderMessageErrorMarkup: (errorText: string) => string;
     handleMessageRenderError: (message: ChatMessage, error: Error, context: string) => string;
 }
@@ -57,10 +53,7 @@ const createMessageRenderOptions = (dependencies: RenderMessageTextContentDepend
 };
 
 const shouldUsePreRenderedAssistantBody = (dependencies: RenderMessageTextContentDependencies, message: ChatMessage): boolean => {
-    if (resolveLoadingActivitiesCollapsed(dependencies, message)) {
-        return false;
-    }
-    return dependencies.isShowActivitiesEnabled();
+    return !resolveLoadingActivitiesCollapsed(dependencies, message);
 };
 
 const isAssistantWidgetRenderReady = (presentation: ChatMessageRenderPresentation, forceSettledAssistantBody: boolean): boolean => {
@@ -71,13 +64,13 @@ const isAssistantWidgetRenderReady = (presentation: ChatMessageRenderPresentatio
 };
 
 const renderSegmentsWithLoadingGroup = (dependencies: RenderMessageTextContentDependencies, message: ChatMessage, segments: MessageSegment[], presentation: ChatMessageRenderPresentation): string => {
+    if (presentation.normalizedRole !== 'assistant') {
+        return dependencies.renderSegmentsWithOptions(segments, createMessageRenderOptions(dependencies, presentation.normalizedRole, resolveLoadingActivityToggleEnabled(segments)));
+    }
     if (resolveLoadingActivitiesCollapsed(dependencies, message) === true) {
         return renderCollapsedLoadingSummary(dependencies, message, segments, presentation);
     }
-    if (presentation.normalizedRole === 'assistant') {
-        return dependencies.renderTimelineSegmentsMarkup(segments);
-    }
-    return dependencies.renderSegmentsWithOptions(segments, createMessageRenderOptions(dependencies, presentation.normalizedRole, resolveLoadingActivityToggleEnabled(segments)));
+    return dependencies.renderTimelineSegmentsMarkup(segments);
 };
 
 const renderMessageTextContent = (dependencies: RenderMessageTextContentDependencies, message: ChatMessage, presentation: ChatMessageRenderPresentation, segments: MessageSegment[] | null = null, options: { forceSettledAssistantBody?: boolean } = {}): RenderedMessageTextContent => {

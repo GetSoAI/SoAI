@@ -157,19 +157,31 @@ export function isTerminalRenderPendingForMessage(context: ChatStreamingControll
 }
 
 export function setStreamPhase(context: ChatStreamingControllerContext, conversationId: string, phase: StreamLifecyclePhase): void {
-    const state = requireConversationStreamState(context, conversationId);
     const normalizedConversationId = normalizeConversationId(conversationId);
     if (!normalizedConversationId) {
         throw new Error('Chat stream phase requires a valid conversation id.');
     }
     const previousIsStreaming = isConversationStreamingUiActive(context, normalizedConversationId);
+    setStreamPhaseState(context, normalizedConversationId, phase);
+    applyStreamPhasePresentation(context, normalizedConversationId, previousIsStreaming);
+}
+
+export function setStreamPhaseState(context: ChatStreamingControllerContext, conversationId: string, phase: StreamLifecyclePhase): void {
+    const state = requireConversationStreamState(context, conversationId);
+    const normalizedConversationId = normalizeConversationId(conversationId);
+    if (!normalizedConversationId) throw new Error('Chat stream phase requires a valid conversation id.');
     state.phase = phase;
     state.updatedAtMs = monotonicMs();
     if (phase !== 'streaming') {
         clearActivityRefreshTimer(context, normalizedConversationId);
     }
-    const nextIsStreaming = isConversationStreamingUiActive(context, normalizedConversationId);
     resolveConversationIdleWaiters(context.idleWaitersByConversationId, normalizedConversationId);
+}
+
+export function applyStreamPhasePresentation(context: ChatStreamingControllerContext, conversationId: string, previousIsStreaming: boolean): void {
+    const normalizedConversationId = normalizeConversationId(conversationId);
+    if (!normalizedConversationId) throw new Error('Chat stream phase presentation requires a valid conversation id.');
+    const nextIsStreaming = isConversationStreamingUiActive(context, normalizedConversationId);
     applyStreamingUiTransition(context, {
         conversationId: normalizedConversationId,
         previousIsStreaming,
@@ -235,6 +247,9 @@ export function reconcileInactiveSyncedConversation(context: ChatStreamingContro
     }
     const state = context.streamStateByConversationId.get(normalizedConversationId);
     if (state === undefined || state.terminalRenderTimerId !== null || state.terminalizationPromise !== null) {
+        return;
+    }
+    if ((state.phase === 'stopping' || state.phase === 'stop_failed') && !context.dependencies.chatStreamService.canStartPromptNow(normalizedConversationId)) {
         return;
     }
     clearStreamingContext(context, normalizedConversationId);

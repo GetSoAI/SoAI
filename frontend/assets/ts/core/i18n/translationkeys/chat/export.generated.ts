@@ -15,6 +15,7 @@ export type ChatExportTranslationKey =
     | 'chat.export.pdf.comparisonTurn'
     | 'chat.export.pdf.cover.outlineTitle'
     | 'chat.export.pdf.emptyVariant'
+    | 'chat.export.pdf.error.browserUnavailable'
     | 'chat.export.pdf.error.conversationChanged'
     | 'chat.export.pdf.error.invalidRequest'
     | 'chat.export.pdf.error.timedOut'

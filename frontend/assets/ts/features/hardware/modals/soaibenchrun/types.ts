@@ -5,6 +5,7 @@ import type { OperationProgressReporter } from '@core/operationprogress/types.ts
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
+import type { GpuSoAIBenchPhaseDiagnostics } from '@core/api/contracts/hardwareSoAIBenchTypes.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 
 interface SoAIBenchRunOpenRequest {
@@ -31,7 +32,10 @@ interface SoAIBenchRunMetrics {
     durationMs: number | null;
     sampleCount: number | null;
     scoreVariancePercent: number | null;
+    phaseVariationPercent: GpuSoAIBenchPhaseDiagnostics | null;
+    phaseDriftPercent: GpuSoAIBenchPhaseDiagnostics | null;
     warmupPassesCompleted: number | null;
+    warmupActiveSeconds: number | null;
     measuredPassesCompleted: number | null;
     currentPassType: string | null;
     currentPassIndex: number | null;
@@ -48,10 +52,16 @@ interface SoAIBenchRunRecord {
     profile: string;
     benchmarkMode: string;
     status: string;
+    startedAtMs: number | null;
     active: boolean;
     updateSeq: number;
     leaderboardEligible: boolean;
     leaderboardRejectionReason: string | null;
+    legacy: boolean;
+    publicationEligible: boolean;
+    matchBasis: string | null;
+    reasonMessage: string | null;
+    guidanceMessage: string | null;
     failureReason: string | null;
     unsupportedReason: string | null;
     metrics: SoAIBenchRunMetrics;
@@ -76,6 +86,7 @@ interface SoAIBenchRunModalHost {
 
 interface SoAIBenchRunModalDependencies {
     host: SoAIBenchRunModalHost;
+    publishRun(run: SoAIBenchRunRecord, setDisabled: (disabled: boolean) => void): Promise<void>;
 }
 
 interface SoAIBenchRunSession {
@@ -87,6 +98,8 @@ interface SoAIBenchRunSession {
     token: symbol;
     cancelRequested: boolean;
     starting: boolean;
+    stopWhenStartSettles: boolean;
+    stopRequestSent: boolean;
 }
 
 interface SoAIBenchRunRenderContext {

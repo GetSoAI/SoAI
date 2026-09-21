@@ -30,6 +30,8 @@ import type {
     ConversationSearchConfigResponse,
     ConversationSearchConfigUpdateRequest,
     ConversationStreamStatusResponse,
+    ConversationStreamCancelRequest,
+    ConversationStreamCancelResponse,
     ConversationWorkspacePathConfigResponse,
     ConversationWorkspacePathConfigUpdateRequest,
     SecretPromptInteractionResolutionRequest,
@@ -95,6 +97,18 @@ const decodeStreamStatus = (value: ApiResponsePayload): ConversationStreamStatus
     if (typeof record['preview_trigger'] === 'string') result.previewTrigger = record['preview_trigger'];
     return result;
 };
+const decodeStreamCancel = (value: ApiResponsePayload): ConversationStreamCancelResponse => {
+    const record = requireRecord(value, 'Conversation stream cancellation response');
+    return {
+        conversationId: requireString(record['conversation_id'], 'Conversation stream cancellation response.conversation_id'),
+        requestId: requireString(record['request_id'], 'Conversation stream cancellation response.request_id'),
+        status: readRequiredEnumValue(record['status'], 'Conversation stream cancellation response.status', ['cancellation_requested', 'already_terminal', 'superseded'])
+    };
+};
+const serializeStreamCancel = (value: ConversationStreamCancelRequest): JsonValue => ({
+    'request_id': value.requestId,
+    'force_pending_steers': value.forcePendingSteers
+});
 const decodeSoaiPathContentPart = (value: JsonValue | undefined, label: string): SoaiPathContentPart => {
     const record = requireRecord(value, label);
     const source = requireRecord(record['source_reference'], `${label}.source_reference`);
@@ -227,7 +241,7 @@ const decodePdfExportAccepted = (value: ApiResponsePayload): ConversationPdfExpo
     return { status: readRequiredEnumValue(record['status'], 'Conversation PDF export response.status', ['accepted']), taskId: requireString(record['task_id'], 'Conversation PDF export response.task_id'), commitDeadlineTsMs: record['commit_deadline_ts_ms'] === null || record['commit_deadline_ts_ms'] === undefined ? null : readRequiredEpochMsValue(record['commit_deadline_ts_ms'], 'Conversation PDF export response.commit_deadline_ts_ms'), downloadUrl: requireString(record['download_url'], 'Conversation PDF export response.download_url') };
 };
 
-export { decodeComparisonTurnPreflight, decodeInteractionFocus, decodeInteractionResolution, decodeMcpConfig, decodeMcpToolCatalog, decodePdfExportAccepted, decodePendingInteraction, decodePendingInteractions, decodeRawResponse, decodeSearchConfig, decodeSoaiLinkResolve, decodeSoaiOpen, decodeSoaiPathContentPart, decodeSoaiPreview, decodeSoaiRead, decodeSoaiToken, decodeStreamStatus, decodeWorkspacePathConfig };
+export { decodeComparisonTurnPreflight, decodeInteractionFocus, decodeInteractionResolution, decodeMcpConfig, decodeMcpToolCatalog, decodePdfExportAccepted, decodePendingInteraction, decodePendingInteractions, decodeRawResponse, decodeSearchConfig, decodeSoaiLinkResolve, decodeSoaiOpen, decodeSoaiPathContentPart, decodeSoaiPreview, decodeSoaiRead, decodeSoaiToken, decodeStreamCancel, decodeStreamStatus, decodeWorkspacePathConfig, serializeStreamCancel };
 export type {
     AskUserAnswerRequest,
     AskUserInteractionResolutionRequest,
@@ -251,6 +265,8 @@ export type {
     ConversationSearchConfigResponse,
     ConversationSearchConfigUpdateRequest,
     ConversationStreamStatusResponse,
+    ConversationStreamCancelRequest,
+    ConversationStreamCancelResponse,
     ConversationWorkspacePathConfigResponse,
     ConversationWorkspacePathConfigUpdateRequest,
     SecretPromptInteractionResolutionRequest,

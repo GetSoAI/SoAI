@@ -29,6 +29,8 @@ type ConfigurationUi = Pick<
     | 'autoTitleGenerationHint'
     | 'showActivities'
     | 'showActivitiesHint'
+    | 'showActivityElapsedTime'
+    | 'showActivityElapsedTimeHint'
     | 'hideAutomationRuns'
     | 'hideAutomationRunsHint'
     | 'hideMessagingConversations'
@@ -90,6 +92,8 @@ const resolveConfigurationUiTemplateStrings = (sanitizer: SanitizerApi): Configu
         autoTitleGenerationHint: i18n.html(sanitizer, 'chat.configuration.autoTitleGenerationHint'),
         showActivities: i18n.html(sanitizer, 'chat.configuration.showActivities'),
         showActivitiesHint: i18n.html(sanitizer, 'chat.configuration.showActivitiesHint'),
+        showActivityElapsedTime: i18n.html(sanitizer, 'chat.configuration.showActivityElapsedTime'),
+        showActivityElapsedTimeHint: i18n.html(sanitizer, 'chat.configuration.showActivityElapsedTimeHint'),
         hideAutomationRuns: i18n.html(sanitizer, 'chat.configuration.hideAutomationRuns'),
         hideAutomationRunsHint: i18n.html(sanitizer, 'chat.configuration.hideAutomationRunsHint'),
         hideMessagingConversations: i18n.html(sanitizer, 'chat.configuration.hideMessagingConversations'),

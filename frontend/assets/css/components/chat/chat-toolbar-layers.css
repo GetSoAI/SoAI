@@ -14,6 +14,7 @@
         transition:
             opacity var(--transition-fast),
             visibility var(--transition-fast);
+        cursor: pointer;
     }
 
     .chat-toolbar-collapsed-layer > .chat-toolbar-toggle {
@@ -21,6 +22,10 @@
         height: var(--chat-toolbar-collapsed-toggle-size);
         min-width: var(--chat-toolbar-collapsed-toggle-size);
         min-height: var(--chat-toolbar-collapsed-toggle-size);
+        cursor: pointer;
+    }
+
+    .chat-toolbar-expanded-bottom .chat-toolbar-expanded-toggle {
         cursor: pointer;
     }
 
@@ -46,6 +51,7 @@
         justify-content: center;
         align-items: center;
         width: 100%;
+        cursor: pointer;
     }
 
     .chat-toolbar-expanded-chevron {

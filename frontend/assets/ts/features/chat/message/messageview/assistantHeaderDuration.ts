@@ -24,7 +24,7 @@ const resolveAssistantHeaderDurationArguments = (message: ChatMessage, nowMs: nu
     };
 };
 
-const renderAssistantHeaderDuration = (escapeHtml: (value: string) => string, message: ChatMessage, nowMs: number): string => {
+const renderAssistantHeaderDuration = (escapeHtml: (value: string) => string, message: ChatMessage, nowMs: number, animateEntrance = false): string => {
     const inputArguments = resolveAssistantHeaderDurationArguments(message, nowMs);
     if (inputArguments === null) {
         return '';
@@ -35,7 +35,8 @@ const renderAssistantHeaderDuration = (escapeHtml: (value: string) => string, me
     }
     return renderInlineActivityDurationMarkup((value) => escapeHtml(value), label, {
         extraAttributes: ' data-assistant-response-duration="true"',
-        reserveCharacters: resolveInlineActivityDurationReserveCharacters(inputArguments)
+        reserveCharacters: resolveInlineActivityDurationReserveCharacters(inputArguments),
+        animateEntrance
     });
 };
 

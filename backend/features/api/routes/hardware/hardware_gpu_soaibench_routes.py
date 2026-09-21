@@ -6,6 +6,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from core.errors.exceptions import ValidationError
 from core.hardware.soaibench_limits import SOAIBENCH_HISTORY_DEFAULT_LIMIT
 from core.state.access import AccessAction
 from features.api.routes.csv_streaming_response import build_csv_export_stream_response
@@ -15,12 +16,16 @@ from features.api.runtime.container.api_routers import ApiRouters
 from features.api.runtime.context import ApiContext, resolve_api_context
 from features.api.runtime.current_user import CurrentUser, get_current_user
 from features.api.runtime.query_parameters import require_supported_query_parameters
+from features.api.runtime.request_payloads import read_bounded_body_bytes_or_raise
 from features.api.schemas.hardware import GPUSoAIBenchStartRequest
 
 __all__ = (
+    "delete_soaibench_local_run_api",
+    "preview_soaibench_publication_api",
     "export_soaibench_history_csv_api",
     "get_soaibench_run_api",
     "list_soaibench_history_api",
+    "publish_soaibench_run_api",
     "register_endpoints",
     "register_routes",
     "start_soaibench_run_api",
@@ -86,6 +91,65 @@ async def stop_soaibench_run_api(
     return JSONResponse(content=result)
 
 
+async def delete_soaibench_local_run_api(
+    request: Request,
+    run_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+    api_context: ApiContext = Depends(resolve_api_context),
+) -> JSONResponse:
+    result = await api_context.dependencies.hardware_soaibench.delete_local_run(
+        run_id=run_id,
+        user_id=current_user["id"],
+    )
+    log_audit_event(
+        request, "DELETE_LOCAL_GPU_SOAIBENCH", f"soaibench_run:{run_id}", {"run_id": run_id}
+    )
+    return JSONResponse(content=result)
+
+
+async def preview_soaibench_publication_api(
+    run_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+    api_context: ApiContext = Depends(resolve_api_context),
+) -> JSONResponse:
+    result = await api_context.dependencies.hardware_soaibench.preview_publication(
+        run_id=run_id,
+        user_id=current_user["id"],
+    )
+    return JSONResponse(content=result, headers={"Cache-Control": "no-store"})
+
+
+async def publish_soaibench_run_api(
+    request: Request,
+    run_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+    api_context: ApiContext = Depends(resolve_api_context),
+) -> JSONResponse:
+    body = await read_bounded_body_bytes_or_raise(
+        request,
+        max_body_bytes=1,
+        invalid_body_message="SoAIBench publication request body is invalid.",
+        payload_too_large_message="SoAIBench publication accepts no request body.",
+    )
+    if body:
+        raise ValidationError("SoAIBench publication accepts no request body.")
+    status_code, result = await api_context.dependencies.hardware_soaibench.publish_run(
+        run_id=run_id,
+        user_id=current_user["id"],
+    )
+    log_audit_event(
+        request,
+        "SHARE_GPU_SOAIBENCH",
+        f"soaibench_run:{run_id}",
+        {
+            "run_id": run_id,
+            "submission_id": result.get("submission_id"),
+            "duplicate": result.get("duplicate"),
+        },
+    )
+    return JSONResponse(content=result, status_code=status_code)
+
+
 async def list_soaibench_history_api(
     device_id: str = Query(...),
     limit: int = Query(SOAIBENCH_HISTORY_DEFAULT_LIMIT),
@@ -128,6 +192,18 @@ def register_endpoints(router: APIRouter) -> None:
         "/gpu/soaibench/runs/{run_id}/stop",
         dependencies=require_action_dependencies(AccessAction.RECOVERY_ADMIN),
     )(stop_soaibench_run_api)
+    router.delete(
+        "/gpu/soaibench/runs/{run_id}",
+        dependencies=require_action_dependencies(AccessAction.HW_GPU_TUNING),
+    )(delete_soaibench_local_run_api)
+    router.get(
+        "/gpu/soaibench/runs/{run_id}/publication/preview",
+        dependencies=require_action_dependencies(AccessAction.HW_GPU_TUNING),
+    )(preview_soaibench_publication_api)
+    router.post(
+        "/gpu/soaibench/runs/{run_id}/publication",
+        dependencies=require_action_dependencies(AccessAction.HW_GPU_TUNING),
+    )(publish_soaibench_run_api)
     router.get(
         "/gpu/soaibench/runs",
         dependencies=require_action_dependencies(AccessAction.HARDWARE_READ),

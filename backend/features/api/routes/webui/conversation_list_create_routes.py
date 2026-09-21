@@ -220,4 +220,5 @@ def register_routes(routers: ApiRouters) -> None:
                 config=api_context.dependencies.config,
                 conversation_record=conversation_record,
             ),
+            status_code=201,
         )

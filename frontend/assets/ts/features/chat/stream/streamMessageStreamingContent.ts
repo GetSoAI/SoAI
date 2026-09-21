@@ -73,6 +73,7 @@ const renderVerifiedStreamingTextAppend = (inputArguments: RenderStreamingMessag
     return {
         handled: true,
         invalidatedCache: false,
+        requiresActivityDurationReconcile: false,
         updatedMarkup,
         target
     };
@@ -110,6 +111,7 @@ const renderActiveStreamingMessageContent = (inputArguments: RenderStreamingMess
             return {
                 handled: false,
                 invalidatedCache: true,
+                requiresActivityDurationReconcile: true,
                 updatedMarkup: false,
                 target
             };
@@ -169,6 +171,7 @@ const renderActiveStreamingMessageContent = (inputArguments: RenderStreamingMess
     return {
         handled: true,
         invalidatedCache: false,
+        requiresActivityDurationReconcile: true,
         updatedMarkup,
         target
     };

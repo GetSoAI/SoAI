@@ -103,7 +103,7 @@ class ChatAttachBrowseWorkspaceOperations {
             if (record === null || controller.signal.aborted || !isCurrent()) {
                 return false;
             }
-            const addedCount = this.#host.attachments.addSoaiPaths([record]);
+            const addedCount = this.#host.attachments.addSoaiPaths([record], 'browse');
             if (addedCount > 0) {
                 this.#host.shared.feedback.show(i18n.plural('chat.attachments.soaiPathLinkAdded', addedCount, { count: addedCount }), 'success');
             }

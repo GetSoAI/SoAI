@@ -40,10 +40,12 @@ def prepare_archive_logo(
         reconstructed = result is None
         if result is None:
             snapshot = inspect_plugin_package_stream(plugin_name, source)
-            if snapshot.archive_hash != content_hash.sha256_hex:
+            if snapshot.content.archive_hash != content_hash.sha256_hex:
                 raise StateError("Plugin artwork source does not match the catalog revision.")
             result = sanitize_plugin_logo(snapshot.logo_source)
-        if identity != FileIdentity.from_stat(os.fstat(source.fileno())):
+        if not identity.matches_descriptor_snapshot(
+            FileIdentity.from_stat(os.fstat(source.fileno())),
+        ):
             raise StateError("Plugin artwork source changed during preparation.")
         if identity != FileIdentity.from_stat(os.stat(archive_path, follow_symlinks=False)):
             raise StateError("Plugin artwork source was replaced during preparation.")

@@ -4,6 +4,7 @@
 @layer foundations {
     :root {
         --border-radius: 12px;
+        --border-radius-small-button: 8px;
         --border-round: 50%;
         --border-width-1: 1px;
         --border-width-150: 1.5px;

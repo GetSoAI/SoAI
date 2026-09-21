@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from core.errors.exceptions import ValidationError
 from core.types.json import JSONDict
-from core.validation.integers import require_non_negative_exact_int
+from core.validation.requirements import require_non_negative_exact_int
 from core.validation.strings import coerce_optional_trimmed_str
 
 __all__ = (

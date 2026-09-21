@@ -13,7 +13,7 @@ interface ChatAttachModalHost {
 }
 
 type ChatAttachWorkspacePathHost = Pick<ChatAttachModalHost, 'conversation' | 'execution' | 'shared'>;
-type ChatAttachDraftListHost = Pick<ChatAttachModalHost, 'attachments' | 'execution'>;
+type ChatAttachDraftListHost = Pick<ChatAttachModalHost, 'attachments' | 'conversation' | 'execution'>;
 type ChatAttachKnowledgeRefreshHost = Pick<ChatAttachModalHost, 'shared'>;
 type ChatAttachSoaiLinkHost = Pick<ChatAttachModalHost, 'attachments' | 'conversation' | 'execution' | 'shared'>;
 type ChatAttachBrowseHost = ChatAttachModalHost;

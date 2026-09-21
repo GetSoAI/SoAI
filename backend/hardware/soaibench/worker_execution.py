@@ -6,32 +6,22 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-from core.concurrency.bounded_blocking import run_bounded_blocking_call
-from core.serialization.json import serialize_json_compact_stable
-from core.tasks.enums import TaskStatus
-from core.tasks.status_transitions import update_progress
-from core.timing.epoch import epoch_ms
-from hardware.soaibench.events import publish_soaibench_worker_update
 from hardware.soaibench.phase_telemetry import run_phase_with_telemetry
 from hardware.soaibench.telemetry import SoAIBenchTelemetryAccumulator
 from hardware.soaibench.types import SoAIBenchProfile, SoAIBenchRunStatus
 from hardware.soaibench.worker_runtime_conditions import (
     finish_cancelled_runtime_profile,
+    finish_unstable_for_telemetry,
+    persist_worker_heartbeat,
 )
-from hardware.soaibench.worker_terminal import finish_success
+from hardware.soaibench.worker_terminal import finish_successful_runtime
 from hardware.soaibench.workload import (
     SoAIBenchWorkloadResult,
-    execute_soaibench_alu_phase,
-    execute_soaibench_compute_phase,
-    execute_soaibench_latency_phase,
-    execute_soaibench_matrix_phase,
-    execute_soaibench_memory_phase,
-    execute_soaibench_mixed_phase,
     score_stress_phase,
 )
 
 if TYPE_CHECKING:
-    from core.concurrency.bounded_blocking import BoundedBlockingPool
+    from hardware.soaibench.internal_protocols import SoAIBenchOpenCLExecutionProtocol
     from hardware.soaibench.types import SoAIBenchGpuIdentity
     from hardware.soaibench.worker_context import (
         SoAIBenchWorkerEventContext,
@@ -55,7 +45,7 @@ STRESS_TELEMETRY_SAMPLE_INTERVAL_SECONDS = 0.1
 
 async def run_stress(
     *,
-    opencl_pool: BoundedBlockingPool,
+    opencl_pool: SoAIBenchOpenCLExecutionProtocol,
     runtime_context: SoAIBenchWorkerRuntimeContext,
     event_context: SoAIBenchWorkerEventContext,
     max_duration_seconds: float | None,
@@ -80,7 +70,23 @@ async def run_stress(
             runtime_context=runtime_context,
             telemetry_accumulator=telemetry_accumulator,
             sample_interval_seconds=STRESS_TELEMETRY_SAMPLE_INTERVAL_SECONDS,
+            terminate_execution=opencl_pool.close,
         )
+        if phase_run.terminal_telemetry is not None:
+            await finish_unstable_for_telemetry(
+                runtime_context=runtime_context,
+                telemetry_accumulator=telemetry_accumulator,
+                telemetry=phase_run.terminal_telemetry,
+                terminate_execution=opencl_pool.close,
+            )
+            return
+        if phase_run.phase_result is None:
+            await opencl_pool.close()
+            await finish_cancelled_runtime_profile(
+                runtime_context=runtime_context,
+                profile=SoAIBenchProfile.STRESS,
+            )
+            return
         latest_result = score_stress_phase(phase_run.phase_result)
         sample_count += latest_result.sample_count
         telemetry_summary = telemetry_accumulator.summary()
@@ -90,68 +96,31 @@ async def run_stress(
             **telemetry_summary,
             "stress_sample_count": sample_count,
         }
-        if (
-            phase_run.terminal_telemetry is not None
-            and not phase_run.terminal_telemetry.temperature_available
-        ):
-            summary["temperature_warning"] = "temperature_telemetry_unavailable"
         latest_summary = summary
-        if (
-            phase_run.terminal_telemetry is not None
-            and phase_run.terminal_telemetry.temperature_exceeded
-        ):
-            await finish_success(
-                database_hardware=runtime_context.database_hardware,
-                task_registry=runtime_context.task_registry,
-                run_id=runtime_context.run_id,
-                task_id=runtime_context.task_id,
-                status=SoAIBenchRunStatus.UNSTABLE,
-                task_status=TaskStatus.FAILED,
-                started_at_ms=runtime_context.started_at_ms,
-                base_summary={
-                    **summary,
-                    "message": phase_run.terminal_telemetry.instability_message,
-                },
-                result=latest_result,
-                sample_count=sample_count,
-                failure_reason=phase_run.terminal_telemetry.instability_reason,
-            )
-            await publish_soaibench_worker_update(event_context, "terminal")
-            return
-        await runtime_context.database_hardware.update_soaibench_heartbeat(
-            run_id=runtime_context.run_id,
-            last_heartbeat_at_ms=epoch_ms(),
+        await persist_worker_heartbeat(
+            runtime_context=runtime_context,
+            event_context=event_context,
+            summary=summary,
             sample_count=sample_count,
-            summary_json=serialize_json_compact_stable(summary),
-        )
-        await publish_soaibench_worker_update(event_context, "heartbeat")
-        await update_progress(
-            runtime_context.task_registry,
-            runtime_context.task_id,
-            min(95, 10 + sample_count),
+            progress_current=min(95, 10 + sample_count),
             status_message="SoAIBench stress slice completed.",
         )
     if latest_result is None:
+        await opencl_pool.close()
         await finish_cancelled_runtime_profile(
             runtime_context=runtime_context,
             profile=SoAIBenchProfile.STRESS,
         )
-        await publish_soaibench_worker_update(event_context, "terminal")
         return
+    await opencl_pool.close()
     stopped_by_user = runtime_context.stop_event.is_set()
-    await finish_success(
-        database_hardware=runtime_context.database_hardware,
-        task_registry=runtime_context.task_registry,
-        run_id=runtime_context.run_id,
-        task_id=runtime_context.task_id,
+    await finish_successful_runtime(
+        runtime_context=runtime_context,
         status=SoAIBenchRunStatus.STOPPED if stopped_by_user else SoAIBenchRunStatus.COMPLETED,
-        task_status=TaskStatus.CANCELLED if stopped_by_user else TaskStatus.COMPLETED,
-        started_at_ms=runtime_context.started_at_ms,
         base_summary=latest_summary,
         result=latest_result,
         sample_count=sample_count,
     )
-    await publish_soaibench_worker_update(event_context, "terminal")
 
 
 def _stress_duration_elapsed(
@@ -165,85 +134,84 @@ def _stress_duration_elapsed(
 
 async def run_compute_phase(
     *,
-    opencl_pool: BoundedBlockingPool,
+    opencl_pool: SoAIBenchOpenCLExecutionProtocol,
     identity: SoAIBenchGpuIdentity,
     timeout_sec: float,
 ) -> SoAIBenchPhaseResult:
-    return await run_bounded_blocking_call(
-        opencl_pool,
-        execute_soaibench_compute_phase,
+    return await opencl_pool.phase(
+        "compute",
         identity,
+        stress=False,
         timeout_sec=timeout_sec,
     )
 
 
 async def run_alu_phase(
     *,
-    opencl_pool: BoundedBlockingPool,
+    opencl_pool: SoAIBenchOpenCLExecutionProtocol,
     identity: SoAIBenchGpuIdentity,
     timeout_sec: float,
 ) -> SoAIBenchPhaseResult:
-    return await run_bounded_blocking_call(
-        opencl_pool,
-        execute_soaibench_alu_phase,
+    return await opencl_pool.phase(
+        "alu",
         identity,
+        stress=False,
         timeout_sec=timeout_sec,
     )
 
 
 async def run_memory_phase(
     *,
-    opencl_pool: BoundedBlockingPool,
+    opencl_pool: SoAIBenchOpenCLExecutionProtocol,
     identity: SoAIBenchGpuIdentity,
     timeout_sec: float,
 ) -> SoAIBenchPhaseResult:
-    return await run_bounded_blocking_call(
-        opencl_pool,
-        execute_soaibench_memory_phase,
+    return await opencl_pool.phase(
+        "memory",
         identity,
+        stress=False,
         timeout_sec=timeout_sec,
     )
 
 
 async def run_latency_phase(
     *,
-    opencl_pool: BoundedBlockingPool,
+    opencl_pool: SoAIBenchOpenCLExecutionProtocol,
     identity: SoAIBenchGpuIdentity,
     timeout_sec: float,
 ) -> SoAIBenchPhaseResult:
-    return await run_bounded_blocking_call(
-        opencl_pool,
-        execute_soaibench_latency_phase,
+    return await opencl_pool.phase(
+        "latency",
         identity,
+        stress=False,
         timeout_sec=timeout_sec,
     )
 
 
 async def run_matrix_phase(
     *,
-    opencl_pool: BoundedBlockingPool,
+    opencl_pool: SoAIBenchOpenCLExecutionProtocol,
     identity: SoAIBenchGpuIdentity,
     timeout_sec: float,
 ) -> SoAIBenchPhaseResult:
-    return await run_bounded_blocking_call(
-        opencl_pool,
-        execute_soaibench_matrix_phase,
+    return await opencl_pool.phase(
+        "matrix",
         identity,
+        stress=False,
         timeout_sec=timeout_sec,
     )
 
 
 async def run_mixed_phase(
     *,
-    opencl_pool: BoundedBlockingPool,
+    opencl_pool: SoAIBenchOpenCLExecutionProtocol,
     identity: SoAIBenchGpuIdentity,
     stress: bool,
     timeout_sec: float,
 ) -> SoAIBenchPhaseResult:
-    return await run_bounded_blocking_call(
-        opencl_pool,
-        execute_soaibench_mixed_phase,
+    return await opencl_pool.phase(
+        "mixed",
         identity,
-        stress,
+        stress=stress,
         timeout_sec=timeout_sec,
     )

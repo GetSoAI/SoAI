@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.files.types import ParseExecutionContext
 from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
+from core.users.ocr_preferences import resolve_user_ocr_language
 from mcp.tools.argument_fields import reject_unexpected_parameters
 from mcp.tools.error import MCPToolError
 from mcp.tools.files_access import (
@@ -72,10 +73,14 @@ async def tool_message_parse(self: MCPUtilityToolsProtocol, arguments: JSONDict)
             -32602,
             f"Unknown platform: {platform}. Valid: {', '.join(parsers.keys())}",
         )
+    ocr_language = await resolve_user_ocr_language(
+        self.database_users, self.runtime_sessions.current_user_id()
+    )
     try:
         result = await parser.parse(
             ParseExecutionContext(
                 source_path=file_path,
+                ocr_language=ocr_language,
                 cancellation_token=None,
                 progress_callback=None,
                 display_name=None,

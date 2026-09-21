@@ -66,6 +66,7 @@ from core.terminal.protocols import TerminalServiceProtocol
 from core.tool_calls.current_tool_call import CurrentToolCallIdentity
 from core.tool_calls.protocols import DatabaseToolCallsProtocol
 from core.users.protocols_database import DatabaseUsersProtocol
+from mcp.shared_persistence_dependencies import MCPSharedPersistence
 
 if TYPE_CHECKING:
     from core.agent.protocols import AgentSubagentServiceProtocol
@@ -156,7 +157,10 @@ class NewsArticleListSearchProtocol(Protocol):
 
 
 @dataclass(frozen=True, slots=True)
-class MCPUtilityToolsDependencies(MCPUtilityToolsDependenciesProtocol):
+class MCPUtilityToolsDependencies(
+    MCPSharedPersistence,
+    MCPUtilityToolsDependenciesProtocol,
+):
     config: ConfigProtocol
     storage_manager: StorageManagerProtocol
     hardware_manager: HardwareManagerProtocol
@@ -181,12 +185,6 @@ class MCPUtilityToolsDependencies(MCPUtilityToolsDependenciesProtocol):
     database_messages: DatabaseMessagesProtocol
     database_notifications: DatabaseNotificationsProtocol
     conversation_attention: ConversationAttentionCoordinatorProtocol
-    database_automations: DatabaseAutomationsProtocol
-    database_chat_identity_defaults: DatabaseChatIdentityDefaultsProtocol
-    database_chat_model_defaults: DatabaseChatModelDefaultsProtocol
-    database_automation_runs: DatabaseAutomationRunsProtocol
-    database_tool_calls: DatabaseToolCallsProtocol
-    database_read_video: DatabaseReadVideoJobsProtocol
     task_registry: TaskRegistryProtocol
     task_cancellation_binder: TaskCancellationBinderProtocol
     model_resolution_service: ModelResolutionServiceProtocol
@@ -224,12 +222,6 @@ class MCPUtilityToolsDependencies(MCPUtilityToolsDependenciesProtocol):
             database_messages=self.database_messages,
             database_plugins=self.database_plugins,
             database_users=self.database_users,
-            database_automation_runs=self.database_automation_runs,
-            database_automations=self.database_automations,
-            database_chat_identity_defaults=self.database_chat_identity_defaults,
-            database_chat_model_defaults=self.database_chat_model_defaults,
-            database_tool_calls=self.database_tool_calls,
-            database_read_video=self.database_read_video,
             database_notifications=self.database_notifications,
             conversation_attention=self.conversation_attention,
             model_resolution_service=self.model_resolution_service,
@@ -250,6 +242,7 @@ class MCPUtilityToolsDependencies(MCPUtilityToolsDependenciesProtocol):
             task_cancellation_binder=self.task_cancellation_binder,
             terminal=self.terminal,
         )
+        self.validate_shared_persistence("MCPUtilityToolsDependencies")
 
 
 class MCPUtilityToolsProtocol(MCPUtilityToolsDependenciesProtocol, Protocol):

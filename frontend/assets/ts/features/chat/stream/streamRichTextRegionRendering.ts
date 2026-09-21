@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { createHtmlFragment } from '@core/dom/html.ts';
-import { projectStreamingRichTextBlocks, resolveStreamingMutableSource, type StreamingRichBlock, type StreamingRichBlockProjection } from '@core/richtextrenderer/streamingBlockProjection.ts';
+import { projectStreamingRichTextBlocks, resolveStreamingMutableRenderSource, resolveStreamingMutableSource, type StreamingRichBlock, type StreamingRichBlockProjection } from '@core/richtextrenderer/streamingBlockProjection.ts';
 import type { RenderedStreamingBlockRecord, StreamingElementCache } from '@features/chat/stream/streamDomCache.ts';
 import type { StreamMessageManager } from '@features/chat/stream/streamMessageRenderingContracts.ts';
 import { patchRichTextContent } from '@features/chat/stream/streamRichTextPatching.ts';
@@ -58,7 +58,8 @@ const resolveTrailingOpenCodeFence = (source: string): { prefix: string; languag
 const renderMutableMarkdownSource = (source: string, messageManager: StreamMessageManager): string => {
     const openFence = resolveTrailingOpenCodeFence(source);
     if (openFence === null) {
-        return source.trim() ? messageManager.renderStreamingMarkdownContent(source) : '';
+        const renderSource = resolveStreamingMutableRenderSource(source);
+        return renderSource.trim() ? messageManager.renderStreamingMarkdownContent(renderSource) : '';
     }
     const prefixHtml = openFence.prefix.trim() ? messageManager.renderStreamingMarkdownContent(openFence.prefix) : '';
     const normalizedCode = openFence.code.endsWith('\n') ? openFence.code : `${openFence.code}\n`;
@@ -151,7 +152,7 @@ const canPromoteMutableTail = (cached: StreamingElementCache, projection: Stream
     }
     const previousMutableSource = resolveStreamingMutableSource(previousProjection);
     const blockSource = projection.source.slice(block.start, block.end);
-    if (!previousMutableSource || !blockSource.startsWith(previousMutableSource)) {
+    if (!previousMutableSource || resolveStreamingMutableRenderSource(previousMutableSource) !== previousMutableSource || !blockSource.startsWith(previousMutableSource)) {
         return false;
     }
     return blockSource.slice(previousMutableSource.length).trim() === '';

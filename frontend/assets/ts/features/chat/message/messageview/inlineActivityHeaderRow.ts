@@ -4,7 +4,8 @@
 import { i18n } from '@core/i18n/index.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
-import { stripTrailingPreviewDot } from '@features/chat/message/messageview/inlineActivityText.ts';
+import type { InlineLoadingActivitySegment } from '@features/chat/message/messageSegments.ts';
+import { STREAMED_PREVIEW_ATTRIBUTE_NAMES, stripTrailingPreviewDot } from '@features/chat/message/messageview/inlineActivityText.ts';
 
 type InlineActivityHeaderTagName = 'div' | 'span';
 type InlineActivityLeadingVariant = 'expander' | 'hourglass' | 'dot';
@@ -68,6 +69,11 @@ const renderInlineActivityPreview = (dependencies: InlineActivityHeaderDependenc
     const textAttributes = inputArguments.textAttributes ? ` ${inputArguments.textAttributes.trim()}` : '';
     const previewText = stripTrailingPreviewDot(inputArguments.text);
     return `<span class="inline-activity-preview${rootClassName}"${hiddenAttribute}${rootAttributes}><span class="inline-activity-preview-text"${textAttributes}>${dependencies.escapeHtml(previewText)}</span></span>`;
+};
+
+const renderInlineActivityStreamedPreview = (dependencies: InlineActivityHeaderDependencies, inputArguments: { status: InlineLoadingActivitySegment['status']; visible: string; latest: string }): string => {
+    const rootAttributes = `${STREAMED_PREVIEW_ATTRIBUTE_NAMES.root}="true"` + ` ${STREAMED_PREVIEW_ATTRIBUTE_NAMES.status}="${dependencies.escapeAttribute(inputArguments.status)}"` + ` ${STREAMED_PREVIEW_ATTRIBUTE_NAMES.visible}="${dependencies.escapeAttribute(inputArguments.visible)}"` + ` ${STREAMED_PREVIEW_ATTRIBUTE_NAMES.latest}="${dependencies.escapeAttribute(inputArguments.latest)}"`;
+    return renderInlineActivityPreview(dependencies, { text: inputArguments.visible, rootAttributes });
 };
 
 const renderInlineActivityStopButton = (dependencies: InlineActivityHeaderDependencies, inputArguments: InlineActivityStopButtonArguments | null): string => {
@@ -137,5 +143,5 @@ const renderInlineActivityHeaderRow = (
     return `${headerOpen}${inputArguments.leadingIconHtml}${inputArguments.statusLedHtml}${inputArguments.mainIconHtml}<span class="inline-activity-name">${dependencies.escapeHtml(inputArguments.name)}</span>${separatorDot}${preview}${duration}${stopButton}${closeButton}${headerClose}`;
 };
 
-export { renderInlineActivityHeaderRow, renderInlineActivityIcon, renderInlineActivityLeadingIcon, renderInlineActivityPreview };
+export { renderInlineActivityHeaderRow, renderInlineActivityIcon, renderInlineActivityLeadingIcon, renderInlineActivityPreview, renderInlineActivityStreamedPreview };
 export type { InlineActivityHeaderDependencies, InlineActivityLeadingVariant, InlineActivityStopButtonArguments };

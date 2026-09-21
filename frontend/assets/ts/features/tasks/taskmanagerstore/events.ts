@@ -88,7 +88,11 @@ const buildOperationUpdate = (event: OperationEvent | null | undefined, context:
     const pluginKey = context.getPluginKey(normalizedPluginName);
     if (!pluginKey) throw new Error(`TaskManagerStore could not derive plugin key for '${normalizedPluginName}'.`);
 
-    const cancelable = nextMeta.cancelable === true ? true : nextMeta.cancelable === false ? false : definition.cancelable !== false;
+    const existingWasExplicitlyNonCancelable = existing?.meta?.['cancelable'] === false;
+    if (existingWasExplicitlyNonCancelable) {
+        nextMeta['cancelable'] = false;
+    }
+    const cancelable = nextMeta.cancelable === true ? true : nextMeta.cancelable === false || existingWasExplicitlyNonCancelable ? false : definition.cancelable !== false;
     const existingProgress = existing && isFiniteNumber(existing.progress) ? existing.progress : null;
     const normalizedProgress = context.normalizeProgress(dataObject['progress']);
     const nextProgress = normalizedProgress !== null ? normalizedProgress : existingProgress !== null ? existingProgress : 0;

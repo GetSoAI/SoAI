@@ -84,6 +84,16 @@ class ChatComposerController implements ChatComposerContract {
         return this.#dependencies.runtime.turnRuntime.requireConversationInputs().cancelPrompt(conversationId, inputId);
     }
 
+    async retryConversationRegeneration(conversationId: string, inputId: string): Promise<void> {
+        const conversation = this.#dependencies.state.conversationState.conversations.get(conversationId);
+        const revision = conversation?.updatedAt;
+        if (!Number.isInteger(revision) || Number(revision) <= 0) {
+            throw new Error('Conversation regeneration retry requires a current conversation revision.');
+        }
+        await this.#dependencies.runtime.turnRuntime.requireConversationInputs().retryRegeneration(conversationId, inputId, Number(revision));
+        await this.#dependencies.runtime.conversationRuntime.requireStorage().loadConversationMessages(conversationId, { force: true });
+    }
+
     async resolveAskUserPrompt(conversationId: string, taskId: string, action: 'submit' | 'cancel'): Promise<void> {
         await resolveAskUserPromptForConstruction(this.#promptResolutionHost(), conversationId, taskId, action);
     }

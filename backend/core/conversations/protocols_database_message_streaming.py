@@ -6,9 +6,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from core.conversations.conversation_input_finalization import (
-        ConversationInputFinalization,
-    )
     from core.conversations.conversation_message_write_result import (
         ConversationMessageWriteResult,
     )
@@ -36,24 +33,6 @@ class DatabaseStreamingMessagesProtocol(Protocol):
         *,
         assistant_at_ms: int,
         events: list[tuple[int, int, str, JSONDict, int]],
-    ) -> ConversationMessageWriteResult: ...
-    async def finalize_streaming_assistant_message(
-        self,
-        conv_id: str,
-        user_id: int,
-        *,
-        created_at_ms: int,
-        request_id: str | None,
-        finish_reason: str | None,
-        prompt_tokens: int | None,
-        completion_tokens: int | None,
-        total_tokens: int | None,
-        usage_source: str | None,
-        generation_latency_ms: int | None,
-        thinking_tail_duration_ms: int | None,
-        terminal_reason: str | None = None,
-        input_finalization: ConversationInputFinalization | None = None,
-        input_terminal_code: str | None = None,
     ) -> ConversationMessageWriteResult: ...
     async def commit_streaming_assistant_terminal(
         self,

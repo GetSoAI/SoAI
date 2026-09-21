@@ -5,8 +5,6 @@ interface SidebarState {
     collapsed: boolean;
     mobile: boolean;
     open: boolean;
-    hideTerminal: boolean;
-    hideModels: boolean;
     lastDesktopCollapsed: boolean;
     grantedActions: ReadonlySet<string>;
 }
@@ -15,8 +13,6 @@ const createInitialSidebarState = (): SidebarState => ({
     collapsed: true,
     mobile: false,
     open: false,
-    hideTerminal: false,
-    hideModels: false,
     lastDesktopCollapsed: true,
     grantedActions: new Set()
 });

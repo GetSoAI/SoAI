@@ -44,8 +44,7 @@ function createChatUIManagerState(): ChatUIManagerState {
         advancedScrollPreviewVisibilityController: null,
         activeConversationTransitionId: null,
         messagesAreaInsetsDisposer: null,
-        modalPresenter: null,
-        inlineActivityScrollStateByKey: new Map()
+        modalPresenter: null
     };
 }
 

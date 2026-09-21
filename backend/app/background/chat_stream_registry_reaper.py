@@ -61,8 +61,8 @@ async def _cancel_stale_runtime(
     try:
         await publish_cancel(
             application_context.services.infrastructure.event_bus,
-            application_context.services.tasks.cancellation_coordinator,
-            application_context.services.tasks.cancellation_history,
+            application_context.services.tasks.cancellation.coordinator,
+            application_context.services.tasks.cancellation.history,
             None,
             reason,
             cancellation_id=runtime.task_cancellation_id,

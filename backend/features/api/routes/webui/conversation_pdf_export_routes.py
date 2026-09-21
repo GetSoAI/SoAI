@@ -6,6 +6,10 @@ from __future__ import annotations
 from fastapi import Depends, Request
 from fastapi.responses import FileResponse, JSONResponse
 
+from core.browser.html_pdf_renderer import (
+    PdfBrowserUnavailableError,
+    require_pdf_browser_ready,
+)
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ConflictError, PayloadTooLargeError, ValidationError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
@@ -41,8 +45,10 @@ from features.api.runtime.errors import (
     raise_invalid_request,
     raise_not_found,
     raise_server_error,
+    raise_service_unavailable,
 )
 from features.api.runtime.responses import create_task_accepted_response
+from features.api.runtime.task_api_errors import raise_api_error_with_task
 from features.api.runtime.task_execution import finalize_task_safely
 from features.conversation_export.artifacts import (
     build_conversation_pdf_artifact_paths,
@@ -70,6 +76,14 @@ def register_routes(routers: ApiRouters) -> None:
         api_context: ApiContext = Depends(resolve_api_context),
     ) -> JSONResponse:
         settings = resolve_conversation_pdf_export_settings(api_context.dependencies.config)
+        try:
+            await require_pdf_browser_ready()
+        except PdfBrowserUnavailableError as exception:
+            raise_service_unavailable(
+                request,
+                str(exception),
+                error_type=str(exception.code),
+            )
         registry, task, trace_id = await create_admitted_conversation_pdf_export_task(
             request=request,
             api_context=api_context,
@@ -101,6 +115,27 @@ def register_routes(routers: ApiRouters) -> None:
                 api_context=api_context,
                 user_id=current_user["id"],
                 metadata=metadata,
+            )
+            await require_pdf_browser_ready()
+        except PdfBrowserUnavailableError as exception:
+            cleanup_conversation_pdf_task_directory(paths.task_dir)
+            await finalize_task_safely(
+                registry=registry,
+                task_id=task.task_id,
+                status=TaskStatus.FAILED,
+                operation="webui.conversation_pdf_export.browser_unavailable",
+                trace_id=trace_id,
+                error_code=exception.http_status,
+                error_type=str(exception.code),
+                error_message=str(exception),
+                status_message="PDF export browser unavailable",
+            )
+            raise_api_error_with_task(
+                request,
+                exception.http_status,
+                str(exception.code),
+                "PDF export browser runtime is unavailable.",
+                task_id=task.task_id,
             )
         except (ConflictError, PayloadTooLargeError, ValidationError) as exception:
             cleanup_conversation_pdf_task_directory(paths.task_dir)

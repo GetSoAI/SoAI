@@ -31,6 +31,7 @@ __all__ = (
     "CONTEXT_COMPACTION_POST_ASSISTANT_TEXT_FIELD",
     "CONTEXT_COMPACTION_TOOL_NAME",
     "build_context_compaction_marker_from_tool_payload",
+    "build_manual_context_compaction_call_id",
     "extract_context_compaction_marker_from_assistant_timeline",
     "extract_context_compaction_marker_from_message",
     "extract_context_compaction_markers_from_assistant_timeline",
@@ -54,6 +55,10 @@ _VALID_CONTEXT_COMPACTION_STATUSES = frozenset(
 )
 _BOUNDARY_REMOVED_AT_MS_FIELD = "boundary_removed_at_ms"
 _BOUNDARY_REMOVED_REASON_FIELD = "boundary_removed_reason"
+
+
+def build_manual_context_compaction_call_id(turn_id: str) -> str:
+    return f"context_compaction:{turn_id}"
 
 
 def _coerce_context_compaction_result_payload(value: JSONValue) -> JSONDict | None:

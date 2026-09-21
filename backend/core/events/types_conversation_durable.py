@@ -12,6 +12,8 @@ __all__ = (
     "ConversationAttentionChangedEvent",
     "ConversationInputTerminalEvent",
     "ConversationInteractionRequiredEvent",
+    "ConversationStreamCancellationRequestedEvent",
+    "ConversationStreamCancellationSettledEvent",
 )
 
 
@@ -38,6 +40,21 @@ class ConversationInputTerminalEvent(Event):
     source_message_id: int | None
     terminal_state: str
     terminal_code: str
+
+
+@dataclass(slots=True)
+class ConversationStreamCancellationRequestedEvent(Event):
+    user_id: int
+    conv_id: str
+    request_id: str
+    force_pending_steers: bool
+
+
+@dataclass(slots=True)
+class ConversationStreamCancellationSettledEvent(Event):
+    user_id: int
+    conv_id: str
+    request_id: str
 
 
 @dataclass(slots=True)

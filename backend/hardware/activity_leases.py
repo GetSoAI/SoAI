@@ -25,6 +25,7 @@ class HardwareActivityLease:
     activity_type: str
     owner_id: str
     run_id: str | None = None
+    degraded: bool = False
 
 
 @dataclass(frozen=True, slots=True)

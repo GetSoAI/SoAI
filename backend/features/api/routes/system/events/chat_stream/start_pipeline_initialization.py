@@ -3,12 +3,11 @@
 
 from __future__ import annotations
 
-from asyncio import CancelledError, Task
+from asyncio import CancelledError
 from collections.abc import MutableMapping
 from typing import TYPE_CHECKING
 
 from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
-from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import ValidationError
@@ -68,8 +67,8 @@ async def initialize_ws_chat_stream_runtime_or_error(
 ) -> None:
     placeholder_persisted = runtime.assistant_placeholder_persisted
     failure_finalized = False
-    runner_scheduled = False
-    scheduled_task: Task[None] | None = None
+    execution_completed = False
+    cancellation_deferred_to_preparation_owner = False
     chat_streams[runtime.conv_id] = runtime
     try:
         if not placeholder_persisted:
@@ -100,38 +99,20 @@ async def initialize_ws_chat_stream_runtime_or_error(
             inference_request_json,
         )
 
-        async def run_and_cleanup() -> None:
-            try:
-                await run_ws_chat_stream(
-                    request=request,
-                    api_context=api_context,
-                    stream_dependencies=stream_dependencies,
-                    request_context=request_context,
-                    runtime=runtime,
-                    request_json=inference_request_json,
-                    tool_context=tool_context,
-                    prepared_agent_request=prepared_agent_request,
-                    knowledge_prompt_claim=knowledge_prompt_claim,
-                )
-            finally:
-                existing = chat_streams.get(runtime.conv_id)
-                if existing is runtime:
-                    del chat_streams[runtime.conv_id]
-                await uncancel_then_cleanup(
-                    api_context.dependencies.chat_stream_registry.remove_if_same(runtime),
-                )
-
-        scheduled_task = create_ephemeral_task(
-            run_and_cleanup(),
-            name=f"ws-chat-stream-{runtime.conv_id}",
+        await run_ws_chat_stream(
+            request=request,
+            api_context=api_context,
+            stream_dependencies=stream_dependencies,
+            request_context=request_context,
+            runtime=runtime,
+            request_json=inference_request_json,
+            tool_context=tool_context,
+            prepared_agent_request=prepared_agent_request,
+            knowledge_prompt_claim=knowledge_prompt_claim,
         )
-        runtime.runner_task = scheduled_task
-        api_context.dependencies.application_control.track_background_task(scheduled_task)
-        runner_scheduled = True
+        execution_completed = True
     except CancelledError:
-        if scheduled_task is not None:
-            scheduled_task.cancel()
-            await uncancel_then_cleanup(scheduled_task)
+        cancellation_deferred_to_preparation_owner = True
         raise
     except ValidationError as exception:
         log_handled_exception(
@@ -174,15 +155,19 @@ async def initialize_ws_chat_stream_runtime_or_error(
         placeholder_persisted = True
         failure_finalized = True
     finally:
-        if not runner_scheduled:
+        if execution_completed:
+            existing = chat_streams.get(runtime.conv_id)
+            if existing is runtime:
+                del chat_streams[runtime.conv_id]
+            await uncancel_then_cleanup(
+                api_context.dependencies.chat_stream_registry.remove_if_same(runtime),
+            )
+        elif not cancellation_deferred_to_preparation_owner:
             delete_unfinalized_placeholder = (
                 runtime.assistant_placeholder_persisted
                 and not failure_finalized
                 and not runtime.terminal_persistence_completed
             )
-            if scheduled_task is not None:
-                scheduled_task.cancel()
-                await uncancel_then_cleanup(scheduled_task)
             await uncancel_then_cleanup(
                 cleanup_registered_ws_chat_stream_start_noncritical(
                     logger=logger,
@@ -194,6 +179,7 @@ async def initialize_ws_chat_stream_runtime_or_error(
                     release_quota=True,
                 ),
             )
+        if not execution_completed:
             await uncancel_then_cleanup(
                 release_knowledge_prompt_claim_noncritical(
                     api_dependencies=api_context.dependencies,

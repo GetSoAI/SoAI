@@ -26,6 +26,7 @@ from core.tasks.task import Task
 from core.tasks.task_cancellation import cancel
 from core.tasks.type_catalog import TASK_TYPE_WEB_SEARCH
 from core.timing.monotonic import monotonic_ms
+from core.users.ocr_preferences import resolve_user_ocr_language
 from mcp.rag.scraper.types import FetchedContent
 from mcp.search.clients.client_base import SearchClientBase
 from mcp.search.dependencies import MCPSearchDependencies
@@ -58,6 +59,7 @@ class MCPWebSearch:
         *,
         api_key_resolver: Callable[[str], Awaitable[str | None]],
     ) -> None:
+        self.database_users = deps.database_users
         self.config = deps.config
         self.http_client = deps.http_client
         self.web_fetcher = deps.web_fetcher
@@ -118,6 +120,7 @@ class MCPWebSearch:
     ) -> FetchedContent:
         return await fetch_url(
             url,
+            ocr_language=await resolve_user_ocr_language(self.database_users, user_id),
             web_fetcher=self.web_fetcher,
             task_registry=self.task_registry,
             cancellation_history=self._cancellation_history,

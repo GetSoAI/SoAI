@@ -128,7 +128,7 @@
         opacity: 0;
     }
 
-    :where(.chat-container) .inline-activity-type-thinking > .inline-activity-header > .inline-activity-preview > .inline-activity-preview-text {
+    :where(.chat-container) .inline-activity-header > .inline-activity-preview[data-streamed-preview='true'] > .inline-activity-preview-text {
         transition: none;
     }
 

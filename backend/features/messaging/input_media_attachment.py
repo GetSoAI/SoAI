@@ -136,6 +136,7 @@ async def ingest_messaging_media_attachment(
             deps=DirectAttachmentParseDependencies(
                 config=api_dependencies.config,
                 files=api_dependencies.files,
+                database_users=api_dependencies.database_users,
                 database_files=api_dependencies.database_files,
                 database_attachments=api_dependencies.database_conversation_attachments,
                 document_reader=api_dependencies.document_reader,

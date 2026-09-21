@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Protocol
 
 from starlette.datastructures import State
 
+from core.concurrency.protocols import AsyncContextManagerProtocol
 from core.events.types_base import Event
 from core.mcp.agent_config_normalization import NormalizedAgentMCPConfig
 from core.runtime.request_context import RequestContext
@@ -20,6 +21,7 @@ if TYPE_CHECKING:
     type AttachmentParseCoroutineFactory = Callable[[], Coroutine[None, None, None]]
 
     from features.api.runtime.chat_stream_registry import (
+        ChatStreamCancellationIntent,
         ChatStreamRegistrySnapshot,
         ChatStreamReservation,
     )
@@ -88,7 +90,51 @@ class BackupServiceProtocol(Protocol):
 
 
 class ChatStreamRegistryProtocol(Protocol):
+    def lifecycle_lock(
+        self,
+        *,
+        user_id: int,
+        conv_id: str,
+    ) -> AsyncContextManagerProtocol[None]: ...
+
     async def try_register(self, runtime: AssistantTimelineRuntime) -> bool: ...
+
+    async def try_reserve(self, reservation: ChatStreamReservation) -> bool: ...
+
+    async def try_reserve_while_lifecycle_locked(
+        self,
+        reservation: ChatStreamReservation,
+    ) -> bool: ...
+
+    async def remember_cancellation_intent(
+        self,
+        intent: ChatStreamCancellationIntent,
+    ) -> None: ...
+
+    async def cancellation_task_for(
+        self,
+        *,
+        user_id: int,
+        conv_id: str,
+        request_id: str,
+    ) -> asyncio.Task[None] | None: ...
+
+    async def record_cancellation_task(
+        self,
+        *,
+        user_id: int,
+        conv_id: str,
+        request_id: str,
+        task: asyncio.Task[None],
+    ) -> None: ...
+
+    async def clear_cancellation_intent_if_same(
+        self,
+        *,
+        user_id: int,
+        conv_id: str,
+        request_id: str,
+    ) -> None: ...
 
     async def release_reservation(self, reservation: ChatStreamReservation) -> None: ...
 

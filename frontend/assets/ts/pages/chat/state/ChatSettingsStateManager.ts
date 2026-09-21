@@ -9,7 +9,7 @@ import type { ChatParameters } from '@features/chat/public.ts';
 import { DEFAULT_TEXT_ZOOM } from '@pages/chat/contracts/chatPageConfig.ts';
 import { EXCLUDED_REQUEST_PARAMETER_KEY_SET } from '@core/chat/parameters/chatParameterKeySets.ts';
 import { buildChatRequestParameters } from '@core/chat/parameters/chatRequestParameters.ts';
-import { isInlineMultimediaPreviewsEnabled, isRichTextEnabled, isShowActivitiesEnabled } from '@pages/chat/controllers/page/state.ts';
+import { isInlineMultimediaPreviewsEnabled, isRichTextEnabled, isShowActivitiesEnabled, isShowActivityElapsedTimeEnabled } from '@pages/chat/controllers/page/state.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 
 interface ChatTextZoomPageHost extends PageDomOwnerHost {
@@ -82,6 +82,10 @@ class ChatSettingsState {
 
     showActivitiesEnabled(): boolean {
         return isShowActivitiesEnabled(this.parameters);
+    }
+
+    showActivityElapsedTimeEnabled(): boolean {
+        return isShowActivityElapsedTimeEnabled(this.parameters);
     }
 }
 

@@ -6,10 +6,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
-from core.concurrency.bounded_blocking import (
-    BoundedBlockingCancelledBase,
-    BoundedBlockingTimeoutBase,
-)
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
@@ -19,59 +16,13 @@ from hardware.soaibench.worker_runtime_conditions import (
 )
 
 if TYPE_CHECKING:
-    from core.logging.protocols import LoggerProtocol
     from hardware.soaibench.types import SoAIBenchProfile
     from hardware.soaibench.worker_context import SoAIBenchWorkerRuntimeContext
 
-__all__ = (
-    "finish_direct_cancellation_preserving",
-    "wait_for_blocking_completion",
-)
+__all__ = ("finish_direct_cancellation_preserving",)
 
-BLOCKING_COMPLETION_GRACE_SECONDS = 2.0
 LOGGER_NAME = "SoAI.hardware.soaibench.worker_cancellation"
-BLOCKING_COMPLETION_OPERATION = "hardware.soaibench.worker.blocking_completion"
 CANCELLATION_CLEANUP_OPERATION = "hardware.soaibench.worker.cancellation_cleanup"
-
-
-async def wait_for_blocking_completion(
-    exception: BoundedBlockingCancelledBase | BoundedBlockingTimeoutBase,
-    logger: LoggerProtocol,
-) -> None:
-    current_task = asyncio.current_task()
-    if current_task is not None:
-        while current_task.cancelling():
-            current_task.uncancel()
-    try:
-        await exception.wait_for_completion(BLOCKING_COMPLETION_GRACE_SECONDS)
-    except asyncio.CancelledError as future_exception:
-        log_exception(
-            logger,
-            future_exception,
-            message="SoAIBench blocking workload future was cancelled.",
-            operation=BLOCKING_COMPLETION_OPERATION,
-            level="warning",
-        )
-    except TimeoutError as future_exception:
-        log_exception(
-            logger,
-            future_exception,
-            message="SoAIBench blocking workload did not finish within the cancellation grace period.",
-            operation=BLOCKING_COMPLETION_OPERATION,
-            level="warning",
-        )
-    except HANDLED_RUNTIME_EXCEPTIONS as future_exception:
-        coerced_exception = coerce_to_soai_error(
-            future_exception,
-            operation=BLOCKING_COMPLETION_OPERATION,
-        )
-        log_exception(
-            logger,
-            coerced_exception,
-            message="SoAIBench blocking workload ended after cancellation.",
-            operation=BLOCKING_COMPLETION_OPERATION,
-            level="warning",
-        )
 
 
 async def finish_direct_cancellation_preserving(
@@ -80,14 +31,12 @@ async def finish_direct_cancellation_preserving(
     profile: SoAIBenchProfile,
     primary_exception: asyncio.CancelledError,
 ) -> None:
-    current_task = asyncio.current_task()
-    if current_task is not None:
-        while current_task.cancelling():
-            current_task.uncancel()
     try:
-        await finish_cancelled_runtime_profile(
-            runtime_context=runtime_context,
-            profile=profile,
+        await uncancel_then_cleanup(
+            finish_cancelled_runtime_profile(
+                runtime_context=runtime_context,
+                profile=profile,
+            ),
         )
     except asyncio.CancelledError as cleanup_exception:
         primary_exception.add_note(

@@ -22,8 +22,8 @@ const requireString = (value: JsonValue | null | undefined, context: string): st
 
 const requireActivityDurationDisplayMode = (value: JsonValue | null | undefined, context: string): ChatActivityDurationDisplayMode => {
     const displayMode = requireString(value, context);
-    if (displayMode !== 'all' && displayMode !== 'expandedOnly') {
-        throw new Error(`${context} must be all or expandedOnly`);
+    if (displayMode !== 'all' && displayMode !== 'expandedOnly' && displayMode !== 'settledOnly') {
+        throw new Error(`${context} must be all, expandedOnly, or settledOnly`);
     }
     return displayMode;
 };

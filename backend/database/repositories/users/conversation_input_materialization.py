@@ -15,6 +15,9 @@ from database.repositories.users.conversation_input_materialization_write import
     sync_materialize_conversation_input_user_message,
 )
 from database.repositories.users.conversation_input_row_mapping import format_conversation_input_row
+from database.repositories.users.conversation_stream_cancellation_state import (
+    sync_has_chat_stream_cancellation_receipt,
+)
 
 if TYPE_CHECKING:
     from core.plugins.protocols_instance import FilesProtocol
@@ -102,6 +105,16 @@ def sync_materialize_claimed_conversation_input(
     attachment_content = formatted.get("attachment_content")
     if not isinstance(conv_id, str) or not is_strict_int(user_id):
         raise StateError("Conversation input ownership is invalid.")
+    if sync_has_chat_stream_cancellation_receipt(
+        sqlite_conn,
+        int(user_id),
+        conv_id,
+        request_id,
+    ):
+        cancellation_result = dict(formatted)
+        cancellation_result["was_materialized"] = False
+        cancellation_result["cancellation_accepted"] = True
+        return cancellation_result
     if not isinstance(text, str) or not isinstance(attachment_content, list):
         raise StateError("Conversation input content is invalid.")
     source_metadata = formatted.get("source_metadata")

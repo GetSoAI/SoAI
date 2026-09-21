@@ -35,6 +35,7 @@ import { isOperationType, RESTART_OVERLAY_SERVICE_ID, type OperationType } from 
 import { TASK_MANAGER_SERVICE_ID } from '@core/tasks/protocols.ts';
 import { isBoolean, isFunction, isObject, isThenable } from '@core/typeGuards.ts';
 import { resetSecretInputToggleService } from '@core/ui/secretInput.ts';
+import { resetSearchFieldActionService } from '@core/ui/searchField.ts';
 import { resetTooltipService } from '@core/ui/tooltips/public.ts';
 import { destroyWebSocketClient } from '@core/websocketclient/service.ts';
 import { chartModulesAccess } from '@features/charts/chartModules.ts';
@@ -133,6 +134,7 @@ const rollbackBootstrapCore = (): void => {
     resetBackgroundTasksInstance();
     resetRestartStateService();
     resetSecretInputToggleService();
+    resetSearchFieldActionService();
     resetTooltipService();
     if (serviceContainer.has('core.auth')) {
         resetAuthManager();

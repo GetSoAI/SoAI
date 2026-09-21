@@ -34,7 +34,7 @@ const buildVirtualModelEditModalBody = (): ReturnType<typeof uiHtml> => {
         </div>
         <div class="form-group setting-change-surface setting-change-surface--child-selection" id="${modalUiId(modalId, 'vm-edit-models-field')}">
             <label>${i18n.t('models.modal.virtualModels.constituentModels')}</label>
-            ${buildConstituentPickerMarkup({ modalId, token: 'vm-edit-models', getIconSync })}
+            ${buildConstituentPickerMarkup({ modalId, token: 'vm-edit-models' })}
         </div>
     `;
 };
@@ -182,7 +182,7 @@ const createVirtualModelsModalElement = (): HTMLElement => {
         closeLabel: i18n.t('common.close'),
         sections: buildVirtualModelsTabs()
     });
-    const body = renderModalBody(buildVirtualModelsBody({ getIconSync }));
+    const body = renderModalBody(buildVirtualModelsBody());
     const footer = renderSplitModalFooter({
         left: renderModalFooterCloseButton({ modalId, text: i18n.t('common.close') }),
         right: renderModalFooterActionButton({ id: modalUiId(modalId, 'vm-save-create'), text: i18n.t('models.actions.createVirtualModel'), variant: 'accent' })

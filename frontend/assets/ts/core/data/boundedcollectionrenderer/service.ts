@@ -3,7 +3,7 @@
 
 import { COLLECTION_BUILD_FRAME_BUDGET_MS, COLLECTION_PAGE_SIZE, COLLECTION_RETAINED_PAGE_COUNT, createBackwardRange, createCompleteRange, createForwardRange, createInitialRange, createTargetRange, reconcileRangeAfterDataChange, validateCollectionSequence, type CollectionRange } from '@core/data/boundedcollectionrenderer/range.ts';
 import { CollectionCommitAwaiter } from '@core/data/boundedcollectionrenderer/commitAwaiter.ts';
-import { captureViewportAnchor, commitPlannedNodes, createEdgeLoader, createPlannedNode, restoreKeyedViewportAnchor, restoreViewportAnchor } from '@core/data/boundedcollectionrenderer/transaction.ts';
+import { captureViewportAnchor, commitPlannedNodes, createEdgeLoader, createPlannedNode, indexExistingCollectionNodes, restoreKeyedViewportAnchor, restoreViewportAnchor } from '@core/data/boundedcollectionrenderer/transaction.ts';
 import type { BoundedCollectionCommitContext, BoundedCollectionRendererOptions, BoundedCollectionUpdate, CollectionBuild, CollectionEdge, CollectionSequenceState, CollectionViewportAnchor } from '@core/data/boundedcollectionrenderer/types.ts';
 import { CollectionViewportCoordinator } from '@core/data/boundedcollectionrenderer/viewportCoordinator.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -132,7 +132,7 @@ class BoundedCollectionRenderer<TItem> {
         if (container === null) return false;
         const retiredContainer = this.#viewport.attach(container);
         if (retiredContainer !== null) this.#retiredContainers.add(retiredContainer);
-        const build: CollectionBuild<TItem> = { generation: this.#generation, container, ids: this.#ids, lookup: this.#lookup, range, dirtyIds, plannedNodes: [], enteringElements: [], cursor: range.start, loader: null, edge, resetScroll, revealId, modeAnchor: restorePreparedViewModeAnchor || retiredContainer !== null ? viewportAnchor : null, previousIds: previousState.ids, previousLookup: previousState.lookup };
+        const build: CollectionBuild<TItem> = { generation: this.#generation, container, ids: this.#ids, lookup: this.#lookup, range, dirtyIds, existingNodes: indexExistingCollectionNodes(container), plannedNodes: [], enteringElements: [], cursor: range.start, loader: null, edge, resetScroll, revealId, modeAnchor: restorePreparedViewModeAnchor || retiredContainer !== null ? viewportAnchor : null, previousIds: previousState.ids, previousLookup: previousState.lookup };
         this.#activeBuild = build;
         this.#queueBuildFrame();
         return true;

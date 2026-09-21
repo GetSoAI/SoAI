@@ -8,8 +8,9 @@ import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { uiText } from '@core/security/uiHtml.ts';
 import { formatHardwareNumber } from '@features/hardware/Formatters.ts';
 import { formatSoAIBenchDuration, formatSoAIBenchMetric, formatSoAIBenchPercentValue, formatSoAIBenchPowerPair, formatSoAIBenchScore, formatSoAIBenchTemperature, formatSoAIBenchThroughputValue, getSoAIBenchNotAvailableLabel } from '@features/hardware/soaibenchMetricFormatting.ts';
-import { formatUnexpectedSoAIBenchIdentifierLabel, resolveSoAIBenchStatusLabel } from '@features/hardware/soaibenchLabels.ts';
+import { formatUnexpectedSoAIBenchIdentifierLabel, resolveSoAIBenchReasonLabel, resolveSoAIBenchStatusLabel } from '@features/hardware/soaibenchLabels.ts';
 import { resolveTemperatureSeverity } from '@features/hardware/thermalSeverity.ts';
+import { buildSoAIBenchPhaseDiagnosticDisplays } from '@features/hardware/soaibenchPhaseDiagnostics.ts';
 import type { SoAIBenchRunRecord, SoAIBenchRunRenderContext } from '@features/hardware/modals/soaibenchrun/types.ts';
 
 const MEASURED_PASS_COUNT = 5;
@@ -43,7 +44,7 @@ const phaseLabel = (phase: string | null): string | null => {
     if (phase === 'memory') {
         return i18n.t('hardware.modals.soaibenchRun.phases.memory');
     }
-    if (phase === 'stability') {
+    if (phase === 'mixed' || phase === 'stability') {
         return i18n.t('hardware.modals.soaibenchRun.phases.stability');
     }
     return null;
@@ -97,8 +98,8 @@ const statusMetricClass = (status: string): string => {
 };
 
 const reasonForRun = (run: SoAIBenchRunRecord): string | null => {
-    const reason = run.failureReason || run.unsupportedReason || run.leaderboardRejectionReason;
-    return reason ? formatUnexpectedSoAIBenchIdentifierLabel(reason) : null;
+    const terminalReason = resolveSoAIBenchReasonLabel(run.reasonMessage, run.failureReason, run.unsupportedReason, false);
+    return terminalReason ?? (run.leaderboardRejectionReason ? formatUnexpectedSoAIBenchIdentifierLabel(run.leaderboardRejectionReason) : null);
 };
 
 const shouldShowReasonPanel = (run: SoAIBenchRunRecord): boolean => {
@@ -153,6 +154,13 @@ const renderReportMetrics = (run: SoAIBenchRunRecord): string => {
         [i18n.t('hardware.modals.soaibenchRun.metrics.temperature'), formatSoAIBenchTemperature(run.metrics.maxTemperatureCelsius), temperatureMetricClass(run.metrics.maxTemperatureCelsius)],
         [i18n.t('hardware.modals.soaibenchRun.metrics.power'), formatSoAIBenchPowerPair(run.metrics.avgPowerWatts, run.metrics.maxPowerWatts), '']
     ];
+    if (run.metrics.warmupActiveSeconds !== null) {
+        entries.push([`${i18n.t('hardware.modals.soaibenchRun.progress.warmup')} · ${i18n.t('hardware.modals.soaibenchRun.metrics.duration')}`, `${formatHardwareNumber(run.metrics.warmupActiveSeconds, 1)} s`, '']);
+    }
+    for (const diagnostic of buildSoAIBenchPhaseDiagnosticDisplays(run.metrics.phaseVariationPercent, run.metrics.phaseDriftPercent)) {
+        entries.push([`${diagnostic.phaseLabel} · ${i18n.t('hardware.modals.soaibenchRun.metrics.variationAndDrift')}`, diagnostic.value, '']);
+    }
+    entries.push([i18n.t('hardware.modals.soaibenchRun.metrics.measuredPasses'), formatSoAIBenchScore(run.metrics.measuredPassesCompleted), '']);
     return entries.map(([label, value, severityClass], index) => renderMetricItem(label, value, index, severityClass)).join('');
 };
 

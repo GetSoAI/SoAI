@@ -100,6 +100,19 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
   </div>
 
   <div class="form-group setting-change-surface">
+    <label for="${uiIdAttr('show-activity-elapsed-time-checkbox')}">${strings.showActivityElapsedTime}</label>
+    ${buildToggleSwitchMarkup({
+        modalId,
+        token: 'show-activity-elapsed-time-checkbox',
+        inputClassName: 'show-activity-elapsed-time-checkbox',
+        checked: true,
+        labels: enabledDisabledLabels,
+        dataParameter: 'show_activity_elapsed_time'
+    })}
+    <span class="chat-configuration-hint">${strings.showActivityElapsedTimeHint}</span>
+  </div>
+
+  <div class="form-group setting-change-surface">
     <label for="${uiIdAttr('hide-automation-runs-checkbox')}">${strings.hideAutomationRuns}</label>
     ${buildToggleSwitchMarkup({
         modalId,

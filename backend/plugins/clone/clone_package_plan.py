@@ -100,7 +100,7 @@ def build_clone_package_plan(
 
     modified_source, display_name = derive_clone_manifest(
         target_plugin_name,
-        audit.entrypoint.source_text,
+        audit.content.entrypoint.source_text,
     )
     modified_entrypoint = modified_source.encode("utf-8")
     source_handle.seek(0)
@@ -108,11 +108,11 @@ def build_clone_package_plan(
         archive_comment_size = len(source_zip.comment)
     require_unchanged_clone_package_source(source_handle, source_digest)
     return ClonePackagePlan(
-        members=audit.zip_plan.members,
+        members=audit.content.zip_plan.members,
         modified_entrypoint=modified_entrypoint,
         display_name=display_name,
         required_bytes=_clone_reservation_bytes(
-            audit.zip_plan.members,
+            audit.content.zip_plan.members,
             len(modified_entrypoint),
             archive_comment_size,
         ),

@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import math
-from typing import TypeGuard
+from typing import TYPE_CHECKING, TypeGuard
 
-from core.errors.exceptions import ValidationError
-from core.types.json import JSONValue
+from core.validation.strict_integer import is_strict_int
+
+if TYPE_CHECKING:
+    from core.types.json import JSONValue
 
 __all__ = (
     "coerce_exact_int_or_none",
@@ -18,14 +20,7 @@ __all__ = (
     "is_non_negative_strict_int",
     "is_positive_strict_int",
     "is_strict_int",
-    "require_non_negative_exact_int",
-    "require_positive_exact_int",
 )
-
-
-def is_strict_int[ValueT](value: ValueT, _value_type: type[ValueT] | None = None) -> TypeGuard[int]:
-    _ = _value_type
-    return isinstance(value, int) and not isinstance(value, bool)
 
 
 def is_non_negative_strict_int[ValueT](
@@ -100,32 +95,4 @@ def coerce_positive_exact_int_or_none(
     normalized = coerce_exact_int_or_none(value, allow_signed_text=allow_signed_text)
     if normalized is None or normalized <= 0:
         return None
-    return normalized
-
-
-def require_positive_exact_int(
-    value: JSONValue,
-    *,
-    type_message: str,
-    range_message: str,
-) -> int:
-    normalized = coerce_exact_int_or_none(value)
-    if normalized is None:
-        raise ValidationError(type_message)
-    if normalized <= 0:
-        raise ValidationError(range_message)
-    return normalized
-
-
-def require_non_negative_exact_int(
-    value: JSONValue,
-    *,
-    type_message: str,
-    range_message: str,
-) -> int:
-    normalized = coerce_exact_int_or_none(value)
-    if normalized is None:
-        raise ValidationError(type_message)
-    if normalized < 0:
-        raise ValidationError(range_message)
     return normalized

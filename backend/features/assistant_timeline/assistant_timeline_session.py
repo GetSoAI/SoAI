@@ -8,11 +8,14 @@ from collections.abc import AsyncGenerator, Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from core.concurrency.wait_race import WaitRaceOutcome, wait_for_awaitable_or_event
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
+from core.concurrency.ephemeral_tasks import create_ephemeral_task
+from core.concurrency.task_groups import cancel_and_await
 from core.di.validation import require_dependencies
 from core.errors.exceptions import StateError
 from core.openai.sse_chunk_decoding import decode_sse_chunk_bytes
 from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
+from core.timing.constants import BACKGROUND_TIMEOUT_SEC
 from features.assistant_timeline.activity_ticker_tasks import (
     take_activity_ticker_exception,
 )
@@ -30,6 +33,7 @@ from features.assistant_timeline.stream_chunk_processing import process_stream_c
 from features.assistant_timeline.stream_generator_cleanup import (
     cancel_assistant_stream_generator,
     close_assistant_stream_generator,
+    transfer_assistant_stream_generator_cleanup,
 )
 from features.assistant_timeline.thinking_phase_updates import (
     ThinkingPhaseState,
@@ -140,6 +144,9 @@ class AssistantTimelineSession:
 
     async def consume_stream(self, stream_generator: AsyncGenerator[bytes]) -> None:
         stream_generator_closed = False
+        cleanup_transferred = False
+        active_read_task: asyncio.Task[bytes] | None = None
+        detach_wait_task: asyncio.Task[bool] | None = None
         try:
             while True:
                 self.wait_for_user_tick_task, wait_exception = take_activity_ticker_exception(
@@ -159,10 +166,12 @@ class AssistantTimelineSession:
                     raise StateError("Status preview scheduler exited unexpectedly.")
                 detach_event = self.runtime.detach_event
                 if detach_event is not None and detach_event.is_set():
-                    stream_generator_closed = await cancel_assistant_stream_generator(
+                    transfer_assistant_stream_generator_cleanup(
                         stream_generator,
-                        stream_generator_closed=stream_generator_closed,
+                        active_read_task=None,
+                        track_background_task=self.track_background_task,
                     )
+                    cleanup_transferred = True
                     return
                 if detach_event is None:
                     try:
@@ -171,27 +180,39 @@ class AssistantTimelineSession:
                         stream_generator_closed = True
                         return
                 else:
+                    active_read_task = create_ephemeral_task(anext(stream_generator))
+                    detach_wait_task = create_ephemeral_task(detach_event.wait())
                     try:
-                        race_result = await wait_for_awaitable_or_event(
-                            anext(stream_generator),
-                            detach_event,
-                        )
+                        while not active_read_task.done() and not detach_wait_task.done():
+                            await asyncio.wait(
+                                {active_read_task, detach_wait_task},
+                                timeout=BACKGROUND_TIMEOUT_SEC,
+                                return_when=asyncio.FIRST_COMPLETED,
+                            )
+                        if detach_event.is_set():
+                            await cancel_and_await((detach_wait_task,))
+                            transfer_assistant_stream_generator_cleanup(
+                                stream_generator,
+                                active_read_task=active_read_task,
+                                track_background_task=self.track_background_task,
+                            )
+                            cleanup_transferred = True
+                            return
+                        await cancel_and_await((detach_wait_task,))
+                        chunk = active_read_task.result()
+                        active_read_task = None
+                        detach_wait_task = None
                     except StopAsyncIteration:
                         stream_generator_closed = True
                         return
-                    if race_result.outcome is WaitRaceOutcome.EVENT_TRIGGERED:
-                        stream_generator_closed = await cancel_assistant_stream_generator(
-                            stream_generator,
-                            stream_generator_closed=stream_generator_closed,
-                        )
-                        return
-                    chunk = self._require_stream_chunk_bytes(race_result.value)
                 detach_event = self.runtime.detach_event
                 if detach_event is not None and detach_event.is_set():
-                    stream_generator_closed = await cancel_assistant_stream_generator(
+                    transfer_assistant_stream_generator_cleanup(
                         stream_generator,
-                        stream_generator_closed=stream_generator_closed,
+                        active_read_task=None,
+                        track_background_task=self.track_background_task,
                     )
+                    cleanup_transferred = True
                     return
                 chunk = self._require_stream_chunk_bytes(chunk)
                 keep_running = await self.consume_chunk(chunk)
@@ -202,13 +223,19 @@ class AssistantTimelineSession:
                     )
                     return
         except asyncio.CancelledError:
-            await cancel_assistant_stream_generator(
+            if detach_wait_task is not None:
+                await uncancel_then_cleanup(
+                    cancel_and_await((detach_wait_task,)),
+                )
+            transfer_assistant_stream_generator_cleanup(
                 stream_generator,
-                stream_generator_closed=stream_generator_closed,
+                active_read_task=active_read_task,
+                track_background_task=self.track_background_task,
             )
+            cleanup_transferred = True
             raise
         finally:
-            if not stream_generator_closed:
+            if not stream_generator_closed and not cleanup_transferred:
                 await cancel_assistant_stream_generator(
                     stream_generator,
                     stream_generator_closed=stream_generator_closed,

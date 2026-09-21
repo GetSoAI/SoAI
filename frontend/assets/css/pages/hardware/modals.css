@@ -161,6 +161,8 @@
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .metrics-card-content.metrics-card-content--table.data-table-wrapper.hardware-soaibench-history-card-content .table-compact th {
+        position: sticky;
+        top: 0;
         background: color-mix(in srgb, var(--recessed-surface-fill-background) 84%, var(--surface-card));
         border-bottom-color: color-mix(in srgb, var(--surface-card-border) 76%, transparent);
     }

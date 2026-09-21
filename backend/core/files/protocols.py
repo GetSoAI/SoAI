@@ -48,6 +48,7 @@ class DocumentReaderProtocol(Protocol):
         self,
         *,
         file_path: str,
+        ocr_language: str,
         parser_registry: dict[str, FileParserProtocol],
         parse_timeout_sec: float,
         max_chars: int,

@@ -4,7 +4,7 @@
 import { i18n } from '@core/i18n/index.ts';
 import { CHAT_ACTIONS } from '@features/chat/chatActionIds.ts';
 import { renderInlineStatusIcon } from '@features/chat/message/messageview/inlineActivityStatusRendering.ts';
-import { normalizeToolName } from '@features/chat/message/toolActivityPayloadFormatting.ts';
+import { resolveInlineActivityName } from '@features/chat/message/messageview/inlineActivityName.ts';
 import { resolveInlineToolHeaderQueryText } from '@features/chat/message/messageview/inlineToolActivityPayloadParsing.ts';
 import { isInlineToolActivityExplicitlyNonExpandable, type InlineToolActivityPresentation } from '@features/chat/message/messageview/inlineToolActivityPresentation.ts';
 import { renderInlineActivityChrome } from '@features/chat/message/messageview/inlineActivityChrome.ts';
@@ -56,7 +56,7 @@ const resolveInlineToolStopButton = (segment: InlineToolActivitySegment, toolLea
 
 const renderInlineToolActivityMarkup = (host: ChatMessageRenderHost, segment: InlineToolActivitySegment, details: { presentation: InlineToolActivityPresentation; detailsSignature: string }): string => {
     const isCollapsed = segment.collapsed !== false;
-    const normalizedName = normalizeToolName(segment.toolName);
+    const normalizedName = resolveInlineActivityName(segment);
     const toolLeafName = details.presentation.toolLeafName;
     const isContextCompaction = toolLeafName === CONTEXT_COMPACTION_TOOL_LEAF;
     const isTerminalContextCompaction = segment.status === 'completed' || segment.status === 'error';

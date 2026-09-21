@@ -5,18 +5,13 @@ from __future__ import annotations
 
 import os
 
-from core.errors.exception_logging import log_handled_exception
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.filesystem.open_files import open_text
-from core.logging.trace import get_logger
 from core.types.json import JSONDict
 from core.validation.numbers import coerce_float_from_json
 from hardware.gpu_inventory.identity import normalize_pci_bdf
 
 __all__ = ("read_amd_fast_telemetry",)
 
-LOGGER_NAME = "SoAI.hardware.soaibench.amd_telemetry"
-OPERATION = "hardware.soaibench.amd_telemetry.read"
 AMD_DEVICE_PREFIX = "gpu:amd-pci-"
 DRM_SYSFS_ROOT = "/sys/class/drm"
 
@@ -30,15 +25,7 @@ def read_amd_fast_telemetry(device_id: str) -> JSONDict | None:
         if device_path is None:
             return None
         return _read_device_telemetry(device_path)
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_handled_exception(
-            get_logger(LOGGER_NAME),
-            exception,
-            message="Failed to read AMD fast SoAIBench telemetry (non-critical).",
-            operation=OPERATION,
-            level="trace",
-            details={"device_id": device_id},
-        )
+    except (FileNotFoundError, PermissionError):
         return None
 
 

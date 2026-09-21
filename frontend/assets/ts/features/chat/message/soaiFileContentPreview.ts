@@ -4,6 +4,8 @@
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { APIError } from '@core/apiError.ts';
+import { i18n } from '@core/i18n/index.ts';
 import { triggerDownloadLink } from '@core/primitives/download.ts';
 import { resolveChatPreviewHeaderDescription } from '@core/ui/modals/contentpreview/headerDescriptions.ts';
 import { createDocumentContentPreviewRequest, createMediaContentPreviewRequest, createTextContentPreviewRequest } from '@core/ui/modals/contentpreview/requestFactories.ts';
@@ -95,10 +97,15 @@ class ChatSoaiFileContentPreview {
                 })
             );
         } catch (error) {
-            if (isAbortError(error)) {
+            const normalizedError = ensureError(error);
+            if (isAbortError(normalizedError) || !this.#isCurrent(inputArguments, generation, signal)) {
                 return;
             }
-            throw ensureError(error);
+            if (normalizedError instanceof APIError && normalizedError.status === 404) {
+                this.#copyFeedback.showNotification(i18n.t('chat.attachments.unavailableReupload'), 'warning');
+                return;
+            }
+            throw normalizedError;
         }
     }
 

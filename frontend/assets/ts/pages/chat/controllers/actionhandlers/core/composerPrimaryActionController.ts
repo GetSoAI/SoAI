@@ -3,7 +3,7 @@
 
 import { beginLoadingButtonWithClear } from '@core/ui/loadingbuttons/service.ts';
 import { normalizeConversationId, type ChatComposerActionMode, type ChatTurnAdmissionSnapshot } from '@features/chat/public.ts';
-import { isCurrentConversationExecuting, runCollapsedUiTask } from '@pages/chat/controllers/actionhandlers/core/effects.ts';
+import { collapseSidebarIfNarrowViewport, isCurrentConversationExecuting, runCollapsedUiTask } from '@pages/chat/controllers/actionhandlers/core/effects.ts';
 import type { ChatComposerActionPort, ChatConversationActionPort, ChatExecutionActionPort } from '@pages/chat/controllers/actionhandlers/core/contracts.ts';
 
 interface ChatComposerPrimaryActionHost {
@@ -12,17 +12,14 @@ interface ChatComposerPrimaryActionHost {
     execution: ChatExecutionActionPort;
 }
 
-type ComposerExecutionIntent = 'send' | 'stop' | 'queue' | 'steer';
+type ComposerExecutionIntent = 'send' | 'stop' | 'queue' | 'steer' | 'blocked';
 
 const resolveComposerPrimaryIntent = (inputArguments: { admission: ChatTurnAdmissionSnapshot | null; isStreaming: boolean; actionMode: ChatComposerActionMode }): ComposerExecutionIntent => {
-    if (inputArguments.actionMode === 'stop' && inputArguments.admission?.canStop === true) {
-        return 'stop';
+    if (inputArguments.actionMode === 'stop') {
+        return inputArguments.admission?.canStop === true ? 'stop' : 'blocked';
     }
     if (inputArguments.actionMode === 'queue') {
         return inputArguments.admission?.canQueuePrompt === true ? 'queue' : 'send';
-    }
-    if (inputArguments.actionMode === 'stop') {
-        return 'send';
     }
     if (inputArguments.actionMode === 'steer' && inputArguments.admission?.canSteerPrompt === true) {
         return 'steer';
@@ -58,15 +55,12 @@ const sendMessageClearingOnCommit = async (host: ChatComposerPrimaryActionHost, 
     await host.execution.send(clearLoading === null ? {} : { onEffectiveSendCommitted: clearLoading });
 };
 
-const stopStreamingForAdmission = async (host: ChatComposerPrimaryActionHost, conversationId: string, admission: ChatTurnAdmissionSnapshot): Promise<void> => {
+const stopStreamingForAdmission = (host: ChatComposerPrimaryActionHost, admission: ChatTurnAdmissionSnapshot): void => {
     const requestId = admission.activeStreamIdentity?.requestId;
     host.execution.stop({
         ...(requestId === undefined ? {} : { expectedRequestId: requestId }),
         forcePendingSteers: true
     });
-    if (requestId !== undefined) {
-        await host.execution.waitForRequestExit(conversationId, requestId);
-    }
 };
 
 const executeSyncedComposerPrimaryAction = async (host: ChatComposerPrimaryActionHost, conversationId: string, actionMode: ChatComposerActionMode, clearLoading: (() => void) | null): Promise<void> => {
@@ -80,8 +74,11 @@ const executeSyncedComposerPrimaryAction = async (host: ChatComposerPrimaryActio
     if (isCurrentConversationExecuting(host) && !isStreaming && intent !== 'queue') {
         return;
     }
+    if (intent === 'blocked') {
+        return;
+    }
     if (intent === 'stop') {
-        await stopStreamingForAdmission(host, conversationId, admission);
+        stopStreamingForAdmission(host, admission);
         return;
     }
     if (intent === 'queue') {
@@ -101,21 +98,20 @@ const executeSyncedComposerPrimaryAction = async (host: ChatComposerPrimaryActio
     await sendMessageClearingOnCommit(host, clearLoading);
 };
 
-const executeComposerPrimaryAction = (host: ChatComposerPrimaryActionHost, actionElement: HTMLElement | null = null): void => {
+const executeComposerPrimaryAction = (host: ChatComposerPrimaryActionHost, actionElement: HTMLElement | null = null, forceStop = false): void => {
     const conversationId = normalizeConversationId(host.conversation.currentId());
-    const actionMode = host.composer.resolvePrimaryActionMode();
+    const actionMode = forceStop ? 'stop' : host.composer.resolvePrimaryActionMode();
     const cachedAdmission = conversationId ? host.execution.admission(conversationId) : null;
-    const clearLoading = createComposerPrimaryLoadingClear(actionElement);
-    if (conversationId && actionMode === 'stop' && cachedAdmission?.canStop === true) {
-        runCollapsedUiTask(host, 'chat:stopStreaming', async () => {
-            try {
-                await stopStreamingForAdmission(host, conversationId, cachedAdmission);
-            } finally {
-                clearLoading?.();
-            }
+    if (conversationId && actionMode === 'stop') {
+        if (cachedAdmission?.canStop !== true) return;
+        const requestId = cachedAdmission.activeStreamIdentity?.requestId ?? 'pending';
+        host.execution.run(`chat:stopStreaming:${conversationId}:${requestId}`, () => {
+            stopStreamingForAdmission(host, cachedAdmission);
         });
+        collapseSidebarIfNarrowViewport(host);
         return;
     }
+    const clearLoading = createComposerPrimaryLoadingClear(actionElement);
     if (!conversationId) {
         runCollapsedUiTask(host, resolveSendMessageOperationId(host), async () => {
             try {

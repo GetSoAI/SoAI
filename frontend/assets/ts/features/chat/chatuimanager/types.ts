@@ -23,10 +23,10 @@ type DebouncedHandler = {
     cancel?: () => void;
 };
 
-type ConversationInputPreview = {
+export type ConversationInputPreview = {
     inputId: string;
     inputType: 'prompt' | 'steer';
-    state: ConversationInputState;
+    state: ConversationInputState | 'regeneration_failed';
     text: string;
     attachmentContent: readonly ChatContentSegment[];
 };
@@ -158,7 +158,6 @@ export interface ChatUIManagerState {
     activeConversationTransitionId: number | null;
     messagesAreaInsetsDisposer: (() => void) | null;
     modalPresenter: ModalPresenterApi | null;
-    inlineActivityScrollStateByKey: Map<string, Map<string, { scrollTop: number; scrollLeft: number; stickToBottom: boolean; stickToRight: boolean }>>;
 }
 
 export interface ChatUIManagerContext {

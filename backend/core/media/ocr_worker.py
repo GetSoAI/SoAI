@@ -10,6 +10,7 @@ from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.ipc.ndjson_rpc_loop import NdjsonRpcRequest, NdjsonRpcResponse
 from core.logging.trace import get_logger
 from core.media.ocr_engine import ocr_image_file
+from core.media.tesseract_languages import require_ocr_language
 from core.media.worker_runtime import run_media_worker_session
 from core.runtime.worker_entrypoint import run_worker_entrypoint
 
@@ -35,7 +36,8 @@ async def _handle_request(request: NdjsonRpcRequest) -> NdjsonRpcResponse:
             payload={"error": "invalid_request", "message": "Frame path is required."},
         )
     try:
-        text, confidence = ocr_image_file(frame_path)
+        ocr_language = require_ocr_language(payload.get("ocr_language"))
+        text, confidence = ocr_image_file(frame_path, ocr_language)
         return NdjsonRpcResponse(
             request_id=request.request_id,
             ok=True,

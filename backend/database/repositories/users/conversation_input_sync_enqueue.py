@@ -32,6 +32,9 @@ from database.repositories.users.conversation_input_transition_resolution import
     read_conversation_input_by_input_id,
     read_conversation_input_by_source_key,
 )
+from database.repositories.users.conversation_stream_cancellation_state import (
+    sync_has_chat_stream_cancellation_receipt,
+)
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
@@ -137,7 +140,7 @@ def _resolve_target_input_id(
         return None
     row = sqlite_conn.execute(
         """
-        SELECT input_id
+        SELECT input_id, request_id
         FROM webui_conversation_inputs
         WHERE conv_id = ? AND user_id = ?
           AND input_type IN ('prompt', 'steer')
@@ -148,7 +151,21 @@ def _resolve_target_input_id(
     ).fetchone()
     if row is None or not isinstance(row[0], str) or not row[0].strip():
         raise ConflictError("Steer input requires an active conversation execution.")
-    return row[0].strip()
+    target_input_id = row[0].strip()
+    stored_request_id = row[1]
+    active_request_id = (
+        stored_request_id.strip()
+        if isinstance(stored_request_id, str) and stored_request_id.strip()
+        else f"chat_{target_input_id}"
+    )
+    if sync_has_chat_stream_cancellation_receipt(
+        sqlite_conn,
+        user_id,
+        conv_id,
+        active_request_id,
+    ):
+        raise ConflictError("Steering is unavailable while cancellation is pending.")
+    return target_input_id
 
 
 def sync_enqueue_conversation_input(

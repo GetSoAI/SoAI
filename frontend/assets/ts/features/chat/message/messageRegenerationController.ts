@@ -1,26 +1,24 @@
-/* SoAI - Assistant message regeneration transaction controller [frontend/assets/ts/features/chat/message/messageRegenerationController.ts] */
+/* SoAI - Assistant message regeneration admission controller [frontend/assets/ts/features/chat/message/messageRegenerationController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ensureError } from '@core/errors/coerce.ts';
+import type { JsonObject } from '@core/types/jsonValues.ts';
 import { isObject } from '@core/typeGuards.ts';
-import type { ConversationContract } from '@features/chat/ChatTypes.ts';
-import { resolvePendingContentPreviewFeedback } from '@features/chat/contentPreviewFeedbackState.ts';
-import { isChatMessage } from '@features/chat/message/chatMessageGuards.ts';
-import { ChatExecutionModelPreflightBlockedError, applyPrimaryChatExecutionModelToConversation, requireChatExecutionModelPreflight, showChatExecutionModelPreflightBlockedError } from '@features/chat/modelExecutionPreflight.ts';
-import { captureConversationMutationSnapshot, restoreConversationMutationSnapshot } from '@features/chat/execution/conversationMutationSnapshot.ts';
-import { ChatStreamTerminalizationError, reportChatStreamTerminalizationFailureOnce } from '@features/chat/chatstreamservice/controller/terminalizationError.ts';
+import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { resolvePreviewContractFeedbackForStreamStart } from '@features/chat/chatstreamservice/controller/streamStartPreparation.ts';
+import { serializeContentPreviewFeedback, serializePreviewContractFeedback } from '@features/chat/chatstreamservice/streamStartPayload.ts';
+import { markContentPreviewFeedbackDelivered, resolvePendingContentPreviewFeedback } from '@features/chat/contentPreviewFeedbackState.ts';
+import { isChatConversationSettingsWritable } from '@features/chat/conversation/conversationSettingsEligibility.ts';
+import { isChatMessage } from '@features/chat/message/chatMessageGuards.ts';
 import type { ChatMessageMutationDependencies } from '@features/chat/message/messageMutationControllerContracts.ts';
 import { resolvePersistedMessageCursor } from '@features/chat/message/persistedMessageIdentity.ts';
+import { ChatExecutionModelPreflightBlockedError, normalizeChatExecutionModelId, requireChatExecutionModelPreflight, showChatExecutionModelPreflightBlockedError } from '@features/chat/modelExecutionPreflight.ts';
 import { requireConversationId } from '@features/chat/validation/ids.ts';
 
 interface ChatMessageRegenerationDependencies extends ChatMessageMutationDependencies {
-    truncateMessagesFromCursor: (conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number }) => Promise<void>;
+    regenerateConversation: (conversationId: string, payload: { expectedLastModifiedAtMs: number; target: { createdAtMs: number; messageId: number }; contentPreviewFeedback: JsonObject | null; previewContractFeedback: JsonObject | null }) => Promise<void>;
+    updateConversationModel: (conversationId: string, modelId: string) => Promise<void>;
 }
-
-const isServerWindowedConversation = (conversation: ConversationContract): boolean => {
-    return conversation.history !== undefined;
-};
 
 class ChatMessageRegenerationController {
     readonly #dependencies: ChatMessageRegenerationDependencies;
@@ -33,19 +31,28 @@ class ChatMessageRegenerationController {
         try {
             await this.#dependencies.runWithBoundary('chat:regenerateMessage', async () => {
                 const conversation = this.#dependencies.getCurrentConversation();
-                if (!conversation) {
-                    return;
-                }
+                if (!conversation || messageIndex < 0 || messageIndex >= conversation.messages.length) return;
                 const conversationId = requireConversationId(conversation.id, 'Conversation');
+                const targetValue = conversation.messages[messageIndex];
+                const target = isObject(targetValue) && isChatMessage(targetValue) ? targetValue : null;
+                const cursor = target === null ? null : resolvePersistedMessageCursor(target);
+                if (target === null || cursor === null || conversation.history === undefined) {
+                    throw new Error('Persisted regeneration target cursor is missing.');
+                }
                 const executionResult = await this.#dependencies.runConversationExecutionIfIdle(conversationId, async () => {
-                    let modelPreflight: ReturnType<typeof requireChatExecutionModelPreflight>;
+                    const activeTarget = this.#resolveActiveTarget(conversationId, cursor.createdAtMs, cursor.id);
+                    const activeConversation = this.#dependencies.getCurrentConversation();
+                    if (activeTarget === null || activeConversation === null) return;
+                    const contentPreviewFeedback = resolvePendingContentPreviewFeedback(activeTarget);
+                    const previewContractFeedback = resolvePreviewContractFeedbackForStreamStart(activeTarget, {});
+                    let primaryModelId: string | null = null;
                     try {
-                        modelPreflight = requireChatExecutionModelPreflight({
-                            conversation,
+                        primaryModelId = requireChatExecutionModelPreflight({
+                            conversation: activeConversation,
                             selectedModelId: this.#dependencies.getCurrentModel(),
                             modelStreamHasPayload: this.#dependencies.getModelStreamHasPayload(),
                             isModelAvailable: (modelId) => this.#dependencies.isModelAvailable(modelId)
-                        });
+                        }).primaryModelId;
                     } catch (error) {
                         if (error instanceof ChatExecutionModelPreflightBlockedError) {
                             showChatExecutionModelPreflightBlockedError(error.reason);
@@ -53,104 +60,51 @@ class ChatMessageRegenerationController {
                         }
                         throw error;
                     }
-                    if (messageIndex < 0 || messageIndex >= conversation.messages.length) {
-                        return;
+                    if (primaryModelId === null) return;
+                    if (isChatConversationSettingsWritable(activeConversation) && normalizeChatExecutionModelId(activeConversation.modelSettings?.model) !== primaryModelId) {
+                        await this.#dependencies.updateConversationModel(conversationId, primaryModelId);
                     }
-                    const mutationSnapshot = captureConversationMutationSnapshot(conversation);
-                    let truncatePersisted = false;
-                    let streamStarted = false;
-                    let targetedMutationUsed = false;
-                    try {
-                        applyPrimaryChatExecutionModelToConversation(conversation, modelPreflight.primaryModelId);
-                        const regenerationTarget = isObject(conversation.messages[messageIndex]) ? conversation.messages[messageIndex] : null;
-                        const regenerationTargetMessage = regenerationTarget && isChatMessage(regenerationTarget) ? regenerationTarget : null;
-                        const cursor = regenerationTargetMessage && isServerWindowedConversation(conversation) ? resolvePersistedMessageCursor(regenerationTargetMessage) : null;
-                        if (isServerWindowedConversation(conversation) && cursor === null) {
-                            throw new Error('Persisted regeneration target cursor is missing.');
-                        }
-                        const contentPreviewFeedback = regenerationTargetMessage ? resolvePendingContentPreviewFeedback(regenerationTargetMessage) : null;
-                        const previewContractFeedback = resolvePreviewContractFeedbackForStreamStart(regenerationTargetMessage, {});
-
-                        conversation.messages = conversation.messages.slice(0, messageIndex);
-                        try {
-                            if (cursor === null) {
-                                await this.#dependencies.saveAndSync(conversation);
-                            } else {
-                                targetedMutationUsed = true;
-                                await this.#dependencies.truncateMessagesFromCursor(conversation, {
-                                    createdAtMs: cursor.createdAtMs,
-                                    messageId: cursor.id
-                                });
-                            }
-                            truncatePersisted = true;
-                        } catch (error) {
-                            restoreConversationMutationSnapshot(conversation, mutationSnapshot);
-                            await this.#dependencies.loadConversationMessages(conversationId, { force: true });
-                            this.#dependencies.invalidateChatMarkup('both');
-                            await this.#dependencies.refreshConversationsUI();
-                            throw error;
-                        }
-                        this.#dependencies.invalidateChatMarkup('current');
-                        await this.#dependencies.renderCurrentConversation();
-                        streamStarted = true;
-                        await this.#dependencies.streamResponse(conversation, {
-                            contentPreviewFeedback,
-                            contentPreviewFeedbackSourceMessage: regenerationTargetMessage,
-                            previewContractFeedback,
-                            reportRequestFailure: false,
-                            skipInitialMessageSync: true
-                        });
-                    } catch (error) {
-                        if (error instanceof ChatStreamTerminalizationError) {
-                            throw error;
-                        }
-                        if (streamStarted) {
-                            await this.#dependencies.loadConversationMessages(conversationId, { force: true });
-                            this.#dependencies.invalidateChatMarkup('both');
-                            await this.#dependencies.refreshConversationsUI();
-                            throw error;
-                        }
-                        if (truncatePersisted) {
-                            await this.#restoreCommittedRegenerationMutation(conversation, mutationSnapshot, conversationId, targetedMutationUsed);
-                        }
-                        if (error instanceof ChatExecutionModelPreflightBlockedError) {
-                            showChatExecutionModelPreflightBlockedError(error.reason);
-                            return;
-                        }
-                        throw error;
+                    if (!this.#isTargetStillActive(conversationId, cursor.createdAtMs, cursor.id)) return;
+                    const authoritativeConversation = this.#dependencies.getCurrentConversation();
+                    const expectedRevision = authoritativeConversation?.updatedAt;
+                    if (!authoritativeConversation || authoritativeConversation.id !== conversationId || !Number.isInteger(expectedRevision) || Number(expectedRevision) <= 0) {
+                        throw new Error('Conversation regeneration revision is missing.');
                     }
+                    await this.#dependencies.regenerateConversation(conversationId, {
+                        expectedLastModifiedAtMs: Number(expectedRevision),
+                        target: { createdAtMs: cursor.createdAtMs, messageId: cursor.id },
+                        contentPreviewFeedback: contentPreviewFeedback === null ? null : serializeContentPreviewFeedback(contentPreviewFeedback),
+                        previewContractFeedback: previewContractFeedback === null ? null : serializePreviewContractFeedback(previewContractFeedback)
+                    });
+                    markContentPreviewFeedbackDelivered(activeTarget);
+                    if (!this.#isTargetStillActive(conversationId, cursor.createdAtMs, cursor.id)) return;
+                    await this.#dependencies.loadConversationMessages(conversationId, { force: true });
+                    if (this.#dependencies.getCurrentConversation()?.id !== conversationId) return;
+                    this.#dependencies.invalidateChatMarkup('both');
+                    await this.#dependencies.refreshConversationsUI();
                 });
-                if (executionResult.status === 'busy') {
-                    return;
-                }
+                if (executionResult.status === 'busy') return;
             });
         } catch (error) {
-            const runtimeError = ensureError(error);
-            if (!reportChatStreamTerminalizationFailureOnce(runtimeError, (failure) => this.#dependencies.reportRequestFailure(failure))) {
-                this.#dependencies.reportRequestFailure(runtimeError);
-            }
+            this.#dependencies.reportRequestFailure(ensureError(error));
         }
     }
 
-    async #restoreCommittedRegenerationMutation(conversation: ConversationContract, mutationSnapshot: ReturnType<typeof captureConversationMutationSnapshot>, conversationId: string, targetedMutationUsed: boolean): Promise<void> {
-        restoreConversationMutationSnapshot(conversation, mutationSnapshot);
-        if (targetedMutationUsed) {
-            await this.#dependencies.loadConversationMessages(conversationId, { force: true });
-            this.#dependencies.invalidateChatMarkup('both');
-            await this.#dependencies.refreshConversationsUI();
-            return;
-        }
-        try {
-            await this.#dependencies.saveAndSync(conversation);
-        } catch (error) {
-            await this.#dependencies.loadConversationMessages(conversationId, { force: true });
-            this.#dependencies.invalidateChatMarkup('both');
-            await this.#dependencies.refreshConversationsUI();
-            throw error;
-        }
-        this.#dependencies.invalidateChatMarkup('both');
-        await this.#dependencies.refreshConversationsUI();
+    #resolveActiveTarget(conversationId: string, createdAtMs: number, messageId: number): ChatMessage | null {
+        const activeConversation = this.#dependencies.getCurrentConversation();
+        if (!activeConversation || activeConversation.id !== conversationId) return null;
+        return (
+            activeConversation.messages.find((message) => {
+                const cursor = isChatMessage(message) ? resolvePersistedMessageCursor(message) : null;
+                return cursor?.createdAtMs === createdAtMs && cursor.id === messageId;
+            }) ?? null
+        );
+    }
+
+    #isTargetStillActive(conversationId: string, createdAtMs: number, messageId: number): boolean {
+        return this.#resolveActiveTarget(conversationId, createdAtMs, messageId) !== null;
     }
 }
 
-export { ChatMessageRegenerationController, type ChatMessageRegenerationDependencies };
+export { ChatMessageRegenerationController };
+export type { ChatMessageRegenerationDependencies };

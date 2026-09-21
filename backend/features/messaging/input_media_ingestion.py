@@ -15,7 +15,9 @@ from core.logging.trace import get_logger
 from core.timing.retry_backoff import compute_exponential_backoff_seconds
 from core.validation.record_fields import require_int, require_non_empty_str
 from features.messaging.input_media_attachment import ingest_messaging_media_attachment
-from features.messaging.input_media_identity import require_messaging_media_input_identity
+from features.messaging.input_media_identity import (
+    require_messaging_media_input_identity,
+)
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -143,7 +145,7 @@ async def prepare_messaging_input_media(
                         input_record=input_record,
                         terminal_code="messaging_media_unavailable",
                     )
-                await api_dependencies.database_input_queue.require_active_claim(
+                await api_dependencies.database_input_execution.require_active_claim(
                     input_id=input_identity.input_id,
                     claim_generation=claim_generation,
                     claim_owner=claim_owner,
@@ -156,7 +158,7 @@ async def prepare_messaging_input_media(
                         maximum_seconds=2.0,
                     ),
                 )
-    updated = await api_dependencies.database_input_queue.attach_ingested_media(
+    updated = await api_dependencies.database_input_execution.attach_ingested_media(
         conv_id=input_identity.conv_id,
         user_id=input_identity.user_id,
         input_id=input_identity.input_id,

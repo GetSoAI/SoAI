@@ -108,4 +108,11 @@
         overflow-wrap: anywhere;
         word-break: break-word;
     }
+    .confirmation-description > pre {
+        min-width: 0;
+        max-height: calc(45 * var(--ui-viewport-height-unit));
+        overflow: auto;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
 }

@@ -106,7 +106,7 @@ def _build_service_shutdown_entries(
     _append_shutdown_entry(
         entries,
         "Mail Service",
-        infrastructure_services.mail,
+        infrastructure_services.communications.mail,
         component_timeout_sec,
         critical=False,
     )
@@ -152,14 +152,14 @@ def _build_service_shutdown_entries(
     _append_shutdown_entry(
         entries,
         "Terminal",
-        infrastructure_services.terminal,
+        infrastructure_services.hardware.terminal,
         component_timeout_sec,
         critical=True,
     )
     _append_shutdown_entry(
         entries,
         "SoAIBench",
-        infrastructure_services.hardware_soaibench,
+        infrastructure_services.hardware.soaibench,
         component_timeout_sec,
         critical=True,
     )
@@ -272,7 +272,7 @@ def _build_service_shutdown_entries(
     _append_shutdown_entry(
         entries,
         "Hardware Manager",
-        infrastructure_services.hw_manager,
+        infrastructure_services.hardware.manager,
         component_timeout_sec,
         critical=False,
     )

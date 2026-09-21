@@ -165,7 +165,8 @@ class ThemeEventsController {
             ['page-animation-select', 'pageAnimation'],
             ['modal-animation-select', 'modalAnimation'],
             ['notification-animation-select', 'notificationAnimation'],
-            ['animation-speed-select', 'animationSpeed']
+            ['animation-speed-select', 'animationSpeed'],
+            ['default-page-select', 'defaultPage']
         ];
         for (const [elementId, prefKey] of animationSelectBindings) {
             const select = narrowSelect(this.#host.pageDom.requireHTMLElement(elementId), `${prefKey} select`);

@@ -102,6 +102,10 @@ const reconcileInactiveStatusSnapshot = async (inputArguments: ActiveStatusFollo
     if (status.startAdmission === 'unknown') {
         return requireCanonicalMessageLoad('status-sync-timeout', 'unknown');
     }
+    const currentSession = inputArguments.sessions.get(status.conversationId);
+    if (status.startAdmission === 'busy' && status.requestId !== null && currentSession?.active === true && currentSession.status === 'streaming' && currentSession.requestId === status.requestId) {
+        return skipCanonicalMessageLoad('active-stream', 'busy');
+    }
     return await reconcileCurrentInactiveSession(inputArguments, status.conversationId, status.startAdmission);
 };
 

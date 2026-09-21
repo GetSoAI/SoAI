@@ -13,10 +13,9 @@ SoAI is a feature-rich agent platform that unifies local inference engines and r
 <p align="center">
 <a href="https://soai.to"><img src="media/readme/download-soai.svg" alt="Download SoAI" height="36"></a>
 <a href="https://soai.to/documentation/"><img src="media/readme/documentation.svg" alt="Documentation" height="36"></a>
-<a href="media/readme/soai-interface-demo.webm"><img src="media/readme/watch-demo.svg" alt="Watch the SoAI demonstration" height="36"></a>
 </p>
 <p align="center">
-<a href="https://github.com/GetSoAI/SoAI"><img src="https://img.shields.io/github/v/release/GetSoAI/SoAI?label=release&amp;color=153e75&amp;style=flat" alt="Latest published SoAI release" height="28"></a>
+<a href="https://github.com/GetSoAI/SoAI"><img src="https://img.shields.io/github/v/release/GetSoAI/SoAI?label=release&amp;color=153e75&amp;labelColor=153e75&amp;style=for-the-badge" alt="Latest published SoAI release" height="28"></a>
 <img src="media/readme/supported-platforms.svg" alt="Linux, Windows and macOS" height="28">
 <img src="media/readme/supported-languages.svg" alt="22 UI languages" height="28">
 <a href="LICENSE.md"><img src="media/readme/source-available-license.svg" alt="Source-available license" height="28"></a>

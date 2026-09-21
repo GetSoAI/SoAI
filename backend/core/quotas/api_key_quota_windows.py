@@ -7,10 +7,8 @@ from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
 from core.timing.durations import hours_to_ms, seconds_to_ms
-from core.validation.integers import (
-    coerce_exact_int_or_none,
-    require_positive_exact_int,
-)
+from core.validation.integers import coerce_exact_int_or_none
+from core.validation.requirements import require_positive_exact_int
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue

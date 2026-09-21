@@ -77,6 +77,7 @@ class FileExplorerTaskProgressController {
         this.#operationsApi.upsertLocalOperation({
             id: operationId,
             type: 'file-explorer-op',
+            pluginName: i18n.t('taskManager.sources.files'),
             meta: {
                 displayName: label,
                 statusMessage: label,

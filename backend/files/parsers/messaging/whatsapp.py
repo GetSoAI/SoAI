@@ -13,7 +13,7 @@ from typing import ClassVar, override
 from core.config.byte_sizes import MIB_BYTES
 from core.errors.exceptions import ValidationError
 from core.files.types import ParsedDocument
-from core.validation.integers import require_non_negative_exact_int
+from core.validation.requirements import require_non_negative_exact_int
 from files.parsers.messaging.messaging_parser_base import MessagingParserBase
 from files.parsers.text import read_text_file_with_encoding_detection
 

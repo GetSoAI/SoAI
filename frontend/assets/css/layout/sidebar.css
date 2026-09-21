@@ -10,6 +10,7 @@
         --sidebar-menu-gap: var(--space-15);
         --sidebar-item-padding-y: var(--space-05);
         --sidebar-item-min-height: 42px;
+        --sidebar-label-inline-end-space: var(--space-6);
         --sidebar-active-rail-height: 0;
         --sidebar-active-rail-opacity: 0;
         --sidebar-active-rail-y: 0;

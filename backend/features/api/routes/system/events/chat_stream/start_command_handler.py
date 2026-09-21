@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
 from core.errors.exception_coercion import coerce_to_soai_error
@@ -15,6 +16,7 @@ from core.openai.stream_request_preparation import (
     OPENAI_STREAM_FORBIDDEN_FIELDS_WITHOUT_MESSAGES,
     build_openai_stream_request_json,
 )
+from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
 from features.agent.runtime.request_message_source import AgenticRequestMessageSource
 from features.api.routes.system.events.chat_stream.command_start_request import (
     parse_chat_stream_start_request,
@@ -39,6 +41,7 @@ from features.api.routes.system.events.chat_stream.start_failure_finalization im
 from features.api.runtime.chat_prompt_augmentation import (
     build_webui_chat_extra_system_messages,
 )
+from features.api.runtime.chat_stream_registry import ChatStreamReservation
 from features.api.runtime.request_user_resolution import resolve_request_user_id
 from features.api.runtime.webui_attachments.provider_projection import (
     build_webui_attachment_provider_projector,
@@ -56,6 +59,9 @@ __all__ = ("handle_chat_stream_start",)
 LOGGER_NAME = "SoAI.features.api.start_command_handler"
 OPERATION_WEBUI_WS_CHAT_STREAM_START_PROJECT_ATTACHMENTS = (
     "webui_ws_chat_stream.start.project_attachments"
+)
+OPERATION_WEBUI_WS_CHAT_STREAM_RECOVER_ACCEPTED_CANCELLATION = (
+    "webui_ws_chat_stream.start.recover_accepted_cancellation"
 )
 
 
@@ -132,47 +138,89 @@ async def handle_chat_stream_start(
         model_id=failure_model_id,
     )
     try:
-        required_snapshot = await require_conversation_and_timestamp_ok(
-            api_context=api_context,
-            connection=connection,
+        reservation = ChatStreamReservation(
+            user_id=user_id,
             conv_id=conv_id,
             request_id=request_id,
-            user_id=user_id,
-            assistant_at_ms=assistant_at_ms,
-            before_timestamp_exclusive=assistant_turn_at_ms,
-            counting_mode="canonical",
-            trace_id=trace_id,
-            logger=logger,
         )
-        if required_snapshot is None:
-            return
-        snapshot = required_snapshot
-        failure_message_index = int(snapshot.message_count)
-        model_id = failure_model_id
-        canonical_history = list(snapshot.canonical_history)
-        project_agentic_prompt_messages = build_webui_attachment_provider_projector(
-            dependencies=api_context.dependencies,
+        async with api_context.dependencies.chat_stream_registry.lifecycle_lock(
+            user_id=user_id,
             conv_id=conv_id,
-            user_id=user_id,
-            model_id=model_id,
-        )
-        request_json["messages"] = await project_agentic_prompt_messages(canonical_history)
-
-        extra_system_messages = build_webui_chat_extra_system_messages(
-            persisted_messages=list(snapshot.persisted_messages),
-            content_preview_feedback=content_preview_feedback,
-            preview_contract_feedback=preview_contract_feedback,
-            assistant_turn_at_ms=assistant_turn_at_ms,
-        )
-        async with api_context.dependencies.conversation_agent_settings_locks.lock(
-            (user_id, conv_id),
         ):
+            required_snapshot = await require_conversation_and_timestamp_ok(
+                api_context=api_context,
+                connection=connection,
+                conv_id=conv_id,
+                request_id=request_id,
+                user_id=user_id,
+                assistant_at_ms=assistant_at_ms,
+                before_timestamp_exclusive=assistant_turn_at_ms,
+                counting_mode="canonical",
+                trace_id=trace_id,
+                logger=logger,
+            )
+            if required_snapshot is None:
+                return
+            snapshot = required_snapshot
+            if not await api_context.dependencies.chat_stream_registry.try_reserve_while_lifecycle_locked(
+                reservation,
+            ):
+                return
+        try:
+            if await api_context.dependencies.database_stream_cancellations.is_accepted(
+                conv_id=conv_id,
+                user_id=user_id,
+                request_id=request_id,
+            ):
+                try:
+                    await asyncio.wait_for(
+                        api_context.dependencies.database_stream_cancellations.accept(
+                            conv_id=conv_id,
+                            user_id=user_id,
+                            request_id=request_id,
+                            force_pending_steers=False,
+                            allow_unpersisted_target=False,
+                        ),
+                        timeout=LOCAL_IO_TIMEOUT_SEC,
+                    )
+                except HANDLED_RUNTIME_EXCEPTIONS as exception:
+                    log_exception(
+                        logger,
+                        coerce_to_soai_error(
+                            exception,
+                            operation=(
+                                OPERATION_WEBUI_WS_CHAT_STREAM_RECOVER_ACCEPTED_CANCELLATION
+                            ),
+                        ),
+                        message="Accepted Chat cancellation recovery remains pending.",
+                        trace_id=trace_id,
+                        operation=(OPERATION_WEBUI_WS_CHAT_STREAM_RECOVER_ACCEPTED_CANCELLATION),
+                        level="warning",
+                        details={"conv_id": conv_id, "request_id": request_id},
+                    )
+                return
+            failure_message_index = int(snapshot.message_count)
+            model_id = failure_model_id
+            canonical_history = list(snapshot.canonical_history)
+            project_agentic_prompt_messages = build_webui_attachment_provider_projector(
+                dependencies=api_context.dependencies,
+                conv_id=conv_id,
+                user_id=user_id,
+                model_id=model_id,
+            )
+            extra_system_messages = build_webui_chat_extra_system_messages(
+                persisted_messages=list(snapshot.persisted_messages),
+                content_preview_feedback=content_preview_feedback,
+                preview_contract_feedback=preview_contract_feedback,
+                assistant_turn_at_ms=assistant_turn_at_ms,
+            )
             await start_chat_stream_runtime(
                 failure_boundary=failure_boundary,
                 chat_streams=chat_streams,
                 request_json=request_json,
                 identity=identity,
                 message_count=int(snapshot.message_count),
+                canonical_history=canonical_history,
                 extra_system_messages=extra_system_messages,
                 agentic_message_source=AgenticRequestMessageSource(
                     canonical_messages=canonical_history,
@@ -181,6 +229,8 @@ async def handle_chat_stream_start(
                 trace_id=trace_id,
                 logger=logger,
             )
+        finally:
+            await api_context.dependencies.chat_stream_registry.release_reservation(reservation)
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
         coerced = coerce_to_soai_error(
             exception,

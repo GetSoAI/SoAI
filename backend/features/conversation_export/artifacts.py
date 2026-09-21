@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import SecurityError, ValidationError
 from core.files.operations import secure_filename
+from core.files.path_policy import is_path_inside_directory, is_same_path
 from core.filesystem.open_files import open_text
 from core.logging.trace import get_logger
 from core.timing.epoch import epoch_ms
@@ -63,7 +64,7 @@ def build_conversation_pdf_artifact_paths(
 def require_export_artifact_path(temp_dir: str, pdf_path: str) -> str:
     root = os.path.realpath(temp_dir)
     candidate = os.path.realpath(pdf_path)
-    if not candidate.startswith(root + os.sep):
+    if is_same_path(root, candidate) or not is_path_inside_directory(root, candidate):
         raise SecurityError("PDF export artifact path is outside the export directory.")
     if not os.path.isfile(candidate):
         raise ValidationError("PDF export artifact is missing.")

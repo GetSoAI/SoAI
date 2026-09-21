@@ -60,6 +60,15 @@ interface ConversationStreamStatusResponse {
     previewCooldownMs?: number | undefined;
     previewTrigger?: string | undefined;
 }
+interface ConversationStreamCancelRequest {
+    requestId: string;
+    forcePendingSteers: boolean;
+}
+interface ConversationStreamCancelResponse {
+    conversationId: string;
+    requestId: string;
+    status: 'cancellation_requested' | 'already_terminal' | 'superseded';
+}
 interface ComparisonTurnPreflightVariantResponse {
     modelVariantIndex: number;
     requestedModelId: string;
@@ -280,6 +289,8 @@ export type {
     ConversationSearchConfigResponse,
     ConversationSearchConfigUpdateRequest,
     ConversationStreamStatusResponse,
+    ConversationStreamCancelRequest,
+    ConversationStreamCancelResponse,
     ConversationWorkspacePathConfigResponse,
     ConversationWorkspacePathConfigUpdateRequest,
     SecretPromptInteractionResolutionRequest,

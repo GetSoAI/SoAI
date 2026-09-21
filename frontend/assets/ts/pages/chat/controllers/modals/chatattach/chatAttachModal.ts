@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { bindTypedResolvedDataActionListener } from '@core/dom/dataActionBinding.ts';
+import { checkerboardService } from '@core/dom/dom.ts';
 import { getRequestAnimationFrame } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -9,66 +10,106 @@ import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
 import type { TabsComponent } from '@core/ui/controls/Tabs.ts';
 import { CHAT_ATTACH_MODAL_ACTIONS, CHAT_ATTACH_MODAL_ID, createCameraCaptureRuntime, isChatAttachModalAction, type ChatAttachCameraRuntime } from '@features/chat/public.ts';
 import type { ChatAttachModalHost } from '@pages/chat/controllers/modals/chatattach/contracts.ts';
+import type { ChatAttachDraftRemovalSource } from '@pages/chat/controllers/actionhandlers/core/contracts.ts';
 import { ChatAttachBrowseController } from '@pages/chat/controllers/modals/chatattach/browseController.ts';
 import { ChatAttachKnowledgeController } from '@pages/chat/controllers/modals/chatattach/chatAttachKnowledgeController.ts';
-import { createChatAttachBrowseElements, createChatAttachCameraElements, createChatAttachKnowledgeElements, createChatAttachSoaiLinkElements, createChatAttachUploadElements, requireChatAttachModalChild } from '@pages/chat/controllers/modals/chatattach/chatAttachModalElementsManager.ts';
-import { activateChatAttachTab, createChatAttachTabsComponent, requireChatAttachTabAvailable, resolveInitialChatAttachTab, syncChatAttachTabAvailability, type ChatAttachModalOpenOptions, type ChatAttachModalTab } from '@pages/chat/controllers/modals/chatattach/chatAttachModalTabsController.ts';
+import { createChatAttachBrowseElements, createChatAttachCameraElements, createChatAttachDraftListElements, createChatAttachKnowledgeElements, createChatAttachSoaiLinkElements, createChatAttachUploadElements, requireChatAttachModalButton, requireChatAttachModalChild } from '@pages/chat/controllers/modals/chatattach/chatAttachModalElementsManager.ts';
+import { activateChatAttachTab, createChatAttachTabsComponent, requireChatAttachTabAvailable, resolveInitialChatAttachTab, syncChatAttachTabAvailability, syncChatAttachTabBadges, type ChatAttachModalOpenOptions, type ChatAttachModalTab } from '@pages/chat/controllers/modals/chatattach/chatAttachModalTabsController.ts';
+import { ChatAttachDraftAttachmentListController } from '@pages/chat/controllers/modals/chatattach/ChatAttachDraftAttachmentListController.ts';
 import { ChatAttachSoaiLinkController } from '@pages/chat/controllers/modals/chatattach/ChatAttachSoaiLinkController.ts';
 import { ChatAttachUploadController } from '@pages/chat/controllers/modals/chatattach/chatAttachUploadController.ts';
+import { setButtonEnabled } from '@pages/chat/controllers/modals/chatattach/view.ts';
 
 interface ChatAttachModalRuntime {
     cameraRuntime: ChatAttachCameraRuntime;
+    cameraDraftListController: ChatAttachDraftAttachmentListController;
     browseController: ChatAttachBrowseController;
     knowledgeController: ChatAttachKnowledgeController;
     soaiLinkController: ChatAttachSoaiLinkController;
     uploadController: ChatAttachUploadController;
     tabsComponent: TabsComponent;
+    removeAllButtons: ReadonlyMap<ChatAttachDraftRemovalSource, HTMLButtonElement>;
+    pendingRemovalSources: Set<ChatAttachDraftRemovalSource>;
 }
 
 type ChatAttachModalSession = { controller: AbortController; runtime: ChatAttachModalRuntime };
 
+type ChatAttachCheckerboardTarget = { token: string; itemSelector: string };
+
 const modalSessions: WeakMap<HTMLElement, ChatAttachModalSession> = new WeakMap();
+const removalSources: readonly ChatAttachDraftRemovalSource[] = ['upload', 'camera', 'browse', 'soaiLink', 'knowledge'];
+
+const resolveChatAttachCheckerboardTarget = (tab: ChatAttachModalTab): ChatAttachCheckerboardTarget | null => {
+    if (tab === 'upload') return { token: 'upload-list', itemSelector: '.chat-attach-draft-attachment-row' };
+    if (tab === 'camera') return { token: 'camera-list', itemSelector: '.chat-attach-draft-attachment-row' };
+    if (tab === 'browse') return { token: 'browse-list', itemSelector: '.chat-attach-draft-attachment-row' };
+    if (tab === 'soaiLink') return { token: 'soai-link-list', itemSelector: '.chat-attach-draft-attachment-row' };
+    if (tab === 'knowledge') return { token: 'knowledge-documents-list', itemSelector: '.rag-document-item' };
+    return null;
+};
+
+const refreshVisibleChatAttachCheckerboard = (modal: HTMLElement, tab: ChatAttachModalTab): void => {
+    const target = resolveChatAttachCheckerboardTarget(tab);
+    if (target === null) return;
+    getRequestAnimationFrame()(() => {
+        if (!modal.isConnected || modal.dataset['chatAttachActiveTab'] !== tab) return;
+        checkerboardService.updateCheckerboard(requireChatAttachModalChild(modal, target.token), target.itemSelector);
+    });
+};
 
 const selectTab = async (host: ChatAttachModalHost, modal: HTMLElement, runtime: ChatAttachModalRuntime, tab: ChatAttachModalTab): Promise<void> => {
     requireChatAttachTabAvailable(host, tab);
     activateChatAttachTab(modal, tab);
     modal.dataset['chatAttachActiveTab'] = tab;
+    refreshVisibleChatAttachCheckerboard(modal, tab);
+    runtime.cameraRuntime.deactivate();
+    runtime.cameraDraftListController.deactivate();
+    runtime.browseController.deactivate();
+    runtime.knowledgeController.deactivate();
+    runtime.soaiLinkController.deactivate();
+    runtime.uploadController.deactivate();
     if (tab === 'camera') {
-        runtime.uploadController.deactivate();
-        runtime.browseController.deactivate();
-        runtime.knowledgeController.deactivate();
-        runtime.soaiLinkController.deactivate();
+        runtime.cameraDraftListController.activate();
         await runtime.cameraRuntime.activate();
         return;
     }
-    runtime.cameraRuntime.deactivate();
     if (tab === 'browse') {
-        runtime.uploadController.deactivate();
-        runtime.knowledgeController.deactivate();
-        runtime.soaiLinkController.deactivate();
         runtime.browseController.activate();
         return;
     }
-    runtime.browseController.deactivate();
     if (tab === 'soaiLink') {
-        runtime.uploadController.deactivate();
-        runtime.knowledgeController.deactivate();
         runtime.soaiLinkController.activate();
         return;
     }
-    runtime.soaiLinkController.deactivate();
     if (tab === 'knowledge') {
-        runtime.uploadController.deactivate();
         runtime.knowledgeController.activate();
         return;
     }
-    runtime.knowledgeController.deactivate();
     runtime.uploadController.activate();
+};
+
+const syncRemoveAllButton = (host: ChatAttachModalHost, runtime: ChatAttachModalRuntime): void => {
+    const counts = host.attachments.draftCounts();
+    for (const source of removalSources) {
+        const button = runtime.removeAllButtons.get(source);
+        if (button === undefined) throw new Error(`Chat attach modal requires the ${source} remove-all button`);
+        const hasDrafts = counts[source] > 0;
+        button.hidden = !hasDrafts;
+        setButtonEnabled(button, hasDrafts && !runtime.pendingRemovalSources.has(source));
+    }
+};
+
+const resolveRemovalSource = (runtime: ChatAttachModalRuntime, actionElement: HTMLElement): ChatAttachDraftRemovalSource => {
+    const source = removalSources.find((candidate) => runtime.removeAllButtons.get(candidate) === actionElement);
+    if (source === undefined) throw new Error('Chat attach modal remove-all action has no owning tab');
+    return source;
 };
 
 const syncActionAvailability = (host: ChatAttachModalHost, runtime: ChatAttachModalRuntime): void => {
     syncChatAttachTabAvailability(host, runtime.tabsComponent);
+    syncChatAttachTabBadges(host, runtime.tabsComponent);
     runtime.cameraRuntime.setAvailable(host.attachments.cameraEnabled());
+    syncRemoveAllButton(host, runtime);
 };
 
 const resolveInitialFocusTokens = (tab: ChatAttachModalTab): readonly string[] => {
@@ -111,18 +152,36 @@ const useCapturedCameraFile = async (host: ChatAttachModalHost, cameraRuntime: C
 const createAttachModalRuntime = async (host: ChatAttachModalHost, modal: HTMLElement, initialTab: ChatAttachModalTab): Promise<ChatAttachModalSession> => {
     const controller = new AbortController();
     const cameraRuntime = createCameraCaptureRuntime(createChatAttachCameraElements(modal), controller.signal);
+    const cameraDraftListController = new ChatAttachDraftAttachmentListController(host, createChatAttachDraftListElements(modal, 'camera'), controller.signal, 'camera');
     const browseElements = createChatAttachBrowseElements(modal);
     const browseController = new ChatAttachBrowseController(host, browseElements, controller.signal);
     const knowledgeController = new ChatAttachKnowledgeController(host, createChatAttachKnowledgeElements(modal), controller.signal);
     const uploadController = new ChatAttachUploadController(host, createChatAttachUploadElements(modal), controller.signal);
     const soaiLinkController = new ChatAttachSoaiLinkController(host, createChatAttachSoaiLinkElements(modal), controller.signal);
+    const removeAllButtons = new Map<ChatAttachDraftRemovalSource, HTMLButtonElement>(removalSources.map((source) => [source, requireChatAttachModalButton(modal, `${source === 'soaiLink' ? 'soai-link' : source}-remove-all`)]));
     let runtime: ChatAttachModalRuntime;
     const tabsComponent = await createChatAttachTabsComponent(modal, initialTab, (tab) => host.execution.run('chat:attachModalTabChange', () => selectTab(host, modal, runtime, tab)));
-    runtime = { cameraRuntime, browseController, knowledgeController, soaiLinkController, uploadController, tabsComponent };
+    runtime = { cameraRuntime, cameraDraftListController, browseController, knowledgeController, soaiLinkController, uploadController, tabsComponent, removeAllButtons, pendingRemovalSources: new Set() };
     const session = { controller, runtime };
     modalSessions.set(modal, session);
+    const syncDraftPresentation = (): void => {
+        syncChatAttachTabBadges(host, runtime.tabsComponent);
+        syncRemoveAllButton(host, runtime);
+    };
+    const unsubscribeDrafts = host.attachments.subscribeDrafts(syncDraftPresentation);
+    const unsubscribeRag = host.rag.subscribe(syncDraftPresentation);
+    controller.signal.addEventListener(
+        'abort',
+        () => {
+            unsubscribeDrafts();
+            unsubscribeRag();
+        },
+        { once: true }
+    );
     const handleModalClose = (): void => {
         runtime.uploadController.deactivate();
+        runtime.cameraDraftListController.deactivate();
+        runtime.browseController.deactivate();
         runtime.knowledgeController.deactivate();
         runtime.soaiLinkController.deactivate();
         controller.abort();
@@ -199,6 +258,19 @@ const createAttachModalRuntime = async (host: ChatAttachModalHost, modal: HTMLEl
                 await runtime.knowledgeController.reindex();
                 return;
             }
+            if (action === CHAT_ATTACH_MODAL_ACTIONS.REMOVE_ALL) {
+                const source = resolveRemovalSource(runtime, actionElement);
+                if (runtime.pendingRemovalSources.has(source)) return;
+                runtime.pendingRemovalSources.add(source);
+                syncRemoveAllButton(host, runtime);
+                try {
+                    await host.attachments.removeAll(source);
+                } finally {
+                    runtime.pendingRemovalSources.delete(source);
+                    syncRemoveAllButton(host, runtime);
+                }
+                return;
+            }
             if (action === CHAT_ATTACH_MODAL_ACTIONS.CAMERA_SHUTTER) {
                 requireChatAttachTabAvailable(host, 'camera');
                 await cameraRuntime.capture();
@@ -214,9 +286,9 @@ const createAttachModalRuntime = async (host: ChatAttachModalHost, modal: HTMLEl
                 await useCapturedCameraFile(host, cameraRuntime);
                 return;
             }
-            if (action === CHAT_ATTACH_MODAL_ACTIONS.CAMERA_FLIP) {
+            if (action === CHAT_ATTACH_MODAL_ACTIONS.CAMERA_SWITCH) {
                 requireChatAttachTabAvailable(host, 'camera');
-                await cameraRuntime.flipCamera();
+                await cameraRuntime.switchCamera();
                 return;
             }
             if (action === CHAT_ATTACH_MODAL_ACTIONS.ATTACH_DOCUMENTS) {
@@ -240,7 +312,7 @@ const openChatAttachModal = (host: ChatAttachModalHost, options: ChatAttachModal
     const presenter = requireModalPresenter();
     const modal = presenter.requireElement(CHAT_ATTACH_MODAL_ID);
     host.execution.run('chat:attachModalOpen', async () => {
-        const initialTab = resolveInitialChatAttachTab(modal, options);
+        const initialTab = resolveInitialChatAttachTab(host, modal, options);
         const runtime = await requireAttachModalRuntime(host, modal, initialTab);
         syncActionAvailability(host, runtime);
         await selectTab(host, modal, runtime, initialTab);

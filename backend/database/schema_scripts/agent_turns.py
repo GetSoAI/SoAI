@@ -47,6 +47,8 @@ def _build_agent_turns_schema_sql() -> str:
             started_at_ms INTEGER NOT NULL CHECK(started_at_ms >= {EPOCH_MS_MIN}),
             updated_at_ms INTEGER NOT NULL CHECK(updated_at_ms >= {EPOCH_MS_MIN}),
             finished_at_ms INTEGER CHECK(finished_at_ms IS NULL OR finished_at_ms >= {EPOCH_MS_MIN}),
+            manual_regeneration_request_json TEXT CHECK(manual_regeneration_request_json IS NULL OR (json_valid(manual_regeneration_request_json) AND json_type(manual_regeneration_request_json) = 'object')),
+            manual_regeneration_accepted_revision INTEGER CHECK(manual_regeneration_accepted_revision IS NULL OR manual_regeneration_accepted_revision >= {EPOCH_MS_MIN}) CHECK((manual_regeneration_request_json IS NULL) = (manual_regeneration_accepted_revision IS NULL)),
             CHECK(((turn_scope = 'root') AND parent_turn_id IS NULL AND parent_tool_call_id IS NULL AND parent_iteration_index IS NULL AND owner_task_id IS NULL) OR ((turn_scope = 'subagent') AND parent_turn_id IS NOT NULL AND length(trim(parent_turn_id)) > 0 AND parent_tool_call_id IS NOT NULL AND length(trim(parent_tool_call_id)) > 0 AND parent_iteration_index IS NOT NULL AND owner_task_id IS NOT NULL AND length(trim(owner_task_id)) > 0)),
             CHECK(((status = 'running') AND finished_at_ms IS NULL) OR ((status IN ('completed', 'cancelled', 'error', 'max_iterations', 'abandoned')) AND finished_at_ms IS NOT NULL)),
             CHECK(((status = 'max_iterations') AND reached_max_iterations = 1) OR ((status != 'max_iterations') AND reached_max_iterations = 0)),
@@ -64,6 +66,13 @@ def _build_agent_turns_schema_sql() -> str:
         CREATE INDEX IF NOT EXISTS idx_agent_turns_parent_lookup ON webui_agent_turns(conv_id, user_id, parent_turn_id, updated_at_ms DESC, turn_id DESC);
         CREATE INDEX IF NOT EXISTS idx_agent_turns_owner_task ON webui_agent_turns(owner_task_id, updated_at_ms DESC);
         CREATE INDEX IF NOT EXISTS idx_agent_turns_turn_iteration ON webui_agent_turns(conv_id, turn_id, iteration_index);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_turns_manual_regeneration_identity
+            ON webui_agent_turns(
+                conv_id,
+                user_id,
+                json_extract(manual_regeneration_request_json, '$.client_id'),
+                json_extract(manual_regeneration_request_json, '$.client_request_id')
+            ) WHERE manual_regeneration_request_json IS NOT NULL;
         CREATE TABLE IF NOT EXISTS webui_agent_event_sequences (
             conv_id TEXT NOT NULL,
             user_id INTEGER NOT NULL,

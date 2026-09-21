@@ -11,6 +11,7 @@ from core.attachments.attachment_parse_classification import (
 )
 from core.files.managed_storage_errors import FileStorageSecurityError
 from core.text.chunked_reads import slice_chunked_text
+from core.users.ocr_preferences import resolve_user_ocr_language
 from features.api.runtime.webui_attachments.physical_file_snapshot import (
     open_verified_soai_file_descriptor,
 )
@@ -78,7 +79,7 @@ async def pending_file_text_part(
     attachment: JSONDict,
 ) -> JSONDict:
     snapshot = await load_verified_provider_descriptor_snapshot(
-        context,
+        context.storage_root,
         record=record,
         attachment=attachment,
     )
@@ -92,6 +93,9 @@ async def pending_file_text_part(
         }
     try:
         outcome = await classify_attachment_descriptor_for_provider(
+            ocr_language=await resolve_user_ocr_language(
+                context.dependencies.database_users, context.user_id
+            ),
             document_reader=context.dependencies.document_reader,
             parser_registry_factory=context.dependencies.parser_registry_factory,
             descriptor=snapshot.descriptor,
@@ -131,12 +135,12 @@ async def file_identity_available(
     attachment: JSONDict,
 ) -> bool:
     try:
-        descriptor = await open_verified_soai_file_descriptor(
-            context,
+        managed = await open_verified_soai_file_descriptor(
+            context.storage_root,
             record=record,
             attachment=attachment,
         )
     except FileStorageSecurityError:
         return False
-    os.close(descriptor)
+    os.close(managed.descriptor)
     return True

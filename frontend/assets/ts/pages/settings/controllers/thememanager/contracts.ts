@@ -14,6 +14,7 @@ import type { UiPreferenceKey } from '@core/settings/settingsFieldKeys.ts';
 interface ThemeManagerDependencies {
     host: ThemeManagerHost;
     canManageSolidBackground: boolean;
+    getGrantedActions: () => ReadonlySet<string>;
     dashboardProductTitle: () => (() => string) | null;
     updatePreferenceToggleLabel: (element: Element, enabled?: boolean) => void;
 }
@@ -48,6 +49,7 @@ interface ThemeViewContext {
     host: ThemeManagerHost;
     canManageSolidBackground: boolean;
     canManageWallpaper: boolean;
+    grantedActions: ReadonlySet<string>;
     getPreferenceStateLabels: () => ToggleLabelState;
 }
 

@@ -150,15 +150,62 @@
         display: block;
     }
 
-    .searchbar-container:focus-within .searchbar-icon,
-    .searchbar-container.is-focused .searchbar-icon {
+    .searchbar-container:not(.header-search) > .searchbar-icon {
+        right: var(--control-padding-inline);
+        transition: none;
+    }
+
+    .searchbar-clear {
+        position: absolute;
+        right: var(--control-padding-inline);
+        top: 50%;
+        transform: translateY(-50%);
+        width: var(--control-icon-size);
+        height: var(--control-icon-size);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: var(--text-tertiary);
+        cursor: pointer;
+    }
+
+    .searchbar-clear:hover,
+    .searchbar-clear:focus-visible {
         color: var(--text-primary);
+    }
+
+    .searchbar-clear svg {
+        width: 100%;
+        height: 100%;
+        display: block;
     }
 
     .searchbar-container.compact .searchbar-icon {
         right: 0.75rem;
         width: var(--control-icon-size-compact);
         height: var(--control-icon-size-compact);
+    }
+
+    .searchbar-container.compact .searchbar-clear {
+        right: 0.75rem;
+        width: var(--control-icon-size-compact);
+        height: var(--control-icon-size-compact);
+    }
+
+    .searchbar-container.header-search:focus-within .searchbar-icon,
+    .searchbar-container.header-search.is-focused .searchbar-icon {
+        color: var(--text-primary);
+    }
+
+    .searchbar-container:has(.searchbar-input:not(:placeholder-shown)) > .searchbar-icon {
+        display: none;
+    }
+
+    .searchbar-container:has(.searchbar-input:not(:placeholder-shown)) > .searchbar-clear {
+        display: flex;
     }
 
     .searchbar-input:disabled::placeholder {

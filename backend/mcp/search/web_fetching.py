@@ -49,6 +49,7 @@ LOGGER_NAME = "SoAI.mcp.search.web_fetching"
 async def fetch_url(
     url: str,
     *,
+    ocr_language: str,
     web_fetcher: WebContentFetcherProtocol,
     task_registry: TaskRegistryProtocol | None,
     cancellation_history: CancellationHistoryProtocol,
@@ -108,7 +109,9 @@ async def fetch_url(
                 task=task,
                 logger=logger,
             )
-        fetch_coro = fetching.fetch_url(web_fetcher, url, progress_callback=reporter)
+        fetch_coro = fetching.fetch_url(
+            web_fetcher, url, ocr_language=ocr_language, progress_callback=reporter
+        )
         result = (
             await fetch_coro
             if task is None

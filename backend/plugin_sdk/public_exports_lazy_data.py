@@ -11,6 +11,8 @@ from core.plugins.sdk_public_exports import (
     OPENAI_AUDIO_UPLOAD_RESPONSE_EXPORTS,
     OPENAI_EXPORTS,
     OPENAI_PROVIDER_TRANSPORT_EXPORTS,
+    OUTBOUND_HEADER_EXPORTS,
+    PLUGIN_LOGO_EXPORTS,
     PROCESS_SESSION_EXPORTS,
     PROGRESS_EXPORTS,
     REPOSITORY_ARTIFACT_EXPORTS,
@@ -22,14 +24,7 @@ __all__ = ()
 LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "core.plugins.logo_contract",
-        (
-            "LOGO_FILENAMES",
-            "MAX_LOGO_SOURCE_BYTES",
-            "MAX_LOGO_DIMENSION",
-            "MAX_LOGO_OUTPUT_BYTES",
-            "PluginLogoSource",
-            "PluginLogoResult",
-        ),
+        PLUGIN_LOGO_EXPORTS,
     ),
     ("core.plugins.logo_images", ("sanitize_plugin_logo",)),
     ("core.archives.errors", ("ArchiveLinkTargetNotFoundError",)),
@@ -215,13 +210,7 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("plugin_sdk.contracts.downloads", ("async_stream_download_to_file",)),
     (
         "plugin_sdk.contracts.outbound_headers",
-        (
-            "build_artifact_download_headers",
-            "build_github_api_headers",
-            "build_model_registry_headers",
-            "build_outbound_request_headers",
-            "merge_outbound_headers",
-        ),
+        OUTBOUND_HEADER_EXPORTS,
     ),
     (
         "plugin_sdk.contracts.progress",

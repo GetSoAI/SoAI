@@ -73,7 +73,6 @@ interface SidebarRefreshDependencies {
     getVisibleConfig: () => SidebarConfigEntry[];
     resetSidebarConfig: () => void;
     renderSidebarEntries: (entries: SidebarConfigEntry[]) => Promise<void>;
-    updateMenuItems: () => void;
     syncExpandedWidth: () => void;
     syncWithCurrentRoute: () => void;
     updateMainStateIndicator: () => void;
@@ -91,7 +90,6 @@ const refreshSidebarContent = async (dependencies: SidebarRefreshDependencies, o
     }
 
     await dependencies.renderSidebarEntries(entries);
-    dependencies.updateMenuItems();
     dependencies.syncExpandedWidth();
 
     if (options['syncRoute']) {

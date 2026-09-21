@@ -105,6 +105,7 @@ const createSoAIBenchRunModalElement = (): HTMLElement => {
     const historyText = i18n.t('hardware.modals.soaibenchRun.history');
     const copyText = i18n.t('hardware.modals.soaibenchRun.copy');
     const downloadText = i18n.t('hardware.modals.soaibenchRun.download');
+    const publishText = i18n.t('hardware.soaibenchPublication.action');
     const startText = i18n.t('hardware.modals.soaibenchRun.start');
     const titleId = modalUiId(modalId, 'title');
     const header = renderStandardModalHeader({
@@ -117,7 +118,7 @@ const createSoAIBenchRunModalElement = (): HTMLElement => {
     const body = renderModalBody(uiHtml`<div id="${modalUiId(modalId, 'body')}" class="hardware-soaibench-run-body"></div>`);
     const footer = renderSplitModalFooter({
         left: renderModalFooterCloseButton({ modalId, id: modalUiId(modalId, 'close'), text: closeText, ariaLabel: closeAriaLabel }),
-        right: uiHtml`${renderModalFooterActionButton({ text: historyText, ariaLabel: historyAriaLabel, id: modalUiId(modalId, 'history'), variant: 'neutral', action: 'hardware.gpu.soaibench.history', disabled: true, attributes: { hidden: true } })}${renderModalFooterActionButton({ text: copyText, ariaLabel: copyAriaLabel, id: modalUiId(modalId, 'copy'), variant: 'primary', action: 'hardware.gpu.soaibench.run.copy', disabled: true })}${renderModalFooterActionButton({ text: downloadText, ariaLabel: downloadAriaLabel, id: modalUiId(modalId, 'download'), variant: 'accent', action: 'hardware.gpu.soaibench.run.download', disabled: true })}${renderModalFooterActionButton({ text: startText, ariaLabel: startAriaLabel, id: modalUiId(modalId, 'start'), variant: 'accent', action: 'hardware.gpu.soaibench.start.confirm' })}`
+        right: uiHtml`${renderModalFooterActionButton({ text: historyText, ariaLabel: historyAriaLabel, id: modalUiId(modalId, 'history'), variant: 'neutral', action: 'hardware.gpu.soaibench.history', disabled: true, attributes: { hidden: true } })}${renderModalFooterActionButton({ text: copyText, ariaLabel: copyAriaLabel, id: modalUiId(modalId, 'copy'), variant: 'primary', action: 'hardware.gpu.soaibench.run.copy', disabled: true })}${renderModalFooterActionButton({ text: downloadText, ariaLabel: downloadAriaLabel, id: modalUiId(modalId, 'download'), variant: 'accent', action: 'hardware.gpu.soaibench.run.download', disabled: true })}${renderModalFooterActionButton({ text: publishText, ariaLabel: i18n.t('hardware.soaibenchPublication.ariaLabel'), id: modalUiId(modalId, 'publish'), variant: 'violet', action: 'hardware.gpu.soaibench.run.publish', disabled: true, attributes: { hidden: true } })}${renderModalFooterActionButton({ text: startText, ariaLabel: startAriaLabel, id: modalUiId(modalId, 'start'), variant: 'accent', action: 'hardware.gpu.soaibench.start.confirm' })}`
     });
     return createModalElement({
         id: modalId,

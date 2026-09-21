@@ -21,15 +21,29 @@ const reconcileActivityDurationPresentation = (root: Element, displayMode: ChatA
         return;
     }
     for (const activity of collectInlineActivities(root)) {
+        const running = activity.classList.contains('inline-activity-status-running');
         if (activity.classList.contains('message-role-activity')) {
-            removeAssistantHeaderDuration(activity);
+            if (displayMode === 'expandedOnly' || running) {
+                removeAssistantHeaderDuration(activity);
+            }
+            continue;
+        }
+        if (displayMode === 'settledOnly') {
+            if (running) {
+                removeInlineActivityDuration(activity);
+                continue;
+            }
+            const settledDurationMs = resolveSettledDurationMs(activity);
+            if (settledDurationMs !== null) {
+                syncSettledInlineActivityDuration(activity, settledDurationMs, true);
+            }
             continue;
         }
         if (!isActivityDurationEligible(activity, displayMode)) {
             removeInlineActivityDuration(activity);
             continue;
         }
-        if (activity.classList.contains('inline-activity-status-running')) {
+        if (running) {
             syncRunningInlineActivityDuration(activity, nowMs);
             continue;
         }

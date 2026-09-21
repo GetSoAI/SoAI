@@ -66,7 +66,7 @@ def _read_compatible_package(path: str, target_version: str) -> UpdatePluginIden
     with open_regular_binary_no_symlink(path) as package_file:
         snapshot = inspect_plugin_package_stream(os.path.basename(path), package_file)
     assignments = extract_class_assignments(
-        get_plugin_class_node(snapshot.entrypoint.parsed_source)
+        get_plugin_class_node(snapshot.content.entrypoint.parsed_source)
     )
     required_version = normalize_required_non_empty_string_field(
         eval_required_literal(assignments, PLUGIN_FIELD_REQUIRED_SOAI_VERSION),
@@ -103,7 +103,7 @@ def _read_compatible_package(path: str, target_version: str) -> UpdatePluginIden
                 field_name=PLUGIN_FIELD_VERSION_SOAIPLUGIN,
             )
         ),
-        sha256=snapshot.archive_hash,
+        sha256=snapshot.content.archive_hash,
     )
 
 

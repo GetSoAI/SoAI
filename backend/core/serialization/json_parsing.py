@@ -4,10 +4,15 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Never
+from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
 from core.serialization.json import normalize_for_json
+from core.serialization.strict_json import (
+    StrictJSONDuplicateKeyError,
+    StrictJSONNonFiniteError,
+    decode_strict_json,
+)
 from core.types.json_value import coerce_str_list, is_json_value
 
 if TYPE_CHECKING:
@@ -15,11 +20,14 @@ if TYPE_CHECKING:
 
 __all__ = (
     "MAX_JSON_NESTING_DEPTH",
+    "StrictJSONDuplicateKeyError",
+    "StrictJSONNonFiniteError",
     "parse_json_dict",
     "parse_json_dict_with_messages",
     "parse_json_str_list",
     "parse_json_value",
     "parse_json_value_or_none",
+    "parse_strict_json",
     "parse_optional_json_dict",
     "parse_optional_json_value",
 )
@@ -27,44 +35,22 @@ __all__ = (
 MAX_JSON_NESTING_DEPTH = 64
 
 
-def _reject_nonfinite_constant(constant: str) -> Never:
-    raise ValueError(f"Non-finite JSON number is not allowed: {constant}")
-
-
-def _reject_duplicate_object_pairs(
-    pairs: list[tuple[str, JSONValue]],
-) -> JSONDict:
-    parsed: JSONDict = {}
-    for key, value in pairs:
-        if key in parsed:
-            raise ValueError(f"Duplicate JSON object key is not allowed: {key}")
-        parsed[key] = value
-    return parsed
-
-
-def _json_structural_depth_exceeds(raw_text: str, *, limit: int) -> bool:
-    depth = 0
-    in_string = False
-    escaped = False
-    for character in raw_text:
-        if in_string:
-            if escaped:
-                escaped = False
-            elif character == "\\":
-                escaped = True
-            elif character == '"':
-                in_string = False
-            continue
-        if character == '"':
-            in_string = True
-        elif character in "{[":
-            depth += 1
-            if depth > limit:
-                return True
-        elif character in "}]":
-            if depth > 0:
-                depth -= 1
-    return False
+def parse_strict_json(
+    raw: str | bytes,
+    *,
+    field: str = "json",
+    max_depth: int | None = None,
+    strict_utf8: bool = False,
+    reject_duplicate_keys: bool = False,
+) -> JSONValue:
+    return decode_strict_json(
+        raw,
+        decoder=json.loads,
+        field=field,
+        max_depth=max_depth,
+        strict_utf8=strict_utf8,
+        reject_duplicate_keys=reject_duplicate_keys,
+    )
 
 
 def parse_json_value(
@@ -76,22 +62,15 @@ def parse_json_value(
     reject_duplicate_keys: bool = False,
 ) -> JSONValue:
     normalized_field = str(field or "").strip() or "json"
-    if isinstance(raw, bytes):
-        try:
-            raw_text = raw.decode("utf-8", errors="strict" if strict_utf8 else "replace")
-        except UnicodeDecodeError as exception:
-            raise ValidationError(f"{normalized_field} must be valid UTF-8.") from exception
-    else:
-        raw_text = str(raw)
-    if max_depth is not None and _json_structural_depth_exceeds(raw_text, limit=max_depth):
-        raise ValidationError(f"{normalized_field} exceeds maximum JSON nesting depth.")
     try:
-        parsed = json.loads(
-            raw_text,
-            parse_constant=_reject_nonfinite_constant,
-            object_pairs_hook=(_reject_duplicate_object_pairs if reject_duplicate_keys else None),
+        parsed = parse_strict_json(
+            raw,
+            field=normalized_field,
+            max_depth=max_depth,
+            strict_utf8=strict_utf8,
+            reject_duplicate_keys=reject_duplicate_keys,
         )
-    except (TypeError, ValueError) as exception:
+    except ValueError as exception:
         raise ValidationError(
             f"Failed to parse {normalized_field} as JSON: {type(exception).__name__}: {exception}",
         ) from exception

@@ -77,11 +77,11 @@ def _validate_pending_password_outbox_payloads(conn: sqlite3.Connection) -> None
         raise StateError("Pending password event payload predates the current V1 contract.")
 
 
-def validate_current_v1_webui_identity_rows(conn: sqlite3.Connection) -> None:
+def validate_current_webui_identity_rows(conn: sqlite3.Connection) -> None:
     _validate_account_rows(conn)
     _validate_chronology(conn)
     sync_validate_rotation_lineages(conn, int(time.time() * 1000))
     _validate_pending_password_outbox_payloads(conn)
 
 
-__all__ = ("validate_current_v1_webui_identity_rows",)
+__all__ = ("validate_current_webui_identity_rows",)

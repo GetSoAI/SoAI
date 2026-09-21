@@ -10,6 +10,7 @@ from core.hardware.gpu_identity_normalization import (
     normalize_identity_name,
     normalize_model_key,
     normalize_pci_bdf,
+    normalize_physical_pci_bdf,
 )
 from core.types.json_value import coerce_json_dict_or_empty
 from core.validation.numbers import coerce_int_from_json
@@ -23,6 +24,7 @@ __all__ = (
     "normalize_identity_name",
     "normalize_model_key",
     "normalize_pci_bdf",
+    "normalize_physical_pci_bdf",
     "normalize_uuid",
     "optional_identity_text",
     "snapshot_gpu_entries",

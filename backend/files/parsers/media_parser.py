@@ -6,7 +6,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
-from files.parsers.blocking_parser import BlockingParser
+from core.files.protocols import FileParserProtocol
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 __all__ = ("BaseMediaParser",)
 
 
-class BaseMediaParser(BlockingParser):
+class BaseMediaParser(FileParserProtocol):
     content_separator: str = "\n"
 
     def _init_media_context(self, file_path: str) -> tuple[JSONDict, list[str]]:

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { RequestDistributionEntry } from '@core/models/requestDistribution.ts';
-import { toSurfaceColor } from '@core/models/requestDistributionColors.ts';
+import { resolveRequestDistributionColor, toSurfaceColor } from '@core/models/requestDistributionColors.ts';
 import { bodyTint, composeBackground, darkenFace, depthTint, glassFaceMarkup, lightenFace, roundTo, topSheen } from '@core/models/requestdistributionglass/glassMaterial.ts';
 import type { RequestDistributionGlassInput, RequestDistributionGlassParts } from '@core/models/requestdistributionglass/glassParts.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
@@ -36,8 +36,6 @@ const BARS_GAP_RATIO = 0.32;
 const BARS_DEPTH_RATIO = 0.55;
 const BARS_MAX_DEPTH = 18;
 const BARS_MIN_DEPTH = 6;
-const BARS_MAX_VISIBLE = 12;
-
 const computeBarGeometry = (width: number, height: number, count: number): BarGeometry | null => {
     const usableWidth = width - BARS_PADDING_SIDE * 2;
     const usableHeight = height - BARS_PADDING_TOP - BARS_PADDING_BOTTOM;
@@ -105,7 +103,7 @@ const buildBarsGlassParts = (input: RequestDistributionGlassInput): RequestDistr
     if (input.width <= 0 || input.height <= 0 || input.colors.length === 0 || input.dataset.entries.length === 0) {
         return { defs: EMPTY_UI_HTML, bodies: EMPTY_UI_HTML, rims: EMPTY_UI_HTML };
     }
-    const entries: readonly RequestDistributionEntry[] = input.dataset.entries.slice(0, BARS_MAX_VISIBLE);
+    const entries: readonly RequestDistributionEntry[] = input.dataset.entries;
     const geometry = computeBarGeometry(input.width, input.height, entries.length);
     if (geometry === null) {
         return { defs: EMPTY_UI_HTML, bodies: EMPTY_UI_HTML, rims: EMPTY_UI_HTML };
@@ -113,7 +111,7 @@ const buildBarsGlassParts = (input: RequestDistributionGlassInput): RequestDistr
     const maxValue = entries.reduce((max, entry) => (entry.value > max ? entry.value : max), 0);
     const bodies: TrustedHtml[] = [];
     entries.forEach((entry, index) => {
-        const color = input.colors[entry.swatchIndex % input.colors.length];
+        const color = resolveRequestDistributionColor(input.colors, entry.swatchIndex, entry.swatchColor);
         if (!color) {
             throw new Error('Request distribution chart color palette is missing an entry');
         }

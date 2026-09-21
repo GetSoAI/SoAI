@@ -3,13 +3,14 @@
 
 import { canAccessUiSurface, createAccessContextFromUser, createAccessRequirement } from '@core/access/accessPolicy.ts';
 import { loadWebuiPermissionsSnapshot } from '@core/access/webuiPermissions.ts';
+import { parseFirstPositiveCssPixelValue, parsePositiveCssPixelValue } from '@core/dom/attributes.ts';
 import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { MAIN_STATE_SERVICE_ID } from '@core/indicators/protocols.ts';
 import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
 import { isSidebarStorageConfigContract, type ComponentRegistryContract, type SidebarStorageConfigContract, type UserInfo } from '@core/layout/sidebar/contracts.ts';
-import { SIDEBAR_BASE_WIDTH_PROPERTY, SIDEBAR_EXPANDED_WIDTH_PROPERTY, SIDEBAR_LABEL_SELECTOR, SIDEBAR_LINK_SELECTOR } from '@core/layout/sidebar/dom.ts';
+import { SIDEBAR_BASE_WIDTH_PROPERTY, SIDEBAR_EXPANDED_WIDTH_PROPERTY, SIDEBAR_LINK_SELECTOR, SIDEBAR_PAGE_LABEL_SELECTOR } from '@core/layout/sidebar/dom.ts';
 import { normalizeComponentToken } from '@core/layout/sidebar/foundation.ts';
 import { isSidebarStoragePluginIndicatorContract, type SidebarStoragePluginIndicatorContract } from '@core/layout/sidebar/pluginIndicator.ts';
 import type { SidebarState } from '@core/layout/sidebar/state.ts';
@@ -146,21 +147,16 @@ const waitForSidebarComponent = async (componentRegistry: ComponentRegistryContr
     return component;
 };
 
-const resolveSidebarCssPixelValue = (sidebar: HTMLElement, propertyName: string): number => {
-    const propertyValue = window.getComputedStyle(sidebar).getPropertyValue(propertyName).trim();
-    const resolvedValue = Number.parseFloat(propertyValue);
-    return Number.isFinite(resolvedValue) ? resolvedValue : 0;
-};
-
-const resolveSidebarExpandedWidth = (sidebar: HTMLElement): number => {
-    const minimumWidth = resolveSidebarCssPixelValue(sidebar, SIDEBAR_BASE_WIDTH_PROPERTY);
+const resolveSidebarExpandedWidth = (sidebar: HTMLElement): number | null => {
+    const sidebarStyles = window.getComputedStyle(sidebar);
+    const minimumWidth = parsePositiveCssPixelValue(sidebarStyles.getPropertyValue(SIDEBAR_BASE_WIDTH_PROPERTY), 0);
     const maxViewportWidth = Math.max(minimumWidth, measureLayoutViewport(sidebar).width - 24);
     let requiredWidth = minimumWidth;
-    const iconRailWidth = resolveSidebarCssPixelValue(sidebar, '--sidebar-icon-rail');
-    const borderInlineStart = resolveSidebarCssPixelValue(sidebar, '--sidebar-border-inline-start-width');
-    const borderInlineEnd = resolveSidebarCssPixelValue(sidebar, '--sidebar-border-inline-end-width');
+    const borderInlineStart = parsePositiveCssPixelValue(sidebarStyles.borderInlineStartWidth, 0);
+    const borderInlineEnd = parsePositiveCssPixelValue(sidebarStyles.borderInlineEndWidth, 0);
     const borderInlineTotal = Math.max(borderInlineStart + borderInlineEnd, 0);
-    const labels = dom.resolveAll(SIDEBAR_LABEL_SELECTOR, sidebar);
+    const labels = dom.resolveAll(SIDEBAR_PAGE_LABEL_SELECTOR, sidebar);
+    let measuredLabel = false;
     for (const labelNode of labels) {
         if (!(labelNode instanceof HTMLElement)) {
             continue;
@@ -170,16 +166,19 @@ const resolveSidebarExpandedWidth = (sidebar: HTMLElement): number => {
             continue;
         }
         const linkStyles = window.getComputedStyle(linkNode);
-        const columnGap = Number.parseFloat(linkStyles.columnGap || '0');
-        const resolvedColumnGap = Number.isFinite(columnGap) ? columnGap : 0;
+        const labelStyles = window.getComputedStyle(labelNode);
+        const iconRailWidth = parseFirstPositiveCssPixelValue(linkStyles.gridTemplateColumns, 0);
+        const columnGap = parsePositiveCssPixelValue(linkStyles.columnGap, 0);
+        const labelInlineEndSpace = parsePositiveCssPixelValue(labelStyles.marginInlineEnd, 0);
 
         const labelFullWidth = labelNode.scrollWidth;
-        const candidateWidth = borderInlineTotal + iconRailWidth + resolvedColumnGap + labelFullWidth;
+        measuredLabel = true;
+        const candidateWidth = borderInlineTotal + iconRailWidth + columnGap + labelFullWidth + labelInlineEndSpace;
         if (candidateWidth > requiredWidth) {
             requiredWidth = candidateWidth;
         }
     }
-    return Math.ceil(Math.min(requiredWidth, maxViewportWidth));
+    return measuredLabel ? Math.ceil(Math.min(requiredWidth, maxViewportWidth)) : null;
 };
 
 const syncSidebarExpandedWidth = (sidebar: HTMLElement | null): void => {
@@ -187,6 +186,9 @@ const syncSidebarExpandedWidth = (sidebar: HTMLElement | null): void => {
         return;
     }
     const expandedWidth = resolveSidebarExpandedWidth(sidebar);
+    if (expandedWidth === null) {
+        return;
+    }
     sidebar.style.setProperty(SIDEBAR_EXPANDED_WIDTH_PROPERTY, `${expandedWidth}px`);
 };
 

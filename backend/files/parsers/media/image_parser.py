@@ -10,13 +10,17 @@ import numpy
 import pi_heif
 from PIL import Image, UnidentifiedImageError
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.di.validation import require_dependencies
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from core.files.types import ParsedDocument
+from core.files.extraction_state import ExtractionState
+from core.files.parse_execution import raise_if_parse_cancelled
+from core.files.types import ParsedDocument, ParseExecutionContext
 from core.imports.availability import module_available, require_module
 from core.logging.protocols import StandardLogger
+from core.media.cancellation import await_media_operation
 from core.media.image_preprocessing import ImagePreprocessor
 from core.media.ocr_engine import (
     DEFAULT_OCR_CONFIDENCE_THRESHOLD,
@@ -24,6 +28,7 @@ from core.media.ocr_engine import (
     ocr_readtext_multipass,
     ocr_tesseract_image_to_text,
 )
+from core.media.tesseract_languages import require_ocr_language
 from files.parsers.media.image_exif_metadata import apply_exif_metadata
 from files.parsers.media_parser import BaseMediaParser
 
@@ -71,18 +76,37 @@ class ImageParserDependencies:
 
 class ImageParser(BaseMediaParser):
     def __init__(self, deps: ImageParserDependencies) -> None:
+        super().__init__()
         self._config = deps.config
         self._preprocessor = deps.preprocessor
         self._logger = deps.logger
 
     @override
-    def parse_blocking(self, file_path: str) -> ParsedDocument:
+    async def parse(self, context: ParseExecutionContext) -> ParsedDocument:
+        raise_if_parse_cancelled(context)
+        result = await await_media_operation(
+            run_joined_thread_call(
+                self.parse_blocking,
+                context.source_path,
+                context.ocr_language,
+                task_name="image-document-parse",
+            ),
+            context.cancellation_token,
+            extraction_deadline=context.extraction_deadline,
+        )
+        raise_if_parse_cancelled(context)
+        return result
+
+    def parse_blocking(self, file_path: str, ocr_language: str) -> ParsedDocument:
+        require_ocr_language(ocr_language)
         require_module("PIL", feature="Image parsing")
         if file_path.lower().endswith((".heic", ".heif")):
             require_module("pi_heif", feature="HEIC/HEIF image parsing")
             pi_heif.register_heif_opener()
         metadata, _ = self._init_media_context(file_path)
         text_parts: list[str] = []
+        extraction_state = ExtractionState.COMPLETE
+        warnings: tuple[str, ...] = ()
         try:
             opened = Image.open(file_path)
             try:
@@ -172,11 +196,19 @@ class ImageParser(BaseMediaParser):
                 )
             if not text_parts:
                 try:
-                    tesseract_text = ocr_tesseract_image_to_text(pil_image)
+                    tesseract_text = ocr_tesseract_image_to_text(
+                        pil_image, ocr_language=ocr_language
+                    )
                     if tesseract_text:
                         text_parts.append(tesseract_text)
                         metadata["ocr_engine"] = "tesseract"
                 except TESSERACT_OCR_EXCEPTIONS as error:
+                    extraction_state = (
+                        ExtractionState.TIMED_OUT
+                        if isinstance(error, TimeoutError)
+                        else ExtractionState.FAILED
+                    )
+                    warnings = ("Image OCR did not complete.",)
                     log_handled_exception(
                         self._logger,
                         error,
@@ -185,4 +217,9 @@ class ImageParser(BaseMediaParser):
                         details={"path": file_path},
                         level="debug",
                     )
-        return ParsedDocument(content=self._join_content(text_parts), metadata=metadata)
+        return ParsedDocument(
+            content=self.content_separator.join(text_parts),
+            metadata=metadata,
+            extraction_state=extraction_state,
+            warnings=warnings,
+        )

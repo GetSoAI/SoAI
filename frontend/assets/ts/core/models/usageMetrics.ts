@@ -1,26 +1,26 @@
 /* SoAI - Shared models usage metrics [frontend/assets/ts/core/models/usageMetrics.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { isFiniteNumber, isString } from '@core/typeGuards.ts';
-import { isJsonObject, type JsonObject } from '@core/types/jsonValues.ts';
+import { isFiniteNumber, isPlainObject, isString } from '@core/typeGuards.ts';
+import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
 
 const extractMetricsRoot = (payload: JsonObject | null): JsonObject => {
-    if (!isJsonObject(payload)) {
+    if (!isPlainObject(payload)) {
         throw new Error('Model usage metrics require an object payload');
     }
     const metrics = payload['metrics'];
-    return isJsonObject(metrics) ? metrics : payload;
+    return isPlainObject(metrics) ? metrics : payload;
 };
 
 const requireMetricMap = (metricsPayload: JsonObject | null, key: string): JsonObject => {
     const root = extractMetricsRoot(metricsPayload);
     const director = root['director'];
-    if (!isJsonObject(director)) {
+    if (!isPlainObject(director)) {
         throw new Error('Model usage metrics require director metrics');
     }
     const metricMap = director[key];
-    if (!isJsonObject(metricMap)) {
+    if (!isPlainObject(metricMap)) {
         throw new Error(`Model usage metrics require director.${key}`);
     }
     return metricMap;
@@ -29,11 +29,11 @@ const requireMetricMap = (metricsPayload: JsonObject | null, key: string): JsonO
 const getBillingMetricMap = (metricsPayload: JsonObject | null, key: string): JsonObject | null => {
     const root = extractMetricsRoot(metricsPayload);
     const billing = root['billing'];
-    if (!isJsonObject(billing)) {
+    if (!isPlainObject(billing)) {
         return null;
     }
     const metricMap = billing[key];
-    return isJsonObject(metricMap) ? metricMap : null;
+    return isPlainObject(metricMap) ? metricMap : null;
 };
 
 const resolveRealModelRequestMetricKey = (model: ModelRecord): string | null => {

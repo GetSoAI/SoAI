@@ -22,6 +22,7 @@ import type { AskUserInteractionResolutionRequest, ComparisonTurnPreflightReques
 import type { WebuiConversationMessageResponse } from '@core/api/contracts/webuiMessageContracts.ts';
 import type { ConversationCloneRequest, ConversationCreateRequest } from '@core/api/contracts/webuiConversationRequestContracts.ts';
 import type { MessageResubmitRequest, MessageTargetMutationRequest } from '@core/api/contracts/webuiMessageMutationContracts.ts';
+import type { ConversationRegenerationReceipt, ConversationRegenerationRequest } from '@core/api/contracts/webuiMessageRegenerationContracts.ts';
 import type { KnowledgeAttachmentClaimRequest, KnowledgeAttachmentClaimResponse, KnowledgeAttachmentCollectionResponse, KnowledgeAttachmentItemsResponse, KnowledgeAttachmentPreviewRequest, KnowledgeAttachmentPreviewResponse, KnowledgeAttachmentSummary, KnowledgeAttachmentUseRequest, KnowledgeAttachmentUseResponse, PhysicalAttachmentResponse } from '@core/api/contracts/webuiAttachmentContracts.ts';
 import type { RagBatchUploadResponse, RagConfigResponse, RagConfigUpdateRequest, RagDeleteResponse, RagDocumentsResponse, RagIngestResponse, RagReindexResponse, RagUploadResponse } from '@core/api/contracts/webuiRagContracts.ts';
 
@@ -68,9 +69,10 @@ interface ChatConversationMessagesApi {
     replace: (conversationId: string, messages: JsonValue, expectedLastModifiedAtMs: number) => Promise<ConversationMessageWriteResponse>;
     append: (conversationId: string, messages: JsonValue, expectedLastModifiedAtMs: number) => Promise<ConversationMessageWriteResponse>;
     resubmit: (conversationId: string, payload: MessageResubmitRequest) => Promise<ConversationMessageWriteResponse>;
-    truncate: (conversationId: string, payload: MessageTargetMutationRequest) => Promise<ConversationMessageWriteResponse>;
     deleteMessage: (conversationId: string, payload: MessageTargetMutationRequest) => Promise<ConversationMessageWriteResponse>;
     syncCursor: (conversationId: string) => Promise<ConversationMessageSyncCursorResponse>;
+    regenerate: (conversationId: string, payload: ConversationRegenerationRequest) => Promise<ConversationRegenerationReceipt>;
+    regenerationStatus: (conversationId: string, clientId?: string, clientRequestId?: string) => Promise<ConversationRegenerationReceipt>;
 }
 
 interface ChatAttachmentsApi {
@@ -128,7 +130,7 @@ interface ChatConversationMcpApi {
 interface ChatConversationAgentApi {
     cancelTurn: (conversationId: string, turnId: string, request: AgentTurnCancelRequest) => Promise<AgentTurnCancelResponse>;
     startCompaction: (conversationId: string, payload: { model: string }) => Promise<AgentCheckpointResponse>;
-    regenerateCompaction: (conversationId: string, payload: { assistantTurnAtMs: number }) => Promise<AgentCheckpointResponse>;
+    regenerateCompaction: (conversationId: string, payload: { assistantTurnAtMs: number; clientId: string; clientRequestId: string; expectedLastModifiedAtMs: number }) => Promise<AgentCheckpointResponse>;
     removeCompactionBoundary: (conversationId: string, payload: { assistantTurnAtMs: number; modelVariantIndex: number; toolCallId: string; expectedLastModifiedAtMs: number }) => Promise<AgentMessageWriteResponse>;
     stopShellToolCall: (conversationId: string, payload: { assistantTurnAtMs: number; modelVariantIndex: number; toolCallId: string }) => Promise<AgentShellToolStopResponse>;
     todoWrite: (conversationId: string, payload: AgentTodoWriteRequest) => Promise<AgentTodoStateResponse>;

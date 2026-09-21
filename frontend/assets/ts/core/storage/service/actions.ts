@@ -3,6 +3,7 @@
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { dispatchCustomEvent } from '@core/environment/public.ts';
+import { EVENT_REQUEST } from '@core/languageservice/constants.ts';
 import { toJsonCompatibleValue } from '@core/primitives/clone.ts';
 import { isSafeRedirectPath } from '@core/storage/redirects.ts';
 import { CHAT_PREFERENCE_LIMIT, CHANGED_EVENTS } from '@core/storage/service/constants.ts';
@@ -45,6 +46,7 @@ const createStorageStateActions = (
     setDashboardImageCard: (value: string | null) => void;
     setDashboardImageCardFit: (fit: ImageFitType) => void;
     setDashboardMemo: (value: string | null) => void;
+    setDefaultPage: (value: string | null) => void;
     setPromptEnhancerModel: (value: string | null) => void;
     setLogsPreferences: (patch: JsonValue) => void;
     setLogLineLimit: (limit: number) => void;
@@ -189,7 +191,7 @@ const createStorageStateActions = (
         state.cache.ui.language = normalizedLanguage;
         syncLocalizationPreferences(core);
         terminateHandledPromise(core.queuePersist('ui'));
-        dispatch(CHANGED_EVENTS.language, { language: normalizedLanguage });
+        dispatch(EVENT_REQUEST, { language: normalizedLanguage });
     };
 
     const setHiddenSidebarPages = (pages: string[]): void => {
@@ -236,6 +238,11 @@ const createStorageStateActions = (
         state.cache.ui.dashboardMemo = normalizeNonBlankStringOrNull(value);
         terminateHandledPromise(core.queuePersist('ui'));
         dispatch(CHANGED_EVENTS.dashboardCustomization);
+    };
+
+    const setDefaultPage = (value: string | null): void => {
+        state.cache.ui.defaultPage = normalizeNonBlankStringOrNull(value);
+        terminateHandledPromise(core.queuePersist('ui'));
     };
 
     const setPromptEnhancerModel = (value: string | null): void => {
@@ -296,6 +303,7 @@ const createStorageStateActions = (
         setDashboardImageCard,
         setDashboardImageCardFit,
         setDashboardMemo,
+        setDefaultPage,
         setPromptEnhancerModel,
         setLogsPreferences,
         setLogLineLimit,

@@ -2,36 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
-import { formatPositiveEpochMsMinuteWithFallback } from '@core/primitives/dateTime.ts';
 import { formatHardwareNumber } from '@features/hardware/Formatters.ts';
 import { SOAIBENCH_HISTORY_COLUMNS, resolveSoAIBenchHistoryColumnLabel } from '@features/hardware/modals/soaibenchhistory/columns.ts';
 import type { SoAIBenchHistoryDisplayRow, SoAIBenchHistoryRun } from '@features/hardware/modals/soaibenchhistory/types.ts';
-import { formatSoAIBenchDuration, formatSoAIBenchPowerPair, formatSoAIBenchScore, formatSoAIBenchTemperature, getSoAIBenchNotAvailableLabel } from '@features/hardware/soaibenchMetricFormatting.ts';
-import { formatUnexpectedSoAIBenchIdentifierLabel, resolveSoAIBenchProfileLabel, resolveSoAIBenchStatusLabel } from '@features/hardware/soaibenchLabels.ts';
-
-const resolveMatchBasisLabel = (value: string | null): string => {
-    if (!value) {
-        return getSoAIBenchNotAvailableLabel();
-    }
-    switch (value) {
-        case 'device_id':
-            return i18n.t('hardware.modals.soaibenchHistory.matchBases.device_id');
-        case 'gpu_uuid':
-            return i18n.t('hardware.modals.soaibenchHistory.matchBases.gpu_uuid');
-        case 'pci_bdf':
-            return i18n.t('hardware.modals.soaibenchHistory.matchBases.pci_bdf');
-        case 'gpu_model_key':
-            return i18n.t('hardware.modals.soaibenchHistory.matchBases.gpu_model_key');
-        case 'vendor_name':
-            return i18n.t('hardware.modals.soaibenchHistory.matchBases.vendor_name');
-        case 'vendor_name_ordinal':
-            return i18n.t('hardware.modals.soaibenchHistory.matchBases.vendor_name_ordinal');
-        case 'stale':
-            return i18n.t('hardware.modals.soaibenchHistory.matchBases.stale');
-        default:
-            return formatUnexpectedSoAIBenchIdentifierLabel(value);
-    }
-};
+import { formatSoAIBenchCertification, formatSoAIBenchDuration, formatSoAIBenchPowerPair, formatSoAIBenchScore, formatSoAIBenchStartedAt, formatSoAIBenchTemperature, getSoAIBenchNotAvailableLabel } from '@features/hardware/soaibenchMetricFormatting.ts';
+import { resolveSoAIBenchMatchBasisLabel, resolveSoAIBenchProfileLabel, resolveSoAIBenchReasonLabel, resolveSoAIBenchStatusLabel } from '@features/hardware/soaibenchLabels.ts';
+import { buildSoAIBenchPhaseDiagnosticDisplays } from '@features/hardware/soaibenchPhaseDiagnostics.ts';
 
 type PhaseLabelKey = 'alu' | 'compute' | 'latency' | 'matrix' | 'memory';
 
@@ -79,38 +55,9 @@ const formatPhases = (run: SoAIBenchHistoryRun): string => {
     return phases.length > 0 ? phases.join(' | ') : getSoAIBenchNotAvailableLabel();
 };
 
-const formatVariance = (value: number | null): string => {
-    return value === null ? '' : ` (${i18n.t('hardware.modals.soaibenchHistory.certification.varianceSuffix', { variance: formatHardwareNumber(value, 1) })})`;
-};
-
-const formatCertification = (run: SoAIBenchHistoryRun): string => {
-    if (run.profile !== 'standard') {
-        return getSoAIBenchNotAvailableLabel();
-    }
-    if (run.benchmarkMode !== 'certified') {
-        return i18n.t('hardware.modals.soaibenchHistory.certification.quick');
-    }
-    if (run.leaderboardEligible) {
-        return `${i18n.t('hardware.modals.soaibenchHistory.certification.certified')}${formatVariance(run.scoreVariancePercent)}`;
-    }
-    const reason = formatUnexpectedSoAIBenchIdentifierLabel(run.leaderboardRejectionReason);
-    const label = i18n.t('hardware.modals.soaibenchHistory.certification.ineligible', { reason });
-    return `${label}${formatVariance(run.scoreVariancePercent)}`;
-};
-
-const formatStartedAt = (value: number | null): string => {
-    return formatPositiveEpochMsMinuteWithFallback(value, getSoAIBenchNotAvailableLabel());
-};
-
-const formatReason = (run: SoAIBenchHistoryRun): string => {
-    const rawReason = run.failureReason || run.unsupportedReason;
-    if (rawReason) {
-        return formatUnexpectedSoAIBenchIdentifierLabel(rawReason);
-    }
-    if (run.staleHardware) {
-        return i18n.t('hardware.modals.soaibenchHistory.staleHardware');
-    }
-    return getSoAIBenchNotAvailableLabel();
+const formatPhaseDiagnostics = (run: SoAIBenchHistoryRun): string => {
+    const diagnostics = buildSoAIBenchPhaseDiagnosticDisplays(run.phaseVariationPercent, run.phaseDriftPercent);
+    return diagnostics.length > 0 ? diagnostics.map((diagnostic) => `${diagnostic.phaseLabel} ${diagnostic.value}`).join(' | ') : getSoAIBenchNotAvailableLabel();
 };
 
 const formatHistoryColumnLabels = (): string[] => {
@@ -119,26 +66,30 @@ const formatHistoryColumnLabels = (): string[] => {
 
 const formatHistoryRowColumns = (run: SoAIBenchHistoryRun): string[] => {
     const columns: string[] = [];
+    columns.push(formatSoAIBenchStartedAt(run.startedAtMs));
     columns.push(resolveSoAIBenchProfileLabel(run.profile));
     columns.push(resolveSoAIBenchStatusLabel(run.status));
     columns.push(formatSoAIBenchScore(run.telemetry.overallScore));
     columns.push(formatPhases(run));
-    columns.push(formatCertification(run));
+    columns.push(formatPhaseDiagnostics(run));
+    columns.push(formatSoAIBenchCertification(run));
     columns.push(formatSoAIBenchTemperature(run.telemetry.maxTemperatureCelsius));
     columns.push(formatSoAIBenchPowerPair(run.telemetry.avgPowerWatts, run.telemetry.maxPowerWatts));
     columns.push(formatSoAIBenchDuration(run.durationMs));
-    columns.push(formatStartedAt(run.startedAtMs));
-    columns.push(resolveMatchBasisLabel(run.matchBasis));
+    columns.push(resolveSoAIBenchMatchBasisLabel(run.matchBasis));
     columns.push(run.settingsSnapshotAvailable ? i18n.t('common.yes') : i18n.t('common.no'));
     columns.push(run.staleHardware ? i18n.t('common.yes') : i18n.t('common.no'));
-    columns.push(formatReason(run));
+    columns.push(resolveSoAIBenchReasonLabel(run.reasonMessage, run.failureReason, run.unsupportedReason, run.staleHardware) ?? getSoAIBenchNotAvailableLabel());
     return columns;
 };
 
 const formatHistoryRows = (runs: readonly SoAIBenchHistoryRun[]): SoAIBenchHistoryDisplayRow[] => {
     return runs.map((run) => ({
         runId: run.runId,
-        columns: formatHistoryRowColumns(run)
+        publicationEligible: run.publicationEligible,
+        localDeletionEligible: run.status !== 'running',
+        columns: formatHistoryRowColumns(run),
+        raw: run.raw
     }));
 };
 

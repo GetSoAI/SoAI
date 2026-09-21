@@ -3,7 +3,11 @@
 
 from __future__ import annotations
 
-from core.plugins.sdk_public_all_exports import PUBLIC_PLUGIN_SDK_EXPORTS
+from core.plugins.sdk_public_all_exports import (
+    OUTBOUND_HEADER_EXPORTS,
+    PLUGIN_LOGO_EXPORTS,
+    PUBLIC_PLUGIN_SDK_EXPORTS,
+)
 from core.plugins.sdk_public_openai_exports import (
     OPENAI_AUDIO_UPLOAD_RESPONSE_EXPORTS,
     OPENAI_EXPORTS,
@@ -19,6 +23,8 @@ __all__ = (
     "OPENAI_AUDIO_UPLOAD_RESPONSE_EXPORTS",
     "OPENAI_EXPORTS",
     "OPENAI_PROVIDER_TRANSPORT_EXPORTS",
+    "OUTBOUND_HEADER_EXPORTS",
+    "PLUGIN_LOGO_EXPORTS",
     "PROCESS_SESSION_EXPORTS",
     "PROGRESS_EXPORTS",
     "PUBLIC_PLUGIN_SDK_EXPORTS",

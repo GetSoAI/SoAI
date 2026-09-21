@@ -64,4 +64,11 @@ const saturateHexColor = (hex: string, amount: number): string => {
 
 const toSurfaceColor = (hex: string): string => lightenHexColor(saturateHexColor(hex, 22 / 100), 6 / 100);
 
-export { darkenHexColor, lightenHexColor, toSurfaceColor };
+const resolveRequestDistributionColor = (colors: readonly string[], swatchIndex: number, explicitColor?: string): string | null => {
+    if (explicitColor) {
+        return explicitColor;
+    }
+    return colors[swatchIndex % colors.length] ?? null;
+};
+
+export { darkenHexColor, lightenHexColor, resolveRequestDistributionColor, toSurfaceColor };

@@ -5,7 +5,14 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import Field, StrictBool, StrictInt, StrictStr, field_validator
+from pydantic import (
+    Field,
+    StrictBool,
+    StrictInt,
+    StrictStr,
+    field_validator,
+    model_validator,
+)
 
 from core.collections.ordered_uniqueness import unique_sequence
 from core.conversations.conversation_identifier import CONVERSATION_ID_PATTERN_TEXT
@@ -22,12 +29,14 @@ __all__ = (
     "AgentShellToolStopRequest",
     "ConversationArchivedUpdate",
     "ConversationBatchDeleteRequest",
-    "ConversationColorUpdate",
     "ConversationCloneRequest",
+    "ConversationColorUpdate",
     "ConversationCreate",
     "ConversationFavoriteUpdate",
     "ConversationJsonExportRequest",
     "ConversationSettingsUpdate",
+    "ConversationStreamCancelRequest",
+    "ConversationStreamCancelResponse",
     "ConversationStreamStatusResponse",
     "ConversationUpdate",
     "MessageCursorMutationRequest",
@@ -121,6 +130,26 @@ class ConversationStreamStatusResponse(SoAIV1StrictModel):
     preview_trigger: str | None = None
 
 
+class ConversationStreamCancelRequest(SoAIV1StrictModel):
+    request_id: StrictStr = Field(..., min_length=1, max_length=512)
+    force_pending_steers: StrictBool
+
+    @field_validator("request_id")
+    @classmethod
+    def validate_request_id(cls, value: str) -> str:
+        return require_labeled_text(
+            value,
+            field_label="Chat stream request id",
+            suffix="is required.",
+        )
+
+
+class ConversationStreamCancelResponse(SoAIV1StrictModel):
+    conversation_id: StrictStr
+    request_id: StrictStr
+    status: Literal["cancellation_requested", "already_terminal", "superseded"]
+
+
 class AgentCompactionStartRequest(SoAIV1StrictModel):
     model: StrictStr = Field(..., min_length=1, max_length=255)
 
@@ -132,6 +161,24 @@ class AgentCompactionStartRequest(SoAIV1StrictModel):
 
 class AgentCompactionRegenerateRequest(SoAIV1StrictModel):
     assistant_turn_at_ms: StrictInt = Field(..., gt=0)
+    client_id: StrictStr | None = Field(default=None, min_length=1, max_length=128)
+    client_request_id: StrictStr | None = Field(default=None, min_length=1, max_length=128)
+    expected_last_modified_at_ms: StrictInt | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def validate_idempotency_fields(self) -> AgentCompactionRegenerateRequest:
+        fields = (
+            self.client_id,
+            self.client_request_id,
+            self.expected_last_modified_at_ms,
+        )
+        if any(value is not None for value in fields) and not all(
+            value is not None for value in fields
+        ):
+            raise ValidationError(
+                "Compaction regeneration identity and revision must be supplied together."
+            )
+        return self
 
 
 class AgentCompactionBoundaryRemoveRequest(SoAIV1StrictModel):

@@ -8,6 +8,7 @@ import sqlite3
 from core.errors.exceptions import ConcurrencyError, StateError, ValidationError
 from core.events.domain_event_payload import build_domain_event_payload
 from core.licensing.declaration import PERSONAL_USE_ATTESTATION_REVISION
+from core.media.tesseract_languages import ocr_language_for_ui_locale
 from core.types.json import JSONDict
 from core.users.user_id import require_strict_user_id
 from database.core.query_execution import sync_fetch_one_as_dict
@@ -108,7 +109,10 @@ def sync_complete_licensing_wizard(
         preferences = sync_merge_user_preferences(
             connection,
             user_id,
-            {"ui": {"language": language}},
+            {
+                "ui": {"language": language},
+                "settings": {"ocr_language": ocr_language_for_ui_locale(language)},
+            },
         )
         if preferences is None:
             raise StateError("Initial user disappeared during preference persistence.")

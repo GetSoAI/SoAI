@@ -49,6 +49,9 @@ const resolveCertificationText = (run: SoAIBenchHistoryRun): string | null => {
     if (run.profile !== 'standard') {
         return null;
     }
+    if (run.legacy) {
+        return 'legacy';
+    }
     if (run.benchmarkMode !== 'certified') {
         return 'quick';
     }
@@ -67,6 +70,8 @@ const compareRuns = (left: SoAIBenchHistoryRun, right: SoAIBenchHistoryRun, colu
             const latencyCompare = compareNullableNumber(left.telemetry.latencyScore, right.telemetry.latencyScore);
             return latencyCompare !== 0 ? latencyCompare : compareNullableNumber(left.telemetry.computeGops, right.telemetry.computeGops);
         }
+        case 'stability':
+            return compareNullableNumber(left.scoreVariancePercent, right.scoreVariancePercent);
         case 'certification':
             return compareText(resolveCertificationText(left), resolveCertificationText(right));
         case 'temperature':

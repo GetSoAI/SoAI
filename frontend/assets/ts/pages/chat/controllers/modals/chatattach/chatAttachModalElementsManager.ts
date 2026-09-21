@@ -5,7 +5,7 @@ import { dom } from '@core/dom/dom.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { CHAT_ATTACH_MODAL_ID, type ChatAttachCameraElements } from '@features/chat/public.ts';
 import type { ChatAttachBrowseElements } from '@pages/chat/controllers/modals/chatattach/chatAttachBrowseWidget.ts';
-import type { ChatAttachKnowledgeElements, ChatAttachSoaiLinkElements, ChatAttachUploadElements } from '@pages/chat/controllers/modals/chatattach/types.ts';
+import type { ChatAttachDraftAttachmentListElements, ChatAttachKnowledgeElements, ChatAttachSoaiLinkElements, ChatAttachUploadElements } from '@pages/chat/controllers/modals/chatattach/types.ts';
 
 const requireChatAttachModalChild = (modal: HTMLElement, token: string): HTMLElement => {
     const element = dom.resolve(modalUiSelector(CHAT_ATTACH_MODAL_ID, token), modal);
@@ -64,7 +64,7 @@ const createChatAttachCameraElements = (modal: HTMLElement): ChatAttachCameraEle
     shutterButton: requireChatAttachModalButton(modal, 'camera-shutter'),
     retakeButton: requireChatAttachModalButton(modal, 'camera-retake'),
     useButton: requireChatAttachModalButton(modal, 'camera-use'),
-    flipButton: requireChatAttachModalButton(modal, 'camera-flip')
+    switchButton: requireChatAttachModalButton(modal, 'camera-switch')
 });
 
 const createChatAttachBrowseElements = (modal: HTMLElement): ChatAttachBrowseElements => ({
@@ -73,27 +73,26 @@ const createChatAttachBrowseElements = (modal: HTMLElement): ChatAttachBrowseEle
     searchInput: requireChatAttachModalInput(modal, 'search'),
     results: requireChatAttachModalChild(modal, 'results'),
     previewButton: requireChatAttachModalButton(modal, 'browse-preview'),
-    attachButton: requireChatAttachModalButton(modal, 'browse-attach')
+    attachButton: requireChatAttachModalButton(modal, 'browse-attach'),
+    draftList: createChatAttachDraftListElements(modal, 'browse')
+});
+
+const createChatAttachDraftListElements = (modal: HTMLElement, tokenPrefix: 'upload' | 'camera' | 'browse' | 'soai-link'): ChatAttachDraftAttachmentListElements => ({
+    status: requireChatAttachModalChild(modal, `${tokenPrefix}-status`),
+    summary: requireChatAttachModalChild(modal, `${tokenPrefix}-summary`),
+    list: requireChatAttachModalChild(modal, `${tokenPrefix}-list`)
 });
 
 const createChatAttachUploadElements = (modal: HTMLElement): ChatAttachUploadElements => ({
     dropzoneButton: requireChatAttachModalButton(modal, 'dropzone'),
     filesButton: requireChatAttachModalButton(modal, 'upload-file-button'),
     folderButton: requireChatAttachModalButton(modal, 'upload-folder-button'),
-    draftList: {
-        status: requireChatAttachModalChild(modal, 'upload-status'),
-        summary: requireChatAttachModalChild(modal, 'upload-summary'),
-        list: requireChatAttachModalChild(modal, 'upload-list')
-    }
+    draftList: createChatAttachDraftListElements(modal, 'upload')
 });
 
 const createChatAttachSoaiLinkElements = (modal: HTMLElement): ChatAttachSoaiLinkElements => ({
     input: requireChatAttachModalTextarea(modal, 'soai-link-input'),
-    draftList: {
-        status: requireChatAttachModalChild(modal, 'soai-link-status'),
-        summary: requireChatAttachModalChild(modal, 'soai-link-summary'),
-        list: requireChatAttachModalChild(modal, 'soai-link-list')
-    }
+    draftList: createChatAttachDraftListElements(modal, 'soai-link')
 });
 
 const createChatAttachKnowledgeElements = (modal: HTMLElement): ChatAttachKnowledgeElements => ({
@@ -109,4 +108,4 @@ const createChatAttachKnowledgeElements = (modal: HTMLElement): ChatAttachKnowle
     list: requireChatAttachModalChild(modal, 'knowledge-documents-list')
 });
 
-export { createChatAttachBrowseElements, createChatAttachCameraElements, createChatAttachKnowledgeElements, createChatAttachSoaiLinkElements, createChatAttachUploadElements, requireChatAttachModalButton, requireChatAttachModalChild };
+export { createChatAttachBrowseElements, createChatAttachCameraElements, createChatAttachDraftListElements, createChatAttachKnowledgeElements, createChatAttachSoaiLinkElements, createChatAttachUploadElements, requireChatAttachModalButton, requireChatAttachModalChild };

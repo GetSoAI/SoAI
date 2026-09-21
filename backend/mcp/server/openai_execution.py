@@ -15,13 +15,14 @@ from mcp.tools.shell_session_cleanup import (
 )
 
 __all__ = (
-    "cancel_openai_shell_sessions_method",
+    "cancel_captured_openai_shell_sessions_method",
     "cancel_user_shell_sessions_method",
     "execute_openai_tool_call_method",
+    "snapshot_openai_shell_sessions_method",
 )
 
 LOGGER_NAME = "SoAI.mcp.server.openai_execution"
-OPERATION = "mcp.server.cancel_openai_shell_sessions"
+OPERATION_CANCEL_CAPTURED = "mcp.server.cancel_captured_openai_shell_sessions"
 OPERATION_CANCEL_USER = "mcp.server.cancel_user_shell_sessions"
 
 
@@ -69,29 +70,44 @@ async def execute_openai_tool_call_method(
     )
 
 
-async def cancel_openai_shell_sessions_method(
+def snapshot_openai_shell_sessions_method(
     server: OpenAIExecutionServerProtocol,
     *,
     user_id: int,
     conv_id: str,
-) -> int:
+) -> tuple[tuple[int, str], ...]:
     owner_key = build_openai_conversation_owner_key(user_id=user_id, conv_id=conv_id)
     sessions = server.utility_tools.runtime_sessions.list_shell_sessions_for_owner(
         owner_key=owner_key,
     )
-    logger = get_logger(LOGGER_NAME)
+    return tuple((session.session_id, session.terminal_session_id) for session in sessions)
+
+
+async def cancel_captured_openai_shell_sessions_method(
+    server: OpenAIExecutionServerProtocol,
+    *,
+    user_id: int,
+    conv_id: str,
+    sessions: tuple[tuple[int, str], ...],
+) -> int:
+    owner_key = build_openai_conversation_owner_key(user_id=user_id, conv_id=conv_id)
     cleanup_deps = ShellSessionCleanupDeps(
         runtime_sessions=server.utility_tools.runtime_sessions,
         terminal=server.utility_tools.terminal,
-        logger=logger,
+        logger=get_logger(LOGGER_NAME),
     )
     closed_count = 0
-    for session in sessions:
+    for session_id, terminal_session_id in sessions:
+        current = server.utility_tools.runtime_sessions.get_shell_session(session_id)
+        if current is None:
+            continue
+        if current.owner_key != owner_key or current.terminal_session_id != terminal_session_id:
+            continue
         await close_shell_session_resources(
             cleanup_deps,
-            operation=OPERATION,
-            shell_session_id=session.session_id,
-            terminal_session_id=session.terminal_session_id,
+            operation=OPERATION_CANCEL_CAPTURED,
+            shell_session_id=session_id,
+            terminal_session_id=terminal_session_id,
         )
         closed_count += 1
     return closed_count

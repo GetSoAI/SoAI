@@ -22,6 +22,7 @@ __all__ = (
     "enqueue_kernel",
     "finish_queue",
     "read_float_buffer",
+    "read_float_buffer_positions",
     "release_buffer",
     "release_kernel",
     "release_program",
@@ -170,6 +171,30 @@ def read_float_buffer(runtime: OpenCLRuntime, buffer: int, count: int) -> list[f
     return [float(value) for value in data]
 
 
+def read_float_buffer_positions(
+    runtime: OpenCLRuntime,
+    buffer: int,
+    positions: tuple[int, ...],
+) -> list[float]:
+    values: list[float] = []
+    for position in positions:
+        data = (ctypes.c_float * 1)()
+        code = runtime.bindings.library.clEnqueueReadBuffer(
+            ctypes.c_void_p(runtime.queue),
+            ctypes.c_void_p(buffer),
+            CL_TRUE,
+            ctypes.c_size_t(position * ctypes.sizeof(ctypes.c_float)),
+            ctypes.sizeof(data),
+            ctypes.c_void_p(ctypes.addressof(data)),
+            0,
+            None,
+            None,
+        )
+        check_opencl_result(int(code), "opencl_runtime_error", "OpenCL sample read failed.")
+        values.append(float(data[0]))
+    return values
+
+
 def release_buffer(runtime: OpenCLRuntime, buffer: int) -> None:
     _release(runtime.bindings.library.clReleaseMemObject, buffer, "OpenCL buffer release failed.")
 
@@ -189,17 +214,22 @@ def _raise_program_build_failed(runtime: OpenCLRuntime, program: int, code: int)
         build_log = _program_build_log(runtime, program)
     except SoAIBenchUnsupported as exception:
         log_exception = exception
-    build_exception = SoAIBenchUnsupported(
-        reason="opencl_kernel_compile_failed",
-        message=build_log or f"OpenCL kernel compilation failed with code {code}.",
-    )
+    diagnostics: list[str] = []
+    if build_log:
+        diagnostics.append(f"OpenCL build failed with code {code}: {build_log}")
+    else:
+        diagnostics.append(f"OpenCL build failed with code {code}.")
     if log_exception is not None:
-        build_exception.add_note(f"OpenCL build log query failed: {log_exception}")
+        diagnostics.append(f"OpenCL build log query failed: {log_exception}")
     try:
         release_program(runtime, program)
     except SoAIBenchUnsupported as cleanup_exception:
-        build_exception.add_note(f"OpenCL program cleanup failed: {cleanup_exception}")
-    raise build_exception
+        diagnostics.append(f"OpenCL program cleanup failed: {cleanup_exception}")
+    raise SoAIBenchUnsupported(
+        reason="opencl_kernel_compile_failed",
+        message="OpenCL kernel compilation failed.",
+        diagnostic="\n".join(diagnostics)[:8192],
+    )
 
 
 def _program_build_log(runtime: OpenCLRuntime, program: int) -> str:

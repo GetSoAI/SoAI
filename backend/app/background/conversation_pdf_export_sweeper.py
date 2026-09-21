@@ -106,7 +106,7 @@ class ConversationPdfExportSweeper:
                 resolve_pdf_font_cache_root(),
             )
             if removed_directories or pruned_fonts:
-                self._logger.info(
+                self._logger.debug(
                     "Cleaned up conversation PDF exports: artifacts=%s, cached_fonts=%s.",
                     removed_directories,
                     pruned_fonts,

@@ -56,8 +56,15 @@ const prepareAssistantTimelineEvent = (session: ChatStreamSession, event: ChatSt
 };
 
 const commitAssistantTimelineEvent = (session: ChatStreamSession, prepared: PreparedAssistantTimelineEvent, assistantRevision: number): void => {
+    const baseTimeline = isArray(session.assistantMessage.assistantEventTimeline) ? session.assistantMessage.assistantEventTimeline : [];
     try {
-        updateAssistantTimelineIndexState(session.assistantTimelineIndexState, prepared.message);
+        updateAssistantTimelineIndexState(session.assistantTimelineIndexState, prepared.message, {
+            acceptedAppend: {
+                baseTimeline,
+                baseRevision: session.assistantRevision,
+                candidateRevision: assistantRevision
+            }
+        });
     } catch (error) {
         resetAssistantTimelineIndexState(session.assistantTimelineIndexState);
         updateAssistantTimelineIndexState(session.assistantTimelineIndexState, session.assistantMessage);

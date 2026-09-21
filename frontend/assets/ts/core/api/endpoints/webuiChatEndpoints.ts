@@ -34,6 +34,8 @@ import {
     decodeSoaiRead,
     decodeSoaiToken,
     decodeStreamStatus,
+    decodeStreamCancel,
+    serializeStreamCancel,
     decodeWorkspacePathConfig,
     type ComparisonTurnPreflightRequest,
     type ComparisonTurnPreflightResponse,
@@ -46,6 +48,8 @@ import {
     type ConversationSearchConfigResponse,
     type ConversationSearchConfigUpdateRequest,
     type ConversationStreamStatusResponse,
+    type ConversationStreamCancelRequest,
+    type ConversationStreamCancelResponse,
     type ConversationWorkspacePathConfigResponse,
     type ConversationWorkspacePathConfigUpdateRequest,
     type SoaiLinkResolveRequest,
@@ -62,6 +66,7 @@ import { serializeSoaiLinkResolveRequest, serializeSoaiPathBrowseRequest, serial
 import { serializeComparisonTurnPreflight, serializeConversationJsonExport, serializeConversationPdfExportStart } from '@core/api/contracts/webuiChatOperationSerialization.ts';
 import { serializeConversationArchivedRequest, serializeConversationBatchDeleteRequest, serializeConversationCloneRequest, serializeConversationColorRequest, serializeConversationCreateRequest, serializeConversationFavoriteRequest, serializeConversationSettingsRequest, serializeConversationTitleRequest, type ConversationCloneRequest, type ConversationCreateRequest } from '@core/api/contracts/webuiConversationRequestContracts.ts';
 import { serializeMessageResubmitRequest, serializeMessageTargetMutationRequest, serializeMessageWriteRequest, type MessageResubmitRequest, type MessageTargetMutationRequest } from '@core/api/contracts/webuiMessageMutationContracts.ts';
+import { decodeConversationRegenerationReceipt, serializeConversationRegenerationRequest, type ConversationRegenerationReceipt, type ConversationRegenerationRequest } from '@core/api/contracts/webuiMessageRegenerationContracts.ts';
 
 interface WebuiChatEndpoints {
     chat: {
@@ -79,6 +84,7 @@ interface WebuiChatEndpoints {
         soaiLinks: WebuiSoaiLinksEndpoints;
         soaiPaths: WebuiSoaiPathsEndpoints;
         streamStatus: WebuiConversationStreamStatusEndpoints;
+        streamCancellation: WebuiConversationStreamCancellationEndpoints;
         comparisonTurns: WebuiComparisonTurnEndpoints;
         updateTitle(id: string, title: string): Promise<WebuiConversationResponse>;
         updateSettings(id: string, settings: OpaqueJsonObject): Promise<WebuiConversationResponse>;
@@ -122,9 +128,10 @@ interface WebuiChatMessageEndpoints {
     replace(id: string, messages: JsonValue, expectedLastModifiedAtMs: number): Promise<ConversationMessageWriteResponse>;
     append(id: string, messages: JsonValue, expectedLastModifiedAtMs: number): Promise<ConversationMessageWriteResponse>;
     resubmit(id: string, payload: MessageResubmitRequest): Promise<ConversationMessageWriteResponse>;
-    truncate(id: string, payload: MessageTargetMutationRequest): Promise<ConversationMessageWriteResponse>;
     deleteMessage(id: string, payload: MessageTargetMutationRequest): Promise<ConversationMessageWriteResponse>;
     syncCursor(id: string): Promise<ConversationMessageSyncCursorResponse>;
+    regenerate(id: string, payload: ConversationRegenerationRequest): Promise<ConversationRegenerationReceipt>;
+    regenerationStatus(id: string, clientId?: string, clientRequestId?: string): Promise<ConversationRegenerationReceipt>;
 }
 
 interface WebuiAssistantMessageEndpoints {
@@ -151,6 +158,10 @@ interface WebuiSoaiPathBrowseRequest {
 
 interface WebuiConversationStreamStatusEndpoints {
     get(id: string, options?: RequestOptions): Promise<ConversationStreamStatusResponse>;
+}
+
+interface WebuiConversationStreamCancellationEndpoints {
+    request(id: string, payload: ConversationStreamCancelRequest, options?: RequestOptions): Promise<ConversationStreamCancelResponse>;
 }
 
 interface WebuiComparisonTurnEndpoints {
@@ -202,9 +213,10 @@ const createWebuiChatEndpoints = (api: ApiClientContext): WebuiChatEndpoints => 
                 replace: async (id, messages, expectedLastModifiedAtMs): Promise<ConversationMessageWriteResponse> => decodeMessageWriteResponse(await api.put(paths.messages(id), serializeMessageWriteRequest(messages, expectedLastModifiedAtMs))),
                 append: async (id, messages, expectedLastModifiedAtMs): Promise<ConversationMessageWriteResponse> => decodeMessageWriteResponse(await api.post(paths.messages(id), serializeMessageWriteRequest(messages, expectedLastModifiedAtMs))),
                 resubmit: async (id, payload): Promise<ConversationMessageWriteResponse> => decodeMessageWriteResponse(await api.post(paths.messageResubmit(id), serializeMessageResubmitRequest(payload))),
-                truncate: async (id, payload): Promise<ConversationMessageWriteResponse> => decodeMessageWriteResponse(await api.post(paths.messageTruncate(id), serializeMessageTargetMutationRequest(payload))),
                 deleteMessage: async (id, payload): Promise<ConversationMessageWriteResponse> => decodeMessageWriteResponse(await api.post(paths.messageDelete(id), serializeMessageTargetMutationRequest(payload))),
-                syncCursor: async (id): Promise<ConversationMessageSyncCursorResponse> => decodeMessageSyncCursorResponse(await api.get(paths.messageSyncCursor(id)))
+                syncCursor: async (id): Promise<ConversationMessageSyncCursorResponse> => decodeMessageSyncCursorResponse(await api.get(paths.messageSyncCursor(id))),
+                regenerate: async (id, payload): Promise<ConversationRegenerationReceipt> => decodeConversationRegenerationReceipt(await api.post(paths.messageRegenerate(id), serializeConversationRegenerationRequest(payload))),
+                regenerationStatus: async (id, clientId, clientRequestId): Promise<ConversationRegenerationReceipt> => decodeConversationRegenerationReceipt(await api.get(paths.messageRegenerationStatus(id, clientId, clientRequestId)))
             },
             attachments: createWebuiChatAttachmentEndpoints(api, paths),
             assistantMessages: {
@@ -225,6 +237,9 @@ const createWebuiChatEndpoints = (api: ApiClientContext): WebuiChatEndpoints => 
             },
             streamStatus: {
                 get: async (id, options = {}): Promise<ConversationStreamStatusResponse> => decodeStreamStatus(await api.get(paths.streamStatus(id), options))
+            },
+            streamCancellation: {
+                request: async (id, payload, options = {}): Promise<ConversationStreamCancelResponse> => decodeStreamCancel(await api.post(paths.streamCancel(id), serializeStreamCancel(payload), options))
             },
             comparisonTurns: {
                 preflight: async (id, request): Promise<ComparisonTurnPreflightResponse> => decodeComparisonTurnPreflight(await api.post(paths.comparisonPreflight(id), serializeComparisonTurnPreflight(request)))

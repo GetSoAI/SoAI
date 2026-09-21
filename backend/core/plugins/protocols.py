@@ -113,7 +113,12 @@ class PluginManagerProtocol(Protocol):
         *,
         auto_load: bool = True,
     ) -> JSONDict: ...
-    async def get_backend_variants(self, plugin_name: str) -> JSONDict: ...
+    async def get_backend_variants(
+        self,
+        plugin_name: str,
+        *,
+        discover_installed_variant: bool = True,
+    ) -> JSONDict: ...
     async def save_backend_variant_selection(
         self,
         plugin_name: str,

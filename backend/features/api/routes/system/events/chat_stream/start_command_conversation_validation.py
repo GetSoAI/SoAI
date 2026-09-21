@@ -122,6 +122,38 @@ async def resolve_conversation_start_snapshot(
             message="Conversation not found.",
             invalid_assistant_timestamp=False,
         )
+    active_inputs = await api_context.dependencies.database_input_queue.summarize_active_inputs(
+        conv_id=conv_id,
+        user_id=user_id,
+    )
+    if active_inputs.has_active_inputs:
+        return ConversationStartValidationFailure(
+            code="conflict_error",
+            message="Conversation stream start is unavailable while input work is active.",
+            invalid_assistant_timestamp=False,
+            snapshot=snapshot,
+        )
+    if await api_context.dependencies.database_stream_cancellations.has_pending(
+        conv_id=conv_id,
+        user_id=user_id,
+    ):
+        return ConversationStartValidationFailure(
+            code="conflict_error",
+            message="Conversation stream start is unavailable while cancellation is pending.",
+            invalid_assistant_timestamp=False,
+            snapshot=snapshot,
+        )
+    running_root_turn = await api_context.dependencies.database_agent_turns.get_running_root_turn(
+        conv_id=conv_id,
+        user_id=user_id,
+    )
+    if running_root_turn is not None:
+        return ConversationStartValidationFailure(
+            code="conflict_error",
+            message="Conversation stream start is unavailable while an agent turn is running.",
+            invalid_assistant_timestamp=False,
+            snapshot=snapshot,
+        )
     try:
         validate_assistant_at_ms(
             latest_message_timestamp=snapshot.latest_message_timestamp,

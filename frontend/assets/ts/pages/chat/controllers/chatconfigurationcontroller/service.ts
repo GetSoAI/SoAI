@@ -21,6 +21,7 @@ const requiredConfigurationProjectionEffects = (commitState: CommitConfiguration
     if (commitState.inputActionsChanged) effects.push('input-actions');
     if (commitState.sendHotkeyChanged) effects.push('conversation-render');
     if (commitState.richTextChanged) effects.push('worker-rendering');
+    if (commitState.activityDurationDisplayChanged) effects.push('worker-rendering', 'markup', 'conversation-render');
     if (commitState.richTextChanged || commitState.senderLabelChanged) effects.push('markup', 'conversation-render');
     if (commitState.conversationListFiltersChanged) effects.push('conversation-list');
     return effects;

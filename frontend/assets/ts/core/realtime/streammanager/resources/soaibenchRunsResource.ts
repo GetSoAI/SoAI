@@ -20,12 +20,14 @@ type SoAIBenchRunsState = JsonObject & {
     runs: DecodedSoAIBenchRun[];
     byRunId: Record<string, DecodedSoAIBenchRun>;
     byDeviceId: Record<string, DecodedSoAIBenchRun[]>;
+    deletedSeqByRunId: Record<string, number>;
 };
 
 const createEmptyState = (): SoAIBenchRunsState => ({
     runs: [],
     byRunId: {},
-    byDeviceId: {}
+    byDeviceId: {},
+    deletedSeqByRunId: {}
 });
 
 const normalizeNonNegativeInteger = (value: number | null | undefined): number => {
@@ -76,7 +78,7 @@ const normalizeRun = (value: JsonValue | undefined): DecodedSoAIBenchRun => {
     return requireDecodedSoAIBenchRun(run, 'SoAIBench run payload');
 };
 
-const buildState = (runs: DecodedSoAIBenchRun[]): SoAIBenchRunsState => {
+const buildState = (runs: DecodedSoAIBenchRun[], deletedSeqByRunId: Record<string, number> = {}): SoAIBenchRunsState => {
     const byRunId: Record<string, DecodedSoAIBenchRun> = {};
     const byDeviceId: Record<string, DecodedSoAIBenchRun[]> = {};
     const sorted = [...runs].sort((left, right) => {
@@ -90,10 +92,10 @@ const buildState = (runs: DecodedSoAIBenchRun[]): SoAIBenchRunsState => {
         deviceRuns.push(run);
         byDeviceId[run.deviceId] = deviceRuns;
     }
-    return { runs: sorted, byRunId, byDeviceId };
+    return { runs: sorted, byRunId, byDeviceId, deletedSeqByRunId };
 };
 
-const normalizeSnapshot = (payload: JsonValue | null | undefined): SoAIBenchRunsState => {
+const normalizeSnapshot = (payload: JsonValue | null | undefined, previousValue: JsonValue | null | undefined): SoAIBenchRunsState => {
     const record = isPlainObject(payload) ? payload : null;
     if (!record) {
         throw new TypeError('SoAIBench runs snapshot must be an object');
@@ -105,7 +107,17 @@ const normalizeSnapshot = (payload: JsonValue | null | undefined): SoAIBenchRuns
     if (!isArray(rawRuns)) {
         throw new TypeError('SoAIBench runs snapshot must include runs');
     }
-    return buildState(rawRuns.map((run) => normalizeRun(run)));
+    const previous = isSoAIBenchRunsState(previousValue) ? previousValue : createEmptyState();
+    const decodedRuns = rawRuns.map((run) => normalizeRun(run));
+    const snapshotRunIds = new Set(decodedRuns.map((run) => run.runId));
+    const pendingDeletedSeqByRunId: Record<string, number> = {};
+    for (const [runId, updateSeq] of Object.entries(previous.deletedSeqByRunId)) {
+        if (snapshotRunIds.has(runId)) {
+            pendingDeletedSeqByRunId[runId] = updateSeq;
+        }
+    }
+    const runs = decodedRuns.filter((run) => !hasOwn(pendingDeletedSeqByRunId, run.runId));
+    return buildState(runs, pendingDeletedSeqByRunId);
 };
 
 const normalizePush = (payload: JsonValue | null | undefined, previousValue: JsonValue | null | undefined): SoAIBenchRunsState => {
@@ -116,16 +128,30 @@ const normalizePush = (payload: JsonValue | null | undefined, previousValue: Jso
     const run = normalizeRun(event['run']);
     const previous = isSoAIBenchRunsState(previousValue) ? previousValue : createEmptyState();
     const existing = previous.byRunId[run.runId] ?? null;
+    const eventUpdateType = toTrimmedString(event['update_type']);
+    if (eventUpdateType === 'local_deleted') {
+        const deletedSeqByRunId = {
+            ...previous.deletedSeqByRunId,
+            [run.runId]: Math.max(run.updateSeq, existing?.updateSeq ?? 0)
+        };
+        return buildState(
+            previous.runs.filter((candidate) => candidate.runId !== run.runId),
+            deletedSeqByRunId
+        );
+    }
+    if (hasOwn(previous.deletedSeqByRunId, run.runId)) {
+        return previous;
+    }
     if (existing && run.updateSeq <= existing.updateSeq) {
         return previous;
     }
     const nextRuns = previous.runs.filter((candidate) => candidate.runId !== run.runId);
     nextRuns.push(run);
-    return buildState(nextRuns);
+    return buildState(nextRuns, { ...previous.deletedSeqByRunId });
 };
 
 const isSoAIBenchRunsState = (value: JsonValue | null | undefined): value is SoAIBenchRunsState => {
-    return isObject(value) && isArray(value['runs']) && isPlainObject(value['byRunId']) && isPlainObject(value['byDeviceId']);
+    return isObject(value) && isArray(value['runs']) && isPlainObject(value['byRunId']) && isPlainObject(value['byDeviceId']) && isPlainObject(value['deletedSeqByRunId']);
 };
 
 const createSoAIBenchRunsResource = (): ResourceRegistrationConfig<SoAIBenchRunsState> => ({
@@ -137,7 +163,7 @@ const createSoAIBenchRunsResource = (): ResourceRegistrationConfig<SoAIBenchRuns
             const next = normalizePush(payload, context?.previousValue);
             return next === context?.previousValue ? next : toJsonCompatibleValue(next);
         }
-        return toJsonCompatibleValue(normalizeSnapshot(payload));
+        return toJsonCompatibleValue(normalizeSnapshot(payload, context?.previousValue));
     }
 });
 

@@ -7,6 +7,7 @@ import type { ChatMessageRenderPresentation } from '@features/chat/message/messa
 
 type ChatMessageRenderModel = {
     message: ChatMessage;
+    conversationId: string;
     index: number;
     comparisonTurn: ChatComparisonTurnRenderModel | null;
     presentation: ChatMessageRenderPresentation;

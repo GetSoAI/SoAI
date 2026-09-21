@@ -54,5 +54,6 @@ async def finalize_chat_stream_error(
         operation=OPERATION_ERROR,
         logger=get_logger(LOGGER_NAME),
         failure_message="Failed to finalize chat stream error.",
+        terminal_outcome="error",
         finalize_claimed=finalize_claimed,
     )

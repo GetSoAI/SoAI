@@ -4,7 +4,7 @@
 import { dom } from '@core/dom/dom.ts';
 import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
 import { getLayoutRuntimeManager } from '@core/runtime/LayoutManager.ts';
-import { ARIA_HIDDEN_ATTR, SIDEBAR_COLLAPSED_CLASS, SIDEBAR_WIDTH, STYLE_DISPLAY } from '@core/layout/sidebar/dom.ts';
+import { ARIA_HIDDEN_ATTR, SIDEBAR_COLLAPSED_CLASS, STYLE_DISPLAY } from '@core/layout/sidebar/dom.ts';
 import type { SidebarState } from '@core/layout/sidebar/state.ts';
 import type { SidebarVersionController } from '@core/layout/sidebar/version.ts';
 
@@ -103,23 +103,4 @@ const closeSidebarMobile = (state: SidebarState): boolean => {
     return false;
 };
 
-const openSidebarMobile = (state: SidebarState): boolean => {
-    if (state.mobile && !state.open) {
-        state.open = true;
-        return true;
-    }
-    return false;
-};
-
-const isSidebarBlocking = (state: SidebarState): boolean => {
-    return state.mobile && state.open;
-};
-
-const getSidebarWidth = (state: SidebarState): number => {
-    if (state.mobile) {
-        return state.open ? SIDEBAR_WIDTH.mobile : 0;
-    }
-    return state.collapsed ? SIDEBAR_WIDTH.collapsed : SIDEBAR_WIDTH.expanded;
-};
-
-export { closeSidebarMobile, compactSidebarState, getSidebarWidth, handleSidebarResize, isSidebarBlocking, isSidebarExpanded, openSidebarMobile, resetSidebarBodyState, toggleSidebarState, updateSidebarStateUI };
+export { closeSidebarMobile, compactSidebarState, handleSidebarResize, isSidebarExpanded, resetSidebarBodyState, toggleSidebarState, updateSidebarStateUI };

@@ -97,6 +97,9 @@ class ManualCompactionStartCommitRequest:
     assistant_events: tuple[ManualCompactionAssistantEventRequest, ...]
     replace_assistant_at_ms: int | None
     replace_tool_call_id: str | None
+    turn_claim: ClaimAgentTurnStateRequest
+    manual_regeneration_request_json: str | None = None
+    manual_regeneration_expected_revision: int | None = None
 
 
 @dataclass(frozen=True, slots=True)

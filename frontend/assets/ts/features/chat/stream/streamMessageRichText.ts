@@ -1,6 +1,7 @@
 /* SoAI - Chat feature stream message rich text [frontend/assets/ts/features/chat/stream/streamMessageRichText.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { syncAttributeValue } from '@core/dom/patching.ts';
 import { normalizeMultilineInput } from '@core/richtextrenderer/mappers.ts';
 import { resolveStreamingMutableSource, streamingMarkdownAppendRequiresCanonicalRender } from '@core/richtextrenderer/streamingBlockProjection.ts';
 import type { StreamingElementCache } from '@features/chat/stream/streamDomCache.ts';
@@ -24,7 +25,7 @@ const resolveStreamingAppendText = (inputArguments: { cached: StreamingElementCa
 
 const canPatchStreamingPlainText = (inputArguments: { cached: StreamingElementCache; text: string; appendText: string; streamTextRunKey: string; renderEpoch: number }): boolean => {
     const projection = inputArguments.cached.richTextProjection;
-    if (projection === null || inputArguments.cached.richTextRenderEpoch !== inputArguments.renderEpoch || !projection.plainTextAppendSafe) {
+    if (projection === null || inputArguments.appendText.length === 0 || inputArguments.cached.richTextRenderEpoch !== inputArguments.renderEpoch || !projection.plainTextAppendSafe) {
         return false;
     }
     if (inputArguments.cached.activeStreamTextRunKey !== inputArguments.streamTextRunKey || !inputArguments.text.startsWith(projection.source)) {
@@ -43,7 +44,9 @@ export const updateStreamRichTextFromText = (inputArguments: { text: string; str
     const renderEpoch = messageManager.getWorkerRenderEpoch();
     const canPatchPlainText = canPatchStreamingPlainText({ cached, text, appendText, streamTextRunKey, renderEpoch });
     cached.activeStreamTextRunKey = streamTextRunKey;
-    cached.streamText?.setAttribute('data-stream-rich-text', 'true');
+    if (cached.streamText instanceof HTMLElement) {
+        syncAttributeValue(cached.streamText, 'data-stream-rich-text', 'true');
+    }
     if (canPatchPlainText) {
         const tailPatch = patchStreamingPlainTextTail(cached, appendText);
         if (tailPatch.patched) {

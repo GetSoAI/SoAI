@@ -153,7 +153,7 @@ const resolveRouteDetails = (options: { ensureInitialized: () => void; path: str
     };
 };
 
-const isNavigationRouterHost = (value: NavigationRouterHost | null | undefined): value is NavigationRouterHost => isObject(value) && hasFunctionProperty(value, 'parseRoute');
+const isNavigationRouterHost = (value: NavigationRouterHost | null | undefined): value is NavigationRouterHost => isObject(value) && hasFunctionProperty(value, 'parseRoute') && hasFunctionProperty(value, 'getDefaultRoute');
 
 const createNavigationContext = (options: { router: NavigationRouterHost | null; currentRoute: string | null; parseRoute: (path: string) => { route: RouteEntry; parameters: RouteParameters } | null; request: NavigationRequest; route: RouteDefinition; parameters: RouteParameters; signal: AbortSignal }): NavigationContext => {
     if (!isNavigationRequest(options.request)) {

@@ -109,13 +109,6 @@ class NvidiaSettingsController:
         finally:
             self._lock.release()
 
-    def ensure_display_environment(
-        self,
-        deadline: MonotonicDeadline | None = None,
-    ) -> Mapping[str, str] | None:
-        with self.probe_environment(deadline or deadline_after(10.0)) as environment:
-            return environment
-
     def _ensure_headless_xserver(self, deadline: MonotonicDeadline) -> bool:
         if self._xserver_process is not None:
             if not self._cleanup_owned_process():

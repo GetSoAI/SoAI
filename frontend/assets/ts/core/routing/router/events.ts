@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { readErrorMessage } from '@core/routing/router/navigationMiddlewareNormalization.ts';
-import { DEFAULT_AUTHENTICATED_ROUTE } from '@core/routing/router/authRouteTarget.ts';
 import type { ErrorHandlerService, ResourceTrackerInstance } from '@core/routing/router/routerDependencies.ts';
 import type { NavigationOptions, RouteEntry, RouteParameters } from '@core/routing/router/types.ts';
 import { isRecordLike } from '@core/typeGuards.ts';
@@ -15,6 +14,7 @@ interface RouterInitializationEventsDependencies {
     getWindow: () => Window;
     getRouteFromHash: () => string | null;
     parseRoute: (target: string) => { route: RouteEntry; parameters: RouteParameters } | null;
+    getDefaultRoute: () => string;
     navigate: (target: string, options: NavigationOptions) => Promise<void>;
     errorHandler: ErrorHandlerService;
     renderCriticalError: (message: string) => void;
@@ -22,7 +22,7 @@ interface RouterInitializationEventsDependencies {
     getCurrentRoute: () => string | null;
 }
 
-const normalizeRouteOrDefault = (dependencies: { parseRoute: (target: string) => { route: RouteEntry; parameters: RouteParameters } | null; errorHandler: ErrorHandlerService }, route: string): string => {
+const normalizeRouteOrDefault = (dependencies: Pick<RouterInitializationEventsDependencies, 'parseRoute' | 'getDefaultRoute' | 'errorHandler'>, route: string): string => {
     try {
         const parsed = dependencies.parseRoute(route);
         if (parsed) {
@@ -30,10 +30,10 @@ const normalizeRouteOrDefault = (dependencies: { parseRoute: (target: string) =>
         }
     } catch (error) {
         dependencies.errorHandler.warn('Router', 'Unknown route on hashchange; redirecting to default route', ensureError(error));
-        return DEFAULT_AUTHENTICATED_ROUTE;
+        return dependencies.getDefaultRoute();
     }
     dependencies.errorHandler.warn('Router', 'Unresolved route on hashchange; redirecting to default route');
-    return DEFAULT_AUTHENTICATED_ROUTE;
+    return dependencies.getDefaultRoute();
 };
 
 const reportNavigationEventFailure = (dependencies: RouterInitializationEventsDependencies, message: string, error: Error): void => {
@@ -55,6 +55,7 @@ const registerRouterInitializationEvents = (dependencies: RouterInitializationEv
         const targetRoute = normalizeRouteOrDefault(
             {
                 parseRoute: dependencies.parseRoute,
+                getDefaultRoute: dependencies.getDefaultRoute,
                 errorHandler: dependencies.errorHandler
             },
             route

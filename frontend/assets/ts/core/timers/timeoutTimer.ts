@@ -11,16 +11,16 @@ class TimeoutTimer {
         this.#onTimeout = onTimeout;
     }
 
-    start(): void {
+    start(delayMs: number = this.#delayMs): void {
         this.stop();
         this.#timeout = setTimeout(() => {
             this.#timeout = null;
             this.#onTimeout();
-        }, this.#delayMs);
+        }, delayMs);
     }
 
     stop(): void {
-        if (!this.#timeout) {
+        if (this.#timeout === null) {
             return;
         }
         clearTimeout(this.#timeout);

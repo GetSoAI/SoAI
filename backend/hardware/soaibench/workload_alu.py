@@ -3,6 +3,14 @@
 
 from __future__ import annotations
 
+from core.hardware.soaibench_workloads import (
+    ALU_BATCH_DISPATCHES,
+    ALU_MAXIMUM_ELEMENTS,
+    ALU_OPERATION_FACTOR,
+    ALU_ROUNDS,
+    counted_operations,
+)
+from hardware.soaibench.opencl_session import OpenCLExecutionSession
 from hardware.soaibench.types import SoAIBenchGpuIdentity
 from hardware.soaibench.workload_common import (
     SoAIBenchPhaseResult,
@@ -11,14 +19,14 @@ from hardware.soaibench.workload_common import (
 
 __all__ = (
     "STANDARD_ALU_REPEATS",
+    "alu_counted_operations",
     "alu_gops",
     "execute_alu_workload",
 )
 
-STANDARD_ALU_REPEATS = 160
-ALU_ROUNDS = 768
-ALU_ELEMENT_COUNT = 8_388_608
-ALU_OPERATIONS_PER_ROUND = 32
+STANDARD_ALU_REPEATS = ALU_BATCH_DISPATCHES
+ALU_ELEMENT_COUNT = ALU_MAXIMUM_ELEMENTS
+ALU_OPERATIONS_PER_ROUND = ALU_OPERATION_FACTOR
 
 ALU_KERNEL_SOURCE = """
 __kernel void soaibench_alu(__global float *data, const uint rounds) {
@@ -54,7 +62,10 @@ __kernel void soaibench_alu(__global float *data, const uint rounds) {
 """
 
 
-def execute_alu_workload(identity: SoAIBenchGpuIdentity) -> SoAIBenchPhaseResult:
+def execute_alu_workload(
+    identity: SoAIBenchGpuIdentity,
+    session: OpenCLExecutionSession | None = None,
+) -> SoAIBenchPhaseResult:
     return execute_opencl_phase(
         identity=identity,
         source=ALU_KERNEL_SOURCE,
@@ -63,10 +74,18 @@ def execute_alu_workload(identity: SoAIBenchGpuIdentity) -> SoAIBenchPhaseResult
         repeats=STANDARD_ALU_REPEATS,
         summary_prefix="alu",
         element_count=ALU_ELEMENT_COUNT,
+        session=session,
     )
 
 
 def alu_gops(result: SoAIBenchPhaseResult) -> float:
-    operations = result.element_count * ALU_ROUNDS * result.sample_count
-    operations *= ALU_OPERATIONS_PER_ROUND
-    return operations / result.elapsed_seconds / 1_000_000_000.0
+    return alu_counted_operations(result) / result.elapsed_seconds / 1_000_000_000.0
+
+
+def alu_counted_operations(result: SoAIBenchPhaseResult) -> int:
+    return counted_operations(
+        "alu",
+        result.element_count,
+        result.rounds,
+        result.dispatches,
+    )

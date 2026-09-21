@@ -3,7 +3,7 @@
 
 import { downloadAuthenticatedResponse } from '@core/api/authenticatedDownload.ts';
 import { isAbortError } from '@core/errors/abort.ts';
-import { ensureError } from '@core/errors/coerce.ts';
+import { ensureError, extractErrorCode } from '@core/errors/coerce.ts';
 import { generateSecureId } from '@core/primitives/idGenerator.ts';
 import { cloneStructured } from '@core/primitives/clone.ts';
 import { createBusyDisabledToken, setBusyDisabledState, type BusyDisabledToken } from '@core/ui/controls/busyDisabledState.ts';
@@ -190,6 +190,13 @@ const exportConversationJsonAfterPdfFailure = async (host: MessageSendingHost, r
     await exportConversationJson(host, request);
 };
 
+const resolveConversationPdfExportError = (error: Error): Error => {
+    if (extractErrorCode(error) === 'pdf_browser_unavailable') {
+        return new Error(i18n.t('chat.export.pdf.error.browserUnavailable'), { cause: error });
+    }
+    return error;
+};
+
 const exportConversationPdf = async (host: MessageSendingHost, request: ConversationExportRequest): Promise<void> => {
     if (shouldAbortConversationExportForRunningState(host, request)) {
         return;
@@ -217,7 +224,7 @@ const exportConversationPdf = async (host: MessageSendingHost, request: Conversa
             notifyExportResult(host, true);
         });
     } catch (error) {
-        await exportConversationJsonAfterPdfFailure(host, request, ensureError(error));
+        await exportConversationJsonAfterPdfFailure(host, request, resolveConversationPdfExportError(ensureError(error)));
     }
 };
 
@@ -243,4 +250,4 @@ const exportConversation = (host: MessageSendingHost, conversationId: string | n
         .catch((error) => host.platform.handleError(error, i18n.t('chat.export.pdf.title'), { notify: true }));
 };
 
-export { exportConversation };
+export { exportConversation, resolveConversationPdfExportError };

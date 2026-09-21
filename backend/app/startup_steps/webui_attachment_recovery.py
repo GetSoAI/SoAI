@@ -48,6 +48,7 @@ async def _recover_pending_attachment_parses(context: ApplicationContext) -> int
     parse_dependencies = DirectAttachmentParseDependencies(
         config=context.services.configuration.config,
         files=context.services.configuration.files,
+        database_users=context.services.databases.users,
         database_files=context.services.databases.files,
         database_attachments=database_attachments,
         document_reader=context.services.storage.document_reader,

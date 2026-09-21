@@ -21,25 +21,31 @@ const runWithOneShotTimer = (host: ResetActionExecutionContext['host'], state: M
 };
 
 const executeResetPreferences = async ({ host, button }: ResetActionExecutionContext): Promise<void> => {
-    return executeConfirmedReset(
-        { host, button },
-        'settings:resetPreferences',
-        {
-            title: i18n.t('settings.system.preferencesReset.confirmTitle'),
-            message: i18n.t('settings.system.preferencesReset.confirmMessage'),
-            confirmText: i18n.t('settings.system.resetButtonLabel'),
-            cancelText: i18n.t('common.cancel'),
-            variant: 'danger'
-        },
-        async () => {
-            await host.api.resetUiPreferencesRemote();
-            host.api.resetUiPreferencesLocal({ preserveWizardState: true });
-            refreshWallpaperFromState(host);
-        },
-        i18n.t('settings.notifications.preferencesResetSuccess'),
-        () => i18n.t('settings.notifications.preferencesResetFailed'),
-        async () => await host.workflow.refreshSettingsAfterPreferencesReset()
-    );
+    const release = host.workflow.acquirePreferencesMutation();
+    if (!release) return;
+    try {
+        await executeConfirmedReset(
+            { host, button },
+            'settings:resetPreferences',
+            {
+                title: i18n.t('settings.system.preferencesReset.confirmTitle'),
+                message: i18n.t('settings.system.preferencesReset.confirmMessage'),
+                confirmText: i18n.t('settings.system.resetButtonLabel'),
+                cancelText: i18n.t('common.cancel'),
+                variant: 'danger'
+            },
+            async () => {
+                await host.api.resetUiPreferencesRemote();
+                host.api.resetUiPreferencesLocal({ preserveWizardState: true });
+                refreshWallpaperFromState(host);
+            },
+            i18n.t('settings.notifications.preferencesResetSuccess'),
+            () => i18n.t('settings.notifications.preferencesResetFailed'),
+            async () => await host.workflow.refreshSettingsAfterPreferencesReset()
+        );
+    } finally {
+        release();
+    }
 };
 
 const executeResetAclPolicy = async ({ host, button }: ResetActionExecutionContext): Promise<void> => {

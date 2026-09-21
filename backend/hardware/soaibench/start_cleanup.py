@@ -6,14 +6,12 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ValidationError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
-from core.validation.numberish import require_int_from_numberish
-from hardware.soaibench.errors import SoAIBenchUnsupported
 from hardware.soaibench.events import publish_soaibench_run_update
-from hardware.soaibench.preflight import finish_preflight_unsupported
 from hardware.soaibench.start_preworker_failure import (
     finish_preworker_failure_preserving,
 )
@@ -27,58 +25,12 @@ __all__ = (
     "bind_run_id_or_finish_failed",
     "cleanup_cancelled_start",
     "cleanup_failed_start",
-    "finish_preflight_unsupported_and_release",
     "release_start_lease_preserving",
 )
 
-PREFLIGHT_UNSUPPORTED_OPERATION = "hardware.soaibench.start_cleanup.preflight_unsupported"
 START_CLEANUP_OPERATION = "hardware.soaibench.start_cleanup"
 RELEASE_LEASE_OPERATION = "hardware.soaibench.start_cleanup.release_lease"
-
-
-async def finish_preflight_unsupported_and_release(
-    *,
-    deps: SoAIBenchServiceDependencies,
-    run: JSONDict,
-    exception: SoAIBenchUnsupported,
-    device_id: str,
-    lease_id: str,
-) -> JSONDict:
-    try:
-        terminal = await finish_preflight_unsupported(
-            database_hardware=deps.database_hardware,
-            run=run,
-            exception=exception,
-        )
-    except asyncio.CancelledError as finish_exception:
-        await release_start_lease_preserving(
-            deps=deps,
-            device_id=device_id,
-            lease_id=lease_id,
-            primary_exception=finish_exception,
-        )
-        raise
-    except HANDLED_RUNTIME_EXCEPTIONS as finish_exception:
-        coerced_exception = coerce_to_soai_error(
-            finish_exception,
-            operation=PREFLIGHT_UNSUPPORTED_OPERATION,
-        )
-        log_exception(
-            deps.logger,
-            coerced_exception,
-            message="SoAIBench unsupported preflight cleanup failed.",
-            operation=PREFLIGHT_UNSUPPORTED_OPERATION,
-            level="warning",
-        )
-        await release_start_lease_preserving(
-            deps=deps,
-            device_id=device_id,
-            lease_id=lease_id,
-            primary_exception=finish_exception,
-        )
-        raise
-    await deps.activity_registry.release(device_id=device_id, lease_id=lease_id)
-    return terminal
+PUBLISH_TERMINAL_OPERATION = "hardware.soaibench.start_cleanup.publish_terminal"
 
 
 async def bind_run_id_or_finish_failed(
@@ -98,69 +50,34 @@ async def bind_run_id_or_finish_failed(
         if not bound:
             raise ValidationError("SoAIBench activity lease binding failed.")
     except asyncio.CancelledError as exception:
-        await _cleanup_cancelled_lease_binding(
-            deps=deps,
-            run=run,
-            device_id=device_id,
-            lease_id=lease_id,
-            run_id=run_id,
-            primary_exception=exception,
-        )
+        await _cleanup_bind_failure(deps, run, device_id, lease_id, exception)
         raise
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
-        await _cleanup_failed_lease_binding(
+        await _cleanup_bind_failure(deps, run, device_id, lease_id, exception)
+        raise
+
+
+async def _cleanup_bind_failure(
+    deps: SoAIBenchServiceDependencies,
+    run: JSONDict,
+    device_id: str,
+    lease_id: str,
+    primary_exception: BaseException,
+) -> None:
+    if isinstance(primary_exception, asyncio.CancelledError):
+        await cleanup_cancelled_start(
             deps=deps,
             run=run,
             device_id=device_id,
             lease_id=lease_id,
-            run_id=run_id,
-            primary_exception=exception,
+            primary_exception=primary_exception,
         )
-        raise
-
-
-async def _cleanup_cancelled_lease_binding(
-    *,
-    deps: SoAIBenchServiceDependencies,
-    run: JSONDict,
-    device_id: str,
-    lease_id: str,
-    run_id: str,
-    primary_exception: BaseException,
-) -> None:
-    await cleanup_cancelled_start(
-        deps=deps,
-        run=run,
-        user_id=require_int_from_numberish(
-            run["created_by_user_id"],
-            field="created_by_user_id",
-        ),
-        device_id=device_id,
-        lease_id=lease_id,
-        run_id=run_id,
-        primary_exception=primary_exception,
-    )
-
-
-async def _cleanup_failed_lease_binding(
-    *,
-    deps: SoAIBenchServiceDependencies,
-    run: JSONDict,
-    device_id: str,
-    lease_id: str,
-    run_id: str,
-    primary_exception: BaseException,
-) -> None:
+        return
     await cleanup_failed_start(
         deps=deps,
         run=run,
-        user_id=require_int_from_numberish(
-            run["created_by_user_id"],
-            field="created_by_user_id",
-        ),
         device_id=device_id,
         lease_id=lease_id,
-        run_id=run_id,
         reason="start_lease_bind_failed",
         operation=START_CLEANUP_OPERATION,
         log_message="SoAIBench activity lease binding failed.",
@@ -172,45 +89,35 @@ async def cleanup_cancelled_start(
     *,
     deps: SoAIBenchServiceDependencies,
     run: JSONDict | None,
-    user_id: int,
     device_id: str,
     lease_id: str,
-    run_id: str,
     primary_exception: BaseException,
 ) -> None:
-    if run is not None:
-        await finish_preworker_failure_preserving(
+    try:
+        await _finish_start_terminal_preserving(
             deps=deps,
             run=run,
             status=SoAIBenchRunStatus.CANCELLED,
             reason=None,
             message="SoAIBench start was cancelled.",
+            update_type="shutdown_cancelled",
             primary_exception=primary_exception,
         )
-        await publish_soaibench_run_update(
-            database_hardware=deps.database_hardware,
-            event_bus=deps.event_bus,
-            logger=deps.logger,
-            user_id=user_id,
-            run_id=run_id,
-            update_type="shutdown_cancelled",
+    finally:
+        await release_start_lease_preserving(
+            deps=deps,
+            device_id=device_id,
+            lease_id=lease_id,
+            primary_exception=primary_exception,
         )
-    await release_start_lease_preserving(
-        deps=deps,
-        device_id=device_id,
-        lease_id=lease_id,
-        primary_exception=primary_exception,
-    )
 
 
 async def cleanup_failed_start(
     *,
     deps: SoAIBenchServiceDependencies,
     run: JSONDict | None,
-    user_id: int,
     device_id: str,
     lease_id: str,
-    run_id: str,
     reason: str,
     operation: str,
     log_message: str,
@@ -226,29 +133,90 @@ async def cleanup_failed_start(
         message=log_message,
         operation=operation,
     )
-    if run is not None:
-        await finish_preworker_failure_preserving(
+    try:
+        await _finish_start_terminal_preserving(
             deps=deps,
             run=run,
             status=SoAIBenchRunStatus.FAILED,
             reason=reason,
-            message=str(primary_exception),
+            message="SoAIBench could not start.",
+            update_type="terminal",
             primary_exception=primary_exception,
         )
-        await publish_soaibench_run_update(
-            database_hardware=deps.database_hardware,
-            event_bus=deps.event_bus,
-            logger=deps.logger,
-            user_id=user_id,
-            run_id=run_id,
-            update_type="terminal",
+    finally:
+        await release_start_lease_preserving(
+            deps=deps,
+            device_id=device_id,
+            lease_id=lease_id,
+            primary_exception=primary_exception,
         )
-    await release_start_lease_preserving(
+
+
+async def _finish_start_terminal_preserving(
+    *,
+    deps: SoAIBenchServiceDependencies,
+    run: JSONDict | None,
+    status: SoAIBenchRunStatus,
+    reason: str | None,
+    message: str,
+    update_type: str,
+    primary_exception: BaseException,
+) -> None:
+    if run is None:
+        return
+    terminal_run = await finish_preworker_failure_preserving(
         deps=deps,
-        device_id=device_id,
-        lease_id=lease_id,
+        run=run,
+        status=status,
+        reason=reason,
+        message=message,
         primary_exception=primary_exception,
     )
+    if terminal_run is not None:
+        await _publish_terminal_preserving(
+            deps=deps,
+            run=terminal_run,
+            update_type=update_type,
+            primary_exception=primary_exception,
+        )
+
+
+async def _publish_terminal_preserving(
+    *,
+    deps: SoAIBenchServiceDependencies,
+    run: JSONDict,
+    update_type: str,
+    primary_exception: BaseException,
+) -> None:
+    try:
+        await uncancel_then_cleanup(
+            publish_soaibench_run_update(
+                event_bus=deps.event_bus,
+                logger=deps.logger,
+                run=run,
+                update_type=update_type,
+            ),
+        )
+    except asyncio.CancelledError as cleanup_exception:
+        primary_exception.add_note(
+            f"SoAIBench failed-start terminal publication was cancelled: {cleanup_exception}",
+        )
+    except HANDLED_RUNTIME_EXCEPTIONS as cleanup_exception:
+        primary_exception.add_note(
+            f"SoAIBench failed-start terminal publication failed: {cleanup_exception}",
+        )
+        coerced_exception = coerce_to_soai_error(
+            cleanup_exception,
+            operation=PUBLISH_TERMINAL_OPERATION,
+        )
+        log_exception(
+            deps.logger,
+            coerced_exception,
+            message="SoAIBench failed-start terminal publication failed.",
+            operation=PUBLISH_TERMINAL_OPERATION,
+            details={"run_id": str(run["run_id"]), "update_type": update_type},
+            level="warning",
+        )
 
 
 async def release_start_lease_preserving(
@@ -259,7 +227,9 @@ async def release_start_lease_preserving(
     primary_exception: BaseException,
 ) -> None:
     try:
-        await deps.activity_registry.release(device_id=device_id, lease_id=lease_id)
+        await uncancel_then_cleanup(
+            deps.activity_registry.release(device_id=device_id, lease_id=lease_id),
+        )
     except asyncio.CancelledError as cleanup_exception:
         primary_exception.add_note(
             f"SoAIBench activity lease cleanup was cancelled: {cleanup_exception}",

@@ -183,3 +183,30 @@ class DatabaseToolCallsProtocol(Protocol):
     ) -> list[JSONDict]: ...
 
     async def get_tool_calls_for_turn(self, conv_id: str, turn_id: str) -> list[JSONDict]: ...
+
+    async def list_tool_calls_by_owner_task(
+        self,
+        *,
+        owner_task_id: str,
+        after_storage_call_id: str = "",
+        limit: int = 100,
+    ) -> list[JSONDict]: ...
+
+    async def list_active_tool_calls_by_owner_task_prefix(
+        self,
+        *,
+        owner_task_prefix: str,
+        after_storage_call_id: str = "",
+        limit: int = 100,
+    ) -> list[JSONDict]: ...
+
+    async def finalize_active_tool_call_with_result(
+        self,
+        storage_call_id: str,
+        *,
+        status: str,
+        tool_result: str,
+        error_message: str | None,
+        duration_ms: int,
+        completed_at_ms: int,
+    ) -> JSONDict | None: ...

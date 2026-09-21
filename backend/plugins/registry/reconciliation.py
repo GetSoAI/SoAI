@@ -202,7 +202,7 @@ async def reconcile_db_with_filesystem(
             )
             blocked_plugins.add(plugin_name)
             continue
-        plugin_file_hash = package_audit.archive_hash
+        plugin_file_hash = package_audit.content.archive_hash
         if get_blocked_plugin_hash_compatibility(plugin_file_hash) is None:
             continue
         blocked_plugins.add(plugin_name)
@@ -287,7 +287,7 @@ async def reconcile_db_with_filesystem(
     await collect_plugin_package_caches(
         manager,
         {
-            plugin_name: package_audit.archive_hash
+            plugin_name: package_audit.content.archive_hash
             for plugin_name, package_audit in package_audits.items()
         },
     )

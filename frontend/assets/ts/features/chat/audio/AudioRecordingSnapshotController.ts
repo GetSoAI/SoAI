@@ -73,7 +73,7 @@ class AudioRecordingSnapshotController {
     }
 
     #syncElapsedTimer(): void {
-        if (this.#state !== 'recording' && this.#state !== 'processing' && this.#state !== 'requesting') {
+        if (this.#state !== 'recording') {
             this.#clearElapsedTimer();
             return;
         }

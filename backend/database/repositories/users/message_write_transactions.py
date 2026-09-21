@@ -31,6 +31,9 @@ from database.repositories.users.message_append_order_validation import (
     sync_require_append_timestamps_after_existing,
 )
 from database.repositories.users.message_count_sync import sync_count_stored_messages
+from database.repositories.users.message_input_mutation_fence import (
+    require_message_mutation_allowed,
+)
 from database.repositories.users.message_overwrite_reconciliation import (
     sync_reconcile_overwritten_message_auxiliary_tables,
 )
@@ -62,6 +65,13 @@ def sync_overwrite_messages(
         conn,
         conv_id=conv_id,
         expected_last_modified_at_ms=expected_last_modified_at_ms,
+    )
+    require_message_mutation_allowed(
+        conn,
+        conv_id=conv_id,
+        user_id=user_id,
+        where_sql="1 = 1",
+        params=(),
     )
     existing_count = sync_count_stored_messages(conn, conv_id)
     now = epoch_ms()

@@ -8,6 +8,7 @@ import asyncio
 from core.errors.exceptions import StateError
 from core.events.recent_event_tracker import RecentEventTracker
 from core.events.types_base import Event
+from core.events.types_models_model_events import ModelDatabaseChangeEvent
 from core.events.types_plugins import (
     InstalledPluginsChangedEvent,
     PluginInstallationStateChangedEvent,
@@ -78,6 +79,7 @@ class ModelManagerPluginEventHandlers:
             plugins_to_scan=[event.plugin_name],
             wait_for_completion=True,
         )
+        await self._deps.event_bus.publish(ModelDatabaseChangeEvent())
         await self._processed_authoritative_state_events.mark_processed(event.event_id)
 
     async def apply_installed_plugin_names(self, installed_plugin_names: set[str]) -> None:

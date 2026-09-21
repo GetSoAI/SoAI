@@ -31,7 +31,7 @@ class ChatAttachSoaiLinkController {
         this.#host = host;
         this.#elements = elements;
         this.#signal = signal;
-        this.#draftListController = new ChatAttachDraftAttachmentListController(host, elements.draftList, signal);
+        this.#draftListController = new ChatAttachDraftAttachmentListController(host, elements.draftList, signal, 'soaiLink');
         this.#bind();
     }
 
@@ -123,7 +123,7 @@ class ChatAttachSoaiLinkController {
                 if (!this.#isCurrent(generation, signal, inputValue, workspaceSnapshot, draftCommitEpoch)) {
                     return;
                 }
-                const addedCount = this.#host.attachments.addSoaiPaths(records);
+                const addedCount = this.#host.attachments.addSoaiPaths(records, 'soaiLink');
                 if (!this.#isCurrent(generation, signal, inputValue, workspaceSnapshot, null)) {
                     return;
                 }

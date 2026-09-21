@@ -124,7 +124,6 @@ const buildMenuMarkup = (inputArguments: ModelControlRenderArguments & { slotInd
 
     const searchMarkup = renderChatModelMenuSearch({
         sanitizer: stringValue,
-        getCachedIcon: inputArguments.getCachedIcon,
         query: inputArguments.menuSearchQuery
     });
     const emptyMarkup = renderChatModelMenuEmpty({ sanitizer: stringValue, hidden: true });

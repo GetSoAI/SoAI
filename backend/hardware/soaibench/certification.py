@@ -7,15 +7,10 @@ import math
 from statistics import median
 
 from core.errors.exceptions import StateError
+from core.hardware.soaibench_workloads import SOAIBENCH_WORKLOAD_NAMES, throughput_diagnostics
 from core.types.json import JSONDict
-from core.validation.numbers import (
-    coerce_int_from_json,
-    coerce_optional_float_from_json,
-)
-from hardware.soaibench.runtime import (
-    CERTIFIED_MEASURED_PASSES,
-    CERTIFIED_SCORE_VARIANCE_LIMIT_PERCENT,
-)
+from core.validation.integers import is_positive_strict_int
+from hardware.soaibench.runtime import CERTIFIED_MEASURED_PASSES
 from hardware.soaibench.scoring import score_payload, score_telemetry_summary_fields
 from hardware.soaibench.workload import SoAIBenchWorkloadResult
 
@@ -26,8 +21,11 @@ def certified_result(
     *,
     measured_passes: list[JSONDict],
     telemetry_summary: JSONDict,
-    temperature_limit_celsius: float | None,
 ) -> SoAIBenchWorkloadResult:
+    if len(measured_passes) != CERTIFIED_MEASURED_PASSES:
+        raise StateError(
+            f"Certified result requires exactly {CERTIFIED_MEASURED_PASSES} measured passes.",
+        )
     alu_values = [_required_float(entry, "alu_gops") for entry in measured_passes]
     matrix_values = [_required_float(entry, "matrix_gops") for entry in measured_passes]
     compute_values = [_required_float(entry, "compute_gops") for entry in measured_passes]
@@ -38,15 +36,16 @@ def certified_result(
         _required_float(entry, "latency_dispatches_per_second") for entry in measured_passes
     ]
     score_values = [_required_float(entry, "overall_score") for entry in measured_passes]
+    phase_variation_percent: JSONDict = {}
+    phase_drift_percent: JSONDict = {}
+    for name in SOAIBENCH_WORKLOAD_NAMES:
+        phase_values = tuple(_required_phase_throughput(entry, name) for entry in measured_passes)
+        variation_percent, drift_percent = throughput_diagnostics(phase_values)
+        phase_variation_percent[name] = variation_percent
+        phase_drift_percent[name] = drift_percent
     duration_ms = sum(_required_int(entry, "duration_ms") for entry in measured_passes)
     sample_count = sum(_required_int(entry, "sample_count") for entry in measured_passes)
     variance_percent = _coefficient_variation_percent(score_values)
-    rejection_reason = _rejection_reason(
-        measured_count=len(measured_passes),
-        telemetry_summary=telemetry_summary,
-        temperature_limit_celsius=temperature_limit_celsius,
-        variance_percent=variance_percent,
-    )
     score_fields = score_payload(
         compute_gops=float(median(compute_values)),
         memory_gbs=float(median(memory_values)),
@@ -70,6 +69,8 @@ def certified_result(
             "latency_us": latency_us,
             "latency_dispatches_per_second": latency_dispatches_per_second,
             "score_variance_percent": variance_percent,
+            "phase_variation_percent": phase_variation_percent,
+            "phase_drift_percent": phase_drift_percent,
         },
         summary={
             "benchmark_mode": "certified",
@@ -78,75 +79,53 @@ def certified_result(
             "latency_score": latency_score,
             "latency_us": latency_us,
             "latency_dispatches_per_second": latency_dispatches_per_second,
-            "leaderboard_eligible": rejection_reason is None,
-            "leaderboard_rejection_reason": rejection_reason,
+            "leaderboard_eligible": True,
+            "leaderboard_rejection_reason": None,
             "score_variance_percent": variance_percent,
-            "score_confidence": _score_confidence(variance_percent),
+            "phase_variation_percent": phase_variation_percent,
+            "phase_drift_percent": phase_drift_percent,
+            "score_confidence": None,
         },
         duration_ms=duration_ms,
         sample_count=sample_count,
     )
 
 
-def _rejection_reason(
-    *,
-    measured_count: int,
-    telemetry_summary: JSONDict,
-    temperature_limit_celsius: float | None,
-    variance_percent: float,
-) -> str | None:
-    if measured_count != CERTIFIED_MEASURED_PASSES:
-        return "incomplete_pass_count"
-    if telemetry_summary.get("telemetry_available") is not True:
-        return "telemetry_unavailable"
-    if telemetry_summary.get("throttle_detected") is True:
-        return "throttle_detected"
-    max_temperature = coerce_optional_float_from_json(
-        telemetry_summary.get("max_temperature_celsius"),
-        allow_bool=False,
-        allow_nonfinite=False,
-    )
-    if max_temperature is None:
-        return "temperature_telemetry_unavailable"
-    if temperature_limit_celsius is not None and max_temperature > temperature_limit_celsius:
-        return "temperature_limit_exceeded"
-    if variance_percent > CERTIFIED_SCORE_VARIANCE_LIMIT_PERCENT:
-        return "score_variance_exceeded"
-    return None
-
-
-def _score_confidence(variance_percent: float) -> float:
-    ratio = max(0.0, min(1.0, 1.0 - (variance_percent / CERTIFIED_SCORE_VARIANCE_LIMIT_PERCENT)))
-    return round(ratio, 4)
-
-
 def _coefficient_variation_percent(values: list[float]) -> float:
-    if not values:
-        return 100.0
     mean = sum(values) / len(values)
-    if mean <= 0.0:
-        return 100.0
+    if mean == 0.0:
+        return 0.0
     variance = sum((value - mean) * (value - mean) for value in values) / len(values)
     return round((math.sqrt(variance) / mean) * 100.0, 4)
 
 
 def _required_float(payload: JSONDict, key: str) -> float:
-    value = coerce_optional_float_from_json(
-        payload.get(key),
-        allow_bool=False,
-        allow_nonfinite=False,
-    )
-    if value is None:
-        raise StateError(f"Certified pass result missing {key}.")
-    return value
+    value = payload.get(key)
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int | float)
+        or not math.isfinite(value)
+        or value <= 0.0
+    ):
+        raise StateError(f"Certified pass result {key} must be finite and positive.")
+    return float(value)
+
+
+def _required_phase_throughput(payload: JSONDict, name: str) -> float:
+    workload = payload.get("workload")
+    if not isinstance(workload, dict):
+        raise StateError("Certified pass workload evidence is missing.")
+    evidence = workload.get("workload_evidence")
+    if not isinstance(evidence, dict):
+        raise StateError("Certified pass workload evidence is missing.")
+    phase = evidence.get(name)
+    if not isinstance(phase, dict):
+        raise StateError("Certified pass workload phase evidence is missing.")
+    return _required_float(phase, "throughput")
 
 
 def _required_int(payload: JSONDict, key: str) -> int:
-    value = coerce_int_from_json(
-        payload.get(key),
-        default=None,
-        allow_bool=False,
-    )
-    if value is None:
-        raise StateError(f"Certified pass result missing {key}.")
+    value = payload.get(key)
+    if not is_positive_strict_int(value):
+        raise StateError(f"Certified pass result {key} must be a positive integer.")
     return value

@@ -3,29 +3,26 @@
 
 import type { TaskLocalOperationUpdate, TaskOperationEntry, TaskOperationFilter, TaskOperationListener, TaskOperationMeta, TaskOperationsApi } from '@core/tasks/protocols.ts';
 import { isFunction, isObject, isString } from '@core/typeGuards.ts';
-import { TaskManagerActions } from '@features/tasks/taskmanager/TaskManagerActions.ts';
 import { filterTaskOperations } from '@features/tasks/taskmanager/operationFiltering.ts';
+import type { TaskOperationCancellationController } from '@features/tasks/taskmanager/TaskOperationCancellationController.ts';
 import type { TaskManagerStoreApi } from '@features/tasks/taskmanager/taskManagerTypes.ts';
 
 interface TaskOperationApiControllerDependencies {
     store: TaskManagerStoreApi;
-    actions: TaskManagerActions;
+    cancellation: TaskOperationCancellationController;
 }
 
 class TaskOperationApiController implements TaskOperationsApi {
     readonly #store: TaskManagerStoreApi;
-    readonly #actions: TaskManagerActions;
-    readonly #localCancelHandlers = new Map<string, () => void | Promise<void>>();
-    readonly #localOperationMeta = new Map<string, TaskOperationEntry>();
+    readonly #cancellation: TaskOperationCancellationController;
 
     constructor(dependencies: TaskOperationApiControllerDependencies) {
         this.#store = dependencies.store;
-        this.#actions = dependencies.actions;
+        this.#cancellation = dependencies.cancellation;
     }
 
     getOperations(filter: TaskOperationFilter = {}): TaskOperationEntry[] {
-        const operations = this.#mergeLocalOperationMeta(this.#store.getActiveOperations());
-        this.#pruneLocalCancelHandlers(operations);
+        const operations = this.#cancellation.mergeLocalOperationMeta(this.#store.getActiveOperations());
         return filterTaskOperations(operations, filter, (source) => this.#store.getPluginKey(source));
     }
 
@@ -44,21 +41,7 @@ class TaskOperationApiController implements TaskOperationsApi {
     }
 
     async cancelOperationById(operationId: string): Promise<void> {
-        const operation = this.#store.getOperationById(operationId);
-        if (!operation) {
-            this.#localCancelHandlers.delete(operationId);
-            this.#localOperationMeta.delete(operationId);
-            return;
-        }
-        if (operation.cancelable !== true) {
-            return;
-        }
-        const localCancel = this.#localCancelHandlers.get(operationId);
-        if (localCancel) {
-            await localCancel();
-            return;
-        }
-        await this.#actions.cancelOperation(operation);
+        await this.#cancellation.cancelOperationById(operationId);
     }
 
     getPluginKey(source: string | null | undefined): string | null {
@@ -73,10 +56,8 @@ class TaskOperationApiController implements TaskOperationsApi {
         const pluginName = isString(update.pluginName) && update.pluginName.trim() ? update.pluginName.trim() : null;
         const pluginKey = isString(update.pluginKey) && update.pluginKey.trim() ? update.pluginKey.trim().toLowerCase() : this.#store.getPluginKey(pluginName);
         const meta = isObject(update.meta) ? { ...update.meta } : {};
-        if (update.cancelable !== false && isFunction(update.cancel)) {
-            this.#localCancelHandlers.set(operationId, update.cancel);
-        } else {
-            this.#localCancelHandlers.delete(operationId);
+        if (update.cancelable === false) {
+            meta['cancelable'] = false;
         }
         if (pluginName) {
             meta['plugin'] = pluginName;
@@ -90,7 +71,7 @@ class TaskOperationApiController implements TaskOperationsApi {
             meta: this.#buildLocalOperationMeta(meta),
             cancelable: update.cancelable !== false
         };
-        this.#localOperationMeta.set(operationId, localOperation);
+        this.#cancellation.registerLocalOperation(operationId, update.cancelable !== false, update.cancel, localOperation);
         const existingOperation = this.#store.getOperationById(operationId);
         if (existingOperation && existingOperation.isLocal !== true) {
             this.#store.upsertOperation(existingOperation);
@@ -107,16 +88,14 @@ class TaskOperationApiController implements TaskOperationsApi {
             isLocal: true
         });
         if (!this.#store.getOperationById(operationId)) {
-            this.#localCancelHandlers.delete(operationId);
-            this.#localOperationMeta.delete(operationId);
+            this.#cancellation.removeLocalOperationState(operationId);
         }
     }
 
     removeLocalOperation(operationId: string): void {
         const operation = this.#store.getOperationById(operationId);
         const shouldRemoveStoreOperation = operation?.isLocal === true;
-        this.#localCancelHandlers.delete(operationId);
-        this.#localOperationMeta.delete(operationId);
+        this.#cancellation.removeLocalOperationState(operationId);
         if (shouldRemoveStoreOperation) {
             this.#store.removeOperationById(operationId);
         } else if (operation) {
@@ -124,45 +103,9 @@ class TaskOperationApiController implements TaskOperationsApi {
         }
     }
 
-    #pruneLocalCancelHandlers(operations: readonly TaskOperationEntry[]): void {
-        if (this.#localCancelHandlers.size === 0 && this.#localOperationMeta.size === 0) {
-            return;
-        }
-        const activeOperationIds = new Set(operations.map((operation) => operation.id));
-        for (const operationId of this.#localCancelHandlers.keys()) {
-            if (!activeOperationIds.has(operationId)) {
-                this.#localCancelHandlers.delete(operationId);
-            }
-        }
-        for (const operationId of this.#localOperationMeta.keys()) {
-            if (!activeOperationIds.has(operationId)) {
-                this.#localOperationMeta.delete(operationId);
-            }
-        }
-    }
-
-    #mergeLocalOperationMeta(operations: readonly TaskOperationEntry[]): TaskOperationEntry[] {
-        if (this.#localOperationMeta.size === 0) {
-            return [...operations];
-        }
-        return operations.map((operation) => {
-            const localMeta = this.#localOperationMeta.get(operation.id);
-            if (!localMeta) {
-                return operation;
-            }
-            return {
-                ...operation,
-                ...(localMeta.pluginKey ? { pluginKey: localMeta.pluginKey } : {}),
-                ...(localMeta.pluginName ? { pluginName: localMeta.pluginName } : {}),
-                meta: { ...(operation.meta ?? {}), ...(localMeta.meta ?? {}) },
-                cancelable: operation.cancelable === true || localMeta.cancelable === true
-            };
-        });
-    }
-
     #buildLocalOperationMeta(meta: TaskOperationMeta): TaskOperationMeta {
         const localMeta: TaskOperationMeta = {};
-        for (const key of ['plugin', 'pluginName', 'convId', 'ownerType', 'ownerId', 'displayName']) {
+        for (const key of ['plugin', 'pluginName', 'convId', 'ownerType', 'ownerId', 'displayName', 'cancelable']) {
             const value = meta[key];
             if (value !== undefined && value !== null) {
                 localMeta[key] = value;

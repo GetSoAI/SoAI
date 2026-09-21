@@ -30,6 +30,9 @@ from core.conversations.protocols_database_chat_prompt_history import (
 from core.conversations.protocols_database_conversation_drafts import (
     DatabaseConversationDraftsProtocol,
 )
+from core.conversations.protocols_database_conversation_input_execution import (
+    DatabaseConversationInputExecutionProtocol,
+)
 from core.conversations.protocols_database_conversation_inputs import (
     DatabaseConversationInputsProtocol,
 )
@@ -43,6 +46,12 @@ from core.conversations.protocols_database_defaults import (
 )
 from core.conversations.protocols_database_password_vault import (
     DatabasePasswordVaultProtocol,
+)
+from core.conversations.protocols_database_regenerations import (
+    DatabaseConversationRegenerationsProtocol,
+)
+from core.conversations.protocols_database_stream_cancellations import (
+    DatabaseConversationStreamCancellationsProtocol,
 )
 from core.database.protocols import DatabaseOperationStatusProtocol
 from core.database.protocols_tasks import DatabaseTasksProtocol
@@ -106,6 +115,9 @@ class ApiDatabaseDependencies:
     database_messaging_accounts: DatabaseMessagingAccountsProtocol
     database_messaging_ingress: DatabaseMessagingIngressProtocol
     database_input_queue: DatabaseConversationInputsProtocol
+    database_input_execution: DatabaseConversationInputExecutionProtocol
+    database_regenerations: DatabaseConversationRegenerationsProtocol
+    database_stream_cancellations: DatabaseConversationStreamCancellationsProtocol
     database_chat_prompt_history: DatabaseChatPromptHistoryProtocol
     database_conversation_drafts: DatabaseConversationDraftsProtocol
     database_password_vault: DatabasePasswordVaultProtocol
@@ -145,6 +157,9 @@ class ApiDatabaseDependencies:
             database_knowledge_prompt_state=self.database_knowledge_prompt_state,
             database_hardware=self.database_hardware,
             database_input_queue=self.database_input_queue,
+            database_input_execution=self.database_input_execution,
+            database_regenerations=self.database_regenerations,
+            database_stream_cancellations=self.database_stream_cancellations,
             database_chat_prompt_history=self.database_chat_prompt_history,
             database_conversation_drafts=self.database_conversation_drafts,
             database_mcp=self.database_mcp,

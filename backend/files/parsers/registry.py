@@ -45,8 +45,10 @@ from core.files.extensions.documents import (
     MOBI_EXTENSIONS,
     ODF_GENERIC_EXTENSIONS,
     ODP_EXTENSIONS,
+    ODS_EXTENSIONS,
     ODT_EXTENSIONS,
     PPTX_EXTENSIONS,
+    XLSX_EXTENSIONS,
 )
 from core.files.extensions.media import (
     AUDIO_EXTENSIONS,
@@ -86,7 +88,6 @@ from files.parsers.messaging.telegram import TelegramParser
 from files.parsers.messaging.whatsapp import WhatsAppParser
 from files.parsers.rar_parser import RARParser
 from files.parsers.registry_dependencies import ParserRegistryDependencies
-from files.parsers.spreadsheet import ODS_EXTENSIONS, XLSX_EXTENSIONS
 from files.parsers.text import IPYNBParser, TextParser
 
 __all__ = (

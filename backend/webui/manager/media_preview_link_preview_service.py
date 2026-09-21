@@ -11,7 +11,6 @@ import httpx2
 from bs4 import BeautifulSoup
 
 from core.concurrency.protocols import AsyncLockRegistryProtocol
-from core.concurrency.ttl_cache import TTLCache, TTLCacheDependencies
 from core.di.validation import require_dependencies
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
@@ -40,6 +39,7 @@ from webui.manager.media_preview_link_preview_output import (
     build_proxy_preview_url,
     build_text_link_preview,
 )
+from webui.manager.media_preview_memory_cache import NormalizedMediaPreviewCache
 from webui.manager.media_preview_remote_policy import RemoteMediaPolicy
 from webui.manager.media_preview_youtube_embed_preview import (
     build_youtube_embed_link_preview,
@@ -85,9 +85,7 @@ class LinkPreviewService:
 
     def __init__(self, deps: LinkPreviewServiceDependencies) -> None:
         self._deps = deps
-        self._cache: TTLCache[str, MediaLinkPreview] = TTLCache(
-            TTLCacheDependencies(ttl_seconds=300.0, max_size=2048),
-        )
+        self._cache: NormalizedMediaPreviewCache[MediaLinkPreview] = NormalizedMediaPreviewCache()
 
     async def get_link_preview(
         self,
@@ -96,8 +94,7 @@ class LinkPreviewService:
         source_url: str,
     ) -> MediaLinkPreview:
         logger = get_logger(LOGGER_NAME)
-        normalized = normalize_http_url(source_url)
-        cached = self._cache.get(normalized)
+        normalized, cached = self._cache.lookup_source_url(source_url)
         if cached is not None:
             return cached
         async with self._deps.locks.lock(normalized):

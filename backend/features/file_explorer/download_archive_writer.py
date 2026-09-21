@@ -178,7 +178,7 @@ def _write_regular_file(
                     operation="file_explorer.download_archive.write",
                 )
         final_identity = FileIdentity.from_stat(os.fstat(source.fileno()))
-        _require_identity(entry.identity, final_identity, entry.archive_path)
+        _require_descriptor_identity(opened_identity, final_identity, entry.archive_path)
 
 
 def _verify_directories(
@@ -209,6 +209,19 @@ def _require_identity(
     display_path: str,
 ) -> None:
     if actual == expected:
+        return
+    raise ConflictError(
+        f"File explorer download source changed during archive creation: '{display_path}'.",
+        operation="file_explorer.download_archive.verify",
+    )
+
+
+def _require_descriptor_identity(
+    expected: FileIdentity,
+    actual: FileIdentity,
+    display_path: str,
+) -> None:
+    if expected.matches_descriptor_snapshot(actual):
         return
     raise ConflictError(
         f"File explorer download source changed during archive creation: '{display_path}'.",

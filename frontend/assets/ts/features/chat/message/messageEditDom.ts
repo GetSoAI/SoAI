@@ -6,6 +6,7 @@ import { dom } from '@core/dom/dom.ts';
 import { createBusyDisabledToken, getBusyDisabledToken, setBusyDisabledState, type BusyDisabledTarget } from '@core/ui/controls/busyDisabledState.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { createEditAttachmentStrip, renderEditTextareaMarkup } from '@features/chat/message/messageEditAttachmentDom.ts';
+import { preserveStableAttachmentThumbnailVisuals } from '@features/chat/attachments/attachmentThumbnailDom.ts';
 
 type RestoreRenderedMessageTextArguments = {
     container: HTMLElement;
@@ -20,7 +21,10 @@ const beginMessageTextEditing = (container: HTMLElement, editableText: string, r
         return null;
     }
     const attachmentStrip = createEditAttachmentStrip(messageTextNode, removeIcon);
-    dom.setHTML(messageTextNode, renderEditTextareaMarkup(attachmentStrip), { escape: false });
+    dom.setHTML(messageTextNode, renderEditTextareaMarkup(), { escape: false });
+    if (attachmentStrip !== null) {
+        messageTextNode.append(attachmentStrip);
+    }
     const textarea = dom.resolve('textarea', messageTextNode);
     if (!(textarea instanceof HTMLTextAreaElement)) {
         return null;
@@ -56,9 +60,14 @@ const restoreRenderedMessageText = (inputArguments: RestoreRenderedMessageTextAr
     if (!(messageTextNode instanceof HTMLElement)) {
         return;
     }
+    const currentAttachmentStrip = dom.resolve('.message-edit-attachment-strip', messageTextNode);
     const textHtml = inputArguments.renderMessageTextContent(inputArguments.message);
     const trusted = toTrustedUiHtml(textHtml);
     dom.setHTML(messageTextNode, trusted, { escape: false });
+    const nextAttachmentStrip = dom.resolve('.message-attachment-strip', messageTextNode);
+    if (currentAttachmentStrip instanceof HTMLElement && nextAttachmentStrip instanceof HTMLElement) {
+        preserveStableAttachmentThumbnailVisuals(currentAttachmentStrip, nextAttachmentStrip);
+    }
     inputArguments.postRender(messageTextNode);
 };
 

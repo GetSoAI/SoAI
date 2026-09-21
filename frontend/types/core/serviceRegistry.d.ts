@@ -9,6 +9,7 @@ type BootstrapSoaiOsCapabilities = ReturnType<typeof import('../../assets/ts/cor
 type BootstrapModalPresenter = ReturnType<typeof import('../../assets/ts/core/modals/modalPresenter.ts').createModalPresenterService>;
 type BootstrapTooltipService = ReturnType<typeof import('../../assets/ts/core/ui/tooltips/public.ts').createTooltipService>;
 type BootstrapSecretInputToggleService = ReturnType<typeof import('../../assets/ts/core/ui/secretInput.ts').createSecretInputToggleService>;
+type BootstrapSearchFieldActionService = ReturnType<typeof import('../../assets/ts/core/ui/searchField.ts').createSearchFieldActionService>;
 type CollectionSupportService = {
     configure: typeof import('../../assets/ts/core/componentsupport/public.ts').configureCollection;
 };
@@ -54,6 +55,7 @@ interface SoAIServiceRegistry {
     'core.resourceTracker': typeof import('../../assets/ts/core/resourcetracker/service.ts').ResourceTracker;
     'core.router': import('../../assets/ts/core/routing/router/Router.ts').Router;
     'core.runtimeEnv': typeof import('../../assets/ts/core/runtimeenv/public.ts').runtimeEnv;
+    'core.searchFieldActions': BootstrapSearchFieldActionService;
     'core.secretInputToggle': BootstrapSecretInputToggleService;
     'core.security': typeof import('../../assets/ts/core/security/public.ts').securityApi;
     'core.soaiOsCapabilities': BootstrapSoaiOsCapabilities;

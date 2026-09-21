@@ -6,7 +6,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { buildPersistedMessageCursorKey, resolveFallbackMessagePersistenceKey, resolvePersistedMessageCursor } from '@features/chat/message/persistedMessageIdentity.ts';
 import { parseBackendConversationList, requirePersistableConversation } from '@features/chat/storage/conversationPayloadParsing.ts';
 import { countPersistedConversationMessages, loadConversationMessages } from '@features/chat/storage/messageWindowLoading.ts';
-import { persistConversationMessagesToBackendAppendTail, persistConversationMessagesToBackendReplace, persistMessageDeleteToBackend, persistMessageTruncateToBackend, persistUserMessageResubmitToBackend, type MessageWriteResult } from '@features/chat/storage/messagePersistence.ts';
+import { persistConversationMessagesToBackendAppendTail, persistConversationMessagesToBackendReplace, persistMessageDeleteToBackend, persistUserMessageResubmitToBackend, type MessageWriteResult } from '@features/chat/storage/messagePersistence.ts';
 import type { ChatStorageMessageRecord, Conversation } from '@features/chat/storage/storageModels.ts';
 import type { ConversationContract, ConversationMessage } from '@features/chat/ChatTypes.ts';
 import type { ChatStorageManagerContract } from '@features/chat/storage/managerContracts.ts';
@@ -177,20 +177,6 @@ async function resubmitUserMessage(manager: ChatStorageActionsRuntime, conversat
     await applyMessageWriteResult(manager, persistableConversation, writeResult);
 }
 
-async function truncateMessagesFromCursor(manager: ChatStorageActionsRuntime, conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number }): Promise<void> {
-    const persistableConversation = requirePersistableConversation(conversation);
-    const writeResult = await manager.runWithBoundary('chat:truncateMessagesFromCursor', () =>
-        persistMessageTruncateToBackend({
-            apiClient: manager.api,
-            conversationId: persistableConversation.id,
-            expectedLastModifiedAtMs: persistableConversation.updatedAt,
-            createdAtMs: inputArguments.createdAtMs,
-            messageId: inputArguments.messageId
-        })
-    );
-    await applyMessageWriteResult(manager, persistableConversation, writeResult);
-}
-
 async function deleteMessageByCursor(manager: ChatStorageActionsRuntime, conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number }): Promise<void> {
     const persistableConversation = requirePersistableConversation(conversation);
     const writeResult = await manager.runWithBoundary('chat:deleteMessageByCursor', () =>
@@ -205,4 +191,4 @@ async function deleteMessageByCursor(manager: ChatStorageActionsRuntime, convers
     await applyMessageWriteResult(manager, persistableConversation, writeResult);
 }
 
-export { countPersistedConversationMessages, deleteMessageByCursor, loadConversationCatalogFromBackend, loadConversationMessages, resubmitUserMessage, saveAndSync, syncConversation, truncateMessagesFromCursor };
+export { countPersistedConversationMessages, deleteMessageByCursor, loadConversationCatalogFromBackend, loadConversationMessages, resubmitUserMessage, saveAndSync, syncConversation };

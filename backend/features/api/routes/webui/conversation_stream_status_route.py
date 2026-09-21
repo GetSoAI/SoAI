@@ -12,6 +12,7 @@ from core.types.json import JSONDict, is_json_value
 from features.api.routes.webui.conversation_stream_admission import (
     resolve_conversation_stream_admission,
 )
+from features.api.runtime.chat_stream_registry import ChatStreamRegistrySnapshot
 from features.api.runtime.container.api_routers import ApiRouters
 from features.api.runtime.context import ApiContext, resolve_api_context
 from features.api.runtime.current_user import CurrentUser, get_current_user
@@ -87,10 +88,6 @@ def register_routes(routers: ApiRouters) -> None:
             dict(conversation_record),
             conv_id,
         )
-        snapshot = await api_context.dependencies.chat_stream_registry.snapshot(
-            user_id=current_user["id"],
-            conv_id=conversation_id,
-        )
         pending_interactions = await list_pending_conversation_interaction_payloads(
             api_context,
             conv_id=conversation_id,
@@ -102,27 +99,35 @@ def register_routes(routers: ApiRouters) -> None:
                 user_id=current_user["id"],
             )
         )
-        admission = resolve_conversation_stream_admission(
-            snapshot,
-            active_input_summary=active_input_summary,
-            user_interaction_pending=bool(pending_interactions),
-        )
-        runtime = snapshot.runtime
-        if runtime is None:
-            response = ConversationStreamStatusResponse(
-                active=False,
-                conversation_id=conversation_id,
-                start_admission=admission.start_admission,
-                stream_lifecycle=admission.stream_lifecycle,
-                can_accept_conversation_input=admission.can_accept_conversation_input,
-                can_start_next_prompt=admission.can_start_next_prompt,
-                can_accept_steer_prompt=admission.can_accept_steer_prompt,
-                active_tool_call_count=0,
+        durable_cancellation_pending = (
+            await api_context.dependencies.database_stream_cancellations.has_pending(
+                conv_id=conversation_id,
+                user_id=current_user["id"],
             )
-            return JSONResponse(content=response.model_dump())
-        lock = ensure_chat_stream_publish_lock(runtime)
-        async with lock:
-            if runtime.terminal_persistence_completed:
+        )
+        registry = api_context.dependencies.chat_stream_registry
+        async with registry.lifecycle_lock(user_id=current_user["id"], conv_id=conversation_id):
+            current_snapshot = await registry.snapshot(
+                user_id=current_user["id"],
+                conv_id=conversation_id,
+            )
+            admission = resolve_conversation_stream_admission(
+                current_snapshot,
+                active_input_summary=active_input_summary,
+                user_interaction_pending=bool(pending_interactions),
+                durable_cancellation_pending=durable_cancellation_pending,
+            )
+            runtime = current_snapshot.runtime
+            if runtime is None:
+                pending_identity = (
+                    current_snapshot.cancellation_intent.request_id
+                    if current_snapshot.cancellation_intent is not None
+                    else (
+                        current_snapshot.reservation.request_id
+                        if current_snapshot.reservation is not None
+                        else None
+                    )
+                )
                 response = ConversationStreamStatusResponse(
                     active=False,
                     conversation_id=conversation_id,
@@ -132,34 +137,62 @@ def register_routes(routers: ApiRouters) -> None:
                     can_start_next_prompt=admission.can_start_next_prompt,
                     can_accept_steer_prompt=admission.can_accept_steer_prompt,
                     active_tool_call_count=0,
+                    request_id=pending_identity,
                 )
                 return JSONResponse(content=response.model_dump())
-            response = ConversationStreamStatusResponse(
-                active=True,
-                conversation_id=runtime.conv_id,
-                start_admission=admission.start_admission,
-                stream_lifecycle=admission.stream_lifecycle,
-                can_accept_conversation_input=admission.can_accept_conversation_input,
-                can_start_next_prompt=admission.can_start_next_prompt,
-                can_accept_steer_prompt=admission.can_accept_steer_prompt,
-                active_tool_call_count=resolve_active_tool_call_count(runtime),
-                request_id=runtime.request_id,
-                assistant_at_ms=runtime.assistant_at_ms,
-                assistant_turn_at_ms=runtime.assistant_turn_at_ms,
-                model_variant_index=runtime.model_variant_index,
-                model_id=runtime.model_id,
-                preview_key=runtime.status_preview_last_key,
-                preview_args=normalize_stream_status_preview_args(runtime.status_preview_last_args),
-                preview_generated_at_ms=(
-                    runtime.status_preview_last_generated_at_ms
-                    if runtime.status_preview_last_generated_at_ms > 0
-                    else None
-                ),
-                preview_cooldown_ms=(
-                    STATUS_PREVIEW_START_COOLDOWN_MS
-                    if runtime.status_preview_last_key is not None
-                    else None
-                ),
-                preview_trigger=runtime.status_preview_last_trigger,
-            )
+            lock = ensure_chat_stream_publish_lock(runtime)
+            async with lock:
+                if runtime.terminal_persistence_completed:
+                    terminal_snapshot = ChatStreamRegistrySnapshot(
+                        runtime=None,
+                        reservation=current_snapshot.reservation,
+                        cancellation_intent=current_snapshot.cancellation_intent,
+                    )
+                    terminal_admission = resolve_conversation_stream_admission(
+                        terminal_snapshot,
+                        active_input_summary=active_input_summary,
+                        user_interaction_pending=bool(pending_interactions),
+                        durable_cancellation_pending=durable_cancellation_pending,
+                    )
+                    response = ConversationStreamStatusResponse(
+                        active=False,
+                        conversation_id=conversation_id,
+                        start_admission=terminal_admission.start_admission,
+                        stream_lifecycle=terminal_admission.stream_lifecycle,
+                        can_accept_conversation_input=terminal_admission.can_accept_conversation_input,
+                        can_start_next_prompt=terminal_admission.can_start_next_prompt,
+                        can_accept_steer_prompt=terminal_admission.can_accept_steer_prompt,
+                        active_tool_call_count=0,
+                    )
+                    return JSONResponse(content=response.model_dump())
+                response = ConversationStreamStatusResponse(
+                    active=True,
+                    conversation_id=runtime.conv_id,
+                    start_admission=admission.start_admission,
+                    stream_lifecycle=admission.stream_lifecycle,
+                    can_accept_conversation_input=admission.can_accept_conversation_input,
+                    can_start_next_prompt=admission.can_start_next_prompt,
+                    can_accept_steer_prompt=admission.can_accept_steer_prompt,
+                    active_tool_call_count=resolve_active_tool_call_count(runtime),
+                    request_id=runtime.request_id,
+                    assistant_at_ms=runtime.assistant_at_ms,
+                    assistant_turn_at_ms=runtime.assistant_turn_at_ms,
+                    model_variant_index=runtime.model_variant_index,
+                    model_id=runtime.model_id,
+                    preview_key=runtime.status_preview_last_key,
+                    preview_args=normalize_stream_status_preview_args(
+                        runtime.status_preview_last_args
+                    ),
+                    preview_generated_at_ms=(
+                        runtime.status_preview_last_generated_at_ms
+                        if runtime.status_preview_last_generated_at_ms > 0
+                        else None
+                    ),
+                    preview_cooldown_ms=(
+                        STATUS_PREVIEW_START_COOLDOWN_MS
+                        if runtime.status_preview_last_key is not None
+                        else None
+                    ),
+                    preview_trigger=runtime.status_preview_last_trigger,
+                )
         return JSONResponse(content=response.model_dump())

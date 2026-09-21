@@ -189,6 +189,7 @@ async def parse_with_registered_parser(
     extension: str,
     content_type_hint: str | None,
     final_url: str,
+    ocr_language: str,
 ) -> FetchedContent:
     parser = self.parsers.get(extension)
     if not parser:
@@ -204,6 +205,7 @@ async def parse_with_registered_parser(
         parsed: ParsedDocument = await parser.parse(
             ParseExecutionContext(
                 source_path=temp_file,
+                ocr_language=ocr_language,
                 cancellation_token=None,
                 progress_callback=None,
                 display_name=f"source.{extension}",

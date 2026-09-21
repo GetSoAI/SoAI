@@ -84,6 +84,8 @@ interface StorageService {
     setShowMainStatusIndicator: (enabled: boolean) => void;
     getDashboardLocked: () => boolean;
     setDashboardLocked: (locked: boolean) => void;
+    getDefaultPage: () => string | null;
+    setDefaultPage: (value: string | null) => void;
     getChartColorMode: () => string;
     setChartColorMode: (mode: string) => void;
     getChartStaticColor: () => string;

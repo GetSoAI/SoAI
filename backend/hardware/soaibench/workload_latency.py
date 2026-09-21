@@ -3,6 +3,12 @@
 
 from __future__ import annotations
 
+from core.hardware.soaibench_workloads import (
+    LATENCY_BATCH_DISPATCHES,
+    LATENCY_ELEMENTS,
+    LATENCY_ROUNDS,
+)
+from hardware.soaibench.opencl_session import OpenCLExecutionSession
 from hardware.soaibench.types import SoAIBenchGpuIdentity
 from hardware.soaibench.workload_common import (
     SoAIBenchPhaseResult,
@@ -17,9 +23,8 @@ __all__ = (
     "latency_us",
 )
 
-LATENCY_REPEATS = 4096
-LATENCY_ROUNDS = 24
-LATENCY_ELEMENT_COUNT = 16_384
+LATENCY_REPEATS = LATENCY_BATCH_DISPATCHES
+LATENCY_ELEMENT_COUNT = LATENCY_ELEMENTS
 LATENCY_SCORE_RATE_DIVISOR = 20.0
 
 LATENCY_KERNEL_SOURCE = """
@@ -38,7 +43,10 @@ __kernel void soaibench_latency(__global float *data, const uint rounds) {
 """
 
 
-def execute_latency_workload(identity: SoAIBenchGpuIdentity) -> SoAIBenchPhaseResult:
+def execute_latency_workload(
+    identity: SoAIBenchGpuIdentity,
+    session: OpenCLExecutionSession | None = None,
+) -> SoAIBenchPhaseResult:
     return execute_opencl_phase(
         identity=identity,
         source=LATENCY_KERNEL_SOURCE,
@@ -48,15 +56,16 @@ def execute_latency_workload(identity: SoAIBenchGpuIdentity) -> SoAIBenchPhaseRe
         summary_prefix="latency",
         element_count=LATENCY_ELEMENT_COUNT,
         synchronize_each_repeat=True,
+        session=session,
     )
 
 
 def latency_dispatches_per_second(result: SoAIBenchPhaseResult) -> float:
-    return result.sample_count / result.elapsed_seconds
+    return round(1_000_000.0 / latency_us(result), 6)
 
 
 def latency_us(result: SoAIBenchPhaseResult) -> float:
-    return result.elapsed_seconds * 1_000_000.0 / result.sample_count
+    return round(result.elapsed_seconds * 1_000_000.0 / result.sample_count, 6)
 
 
 def latency_score(result: SoAIBenchPhaseResult) -> float:

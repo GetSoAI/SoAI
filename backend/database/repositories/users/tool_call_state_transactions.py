@@ -35,8 +35,49 @@ from database.repositories.users.tool_call_validation import (
 __all__ = (
     "sync_finalize_tool_call_if_unfinished",
     "sync_finalize_tool_call_if_unfinished_by_identity",
+    "sync_finalize_active_tool_call_with_result",
     "sync_update_tool_call",
 )
+
+
+def sync_finalize_active_tool_call_with_result(
+    conn: sqlite3.Connection,
+    storage_call_id: str,
+    status: str,
+    tool_result: str,
+    error_message: str | None,
+    duration_ms: int,
+    completed_at_ms: int,
+) -> JSONDict | None:
+    normalized_storage_call_id = require_non_empty_string_from_row(storage_call_id, "call_id")
+    validated_fields = validate_tool_call_write_fields(
+        status=status,
+        error_message=error_message,
+        duration_ms=duration_ms,
+        started_at_ms=None,
+        completed_at_ms=completed_at_ms,
+        operation="finalize active with result",
+        call_id=normalized_storage_call_id,
+    )
+    update_cursor = conn.execute(
+        "UPDATE webui_chat_tool_calls SET status = ?, tool_result = ?, error_message = ?, duration_ms = ?, completed_at_ms = ? WHERE id = ? AND status IN ('pending', 'running')",
+        (
+            validated_fields.status,
+            tool_result,
+            validated_fields.error_message,
+            validated_fields.duration_ms,
+            validated_fields.completed_at_ms,
+            normalized_storage_call_id,
+        ),
+    )
+    cursor = conn.execute(
+        "SELECT * FROM webui_chat_tool_calls WHERE id = ?",
+        (normalized_storage_call_id,),
+    )
+    formatted = format_tool_call_row(sync_fetch_one_as_dict(cursor))
+    if update_cursor.rowcount > 0:
+        sync_record_context_compaction_metric_event(conn, formatted)
+    return formatted
 
 
 def sync_update_tool_call(

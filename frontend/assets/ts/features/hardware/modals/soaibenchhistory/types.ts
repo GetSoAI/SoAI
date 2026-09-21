@@ -4,6 +4,7 @@
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
+import type { GpuSoAIBenchPhaseDiagnostics } from '@core/api/contracts/hardwareSoAIBenchTypes.ts';
 
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
@@ -17,6 +18,8 @@ interface SoAIBenchHistoryOpenRequest {
 
 interface SoAIBenchHistoryTelemetry {
     overallScore: number | null;
+    computeScore: number | null;
+    memoryScore: number | null;
     aluGops: number | null;
     matrixGops: number | null;
     latencyScore: number | null;
@@ -27,6 +30,8 @@ interface SoAIBenchHistoryTelemetry {
     maxTemperatureCelsius: number | null;
     avgPowerWatts: number | null;
     maxPowerWatts: number | null;
+    coreUtilizationPercent: number | null;
+    sampleCount: number | null;
 }
 
 interface SoAIBenchHistoryRun {
@@ -40,7 +45,14 @@ interface SoAIBenchHistoryRun {
     leaderboardEligible: boolean;
     leaderboardRejectionReason: string | null;
     scoreVariancePercent: number | null;
+    phaseVariationPercent: GpuSoAIBenchPhaseDiagnostics | null;
+    phaseDriftPercent: GpuSoAIBenchPhaseDiagnostics | null;
+    warmupActiveSeconds: number | null;
+    legacy: boolean;
+    publicationEligible: boolean;
     settingsSnapshotAvailable: boolean;
+    reasonMessage: string | null;
+    guidanceMessage: string | null;
     failureReason: string | null;
     unsupportedReason: string | null;
     matchBasis: string | null;
@@ -50,7 +62,10 @@ interface SoAIBenchHistoryRun {
 
 interface SoAIBenchHistoryDisplayRow {
     runId: string;
+    publicationEligible: boolean;
+    localDeletionEligible: boolean;
     columns: readonly string[];
+    raw: JsonObject;
 }
 
 interface SoAIBenchHistoryModalHost {
@@ -70,6 +85,8 @@ interface SoAIBenchHistoryModalHost {
 
 interface SoAIBenchHistoryModalDependencies {
     host: SoAIBenchHistoryModalHost;
+    deleteLocalRun(runId: string): Promise<void>;
+    publishRun(run: SoAIBenchHistoryRun, setDisabled: (disabled: boolean) => void): Promise<void>;
 }
 
 export type { SoAIBenchHistoryDisplayRow, SoAIBenchHistoryModalDependencies, SoAIBenchHistoryModalHost, SoAIBenchHistoryOpenRequest, SoAIBenchHistoryRun, SoAIBenchHistoryTelemetry };

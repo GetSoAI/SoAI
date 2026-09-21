@@ -21,10 +21,20 @@ const findExistingNode = (container: HTMLElement, identifier: string): HTMLEleme
     return null;
 };
 
+const indexExistingCollectionNodes = (container: HTMLElement): ReadonlyMap<string, HTMLElement> => {
+    const indexed = new Map<string, HTMLElement>();
+    for (const child of container.children) {
+        if (!(child instanceof HTMLElement)) continue;
+        const identifier = child.dataset['collectionId'];
+        if (identifier !== undefined) indexed.set(identifier, child);
+    }
+    return indexed;
+};
+
 const createPlannedNode = <TItem>(build: CollectionBuild<TItem>, index: number, renderItem: (item: TItem, context: { id: string }) => HTMLElement, resolveItemIdentifier: (element: HTMLElement) => string | null, requiredTagName: string | null): HTMLElement => {
     const identifier = build.ids[index];
     if (identifier === undefined) throw new Error('Collection build index is outside the validated sequence');
-    const existing = findExistingNode(build.container, identifier);
+    const existing = build.existingNodes.get(identifier) ?? null;
     if (existing !== null && !build.dirtyIds.has(identifier)) return existing;
     const item = build.lookup.get(identifier);
     if (item === undefined) throw new Error(`Collection lookup is missing identifier during build: ${identifier}`);
@@ -171,4 +181,4 @@ const createEdgeLoader = (container: HTMLElement, edge: 'backward' | 'forward', 
     return loader;
 };
 
-export { captureViewportAnchor, commitPlannedNodes, createEdgeLoader, createPlannedNode, restoreKeyedViewportAnchor, restoreViewportAnchor };
+export { captureViewportAnchor, commitPlannedNodes, createEdgeLoader, createPlannedNode, indexExistingCollectionNodes, restoreKeyedViewportAnchor, restoreViewportAnchor };

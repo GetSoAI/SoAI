@@ -40,6 +40,9 @@ if TYPE_CHECKING:
     from core.conversations.protocols_database_conversation_drafts import (
         DatabaseConversationDraftsProtocol,
     )
+    from core.conversations.protocols_database_conversation_input_execution import (
+        DatabaseConversationInputExecutionProtocol,
+    )
     from core.conversations.protocols_database_conversation_inputs import (
         DatabaseConversationInputsProtocol,
     )
@@ -55,6 +58,12 @@ if TYPE_CHECKING:
     )
     from core.conversations.protocols_database_password_vault import (
         DatabasePasswordVaultProtocol,
+    )
+    from core.conversations.protocols_database_regenerations import (
+        DatabaseConversationRegenerationsProtocol,
+    )
+    from core.conversations.protocols_database_stream_cancellations import (
+        DatabaseConversationStreamCancellationsProtocol,
     )
     from core.database.protocols import DatabaseOperationStatusProtocol
     from core.database.protocols_tasks import DatabaseTasksProtocol
@@ -133,6 +142,9 @@ class DatabaseServices:
     messaging_deliveries: DatabaseMessagingDeliveriesProtocol
     notifications: DatabaseNotificationsProtocol
     input_queue: DatabaseConversationInputsProtocol
+    input_execution: DatabaseConversationInputExecutionProtocol
+    regenerations: DatabaseConversationRegenerationsProtocol
+    stream_cancellations: DatabaseConversationStreamCancellationsProtocol
     chat_prompt_history: DatabaseChatPromptHistoryProtocol
     conversation_drafts: DatabaseConversationDraftsProtocol
     password_vault: DatabasePasswordVaultProtocol
@@ -191,6 +203,9 @@ class DatabaseServices:
             messaging_deliveries=self.messaging_deliveries,
             notifications=self.notifications,
             input_queue=self.input_queue,
+            input_execution=self.input_execution,
+            regenerations=self.regenerations,
+            stream_cancellations=self.stream_cancellations,
             chat_prompt_history=self.chat_prompt_history,
             conversation_drafts=self.conversation_drafts,
             password_vault=self.password_vault,

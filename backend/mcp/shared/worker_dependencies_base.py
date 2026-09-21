@@ -30,6 +30,7 @@ if TYPE_CHECKING:
         TaskRegistryProtocol,
         TokenCollectionProtocol,
     )
+    from core.users.protocols_database import DatabaseUsersProtocol
     from mcp.rag.indexing.chunking import DocumentChunker
 
 __all__ = ("MCPWorkerCoreDependencies",)
@@ -37,6 +38,7 @@ __all__ = ("MCPWorkerCoreDependencies",)
 
 @dataclass(frozen=True, slots=True)
 class MCPWorkerCoreDependencies:
+    database_users: DatabaseUsersProtocol
     database_files: DatabaseFilesProtocol
     database_conversation_knowledge_attachments: DatabaseConversationKnowledgeAttachmentsProtocol
     database_knowledge_prompt_state: DatabaseKnowledgePromptStateProtocol
@@ -67,6 +69,7 @@ class MCPWorkerCoreDependencies:
             database_conversation_knowledge_attachments=(
                 self.database_conversation_knowledge_attachments
             ),
+            database_users=self.database_users,
             database_files=self.database_files,
             database_knowledge_prompt_state=self.database_knowledge_prompt_state,
             event_bus=self.event_bus,

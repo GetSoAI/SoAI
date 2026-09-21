@@ -4,12 +4,15 @@
 import { checkerboardService } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { renderInlineLoadingStatus } from '@core/ui/loadingStatus.ts';
-import { createDraftAttachmentListRow } from '@pages/chat/controllers/modals/chatattach/chatAttachDraftAttachmentListRowsWidget.ts';
+import { reconcileDraftAttachmentListRows } from '@pages/chat/controllers/modals/chatattach/chatAttachDraftAttachmentListRowsWidget.ts';
+import { prepareAttachmentThumbnailLifecycles } from '@features/chat/public.ts';
 import type { ChatAttachDraftAttachmentListElements, ChatAttachDraftAttachmentListEntry } from '@pages/chat/controllers/modals/chatattach/types.ts';
 
 const setDraftAttachmentStatus = (elements: ChatAttachDraftAttachmentListElements, text: string, loading: boolean): void => {
     renderInlineLoadingStatus(elements.status, { text, loading });
 };
+
+const checkerboardLists = new WeakSet<HTMLElement>();
 
 const renderDraftAttachmentListState = (elements: ChatAttachDraftAttachmentListElements, entries: readonly ChatAttachDraftAttachmentListEntry[], processingCount: number, readyCount: number): void => {
     const count = entries.length;
@@ -18,14 +21,16 @@ const renderDraftAttachmentListState = (elements: ChatAttachDraftAttachmentListE
     elements.summary.textContent = readyCount > 0 ? i18n.plural('chat.attachModal.uploadSummary', readyCount, { count: readyCount }) : '';
     elements.summary.classList.toggle('u-hidden', readyCount === 0);
     elements.list.classList.toggle('u-hidden', !hasEntries);
-    if (!hasEntries) {
-        elements.list.replaceChildren();
+    const reconciliation = reconcileDraftAttachmentListRows(elements.list, entries);
+    if (!checkerboardLists.has(elements.list)) {
         checkerboardService.applyCheckerboard(elements.list, '.chat-attach-draft-attachment-row');
-        return;
+        checkerboardLists.add(elements.list);
+    } else if (reconciliation.structureChanged) {
+        checkerboardService.updateCheckerboard(elements.list, '.chat-attach-draft-attachment-row');
     }
-    const documentRef = elements.list.ownerDocument;
-    elements.list.replaceChildren(...entries.map((entry) => createDraftAttachmentListRow(documentRef, entry.attachment)));
-    checkerboardService.applyCheckerboard(elements.list, '.chat-attach-draft-attachment-row');
+    if (reconciliation.thumbnailsChanged) {
+        prepareAttachmentThumbnailLifecycles(elements.list);
+    }
 };
 
 export { renderDraftAttachmentListState };

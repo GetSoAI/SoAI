@@ -137,7 +137,7 @@ def wait_for_update_activation(
         deadline = deadline_after(SETUP_TIMEOUT_SEC)
         while not deadline.expired():
             if _has_committed_receipt(pending, expected):
-                return True
+                break
             if poll_process_exit_without_reaping(process_handle) is not None:
                 break
             sleep_seconds(MODERATE_DELAY_SEC)

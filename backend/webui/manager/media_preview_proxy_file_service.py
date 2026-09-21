@@ -19,7 +19,6 @@ from core.errors.exceptions import ValidationError
 from core.errors.http_recoverable import HTTP_RECOVERABLE_EXCEPTIONS
 from core.files.operations import async_remove_if_exists
 from core.hardware.disk_reservation_records import DiskSpaceReservationRequest
-from core.hardware.reservation_claims import claim_reserved_write
 from core.logging.trace import get_logger
 from core.media_preview.media_preview_models import ProxyFile
 from core.media_preview.media_preview_proxy_response import (
@@ -35,19 +34,16 @@ from core.network.outbound_http_profiles import build_default_browser_asset_head
 from core.network.urls import normalize_http_url
 from core.runtime.network_policy import OfflineModeError
 from webui.manager.media_preview_proxy_cache import (
+    MediaPreviewCachePaths,
     build_cache_paths,
     build_cache_temp_path,
     build_proxy_cache_key,
     ensure_cache_dir_exists,
-    promote_cache_file_with_metadata_text,
+    prepare_reserved_cache_file_promotion,
     prune_cache_dir,
-    serialize_cache_metadata_text,
 )
 from webui.manager.media_preview_proxy_cache_entries import (
     try_prepare_cached_proxy_file,
-)
-from webui.manager.media_preview_proxy_cache_metadata_schema import (
-    build_media_preview_cache_metadata_v1,
 )
 from webui.manager.media_preview_remote_policy import RemoteMediaPolicy
 
@@ -100,13 +96,13 @@ class ProxyFileService:
         logger = get_logger(LOGGER_NAME)
         normalized = normalize_http_url(source_url)
         key = build_proxy_cache_key(normalized)
-        data_path, meta_path = build_cache_paths(self._deps.cache_dir, key)
+        cache_paths = build_cache_paths(self._deps.cache_dir, key)
         await ensure_cache_dir_exists(self._deps.cache_dir)
 
         async with self._deps.locks.lock(key):
             cached = await try_prepare_cached_proxy_file(
-                data_path=data_path,
-                meta_path=meta_path,
+                data_path=cache_paths.data_path,
+                meta_path=cache_paths.meta_path,
                 download=download,
                 cache_ttl_seconds=self._deps.settings.preview_client_cache_ttl_sec,
             )
@@ -117,8 +113,7 @@ class ProxyFileService:
                     http_client=http_client,
                     runtime_flags=runtime_flags,
                     normalized_url=normalized,
-                    data_path=data_path,
-                    meta_path=meta_path,
+                    cache_paths=cache_paths,
                     download=download,
                 )
             except HTTP_RECOVERABLE_EXCEPTIONS as exception:
@@ -143,8 +138,7 @@ class ProxyFileService:
         http_client: httpx2.AsyncClient,
         runtime_flags: RuntimeFlagsViewProtocol,
         normalized_url: str,
-        data_path: str,
-        meta_path: str,
+        cache_paths: MediaPreviewCachePaths,
         download: bool,
     ) -> ProxyFile:
         logger = get_logger(LOGGER_NAME)
@@ -198,33 +192,26 @@ class ProxyFileService:
                 if result.declared_content_length is not None
                 else None
             )
-            metadata_text = serialize_cache_metadata_text(
-                build_media_preview_cache_metadata_v1(
-                    source_url=normalized_url,
-                    final_url=final_url,
-                    content_type=upstream_content_type or "",
-                    bytes_written=int(result.bytes_written),
-                    declared_content_length=declared_length,
-                ),
+            promotion = prepare_reserved_cache_file_promotion(
+                temp_path=temp_path,
+                paths=cache_paths,
+                source_url=normalized_url,
+                final_url=final_url,
+                content_type=upstream_content_type or "",
+                bytes_written=int(result.bytes_written),
+                declared_content_length=declared_length,
             )
-            metadata_size = len(metadata_text.encode("utf-8"))
             with self._deps.storage_manager.reserve_many_disk_spaces(
                 requests=(
                     DiskSpaceReservationRequest(
-                        path=meta_path,
-                        required_bytes=metadata_size,
+                        path=cache_paths.meta_path,
+                        required_bytes=promotion.metadata_size,
                         operation=OPERATION,
                         details={"purpose": "media_proxy_metadata", "url": normalized_url},
                     ),
                 ),
             ) as reservation:
-                with claim_reserved_write(reservation, size_bytes=metadata_size):
-                    await promote_cache_file_with_metadata_text(
-                        temp_path=temp_path,
-                        data_path=data_path,
-                        meta_path=meta_path,
-                        metadata_text=metadata_text,
-                    )
+                await promotion.promote(reservation)
         finally:
             temp_file_cleanup = async_remove_if_exists(
                 temp_path,
@@ -247,5 +234,5 @@ class ProxyFileService:
             status_code=200,
             media_type=media_type,
             headers=headers,
-            file_path=data_path,
+            file_path=cache_paths.data_path,
         )

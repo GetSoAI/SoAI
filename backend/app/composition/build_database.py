@@ -83,12 +83,21 @@ from database.repositories.users.conversation_attachments import (
     DatabaseConversationAttachments,
 )
 from database.repositories.users.conversation_drafts import DatabaseConversationDrafts
+from database.repositories.users.conversation_input_execution import (
+    DatabaseConversationInputExecution,
+)
 from database.repositories.users.conversation_inputs import DatabaseConversationInputs
 from database.repositories.users.conversation_knowledge_attachments import (
     DatabaseConversationKnowledgeAttachments,
 )
 from database.repositories.users.conversation_linked_knowledge import (
     DatabaseConversationLinkedKnowledge,
+)
+from database.repositories.users.conversation_regenerations import (
+    DatabaseConversationRegenerations,
+)
+from database.repositories.users.conversation_stream_cancellations import (
+    DatabaseConversationStreamCancellations,
 )
 from database.repositories.users.conversations import DatabaseConversations
 from database.repositories.users.external_accounts.service import (
@@ -207,6 +216,9 @@ async def build_database_services(
         database_agent_todo_state = DatabaseAgentTodoState(user_repos_deps)
         database_agent_plan = DatabaseAgentPlan(user_repos_deps)
         database_conversation_inputs = DatabaseConversationInputs(user_repos_deps)
+        database_conversation_input_execution = DatabaseConversationInputExecution(user_repos_deps)
+        database_conversation_regenerations = DatabaseConversationRegenerations(user_repos_deps)
+        database_stream_cancellations = DatabaseConversationStreamCancellations(user_repos_deps)
         database_chat_prompt_history = DatabaseChatPromptHistory(user_repos_deps)
         database_conversation_drafts = DatabaseConversationDrafts(user_repos_deps)
         database_password_vault = DatabasePasswordVault(user_repos_deps)
@@ -263,6 +275,9 @@ async def build_database_services(
             messaging_deliveries=database_messaging_deliveries,
             notifications=database_notifications,
             input_queue=database_conversation_inputs,
+            input_execution=database_conversation_input_execution,
+            regenerations=database_conversation_regenerations,
+            stream_cancellations=database_stream_cancellations,
             chat_prompt_history=database_chat_prompt_history,
             conversation_drafts=database_conversation_drafts,
             password_vault=database_password_vault,

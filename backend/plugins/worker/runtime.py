@@ -61,9 +61,16 @@ class PluginWorkerRuntime:
         self._bootstrap = dict(bootstrap)
         self._plugin_name = read_worker_request_str_field(self._bootstrap, "plugin_name")
         self._runtime_flags = runtime_flags_from_bootstrap(self._bootstrap)
+        config_snapshot = read_dict_field(
+            self._bootstrap,
+            "config_snapshot",
+            label=WORKER_FIELD_LABEL,
+        )
+        self._config = _build_worker_config(config_snapshot)
         self._http_client: httpx2.AsyncClient = create_guarded_async_http_client(
             self._runtime_flags,
             source=f"plugin_worker.{self._plugin_name}",
+            trust_env=self._config.get_bool("MODELS.ROUTING.HTTP_CLIENT_TRUST_ENV"),
         )
         self._metrics = WorkerMetricsAdapter(plugin_name=self._plugin_name)
         self._plugin: BasePlugin | None = None
@@ -85,17 +92,11 @@ class PluginWorkerRuntime:
             self._bootstrap,
             "plugin_entrypoint_path",
         )
-        config_snapshot = read_dict_field(
-            self._bootstrap,
-            "config_snapshot",
-            label=WORKER_FIELD_LABEL,
-        )
         plugin_config = read_dict_field(
             self._bootstrap,
             "plugin_config",
             label=WORKER_FIELD_LABEL,
         )
-        config = _build_worker_config(config_snapshot)
         runtime_services = PluginRuntimeServices(
             metrics_manager=self._metrics,
             model_registry=WorkerModelRegistryAdapter(
@@ -116,7 +117,7 @@ class PluginWorkerRuntime:
                 storage_scope_state=self._storage_scope_state,
             ),
             runtime_flags=self._runtime_flags,
-            files=ConfigFilesPathResolver(config),
+            files=ConfigFilesPathResolver(self._config),
             plugin_config=plugin_config,
             http_client=self._http_client,
             install_path=read_optional_str_field(
@@ -132,7 +133,7 @@ class PluginWorkerRuntime:
         )
         self._plugin = plugin_class(
             plugin_name=self._plugin_name,
-            config=config,
+            config=self._config,
             event_bus=WorkerEventBusAdapter(
                 self._ipc_client.request_host,
                 plugin_name=self._plugin_name,

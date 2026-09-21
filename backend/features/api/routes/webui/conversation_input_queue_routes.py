@@ -9,10 +9,6 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, Depends, Request
 from starlette.responses import JSONResponse, Response
 
-from core.conversations.conversation_model_settings_resolution import (
-    resolve_conversation_model_settings,
-)
-from core.conversations.settings_authority import resolve_conversation_settings_authority
 from core.errors.exceptions import (
     CONVERSATION_INPUT_NOT_CANCELLABLE_CODE,
     ConflictError,
@@ -27,6 +23,9 @@ from features.api.routes.webui.conversation_input_queue_events import (
 from features.api.runtime.container.api_routers import ApiRouters
 from features.api.runtime.context import ApiContext, resolve_api_context
 from features.api.runtime.conversation_access import require_conversation_access_context
+from features.api.runtime.conversation_execution_settings import (
+    resolve_conversation_execution_settings,
+)
 from features.api.runtime.current_user import CurrentUser, get_current_user
 from features.api.runtime.errors import raise_conflict, raise_invalid_request
 from features.api.runtime.responses import create_no_content_response
@@ -115,34 +114,40 @@ async def enqueue_input_queue_item(
         conversation_record=conversation_context.record,
         api_context=api_context,
     )
-    authority = resolve_conversation_settings_authority(conversation_context.record)
-    effective_settings = await resolve_conversation_model_settings(
+    effective_settings = await resolve_conversation_execution_settings(
+        api_context,
         user_id=current_user["id"],
-        model_settings_snapshot=authority.model_settings,
-        database_chat_identity_defaults=(api_context.dependencies.database_chat_identity_defaults),
-        database_chat_model_defaults=api_context.dependencies.database_chat_model_defaults,
+        conversation_record=conversation_context.record,
     )
     input_generation = conversation_context.record.get("input_generation")
     if not is_non_negative_strict_int(input_generation):
         raise StateError("Conversation input_generation is invalid.")
+
+    async def enqueue_input() -> JSONDict:
+        async with api_context.dependencies.chat_stream_registry.lifecycle_lock(
+            user_id=current_user["id"],
+            conv_id=conversation_context.resolved_conv_id,
+        ):
+            return await api_context.dependencies.database_input_queue.enqueue_input(
+                conv_id=conversation_context.resolved_conv_id,
+                user_id=current_user["id"],
+                input_type=payload.input_type,
+                transport_origin="chat",
+                text=finalized_text,
+                prompt_history_text=payload.prompt_history_text,
+                attachment_content=finalized_attachment_content,
+                model_settings=(effective_settings if payload.input_type == "prompt" else None),
+                expected_input_generation=input_generation,
+                client_id=payload.client_id,
+                client_request_id=payload.client_request_id,
+            )
+
     created = await _apply_input_queue_change_and_publish(
         request,
         api_context=api_context,
         conv_id=conversation_context.resolved_conv_id,
         user_id=current_user["id"],
-        operation=lambda: api_context.dependencies.database_input_queue.enqueue_input(
-            conv_id=conversation_context.resolved_conv_id,
-            user_id=current_user["id"],
-            input_type=payload.input_type,
-            transport_origin="chat",
-            text=finalized_text,
-            prompt_history_text=payload.prompt_history_text,
-            attachment_content=finalized_attachment_content,
-            model_settings=(effective_settings if payload.input_type == "prompt" else None),
-            expected_input_generation=input_generation,
-            client_id=payload.client_id,
-            client_request_id=payload.client_request_id,
-        ),
+        operation=enqueue_input,
     )
     return JSONResponse(content=created, status_code=201)
 

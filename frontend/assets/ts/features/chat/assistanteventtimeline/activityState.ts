@@ -1,8 +1,8 @@
 /* SoAI - Chat feature activity state [frontend/assets/ts/features/chat/assistanteventtimeline/activityState.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { AssistantEventTimelineItem, ConversationMessage, ThinkingTimelineItem } from '@features/chat/ChatTypes.ts';
-import type { AssistantActivityState, AssistantActivityStatus } from '@core/realtime/eventcontracts/assistantTimelineTypes.ts';
+import type { AssistantEventTimelineItem, ConversationMessage } from '@features/chat/ChatTypes.ts';
+import type { AssistantActivityState, AssistantActivityStatus, AssistantThinkingPhase } from '@core/realtime/eventcontracts/assistantTimelineTypes.ts';
 
 const resolveLatestAssistantActivity = (timeline: readonly AssistantEventTimelineItem[] | null | undefined, eventType: 'loading_activity' | 'processing_activity', fieldName: 'loadingActivity' | 'processingActivity'): AssistantActivityState | null => {
     if (!timeline || timeline.length === 0) {
@@ -45,24 +45,24 @@ const isTerminalAssistantActivityStatus = (status: AssistantActivityStatus): boo
     return status === 'completed' || status === 'cancelled' || status === 'error';
 };
 
-const resolveThinkingStatusByPhaseId = (message: ConversationMessage): Map<string, ThinkingTimelineItem['status']> => {
-    const statuses = new Map<string, ThinkingTimelineItem['status']>();
+const resolveLatestThinkingPhaseById = (message: ConversationMessage): Map<string, AssistantThinkingPhase> => {
+    const phases = new Map<string, AssistantThinkingPhase>();
     for (const event of message.assistantEventTimeline ?? []) {
         const thinkingPhase = event.payload.thinkingPhase;
         if (event.eventType === 'thinking_phase' && thinkingPhase !== undefined) {
-            statuses.set(thinkingPhase.phaseId, thinkingPhase.status);
+            phases.set(thinkingPhase.phaseId, thinkingPhase);
         }
     }
-    return statuses;
+    return phases;
 };
 
 const hasTerminalThinkingActivityStatusRegression = (existing: ConversationMessage, incoming: ConversationMessage): boolean => {
-    const incomingStatuses = resolveThinkingStatusByPhaseId(incoming);
-    for (const [phaseId, existingStatus] of resolveThinkingStatusByPhaseId(existing)) {
-        if (!isTerminalAssistantActivityStatus(existingStatus)) {
+    const incomingPhases = resolveLatestThinkingPhaseById(incoming);
+    for (const [phaseId, existingPhase] of resolveLatestThinkingPhaseById(existing)) {
+        if (!isTerminalAssistantActivityStatus(existingPhase.status)) {
             continue;
         }
-        const incomingStatus = incomingStatuses.get(phaseId);
+        const incomingStatus = incomingPhases.get(phaseId)?.status;
         if (incomingStatus === undefined || !isTerminalAssistantActivityStatus(incomingStatus)) {
             return true;
         }
@@ -70,5 +70,5 @@ const hasTerminalThinkingActivityStatusRegression = (existing: ConversationMessa
     return false;
 };
 
-export { hasRunningLoadingActivityFromMessage, hasTerminalThinkingActivityStatusRegression, isTerminalAssistantActivityStatus, resolveLatestLoadingActivityFromMessage, resolveLatestLoadingActivityFromTimeline, resolveLatestProcessingActivityFromTimeline, resolveLoadingDurationMsFromMessage };
+export { hasRunningLoadingActivityFromMessage, hasTerminalThinkingActivityStatusRegression, isTerminalAssistantActivityStatus, resolveLatestLoadingActivityFromMessage, resolveLatestLoadingActivityFromTimeline, resolveLatestProcessingActivityFromTimeline, resolveLatestThinkingPhaseById, resolveLoadingDurationMsFromMessage };
 export type { AssistantActivityState, AssistantActivityStatus };

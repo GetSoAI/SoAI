@@ -1,6 +1,7 @@
 /* SoAI - WebUI user API endpoints [frontend/assets/ts/core/api/endpoints/webuiUserEndpoints.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { decodeOcrLanguages, type OcrLanguage } from '@core/api/contracts/ocrLanguageContracts.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import { decodeNoContentResponse } from '@core/api/contracts/noContentContract.ts';
 import type { OpaqueJsonObject } from '@core/api/contracts/opaquePayload.ts';
@@ -54,7 +55,8 @@ interface WebuiUserEndpoints {
     };
     preferences: {
         get(options?: AuthTransitionSignalOptions): Promise<OpaqueJsonObject>;
-        update(preferences: OpaqueJsonObject): Promise<OpaqueJsonObject>;
+        update(preferences: OpaqueJsonObject, options?: SignalOptions & { intendedUserId?: number }): Promise<OpaqueJsonObject>;
+        ocrLanguages(options?: SignalOptions): Promise<readonly OcrLanguage[]>;
         resetUiPreferences(): Promise<MessageResponse>;
         resetToolApprovalPermissions(): Promise<MessageResponse>;
     };
@@ -154,7 +156,8 @@ const createWebuiUserEndpoints = (api: ApiClientContext): WebuiUserEndpoints => 
     },
     preferences: {
         get: async (options = {}): Promise<OpaqueJsonObject> => decodeOpaquePreferencesResponse(await api.get('/api/v1/webui/users/me/preferences', buildSignalRequestOptions(options)), 'Preferences response'),
-        update: async (preferences): Promise<OpaqueJsonObject> => decodeOpaquePreferencesResponse(await api.patch('/api/v1/webui/users/me/preferences', serializePreferencesUpdateRequest(preferences)), 'Preferences update response'),
+        update: async (preferences, options = {}): Promise<OpaqueJsonObject> => decodeOpaquePreferencesResponse(await api.patch('/api/v1/webui/users/me/preferences', serializePreferencesUpdateRequest(preferences, options.intendedUserId), buildSignalRequestOptions(options)), 'Preferences update response'),
+        ocrLanguages: async (options = {}): Promise<readonly OcrLanguage[]> => decodeOcrLanguages(await api.get('/api/v1/webui/ocr/languages', buildSignalRequestOptions(options))),
         resetUiPreferences: async (): Promise<MessageResponse> => decodeMessageResponse(await api.post('/api/v1/webui/users/me/preferences/reset'), 'Preferences reset response'),
         resetToolApprovalPermissions: async (): Promise<MessageResponse> => decodeMessageResponse(await api.post('/api/v1/webui/users/me/tool-approval-permissions/reset'), 'Tool approval reset response')
     },

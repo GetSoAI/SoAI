@@ -17,7 +17,9 @@ from features.api.routes.webui.conversation_input_queue_events import (
     publish_current_input_queue_changed,
 )
 from features.chat.conversation_input_runtime import require_conversation_input_identity
-from features.chat.conversation_input_variant_execution import execute_conversation_input_variant
+from features.chat.conversation_input_variant_execution import (
+    execute_conversation_input_variant,
+)
 from features.chat.conversation_input_variants import (
     apply_conversation_input_variant,
     resolve_conversation_input_variants,
@@ -25,7 +27,9 @@ from features.chat.conversation_input_variants import (
 
 if TYPE_CHECKING:
     from features.api.runtime.container.types import ApiDependencies
-    from features.chat.conversation_input_variant_execution import InputVariantTerminalState
+    from features.chat.conversation_input_variant_execution import (
+        InputVariantTerminalState,
+    )
 
 __all__ = ("execute_claimed_conversation_input",)
 
@@ -33,7 +37,7 @@ LOGGER_NAME = "SoAI.features.chat.conversation_input_execution"
 OPERATION = "chat.conversation_input.execute"
 
 
-def _resolve_existing_variant_outcome(
+def resolve_recovered_variant_outcome(
     outcomes: list[JSONDict],
     request_id: str,
 ) -> tuple[InputVariantTerminalState, str] | None:
@@ -64,11 +68,13 @@ async def execute_claimed_conversation_input(
     terminal_code = "completed"
     suspended = False
     try:
-        existing_outcomes = await api_dependencies.database_input_queue.list_input_variant_outcomes(
-            input_id=input_id,
+        existing_outcomes = (
+            await api_dependencies.database_input_execution.list_input_variant_outcomes(
+                input_id=input_id,
+            )
         )
         for variant in resolve_conversation_input_variants(input_record):
-            existing = _resolve_existing_variant_outcome(
+            existing = resolve_recovered_variant_outcome(
                 existing_outcomes,
                 variant.request_id,
             )
@@ -105,7 +111,7 @@ async def execute_claimed_conversation_input(
     finally:
         if not suspended:
             await uncancel_then_cleanup(
-                api_dependencies.database_input_queue.terminalize_input(
+                api_dependencies.database_input_execution.terminalize_input(
                     input_id=input_id,
                     claim_generation=claim_generation,
                     claim_owner=claim_owner,

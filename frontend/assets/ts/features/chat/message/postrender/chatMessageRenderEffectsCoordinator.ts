@@ -10,13 +10,13 @@ import type { ChatMessage, ConversationContract } from '@features/chat/ChatTypes
 import { ChatInlineMultimediaEnhancer } from '@features/chat/message/enhancers/ChatInlineMultimediaEnhancer.ts';
 import { hasChatPostRenderCapability, readChatPostRenderCapabilities } from '@features/chat/message/chatMessagePostRenderCapabilities.ts';
 import { ChatPostRenderBatchScheduler, type ChatQueuedPostRenderEntry } from '@features/chat/message/postrender/chatPostRenderBatchScheduler.ts';
-import { prepareChatMessageImageLifecycles } from '@features/chat/message/postrender/chatImageLoadLifecycle.ts';
+import { prepareChatMessageImageLifecycles } from '@features/chat/attachments/chatImageLoadLifecycle.ts';
 import { runQueuedChatMessagePostRenderEffects } from '@features/chat/message/postrender/chatMessagePostRenderFlush.ts';
 import { resolveChatPostRenderTargets } from '@features/chat/message/postrender/chatMessagePostRenderTargets.ts';
 import { prepareInlineMultimediaForPostRender, resolveStreamingTextPostRenderCapabilities } from '@features/chat/message/postrender/inlineMultimediaPostRender.ts';
 import { StreamingTimelinePostRenderQueue } from '@features/chat/message/postrender/streamingTimelinePostRenderQueue.ts';
 import type { ChatPostRenderCommit, ChatPostRenderContainerKey, ChatPostRenderRequestType, ChatQueuedPostRenderMode } from '@features/chat/message/types.ts';
-import { disposeThinkingPreviewRuntime, reconcileThinkingPreviewSubtree } from '@features/chat/stream/streamThinkingPreviewRuntime.ts';
+import { disposeStreamedPreviewRuntime, reconcileStreamedPreviewSubtree } from '@features/chat/stream/streamedPreviewRuntime.ts';
 import { disposeStreamingSpinnerStatusRuntime, reconcileStreamingSpinnerStatusSubtree } from '@features/chat/stream/streamMessageSpinnerStatusRuntime.ts';
 import { syncAssistantBodyCacheFromDom } from '@features/chat/message/postrender/assistantBodyCacheSync.ts';
 
@@ -78,7 +78,7 @@ class ChatMessageRenderEffectsCoordinator {
         this.#pendingAsyncLayoutWorkCount = 0;
         this.#inlineMultimediaEnhancer.dispose();
         this.#activeEnhancerKey = null;
-        disposeThinkingPreviewRuntime(this.#documentRef);
+        disposeStreamedPreviewRuntime(this.#documentRef);
         disposeStreamingSpinnerStatusRuntime(this.#documentRef);
     }
 
@@ -112,7 +112,7 @@ class ChatMessageRenderEffectsCoordinator {
         const renderKey = this.#captureRenderKey();
         if (!this.#isRenderKeyCurrent(renderKey)) return;
         this.#activateEnhancer(renderKey);
-        reconcileThinkingPreviewSubtree(container);
+        reconcileStreamedPreviewSubtree(container);
         reconcileStreamingSpinnerStatusSubtree(container);
         this.#prepareResolvedTargets(targets, targetResolution.assistantMessageByTarget, mode, renderKey, onCommitted);
     }

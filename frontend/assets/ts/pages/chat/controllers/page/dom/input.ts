@@ -81,11 +81,13 @@ const resizeChatInput = (host: ChatPageDomHost, textarea: Element): void => {
         return;
     }
     const scrollHeight = textarea.scrollHeight;
+    const borderBlockSize = Math.max(textarea.offsetHeight - textarea.clientHeight, 0);
+    const requiredHeight = scrollHeight + borderBlockSize;
     const needsExpansion = scrollHeight > textarea.clientHeight;
     if (needsExpansion) {
-        host.dom.setStyle(textarea, 'height', `${Math.min(scrollHeight, maxHeight)}px`);
+        host.dom.setStyle(textarea, 'height', `${Math.min(requiredHeight, maxHeight)}px`);
     }
-    host.dom.setStyle(textarea, 'overflowY', scrollHeight > maxHeight ? 'auto' : 'hidden');
+    host.dom.setStyle(textarea, 'overflowY', requiredHeight > maxHeight ? 'auto' : 'hidden');
 };
 
 const updateExportButtonVisibility = (host: ChatExportButtonHost): void => {

@@ -12,6 +12,8 @@ from core.notifications.notification_contracts import (
 from core.tasks.type_catalog import TaskTypeCatalog
 from database.application_identity import enforce_database_application_id
 from database.core.savepoints import SQLiteSavepoint
+from database.current_schema_objects import apply_current_schema_objects
+from database.current_schema_validation import validate_current_database_schema
 from database.schema_version import (
     CURRENT_DATABASE_SCHEMA_VERSION,
     ensure_supported_database_schema_version,
@@ -19,8 +21,6 @@ from database.schema_version import (
     write_current_database_schema_version,
 )
 from database.task_status_sql_contract import validate_task_status_sql_contract
-from database.v1_schema_objects import apply_current_v1_schema_objects
-from database.v1_schema_validation import validate_current_v1_database_schema
 
 __all__ = ("sync_create_database_schema",)
 
@@ -46,19 +46,21 @@ def sync_create_database_schema(
     has_application_objects = _database_has_application_objects(conn)
     fresh_database = schema_version == 0 and not has_application_objects
     if schema_version == 0 and has_application_objects:
-        raise StateError("Refusing to create SoAI v1 schema over an existing unversioned database.")
+        raise StateError(
+            "Refusing to create the SoAI schema over an existing unversioned database."
+        )
     validate_task_status_sql_contract()
     validate_notifications_sql_contract()
     if fresh_database:
-        with SQLiteSavepoint(conn, "create_v1_schema"):
+        with SQLiteSavepoint(conn, "create_current_schema"):
             enforce_database_application_id(conn, fresh_database=True)
-            apply_current_v1_schema_objects(conn, task_catalog)
+            apply_current_schema_objects(conn, task_catalog)
             write_current_database_schema_version(conn)
-            validate_current_v1_database_schema(conn, task_catalog)
+            validate_current_database_schema(conn, task_catalog)
         return
     enforce_database_application_id(conn, fresh_database=False)
     if schema_version == CURRENT_DATABASE_SCHEMA_VERSION:
-        validate_current_v1_database_schema(conn, task_catalog)
+        validate_current_database_schema(conn, task_catalog)
         return
     if schema_version < CURRENT_DATABASE_SCHEMA_VERSION:
-        raise StateError("Existing database schema is not the current V1 schema.")
+        raise StateError("Existing database schema is not current.")

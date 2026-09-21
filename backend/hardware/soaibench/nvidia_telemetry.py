@@ -5,24 +5,25 @@ from __future__ import annotations
 
 import ctypes
 
-from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import StateError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.hardware.protocols import NvmlGateProtocol
-from core.logging.trace import get_logger
 from core.types.json import JSONDict
-from hardware.soaibench.internal_protocols import NvidiaTelemetryNvmlModuleProtocol
-from hardware.vendors.nvidia.nvml_metric_reading import pynvml_module_ref
-from hardware.vendors.nvidia.scan_metrics.sensors import (
-    read_power_draw_watts,
-    read_temperature,
-    read_utilization,
+from hardware.soaibench.internal_protocols import (
+    NvidiaClockEventNvmlModuleProtocol,
+    NvidiaPowerNvmlModuleProtocol,
+    NvidiaTelemetryNvmlModuleProtocol,
+    NvidiaTemperatureNvmlModuleProtocol,
+    NvidiaThrottleNvmlModuleProtocol,
+    NvidiaUtilizationNvmlModuleProtocol,
+)
+from hardware.vendors.nvidia.nvml_metric_reading import (
+    is_nvml_error_not_supported,
+    pynvml_module_ref,
 )
 
 __all__ = ("read_nvidia_fast_telemetry",)
 
-LOGGER_NAME = "SoAI.hardware.soaibench.nvidia_telemetry"
-OPERATION = "hardware.soaibench.nvidia_telemetry.read"
+PROVIDER_DIAGNOSTIC = "nvidia_telemetry_provider_unavailable"
 
 
 def read_nvidia_fast_telemetry(
@@ -38,7 +39,6 @@ def read_nvidia_fast_telemetry(
     active_pynvml_module = pynvml_module_ref
     if not isinstance(active_pynvml_module, NvidiaTelemetryNvmlModuleProtocol):
         return None
-    logger = get_logger(LOGGER_NAME)
     try:
         with nvml_gate.session():
             device_count = int(active_pynvml_module.nvmlDeviceGetCount())
@@ -46,43 +46,21 @@ def read_nvidia_fast_telemetry(
                 handle = active_pynvml_module.nvmlDeviceGetHandleByIndex(device_index)
                 if not _handle_matches_pci_bdf(active_pynvml_module, handle, pci_bdf):
                     continue
-                return _read_handle_telemetry(device_index, handle)
-    except active_pynvml_module.NVMLError as exception:
-        log_handled_exception(
-            logger,
-            exception,
-            message="Failed to read NVIDIA fast SoAIBench telemetry (non-critical).",
-            operation=OPERATION,
-            level="trace",
-            details={"device_id": device_id},
-        )
-    except StateError as exception:
-        log_handled_exception(
-            logger,
-            exception,
-            message="NVML is unavailable for fast SoAIBench telemetry (non-critical).",
-            operation=OPERATION,
-            level="trace",
-            details={"device_id": device_id},
-        )
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_handled_exception(
-            logger,
-            exception,
-            message="Failed to read NVIDIA fast SoAIBench telemetry (non-critical).",
-            operation=OPERATION,
-            level="trace",
-            details={"device_id": device_id},
-        )
+                return _read_handle_telemetry(active_pynvml_module, handle)
+    except (active_pynvml_module.NVMLError, StateError):
+        return {"diagnostic_code": PROVIDER_DIAGNOSTIC}
     return None
 
 
-def _read_handle_telemetry(device_index: int, handle: ctypes.c_void_p) -> JSONDict:
-    logger = get_logger(LOGGER_NAME)
+def _read_handle_telemetry(
+    pynvml_module: NvidiaTelemetryNvmlModuleProtocol,
+    handle: ctypes.c_void_p,
+) -> JSONDict:
     telemetry: JSONDict = {}
-    temperature = read_temperature(device_index, handle, logger=logger)
-    power = read_power_draw_watts(device_index, handle, logger=logger)
-    utilization = read_utilization(device_index, handle, logger=logger)
+    temperature, temperature_failed = _read_temperature(pynvml_module, handle)
+    power, power_failed = _read_power(pynvml_module, handle)
+    utilization, utilization_failed = _read_utilization(pynvml_module, handle)
+    throttle_detected, throttle_failed = _read_throttle(pynvml_module, handle)
     if temperature is not None:
         telemetry["temperature_celsius"] = float(temperature)
     if power is not None:
@@ -91,7 +69,74 @@ def _read_handle_telemetry(device_index: int, handle: ctypes.c_void_p) -> JSONDi
         telemetry["power_draw_watts"] = power
     if utilization is not None:
         telemetry["core_utilization_percent"] = float(utilization)
+    if throttle_detected is not None:
+        telemetry["throttle_detected"] = throttle_detected
+    if temperature_failed or power_failed or utilization_failed or throttle_failed:
+        telemetry["diagnostic_code"] = PROVIDER_DIAGNOSTIC
     return telemetry
+
+
+def _read_temperature(
+    pynvml_module: NvidiaTelemetryNvmlModuleProtocol,
+    handle: ctypes.c_void_p,
+) -> tuple[float | None, bool]:
+    if not isinstance(pynvml_module, NvidiaTemperatureNvmlModuleProtocol):
+        return None, False
+    try:
+        value = pynvml_module.nvmlDeviceGetTemperature(
+            handle,
+            pynvml_module.NVML_TEMPERATURE_GPU,
+        )
+    except pynvml_module.NVMLError as exception:
+        return None, not is_nvml_error_not_supported(exception)
+    return float(value), False
+
+
+def _read_power(
+    pynvml_module: NvidiaTelemetryNvmlModuleProtocol,
+    handle: ctypes.c_void_p,
+) -> tuple[float | None, bool]:
+    if not isinstance(pynvml_module, NvidiaPowerNvmlModuleProtocol):
+        return None, False
+    try:
+        value = pynvml_module.nvmlDeviceGetPowerUsage(handle)
+    except pynvml_module.NVMLError as exception:
+        return None, not is_nvml_error_not_supported(exception)
+    return float(value) / 1000.0, False
+
+
+def _read_utilization(
+    pynvml_module: NvidiaTelemetryNvmlModuleProtocol,
+    handle: ctypes.c_void_p,
+) -> tuple[float | None, bool]:
+    if not isinstance(pynvml_module, NvidiaUtilizationNvmlModuleProtocol):
+        return None, False
+    try:
+        value = pynvml_module.nvmlDeviceGetUtilizationRates(handle)
+    except pynvml_module.NVMLError as exception:
+        return None, not is_nvml_error_not_supported(exception)
+    return float(value.gpu), False
+
+
+def _read_throttle(
+    pynvml_module: NvidiaTelemetryNvmlModuleProtocol,
+    handle: ctypes.c_void_p,
+) -> tuple[bool | None, bool]:
+    if isinstance(pynvml_module, NvidiaClockEventNvmlModuleProtocol):
+        try:
+            reasons = pynvml_module.nvmlDeviceGetCurrentClocksEventReasons(handle)
+        except pynvml_module.NVMLError as exception:
+            if not is_nvml_error_not_supported(exception):
+                return None, True
+        else:
+            return reasons != pynvml_module.nvmlClocksEventReasonNone, False
+    if isinstance(pynvml_module, NvidiaThrottleNvmlModuleProtocol):
+        try:
+            reasons = pynvml_module.nvmlDeviceGetCurrentClocksThrottleReasons(handle)
+        except pynvml_module.NVMLError as exception:
+            return None, not is_nvml_error_not_supported(exception)
+        return reasons != pynvml_module.nvmlClocksThrottleReasonNone, False
+    return None, False
 
 
 def _handle_matches_pci_bdf(

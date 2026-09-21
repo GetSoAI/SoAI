@@ -10,6 +10,8 @@ from core.errors.exceptions import StateError
 from database.core.query_execution import sync_fetch_one_as_dict
 from database.repositories.users.conversation_input_constants import (
     CONVERSATION_INPUT_DISPATCH_RANK_SQL,
+    CONVERSATION_INPUT_PRECEDES_SQL,
+    CONVERSATION_INPUT_RUNNING_ROOT_AVAILABLE_SQL,
 )
 from database.repositories.users.conversation_input_row_mapping import (
     format_conversation_input_row,
@@ -41,7 +43,14 @@ def attach_conversation_input_dispatch_state(
 def read_dispatchable_conversation_input_head(
     sqlite_conn: sqlite3.Connection,
     input_id: str | None = None,
+    excluded_conversation_ids: tuple[str, ...] = (),
 ) -> tuple[str, str] | None:
+    exclusion_sql = ""
+    exclusion_params: tuple[str, ...] = ()
+    if excluded_conversation_ids:
+        placeholders = ", ".join("?" for _ in excluded_conversation_ids)
+        exclusion_sql = f" AND input.conv_id NOT IN ({placeholders})"
+        exclusion_params = excluded_conversation_ids
     row = sqlite_conn.execute(
         f"""
         WITH ranked_inputs AS (
@@ -56,7 +65,9 @@ def read_dispatchable_conversation_input_head(
          AND conversation.input_generation = input.conversation_generation
         WHERE input.state = 'pending'
           AND (? IS NULL OR input.input_id = ?)
+          {exclusion_sql}
           AND input.input_type IN ('prompt', 'steer')
+          AND {CONVERSATION_INPUT_RUNNING_ROOT_AVAILABLE_SQL}
           AND NOT EXISTS (
               SELECT 1
               FROM ranked_inputs AS earlier
@@ -65,26 +76,14 @@ def read_dispatchable_conversation_input_head(
                     earlier.state IN ('materializing', 'running', 'input_required')
                     OR (
                         earlier.state = 'pending'
-                        AND (
-                            earlier.dispatch_rank < input.dispatch_rank
-                            OR (
-                                earlier.dispatch_rank = input.dispatch_rank
-                                AND (
-                                    earlier.accepted_at_ms < input.accepted_at_ms
-                                    OR (
-                                        earlier.accepted_at_ms = input.accepted_at_ms
-                                        AND earlier.id < input.id
-                                    )
-                                )
-                            )
-                        )
+                        AND ({CONVERSATION_INPUT_PRECEDES_SQL})
                     )
                 )
           )
         ORDER BY input.dispatch_rank ASC, input.accepted_at_ms ASC, input.id ASC
         LIMIT 1
         """,
-        (input_id, input_id),
+        (input_id, input_id, *exclusion_params),
     ).fetchone()
     if row is None:
         return None
@@ -99,8 +98,12 @@ def sync_claim_next_conversation_input(
     claim_owner: str,
     server_boot_id: str,
     claimed_at_ms: int,
+    excluded_conversation_ids: tuple[str, ...] = (),
 ) -> JSONDict | None:
-    input_head = read_dispatchable_conversation_input_head(sqlite_conn)
+    input_head = read_dispatchable_conversation_input_head(
+        sqlite_conn,
+        excluded_conversation_ids=excluded_conversation_ids,
+    )
     if input_head is None:
         return None
     input_id, _state = input_head

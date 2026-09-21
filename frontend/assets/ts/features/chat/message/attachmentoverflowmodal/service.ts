@@ -1,7 +1,6 @@
 /* SoAI - Chat message attachment overflow modal service [frontend/assets/ts/features/chat/message/attachmentoverflowmodal/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { dom } from '@core/dom/dom.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
@@ -26,7 +25,7 @@ import { ChatSoaiPathContentPreview } from '@features/chat/message/soaiPathConte
 const CONTENT_ID = `${CHAT_ATTACHMENT_OVERFLOW_MODAL_ID}-content`;
 
 interface AttachmentOverflowModalDependencies extends CopyActionDependencies {
-    knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'items' | 'previewItem' | 'useItems' | 'delete'>;
+    knowledgeAttachmentsApi: Pick<ChatKnowledgeAttachmentsApi, 'items' | 'previewItem' | 'useItems'>;
     soaiPathsApi: Pick<ChatSoaiPathsApi, 'preview' | 'read' | 'download' | 'open' | 'token'>;
     getAttachmentDraftRevision: () => number;
     onKnowledgeAttachmentChanged: (summary: KnowledgeAttachmentSummary) => void;
@@ -86,9 +85,6 @@ class ChatAttachmentOverflowModal {
         this.#interactions = new AttachmentOverflowInteractionController({
             onTab: (tab) => this.#selectTab(tab),
             onRetry: () => this.#knowledgeSession.retryFailedPage(),
-            onRemoveDraftKnowledge: (actionElement) => {
-                terminateHandledPromise(this.#removeDraftKnowledge(actionElement));
-            },
             onKnowledgePreview: (actionElement) => this.#openKnowledgePreview(actionElement),
             onKnowledgePreviewFirst: (actionElement) => this.#openKnowledgeFirstPreview(actionElement),
             onSoaiPathPreview: (actionElement) => this.#openSoaiPathPreview(actionElement),
@@ -110,7 +106,7 @@ class ChatAttachmentOverflowModal {
     }
 
     show(inputArguments: AttachmentOverflowShowArguments): void {
-        const records = inputArguments.source === 'message' ? buildAttachmentOverflowRecords(inputArguments.conversationId, inputArguments.segments) : [...inputArguments.records];
+        const records = buildAttachmentOverflowRecords(inputArguments.conversationId, inputArguments.segments);
         const presenter = requireModalPresenter();
         const modal = presenter.requireElement(CHAT_ATTACHMENT_OVERFLOW_MODAL_ID);
         modal.removeEventListener('core.modal.close', this.#handleModalClose);
@@ -242,21 +238,6 @@ class ChatAttachmentOverflowModal {
             return;
         }
         this.#knowledgeSession.loadNextPage();
-    }
-
-    async #removeDraftKnowledge(actionElement: HTMLElement): Promise<void> {
-        const knowledgeAttachmentId = actionElement.dataset['knowledgeAttachmentId'];
-        const conversationId = this.#conversationId;
-        if (!isString(conversationId) || !conversationId.trim() || !isString(knowledgeAttachmentId) || !knowledgeAttachmentId.trim()) {
-            return;
-        }
-        const summary = await this.#runWithBoundary('chat:attachmentOverflowRemoveDraftKnowledge', () => this.#knowledgePreview.removeDraftKnowledgeAttachment(conversationId.trim(), knowledgeAttachmentId.trim()));
-        this.#allRecords = this.#allRecords.filter((record) => !(record.draftRemovable && record.knowledgeAttachmentId === knowledgeAttachmentId.trim()));
-        this.#knowledgeSession.backToSummary();
-        this.#knowledgeFirstPreview.reset();
-        this.#knowledgePreview.reset();
-        this.#render();
-        this.#knowledgePreview.notifyKnowledgeAttachmentChanged(summary);
     }
 
     #shouldEnableAutoPaging(): boolean {

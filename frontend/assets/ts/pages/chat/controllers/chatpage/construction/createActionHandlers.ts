@@ -4,9 +4,9 @@
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { isString, isThenable } from '@core/typeGuards.ts';
-import { buildDraftAttachmentOverflowRecords, type ChatActionId, type ChatInputActionName } from '@features/chat/public.ts';
+import { knowledgeSummaryMatchesIngestion, resolveChatAttachmentDraftSource, type ChatActionId, type ChatInputActionName } from '@features/chat/public.ts';
 import { createChatActionHandlers } from '@pages/chat/controllers/actionhandlers/chatActionHandlers.ts';
-import type { ChatActionHandlersHost } from '@pages/chat/controllers/actionhandlers/core/contracts.ts';
+import type { ChatActionHandlersHost, ChatAttachDraftCounts } from '@pages/chat/controllers/actionhandlers/core/contracts.ts';
 import { toggleFavoritesAtTop } from '@pages/chat/controllers/chatUiBehaviors.ts';
 import type { ChatActionHandlerDependencies } from '@pages/chat/controllers/chatpage/construction/contracts.ts';
 import { startAgentPlanExecution, type AgentPlanExecutionHost } from '@pages/chat/controllers/page/actions/agentPlanExecutionController.ts';
@@ -88,21 +88,19 @@ const createOpenInlineMediaLocalFolderHost = (page: ChatActionHandlerDependencie
     };
 };
 
-const openComposerAttachmentOverflow = (page: ChatActionHandlerDependencies): void => {
-    const conversationId = page.state.conversationState.currentConversationId;
-    if (!isString(conversationId) || !conversationId.trim()) {
-        throw new Error('Composer attachment overflow requires a conversation id');
+const resolveChatAttachDraftCounts = (page: ChatActionHandlerDependencies): ChatAttachDraftCounts => {
+    const counts: ChatAttachDraftCounts = { upload: 0, camera: 0, browse: 0, soaiLink: 0, knowledge: 0 };
+    for (const attachment of page.runtime.composerSurface.requireAttachments().getAttachments()) {
+        counts[resolveChatAttachmentDraftSource(attachment)] += 1;
     }
-    const records = buildDraftAttachmentOverflowRecords({
-        conversationId: conversationId.trim(),
-        attachments: page.runtime.composerSurface.requireAttachments().getAttachments(),
-        knowledgeDrafts: page.sessions.messageSending.rag.currentKnowledgeDrafts(),
-        ingestionStatus: page.sessions.messageSending.rag.currentStatus()
-    });
-    if (records.length === 0) {
-        return;
+    const knowledgeDrafts = page.sessions.messageSending.rag.currentKnowledgeDrafts();
+    counts.knowledge = knowledgeDrafts.length;
+    const ingestion = page.sessions.messageSending.rag.currentStatus();
+    const ingestionIsVisible = ingestion !== null && (ingestion.state === 'running' || ingestion.state === 'paused' || ingestion.state === 'submitted');
+    if (ingestionIsVisible && !knowledgeDrafts.some((summary) => knowledgeSummaryMatchesIngestion(summary, ingestion))) {
+        counts.knowledge += 1;
     }
-    page.runtime.conversationRuntime.requireMessages().showAttachmentOverflowRecords(conversationId.trim(), records);
+    return counts;
 };
 
 const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): ChatActionHandlersHost => {
@@ -130,7 +128,6 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
             admission: (conversationId) => page.runtime.turnRuntime.requireStreaming().getCachedTurnAdmission(conversationId),
             syncAdmission: (conversationId) => page.runtime.turnRuntime.requireStreaming().resolveSyncedTurnAdmission(conversationId, page.page.pageLifecycle.signal()),
             stop: (options) => page.runtime.turnRuntime.requireStreaming().stopStreaming(options),
-            waitForRequestExit: (conversationId, requestId) => page.runtime.turnRuntime.requireStreaming().waitForConversationRequestExit(conversationId, requestId, page.page.pageLifecycle.signal()),
             run: (operationId, task) => page.sessions.taskScope.run(operationId, task),
             boundary: <T>(name: string, functionValue: () => Promise<T>) => page.page.pageLifecycle.run(name, functionValue),
             send: (options) => page.sessions.messageSending.sendMessage(options),
@@ -145,6 +142,7 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
                 page.sessions.composer.noteDraftChanged(value);
             },
             cancelConversationInput: (conversationId, inputId) => page.sessions.composer.cancelConversationInput(conversationId, inputId),
+            retryConversationRegeneration: (conversationId, inputId) => page.sessions.composer.retryConversationRegeneration(conversationId, inputId),
             resolveAskUser: (conversationId, taskId, action) => page.sessions.composer.resolveAskUserPrompt(conversationId, taskId, action),
             resolveSecret: (conversationId, taskId, payload) => page.sessions.composer.resolveSecretPrompt(conversationId, taskId, payload),
             resolveToolApproval: (conversationId, taskId, action) => page.sessions.composer.resolveToolApprovalPrompt(conversationId, taskId, action),
@@ -153,7 +151,6 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
                 page.sessions.composer.toggleCall();
             },
             toggleTools: () => page.sessions.composer.toggleTools(),
-            openAttachmentOverflow: () => openComposerAttachmentOverflow(page),
             openCharacterMap: () => {
                 if (page.state.settings.parameters.inputActionCharacterMapEnabled !== true) throw new Error('Chat character-map action is not available');
                 page.sessions.characterMapSession.open();
@@ -167,6 +164,7 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
             fileUploadEnabled: () => page.state.settings.parameters.inputActionFileUploadEnabled === true,
             cameraEnabled: () => page.state.settings.parameters.inputActionCameraEnabled === true,
             drafts: () => page.runtime.composerSurface.requireAttachments().getAttachments(),
+            draftCounts: () => resolveChatAttachDraftCounts(page),
             draftCommitEpoch: () => page.runtime.composerSurface.requireAttachments().getDraftCommitEpoch(),
             subscribeDrafts: (handler) => page.runtime.composerSurface.requireAttachments().subscribeDraftChanges(handler),
             requireFileInput: () => requireUploadInput(page, '.file-upload-input', 'Chat file upload input'),
@@ -183,9 +181,36 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
                 requireInputActionEnabled('camera', page.state.settings.parameters.inputActionCameraEnabled === true);
                 return page.sessions.messageSending.handleCameraCaptureFile(file);
             },
-            addSoaiPaths: (records) => page.runtime.composerSurface.requireAttachments().addResolvedSoaiPathRecords(records),
+            addSoaiPaths: (records, source) => page.runtime.composerSurface.requireAttachments().addResolvedSoaiPathRecords(records, source),
             removeFile: (fileId) => page.sessions.messageSending.removeAttachedFile(fileId),
-            removeKnowledge: (knowledgeAttachmentId) => page.sessions.messageSending.removeDraftKnowledgeAttachment(knowledgeAttachmentId)
+            removeKnowledge: (knowledgeAttachmentId) => page.sessions.messageSending.removeDraftKnowledgeAttachment(knowledgeAttachmentId),
+            removeAll: async (source) => {
+                const attachmentIds = page.runtime.composerSurface
+                    .requireAttachments()
+                    .getAttachments()
+                    .filter((attachment) => source !== 'knowledge' && resolveChatAttachmentDraftSource(attachment) === source)
+                    .map((attachment) => attachment.id);
+                const knowledgeAttachmentIds = new Set(source === 'knowledge' ? page.sessions.messageSending.rag.currentKnowledgeDrafts().map((summary) => summary.knowledgeAttachmentId) : []);
+                const ingestion = source === 'knowledge' ? page.sessions.messageSending.rag.currentStatus() : null;
+                const failures: Error[] = [];
+                if (ingestion !== null && (ingestion.state === 'running' || ingestion.state === 'paused' || ingestion.state === 'submitted')) {
+                    try {
+                        await page.sessions.messageSending.rag.cancelCurrent();
+                        const cancelledSummary = page.sessions.messageSending.rag.currentKnowledgeDrafts().find((summary) => knowledgeSummaryMatchesIngestion(summary, ingestion));
+                        if (cancelledSummary !== undefined) knowledgeAttachmentIds.add(cancelledSummary.knowledgeAttachmentId);
+                    } catch (error) {
+                        failures.push(ensureError(error));
+                    }
+                }
+                const operations: Promise<void>[] = [...attachmentIds.map((attachmentId) => page.sessions.messageSending.removeAttachedFile(attachmentId)), ...Array.from(knowledgeAttachmentIds, (knowledgeAttachmentId) => page.sessions.messageSending.removeDraftKnowledgeAttachment(knowledgeAttachmentId))];
+                const results = await Promise.allSettled(operations);
+                for (const result of results) {
+                    if (result.status === 'rejected') failures.push(ensureError(result.reason));
+                }
+                if (failures.length > 0) {
+                    throw new AggregateError(failures, 'One or more draft attachments could not be removed.');
+                }
+            }
         },
         audio: {
             toggleRecording: () => {

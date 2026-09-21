@@ -140,11 +140,17 @@ def format_conversation_input_row(row: SQLiteRowDict | None) -> JSONDict | None:
         row.get("media_descriptors_json"),
         field="media_descriptors_json",
     )
+    regeneration_request = _decode_json_object(
+        row.get("regeneration_request_json"),
+        field="regeneration_request_json",
+        nullable=True,
+    )
     if (
         input_type != "control"
         and not text.strip()
         and not attachment_content
         and not media_descriptors
+        and regeneration_request is None
     ):
         raise StateError("Conversation input row is missing text and attachments.")
     return {
@@ -160,6 +166,8 @@ def format_conversation_input_row(row: SQLiteRowDict | None) -> JSONDict | None:
         "content_fingerprint": row.get("content_fingerprint"),
         "source_metadata": source_metadata,
         "media_descriptors": media_descriptors,
+        "regeneration_request": regeneration_request,
+        "regeneration_accepted_revision": row.get("regeneration_accepted_revision"),
         "state": state,
         "accepted_at_ms": accepted_at_ms,
         "conversation_generation": _require_non_negative_int(row, "conversation_generation"),

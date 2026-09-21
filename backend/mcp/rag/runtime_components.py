@@ -41,6 +41,7 @@ def build_rag_runtime_components(deps: MCPRAGDependencies) -> MCPRAGRuntimeCompo
     )
     storage: MCPStorageProtocol = MCPStorage(storage_dependencies)
     worker_dependencies = MCPWorkerDependencies(
+        database_users=deps.database_users,
         database_files=deps.database_files,
         database_conversation_knowledge_attachments=(
             deps.database_conversation_knowledge_attachments

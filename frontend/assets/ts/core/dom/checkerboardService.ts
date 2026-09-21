@@ -20,6 +20,7 @@ interface CheckerboardServiceDependencies {
 
 interface CheckerboardObserverEntry {
     observer: MutationObserver;
+    resizeObserver: ResizeObserver | null;
     container: Element;
     itemSelector: string;
     frameId: number | null;
@@ -65,6 +66,8 @@ class CheckerboardService {
         const observer = new MutationObserver(() => {
             this.updateCheckerboard(container, itemSelector);
         });
+        const resizeObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(() => this.scheduleUpdate(container, itemSelector)) : null;
+        resizeObserver?.observe(container);
 
         observer.observe(container, {
             childList: true,
@@ -73,6 +76,7 @@ class CheckerboardService {
 
         this.observers.set(containerId, {
             observer,
+            resizeObserver,
             container,
             itemSelector,
             frameId: null,
@@ -261,6 +265,7 @@ class CheckerboardService {
                 this.#dependencies.getDomWindow().cancelAnimationFrame(entry.frameId);
             }
             entry.observer.disconnect();
+            entry.resizeObserver?.disconnect();
             this.observers.delete(containerId);
             this.#lastSignatures.delete(containerId);
             this.#lastItems.delete(containerId);
@@ -269,11 +274,12 @@ class CheckerboardService {
     }
 
     disconnectAll(): void {
-        this.observers.forEach(({ observer, frameId }) => {
+        this.observers.forEach(({ observer, resizeObserver, frameId }) => {
             if (frameId !== null) {
                 this.#dependencies.getDomWindow().cancelAnimationFrame(frameId);
             }
             observer.disconnect();
+            resizeObserver?.disconnect();
         });
         this.observers.clear();
         this.#lastSignatures.clear();

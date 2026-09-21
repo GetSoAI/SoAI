@@ -15,19 +15,21 @@ import { renderThemeSection } from '@pages/settings/controllers/thememanager/vie
 class ThemeManager {
     readonly #host: ThemeManagerHost;
     readonly #canManageSolidBackground: boolean;
+    readonly #getGrantedActions: () => ReadonlySet<string>;
     readonly #eventsController: ThemeEventsController;
     readonly #customizationController: ThemeCustomizationController;
     readonly #solidBackgroundController: ThemeSolidBackgroundController;
     readonly #wallpaperController: ThemeWallpaperController;
     readonly #lifecycle: SettingsSectionLifecycle = new SettingsSectionLifecycle();
 
-    constructor({ host, canManageSolidBackground, dashboardProductTitle, updatePreferenceToggleLabel }: ThemeManagerDependencies) {
+    constructor({ host, canManageSolidBackground, getGrantedActions, dashboardProductTitle, updatePreferenceToggleLabel }: ThemeManagerDependencies) {
         if (!host) {
             throw new Error('ThemeManager requires a host');
         }
 
         this.#host = host;
         this.#canManageSolidBackground = canManageSolidBackground;
+        this.#getGrantedActions = getGrantedActions;
         this.#eventsController = new ThemeEventsController({
             host,
             addCleanup: (cleanup) => {
@@ -68,6 +70,7 @@ class ThemeManager {
             host: this.#host,
             canManageSolidBackground: this.#canManageSolidBackground,
             canManageWallpaper: this.#host.canManageWallpaper(),
+            grantedActions: this.#getGrantedActions(),
             getPreferenceStateLabels: () => this.#getPreferenceStateLabels()
         };
         return toTrustedUiHtml(renderThemeSection(viewContext));

@@ -41,6 +41,7 @@ const createStorageDefaults = (): StorageCache => {
             dashboardImageCard: null,
             dashboardImageCardFit: 'contain',
             dashboardMemo: null,
+            defaultPage: null,
             chartColorMode: 'auto',
             chartStaticColor: '#4ade80',
             headerAutoHide: true,

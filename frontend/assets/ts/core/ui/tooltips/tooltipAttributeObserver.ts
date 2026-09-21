@@ -13,8 +13,10 @@ interface TooltipAttributeObserverArguments {
 const createTooltipAttributeObserver = (inputArguments: TooltipAttributeObserverArguments): MutationObserver => {
     const MutationObserverCtor = getMutationObserverCtor();
     const observer = new MutationObserverCtor((mutations: MutationRecord[]) => {
+        const handledTargets = new Set<Element>();
         for (const mutation of mutations) {
-            if (mutation.type === 'attributes' && mutation.attributeName === inputArguments.attributeName && mutation.target instanceof Element) {
+            if (mutation.type === 'attributes' && mutation.attributeName === inputArguments.attributeName && mutation.target instanceof Element && !handledTargets.has(mutation.target)) {
+                handledTargets.add(mutation.target);
                 inputArguments.handleTarget(mutation.target);
             }
         }

@@ -52,15 +52,22 @@ def resolve_conversation_stream_admission(
     *,
     active_input_summary: ActiveConversationInputSummary,
     user_interaction_pending: bool,
+    durable_cancellation_pending: bool = False,
 ) -> ConversationStreamAdmission:
     runtime = snapshot.runtime
     if runtime is None or runtime.terminal_persistence_completed:
         return _resolve_inactive_admission(
             active_input_summary=active_input_summary,
-            reserved=snapshot.reservation is not None,
+            reserved=(
+                snapshot.reservation is not None
+                or snapshot.cancellation_intent is not None
+                or durable_cancellation_pending
+            ),
         )
     stream_lifecycle: Literal["streaming", "terminalizing"] = (
-        "terminalizing" if runtime.terminal_finalization_started else "streaming"
+        "terminalizing"
+        if runtime.cancellation_requested or runtime.terminal_finalization_started
+        else "streaming"
     )
     return ConversationStreamAdmission(
         active=True,

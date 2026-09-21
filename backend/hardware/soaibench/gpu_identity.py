@@ -6,6 +6,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
+from core.hardware.gpu_model_catalog import resolve_catalog_model
+from core.hardware.soaibench_persistence import SOAIBENCH_GPU_HISTORY_IDENTITY_FIELDS
 from core.types.json_value import coerce_json_dict_or_empty
 from hardware.control_snapshots import find_gpu_entry
 from hardware.gpu_inventory.identity import (
@@ -33,9 +35,17 @@ def resolve_gpu_identity(snapshot: JSONDict, device_id: str) -> SoAIBenchGpuIden
     gpu = find_gpu_entry(snapshot, device_id)
     if gpu is None:
         raise ValidationError(f"GPU inventory is unavailable for {device_id}.")
-    name = optional_identity_text(gpu.get("name"))
-    vendor = optional_identity_text(gpu.get("type")) or optional_identity_text(gpu.get("vendor"))
-    model_key = optional_identity_text(gpu.get("gpu_model_key")) or normalize_model_key(name)
+    raw_name = optional_identity_text(gpu.get("name"))
+    raw_vendor = optional_identity_text(gpu.get("type")) or optional_identity_text(
+        gpu.get("vendor")
+    )
+    raw_model_key = optional_identity_text(gpu.get("gpu_model_key")) or normalize_model_key(
+        raw_name
+    )
+    catalog_model = resolve_catalog_model(raw_name, raw_model_key, raw_vendor)
+    name = catalog_model.name if catalog_model is not None else raw_name
+    vendor = catalog_model.vendor if catalog_model is not None else raw_vendor
+    model_key = catalog_model.model_key if catalog_model is not None else raw_model_key
     driver_version = (
         optional_identity_text(gpu.get("driver_version"))
         or optional_identity_text(gpu.get("driver"))
@@ -56,8 +66,11 @@ def resolve_gpu_identity(snapshot: JSONDict, device_id: str) -> SoAIBenchGpuIden
         pci_bdf=optional_identity_text(gpu.get("pci_bdf"))
         or optional_identity_text(gpu.get("pci_bus_id")),
         kernel_driver=optional_identity_text(gpu.get("kernel_driver")),
-        operating_system=optional_identity_text(gpu.get("os")),
+        operating_system=_operating_system(snapshot, gpu),
         gpu_index=normalize_identity_index(gpu.get("index")),
+        raw_gpu_name=raw_name,
+        raw_gpu_model_key=raw_model_key,
+        raw_vendor=raw_vendor,
     )
 
 
@@ -73,6 +86,9 @@ def identity_payload(identity: SoAIBenchGpuIdentity) -> JSONDict:
         "kernel_driver": identity.kernel_driver,
         "os": identity.operating_system,
         "gpu_index": identity.gpu_index,
+        "raw_gpu_name": identity.raw_gpu_name,
+        "raw_gpu_model_key": identity.raw_gpu_model_key,
+        "raw_vendor": identity.raw_vendor,
     }
 
 
@@ -84,8 +100,20 @@ def identity_payload_for_history(snapshot: JSONDict, identity: SoAIBenchGpuIdent
 
 
 def identity_from_payload(payload: JSONDict) -> SoAIBenchGpuIdentity:
+    if set(payload) != {
+        *SOAIBENCH_GPU_HISTORY_IDENTITY_FIELDS,
+        "kernel_driver",
+        "os",
+        "raw_gpu_name",
+        "raw_gpu_model_key",
+        "raw_vendor",
+    }:
+        raise ValidationError("SoAIBench GPU identity fields are invalid.")
+    device_id = optional_identity_text(payload.get("device_id"))
+    if device_id is None:
+        raise ValidationError("SoAIBench GPU device identity is invalid.")
     return SoAIBenchGpuIdentity(
-        device_id=str(payload["device_id"]),
+        device_id=device_id,
         gpu_name=optional_identity_text(payload.get("gpu_name")),
         gpu_model_key=optional_identity_text(payload.get("gpu_model_key")),
         vendor=optional_identity_text(payload.get("vendor")),
@@ -95,6 +123,9 @@ def identity_from_payload(payload: JSONDict) -> SoAIBenchGpuIdentity:
         kernel_driver=optional_identity_text(payload.get("kernel_driver")),
         operating_system=optional_identity_text(payload.get("os")),
         gpu_index=normalize_identity_index(payload.get("gpu_index")),
+        raw_gpu_name=optional_identity_text(payload.get("raw_gpu_name")),
+        raw_gpu_model_key=optional_identity_text(payload.get("raw_gpu_model_key")),
+        raw_vendor=optional_identity_text(payload.get("raw_vendor")),
     )
 
 
@@ -106,13 +137,28 @@ def _driver_version(snapshot: JSONDict, vendor: str | None) -> str | None:
     return resolve_driver_version_by_vendor_prefix(drivers, vendor)
 
 
+def _operating_system(snapshot: JSONDict, gpu: JSONDict) -> str | None:
+    gpu_operating_system = optional_identity_text(gpu.get("os"))
+    if gpu_operating_system is not None:
+        return gpu_operating_system
+    os_payload = coerce_json_dict_or_empty(snapshot.get("os"))
+    return optional_identity_text(os_payload.get("system"))
+
+
 def _model_key_is_unique_in_snapshot(snapshot: JSONDict, model_key: str | None) -> bool:
     if model_key is None:
         return False
     matches = 0
     for gpu in snapshot_gpu_entries(snapshot):
         name = optional_identity_text(gpu.get("name"))
-        candidate = optional_identity_text(gpu.get("gpu_model_key")) or normalize_model_key(name)
+        vendor = optional_identity_text(gpu.get("type")) or optional_identity_text(
+            gpu.get("vendor")
+        )
+        raw_model_key = optional_identity_text(gpu.get("gpu_model_key")) or normalize_model_key(
+            name
+        )
+        catalog_model = resolve_catalog_model(name, raw_model_key, vendor)
+        candidate = catalog_model.model_key if catalog_model is not None else raw_model_key
         if candidate == model_key:
             matches += 1
     return matches == 1

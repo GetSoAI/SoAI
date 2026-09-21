@@ -38,24 +38,24 @@ const patchCollapsedLoadingSummary = (currentSummary: HTMLElement, nextSummary: 
     return changed;
 };
 
-const patchCollapsedLoadingChrome = (target: HTMLElement, contentHtml: TrustedHtml): { patched: boolean; changed: boolean } => {
+const patchCollapsedLoadingChrome = (target: HTMLElement, contentHtml: TrustedHtml): { patched: boolean; changed: boolean; summary: HTMLElement | null } => {
     const currentSummary = dom.resolve(COLLAPSED_LOADING_SUMMARY_SELECTOR, target);
     const currentContent = dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, target);
     if (!(currentSummary instanceof HTMLElement) || !(currentContent instanceof HTMLElement)) {
-        return { patched: false, changed: false };
+        return { patched: false, changed: false, summary: null };
     }
     const scratch = target.ownerDocument.createElement('div');
     replaceChildrenFromTrustedHtml({ element: scratch, html: contentHtml, context: scratch });
     const nextSummary = dom.resolve(COLLAPSED_LOADING_SUMMARY_SELECTOR, scratch);
     const nextContent = dom.resolve(COLLAPSED_LOADING_CONTENT_SELECTOR, scratch);
     if (!(nextSummary instanceof HTMLElement) || !(nextContent instanceof HTMLElement)) {
-        return { patched: false, changed: false };
+        return { patched: false, changed: false, summary: null };
     }
     let changed = patchCollapsedLoadingSummary(currentSummary, nextSummary);
     if (syncAttributes({ target: currentContent, source: nextContent })) {
         changed = true;
     }
-    return { patched: true, changed };
+    return { patched: true, changed, summary: currentSummary };
 };
 
 const patchCollapsedLoadingStreamingContent = (inputArguments: RenderStreamingMessageContentArguments, target: HTMLElement, resolvedSegments: ReturnType<RenderStreamingMessageContentArguments['messageManager']['resolveMessageContentSegments']> | null): { supported: boolean; changed: boolean } => {
@@ -98,6 +98,7 @@ const renderCollapsedLoadingMessageContent = (inputArguments: RenderStreamingMes
         return {
             handled: true,
             invalidatedCache: false,
+            requiresActivityDurationReconcile: true,
             updatedMarkup: passiveStateUpdated,
             target
         };
@@ -120,6 +121,7 @@ const renderCollapsedLoadingMessageContent = (inputArguments: RenderStreamingMes
         return {
             handled: false,
             invalidatedCache: true,
+            requiresActivityDurationReconcile: true,
             updatedMarkup: false,
             target
         };
@@ -136,11 +138,14 @@ const renderCollapsedLoadingMessageContent = (inputArguments: RenderStreamingMes
     inputArguments.cached.renderMode = 'collapsedLoading';
     if (rebuiltChrome || streamingContentPatch.changed) {
         inputArguments.messageManager.postRender(target);
+    } else if (patchResult.changed && patchResult.summary !== null) {
+        inputArguments.messageManager.postRenderRequest(patchResult.summary, 'streamingTimeline');
     }
     const passiveStateUpdated = syncStreamingMessagePassiveState({ message: inputArguments.message, target, messageManager: inputArguments.messageManager, cached: inputArguments.cached });
     return {
         handled: true,
         invalidatedCache: false,
+        requiresActivityDurationReconcile: true,
         updatedMarkup: renderModeChanged || rebuiltChrome || patchResult.changed || streamingContentPatch.changed || passiveStateUpdated,
         target
     };

@@ -6,6 +6,27 @@ import { WEBSOCKET_MESSAGE_TYPES } from '@core/websocketEvents.ts';
 import type { ContentPreviewFeedbackPayload, PreviewContractViolationFeedbackPayload } from '@features/chat/contentPreviewContracts.ts';
 import type { ChatStreamSession } from '@features/chat/chatstreamservice/types.ts';
 
+const serializeContentPreviewFeedback = (feedback: ContentPreviewFeedbackPayload): JsonObject => ({
+    'assistant_at_ms': feedback.assistantAtMs,
+    'assistant_turn_at_ms': feedback.assistantTurnAtMs,
+    items: feedback.items.map((item) => ({
+        'reference_type': item.referenceType,
+        target: item.target,
+        status: item.status,
+        'reason_code': item.reasonCode
+    }))
+});
+
+const serializePreviewContractFeedback = (feedback: PreviewContractViolationFeedbackPayload): JsonObject => ({
+    'assistant_at_ms': feedback.assistantAtMs,
+    'assistant_turn_at_ms': feedback.assistantTurnAtMs,
+    code: feedback.code,
+    'reason_code': feedback.reasonCode,
+    detail: feedback.detail,
+    'repair_attempted': feedback.repairAttempted,
+    'repair_succeeded': feedback.repairSucceeded
+});
+
 const buildChatStreamStartPayload = (inputArguments: { session: ChatStreamSession; requestBody: JsonObject; contentPreviewFeedback: ContentPreviewFeedbackPayload | null; previewContractFeedback: PreviewContractViolationFeedbackPayload | null }): JsonObject => {
     const startPayload: JsonObject = {
         type: WEBSOCKET_MESSAGE_TYPES.CHAT_STREAM_START,
@@ -17,29 +38,12 @@ const buildChatStreamStartPayload = (inputArguments: { session: ChatStreamSessio
         'openai_request': inputArguments.requestBody
     };
     if (inputArguments.contentPreviewFeedback !== null) {
-        startPayload['content_preview_feedback'] = {
-            'assistant_at_ms': inputArguments.contentPreviewFeedback.assistantAtMs,
-            'assistant_turn_at_ms': inputArguments.contentPreviewFeedback.assistantTurnAtMs,
-            items: inputArguments.contentPreviewFeedback.items.map((item) => ({
-                'reference_type': item.referenceType,
-                target: item.target,
-                status: item.status,
-                'reason_code': item.reasonCode
-            }))
-        };
+        startPayload['content_preview_feedback'] = serializeContentPreviewFeedback(inputArguments.contentPreviewFeedback);
     }
     if (inputArguments.previewContractFeedback !== null) {
-        startPayload['preview_contract_feedback'] = {
-            'assistant_at_ms': inputArguments.previewContractFeedback.assistantAtMs,
-            'assistant_turn_at_ms': inputArguments.previewContractFeedback.assistantTurnAtMs,
-            code: inputArguments.previewContractFeedback.code,
-            'reason_code': inputArguments.previewContractFeedback.reasonCode,
-            detail: inputArguments.previewContractFeedback.detail,
-            'repair_attempted': inputArguments.previewContractFeedback.repairAttempted,
-            'repair_succeeded': inputArguments.previewContractFeedback.repairSucceeded
-        };
+        startPayload['preview_contract_feedback'] = serializePreviewContractFeedback(inputArguments.previewContractFeedback);
     }
     return startPayload;
 };
 
-export { buildChatStreamStartPayload };
+export { buildChatStreamStartPayload, serializeContentPreviewFeedback, serializePreviewContractFeedback };

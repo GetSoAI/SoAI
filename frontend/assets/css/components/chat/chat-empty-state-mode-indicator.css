@@ -17,6 +17,17 @@
         max-width: var(--chat-page-empty-state-indicator-width);
     }
 
+    @container ui-viewport (height <= 640px) {
+        :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator {
+            display: none;
+        }
+    }
+
+    :where(.chat-container) .chat-page-indicator-row .chat-page-model-indicator:has(.chat-model-menu.is-open) {
+        position: relative;
+        z-index: calc(var(--z-overlay) + 5);
+    }
+
     :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator {
         --chat-page-mode-chevron-color: var(--text-tertiary);
         --chat-page-mode-chevron-size: calc(1em + (var(--button-icon-scale) * 1rem));

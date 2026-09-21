@@ -20,6 +20,7 @@ from core.tasks.protocols import (
     TaskRegistryProtocol,
     TokenCollectionProtocol,
 )
+from core.users.protocols_database import DatabaseUsersProtocol
 from mcp.rag.scraper.internal_protocols import WebContentFetcherProtocol
 from mcp.search.clients.client_base import SearchClientBase
 
@@ -29,6 +30,7 @@ __all__ = ("MCPSearchDependencies",)
 @dataclass(frozen=True, slots=True)
 class MCPSearchDependencies:
     config: ConfigProtocol
+    database_users: DatabaseUsersProtocol
     database_plugins: DatabasePluginsProtocol
     fernet: tuple[Fernet, ...]
     http_client: httpx2.AsyncClient
@@ -48,6 +50,7 @@ class MCPSearchDependencies:
             cancellation_event_bus=self.cancellation_event_bus,
             cancellation_history=self.cancellation_history,
             config=self.config,
+            database_users=self.database_users,
             database_plugins=self.database_plugins,
             event_bus=self.event_bus,
             fernet=self.fernet,

@@ -1,4 +1,4 @@
-"""SoAI - SoAIBench V1 types [backend/hardware/soaibench/types.py]"""
+"""SoAI - SoAIBench current types [backend/hardware/soaibench/types.py]"""
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ __all__ = (
     "SoAIBenchRunStatus",
 )
 
-SOAIBENCH_SCORE_VERSION = "soaibench-v1"
+SOAIBENCH_SCORE_VERSION = "soaibench-v2"
 
 
 class SoAIBenchBenchmarkMode(StrEnum):
@@ -50,3 +50,6 @@ class SoAIBenchGpuIdentity:
     kernel_driver: str | None
     operating_system: str | None
     gpu_index: int | None
+    raw_gpu_name: str | None = None
+    raw_gpu_model_key: str | None = None
+    raw_vendor: str | None = None

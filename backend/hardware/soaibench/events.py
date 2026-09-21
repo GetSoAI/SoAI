@@ -17,7 +17,6 @@ from hardware.soaibench.responses import run_response
 
 if TYPE_CHECKING:
     from core.events.protocols import EventBusProtocol
-    from core.hardware.protocols_soaibench import DatabaseSoAIBenchProtocol
     from core.logging.protocols import LoggerProtocol
     from core.types.json import JSONDict
     from hardware.soaibench.worker_context import SoAIBenchWorkerEventContext
@@ -30,48 +29,44 @@ OPERATION = "hardware.soaibench.events.publish"
 
 async def publish_soaibench_run_update(
     *,
-    database_hardware: DatabaseSoAIBenchProtocol,
     event_bus: EventBusProtocol,
     logger: LoggerProtocol,
-    user_id: int,
-    run_id: str,
+    run: JSONDict,
     update_type: str,
     task_id: str | None = None,
 ) -> None:
+    run_id = str(run["run_id"])
     try:
-        run = await database_hardware.get_soaibench_run_for_user(
-            user_id=user_id,
-            run_id=run_id,
-        )
-        if run is None:
-            return
-        run["task_id"] = task_id
-        await event_bus.publish(_event_from_run(run=run, update_type=update_type))
+        event_run = dict(run)
+        event_run["task_id"] = task_id
+        await event_bus.publish(_event_from_run(run=event_run, update_type=update_type))
     except asyncio.CancelledError as exception:
         exception.add_note("SoAIBench realtime update publication was cancelled.")
         raise
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
         coerced_exception = coerce_to_soai_error(exception, operation=OPERATION)
-        log_exception(
-            logger,
-            coerced_exception,
-            message="SoAIBench realtime update publication failed.",
-            operation=OPERATION,
-            details={"run_id": run_id, "update_type": update_type},
-            level="warning",
-        )
+        if update_type == HEARTBEAT_UPDATE_TYPE:
+            log_exception(
+                logger,
+                coerced_exception,
+                message="SoAIBench realtime update publication failed.",
+                operation=OPERATION,
+                details={"run_id": run_id, "update_type": update_type},
+                level="warning",
+            )
+            return
+        raise coerced_exception from exception
 
 
 async def publish_soaibench_worker_update(
     context: SoAIBenchWorkerEventContext,
+    run: JSONDict,
     update_type: str,
 ) -> None:
     await publish_soaibench_run_update(
-        database_hardware=context.database_hardware,
         event_bus=context.event_bus,
         logger=context.logger,
-        user_id=context.user_id,
-        run_id=context.run_id,
+        run=run,
         update_type=update_type,
         task_id=context.task_id,
     )
