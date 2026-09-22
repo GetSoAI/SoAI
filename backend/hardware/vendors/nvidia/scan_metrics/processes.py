@@ -7,6 +7,7 @@ import ctypes
 
 import psutil
 import pynvml
+from pynvml import NVMLLibraryMismatchError
 
 from core.errors.exception_logging import log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
@@ -64,6 +65,32 @@ def _build_process_entry(proc_entry: NvmlProcessInfoProtocol) -> JSONDict:
     }
 
 
+def _read_compute_process_entries(handle: ctypes.c_void_p) -> list[NvmlProcessInfoProtocol]:
+    try:
+        device_get_compute_running_processes = pynvml.nvmlDeviceGetComputeRunningProcesses
+    except AttributeError:
+        device_get_compute_running_processes = None
+    if not callable(device_get_compute_running_processes):
+        return []
+    try:
+        proc_entries_raw = device_get_compute_running_processes(handle)
+    except NVMLLibraryMismatchError:
+        try:
+            versioned_device_get_compute_running_processes = (
+                pynvml.nvmlDeviceGetComputeRunningProcesses_v2
+            )
+        except AttributeError as exception:
+            raise NVMLLibraryMismatchError(
+                "The versioned NVIDIA compute process reader is unavailable."
+            ) from exception
+        if not callable(versioned_device_get_compute_running_processes):
+            return []
+        proc_entries_raw = versioned_device_get_compute_running_processes(handle)
+    if isinstance(proc_entries_raw, list | tuple):
+        return [*proc_entries_raw]
+    return []
+
+
 def read_processes(
     handle: ctypes.c_void_p,
     *,
@@ -74,16 +101,18 @@ def read_processes(
     if not detailed:
         return []
     try:
-        try:
-            device_get_compute_running_processes = pynvml.nvmlDeviceGetComputeRunningProcesses
-        except AttributeError:
-            device_get_compute_running_processes = None
-        proc_entries: list[NvmlProcessInfoProtocol] = []
-        if callable(device_get_compute_running_processes):
-            proc_entries_raw = device_get_compute_running_processes(handle)
-            if isinstance(proc_entries_raw, list | tuple):
-                proc_entries = [*proc_entries_raw]
+        proc_entries = _read_compute_process_entries(handle)
         return [_build_process_entry(proc_entry) for proc_entry in proc_entries]
+    except NVMLLibraryMismatchError as exception:
+        log_handled_exception(
+            logger,
+            exception,
+            message="NVIDIA process metrics are unavailable with this driver/NVML library (non-critical).",
+            operation=OPERATION,
+            details={"device_index": device_index},
+            level="trace",
+        )
+        return []
     except (pynvml.NVMLError, psutil.Error) as exception:
         try:
             nvml_error_not_supported = pynvml.NVML_ERROR_NOT_SUPPORTED

@@ -1,5 +1,16 @@
 # SoAI Release Notes
 
+## 1.2.1
+
+SoAI 1.2.1 improves installation and startup reliability after the 1.2.0 release, especially on slower machines and systems with older graphics drivers.
+
+### Fixes
+
+- The Windows PowerShell installation command now starts correctly when invoked through `irm | iex`. Runtime preparation waits longer for slow systems, checks required modules independently, and identifies the failed package or module when validation cannot complete.
+- Installer retries keep separate diagnostic logs and preserve a failure bundle when runtime preparation fails, while rollback and cleanup leave the previous application files and user data in the declared state.
+- Startup no longer treats an NVIDIA driver/NVML process-query mismatch as a fatal error on legacy GPUs; unavailable non-critical process metrics are reported as unavailable instead.
+- The Windows launcher now cleans up its owned backend when startup or shutdown is interrupted. RAG startup and the llama.cpp browser installation path also allow more time on slower or inconsistent machines.
+
 ## 1.2.0
 
 SoAI 1.2.0 brings a new SoAIBench scoring method and public leaderboard sharing, makes stopping and regenerating Chat responses more reliable, and improves streaming performance and attachment handling. It also adds per-user OCR language and activity timing preferences. Users can now choose which page SoAI opens when they connect to the WebUI; previously, it always opened the Dashboard.

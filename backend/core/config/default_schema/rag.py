@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.network.outbound_http_profiles import DEFAULT_BROWSER_DOCUMENT_USER_AGENTS
+from core.timing.constants import EXTENDED_TIMEOUT_SEC
 
 if TYPE_CHECKING:
     from core.config.value_types import ConfigDict
@@ -19,7 +20,7 @@ def build_rag_defaults() -> ConfigDict:
             "ENABLED": True,
             "CHROMA_PATH": "chroma_rag",
             "CHROMA_SHARD_COUNT": 1,
-            "CHROMA_IPC_STARTUP_TIMEOUT_SEC": 10,
+            "CHROMA_IPC_STARTUP_TIMEOUT_SEC": EXTENDED_TIMEOUT_SEC,
             "CHROMA_IPC_RETRY_COUNT": 1,
             "CHROMA_IPC_JOB_TTL_SEC": 3600,
             "CHROMA_QUERY_TIMEOUT_SEC": 30,

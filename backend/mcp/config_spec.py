@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Literal
 from core.config.user_interaction_timeout import DEFAULT_USER_INTERACTION_TIMEOUT_MS
 from core.mcp.schema import AUTO_EMBEDDING_MODEL_SELECTOR
 from core.network.outbound_http_profiles import DEFAULT_BROWSER_DOCUMENT_USER_AGENTS
+from core.timing.constants import EXTENDED_TIMEOUT_SEC
 
 if TYPE_CHECKING:
     from core.config.protocols import ConfigValue
@@ -183,7 +184,7 @@ def build_mcp_config_spec() -> tuple[ConfigSpecEntry, ...]:
             "rag_chroma_ipc_startup_timeout_sec",
             "TOOLS.RAG.CHROMA_IPC_STARTUP_TIMEOUT_SEC",
             "int",
-            10,
+            EXTENDED_TIMEOUT_SEC,
             minimum=1,
         ),
         ConfigSpecEntry(

@@ -1,6 +1,6 @@
 # SoAI Windows Release Tools
 
-This folder contains the first-party code and manifests used to build the SoAI launcher, complete Windows archive, and Windows installer. In the public source tree it does not bundle NSIS, Python, WebView2, or other third-party software. The generated Windows build kit adds the pinned NSIS toolchain and its license so the installer can be built offline.
+This folder contains the first-party code and manifests used to build the SoAI launcher, complete Windows archive, and Windows installer. In the public source tree it does not bundle NSIS, Python, WebView2, or other third-party software.
 
 ## Layout
 
@@ -9,23 +9,6 @@ This folder contains the first-party code and manifests used to build the SoAI l
 - `tools/` contains payload staging, canonical archive creation, installer asset generation, and verified NSIS bootstrap tooling.
 - `build-release.ps1` builds the launcher, stages and archives the Windows payload, and invokes NSIS.
 - `dependencies-v1.json` pins downloadable build and runtime dependencies and their integrity policy.
-
-## Expected Input
-
-Run these tools on a Windows release machine with a separately extracted SoAI Windows build kit. The build-kit root must contain `backend`, `frontend`, `plugins`, `VERSION`, `requirements.txt`, `install-soai-from-release.bat`, and the release documents. It does not need to contain Python, a virtual environment, WebView2 Runtime, or NSIS.
-
-## Build
-
-From the public source tree, build against the extracted build kit:
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass -Force
-.\tools\windows-release\tools\Bootstrap-NSIS.ps1
-.\tools\windows-release\tools\New-InstallerAssets.ps1 -LogoPath C:\build-kit\frontend\assets\img\soai\soai-logo-small-dark.png
-.\tools\windows-release\build-release.ps1 -SourceRoot C:\build-kit
-```
-
-The build reads the product version only from the build kit's `VERSION` file. Output is written under `tools\windows-release\out` by default. It produces `SoAI-<version>-windows-x64-complete.zip` and `SoAI-<version>-windows-x64-setup.exe` together; a failed installer build removes the incomplete release pair.
 
 ## Runtime Behavior
 

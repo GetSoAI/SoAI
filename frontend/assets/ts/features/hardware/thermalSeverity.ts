@@ -5,7 +5,7 @@ import { isFiniteNumber } from '@core/typeGuards.ts';
 
 const TEMPERATURE_WARNING_CELSIUS = 80;
 const TEMPERATURE_CRITICAL_CELSIUS = 90;
-const TEMPERATURE_MAX_SCALE_CELSIUS = 100;
+const TEMPERATURE_MAX_SCALE_CELSIUS = 105;
 
 type TemperatureSeverity = 'normal' | 'warning' | 'critical';
 

@@ -344,9 +344,24 @@ function Invoke-LoggedCommand {
     )
     $logDir = Get-InstallLogDir -Root $Root
     $safePhase = $PhaseName -replace '[^A-Za-z0-9_.-]', '-'
-    $stdoutLogPath = Join-Path $logDir "$safePhase.out.log"
-    $stderrLogPath = Join-Path $logDir "$safePhase.err.log"
-    Remove-Item -LiteralPath $stdoutLogPath, $stderrLogPath -Force -ErrorAction SilentlyContinue
+    $logAttempt = 1
+    do {
+        if ($logAttempt -eq 1) {
+            $attemptSuffix = ''
+        }
+        else {
+            $attemptSuffix = ".attempt-$logAttempt"
+        }
+        $stdoutLogPath = Join-Path $logDir "$safePhase$attemptSuffix.out.log"
+        $stderrLogPath = Join-Path $logDir "$safePhase$attemptSuffix.err.log"
+        if (!(Test-Path -LiteralPath $stdoutLogPath) -and !(Test-Path -LiteralPath $stderrLogPath)) {
+            break
+        }
+        $logAttempt += 1
+    } while ($logAttempt -le 10000)
+    if ($logAttempt -gt 10000) {
+        throw "Could not allocate a diagnostic log set for installer phase: $PhaseName"
+    }
     $psi = New-Object System.Diagnostics.ProcessStartInfo
     $psi.FileName = $Executable
     $psi.Arguments = Join-ProcessArguments $Arguments

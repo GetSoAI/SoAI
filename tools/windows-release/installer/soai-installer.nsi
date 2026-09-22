@@ -105,6 +105,7 @@ Var RuntimeStatusPath
 Var RuntimeExitPath
 Var RuntimeErrorPath
 Var RuntimeWrapperPath
+Var RuntimeDiagnosticPath
 Var LastRuntimeStatusMessage
 Var RuntimePollTicks
 Var RuntimeNoStatusTicks

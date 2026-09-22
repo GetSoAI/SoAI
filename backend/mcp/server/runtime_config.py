@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 
 from core.config.protocols import ConfigProtocol
 from core.config.user_interaction_timeout import DEFAULT_USER_INTERACTION_TIMEOUT_MS
+from core.timing.constants import EXTENDED_TIMEOUT_SEC
 from mcp.config import apply_config_spec
 from mcp.config_spec import build_mcp_config_spec
 
@@ -48,7 +49,7 @@ class MCPRuntimeConfig:
     rag_chroma_shard_count: int = 1
     rag_chroma_query_timeout_sec: int = 30
     rag_chroma_delete_timeout_sec: int = 30
-    rag_chroma_ipc_startup_timeout_sec: int = 10
+    rag_chroma_ipc_startup_timeout_sec: int = EXTENDED_TIMEOUT_SEC
     rag_chroma_ipc_retry_count: int = 1
     rag_chroma_ipc_job_ttl_sec: int = 3600
     rag_default_embedding_model: str | None = None

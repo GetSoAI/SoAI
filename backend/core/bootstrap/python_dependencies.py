@@ -27,7 +27,8 @@ from core.bootstrap.venv_markers import (
 from core.bootstrap.venv_paths import get_venv_path, get_venv_python_executable
 from core.errors.exceptions import StateError
 from core.meta.paths import join_data_abs
-from core.system.commands import run_argv_capture
+from core.system.commands import CommandResult, run_argv_capture
+from core.timing.constants import LONG_REQUEST_TIMEOUT_SEC
 
 __all__ = (
     "LOCKS_PATH_ENV",
@@ -136,9 +137,10 @@ def bootstrap_python_dependencies_if_needed(
             python_executable=resolved_python,
             requirements_path=requirements_path,
         )
-        if not _runtime_dependency_probes_pass(resolved_python):
+        dependency_probe_failure = _runtime_dependency_probe_failure(resolved_python)
+        if dependency_probe_failure is not None:
             raise StateError(
-                "Managed Python dependency preparation failed its runtime validation. Required modules must be available and pip check must pass before startup."
+                f"Managed Python dependency preparation failed its runtime validation: {dependency_probe_failure}"
             )
         _write_dependency_markers(venv_path=venv_path, requirements_hash=requirements_hash)
         return True
@@ -158,25 +160,52 @@ def _python_dependencies_need_install(
 
 
 def _runtime_dependency_probes_pass(python_executable: str) -> bool:
-    import_probe = run_argv_capture(
-        [
-            python_executable,
-            "-c",
-            _build_dependency_probe_script(),
-        ],
-        encoding="utf-8",
-        errors="replace",
-        timeout=30,
+    return _runtime_dependency_probe_failure(python_executable) is None
+
+
+def _runtime_dependency_probe_failure(python_executable: str) -> str | None:
+    probe_groups = (
+        (X64_NATIVE_DEPENDENCY_PROBE_IMPORTS, True),
+        (DEPENDENCY_PROBE_IMPORTS, False),
     )
-    if import_probe.return_code != 0:
-        return False
+    for module_names, x64_only in probe_groups:
+        for module_name in module_names:
+            import_probe = run_argv_capture(
+                [
+                    python_executable,
+                    "-c",
+                    _build_dependency_probe_script(module_name, x64_only=x64_only),
+                ],
+                encoding="utf-8",
+                errors="replace",
+                timeout=LONG_REQUEST_TIMEOUT_SEC,
+            )
+            if import_probe.return_code != 0:
+                return _format_dependency_probe_failure(
+                    f"module '{module_name}' could not be imported",
+                    import_probe,
+                )
     pip_check = run_argv_capture(
         [python_executable, "-m", "pip", "check"],
         encoding="utf-8",
         errors="replace",
-        timeout=60,
+        timeout=LONG_REQUEST_TIMEOUT_SEC,
     )
-    return pip_check.return_code == 0
+    if pip_check.return_code != 0:
+        return _format_dependency_probe_failure("pip check failed", pip_check)
+    return None
+
+
+def _format_dependency_probe_failure(label: str, result: CommandResult) -> str:
+    if result.return_code == 124:
+        return f"{label} (timed out after {LONG_REQUEST_TIMEOUT_SEC} seconds)."
+    detail = result.stderr.strip() or result.stdout.strip()
+    if detail:
+        detail_line = detail.splitlines()[-1].strip()
+        if len(detail_line) > 240:
+            detail_line = f"{detail_line[:237]}..."
+        return f"{label} (exit code {result.return_code}): {detail_line}"
+    return f"{label} (exit code {result.return_code})."
 
 
 def _install_python_dependencies(
@@ -260,15 +289,14 @@ def _runtime_dependency_source_hash(*, repo_root_path: str, requirements_path: s
     return f"requirements:{requirements_hash}\nlocal-tika:{local_tika_hash}"
 
 
-def _build_dependency_probe_script() -> str:
-    imports = [f"import {name}" for name in DEPENDENCY_PROBE_IMPORTS]
-    native_imports = [f"    import {name}" for name in X64_NATIVE_DEPENDENCY_PROBE_IMPORTS]
+def _build_dependency_probe_script(module_name: str, *, x64_only: bool = False) -> str:
+    if not x64_only:
+        return f"import {module_name}\n"
     return "\n".join(
         (
             "import platform",
             'if platform.machine() in ("AMD64", "x86_64"):',
-            *native_imports,
-            *imports,
+            f"    import {module_name}",
             "",
         )
     )

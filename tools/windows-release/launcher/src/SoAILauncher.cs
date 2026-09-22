@@ -386,6 +386,7 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
         private readonly List<DetachedWebViewForm> detachedWindows;
         private CoreWebView2Environment webViewEnvironment;
         private EndpointInfo activeEndpoint;
+        private ElevatedBackendSession backendSession;
         private bool closeRequested;
         private bool startupWindowRevealed;
 
@@ -433,6 +434,7 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
 
                 splash.SetStatus("Starting SoAI...");
                 EndpointInfo endpoint = await EnsureBackendAsync(shutdownToken.Token);
+                activeEndpoint = endpoint;
 
                 splash.SetStatus("Preparing the app window...");
                 await NavigateAndRevealAsync(endpoint, shutdownToken.Token);
@@ -481,16 +483,25 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
             EndpointInfo existingEndpoint = await DiscoveryProbe.WaitForEndpointAsync(TimeSpan.FromMilliseconds(250), TimeSpan.FromSeconds(1), token);
             if (existingEndpoint != null && await HealthProbe.WaitForReadyAsync(existingEndpoint, TimeSpan.FromMilliseconds(250), TimeSpan.FromSeconds(1), token))
             {
+                activeEndpoint = existingEndpoint;
                 RevealStartupWindow();
                 splash.SetStatus("SoAI is already running...");
                 return existingEndpoint;
             }
 
             splash.SetStatus("Requesting administrator access for the SoAI runtime...");
-            using (ElevatedBackendSession session = await ElevatedBackendSession.StartAsync(paths, BuildStartArguments(originalArgs), token))
+            ElevatedBackendSession session = await ElevatedBackendSession.StartAsync(paths, BuildStartArguments(originalArgs), token);
+            try
             {
+                backendSession = session;
                 RevealStartupWindow();
                 return await session.WaitForReadyAsync(splash, BackendStartupTimeout, token);
+            }
+            catch
+            {
+                backendSession = null;
+                session.Dispose();
+                throw;
             }
         }
 
@@ -873,14 +884,67 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
 
             closeRequested = true;
             shutdownToken.Cancel();
+            RequestBackendStop();
             CloseDetachedWindows();
         }
 
         private void CloseQuietly()
         {
+            if (closeRequested)
+            {
+                return;
+            }
             closeRequested = true;
+            shutdownToken.Cancel();
+            RequestBackendStop();
             CloseDetachedWindows();
             Close();
+        }
+
+        private void RequestBackendStop()
+        {
+            ElevatedBackendSession session = backendSession;
+            backendSession = null;
+            if (session != null)
+            {
+                try
+                {
+                    session.RequestStop();
+                }
+                catch (Exception exception)
+                {
+                    LauncherDiagnostics.WriteStartupFailure(paths, exception);
+                }
+                try
+                {
+                    session.Dispose();
+                }
+                catch (Exception exception)
+                {
+                    LauncherDiagnostics.WriteStartupFailure(paths, exception);
+                }
+                return;
+            }
+
+            EndpointInfo endpoint = activeEndpoint;
+            activeEndpoint = null;
+            if (endpoint == null)
+            {
+                return;
+            }
+
+            try
+            {
+                int exitCode = BackendProcess.RunForeground(paths, new string[] { "--stop" });
+                if (exitCode != 0)
+                {
+                    throw new InvalidOperationException("The existing SoAI backend did not stop cleanly after the launcher closed.");
+                }
+            }
+            catch (Exception exception)
+            {
+                LauncherDiagnostics.WriteStartupFailure(paths, exception);
+            }
         }
 
         private void RegisterDetachedWindow(DetachedWebViewForm window)
@@ -1673,11 +1737,13 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
     internal sealed class ElevatedBackendSession : IDisposable
     {
         private const string HelperArgument = "--soai-elevated-backend-helper";
+        private static readonly TimeSpan HelperShutdownTimeout = TimeSpan.FromSeconds(150);
         private readonly NamedPipeServerStream pipe;
         private readonly StreamReader reader;
         private readonly StreamWriter writer;
         private readonly Process helperProcess;
         private bool ready;
+        private bool stopRequested;
 
         private ElevatedBackendSession(NamedPipeServerStream pipe, StreamReader reader, StreamWriter writer, Process helperProcess)
         {
@@ -1895,14 +1961,42 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
             }
         }
 
+        public void RequestStop()
+        {
+            if (stopRequested)
+            {
+                return;
+            }
+            stopRequested = true;
+            if (ready && pipe.IsConnected)
+            {
+                writer.WriteLine("STOP");
+            }
+            else
+            {
+                TryCancel();
+            }
+        }
+
         public void Dispose()
         {
             try
             {
-                if (!ready)
+                if (ready)
+                {
+                    RequestStop();
+                }
+                else
                 {
                     TryCancel();
                 }
+                if (!helperProcess.HasExited && !helperProcess.WaitForExit((int)HelperShutdownTimeout.TotalMilliseconds))
+                {
+                    throw new TimeoutException("The elevated SoAI runtime helper did not finish shutdown within 150 seconds.");
+                }
+            }
+            finally
+            {
                 try
                 {
                     writer.Dispose();
@@ -1914,22 +2008,22 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
                         throw;
                     }
                 }
-            }
-            finally
-            {
-                try
-                {
-                    reader.Dispose();
-                }
                 finally
                 {
                     try
                     {
-                        pipe.Dispose();
+                        reader.Dispose();
                     }
                     finally
                     {
-                        helperProcess.Dispose();
+                        try
+                        {
+                            pipe.Dispose();
+                        }
+                        finally
+                        {
+                            helperProcess.Dispose();
+                        }
                     }
                 }
             }
@@ -2131,7 +2225,7 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
                 {
                     return 0;
                 }
-                await CompleteOwnershipTransferAsync(reader, writer);
+                await CompleteOwnershipTransferAsync(paths, reader, writer);
                 return 0;
             }
             writer.WriteLine("STATUS\tLaunching the administrator backend...");
@@ -2160,8 +2254,7 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
                         {
                             return 0;
                         }
-                        backend.Commit();
-                        await CompleteOwnershipTransferAsync(reader, writer);
+                        await CompleteOwnershipTransferAsync(paths, reader, writer);
                         return 0;
                     }
                     writer.WriteLine("STATUS\tWaiting for SoAI to become ready...");
@@ -2172,13 +2265,18 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
             }
         }
 
-        private static async Task CompleteOwnershipTransferAsync(StreamReader reader, StreamWriter writer)
+        private static async Task CompleteOwnershipTransferAsync(LauncherPaths paths, StreamReader reader, StreamWriter writer)
         {
             writer.WriteLine("COMMITTED");
             string trailingMessage = await reader.ReadLineAsync();
-            if (trailingMessage != null)
+            if (trailingMessage != null && !string.Equals(trailingMessage, "STOP", StringComparison.Ordinal))
             {
                 throw new InvalidOperationException("The launcher sent data after completing startup ownership transfer.");
+            }
+            int exitCode = BackendProcess.RunForeground(paths, new string[] { "--stop" });
+            if (exitCode != 0)
+            {
+                throw new InvalidOperationException("The administrator backend did not stop cleanly after the launcher closed.");
             }
         }
 
@@ -2247,6 +2345,12 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
                 BackendProcess.Quote(paths.BackendMain) + BackendProcess.BuildArgumentString(args),
                 paths.RootDirectory,
                 Path.Combine(paths.RootDirectory, "data", "logs", "soai-launcher.log"));
+        }
+
+        public void Commit()
+        {
+            SetKillOnJobClose(jobHandle, false);
+            committed = true;
         }
 
         public static NativeBackendJob StartProcess(string executable, string arguments, string workingDirectory, string logPath)
@@ -2365,12 +2469,6 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "Failed to open the hidden backend input device.");
             }
             return handle;
-        }
-
-        public void Commit()
-        {
-            SetKillOnJobClose(jobHandle, false);
-            committed = true;
         }
 
         public void Dispose()

@@ -9383,7 +9383,7 @@ This reference lists every terminal setting supported by the current Core V1 con
 | `TOOLS.RAG.ENABLED` | Boolean | Starts the knowledge-base indexing, retrieval, and configured web-search capabilities. | `true` | Yes |
 | `TOOLS.RAG.CHROMA_PATH` | String | [Chroma](https://www.trychroma.com/) vector index directory, resolved under the system data directory. | `"chroma_rag"` | Yes |
 | `TOOLS.RAG.CHROMA_SHARD_COUNT` | Integer | Number of isolated [Chroma](https://www.trychroma.com/) worker shards used for vector index operations. | `1` | Yes |
-| `TOOLS.RAG.CHROMA_IPC_STARTUP_TIMEOUT_SEC` | Integer | [Chroma](https://www.trychroma.com/) worker IPC must become ready within this many seconds. | `10` | Yes |
+| `TOOLS.RAG.CHROMA_IPC_STARTUP_TIMEOUT_SEC` | Integer | [Chroma](https://www.trychroma.com/) worker IPC must become ready within this many seconds. | `120` | Yes |
 | `TOOLS.RAG.CHROMA_IPC_RETRY_COUNT` | Integer | Additional attempts made after a [Chroma](https://www.trychroma.com/) IPC operation fails transiently. | `1` | Yes |
 | `TOOLS.RAG.CHROMA_IPC_JOB_TTL_SEC` | Integer | A submitted [Chroma](https://www.trychroma.com/) IPC job remains recoverable for this many seconds before it expires. | `3600` | Yes |
 | `TOOLS.RAG.CHROMA_QUERY_TIMEOUT_SEC` | Integer | A [Chroma](https://www.trychroma.com/) vector similarity query must finish within this many seconds. | `30` | Yes |

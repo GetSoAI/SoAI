@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 3.0
-$script:SoAIInstallerPath = $MyInvocation.MyCommand.Path
+$script:SoAIInstallerPath = $PSCommandPath
 
 function Write-SoAIStatus {
     param([Parameter(Mandatory = $true)][string]$Message)
