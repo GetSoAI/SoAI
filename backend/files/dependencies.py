@@ -7,6 +7,7 @@ import asyncio
 from dataclasses import dataclass
 
 from core.config.protocols import ConfigProtocol
+from core.database.protocols import DatabaseOperationStatusProtocol
 from core.di.validation import require_dependencies
 from core.events.protocols import EventBusProtocol
 from core.files.protocols import DatabaseFilesProtocol
@@ -27,6 +28,7 @@ __all__ = ("FileManagerDependencies",)
 class FileManagerDependencies:
     config: ConfigProtocol
     database_files: DatabaseFilesProtocol
+    database_operation_status: DatabaseOperationStatusProtocol
     storage_manager: StorageManagerProtocol
     event_bus: EventBusProtocol
     shutdown_event: asyncio.Event
@@ -50,6 +52,7 @@ class FileManagerDependencies:
             cancellation_history=self.cancellation_history,
             config=self.config,
             database_files=self.database_files,
+            database_operation_status=self.database_operation_status,
             storage_manager=self.storage_manager,
             directory_scan_timeout_seconds=self.directory_scan_timeout_seconds,
             event_bus=self.event_bus,

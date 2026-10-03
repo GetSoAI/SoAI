@@ -35,7 +35,7 @@
         -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
         backdrop-filter: var(--recessed-surface-backdrop-filter);
         box-shadow: var(--recessed-surface-shadow);
-        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        border-radius: 0 0 var(--border-radius-inset) var(--border-radius-inset);
         display: flex;
         flex: 1 1 auto;
         flex-direction: column;
@@ -50,7 +50,7 @@
     :where([data-section='hardware'], [data-page-scope='hardware']) :is(.hardware-network-card, .hardware-storage-card) > .section-header .u-text-muted {
         font-size: var(--font-size-compact);
         letter-spacing: var(--tracking-04px);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     @container ui-viewport (width <= 1400px) {

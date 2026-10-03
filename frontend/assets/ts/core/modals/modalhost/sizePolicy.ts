@@ -18,8 +18,8 @@ interface ModalViewportFrame {
     height: number;
 }
 
-const resolveModalFrame = (content: HTMLElement, isMobileViewport: boolean): ModalViewportFrame => {
-    const frame = resolveModalFrameBounds(content, isMobileViewport);
+const resolveModalFrame = (content: HTMLElement): ModalViewportFrame => {
+    const frame = resolveModalFrameBounds(content);
     return {
         width: Math.max(frame.width, MIN_MODAL_DIMENSION),
         height: Math.max(frame.height, MIN_MODAL_DIMENSION)
@@ -51,7 +51,7 @@ const buildSizeLimits = (frame: ModalViewportFrame, config: ModalConfig, isMobil
 };
 
 const resolveContentSizeLimits = (content: HTMLElement, config: ModalConfig, isMobileViewport: boolean, layoutOverride: ModalConfig['size'] | undefined = undefined): SizeLimits => {
-    return buildSizeLimits(resolveModalFrame(content, isMobileViewport), config, isMobileViewport, layoutOverride);
+    return buildSizeLimits(resolveModalFrame(content), config, isMobileViewport, layoutOverride);
 };
 
 const resolveRestoredDimension = (value: number | undefined, min: number, max: number): number | null => {
@@ -69,16 +69,19 @@ const resolveDefaultDimension = (value: number | null, min: number, max: number)
     return isFiniteNumber(value) ? clampNumber(value, min, max) : null;
 };
 
-const resolvePreferredSize = (savedState: SavedModalState | null | undefined, config: ModalConfig, limits: SizeLimits): Partial<Size> | null => {
+const resolvePreferredSize = (savedState: SavedModalState | null | undefined, config: ModalConfig, limits: SizeLimits, desktopOpenHeight: number | undefined): Partial<Size> | null => {
     const preferred: Partial<Size> = {};
     const savedWidth = resolveRestoredDimension(savedState?.size?.width, limits.minWidth, limits.maxWidth);
     const savedHeight = resolveRestoredDimension(savedState?.size?.height, limits.minHeight, limits.maxHeight);
+    const openHeight = resolveDefaultDimension(desktopOpenHeight ?? null, limits.minHeight, limits.maxHeight);
 
     if (savedWidth !== null) {
         preferred.width = savedWidth;
     }
     if (savedHeight !== null) {
         preferred.height = savedHeight;
+    } else if (openHeight !== null) {
+        preferred.height = openHeight;
     }
     if (!Object.keys(preferred).length) {
         const defaultWidth = resolveDefaultDimension(config.defaultWidth, limits.minWidth, limits.maxWidth);
@@ -104,7 +107,7 @@ const resetSizeStyles = (content: HTMLElement): void => {
     });
 };
 
-const applySizeConstraints = ({ content, config, isMobileViewport, savedState = null, layoutOverride = undefined }: ModalSizeDependencies): SizeConstraintResult | null => {
+const applySizeConstraints = ({ content, config, isMobileViewport, savedState = null, layoutOverride = undefined, desktopOpenHeight = undefined }: ModalSizeDependencies): SizeConstraintResult | null => {
     if (!(content instanceof HTMLElement)) {
         return null;
     }
@@ -131,7 +134,7 @@ const applySizeConstraints = ({ content, config, isMobileViewport, savedState = 
         styles['maxHeight'] = `${limits.maxHeight}px`;
     }
 
-    const preferredSize = resolvePreferredSize(config.resizable ? savedState : null, config, limits);
+    const preferredSize = resolvePreferredSize(config.resizable ? savedState : null, config, limits, desktopOpenHeight);
     const targetWidth = preferredSize && isFiniteNumber(preferredSize.width) ? preferredSize.width : null;
     const targetHeight = preferredSize && isFiniteNumber(preferredSize.height) ? preferredSize.height : null;
 
@@ -151,4 +154,19 @@ const applySizeConstraints = ({ content, config, isMobileViewport, savedState = 
     };
 };
 
-export { applySizeConstraints, resetSizeStyles, resolveContentSizeLimits };
+const lockModalContentHeight = (content: HTMLElement, sizeResult: SizeConstraintResult): { desktopOpenHeight: number; sizeResult: SizeConstraintResult } => {
+    const desktopOpenHeight = clampNumber(sizeResult.height, sizeResult.limits.minHeight, sizeResult.limits.maxHeight);
+    dom.setStyle(content, 'height', `${desktopOpenHeight}px`);
+    const after = measureLayoutBox(content);
+    return {
+        desktopOpenHeight,
+        sizeResult: {
+            ...sizeResult,
+            width: after.width,
+            height: after.height,
+            changed: sizeResult.changed || Math.round(sizeResult.width) !== Math.round(after.width) || Math.round(sizeResult.height) !== Math.round(after.height)
+        }
+    };
+};
+
+export { applySizeConstraints, lockModalContentHeight, resetSizeStyles, resolveContentSizeLimits };

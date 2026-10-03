@@ -116,6 +116,7 @@ const renderApiKeysSection = (host: ApiKeysViewRenderHost, availability: Setting
     const createLabel = i18n.t('settings.apiKeys.createKey');
     const createBtn = renderSettingsTitlebarAddButton({ id: 'api-keys-create-btn', action: API_KEYS_ACTION_CREATE, label: createLabel });
     const actionsBar = activeKeys.length > 1 ? `<div class="api-keys-actions-bar"><button type="button" id="api-keys-delete-all-btn" data-action="${API_KEYS_ACTION_DELETE_ALL}" class="ui-button ui-button--sm ui-variant-danger" aria-label="${deleteAllLabelAttr}" data-tooltip="${deleteAllLabelAttr}">${deleteAllLabel}</button></div>` : '';
+    const emptyListTitle = availability.status === 'pending' ? i18n.t('common.loading') : i18n.t('settings.apiKeys.noKeys');
 
     const listGroup = renderSettingsSubgroup({
         title: i18n.t('settings.apiKeys.listTitle'),
@@ -123,7 +124,7 @@ const renderApiKeysSection = (host: ApiKeysViewRenderHost, availability: Setting
         content: renderSettingsRecordList({
             id: 'api-keys-list',
             items: visibleKeys.map((key) => renderApiKeyItem(host, key)),
-            empty: renderEmptyState({ title: i18n.t('settings.apiKeys.noKeys'), className: 'ui-empty-state--simple' }).html
+            empty: renderEmptyState({ title: emptyListTitle, className: 'ui-empty-state--simple' }).html
         })
     });
 
@@ -132,7 +133,7 @@ const renderApiKeysSection = (host: ApiKeysViewRenderHost, availability: Setting
         description: i18n.t('settings.apiKeys.sectionDescription'),
         className: 'settings-section--api-keys',
         trailing: createBtn,
-        content: `${renderSettingsCapabilityNotice(availability)}${listGroup}${showRevokedSetting}${actionsBar}`
+        content: `${renderSettingsCapabilityNotice(availability, { showPending: true })}${listGroup}${showRevokedSetting}${actionsBar}`
     });
 };
 

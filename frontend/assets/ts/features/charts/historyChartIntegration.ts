@@ -29,7 +29,7 @@ const applyHistoryChartDefaults = ({ defaults, chartFilters, currentTimeRanges, 
     }
 };
 
-const syncHistoryTimeRangeFilter = async ({ chartFilters, historyControlsManager, retentionMinutes, baseOptions, selectedMinutes, onSelection, isCurrent }: SyncHistoryTimeRangeOptions): Promise<void> => {
+const syncHistoryTimeRangeFilter = async ({ chartFilters, historyControlsManager, rangeAvailability, seriesKey, retentionMinutes, baseOptions, selectedMinutes, onSelection, isCurrent }: SyncHistoryTimeRangeOptions): Promise<void> => {
     if (!chartFilters) {
         return;
     }
@@ -46,9 +46,10 @@ const syncHistoryTimeRangeFilter = async ({ chartFilters, historyControlsManager
     if (isCurrent && !isCurrent()) {
         return;
     }
-    onSelection(selection);
-    chartFilters.setTimeRangeOptions(selection.options);
-    chartFilters.setValue(FILTER_TYPES.TIME_RANGE, selection.selected);
+    const availableSelection = rangeAvailability.resolveSelection(seriesKey, selection);
+    onSelection(availableSelection);
+    chartFilters.setTimeRangeOptions(availableSelection.options);
+    chartFilters.setValue(FILTER_TYPES.TIME_RANGE, availableSelection.selected);
 };
 
 const syncHistoryCandlestickFilter = async ({ chartFilters, historyControlsManager, chartType, timeRangeMinutes, baseIntervals, supportedIntervalsMs, selectedIntervalMinutes, pointBudget, monitoringIntervalMs, onSelection, isCurrent }: SyncHistoryCandlestickOptions): Promise<void> => {

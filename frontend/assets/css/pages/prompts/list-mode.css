@@ -12,14 +12,14 @@
 
     :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-selection-cell {
         overflow: hidden;
-        padding-right: 0;
-        padding-left: 0;
+        padding-inline-end: 0;
+        padding-inline-start: 0;
         visibility: hidden;
     }
 
     :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-table.selection-mode .prompts-list-selection-cell {
-        padding-right: var(--space-2);
-        padding-left: var(--space-2);
+        padding-inline-end: var(--space-2);
+        padding-inline-start: var(--space-2);
         visibility: visible;
     }
 
@@ -29,6 +29,19 @@
 
     :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-cell {
         vertical-align: top;
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-row.is-editing :is(input[data-field='name'], textarea[data-field='content']) {
+        min-width: 0;
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-row.is-editing textarea[data-field='content'] {
+        min-height: 5rem;
+        resize: vertical;
+    }
+
+    :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-row.is-editing .prompts-list-actions {
+        gap: var(--space-2);
     }
 
     :where([data-section='prompts'], [data-page-scope='prompts']) .prompts-list-row {
@@ -135,14 +148,14 @@
         display: flex;
     }
 
-    :where([data-section='prompts'], [data-page-scope='prompts']).page-scrollable[data-view-mode='list']:has(.ui-collection-list) .ui-collection-list__table tbody tr {
+    :where([data-section='prompts'], [data-page-scope='prompts']).page-scrollable[data-view-mode='list'] .ui-collection-list .ui-collection-list__table tbody tr {
         position: static;
         min-height: 0;
         background: var(--surface-collection-row-background);
         box-shadow: none;
     }
 
-    :where([data-section='prompts'], [data-page-scope='prompts']).page-scrollable[data-view-mode='list']:has(.ui-collection-list) .ui-collection-list__table tbody tr[data-action] {
+    :where([data-section='prompts'], [data-page-scope='prompts']).page-scrollable[data-view-mode='list'] .ui-collection-list .ui-collection-list__table tbody tr[data-action] {
         cursor: pointer;
     }
 

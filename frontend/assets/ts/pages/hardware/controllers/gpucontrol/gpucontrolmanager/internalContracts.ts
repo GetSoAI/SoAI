@@ -8,6 +8,7 @@ import type { GpuControlManagerDependencies, GpuUiState, SecurityService, Slider
 
 export interface GpuControlManagerViewContext {
     dependencies: GpuControlManagerDependencies;
+    renderGpuControls: (options: { only: string[] }) => void;
     security: SecurityService;
     capabilitiesByIndex: GpuCapabilitiesByIndex | null;
     telemetryByDeviceId: Map<string, GpuControlTelemetry>;
@@ -22,6 +23,7 @@ export interface GpuControlManagerViewContext {
 export interface GpuControlManagerRendererContext {
     security: SecurityService;
     getIconSync: GpuControlManagerDependencies['getIconSync'];
+    soaibenchActivity: GpuControlManagerDependencies['soaibenchActivity'];
     capabilitiesByIndex: GpuCapabilitiesByIndex | null;
     telemetryByDeviceId: Map<string, GpuControlTelemetry>;
     soaibenchRuns: JsonValue | null;

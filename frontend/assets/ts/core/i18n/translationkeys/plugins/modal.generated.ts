@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 export type PluginsModalTranslationKey =
-    | 'plugins.modal.addPlugin.chooseFile'
     | 'plugins.modal.addPlugin.close'
     | 'plugins.modal.addPlugin.confirmDownload'
     | 'plugins.modal.addPlugin.confirmUpload'
+    | 'plugins.modal.addPlugin.fileDropHint'
+    | 'plugins.modal.addPlugin.fileDropTitle'
     | 'plugins.modal.addPlugin.fileHelp'
     | 'plugins.modal.addPlugin.fileLabel'
     | 'plugins.modal.addPlugin.manualCopySuccess'
@@ -28,6 +29,7 @@ export type PluginsModalTranslationKey =
     | 'plugins.modal.backendVariants.installedOption'
     | 'plugins.modal.backendVariants.loadFailed'
     | 'plugins.modal.backendVariants.loading'
+    | 'plugins.modal.backendVariants.loadingBackends'
     | 'plugins.modal.backendVariants.saveFailed'
     | 'plugins.modal.clonePlugin.author'
     | 'plugins.modal.clonePlugin.clone'

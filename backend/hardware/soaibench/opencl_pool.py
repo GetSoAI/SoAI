@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
@@ -16,7 +17,7 @@ from core.concurrency.cancellation_cleanup import (
     current_task_has_pending_cancellation,
     uncancel_then_cleanup,
 )
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import ProcessError, ValidationError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from hardware.soaibench.opencl_child import (
     SoAIBenchOpenCLChild,
@@ -68,7 +69,20 @@ class SoAIBenchOpenCLPool:
         try:
             yield child
         finally:
-            await self._release(child)
+            primary_exception = sys.exception()
+            if primary_exception is None:
+                await self._release(child)
+            else:
+                try:
+                    await self._release(child)
+                except asyncio.CancelledError as cleanup_exception:
+                    primary_exception.add_note(
+                        f"SoAIBench OpenCL child release also failed: {cleanup_exception}"
+                    )
+                except HANDLED_RUNTIME_EXCEPTIONS as cleanup_exception:
+                    primary_exception.add_note(
+                        f"SoAIBench OpenCL child release also failed: {cleanup_exception}"
+                    )
 
     async def shutdown(self) -> None:
         async with self._condition:
@@ -81,6 +95,9 @@ class SoAIBenchOpenCLPool:
                 await uncancel_then_cleanup(child.close())
             except asyncio.CancelledError as exception:
                 if first_failure is None:
+                    first_failure = exception
+            except ProcessError as exception:
+                if not child.exit_verified and first_failure is None:
                     first_failure = exception
             except HANDLED_RUNTIME_EXCEPTIONS as exception:
                 if first_failure is None:
@@ -138,13 +155,13 @@ class SoAIBenchOpenCLPool:
         await uncancel_then_cleanup(self._close_and_update_admission(child))
 
     async def _close_and_update_admission(self, child: SoAIBenchOpenCLChild) -> None:
-        released = False
         try:
             await child.close()
-            released = True
+            if not child.exit_verified:
+                raise ProcessError("SoAIBench OpenCL child exit could not be verified.")
         finally:
             async with self._condition:
-                if released:
+                if child.exit_verified:
                     self._children.discard(child)
                     if self._active_leases <= 0:
                         raise ValidationError("SoAIBench OpenCL child lease state is invalid.")

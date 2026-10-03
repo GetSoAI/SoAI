@@ -1,6 +1,7 @@
 Unicode true
 XPStyle on
 ManifestSupportedOS all
+ManifestLongPathAware true
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
 SetCompressorDictSize 64
@@ -21,6 +22,7 @@ SetCompressorDictSize 64
 !ifndef PBM_SETRANGE32
   !define PBM_SETRANGE32 0x0406
 !endif
+!define /ifndef PBS_MARQUEE 0x08
 
 !ifndef PRODUCT_VERSION
   !error "PRODUCT_VERSION must be defined"
@@ -30,6 +32,9 @@ SetCompressorDictSize 64
 !endif
 !ifndef PAYLOAD_DIR
   !error "PAYLOAD_DIR must be defined"
+!endif
+!ifndef PAYLOAD_MAX_RELATIVE_LENGTH
+  !error "PAYLOAD_MAX_RELATIVE_LENGTH must be defined"
 !endif
 !ifndef OUTPUT_FILE
   !define OUTPUT_FILE "SoAI-Windows-x64-Setup.exe"
@@ -41,13 +46,13 @@ SetCompressorDictSize 64
   !define RUNTIME_FOOTPRINT_RESERVE_KB "0"
 !endif
 !ifndef PYTHON_VERSION
-  !define PYTHON_VERSION "3.13.14"
+  !error "PYTHON_VERSION must be defined"
 !endif
 !ifndef PYTHON_URL
-  !define PYTHON_URL "https://www.nuget.org/api/v2/package/python/3.13.14"
+  !error "PYTHON_URL must be defined"
 !endif
 !ifndef PYTHON_SHA256
-  !define PYTHON_SHA256 "9AC15CFA6CAB1115C83D48F2AF55C554EFA4D1BB044BBC4AB1C9D17AD426E16C"
+  !error "PYTHON_SHA256 must be defined"
 !endif
 !ifndef WEBVIEW2_BOOTSTRAPPER_URL
   !define WEBVIEW2_BOOTSTRAPPER_URL "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
@@ -75,7 +80,85 @@ VIAddVersionKey /LANG=1033 "ProductVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey /LANG=1033 "Comments" "SoAI installer supports /PrepareUpdate extraction without installation."
 VIAddVersionKey /LANG=1033 "LegalCopyright" "SoAI"
 
-!define MUI_ABORTWARNING
+Var RuntimeStatusPath
+Var RuntimeExitPath
+Var RuntimeErrorPath
+Var RuntimeWrapperPath
+Var RuntimeDiagnosticPath
+Var LastRuntimeStatusMessage
+Var RuntimeCurrentProgress
+Var UninstallRemoveData
+Var UninstallRemoveDataCheckbox
+Var RuntimePageDialog
+Var RuntimePageStatusLabel
+Var RuntimePageProgress
+Var RuntimePageDetailLabel
+Var UpgradeBackupRoot
+Var UpgradePrepared
+Var InstallerMutexHandle
+Var InstallMutationStarted
+Var UpdateStageRoot
+Var InstallerFilesystemRoot
+Var InstallerRefreshResultRoot
+Var InstallerIsRefreshWorker
+Var InstallerPreflightRoot
+Var InstallerTargetClassification
+Var InstallerTransactionHandle
+Var InstallerLockDirectory
+Var InstallerLockToken
+Var InstallerAncestorHandles
+Var InstallerCreateDirectories
+Var InstallerLockHandle
+Var InstallerPayloadAncestorBoundary
+Var InstallerPayloadExtractionStarted
+Var InstallFailed
+Var InstallCanceled
+Var InstallFailureMessage
+Var InstallFailureSummary
+Var InstallRecoveryCompleted
+Var InstallMutationReverted
+Var InstallStartTicks
+Var InstallerCreatedRoot
+Var InstallerDiagnosticsRetained
+Var InstallerPayloadEntry
+Var UpgradeFilesRestored
+Var FinishPageTitle
+Var FinishPageText
+Var InstFilesHeaderText
+Var InstFilesHeaderSubtext
+Var RuntimePrepPhase
+Var RuntimePrepStartSeconds
+Var RuntimePrepTimedOut
+Var RuntimeAbortPrompt
+Var RuntimeElapsedText
+Var LastRuntimeStatusDetail
+Var RuntimeTaskState
+Var RuntimeTaskExitCode
+Var RuntimeTaskStopSeconds
+Var RuntimeProcessHandle
+Var RuntimeJobHandle
+Var RuntimePageElapsedLabel
+Var RuntimePageInfoLabel
+Var IntegrationStage
+Var IntegrationRegularFontExisted
+Var IntegrationItalicFontExisted
+Var IntegrationPriorRegularFont
+Var IntegrationPriorItalicFont
+Var RegistrationProductKeyExisted
+Var RegistrationUninstallKeyExisted
+Var RegistrationPriorInstallDir
+Var RegistrationPriorVersion
+Var RegistrationPriorDisplayName
+Var RegistrationPriorDisplayVersion
+Var RegistrationPriorPublisher
+Var RegistrationPriorInstallLocation
+Var RegistrationPriorDisplayIcon
+Var RegistrationPriorUninstallString
+Var RegistrationPriorQuietUninstallString
+Var RegistrationPriorEstimatedSize
+Var RegistrationPriorNoModify
+Var RegistrationPriorNoRepair
+
 !define MUI_CUSTOMFUNCTION_ABORT AbortSoAIInstall
 !define MUI_ICON "assets\soai-installer.ico"
 !define MUI_UNICON "assets\soai-installer.ico"
@@ -83,16 +166,23 @@ VIAddVersionKey /LANG=1033 "LegalCopyright" "SoAI"
 !define MUI_HEADERIMAGE_BITMAP "assets\header.bmp"
 !define MUI_WELCOMEFINISHPAGE_BITMAP "assets\welcome.bmp"
 !define MUI_UNWELCOMEFINISHPAGE_BITMAP "assets\welcome.bmp"
-!define MUI_FINISHPAGE_RUN
-!define MUI_FINISHPAGE_RUN_TEXT "Start SoAI"
-!define MUI_FINISHPAGE_RUN_FUNCTION LaunchSoAIFromFinish
-!define MUI_WELCOMEPAGE_TEXT "Setup will guide you through the installation of SoAI.$\r$\n$\r$\nAn internet connection is required to install SoAI.$\r$\n$\r$\nClose other applications before continuing, then click Next."
+!define MUI_WELCOMEPAGE_TEXT "Setup will guide you through the installation of SoAI.$\r$\n$\r$\nAn internet connection is required. Installation can take several minutes while Setup downloads and prepares the components SoAI needs.$\r$\n$\r$\nClick Next to continue."
 
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "${LICENSE_FILE}"
 !insertmacro MUI_PAGE_DIRECTORY
+!define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "$InstFilesHeaderText"
+!define MUI_INSTFILESPAGE_FINISHHEADER_SUBTEXT "$InstFilesHeaderSubtext"
+!define MUI_INSTFILESPAGE_ABORTHEADER_TEXT "SoAI Setup Failed"
+!define MUI_INSTFILESPAGE_ABORTHEADER_SUBTEXT "Setup could not finish copying SoAI. Click Cancel to undo its changes and close Setup."
 !insertmacro MUI_PAGE_INSTFILES
 Page custom RuntimePrepPageCreate RuntimePrepPageLeave
+!define MUI_FINISHPAGE_TITLE "$FinishPageTitle"
+!define MUI_FINISHPAGE_TEXT "$FinishPageText"
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_TEXT "Start SoAI"
+!define MUI_FINISHPAGE_RUN_FUNCTION LaunchSoAIFromFinish
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW FinishPageShow
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
@@ -101,30 +191,7 @@ UninstPage custom un.UninstallOptionsPageCreate un.UninstallOptionsPageLeave
 
 !insertmacro MUI_LANGUAGE "English"
 
-Var RuntimeStatusPath
-Var RuntimeExitPath
-Var RuntimeErrorPath
-Var RuntimeWrapperPath
-Var RuntimeDiagnosticPath
-Var LastRuntimeStatusMessage
-Var RuntimePollTicks
-Var RuntimeNoStatusTicks
-Var RuntimeCurrentProgress
-Var UninstallRemoveData
-Var UninstallRemoveDataCheckbox
-Var RuntimePageDialog
-Var RuntimePageStatusLabel
-Var RuntimePageProgress
-Var RuntimePageDetailLabel
-Var RuntimePrepFailed
-Var RuntimePrepFinished
-Var UpgradeBackupRoot
-Var UpgradePrepared
-Var UpgradeRollbackCompleted
-Var InstallerMutexHandle
-Var InstallMutationStarted
-Var UpdateStageRoot
-
+!include "includes\InstallAdmission.nsh"
 !include "includes\InstallLifecycle.nsh"
 !include "includes\RuntimePreparation.nsh"
 !include "includes\WindowsIntegration.nsh"
@@ -135,41 +202,68 @@ Section "SoAI" SEC_SOAI
   AddSize ${RUNTIME_FOOTPRINT_RESERVE_KB}
 
   ${If} $UpdateStageRoot == ""
+    Call BeginInstallation
+    Call AdmitInstallerTarget
+    StrCmp $InstallFailed 1 install_failed
     Call PrepareInstallerTransactionTools
+    StrCmp $InstallFailed 1 install_failed
     Call StopExistingSoAI
+    StrCmp $InstallFailed 1 install_failed
+    Call StartUpdateProgressWindow
     Call PrepareExistingInstallRoot
+    StrCmp $InstallFailed 1 install_failed
 
     StrCpy $InstallMutationStarted 1
-    CreateDirectory "$INSTDIR"
-    FileOpen $0 "$INSTDIR\.soai-install-root" w
+    ClearErrors
+    FileOpen $0 "$InstallerFilesystemRoot\.soai-install-root" w
     FileWrite $0 "SoAI Windows Installer Root$\r$\n"
     FileWrite $0 "Version=${PRODUCT_VERSION}$\r$\n"
     FileClose $0
+    ${If} ${Errors}
+      Push "Setup could not write to the installation folder $INSTDIR."
+      Call RecordInstallFailure
+      Goto install_failed
+    ${EndIf}
   ${Else}
     Call ValidateUpdateStageRoot
     StrCpy $INSTDIR "$UpdateStageRoot"
+    Push "$INSTDIR"
+    Call InstallerFilesystemPath
+    Pop $InstallerFilesystemRoot
   ${EndIf}
-  SetOutPath "$INSTDIR"
-  ClearErrors
+  StrCpy $OUTDIR "$InstallerFilesystemRoot"
+  StrCpy $InstallerPayloadAncestorBoundary $InstallerAncestorHandles
+  StrCpy $InstallerPayloadExtractionStarted 1
   !include "${PAYLOAD_FILES_INCLUDE}"
-  ${If} ${Errors}
-    SetErrorLevel 1
-    Abort
-  ${EndIf}
+  Goto payload_extracted
+  payload_file_failed:
+    Push "Setup could not write $InstallerPayloadEntry to the installation folder $INSTDIR."
+    Call RecordInstallFailure
+  payload_extracted:
+  SetDetailsPrint both
+  StrCmp $InstallFailed 1 install_failed
   Call InstallCandidateLauncher
+  StrCmp $InstallFailed 1 install_failed
+  Call ReleaseInstallerPayloadDirectories
   ${If} $UpdateStageRoot != ""
     Goto done
   ${EndIf}
   Push 35
   Call SetInstallerProgress
 
-  IfSilent 0 done
+  IfSilent 0 phase_complete
     Call RuntimePrepRunSilent
+    Goto done
+  install_failed:
+    Call RecoverFailedInstallation
+  phase_complete:
+    Call WriteInstallDetailsLog
   done:
 
 SectionEnd
 
 Section "Uninstall"
+  Call un.AdmitInstallerTarget
   SetShellVarContext all
   SetRegView 64
 
@@ -202,4 +296,9 @@ Section "Uninstall"
   RMDir "$INSTDIR"
   DeleteRegKey HKLM "${PRODUCT_REGKEY}"
   DeleteRegKey HKLM "${PRODUCT_UNINSTALL_KEY}"
+  Call un.ReleaseInstallerTarget
+  ${If} $UninstallRemoveData == 1
+    !insertmacro RemoveInstallerDataSkeleton "un."
+    !insertmacro TryRemoveInstallerDirectory "un." "$INSTDIR"
+  ${EndIf}
 SectionEnd

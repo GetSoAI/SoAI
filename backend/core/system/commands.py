@@ -15,6 +15,8 @@ from core.system.protocols import (
 )
 from core.system.subprocess_platform import (
     resolve_subprocess_creationflags,
+    resolve_subprocess_environment,
+    resolve_subprocess_paths,
     resolve_subprocess_startupinfo,
     windows_no_window_creationflags,
 )
@@ -59,9 +61,12 @@ def run_argv_capture(
     creationflags: int | None = None,
     check: bool = False,
 ) -> CommandResult:
+    argv_list = [str(part) for part in argv]
     try:
+        process_paths = resolve_subprocess_paths(argv_list, cwd)
         process = subprocess.run(
-            [str(part) for part in argv],
+            argv_list,
+            executable=process_paths.executable,
             shell=False,
             capture_output=True,
             text=True,
@@ -70,8 +75,8 @@ def run_argv_capture(
             errors=errors,
             timeout=timeout,
             check=False,
-            env=dict(env) if env is not None else None,
-            cwd=cwd,
+            env=resolve_subprocess_environment(env),
+            cwd=process_paths.working_directory,
             startupinfo=resolve_subprocess_startupinfo(startupinfo),
             creationflags=(
                 resolve_subprocess_creationflags(creationflags)
@@ -86,16 +91,20 @@ def run_argv_capture(
         )
     except subprocess.TimeoutExpired:
         result = CommandResult(stdout="", return_code=124, stderr=f"Timeout after {timeout}s")
-    except OSError as exception:
+    except FileNotFoundError as exception:
         result = CommandResult(
             stdout="",
             return_code=127,
             stderr=f"Command not found: {exception!s}",
         )
+    except OSError as exception:
+        result = CommandResult(
+            stdout="", return_code=127, stderr=f"Command could not start: {exception!s}"
+        )
     if check and result.return_code != 0:
         raise subprocess.CalledProcessError(
             result.return_code,
-            [str(part) for part in argv],
+            argv_list,
             output=result.stdout,
             stderr=result.stderr,
         )

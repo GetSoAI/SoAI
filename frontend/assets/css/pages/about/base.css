@@ -3,12 +3,11 @@
 
 @layer pages {
     .about-container:where([data-section='about'], [data-page-scope='about']) {
-        min-height: var(--layout-content-height);
-        height: auto;
+        min-height: 0;
+        height: calc(100 * var(--ui-viewport-height-unit));
         overflow-x: hidden;
         overflow-y: auto;
         position: relative;
-        padding-bottom: var(--ui-safe-area-inset-bottom);
     }
 
     :where([data-section='about'], [data-page-scope='about']) .about-hero-background {
@@ -28,7 +27,7 @@
     :where([data-section='about'], [data-page-scope='about']) .about-content-wrapper {
         position: relative;
         z-index: var(--z-raised);
-        min-height: calc(var(--layout-content-height) + var(--ui-safe-area-inset-bottom));
+        min-height: 100%;
         display: flex;
         flex: 0 0 auto;
         flex-direction: column;
@@ -54,6 +53,8 @@
     :where([data-section='about'], [data-page-scope='about']) .about-hero-background .logo-glow {
         position: absolute;
         top: 50%;
+
+        /* direction: physical — centering uses physical negative half-width translation */
         left: 50%;
         transform: translate(-50%, -50%);
         width: 585px;
@@ -159,8 +160,8 @@
         content: '';
         position: absolute;
         top: 0;
-        left: 0;
-        right: 0;
+        inset-inline-start: 0;
+        inset-inline-end: 0;
         height: 1px;
         background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent-green) 30%, transparent), transparent);
     }
@@ -199,7 +200,7 @@
     .about-container:where([data-section='about'], [data-page-scope='about']) .meta-label {
         font-size: var(--font-size-xs);
         color: var(--text-tertiary);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-05em);
         font-weight: 600;
     }

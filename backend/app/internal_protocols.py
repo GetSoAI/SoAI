@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import socket
-from collections.abc import Collection, Sequence
+from collections.abc import Callable, Collection, Sequence
 from typing import TYPE_CHECKING, Protocol
 
 from core.app.protocols import ApplicationRuntimeCoordinatorProtocol
@@ -45,6 +45,7 @@ __all__ = (
     "UvicornConnectionProtocol",
     "UvicornServerStateProtocol",
     "UvicornServerProtocol",
+    "WindowsConsoleControlProtocol",
 )
 
 
@@ -68,6 +69,14 @@ class InstanceLockProtocol(Protocol):
     def lock_file(self) -> str: ...
 
     def release(self) -> None: ...
+
+
+class WindowsConsoleControlProtocol(Protocol):
+    def ignore_gui_control_signals(self) -> None: ...
+
+    def register_ctrl_handler(self, handler: Callable[[], None]) -> None: ...
+
+    def release_ctrl_handler(self) -> None: ...
 
 
 class LifecycleActorProtocol(Protocol): ...
@@ -196,3 +205,9 @@ class ApplicationHostServiceProtocol(Protocol):
 
 class ApplicationUpdateServiceProtocol(Protocol):
     async def update(self) -> tuple[ApplicationUpdateOutcome, str]: ...
+
+    async def get_preparation_status(self) -> JSONDict: ...
+
+    async def get_update_notice(self, user_id: int) -> JSONDict | None: ...
+
+    async def acknowledge_update_notice(self, *, user_id: int, task_id: str) -> bool: ...

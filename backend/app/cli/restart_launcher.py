@@ -19,7 +19,7 @@ from core.runtime.platform import get_runtime_platform
 from core.system.process_launcher import DEVNULL_STREAM, spawn_handoff_process
 from core.system.process_replacement import (
     flush_process_replacement_output,
-    redirect_standard_streams_to_devnull,
+    redirect_unusable_standard_streams_to_devnull,
     replace_current_process,
 )
 
@@ -68,7 +68,7 @@ def relaunch_application(
             env=os.environ.copy(),
         )
         return
-    redirect_standard_streams_to_devnull()
+    redirect_unusable_standard_streams_to_devnull()
     os.chdir(backend_dir)
     replace_current_process(restart_argv)
 

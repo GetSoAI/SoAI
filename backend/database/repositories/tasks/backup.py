@@ -14,6 +14,7 @@ from core.tasks.status_policy import TERMINAL_TASK_STATUS_VALUES
 from core.tasks.type_catalog import TASK_TYPE_BACKUP_RESTORE
 from core.timing.epoch import epoch_ms
 from core.validation.epoch import require_unix_epoch_ms
+from database.schema_version import read_database_schema_version
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -111,6 +112,11 @@ def sync_finalize_restored_backup_task(
                     raise StateError("Restored task has a conflicting terminal result.")
                 conn.commit()
                 return
+            if read_database_schema_version(conn) >= 3:
+                conn.execute(
+                    "UPDATE unified_tasks SET public_error_message = NULL WHERE task_id = ?",
+                    (task_id,),
+                )
             conn.execute(
                 """
                 INSERT INTO unified_tasks (

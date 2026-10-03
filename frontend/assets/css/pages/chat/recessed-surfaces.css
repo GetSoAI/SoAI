@@ -20,7 +20,7 @@
         -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
         backdrop-filter: var(--recessed-surface-backdrop-filter);
         box-shadow: var(--recessed-surface-shadow);
-        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        border-radius: 0 0 var(--border-radius-inset) var(--border-radius-inset);
     }
 
     :where([data-section='chat'], [data-page-scope='chat']) .inline-activity[data-collapsed='false'] {

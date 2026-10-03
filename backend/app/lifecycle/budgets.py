@@ -3,18 +3,21 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from app.lifecycle.shutdown_budget_counts import SHUTDOWN_COMPONENT_TIMEOUT_ENTRY_COUNT
 from core.config.numeric import coerce_positive_float
 from core.config.protocols import ConfigProtocol
 from core.errors.exceptions import ValidationError
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.validation.booleans import parse_bool
 
 __all__ = (
     "DEFAULT_SHUTDOWN_WATCHDOG_TIMEOUT_SEC",
     "LifecycleShutdownBudgets",
     "resolve_lifecycle_shutdown_budgets",
+    "arm_lifecycle_shutdown_deadline",
 )
 
 DEFAULT_SHUTDOWN_WATCHDOG_TIMEOUT_SEC = 1050.0
@@ -103,3 +106,12 @@ def _shutdown_backup_timeout(config: ConfigProtocol) -> float:
     if not parse_bool(config.get("DATA.BACKUP.SCHEDULE.ON_SHUTDOWN", False), default=False):
         return 0.0
     return _timeout(config, "DATA.BACKUP.SCHEDULE.ON_SHUTDOWN_TIMEOUT_SEC", 120.0, 10.0)
+
+
+def arm_lifecycle_shutdown_deadline(
+    config: ConfigProtocol,
+    process_exit_deadline: ProcessExitDeadline,
+) -> LifecycleShutdownBudgets:
+    shutdown_budgets = resolve_lifecycle_shutdown_budgets(config)
+    process_exit_deadline.begin_shutdown(math.ceil(shutdown_budgets.watchdog_timeout_sec))
+    return shutdown_budgets

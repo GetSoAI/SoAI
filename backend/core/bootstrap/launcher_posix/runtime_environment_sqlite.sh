@@ -31,7 +31,7 @@ soai_managed_runtime__sqlite_runtime_matches() {
 soai_managed_runtime__ensure_sqlite_runtime() {
     local environment_directory="$1"
     local state_directory="$2"
-    local micromamba_version="${3:-2.5.0}"
+    local micromamba_version="${3:-}"
     local offline_mode="${4:-0}"
     if [ -z "$environment_directory" ] || [ ! -x "${environment_directory}/bin/python" ]; then
         soai_managed_runtime__die "Managed Python is missing for SQLite runtime validation: ${environment_directory}" || return 1

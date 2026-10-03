@@ -5,6 +5,8 @@ import { haveEqualChildNodes, syncAttribute, syncClass } from '@core/dom/patchin
 import { STREAMED_PREVIEW_ATTRIBUTE_NAMES } from '@features/chat/message/messageview/inlineActivityText.ts';
 import { resolveHeaderChildren, resolveInlineActivityPreviewText } from '@features/chat/message/messageview/inlineActivityHeaderChildrenDomOps.ts';
 
+const STREAMED_PREVIEW_SYNCED_ATTRIBUTE_NAMES = [STREAMED_PREVIEW_ATTRIBUTE_NAMES.root, STREAMED_PREVIEW_ATTRIBUTE_NAMES.status, STREAMED_PREVIEW_ATTRIBUTE_NAMES.latest, STREAMED_PREVIEW_ATTRIBUTE_NAMES.revealAt];
+
 const haveSameClassSet = (left: HTMLElement, right: HTMLElement): boolean => {
     const leftClasses = left.classList;
     const rightClasses = right.classList;
@@ -28,14 +30,10 @@ const patchStreamedPreview = (existingPreview: HTMLElement, createdPreview: HTML
     if (syncClass(existingPreview, createdPreview)) {
         changed = true;
     }
-    if (syncAttribute({ target: existingPreview, source: createdPreview, name: STREAMED_PREVIEW_ATTRIBUTE_NAMES.root })) {
-        changed = true;
-    }
-    if (syncAttribute({ target: existingPreview, source: createdPreview, name: STREAMED_PREVIEW_ATTRIBUTE_NAMES.status })) {
-        changed = true;
-    }
-    if (syncAttribute({ target: existingPreview, source: createdPreview, name: STREAMED_PREVIEW_ATTRIBUTE_NAMES.latest })) {
-        changed = true;
+    for (const name of STREAMED_PREVIEW_SYNCED_ATTRIBUTE_NAMES) {
+        if (syncAttribute({ target: existingPreview, source: createdPreview, name })) {
+            changed = true;
+        }
     }
     const existingText = resolveInlineActivityPreviewText(existingPreview);
     const createdText = resolveInlineActivityPreviewText(createdPreview);

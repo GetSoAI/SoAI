@@ -2,15 +2,15 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { setControlValidity } from '@core/dom/formValidity.ts';
-import { i18n } from '@core/i18n/index.ts';
+import { updateToggleLabel } from '@core/toggleSwitch.ts';
 import type { ParameterValue } from '@pages/modeldetail/contracts/parameterTypes.ts';
 import { getDomData, registerHandlers } from '@pages/modeldetail/controllers/parameterviewmanager/dom.ts';
-import type { ParameterViewHost } from '@pages/modeldetail/controllers/parameterviewmanager/types.ts';
+import type { BoundParameterEvents, ParameterViewHost } from '@pages/modeldetail/controllers/parameterviewmanager/types.ts';
 
 interface ParameterControlBindings {
     host: ParameterViewHost;
     container: Element;
-    boundElements: Set<Element>;
+    boundEvents: BoundParameterEvents;
     eventDisposers: Array<() => void>;
     onUpdateArrayItemValue: (parameterKey: string, index: number, value: ParameterValue) => void;
     onUpdateParameter: (parameterKey: string, value: ParameterValue) => void;
@@ -22,8 +22,8 @@ const setParameterInputValidity = (element: HTMLInputElement, valid: boolean): v
     setControlValidity(element, valid, '.model-parameter-item');
 };
 
-const bindParameterControls = ({ host, container, boundElements, eventDisposers, onUpdateArrayItemValue, onUpdateParameter, onUpdateJsonParameter, onSetParameterValidity }: ParameterControlBindings): void => {
-    registerHandlers(host, container, '.array-item-input', 'input', boundElements, eventDisposers, (_event: Event, element: HTMLElement) => {
+const bindParameterControls = ({ host, container, boundEvents, eventDisposers, onUpdateArrayItemValue, onUpdateParameter, onUpdateJsonParameter, onSetParameterValidity }: ParameterControlBindings): void => {
+    registerHandlers(host, container, '.array-item-input', 'input', boundEvents, eventDisposers, (_event: Event, element: HTMLElement) => {
         if (!(element instanceof HTMLInputElement)) {
             throw new TypeError('Array item input must be an HTMLInputElement');
         }
@@ -34,7 +34,7 @@ const bindParameterControls = ({ host, container, boundElements, eventDisposers,
             onUpdateArrayItemValue(key, index, value);
         }
     });
-    registerHandlers(host, container, 'input[type="number"][data-param]', 'input', boundElements, eventDisposers, (_event: Event, element: HTMLElement) => {
+    registerHandlers(host, container, 'input[type="number"][data-param]', 'input', boundEvents, eventDisposers, (_event: Event, element: HTMLElement) => {
         if (!(element instanceof HTMLInputElement)) {
             throw new TypeError('Numeric parameter control must be an HTMLInputElement');
         }
@@ -54,8 +54,8 @@ const bindParameterControls = ({ host, container, boundElements, eventDisposers,
         const parsed = Number.isFinite(numericValue) && (!Number.isNaN(step) && step < 1 ? true : Number.isInteger(numericValue)) ? numericValue : null;
         onUpdateParameter(key, parsed);
     });
-    registerHandlers(host, container, 'input[data-param], textarea[data-param], select[data-param]', 'change', boundElements, eventDisposers, (_event: Event, element: HTMLElement) => {
-        if (element.matches('.array-item-input, input[type="number"]')) {
+    registerHandlers(host, container, 'input[data-param], textarea[data-param], select[data-param]', 'change', boundEvents, eventDisposers, (_event: Event, element: HTMLElement) => {
+        if (element.matches('.array-item-input, .json-input, input[type="number"]')) {
             return;
         }
         const key = getDomData(host, element, 'param');
@@ -64,10 +64,7 @@ const bindParameterControls = ({ host, container, boundElements, eventDisposers,
         }
         if (element instanceof HTMLInputElement && element.type === 'checkbox') {
             onUpdateParameter(key, element.checked);
-            const label = host.pageDom.optional('.toggle-label', element.closest('.toggle-switch') ?? undefined);
-            if (label) {
-                host.pageDom.updateText(label, element.checked ? i18n.t('common.boolean.true') : i18n.t('common.boolean.false'));
-            }
+            updateToggleLabel(element);
             return;
         }
         if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) {
@@ -76,7 +73,7 @@ const bindParameterControls = ({ host, container, boundElements, eventDisposers,
         }
         throw new TypeError('Parameter control change target must be an HTMLInputElement, HTMLTextAreaElement, or HTMLSelectElement');
     });
-    registerHandlers(host, container, '.json-input', 'focusout', boundElements, eventDisposers, (_event: Event, element: HTMLElement) => {
+    registerHandlers(host, container, '.json-input', 'focusout', boundEvents, eventDisposers, (_event: Event, element: HTMLElement) => {
         const key = getDomData(host, element, 'param');
         if (!key) {
             return;

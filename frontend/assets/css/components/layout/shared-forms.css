@@ -60,7 +60,7 @@
     .secret-input-container {
         width: 100%;
     }
-    .secret-input-container > :where(.form-input, .setting-input).secret-input {
-        padding-right: calc(var(--control-padding-inline) + var(--inline-action-field-width));
+    .secret-input-container.ui-inline-action-field > :where(.form-input, .setting-input).secret-input {
+        padding-inline-end: calc(var(--control-padding-inline) + var(--inline-action-field-width));
     }
 }

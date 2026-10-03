@@ -5,10 +5,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.timing.constants import EXTENDED_TIMEOUT_SEC
+
 if TYPE_CHECKING:
     from core.config.value_types import ConfigDict
 
-__all__ = ("DEFAULT_VACUUM_INTERVAL_HOURS", "build_database_manager_defaults")
+__all__ = (
+    "DEFAULT_VACUUM_INTERVAL_HOURS",
+    "build_database_manager_defaults",
+)
 
 DEFAULT_VACUUM_INTERVAL_HOURS = 720
 
@@ -24,7 +29,7 @@ def build_database_manager_defaults() -> ConfigDict:
                 "WRITE_MMAP_SIZE_MB": 4096,
             },
             "WRITER": {
-                "INIT_TIMEOUT_SEC": 30,
+                "INIT_TIMEOUT_SEC": EXTENDED_TIMEOUT_SEC,
                 "SHUTDOWN_TIMEOUT_SEC": 5,
                 "OPERATION_TIMEOUT_SEC": 120,
             },

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
-import type { RequestDistributionChartSizeWatcher } from '@core/models/requestDistributionChartSizing.ts';
+import type { ElementResizeRedrawWatcher } from '@core/layout/elementResizeRedraw.ts';
 import type { MovableLayoutEditController } from '@core/routing/pages/movablesections/layoutEditController.ts';
 import type { MovableSectionLayout } from '@core/routing/pages/movablesections/service.ts';
 import type { MovableSectionLayoutHost, MovableSectionLayoutStorage } from '@core/routing/pages/movablesections/types.ts';
@@ -85,7 +85,7 @@ interface DashboardRuntime {
     readonly collectionsRenderers: ReturnType<typeof createDashboardCollectionsRenderers>;
     readonly renderStatusSection: () => void;
     readonly renderRequestsSection: () => void;
-    readonly requestDistributionChartSizeWatcher: RequestDistributionChartSizeWatcher;
+    readonly requestDistributionChartSizeWatcher: ElementResizeRedrawWatcher;
     readonly hardwareSections: DashboardHardwareSectionsController;
     readonly imageCard: DashboardImageCardController;
     readonly clock: DashboardClockController;

@@ -1,11 +1,12 @@
 /* SoAI - Dashboard page mappers [frontend/assets/ts/pages/dashboard/controllers/mappers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { WindowsNetworkInventoryStatus } from '@core/api/contracts/hardwareContracts.ts';
 import { narrowHTMLElement } from '@core/dom/narrowElement.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { isObject } from '@core/typeGuards.ts';
 import { isJsonObjectMapValue } from '@core/types/runtimeCollectionGuards.ts';
-import { buildNetworkInterfaceModels, buildNetworkSummaryText, createNetworkInterfaceRow, DEFAULT_IGNORED_NETWORK_PREFIXES, isHardwareSnapshot, type NetworkCardLabelSet, type NetworkInterfaceModel } from '@features/hardware/public.ts';
+import { buildNetworkEmptyText, buildNetworkInterfaceModels, buildNetworkSummaryText, createNetworkInterfaceRow, DEFAULT_IGNORED_NETWORK_PREFIXES, getWindowsNetworkInventoryStatus, isHardwareSnapshot, type NetworkCardLabelSet, type NetworkInterfaceModel } from '@features/hardware/public.ts';
 import type { DashboardHardwareSectionsRenderContext } from '@pages/dashboard/controllers/contracts.ts';
 import { syncKeyedList, type KeyedListRow } from '@pages/dashboard/controllers/effects.ts';
 
@@ -17,10 +18,10 @@ const getNetworkLabels = (): NetworkCardLabelSet => ({
     upload: i18n.t('hardware.cards.network.labels.upload')
 });
 
-const syncNetworkSummary = (host: DashboardHardwareSectionsRenderContext['host'], rows: readonly NetworkInterfaceModel[]): void => {
+const syncNetworkSummary = (host: DashboardHardwareSectionsRenderContext['host'], rows: readonly NetworkInterfaceModel[], windowsInventoryStatus: WindowsNetworkInventoryStatus | null = null): void => {
     const summary = host.optionalHTMLElement('#dashboardNetworkSummary');
     if (summary) {
-        summary.textContent = buildNetworkSummaryText(rows);
+        summary.textContent = buildNetworkSummaryText(rows, windowsInventoryStatus);
     }
 };
 
@@ -43,15 +44,17 @@ export const renderNetworkInterfacesSection = ({ host, state, isDestroyed }: Das
     const snapshot = state.getRawHardwareSnapshot();
     const liveSpeedSnapshot = isObject(snapshot) ? snapshot.networkSpeed : null;
     const speeds = isJsonObjectMapValue(liveSpeedSnapshot) ? liveSpeedSnapshot : undefined;
-    const rows = buildNetworkInterfaceModels(isHardwareSnapshot(snapshot) ? snapshot : undefined, {
+    const hardwareSnapshot = isHardwareSnapshot(snapshot) ? snapshot : undefined;
+    const rows = buildNetworkInterfaceModels(hardwareSnapshot, {
         speeds,
         ignorePrefixes: DEFAULT_IGNORED_NETWORK_PREFIXES
     });
 
     if (!rows.length) {
-        const emptyNode = host.createElement('div', { className: 'hardware-network-empty u-text-muted' }, i18n.t('hardware.cards.network.empty'));
+        const windowsInventoryStatus = getWindowsNetworkInventoryStatus(hardwareSnapshot);
+        const emptyNode = host.createElement('div', { className: 'hardware-network-empty u-text-muted' }, buildNetworkEmptyText(windowsInventoryStatus));
         host.replaceElementContent(contentElement, narrowHTMLElement(emptyNode, 'network empty node'), { escape: false });
-        syncNetworkSummary(host, []);
+        syncNetworkSummary(host, [], windowsInventoryStatus);
         host.flushDOMUpdates();
         return;
     }

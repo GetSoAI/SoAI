@@ -57,14 +57,4 @@ interface UpdateResult {
     appended: boolean;
 }
 
-interface BuildMissingOptions {
-    maxFill?: number;
-    limit?: number;
-}
-
-interface EnsureContinuousOptions {
-    maxFill?: number;
-    limit?: number;
-}
-
-export type { BuildCandlestickOptions, BuildMissingOptions, CandlestickPoint, EnsureContinuousOptions, NormalizedOhlc, ParseOptions, ParsedOhlcMetadata, ParsedOhlcResult, UpdateResult };
+export type { BuildCandlestickOptions, CandlestickPoint, NormalizedOhlc, ParseOptions, ParsedOhlcMetadata, ParsedOhlcResult, UpdateResult };

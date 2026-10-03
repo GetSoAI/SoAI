@@ -5,10 +5,10 @@ from __future__ import annotations
 
 from playwright.async_api import Error
 
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from mcp.tools.browser.playwright_driver_errors import (
+from core.browser.playwright_driver_errors import (
     PlaywrightDriverConnectionClosedError,
 )
+from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 
 __all__ = ("PLAYWRIGHT_OPERATION_EXCEPTIONS",)
 

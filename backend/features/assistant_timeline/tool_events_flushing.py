@@ -11,6 +11,7 @@ from core.assistant_timeline.tool_event_payload_contract import (
 from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.tool_calls.status_values import TOOL_CALL_STATUS_RUNNING
+from core.validation.integers import is_strict_int
 from features.assistant_timeline.models import (
     AssistantTimelineRuntime,
     PendingToolEvent,
@@ -146,7 +147,16 @@ async def flush_pending_tool_events_locked(
     flushable: list[PendingToolEvent] = []
     remaining: list[PendingToolEvent] = []
     for item in pending:
-        if item.thinking_index_before <= runtime.thinking_phase_cursor:
+        required_content = item.tool_payload.get("content_index_before")
+        authoritative = isinstance(item.tool_payload.get("turn_id"), str) and is_strict_int(
+            item.tool_payload.get("iteration_index")
+        )
+        content_ready = (
+            not authoritative
+            or not isinstance(required_content, int)
+            or required_content <= runtime.assistant_visible_chars
+        )
+        if item.thinking_index_before <= runtime.thinking_phase_cursor and content_ready:
             flushable.append(item)
         else:
             remaining.append(item)

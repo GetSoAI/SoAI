@@ -46,22 +46,20 @@ const normalizeOhlcRecord = (record: JsonValue | null | undefined, transform: (v
         return numeric === null ? null : transform(numeric);
     };
 
-    const open = normalizeField(record['open'] ?? record['value'] ?? record['avg'] ?? record['close']);
-    const close = normalizeField(record['close'] ?? record['value'] ?? record['avg'] ?? record['open']);
-    const high = normalizeField(record['high'] ?? record['max'] ?? close ?? open);
-    const low = normalizeField(record['low'] ?? record['min'] ?? close ?? open);
-
-    if (open === null && close === null) {
-        return null;
+    const open = normalizeField(record['open']);
+    const high = normalizeField(record['high']);
+    const low = normalizeField(record['low']);
+    const close = normalizeField(record['close']);
+    if (open === null && high === null && low === null && close === null) return null;
+    if (open === null || high === null || low === null || close === null) {
+        throw new TypeError('OHLC history bucket has incomplete prices');
     }
-
-    return {
-        open: open ?? close ?? 0,
-        high: high ?? open ?? close ?? 0,
-        low: low ?? open ?? close ?? 0,
-        close: close ?? open ?? 0,
-        count: Number(record['count']) || 0
-    };
+    if (high < Math.max(open, close) || low > Math.min(open, close) || high < low) {
+        throw new TypeError('OHLC history bucket has inconsistent prices');
+    }
+    const count = Number(record['count']);
+    if (!Number.isSafeInteger(count) || count < 1) throw new TypeError('OHLC history bucket has invalid sample count');
+    return { open, high, low, close, count };
 };
 
 type OhlcInputSeries = ReadonlyArray<JsonValue | CandlestickPoint | null | undefined>;
@@ -71,8 +69,7 @@ const isPreNormalizedOhlcSeries = (series: OhlcInputSeries | null | undefined): 
         return false;
     }
 
-    const length = Math.min(series.length, 6);
-    for (let index = 0; index < length; index += 1) {
+    for (let index = 0; index < series.length; index += 1) {
         const entry = series[index];
         if (!entry || !isObject(entry)) {
             return false;

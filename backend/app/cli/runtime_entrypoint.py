@@ -18,6 +18,10 @@ from app.cli.startup_flags import (
     normalize_cli_args,
     resolve_startup_action,
 )
+from app.cli.windows_console_service import (
+    WindowsConsoleService,
+    WindowsConsoleServiceDependencies,
+)
 from app.core_edition import build_core_edition_composition
 from app.edition_composition import EditionComposition
 from core.bootstrap.background_runtime_lock import (
@@ -36,6 +40,7 @@ from core.meta.version import __version__
 from core.platform.os import is_windows
 from core.prompts.system_prompts import load_system_prompts_catalog
 from core.runtime.event_loop_runner import run_coroutine_in_new_event_loop
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.windows_event_loop_policy import configure_windows_event_loop_policy
 from core.system.privileges import is_admin
 from core.system.resource_limits import configure_resource_limits
@@ -135,47 +140,63 @@ def runtime_entrypoint(
         raise SystemExit(1)
     release_launcher_runtime_lock_if_owned()
 
-    application_dependencies = ApplicationDependencies(
-        base_dir=base_dir,
-        config_path=config_path,
-        venv_path=get_venv_path(base_dir),
-        version=str(__version__),
-        pid_lock=pid_lock,
-        bootstrap_logger=bootstrap_logger,
-        lifecycle_logger=lifecycle_logger,
-    )
-
-    final_exit_code = 0
+    terminal_exit_code = 1
     try:
-        final_exit_code = run_coroutine_in_new_event_loop(
-            run_application(application_dependencies, edition_composition),
-        )
-    except KeyboardInterrupt:
-        lifecycle_logger.info("KeyboardInterrupt received. Shutting down.")
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_exception(
-            lifecycle_logger,
-            exception,
-            message="Fatal error in application runtime or final event loop cleanup.",
-            operation=OPERATION,
-            level="critical",
-        )
-        final_exit_code = 1
-    except UNEXPECTED_RUNTIME_EXCEPTIONS as exception:
-        coerced = coerce_to_soai_error(exception, operation=OPERATION)
-        log_exception(
-            lifecycle_logger,
-            coerced,
-            message="Unhandled exception in application runtime or final event loop cleanup.",
-            operation=OPERATION,
-            level="critical",
-        )
-        final_exit_code = 1
-    lifecycle_logger.info(
-        "--- SoAI shutdown sequence has completed. Exiting with code %s. ---",
-        final_exit_code,
-    )
-    finalize_and_force_exit(final_exit_code, logger=bootstrap_logger)
+        with ProcessExitDeadline() as process_exit_deadline:
+            windows_console_control = None
+            if is_windows():
+                windows_console_control = WindowsConsoleService(
+                    WindowsConsoleServiceDependencies(logger=lifecycle_logger),
+                )
+            application_dependencies = ApplicationDependencies(
+                base_dir=base_dir,
+                config_path=config_path,
+                venv_path=get_venv_path(base_dir),
+                version=str(__version__),
+                pid_lock=pid_lock,
+                bootstrap_logger=bootstrap_logger,
+                lifecycle_logger=lifecycle_logger,
+                process_exit_deadline=process_exit_deadline,
+                windows_console_control=windows_console_control,
+            )
+
+            final_exit_code = 0
+            try:
+                final_exit_code = run_coroutine_in_new_event_loop(
+                    run_application(application_dependencies, edition_composition),
+                )
+            except KeyboardInterrupt:
+                process_exit_deadline.begin_finalization()
+                lifecycle_logger.info("KeyboardInterrupt received. Shutting down.")
+            except RECOVERABLE_EXCEPTIONS as exception:
+                process_exit_deadline.begin_finalization()
+                log_exception(
+                    lifecycle_logger,
+                    exception,
+                    message="Fatal error in application runtime or final event loop cleanup.",
+                    operation=OPERATION,
+                    level="critical",
+                )
+                final_exit_code = 1
+            except UNEXPECTED_RUNTIME_EXCEPTIONS as exception:
+                process_exit_deadline.begin_finalization()
+                coerced = coerce_to_soai_error(exception, operation=OPERATION)
+                log_exception(
+                    lifecycle_logger,
+                    coerced,
+                    message="Unhandled exception in application runtime or final event loop cleanup.",
+                    operation=OPERATION,
+                    level="critical",
+                )
+                final_exit_code = 1
+            process_exit_deadline.begin_finalization()
+            lifecycle_logger.info(
+                "--- SoAI shutdown sequence has completed. Exiting with code %s. ---",
+                final_exit_code,
+            )
+        terminal_exit_code = final_exit_code
+    finally:
+        finalize_and_force_exit(terminal_exit_code, logger=bootstrap_logger)
 
 
 if __name__ == "__main__":

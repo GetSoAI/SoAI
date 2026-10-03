@@ -7,8 +7,12 @@ import { renderCurrentConversationView } from '@pages/chat/controllers/page/rend
 import { initializeChatSearch } from '@pages/chat/controllers/page/renderer/search.ts';
 
 const refreshConversationsUI = async (dependencies: { renderList(): Promise<void>; current: ChatCurrentConversationRenderDependencies; updateHeaderActions(): void }): Promise<ChatConversationRenderOutcome> => {
+    const signal = dependencies.current.pageLifecycle.signal();
+    if (signal?.aborted) return 'superseded';
     await dependencies.renderList();
+    if (signal?.aborted) return 'superseded';
     const outcome = await renderCurrentConversationView(dependencies.current);
+    if (signal?.aborted) return 'superseded';
     dependencies.updateHeaderActions();
     return outcome;
 };

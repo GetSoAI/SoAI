@@ -80,8 +80,10 @@
             font-size: var(--font-size-body-sm);
         }
 
-        :where([data-section='login'], [data-page-scope='login']) .secret-input-container > .form-input.secret-input {
-            padding-right: calc(var(--space-35) + var(--control-height));
+        :where([data-section='login'], [data-page-scope='login']) .secret-input-container.ui-inline-action-field > .form-input.secret-input {
+            --inline-action-input-padding: var(--space-35);
+
+            padding-inline-end: calc(var(--space-35) + var(--control-height));
         }
 
         :where([data-section='login'], [data-page-scope='login']) .login-button {

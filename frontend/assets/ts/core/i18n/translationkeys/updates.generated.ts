@@ -9,10 +9,13 @@ import type { UpdatesConfirmationsTranslationKey } from '@core/i18n/translationk
 import type { UpdatesDescriptionTranslationKey } from '@core/i18n/translationkeys/updates/description.generated.ts';
 import type { UpdatesErrorsTranslationKey } from '@core/i18n/translationkeys/updates/errors.generated.ts';
 import type { UpdatesMetadataTranslationKey } from '@core/i18n/translationkeys/updates/metadata.generated.ts';
+import type { UpdatesNotesTranslationKey } from '@core/i18n/translationkeys/updates/notes.generated.ts';
 import type { UpdatesNotificationsTranslationKey } from '@core/i18n/translationkeys/updates/notifications.generated.ts';
+import type { UpdatesOutcomeTranslationKey } from '@core/i18n/translationkeys/updates/outcome.generated.ts';
+import type { UpdatesProgressTranslationKey } from '@core/i18n/translationkeys/updates/progress.generated.ts';
 import type { UpdatesSectionsTranslationKey } from '@core/i18n/translationkeys/updates/sections.generated.ts';
 import type { UpdatesStatusTranslationKey } from '@core/i18n/translationkeys/updates/status.generated.ts';
 import type { UpdatesTitleTranslationKey } from '@core/i18n/translationkeys/updates/title.generated.ts';
 import type { UpdatesUnknownTranslationKey } from '@core/i18n/translationkeys/updates/unknown.generated.ts';
 
-export type UpdatesTranslationKey = UpdatesActionsTranslationKey | UpdatesApplicationTranslationKey | UpdatesAriaLabelsTranslationKey | UpdatesBadgesTranslationKey | UpdatesConfirmationsTranslationKey | UpdatesDescriptionTranslationKey | UpdatesErrorsTranslationKey | UpdatesMetadataTranslationKey | UpdatesNotificationsTranslationKey | UpdatesSectionsTranslationKey | UpdatesStatusTranslationKey | UpdatesTitleTranslationKey | UpdatesUnknownTranslationKey;
+export type UpdatesTranslationKey = UpdatesActionsTranslationKey | UpdatesApplicationTranslationKey | UpdatesAriaLabelsTranslationKey | UpdatesBadgesTranslationKey | UpdatesConfirmationsTranslationKey | UpdatesDescriptionTranslationKey | UpdatesErrorsTranslationKey | UpdatesMetadataTranslationKey | UpdatesNotesTranslationKey | UpdatesNotificationsTranslationKey | UpdatesOutcomeTranslationKey | UpdatesProgressTranslationKey | UpdatesSectionsTranslationKey | UpdatesStatusTranslationKey | UpdatesTitleTranslationKey | UpdatesUnknownTranslationKey;

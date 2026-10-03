@@ -127,6 +127,7 @@ const runBatchCloneForPage = async (host: ToolbarWiringHost, controller: Convers
         {
             ...sharedDependencies,
             createConversationId: () => `conv_${generateSecureId()}`,
+            revealConversationInList: (conversationId) => host.conversationView.revealInList(conversationId),
             cloneConversation: async (sourceConversationId, targetConversationId) => {
                 const payload = await host.api.webui.chat.clone(sourceConversationId, { id: targetConversationId });
                 const cloned = parseClone(targetConversationId, payload);

@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Hashable
 from typing import TYPE_CHECKING
 
+from core.openai.reasoning_text import REASONING_FIELD_NAMES
 from core.validation.strict_numbers import coerce_optional_non_negative_int_strict
 
 if TYPE_CHECKING:
@@ -49,6 +50,4 @@ def source_has_content(source: JSONDict | None) -> bool:
 
 
 def source_has_reasoning(source: JSONDict | None) -> bool:
-    return isinstance(source, dict) and (
-        "reasoning_content" in source or "reasoning" in source or "thinking" in source
-    )
+    return isinstance(source, dict) and any(key in source for key in REASONING_FIELD_NAMES)

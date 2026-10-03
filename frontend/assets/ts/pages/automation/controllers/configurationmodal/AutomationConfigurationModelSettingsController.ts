@@ -7,15 +7,15 @@ import { setSelectValueAndSyncDefault } from '@core/dom/selectSelection.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { capitalize } from '@core/primitives/text.ts';
+import { cloneStructured } from '@core/primitives/clone.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
-import { readNullableFiniteNumberValue } from '@core/types/payloadNumberReaders.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import type { ReadOnlyFileBrowserApi } from '@core/fileexplorerbrowser/types.ts';
 import { WorkspacePathDraft } from '@core/fileexplorerbrowser/workspacePathDraft.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import { McpFormController } from '@core/mcp/mcpFormController.ts';
-import { AUTOMATION_ACTION_MCP_SERVER_TOGGLE, AUTOMATION_ACTION_MCP_TOOL_GROUP_TOGGLE, AUTOMATION_ACTION_MCP_TOOL_SEARCH, AUTOMATION_ACTION_MCP_TOOL_TOGGLE, AUTOMATION_CONFIGURATION_MODAL_ID, requireAutomationMcpToolsEmpty, requireAutomationMcpToolsList, type AutomationDefinition, type AutomationMcpCatalog, type AutomationModelOption } from '@features/automation/public.ts';
+import { AUTOMATION_ACTION_MCP_SERVER_TOGGLE, AUTOMATION_ACTION_MCP_TOOL_GROUP_TOGGLE, AUTOMATION_ACTION_MCP_TOOL_SEARCH, AUTOMATION_ACTION_MCP_TOOL_TOGGLE, AUTOMATION_CONFIGURATION_MODAL_ID, requireAutomationMcpToolsEmpty, requireAutomationMcpToolsList, type AutomationDefinitionResponse, type AutomationMcpCatalogResponse, type AutomationModelOption } from '@features/automation/public.ts';
 import { AUTOMATION_CONFIGURATION_PARAMETERS_UPDATED_EVENT, AutomationConfigurationParametersController } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationParametersController.ts';
 
 interface ModelSettingsUi {
@@ -35,7 +35,7 @@ class AutomationConfigurationModelSettingsController {
     readonly #parameters: AutomationConfigurationParametersController;
     readonly #workspace: WorkspacePathDraft;
     #availableModels: readonly AutomationModelOption[] = [];
-    #seed: number | null = null;
+    #storedSettings: AutomationDefinitionResponse['modelSettings'] | null = null;
     #readOnly = false;
 
     constructor(ui: ModelSettingsUi) {
@@ -68,18 +68,18 @@ class AutomationConfigurationModelSettingsController {
         this.#renderModelOptions(readTrimmedSelectValue(this.#ui.modelSelect));
     }
 
-    setMcpCatalog(catalog: AutomationMcpCatalog): void {
+    setMcpCatalog(catalog: AutomationMcpCatalogResponse): void {
         this.#mcp.setCatalog(catalog);
     }
 
-    setValues(modelSettings: AutomationDefinition['modelSettings'], currentWorkspacePath: string): void {
+    setValues(modelSettings: AutomationDefinitionResponse['modelSettings'], currentWorkspacePath: string): void {
+        this.#storedSettings = cloneStructured(modelSettings);
         const model = toTrimmedString(modelSettings.model) || this.#resolveDefaultModel();
         this.#renderModelOptions(model);
         setSelectValueAndSyncDefault(this.#ui.modelSelect, model);
         this.#mcp.setValues(modelSettings.mcp);
         this.#parameters.setValues(modelSettings);
         this.#workspace.setValue(modelSettings.workspacePath, currentWorkspacePath);
-        this.#seed = readNullableFiniteNumberValue(modelSettings.seed, 'Automation.model_settings.seed');
         this.#syncSummaries();
     }
 
@@ -92,13 +92,7 @@ class AutomationConfigurationModelSettingsController {
         this.#mcp.destroy();
     }
 
-    getSnapshotKey(): { modelSettings: AutomationDefinition['modelSettings'] } {
-        return {
-            modelSettings: this.readModelSettings()
-        };
-    }
-
-    async openWorkspaceModal(api: ReadOnlyFileBrowserApi, canApply: () => boolean): Promise<boolean> {
+    async openWorkspaceModal(api: ReadOnlyFileBrowserApi, canApply: () => boolean, signal?: AbortSignal): Promise<boolean> {
         if (
             await this.#workspace.open({
                 access: {
@@ -107,6 +101,7 @@ class AutomationConfigurationModelSettingsController {
                 },
                 readOnly: this.#readOnly,
                 canApply,
+                signal,
                 strings: {
                     title: i18n.t('automation.modal.workspace.title'),
                     message: i18n.t('automation.modal.workspace.description'),
@@ -121,8 +116,8 @@ class AutomationConfigurationModelSettingsController {
         return false;
     }
 
-    async openParametersModal(canApply: () => boolean): Promise<boolean> {
-        if (await this.#parameters.openModal(this.#readOnly, canApply)) {
+    async openParametersModal(canApply: () => boolean, signal?: AbortSignal): Promise<boolean> {
+        if (await this.#parameters.openModal(this.#readOnly, canApply, signal)) {
             this.#syncSummaries();
             this.#ui.modalRoot.dispatchEvent(new CustomEvent(AUTOMATION_CONFIGURATION_PARAMETERS_UPDATED_EVENT, { bubbles: true }));
             return true;
@@ -139,46 +134,41 @@ class AutomationConfigurationModelSettingsController {
     }
 
     #isModelSelectable(option: AutomationModelOption): boolean {
-        return option.loaded || option.available;
+        return option.ineligibleReason === null;
     }
 
-    isValid(): boolean {
-        const model = readTrimmedSelectValue(this.#ui.modelSelect);
-        if (!model) {
-            return false;
-        }
-        const option = this.#resolveModelOption(model);
-        if (!option || !this.#isModelSelectable(option)) {
-            return false;
-        }
-        return true;
-    }
-
-    getValidationError(): string | null {
+    getModelIssue(): string | null {
         const model = readTrimmedSelectValue(this.#ui.modelSelect);
         if (!model) {
             return i18n.t('automation.modal.validation.modelRequired');
         }
         const option = this.#resolveModelOption(model);
-        if (!option || !this.#isModelSelectable(option)) {
-            return i18n.t('automation.modal.validation.modelUnavailable');
+        if (!option) {
+            return i18n.t('automation.modal.validation.modelMissing', { model });
+        }
+        if (option.ineligibleReason === 'disabled') {
+            return i18n.t('automation.modal.validation.modelDisabled', { model: option.label });
+        }
+        if (option.ineligibleReason === 'unavailable') {
+            return i18n.t('automation.modal.validation.modelUnavailable', { model: option.label });
+        }
+        if (option.ineligibleReason === 'unsupported') {
+            return i18n.t('automation.modal.validation.modelUnsupported', { model: option.label });
         }
         return null;
     }
 
-    readModelSettings(): AutomationDefinition['modelSettings'] {
+    readModelSettings(): AutomationDefinitionResponse['modelSettings'] {
         const model = readTrimmedSelectValue(this.#ui.modelSelect);
-        const settings: AutomationDefinition['modelSettings'] = {
+        const settings: AutomationDefinitionResponse['modelSettings'] = {
+            ...cloneStructured(this.#storedSettings),
             model,
-            agent: { mode: 'execute' },
-            mcp: this.#mcp.readConfig()
+            agent: { ...this.#storedSettings?.agent, mode: 'execute' },
+            mcp: { ...cloneStructured(this.#storedSettings?.mcp), ...this.#mcp.readConfig() }
         };
         this.#parameters.applyTo(settings);
         const workspacePath = this.#workspace.getValue();
         if (workspacePath !== null) settings.workspacePath = workspacePath;
-        if (this.#seed !== null) {
-            settings.seed = this.#seed;
-        }
         return settings;
     }
 
@@ -213,7 +203,7 @@ class AutomationConfigurationModelSettingsController {
             value: model.id,
             label: toTrimmedString(`${model.label} ${this.#formatStatus(model)}`),
             selected: model.id === selectedModel,
-            disabled: !model.loaded && !model.available
+            disabled: !this.#isModelSelectable(model)
         });
         const entries: SelectEntryDefinition[] =
             modelsByProvider.size > 1
@@ -239,13 +229,16 @@ class AutomationConfigurationModelSettingsController {
     }
 
     #formatStatus(model: AutomationModelOption): string {
-        if (model.loaded) {
-            return i18n.t('chat.models.loaded');
+        if (model.ineligibleReason === 'disabled') {
+            return i18n.t('common.disabled');
         }
-        if (model.available) {
-            return i18n.t('chat.models.available');
+        if (model.ineligibleReason === 'unavailable') {
+            return i18n.t('automation.modal.modelStatus.unavailable');
         }
-        return '';
+        if (model.ineligibleReason === 'unsupported') {
+            return i18n.t('automation.modal.modelStatus.unsupported');
+        }
+        return model.loaded ? i18n.t('chat.models.loaded') : i18n.t('chat.models.available');
     }
 }
 

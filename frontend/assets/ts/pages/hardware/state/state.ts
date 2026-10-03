@@ -44,8 +44,6 @@ type HardwarePageState = {
 
     mainChart: ChartInstance | null;
     initialChartViewportFitted: boolean;
-    lineHistoryExhausted: boolean;
-    candlestickHistoryExhausted: boolean;
 };
 
 const createHardwarePageState = (): HardwarePageState => ({
@@ -79,9 +77,7 @@ const createHardwarePageState = (): HardwarePageState => ({
     supportedHistoryAggregations: [STR_AVG],
     supportedHistoryComponents: [STR_CPU, STR_GPU],
     mainChart: null,
-    initialChartViewportFitted: false,
-    lineHistoryExhausted: false,
-    candlestickHistoryExhausted: false
+    initialChartViewportFitted: false
 });
 
 export { createHardwarePageState };

@@ -40,6 +40,7 @@ interface SeriesReplaceResult {
 interface SeriesPrependResult {
     changed: boolean;
     addedToHead: number;
+    truncated: boolean;
 }
 
 interface SeriesResizeResult {

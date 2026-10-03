@@ -63,18 +63,18 @@ class ModelCardRenderer extends BaseCardRenderer<ModelData | null, CardData> {
         const className = this.buildClassList(['models-list-row', model.type === 'virtual' ? 'virtual-model' : '', disabled ? 'is-disabled' : '', isModelNew(model, this.host) ? 'session-recent-row' : '', ...statusClasses]);
         const actionButtons = this.buildListActionButtons(model);
         const statusContent = this.buildListStatusContent(model, metrics.statusLabel, metrics.statusBadgeClass);
-        const providerFact = this.host.status.isExternalProviderModel(model) && providerName ? `<div class="ui-collection-list__facts"><span class="ui-collection-list__fact" data-metric-key="provider"><span class="ui-metric-label">${i18n.t('models.table.provider')}</span><span class="ui-metric-value">${this.host.presentation.sanitizeText(providerName)}</span></span></div>` : '';
+        const providerFact = this.host.status.isExternalProviderModel(model) && providerName ? `<div class="ui-collection-list__facts"><span class="ui-collection-list__fact" data-metric-key="provider"><span class="ui-metric-label">${i18n.t('models.table.provider')}</span><span dir="auto" class="ui-metric-value">${this.host.presentation.sanitizeText(providerName)}</span></span></div>` : '';
         const markup = `
             <tr class="${className}" data-render-mode="list" data-action="${MODELS_ACTION_EDIT_PARAMETERS}" data-model="${this.host.presentation.sanitizeText(String(data.cardId))}" data-model-enabled="${disabled ? 'false' : 'true'}">
                 <td class="models-list-cell models-list-cell-main">
                     <button type="button" class="models-list-open" data-action="${MODELS_ACTION_EDIT_PARAMETERS}" ${renderLabelAttributes(title)}>
                         <span class="models-list-title-row">
                             <span class="model-icon">${this.host.presentation.getModelIcon(model, pluginName).html}</span>
-                            <span class="models-list-title" data-tooltip="${this.host.presentation.sanitizeText(title)}">${this.host.presentation.sanitizeText(title)}</span>
+                            <span dir="auto" class="models-list-title" data-tooltip="${this.host.presentation.sanitizeText(title)}">${this.host.presentation.sanitizeText(title)}</span>
                             ${typeBadge ? `<span class="models-list-title-type">${typeBadge}</span>` : ''}
                             ${buildBadges(model, this.host)}
                         </span>
-                        <span class="models-list-subtitle" ${renderLabelAttributes(universalLabel)}>${this.host.presentation.sanitizeText(universalLabel)}</span>
+                        <span dir="ltr" class="models-list-subtitle" ${renderLabelAttributes(universalLabel)}>${this.host.presentation.sanitizeText(universalLabel)}</span>
                     </button>
                 </td>
                 <td class="models-list-cell models-list-type">
@@ -84,7 +84,7 @@ class ModelCardRenderer extends BaseCardRenderer<ModelData | null, CardData> {
                     ${providerFact}
                 </td>
                 <td class="models-list-cell models-list-plugin">
-                    <span class="ui-metric-value">${this.host.presentation.sanitizeText(pluginName)}</span>
+                    <span dir="auto" class="ui-metric-value">${this.host.presentation.sanitizeText(pluginName)}</span>
                 </td>
                 <td class="models-list-cell models-list-metrics">
                     <div class="ui-collection-list__facts models-list-metrics-facts">${buildModelListMetrics(model, this.host)}</div>
@@ -113,7 +113,7 @@ class ModelCardRenderer extends BaseCardRenderer<ModelData | null, CardData> {
         const descriptionText = model.description ? model.description.trim() : '';
         const description = descriptionText ? this.host.presentation.sanitizeText(descriptionText) : '';
         const descriptionTitle = description ? ` data-tooltip="${description}"` : '';
-        const descriptionMarkup = description ? `<p class="model-description ui-collection-card__description"${descriptionTitle}>${description}</p>` : '';
+        const descriptionMarkup = description ? `<p dir="auto" class="model-description ui-collection-card__description"${descriptionTitle}>${description}</p>` : '';
         const contentMarkup = descriptionMarkup
             ? `
                 <div class="ui-collection-card__content model-card-content">
@@ -142,12 +142,12 @@ class ModelCardRenderer extends BaseCardRenderer<ModelData | null, CardData> {
                 <div class="ui-collection-card__header model-card-header">
                     <div class="ui-collection-card__title-bar model-title-bar">
                         <div class="ui-collection-card__title model-title" data-full-title="${this.host.presentation.sanitizeText(resolvedTitle)}">
-                            <span class="ui-collection-card__title-text model-title-text" data-tooltip="${this.host.presentation.sanitizeText(resolvedTitle)}">${this.host.presentation.sanitizeText(resolvedTitle)}</span>
+                            <span dir="auto" class="ui-collection-card__title-text model-title-text" data-tooltip="${this.host.presentation.sanitizeText(resolvedTitle)}">${this.host.presentation.sanitizeText(resolvedTitle)}</span>
                             ${badges}
                         </div>
                     </div>
                 </div>
-                <div class="ui-collection-card__subtitle model-universal-id" ${renderLabelAttributes(universalLabelText)}>${universalLabel}</div>
+                <div dir="ltr" class="ui-collection-card__subtitle model-universal-id" ${renderLabelAttributes(universalLabelText)}>${universalLabel}</div>
                 ${contentMarkup}
                 <div class="ui-collection-card__body model-card-body">
                     <div class="ui-collection-card__bottom model-card-bottom">
@@ -157,7 +157,7 @@ class ModelCardRenderer extends BaseCardRenderer<ModelData | null, CardData> {
                             ${modelTypeBadge}
                         </div>
                         <div class="ui-collection-card__metrics-grid model-metrics-display">${metricsMarkup}</div>
-                        <div class="ui-collection-card__status-grid model-metrics-status"><div class="ui-metric-item"><div class="ui-metric-badge ui-metric-badge--status-full ${metricStatusBadgeClass}"><span class="ui-metric-value">${statusLabel}</span></div></div></div>
+                        <div class="ui-collection-card__status-grid model-metrics-status"><div class="ui-metric-item"><div class="ui-metric-badge ui-metric-badge--status-full ${metricStatusBadgeClass}"><span dir="auto" class="ui-metric-value">${statusLabel}</span></div></div></div>
                     </div>
                 </div>
                 <div class="model-card-footer">

@@ -5,13 +5,11 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import io
 import os
 import uuid
 from typing import TYPE_CHECKING
 
-from core.attachments.direct_upload_metadata import (
-    normalize_direct_upload_suffix,
-)
 from core.attachments.direct_upload_persistence import (
     StoredDirectAttachmentUpload,
     build_stored_direct_attachment_upload,
@@ -22,11 +20,14 @@ from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ValidationError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
+from core.files.generated_names import generated_upload_filename, normalize_upload_suffix
+from core.files.move_errors import MoveFileCommittedError
+from core.files.move_with_cancellation import MoveFileCommittedAfterCancellationError
 from core.files.operations import secure_filename
-from core.files.temp_files import create_secure_temp_file_descriptor
+from core.files.temp_files import create_secure_temp_binary_handle
 from core.files.upload_cleanup import cleanup_upload_artifacts
 from core.filesystem.file_sync import flush_and_fsync_file
-from core.filesystem.open_files import open_binary
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.hardware.reservation_claims import claim_reserved_write
 from core.logging.trace import get_logger
 from core.timing.constants import CONTROL_TIMEOUT_SEC
@@ -59,12 +60,13 @@ async def _stream_bytes_to_temp_path(
     read_chunk: Callable[[int], Awaitable[bytes]],
     max_bytes: int,
     temp_path: str,
+    handle: io.BufferedRandom,
     storage_manager: StorageManagerProtocol,
     declared_reservation: DiskSpaceReservationLeaseProtocol | None,
 ) -> tuple[int, str]:
     total = 0
     digest = hashlib.sha256()
-    with open_binary(temp_path, mode="wb") as handle:
+    with handle:
         while True:
             try:
                 chunk = await asyncio.wait_for(
@@ -131,15 +133,15 @@ async def store_direct_attachment_upload(
     if not safe_filename:
         raise ValidationError("display_name is invalid.")
     file_id = f"file-{uuid.uuid4().hex}"
-    permanent_filename = f"{file_id}_{safe_filename}"
+    permanent_filename = generated_upload_filename(file_id, safe_filename, storage_root)
     permanent_path = os.path.join(storage_root, permanent_filename)
-    file_descriptor, temp_path = create_secure_temp_file_descriptor(
+    handle, temp_path = create_secure_temp_binary_handle(
         directory=None,
         prefix=".soai-chat-attachment-",
-        suffix=normalize_direct_upload_suffix(safe_filename),
+        suffix=normalize_upload_suffix(safe_filename),
     )
-    os.close(file_descriptor)
     declared_reservation: DiskSpaceReservationLeaseProtocol | None = None
+    published = False
     try:
         validated_size = _validate_declared_size(declared_size, max_bytes=max_bytes)
         if validated_size is not None:
@@ -157,6 +159,7 @@ async def store_direct_attachment_upload(
             read_chunk=read_chunk,
             max_bytes=max_bytes,
             temp_path=temp_path,
+            handle=handle,
             storage_manager=storage_manager,
             declared_reservation=declared_reservation,
         )
@@ -170,10 +173,23 @@ async def store_direct_attachment_upload(
             cancellation_event_bus=cancellation_event_bus,
             cancellation_id=cancellation_id,
         )
+        published = True
+        return build_stored_direct_attachment_upload(
+            file_id=file_id,
+            permanent_path=permanent_path,
+            safe_filename=safe_filename,
+            declared_content_type=declared_content_type,
+            size_bytes=size_bytes,
+            content_sha256=content_sha256,
+        )
     except asyncio.CancelledError:
-        await cleanup_upload_artifacts(temp_path=temp_path, permanent_path=permanent_path)
+        handle.close()
+        await cleanup_upload_artifacts(
+            temp_path=temp_path, permanent_path=permanent_path if published else None
+        )
         raise
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
+        handle.close()
         coerced = coerce_to_soai_error(
             exception,
             operation=OPERATION_DIRECT_ATTACHMENT_UPLOAD_FAILURE,
@@ -185,19 +201,22 @@ async def store_direct_attachment_upload(
             operation=OPERATION_DIRECT_ATTACHMENT_UPLOAD_FAILURE,
             details={"temp_path": temp_path, "permanent_path": permanent_path},
         )
-        await cleanup_upload_artifacts(temp_path=temp_path, permanent_path=permanent_path)
+        await cleanup_upload_artifacts(
+            temp_path=temp_path,
+            permanent_path=(
+                permanent_path
+                if published
+                or isinstance(
+                    exception, MoveFileCommittedError | MoveFileCommittedAfterCancellationError
+                )
+                else None
+            ),
+        )
         raise coerced from exception
     finally:
+        handle.close()
         if declared_reservation is not None:
             declared_reservation.release()
-    return build_stored_direct_attachment_upload(
-        file_id=file_id,
-        permanent_path=permanent_path,
-        safe_filename=safe_filename,
-        declared_content_type=declared_content_type,
-        size_bytes=size_bytes,
-        content_sha256=content_sha256,
-    )
 
 
 async def store_staged_direct_attachment_upload(
@@ -220,12 +239,18 @@ async def store_staged_direct_attachment_upload(
         await cleanup_upload_artifacts(temp_path=staged_path, permanent_path=None)
         raise ValidationError("display_name is invalid.")
     file_id = f"file-{uuid.uuid4().hex}"
-    permanent_path = os.path.join(storage_root, f"{file_id}_{safe_filename}")
+    permanent_path: str | None = None
+    published = False
     try:
+        permanent_path = os.path.join(
+            storage_root, generated_upload_filename(file_id, safe_filename, storage_root)
+        )
         validated_size = _validate_declared_size(staged_size, max_bytes=max_bytes)
         if validated_size is None or validated_size != staged_size:
             raise ValidationError("Staged attachment size is invalid.")
-        actual_size = await asyncio.to_thread(os.path.getsize, staged_path)
+        actual_size = await asyncio.to_thread(
+            os.path.getsize, normalize_filesystem_path(staged_path)
+        )
         if actual_size != staged_size:
             raise ValidationError("Staged attachment size changed before storage.")
         await move_direct_attachment_to_storage(
@@ -238,20 +263,33 @@ async def store_staged_direct_attachment_upload(
             cancellation_event_bus=cancellation_event_bus,
             cancellation_id=cancellation_id,
         )
+        published = True
+        return build_stored_direct_attachment_upload(
+            file_id=file_id,
+            permanent_path=permanent_path,
+            safe_filename=safe_filename,
+            declared_content_type=declared_content_type,
+            size_bytes=staged_size,
+            content_sha256=staged_sha256,
+        )
     except asyncio.CancelledError:
-        await cleanup_upload_artifacts(temp_path=staged_path, permanent_path=permanent_path)
+        await cleanup_upload_artifacts(
+            temp_path=staged_path, permanent_path=permanent_path if published else None
+        )
         raise
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
-        await cleanup_upload_artifacts(temp_path=staged_path, permanent_path=permanent_path)
+        await cleanup_upload_artifacts(
+            temp_path=staged_path,
+            permanent_path=(
+                permanent_path
+                if published
+                or isinstance(
+                    exception, MoveFileCommittedError | MoveFileCommittedAfterCancellationError
+                )
+                else None
+            ),
+        )
         raise coerce_to_soai_error(
             exception,
             operation=OPERATION_DIRECT_ATTACHMENT_UPLOAD_FAILURE,
         ) from exception
-    return build_stored_direct_attachment_upload(
-        file_id=file_id,
-        permanent_path=permanent_path,
-        safe_filename=safe_filename,
-        declared_content_type=declared_content_type,
-        size_bytes=staged_size,
-        content_sha256=staged_sha256,
-    )

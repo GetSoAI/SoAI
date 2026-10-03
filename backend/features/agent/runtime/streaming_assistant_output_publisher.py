@@ -8,6 +8,15 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from features.agent.events.types import AgentItemDeltaEvent
+from features.agent.runtime.injected_prompt_echo_prefix_partition import (
+    split_prefix_pending_frame,
+)
+from features.agent.runtime.injected_prompt_echo_stream_rewrite import (
+    InjectedPromptEchoStreamRewriter,
+)
+from features.agent.runtime.injected_prompt_echo_stripping import (
+    resolve_streaming_echo_prefix,
+)
 from features.agent.runtime.item_event_factories import (
     build_agent_assistant_item_started_event,
 )
@@ -41,9 +50,15 @@ class StreamingAssistantOutputPublisher:
     next_action_sequence: Callable[[], Awaitable[int]]
     on_bytes: Callable[[bytes], Awaitable[None] | None]
     on_visible_deltas: Callable[[tuple[str, ...]], Awaitable[None] | None] | None
+    content_index_base: int = 0
     text_parts: list[str] = field(default_factory=list[str])
     chunks: list[bytes] = field(default_factory=list[bytes])
     delta_batches: list[tuple[str, ...]] = field(default_factory=list[tuple[str, ...]])
+    prefix_pending: bool = True
+    prefix_removed_chars: int = 0
+    prefix_raw_text_parts: list[str] = field(default_factory=list[str])
+    prefix_chunks: list[bytes] = field(default_factory=list[bytes])
+    prefix_rewriter: InjectedPromptEchoStreamRewriter | None = None
 
     async def publish_item_started_event(self) -> None:
         await publish_agent_event(
@@ -63,9 +78,16 @@ class StreamingAssistantOutputPublisher:
         if self.buffer_output:
             self.chunks.append(bytes(chunk))
             return
-        awaitable = self.on_bytes(chunk)
-        if awaitable is not None:
-            await awaitable
+        if self.prefix_pending:
+            immediate_frame, remaining_frame = split_prefix_pending_frame(chunk)
+            if immediate_frame is not None:
+                awaitable = self.on_bytes(immediate_frame)
+                if awaitable is not None:
+                    await awaitable
+            if remaining_frame is not None:
+                self.prefix_chunks.append(remaining_frame)
+            return
+        await self._publish_live_chunk(chunk)
 
     async def handle_visible_deltas(self, deltas: tuple[str, ...]) -> None:
         if self.buffer_output:
@@ -75,11 +97,65 @@ class StreamingAssistantOutputPublisher:
                 if delta:
                     self.text_parts.append(delta)
             return
+        if self.prefix_pending:
+            self.prefix_raw_text_parts.extend(delta for delta in deltas if delta)
+            await self._resolve_live_prefix(terminal=False)
+            return
         if self.on_visible_deltas is not None:
             maybe_awaitable = self.on_visible_deltas(deltas)
             if maybe_awaitable is not None:
                 await maybe_awaitable
         await self.publish_visible_delta_events(deltas, record_text=True)
+
+    async def finalize_live_prefix(self) -> None:
+        if self.buffer_output:
+            return
+        if self.prefix_pending:
+            await self._resolve_live_prefix(terminal=True)
+        if self.prefix_rewriter is not None:
+            self.prefix_rewriter.finalize()
+
+    async def _resolve_live_prefix(self, *, terminal: bool) -> None:
+        raw_text = "".join(self.prefix_raw_text_parts)
+        decision = resolve_streaming_echo_prefix(raw_text, terminal=terminal)
+        if decision is None:
+            return
+        self.prefix_pending = False
+        self.prefix_removed_chars = (
+            len(raw_text) - len(decision.sanitized_text) if decision.stripped else 0
+        )
+        if self.prefix_removed_chars:
+            self.prefix_rewriter = InjectedPromptEchoStreamRewriter(
+                removed_visible_text=raw_text[: self.prefix_removed_chars],
+                content_index_base=self.content_index_base,
+            )
+        buffered_chunks = tuple(self.prefix_chunks)
+        rewritten_chunks = (
+            self.prefix_rewriter.rewrite_buffered_chunks(buffered_chunks)
+            if self.prefix_rewriter is not None
+            else buffered_chunks
+        )
+        for chunk in rewritten_chunks:
+            awaitable = self.on_bytes(chunk)
+            if awaitable is not None:
+                await awaitable
+        self.prefix_chunks.clear()
+        visible_text = decision.sanitized_text if decision.stripped else raw_text
+        if visible_text:
+            if self.on_visible_deltas is not None:
+                maybe_awaitable = self.on_visible_deltas((visible_text,))
+                if maybe_awaitable is not None:
+                    await maybe_awaitable
+            await self.publish_visible_delta_events((visible_text,), record_text=True)
+        self.prefix_raw_text_parts.clear()
+
+    async def _publish_live_chunk(self, chunk: bytes) -> None:
+        rewriter = self.prefix_rewriter
+        rewritten_chunks = rewriter.feed(chunk) if rewriter is not None else (chunk,)
+        for rewritten in rewritten_chunks:
+            awaitable = self.on_bytes(rewritten)
+            if awaitable is not None:
+                await awaitable
 
     async def publish_visible_delta_events(
         self,

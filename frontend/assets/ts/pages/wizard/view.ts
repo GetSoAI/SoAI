@@ -4,11 +4,18 @@
 import { i18n } from '@core/i18n/index.ts';
 import { AUTH_ROUTE_LOGIN } from '@core/routing/router/authRouteTarget.ts';
 import type { WebuiUser } from '@core/auth/types.ts';
-import { renderStandardDropdownSelectControl } from '@core/ui/dropdown/selectControl.ts';
+import { renderFlagSelectControl } from '@core/ui/dropdown/flagSelect.ts';
+import { requireFlagCountryCode } from '@core/countryFlags.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { renderSecretInputControl, resolveSecretInputType } from '@core/ui/secretInput.ts';
 import { requireLicensingEditionContribution } from '@core/edition/licensingContribution.ts';
 import type { WizardStepId } from '@features/wizard/public.ts';
+import type { AiSetupViewModel } from '@pages/wizard/contracts/aisetup/types.ts';
+import { renderAiConnectStep } from '@pages/wizard/rendering/aisetup/connect/view.ts';
+import { renderAiModelsStep } from '@pages/wizard/rendering/aisetup/models/view.ts';
+import { renderAiCompletionSummary, renderAiProgressStep } from '@pages/wizard/rendering/aisetup/progress/view.ts';
+import { renderAiSetupLoadFailedStep } from '@pages/wizard/rendering/aisetup/view.ts';
+import { renderAiSourcesStep } from '@pages/wizard/rendering/aisetup/sources/view.ts';
 import { renderProductAccessView } from '@pages/wizard/rendering/view.ts';
 import type { WizardViewContext } from '@pages/wizard/types.ts';
 import { presentDeclaration, presentEdition, presentEntitlementType, presentLicensingState } from '@core/licensing/valuePresentation.ts';
@@ -19,6 +26,12 @@ const readUsername = (value: WebuiUser | null): string | null => {
     }
     const trimmed = value.username.trim();
     return trimmed ? trimmed : null;
+};
+
+const requireAiSetupView = <K extends keyof AiSetupViewModel>(context: WizardViewContext, key: K): NonNullable<AiSetupViewModel[K]> => {
+    const view = context.aiSetup?.[key] ?? null;
+    if (view === null) throw new TypeError(`Wizard AI setup ${key} view is unavailable`);
+    return view;
 };
 
 const WIZARD_BRAND_SOAI_MARKUP = '<span class="page-title-so" aria-label="SoAI" data-tooltip="SoAI">SoAI</span>';
@@ -36,6 +49,9 @@ const renderCompletionSummary = (context: WizardViewContext): string => {
     if (username) {
         summary.push(`<div class="wizard-summary-item"><div class="wizard-summary-icon">${icon('user', 24)}</div><div><h3>${context.sanitizer.html(i18n.t('wizard.completion.summary.admin.title'))}</h3><p>${context.sanitizer.html(i18n.t('wizard.completion.summary.admin.created'))}</p><p class="wizard-summary-detail">${context.sanitizer.html(i18n.t('wizard.completion.summary.admin.username', { username }))}</p></div></div>`);
     }
+
+    const aiCompletion = context.aiSetup?.completion ?? null;
+    if (aiCompletion !== null) summary.push(renderAiCompletionSummary(context, aiCompletion));
 
     const completed = context.state.completedSummary;
     if (completed === null) return summary.join('');
@@ -71,8 +87,10 @@ export const renderWizardShellView = (context: WizardViewContext): string => {
         <div class="wizard-navigation">
         <div class="wizard-nav-left">
         <button type="button" id="wizard-back" data-action="wizard-back" class="wizard-nav-button ui-button ui-variant-neutral u-hidden" aria-label="${i18n.t('wizard.navigation.back')}" data-tooltip="${i18n.t('wizard.navigation.back')}">${i18n.t('wizard.navigation.back')}</button>
+        <button type="button" id="wizard-skip" data-action="wizard-ai-skip" class="wizard-nav-button ui-button ui-variant-neutral u-hidden" aria-label="${context.sanitizer.attribute(i18n.t('wizard.aiSetup.nav.skip'))}" data-tooltip="${context.sanitizer.attribute(i18n.t('wizard.aiSetup.nav.skip'))}">${context.sanitizer.html(i18n.t('wizard.aiSetup.nav.skip'))}</button>
         </div>
         <div class="wizard-nav-right">
+        <button type="button" id="wizard-finish-later" data-action="wizard-ai-finish-later" class="wizard-nav-button ui-button ui-variant-neutral u-hidden" aria-label="${context.sanitizer.attribute(i18n.t('wizard.aiSetup.nav.finishLater'))}" data-tooltip="${context.sanitizer.attribute(i18n.t('wizard.aiSetup.nav.finishLater'))}">${context.sanitizer.html(i18n.t('wizard.aiSetup.nav.finishLater'))}</button>
         <button type="button" id="wizard-next" data-action="wizard-next" class="wizard-nav-button ui-button ui-variant-success" aria-label="${i18n.t('wizard.navigation.getStarted')}" data-tooltip="${i18n.t('wizard.navigation.getStarted')}">${i18n.t('wizard.navigation.getStarted')}</button>
         </div>
         </div>
@@ -107,6 +125,7 @@ export const renderWizardSuppressedView = (context: WizardViewContext): string =
 };
 
 export const renderWizardStepView = (stepId: WizardStepId, context: WizardViewContext): string => {
+    if (context.aiSetup?.loadFailed === true) return renderAiSetupLoadFailedStep(context);
     switch (stepId) {
         case 'welcome': {
             const languageOptionsMarkup = context.languageOptions
@@ -114,7 +133,8 @@ export const renderWizardStepView = (stepId: WizardStepId, context: WizardViewCo
                     const value = option.value || '';
                     const label = option.label || value;
                     const selected = value === context.currentLanguage ? ' selected' : '';
-                    return `<option value="${context.sanitizer.attribute(String(value))}"${selected}>${context.sanitizer.html(String(label))}</option>`;
+                    const countryCode = option.countryCode ? ` data-country-code="${requireFlagCountryCode(option.countryCode)}"` : '';
+                    return `<option value="${context.sanitizer.attribute(String(value))}"${countryCode}${selected}>${context.sanitizer.html(String(label))}</option>`;
                 })
                 .join('');
             return `
@@ -131,7 +151,7 @@ export const renderWizardStepView = (stepId: WizardStepId, context: WizardViewCo
         <span class="setting-help">${context.sanitizer.html(i18n.t('settings.preferences.language.help'))}</span>
         </div>
         <div class="setting-control">
-        ${renderStandardDropdownSelectControl(`<select id="language-select" class="setting-input">${languageOptionsMarkup}</select>`)}
+        ${renderFlagSelectControl(`<select id="language-select" class="setting-input">${languageOptionsMarkup}</select>`)}
         </div>
         </div>
         </div>`;
@@ -167,8 +187,8 @@ export const renderWizardStepView = (stepId: WizardStepId, context: WizardViewCo
         }
         case 'account': {
             const passwordInputType = resolveSecretInputType();
-            const passwordInput = `<input id="admin-password" name="password" type="${passwordInputType}" class="wizard-form-input form-input secret-input" minlength="8" autocomplete="new-password" placeholder="${i18n.t('wizard.userCreation.password.placeholder')}" required>`;
-            const passwordConfirmInput = `<input id="admin-password-confirm" name="password-confirm" type="${passwordInputType}" class="wizard-form-input form-input secret-input" minlength="8" autocomplete="new-password" placeholder="${i18n.t('wizard.userCreation.confirmPassword.placeholder')}" required>`;
+            const passwordInput = `<input dir="ltr" id="admin-password" name="password" type="${passwordInputType}" class="wizard-form-input form-input secret-input" minlength="8" autocomplete="new-password" placeholder="${i18n.t('wizard.userCreation.password.placeholder')}" required>`;
+            const passwordConfirmInput = `<input dir="ltr" id="admin-password-confirm" name="password-confirm" type="${passwordInputType}" class="wizard-form-input form-input secret-input" minlength="8" autocomplete="new-password" placeholder="${i18n.t('wizard.userCreation.confirmPassword.placeholder')}" required>`;
             const passwordFields = `
 	            <div class="wizard-password-row">
 		        <div class="wizard-form-group">
@@ -191,12 +211,20 @@ export const renderWizardStepView = (stepId: WizardStepId, context: WizardViewCo
 		        <div id="user-creation-error" class="wizard-error u-hidden" role="alert"></div>
 		        <div class="wizard-form-group">
 		        <label for="admin-username">${i18n.t('wizard.userCreation.username.label')}</label>
-		        <input id="admin-username" name="username" type="text" class="wizard-form-input form-input" minlength="3" maxlength="50" pattern="[a-zA-Z0-9_.\\-]+" autocomplete="username" placeholder="${i18n.t('wizard.userCreation.username.placeholder')}" required>
+		        <input dir="ltr" id="admin-username" name="username" type="text" class="wizard-form-input form-input" minlength="3" maxlength="50" pattern="[a-zA-Z0-9_.\\-]+" autocomplete="username" placeholder="${i18n.t('wizard.userCreation.username.placeholder')}" required>
 	        </div>
 	        ${passwordFields}
 	        </form>
 	        </div>`;
         }
+        case 'ai_sources':
+            return renderAiSourcesStep(context, requireAiSetupView(context, 'sources'));
+        case 'ai_connect':
+            return renderAiConnectStep(context, requireAiSetupView(context, 'connect'));
+        case 'ai_models':
+            return renderAiModelsStep(context, requireAiSetupView(context, 'models'));
+        case 'ai_progress':
+            return renderAiProgressStep(context, requireAiSetupView(context, 'progress'));
         case 'complete': {
             const summary = renderCompletionSummary(context);
             const description = context.state.isSessionActivationRequired ? i18n.t('wizard.completion.signInRequiredDescription') : i18n.t('wizard.completion.description');

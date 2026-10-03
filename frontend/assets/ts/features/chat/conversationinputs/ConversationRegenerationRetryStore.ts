@@ -39,19 +39,20 @@ class ConversationRegenerationRetryStore {
         };
     }
 
-    observe(conversationId: string, receipt: ConversationRegenerationReceipt): void {
+    observe(conversationId: string, receipt: ConversationRegenerationReceipt): boolean {
         const normalizedConversationId = normalizeConversationId(conversationId);
-        if (!normalizedConversationId) return;
+        if (!normalizedConversationId) return false;
         const terminal = receipt.state === 'completed' || receipt.state === 'failed' || receipt.state === 'cancelled' || receipt.state === 'effect_unknown';
         const latest = this.#latestObservationByConversationId.get(normalizedConversationId);
-        if (latest && receipt.lastModifiedAtMs < latest.revision) return;
-        if (latest && receipt.lastModifiedAtMs === latest.revision && (latest.inputId !== receipt.inputId || latest.terminal)) return;
+        if (latest && receipt.lastModifiedAtMs < latest.revision) return false;
+        if (latest && receipt.lastModifiedAtMs === latest.revision && (latest.inputId !== receipt.inputId || latest.terminal)) return false;
         this.#latestObservationByConversationId.set(normalizedConversationId, { inputId: receipt.inputId, revision: receipt.lastModifiedAtMs, terminal });
         if ((receipt.state === 'failed' || receipt.state === 'cancelled') && !receipt.hasAssistantReplacement) {
             this.#receiptByConversationId.set(normalizedConversationId, receipt);
-            return;
+            return true;
         }
         this.#receiptByConversationId.delete(normalizedConversationId);
+        return true;
     }
 
     clearIfMatches(conversationId: string, inputId: string): void {

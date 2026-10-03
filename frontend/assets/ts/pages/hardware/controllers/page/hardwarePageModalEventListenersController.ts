@@ -3,10 +3,11 @@
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { shouldPreventDefaultForActionElement } from '@core/dom/dataAction.ts';
+import { optionalTrimmedDataAttribute, requireTrimmedDataAttribute } from '@core/dom/attributes.ts';
 import { bindDataActionListener } from '@core/dom/dataActionBinding.ts';
 import { getDocument } from '@core/environment/public.ts';
-import { HARDWARE_SOAIBENCH_HISTORY_COPY_ACTION, HARDWARE_SOAIBENCH_HISTORY_DOWNLOAD_ACTION, HARDWARE_SOAIBENCH_HISTORY_MODAL_ID, HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION, HARDWARE_SOAIBENCH_HISTORY_SORT_ACTION, HARDWARE_SOAIBENCH_RUN_MODAL_ID, HARDWARE_SYSTEM_INFO_MODAL_ID } from '@features/hardware/public.ts';
-import { HARDWARE_ACTION_GPU_SOAIBENCH_HISTORY, HARDWARE_ACTION_GPU_SOAIBENCH_RUN_COPY, HARDWARE_ACTION_GPU_SOAIBENCH_RUN_DOWNLOAD, HARDWARE_ACTION_GPU_SOAIBENCH_RUN_PUBLISH, HARDWARE_ACTION_GPU_SOAIBENCH_START_CONFIRM, HARDWARE_ACTION_SYSTEM_INFO_ANONYMIZE, HARDWARE_ACTION_SYSTEM_INFO_COPY, HARDWARE_ACTION_SYSTEM_INFO_DOWNLOAD, isHardwareActionId } from '@pages/hardware/actions.ts';
+import { HARDWARE_SOAIBENCH_HISTORY_COPY_ACTION, HARDWARE_SOAIBENCH_HISTORY_DOWNLOAD_ACTION, HARDWARE_SOAIBENCH_HISTORY_MODAL_ID, HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION, HARDWARE_SOAIBENCH_HISTORY_SORT_ACTION, HARDWARE_SOAIBENCH_RUN_AGAIN_ACTION, HARDWARE_SOAIBENCH_RUN_COPY_ACTION, HARDWARE_SOAIBENCH_RUN_DISMISS_ACTION, HARDWARE_SOAIBENCH_RUN_DOWNLOAD_ACTION, HARDWARE_SOAIBENCH_RUN_HISTORY_ACTION, HARDWARE_SOAIBENCH_RUN_MODAL_ID, HARDWARE_SOAIBENCH_RUN_NEW_ACTION, HARDWARE_SOAIBENCH_RUN_PICK_ACTION, HARDWARE_SOAIBENCH_RUN_PUBLISH_ACTION, HARDWARE_SOAIBENCH_RUN_RECOVER_ACTION, HARDWARE_SOAIBENCH_RUN_RETRY_ACTION, HARDWARE_SOAIBENCH_RUN_START_ACTION, HARDWARE_SOAIBENCH_RUN_STOP_ACTION, HARDWARE_SYSTEM_INFO_MODAL_ID, type SoAIBenchRunModal } from '@features/hardware/public.ts';
+import { HARDWARE_ACTION_SYSTEM_INFO_ANONYMIZE, HARDWARE_ACTION_SYSTEM_INFO_COPY, HARDWARE_ACTION_SYSTEM_INFO_DOWNLOAD, isHardwareActionId, type HardwareActionId } from '@pages/hardware/actions.ts';
 
 type HardwareSystemInfoModalController = {
     handleModalClosed: () => void;
@@ -26,14 +27,7 @@ type SoAIBenchHistoryModalController = {
     publishRun: (runId: string) => Promise<void>;
 };
 
-type SoAIBenchRunModalController = {
-    handleModalClosed: () => void;
-    handleFooterAction: () => Promise<void>;
-    openHistory: () => Promise<void>;
-    copyRun: () => Promise<void>;
-    downloadRun: () => Promise<void>;
-    publishRun: () => Promise<void>;
-};
+type SoAIBenchRunModalController = Pick<SoAIBenchRunModal, 'handleModalClosed' | 'handleScroll' | 'showNewBenchmark' | 'dismissComposer' | 'selectGpu' | 'startConfirmed' | 'openHistory' | 'stopRun' | 'copyRun' | 'downloadRun' | 'publishRun' | 'runAgain' | 'retryStart' | 'recoverRun'>;
 
 type HardwarePageModalEventListenerDependencies = {
     signal: AbortSignal;
@@ -165,6 +159,8 @@ const bindHardwarePageModalEventListeners = (dependencies: HardwarePageModalEven
         }
     });
 
+    dependencies.soaibenchRunModalRoot.addEventListener('scroll', dependencies.soaibenchRunModal.handleScroll, { capture: true, passive: true, signal: dependencies.signal });
+
     bindDataActionListener({
         root: dependencies.soaibenchRunModalRoot,
         eventType: 'click',
@@ -173,32 +169,49 @@ const bindHardwarePageModalEventListeners = (dependencies: HardwarePageModalEven
         mouseButton: 'primary',
         preventDefault: 'never',
         onAction: ({ event, action, actionElement }): void => {
-            const isRunAction = action === HARDWARE_ACTION_GPU_SOAIBENCH_START_CONFIRM || action === HARDWARE_ACTION_GPU_SOAIBENCH_HISTORY || action === HARDWARE_ACTION_GPU_SOAIBENCH_RUN_COPY || action === HARDWARE_ACTION_GPU_SOAIBENCH_RUN_DOWNLOAD || action === HARDWARE_ACTION_GPU_SOAIBENCH_RUN_PUBLISH;
-            if (!isRunAction) {
+            const task = dispatchSoAIBenchRunAction(dependencies.soaibenchRunModal, action, actionElement);
+            if (task === null) {
                 return;
             }
             if (shouldPreventDefaultForActionElement(actionElement)) {
                 event.preventDefault();
             }
-            if (action === HARDWARE_ACTION_GPU_SOAIBENCH_HISTORY) {
-                terminateHandledPromise(dependencies.soaibenchRunModal.openHistory());
-                return;
-            }
-            if (action === HARDWARE_ACTION_GPU_SOAIBENCH_RUN_COPY) {
-                terminateHandledPromise(dependencies.soaibenchRunModal.copyRun());
-                return;
-            }
-            if (action === HARDWARE_ACTION_GPU_SOAIBENCH_RUN_DOWNLOAD) {
-                terminateHandledPromise(dependencies.soaibenchRunModal.downloadRun());
-                return;
-            }
-            if (action === HARDWARE_ACTION_GPU_SOAIBENCH_RUN_PUBLISH) {
-                terminateHandledPromise(dependencies.soaibenchRunModal.publishRun());
-                return;
-            }
-            terminateHandledPromise(dependencies.soaibenchRunModal.handleFooterAction());
+            terminateHandledPromise(task);
         }
     });
+};
+
+const dispatchSoAIBenchRunAction = (modal: SoAIBenchRunModalController, action: HardwareActionId, actionElement: HTMLElement): Promise<void> | null => {
+    const sectionId = (): string => requireTrimmedDataAttribute(actionElement, 'soaibenchSection', 'SoAIBench run section action');
+    const runId = (): string => requireTrimmedDataAttribute(actionElement, 'runId', 'SoAIBench run action');
+    switch (action) {
+        case HARDWARE_SOAIBENCH_RUN_NEW_ACTION:
+            return modal.showNewBenchmark();
+        case HARDWARE_SOAIBENCH_RUN_DISMISS_ACTION:
+            return modal.dismissComposer();
+        case HARDWARE_SOAIBENCH_RUN_PICK_ACTION:
+            return modal.selectGpu(requireTrimmedDataAttribute(actionElement, 'selectionIndex', 'SoAIBench GPU selection'));
+        case HARDWARE_SOAIBENCH_RUN_START_ACTION:
+            return modal.startConfirmed();
+        case HARDWARE_SOAIBENCH_RUN_HISTORY_ACTION:
+            return modal.openHistory(optionalTrimmedDataAttribute(actionElement, 'soaibenchSection'));
+        case HARDWARE_SOAIBENCH_RUN_STOP_ACTION:
+            return modal.stopRun(runId());
+        case HARDWARE_SOAIBENCH_RUN_COPY_ACTION:
+            return modal.copyRun(runId());
+        case HARDWARE_SOAIBENCH_RUN_DOWNLOAD_ACTION:
+            return modal.downloadRun(runId());
+        case HARDWARE_SOAIBENCH_RUN_PUBLISH_ACTION:
+            return modal.publishRun(runId());
+        case HARDWARE_SOAIBENCH_RUN_AGAIN_ACTION:
+            return modal.runAgain(sectionId());
+        case HARDWARE_SOAIBENCH_RUN_RETRY_ACTION:
+            return modal.retryStart(sectionId());
+        case HARDWARE_SOAIBENCH_RUN_RECOVER_ACTION:
+            return modal.recoverRun(sectionId());
+        default:
+            return null;
+    }
 };
 
 export { bindHardwarePageModalEventListeners };

@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
 from core.errors.error_types import ErrorType
+from core.errors.payload import ErrorPublicPayload
 from core.events.types_base import Event, ReplyableUserCommand, UserCommand
 from core.runtime.request_context import RequestContext
 from core.types.json import JSONDict, JSONValue
@@ -53,6 +54,7 @@ class ErrorEvent(Event):
     message: str
     context: RequestContext | None = None
     error_type: ErrorType = ErrorType.SERVER_ERROR
+    public_error: ErrorPublicPayload | None = None
 
 
 @dataclass(slots=True)

@@ -14,7 +14,7 @@
     }
 
     .status-led {
-        margin-right: var(--status-led-margin);
+        margin-inline-end: var(--status-led-margin);
         background-color: var(--status-led-color);
         box-shadow:
             0 0 8px var(--status-led-glow),
@@ -22,7 +22,7 @@
     }
 
     .status-indicator {
-        margin-right: var(--space-2);
+        margin-inline-end: var(--space-2);
         background: var(--status-led-color);
         box-shadow: 0 0 8px var(--status-led-glow);
     }
@@ -91,7 +91,7 @@
     }
 
     .status-led-no-margin {
-        margin-right: 0;
+        margin-inline-end: 0;
     }
 
     .ui-collection-list__status .status-led {

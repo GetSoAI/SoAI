@@ -113,7 +113,8 @@ class UpdatesSystemController {
             return { type: 'skipped', message: '', operationRevision: null };
         }
         const lifecycle = this.#lifecycleVersion;
-        const latestVersion = this.#currentUpdate.latestVersion || i18n.t('updates.unknown');
+        const targetVersion = this.#currentUpdate.latestVersion;
+        const latestVersion = targetVersion || i18n.t('updates.unknown');
         this.#updateInProgress = true;
         let operationRevision: number | null = null;
         let updateAccepted = false;
@@ -128,7 +129,8 @@ class UpdatesSystemController {
                 message: confirmationMessage,
                 confirmText: i18n.t('updates.actions.installUpdate'),
                 cancelText: i18n.t('common.cancel'),
-                variant: 'info'
+                variant: 'info',
+                confirmVariant: 'ui-variant-success'
             });
             if (!confirmed || lifecycle !== this.#lifecycleVersion) {
                 return { type: 'skipped', message: '', operationRevision: null };
@@ -149,7 +151,7 @@ class UpdatesSystemController {
                 return { type: 'skipped', message: '', operationRevision };
             }
             this.#host.notify(i18n.t('updates.notifications.systemUpdateInitiated'), 'success');
-            this.#host.showOverlay('update-soai', { observeTransition: true });
+            this.#host.showOverlay('update-soai', targetVersion ? { observeTransition: true, targetVersion } : { observeTransition: true });
             return { type: 'started', message: i18n.t('updates.notifications.systemUpdateInitiated'), operationRevision };
         } catch (error) {
             if (lifecycle !== this.#lifecycleVersion) {
@@ -208,7 +210,7 @@ class UpdatesSystemController {
         });
         this.#host.toggleHidden(this.#ui.detailsSection, false);
         this.#renderSummary(this.#currentUpdate);
-        this.#renderReleaseNotes(this.#currentUpdate.releaseNotes);
+        this.#renderReleaseNotes(this.#currentUpdate);
         this.#syncInstallButtonState();
         return {
             type: hasUpdate ? 'updatesFound' : 'noUpdates',
@@ -239,8 +241,13 @@ class UpdatesSystemController {
         this.#host.updateHTML(this.#ui.summaryContainer, markup, { escape: false });
     }
 
-    #renderReleaseNotes(releaseNotes: string): void {
-        const markup = buildUpdatesReleaseNotesMarkup(releaseNotes, this.#host.sanitizeHtml);
+    #renderReleaseNotes(update: NonNullable<ReturnType<typeof normalizeUpdatePayload>>): void {
+        const markup = buildUpdatesReleaseNotesMarkup({
+            update,
+            sanitizeHtml: this.#host.sanitizeHtml,
+            renderMarkdown: this.#host.renderMarkdown,
+            partialLabel: i18n.t('updates.notes.partial')
+        });
         this.#host.updateHTML(this.#ui.notesBody, markup.html, { escape: false });
         this.#host.toggleHidden(this.#ui.notesContainer, !markup.hasNotes);
     }

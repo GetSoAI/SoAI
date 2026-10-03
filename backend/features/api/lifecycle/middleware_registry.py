@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 
 from features.api.api_cors_runtime import CORSMiddlewareConfig
 from features.api.middleware.authentication import AuthMiddleware
@@ -74,6 +75,7 @@ def register_middleware_stack(
     app.add_middleware(SecurityHeadersMiddleware, config_state=security_headers_state)
     app.add_middleware(OpenAIAnonymousOwnerTokenMiddleware)
     app.add_middleware(ServerTimeMiddleware)
+    app.add_middleware(GZipMiddleware, minimum_size=1024, compresslevel=5)
     app.add_middleware(OpenAIResponseMetadataMiddleware)
     app.add_middleware(CORSMiddleware, **cors_config)
 

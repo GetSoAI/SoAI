@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.network.outbound_http_profiles import DEFAULT_BROWSER_DOCUMENT_USER_AGENTS
-from core.timing.constants import EXTENDED_TIMEOUT_SEC
+from core.timing.constants import BACKGROUND_TIMEOUT_SEC, LONG_REQUEST_TIMEOUT_SEC
 
 if TYPE_CHECKING:
     from core.config.value_types import ConfigDict
@@ -20,7 +20,7 @@ def build_rag_defaults() -> ConfigDict:
             "ENABLED": True,
             "CHROMA_PATH": "chroma_rag",
             "CHROMA_SHARD_COUNT": 1,
-            "CHROMA_IPC_STARTUP_TIMEOUT_SEC": EXTENDED_TIMEOUT_SEC,
+            "CHROMA_IPC_STARTUP_TIMEOUT_SEC": LONG_REQUEST_TIMEOUT_SEC,
             "CHROMA_IPC_RETRY_COUNT": 1,
             "CHROMA_IPC_JOB_TTL_SEC": 3600,
             "CHROMA_QUERY_TIMEOUT_SEC": 30,
@@ -77,8 +77,8 @@ def build_rag_defaults() -> ConfigDict:
                 "FETCH_VARIANTS_TOTAL_TIMEOUT_SEC": 35,
                 "DNS_TIMEOUT_SEC": 5,
                 "STREAM_CHUNK_SIZE": 65536,
-                "HTML_PARSE_TIMEOUT": 15,
-                "PDF_PARSE_TIMEOUT": 30,
+                "HTML_PARSE_TIMEOUT": BACKGROUND_TIMEOUT_SEC,
+                "PDF_PARSE_TIMEOUT": LONG_REQUEST_TIMEOUT_SEC,
                 "CONTENT_MAX_CHARS": 120000,
                 "CONTENT_TRIM_MODE": "sentence",
                 "USER_AGENT": DEFAULT_BROWSER_DOCUMENT_USER_AGENTS[0],

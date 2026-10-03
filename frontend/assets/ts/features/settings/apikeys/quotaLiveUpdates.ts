@@ -8,6 +8,7 @@ import { appendHtml, insertHtmlBefore } from '@core/dom/html.ts';
 import { parseSingleRootElement } from '@core/dom/parseSingleRootElement.ts';
 import { replaceChildrenIfChanged, syncElementShell } from '@core/dom/patching.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import { applyProgressWidths } from '@core/ui/progressWidths.ts';
@@ -23,6 +24,7 @@ type ApiKeyQuotaSummaries = ReturnType<typeof decodeApiKeyQuotaStatusListRespons
 interface StartApiKeyQuotaLiveUpdatesArguments {
     host: ApiKeysManagerHost;
     root: HTMLElement;
+    getIsActive: () => boolean;
     getIsMounted: () => boolean;
     getIsReloading: () => boolean;
     getUpdateGeneration: () => number;
@@ -124,8 +126,9 @@ const syncQuotaModeBadge = (host: ApiKeysManagerHost, apiKeyItem: HTMLElement, k
     statusBadge.after(nextBadge);
 };
 
-const startApiKeyQuotaLiveUpdates = ({ host, root, getIsMounted, getIsReloading, getUpdateGeneration, getRequestInFlight, setRequestInFlight, setTimerId, clearTimer }: StartApiKeyQuotaLiveUpdatesArguments): (() => void) => {
+const startApiKeyQuotaLiveUpdates = ({ host, root, getIsActive, getIsMounted, getIsReloading, getUpdateGeneration, getRequestInFlight, setRequestInFlight, setTimerId, clearTimer }: StartApiKeyQuotaLiveUpdatesArguments): (() => void) => {
     let cancelled = false;
+    let requestController: AbortController | null = null;
     const schedule = (delayMs: number): void => {
         if (cancelled) {
             return;
@@ -142,7 +145,7 @@ const startApiKeyQuotaLiveUpdates = ({ host, root, getIsMounted, getIsReloading,
         setTimerId(timerId);
     };
     const tick = async (): Promise<void> => {
-        if (cancelled || !getIsMounted()) {
+        if (cancelled || !getIsMounted() || !getIsActive()) {
             return;
         }
         if (document.hidden) {
@@ -159,28 +162,34 @@ const startApiKeyQuotaLiveUpdates = ({ host, root, getIsMounted, getIsReloading,
         }
         const generationToken = getUpdateGeneration();
         setRequestInFlight(true);
+        requestController = new AbortController();
         let nextDelayMs = 2000;
         try {
-            const payload = await requestWebSocketSnapshotPayload('openai_api_keys.quota.status');
-            if (cancelled || !getIsMounted() || getIsReloading() || generationToken !== getUpdateGeneration()) {
+            const payload = await requestWebSocketSnapshotPayload('openai_api_keys.quota.status', null, { signal: requestController.signal });
+            if (cancelled || !getIsMounted() || !getIsActive() || getIsReloading() || generationToken !== getUpdateGeneration()) {
                 return;
             }
             const summaries = decodeApiKeyQuotaStatusListResponse(payload);
             applyQuotaSummariesLive(host, root, summaries);
         } catch (error) {
             nextDelayMs = 10000;
-            const runtimeError = ensureError(error);
-            errorHandler.debug('Settings', 'API key quota live update failed', runtimeError);
+            if (!isAbortError(error)) {
+                const runtimeError = ensureError(error);
+                errorHandler.debug('Settings', 'API key quota live update failed', runtimeError);
+            }
         } finally {
+            requestController = null;
             setRequestInFlight(false);
-            if (!cancelled && getIsMounted()) {
+            if (!cancelled && getIsMounted() && getIsActive()) {
                 schedule(nextDelayMs);
             }
         }
     };
-    schedule(0);
+    schedule(2000);
     return () => {
         cancelled = true;
+        requestController?.abort('api-keys-quota-live-update-dispose');
+        requestController = null;
         clearTimer();
     };
 };

@@ -5,7 +5,7 @@ import type { ChatUiStorage } from '@core/chat/protocols.ts';
 import { getDefaultChatParameters } from '@core/chat/parameters/chatParameterDefaults.ts';
 import { TextZoomController } from '@core/TextZoomController.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
-import type { ChatParameters } from '@features/chat/public.ts';
+import type { ChatNavigationMemory, ChatParameters } from '@features/chat/public.ts';
 import { DEFAULT_TEXT_ZOOM } from '@pages/chat/contracts/chatPageConfig.ts';
 import { EXCLUDED_REQUEST_PARAMETER_KEY_SET } from '@core/chat/parameters/chatParameterKeySets.ts';
 import { buildChatRequestParameters } from '@core/chat/parameters/chatRequestParameters.ts';
@@ -29,10 +29,12 @@ class ChatSettingsState {
     readonly textZoomController: TextZoomController;
     textZoomInitialized = false;
     readonly storage: ChatUiStorage;
+    readonly navigationMemory: ChatNavigationMemory;
     readonly textZoomPageHost: ChatTextZoomPageHost;
 
-    constructor(storage: ChatUiStorage, textZoomController: TextZoomController, textZoomPageHost: ChatTextZoomPageHost) {
+    constructor(storage: ChatUiStorage, navigationMemory: ChatNavigationMemory, textZoomController: TextZoomController, textZoomPageHost: ChatTextZoomPageHost) {
         this.storage = storage;
+        this.navigationMemory = navigationMemory;
         this.textZoomController = textZoomController;
         this.textZoomPageHost = textZoomPageHost;
     }

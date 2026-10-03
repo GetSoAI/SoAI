@@ -31,6 +31,7 @@ soai_install__managed_root_entries() {
         soai.sh \
         soai.command \
         soai.exe \
+        soai.exe.config \
         soai-app.ico \
         Microsoft.Web.WebView2.Core.dll \
         Microsoft.Web.WebView2.WinForms.dll \

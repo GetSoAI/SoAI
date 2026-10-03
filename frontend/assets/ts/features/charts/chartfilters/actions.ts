@@ -1,12 +1,13 @@
 /* SoAI - Charts feature chart filters actions [frontend/assets/ts/features/charts/chartfilters/actions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { insertWithPresence, isPresenceExiting, removeWithPresence, resolveNextPresenceAnchor } from '@core/animations/presence/public.ts';
 import { dom, resolveAll } from '@core/dom/dom.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { isString } from '@core/typeGuards.ts';
 import { FILTER_TYPES, resolveFilterId } from '@features/charts/chartfilters/constants.ts';
 import { normalizeFilterValue, resolveOptionText, toFilterOption } from '@features/charts/chartfilters/mappers.ts';
-import type { FilterOptionsInput, FilterType, FilterValue, FilterValueChangeHandler, InternalChartFiltersConfig } from '@features/charts/chartfilters/types.ts';
+import type { FilterOption, FilterOptionsInput, FilterType, FilterValue, FilterValueChangeHandler, InternalChartFiltersConfig } from '@features/charts/chartfilters/types.ts';
 
 interface BuildFilterControlOptions {
     type: FilterType;
@@ -34,21 +35,25 @@ const applyFilterButtonActiveState = (button: HTMLButtonElement, isActive: boole
     button.classList.toggle('ui-variant-primary', false);
 };
 
+const createFilterButton = (type: FilterType, option: FilterOption, selectedValue: string, formatValue: ((value: FilterValue) => string) | undefined): HTMLButtonElement => {
+    const value = normalizeFilterValue(option.value);
+    const button = dom.create('button', {
+        type: 'button',
+        className: `ui-button ui-button--titlebar ui-variant-neutral${value === selectedValue ? ' is-active' : ''}`,
+        dataset: { value },
+        textContent: resolveOptionText(option, type, formatValue),
+        includeIdClass: false
+    });
+    if (!(button instanceof HTMLButtonElement)) {
+        throw new Error('Filter control button must be an HTMLButtonElement');
+    }
+    return button;
+};
+
+const resolveFilterButtons = (control: HTMLDivElement): HTMLButtonElement[] => resolveAll('.ui-button', control).filter((button): button is HTMLButtonElement => button instanceof HTMLButtonElement);
+
 const createFilterButtons = (type: FilterType, options: FilterOptionsInput, selected: FilterValue | null, formatValue: ((value: FilterValue) => string) | undefined, onChange: FilterValueChangeHandler, onSync: (type: FilterType) => void, resources: ResourceTracker): HTMLDivElement => {
     const selectedValue = selected === null ? '' : normalizeFilterValue(selected);
-    const buttons = options.map((rawOption) => {
-        const option = toFilterOption(rawOption);
-        const value = normalizeFilterValue(option.value);
-        const isActive = value === selectedValue;
-        return dom.create('button', {
-            type: 'button',
-            className: `ui-button ui-button--titlebar ui-variant-neutral${isActive ? ' is-active' : ''}`,
-            dataset: { value },
-            textContent: resolveOptionText(option, type, formatValue),
-            includeIdClass: false
-        });
-    });
-
     const container = dom.create('div', {
         className: 'chart-filter-buttons',
         dataset: { filter: type },
@@ -57,24 +62,19 @@ const createFilterButtons = (type: FilterType, options: FilterOptionsInput, sele
     if (!(container instanceof HTMLDivElement)) {
         throw new Error('Filter control buttons container must be an HTMLDivElement');
     }
-    container.append(...buttons);
+    container.append(...options.map((rawOption) => createFilterButton(type, toFilterOption(rawOption), selectedValue, formatValue)));
 
     resources.addEventListener(container, 'click', (event) => {
         const target = event.target instanceof HTMLElement ? event.target.closest('.ui-button') : null;
-        if (!(target instanceof HTMLButtonElement)) {
-            return;
-        }
-        if (!container.contains(target)) {
+        if (!(target instanceof HTMLButtonElement) || !container.contains(target) || isPresenceExiting(target)) {
             return;
         }
         const nextValue = target.dataset['value'];
         if (!isString(nextValue)) {
             return;
         }
-        resolveAll('.ui-button', container).forEach((button) => {
-            if (button instanceof HTMLButtonElement) {
-                applyFilterButtonActiveState(button, false);
-            }
+        resolveFilterButtons(container).forEach((button) => {
+            applyFilterButtonActiveState(button, false);
         });
         applyFilterButtonActiveState(target, true);
         onChange(type, nextValue);
@@ -126,19 +126,36 @@ const buildFilterControl = ({ type, options, selected, useButtonGroup, formatVal
 
 const refreshFilterButtons = (type: FilterType, control: HTMLDivElement, options: FilterOptionsInput, selected: FilterValue | null, formatValue: ((value: FilterValue) => string) | undefined): void => {
     const selectedValue = selected === null ? '' : normalizeFilterValue(selected);
-    const controls = options.map((rawOption) => {
+    const existingButtons = new Map(resolveFilterButtons(control).map((button) => [button.dataset['value'] ?? '', button]));
+    const firstChild = control.firstChild;
+    let anchor = firstChild instanceof HTMLElement && isPresenceExiting(firstChild) ? resolveNextPresenceAnchor(firstChild) : firstChild;
+    for (const rawOption of options) {
         const option = toFilterOption(rawOption);
         const value = normalizeFilterValue(option.value);
-        const isActive = value === selectedValue;
-        return dom.create('button', {
-            type: 'button',
-            className: `ui-button ui-button--titlebar ui-variant-neutral${isActive ? ' is-active' : ''}`,
-            dataset: { value },
-            textContent: resolveOptionText(option, type, formatValue),
-            includeIdClass: false
-        });
+        const button = existingButtons.get(value) ?? createFilterButton(type, option, selectedValue, formatValue);
+        existingButtons.delete(value);
+        if (!button.isConnected || isPresenceExiting(button)) {
+            insertWithPresence(control, button, anchor);
+        } else if (anchor !== button) {
+            control.insertBefore(button, anchor);
+        }
+        const text = resolveOptionText(option, type, formatValue);
+        if (button.textContent !== text) {
+            button.textContent = text;
+        }
+        applyFilterButtonActiveState(button, value === selectedValue);
+        anchor = resolveNextPresenceAnchor(button);
+    }
+    const focusedButton = Array.from(existingButtons.values()).find((button) => button.contains(button.ownerDocument.activeElement));
+    existingButtons.forEach((button) => {
+        if (!isPresenceExiting(button)) {
+            removeWithPresence(button);
+        }
     });
-    control.replaceChildren(...controls);
+    if (focusedButton) {
+        const replacement = resolveFilterButtons(control).find((button) => !isPresenceExiting(button) && button.classList.contains('is-active')) ?? resolveFilterButtons(control).find((button) => !isPresenceExiting(button));
+        replacement?.focus();
+    }
 };
 
 const refreshFilterSelect = (type: FilterType, control: HTMLSelectElement, options: FilterOptionsInput, selected: FilterValue | null, formatValue: ((value: FilterValue) => string) | undefined): void => {
@@ -171,8 +188,7 @@ const syncFilterInput = (type: FilterType, control: HTMLSelectElement | HTMLDivE
         if (type !== FILTER_TYPES.TIME_RANGE) {
             throw new Error(`Chart filter ${type} does not support button synchronization`);
         }
-        const buttons = resolveAll('.ui-button', control).filter((button): button is HTMLButtonElement => button instanceof HTMLButtonElement);
-        buttons.forEach((button) => {
+        resolveFilterButtons(control).forEach((button) => {
             applyFilterButtonActiveState(button, button.dataset['value'] === normalizeFilterValue(value ?? ''));
         });
         return;

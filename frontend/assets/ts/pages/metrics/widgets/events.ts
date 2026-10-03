@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { getCurrentLocale } from '@core/languageservice/service.ts';
+import { getCollator } from '@core/localization/intlCache.ts';
 import { applyAdaptiveNumbers, resolveAdaptiveNumberText } from '@core/ui/adaptiveNumber.ts';
 import { updateFrontendTelemetrySortIndicators, updateModelTableSortIndicators, updatePluginHealthSortIndicators, updateSystemStatsSortIndicators } from '@pages/metrics/widgets/effects.ts';
 import { updateModelTable, updatePluginHealth } from '@pages/metrics/widgets/service.ts';
@@ -45,10 +46,11 @@ const applyFrontendTelemetrySort = (host: MetricsPageWidgetHost): void => {
         return (cell0.textContent || '').trim();
     };
 
+    const collator = getCollator(getCurrentLocale(), { sensitivity: 'base', numeric: true });
     const sorted = [...rows].sort((firstValue, secondValue) => {
         const av = valueForRow(firstValue);
         const bv = valueForRow(secondValue);
-        return direction * av.localeCompare(bv, getCurrentLocale(), { sensitivity: 'base', numeric: true });
+        return direction * collator.compare(av, bv);
     });
 
     for (const row of sorted) {
@@ -95,6 +97,7 @@ const applySystemStatsSort = (host: MetricsPageWidgetHost): void => {
         return { label, numeric: Number.isFinite(numeric) ? numeric : 0 };
     };
 
+    const collator = getCollator(getCurrentLocale(), { sensitivity: 'base', numeric: true });
     const sorted = [...rows].sort((firstValue, secondValue) => {
         const av = valueForRow(firstValue);
         const bv = valueForRow(secondValue);
@@ -102,9 +105,9 @@ const applySystemStatsSort = (host: MetricsPageWidgetHost): void => {
             if (av.numeric !== bv.numeric) {
                 return direction * (av.numeric - bv.numeric);
             }
-            return direction * av.label.localeCompare(bv.label, getCurrentLocale(), { sensitivity: 'base', numeric: true });
+            return direction * collator.compare(av.label, bv.label);
         }
-        return direction * av.label.localeCompare(bv.label, getCurrentLocale(), { sensitivity: 'base', numeric: true });
+        return direction * collator.compare(av.label, bv.label);
     });
 
     for (const row of sorted) {

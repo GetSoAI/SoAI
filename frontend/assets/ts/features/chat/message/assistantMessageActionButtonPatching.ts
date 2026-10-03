@@ -1,10 +1,11 @@
 /* SoAI - Assistant message action button DOM patching [frontend/assets/ts/features/chat/message/assistantMessageActionButtonPatching.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { insertWithPresence, isPresenceExiting, removeWithPresence, resolveNextPresenceAnchor } from '@core/animations/presence/public.ts';
 import { hasDataActionElement } from '@core/dom/dataAction.ts';
 import { dom } from '@core/dom/dom.ts';
 import { replaceChildrenIfChanged, syncElementShell } from '@core/dom/patching.ts';
-import { applyChatMessageEnterAnimation, type ChatMessageInsertAnimationOptions } from '@features/chat/message/messageMotion.ts';
+import type { ChatMessageInsertAnimationOptions } from '@features/chat/message/messageMotion.ts';
 
 const MESSAGE_ACTION_BUTTONS_LEFT_CLASS = 'message-action-buttons-left';
 const MESSAGE_ACTION_BUTTONS_RIGHT_CLASS = 'message-action-buttons-right';
@@ -116,10 +117,7 @@ const patchActionButton = (existingButton: HTMLElement, createdButton: HTMLEleme
     return changed;
 };
 
-const resolveFirstPatchableChild = (group: HTMLElement, ignoreElement: ActionButtonGroupIgnorePredicate | null): ChildNode | null => {
-    if (ignoreElement === null) {
-        return group.firstChild;
-    }
+const resolveFirstPatchableChild = (group: HTMLElement, ignoreElement: ActionButtonGroupIgnorePredicate): ChildNode | null => {
     for (const child of Array.from(group.childNodes)) {
         if (child instanceof HTMLElement && !ignoreElement(child)) {
             return child;
@@ -128,14 +126,15 @@ const resolveFirstPatchableChild = (group: HTMLElement, ignoreElement: ActionBut
     return null;
 };
 
-const patchActionButtonGroup = (existingGroup: HTMLElement, createdGroup: HTMLElement, options: ChatMessageInsertAnimationOptions, ignoreElement: ActionButtonGroupIgnorePredicate | null): boolean => {
+const patchActionButtonGroup = (existingGroup: HTMLElement, createdGroup: HTMLElement, options: ChatMessageInsertAnimationOptions, callerIgnoreElement: ActionButtonGroupIgnorePredicate | null): boolean => {
+    const ignoreElement: ActionButtonGroupIgnorePredicate = (element) => callerIgnoreElement !== null && callerIgnoreElement(element);
     let changed = syncElementShell({ target: existingGroup, source: createdGroup });
     const existingButtons = new Map<string, HTMLElement>();
     for (const child of Array.from(existingGroup.children)) {
         if (!(child instanceof HTMLElement)) {
             throw new Error('Assistant message action patch requires canonical existing action nodes.');
         }
-        if (ignoreElement !== null && ignoreElement(child)) {
+        if (ignoreElement(child)) {
             continue;
         }
         const key = resolveActionButtonKey(child);
@@ -150,7 +149,7 @@ const patchActionButtonGroup = (existingGroup: HTMLElement, createdGroup: HTMLEl
         if (!(child instanceof HTMLElement)) {
             throw new Error('Assistant message action patch requires canonical created action nodes.');
         }
-        if (ignoreElement !== null && ignoreElement(child)) {
+        if (ignoreElement(child)) {
             continue;
         }
         const key = resolveActionButtonKey(child);
@@ -164,11 +163,14 @@ const patchActionButtonGroup = (existingGroup: HTMLElement, createdGroup: HTMLEl
             if (!(inserted instanceof HTMLElement)) {
                 throw new Error('Assistant message action patch failed to clone created action.');
             }
-            applyChatMessageEnterAnimation(inserted, options);
-            existingGroup.insertBefore(inserted, anchor);
-            anchor = inserted.nextSibling;
+            insertWithPresence(existingGroup, inserted, anchor, options.suppressInsertAnimations !== true);
+            anchor = resolveNextPresenceAnchor(inserted);
             changed = true;
             continue;
+        }
+        if (isPresenceExiting(existingButton)) {
+            insertWithPresence(existingGroup, existingButton, anchor);
+            changed = true;
         }
         if (patchActionButton(existingButton, child, key)) {
             changed = true;
@@ -177,12 +179,14 @@ const patchActionButtonGroup = (existingGroup: HTMLElement, createdGroup: HTMLEl
             existingGroup.insertBefore(existingButton, anchor);
             changed = true;
         }
-        anchor = existingButton.nextSibling;
+        anchor = resolveNextPresenceAnchor(existingButton);
         existingButtons.delete(key);
     }
     for (const leftover of existingButtons.values()) {
-        leftover.remove();
-        changed = true;
+        if (!isPresenceExiting(leftover)) {
+            removeWithPresence(leftover);
+            changed = true;
+        }
     }
     return changed;
 };

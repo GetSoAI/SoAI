@@ -152,6 +152,7 @@ class DashboardClockController {
     #buildAnalogFace(): HTMLElement {
         const face = narrowHTMLElement(this.#host.createElement('div', { className: 'dashboard-clock-face', dataset: { clockFace: 'true' }, 'data-action': DASHBOARD_ACTION_CLOCK_MODE_CYCLE }), 'dashboard clock face');
         face.appendChild(this.#buildTicks());
+        face.appendChild(narrowHTMLElement(this.#host.createElement('div', { className: 'dashboard-clock-brand', 'aria-hidden': 'true' }, 'SoAI'), 'dashboard clock brand'));
         face.append(this.#buildHand('hour'), this.#buildHand('minute'), this.#buildHand('second'));
         face.appendChild(narrowHTMLElement(this.#host.createElement('div', { className: 'dashboard-clock-cap' }), 'dashboard clock cap'));
         return face;

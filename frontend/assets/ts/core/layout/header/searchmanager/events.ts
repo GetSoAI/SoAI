@@ -1,6 +1,7 @@
 /* SoAI - Shared layout search manager events [frontend/assets/ts/core/layout/header/searchmanager/events.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { WebuiPermissionsUnavailableError } from '@core/access/permissionFailure.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { getPrompt, getWindow } from '@core/environment/public.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
@@ -141,6 +142,7 @@ const performSearch = async (manager: SearchExecutionRuntime, query: string, tok
                 if (isAbortError(runtimeError) || !manager.isSessionActive(token) || abortController.signal.aborted) {
                     return;
                 }
+                if (runtimeError instanceof WebuiPermissionsUnavailableError) throw runtimeError;
                 errorHandler.warn('HeaderSearch', 'File search execution failed', runtimeError);
                 manager.header.logger('warn', 'File search execution failed', runtimeError);
                 manager.displayResultsWithCategoryState(primaryResults, {
@@ -165,7 +167,7 @@ const performSearch = async (manager: SearchExecutionRuntime, query: string, tok
             return;
         }
         manager.header.logger('warn', 'Search execution failed', runtimeError);
-        manager.displaySearchError();
+        manager.displaySearchError(runtimeError);
     }
 };
 

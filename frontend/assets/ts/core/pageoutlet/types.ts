@@ -36,7 +36,7 @@ interface PageHostInstance {
     cancelCurrent: (expectedInstance: PageInstance, reason?: string) => boolean;
     whenReady: (options?: { waitForData?: boolean; waitForReveal?: boolean }) => Promise<void>;
     allowReveal: () => void;
-    destroyCurrent: (options?: { force?: boolean; reason?: string }) => Promise<void>;
+    destroyCurrent: (options?: { expectedInstance?: PageInstance; force?: boolean; reason?: string }) => Promise<void>;
     getCurrent: () => { name: string; instance: PageInstance } | null;
 }
 

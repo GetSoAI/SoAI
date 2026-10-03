@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from core.concurrency.protocols import AsyncLockRegistryProtocol
 from core.di.validation import require_dependencies
 from core.models.protocols import (
     ModelRegistryProtocol,
@@ -28,6 +29,7 @@ class ModelInformationServiceDependencies:
     state_aggregator: StateAggregatorProtocol
     model_registry: ModelRegistryProtocol
     param_manager: ParameterManagerProtocol
+    model_record_locks: AsyncLockRegistryProtocol[str]
     routing_config_holder: RoutingConfigHolder
     installed_plugin_names_ref: Callable[[], set[str]]
 
@@ -38,6 +40,7 @@ class ModelInformationServiceDependencies:
             database_plugins=self.database_plugins,
             installed_plugin_names_ref=self.installed_plugin_names_ref,
             model_registry=self.model_registry,
+            model_record_locks=self.model_record_locks,
             param_manager=self.param_manager,
             plugin_manager=self.plugin_manager,
             routing_config_holder=self.routing_config_holder,

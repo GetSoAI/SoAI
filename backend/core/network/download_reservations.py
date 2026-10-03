@@ -3,27 +3,25 @@
 
 from __future__ import annotations
 
-import asyncio
 import io
-import os
 from collections.abc import Mapping
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING
 
-from core.errors.exception_logging import log_handled_exception
+from core.concurrency.joined_thread_call import run_joined_thread_call
+from core.hardware.reserved_writes import write_reserved_bytes
 
 if TYPE_CHECKING:
     from core.hardware.protocols_storage import (
         DiskSpaceReservationLeaseProtocol,
         StorageManagerProtocol,
     )
-    from core.logging.protocols import LoggerProtocol
     from core.types.json import JSONValue
 
 __all__ = (
     "DownloadReservationPlan",
     "flush_download_buffer_with_reservation",
-    "remove_partial_download_file",
 )
 
 
@@ -48,38 +46,26 @@ async def flush_download_buffer_with_reservation(
     write_buffer.clear()
     byte_count = len(combined)
     if reservation_plan.lease is not None:
-        with reservation_plan.lease.claim_write_bytes(byte_count) as claim:
-            await asyncio.to_thread(file_handle.write, combined)
-            claim.commit()
+        await run_joined_thread_call(
+            partial(
+                write_reserved_bytes, file_handle, combined, reservation=reservation_plan.lease
+            ),
+            task_name="download-reserved-write",
+            retain_resources_until_complete=True,
+        )
         return
-    with (
-        reservation_plan.provider.reserve_disk_space(
+
+    def write_incremental() -> None:
+        with reservation_plan.provider.reserve_disk_space(
             path=reservation_plan.path,
             required_bytes=byte_count,
             operation=reservation_plan.operation,
             details=reservation_plan.details,
-        ) as reservation,
-        reservation.claim_write_bytes(byte_count) as claim,
-    ):
-        await asyncio.to_thread(file_handle.write, combined)
-        claim.commit()
+        ) as reservation:
+            write_reserved_bytes(file_handle, combined, reservation=reservation)
 
-
-async def remove_partial_download_file(
-    path: str,
-    *,
-    logger: LoggerProtocol,
-    operation: str,
-) -> None:
-    try:
-        if await asyncio.to_thread(os.path.exists, path):
-            await asyncio.to_thread(os.remove, path)
-    except OSError as exception:
-        log_handled_exception(
-            logger,
-            exception,
-            message="Failed to remove partial download file after failure.",
-            operation=operation,
-            details={"path": path},
-            level="debug",
-        )
+    await run_joined_thread_call(
+        write_incremental,
+        task_name="download-incremental-write",
+        retain_resources_until_complete=True,
+    )

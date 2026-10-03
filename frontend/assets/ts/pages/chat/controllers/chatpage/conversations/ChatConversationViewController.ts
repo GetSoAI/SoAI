@@ -28,6 +28,8 @@ import type { ChatModelSessionContract } from '@pages/chat/controllers/chatpage/
 import type { ChatPagePresentationContract } from '@pages/chat/controllers/chatpage/presentation/contracts.ts';
 import { updateHeaderFavoriteButton, updateHeaderToolsToggleButton } from '@pages/chat/controllers/chatUiBehaviors.ts';
 import { initializeEmptyStateNav } from '@pages/chat/controllers/page/renderer/emptyState.ts';
+import { buildAiSetupResumeRoute } from '@core/routing/router/aiSetupRoutes.ts';
+import type { ChatPageStorageSource } from '@pages/chat/controllers/chatpage/construction/baseHost.ts';
 import { ConversationListPresentationController } from '@pages/chat/controllers/page/renderer/ConversationListPresentationController.ts';
 import { syncCurrentConversationColorAttribute } from '@pages/chat/controllers/page/renderer/currentConversationStateController.ts';
 
@@ -41,6 +43,7 @@ interface ChatConversationViewDependencies extends ChatConversationViewStatePort
     modelSession: ChatModelSessionContract;
     presentation: ChatPagePresentationContract;
     conversationSelection: SelectionState;
+    aiSetupStorage: Pick<ChatPageStorageSource, 'isAiSetupResumable'>;
 }
 
 class ChatConversationViewController implements ChatConversationViewContract {
@@ -83,7 +86,8 @@ class ChatConversationViewController implements ChatConversationViewContract {
             pageDom: dependencies.pageDom,
             pageLifecycle: dependencies.pageLifecycle,
             pageContext: dependencies.pageContext,
-            emptyState: this.#emptyState
+            emptyState: this.#emptyState,
+            readAiSetupResumeRoute: () => (dependencies.aiSetupStorage.isAiSetupResumable() ? buildAiSetupResumeRoute() : null)
         };
         this.#listPresentation = new ConversationListPresentationController(this.#listRender);
         this.#search = {

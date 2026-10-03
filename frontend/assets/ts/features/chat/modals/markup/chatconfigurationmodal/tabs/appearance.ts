@@ -5,11 +5,10 @@ import { CHAT_TEXT_ZOOM_DEFAULT, CHAT_TEXT_ZOOM_MAX, CHAT_TEXT_ZOOM_MIN, CHAT_TE
 import { modalUiId } from '@core/modals/uiIds.ts';
 import type { SanitizerApi } from '@core/pagecontext/public.ts';
 import { uiAttr } from '@core/security/uiHtml.ts';
-import { renderStandardDropdownSelectControl } from '@core/ui/dropdown/selectControl.ts';
-import { renderChatMobileAuxiliaryActionSelectOptions } from '@features/chat/inputactions/mobileAuxiliaryActionCatalog.ts';
 import { CHAT_CONFIGURATION_MODAL_ID } from '@features/chat/modals/constants.ts';
 import type { ChatPageMarkupContext } from '@features/chat/modals/markup/chatPageMarkupContext.ts';
 import { buildToggleSwitchMarkup, resolveEnabledDisabledToggleLabels } from '@features/chat/modals/markup/chatconfigurationmodal/controls.ts';
+import { buildAppearanceInputActionsMarkup } from '@features/chat/modals/markup/chatconfigurationmodal/tabs/appearanceInputActions.ts';
 
 type ToggleLabels = Parameters<typeof buildToggleSwitchMarkup>[0]['labels'];
 
@@ -45,6 +44,32 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
         dataParameter: 'widescreen_mode'
     })}
     <span class="chat-configuration-hint">${strings.widescreenModeHint}</span>
+  </div>
+
+  <div class="form-group setting-change-surface">
+    <label for="${uiIdAttr('auto-hide-chat-composer-checkbox')}">${strings.autoHideChatComposer}</label>
+    ${buildToggleSwitchMarkup({
+        modalId,
+        token: 'auto-hide-chat-composer-checkbox',
+        inputClassName: 'auto-hide-chat-composer-checkbox',
+        checked: true,
+        labels: enabledDisabledLabels,
+        dataParameter: 'auto_hide_chat_composer'
+    })}
+    <span class="chat-configuration-hint">${strings.autoHideChatComposerHint}</span>
+  </div>
+
+  <div class="form-group setting-change-surface">
+    <label for="${uiIdAttr('auto-hide-chat-header-checkbox')}">${strings.autoHideChatHeader}</label>
+    ${buildToggleSwitchMarkup({
+        modalId,
+        token: 'auto-hide-chat-header-checkbox',
+        inputClassName: 'auto-hide-chat-header-checkbox',
+        checked: true,
+        labels: enabledDisabledLabels,
+        dataParameter: 'auto_hide_chat_header'
+    })}
+    <span class="chat-configuration-hint">${strings.autoHideChatHeaderHint}</span>
   </div>
 
   <div class="form-group setting-change-surface">
@@ -177,116 +202,7 @@ const buildAppearanceControlsMarkup = (inputArguments: { modalId: string; string
     <span class="chat-configuration-hint">${strings.microphoneSoundEffectsHint}</span>
   </div>
 
-  <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('input-action-voice-toggle')}">${strings.inputActionVoice}</label>
-    ${buildToggleSwitchMarkup({
-        modalId,
-        token: 'input-action-voice-toggle',
-        inputClassName: 'input-action-voice-toggle',
-        checked: true,
-        labels: enabledDisabledLabels,
-        dataParameter: 'input_action_voice_enabled'
-    })}
-    <span class="chat-configuration-hint">${strings.inputActionVoiceHint}</span>
-  </div>
-
-  <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('input-action-call-toggle')}">${strings.inputActionCall}</label>
-    ${buildToggleSwitchMarkup({
-        modalId,
-        token: 'input-action-call-toggle',
-        inputClassName: 'input-action-call-toggle',
-        checked: true,
-        labels: enabledDisabledLabels,
-        dataParameter: 'input_action_call_enabled'
-    })}
-    <span class="chat-configuration-hint">${strings.inputActionCallHint}</span>
-  </div>
-
-  <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('input-action-file-toggle')}">${strings.inputActionUploadFile}</label>
-    ${buildToggleSwitchMarkup({
-        modalId,
-        token: 'input-action-file-toggle',
-        inputClassName: 'input-action-file-toggle',
-        checked: true,
-        labels: enabledDisabledLabels,
-        dataParameter: 'input_action_file_upload_enabled'
-    })}
-    <span class="chat-configuration-hint">${strings.inputActionUploadFileHint}</span>
-  </div>
-
-  <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('input-action-camera-toggle')}">${strings.inputActionCamera}</label>
-    ${buildToggleSwitchMarkup({
-        modalId,
-        token: 'input-action-camera-toggle',
-        inputClassName: 'input-action-camera-toggle',
-        checked: false,
-        labels: enabledDisabledLabels,
-        dataParameter: 'input_action_camera_enabled'
-    })}
-    <span class="chat-configuration-hint">${strings.inputActionCameraHint}</span>
-  </div>
-
-  <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('input-action-prompts-toggle')}">${strings.inputActionPrompts}</label>
-    ${buildToggleSwitchMarkup({
-        modalId,
-        token: 'input-action-prompts-toggle',
-        inputClassName: 'input-action-prompts-toggle',
-        checked: false,
-        labels: enabledDisabledLabels,
-        dataParameter: 'input_action_prompts_enabled'
-    })}
-    <span class="chat-configuration-hint">${strings.inputActionPromptsHint}</span>
-  </div>
-
-  <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('input-action-new-conversation-toggle')}">${strings.newConversation}</label>
-    ${buildToggleSwitchMarkup({
-        modalId,
-        token: 'input-action-new-conversation-toggle',
-        inputClassName: 'input-action-new-conversation-toggle',
-        checked: true,
-        labels: enabledDisabledLabels,
-        dataParameter: 'input_action_new_conversation_enabled'
-    })}
-  </div>
-
-  <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('input-action-character-map-toggle')}">${strings.inputActionCharacterMap}</label>
-    ${buildToggleSwitchMarkup({
-        modalId,
-        token: 'input-action-character-map-toggle',
-        inputClassName: 'input-action-character-map-toggle',
-        checked: false,
-        labels: enabledDisabledLabels,
-        dataParameter: 'input_action_character_map_enabled'
-    })}
-    <span class="chat-configuration-hint">${strings.inputActionCharacterMapHint}</span>
-  </div>
-
-  <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('input-action-token-counter-toggle')}">${strings.inputActionTokenCounter}</label>
-    ${buildToggleSwitchMarkup({
-        modalId,
-        token: 'input-action-token-counter-toggle',
-        inputClassName: 'input-action-token-counter-toggle',
-        checked: false,
-        labels: enabledDisabledLabels,
-        dataParameter: 'input_action_token_counter_enabled'
-    })}
-    <span class="chat-configuration-hint">${strings.inputActionTokenCounterHint}</span>
-  </div>
-
-  <div class="form-group setting-change-surface">
-    <label for="${uiIdAttr('input-action-mobile-auxiliary-action-select')}">${strings.inputActionMobileAuxiliaryAction}</label>
-    ${renderStandardDropdownSelectControl(`<select id="${uiIdAttr('input-action-mobile-auxiliary-action-select')}" class="form-input" data-param="input_action_mobile_auxiliary_action">
-      ${renderChatMobileAuxiliaryActionSelectOptions(sanitizer)}
-    </select>`)}
-    <span class="chat-configuration-hint">${strings.inputActionMobileAuxiliaryActionHint}</span>
-  </div>
+${buildAppearanceInputActionsMarkup({ modalId, strings, sanitizer, uiIdAttr, enabledDisabledLabels })}
 `;
 };
 

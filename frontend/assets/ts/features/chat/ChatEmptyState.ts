@@ -1,6 +1,7 @@
 /* SoAI - Chat feature empty state [frontend/assets/ts/features/chat/ChatEmptyState.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { inlineDelta, scrollToInlineStart } from '@core/layout/direction.ts';
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { createOverflowNavButtonMarkup, OverflowNavController } from '@core/ui/controls/OverflowNav.ts';
@@ -28,6 +29,7 @@ interface ChatPageEmptyStateDependencies {
     authorityLock: ConversationAuthorityLock | null;
     ctrlEnterSendRequired: boolean;
     isMac?: boolean;
+    aiSetupResumeRoute: string | null;
 }
 
 const SUGGESTION_CONFIGS: readonly ChatPageSuggestionConfig[] = Object.freeze([
@@ -63,14 +65,10 @@ class ChatPageEmptyState {
     #suggestionOrder: ChatPageSuggestionConfig[] | null = null;
 
     buildMarkup(dependencies: ChatPageEmptyStateDependencies): TrustedHtml {
-        const { sanitizer: stringValue, getCachedIcon, activeAgentMode, authorityLock, ctrlEnterSendRequired, isMac } = dependencies;
-        const leftLabel = i18n.t('tabs.scrollLeft');
-        const rightLabel = i18n.t('tabs.scrollRight');
-
+        const { sanitizer: stringValue, getCachedIcon, activeAgentMode, authorityLock, ctrlEnterSendRequired, isMac, aiSetupResumeRoute } = dependencies;
         const leftButtonHtml = createOverflowNavButtonMarkup({
             direction: 'left',
             className: 'chat-page-suggestion-nav chat-page-suggestion-nav--left ui-icon-button',
-            label: leftLabel,
             iconName: 'chevron-left',
             iconOptions: { size: 20, strokeWidth: 1.5 }
         });
@@ -78,7 +76,6 @@ class ChatPageEmptyState {
         const rightButtonHtml = createOverflowNavButtonMarkup({
             direction: 'right',
             className: 'chat-page-suggestion-nav chat-page-suggestion-nav--right ui-icon-button',
-            label: rightLabel,
             iconName: 'chevron-right',
             iconOptions: { size: 20, strokeWidth: 1.5 }
         });
@@ -167,6 +164,9 @@ class ChatPageEmptyState {
             </div>
         </div>`;
 
+        const aiSetupLinkText = stringValue.html(i18n.t('wizard.aiSetup.resume.link'));
+        const aiSetupLinkHtml = aiSetupResumeRoute === null ? '' : `<a class="chat-page-empty-state-setup-link" href="#${stringValue.attribute(aiSetupResumeRoute)}">${getCachedIcon('model-default', CHAT_ICON_SIZE_SM).html}<span>${aiSetupLinkText}</span></a>`;
+
         const inputHintIcon = getCachedIcon('chevron-down', { size: 50, strokeWidth: 1 }).html;
         const inputHintHtml = `<div class="chat-page-input-hint" aria-hidden="true">${inputHintIcon}</div>`;
 
@@ -184,6 +184,7 @@ class ChatPageEmptyState {
                     <h2 class="chat-page-empty-state-heading">${headingText}</h2>
                 </div>
                 <p class="chat-page-empty-state-subtitle">${subtitleText}</p>
+                ${aiSetupLinkHtml}
                 ${indicatorRowHtml}
             </div>
             <div class="chat-page-suggestion-row-wrapper">
@@ -207,9 +208,9 @@ class ChatPageEmptyState {
         if (maxScrollLeft > 0) {
             const target = Math.round(maxScrollLeft / 2);
             if (typeof row.scrollTo === 'function') {
-                row.scrollTo({ left: target, behavior: 'auto' });
+                scrollToInlineStart(row, target);
             } else {
-                row.scrollLeft = target;
+                row.scrollLeft = inlineDelta(target, row);
             }
         }
 

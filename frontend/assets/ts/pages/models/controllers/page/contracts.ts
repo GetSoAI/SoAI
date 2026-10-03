@@ -29,7 +29,7 @@ import type { ModelRecord } from '@core/types/modelTypes.ts';
 import type { StreamActionHandlers } from '@core/types/streamTypes.ts';
 import type { ModelsPageSession } from '@pages/models/controllers/page/ModelsPageSession.ts';
 import type { ModelsPluginCatalogController } from '@pages/models/controllers/page/ModelsPluginCatalogController.ts';
-import type { SpeedTest } from '@pages/models/controllers/variantprobemanager/types.ts';
+import type { SpeedTest } from '@features/models/public.ts';
 
 interface ModelsPageInitialActionContext {
     action: string;

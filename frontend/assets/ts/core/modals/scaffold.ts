@@ -64,6 +64,21 @@ interface ModalLoadingStateConfig {
     id?: string | undefined;
 }
 
+interface ModalTabPanelConfig {
+    id: string;
+    labelledBy: string;
+    content: ModalScaffoldContent;
+    active?: boolean | undefined;
+    className?: string | undefined;
+}
+
+interface ModalTabIntroConfig {
+    title: ModalScaffoldContent;
+    description: ModalScaffoldContent;
+    descriptionId?: string | undefined;
+    className?: string | undefined;
+}
+
 interface ModalScaffoldConfig {
     id: string;
     className?: string | undefined;
@@ -180,6 +195,19 @@ const renderModalBody = (content: ModalScaffoldContent, options: { className?: s
     return uiHtml`<div${uiAttributes({ id: options.id })} class="${uiAttr(className)}">${toHtml(content)}</div>`;
 };
 
+const renderModalTabPanel = (config: ModalTabPanelConfig): TrustedHtml => {
+    const active = config.active === true;
+    const className = `ui-modal-tab-panel${config.className ? ` ${config.className}` : ''}${active ? ' is-active' : ''}`;
+    const stateAttributes = uiAttributes({ 'aria-hidden': active ? 'false' : 'true', hidden: !active });
+    return uiHtml`<section id="${uiAttr(config.id)}" class="${uiAttr(className)}" role="tabpanel" aria-labelledby="${uiAttr(config.labelledBy)}"${stateAttributes}>${toHtml(config.content)}</section>`;
+};
+
+const renderModalTabIntro = (config: ModalTabIntroConfig): TrustedHtml => {
+    const className = `ui-modal-tab-intro${config.className ? ` ${config.className}` : ''}`;
+    const descriptionAttributes = uiAttributes({ id: config.descriptionId });
+    return uiHtml`<div class="${uiAttr(className)}"><strong class="ui-modal-tab-title">${toHtml(config.title)}</strong><div${descriptionAttributes} class="ui-modal-tab-description">${toHtml(config.description)}</div></div>`;
+};
+
 const renderModalLoadingState = (config: ModalLoadingStateConfig): TrustedHtml => {
     const classes = ['modal-loading-state'];
     if (config.overlay === true) {
@@ -224,5 +252,5 @@ const renderModalScaffoldMarkup = (config: ModalScaffoldConfig): TrustedHtml => 
     return uiHtml`<div id="${uiAttr(modalId)}" class="${uiAttr(className)}"${rootMarkerAttribute}${rootAttributes} aria-hidden="${uiAttr(ariaHidden)}" role="dialog" aria-modal="true" aria-labelledby="${uiAttr(labelledBy)}"><div class="${uiAttr(overlayClassName)}"></div><div class="${uiAttr(contentClassName)}" tabindex="-1"${contentAttributes}>${toHtml(config.header)}${toHtml(config.body)}${footer}</div></div>`;
 };
 
-export { MODAL_ROOT_MARKER_ATTR, renderDynamicSplitModalFooterContent, renderModalBody, renderModalCloseButton, renderModalFooter, renderModalFooterSection, renderModalLoadingState, renderModalScaffoldMarkup, renderSplitModalFooter, renderStandardModalHeader };
+export { MODAL_ROOT_MARKER_ATTR, renderDynamicSplitModalFooterContent, renderModalBody, renderModalCloseButton, renderModalFooter, renderModalFooterSection, renderModalLoadingState, renderModalScaffoldMarkup, renderModalTabIntro, renderModalTabPanel, renderSplitModalFooter, renderStandardModalHeader };
 export type { HtmlAttributeValue, ModalScaffoldConfig, ModalScaffoldContent };

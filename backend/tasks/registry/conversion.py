@@ -114,6 +114,11 @@ def task_from_row(task_catalog: TaskTypeCatalog, row: JSONDict) -> Task:
         error_code=(require_optional_int_from_numberish(row.get("error_code"), field="error_code")),
         error_type=(str(row["error_type"]) if row.get("error_type") is not None else None),
         error_message=(str(row["error_message"]) if row.get("error_message") is not None else None),
+        public_error_message=(
+            str(row["public_error_message"])
+            if row.get("public_error_message") is not None
+            else None
+        ),
         cancellation_requested_at_ms=(
             require_optional_int_from_numberish(
                 row.get("cancellation_requested_at_ms"),

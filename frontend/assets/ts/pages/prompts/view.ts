@@ -6,9 +6,9 @@ import { buildPromptsHeader } from '@pages/prompts/rendering/header.ts';
 import type { PromptsLayoutBuildDependencies } from '@pages/prompts/rendering/internalContracts.ts';
 import { buildPromptsSections } from '@pages/prompts/rendering/sections.ts';
 
-const buildPromptsLayoutConfig = ({ getIconSync, sortBy, sortOrder, onSortChange }: PromptsLayoutBuildDependencies): BuildConfig => {
+const buildPromptsLayoutConfig = ({ getIconSync, viewMode, sortBy, sortOrder, onSortChange }: PromptsLayoutBuildDependencies): BuildConfig => {
     return {
-        header: buildPromptsHeader(getIconSync, sortBy, sortOrder),
+        header: buildPromptsHeader(getIconSync, viewMode, sortBy, sortOrder),
         sections: buildPromptsSections(sortBy, sortOrder),
         filters: {},
         actions: [{ selector: '#prompts-sort', event: 'change', handler: onSortChange }],

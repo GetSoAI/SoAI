@@ -3,7 +3,8 @@
 
 import type { GpuSlotsBuilderResult } from '@core/types/streamTypes.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
-import { createSaveController, SAVE_HEADER_PRIORITY_PAGE, type SaveController } from '@core/save/public.ts';
+import { i18n } from '@core/i18n/index.ts';
+import { createSaveController, SAVE_HEADER_PRIORITY_PAGE, type SaveController, type SaveUnitResult } from '@core/save/public.ts';
 import { isElementNode, isNullOrUndefined } from '@core/typeGuards.ts';
 import { resetGpuSettings } from '@pages/hardware/controllers/gpucontrol/gpucontrolactions/effects.ts';
 import { handleGpuBootToggle } from '@pages/hardware/controllers/gpucontrol/gpucontrolactions/payloads.ts';
@@ -32,6 +33,8 @@ import { normalizeGpuControlTelemetryMap, updateGpuControlTelemetryLabels, type 
 import { getSlotEntryByIndex, syncAllGpuUiStates } from '@pages/hardware/controllers/gpucontrol/gpuControlSync.ts';
 import type { ConstructorOptions, GpuControlManagerDependencies, GpuSavedSettingsState, GpuSlotEntry, GpuSnapshot, GpuUiState, SecurityService } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 import { GpuSoAIBenchController } from '@pages/hardware/controllers/gpucontrol/soaibench/GpuSoAIBenchController.ts';
+import { isCertifiedSoAIBenchRunLocked } from '@pages/hardware/controllers/gpucontrol/soaibench/soaibenchRenderController.ts';
+import { resolveGpuDisplayIndex } from '@pages/hardware/controllers/gpucontrol/gpuDisplayLabelManager.ts';
 import { renderGpuResourceStatus } from '@pages/hardware/rendering/gpuResourceStatusWidget.ts';
 import type { HardwareGpuResourceState } from '@pages/hardware/controllers/realtime/gpuResourceState.ts';
 import { HARDWARE_GPU_CAPABILITIES, HARDWARE_GPU_SLOTS } from '@core/realtime/streammanager/resources/ids.ts';
@@ -57,7 +60,6 @@ class GpuControlManager {
         this.#soaibench = new GpuSoAIBenchController({
             buildActionContext: () => this.#buildActionContext(),
             ensureUiState: (index: string | number) => this.#uiStateStore.ensure(String(index)),
-            handleRunsUpdate: (value: JsonValue) => this.#dependencies.handleSoAIBenchRunsUpdate(value),
             syncSoAIBenchUi: (options?: { only?: string[] | null }) => this.#syncSoAIBenchUi(options)
         });
         this.#save = createSaveController({
@@ -83,16 +85,20 @@ class GpuControlManager {
     updateHeaderSaveAction(): void {
         this.#save.notifyChanged();
     }
-    async applyAllPendingGpuChanges(): Promise<void> {
-        await this.#applyAllPendingGpuChanges();
+    applyAllPendingGpuChanges(): Promise<SaveUnitResult> {
+        return this.#applyAllPendingGpuChanges();
     }
-
-    async #applyAllPendingGpuChanges(): Promise<void> {
+    async #applyAllPendingGpuChanges(): Promise<SaveUnitResult> {
+        const lockedIndex = findFirstPendingGpuIndex(this.#uiStateStore.states, (index) => this.isCertifiedRunLocked(index));
+        if (lockedIndex !== null) {
+            this.#dependencies.showNotification(i18n.t('hardware.gpu.notifications.soaibenchSettingsLocked', { index: resolveGpuDisplayIndex(this.gpuCapabilities, lockedIndex) }), 'warning');
+            return { type: 'stop' };
+        }
         const maxIterations = 64;
         for (let iteration = 0; iteration < maxIterations; iteration += 1) {
             const index = findFirstPendingGpuIndex(this.#uiStateStore.states);
             if (!index) {
-                return;
+                return undefined;
             }
             await this.handleGpuApplyClick(index);
         }
@@ -175,6 +181,12 @@ class GpuControlManager {
         }
         renderGpuControls(this.#buildViewContext(), { only });
     }
+    isCertifiedRunLocked(index: string | number): boolean {
+        return isCertifiedSoAIBenchRunLocked(this.#dependencies.soaibenchActivity, this.ensureGpuUiState(index));
+    }
+    syncSoAIBenchActivity(): void {
+        this.#soaibench.scheduleSync();
+    }
     #syncSoAIBenchUi(options?: { only?: string[] | null }): void {
         if (!this.#domRequired) {
             return;
@@ -185,7 +197,7 @@ class GpuControlManager {
         this.#soaibench.setRuns(value);
     }
     #buildViewContext(): GpuControlManagerViewContext {
-        return buildGpuControlManagerViewContext({ dependencies: this.#dependencies, security: this.#security, capabilitiesByIndex: this.gpuCapabilities, telemetryByDeviceId: this.gpuTelemetryByDeviceId, soaibenchRuns: this.#soaibench.runs, ensureUiState: (index: string | number) => this.ensureGpuUiState(index), refreshApplyState: (index: string | number) => this.refreshApplyState(index), setSliderToAuto: (index: string | number, type: string, explicitDefault?: string | number | null, options?: { preserveManual?: boolean }) => this.setSliderToAuto(index, type, explicitDefault, options), setSliderToManual: (index: string | number, type: string, manualValue?: string | number | null) => this.setSliderToManual(index, type, manualValue), getSliderElements: (index: string | number, type: string) => this.getSliderElements(index, type) });
+        return buildGpuControlManagerViewContext({ dependencies: this.#dependencies, renderGpuControls: (options: { only: string[] }) => this.renderGpuControls(options), security: this.#security, capabilitiesByIndex: this.gpuCapabilities, telemetryByDeviceId: this.gpuTelemetryByDeviceId, soaibenchRuns: this.#soaibench.runs, ensureUiState: (index: string | number) => this.ensureGpuUiState(index), refreshApplyState: (index: string | number) => this.refreshApplyState(index), setSliderToAuto: (index: string | number, type: string, explicitDefault?: string | number | null, options?: { preserveManual?: boolean }) => this.setSliderToAuto(index, type, explicitDefault, options), setSliderToManual: (index: string | number, type: string, manualValue?: string | number | null) => this.setSliderToManual(index, type, manualValue), getSliderElements: (index: string | number, type: string) => this.getSliderElements(index, type) });
     }
     getSliderElements(index: string | number, type: string): ReturnType<typeof getSliderElements> {
         return getSliderElements(this.#dependencies.dom.getDocument(), index, type);
@@ -226,7 +238,8 @@ class GpuControlManager {
                 getSliderSnapshot: (index: string | number) => this.getSliderSnapshot(index),
                 renderGpuControls: (options: { only?: string[] | null }) => this.renderGpuControls(options),
                 syncSoAIBenchUi: (options: { only?: string[] | null }) => this.#syncSoAIBenchUi(options),
-                updateHeaderSaveAction: () => this.updateHeaderSaveAction()
+                updateHeaderSaveAction: () => this.updateHeaderSaveAction(),
+                isCertifiedRunLocked: (index: string | number) => this.isCertifiedRunLocked(index)
             },
             index
         );
@@ -269,14 +282,14 @@ class GpuControlManager {
         await handleGpuSlotClick(context, index, slot, { snapshot: () => this.getSliderSnapshot(index) });
     }
     handleGpuBootToggle(index: string | number, enabled: boolean): void {
-        handleGpuBootToggle({ ensureUiState: (index: string | number) => this.ensureGpuUiState(index), renderGpuControls: (options?: { only?: string[] | null }) => this.renderGpuControls(options), refreshApplyState: (index: string | number) => this.refreshApplyState(index) }, index, enabled);
+        handleGpuBootToggle({ ensureUiState: (index: string | number) => this.ensureGpuUiState(index), renderGpuControls: (options?: { only?: string[] | null }) => this.renderGpuControls(options), refreshApplyState: (index: string | number) => this.refreshApplyState(index), isCertifiedRunLocked: (index: string | number) => this.isCertifiedRunLocked(index) }, index, enabled);
     }
     handleGpuSaveButtonClick(event: { stopPropagation?: () => void } | null, index: string | number): void {
         event?.stopPropagation?.();
         if (isNullOrUndefined(index)) return;
         const key = str(index);
         const state = this.ensureGpuUiState(key);
-        if (!state.pending && resolveGpuPrimaryAction(state) === 'save') {
+        if (!state.pending && !this.isCertifiedRunLocked(key) && resolveGpuPrimaryAction(state) === 'save') {
             state.showSoAIBenchActions = false;
             this.setGpuSaveMode(key, !state.saveMode);
         }
@@ -304,7 +317,7 @@ class GpuControlManager {
         );
     }
     #buildActionContext(): ControlContext {
-        return buildGpuControlActionContext({ dependencies: this.#dependencies, capabilitiesByIndex: this.gpuCapabilities, ensureUiState: (index: string | number) => this.ensureGpuUiState(index), renderGpuControls: (options?: { only?: string[] | null }) => this.renderGpuControls(options), syncSoAIBenchUi: (options?: { only?: string[] | null }) => this.#syncSoAIBenchUi(options), getSlotEntryByIndex: (index: string | number) => this.getSlotEntryByIndex(index), setSliderToAuto: (index: string | number, controlType: string) => this.setSliderToAuto(index, controlType), setSliderToManual: (index: string | number, controlType: string, manualValue: string | number | null) => this.setSliderToManual(index, controlType, manualValue), refreshApplyState: (index: string | number) => this.refreshApplyState(index) });
+        return buildGpuControlActionContext({ dependencies: this.#dependencies, capabilitiesByIndex: this.gpuCapabilities, ensureUiState: (index: string | number) => this.ensureGpuUiState(index), renderGpuControls: (options?: { only?: string[] | null }) => this.renderGpuControls(options), syncSoAIBenchUi: (options?: { only?: string[] | null }) => this.#syncSoAIBenchUi(options), getSlotEntryByIndex: (index: string | number) => this.getSlotEntryByIndex(index), setSliderToAuto: (index: string | number, controlType: string) => this.setSliderToAuto(index, controlType), setSliderToManual: (index: string | number, controlType: string, manualValue: string | number | null) => this.setSliderToManual(index, controlType, manualValue), refreshApplyState: (index: string | number) => this.refreshApplyState(index), isCertifiedRunLocked: (index: string | number) => this.isCertifiedRunLocked(index) });
     }
 }
 export { GPU_CONTROL_TYPES, GPU_PREVIEW_KEY_MAP, GPU_SETTING_KEYS, GPU_SLIDER_CONFIG, GpuControlManager, createDefaultGpuUiState };

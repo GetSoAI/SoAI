@@ -67,7 +67,7 @@ async def ensure_plugin_environment_python(
     python_executable = resolve_plugin_environment_python(env_path)
     if not os.path.isfile(python_executable):
         await delete_plugin_environment_path(env_path)
-        create_argv = [base_python, "-m", "venv", env_path]
+        create_argv = [base_python, "-m", "venv", "--without-pip", env_path]
         create_result = await _run_env_command(
             create_argv,
             timeout_sec=None,

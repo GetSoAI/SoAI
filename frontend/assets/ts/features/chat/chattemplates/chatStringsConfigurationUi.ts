@@ -53,6 +53,10 @@ type ConfigurationUi = Pick<
     | 'cancelCommon'
     | 'widescreenMode'
     | 'widescreenModeHint'
+    | 'autoHideChatComposer'
+    | 'autoHideChatComposerHint'
+    | 'autoHideChatHeader'
+    | 'autoHideChatHeaderHint'
     | 'textZoom'
     | 'textZoomSmall'
     | 'textZoomNormal'
@@ -116,6 +120,10 @@ const resolveConfigurationUiTemplateStrings = (sanitizer: SanitizerApi): Configu
         cancelCommon: i18n.html(sanitizer, 'common.cancel'),
         widescreenMode: i18n.html(sanitizer, 'chat.configuration.widescreen_mode'),
         widescreenModeHint: i18n.html(sanitizer, 'chat.configuration.widescreenModeHint'),
+        autoHideChatComposer: i18n.html(sanitizer, 'chat.configuration.autoHideChatComposer'),
+        autoHideChatComposerHint: i18n.html(sanitizer, 'chat.configuration.autoHideChatComposerHint'),
+        autoHideChatHeader: i18n.html(sanitizer, 'chat.configuration.autoHideChatHeader'),
+        autoHideChatHeaderHint: i18n.html(sanitizer, 'chat.configuration.autoHideChatHeaderHint'),
         textZoom: i18n.html(sanitizer, 'chat.configuration.text_zoom'),
         textZoomSmall: i18n.html(sanitizer, 'chat.configuration.textZoomSmall'),
         textZoomNormal: i18n.html(sanitizer, 'chat.configuration.textZoomNormal'),

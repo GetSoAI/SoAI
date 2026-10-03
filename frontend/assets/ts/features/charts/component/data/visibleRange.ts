@@ -5,11 +5,13 @@ import { clampNumber } from '@core/primitives/clampNumber.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isArray, isFunction } from '@core/typeGuards.ts';
 import type { ChartOptions, CrosshairState, Dataset, OhlcValues } from '@features/charts/chartTypes.ts';
-import { DEFAULT_MAX_DATA_POINTS, DEFAULT_VERTICAL_SCALE_PADDING_RATIO, isFin, MIN_PIXEL_PER_BAR, MIN_VERTICAL_PIXEL_PADDING, MIN_VISIBLE_ZOOM_SLOTS, MIN_ZOOM_LEVEL } from '@features/charts/component/chartComponentStatics.ts';
-import type { PanState, Scale, SlotMetrics, TimeRange, VisibleRange, VisibleRangeStats, ZoomState } from '@features/charts/component/chartComponentTypes.ts';
+import { isFin } from '@features/charts/component/chartComponentStatics.ts';
+import type { Scale, TimeRange, VisibleRange, VisibleRangeStats } from '@features/charts/component/chartComponentTypes.ts';
 import type { ChartEventDetail } from '@features/charts/component/effects.ts';
 import { findValidIndexBackward } from '@features/charts/component/data/interpolation.ts';
-import type { AxisCache, ChartDimensions } from '@features/charts/rendering/renderingModels.ts';
+import { findFirstIndexAtOrAfter, findLastIndexAtOrBefore } from '@features/charts/component/data/timestampIndex.ts';
+import { isPlottedOhlc, isPlottedValue } from '@features/charts/rendering/series/guards.ts';
+import type { AxisCache, ChartDimensions, RenderGeometry } from '@features/charts/rendering/renderingModels.ts';
 
 interface VisibleRangeStatePort {
     chartOptions: ChartOptions;
@@ -23,9 +25,6 @@ interface VisibleRangeStatePort {
     visibleRangeStats: VisibleRangeStats;
     scale: Scale;
     axisCache: AxisCache | null;
-    baseBarPixelWidth: number;
-    zoom: ZoomState;
-    pan: PanState;
     lastEmittedTimeRange: TimeRange;
     ohlcScratch: OhlcValues;
 }
@@ -34,7 +33,7 @@ export interface VisibleRangeCalculationPort {
     chartEmit: (evt: string, data?: ChartEventDetail) => void;
     enforceScaleBounds: () => void;
     getChartDimensions: () => ChartDimensions;
-    getEffectiveDataLength: () => number;
+    getRenderGeometry: () => RenderGeometry | null;
     getRenderableOhlcBuffers: () => {
         open: Float64Array;
         high: Float64Array;
@@ -45,85 +44,41 @@ export interface VisibleRangeCalculationPort {
     getOhlcForIndex: (index: number, target?: OhlcValues | null) => OhlcValues;
 }
 
-interface SlotMetricsStatePort {
-    chartOptions: ChartOptions;
-    baseBarPixelWidth: number;
-    zoom: ZoomState;
-}
+const EMPTY_VISIBLE_RANGE: Readonly<VisibleRange> = Object.freeze({ start: 0, end: 0, startTs: Number.NaN, endTs: Number.NaN });
 
-interface SlotMetricsCalculationPort {
-    getChartDimensions: () => ChartDimensions;
-    getEffectiveDataLength: () => number;
-}
+const resolveRenderIndexRange = (visibleRange: VisibleRange, dataLength: number): { from: number; to: number } => ({ from: Math.max(0, Math.min(visibleRange.start, dataLength) - 1), to: Math.min(dataLength, visibleRange.end + 1) });
 
-const getPixelsPerBarForLevel = (state: SlotMetricsStatePort, calculations: SlotMetricsCalculationPort, level: number | null | undefined): number => {
-    const { chartWidth: cw } = calculations.getChartDimensions();
-    const minLevel = Math.max(MIN_ZOOM_LEVEL, state.zoom?.minLevel ?? MIN_ZOOM_LEVEL);
-    const maxLevel = Math.max(minLevel, state.zoom?.maxLevel ?? minLevel);
-    const sl = clampNumber(Math.max(MIN_ZOOM_LEVEL, level ?? state.zoom?.level ?? 1), minLevel, maxLevel);
-    const bp = state.baseBarPixelWidth * sl;
-    if (!isFin(cw) || cw <= 0) return Math.max(MIN_PIXEL_PER_BAR, bp);
-    const rm = state.chartOptions.rightMarginBars || 0;
-    const de = calculations.getEffectiveDataLength() || Math.min(512, state.chartOptions.maxDataPoints || DEFAULT_MAX_DATA_POINTS);
-    return Math.max(MIN_PIXEL_PER_BAR, bp, cw / Math.max(1, Math.min(state.chartOptions.maxDataPoints || DEFAULT_MAX_DATA_POINTS, de + Math.max(4, rm))));
+const resolveVisibleSegmentIndexRange = (visibleRange: VisibleRange, dataLength: number): { from: number; to: number } => {
+    const from = Math.max(0, Math.min(visibleRange.start, dataLength));
+    const to = Math.max(from, Math.min(visibleRange.end, dataLength));
+    if (from !== to || from === 0 || from === dataLength) return { from, to };
+    return { from: from - 1, to: to + 1 };
 };
 
-const getPixelsPerBar = (state: SlotMetricsStatePort, calculations: SlotMetricsCalculationPort): number => getPixelsPerBarForLevel(state, calculations, state.zoom.level);
-
-const getSlotMetricsForLevel = (state: SlotMetricsStatePort, calculations: SlotMetricsCalculationPort, level: number | null | undefined): SlotMetrics => {
-    const { chartWidth: cw } = calculations.getChartDimensions();
-    if (cw <= 0) return { totalSlots: 1, dataSlots: 1, marginSlots: 0 };
-    const pb = getPixelsPerBarForLevel(state, calculations, level);
-    const rm = state.chartOptions.rightMarginBars || 0;
-    const cap = Math.max(rm + 1, Math.min(state.chartOptions.maxDataPoints, (calculations.getEffectiveDataLength() || 0) + Math.max(4, rm)));
-    const minimumDataSlots = Math.max(1, Math.min(cap, MIN_VISIBLE_ZOOM_SLOTS, calculations.getEffectiveDataLength() || MIN_VISIBLE_ZOOM_SLOTS));
-    const ts = clampNumber(Math.round(cw / pb), minimumDataSlots, cap);
-    let ms = Math.min(ts - 1, rm, Math.floor(ts * state.chartOptions.maxRightMarginRatio), Math.floor(state.chartOptions.maxRightMarginPx / pb));
-    ms = Math.max(0, ms);
-    if (ts - ms < minimumDataSlots) {
-        ms = Math.max(0, ts - minimumDataSlots);
-    }
-    if (rm > 0 && ms === 0 && ts > minimumDataSlots) ms = 1;
-    return { totalSlots: ts, dataSlots: Math.max(1, ts - ms), marginSlots: ms };
-};
-
-const getSlotMetrics = (state: SlotMetricsStatePort, calculations: SlotMetricsCalculationPort): SlotMetrics => getSlotMetricsForLevel(state, calculations, state.zoom.level);
-
-const getMaxOffsetForMetrics = (state: SlotMetricsStatePort, calculations: SlotMetricsCalculationPort, metrics: SlotMetrics | null | undefined = null): number => {
-    const dataSlotsValue = metrics?.dataSlots ?? null;
-    const dataSlots = typeof dataSlotsValue === 'number' && isFin(dataSlotsValue) ? dataSlotsValue : getSlotMetrics(state, calculations).dataSlots;
-    return Math.max(0, Math.max(0, calculations.getEffectiveDataLength()) - dataSlots);
+const emitVisibleTimeRange = (chart: VisibleRangeStatePort, calculations: VisibleRangeCalculationPort, startTs: number, endTs: number): void => {
+    const last = chart.lastEmittedTimeRange;
+    if (startTs === last.startTs && endTs === last.endTs) return;
+    chart.lastEmittedTimeRange = { startTs, endTs };
+    calculations.chartEmit('timeRangeChange', { start: startTs, end: endTs });
+    chart.chartOptions.onTimeRangeChange?.(startTs, endTs);
 };
 
 const updateVisibleRange = (chart: VisibleRangeStatePort, calculations: VisibleRangeCalculationPort): void => {
-    const match = getSlotMetrics(chart, calculations);
-    const { dataSlots: ds } = match;
-    const stringValue = Math.max(0, Math.floor(chart.pan.offset));
-    chart.visibleRange = {
-        start: stringValue,
-        end: Math.min(calculations.getEffectiveDataLength(), stringValue + ds),
-        displayCount: ds,
-        offsetFraction: ds > 1 ? clampNumber(chart.pan.offset - stringValue, 0, 0.999999) : 0,
-        ...match
-    };
-    const startIndex = chart.visibleRange.start;
-    const endIndex = chart.visibleRange.end;
-    if (chart.dataLength === 0) return;
-    const clampedStart = clampNumber(startIndex, 0, chart.dataLength - 1);
-    const clampedEnd = clampNumber(endIndex - 1, 0, chart.dataLength - 1);
-    const st = chart.timestamps[clampedStart] ?? null;
-    const et = chart.timestamps[clampedEnd] ?? null;
-    if (st === null || et === null) return;
-    const last = chart.lastEmittedTimeRange || {};
-    if (startIndex === last.start && endIndex === last.end && st === last.startTs && et === last.endTs) return;
-    calculations.chartEmit('timeRangeChange', { start: st, end: et });
-    chart.chartOptions.onTimeRangeChange?.(st, et);
-    chart.lastEmittedTimeRange = { start: startIndex, end: endIndex, startTs: st, endTs: et };
+    const geometry = calculations.getRenderGeometry();
+    if (!geometry || chart.dataLength === 0) {
+        chart.visibleRange = { ...EMPTY_VISIBLE_RANGE };
+        return;
+    }
+    const first = findFirstIndexAtOrAfter(chart.timestamps, chart.dataLength, geometry.startTs);
+    const start = first === -1 ? chart.dataLength : first;
+    const end = Math.max(start, findLastIndexAtOrBefore(chart.timestamps, chart.dataLength, geometry.endTs) + 1);
+    chart.visibleRange = { start, end, startTs: geometry.startTs, endTs: geometry.endTs };
+    emitVisibleTimeRange(chart, calculations, geometry.startTs, geometry.endTs);
+    chart.chartOptions.history?.demand(geometry.startTs, geometry.endTs);
 };
 
 const updateVisibleRangeStats = (chart: VisibleRangeStatePort, calculations: VisibleRangeCalculationPort): void => {
-    const { start, displayCount } = chart.visibleRange;
-    const re = Math.min(chart.dataLength, start + displayCount);
+    const { from: start, to: re } = resolveVisibleSegmentIndexRange(chart.visibleRange, chart.dataLength);
     const requestPos = chart.chartOptions.scaleType === 'logarithmic';
     const buffs = calculations.getRenderableOhlcBuffers();
     const bo = buffs ? buffs.open : undefined;
@@ -146,13 +101,11 @@ const updateVisibleRangeStats = (chart: VisibleRangeStatePort, calculations: Vis
         const leftValue = bl ? (bl[index] ?? Number.NaN) : (vals[index] ?? Number.NaN);
         const height = bh ? (bh[index] ?? Number.NaN) : (vals[index] ?? Number.NaN);
         const candidateValue = bc ? (bc[index] ?? Number.NaN) : (vals[index] ?? Number.NaN);
-        if (requestPos && !(objectValue > 0 && leftValue > 0 && height > 0 && candidateValue > 0)) continue;
-        if (isFin(leftValue)) pMin = pMin === null ? leftValue : Math.min(pMin, leftValue);
-        if (isFin(height)) pMax = pMax === null ? height : Math.max(pMax, height);
-        if (isFin(candidateValue)) {
-            pSum += candidateValue;
-            pCount++;
-        }
+        if (bo ? !isPlottedOhlc(objectValue, height, leftValue, candidateValue, requestPos) : !isPlottedValue(candidateValue, requestPos)) continue;
+        pMin = pMin === null ? leftValue : Math.min(pMin, leftValue);
+        pMax = pMax === null ? height : Math.max(pMax, height);
+        pSum += candidateValue;
+        pCount++;
     }
 
     if (isArray(chart.datasets) && chart.datasets.length) {
@@ -161,7 +114,7 @@ const updateVisibleRangeStats = (chart: VisibleRangeStatePort, calculations: Vis
             if (!dv) continue;
             const len = isFin(dv.length) ? Number(dv.length) : 0;
             if (!len) continue;
-            const up = Math.min(len, start + displayCount);
+            const up = Math.min(len, re);
             for (let index = start; index < up; index++) {
                 const value = dv[index] ?? Number.NaN;
                 if (!isFin(value) || (requestPos && !(value > 0))) continue;
@@ -180,45 +133,6 @@ const updateVisibleRangeStats = (chart: VisibleRangeStatePort, calculations: Vis
         sum: useOvr ? oSum : pSum,
         count: useOvr ? oCount : pCount
     };
-};
-
-const updateScale = (chart: VisibleRangeStatePort, calculations: VisibleRangeCalculationPort): void => {
-    if (chart.visibleRangeStats.count === 0) {
-        if (chart.scale.auto) {
-            chart.scale.min = null;
-            chart.scale.max = null;
-        }
-        return;
-    }
-    if (!chart.scale.auto) return;
-    const statMin = chart.visibleRangeStats.min;
-    const statMax = chart.visibleRangeStats.max;
-    if (statMin === null || statMax === null) return;
-    let min: number = statMin;
-    let max: number = statMax;
-    const pr = isFin(chart.chartOptions.verticalPaddingRatio) ? chart.chartOptions.verticalPaddingRatio : DEFAULT_VERTICAL_SCALE_PADDING_RATIO;
-    const ch = Math.max(0, (isFunction(calculations.getChartDimensions) ? calculations.getChartDimensions() : null)?.chartHeight || 0);
-    const mp = ch > 0 ? Math.max(0, MIN_VERTICAL_PIXEL_PADDING) : 0;
-
-    if (chart.chartOptions.scaleType === 'logarithmic') {
-        min = Math.max(min, 1e-9);
-        max = Math.max(max, min * 1.01);
-        const lMin = Math.log10(min);
-        const lMax = Math.log10(max);
-        const lr = Math.max(lMax - lMin, 1e-6);
-        let match = Math.max(lr * (pr > 0 ? pr : DEFAULT_VERTICAL_SCALE_PADDING_RATIO), 1e-6);
-        if (lr > 0 && mp > 0 && ch > 0) match = Math.max(match, (lr / ch) * mp);
-        chart.scale.min = 10 ** (lMin - match);
-        chart.scale.max = 10 ** (lMax + match);
-    } else {
-        const redChannel = max - min;
-        const mag = redChannel > 0 ? redChannel : Math.max(Math.abs(min), Math.abs(max), 1);
-        let match = mag * (pr > 0 ? pr : DEFAULT_VERTICAL_SCALE_PADDING_RATIO);
-        if (redChannel > 0 && mp > 0 && ch > 0) match = Math.max(match, (redChannel / ch) * mp);
-        chart.scale.min = min - match;
-        chart.scale.max = max + match;
-    }
-    calculations.enforceScaleBounds();
 };
 
 const updateLegendData = (chart: VisibleRangeStatePort, calculations: VisibleRangeCalculationPort): void => {
@@ -298,4 +212,4 @@ const formatValue = (chart: ValuePresentationHost, value: number): string => {
     return !isFin(value) ? '—' : isFunction(chart.chartOptions.valueFormatter) ? chart.chartOptions.valueFormatter(value) : value.toFixed(resolveValuePrecision(chart) ?? 2);
 };
 
-export { formatValue, getMaxOffsetForMetrics, getPixelsPerBar, getPixelsPerBarForLevel, getSlotMetrics, getSlotMetricsForLevel, resolveValuePrecision, updateLegendData, updateScale, updateVisibleRange, updateVisibleRangeStats, valueToPixel };
+export { EMPTY_VISIBLE_RANGE, formatValue, resolveRenderIndexRange, resolveValuePrecision, resolveVisibleSegmentIndexRange, updateLegendData, updateVisibleRange, updateVisibleRangeStats, valueToPixel };

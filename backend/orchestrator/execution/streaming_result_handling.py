@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from core.errors.exceptions import StateError
 from core.logging.trace import get_logger
 from core.metrics.protocols import MetricsManagerProtocol, TokenStreamMetricsProtocol
+from core.models.provider_backing import get_model_provider_id
 from core.openai.streaming_usage import StreamingUsageCollector
 from core.openai.token_counter import PromptTokenCounter
 from core.orchestrator.protocols_queue import OrchestratorQueueProtocol
@@ -62,6 +63,7 @@ async def handle_streaming_lightweight(
     prompt_token_counter: PromptTokenCounter,
     metrics: TokenStreamMetricsProtocol,
     plugin_name: str,
+    model_info: JSONDict,
     model_name: str | None = None,
 ) -> StreamingCompletion:
     logger = get_logger(LOGGER_NAME)
@@ -86,6 +88,7 @@ async def handle_streaming_lightweight(
         prompt_token_counter=prompt_token_counter,
         plugin_name=plugin_name,
         model_name=model_name,
+        provider_id=get_model_provider_id(model_info),
     )
     final_result = build_streaming_final_result(flow_result)
     return StreamingCompletion(
@@ -137,6 +140,7 @@ async def handle_streaming_with_usage_parsing(
         prompt_token_counter=prompt_token_counter,
         plugin_name=plugin_name,
         model_name=model_name,
+        provider_id=get_model_provider_id(model_info),
     )
     usage_transcript = (
         flow_result.responses_transcript

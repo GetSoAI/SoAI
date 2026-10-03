@@ -4,6 +4,7 @@
 import { readTrimmedInputValue } from '@core/dom/formValues.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { raceWithAbortSignal, throwIfAborted } from '@core/errors/abort.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { isChatAttachmentReadyForSend, isChatConversationSettingsWritable, normalizeConversationId, resolvePrimaryModelIdForExecution, type ChatAttachment, type ChatContentSegment, type Conversation } from '@features/chat/public.ts';
 import { hasClaimableDraftKnowledgeAttachment } from '@pages/chat/controllers/chatmessagesendingcontroller/knowledgeAttachmentDraftManager.ts';
@@ -90,26 +91,31 @@ const refreshComposerState = (host: MessageSendingHost, options: { updateInputSt
     host.composer.updateInputState();
 };
 
-const hasKnowledgeDraftPayloadForSubmission = async (host: MessageSendingHost): Promise<boolean> => {
+const hasKnowledgeDraftPayloadForSubmission = async (host: MessageSendingHost, signal?: AbortSignal): Promise<boolean> => {
     const selection = resolveCurrentConversationSelection(host);
     if (!selection) {
         return false;
     }
-    const payload = await host.platform.runWithBoundary('chat:listDraftKnowledgeAttachments', () => host.services.getChatApi().webui.chat.attachments.knowledge.draft(selection.conversationId, { previewLimit: 0, signal: host.platform.getRuntimeAbortSignal() ?? undefined }));
+    const payload = await host.platform.runWithBoundary('chat:listDraftKnowledgeAttachments', () => host.services.getChatApi().webui.chat.attachments.knowledge.draft(selection.conversationId, { previewLimit: 0, signal: signal ?? host.platform.getRuntimeAbortSignal() ?? undefined }));
     return hasClaimableDraftKnowledgeAttachment(payload);
 };
 
-const resolveComposerPayloadForSubmission = async (host: MessageSendingHost): Promise<ComposerPayload | null> => {
+const resolveComposerPayloadForSubmission = async (host: MessageSendingHost, signal?: AbortSignal): Promise<ComposerPayload | null> => {
+    throwIfAborted(signal, 'Composer payload preparation was aborted.');
     const messageText = readComposerInputText(host);
     const sourceText = readComposerSourceText(host);
     const attachmentManager = host.services.getAttachmentManager();
     const initialDraftRevision = attachmentManager.getDraftRevision();
     const initialAttachments = attachmentManager.getAttachments();
-    const hasInitialKnowledgeDraft = hasComposerPayload(messageText, initialAttachments.length) ? false : await hasKnowledgeDraftPayloadForSubmission(host);
+    const hasInitialKnowledgeDraft = hasComposerPayload(messageText, initialAttachments.length) ? false : await hasKnowledgeDraftPayloadForSubmission(host, signal);
+    throwIfAborted(signal, 'Composer payload preparation was aborted.');
     if (!hasComposerPayload(messageText, initialAttachments.length, hasInitialKnowledgeDraft)) {
         return null;
     }
-    await attachmentManager.waitForAttachments();
+    const attachmentReadiness = attachmentManager.waitForAttachments();
+    if (signal) await raceWithAbortSignal(attachmentReadiness, signal);
+    else await attachmentReadiness;
+    throwIfAborted(signal, 'Composer payload preparation was aborted.');
     if (attachmentManager.getDraftRevision() !== initialDraftRevision || readComposerInputText(host) !== messageText || readComposerSourceText(host) !== sourceText) {
         refreshComposerState(host);
         return null;
@@ -119,7 +125,8 @@ const resolveComposerPayloadForSubmission = async (host: MessageSendingHost): Pr
         return null;
     }
     const attachments = [...attachmentManager.getAttachments()];
-    const hasKnowledgeDraft = hasComposerPayload(messageText, attachments.length) ? false : await hasKnowledgeDraftPayloadForSubmission(host);
+    const hasKnowledgeDraft = hasComposerPayload(messageText, attachments.length) ? false : await hasKnowledgeDraftPayloadForSubmission(host, signal);
+    throwIfAborted(signal, 'Composer payload preparation was aborted.');
     if (attachmentManager.getDraftRevision() !== initialDraftRevision || readComposerInputText(host) !== messageText || readComposerSourceText(host) !== sourceText) {
         refreshComposerState(host);
         return null;

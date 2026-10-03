@@ -93,6 +93,7 @@ def register_routes(routers: ApiRouters) -> None:
             virtual_model_get=dependencies.model_virtual_model_service.virtual_model_get,
             state_aggregator=dependencies.state_aggregator,
             orchestrator_lifecycle=dependencies.orchestrator_lifecycle,
+            chat_template_role_policy_resolver=dependencies.chat_template_role_policy_resolver,
             request_context=require_request_context_instance(request),
         )
         input_tokens_value = require_complete_responses_input_token_count(

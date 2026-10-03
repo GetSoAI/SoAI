@@ -21,6 +21,8 @@
     .chart-layer {
         position: absolute;
         top: 0;
+
+        /* direction: physical — chart coordinates and time axes remain left to right */
         left: 0;
         width: 100%;
         height: 100%;
@@ -76,7 +78,7 @@
     .history-chart-shell.chart-container {
         flex: 1 1 auto;
         min-height: 0;
-        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        border-radius: 0 0 var(--border-radius-inset) var(--border-radius-inset);
         contain: layout paint;
     }
 
@@ -86,11 +88,13 @@
     }
 
     .history-chart-card.card > .card-title-bar .card-title {
+        /* direction: physical — chart coordinates and time axes remain left to right */
         margin-right: auto;
         min-height: 0;
     }
 
     .history-chart-card.card > .card-title-bar .card-title-controls {
+        /* direction: physical — chart coordinates and time axes remain left to right */
         margin-left: auto;
         gap: var(--space-15);
         max-width: 100%;
@@ -98,6 +102,10 @@
     }
 
     .history-chart-status {
+        position: absolute;
+        inset-inline: 0;
+        top: 0;
+        z-index: calc(var(--z-dropdown) + 2);
         display: block;
         text-align: center;
         padding: var(--space-3) var(--space-2);
@@ -108,12 +116,28 @@
     }
 
     .history-chart-status[data-overlay='true'] {
-        position: absolute;
         inset: 0;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         justify-content: center;
+        flex-direction: column;
+        gap: var(--space-3);
         padding: var(--space-4);
+        background: var(--bg-primary);
+    }
+
+    .history-chart-status__spinner.loading-spinner {
+        vertical-align: middle;
+    }
+
+    .history-chart-status__retry {
+        pointer-events: auto;
+        margin-inline-start: var(--space-2);
+    }
+
+    .history-chart-status[data-overlay='true'] > .history-chart-status__retry {
+        margin-inline-start: 0;
     }
 
     .chart-layer-static {
@@ -126,8 +150,12 @@
 
     .chart-container canvas.chart-layer-interaction {
         top: var(--chart-interaction-top);
+
+        /* direction: physical — chart coordinates and time axes remain left to right */
         right: var(--chart-interaction-right);
         bottom: var(--chart-interaction-bottom);
+
+        /* direction: physical — chart coordinates and time axes remain left to right */
         left: var(--chart-interaction-left);
         width: calc(100% - var(--chart-interaction-left) - var(--chart-interaction-right));
         height: calc(100% - var(--chart-interaction-top) - var(--chart-interaction-bottom));

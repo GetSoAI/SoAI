@@ -6,6 +6,10 @@ import type { JsonValue } from '@core/types/jsonValues.ts';
 
 type ParameterValue = JsonValue;
 
+type ParameterView = 'all' | 'customized' | 'unsaved';
+
+type ParameterGroup = 'startup' | 'inference';
+
 type ParameterType = 'string' | 'integer' | 'float' | 'boolean' | 'array' | 'object' | (string & {});
 
 type ParameterDefinition = {
@@ -72,4 +76,4 @@ interface ParameterTemplateContext {
     formatGroupLabel: (group?: string) => string;
 }
 
-export type { Parameter, ParameterCategory, ParameterCategoryDefinition, ParameterCollection, ParameterDefinition, ParameterTemplateContext, ParameterTemplateOptions, ParameterType, ParameterValue, ParametersPayload, NamedParameter };
+export type { Parameter, ParameterCategory, ParameterCategoryDefinition, ParameterCollection, ParameterDefinition, ParameterTemplateContext, ParameterTemplateOptions, ParameterType, ParameterGroup, ParameterValue, ParameterView, ParametersPayload, NamedParameter };

@@ -14,37 +14,8 @@
         min-height: 0;
     }
 
-    .chat-attach-modal-pane {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-4);
-        min-width: 0;
-        container-type: inline-size;
-    }
-
     .chat-attach-modal-footer .ui-button[hidden] {
         display: none;
-    }
-
-    .chat-attach-modal-pane[hidden] {
-        display: none;
-    }
-
-    .chat-attach-modal-pane.is-active {
-        flex: 0 1 auto;
-        min-height: 0;
-    }
-
-    .chat-attach-modal-tab-header {
-        margin-bottom: 0;
-    }
-
-    .chat-attach-modal-tab-subtitle {
-        display: block;
-        margin-top: var(--space-15);
-        color: var(--text-tertiary);
-        font-size: var(--font-size-xs);
-        line-height: 1.4;
     }
 
     .chat-attach-result-item-copy {
@@ -83,7 +54,7 @@
     .chat-attach-results-table th {
         padding: var(--space-15) var(--space-2);
         border-bottom: var(--border-width-1) solid var(--glass-border-subtle);
-        text-align: left;
+        text-align: start;
         vertical-align: middle;
         white-space: nowrap;
         background: var(--glass-surface-strong);
@@ -98,7 +69,7 @@
         padding: var(--space-15) var(--space-2);
         border-bottom: var(--border-width-1) solid var(--glass-border-subtle);
         color: var(--text-primary);
-        text-align: left;
+        text-align: start;
         vertical-align: middle;
         white-space: nowrap;
     }
@@ -127,7 +98,7 @@
         display: inline-flex;
         align-items: center;
         width: var(--control-icon-size);
-        margin-left: var(--space-1);
+        margin-inline-start: var(--space-1);
         vertical-align: middle;
     }
 
@@ -201,7 +172,7 @@
         white-space: nowrap;
     }
 
-    .chat-attach-modal-pane .chat-config-grid {
+    .chat-attach-modal .ui-modal-tab-panel .chat-config-grid {
         display: grid;
         grid-template-columns: 1fr;
         gap: var(--space-4);
@@ -225,11 +196,11 @@
     }
 
     @container ui-viewport (width >= 900px) {
-        .chat-attach-modal-pane .chat-config-grid {
+        .chat-attach-modal .ui-modal-tab-panel .chat-config-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .chat-attach-modal-pane .chat-config-span-2 {
+        .chat-attach-modal .ui-modal-tab-panel .chat-config-span-2 {
             grid-column: 1 / -1;
         }
     }
@@ -247,7 +218,7 @@
     }
 
     @container ui-viewport (width <= 640px) {
-        .chat-attach-modal-pane .chat-config-grid {
+        .chat-attach-modal .ui-modal-tab-panel .chat-config-grid {
             gap: var(--space-3);
         }
     }

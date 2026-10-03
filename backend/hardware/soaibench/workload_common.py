@@ -13,6 +13,7 @@ from core.hardware.soaibench_workloads import (
     DEFAULT_ELEMENT_COUNT,
     ELEMENT_ALIGNMENT,
     FLOAT_SIZE_BYTES,
+    MEMORY_ELEMENTS,
     sample_positions,
 )
 from core.types.json import JSONDict
@@ -36,10 +37,10 @@ __all__ = (
     "KERNEL_OPERATION_ESTIMATE",
     "SoAIBenchPhaseResult",
     "execute_opencl_phase",
+    "require_standard_memory_capability",
 )
 
 KERNEL_OPERATION_ESTIMATE = 8
-CHECKSUM_SAMPLE_COUNT = 64
 MAX_DEVICE_MEMORY_PERCENT = 72
 MAX_ALLOC_MEMORY_PERCENT = 85
 
@@ -189,6 +190,10 @@ def _resolve_element_count(
         reason="opencl_memory_insufficient",
         message="OpenCL device memory limits are too small for SoAIBench.",
     )
+
+
+def require_standard_memory_capability(runtime: OpenCLRuntime) -> None:
+    _resolve_element_count(runtime, MEMORY_ELEMENTS, require_exact=True)
 
 
 def _memory_budget_elements(memory_bytes: int, percent: int) -> int:

@@ -6,6 +6,7 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { normalizeModalStatesRecord } from '@core/storage/modalState.ts';
 import { isChartColorModeType, isClockFormatType, isDateFormatPreference, isImageFitType, isInterfaceScalePercent, isMeasurementUnitsPreference, isRegionalLocalePreference } from '@core/storage/guards.ts';
 import { normalizeStringArray } from '@core/storage/normalization.ts';
+import { isDefaultWallpaperId } from '@core/theme/defaultWallpapers.ts';
 import { isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { isArray, isBoolean, isNumber, isString } from '@core/typeGuards.ts';
 import type { PreferenceHandler, PreferenceHandlerContext } from '@core/storage/service/preferences/types.ts';
@@ -161,6 +162,13 @@ const createPreferenceHandlers = ({ core, delegates, setTheme, saveDashboardLayo
                 return;
             }
             warnInvalidPreference('solid_background', value);
+        },
+        defaultWallpaper: (value: JsonValue | null | undefined): void => {
+            if (value === null || value === undefined || isDefaultWallpaperId(value)) {
+                delegates.setDefaultWallpaper(value ?? null);
+                return;
+            }
+            warnInvalidPreference('default_wallpaper', value);
         },
         glassEnabled: (value: JsonValue | null | undefined): void => {
             if (isBoolean(value)) {

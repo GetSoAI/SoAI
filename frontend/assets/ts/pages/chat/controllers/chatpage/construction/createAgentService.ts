@@ -66,6 +66,7 @@ interface ChatAgentServiceDependencies {
 
 const createChatAgentService = (page: ChatAgentServiceDependencies): ChatPageAgentService => {
     const transitionHost = {
+        composerSurface: page.runtime.composerSurface,
         conversationState: page.state.conversationState,
         runtimeServices: page.state.runtimeServices,
         pageDom: page.page.pageDom,

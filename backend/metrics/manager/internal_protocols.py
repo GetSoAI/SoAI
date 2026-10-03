@@ -72,6 +72,7 @@ class DownloadSpeedDatabaseProtocol(Protocol):
 
 class MetricsQuerySurfaceProtocol(Protocol):
     lock: asyncio.Lock
+    reset_lock: asyncio.Lock
     history_config: JSONDict
     history_enabled: bool
     token_rate_calculator: TokenRateCalculatorProtocol
@@ -116,6 +117,7 @@ class MetricsServiceMethodSurfaceProtocol(
     event_bus: EventBusProtocol | None
     lifecycle: ServiceLifecycleProtocol
     background_worker_task: asyncio.Task[None] | None
+    reset_lock: asyncio.Lock
     genesis_flush_lock: asyncio.Lock
     genesis_requests_delta: list[int]
     genesis_tokens_delta: list[int]

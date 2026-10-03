@@ -8,6 +8,7 @@ import { resolveHardwareDeviceDisplayName } from '@features/hardware/deviceNames
 import { DEFAULT_IGNORED_NETWORK_PREFIXES } from '@features/hardware/models/constants.ts';
 import { getCpuDevices, getGpuDevices, getNetworkInterfaces } from '@features/hardware/models/mappers.ts';
 import { resolveNetworkSpeedEntry } from '@features/hardware/models/networkSpeed.ts';
+import { getWindowsNetworkInventoryStatus, isVisibleNetworkInterfaceName } from '@features/hardware/models/networkVisibility.ts';
 import { resolveMemoryValuesMb, type MemoryValues } from '@features/hardware/widgets/metricValues.ts';
 import type { MetricChartNormalizer } from '@features/hardware/widgets/contracts.ts';
 import type { CPUDevice, CPUDeviceData, GPUDevice, GPUDeviceData, HardwareData, HardwareSnapshot, MemoryData, NetworkDevice, NetworkDeviceData } from '@features/hardware/widgets/internalContracts.ts';
@@ -75,11 +76,6 @@ const extractGpuDevices = (hardware: HardwareSnapshot | HardwareData): GPUDevice
     }));
 };
 
-const isIgnoredNetworkInterfaceName = (name: string): boolean => {
-    const normalized = name.trim().toLowerCase();
-    return DEFAULT_IGNORED_NETWORK_PREFIXES.some((prefix) => normalized.startsWith(prefix));
-};
-
 const finiteMetric = (value: number | undefined): number => (isFiniteNumber(value) ? value : 0);
 
 const formatNetworkData = (networkData: NetworkInterfaceRaw, speedData: NetworkSpeedEntry): NetworkDeviceData => {
@@ -95,11 +91,12 @@ const formatNetworkData = (networkData: NetworkInterfaceRaw, speedData: NetworkS
 
 const extractNetworkDevices = (hardware: HardwareSnapshot | HardwareData): NetworkDevice[] => {
     const networkSpeed = hardware.networkSpeed ?? null;
+    const windowsInventoryStatus = getWindowsNetworkInventoryStatus(hardware);
     const devices: NetworkDevice[] = [];
     for (const networkData of getNetworkInterfaces(hardware)) {
         const name = readNonEmptyString(networkData.name);
         const deviceId = readNonEmptyString(networkData.deviceId);
-        if (!name || !deviceId || isIgnoredNetworkInterfaceName(name)) {
+        if (!name || !deviceId || !isVisibleNetworkInterfaceName(name, windowsInventoryStatus, DEFAULT_IGNORED_NETWORK_PREFIXES)) {
             continue;
         }
         devices.push({

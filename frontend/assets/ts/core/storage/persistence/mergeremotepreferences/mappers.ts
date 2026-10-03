@@ -6,6 +6,7 @@ import { normalizeModalStatesRecord } from '@core/storage/modalState.ts';
 import { normalizeNonBlankStringOrNull, normalizeStringArray } from '@core/storage/normalization.ts';
 import type { UiPreferences } from '@core/storage/persistence/mergeremotepreferences/types.ts';
 import { normalizeAccentColorPreference } from '@core/theme/accentColor.ts';
+import { isDefaultWallpaperId } from '@core/theme/defaultWallpapers.ts';
 import { normalizeSurfaceColorPreference } from '@core/theme/surfaceColor.ts';
 import { isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { isArray, isBoolean, isNumber, isObject, isString } from '@core/typeGuards.ts';
@@ -129,6 +130,11 @@ const applyUiPatch = (patch: JsonValue | undefined, target: UiPreferences): void
     const solidBackground = patch['solid_background'];
     if (solidBackground === null || solidBackground === undefined || isString(solidBackground)) {
         target.solidBackground = solidBackground ?? null;
+    }
+
+    const defaultWallpaper = patch['default_wallpaper'];
+    if (defaultWallpaper === null || defaultWallpaper === undefined || isDefaultWallpaperId(defaultWallpaper)) {
+        target.defaultWallpaper = defaultWallpaper ?? null;
     }
 
     const glassEnabled = patch['glass_enabled'];

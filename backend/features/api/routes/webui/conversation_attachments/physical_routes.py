@@ -78,6 +78,7 @@ def register_physical_attachment_routes(routers: ApiRouters) -> None:
                             api_context.dependencies.database_conversation_attachments
                         ),
                         storage_manager=api_context.dependencies.storage_manager,
+                        database_operation_status=api_context.dependencies.database_operation_status,
                         token_collection=api_context.dependencies.token_collection,
                         cancellation_history=api_context.dependencies.cancellation_history,
                         cancellation_event_bus=api_context.dependencies.cancellation_event_bus,

@@ -4,6 +4,8 @@
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconDefaultOptions } from '@core/ui/icons/iconservice/types.ts';
 
+const MIRRORED_ICON_KEYS: ReadonlySet<IconName> = new Set<IconName>(['chevron-left', 'chevron-right', 'arrow-left', 'arrow-right', 'send', 'undo', 'redo', 'panel-left-visible', 'panel-right-visible', 'panel-hidden', 'resize-corner', 'external-link']);
+
 const DEFAULT_ICON_SIZE = 24;
 const DEFAULT_ICON_STROKE = 1.5;
 
@@ -40,4 +42,4 @@ const ICON_DEFAULTS: Readonly<Partial<Record<IconName, IconDefaultOptions>>> = (
     return defaults;
 })();
 
-export { DEFAULT_ICON_SIZE, DEFAULT_ICON_STROKE, ICON_DEFAULTS, MISSING_ICON_GLYPH };
+export { DEFAULT_ICON_SIZE, DEFAULT_ICON_STROKE, ICON_DEFAULTS, MIRRORED_ICON_KEYS, MISSING_ICON_GLYPH };

@@ -16,6 +16,29 @@ import type { FrontendTelemetryPresenter, MetricsFormatter, MetricsKpiHost, Tele
 import type { MetricsPageSession } from '@pages/metrics/controllers/page/MetricsPageSession.ts';
 import type { TableBodyContext } from '@pages/metrics/types.ts';
 import type { StatusManager } from '@core/state/statusmanager/service.ts';
+import type { HistoryPager, HistoryRangeAvailability } from '@features/charts/public.ts';
+
+interface MetricsHistoryPort {
+    readonly rangeAvailability: HistoryRangeAvailability;
+    seriesKey(): string;
+    isInitialized(): boolean;
+    acceptRealtimeTimestamp(timestamp: number): boolean;
+    captureRealtimeSample(timestamp: number, value: number): void;
+    readonly pager: HistoryPager;
+    followRange(visibleStartTs: number, visibleEndTs: number): void;
+    load(): Promise<void>;
+    reset(clearedThroughMs: number): void;
+    reconnect(): void;
+    dispose(): void;
+}
+
+interface MetricsPresentationPort {
+    prepare(): void;
+    hold(): void;
+    requestRefresh(): boolean;
+    release(): boolean;
+    cancel(): void;
+}
 
 interface MetricsRuntimeOwners extends PageLifecycleOwnerHost, PageDomOwnerHost, PageFeedbackOwnerHost, PageResourcesOwnerHost, PageServicesOwnerHost, PageUiOwnerHost, PageLayoutOwnerHost, PageStreamingOwnerHost {
     pageContext: PageContext | null;
@@ -41,7 +64,6 @@ interface MetricsRuntimeOperations {
     requestAnimationFrame(callback: FrameRequestCallback): number;
     cancelAnimationFrame(frameId: number): void;
     syncChartControls(options?: { range?: boolean; candles?: boolean }): Promise<void>;
-    fetchCandlestickHistory(options?: { resetView?: boolean; beforeTimestampMs?: number | null }): Promise<void>;
     trimCandlestickData(force?: boolean): boolean;
 }
 
@@ -50,6 +72,8 @@ interface MetricsRuntimeContext {
     owners: MetricsRuntimeOwners;
     metricsServices: MetricsRuntimeServices;
     operations: MetricsRuntimeOperations;
+    history: MetricsHistoryPort;
+    presentation: MetricsPresentationPort;
 }
 
 type MetricsPageActionsHost = MetricsRuntimeContext;

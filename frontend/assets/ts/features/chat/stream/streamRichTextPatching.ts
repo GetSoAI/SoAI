@@ -20,11 +20,13 @@ const replacePatchedContentPreservingAssistantState = (streamText: HTMLElement, 
     markStreamingTextContinuation(streamText);
 };
 
-const patchRichTextContent = (streamText: HTMLElement, richHtml: string): void => {
-    const revealedTailHtml = wrapStreamingTextFadeTailHtml(richHtml, streamText);
-    const fragment = createHtmlFragment({ documentRef: streamText.ownerDocument, html: revealedTailHtml, context: streamText });
-    const sourceNodes = Array.from(fragment.childNodes);
-    replacePatchedContentPreservingAssistantState(streamText, sourceNodes);
+const patchRevealedRichTextContent = (streamText: HTMLElement, revealedHtml: string): void => {
+    const fragment = createHtmlFragment({ documentRef: streamText.ownerDocument, html: revealedHtml, context: streamText });
+    replacePatchedContentPreservingAssistantState(streamText, Array.from(fragment.childNodes));
 };
 
-export { patchRichTextContent };
+const patchRichTextContent = (streamText: HTMLElement, richHtml: string): void => {
+    patchRevealedRichTextContent(streamText, wrapStreamingTextFadeTailHtml(richHtml, streamText));
+};
+
+export { patchRevealedRichTextContent, patchRichTextContent };

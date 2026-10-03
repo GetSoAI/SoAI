@@ -3,6 +3,7 @@
 
 import { getCurrentLocale } from '@core/languageservice/service.ts';
 import { isLocalModelCatalogEntry, type ModelCatalogResponse } from '@core/api/contracts/modelCatalogContracts.ts';
+import { resolveChatExecutionEligibility } from '@core/models/chatExecutionEligibility.ts';
 import type { AutomationModelOption } from '@features/automation/contracts.ts';
 
 const parseAutomationModelOptions = (value: ModelCatalogResponse): readonly AutomationModelOption[] => {
@@ -21,8 +22,9 @@ const parseAutomationModelOptions = (value: ModelCatalogResponse): readonly Auto
                 detailUniversalId: isLocal ? entry.universalId : null,
                 label: entry.name,
                 provider: isLocal ? entry.plugin : groupName,
-                loaded: isLocal ? entry.isLoaded : true,
-                available: isLocal ? entry.isAvailable : true
+                loaded: isLocal ? entry.isLoaded : false,
+                available: isLocal ? entry.isAvailable : entry.isEnabled,
+                ineligibleReason: resolveChatExecutionEligibility(entry).reason
             });
         }
     }

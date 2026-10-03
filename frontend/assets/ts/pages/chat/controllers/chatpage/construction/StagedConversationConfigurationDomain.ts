@@ -36,8 +36,7 @@ const persistStagedConversationConfiguration = (host: StagedConversationConfigur
         patch.comparisonModels = [...staged.comparisonModels];
     }
     if (staged.parametersDirty) {
-        const parameters = buildStoredChatParameters(staged.parameters);
-        if (staged.parameters.contextWindowTokens === null && conversation.modelSettings.parameters?.contextWindowTokens !== undefined) parameters['contextWindowTokens'] = null;
+        const parameters = buildStoredChatParameters(staged.parameters, 'merge');
         patch.parameters = parameters;
         patch.agent = {
             ...(conversation.modelSettings.agent ?? {}),

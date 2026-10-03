@@ -1,7 +1,7 @@
 /* SoAI - Shared models chat model availability [frontend/assets/ts/core/models/chatModelAvailability.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { supportsOpenAIEndpointForModel } from '@core/openai/capabilityChecks.ts';
+import { supportsOpenAIEndpointForEntry, supportsOpenAIEndpointForModel } from '@core/openai/capabilityChecks.ts';
 import { isArray, isString } from '@core/typeGuards.ts';
 import type { ModelData } from '@core/types/modelTypes.ts';
 
@@ -41,12 +41,12 @@ const isEmbeddingModel = (model: ModelData): boolean => {
     return EMBEDDING_TOKEN_PATTERN.test(searchableName);
 };
 
-const isChatSelectableModel = (model: ModelData): boolean => {
-    return (model.loaded === true || model.available === true) && !isEmbeddingModel(model);
-};
+const isChatCapableModel = (model: ModelData): boolean => supportsOpenAIEndpointForEntry(model, 'chat_completions', !isEmbeddingModel(model));
+
+const isChatSelectableModel = (model: ModelData): boolean => (model.loaded === true || model.available === true) && isChatCapableModel(model);
 
 const hasChatSelectableModels = (models: readonly ModelData[] | null | undefined): boolean => {
     return Array.isArray(models) && models.some((model) => isChatSelectableModel(model));
 };
 
-export { hasChatSelectableModels, isChatSelectableModel };
+export { hasChatSelectableModels, isChatCapableModel, isChatSelectableModel };

@@ -10,42 +10,22 @@ const LOGOUT_ENDPOINT = '/api/v1/webui/auth/logout';
 
 type HttpConstants = ReturnType<typeof getConstants>['HTTP'];
 
-let coreModuleTimeoutCache: number | null = null;
-let apiRequestTimeoutCache: number | null = null;
-let httpConstantsCache: HttpConstants | null = null;
 let defaultHeadersCache: Readonly<Record<string, string>> | null = null;
-let defaultContentTypeCache: string | null = null;
 
 const getCoreModuleTimeoutMs = (): number => {
-    if (coreModuleTimeoutCache !== null) {
-        return coreModuleTimeoutCache;
-    }
     const value = getCoreTimeout('CORE_MODULES');
     if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
         throw new Error('CORE_MODULES timeout must be a finite positive number');
     }
-    coreModuleTimeoutCache = value;
     return value;
 };
 
 const getApiRequestTimeoutMs = (): number => {
-    if (apiRequestTimeoutCache !== null) {
-        return apiRequestTimeoutCache;
-    }
     const value = getCoreTimeout('API_REQUEST');
     if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
         throw new Error('API_REQUEST timeout must be a finite positive number');
     }
-    apiRequestTimeoutCache = value;
     return value;
-};
-
-const getHttpConstants = (): HttpConstants => {
-    if (httpConstantsCache !== null) {
-        return httpConstantsCache;
-    }
-    httpConstantsCache = getConstants().HTTP;
-    return httpConstantsCache;
 };
 
 const buildDefaultHeaders = (httpConstantsValue: HttpConstants): Record<string, string> => {
@@ -68,21 +48,17 @@ const getDefaultHeaders = (): Readonly<Record<string, string>> => {
     if (defaultHeadersCache) {
         return defaultHeadersCache;
     }
-    const headers = Object.freeze(buildDefaultHeaders(getHttpConstants()));
+    const headers = Object.freeze(buildDefaultHeaders(getConstants().HTTP));
     defaultHeadersCache = headers;
     return headers;
 };
 
 const getDefaultContentType = (): string => {
-    if (defaultContentTypeCache) {
-        return defaultContentTypeCache;
-    }
     const contentType = getDefaultHeaders()['Content-Type'];
     if (!isString(contentType) || !contentType.trim()) {
         throw new Error('DEFAULT_HEADERS Content-Type must be a non-empty string');
     }
-    defaultContentTypeCache = contentType;
-    return defaultContentTypeCache;
+    return contentType;
 };
 
 const MESSAGE_KEYS: readonly string[] = ['message', 'error_message', 'error', 'detail', 'description', 'title', 'error_description'];

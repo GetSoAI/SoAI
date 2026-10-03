@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from functools import cache
 from importlib.resources import files
@@ -19,6 +20,8 @@ __all__ = (
     "GpuModelCatalogEntry",
     "catalog_entries",
     "resolve_catalog_model",
+    "resolve_catalog_model_name",
+    "resolve_catalog_submission_identity",
 )
 
 _CATALOG_FILE = "gpu_model_catalog.json"
@@ -34,6 +37,12 @@ class GpuModelCatalogEntry:
     vendor: str
     aliases: tuple[str, ...]
     vendor_aliases: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class GpuCatalogIdentityResolution:
+    model: GpuModelCatalogEntry | None
+    requires_review: bool
 
 
 @cache
@@ -77,6 +86,53 @@ def resolve_catalog_model(
     return matches[0] if len(matches) == 1 else None
 
 
+def resolve_catalog_model_name(
+    gpu_name: str | None,
+    vendor: str | None,
+) -> GpuModelCatalogEntry | None:
+    exact = resolve_catalog_model(gpu_name, None, vendor)
+    if exact is not None or gpu_name is None:
+        return exact
+    bracket_matches = _bracket_catalog_models(gpu_name, vendor)
+    return next(iter(bracket_matches)) if len(bracket_matches) == 1 else None
+
+
+def _bracket_catalog_models(gpu_name: str, vendor: str | None) -> set[GpuModelCatalogEntry]:
+    return {
+        model
+        for bracket_name in re.findall(r"\[([^\[\]]+)\]", gpu_name)
+        if (model := resolve_catalog_model(bracket_name, None, vendor)) is not None
+    }
+
+
+def resolve_catalog_submission_identity(
+    gpu_name: str | None,
+    gpu_model_key: str | None,
+    vendor: str | None,
+) -> GpuCatalogIdentityResolution:
+    exact = resolve_catalog_model(gpu_name, gpu_model_key, vendor)
+    if exact is not None:
+        return GpuCatalogIdentityResolution(exact, False)
+    if gpu_name is not None and len(_bracket_catalog_models(gpu_name, None)) > 1:
+        return GpuCatalogIdentityResolution(None, True)
+    named = resolve_catalog_model_name(gpu_name, vendor) if gpu_name else None
+    keyed = resolve_catalog_model(None, gpu_model_key, vendor) if gpu_model_key else None
+    named_without_vendor = resolve_catalog_model_name(gpu_name, None) if gpu_name else None
+    keyed_without_vendor = (
+        resolve_catalog_model(None, gpu_model_key, None) if gpu_model_key else None
+    )
+    if named is not None and keyed is not None and named != keyed:
+        return GpuCatalogIdentityResolution(None, True)
+    if named is not None and keyed_without_vendor in {None, named}:
+        return GpuCatalogIdentityResolution(named, False)
+    if keyed is not None and named_without_vendor in {None, keyed}:
+        return GpuCatalogIdentityResolution(keyed, False)
+    return GpuCatalogIdentityResolution(
+        None,
+        named_without_vendor is not None or keyed_without_vendor is not None,
+    )
+
+
 def _entry_matches_identity(
     entry: GpuModelCatalogEntry,
     name_key: str,
@@ -116,7 +172,7 @@ def _load_vendor_aliases(value: JSONValue) -> dict[str, tuple[str, ...]]:
             raise ValueError("SoAIBench GPU vendor catalog is invalid.")
         vendor_candidates.update(normalized_candidates)
         result[canonical_vendor] = normalized_candidates
-    if set(result) != {"NVIDIA", "AMD", "Intel"}:
+    if not {"NVIDIA", "AMD", "Intel"}.issubset(result):
         raise ValueError("SoAIBench GPU vendor catalog is incomplete.")
     return result
 

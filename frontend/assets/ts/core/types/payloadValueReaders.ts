@@ -1,7 +1,7 @@
 /* SoAI - Shared types payload value readers [frontend/assets/ts/core/types/payloadValueReaders.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { EPOCH_MS_MIN, isEpochMsNumber } from '@core/time/epochMs.ts';
+import { EPOCH_MS_MAX, EPOCH_MS_MIN, isEpochMsNumber, isSignedEpochMsNumber } from '@core/time/epochMs.ts';
 import { isJsonObject, type JsonObject } from '@core/types/jsonValues.ts';
 
 type IndexedPayloadRecord<TValue> = {
@@ -83,6 +83,14 @@ const readRequiredNonEmptyStringValue = <T>(value: T, label: string): string => 
     const stringValue = readRequiredStringValue(value, label);
     if (!stringValue.trim()) {
         throw new Error(`${label} must be a non-empty string.`);
+    }
+    return stringValue;
+};
+
+const readRequiredPresentStringValue = <T>(value: T, label: string): string => {
+    const stringValue = readRequiredStringValue(value, label);
+    if (stringValue.length === 0) {
+        throw new Error(`${label} must not be empty.`);
     }
     return stringValue;
 };
@@ -183,6 +191,13 @@ const readNullableEpochMsValue = <T>(value: T, label: string): number | null => 
     return readRequiredEpochMsValue(value, label);
 };
 
+const readRequiredSignedEpochMsValue = <T>(value: T, label: string): number => {
+    if (typeof value !== 'number' || !isSignedEpochMsNumber(value)) {
+        throw new Error(`${label} must be a signed epoch millisecond timestamp between ${String(-EPOCH_MS_MAX)} and ${String(EPOCH_MS_MAX)}.`);
+    }
+    return value;
+};
+
 const readRequiredEnumValue = <T, TValue extends string>(value: T, label: string, values: readonly TValue[]): TValue => {
     if (typeof value !== 'string') {
         throw new Error(`${label} must be a string.`);
@@ -230,4 +245,4 @@ const readInteger = <TValue>(record: IndexedPayloadRecord<TValue>, key: string):
     return typeof value === 'number' && Number.isFinite(value) && Number.isInteger(value) ? value : null;
 };
 
-export { isAllowedStringValue, optionalTrimmedString, readAllowedStringValue, readBoolean, readBooleanOrTrueStringValue, readInteger, readNullableBooleanValue, readNullableEpochMsValue, readNullableTrimmedStringValue, readNumber, readOptionalBooleanValue, readOptionalFiniteNumberValue, readOptionalPayloadStringValue, readOptionalRecordValue, readOptionalStringValue, readOptionalTrimmedString, readRequiredBooleanValue, readRequiredEnumValue, readRequiredEpochMsValue, readRequiredNonEmptyStringValue, readRequiredPayloadStringValue, readRequiredRecordValue, readRequiredStringValue, readRequiredTrimmedString, readRequiredTrimmedStringMessageValue, readRequiredTrimmedStringValue, readString };
+export { isAllowedStringValue, optionalTrimmedString, readAllowedStringValue, readBoolean, readBooleanOrTrueStringValue, readInteger, readNullableBooleanValue, readNullableEpochMsValue, readNullableTrimmedStringValue, readNumber, readOptionalBooleanValue, readOptionalFiniteNumberValue, readOptionalPayloadStringValue, readOptionalRecordValue, readOptionalStringValue, readOptionalTrimmedString, readRequiredBooleanValue, readRequiredEnumValue, readRequiredEpochMsValue, readRequiredNonEmptyStringValue, readRequiredPayloadStringValue, readRequiredPresentStringValue, readRequiredRecordValue, readRequiredSignedEpochMsValue, readRequiredStringValue, readRequiredTrimmedString, readRequiredTrimmedStringMessageValue, readRequiredTrimmedStringValue, readString };

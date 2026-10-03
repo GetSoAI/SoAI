@@ -5,8 +5,8 @@
     :is(.status-line, .box-status-line) {
         position: absolute;
         bottom: 0;
-        left: 0;
-        right: 0;
+        inset-inline-start: 0;
+        inset-inline-end: 0;
         height: 3px;
     }
     .status-line {
@@ -24,14 +24,14 @@
 
     .ui-collection-card__horizontal .ui-model-type-badges {
         margin: 0;
-        margin-left: auto;
+        margin-inline-start: auto;
         padding: 0;
         flex-shrink: 0;
         justify-content: flex-end;
     }
     .ui-collection-card__horizontal .ui-model-type-badges.ui-model-type-badges--inline {
         margin: 0;
-        margin-left: auto;
+        margin-inline-start: auto;
         gap: var(--space-1);
     }
 }

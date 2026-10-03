@@ -5,6 +5,7 @@
     .ui-inline-action-field {
         --inline-action-field-inset: var(--border-width-1);
         --inline-action-field-width: var(--control-height);
+        --inline-action-input-padding: var(--control-padding-inline);
 
         position: relative;
         overflow: hidden;
@@ -14,7 +15,7 @@
     .ui-inline-action-field__button {
         position: absolute;
         top: var(--inline-action-field-inset);
-        right: var(--inline-action-field-inset);
+        inset-inline-end: var(--inline-action-field-inset);
         bottom: var(--inline-action-field-inset);
         display: inline-flex;
         align-items: center;
@@ -23,7 +24,10 @@
         min-width: calc(var(--inline-action-field-width) - (var(--inline-action-field-inset) * 2));
         padding: var(--space-1);
         border: none;
-        border-radius: 0 var(--border-radius) var(--border-radius) 0;
+        border-start-start-radius: 0;
+        border-start-end-radius: var(--border-radius);
+        border-end-end-radius: var(--border-radius);
+        border-end-start-radius: 0;
         background: transparent;
         color: var(--text-secondary);
         cursor: pointer;

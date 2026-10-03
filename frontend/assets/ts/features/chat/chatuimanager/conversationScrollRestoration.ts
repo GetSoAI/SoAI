@@ -6,12 +6,13 @@ import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
 import { isMainTimelineUserScrollIntent, syncAutoScrollLockAttribute } from '@features/chat/chatuimanager/autoScrollLockRuntime.ts';
 import { captureFirstVisibleMessageAnchor, resolveMessageScrollAnchorScrollTop, type MessageWindowScrollAnchor } from '@features/chat/chatuimanager/messageWindowScrollAnchor.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
+import { writeMainTimelineScrollTop } from '@features/chat/mainTimelineScroll.ts';
 import { resolvePersistedMessageCursor } from '@features/chat/message/persistedMessageIdentity.ts';
 import type { MessageCursor } from '@features/chat/storage/storageModels.ts';
 import type { ConversationContract } from '@features/chat/ChatTypes.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
 
-const CONVERSATION_SCROLL_SNAPSHOT_LIMIT = 100;
+const CONVERSATION_SCROLL_SNAPSHOT_PERSIST_DELAY_MS = 250;
 const SMOOTH_SCROLL_SETTLE_DELAY_MS = 500;
 const SMOOTH_SCROLL_INACTIVITY_DELAY_MS = 120;
 const RESTORE_INTENT_EVENTS = ['wheel', 'touchstart', 'pointerdown'];
@@ -30,13 +31,29 @@ const resolveScrollAnchorCursor = (context: ChatUIManagerContext, conversation: 
     return null;
 };
 
-const trimConversationScrollSnapshots = (context: ChatUIManagerContext): void => {
-    const snapshots = context.state.conversationScrollSnapshotByConversationId;
-    while (snapshots.size > CONVERSATION_SCROLL_SNAPSHOT_LIMIT) {
-        const oldestEntry = snapshots.keys().next();
-        if (oldestEntry.done) return;
-        snapshots.delete(oldestEntry.value);
-    }
+const clearConversationScrollSnapshotPersistTimer = (context: ChatUIManagerContext): boolean => {
+    const timer = context.state.conversationScrollSnapshotPersistTimer;
+    if (timer === null) return false;
+    context.dependencies.runtime.clearTimer(timer);
+    context.state.conversationScrollSnapshotPersistTimer = null;
+    return true;
+};
+
+const scheduleConversationScrollSnapshotPersist = (context: ChatUIManagerContext): void => {
+    clearConversationScrollSnapshotPersistTimer(context);
+    context.state.conversationScrollSnapshotPersistTimer = context.dependencies.runtime.setTimer(() => {
+        context.state.conversationScrollSnapshotPersistTimer = null;
+        context.dependencies.navigation.persistConversationScrollSnapshots();
+    }, CONVERSATION_SCROLL_SNAPSHOT_PERSIST_DELAY_MS);
+};
+
+const flushConversationScrollSnapshots = (context: ChatUIManagerContext): void => {
+    if (clearConversationScrollSnapshotPersistTimer(context)) context.dependencies.navigation.persistConversationScrollSnapshots();
+};
+
+const setupConversationScrollSnapshotPersistence = (context: ChatUIManagerContext): (() => void) => {
+    const view = context.dependencies.dom.getDocument().defaultView;
+    return view === null ? () => {} : context.dependencies.runtime.on(view, 'pagehide', () => flushConversationScrollSnapshots(context));
 };
 
 const isConversationScrollRestoreActive = (context: ChatUIManagerContext): boolean => context.state.activeConversationScrollRestore !== null;
@@ -51,24 +68,22 @@ const captureCurrentConversationScrollSnapshot = (context: ChatUIManagerContext)
     const renderAnchor = captureFirstVisibleMessageAnchor(messagesArea);
     const cursor = renderAnchor === null ? null : resolveScrollAnchorCursor(context, context.dependencies.session.getCurrentConversation(), renderAnchor);
     if (renderAnchor === null || cursor === null) return;
-    const snapshots = context.state.conversationScrollSnapshotByConversationId;
-    snapshots.delete(conversationId);
-    snapshots.set(conversationId, { cursor: { ...cursor }, renderAnchor: { ...renderAnchor } });
-    trimConversationScrollSnapshots(context);
+    context.dependencies.navigation.rememberConversationScrollSnapshot(conversationId, { cursor, renderAnchor });
+    scheduleConversationScrollSnapshotPersist(context);
 };
 
 const resolveConversationScrollRestoreCursor = (context: ChatUIManagerContext, conversationId: string): MessageCursor | null => {
     const normalizedConversationId = normalizeConversationId(conversationId);
     if (!normalizedConversationId) return null;
-    const snapshot = context.state.conversationScrollSnapshotByConversationId.get(normalizedConversationId);
-    return snapshot === undefined ? null : { ...snapshot.cursor };
+    const snapshot = context.dependencies.navigation.getConversationScrollSnapshot(normalizedConversationId);
+    return snapshot === null ? null : { ...snapshot.cursor };
 };
 
 const prepareConversationScrollRestore = (context: ChatUIManagerContext, conversationId: string | null): boolean => {
     const normalizedConversationId = normalizeConversationId(conversationId);
     context.state.conversationScrollRestoreGeneration += 1;
     cancelActiveConversationScrollRestore(context, false);
-    if (!normalizedConversationId || !context.state.conversationScrollSnapshotByConversationId.has(normalizedConversationId)) {
+    if (!normalizedConversationId || context.dependencies.navigation.getConversationScrollSnapshot(normalizedConversationId) === null) {
         context.state.pendingConversationScrollRestoreConversationId = null;
         return false;
     }
@@ -80,8 +95,8 @@ const consumeConversationScrollRestore = (context: ChatUIManagerContext): { conv
     const pendingConversationId = normalizeConversationId(context.state.pendingConversationScrollRestoreConversationId);
     const currentConversationId = normalizeConversationId(context.dependencies.session.getCurrentConversationId());
     if (!pendingConversationId || pendingConversationId !== currentConversationId) return null;
-    const snapshot = context.state.conversationScrollSnapshotByConversationId.get(pendingConversationId);
-    if (snapshot === undefined) return null;
+    const snapshot = context.dependencies.navigation.getConversationScrollSnapshot(pendingConversationId);
+    if (snapshot === null) return null;
     context.state.pendingConversationScrollRestoreConversationId = null;
     return { conversationId: pendingConversationId, renderAnchor: { ...snapshot.renderAnchor } };
 };
@@ -123,7 +138,7 @@ const beginConversationScrollRestore = (context: ChatUIManagerContext, messagesA
         const wasCancelled = cancelled || !messagesArea.isConnected || currentConversationId !== active.conversationId;
         if (!wasCancelled) {
             const settledTarget = resolveMessageScrollAnchorScrollTop(messagesArea, active.renderAnchor);
-            if (settledTarget !== null && settledTarget !== messagesArea.scrollTop) messagesArea.scrollTo({ top: settledTarget, behavior: 'auto' });
+            if (settledTarget !== null) writeMainTimelineScrollTop(messagesArea, settledTarget);
         }
         releaseActiveRestore(context);
         onCompletion(wasCancelled);
@@ -133,7 +148,7 @@ const beginConversationScrollRestore = (context: ChatUIManagerContext, messagesA
     context.state.autoScrollEnabled = false;
     syncAutoScrollLockAttribute(context, messagesArea);
     if (prefersReducedMotion(messagesArea) || targetScrollTop === messagesArea.scrollTop) {
-        messagesArea.scrollTo({ top: targetScrollTop, behavior: 'auto' });
+        writeMainTimelineScrollTop(messagesArea, targetScrollTop);
         complete(false);
         return true;
     }
@@ -162,7 +177,8 @@ const beginConversationScrollRestore = (context: ChatUIManagerContext, messagesA
 const forgetConversationScrollSnapshot = (context: ChatUIManagerContext, conversationId: string): void => {
     const normalizedConversationId = normalizeConversationId(conversationId);
     if (!normalizedConversationId) return;
-    context.state.conversationScrollSnapshotByConversationId.delete(normalizedConversationId);
+    context.dependencies.navigation.forgetConversationScrollSnapshot(normalizedConversationId);
+    scheduleConversationScrollSnapshotPersist(context);
     if (context.state.pendingConversationScrollRestoreConversationId === normalizedConversationId) context.state.pendingConversationScrollRestoreConversationId = null;
     if (context.state.activeConversationScrollRestore?.conversationId === normalizedConversationId) cancelActiveConversationScrollRestore(context, false);
 };
@@ -170,8 +186,8 @@ const forgetConversationScrollSnapshot = (context: ChatUIManagerContext, convers
 const disposeConversationScrollRestoration = (context: ChatUIManagerContext): void => {
     context.state.conversationScrollRestoreGeneration += 1;
     cancelActiveConversationScrollRestore(context, false);
-    context.state.conversationScrollSnapshotByConversationId.clear();
     context.state.pendingConversationScrollRestoreConversationId = null;
+    flushConversationScrollSnapshots(context);
 };
 
-export { beginConversationScrollRestore, cancelActiveConversationScrollRestore, captureCurrentConversationScrollSnapshot, disposeConversationScrollRestoration, forgetConversationScrollSnapshot, isConversationScrollRestoreActive, prepareConversationScrollRestore, resolveConversationScrollRestoreCursor };
+export { beginConversationScrollRestore, cancelActiveConversationScrollRestore, captureCurrentConversationScrollSnapshot, disposeConversationScrollRestoration, forgetConversationScrollSnapshot, isConversationScrollRestoreActive, prepareConversationScrollRestore, resolveConversationScrollRestoreCursor, setupConversationScrollSnapshotPersistence };

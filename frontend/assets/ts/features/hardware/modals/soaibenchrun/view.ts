@@ -1,7 +1,7 @@
 /* SoAI - SoAI Bench run modal rendering [frontend/assets/ts/features/hardware/modals/soaibenchrun/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { toTrustedUiHtml } from '@core/security/public.ts';
+import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
@@ -11,7 +11,7 @@ import { formatSoAIBenchDuration, formatSoAIBenchMetric, formatSoAIBenchPercentV
 import { formatUnexpectedSoAIBenchIdentifierLabel, resolveSoAIBenchReasonLabel, resolveSoAIBenchStatusLabel } from '@features/hardware/soaibenchLabels.ts';
 import { resolveTemperatureSeverity } from '@features/hardware/thermalSeverity.ts';
 import { buildSoAIBenchPhaseDiagnosticDisplays } from '@features/hardware/soaibenchPhaseDiagnostics.ts';
-import type { SoAIBenchRunRecord, SoAIBenchRunRenderContext } from '@features/hardware/modals/soaibenchrun/types.ts';
+import type { SoAIBenchRunOpenRequest, SoAIBenchRunRecord } from '@features/hardware/modals/soaibenchrun/types.ts';
 
 const MEASURED_PASS_COUNT = 5;
 const REPORT_GRID_COLUMNS = 4;
@@ -50,10 +50,7 @@ const phaseLabel = (phase: string | null): string | null => {
     return null;
 };
 
-const summaryBadgeForRun = (run: SoAIBenchRunRecord | null): SummaryBadge => {
-    if (run === null) {
-        return { label: i18n.t('hardware.modals.soaibenchRun.standardRun'), className: 'status-green' };
-    }
+const summaryBadgeForRun = (run: SoAIBenchRunRecord): SummaryBadge => {
     if (run.status === 'completed') {
         return { label: resolveSoAIBenchStatusLabel(run.status), className: 'status-green' };
     }
@@ -106,11 +103,7 @@ const shouldShowReasonPanel = (run: SoAIBenchRunRecord): boolean => {
     return run.status === 'failed' || run.status === 'unsupported' || run.status === 'unstable' || run.status === 'cancelled' || run.status === 'stopped';
 };
 
-const renderSummaryBand = (context: SoAIBenchRunRenderContext): string => {
-    const gpuLabel = i18n.t('hardware.gpu.panelHeader', { index: context.request.gpuIndex, name: context.request.gpuName });
-    const badge = summaryBadgeForRun(context.run);
-    return `<div class="hardware-soaibench-run-summary"><div class="hardware-soaibench-run-gpu">${uiText(gpuLabel).html}</div><span class="ui-status-badge ${badge.className}">${uiText(badge.label).html}</span></div>`;
-};
+const renderGpuLabel = (request: SoAIBenchRunOpenRequest): string => i18n.t('hardware.gpu.panelHeader', { index: request.gpuIndex, name: request.gpuName });
 
 const renderIntroSection = (title: string, itemsText: string): string => {
     const items = itemsText
@@ -121,12 +114,9 @@ const renderIntroSection = (title: string, itemsText: string): string => {
     return `<section class="hardware-soaibench-run-section"><h3>${uiText(title).html}</h3><ul>${list}</ul></section>`;
 };
 
-const renderRunIntro = (context: SoAIBenchRunRenderContext) => {
-    return toTrustedUiHtml(`${renderSummaryBand(context)}<div class="hardware-soaibench-run-grid">` + renderIntroSection(i18n.t('hardware.modals.soaibenchRun.sections.measures.title'), i18n.t('hardware.modals.soaibenchRun.sections.measures.items')) + renderIntroSection(i18n.t('hardware.modals.soaibenchRun.sections.runs.title'), i18n.t('hardware.modals.soaibenchRun.sections.runs.items')) + renderIntroSection(i18n.t('hardware.modals.soaibenchRun.sections.expect.title'), i18n.t('hardware.modals.soaibenchRun.sections.expect.items')) + `</div>`);
-};
-
-const renderRunProgressShell = (context: SoAIBenchRunRenderContext) => {
-    return toTrustedUiHtml(`${renderSummaryBand(context)}<div class="hardware-soaibench-progress-host" id="hardware-soaibench-run-modal-progress"></div>`);
+const renderRunIntro = (request: SoAIBenchRunOpenRequest): TrustedHtml => {
+    const summary = `<div class="hardware-soaibench-run-summary"><div class="hardware-soaibench-run-gpu">${uiText(renderGpuLabel(request)).html}</div><span class="ui-status-badge status-green">${uiText(i18n.t('hardware.modals.soaibenchRun.standardRun')).html}</span></div>`;
+    return toTrustedUiHtml(`${summary}<div class="hardware-soaibench-run-grid">` + renderIntroSection(i18n.t('hardware.modals.soaibenchRun.sections.measures.title'), i18n.t('hardware.modals.soaibenchRun.sections.measures.items')) + renderIntroSection(i18n.t('hardware.modals.soaibenchRun.sections.runs.title'), i18n.t('hardware.modals.soaibenchRun.sections.runs.items')) + renderIntroSection(i18n.t('hardware.modals.soaibenchRun.sections.expect.title'), i18n.t('hardware.modals.soaibenchRun.sections.expect.items')) + `</div>`);
 };
 
 const renderMetricItem = (label: string, value: string, index: number, severityClass: string): string => {
@@ -164,17 +154,16 @@ const renderReportMetrics = (run: SoAIBenchRunRecord): string => {
     return entries.map(([label, value, severityClass], index) => renderMetricItem(label, value, index, severityClass)).join('');
 };
 
-const renderRunReport = (context: SoAIBenchRunRenderContext) => {
-    const run = context.run;
+const renderRunReportBody = (run: SoAIBenchRunRecord | null, terminalReason: string | null): TrustedHtml => {
+    const scoreLabel = uiText(i18n.t('hardware.modals.soaibenchRun.scoreLabel')).html;
     if (!run) {
-        const reasonPanel = context.terminalReason ? `<div class="hardware-soaibench-run-reason" data-tone="warning">${uiText(context.terminalReason).html}</div>` : '';
-        const statusText = context.terminalReason ? i18n.t('hardware.modals.soaibenchRun.progress.startFailed') : getSoAIBenchNotAvailableLabel();
-        return toTrustedUiHtml(`${renderSummaryBand(context)}<div class="hardware-soaibench-report"><div class="hardware-soaibench-report-band"><span>${uiText(i18n.t('hardware.modals.soaibenchRun.scoreLabel')).html}</span><strong>${uiText(statusText).html}</strong></div>${reasonPanel}</div>`);
+        const reasonPanel = terminalReason ? `<div class="hardware-soaibench-run-reason" data-tone="warning">${uiText(terminalReason).html}</div>` : '';
+        const statusText = terminalReason ? i18n.t('hardware.modals.soaibenchRun.progress.startFailed') : getSoAIBenchNotAvailableLabel();
+        return toTrustedUiHtml(`<div class="hardware-soaibench-report"><div class="hardware-soaibench-report-band"><span>${scoreLabel}</span><strong>${uiText(statusText).html}</strong></div>${reasonPanel}</div>`);
     }
     const reason = reasonForRun(run);
     const reasonPanel = reason && shouldShowReasonPanel(run) ? `<div class="hardware-soaibench-run-reason" data-tone="warning">${uiText(reason).html}</div>` : '';
-    const scoreText = scoreTextForRun(run);
-    return toTrustedUiHtml(`${renderSummaryBand(context)}<div class="hardware-soaibench-report"><div class="hardware-soaibench-report-band"><span>${uiText(i18n.t('hardware.modals.soaibenchRun.scoreLabel')).html}</span><strong>${uiText(scoreText).html}</strong></div><div class="hardware-soaibench-report-grid">${renderReportMetrics(run)}</div>${reasonPanel}</div>`);
+    return toTrustedUiHtml(`<div class="hardware-soaibench-report"><div class="hardware-soaibench-report-band"><span>${scoreLabel}</span><strong>${uiText(scoreTextForRun(run)).html}</strong></div><div class="hardware-soaibench-report-grid">${renderReportMetrics(run)}</div>${reasonPanel}</div>`);
 };
 
 const progressMessageForRun = (run: SoAIBenchRunRecord | null, cancelRequested: boolean): string => {
@@ -253,4 +242,5 @@ const progressDetailsForRun = (run: SoAIBenchRunRecord | null): string => {
     return details.length ? details.join(' | ') : resolveSoAIBenchStatusLabel(run.status);
 };
 
-export { progressDetailsForRun, progressMessageForRun, progressPercentForRun, renderRunIntro, renderRunProgressShell, renderRunReport };
+export { progressDetailsForRun, progressMessageForRun, progressPercentForRun, renderGpuLabel, renderRunIntro, renderRunReportBody, summaryBadgeForRun };
+export type { SummaryBadge };

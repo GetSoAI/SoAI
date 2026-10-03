@@ -7,6 +7,7 @@ from core.types.json import JSONDict
 
 __all__ = (
     "extract_interactive_tool_approval",
+    "restore_interactive_tool_approval",
     "strip_interactive_tool_approval",
 )
 
@@ -16,6 +17,19 @@ def extract_interactive_tool_approval(model_settings: JSONDict) -> bool:
     agent = agent_value if isinstance(agent_value, dict) else None
     approval_value = agent.get("interactive_tool_approval") if agent is not None else None
     return approval_value is True
+
+
+def restore_interactive_tool_approval(model_settings: JSONDict, approval: bool) -> JSONDict:
+    restored: JSONDict = dict(model_settings)
+    for field, approval_field in (
+        ("agent", "interactive_tool_approval"),
+        ("mcp", "tool_approval_required"),
+    ):
+        current = model_settings.get(field)
+        settings: JSONDict = dict(current) if isinstance(current, dict) else {}
+        settings[approval_field] = approval
+        restored[field] = settings
+    return restored
 
 
 def strip_interactive_tool_approval(model_settings: JSONDict) -> JSONDict:

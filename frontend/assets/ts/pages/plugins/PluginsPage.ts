@@ -6,11 +6,14 @@ import { prepareCollectionReveal, releasePreparedCollection } from '@core/collec
 import { bindPageActionDispatcher } from '@core/dom/dataActionBinding.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { signalAborted } from '@core/lifecycle/abortSignals.ts';
+import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
 import { PLUGINS, PLUGINS_LAST_USED } from '@core/realtime/streammanager/resources/ids.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import { StaticBasePage } from '@core/StaticBasePage.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
-import { PAGE_ID } from '@features/plugins/public.ts';
+import { bindFileDragModalAutoOpen } from '@core/ui/fileDragModalAutoOpen.ts';
+import { CONFIRMATION_MODAL_ID } from '@core/ui/modals/dialogs/ids.ts';
+import { CLONE_PLUGIN_MODAL_ID, CONCURRENT_PLUGINS_MODAL_ID, DOWNLOAD_PLUGIN_MODAL_ID, MANAGE_BACKEND_MODAL_ID, PAGE_ID, PLUGIN_CONFIG_MODAL_ID, PLUGIN_INFO_MODAL_ID, PLUGINS_INTRO_MODAL_ID } from '@features/plugins/public.ts';
 import { bindPluginLogoFallbacks } from '@features/catalog/public.ts';
 import { isPluginsActionId } from '@pages/plugins/actions.ts';
 import { loadPluginsPageData } from '@pages/plugins/controllers/page/effects.ts';
@@ -19,6 +22,8 @@ import { PluginsPageDomain } from '@pages/plugins/controllers/page/PluginsPageDo
 import { bindPluginsPageModalEventListeners } from '@pages/plugins/controllers/page/pluginsPageEventListenersController.ts';
 import { requirePluginsUi } from '@pages/plugins/dom.ts';
 import type { PluginsPageDependencies } from '@pages/plugins/types.ts';
+
+const FILE_DRAG_BLOCKED_MODAL_IDS = Object.freeze([CONFIRMATION_MODAL_ID, PLUGIN_CONFIG_MODAL_ID, PLUGIN_INFO_MODAL_ID, PLUGINS_INTRO_MODAL_ID, CLONE_PLUGIN_MODAL_ID, CONCURRENT_PLUGINS_MODAL_ID, MANAGE_BACKEND_MODAL_ID]);
 
 class PluginsPage extends StaticBasePage {
     readonly #domain: PluginsPageDomain;
@@ -87,6 +92,26 @@ class PluginsPage extends StaticBasePage {
         const ui = requirePluginsUi({ getDomContext: () => this.pageHost.getContext() });
         bindPluginLogoFallbacks(ui.root, signal);
         const runtime = this.#domain.runtime;
+        const downloadModalManager = runtime.modalManagers.downloadModalManager;
+        downloadModalManager.bindFileDropArea(signal);
+        bindFileDragModalAutoOpen({
+            root: ui.root,
+            signal,
+            acceptsDrag: (event) => downloadModalManager.canAcceptPluginFileDrag(event),
+            canOpen: () => {
+                const presenter = requireModalPresenter();
+                return !FILE_DRAG_BLOCKED_MODAL_IDS.some((modalId) => presenter.isOpen(modalId));
+            },
+            isModalOpen: () => requireModalPresenter().isOpen(DOWNLOAD_PLUGIN_MODAL_ID),
+            openModal: () => downloadModalManager.openFileUploadModal(),
+            closeModal: () => {
+                const presenter = requireModalPresenter();
+                if (presenter.isOpen(DOWNLOAD_PLUGIN_MODAL_ID)) {
+                    presenter.close(DOWNLOAD_PLUGIN_MODAL_ID, { reason: 'drag-open-ended', restoreFocus: false });
+                }
+            },
+            retainModalAfterDrop: (event) => downloadModalManager.isAcceptedFileDrop(event)
+        });
         bindPageActionDispatcher({
             root: ui.root,
             signal,

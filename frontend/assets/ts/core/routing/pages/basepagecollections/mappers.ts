@@ -76,13 +76,15 @@ const getCollectionFilter = (behavior: PageCollectionBehavior): ((item: Resource
     }
     const rawGetItemSearchFields = behavior.getItemSearchFields;
     const rawApplyCustomFilters = behavior.applyCustomFilters;
+    const isPriorityItem = behavior.isPriorityItem;
     const getItemSearchFieldsResolver = isFunction(rawGetItemSearchFields) ? (item: ResourceItem): (string | undefined)[] => rawGetItemSearchFields(item) : null;
     const applyCustomFiltersResolver = isFunction(rawApplyCustomFilters) ? (item: ResourceItem, context: { filterProvider: string; filterStatus: string }): boolean => rawApplyCustomFilters(item, context) : null;
     return (item: ResourceItem): boolean => {
         if (!item || !isObject(item)) {
             return false;
         }
-        if (query) {
+        const isPriority = isPriorityItem?.(item) === true;
+        if (query && !isPriority) {
             if (!getItemSearchFieldsResolver) {
                 throw err('getItemSearchFields must be implemented when search is enabled');
             }
@@ -103,7 +105,8 @@ const getCollectionSorter = (behavior: PageCollectionBehavior): ((firstValue: Re
     if (!field) {
         throw err('SortBy missing');
     }
-    if (field === 'none') return null;
+    const isPriorityItem = behavior.isPriorityItem;
+    if (field === 'none' && !isPriorityItem) return null;
     const direction = behavior.sortOrder === 'asc' ? 1 : -1;
     const rawGetSortValue = behavior.getSortValue;
     const getSortValueResolver = isFunction(rawGetSortValue) ? (item: ResourceItem) => rawGetSortValue(item, field) : (item: ResourceItem) => item[field];
@@ -115,6 +118,10 @@ const getCollectionSorter = (behavior: PageCollectionBehavior): ((firstValue: Re
         };
     };
     return (left: ResourceItem, right: ResourceItem): number => {
+        const leftPriority = isPriorityItem?.(left) === true;
+        const rightPriority = isPriorityItem?.(right) === true;
+        if (leftPriority !== rightPriority) return leftPriority ? -1 : 1;
+        if (field === 'none') return 0;
         const leftNormalized = normalizeSortable(getSortValueResolver(left));
         const rightNormalized = normalizeSortable(getSortValueResolver(right));
         return (leftNormalized.n && rightNormalized.n ? (leftNormalized.v === rightNormalized.v ? 0 : leftNormalized.v > rightNormalized.v ? 1 : -1) : String(leftNormalized.v).localeCompare(String(rightNormalized.v), getLanguageService().getLocale())) * direction;

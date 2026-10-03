@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { CSS_CLASSES } from '@core/cssConstants.ts';
-import type { ElementOptions } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { buildChartColorContext } from '@core/ui/chartColors.ts';
-import { ChartFilters, FILTER_TYPES, HistoryChartControlsManager, HistoryChartRuntime, initializeHistoryChartFilters } from '@features/charts/public.ts';
+import { ChartFilters, FILTER_TYPES, HistoryChartControlsManager, HistoryChartRuntime, initializeHistoryChartFilters, type HistoryRangeAvailability } from '@features/charts/public.ts';
+import type { SoAIBenchHistoryPagePanel, SoAIBenchRunModal } from '@features/hardware/public.ts';
 import { isCandlestickActive, resetHistoryState, trimHistoryData } from '@pages/hardware/controllers/data/effects.ts';
 import type { HardwareDataController } from '@pages/hardware/controllers/dataController.ts';
 import type { GpuControlManager } from '@pages/hardware/controllers/gpucontrol/GpuControlManager.ts';
@@ -15,7 +15,7 @@ import type { HardwareChartContext } from '@pages/hardware/controllers/render/ef
 import { applyChartDefaults, invalidateChartControlSync, refreshChartControls, syncMetricOptions, updateDeviceSelector, type HardwareRenderFiltersContext } from '@pages/hardware/controllers/render/events.ts';
 import { createHardwareChartPresentationController, type HardwareChartPresentationController } from '@pages/hardware/controllers/render/hardwareChartPresentationController.ts';
 import { initializeWidgetManager, renderNetworkCard, renderStorageCard, updateGpuTelemetryIndicators, updateHeaderStats, type HardwareRenderActionsContext, type HardwareRenderCache } from '@pages/hardware/controllers/render/rendering.ts';
-import { buildDeviceCategoryOptions, buildMetricOptions, formatMetricValue, getMetricLabel, getMetricScaleBounds } from '@pages/hardware/mappers/mappers.ts';
+import { buildDeviceCategoryOptions, buildMetricOptions, buildSoAIBenchGpuOptions, formatMetricValue, getMetricLabel, getMetricScaleBounds } from '@pages/hardware/mappers/mappers.ts';
 import type { NetworkCardRenderer } from '@pages/hardware/rendering/cards/NetworkCardRenderer.ts';
 import type { StorageCardRenderer } from '@pages/hardware/rendering/cards/StorageCardRenderer.ts';
 import type { HardwarePageState } from '@pages/hardware/state/state.ts';
@@ -35,17 +35,21 @@ type HardwareRenderControllerDependencies = {
     dataController: HardwareDataController;
     chartRuntime: HistoryChartRuntime;
     historyControlsManager: HistoryChartControlsManager;
+    rangeAvailability: HistoryRangeAvailability;
     requireHTMLElement: (id: string) => HTMLElement;
     requireUI: (selector: string, context?: Element | null) => Element;
     optionalUI: (selector: string, context?: Element | null) => Element | null;
-    createElement: (tag: string, attrs?: ElementOptions) => Element;
     updateText: (element: Element, text: string) => void;
-    flushDOMUpdates: () => void;
     networkCardRenderer: NetworkCardRenderer;
     storageCardRenderer: StorageCardRenderer;
     processController: ProcessTableManager;
     gpuController: GpuControlManager;
+    soaibenchHistoryPagePanel: SoAIBenchHistoryPagePanel;
+    soaibenchRunModal: HardwareSoAIBenchRunPresentation;
+    persistPageControls: () => void;
 };
+
+type HardwareSoAIBenchRunPresentation = Pick<SoAIBenchRunModal, 'setGpuOptions' | 'hasActivity' | 'hasRetainedRuns'>;
 
 class HardwareRenderController {
     state: HardwarePageState;
@@ -55,19 +59,20 @@ class HardwareRenderController {
     requireHTMLElement: (id: string) => HTMLElement;
     requireUI: (selector: string, context?: Element | null) => Element;
     optionalUI: (selector: string, context?: Element | null) => Element | null;
-    createElement: (tag: string, attrs?: ElementOptions) => Element;
     updateText: (element: Element, text: string) => void;
-    flushDOMUpdates: () => void;
     networkCardRenderer: NetworkCardRenderer;
     storageCardRenderer: StorageCardRenderer;
     processController: ProcessTableManager;
     gpuController: GpuControlManager;
+    soaibenchHistoryPagePanel: SoAIBenchHistoryPagePanel;
+    readonly #soaibenchRunModal: HardwareSoAIBenchRunPresentation;
+    persistPageControls: () => void;
     chartFilters: ChartFilters | null = null;
     renderCache: HardwareRenderCache;
     chartContext: HardwareChartContext;
     actionsContext: HardwareRenderActionsContext;
     filtersContext: HardwareRenderFiltersContext;
-    #chartPresentationController: HardwareChartPresentationController;
+    readonly chartPresentationController: HardwareChartPresentationController;
     #chartFiltersSetupSequence = 0;
     #widgetManagerReadyTask: Promise<void> | null = null;
 
@@ -79,27 +84,29 @@ class HardwareRenderController {
         this.requireHTMLElement = dependencies.requireHTMLElement;
         this.requireUI = dependencies.requireUI;
         this.optionalUI = dependencies.optionalUI;
-        this.createElement = dependencies.createElement;
         this.updateText = dependencies.updateText;
-        this.flushDOMUpdates = dependencies.flushDOMUpdates;
         this.networkCardRenderer = dependencies.networkCardRenderer;
         this.storageCardRenderer = dependencies.storageCardRenderer;
         this.processController = dependencies.processController;
         this.gpuController = dependencies.gpuController;
+        this.soaibenchHistoryPagePanel = dependencies.soaibenchHistoryPagePanel;
+        this.#soaibenchRunModal = dependencies.soaibenchRunModal;
+        this.persistPageControls = dependencies.persistPageControls;
         this.renderCache = {
             historyStatusElement: null,
             widgetManager: null,
             widgetManagerInitialized: false
         };
-        this.#chartPresentationController = createHardwareChartPresentationController(() => dependencies.requireHTMLElement('hardwareHistoryChart'));
+        this.chartPresentationController = createHardwareChartPresentationController(() => dependencies.requireHTMLElement('hardwareHistoryChart'));
         this.chartContext = {
             state: this.state,
             chartRuntime: this.chartRuntime,
             requireHTMLElement: this.requireHTMLElement,
-            beginChartPresentationLoad: () => this.#chartPresentationController.beginLoad(),
-            completeChartPresentationLoad: (sequence) => this.#chartPresentationController.completeLoad(sequence),
-            resetChartPresentation: () => this.#chartPresentationController.reset(),
-            destroyChartPresentation: () => this.#chartPresentationController.destroy(),
+            beginChartPresentationLoad: () => this.chartPresentationController.beginLoad(),
+            currentChartPresentationLoad: () => this.chartPresentationController.currentLoad(),
+            completeChartPresentationLoad: (sequence) => this.chartPresentationController.completeLoad(sequence),
+            resetChartPresentation: () => this.chartPresentationController.reset(),
+            destroyChartPresentation: () => this.chartPresentationController.destroy(),
             getMetricScaleBounds: () => getMetricScaleBounds(this.state),
             buildChartColorContext: () =>
                 buildChartColorContext({
@@ -120,7 +127,6 @@ class HardwareRenderController {
             optionalUI: this.optionalUI,
             requireHTMLElement: this.requireHTMLElement,
             requireUI: this.requireUI,
-            createElement: this.createElement,
             updateText: this.updateText,
             networkCardRenderer: this.networkCardRenderer,
             storageCardRenderer: this.storageCardRenderer,
@@ -131,6 +137,7 @@ class HardwareRenderController {
             state: this.state,
             dataController: this.dataController,
             historyControlsManager: this.historyControlsManager,
+            rangeAvailability: dependencies.rangeAvailability,
             chartContext: this.chartContext,
             chartFilters: this.chartFilters
         };
@@ -227,7 +234,17 @@ class HardwareRenderController {
         await (this.#widgetManagerReadyTask ?? Promise.resolve());
     }
 
+    syncSoAIBenchButton(): void {
+        const gpuOptions = buildSoAIBenchGpuOptions(this.state);
+        const button = this.requireHTMLElement('hardware-soaibench-btn');
+        button.hidden = gpuOptions.length === 0 && !this.#soaibenchRunModal.hasRetainedRuns();
+        button.classList.toggle('ui-variant-warning', this.#soaibenchRunModal.hasActivity());
+        this.#soaibenchRunModal.setGpuOptions(gpuOptions);
+        this.soaibenchHistoryPagePanel.setGpuOptions(gpuOptions);
+    }
+
     handleSnapshot(snapshot: HardwarePageSnapshot): boolean {
+        this.syncSoAIBenchButton();
         this.processController.handleSnapshotUpdate();
         this.refreshHeaderStats(snapshot);
         updateGpuTelemetryIndicators(this.actionsContext, snapshot);

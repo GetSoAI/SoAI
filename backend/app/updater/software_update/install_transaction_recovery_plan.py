@@ -62,7 +62,7 @@ def plan_transaction_recovery(
         ):
             if not allow_pending_activation:
                 raise StateError("An installed update awaits explicit startup activation.")
-            if require_rollback_inventory(paths, old_complete=True) is None:
+            if require_rollback_inventory(paths, old_complete=True, verify_content=False) is None:
                 raise StateError("Pending activation has no required rollback inventory.")
             return UpdateRecoveryAction.ACTIVATE
         require_update_candidate_stopped(paths)

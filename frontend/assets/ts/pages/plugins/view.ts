@@ -5,9 +5,9 @@ import type { CollectionLayout } from '@core/collectionpage/publicContracts.ts';
 import type { PluginLayoutBuildDependencies } from '@pages/plugins/rendering/contracts.ts';
 import { buildPluginsHeader, buildPluginsSections } from '@pages/plugins/rendering/mappers.ts';
 
-const buildPluginsLayout = ({ getIconSync, buildLayout, sortBy, sortOrder, onSortChange }: PluginLayoutBuildDependencies): CollectionLayout => {
+const buildPluginsLayout = ({ getIconSync, buildLayout, viewMode, sortBy, sortOrder, onSortChange }: PluginLayoutBuildDependencies): CollectionLayout => {
     return buildLayout({
-        header: buildPluginsHeader(getIconSync, sortBy, sortOrder),
+        header: buildPluginsHeader(getIconSync, viewMode, sortBy, sortOrder),
         sections: buildPluginsSections(sortBy, sortOrder),
         filters: {
             '#provider-filter': 'filterProvider',

@@ -67,31 +67,27 @@ class SystemLimitsService {
         return stored ? decodeSystemLimits(stored) : null;
     }
 
-    getMaxFileUploadBytes(): number {
+    #requireLoadedLimits(): SystemLimits {
         if (this.#cachedLimits) {
-            return this.#cachedLimits.maxFileUploadBytes;
+            return this.#cachedLimits;
         }
         const stored = this.#readStoredLimits();
-        if (stored) return stored.maxFileUploadBytes;
+        if (stored) {
+            return stored;
+        }
         throw new Error('System limits not loaded. Call fetchSystemLimits() first.');
+    }
+
+    getMaxFileUploadBytes(): number {
+        return this.#requireLoadedLimits().maxFileUploadBytes;
     }
 
     getCameraVisionUploadEnabled(): boolean {
-        if (this.#cachedLimits) {
-            return this.#cachedLimits.cameraVisionUploadEnabled;
-        }
-        const stored = this.#readStoredLimits();
-        if (stored) return stored.cameraVisionUploadEnabled;
-        throw new Error('System limits not loaded. Call fetchSystemLimits() first.');
+        return this.#requireLoadedLimits().cameraVisionUploadEnabled;
     }
 
     getCameraVisionImageOptimizationEnabled(): boolean {
-        if (this.#cachedLimits) {
-            return this.#cachedLimits.cameraVisionImageOptimizationEnabled;
-        }
-        const stored = this.#readStoredLimits();
-        if (stored) return stored.cameraVisionImageOptimizationEnabled;
-        throw new Error('System limits not loaded. Call fetchSystemLimits() first.');
+        return this.#requireLoadedLimits().cameraVisionImageOptimizationEnabled;
     }
 
     clearCache(): void {

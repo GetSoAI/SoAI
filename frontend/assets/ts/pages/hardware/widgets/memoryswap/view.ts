@@ -53,6 +53,7 @@ const createStat = (host: MemorySwapPanelHost, labelText: string, valueText: str
     const label = host.createElement('span', { className: 'hardware-memory-swap-stat-label' });
     const value = host.createElement('span', { className: 'hardware-memory-swap-stat-value' });
     host.updateText(label, labelText);
+    value.dir = 'auto';
     host.updateText(value, valueText);
     item.append(label, value);
     return item;
@@ -87,6 +88,8 @@ const createProcessRow = (host: MemorySwapPanelHost, row: MemorySwapProcessUsage
     const meta = host.createElement('div', { className: 'hardware-memory-swap-process-meta' });
     const name = host.createElement('span', { className: 'hardware-memory-swap-process-name' });
     const value = host.createElement('span', { className: 'hardware-memory-swap-process-value' });
+    name.dir = 'auto';
+    value.dir = 'auto';
     host.updateText(name, row.name);
     setTooltipText(name, row.name);
     host.updateText(value, row.valueText);

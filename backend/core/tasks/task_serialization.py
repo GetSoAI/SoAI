@@ -54,13 +54,7 @@ def build_task_dict(
     include_result: bool,
     include_metadata: bool,
 ) -> dict[str, JSONValue]:
-    public_terminal_fields = resolve_public_task_terminal_fields(
-        status=task.status,
-        error_code=task.error_code,
-        error_type=task.error_type,
-        status_message=task.status_message,
-        error_message=task.error_message,
-    )
+    public_terminal_fields = resolve_public_task_terminal_fields(task)
     data: dict[str, JSONValue] = {
         "task_id": task.task_id,
         "task_type": task.task_type,

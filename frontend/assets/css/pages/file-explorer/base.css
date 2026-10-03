@@ -89,7 +89,7 @@
         border-bottom: var(--border-width-1) solid var(--glass-border-strong);
         min-width: 0;
         padding: var(--space-2) var(--space-3);
-        text-align: left;
+        text-align: start;
         vertical-align: middle;
     }
 
@@ -103,11 +103,11 @@
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table thead th:first-child {
-        border-top-left-radius: var(--border-radius);
+        border-start-start-radius: var(--border-radius);
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table thead th:last-child {
-        border-top-right-radius: var(--border-radius);
+        border-start-end-radius: var(--border-radius);
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-table tbody {
@@ -145,7 +145,7 @@
         border: none;
         background: transparent;
         color: inherit;
-        text-align: left;
+        text-align: start;
         cursor: pointer;
     }
 
@@ -184,12 +184,14 @@
         font-size: var(--font-size-caption-plus);
         font-weight: 600;
         color: var(--text-primary);
-        text-align: right;
+        text-align: end;
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-toggle-indicator {
         width: 0.75rem;
         height: 0.75rem;
+
+        /* direction: physical — border geometry forms a vertical disclosure arrow */
         border-right: var(--border-width-2) solid var(--text-secondary);
         border-bottom: var(--border-width-2) solid var(--text-secondary);
         transform: rotate(45deg);
@@ -235,8 +237,8 @@
     @container ui-viewport (width <= 640px) {
         :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-task-panel {
             position: fixed;
-            left: 0;
-            right: 0;
+            inset-inline-start: 0;
+            inset-inline-end: 0;
             bottom: 0;
             z-index: var(--z-raised);
             border-top: var(--border-width-1) solid var(--glass-border-strong);

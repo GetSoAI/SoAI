@@ -61,19 +61,19 @@
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-rows-body tr > td:first-child {
         position: absolute;
         top: var(--space-1);
-        left: var(--space-1);
+        inset-inline-start: var(--space-1);
         padding: 0;
     }
 
-    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-rows-body input {
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-rows-body .file-explorer-row-select {
         opacity: 0;
         transition: opacity var(--transition-fast);
     }
 
-    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'].is-selection-mode .file-explorer-rows-body input,
-    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-rows-body input:focus-visible,
-    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-rows-body tr:hover input,
-    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons']:has(.file-explorer-rows-body input:checked) .file-explorer-rows-body input {
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'].is-selection-mode .file-explorer-rows-body .file-explorer-row-select,
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-rows-body .file-explorer-row-select:focus-visible,
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-rows-body tr:hover .file-explorer-row-select,
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons']:has(.file-explorer-rows-body .file-explorer-row-select:checked) .file-explorer-rows-body .file-explorer-row-select {
         opacity: 1;
     }
 
@@ -85,6 +85,8 @@
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-open-btn {
+        --layout-label-alignment: center;
+
         flex-direction: column;
         align-items: center;
         text-align: center;
@@ -99,7 +101,7 @@
         height: 48px;
         min-height: 48px;
         max-height: 48px;
-        margin-right: 0;
+        margin-inline-end: 0;
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-entry-icon svg {
@@ -108,10 +110,9 @@
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-entry-open-spinner.loading-spinner {
+        --soai-spinner-stroke: var(--border-width-2);
         width: 20px;
         height: 20px;
-        border-width: var(--border-width-2);
-        border-top-width: var(--border-width-2);
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-entry-name {
@@ -153,7 +154,7 @@
         width: 100%;
     }
 
-    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-rows-body tr:has(.file-explorer-parent-icon-cell) > td:first-child {
+    :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-layout[data-view-mode='icons'] .file-explorer-rows-body tr > td.file-explorer-parent-icon-cell:first-child {
         position: static;
         width: auto;
     }

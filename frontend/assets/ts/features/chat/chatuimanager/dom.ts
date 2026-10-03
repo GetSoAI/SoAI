@@ -12,7 +12,7 @@ import { clearTimer } from '@features/chat/chatuimanager/state.ts';
 import { createMobileAvatarFloatingRuntime } from '@features/chat/chatuimanager/mobileAvatarFloatingRuntime.ts';
 import type { ChatUIManagerContext, ElementSelectorKey } from '@features/chat/chatuimanager/types.ts';
 import { syncInputWrapperScrollState } from '@features/chat/chatuimanager/scrollState.ts';
-import { isMainTimelineAtBottom, isMainTimelineMeasurementAtBottom, measureMainTimelineScroll, type MainTimelineScrollMeasurement } from '@features/chat/mainTimelineScroll.ts';
+import { isMainTimelineAtBottom, isMainTimelineMeasurementAtBottom, measureMainTimelineScroll, writeMainTimelineScrollTop, type MainTimelineScrollMeasurement } from '@features/chat/mainTimelineScroll.ts';
 
 export function getElement(context: ChatUIManagerContext, key: ElementSelectorKey): HTMLElement | null {
     const cached = context.state.elementCache[key];
@@ -83,6 +83,13 @@ function updatePreviewsContainerVisibility(context: ChatUIManagerContext): void 
     context.dependencies.toggleClassName(container, CSS_CLASSES.HIDDEN, !eitherVisible);
 }
 
+export function isAnyElementShown(context: ChatUIManagerContext, keys: readonly ElementSelectorKey[]): boolean {
+    return keys.some((key) => {
+        const element = getElement(context, key);
+        return element !== null && !element.classList.contains(CSS_CLASSES.HIDDEN);
+    });
+}
+
 export function setElementVisibility(context: ChatUIManagerContext, key: ElementSelectorKey, shouldShow: boolean): void {
     const element = getElement(context, key);
     if (!element) {
@@ -93,6 +100,7 @@ export function setElementVisibility(context: ChatUIManagerContext, key: Element
     context.dependencies.updateAttribute(element, 'aria-hidden', shouldShow ? 'false' : 'true');
 
     updatePreviewsContainerVisibility(context);
+    context.state.chatChromeVisibilityRuntime?.sync();
 }
 
 export function updateMicrophoneAvailability(context: ChatUIManagerContext): void {
@@ -150,6 +158,7 @@ export function setupScrollListener(context: ChatUIManagerContext): void {
     const debouncedHandler = context.dependencies.runtime.createDebouncedHandler(syncWrapperState, 100);
     const avatarFloatingRuntime = createMobileAvatarFloatingRuntime(messagesArea, messagesRoot);
     const handleScroll = (): void => {
+        context.state.chatChromeVisibilityRuntime?.observeScroll();
         if (isConversationScrollRestoreActive(context)) return;
         const measurement = updateAutoScrollState();
         const edges = measureScrollEdges({ position: measurement.scrollTop, extent: measurement.scrollHeight, viewport: measurement.clientHeight, tolerance: MESSAGE_WINDOW_EDGE_THRESHOLD_PX });
@@ -208,12 +217,7 @@ export function scrollToBottom(context: ChatUIManagerContext): void {
     }
 
     context.state.autoScrollUserIntentActive = false;
-    const targetScrollTop = Math.max(0, messagesArea.scrollHeight - messagesArea.clientHeight);
-    let currentScrollTop = messagesArea.scrollTop;
-    if (currentScrollTop !== targetScrollTop) {
-        messagesArea.scrollTop = targetScrollTop;
-        currentScrollTop = messagesArea.scrollTop;
-    }
+    writeMainTimelineScrollTop(messagesArea, Math.max(0, messagesArea.scrollHeight - messagesArea.clientHeight));
     if (context.state.autoScrollEnabled) {
         syncAutoScrollLockAttribute(context, messagesArea);
     }

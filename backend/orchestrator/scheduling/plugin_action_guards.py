@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
-from core.state.state_names import ORCH_STATE_DISABLED
+from core.state.state_names import ORCH_STATE_READY_PENDING_DISPATCH
 from core.state.state_transition_sets import (
     ALL_TRANSIENT_STATES,
     PLUGIN_MANAGER_TRANSIENT_STATES,
     SCHEDULER_DEFERRED_PLUGIN_STATES,
+    SCHEDULER_MANUAL_INTERVENTION_STATES,
 )
 from orchestrator.scheduling.action_generation_dependencies import (
     SchedulerActionGenerationDependencies,
@@ -29,7 +30,7 @@ async def get_prohibitive_state_failure(
     plugin_status: str,
     pending_key: str,
 ) -> PluginActionFailure | None:
-    if plugin_status == ORCH_STATE_DISABLED:
+    if plugin_status in SCHEDULER_MANUAL_INTERVENTION_STATES:
         failure = build_prohibitive_state_failure(plugin_name, plugin_status)
         await deps.queue.tracking.set_deferral_reason(pending_key, failure.operator_reason)
         return failure
@@ -43,9 +44,12 @@ async def is_busy_or_transient(
     pending_key: str,
     state_is_busy: bool,
 ) -> bool:
+    has_incomplete_lifecycle_transition = (
+        plugin_status in ALL_TRANSIENT_STATES and plugin_status != ORCH_STATE_READY_PENDING_DISPATCH
+    )
     if (
         state_is_busy
-        or plugin_status in ALL_TRANSIENT_STATES
+        or has_incomplete_lifecycle_transition
         or plugin_status in SCHEDULER_DEFERRED_PLUGIN_STATES
         or plugin_status in PLUGIN_MANAGER_TRANSIENT_STATES
     ):

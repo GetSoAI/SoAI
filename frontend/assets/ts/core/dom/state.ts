@@ -173,8 +173,29 @@ const getDynamicStyleValue = (element: Element, property: string): string => {
     return '';
 };
 
+type ScrollRestoreAxis = 'top' | 'left';
+type PendingScrollRestore = Record<ScrollRestoreAxis, number | null>;
+
+const scrolledElements = new WeakSet<Element>();
+const pendingScrollRestores = new WeakMap<Element, PendingScrollRestore>();
+let scrollTrackedDocument: Document | null = null;
+
+const recordScrolledElement = (event: Event): void => {
+    if (isElementNode(event.target)) {
+        scrolledElements.add(event.target);
+    }
+};
+
+const trackScrolledElements = (documentRef: Document): void => {
+    if (scrollTrackedDocument === documentRef) return;
+    scrollTrackedDocument?.removeEventListener('scroll', recordScrolledElement, true);
+    documentRef.addEventListener('scroll', recordScrolledElement, { capture: true, passive: true });
+    scrollTrackedDocument = documentRef;
+};
+
 const captureScrollState = (element: HTMLElement): ScrollStateEntry[] => {
     if (!isHTMLElement(element)) return [];
+    if (element.ownerDocument === scrollTrackedDocument && !scrolledElements.has(element)) return [];
     if (element.scrollTop === 0 && element.scrollLeft === 0) return [];
 
     const canScroll = (element.scrollHeight > element.clientHeight && element.clientHeight > 0) || (element.scrollWidth > element.clientWidth && element.clientWidth > 0);
@@ -190,20 +211,34 @@ const captureScrollState = (element: HTMLElement): ScrollStateEntry[] => {
     ];
 };
 
+const cancelScrollRestore = (element: Element, axis: ScrollRestoreAxis): void => {
+    const pending = pendingScrollRestores.get(element);
+    if (pending) {
+        pending[axis] = null;
+    }
+};
+
 const restoreScrollState = (entries: ScrollStateEntry[]): void => {
     if (!entries.length) {
         return;
     }
 
+    const targets = entries.map((entry) => {
+        const target: PendingScrollRestore = { top: entry.top, left: entry.left };
+        pendingScrollRestores.set(entry.element, target);
+        return { element: entry.element, target };
+    });
+
     const applyState = (): void => {
-        for (const entry of entries) {
-            const target = entry.element;
-            if (!isHTMLElement(target)) continue;
-            if (target.scrollTop !== entry.top) {
-                target.scrollTop = entry.top;
+        for (const { element, target } of targets) {
+            if (pendingScrollRestores.get(element) !== target) continue;
+            pendingScrollRestores.delete(element);
+            if (!isHTMLElement(element)) continue;
+            if (target.top !== null && element.scrollTop !== target.top) {
+                element.scrollTop = target.top;
             }
-            if (target.scrollLeft !== entry.left) {
-                target.scrollLeft = entry.left;
+            if (target.left !== null && element.scrollLeft !== target.left) {
+                element.scrollLeft = target.left;
             }
         }
     };
@@ -214,4 +249,5 @@ const restoreScrollState = (entries: ScrollStateEntry[]): void => {
     });
 };
 
-export { applyDynamicStyle, captureScrollState, getDynamicStyleValue, restoreScrollState };
+export { applyDynamicStyle, cancelScrollRestore, captureScrollState, getDynamicStyleValue, restoreScrollState, trackScrolledElements };
+export type { ScrollRestoreAxis };

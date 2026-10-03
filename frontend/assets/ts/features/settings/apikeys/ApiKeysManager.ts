@@ -6,6 +6,7 @@ import { requireTrimmedDataAttribute } from '@core/dom/attributes.ts';
 import { bindDataActionListener, createDataActionDispatcher } from '@core/dom/dataActionBinding.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { renderSettingsSection } from '@core/settings/settingsSectionRuntime.ts';
 import { applyProgressWidths } from '@core/ui/progressWidths.ts';
 import { SettingsSectionLifecycle } from '@features/settings/sectionLifecycle.ts';
@@ -19,6 +20,9 @@ import { showApiKeyQuotaModal } from '@features/settings/apikeys/quotaModal.ts';
 import type { ApiKeyOperation, ApiKeysManagerDependencies, ApiKeysManagerHost } from '@features/settings/apikeys/types.ts';
 import { renderApiKeysSection } from '@features/settings/apikeys/view.ts';
 
+const API_KEYS_QUOTA_CLEANUP_GROUP = 'api-keys-quota-live-updates';
+const API_KEYS_QUOTA_CLEANUP_ERROR = 'API keys quota live update cleanup failed';
+
 class ApiKeysManager {
     readonly #host: ApiKeysManagerHost;
     readonly #lifecycle: SettingsSectionLifecycle = new SettingsSectionLifecycle();
@@ -28,6 +32,9 @@ class ApiKeysManager {
     #reloadInProgress: boolean = false;
     #reloadSequence: number = 0;
     #createFlowInFlight: boolean = false;
+    #sectionActive: boolean = false;
+    #activityRefreshesStarted: boolean = false;
+    #hasLoaded: boolean = false;
     #availability: SettingsCapabilityAvailability = createSettingsCapabilityAvailability();
 
     constructor({ host }: ApiKeysManagerDependencies) {
@@ -105,7 +112,9 @@ class ApiKeysManager {
                 [API_KEYS_ACTION_DELETE]: async ({ actionElement }): Promise<void> => await this.#handleKeyAction('delete', requireActionKeyId(actionElement))
             })
         });
-        this.#startQuotaLiveUpdates(root);
+        if (this.#sectionActive && this.#hasLoaded) {
+            this.#startQuotaLiveUpdates(root);
+        }
     }
 
     dispose(): void {
@@ -130,7 +139,8 @@ class ApiKeysManager {
         const reloadSequence = this.#reloadSequence;
         this.#reloadInProgress = true;
         try {
-            const [keysResult, quotaResult] = await Promise.all([settleSettingsCapability(() => this.#host.api.listApiKeys(true)), settleSettingsCapability(() => this.#host.api.listApiKeyQuotaStatus())]);
+            const requestOptions = { signal: reloadRun.signal };
+            const [keysResult, quotaResult] = await Promise.all([settleSettingsCapability(() => this.#host.api.listApiKeys(true, requestOptions)), settleSettingsCapability(() => this.#host.api.listApiKeyQuotaStatus(requestOptions))]);
             if (!this.#lifecycle.isReloadCurrent(reloadRun)) {
                 return;
             }
@@ -148,6 +158,7 @@ class ApiKeysManager {
                 this.#reportReloadFailure(quotaResult.error, 'quota');
             }
             this.#availability = successfulCapabilities === 2 ? markSettingsCapabilityReady() : markSettingsCapabilityFailed(this.#availability, successfulCapabilities > 0);
+            this.#hasLoaded = true;
             this.#rerender();
             if (successfulCapabilities < 2) {
                 this.#host.notifications.feedback.show(i18n.t('settings.apiKeys.errors.reloadFailed'), 'error');
@@ -163,6 +174,35 @@ class ApiKeysManager {
                 this.#reloadInProgress = false;
             }
         }
+    }
+
+    setSectionActive(active: boolean): void {
+        if (this.#sectionActive === active) {
+            return;
+        }
+        this.#sectionActive = active;
+        if (!active) {
+            this.#quotaLiveGeneration += 1;
+            this.#lifecycle.abortReload('api-keys-section-hidden');
+            this.#lifecycle.clearCleanupGroup(API_KEYS_QUOTA_CLEANUP_GROUP, API_KEYS_QUOTA_CLEANUP_ERROR);
+            return;
+        }
+        if (!this.#activityRefreshesStarted) {
+            return;
+        }
+        if (!this.#hasLoaded) {
+            terminateHandledPromise(this.reload());
+            return;
+        }
+        this.#startQuotaLiveUpdates(requireHTMLElement(this.#host.view, 'api-keys-content'));
+    }
+
+    async startActivityRefreshes(): Promise<void> {
+        this.#activityRefreshesStarted = true;
+        if (!this.#sectionActive || this.#hasLoaded) {
+            return;
+        }
+        await this.reload();
     }
 
     #reportReloadFailure(error: Error | null, capability: 'keys' | 'quota'): void {
@@ -200,26 +240,35 @@ class ApiKeysManager {
     #startQuotaLiveUpdates(root: HTMLElement): void {
         this.#clearQuotaLiveTimer();
         this.#quotaLiveRequestInFlight = false;
-        const cleanup = startApiKeyQuotaLiveUpdates({
-            host: this.#host,
-            root,
-            getIsMounted: (): boolean => this.#lifecycle.isMounted,
-            getIsReloading: (): boolean => this.#reloadInProgress,
-            getUpdateGeneration: (): number => this.#quotaLiveGeneration,
-            getRequestInFlight: (): boolean => this.#quotaLiveRequestInFlight,
-            setRequestInFlight: (value: boolean): void => {
-                this.#quotaLiveRequestInFlight = value;
+        this.#lifecycle.replaceCleanupGroup(
+            API_KEYS_QUOTA_CLEANUP_GROUP,
+            () => {
+                const cleanup = startApiKeyQuotaLiveUpdates({
+                    host: this.#host,
+                    root,
+                    getIsActive: (): boolean => this.#sectionActive,
+                    getIsMounted: (): boolean => this.#lifecycle.isMounted,
+                    getIsReloading: (): boolean => this.#reloadInProgress,
+                    getUpdateGeneration: (): number => this.#quotaLiveGeneration,
+                    getRequestInFlight: (): boolean => this.#quotaLiveRequestInFlight,
+                    setRequestInFlight: (value: boolean): void => {
+                        this.#quotaLiveRequestInFlight = value;
+                    },
+                    setTimerId: (timerId: number | null): void => {
+                        this.#quotaLiveTimer = timerId;
+                    },
+                    clearTimer: (): void => this.#clearQuotaLiveTimer()
+                });
+                return [
+                    () => {
+                        cleanup();
+                        this.#quotaLiveRequestInFlight = false;
+                        this.#clearQuotaLiveTimer();
+                    }
+                ];
             },
-            setTimerId: (timerId: number | null): void => {
-                this.#quotaLiveTimer = timerId;
-            },
-            clearTimer: (): void => this.#clearQuotaLiveTimer()
-        });
-        this.#lifecycle.addCleanup(() => {
-            cleanup();
-            this.#quotaLiveRequestInFlight = false;
-            this.#clearQuotaLiveTimer();
-        });
+            API_KEYS_QUOTA_CLEANUP_ERROR
+        );
     }
 
     async showCreateModal(): Promise<void> {

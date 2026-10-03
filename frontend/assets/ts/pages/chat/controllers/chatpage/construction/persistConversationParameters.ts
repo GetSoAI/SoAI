@@ -22,13 +22,10 @@ const persistParametersToConversation = (host: PersistConversationParametersHost
     if (!conversationId) {
         return;
     }
-    const requestParameters: ConversationParameterSettings = buildStoredChatParameters(host.settings.parameters);
+    const requestParameters: ConversationParameterSettings = buildStoredChatParameters(host.settings.parameters, 'merge');
     const modelSettings = conversation.modelSettings;
     const existingParametersValue = modelSettings.parameters;
     const existingAgentSettings = modelSettings.agent ?? {};
-    if (host.settings.parameters.contextWindowTokens === null && existingParametersValue?.contextWindowTokens !== undefined) {
-        requestParameters.contextWindowTokens = null;
-    }
     const nextAgentSettings: ConversationAgentSettings = {
         ...existingAgentSettings,
         maxIterations: normalizeAgentMaxIterationsParameter(host.settings.parameters.agentMaxIterations)

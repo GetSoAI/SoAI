@@ -2,17 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { AnimationFrameRenderQueue } from '@core/animations/renderQueue.ts';
-import { ensureError } from '@core/errors/coerce.ts';
-import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
-import type { AutomationPageErrorNotifier } from '@pages/automation/controllers/AutomationPageErrorNotifier.ts';
-import { AutomationUserNotifiedError } from '@pages/automation/controllers/AutomationUserNotifiedError.ts';
 
 interface AutomationPageRenderSchedulerDependencies {
     requestAnimationFrame: (callback: () => void) => number;
-    runWithBoundary: <T>(operation: string, task: () => Promise<T> | T) => Promise<T>;
+    run: (operation: string, task: () => Promise<void> | void) => void;
     isDestroyed: () => boolean;
     render: () => void;
-    errorNotifier: AutomationPageErrorNotifier;
 }
 
 class AutomationPageRenderScheduler {
@@ -39,19 +34,7 @@ class AutomationPageRenderScheduler {
     }
 
     #render(): void {
-        terminateHandledPromise(
-            this.#dependencies.runWithBoundary('automation:render', () => {
-                try {
-                    this.#dependencies.render();
-                } catch (error) {
-                    const runtimeError = ensureError(error);
-                    if (!(runtimeError instanceof AutomationUserNotifiedError)) {
-                        this.#dependencies.errorNotifier.notifyErrorOnce(runtimeError);
-                    }
-                    throw runtimeError;
-                }
-            })
-        );
+        this.#dependencies.run('automation:render', () => this.#dependencies.render());
     }
 }
 

@@ -1,6 +1,10 @@
 /* SoAI - Logging feature log stream service events [frontend/assets/ts/features/logging/logstreamservice/events.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { LogStreamError } from '@core/realtime/streammanager/transport/logStreamError.ts';
+import { APIError, isNetworkError } from '@core/apiError.ts';
+import { shouldReportReconnectAttempt } from '@core/websocketclient/WebSocketReconnectScheduler.ts';
+import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isArray, isFunction, isObject } from '@core/typeGuards.ts';
 import type { TelemetryFields } from '@core/telemetry/contracts.ts';
@@ -30,9 +34,11 @@ const clearReconnectNotice = (context: Pick<StreamConnectionContext, 'state' | '
     }
 };
 
-const closeStreamSubscriptionHandle = (handle: StreamSubscriptionHandle | null, streamManager: StreamManagerWithLogs | null): void => {
+const closeStreamSubscriptionHandle = (handle: StreamSubscriptionHandle | null, streamManager: StreamManagerWithLogs | null, detachOnly = false): void => {
     if (handle) {
-        if (isFunction(handle.unsubscribe)) {
+        if (detachOnly && isFunction(handle.detach)) {
+            handle.detach();
+        } else if (isFunction(handle.unsubscribe)) {
             handle.unsubscribe();
         } else if (isFunction(handle.close)) {
             handle.close();
@@ -44,17 +50,22 @@ const closeStreamSubscriptionHandle = (handle: StreamSubscriptionHandle | null, 
     }
 };
 
-const teardownStreamConnection = (context: Pick<StreamConnectionContext, 'state' | 'clearTimer'>, handle: StreamSubscriptionHandle | null, streamManager: StreamManagerWithLogs | null): void => {
+const teardownStreamConnection = (context: Pick<StreamConnectionContext, 'state' | 'clearTimer'>, handle: StreamSubscriptionHandle | null, streamManager: StreamManagerWithLogs | null, detachOnly = false): void => {
     if (context.state.teardownInProgress) {
         return;
     }
     context.state.teardownInProgress = true;
     try {
+        context.state.connectionGeneration += 1;
+        context.state.connectionAbort?.abort();
+        context.state.connectionAbort = null;
+        context.state.connectPromise = null;
+        context.state.recovery.cancel();
         context.state.connectionHandle = null;
         context.state.isConnected = false;
         clearReconnectNotice(context);
         context.state.connectionStartedAt = 0;
-        closeStreamSubscriptionHandle(handle, streamManager);
+        closeStreamSubscriptionHandle(handle, streamManager, detachOnly);
     } finally {
         context.state.teardownInProgress = false;
     }
@@ -68,6 +79,12 @@ const handleStreamOpen = (context: StreamConnectionContext): void => {
         context.teardownConnection();
         return;
     }
+    if (context.state.subscribers.size === 0) {
+        context.teardownConnection();
+        return;
+    }
+    context.state.recoveryStopped = false;
+    context.state.recovery.markHealthy();
     context.state.isConnected = true;
     clearReconnectNotice(context);
     if (context.state.connectionStartedAt) {
@@ -87,57 +104,46 @@ const scheduleReconnectNotice = (context: StreamConnectionContext): void => {
         if (context.state.subscribers.size > 0 && !context.state.isConnected) {
             context.publishMetric('logs.stream.reconnectNotice', 1, { source: context.state.snapshotMeta.source });
             context.notify({ type: 'connection', status: 'reconnecting' });
-            void context.ensureConnection().catch((error) => {
-                if (context.state.recoverySuspended) {
-                    return;
-                }
-                context.logger.logError('Reconnection failed', error);
-            });
         }
     }, RECONNECT_NOTICE_DELAY_MS);
 };
 
+const scheduleRecovery = (context: StreamConnectionContext, error?: Error): void => {
+    const state = context.state;
+    const eligible = (): boolean => !state.recoverySuspended && !state.recoveryStopped && state.subscribers.size > 0 && !state.connectionHandle && !state.connectPromise;
+    state.recovery.setLiveDemand(state.subscribers.size > 0 && !state.recoverySuspended);
+    const scheduled = state.recovery.scheduled;
+    state.recovery.schedule(eligible, () => terminateHandledPromise(context.ensureConnection()));
+    if (!scheduled && state.recovery.scheduled && error && shouldReportReconnectAttempt(state.recovery.attemptCount)) context.logger.logWarn('Log stream recovery scheduled', error);
+    if (eligible()) scheduleReconnectNotice(context);
+};
+
 const handleStreamClosed = (context: StreamConnectionContext): void => {
-    if (context.state.connectionGeneration !== context.connectionGeneration) {
-        return;
-    }
-    context.state.isConnected = false;
-    clearReconnectNotice(context);
-    context.state.connectionHandle = null;
-    context.state.connectPromise = null;
+    if (context.state.connectionGeneration !== context.connectionGeneration) return;
+    teardownStreamConnection(context, context.state.connectionHandle, context.state.streamManager, true);
+    context.state.recoveryStopped = false;
     context.publishMetric('logs.stream.closed', 1, { source: context.state.snapshotMeta.source });
-    if (context.state.recoverySuspended) {
-        return;
-    }
-    if (!context.state.teardownInProgress && context.state.subscribers.size > 0) {
-        scheduleReconnectNotice(context);
-        return;
-    }
-    if (context.state.subscribers.size === 0) {
-        context.teardownConnection();
-    }
+    scheduleRecovery(context);
 };
 
 const handleStreamError = (context: StreamConnectionContext, error: Error): void => {
-    if (context.state.connectionGeneration !== context.connectionGeneration) {
-        return;
-    }
-    context.state.isConnected = false;
-    clearReconnectNotice(context);
-    context.state.connectionHandle = null;
-    context.state.connectPromise = null;
-    context.state.connectionStartedAt = 0;
-    if (context.state.recoverySuspended) {
-        return;
-    }
-    if (context.state.subscribers.size === 0) {
+    const state = context.state;
+    if (state.connectionGeneration !== context.connectionGeneration) return;
+    if (state.recoverySuspended || state.subscribers.size === 0) {
         context.teardownConnection();
         return;
     }
-    context.publishMetric('logs.stream.error', 1, { source: context.state.snapshotMeta.source });
-    context.logger.logWarn('Stream error', error);
+    const awaitingConnection = error instanceof LogStreamError && error.recovery === 'await-connection';
+    const retryable = error instanceof LogStreamError ? error.recovery === 'retry' : isNetworkError(error) || (error instanceof APIError && error.status >= 500);
+    if (!awaitingConnection) teardownStreamConnection(context, state.connectionHandle, state.streamManager, true);
+    state.isConnected = false;
+    state.recoveryStopped = !retryable;
+    context.publishMetric('logs.stream.error', 1, { source: state.snapshotMeta.source });
+    const generation = state.connectionGeneration;
     context.notify({ type: 'connection', status: 'error' });
-    scheduleReconnectNotice(context);
+    if (generation !== state.connectionGeneration || state.subscribers.size === 0 || state.recoverySuspended) return;
+    if (retryable) scheduleRecovery(context, error);
+    else context.logger.logWarn('Log stream unavailable', error);
 };
 
 const handleStreamUpdate = (context: StreamUpdateContext, payload: JsonValue | null | undefined, type: JsonValue | null | undefined, raw: JsonValue | null | undefined): void => {

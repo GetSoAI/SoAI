@@ -82,7 +82,8 @@ class WindowsConsoleService:
             callback = handler_type(console_ctrl_handler)
             kernel32 = ctypes.windll.kernel32
             set_console_ctrl_handler = kernel32.SetConsoleCtrlHandler
-            set_console_ctrl_handler(callback, True)
+            if not set_console_ctrl_handler(callback, True):
+                raise ctypes.WinError()
         except (AttributeError, TypeError, ValueError, OSError) as exception:
             coerced = coerce_to_soai_error(exception, operation=OPERATION_REGISTER_CTRL_HANDLER)
             log_handled_exception(
@@ -104,7 +105,8 @@ class WindowsConsoleService:
         try:
             kernel32 = ctypes.windll.kernel32
             set_console_ctrl_handler = kernel32.SetConsoleCtrlHandler
-            set_console_ctrl_handler(callback, False)
+            if not set_console_ctrl_handler(callback, False):
+                raise ctypes.WinError()
         except (AttributeError, TypeError, ValueError, OSError) as exception:
             coerced = coerce_to_soai_error(exception, operation=OPERATION_RELEASE_CTRL_HANDLER)
             log_handled_exception(

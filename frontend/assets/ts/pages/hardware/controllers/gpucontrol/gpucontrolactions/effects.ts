@@ -107,6 +107,9 @@ const applyGpuSlot = async (context: ControlContext, deviceId: string, slot: str
 };
 
 const resetGpuSettings = async (context: ControlContext, index: string | number): Promise<void> => {
+    if (context.isCertifiedRunLocked(index)) {
+        return;
+    }
     const capabilities = context.capabilitiesByIndex?.[str(index)] ?? null;
     const state = context.ensureUiState(index);
     if (!capabilities || !state.deviceId) {

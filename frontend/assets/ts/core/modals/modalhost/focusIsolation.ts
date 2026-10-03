@@ -7,7 +7,7 @@ import type { ModalHostState } from '@core/modals/modalhost/contracts.ts';
 const FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 const isAvailableFocusTarget = (element: HTMLElement): boolean => {
-    return !element.hidden && !element.classList.contains('u-hidden') && element.getAttribute('aria-hidden') !== 'true' && element.closest('[inert]') === null;
+    return !element.matches(':disabled') && element.closest('[hidden], .u-hidden, [aria-hidden="true"], [inert]') === null;
 };
 
 const listFocusableElements = (modal: HTMLElement): HTMLElement[] => {
@@ -72,4 +72,4 @@ const synchronizeModalStackAccessibility = (state: ModalHostState): void => {
     });
 };
 
-export { handleModalTabNavigation, synchronizeModalStackAccessibility };
+export { isAvailableFocusTarget, handleModalTabNavigation, synchronizeModalStackAccessibility };

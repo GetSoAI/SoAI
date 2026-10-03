@@ -6,7 +6,7 @@ import { toTrustedSvg } from '@core/security/public.ts';
 import { isInstanceOf, isNullOrUndefined, hasOwn } from '@core/typeGuards.ts';
 import { serializeElementToHtml } from '@core/dom/html.ts';
 import { STATIC_ICON_REGISTRY, type IconName } from '@core/ui/icons/iconRegistry.generated.ts';
-import { DEFAULT_ICON_SIZE, DEFAULT_ICON_STROKE, ICON_DEFAULTS, MISSING_ICON_GLYPH } from '@core/ui/icons/iconservice/constants.ts';
+import { DEFAULT_ICON_SIZE, DEFAULT_ICON_STROKE, ICON_DEFAULTS, MIRRORED_ICON_KEYS, MISSING_ICON_GLYPH } from '@core/ui/icons/iconservice/constants.ts';
 import type { IconAttributes, IconDefaultOptions, IconOptions, NormalizedIconOptions } from '@core/ui/icons/iconservice/types.ts';
 
 const isIconName = (value: string | null): value is IconName => value !== null && value.length > 0 && hasOwn(STATIC_ICON_REGISTRY, value);
@@ -84,7 +84,7 @@ const mergeDefaultIconOptions = (name: IconName, options: IconOptions | undefine
 
 const variantKey = (name: IconName, options: NormalizedIconOptions): string => `${name}:${options.size ?? ''}:${options.width ?? ''}:${options.height ?? ''}:${options.strokeWidth ?? ''}:${options.fill ?? ''}:${options.stroke ?? ''}:${options.className ?? ''}`;
 
-const applySvgOptions = (svgContent: string, options: NormalizedIconOptions): string => {
+const applySvgOptions = (svgContent: string, options: NormalizedIconOptions, name?: IconName): string => {
     const trimmed = svgContent.trim();
     if (!trimmed) {
         return '';
@@ -96,6 +96,9 @@ const applySvgOptions = (svgContent: string, options: NormalizedIconOptions): st
     }
 
     dom.addClass(first, 'ui-icon');
+    if (name && MIRRORED_ICON_KEYS.has(name)) {
+        dom.setAttribute(first, 'data-icon-mirror', 'true');
+    }
     if (options.className) {
         dom.addClass(first, options.className.split(/\s+/).filter(Boolean));
     }

@@ -25,8 +25,8 @@ import { updateManualDiscoveryMessage } from '@features/models/modals/downloadmo
 import { getModelSearchInputValue, getModelSearchState } from '@features/models/modals/downloadmodal/manager/state.ts';
 import { handleVariantCheck } from '@features/models/modals/downloadmodal/manager/variantEvents.ts';
 import { cancelModelSearchRequest, clearModelSearchResults, handleVariantInputChange, updateDownloadModalUI, updateModelSearchButtonState } from '@features/models/modals/downloadmodal/manager/view.ts';
-import { parseModelSearchResults } from '@features/models/modals/downloadmodal/mappers.ts';
-import { highlightModelSearchSelection, renderModelSearchError, renderModelSearchLoading, renderModelSearchResults } from '@features/models/modals/downloadmodal/modelSearchRendering.ts';
+import { parseModelSearchResults } from '@features/models/search/modelSearchResults.ts';
+import { highlightModelSearchSelection, renderModelSearchError, renderModelSearchLoading, renderModelSearchResults } from '@features/models/search/modelSearchRendering.ts';
 
 type Sanitizer = Pick<SanitizerApi, 'attribute' | 'html'>;
 

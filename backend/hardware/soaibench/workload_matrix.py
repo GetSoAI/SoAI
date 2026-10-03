@@ -6,7 +6,6 @@ from __future__ import annotations
 from core.hardware.soaibench_workloads import (
     MATRIX_BATCH_DISPATCHES,
     MATRIX_MAXIMUM_ELEMENTS,
-    MATRIX_OPERATION_FACTOR,
     MATRIX_ROUNDS,
     counted_operations,
 )
@@ -26,7 +25,6 @@ __all__ = (
 
 STANDARD_MATRIX_REPEATS = MATRIX_BATCH_DISPATCHES
 MATRIX_ELEMENT_COUNT = MATRIX_MAXIMUM_ELEMENTS
-MATRIX_OPERATIONS_PER_ROUND = MATRIX_OPERATION_FACTOR
 
 MATRIX_KERNEL_SOURCE = """
 __kernel void soaibench_matrix_dense(__global float *data, const uint rounds) {

@@ -5,9 +5,9 @@ import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { isArray, isFunction, isNullOrUndefined, isObject, hasOwn } from '@core/typeGuards.ts';
 import type { ChartThemeManagedPaletteInput, ColorPalette } from '@features/charts/chartTypes.ts';
 
-const CHART_EVENT_NAMES = new Set(['needHistoricalData', 'timeRangeChange', 'zoomChange', 'datapointHover']);
-const SUPPORTED_CHART_TYPES = new Set(['area', 'bar', 'candlestick', 'heikin-ashi', 'ohlcbars', 'spline', 'deviation', 'precision-line']);
-const INTERACTION_BOOLEAN_OPTIONS = new Set(['enableCrosshair', 'enableMagnetMode', 'enableInertialPanning', 'enableSmoothZoom', 'enableXAxisZoom', 'showAxisCoordinates', 'showDelta', 'showLegendTimestamp']);
+const CHART_EVENT_NAMES = new Set(['timeRangeChange', 'datapointHover']);
+const SUPPORTED_CHART_TYPES = new Set(['area', 'bar', 'candlestick', 'heikin-ashi', 'spline', 'deviation', 'precision-line']);
+const INTERACTION_BOOLEAN_OPTIONS = new Set(['enableCrosshair', 'enableMagnetMode', 'enableSmoothZoom', 'enableXAxisZoom', 'showAxisCoordinates', 'showDelta', 'showLegendTimestamp']);
 
 type ChartThemeColorKey = 'primary' | 'secondary' | 'tertiary' | 'quaternary' | 'grid' | 'crosshair' | 'text' | 'textSecondary' | 'statusGreen' | 'statusYellow' | 'statusRed' | 'background';
 
@@ -45,14 +45,8 @@ const THEME_DEPENDENT_COLOR_KEYS: readonly ChartThemeColorKey[] = Object.freeze(
 
 const DEFAULT_MAX_DATA_POINTS = 5e4;
 const MAX_DATA_POINTS_HARD_LIMIT = 5e5;
-const MIN_PIXEL_PER_BAR = 1e-3;
-const MIN_ZOOM_LEVEL = 1e-4;
-const BASE_MAX_ZOOM_LEVEL = 160;
-const MIN_VISIBLE_ZOOM_SLOTS = 12;
 const TIMESTAMP_EPSILON = 1e-3;
 const DEFAULT_MIN_HEIGHT = 315;
-const DEFAULT_MAX_RIGHT_MARGIN_PX = 140;
-const DEFAULT_MAX_RIGHT_MARGIN_RATIO = 0.18;
 const DEFAULT_VERTICAL_SCALE_PADDING_RATIO = 0.05;
 const MIN_VERTICAL_PIXEL_PADDING = 14;
 const DEFAULT_BOTTOM_AXIS_PADDING = 40;
@@ -63,19 +57,10 @@ const DAY_MS = 86400000;
 const WEEK_MS = 604800000;
 const YEAR_MS = 31536000000;
 const MAX_DATE_FORMATTER_CACHE_SIZE = 128;
-const ALIGN_OPTIONS = new Set(['tail', 'center', 'head']);
 
 const dateTimeFormatterCache = new Map<string, Intl.DateTimeFormat | null>();
 
 const isFin = Number.isFinite;
-
-const normalizePositiveFinite = (value: number): number | null => {
-    const normalized = typeof value === 'number' ? value : Number(value);
-    if (!isFin(normalized) || normalized <= 0) {
-        return null;
-    }
-    return normalized;
-};
 
 const normalizeCacheValue = (value: string | number | boolean | undefined | null): string => {
     if (value === undefined) return 'undefined';
@@ -143,13 +128,6 @@ const normalizePercent = (currentTime: string | null | undefined): number | null
     return count !== null ? clampNumber(count, 0, 1) : null;
 };
 
-const computeDynamicMinZoomLevel = (max: number, base: number = 10): number => Math.max(MIN_ZOOM_LEVEL, Math.min(0.2, (24 / Math.max(600, Math.max(1, normalizePositiveFinite(max) ?? DEFAULT_MAX_DATA_POINTS))) * (10 / Math.max(1, normalizePositiveFinite(base) ?? 10))));
-
-const normalizeAlignOption = (align: string): string => {
-    const count = String(align).trim().toLowerCase();
-    return count === 'centre' ? 'center' : ALIGN_OPTIONS.has(count) ? count : 'tail';
-};
-
 const tryReadCssVariable = (src: CSSStyleDeclaration[], ids: string | string[]): string => {
     for (const stringValue of src) {
         for (const candidateValue of isArray(ids) ? ids : [ids]) {
@@ -189,4 +167,4 @@ const isTransparentColor = (candidateValue: string | null | undefined): boolean 
 
 const hasPaletteMetadata = (value: ChartThemeManagedPaletteInput | null | undefined): value is ChartThemeManagedPaletteInput => isObject(value) && hasOwn(value, '__themeManaged');
 
-export { CHART_EVENT_NAMES, SUPPORTED_CHART_TYPES, INTERACTION_BOOLEAN_OPTIONS, DEFAULT_CHART_COLORS, CSS_COLOR_VAR_MAP, THEME_DEPENDENT_COLOR_KEYS, DEFAULT_MAX_DATA_POINTS, MAX_DATA_POINTS_HARD_LIMIT, MIN_PIXEL_PER_BAR, MIN_ZOOM_LEVEL, BASE_MAX_ZOOM_LEVEL, MIN_VISIBLE_ZOOM_SLOTS, TIMESTAMP_EPSILON, DEFAULT_MIN_HEIGHT, DEFAULT_MAX_RIGHT_MARGIN_PX, DEFAULT_MAX_RIGHT_MARGIN_RATIO, DEFAULT_VERTICAL_SCALE_PADDING_RATIO, MIN_VERTICAL_PIXEL_PADDING, DEFAULT_BOTTOM_AXIS_PADDING, SECOND_MS, MINUTE_MS, HOUR_MS, DAY_MS, WEEK_MS, YEAR_MS, dateTimeFormatterCache, MAX_DATE_FORMATTER_CACHE_SIZE, ALIGN_OPTIONS, isFin, buildFormatterCacheKey, registerFormatterInCache, normalizeNumberStr, normalizeRgb, normalizeAlpha, normalizeHue, normalizePercent, computeDynamicMinZoomLevel, normalizeAlignOption, tryReadCssVariable, getStyleSourcesForElement, isTransparentColor, hasPaletteMetadata };
+export { CHART_EVENT_NAMES, SUPPORTED_CHART_TYPES, INTERACTION_BOOLEAN_OPTIONS, DEFAULT_CHART_COLORS, CSS_COLOR_VAR_MAP, THEME_DEPENDENT_COLOR_KEYS, DEFAULT_MAX_DATA_POINTS, MAX_DATA_POINTS_HARD_LIMIT, TIMESTAMP_EPSILON, DEFAULT_MIN_HEIGHT, DEFAULT_VERTICAL_SCALE_PADDING_RATIO, MIN_VERTICAL_PIXEL_PADDING, DEFAULT_BOTTOM_AXIS_PADDING, SECOND_MS, MINUTE_MS, HOUR_MS, DAY_MS, WEEK_MS, YEAR_MS, dateTimeFormatterCache, MAX_DATE_FORMATTER_CACHE_SIZE, isFin, buildFormatterCacheKey, registerFormatterInCache, normalizeNumberStr, normalizeRgb, normalizeAlpha, normalizeHue, normalizePercent, tryReadCssVariable, getStyleSourcesForElement, isTransparentColor, hasPaletteMetadata };

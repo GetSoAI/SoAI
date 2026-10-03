@@ -9,15 +9,14 @@ from core.config.protocols import ConfigProtocol
 from core.errors.exceptions import ValidationError
 from core.files.path_policy import is_path_inside_directory
 
-__all__ = ("resolve_full_log_path",)
+__all__ = ("resolve_full_log_path", "resolve_log_directory")
 
 
-def resolve_full_log_path(
-    config: ConfigProtocol,
-    *,
-    filename_key: str,
-    default_filename: str,
-) -> str:
+def resolve_log_directory(config: ConfigProtocol) -> str:
+    return _resolve_base_and_log_directory(config)[1]
+
+
+def _resolve_base_and_log_directory(config: ConfigProtocol) -> tuple[str, str]:
     base_path_value = config.get_str("SYSTEM.PATHS.BASE")
     base_candidate = base_path_value.strip() if isinstance(base_path_value, str) else ""
     if not base_candidate:
@@ -37,6 +36,17 @@ def resolve_full_log_path(
             "OBSERVABILITY.LOGGING.LOGS_PATH must not target the base path logs directory.",
             details={"logs_path": log_path},
         )
+    return (base_path, log_path)
+
+
+def resolve_full_log_path(
+    config: ConfigProtocol,
+    *,
+    filename_key: str,
+    default_filename: str,
+) -> str:
+    base_path, log_path = _resolve_base_and_log_directory(config)
+    forbidden_path = os.path.join(base_path, "logs")
     filename_value = config.get_str(filename_key)
     filename_candidate = filename_value.strip() if isinstance(filename_value, str) else ""
     filename = default_filename if not filename_candidate else filename_candidate

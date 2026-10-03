@@ -49,6 +49,7 @@ async def query_historical_data(
     component: str,
     gpu_index: int | None,
     identifier: str | None,
+    availability_metric: str | None,
 ) -> JSONDict:
     def device_id_resolver(idx: int) -> str | None:
         return resolve_gpu_device_id(
@@ -77,4 +78,5 @@ async def query_historical_data(
         identifier=identifier,
         interval_ms=interval_ms,
         aggregation=aggregation,
+        availability_metric=availability_metric,
     )

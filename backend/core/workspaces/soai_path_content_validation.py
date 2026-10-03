@@ -11,7 +11,7 @@ from core.conversations.content_part_validation_primitives import (
     require_content_part_string,
 )
 from core.errors.exceptions import ValidationError
-from core.validation.epoch import require_unix_epoch_ms
+from core.validation.epoch import require_signed_epoch_ms, require_unix_epoch_ms
 from core.validation.strict_numbers import require_non_negative_int_strict
 from core.workspaces.soai_path_fingerprints import require_soai_path_fingerprint_value
 
@@ -50,8 +50,6 @@ def require_canonical_soai_path_source_value(value: JSONValue) -> str:
         value,
         message="SoAI path source_reference.value must be a non-empty string.",
     )
-    if virtual_path != virtual_path.strip():
-        raise ValidationError("SoAI path source_reference.value must be canonical.")
     if not virtual_path.startswith("/") or virtual_path == "/":
         raise ValidationError("SoAI path source_reference.value must be canonical.")
     if "\\" in virtual_path or "\x00" in virtual_path:
@@ -68,8 +66,9 @@ def _require_canonical_workspace_relative_path(value: JSONValue) -> str:
     tool_path = require_content_part_string(
         value,
         message="SoAI path tool_reference.value must be a non-empty string.",
+        allow_empty=True,
     )
-    if tool_path != tool_path.strip():
+    if not tool_path:
         raise ValidationError("SoAI path tool_reference.value must be canonical.")
     if tool_path.startswith("/") or "\\" in tool_path or "\x00" in tool_path:
         raise ValidationError("SoAI path tool_reference.value must be canonical.")
@@ -236,10 +235,9 @@ def validate_soai_path_content_part(part: JSONDict) -> JSONDict:
         raise ValidationError("SoAI path file size_bytes must be a non-negative integer.")
     if "modified_at_ms" not in part:
         raise ValidationError("SoAI path modified_at_ms is required.")
-    validated["modified_at_ms"] = require_unix_epoch_ms(
+    validated["modified_at_ms"] = require_signed_epoch_ms(
         part.get("modified_at_ms"),
         error_message="SoAI path modified_at_ms must be an epoch-millisecond integer.",
-        enforce_maximum=False,
     )
     if "resolved_at_ms" not in part:
         raise ValidationError("SoAI path resolved_at_ms is required.")

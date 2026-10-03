@@ -1,17 +1,20 @@
 /* SoAI - Shared UI tabs actions [frontend/assets/ts/core/ui/controls/tabs/actions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { dom } from '@core/dom/dom.ts';
+import { i18n } from '@core/i18n/index.ts';
 import { isNullOrUndefined } from '@core/typeGuards.ts';
 import { findFirstEnabledTab, resolveNotifyBadgeText } from '@core/ui/controls/tabs/service.ts';
 import type { TabConfig } from '@core/ui/controls/tabs/types.ts';
+import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 
 type ResolveTabElement = (selector: string) => Element | null;
 type ActivateTab = (tabId: string) => void;
 
 interface TabDisabledUpdateOptions {
     tabId: string;
-    isDisabled: boolean;
+    disabledLabel: string | null;
     activeTab: string | null;
     tabs: TabConfig[];
     resolveElement: ResolveTabElement;
@@ -28,6 +31,7 @@ interface TabBadgeUpdateOptions {
 interface TabNotifyBadgeUpdateOptions {
     tabId: string;
     count: number;
+    ariaLabel?: string | undefined;
     tabs: TabConfig[];
     resolveElement: ResolveTabElement;
 }
@@ -41,13 +45,18 @@ const resolveActiveTabAfterRemoval = (tabs: TabConfig[], activeTab: string | nul
 
 const setTabDisabled = (options: TabDisabledUpdateOptions): void => {
     const tabElement = options.resolveElement(`[data-tab="${options.tabId}"]`);
-    if (!tabElement) {
+    const tab = findTabById(options.tabs, options.tabId);
+    if (!(tabElement instanceof HTMLElement) || !tab) {
         return;
     }
 
-    dom.setProperty(tabElement, 'disabled', options.isDisabled);
+    const isDisabled = options.disabledLabel !== null;
+    const label = options.disabledLabel ?? tab.label;
+    dom.setAttribute(tabElement, 'aria-disabled', isDisabled ? 'true' : 'false');
+    dom.setAttribute(tabElement, 'aria-label', label);
+    setTooltipText(tabElement, label);
 
-    if (!options.isDisabled || options.activeTab !== options.tabId) {
+    if (!isDisabled || options.activeTab !== options.tabId) {
         return;
     }
 
@@ -59,10 +68,9 @@ const setTabDisabled = (options: TabDisabledUpdateOptions): void => {
 
 const setRightButtonVisibility = (resolveElement: ResolveTabElement, buttonId: string, isVisible: boolean): void => {
     const buttonElement = resolveElement(`#${buttonId}`);
-    if (!buttonElement) {
-        return;
+    if (buttonElement) {
+        dom.toggleClass(buttonElement, CSS_CLASSES.HIDDEN, !isVisible);
     }
-    dom.setStyle(buttonElement, 'display', isVisible ? 'inline-flex' : 'none');
 };
 
 const updateTabBadge = (options: TabBadgeUpdateOptions): void => {
@@ -106,11 +114,12 @@ const updateTabNotifyBadge = (options: TabNotifyBadgeUpdateOptions): void => {
 
     if (options.count > 0) {
         const displayCount = resolveNotifyBadgeText(options.count);
+        const ariaLabel = options.ariaLabel ?? i18n.t('header.notificationCenter.titleWithCount', { count: options.count });
         tab.notifyBadge = displayCount;
         const badgeElement = options.resolveElement(`#${options.tabId}-notify`);
         if (badgeElement) {
             dom.setText(badgeElement, displayCount);
-            dom.setAttribute(badgeElement, 'aria-label', `${options.count} notifications`);
+            dom.setAttribute(badgeElement, 'aria-label', ariaLabel);
             return;
         }
         const tabElement = options.resolveElement(`#${options.tabId}-tab`);
@@ -122,7 +131,7 @@ const updateTabNotifyBadge = (options: TabNotifyBadgeUpdateOptions): void => {
             id: `${options.tabId}-notify`
         });
         dom.setText(notifyBadge, displayCount);
-        dom.setAttribute(notifyBadge, 'aria-label', `${options.count} notifications`);
+        dom.setAttribute(notifyBadge, 'aria-label', ariaLabel);
         dom.appendChild(tabElement, notifyBadge);
         return;
     }
@@ -144,4 +153,4 @@ const clearNotifyBadges = (tabs: TabConfig[], resolveElement: ResolveTabElement)
     });
 };
 
-export { clearNotifyBadges, resolveActiveTabAfterRemoval, setRightButtonVisibility, setTabDisabled, updateTabBadge, updateTabNotifyBadge };
+export { setRightButtonVisibility, clearNotifyBadges, resolveActiveTabAfterRemoval, setTabDisabled, updateTabBadge, updateTabNotifyBadge };

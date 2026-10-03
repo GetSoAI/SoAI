@@ -4,7 +4,9 @@
 @layer components {
     :where(.chat-container) .chat-input-shell .chat-input-actions > * {
         opacity: var(--chat-input-actions-content-opacity);
-        transition: opacity var(--transition-fast);
+        transition:
+            opacity var(--transition-fast),
+            translate var(--header-fold-duration) var(--header-fold-easing);
     }
 
     :where(.chat-container) .chat-input-actions-inline {
@@ -28,10 +30,6 @@
 
     :where(.chat-container) .chat-input-actions.is-collapsed-into-header .chat-mobile-auxiliary-action-slot:not(.u-hidden) {
         display: inline-flex;
-    }
-
-    :where(.chat-container) .chat-input-actions.is-collapsed-into-header .chat-mobile-auxiliary-action-slot:has(> .chat-mobile-auxiliary-action.u-hidden) {
-        display: none;
     }
 
     :where(.chat-container) .chat-mobile-auxiliary-action {

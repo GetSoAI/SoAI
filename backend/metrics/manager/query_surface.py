@@ -9,6 +9,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from metrics.manager.capabilities import is_catalog_history_metric_key
 from metrics.manager.configuration import CAPABILITIES_CACHE_TTL_SEC
 from metrics.manager.history import get_historical_data
 from metrics.manager.internal_protocols import (
@@ -43,6 +44,7 @@ class MetricsHistoryMethodRequest:
     points: int
     interval_ms: int | None
     aggregation: str
+    include_availability: bool = False
 
 
 async def get_capabilities(
@@ -113,14 +115,21 @@ async def get_historical_data_method(
     self: MetricsQuerySurfaceProtocol,
     request: MetricsHistoryMethodRequest,
 ) -> JSONDict:
-    return await get_historical_data(
-        request.metric_key,
-        request.start_ts_ms,
-        request.end_ts_ms,
-        request.points,
-        request.interval_ms,
-        request.aggregation,
-        self.history_config,
-        self.history_enabled,
-        self.database_metrics,
-    )
+    async with self.reset_lock:
+        async with self.lock:
+            catalog_metric_key_known = is_catalog_history_metric_key(
+                self.metrics_ref[0], request.metric_key.strip()
+            )
+        return await get_historical_data(
+            request.metric_key,
+            request.start_ts_ms,
+            request.end_ts_ms,
+            request.points,
+            request.interval_ms,
+            request.aggregation,
+            self.history_config,
+            self.history_enabled,
+            self.database_metrics,
+            catalog_metric_key_known=catalog_metric_key_known,
+            include_availability=request.include_availability,
+        )

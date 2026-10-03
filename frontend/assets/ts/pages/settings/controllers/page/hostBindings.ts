@@ -19,13 +19,19 @@ const buildBaseHostBindings = (
     feedback: SettingsRuntimeContext['owners']['feedback'];
     runWithBoundary: <T>(name: string, task: () => Promise<T> | T) => Promise<T>;
     filterSettings: () => void;
+    hasSearchQuery: () => boolean;
     confirmAndExecute: SettingsManagerCallbacks['confirmAndExecute'];
 } => ({
     pageDom: page.owners.pageDom,
     pageResources: page.owners.pageResources,
     feedback: page.owners.feedback,
     runWithBoundary: bindRunWithBoundary(page),
-    filterSettings: callbacks.filterSettings,
+    filterSettings: (): void => {
+        if (hasSearchQuery(page)) {
+            callbacks.filterSettings();
+        }
+    },
+    hasSearchQuery: (): boolean => hasSearchQuery(page),
     confirmAndExecute: callbacks.confirmAndExecute
 });
 
@@ -37,8 +43,7 @@ const buildAdminHostBindings = (
     hasSearchQuery: () => boolean;
 } => ({
     ...buildBaseHostBindings(page, callbacks),
-    isAdmin: (): boolean => page.owners.auth.isAdmin(),
-    hasSearchQuery: (): boolean => hasSearchQuery(page)
+    isAdmin: (): boolean => page.owners.auth.isAdmin()
 });
 
 export { buildAdminHostBindings, buildBaseHostBindings, hasSearchQuery };

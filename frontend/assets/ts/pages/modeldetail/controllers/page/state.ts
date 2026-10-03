@@ -3,11 +3,17 @@
 
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { resolveModelPluginName } from '@core/models/modelIdentity.ts';
+import { CSS_CLASSES } from '@core/cssConstants.ts';
+import { checkerboardService } from '@core/dom/dom.ts';
+import { i18n } from '@core/i18n/index.ts';
+import { applyHeaderStatsLayout } from '@core/headerStatsLayout.ts';
+import { HEADER_STAT_CARD_SELECTOR, HEADER_STAT_CARD_SUPPRESSED_CLASS, resolveHeaderStatCard, setHeaderStatCardSuppressed } from '@core/routing/pages/basepagelayout/headerStats.ts';
 import { applyPageHeaderTitleDisplay } from '@core/routing/pages/basepagelayout/pageHeaderTitle.ts';
 import { isNullOrUndefined, isObject, isString } from '@core/typeGuards.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
-import { extractCleanModelIdentifier } from '@pages/modeldetail/formatting/modelDetailFormatting.ts';
+import { SUPPRESSIBLE_SUMMARY_IDS } from '@pages/modeldetail/rendering/layout/constants.ts';
+import { extractCleanModelIdentifier, formatModelDetailPluginName, formatModelDetailTypeLabel } from '@pages/modeldetail/formatting/modelDetailFormatting.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 
 interface ModelDetailStateHost extends PageDomOwnerHost {
@@ -19,14 +25,39 @@ interface ModelDetailStateHost extends PageDomOwnerHost {
 
 const setModelDetailInfo = (host: PageDomOwnerHost, id: string, value: JsonValue | null | undefined, format: (input: JsonValue | null | undefined) => string | null = (input: JsonValue | null | undefined) => (isNullOrUndefined(input) || input === '' ? null : String(input))): void => {
     const element = host.pageDom.optional(id);
-    const item = element?.closest('.info-item, .model-description-section, .stat-row, .modeldetail-info-row, .modeldetail-metrics-row');
     const formatted = format(value);
     const hasValue = isString(formatted) && formatted.length > 0;
-    if (item) {
-        host.pageDom.toggleClass(item, 'u-hidden', !hasValue);
+    if (!element) {
+        return;
     }
-    if (hasValue && element) {
+    const statCard = resolveHeaderStatCard(element);
+    if (statCard) {
+        if (!SUPPRESSIBLE_SUMMARY_IDS.has(id)) {
+            host.pageDom.updateText(element, hasValue ? formatted : i18n.t('common.notAvailableShort'));
+            return;
+        }
+        if (hasValue) {
+            host.pageDom.updateText(element, formatted);
+        }
+        if (statCard.classList.contains(HEADER_STAT_CARD_SUPPRESSED_CLASS) === hasValue) {
+            setHeaderStatCardSuppressed(host, element, !hasValue);
+            const container = statCard.closest('.ui-page-header-stats');
+            if (container instanceof HTMLElement) {
+                applyHeaderStatsLayout(container);
+                checkerboardService.updateCheckerboard(container, HEADER_STAT_CARD_SELECTOR);
+            }
+        }
+        return;
+    }
+    const item = element.closest('.modeldetail-fact');
+    if (item) {
+        host.pageDom.toggleClass(item, CSS_CLASSES.HIDDEN, !hasValue);
+    }
+    if (hasValue) {
         host.pageDom.updateText(element, formatted);
+        if (element instanceof HTMLElement && element.dataset['factTooltip'] === 'true') {
+            host.pageDom.updateAttribute(element, 'data-tooltip', formatted);
+        }
     }
 };
 
@@ -83,7 +114,9 @@ const updateModelDetailHeaderDescription = (host: ModelDetailStateHost): void =>
     if (!descriptionElement || !host.model) {
         return;
     }
-    host.pageDom.updateText(descriptionElement, host.model.universalId || host.model.id || host.model.name || '');
+    const pluginName = getModelDetailPluginName(host.model);
+    const pluginLabel = pluginName ? formatModelDetailPluginName(findModelDetailPluginRecord(host, pluginName), pluginName) : '';
+    host.pageDom.updateText(descriptionElement, [pluginLabel, formatModelDetailTypeLabel(host.model)].filter(Boolean).join(' · '));
 };
 
 const updateModelDetailHeaderInfo = (host: ModelDetailStateHost): void => {

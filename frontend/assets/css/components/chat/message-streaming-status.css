@@ -31,10 +31,9 @@
     }
 
     :where(.chat-container) .message-streaming-spinner-indicator.loading-spinner {
+        --soai-spinner-stroke: var(--border-width-1);
         width: var(--chat-stream-spinner-inline-size);
         height: var(--chat-stream-spinner-inline-size);
-        border-width: var(--border-width-1);
-        border-top-width: var(--border-width-1);
     }
 
     :where(.chat-container) .message-streaming-status {
@@ -228,12 +227,11 @@
     }
 
     :where(.chat-container) .message-running-activity-summary-reveal-spinner {
+        --soai-spinner-stroke: var(--border-width-1);
         display: none;
         flex: 0 0 auto;
         width: calc(var(--chat-stream-spinner-inline-size) * 0.72);
         height: calc(var(--chat-stream-spinner-inline-size) * 0.72);
-        border-width: var(--border-width-1);
-        border-top-width: var(--border-width-1);
     }
 
     :where(.chat-container) .message-running-activity-summary[data-running-activity-reveal-pending='true'] .message-running-activity-summary-reveal-spinner {

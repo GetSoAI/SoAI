@@ -17,6 +17,7 @@ from core.logging.protocols import LoggerProtocol, TraceLogger
 from core.runtime.protocols import RuntimePlatformViewProtocol
 
 if TYPE_CHECKING:
+    from core.history.request.availability import HistoryAvailabilityQuery
     from core.types.json import JSONDict, JSONValue
     from core.types.protocols import HttpClientProtocol
 
@@ -52,6 +53,7 @@ class HardwareManagerProtocol(Protocol):
         component: str = "cpu",
         gpu_index: int | None = None,
         identifier: str | None = None,
+        availability_metric: str | None = None,
     ) -> JSONDict: ...
     async def build_variant_support_context(
         self,
@@ -185,6 +187,7 @@ class DatabaseHardwareProtocol(DatabaseSoAIBenchProtocol, Protocol):
         aggregation: str,
         max_points: int,
         identifier: str | None = None,
+        availability: HistoryAvailabilityQuery | None = None,
     ) -> JSONDict: ...
 
 

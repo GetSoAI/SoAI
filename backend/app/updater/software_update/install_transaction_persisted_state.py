@@ -12,6 +12,7 @@ from app.installation_transaction_admission import (
     TRANSACTION_CLEANUP_PREFIX,
     TRANSACTION_PREFIX,
 )
+from app.updater.config_timeout_default_upgrade_state import timeout_default_upgrade_marker_path
 from app.updater.software_update.install_transaction_state import (
     MANAGED_CONFIG_DEFAULT_RELATIVE_COMPONENTS,
     MANAGED_INSTALL_METADATA_RELATIVE_COMPONENTS,
@@ -74,6 +75,7 @@ def resolve_update_state_files(config: ConfigProtocol, config_path: str) -> tupl
     return (
         config_path,
         f"{config_path}.backup",
+        timeout_default_upgrade_marker_path(config_path),
         resolve_default_config_schema_path(config_path),
         *(f"{database_path}{suffix}" for suffix in ("", "-wal", "-shm", "-journal")),
         *configuration_files,

@@ -86,6 +86,9 @@ def decode_conversation_outbox_event(
             conv_id=coerce_outbox_str(decoded.get("conv_id"), label="conv_id"),
             last_modified_at_ms=last_modified_at_ms,
             model_settings=validate_model_settings(model_settings),
+            settings_authority_changed=coerce_outbox_bool(
+                decoded.get("settings_authority_changed", False), label="settings_authority_changed"
+            ),
         )
     if event_type == "ConversationAttentionChangedEvent":
         conv_id_value = decoded.get("conv_id")

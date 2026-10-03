@@ -7,6 +7,11 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
+from core.hardware.constants import (
+    HARDWARE_HISTORY_COMPONENTS,
+    get_hardware_history_metric_columns,
+)
+from core.history.request.availability import parse_include_availability
 from core.validation.integers import coerce_exact_int_or_none
 
 if TYPE_CHECKING:
@@ -16,6 +21,7 @@ __all__ = (
     "HARDWARE_HISTORY_COMPONENTS",
     "HardwareHistorySelection",
     "normalize_hardware_history_export_selection",
+    "parse_hardware_history_availability_metric",
     "parse_hardware_history_gpu_index_value",
     "parse_hardware_history_query_selection",
     "parse_optional_hardware_history_export_selection",
@@ -23,8 +29,6 @@ __all__ = (
     "parse_required_hardware_history_selection",
     "resolve_hardware_history_identifier",
 )
-
-HARDWARE_HISTORY_COMPONENTS = ("cpu", "gpu", "disk", "network")
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,6 +70,25 @@ def parse_hardware_history_gpu_index_value(
     if gpu_index < 0:
         raise ValidationError(negative_message or invalid_message)
     return gpu_index
+
+
+def parse_hardware_history_availability_metric(
+    component: str,
+    *,
+    include_availability: JSONValue,
+    metric: JSONValue,
+) -> str | None:
+    if not parse_include_availability(include_availability):
+        if metric is not None:
+            raise ValidationError("metric is only valid when include_availability is true")
+        return None
+    metric_text = metric.strip() if isinstance(metric, str) else ""
+    columns = get_hardware_history_metric_columns(component)
+    if metric_text not in columns:
+        raise ValidationError(
+            f"metric must be one of: {', '.join(columns)} when component is '{component}'",
+        )
+    return metric_text
 
 
 def parse_hardware_history_query_selection(

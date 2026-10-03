@@ -41,6 +41,7 @@ import { TaskManager } from '@features/tasks/TaskManager.ts';
 import { TaskManagerStore } from '@features/tasks/taskmanagerstore/service.ts';
 import { LIVE_STATUS_OVERLAY_SERVICE_ID } from '@features/indicators/constants.ts';
 import { NotificationCenter } from '@features/notifications/public.ts';
+import { AiSetupAttentionService } from '@features/wizard/public.ts';
 import { sendWebSocketMessage } from '@core/websocketclient/service.ts';
 
 interface BootstrapInteractiveFeatureDependencies {
@@ -72,6 +73,7 @@ interface BootstrapInteractiveFeatures {
     searchPanel: SearchComponent;
     taskManager: TaskManager;
     notificationCenter: NotificationCenter;
+    aiSetupAttention: AiSetupAttentionService;
     layoutShell: LayoutShell;
 }
 
@@ -118,7 +120,6 @@ const createBootstrapInteractiveFeatures = (dependencies: BootstrapInteractiveFe
     const taskManager = new TaskManager({
         dom: { getDocument: () => requireDocument() },
         statusManager: getStatusManager(),
-        apiClient: dependencies.apiClient,
         stream,
         createStore: () => new TaskManagerStore({ stream }),
         storage: dependencies.storage
@@ -130,6 +131,7 @@ const createBootstrapInteractiveFeatures = (dependencies: BootstrapInteractiveFe
         stream,
         taskOperations: taskManager
     });
+    const aiSetupAttention = new AiSetupAttentionService({ storage: dependencies.storage, taskOperations: taskManager, router: dependencies.router });
     const componentLookup = new Map<string, ComponentInstance>([
         ['core.layout.header', dependencies.header],
         ['core.layout.sidebar', dependencies.sidebarComponent],
@@ -159,6 +161,7 @@ const createBootstrapInteractiveFeatures = (dependencies: BootstrapInteractiveFe
         searchPanel,
         taskManager,
         notificationCenter,
+        aiSetupAttention,
         layoutShell
     };
 };

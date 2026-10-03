@@ -42,7 +42,7 @@
         padding: var(--space-2);
         width: 100%;
         border-radius: var(--border-radius);
-        text-align: left;
+        text-align: start;
         font: inherit;
         color: inherit;
         cursor: pointer;
@@ -167,7 +167,7 @@
     }
 
     .chat-configuration-mcp-content:has(.mcp-tools-enabled-toggle:not(:checked)) > .chat-config-grid > .chat-configuration-section-header,
-    .chat-configuration-mcp-content .mcp-tools-scope:has(.mcp-tools-enabled-toggle:not(:checked)) > :not(.form-group:has(.mcp-tools-enabled-toggle)) {
+    .chat-configuration-mcp-content .mcp-tools-scope:has(.mcp-tools-enabled-toggle:not(:checked)) > .mcp-tools-dependent {
         display: none;
     }
 }

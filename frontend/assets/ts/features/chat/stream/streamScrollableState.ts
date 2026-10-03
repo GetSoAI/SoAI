@@ -1,15 +1,16 @@
 /* SoAI - Chat feature stream scrollable state [frontend/assets/ts/features/chat/stream/streamScrollableState.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { readScrollInlineStart, scrollToInlineStart } from '@core/layout/direction.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { isString } from '@core/typeGuards.ts';
 
 type KeyedScrollState = {
     scrollTop: number;
-    scrollLeft: number;
+    scrollInlineStart: number;
     stickToBottom: boolean;
-    stickToRight: boolean;
+    stickToInlineEnd: boolean;
 };
 
 const SCROLL_EDGE_TOLERANCE_PX = 2;
@@ -119,12 +120,12 @@ export const readKeyedScrollableState = (container: Element): Map<string, KeyedS
         }
         const key = resolveScrollableStateKey(node, scrollableType, orderByGroupAndType);
         const distanceFromBottom = node.scrollHeight - (node.scrollTop + node.clientHeight);
-        const distanceFromRight = node.scrollWidth - (node.scrollLeft + node.clientWidth);
+        const distanceFromInlineEnd = node.scrollWidth - (readScrollInlineStart(node) + node.clientWidth);
         state.set(key, {
             scrollTop: node.scrollTop,
-            scrollLeft: node.scrollLeft,
+            scrollInlineStart: readScrollInlineStart(node),
             stickToBottom: distanceFromBottom <= SCROLL_EDGE_TOLERANCE_PX,
-            stickToRight: distanceFromRight <= SCROLL_EDGE_TOLERANCE_PX
+            stickToInlineEnd: distanceFromInlineEnd <= SCROLL_EDGE_TOLERANCE_PX
         });
     }
     return state.size > 0 ? state : null;
@@ -154,11 +155,11 @@ export const applyKeyedScrollableState = (container: Element, state: Map<string,
             const maxTop = Math.max(0, node.scrollHeight - node.clientHeight);
             node.scrollTop = clampNumber(stored.scrollTop, 0, maxTop);
         }
-        if (stored.stickToRight) {
-            node.scrollLeft = node.scrollWidth;
+        if (stored.stickToInlineEnd) {
+            scrollToInlineStart(node, node.scrollWidth, 'instant');
         } else {
             const maxLeft = Math.max(0, node.scrollWidth - node.clientWidth);
-            node.scrollLeft = clampNumber(stored.scrollLeft, 0, maxLeft);
+            scrollToInlineStart(node, clampNumber(stored.scrollInlineStart, 0, maxLeft), 'instant');
         }
     }
     return appliedKeys;

@@ -9,7 +9,7 @@ import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } fr
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 import { CHAT_MEMORY_PROFILE_MODAL_ID } from '@features/chat/modals/constants.ts';
-import { CHAT_MEMORY_PROFILE_FIELD_NAMES, type ChatMemoryProfileFieldDefinition, type ChatMemoryProfileFieldName, resolveChatMemoryProfileFieldDefinition } from '@features/chat/modals/chatMemoryProfileFields.ts';
+import { CHAT_MEMORY_PROFILE_VISIBLE_FIELD_NAMES, type ChatMemoryProfileFieldDefinition, type ChatMemoryProfileFieldName, resolveChatMemoryProfileFieldDefinition } from '@features/chat/modals/chatMemoryProfileFields.ts';
 
 const translateChatMemoryProfileFieldLabel = (fieldName: ChatMemoryProfileFieldName): string => {
     switch (fieldName) {
@@ -84,7 +84,7 @@ const buildTextareaFieldMarkup = (definition: ChatMemoryProfileFieldDefinition, 
 
 const createChatMemoryProfileModalElement = (): HTMLElement => {
     const modalId = CHAT_MEMORY_PROFILE_MODAL_ID;
-    const fieldsMarkup = toTrustedUiHtml(CHAT_MEMORY_PROFILE_FIELD_NAMES.map((fieldName) => buildFieldMarkup(fieldName)).join(''));
+    const fieldsMarkup = toTrustedUiHtml(CHAT_MEMORY_PROFILE_VISIBLE_FIELD_NAMES.map((fieldName) => buildFieldMarkup(fieldName)).join(''));
     const header = renderStandardModalHeader({
         modalId,
         title: i18n.t('chat.memory.profile.title'),
@@ -93,6 +93,7 @@ const createChatMemoryProfileModalElement = (): HTMLElement => {
     });
     const body = renderModalBody(uiHtml`
         <div class="chat-memory-profile-copy">${i18n.t('chat.memory.profile.description')}</div>
+        <div id="${modalUiId(modalId, 'load-error')}" class="chat-memory-profile-load-error u-hidden" role="alert"><span>${i18n.t('chat.memory.profile.loadFailed')}</span><button type="button" id="${modalUiId(modalId, 'retry')}" class="ui-button ui-button--sm ui-variant-neutral" aria-label="${uiAttr(i18n.t('chat.memory.profile.retry'))}" data-tooltip="${uiAttr(i18n.t('chat.memory.profile.retry'))}">${i18n.t('chat.memory.profile.retry')}</button></div>
         <div class="chat-memory-profile-grid">${fieldsMarkup}</div>
     `);
     const skipText = i18n.t('chat.memory.profile.skip');

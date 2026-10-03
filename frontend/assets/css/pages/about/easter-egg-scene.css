@@ -46,6 +46,8 @@
     :where([data-section='about'], [data-page-scope='about']) .easter-egg-glow {
         position: absolute;
         top: -50%;
+
+        /* direction: physical — decorative light and artwork retain their physical orientation */
         left: -50%;
         width: 200%;
         height: 200%;

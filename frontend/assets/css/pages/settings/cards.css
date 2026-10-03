@@ -34,19 +34,19 @@
     :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__group .settings-group > .setting-item {
         justify-content: flex-start;
         align-items: stretch;
-        text-align: left;
+        text-align: start;
     }
 
     :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__group .setting-info {
         width: 100%;
         align-self: stretch;
         align-items: flex-start;
-        text-align: left;
+        text-align: start;
     }
 
     :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__group .setting-label,
     :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__group .setting-help {
-        text-align: left;
+        text-align: start;
     }
 
     :where([data-section='settings'], [data-page-scope='settings']).external-account-modal .external-account-modal__editor-header {

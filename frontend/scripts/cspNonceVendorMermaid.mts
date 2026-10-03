@@ -14,6 +14,8 @@ type PatchResult = {
 const MERMAID_NONCE_MARKER = '__soai_mermaid_style_nonce__';
 const MERMAID_NONCE_MARKER_PATTERN = /\n[ \t\r\n]*\/\* __soai_mermaid_style_nonce__ \*\/[ \t\r\n]*$/;
 const NONCE_INJECTION_PREFIX = '(()=>{const styleElement=';
+const SERIALIZED_STYLE_SANITIZATION_SOURCE = '      code = DOMPurify.sanitize(code, {';
+const SERIALIZED_STYLE_SANITIZATION_PATCH = ['      const serializedStyle = style1.cloneNode(false);', '      serializedStyle.setAttribute("nonce", style1.nonce);', "      code = code.replace(/<style[^>]*>/i, serializedStyle.outerHTML.replace('</style>', ''));", SERIALIZED_STYLE_SANITIZATION_SOURCE].join('\n');
 
 const resolveNonceReadExpression = (): string => {
     return ['typeof globalThis.getSoaiCspNonce==="function"?globalThis.getSoaiCspNonce():', 'typeof globalThis.soaiCspNonce==="string"?(()=>{const value=globalThis.soaiCspNonce;return typeof value==="string"?value.trim():""})():', '(()=>{const doc=globalThis.document;if(!doc)return"";', 'const metas=doc.getElementsByTagName("meta");', 'for(let i=0;i<metas.length;i+=1){const meta=metas[i];if(!(meta instanceof HTMLMetaElement))continue;', 'const property=meta.getAttribute("property");const name=meta.getAttribute("name");', 'const key=(property??name??"").trim().toLowerCase();if(key!=="csp-nonce")continue;', 'const nonce=(meta.nonce||meta.content||"").trim();if(nonce)return nonce;}', 'return"";})()'].join('');
@@ -49,11 +51,12 @@ const patchMermaidRuntimeText = (runtimeText: string): { runtimeText: string; re
     const assignedStyleResult = patchAssignedStyleCreationSites(normalizedRuntimeText);
     const declaredStyleResult = patchDeclaredStyleCreationSites(assignedStyleResult.runtimeText);
     const replacements = assignedStyleResult.replacements + declaredStyleResult.replacements;
+    const patchedRuntimeText = declaredStyleResult.runtimeText.includes(SERIALIZED_STYLE_SANITIZATION_PATCH) ? declaredStyleResult.runtimeText : declaredStyleResult.runtimeText.replace(SERIALIZED_STYLE_SANITIZATION_SOURCE, SERIALIZED_STYLE_SANITIZATION_PATCH);
 
     if (replacements === 0) {
-        if (normalizedRuntimeText.includes(NONCE_INJECTION_PREFIX)) {
+        if (patchedRuntimeText.includes(NONCE_INJECTION_PREFIX)) {
             return {
-                runtimeText: `${normalizedRuntimeText}\n/* ${MERMAID_NONCE_MARKER} */\n`,
+                runtimeText: `${patchedRuntimeText}\n/* ${MERMAID_NONCE_MARKER} */\n`,
                 replacements: 0
             };
         }
@@ -61,7 +64,7 @@ const patchMermaidRuntimeText = (runtimeText: string): { runtimeText: string; re
     }
 
     return {
-        runtimeText: `${declaredStyleResult.runtimeText}\n/* ${MERMAID_NONCE_MARKER} */\n`,
+        runtimeText: `${patchedRuntimeText}\n/* ${MERMAID_NONCE_MARKER} */\n`,
         replacements
     };
 };
@@ -77,6 +80,9 @@ const patchMermaidRuntimeFile = async (filePath: string): Promise<PatchResult> =
     }
     if (!hasStyleCreationSite) {
         throw new Error(`CSP nonce injection failed: no style creation sites found in ${filePath}`);
+    }
+    if (!runtimeText.includes(SERIALIZED_STYLE_SANITIZATION_PATCH)) {
+        throw new Error(`CSP nonce injection failed: unsupported SVG serialization pattern in ${filePath}`);
     }
     await fs.writeFile(filePath, runtimeText, 'utf8');
     return { filePath, updated: runtimeText !== original, replacements };

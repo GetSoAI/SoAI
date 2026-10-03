@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
 from core.errors.exception_coercion import coerce_to_soai_error
@@ -12,7 +13,7 @@ from core.errors.public_projection import project_public_error
 from features.api.routes.system.events.snapshots.payloads import (
     build_snapshot_error_event,
 )
-from features.api.runtime.event_enqueue import enqueue_event_or_warn
+from features.api.runtime.event_enqueue import enqueue_correlated_event
 
 if TYPE_CHECKING:
     from features.api.runtime.container.enqueue_warning_tracker import (
@@ -26,12 +27,13 @@ __all__ = (
 )
 
 
-def send_permission_error(
+async def send_permission_error(
     resource: str,
     snapshot_id: str,
     trace_id: str | None,
     enqueue_warning_tracker: EnqueueWarningTracker,
     connection: WebsocketConnection,
+    shutdown_event: asyncio.Event,
 ) -> None:
     error_payload = ErrorPublicPayload(
         code="forbidden_error",
@@ -41,21 +43,23 @@ def send_permission_error(
     ).to_dict()
     message_value = error_payload.get("message")
     message = str(message_value) if message_value is not None else None
-    enqueue_event_or_warn(
+    await enqueue_correlated_event(
         enqueue_warning_tracker,
         connection.queue,
         build_snapshot_error_event(resource, snapshot_id, message, error_payload),
+        shutdown_event,
         "WebSocket snapshot error",
     )
 
 
-def send_snapshot_error_event(
+async def send_snapshot_error_event(
     exception: BaseException,
     resource: str,
     snapshot_id: str,
     trace_id: str | None,
     enqueue_warning_tracker: EnqueueWarningTracker,
     connection: WebsocketConnection,
+    shutdown_event: asyncio.Event,
 ) -> None:
     if isinstance(exception, SoAIError):
         error = exception
@@ -68,9 +72,10 @@ def send_snapshot_error_event(
     error_payload = project_public_error(error, trace_id=trace_id).to_dict()
     error_message_value = error_payload.get("message")
     error_message = str(error_message_value) if error_message_value is not None else None
-    enqueue_event_or_warn(
+    await enqueue_correlated_event(
         enqueue_warning_tracker,
         connection.queue,
         build_snapshot_error_event(resource, snapshot_id, error_message, error_payload),
+        shutdown_event,
         "WebSocket snapshot error",
     )

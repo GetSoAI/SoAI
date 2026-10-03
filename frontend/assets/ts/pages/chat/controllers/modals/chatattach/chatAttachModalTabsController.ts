@@ -5,8 +5,9 @@ import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 import { TabsComponent } from '@core/ui/controls/Tabs.ts';
+import { updateTabSelectionState } from '@core/ui/controls/tabs/effects.ts';
 import type { TabConfig } from '@core/ui/controls/tabs/types.ts';
-import { CHAT_ATTACH_MODAL_ID } from '@features/chat/public.ts';
+import { CHAT_ATTACH_MODAL_ID, resolveChatConfigurationTabLabel } from '@features/chat/public.ts';
 import type { ChatAttachAvailabilityHost } from '@pages/chat/controllers/modals/chatattach/contracts.ts';
 import { requireChatAttachModalChild } from '@pages/chat/controllers/modals/chatattach/chatAttachModalElementsManager.ts';
 
@@ -46,13 +47,37 @@ const resolveChatAttachTabFromComponentId = (tabId: string): ChatAttachModalTab 
     return null;
 };
 
-const createChatAttachTabConfigs = (): TabConfig[] => [
-    { id: chatAttachTabComponentId('upload'), label: i18n.t('chat.attachModal.tabUpload') },
-    { id: chatAttachTabComponentId('camera'), label: i18n.t('chat.attachModal.tabCamera') },
-    { id: chatAttachTabComponentId('browse'), label: i18n.t('chat.attachModal.tabBrowse') },
-    { id: chatAttachTabComponentId('soaiLink'), label: i18n.t('chat.attachModal.tabSoaiLink') },
-    { id: chatAttachTabComponentId('knowledge'), label: i18n.t('chat.attachModal.tabKnowledge') }
-];
+const resolveChatAttachTabLabel = (tab: ChatAttachModalTab): string => {
+    switch (tab) {
+        case 'upload':
+            return i18n.t('chat.attachModal.tabUpload');
+        case 'camera':
+            return i18n.t('chat.attachModal.tabCamera');
+        case 'browse':
+            return i18n.t('chat.attachModal.tabBrowse');
+        case 'soaiLink':
+            return i18n.t('chat.attachModal.tabSoaiLink');
+        case 'knowledge':
+            return i18n.t('chat.attachModal.tabKnowledge');
+    }
+};
+
+const createChatAttachTabConfigs = (): TabConfig[] => CHAT_ATTACH_MODAL_TABS.map((tab) => ({ id: chatAttachTabComponentId(tab), label: resolveChatAttachTabLabel(tab) }));
+
+const resolveChatAttachTabSettingLabel = (tab: ChatAttachModalTab): string => {
+    if (tab === 'upload') {
+        return i18n.t('chat.configuration.inputActions.uploadFile');
+    }
+    if (tab === 'camera') {
+        return i18n.t('chat.configuration.inputActions.camera');
+    }
+    throw new Error(`Chat attach tab has no input action setting: ${tab}`);
+};
+
+const resolveChatAttachTabDisabledLabel = (tab: ChatAttachModalTab): string => {
+    const reason = i18n.t('chat.attachModal.tabDisabledReason', { setting: resolveChatAttachTabSettingLabel(tab), tab: resolveChatConfigurationTabLabel('appearance') });
+    return i18n.t('chat.inputActions.disabledWithReason', { action: resolveChatAttachTabLabel(tab), reason });
+};
 
 const syncChatAttachTabBadges = (host: ChatAttachAvailabilityHost, tabsComponent: TabsComponent): void => {
     const counts = host.attachments.draftCounts();
@@ -68,7 +93,6 @@ const createChatAttachTabsComponent = async (modal: HTMLElement, activeTab: Chat
         tabs: createChatAttachTabConfigs(),
         activeTab: chatAttachTabComponentId(activeTab),
         className: 'tabs',
-        enableOverflowNav: false,
         onTabChange: (activeTab: string): void => {
             const tab = resolveChatAttachTabFromComponentId(activeTab);
             if (tab !== null) {
@@ -113,7 +137,7 @@ const syncChatAttachTabAvailability = (host: ChatAttachAvailabilityHost, tabsCom
         if (isChatAttachTabAvailable(host, tab)) {
             tabsComponent.enableTab(chatAttachTabComponentId(tab));
         } else {
-            tabsComponent.disableTab(chatAttachTabComponentId(tab));
+            tabsComponent.disableTab(chatAttachTabComponentId(tab), resolveChatAttachTabDisabledLabel(tab));
         }
     }
 };
@@ -123,11 +147,8 @@ const setChatAttachTabState = (modal: HTMLElement, tab: ChatAttachModalTab, acti
     const tabButton = requireChatAttachTabButton(modal, tab);
     const pane = requireChatAttachModalChild(modal, `pane-${chatAttachModalTabToken(tab)}`);
     tabButton.classList.toggle('is-active', isActive);
-    tabButton.setAttribute('aria-selected', isActive ? 'true' : 'false');
     tabButton.setAttribute('tabindex', isActive ? '0' : '-1');
-    pane.classList.toggle('is-active', isActive);
-    pane.toggleAttribute('hidden', !isActive);
-    pane.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+    updateTabSelectionState(tabButton, pane, isActive);
 };
 
 const activateChatAttachTab = (modal: HTMLElement, tab: ChatAttachModalTab): void => {

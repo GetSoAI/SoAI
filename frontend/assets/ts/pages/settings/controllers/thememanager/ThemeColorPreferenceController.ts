@@ -57,3 +57,4 @@ class ThemeColorPreferenceController {
 }
 
 export { ThemeColorPreferenceController };
+export type { ThemeColorControl };

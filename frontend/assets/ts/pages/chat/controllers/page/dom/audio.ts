@@ -4,21 +4,24 @@
 import { i18n } from '@core/i18n/index.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { playSoundEffect } from '@core/ui/sound/engine.ts';
-import type { AudioState } from '@features/chat/public.ts';
+import type { AudioRecordingIntent, AudioState } from '@features/chat/public.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 
 type MicrophoneButtonHost = PageDomOwnerHost;
 
 interface MicrophoneButtonStateOptions {
     previousState: AudioState;
+    intent: AudioRecordingIntent | null;
     soundEffectsEnabled: boolean;
 }
 
-const playMicrophoneTransitionSound = (previousState: AudioState, state: AudioState, soundEffectsEnabled: boolean): void => {
+const playMicrophoneTransitionSound = (previousState: AudioState, state: AudioState, intent: AudioRecordingIntent | null, soundEffectsEnabled: boolean): void => {
     if (!soundEffectsEnabled) {
         return;
     }
-    if (state === 'requesting' && previousState === 'idle') {
+    const dictationStarted = intent !== 'push-to-talk' && previousState === 'idle' && state === 'requesting';
+    const pushToTalkStarted = intent === 'push-to-talk' && previousState === 'requesting' && state === 'recording';
+    if (dictationStarted || pushToTalkStarted) {
         playSoundEffect('microphoneOpen');
         return;
     }
@@ -54,7 +57,7 @@ const syncMicrophoneButtonState = (host: MicrophoneButtonHost, button: HTMLButto
 };
 
 const updateMicrophoneButtonState = (host: MicrophoneButtonHost, state: AudioState, options: MicrophoneButtonStateOptions): void => {
-    playMicrophoneTransitionSound(options.previousState, state, options.soundEffectsEnabled);
+    playMicrophoneTransitionSound(options.previousState, state, options.intent, options.soundEffectsEnabled);
     for (const candidate of host.pageDom.query('.microphone-btn')) {
         if (candidate instanceof HTMLButtonElement) {
             syncMicrophoneButtonState(host, candidate, state);

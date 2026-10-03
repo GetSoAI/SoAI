@@ -114,6 +114,8 @@
     :where([data-section='models'], [data-page-scope='models']) .model-card .ui-operation-progress.model-card-progress-overlay {
         position: absolute;
         top: 50%;
+
+        /* direction: physical — centering uses physical negative half-width translation */
         left: 50%;
         transform: translate(-50%, -50%);
         width: calc(100% - 2rem);
@@ -130,7 +132,7 @@
     :where([data-section='models'], [data-page-scope='models']) .ui-operation-progress .ui-round-button--delete {
         position: relative;
         top: auto;
-        right: auto;
+        inset-inline-end: auto;
         width: 20px;
         height: 20px;
         padding: 0;
@@ -162,6 +164,8 @@
     :where([data-section='models'], [data-page-scope='models']) .model-card.deleting .model-delete-overlay {
         position: absolute;
         top: 50%;
+
+        /* direction: physical — centering uses physical negative half-width translation */
         left: 50%;
         transform: translate(-50%, -50%);
         background: linear-gradient(135deg, color-mix(in srgb, var(--status-red) 95%, var(--glass-underlay-surface)) 0%, color-mix(in srgb, var(--status-red-hover) 95%, var(--glass-underlay-surface)) 100%);
@@ -210,7 +214,7 @@
         --status-badge-font-size: var(--font-size-compact-plus);
         --status-badge-padding: var(--space-1) var(--space-15);
         --status-badge-letter-spacing: var(--tracking-05px);
-        margin-left: var(--space-2);
+        margin-inline-start: var(--space-2);
     }
 
     :where([data-section='models'], [data-page-scope='models']) .parameter-input {

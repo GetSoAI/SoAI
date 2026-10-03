@@ -44,7 +44,7 @@
         font-weight: 700;
         letter-spacing: var(--tracking-03px);
         line-height: var(--line-height-badge);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     .ui-collection-list__fact .ui-metric-value {

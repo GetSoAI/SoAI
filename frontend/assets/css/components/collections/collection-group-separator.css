@@ -11,7 +11,22 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        gap: var(--space-2);
         margin-bottom: var(--space-2);
+    }
+
+    .ui-collection-group-separator::before {
+        height: var(--border-width-1);
+        flex: 1 1 auto;
+        background: linear-gradient(to right, transparent 0%, var(--ui-separator-color) 100%);
+        content: '';
+    }
+
+    .ui-collection-group-separator::after {
+        height: var(--border-width-1);
+        flex: 1 1 auto;
+        background: linear-gradient(to right, var(--ui-separator-color) 0%, transparent 100%);
+        content: '';
     }
 
     .ui-collection-group-title {
@@ -21,7 +36,7 @@
         font-size: var(--font-size-sm);
         font-weight: 600;
         letter-spacing: var(--tracking-05px);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         white-space: nowrap;
     }
 }

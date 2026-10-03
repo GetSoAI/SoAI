@@ -117,6 +117,7 @@ const createConfigurationController = (page: ChatUiRuntimeDependencies, uiBehavi
             },
             applyTextZoom: () => page.settings.applyTextZoom(),
             applyWidescreenMode: () => applyWidescreenMode(uiBehaviors),
+            updateInputState: () => page.composer.updateInputState(),
             applyInputActionVisibility: () => page.composer.applyInputActionVisibility(),
             syncToolsEnabledToConversation: (enabled: boolean) => page.composer.syncToolsEnabled(enabled),
             syncToolApprovalRequiredToConversation: (required: boolean) => page.composer.syncToolApprovalRequired(required),

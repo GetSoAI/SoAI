@@ -31,7 +31,7 @@ interface WebuiResourceEndpoints {
         delete(): Promise<void>;
     };
     apiKeys: {
-        list(includeRevoked?: boolean): Promise<ApiKey[]>;
+        list(includeRevoked?: boolean, options?: SignalOptions): Promise<ApiKey[]>;
         create(payload: ApiKeyCreateRequest): Promise<ApiKeySecretResponse>;
         revoke(keyId: string): Promise<ApiKeyRevokeResponse>;
         rotate(keyId: string, payload?: ApiKeyCreateRequest): Promise<ApiKeySecretResponse>;
@@ -39,12 +39,12 @@ interface WebuiResourceEndpoints {
         deleteAll(): Promise<ApiKeyDeleteAllResponse>;
         getQuota(keyId: string): Promise<ApiKeyQuotaSummary>;
         updateQuota(keyId: string, payload: ApiKeyQuotaUpdateRequest): Promise<ApiKeyQuotaSummary>;
-        listQuotaStatus(): Promise<Record<string, ApiKeyQuotaSummary>>;
+        listQuotaStatus(options?: SignalOptions): Promise<Record<string, ApiKeyQuotaSummary>>;
         assignUser(keyId: string, userId: number): Promise<ApiKeyAssignmentResponse>;
         unassignUser(keyId: string): Promise<void>;
     };
     mcpAccessTokens: {
-        list(): Promise<McpAccessTokensListResponse>;
+        list(options?: SignalOptions): Promise<McpAccessTokensListResponse>;
         create(payload: McpAccessTokenCreateRequest): Promise<McpAccessTokenCreateResponse>;
         revoke(tokenId: string): Promise<McpAccessTokenRevokeResponse>;
     };
@@ -78,7 +78,7 @@ const createWebuiResourceEndpoints = (api: ApiClientContext): WebuiResourceEndpo
         }
     },
     apiKeys: {
-        list: async (includeRevoked = false): Promise<ApiKey[]> => decodeApiKeyListResponse(await api.get('/api/v1/webui/openai-api-keys', { query: { 'include_revoked': includeRevoked } })),
+        list: async (includeRevoked = false, options: SignalOptions = {}): Promise<ApiKey[]> => decodeApiKeyListResponse(await api.get('/api/v1/webui/openai-api-keys', { query: { 'include_revoked': includeRevoked }, ...buildSignalRequestOptions(options) })),
         create: async (payload): Promise<ApiKeySecretResponse> => decodeApiKeySecretResponse(await api.post('/api/v1/webui/openai-api-keys', serializeApiKeyCreateRequest(payload)), 'API key create response'),
         revoke: async (keyId): Promise<ApiKeyRevokeResponse> => decodeApiKeyRevokeResponse(await api.post(`/api/v1/webui/openai-api-keys/${api.encodePathSegment(keyId)}/revoke`)),
         rotate: async (keyId, payload = {}): Promise<ApiKeySecretResponse> => decodeApiKeySecretResponse(await api.post(`/api/v1/webui/openai-api-keys/${api.encodePathSegment(keyId)}/rotate`, serializeApiKeyCreateRequest(payload)), 'API key rotate response'),
@@ -88,14 +88,14 @@ const createWebuiResourceEndpoints = (api: ApiClientContext): WebuiResourceEndpo
         deleteAll: async (): Promise<ApiKeyDeleteAllResponse> => decodeApiKeyDeleteAllResponse(await api.delete('/api/v1/webui/openai-api-keys')),
         getQuota: async (keyId): Promise<ApiKeyQuotaSummary> => decodeApiKeyQuotaResponse(await api.get(`/api/v1/webui/openai-api-keys/${api.encodePathSegment(keyId)}/quota`)),
         updateQuota: async (keyId, payload): Promise<ApiKeyQuotaSummary> => decodeApiKeyQuotaResponse(await api.patch(`/api/v1/webui/openai-api-keys/${api.encodePathSegment(keyId)}/quota`, serializeApiKeyQuotaUpdateRequest(payload))),
-        listQuotaStatus: async (): Promise<Record<string, ApiKeyQuotaSummary>> => decodeApiKeyQuotaStatusListResponse(await api.get('/api/v1/webui/openai-api-keys/quota/status')),
+        listQuotaStatus: async (options: SignalOptions = {}): Promise<Record<string, ApiKeyQuotaSummary>> => decodeApiKeyQuotaStatusListResponse(await api.get('/api/v1/webui/openai-api-keys/quota/status', buildSignalRequestOptions(options))),
         assignUser: async (keyId, userId): Promise<ApiKeyAssignmentResponse> => decodeApiKeyAssignmentResponse(await api.patch(`/api/v1/webui/openai-api-keys/${api.encodePathSegment(keyId)}/assignment`, serializeApiKeyAssignmentRequest(userId))),
         unassignUser: async (keyId): Promise<void> => {
             decodeNoContentResponse(await api.delete(`/api/v1/webui/openai-api-keys/${api.encodePathSegment(keyId)}/assignment`), 'API key assignment delete response');
         }
     },
     mcpAccessTokens: {
-        list: async (): Promise<McpAccessTokensListResponse> => decodeMcpAccessTokensListResponse(await api.get('/api/v1/webui/mcp-access-tokens')),
+        list: async (options: SignalOptions = {}): Promise<McpAccessTokensListResponse> => decodeMcpAccessTokensListResponse(await api.get('/api/v1/webui/mcp-access-tokens', buildSignalRequestOptions(options))),
         create: async (payload): Promise<McpAccessTokenCreateResponse> => decodeMcpAccessTokenCreateResponse(await api.post('/api/v1/webui/mcp-access-tokens', serializeMcpAccessTokenCreateRequest(payload))),
         revoke: async (tokenId): Promise<McpAccessTokenRevokeResponse> => decodeMcpAccessTokenRevokeResponse(await api.post(`/api/v1/webui/mcp-access-tokens/${api.encodePathSegment(tokenId)}/revoke`))
     },

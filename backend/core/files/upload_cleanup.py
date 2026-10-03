@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 
+from core.concurrency.cancellation_cleanup import run_idempotent_current_task_operation
 from core.files.operations import async_remove_if_exists
 from core.logging.trace import get_logger
 
@@ -20,7 +21,15 @@ async def cleanup_upload_artifacts(
     log_level: int = logging.WARNING,
 ) -> None:
     logger = get_logger(LOGGER_NAME)
-    if permanent_path:
-        await async_remove_if_exists(permanent_path, logger=logger, log_level=log_level)
-    if temp_path:
-        await async_remove_if_exists(temp_path, logger=logger, log_level=log_level)
+
+    async def _cleanup() -> None:
+        if permanent_path:
+            await async_remove_if_exists(
+                permanent_path, logger=logger, log_level=log_level, raise_on_failure=True
+            )
+        if temp_path:
+            await async_remove_if_exists(
+                temp_path, logger=logger, log_level=log_level, raise_on_failure=True
+            )
+
+    await run_idempotent_current_task_operation(_cleanup, restore_cancellation_requests=False)

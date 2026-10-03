@@ -8,9 +8,10 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.di.validation import require_dependencies
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 
 if TYPE_CHECKING:
-    from app.internal_protocols import InstanceLockProtocol
+    from app.internal_protocols import InstanceLockProtocol, WindowsConsoleControlProtocol
 
 __all__ = ("ApplicationDependencies",)
 
@@ -24,6 +25,8 @@ class ApplicationDependencies:
     pid_lock: InstanceLockProtocol | None
     bootstrap_logger: logging.Logger
     lifecycle_logger: logging.Logger
+    process_exit_deadline: ProcessExitDeadline
+    windows_console_control: WindowsConsoleControlProtocol | None
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -32,6 +35,7 @@ class ApplicationDependencies:
             bootstrap_logger=self.bootstrap_logger,
             config_path=self.config_path,
             lifecycle_logger=self.lifecycle_logger,
+            process_exit_deadline=self.process_exit_deadline,
             venv_path=self.venv_path,
             version=self.version,
         )

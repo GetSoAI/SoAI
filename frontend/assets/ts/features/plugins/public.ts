@@ -51,7 +51,12 @@ export { CONCURRENT_PLUGINS_MODAL_ID } from '@features/plugins/modals/concurrent
 export { MANAGE_BACKEND_MODAL_ID } from '@features/plugins/modals/backendModals.ts';
 export { normalizeBackendVariantOptions } from '@features/plugins/modals/backend/backendVariantOptions.ts';
 export type { BackendVariantOption } from '@features/plugins/modals/backend/backendVariantOptions.ts';
-export type { BackendTaskActionOptions, BackendTaskCommandOptions } from '@features/plugins/modals/backend/backendTypes.ts';
+export type { BackendOperationHost, BackendTaskActionOptions, BackendTaskCommandOptions } from '@features/plugins/modals/backend/backendTypes.ts';
+export { AUTO_BACKEND_VARIANT_ID } from '@features/plugins/modals/backend/backendVariantOptions.ts';
+export { executeBackendOperation } from '@features/plugins/modals/backend/backendOperationRunner.ts';
+export { createBackendStreamPorts } from '@features/plugins/modals/backend/backendStreamPorts.ts';
+export type { BackendStreamPorts } from '@features/plugins/modals/backend/backendStreamPorts.ts';
+export type { BackendOperationOutcome } from '@features/plugins/modals/backend/backendOperationRunner.ts';
 export { PLUGINS_INTRO_FIRST_RUN_REGISTRATION } from '@features/plugins/firstRunRegistration.ts';
 export { createPluginsManagerHostCallbacks } from '@features/plugins/modals/modalCallbacks.ts';
 export type { PluginsManagerHostCallbacks, PluginsManagerHostCallbacksDependencies } from '@features/plugins/modals/modalCallbacks.ts';

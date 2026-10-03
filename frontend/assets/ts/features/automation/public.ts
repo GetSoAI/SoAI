@@ -4,12 +4,14 @@
 export type { AutomationRealtimeUpdate, AutomationRunActivityServiceContract } from '@features/automation/runactivity/types.ts';
 export { AutomationApiService } from '@features/automation/AutomationApiService.ts';
 export type { AutomationApiClient } from '@features/automation/AutomationApiService.ts';
-export type { AutomationColor, AutomationDataService, AutomationDefinition, AutomationDefinitionsPage, AutomationMcpCatalog, AutomationModelOption, AutomationOccurrenceKey, AutomationOccurrencesDeleteResult, AutomationOccurrencesWindowPage, AutomationRunRecord, AutomationWorkspaceAccess, AutomationZone, CreateAutomationPayload, UpdateAutomationPayload } from '@features/automation/contracts.ts';
+export type { AutomationColor, AutomationDataService, AutomationDefinitionResponse, AutomationDefinitionsPageResponse, AutomationLatestRunResponse, AutomationMcpCatalogResponse, AutomationModelOption, AutomationModelSettings, AutomationOccurrenceKeyRequest, AutomationOccurrenceResponse, AutomationOccurrencesDeleteResponse, AutomationOccurrencesPageResponse, AutomationRunResponse, AutomationSchedulePreviewRequest, AutomationSchedulePreviewResponse, AutomationWorkspaceAccess, CreateAutomationRequest, UpdateAutomationRequest } from '@features/automation/contracts.ts';
 export { parseAutomationModelOptions } from '@features/automation/modelOptions.ts';
 export { isAutomationActionId } from '@features/automation/actions.ts';
 export type { AutomationActionId } from '@features/automation/actions.ts';
 export {
     AUTOMATION_ACTION_ADD_TURN,
+    AUTOMATION_ACTION_CONFLICT_KEEP_CHANGES,
+    AUTOMATION_ACTION_CONFLICT_LOAD_LATEST,
     AUTOMATION_ACTION_CYCLE_VIEW,
     AUTOMATION_ACTION_DELETE_AUTOMATION,
     AUTOMATION_ACTION_EDIT_AUTOMATION,
@@ -25,12 +27,15 @@ export {
     AUTOMATION_ACTION_OPEN_CHAT_TRANSCRIPT,
     AUTOMATION_ACTION_OPEN_CREATE_MODAL,
     AUTOMATION_ACTION_OPEN_FOLDER_MODAL,
+    AUTOMATION_ACTION_OPEN_OCCURRENCE_DETAILS,
     AUTOMATION_ACTION_OPEN_PARAMETERS_MODAL,
     AUTOMATION_ACTION_REGISTRY_NEXT,
     AUTOMATION_ACTION_REGISTRY_PREVIOUS,
     AUTOMATION_ACTION_PREVIEW_AUTOMATION,
     AUTOMATION_ACTION_REMOVE_TURN,
     AUTOMATION_ACTION_RESET_PREFERENCES,
+    AUTOMATION_ACTION_RETRY_EDITOR_PREREQUISITES,
+    AUTOMATION_ACTION_RETRY_PAGE_DATA,
     AUTOMATION_ACTION_SAVE_AUTOMATION,
     AUTOMATION_ACTION_SAVE_CALENDAR_SETTINGS,
     AUTOMATION_ACTION_SELECT_DAY,

@@ -1,0 +1,66 @@
+/* SoAI - Shared modal tab panel styles [frontend/assets/css/components/modals/modal-tab-panels.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-modal-tab-panel {
+        display: flex;
+        flex: 0 1 auto;
+        flex-direction: column;
+        gap: var(--space-4);
+        min-width: 0;
+        min-height: 0;
+        container-type: inline-size;
+    }
+
+    .ui-modal-tab-panel[hidden] {
+        display: none;
+    }
+
+    .ui-modal-tab-panel > .form-group {
+        margin-bottom: 0;
+    }
+
+    .ui-modal-tab-intro {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        min-width: 0;
+    }
+
+    .form-group > .ui-modal-tab-intro {
+        margin-bottom: var(--space-4);
+    }
+
+    .ui-modal-tab-title {
+        color: var(--modal-field-label-color);
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        letter-spacing: var(--tracking-05px);
+        line-height: 1.25;
+        text-transform: var(--text-case-label);
+    }
+
+    .ui-modal-tab-description {
+        color: var(--text-tertiary);
+        font-size: var(--font-size-xs);
+        line-height: 1.4;
+    }
+
+    .ui-modal-tab-description p {
+        margin: 0;
+    }
+
+    .ui-modal-tab-panel .ui-modal-manual-path-input {
+        color: var(--text-tertiary);
+        background: var(--glass-surface-medium);
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+        border-color: var(--glass-border-strong);
+        box-shadow: var(--glass-shadow-base);
+        pointer-events: none;
+    }
+
+    .ui-modal-tab-panel .ui-modal-manual-path-input:hover {
+        border-color: var(--glass-border-strong);
+    }
+}

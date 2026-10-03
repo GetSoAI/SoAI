@@ -64,14 +64,14 @@
         font-size: var(--font-size-caption-plus);
         font-weight: 700;
         letter-spacing: var(--tracking-035px);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-processes-metric {
         color: var(--text-tertiary);
         font-size: var(--font-size-compact-sm);
-        margin-left: var(--space-1);
-        text-transform: uppercase;
+        margin-inline-start: var(--space-1);
+        text-transform: var(--text-case-label);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-processes {

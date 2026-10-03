@@ -4,6 +4,7 @@
 import { toTrustedTableBodyHtml, type TrustedHtml } from '@core/security/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { getCurrentLocale } from '@core/languageservice/service.ts';
+import { getCollator } from '@core/localization/intlCache.ts';
 import { formatCompactNumber } from '@core/primitives/compactNumber.ts';
 import { uiHtml } from '@core/security/uiHtml.ts';
 import { resolvePluginStatusFromRecord } from '@core/state/pluginStatus.ts';
@@ -20,32 +21,31 @@ import type { MetricsPageWidgetHost } from '@pages/metrics/widgets/types.ts';
 const sortPluginHealthRows = (host: MetricsPageWidgetHost, rows: PluginHealthRow[]): PluginHealthRow[] => {
     const column = host.state.pluginHealthSortColumn || 'name';
     const direction = host.state.pluginHealthSortDirection === 'desc' ? -1 : 1;
+    const nameCollator = getCollator(getCurrentLocale(), { sensitivity: 'base' });
+    const statusCollator = getCollator(getCurrentLocale(), { sensitivity: 'base', numeric: true });
     return [...rows].sort((firstValue, secondValue) => {
         if (column === 'status') {
-            const statusComparison = firstValue.statusLabel.localeCompare(secondValue.statusLabel, getCurrentLocale(), {
-                sensitivity: 'base',
-                numeric: true
-            });
+            const statusComparison = statusCollator.compare(firstValue.statusLabel, secondValue.statusLabel);
             if (statusComparison !== 0) {
                 return direction * statusComparison;
             }
-            return direction * firstValue.name.localeCompare(secondValue.name, getCurrentLocale(), { sensitivity: 'base' });
+            return direction * nameCollator.compare(firstValue.name, secondValue.name);
         }
         if (column === 'requests') {
             const requestComparison = firstValue.requests - secondValue.requests;
             if (requestComparison !== 0) {
                 return direction * requestComparison;
             }
-            return direction * firstValue.name.localeCompare(secondValue.name, getCurrentLocale(), { sensitivity: 'base' });
+            return direction * nameCollator.compare(firstValue.name, secondValue.name);
         }
         if (column === 'tokens') {
             const tokenComparison = firstValue.tokens - secondValue.tokens;
             if (tokenComparison !== 0) {
                 return direction * tokenComparison;
             }
-            return direction * firstValue.name.localeCompare(secondValue.name, getCurrentLocale(), { sensitivity: 'base' });
+            return direction * nameCollator.compare(firstValue.name, secondValue.name);
         }
-        return direction * firstValue.name.localeCompare(secondValue.name, getCurrentLocale(), { sensitivity: 'base' });
+        return direction * nameCollator.compare(firstValue.name, secondValue.name);
     });
 };
 
@@ -60,11 +60,8 @@ const sortModelTableRows = (
 ): typeof rows => {
     const column = host.state.modelTableSortColumn || 'requests';
     const direction = host.state.modelTableSortDirection === 'asc' ? 1 : -1;
-    const compareText = (firstValue: string, secondValue: string): number =>
-        firstValue.localeCompare(secondValue, getCurrentLocale(), {
-            sensitivity: 'base',
-            numeric: true
-        });
+    const collator = getCollator(getCurrentLocale(), { sensitivity: 'base', numeric: true });
+    const compareText = (firstValue: string, secondValue: string): number => collator.compare(firstValue, secondValue);
     return [...rows].sort((firstValue, secondValue) => {
         switch (column) {
             case 'model':
@@ -105,7 +102,7 @@ const renderPluginHealthRows = (host: MetricsPageWidgetHost, bodyElement: HTMLEl
             .map((row) => {
                 const requestValue = renderAdaptiveNumber(row.requestsLabel, formatCompactNumber(row.requests), 'ui-adaptive-number metrics-adaptive-number');
                 const tokenValue = renderAdaptiveNumber(row.tokensLabel, formatCompactNumber(row.tokens), 'ui-adaptive-number metrics-adaptive-number');
-                return `<tr><td>${row.name}</td><td>${requestValue}</td><td>${tokenValue}</td><td><div class="plugin-status">${row.badge.html}</div></td></tr>`;
+                return `<tr><td dir="auto">${row.name}</td><td>${requestValue}</td><td>${tokenValue}</td><td><div class="plugin-status">${row.badge.html}</div></td></tr>`;
             })
             .join('')
     );
@@ -211,7 +208,7 @@ const updateModelTable = (host: MetricsPageWidgetHost): void => {
                     const compactTokensLabel = formatCompactNumber(row.tokens);
                     const displayLabel = host.owners.services.sanitizeText(row.displayName);
                     const statusLabel = host.owners.services.sanitizeText(row.statusLabel);
-                    return `<tr><td>${displayLabel}</td><td>${renderAdaptiveNumber(requestsLabel, compactRequestsLabel, 'ui-adaptive-number metrics-adaptive-number')}</td><td>${renderAdaptiveNumber(tokensLabel, compactTokensLabel, 'ui-adaptive-number metrics-adaptive-number')}</td><td>${statusLabel}</td></tr>`;
+                    return `<tr><td dir="auto">${displayLabel}</td><td>${renderAdaptiveNumber(requestsLabel, compactRequestsLabel, 'ui-adaptive-number metrics-adaptive-number')}</td><td>${renderAdaptiveNumber(tokensLabel, compactTokensLabel, 'ui-adaptive-number metrics-adaptive-number')}</td><td>${statusLabel}</td></tr>`;
                 })
                 .join('')
         );

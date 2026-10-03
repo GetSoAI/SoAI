@@ -189,7 +189,7 @@ raise SystemExit(0 if activate_windows_update_transaction(*sys.argv[1:]) else 1)
 '@
         $activationArguments = '-P -S -c "{0}" "{1}" "{2}" "{3}"' -f $activationCode, $InstallRoot, $TransactionPath, $TaskId
         Invoke-OwnedUpdateProcess -Executable $recoveryPython -Arguments $activationArguments `
-            -LogPath (Join-Path $TransactionPath 'activation.log') -TimeoutMilliseconds 1800000 `
+            -LogPath (Join-Path $TransactionPath 'activation.log') -TimeoutMilliseconds 5400000 `
             -RetainReadyBackend $true
     }
     finally {
@@ -412,7 +412,7 @@ begin_windows_update_transaction(*sys.argv[1:])
     if ($RestartAfterUpdate) {
         Invoke-UpdateActivation
         $activationCommitted = $true
-        Start-SoAILauncher
+        Start-SoAILauncher -Arguments '--soai-after-update'
     }
     exit 0
 }

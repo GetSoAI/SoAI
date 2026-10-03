@@ -5,11 +5,15 @@
     @keyframes modal-appear {
         from {
             opacity: 0;
+
+            /* direction: physical — modal host supplies physical viewport coordinates */
             transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y)) scale(0.8);
         }
 
         to {
             opacity: 1;
+
+            /* direction: physical — modal host supplies physical viewport coordinates */
             transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y)) scale(1);
         }
     }
@@ -17,11 +21,15 @@
     @keyframes modal-disappear {
         from {
             opacity: 1;
+
+            /* direction: physical — modal host supplies physical viewport coordinates */
             transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y)) scale(1);
         }
 
         to {
             opacity: 0;
+
+            /* direction: physical — modal host supplies physical viewport coordinates */
             transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y)) scale(0.8);
         }
     }
@@ -39,11 +47,15 @@
     @keyframes modal-slide-enter {
         from {
             opacity: 0;
+
+            /* direction: physical — modal host supplies physical viewport coordinates */
             transform: translate(var(--motion-modal-translate-x), calc(var(--motion-modal-translate-y) + var(--space-6)));
         }
 
         to {
             opacity: 1;
+
+            /* direction: physical — modal host supplies physical viewport coordinates */
             transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y));
         }
     }
@@ -51,11 +63,15 @@
     @keyframes modal-scale-enter {
         from {
             opacity: 0;
+
+            /* direction: physical — modal host supplies physical viewport coordinates */
             transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y)) scale(0.96);
         }
 
         to {
             opacity: 1;
+
+            /* direction: physical — modal host supplies physical viewport coordinates */
             transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y)) scale(1);
         }
     }
@@ -63,11 +79,15 @@
     @keyframes modal-zoom-enter {
         from {
             opacity: 0;
+
+            /* direction: physical — modal host supplies physical viewport coordinates */
             transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y)) scale(0.85);
         }
 
         to {
             opacity: 1;
+
+            /* direction: physical — modal host supplies physical viewport coordinates */
             transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y)) scale(1);
         }
     }
@@ -75,11 +95,13 @@
     @keyframes modal-lateral-enter {
         from {
             opacity: 0;
-            transform: translate(calc(var(--motion-modal-translate-x) + var(--space-10)), var(--motion-modal-translate-y));
+            transform: translate(calc(var(--motion-modal-translate-x) + var(--space-10) * var(--dir-sign)), var(--motion-modal-translate-y));
         }
 
         to {
             opacity: 1;
+
+            /* direction: physical — modal host supplies physical viewport coordinates */
             transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y));
         }
     }

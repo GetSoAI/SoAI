@@ -77,14 +77,6 @@
         flex-shrink: 0;
     }
 
-    :where([data-section='settings'], [data-page-scope='settings']) .messaging-account-modal__provider-choice {
-        width: 100%;
-        color: inherit;
-        font: inherit;
-        text-align: left;
-        cursor: pointer;
-    }
-
     :where([data-section='settings'], [data-page-scope='settings']) .messaging-account-modal__error {
         margin: var(--space-3);
         padding: var(--space-3);
@@ -208,7 +200,7 @@
 
     :where([data-section='settings'], [data-page-scope='settings']) .messaging-default-model-status {
         width: min(320px, 100%);
-        text-align: right;
+        text-align: end;
     }
 
     :where([data-section='settings'], [data-page-scope='settings']) .external-accounts-subgroup {

@@ -67,7 +67,7 @@ def normalize_workspace_virtual_path_parts(
     *,
     error_cls: type[Exception],
 ) -> list[str]:
-    value = conversation_virtual_path.strip()
+    value = conversation_virtual_path
     if not value:
         _raise(error_cls, "SoAI path source reference cannot be empty.")
     if "\x00" in value:

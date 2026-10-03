@@ -52,7 +52,7 @@
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-content .hardware-section .section-header .u-text-muted {
         font-size: var(--font-size-compact);
         letter-spacing: var(--tracking-04px);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .metrics-panel.card {
@@ -76,7 +76,7 @@
         display: flex;
         align-items: center;
         gap: var(--space-15);
-        margin-left: auto;
+        margin-inline-start: auto;
         max-width: 100%;
         row-gap: var(--space-15);
     }
@@ -91,7 +91,7 @@
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-section > .section-header .section-title {
-        margin-right: auto;
+        margin-inline-end: auto;
         min-height: 0;
     }
 
@@ -205,7 +205,7 @@
     :where([data-section='hardware'], [data-page-scope='hardware']) :is(.hardware-core-bar-fill, .hardware-meter-fill) {
         position: absolute;
         inset: 0;
-        transform-origin: left center;
+        transform-origin: var(--inline-start-percent) center;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-core-bar-fill {

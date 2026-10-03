@@ -38,6 +38,11 @@ export const AUTOMATION_ACTION_MCP_SERVER_TOGGLE = 'automation:mcp-server-toggle
 export const AUTOMATION_ACTION_MCP_TOOL_TOGGLE = 'automation:mcp-tool-toggle';
 export const AUTOMATION_ACTION_MCP_TOOL_GROUP_TOGGLE = 'automation:mcp-tool-group-toggle';
 export const AUTOMATION_ACTION_MCP_TOOL_SEARCH = 'automation:mcp-tool-search';
+export const AUTOMATION_ACTION_RETRY_EDITOR_PREREQUISITES = 'automation:retry-editor-prerequisites';
+export const AUTOMATION_ACTION_CONFLICT_KEEP_CHANGES = 'automation:conflict-keep-changes';
+export const AUTOMATION_ACTION_CONFLICT_LOAD_LATEST = 'automation:conflict-load-latest';
+export const AUTOMATION_ACTION_OPEN_OCCURRENCE_DETAILS = 'automation:open-occurrence-details';
+export const AUTOMATION_ACTION_RETRY_PAGE_DATA = 'automation:retry-page-data';
 
 export type AutomationActionId =
     | typeof AUTOMATION_ACTION_NAV_PREVIOUS
@@ -74,7 +79,12 @@ export type AutomationActionId =
     | typeof AUTOMATION_ACTION_MCP_SERVER_TOGGLE
     | typeof AUTOMATION_ACTION_MCP_TOOL_TOGGLE
     | typeof AUTOMATION_ACTION_MCP_TOOL_GROUP_TOGGLE
-    | typeof AUTOMATION_ACTION_MCP_TOOL_SEARCH;
+    | typeof AUTOMATION_ACTION_MCP_TOOL_SEARCH
+    | typeof AUTOMATION_ACTION_RETRY_EDITOR_PREREQUISITES
+    | typeof AUTOMATION_ACTION_CONFLICT_KEEP_CHANGES
+    | typeof AUTOMATION_ACTION_CONFLICT_LOAD_LATEST
+    | typeof AUTOMATION_ACTION_OPEN_OCCURRENCE_DETAILS
+    | typeof AUTOMATION_ACTION_RETRY_PAGE_DATA;
 
 const { guard: isAutomationActionId } = createActionIdSet(
     AUTOMATION_ACTION_NAV_PREVIOUS,
@@ -111,7 +121,12 @@ const { guard: isAutomationActionId } = createActionIdSet(
     AUTOMATION_ACTION_MCP_SERVER_TOGGLE,
     AUTOMATION_ACTION_MCP_TOOL_TOGGLE,
     AUTOMATION_ACTION_MCP_TOOL_GROUP_TOGGLE,
-    AUTOMATION_ACTION_MCP_TOOL_SEARCH
+    AUTOMATION_ACTION_MCP_TOOL_SEARCH,
+    AUTOMATION_ACTION_RETRY_EDITOR_PREREQUISITES,
+    AUTOMATION_ACTION_CONFLICT_KEEP_CHANGES,
+    AUTOMATION_ACTION_CONFLICT_LOAD_LATEST,
+    AUTOMATION_ACTION_OPEN_OCCURRENCE_DETAILS,
+    AUTOMATION_ACTION_RETRY_PAGE_DATA
 );
 
 export { isAutomationActionId };

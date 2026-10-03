@@ -18,7 +18,7 @@ from core.ipc.protocols import ManagedIpcWorkerProtocol
 from core.ipc.server import LocalIpcServer
 from core.ipc.settings import resolve_ipc_max_message_bytes
 from core.media.protocols import MediaIpcServerLifecycleProtocol
-from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
+from core.timing.constants import EXTENDED_TIMEOUT_SEC
 
 __all__ = (
     "MediaIpcGatewayState",
@@ -142,7 +142,10 @@ async def _start_media_gateway(
     try:
         await server.start()
         worker = worker_builder()
-        await worker.spawn(server=server, startup_timeout_sec=INTERACTIVE_TIMEOUT_SEC)
+        await worker.spawn(
+            server=server,
+            startup_timeout_sec=EXTENDED_TIMEOUT_SEC,
+        )
     except asyncio.CancelledError as exception:
         await cleanup_failed_media_gateway_start(
             server,

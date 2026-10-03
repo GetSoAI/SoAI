@@ -27,9 +27,11 @@
     @keyframes assistant-weather-widget-drift {
         0%,
         100% {
+            /* direction: physical — weather illustration drift preserves the physical scene */
             transform: translateX(-0.1em);
         }
         50% {
+            /* direction: physical — weather illustration drift preserves the physical scene */
             transform: translateX(0.1em);
         }
     }

@@ -26,6 +26,11 @@ const markSettingsCapabilityReady = (updatedAtMs: number = serverEpochMs()): Set
     updatedAtMs
 });
 
+const markSettingsCapabilityRefreshing = (previous: SettingsCapabilityAvailability): SettingsCapabilityAvailability => ({
+    status: previous.updatedAtMs === null ? 'pending' : 'stale',
+    updatedAtMs: previous.updatedAtMs
+});
+
 const markSettingsCapabilityFailed = (previous: SettingsCapabilityAvailability, hasPartialSuccess: boolean = false, updatedAtMs?: number): SettingsCapabilityAvailability => {
     if (hasPartialSuccess) {
         return {
@@ -74,10 +79,10 @@ const resolveSettingsCapabilityMessage = (availability: SettingsCapabilityAvaila
     return message;
 };
 
-const renderSettingsCapabilityNotice = (availability: SettingsCapabilityAvailability): string => {
-    const message = resolveSettingsCapabilityMessage(availability);
+const renderSettingsCapabilityNotice = (availability: SettingsCapabilityAvailability, options: { showPending?: boolean } = {}): string => {
+    const message = availability.status === 'pending' && options.showPending === true ? i18n.t('common.loading') : resolveSettingsCapabilityMessage(availability);
     return message === null ? '' : `<div class="settings-card-surface settings-capability-notice" role="status">${securityApi.escapeHtml(message)}</div>`;
 };
 
-export { createSettingsCapabilityAvailability, markSettingsCapabilityFailed, markSettingsCapabilityReady, renderSettingsCapabilityNotice, resolveSettingsCapabilityMessage, settleSettingsCapability };
+export { createSettingsCapabilityAvailability, markSettingsCapabilityFailed, markSettingsCapabilityReady, markSettingsCapabilityRefreshing, renderSettingsCapabilityNotice, resolveSettingsCapabilityMessage, settleSettingsCapability };
 export type { SettingsCapabilityAvailability, SettledSettingsCapability };

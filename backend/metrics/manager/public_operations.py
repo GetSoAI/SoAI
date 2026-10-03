@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from core.history.reset_notification import HistoryResetOutcome
 from core.metrics.usage import ModalityUsageRecord
 from core.types.json import JSONDict
 from metrics.manager.internal_protocols import (
@@ -60,16 +61,18 @@ class MetricsManagerOperations:
         points: int = 300,
         interval_ms: int | None = None,
         aggregation: str = "avg",
+        include_availability: bool = False,
     ) -> JSONDict:
         return await get_historical_data_method(
             self,
             MetricsHistoryMethodRequest(
-                metric_key,
-                start_ts_ms,
-                end_ts_ms,
-                points,
-                interval_ms,
-                aggregation,
+                metric_key=metric_key,
+                start_ts_ms=start_ts_ms,
+                end_ts_ms=end_ts_ms,
+                points=points,
+                interval_ms=interval_ms,
+                aggregation=aggregation,
+                include_availability=include_availability,
             ),
         )
 
@@ -183,8 +186,8 @@ class MetricsManagerOperations:
     async def _rehydrate_from_db(self: MetricsServiceMethodSurfaceProtocol) -> None:
         await rehydrate_from_db_method(self)
 
-    async def reset_metrics(self: MetricsServiceMethodSurfaceProtocol) -> None:
-        await reset_metrics_method(self)
+    async def reset_metrics(self: MetricsServiceMethodSurfaceProtocol) -> HistoryResetOutcome:
+        return await reset_metrics_method(self)
 
     async def _broadcast_metrics(self: MetricsServiceMethodSurfaceProtocol) -> None:
         await broadcast_metrics_method(self)

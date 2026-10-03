@@ -43,11 +43,11 @@ from orchestrator.lifecycle.service_interfaces.internal_protocols import (
 from orchestrator.queueing.internal_protocols import QueueServiceView
 
 if TYPE_CHECKING:
-    from core.openai.token_counter import PromptTokenCounter
-    from core.types.json import JSONDict
-    from orchestrator.execution.chat_template_role_policy import (
+    from core.openai.chat_template_role_policy_resolver import (
         ChatTemplateRolePolicyResolver,
     )
+    from core.openai.token_counter import PromptTokenCounter
+    from core.types.json import JSONDict
 
 __all__ = (
     "DeliveryManagerDependencies",

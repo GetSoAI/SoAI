@@ -12,12 +12,13 @@ const normalizeChartTypeToken = (chartType: JsonValue | null | undefined): strin
     if (normalized === 'heikin' || normalized === 'heikinashi') {
         return 'heikin-ashi';
     }
+    if (normalized === 'ohlcbars') return 'candlestick';
     return normalized;
 };
 
 const isOhlcChartType = (chartType: JsonValue | null | undefined): boolean => {
     const normalized = normalizeChartTypeToken(chartType);
-    return normalized === 'candlestick' || normalized === 'ohlcbars' || normalized === 'heikin-ashi';
+    return normalized === 'candlestick' || normalized === 'heikin-ashi';
 };
 
 export { isOhlcChartType, normalizeChartTypeToken };

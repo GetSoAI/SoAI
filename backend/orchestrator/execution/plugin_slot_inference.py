@@ -15,14 +15,14 @@ from core.events.types_models_requests import InferenceRequestReceived
 from core.logging.protocols import TraceLogger
 from core.metrics.protocols import MetricsManagerProtocol
 from core.models.model_context import ModelContext
+from core.openai.chat_template_role_policy_resolver import (
+    ChatTemplateRolePolicyResolver,
+    is_chat_template_role_policy_rejection,
+)
 from core.plugins.protocols_instance import PluginInstanceProtocol
 from core.tasks.protocols import TaskRegistryProtocol
 from core.tasks.task import Task
 from core.types.json import JSONDict
-from orchestrator.execution.chat_template_role_policy import (
-    ChatTemplateRolePolicyResolver,
-    is_chat_template_role_policy_rejection,
-)
 from orchestrator.execution.internal_protocols import (
     OutcomeManagerProtocol,
     ResultProcessorProtocol,

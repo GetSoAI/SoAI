@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { requireTrimmedDataAttribute } from '@core/dom/attributes.ts';
-import { METRIC_CONFIG, type SystemInfoModal } from '@features/hardware/public.ts';
-import { HARDWARE_ACTION_GPU_BOOT_TOGGLE, HARDWARE_ACTION_GPU_SLIDER_AUTO, HARDWARE_ACTION_GPU_SLIDER_INPUT, HARDWARE_ACTION_PROCESS_SORT, HARDWARE_ACTION_SYSTEM_INFO_ANONYMIZE, type HardwareActionId } from '@pages/hardware/actions.ts';
+import { HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION, HARDWARE_SOAIBENCH_HISTORY_SORT_ACTION, METRIC_CONFIG, type SoAIBenchHistoryPagePanel, type SystemInfoModal } from '@features/hardware/public.ts';
+import { HARDWARE_ACTION_GPU_BOOT_TOGGLE, HARDWARE_ACTION_GPU_SLIDER_AUTO, HARDWARE_ACTION_GPU_SLIDER_INPUT, HARDWARE_ACTION_GPU_SOAIBENCH_SELECT, HARDWARE_ACTION_PROCESS_SORT, HARDWARE_ACTION_SYSTEM_INFO_ANONYMIZE, type HardwareActionId } from '@pages/hardware/actions.ts';
 import type { GpuControlManager } from '@pages/hardware/controllers/gpucontrol/GpuControlManager.ts';
 import { dispatchHardwareRootClickAction } from '@pages/hardware/controllers/hardwareRootClickDispatch.ts';
 import { buildDeviceSelectionValue, getDefaultMetricForDevice } from '@pages/hardware/state/hardwareSelection.ts';
@@ -15,6 +15,8 @@ type HardwareInteractionEventDependencies = {
     memorySwapController: MemorySwapPanelController;
     gpuController: GpuControlManager;
     systemInfoModal: SystemInfoModal;
+    soaibenchHistoryPagePanel: SoAIBenchHistoryPagePanel;
+    openSoAIBenchGpuSelection: () => Promise<void>;
     exportHistoryCsv: () => Promise<void>;
     applyDeviceSelectionWithUi: (value: string, preferredMetric: string | null) => void;
     updateAndBootstrap: () => Promise<void>;
@@ -31,6 +33,24 @@ type HardwareInteractionHandlers = {
 
 const createHardwareInteractionHandlers = (dependencies: HardwareInteractionEventDependencies): HardwareInteractionHandlers => {
     const handleRootActionClick = async (event: MouseEvent, action: HardwareActionId, actionElement: HTMLElement): Promise<void> => {
+        if (action === HARDWARE_ACTION_GPU_SOAIBENCH_SELECT) {
+            event.preventDefault();
+            await dependencies.openSoAIBenchGpuSelection();
+            return;
+        }
+        if (actionElement.closest('#hardware-soaibench-history-panel')) {
+            if (action === HARDWARE_SOAIBENCH_HISTORY_SORT_ACTION) {
+                dependencies.soaibenchHistoryPagePanel.handleSortAction(actionElement);
+                return;
+            }
+            if (action === HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION || action === HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION || action === HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION || action === HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION) {
+                const runId = requireTrimmedDataAttribute(actionElement, 'runId', 'SoAIBench history row action');
+                if (action === HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION) return dependencies.soaibenchHistoryPagePanel.copyRun(runId);
+                if (action === HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION) return dependencies.soaibenchHistoryPagePanel.downloadRun(runId);
+                if (action === HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION) return dependencies.soaibenchHistoryPagePanel.publishRun(runId);
+                return dependencies.soaibenchHistoryPagePanel.deleteLocalRun(runId);
+            }
+        }
         await dispatchHardwareRootClickAction({
             event,
             actionElement,
@@ -48,25 +68,14 @@ const createHardwareInteractionHandlers = (dependencies: HardwareInteractionEven
                     await dependencies.processController.handleKillAction(element);
                 },
                 handleMemorySwapToggle: () => dependencies.memorySwapController.toggleMode(),
+                retryHistory: () => dependencies.updateAndBootstrap(),
                 handleDeviceSelect: async (component: string, identifier: string) => {
                     const preferredMetric = getDefaultMetricForDevice(component, METRIC_CONFIG);
                     const selectionValue = buildDeviceSelectionValue(component, identifier);
                     dependencies.applyDeviceSelectionWithUi(selectionValue, preferredMetric);
                     await dependencies.updateAndBootstrap();
                 },
-                handleGpuApply: async (gpuIndex: string) => await dependencies.gpuController.handleGpuApplyClick(gpuIndex),
-                handleGpuSoAIBenchStandard: async (gpuIndex: string) => await dependencies.gpuController.handleGpuSoAIBenchStandardClick(gpuIndex),
-                handleGpuSoAIBenchStress: async (gpuIndex: string) => await dependencies.gpuController.handleGpuSoAIBenchStressClick(gpuIndex),
-                handleGpuSoAIBenchStop: async (gpuIndex: string) => await dependencies.gpuController.handleGpuSoAIBenchStopClick(gpuIndex),
-                handleGpuSoAIBenchHistory: async (gpuIndex: string) => await dependencies.gpuController.handleGpuSoAIBenchHistoryClick(gpuIndex),
-                handleGpuSoAIBenchReopen: async (gpuIndex: string) => await dependencies.gpuController.handleGpuSoAIBenchReopenClick(gpuIndex),
-                handleGpuSoAIBenchToggle: (gpuIndex: string) => dependencies.gpuController.handleGpuSoAIBenchToggleClick(gpuIndex),
-                retryGpuResources: () => dependencies.gpuController.retryResources(),
-                handleGpuReset: async (gpuIndex: string) => await dependencies.gpuController.resetGpuSettings(gpuIndex),
-                handleGpuSaveMode: (clickEvent: MouseEvent, gpuIndex: string) => {
-                    dependencies.gpuController.handleGpuSaveButtonClick(clickEvent, gpuIndex);
-                },
-                handleGpuSlot: async (gpuIndex: string, slotId: string) => await dependencies.gpuController.handleGpuSlotClick(gpuIndex, slotId)
+                gpuController: dependencies.gpuController
             }
         });
     };
@@ -86,6 +95,7 @@ const createHardwareInteractionHandlers = (dependencies: HardwareInteractionEven
         }
         const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU slider input');
         const sliderType = requireTrimmedDataAttribute(actionElement, 'sliderType', 'GPU slider input');
+        if (dependencies.gpuController.isCertifiedRunLocked(gpuIndex)) return;
         dependencies.gpuController.markGpuSettingsEdited(gpuIndex);
         dependencies.gpuController.setSliderToManual(gpuIndex, sliderType, actionElement.value);
         dependencies.gpuController.markGpuStateHydrated(gpuIndex);
@@ -104,6 +114,7 @@ const createHardwareInteractionHandlers = (dependencies: HardwareInteractionEven
             }
             const gpuIndex = requireTrimmedDataAttribute(actionElement, 'gpuIndex', 'GPU slider auto toggle');
             const sliderType = requireTrimmedDataAttribute(actionElement, 'sliderType', 'GPU slider auto toggle');
+            if (dependencies.gpuController.isCertifiedRunLocked(gpuIndex)) return;
             dependencies.gpuController.markGpuSettingsEdited(gpuIndex);
             dependencies.gpuController.updateSliderAutoState(gpuIndex, sliderType, actionElement.checked);
             dependencies.gpuController.markGpuStateHydrated(gpuIndex);
@@ -122,6 +133,13 @@ const createHardwareInteractionHandlers = (dependencies: HardwareInteractionEven
     };
 
     const handleRootActionKeydown = (event: KeyboardEvent, action: HardwareActionId, actionElement: HTMLElement): void => {
+        if (action === HARDWARE_SOAIBENCH_HISTORY_SORT_ACTION && actionElement.closest('#hardware-soaibench-history-panel')) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                dependencies.soaibenchHistoryPagePanel.handleSortAction(actionElement);
+            }
+            return;
+        }
         if (action !== HARDWARE_ACTION_PROCESS_SORT) return;
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();

@@ -7,6 +7,7 @@ import asyncio
 import io
 from collections.abc import Mapping
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exceptions import StateError
 from core.filesystem.atomic_writes import atomic_write_text
 from core.hardware.reservation_exceptions import (
@@ -16,7 +17,6 @@ from core.hardware.reservation_exceptions import (
 from core.serialization.json import serialize_json_compact_stable_strict
 from core.types.json import JSONDict, JSONValue
 from plugin_sdk.contracts.disk_claims import claim_plugin_reserved_write
-from plugin_sdk.contracts.metadata import _write_metadata_atomic
 from plugin_sdk.protocols import (
     ReservedWriteDiskReservationProviderProtocol,
 )
@@ -58,7 +58,13 @@ async def write_text_with_disk_reservation(
             size_bytes=content_bytes,
             cleanup_action="Reserved text write claim commit after write failure",
         ):
-            await asyncio.to_thread(_write_text_content, path, content)
+            await run_joined_thread_call(
+                _write_text_content,
+                path,
+                content,
+                task_name="plugin-sdk-reserved-text-write",
+                retain_resources_until_complete=True,
+            )
     finally:
         await reservation.release()
 
@@ -138,6 +144,12 @@ async def write_metadata_with_disk_reservation(
             size_bytes=metadata_bytes,
             cleanup_action="Reserved metadata write claim commit after write failure",
         ):
-            await asyncio.to_thread(_write_metadata_atomic, path, metadata)
+            await run_joined_thread_call(
+                _write_text_content,
+                path,
+                metadata_text,
+                task_name="plugin-sdk-reserved-metadata-write",
+                retain_resources_until_complete=True,
+            )
     finally:
         await reservation.release()

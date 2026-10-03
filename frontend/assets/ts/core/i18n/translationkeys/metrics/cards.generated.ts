@@ -67,6 +67,7 @@ export type MetricsCardsTranslationKey =
     | 'metrics.cards.performanceMetrics.metricTypes.latency'
     | 'metrics.cards.performanceMetrics.metricTypes.queueDepth'
     | 'metrics.cards.performanceMetrics.metricTypes.requests'
+    | 'metrics.cards.performanceMetrics.metricTypes.throughput'
     | 'metrics.cards.performanceMetrics.metricTypes.tokens'
     | 'metrics.cards.performanceMetrics.title'
     | 'metrics.cards.plugin_health.countDefault'

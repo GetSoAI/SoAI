@@ -58,7 +58,7 @@
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         white-space: nowrap;
     }
 
@@ -71,7 +71,7 @@
         line-height: var(--line-height-compact);
         min-width: 0;
         overflow-wrap: anywhere;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     .hardware-resource-value:is(.progress-red, .progress-orange, .progress-yellow, .progress-green) {

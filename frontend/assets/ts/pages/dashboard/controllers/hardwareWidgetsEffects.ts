@@ -10,25 +10,26 @@ import { renderDashboardSectionState } from '@pages/dashboard/controllers/dashbo
 
 const DASHBOARD_HARDWARE_WIDGET_SIZE = Object.freeze({ WIDTH: 216, HEIGHT: 216 });
 
-const ensureDashboardHardwareWidgetsManager = (state: DashboardHardwareWidgetsManagerState, container: HTMLElement): HardwareWidgetManager => {
-    const existing = state.hardwareWidgetsManager;
-    if (existing) {
-        return existing;
-    }
-    const manager = new HardwareWidgetManager({ container, size: DASHBOARD_HARDWARE_WIDGET_SIZE });
-    state.hardwareWidgetsManager = manager;
-    state.hardwareWidgetsInitialized = false;
-    state.hardwareWidgetsInitializePromise = null;
-    state.hardwareWidgetsPendingSnapshot = null;
-    return manager;
-};
-
 const destroyHardwareWidgetsManager = (state: DashboardHardwareWidgetsManagerState): void => {
     state.hardwareWidgetsInitializePromise = null;
     state.hardwareWidgetsPendingSnapshot = null;
     state.hardwareWidgetsInitialized = false;
     state.hardwareWidgetsManager?.destroy();
     state.hardwareWidgetsManager = null;
+};
+
+const ensureDashboardHardwareWidgetsManager = (state: DashboardHardwareWidgetsManagerState, container: HTMLElement): HardwareWidgetManager => {
+    const existing = state.hardwareWidgetsManager;
+    if (existing?.container === container) {
+        return existing;
+    }
+    destroyHardwareWidgetsManager(state);
+    const manager = new HardwareWidgetManager({ container, size: DASHBOARD_HARDWARE_WIDGET_SIZE });
+    state.hardwareWidgetsManager = manager;
+    state.hardwareWidgetsInitialized = false;
+    state.hardwareWidgetsInitializePromise = null;
+    state.hardwareWidgetsPendingSnapshot = null;
+    return manager;
 };
 
 const renderHardwareWidgetsSection = async (
@@ -45,12 +46,14 @@ const renderHardwareWidgetsSection = async (
     const contentElement = narrowHTMLElement(content, 'dashboard hardware widgets content');
 
     if (!state.hasHardware()) {
+        destroyHardwareWidgetsManager(widgets);
         renderDashboardSectionState(host, contentElement, 'section-loading', i18n.t('common.loading'));
         return;
     }
 
     const snapshotCandidate = state.getRawHardwareSnapshot();
     if (snapshotCandidate === null) {
+        destroyHardwareWidgetsManager(widgets);
         renderDashboardSectionState(host, contentElement, 'section-empty', i18n.t('dashboard.sections.hardwareWidgets.empty'));
         return;
     }
@@ -82,7 +85,7 @@ const renderHardwareWidgetsSection = async (
             widgets.hardwareWidgetsInitializePromise = manager.initialize(snapshotCandidate);
         }
         await widgets.hardwareWidgetsInitializePromise;
-        if (isDestroyed()) {
+        if (isDestroyed() || widgets.hardwareWidgetsManager !== manager) {
             return;
         }
         widgets.hardwareWidgetsInitializePromise = null;

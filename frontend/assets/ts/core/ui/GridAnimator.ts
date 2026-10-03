@@ -1,6 +1,7 @@
 /* SoAI - Shared UI grid animator [frontend/assets/ts/core/ui/GridAnimator.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { inlineDelta } from '@core/layout/direction.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { findCompactedPosition, reserveCells } from '@core/ui/gridCollision.ts';
 
@@ -173,7 +174,7 @@ class GridAnimator {
 
             const gridDeltaX = newGridPosition.x - firstPosition.gridX;
             const gridDeltaY = newGridPosition.y - firstPosition.gridY;
-            const deltaX = gridDeltaX * cellWidth;
+            const deltaX = inlineDelta(gridDeltaX * cellWidth, firstPosition.element);
             const deltaY = gridDeltaY * cellHeight;
 
             if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) {

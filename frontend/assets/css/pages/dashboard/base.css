@@ -24,12 +24,12 @@
         flex-direction: column;
         position: absolute;
         top: 0;
-        left: 0;
+        inset-inline-start: 0;
         width: calc(100% * var(--movable-section-content-scale-inverse));
         height: calc(100% * var(--movable-section-content-scale-inverse));
         min-width: 0;
         transform: scale(var(--movable-section-content-scale));
-        transform-origin: top left;
+        transform-origin: var(--inline-start-percent) top;
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-section .section-header {
@@ -55,7 +55,7 @@
         --dashboard-section-control-gap: var(--space-2);
         --dashboard-section-control-size: var(--control-height-titlebar);
         --dashboard-section-control-icon-size: var(--space-25);
-        margin-left: auto;
+        margin-inline-start: auto;
         flex-shrink: 0;
     }
 

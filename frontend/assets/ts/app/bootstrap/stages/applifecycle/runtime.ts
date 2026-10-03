@@ -5,9 +5,12 @@ import { getFreshInstallRecovery } from '@app/bootstrap/stages/applifecycle/fres
 import { initializeLifecycleDataHub } from '@app/bootstrap/stages/applifecycle/effects.ts';
 import { monitorLifecycleConnectionStatus } from '@app/bootstrap/stages/applifecycle/connectionMonitor.ts';
 import { setupLifecycleEventListeners } from '@app/bootstrap/stages/applifecycle/lifecycleDomEvents.ts';
+import { createServerVersionMonitor, presentSoftwareUpdateOutcome } from '@app/bootstrap/stages/applifecycle/softwareUpdateRecovery.ts';
 import { warmupCharts, resolveNavigationRoute } from '@app/bootstrap/stages/applifecycle/routing.ts';
 import type { AppLifecycleDependencies, LifecycleRoute } from '@app/bootstrap/stages/applifecycle/types.ts';
 import { initializeAuthenticatedSessionServices } from '@app/bootstrap/stages/sessionServices.ts';
+import { errorHandler } from '@core/errorHandler.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import { onNavigationComplete } from '@core/navigationEvents.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 
@@ -61,12 +64,15 @@ const monitorLifecycleConnectionRuntime = (dependencies: AppLifecycleDependencie
     if (connectionSubscription) {
         return connectionSubscription;
     }
+    const serverVersionMonitor = createServerVersionMonitor({ ...dependencies, frontendVersion: __SOAI_FRONTEND_VERSION__ });
+    void serverVersionMonitor.verify().catch((error) => errorHandler.warn('AppLifecycle', 'Server version baseline probe failed', ensureError(error)));
     const unsubscribe = monitorLifecycleConnectionStatus({
         connectionStatus: dependencies.connectionStatus,
         restartOverlay: dependencies.restartOverlay,
         mainStateIndicator: dependencies.mainStateIndicator,
         maintenanceCoordinator: dependencies.maintenanceCoordinator,
-        recoverFreshInstallSession: getFreshInstallRecovery(dependencies)
+        recoverFreshInstallSession: getFreshInstallRecovery(dependencies),
+        verifyServerVersion: serverVersionMonitor.verify
     });
     return () => {
         unsubscribe();
@@ -100,6 +106,7 @@ const setupAuthenticatedLifecycleSession = async (runtime: AuthenticatedSessionR
     warmupLifecycleCharts(runtime, activeRoute);
     bindLifecycleWarmupListener(runtime);
     runtime.setupEventListeners();
+    void presentSoftwareUpdateOutcome(runtime.dependencies).catch((error) => errorHandler.warn('AppLifecycle', 'Software update outcome presentation failed', ensureError(error)));
 };
 
 export { bindLifecycleWarmupListener, initializeLifecycleDataHubRuntime, monitorLifecycleConnectionRuntime, setupAuthenticatedLifecycleSession, setupLifecycleUiEventRuntime, warmupLifecycleCharts };

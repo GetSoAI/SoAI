@@ -3,18 +3,18 @@
 
 from __future__ import annotations
 
-import asyncio
-
 from playwright.async_api import BrowserContext, Page
 
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import StateError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from mcp.tools.browser.download_storage import prepare_browser_download_paths
+from mcp.tools.browser.download_tasks import cancel_active_download_tasks
 from mcp.tools.browser.internal_protocols import BrowserSessionStoreProtocol
 from mcp.tools.browser.profile_config import resolve_profile_config
+from mcp.tools.browser.session_action_lock import browser_action_lock
 from mcp.tools.browser.session_config import (
     apply_page_timeouts,
     attach_context_handlers,
@@ -28,7 +28,6 @@ from mcp.tools.browser.session_context_open import (
     open_user_data_dir_context,
 )
 from mcp.tools.browser.session_store_lifecycle import (
-    close_browser_context,
     touch_session_state,
 )
 from mcp.tools.browser.session_sync import (
@@ -76,29 +75,31 @@ async def get_or_create_session(
         raise ValidationError("Browser session owner base is required.")
 
     await self.prune()
-    async with self.sessions_lock:
-        existing = self.sessions.get(resolved_owner_key)
-        if existing is not None:
-            if existing.context_closed:
-                self.sessions.pop(resolved_owner_key)
-            else:
-                touch_session_state(existing)
-                return existing
-        create_lock = self.owner_create_locks.get(resolved_owner_key)
-        if create_lock is None:
-            create_lock = asyncio.Lock()
-            self.owner_create_locks[resolved_owner_key] = create_lock
-
-    async with create_lock:
+    async with self.owner_create_locks.lock(resolved_owner_key):
         await self.prune()
+        retired_state: BrowserSessionState | None = None
         async with self.sessions_lock:
+            if self.closing:
+                raise StateError("Browser session store is shutting down.")
             existing = self.sessions.get(resolved_owner_key)
             if existing is not None:
                 if existing.context_closed:
-                    self.sessions.pop(resolved_owner_key)
+                    retired_state = self.sessions.pop(resolved_owner_key)
                 else:
                     touch_session_state(existing)
                     return existing
+        if retired_state is not None:
+            async with browser_action_lock(retired_state, cleanup=True):
+                try:
+                    await cancel_active_download_tasks(
+                        retired_state,
+                        reason="replace_disconnected_session",
+                    )
+                finally:
+                    await close_failed_context_initialization(
+                        retired_state,
+                        operation=OPERATION_INIT_CONTEXT_CLOSE,
+                    )
 
         resolved_profile = str(profile or "").strip()
         if not resolved_profile:
@@ -163,9 +164,13 @@ async def get_or_create_session(
             session_scope=resolved_scope,
             storage_state_path=storage_state_path,
             storage_state_last_error=storage_state_error,
+            driver_generation=context_result.driver_generation,
+            driver_disconnect_handler=self.runtime.handle_driver_disconnect,
+            driver_generation_is_active=self.runtime.is_generation_active,
             downloads_dir=download_paths.downloads_dir,
             adblock_service=self.adblock_service,
         )
+        initialized = False
         try:
             install_context_page_tracking(self.config, state)
             await attach_context_handlers(self.config, state)
@@ -174,14 +179,7 @@ async def get_or_create_session(
                 state,
                 enforce_page_limit=True,
             )
-        except asyncio.CancelledError:
-            await asyncio.shield(
-                close_browser_context(
-                    state,
-                    OPERATION_INIT_CONTEXT_CLOSE,
-                ),
-            )
-            raise
+            initialized = True
         except RECOVERABLE_EXCEPTIONS as exception:
             logger = get_logger(LOGGER_NAME)
             coerced = coerce_to_soai_error(
@@ -199,15 +197,29 @@ async def get_or_create_session(
                 },
                 level="warning",
             )
-            await close_failed_context_initialization(
-                state,
-                operation=OPERATION_INIT_CONTEXT,
-            )
             raise
+        finally:
+            if not initialized:
+                await close_failed_context_initialization(
+                    state,
+                    operation=OPERATION_INIT_CONTEXT_CLOSE,
+                )
 
-        async with self.sessions_lock:
-            self.sessions[resolved_owner_key] = state
-            touch_session_state(state)
+        published = False
+        try:
+            async with self.runtime.active_generation(context_result.driver_generation):
+                async with self.sessions_lock:
+                    if self.closing:
+                        raise StateError("Browser session store is shutting down.")
+                    self.sessions[resolved_owner_key] = state
+                    touch_session_state(state)
+                    published = True
+        finally:
+            if not published:
+                await close_failed_context_initialization(
+                    state,
+                    operation=OPERATION_INIT_CONTEXT_CLOSE,
+                )
 
     await self.prune()
     return state

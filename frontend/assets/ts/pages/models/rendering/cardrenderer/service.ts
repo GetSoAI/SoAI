@@ -132,7 +132,7 @@ const buildModelTypeBadge = (model: ModelData, host: ModelCardHost): string => {
     }
     const badgeClass = getBadgeColorClass(rawType);
     const label = host.presentation.sanitizeText(host.status.isExternalProviderModel(model) ? i18n.t('models.types.cloud') : rawType.toUpperCase());
-    return `<div class="ui-model-type-badges ui-model-type-badges--inline"><span class="ui-model-type-badge ${badgeClass}">${label}</span></div>`;
+    return `<div class="ui-model-type-badges ui-model-type-badges--inline"><span dir="auto" class="ui-model-type-badge ${badgeClass}">${label}</span></div>`;
 };
 
 const buildMetrics = (model: ModelData, providerName: string, host: ModelCardHost): MetricsBuildResult => {
@@ -240,7 +240,7 @@ const buildMetrics = (model: ModelData, providerName: string, host: ModelCardHos
             const actionAttr = metric.clickable ? ` data-action="${MODELS_ACTION_METRIC_BADGE}"` : '';
             const keyAttr = attr ? ` data-metric-key="${attr}"` : '';
             const value = metric.compactValue ? renderAdaptiveNumber(String(metric.value), metric.compactValue) : sanitizedValue;
-            return `<div class="ui-metric-item"><div class="ui-metric-badge ui-metric-badge--${metric.type}"${actionAttr}${keyAttr}><span class="ui-metric-label">${label}</span><span class="ui-metric-value">${value}</span></div></div>`;
+            return `<div class="ui-metric-item"><div class="ui-metric-badge ui-metric-badge--${metric.type}"${actionAttr}${keyAttr}><span class="ui-metric-label">${label}</span><span dir="auto" class="ui-metric-value">${value}</span></div></div>`;
         })
         .join('');
 

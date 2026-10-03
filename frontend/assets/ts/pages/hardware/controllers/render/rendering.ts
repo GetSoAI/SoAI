@@ -1,11 +1,9 @@
 /* SoAI - Hardware page controller rendering [frontend/assets/ts/pages/hardware/controllers/render/rendering.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { ElementOptions } from '@core/dom/dom.ts';
-import { isArray, isFiniteNumber, isFunction, isHTMLElement } from '@core/typeGuards.ts';
-import { HistoryChartRuntime } from '@features/charts/public.ts';
+import { isArray, isFiniteNumber, isFunction } from '@core/typeGuards.ts';
+import { HistoryChartRuntime, renderHistoryChartStatus, resolveHistoryChartStatusElement } from '@features/charts/public.ts';
 import { getGpuDevices, HardwareWidgetManager } from '@features/hardware/public.ts';
-import { HIDDEN } from '@pages/hardware/contracts/hardwarePageSupport.ts';
 import type { GpuControlManager } from '@pages/hardware/controllers/gpucontrol/GpuControlManager.ts';
 import type { GpuControlTelemetry } from '@pages/hardware/controllers/gpucontrol/gpuControlTelemetryController.ts';
 import { resolveGpuMetricFromDevice } from '@pages/hardware/realtime/hardwarerealtimemetricresolvers/actions.ts';
@@ -22,7 +20,6 @@ type HardwareRenderActionsContext = {
     optionalUI: (selector: string, context?: Element | null) => Element | null;
     requireHTMLElement: (id: string) => HTMLElement;
     requireUI: (selector: string, context?: Element | null) => Element;
-    createElement: (tag: string, attrs?: ElementOptions) => Element;
     updateText: (element: Element, text: string) => void;
     networkCardRenderer: NetworkCardRenderer;
     storageCardRenderer: StorageCardRenderer;
@@ -44,27 +41,9 @@ const renderStorageCard = (context: HardwareRenderActionsContext): void => {
     context.storageCardRenderer.render(context.state.lastSnapshot ?? null);
 };
 
-const setHistoryStatus = (context: HardwareRenderActionsContext, cache: HardwareRenderCache, message: string | null = null, tone: string | null = null): void => {
-    const element = resolveHistoryStatusElement(context, cache);
-    if (!message) {
-        element.textContent = '';
-        element.classList.add(HIDDEN);
-        element.removeAttribute('data-tone');
-        element.removeAttribute('data-overlay');
-        return;
-    }
-    element.textContent = message;
-    element.classList.remove(HIDDEN);
-    if (tone) {
-        element.dataset['tone'] = tone;
-    } else {
-        element.removeAttribute('data-tone');
-    }
-    if (!(isArray(context.state.historyData) && context.state.historyData.length) && !(isArray(context.state.candlestickData) && context.state.candlestickData.length)) {
-        element.dataset['overlay'] = 'true';
-    } else {
-        element.removeAttribute('data-overlay');
-    }
+const setHistoryStatus = (context: HardwareRenderActionsContext, cache: HardwareRenderCache, message: string | null = null, tone: string | null = null, retryAction: string | null = null): void => {
+    const hasHistory = (isArray(context.state.historyData) && context.state.historyData.length > 0) || (isArray(context.state.candlestickData) && context.state.candlestickData.length > 0);
+    renderHistoryChartStatus(resolveHistoryStatusElement(context, cache), message ? { message, tone, overlay: !hasHistory, retryAction } : null);
 };
 
 const resetHistoryStatusElement = (cache: HardwareRenderCache): void => {
@@ -156,19 +135,7 @@ const destroyWidgetManager = (cache: HardwareRenderCache): void => {
 
 const resolveHistoryStatusElement = (context: HardwareRenderActionsContext, cache: HardwareRenderCache): HTMLElement => {
     if (cache.historyStatusElement?.isConnected) return cache.historyStatusElement;
-    const container = context.requireUI('hardwareHistoryChart');
-    const resolved = context.optionalUI('.history-chart-status', container);
-    let element = resolved instanceof HTMLElement ? resolved : null;
-    if (!element) {
-        const created = context.createElement('p', {
-            className: `history-chart-status ${HIDDEN}`
-        });
-        if (!isHTMLElement(created)) {
-            throw new Error('History status element must be an HTML element');
-        }
-        element = created;
-        container.appendChild(created);
-    }
+    const element = resolveHistoryChartStatusElement(context.requireHTMLElement('hardwareHistoryChart'));
     cache.historyStatusElement = element;
     return element;
 };

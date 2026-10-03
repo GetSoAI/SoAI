@@ -3,24 +3,94 @@
 
 @layer pages {
     :where([data-page-scope='modelDetail'], [data-section='modelDetail']):is(.model-detail-container) {
-        @container parameter-category (min-width: 980px) {
-            .parameter-category .model-parameter-group {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-        }
-
         @media screen {
-            @container ui-viewport (width <= 768px) {
+            @container ui-viewport (width <= 900px) {
+                .model-parameter-layout {
+                    grid-template-columns: minmax(0, 1fr);
+                    gap: var(--space-3);
+                }
+
+                .model-parameter-rail {
+                    z-index: var(--z-raised);
+                    flex-direction: row;
+                    align-items: center;
+                    gap: var(--space-1);
+                    max-height: none;
+                    padding: var(--space-1);
+                    overflow: auto hidden;
+                }
+
+                :is(.model-parameter-rail-views, .model-parameter-rail-groups, .model-parameter-rail-categories) {
+                    flex-direction: row;
+                    gap: var(--space-1);
+                }
+
+                :is(.model-parameter-rail-views, .model-parameter-rail-groups) {
+                    padding-block: 0 0;
+                    padding-inline: 0 var(--space-1);
+                    border-bottom: none;
+                    border-inline-end: var(--border-width-1) solid var(--glass-border-strong);
+                }
+
+                .model-parameter-rail .model-parameter-rail-item.ui-button {
+                    width: auto;
+                    flex-shrink: 0;
+                    padding-inline: var(--space-25);
+                    border-radius: var(--border-radius);
+                }
+
+                .model-parameter-rail-label {
+                    overflow: visible;
+                }
+            }
+
+            @container ui-viewport (width <= 1100px) {
+                .modeldetail-overview-grid {
+                    grid-template-columns: minmax(0, 1fr);
+                }
+
+                :is(.modeldetail-overview-main, .modeldetail-overview-side) {
+                    display: contents;
+                }
+
+                .modeldetail-status-card {
+                    order: -1;
+                }
+            }
+
+            @container ui-viewport (width <= 640px) {
+                .modeldetail-spec:not(.modeldetail-spec--columns) > .modeldetail-spec-row {
+                    grid-template-columns: minmax(0, 1fr);
+                    gap: var(--space-05);
+                    padding: var(--space-2) 0;
+                }
+
+                .modeldetail-copy-button {
+                    opacity: 1;
+                }
+
                 .model-parameter-item {
                     flex-direction: column;
                     align-items: stretch;
+                    gap: var(--space-2);
                 }
-                :is(.model-parameter-control, .model-parameter-input, .model-parameter-textarea, .number-input-wrapper, .text-input-wrapper, .select-input-wrapper) {
+
+                .model-parameter-item .setting-control {
+                    justify-content: flex-start;
+                }
+
+                .model-parameter-item.full-width .setting-control {
+                    flex-basis: auto;
+                }
+
+                .model-parameter-item .setting-control > :is(input, .dropdown-select) {
+                    flex: 1;
+                    width: auto;
+                    min-width: 0;
+                }
+
+                .model-parameter-doc-callout > .ui-button {
                     width: 100%;
-                }
-                .modeldetail-overview-grid {
-                    column-count: 1;
-                    column-width: auto;
                 }
             }
         }

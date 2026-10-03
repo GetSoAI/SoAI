@@ -30,7 +30,8 @@ IMMUTABLE_CACHE_MAX_AGE_SECONDS = 31_536_000
 
 
 class SecureStaticFiles(StaticFiles):
-    _HASHED_ASSET_PATTERN = re.compile("-[a-z0-9_-]{6,32}\\.(js|css)$")
+    _BUILD_ASSET_PREFIX = "assets/build/"
+    _HASHED_ASSET_PATTERN = re.compile("-[a-z0-9_-]{6,32}\\.[a-z0-9]+$")
     _IMMUTABLE_CACHE = f"public, max-age={IMMUTABLE_CACHE_MAX_AGE_SECONDS}, immutable"
     _NO_CACHE = "no-cache"
     _CSP_HEAD_INJECTION_PATTERN = re.compile(b"(<head[^>]*>)", re.IGNORECASE)
@@ -71,23 +72,13 @@ class SecureStaticFiles(StaticFiles):
         return content
 
     def _apply_cache_headers(self, response: Response, path: str) -> Response:
-        try:
-            media_type = response.media_type
-        except AttributeError:
-            media_type = None
-        content_type: str | None = None
-        if media_type:
-            content_type = media_type
-        else:
-            header_value = response.headers.get("content-type")
-            if header_value:
-                content_type = header_value
-        normalized_path = path.casefold()
-        is_html = normalized_path.endswith(".html") or content_type_is_html(content_type)
-        if is_html or normalized_path.endswith(".json") or normalized_path.endswith(".webmanifest"):
-            response.headers["Cache-Control"] = self._NO_CACHE
-        elif self._HASHED_ASSET_PATTERN.search(normalized_path):
+        normalized_path = path.replace(os.sep, "/").casefold()
+        if normalized_path.startswith(self._BUILD_ASSET_PREFIX) and (
+            self._HASHED_ASSET_PATTERN.search(normalized_path)
+        ):
             response.headers["Cache-Control"] = self._IMMUTABLE_CACHE
+        else:
+            response.headers["Cache-Control"] = self._NO_CACHE
         return response
 
     @override

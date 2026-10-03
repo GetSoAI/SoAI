@@ -20,6 +20,7 @@ interface GpuApplyStateRefreshContext {
     renderGpuControls: (options: { only?: string[] | null }) => void;
     syncSoAIBenchUi: (options: { only?: string[] | null }) => void;
     updateHeaderSaveAction: () => void;
+    isCertifiedRunLocked: (index: string | number) => boolean;
 }
 
 const refreshGpuApplyState = (context: GpuApplyStateRefreshContext, index: string | number): void => {
@@ -29,10 +30,11 @@ const refreshGpuApplyState = (context: GpuApplyStateRefreshContext, index: strin
     const key = String(index);
     const state = context.ensureGpuUiState(key);
     const snapshot = context.getSliderSnapshot(key);
+    const locked = context.isCertifiedRunLocked(key);
     const computedCapability = computeApplyCapability(context.gpuCapabilities, key, state, snapshot);
     state.applyCapability = computedCapability;
     state.canSaveCurrentSettings = hasGpuStorableSettings(buildSettingsPayloadFromNormalized(context.gpuCapabilities, key, computedCapability.normalized));
-    GpuControlActionButtonsController({ index: key, snapshot, pending: state.pending, saveMode: state.saveMode, canStoreAppliedSettings: state.canStoreAppliedSettings, canSaveCurrentSettings: state.canSaveCurrentSettings, applyCapability: state.applyCapability, activeSlot: state.activeSlot, previewSlot: state.previewSlot, bootSlot: state.bootSlot });
+    GpuControlActionButtonsController({ index: key, snapshot, pending: state.pending, locked, saveMode: state.saveMode, canStoreAppliedSettings: state.canStoreAppliedSettings, canSaveCurrentSettings: state.canSaveCurrentSettings, applyCapability: state.applyCapability, activeSlot: state.activeSlot, previewSlot: state.previewSlot, bootSlot: state.bootSlot });
     const comparisonSettings = state.canStoreAppliedSettings ? computedCapability.normalized : state.liveSettings;
     syncGpuSliderChangeSurfaces(context.document, key, comparisonSettings, computedCapability.normalized);
     if (computedCapability.mode === 'direct' && state.previewSlot) {
@@ -53,7 +55,7 @@ const refreshGpuApplyState = (context: GpuApplyStateRefreshContext, index: strin
         context.updateHeaderSaveAction();
         return;
     }
-    if (requiresGpuPrimaryActionRender(key, resolveGpuPrimaryAction(state))) {
+    if (requiresGpuPrimaryActionRender(key, resolveGpuPrimaryAction(state), locked)) {
         context.renderGpuControls({ only: [key] });
         context.updateHeaderSaveAction();
         return;

@@ -91,7 +91,7 @@
     }
 
     :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-clone-item .toggle-switch {
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-clone-item-label {
@@ -185,11 +185,11 @@
         color: var(--text-tertiary);
     }
 
-    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-install-badge[data-state='needs-install'] {
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-install-badge:is([data-state='needs-install'], [data-state='loading']) {
         --status-badge-color: var(--status-grey);
     }
 
-    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-install-badge[data-state='installing'] {
+    :where([data-section='plugins'], [data-page-scope='plugins']) .plugin-install-badge:is([data-state='installing'], [data-state='uninstalling']) {
         --status-badge-color: var(--status-orange);
     }
 
@@ -246,11 +246,11 @@
         display: flex;
         flex-direction: column;
         gap: var(--space-1);
-        text-align: left;
+        text-align: start;
     }
 
     :where([data-section='plugins'], [data-page-scope='plugins']) .version-item:last-of-type {
-        text-align: right;
+        text-align: end;
     }
 
     :where([data-section='plugins'], [data-page-scope='plugins']) .version-label {

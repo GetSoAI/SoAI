@@ -5,8 +5,11 @@ import type { WebuiUser } from '@core/auth/types.ts';
 import type { WizardCompletedSummary, WizardDeclaration, WizardStatusResponse } from '@core/api/contracts/wizardLicensingContracts.ts';
 import type { WizardLicensingDocumentResponse } from '@core/api/contracts/wizardLicensingMutations.ts';
 import type { LicensingLegalDocumentSet, LicensingLegalFlow } from '@core/api/contracts/licensingLegalDocumentContracts.ts';
+import type { AiSetupStep } from '@core/storage/aisetup/aiSetupTypes.ts';
 
-type WizardStepId = 'welcome' | 'license' | 'use' | 'product_access' | 'account' | 'complete';
+type AiSetupWizardStepId = Exclude<AiSetupStep, 'complete'>;
+
+type WizardStepId = 'welcome' | 'license' | 'use' | 'product_access' | 'account' | AiSetupWizardStepId | 'complete';
 
 interface WizardState {
     stepIndex: number;
@@ -18,6 +21,9 @@ interface WizardState {
     isBusy: boolean;
     status: WizardStatusResponse | null;
     steps: readonly WizardStepId[];
+    requiresProductAccess: boolean;
+    aiSetupSteps: readonly AiSetupWizardStepId[];
+    isAiSetupResume: boolean;
     declarationSelection: WizardDeclaration | null;
     attestationConfirmed: boolean;
     inlineError: string | null;
@@ -37,7 +43,10 @@ const createInitialWizardState = (): WizardState => {
         isSessionActivationRequired: false,
         isBusy: false,
         status: null,
-        steps: ['welcome', 'license', 'use', 'account', 'complete'],
+        steps: ['welcome', 'license', 'use', 'account', 'ai_sources', 'ai_connect', 'ai_models', 'ai_progress', 'complete'],
+        requiresProductAccess: false,
+        aiSetupSteps: ['ai_sources', 'ai_connect', 'ai_models', 'ai_progress'],
+        isAiSetupResume: false,
         declarationSelection: null,
         attestationConfirmed: false,
         inlineError: null,
@@ -49,4 +58,4 @@ const createInitialWizardState = (): WizardState => {
 };
 
 export { createInitialWizardState };
-export type { WizardState, WizardStepId };
+export type { AiSetupWizardStepId, WizardState, WizardStepId };

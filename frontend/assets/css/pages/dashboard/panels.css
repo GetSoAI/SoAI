@@ -122,8 +122,8 @@
         }
 
         :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state .status-label {
-            margin-left: auto;
-            text-align: right;
+            margin-inline-start: auto;
+            text-align: end;
         }
 
         :where([data-section='dashboard'], [data-page-scope='dashboard']) .logs-content {

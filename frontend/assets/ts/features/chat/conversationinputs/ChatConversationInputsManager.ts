@@ -3,11 +3,10 @@
 
 import { isNetworkError, isRequestTimeoutError } from '@core/apiError.ts';
 import { isAbortError, raceWithAbortSignal, throwIfAborted } from '@core/errors/abort.ts';
-import { ensureError, isErrorHttpStatus } from '@core/errors/coerce.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { containsSoaiPathToken } from '@core/soailinks/codec.ts';
 import { generateSecureId } from '@core/primitives/idGenerator.ts';
-import { sleepMsAbortable } from '@core/primitives/sleepMsAbortable.ts';
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { isJsonObject, type JsonObject } from '@core/types/jsonValues.ts';
 import type { ConversationInputTerminalEvent, ConversationInputsChangedEvent } from '@core/realtime/eventcontracts/chatControlContracts.ts';
@@ -16,20 +15,20 @@ import type { ConversationRegenerationReceipt, ConversationRegenerationRequest }
 import type { ChatContentSegment } from '@features/chat/ChatTypes.ts';
 import type { ChatConversationInputsManagerDependencies, ConversationInput, RetryableConversationRegeneration } from '@features/chat/conversationinputs/ConversationInputTypes.ts';
 import { ConversationRegenerationRetryStore } from '@features/chat/conversationinputs/ConversationRegenerationRetryStore.ts';
+import { ConversationInputSettlementReconciler } from '@features/chat/conversationinputs/ConversationInputSettlementReconciler.ts';
 import { ConversationInputStateStore } from '@features/chat/conversationinputs/ConversationInputStateStore.ts';
 import { syncConversationInputs } from '@features/chat/conversationinputs/conversationInputSync.ts';
 import { recoverAmbiguousRegenerationAdmission } from '@features/chat/conversationinputs/regenerationAdmissionRecovery.ts';
+import { recoverLatestConversationRegeneration } from '@features/chat/conversationinputs/regenerationStatusRecovery.ts';
 import { serializeStorageContentPart } from '@features/chat/storage/messageNormalization.ts';
 import { normalizeConversationId } from '@features/chat/validation/ids.ts';
-
-const SETTLEMENT_RECONCILIATION_RETRY_DELAYS_MS: readonly number[] = [250, 1000, 3000];
 
 class ChatConversationInputsManager {
     readonly #dependencies: ChatConversationInputsManagerDependencies;
     readonly #store = new ConversationInputStateStore();
     readonly #lifecycleController = new AbortController();
     readonly #clientId = windowIdentity.current();
-    readonly #settlementReconciliationByConversationId = new Map<string, Promise<void>>();
+    readonly #settlements: ConversationInputSettlementReconciler;
     readonly #regenerationRetries = new ConversationRegenerationRetryStore();
     #unsubscribe: (() => void) | null = null;
     #initialized = false;
@@ -37,6 +36,7 @@ class ChatConversationInputsManager {
 
     constructor(dependencies: ChatConversationInputsManagerDependencies) {
         this.#dependencies = dependencies;
+        this.#settlements = new ConversationInputSettlementReconciler({ store: this.#store, signal: this.#lifecycleController.signal, reconcileSettledConversationInputs: dependencies.reconcileSettledConversationInputs });
     }
 
     initialize(): void {
@@ -61,7 +61,7 @@ class ChatConversationInputsManager {
         this.#lifecycleController.abort();
         this.#unsubscribe?.();
         this.#unsubscribe = null;
-        this.#settlementReconciliationByConversationId.clear();
+        this.#settlements.dispose();
         this.#regenerationRetries.reset();
         this.#store.reset();
     }
@@ -88,6 +88,7 @@ class ChatConversationInputsManager {
     }
 
     handleConversationRendered(conversationId: string | null): void {
+        if (this.#disposed) return;
         this.initialize();
         const changedConversationId = this.#store.recordRenderedConversation(conversationId);
         if (changedConversationId) {
@@ -188,12 +189,20 @@ class ChatConversationInputsManager {
         if (!normalizedConversationId || !normalizedInputId) {
             return;
         }
-        await raceWithAbortSignal(this.#dependencies.conversationInputsApi.cancel(normalizedConversationId, normalizedInputId), this.#lifecycleController.signal);
+        const signal = this.#lifecycleController.signal;
+        throwIfAborted(signal);
+        try {
+            await raceWithAbortSignal(this.#dependencies.conversationInputsApi.cancel(normalizedConversationId, normalizedInputId), signal);
+        } catch (error) {
+            this.#syncNoncritical(normalizedConversationId, 'Failed to reconcile unsuccessful conversation input cancellation');
+            throw ensureError(error);
+        }
+        throwIfAborted(signal);
         this.#store.recordCancelledInput(normalizedConversationId, normalizedInputId);
         if (this.#dependencies.getCurrentConversationId() === normalizedConversationId) {
             this.#dependencies.updateInputQueuePreview();
         }
-        await this.#sync(normalizedConversationId);
+        this.#syncNoncritical(normalizedConversationId, 'Failed to reconcile cancelled conversation input');
     }
 
     async #sync(conversationId: string): Promise<ConversationInput[]> {
@@ -203,21 +212,23 @@ class ChatConversationInputsManager {
             store: this.#store,
             signal: this.#lifecycleController.signal
         });
-        await this.#reconcilePendingSettlements(conversationId);
+        await this.#settlements.reconcile(conversationId);
         return inputs;
     }
 
     #syncNoncritical(conversationId: string, message: string): void {
+        const signal = this.#lifecycleController.signal;
+        if (signal.aborted) return;
         void this.#sync(conversationId).catch((error) => {
             const runtimeError = ensureError(error);
-            if (!isAbortError(runtimeError)) {
+            if (!signal.aborted && !isAbortError(runtimeError)) {
                 this.#dependencies.logWarning(message, runtimeError);
             }
         });
     }
 
     #applyRegenerationReceipt(conversationId: string, receipt: ConversationRegenerationReceipt): void {
-        this.#regenerationRetries.observe(conversationId, receipt);
+        if (this.#lifecycleController.signal.aborted || !this.#regenerationRetries.observe(conversationId, receipt)) return;
         if (this.#dependencies.getCurrentConversationId() === conversationId) this.#dependencies.updateInputQueuePreview();
         if (receipt.state === 'pending' || receipt.state === 'materializing' || receipt.state === 'running' || receipt.state === 'input_required') {
             this.#store.upsertAdmittedInput(
@@ -237,7 +248,7 @@ class ChatConversationInputsManager {
             return;
         }
         this.#store.recordTerminalInput(conversationId, receipt.inputId);
-        void this.#reconcilePendingSettlements(conversationId).catch((error) => {
+        void this.#settlements.reconcile(conversationId).catch((error) => {
             if (!this.#lifecycleController.signal.aborted) {
                 this.#dependencies.logWarning('Failed to reconcile completed conversation regeneration', ensureError(error));
             }
@@ -247,22 +258,17 @@ class ChatConversationInputsManager {
     #recoverLatestRegenerationNoncritical(conversationId: string): void {
         const regenerationApi = this.#dependencies.regenerationApi;
         if (!regenerationApi) return;
-        void regenerationApi
-            .regenerationStatus(conversationId)
-            .then((receipt) => {
-                this.#applyRegenerationReceipt(conversationId, receipt);
-            })
-            .catch((error) => {
-                if (!isErrorHttpStatus(error, 404) && !this.#lifecycleController.signal.aborted) {
-                    this.#dependencies.logWarning('Failed to recover conversation regeneration', ensureError(error));
-                }
-            });
+        recoverLatestConversationRegeneration({
+            conversationId,
+            readStatus: (statusConversationId, signal) => regenerationApi.latestRegenerationStatus(statusConversationId, { signal }),
+            applyReceipt: (statusConversationId, receipt) => this.#applyRegenerationReceipt(statusConversationId, receipt),
+            signal: this.#lifecycleController.signal,
+            logWarning: this.#dependencies.logWarning
+        });
     }
 
     #handleChangedEvent(event: ConversationInputsChangedEvent): void {
-        if (this.#disposed) {
-            return;
-        }
+        if (this.#disposed) return;
         this.#syncNoncritical(event.convId, 'Failed to reconcile changed conversation inputs');
     }
 
@@ -279,53 +285,7 @@ class ChatConversationInputsManager {
             this.#dependencies.updateInputQueuePreview();
         }
         this.#recoverLatestRegenerationNoncritical(event.convId);
-        await this.#reconcilePendingSettlements(event.convId);
-    }
-
-    async #reconcilePendingSettlements(conversationId: string): Promise<void> {
-        const signal = this.#lifecycleController.signal;
-        while (!signal.aborted) {
-            const activeReconciliation = this.#settlementReconciliationByConversationId.get(conversationId);
-            if (activeReconciliation) {
-                await raceWithAbortSignal(activeReconciliation, signal);
-                continue;
-            }
-            const inputIds = this.#store.takePendingSettlements(conversationId);
-            if (inputIds.length === 0) {
-                return;
-            }
-            const reconciliation = this.#reconcileSettlementBatch(conversationId, inputIds);
-            this.#settlementReconciliationByConversationId.set(conversationId, reconciliation);
-            try {
-                await raceWithAbortSignal(reconciliation, signal);
-            } finally {
-                if (this.#settlementReconciliationByConversationId.get(conversationId) === reconciliation) {
-                    this.#settlementReconciliationByConversationId.delete(conversationId);
-                }
-            }
-        }
-    }
-
-    async #reconcileSettlementBatch(conversationId: string, inputIds: readonly string[]): Promise<void> {
-        const signal = this.#lifecycleController.signal;
-        for (let attemptIndex = 0; ; attemptIndex += 1) {
-            try {
-                await this.#dependencies.reconcileSettledConversationInputs(conversationId);
-                if (!signal.aborted) {
-                    this.#store.completeSettlements(conversationId, inputIds);
-                }
-                return;
-            } catch (error) {
-                const retryDelayMs = SETTLEMENT_RECONCILIATION_RETRY_DELAYS_MS[attemptIndex];
-                if (signal.aborted || retryDelayMs === undefined) {
-                    if (!signal.aborted) {
-                        this.#store.restorePendingSettlements(conversationId, inputIds);
-                    }
-                    throw error;
-                }
-                await sleepMsAbortable(signal, retryDelayMs);
-            }
-        }
+        await this.#settlements.reconcile(event.convId);
     }
 }
 

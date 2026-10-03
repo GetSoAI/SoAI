@@ -248,8 +248,7 @@ const ROUTE_DEFINITIONS_RAW: RawRouteDefinition[] = [
         getTitle: () => i18n.t('pages.modelDetail.title'),
         auth: true,
         data: { streams: [MODELS, PLUGINS] },
-        sidebar: { include: false, parent: 'models' },
-        layout: { scrollToTopAction: false }
+        sidebar: { include: false, parent: 'models' }
     }
 ];
 

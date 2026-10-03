@@ -17,11 +17,22 @@ __all__ = (
     "EPOCH_MS_MIN",
     "is_unix_epoch_ms",
     "normalize_optional_unix_epoch_ms",
+    "require_signed_epoch_ms",
     "require_unix_epoch_ms",
 )
 
 EPOCH_MS_MIN = 1_000_000_000_000
 EPOCH_MS_MAX = 253_402_300_799_999
+
+
+def require_signed_epoch_ms(
+    value: JSONValue | bytes,
+    *,
+    error_message: str,
+) -> int:
+    if not is_strict_int(value) or value < -EPOCH_MS_MAX or value > EPOCH_MS_MAX:
+        raise ValidationError(error_message)
+    return value
 
 
 def require_unix_epoch_ms(

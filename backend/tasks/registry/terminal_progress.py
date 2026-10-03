@@ -69,13 +69,22 @@ def try_log_terminal_progress(
                 state.zero_percent_logged = True
             prefix = f"[Task/{task.task_type}] "
             suffix = f" ({task.task_id})"
-            logger_progress.info(
-                "%s%s %s%s",
-                prefix,
-                message or task.status.value,
-                format_progress_bar(percent),
-                suffix,
-            )
+            if message == "Indexing directory...":
+                logger_progress.debug(
+                    "%s%s %s%s",
+                    prefix,
+                    message,
+                    format_progress_bar(percent),
+                    suffix,
+                )
+            else:
+                logger_progress.info(
+                    "%s%s %s%s",
+                    prefix,
+                    message or task.status.value,
+                    format_progress_bar(percent),
+                    suffix,
+                )
             if task.status.is_terminal():
                 states.pop(task_id, None)
             return
@@ -97,7 +106,10 @@ def try_log_terminal_progress(
             return
         state.last_message = message
         state.last_logged_at = now
-        logger_progress.info("[Task/%s] %s (%s)", task.task_type, message, task.task_id)
+        if message == "Indexing directory...":
+            logger_progress.debug("[Task/%s] %s (%s)", task.task_type, message, task.task_id)
+        else:
+            logger_progress.info("[Task/%s] %s (%s)", task.task_type, message, task.task_id)
         if task.status.is_terminal():
             states.pop(task_id, None)
     except (RuntimeError, TypeError, ValueError, AttributeError) as exception:

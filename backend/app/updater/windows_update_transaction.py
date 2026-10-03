@@ -267,7 +267,7 @@ def finish_windows_update_transaction(base_path: str, transaction_path: str, tas
         )
     ) or os.path.lexists(marker_path(paths.transaction_path, NEW_COMPLETE_MARKER)):
         raise StateError("Windows installer completion has an invalid transaction phase.")
-    inventory = require_rollback_inventory(paths, old_complete=True)
+    inventory = require_rollback_inventory(paths, old_complete=True, verify_content=False)
     if inventory is None:
         raise StateError("Windows installation has no retained rollback inventory.")
     read_ok, configured_base, config = read_updater_config(

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from database.migrations.schema_1_to_2 import migrate_database_schema_1_to_2
+from database.migrations.schema_2_to_3 import migrate_database_schema_2_to_3
 
 if TYPE_CHECKING:
     import sqlite3
@@ -33,5 +34,10 @@ def build_database_migration_steps() -> tuple[DatabaseMigrationStep, ...]:
             from_version=1,
             to_version=2,
             apply=migrate_database_schema_1_to_2,
+        ),
+        DatabaseMigrationStep(
+            from_version=2,
+            to_version=3,
+            apply=migrate_database_schema_2_to_3,
         ),
     )

@@ -1,0 +1,263 @@
+/* SoAI - SoAI Connect settings layout [frontend/assets/css/pages/settings/connect.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect {
+        display: grid;
+        grid-template-columns: minmax(20rem, 11fr) minmax(0, 9fr);
+        align-items: stretch;
+        gap: var(--space-4);
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect :is(.settings-connect__pairing, .settings-connect__guide) {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: stretch;
+        gap: var(--space-4);
+        min-width: 0;
+        padding: var(--space-5);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__pairing {
+        align-items: center;
+        container-type: inline-size;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__pairing > :is(.settings-connect__callout, .settings-capability-notice) {
+        align-self: stretch;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__callout {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        border: var(--border-width-1) solid var(--badge-border-orange);
+        border-radius: var(--border-radius);
+        background: var(--tint-orange-subtle);
+        color: var(--text-primary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__callout > .ui-icon {
+        flex: none;
+        margin-top: var(--space-025);
+        color: var(--status-orange);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__callout-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__callout-body p {
+        margin: 0;
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__callout-body code {
+        font-family: var(--font-family-mono);
+        color: var(--text-primary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__stage {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        width: clamp(200px, 55cqi, 256px);
+        aspect-ratio: 1;
+        overflow: hidden;
+        border-radius: var(--border-radius);
+        background: var(--color-white);
+        box-shadow: var(--shadow-lift-soft);
+        animation: effect-scale-enter var(--duration-250) var(--ease-smooth);
+    }
+
+    .theme-dark :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__stage:not(.settings-connect__stage--loading, .settings-connect__stage--empty) {
+        outline: var(--border-width-1) solid var(--border-color);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__qr {
+        display: block;
+        width: 100%;
+        height: 100%;
+        color: var(--color-black);
+        background-color: var(--color-white);
+        image-rendering: pixelated;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect :is(.settings-connect__stage--loading, .settings-connect__stage--empty) {
+        padding: var(--space-5);
+        border: var(--border-width-1) dashed var(--border-color);
+        background: var(--glass-surface-interactive);
+        box-shadow: none;
+        color: var(--text-muted);
+        text-align: center;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__stage--empty strong {
+        color: var(--text-primary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__pairing > .setting-help {
+        margin: 0;
+        text-align: center;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__endpoint {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        max-width: 100%;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__copy-button {
+        flex-shrink: 0;
+        opacity: 0.25;
+        transition: opacity var(--transition-fast);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__endpoint:is(:hover, :focus-within) .settings-connect__copy-button {
+        opacity: 1;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__endpoint-text {
+        min-width: 0;
+        font-family: var(--font-family-mono);
+        font-size: clamp(var(--font-size-sm), 5cqi, var(--font-size-lg));
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__endpoint-scheme {
+        color: var(--text-muted);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__endpoint-host {
+        color: var(--text-primary);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__endpoint-port {
+        color: var(--accent-primary);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__chooser {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-2);
+        max-width: 100%;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__chooser-label {
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__chips {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--space-2);
+        max-width: 100%;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__chip {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        max-width: 100%;
+        padding: var(--space-1) var(--space-3);
+        border: var(--border-width-1) solid var(--border-color);
+        border-radius: var(--border-radius);
+        background: transparent;
+        color: var(--text-secondary);
+        font-family: var(--font-family-mono);
+        font-size: var(--font-size-sm);
+        overflow-wrap: anywhere;
+        cursor: pointer;
+        transition:
+            background-color var(--duration-150) var(--ease-out),
+            border-color var(--duration-150) var(--ease-out),
+            color var(--duration-150) var(--ease-out);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__chip:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 var(--control-focus-ring-width) color-mix(in srgb, var(--control-focus-ring-color) 25%, transparent);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__chip:hover:not(.is-selected) {
+        background: var(--glass-surface-interactive-hover);
+        color: var(--text-primary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__chip.is-selected {
+        border-color: var(--accent-primary);
+        background: var(--accent-primary);
+        color: var(--text-on-accent);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__steps {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__steps > li {
+        display: flex;
+        align-items: baseline;
+        gap: var(--space-3);
+        color: var(--text-primary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__step-number {
+        flex: none;
+        min-width: var(--space-6);
+        font-variant-numeric: tabular-nums;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__steps + .settings-connect__callout {
+        margin-top: var(--space-6);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__documentation {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__documentation .setting-help {
+        margin: 0;
+    }
+
+    @container ui-viewport (width <= 768px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect :is(.settings-connect__pairing, .settings-connect__guide) {
+            padding: var(--space-4);
+        }
+    }
+
+    @container ui-viewport (width <= 640px) {
+        :where([data-section='settings'], [data-page-scope='settings']) .settings-section--connect .settings-connect__copy-button {
+            opacity: 1;
+        }
+    }
+}

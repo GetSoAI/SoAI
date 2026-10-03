@@ -9,6 +9,7 @@ import os
 
 from core.errors.exception_logging import log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.logging.trace import get_logger
 
 __all__ = (
@@ -31,6 +32,7 @@ DIRECTORY_HASH_OPERATION_EXCEPTIONS: tuple[type[Exception], ...] = (
 
 
 def calculate_file_hash_sync(file_path: str) -> str | None:
+    file_path = normalize_filesystem_path(file_path)
     if os.path.islink(file_path):
         return None
     if not os.path.isfile(file_path):
@@ -59,6 +61,7 @@ def calculate_file_hash_sync(file_path: str) -> str | None:
 
 
 def _calculate_directory_hash_sync(dir_path: str) -> str | None:
+    dir_path = normalize_filesystem_path(dir_path)
     dir_hash: str | None = None
     try:
         dir_hasher = hashlib.sha256()
@@ -97,10 +100,11 @@ def _calculate_directory_hash_sync(dir_path: str) -> str | None:
 
 
 async def calculate_file_hash(file_path: str) -> str | None:
-    return await asyncio.to_thread(calculate_file_hash_sync, file_path)
+    return await asyncio.to_thread(calculate_file_hash_sync, os.path.abspath(file_path))
 
 
 async def calculate_directory_hash(dir_path: str) -> str | None:
+    dir_path = normalize_filesystem_path(os.path.abspath(dir_path))
     if not await asyncio.to_thread(os.path.isdir, dir_path):
         return None
     return await asyncio.to_thread(_calculate_directory_hash_sync, dir_path)

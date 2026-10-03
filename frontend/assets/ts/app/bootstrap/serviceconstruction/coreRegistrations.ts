@@ -6,7 +6,7 @@ import { createBootstrapFoundationServices } from '@app/bootstrap/serviceconstru
 import { SYSTEM_LIMITS_SERVICE_ID } from '@core/api/systemLimitsService.ts';
 import { createConnectionState } from '@core/connectionstate/service.ts';
 import { configureCollection } from '@core/componentsupport/public.ts';
-import { dom, DomObserver, getDomUpdateService, uiElementServiceModule } from '@core/dom/dom.ts';
+import { dom, DomObserver, getDomUpdateService } from '@core/dom/dom.ts';
 import { operationProgress } from '@core/operationprogress/public.ts';
 import { ErrorBoundary } from '@core/ErrorBoundary.ts';
 import { errorHandler } from '@core/errorHandler.ts';
@@ -62,7 +62,6 @@ const registerCoreBootstrapServices = (dependencies: CoreRegistrationsDependenci
     registerService('core.dom', dom);
     registerService('core.domUpdateService', getDomUpdateService());
     registerService('core.domObserver', DomObserver);
-    registerService('core.uiElementService', uiElementServiceModule);
     registerService('core.errorHandler', errorHandler);
     registerService('core.licenseService', dependencies.foundation.licenseService);
     registerService('core.operationProgress', operationProgress);

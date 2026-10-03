@@ -63,7 +63,10 @@ def _log_terminal_progress(task: Task, old_status: TaskStatus, final_message: st
             else:
                 progress_logger.error(log_line)
         else:
-            progress_logger.info(log_line)
+            if final_message == "Directory indexed.":
+                progress_logger.debug(log_line)
+            else:
+                progress_logger.info(log_line)
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
         coerced = coerce_to_soai_error(
             exception,
@@ -98,13 +101,7 @@ async def publish_terminal_notifications(
     try:
         _log_terminal_progress(task, old_status, final_message)
         await notify_status_changed(registry.event_bus, task, old_status)
-        public_terminal_fields = resolve_public_task_terminal_fields(
-            status=task.status,
-            error_code=task.error_code,
-            error_type=task.error_type,
-            status_message=task.status_message,
-            error_message=task.error_message,
-        )
+        public_terminal_fields = resolve_public_task_terminal_fields(task)
         completion_event = TaskCompleteEvent(
             success=task.status == TaskStatus.COMPLETED,
             message=public_terminal_fields.status_message or final_message,

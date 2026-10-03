@@ -1,7 +1,8 @@
 /* SoAI - Hardware page render events [frontend/assets/ts/pages/hardware/controllers/render/events.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { applyHistoryChartDefaults, FILTER_TYPES, invalidateChartControlSync, isCurrentChartControlSync, nextChartControlSyncSequence, syncHistoryCandlestickFilter, syncHistoryTimeRangeFilter, type ChartFilters, type FilterType, type FilterValue, type HistoryChartControlsManager } from '@features/charts/public.ts';
+import { applyHistoryChartDefaults, FILTER_TYPES, invalidateChartControlSync, isCurrentChartControlSync, nextChartControlSyncSequence, syncHistoryCandlestickFilter, syncHistoryTimeRangeFilter, type ChartFilters, type FilterType, type FilterValue, type HistoryChartControlsManager, type HistoryRangeAvailability } from '@features/charts/public.ts';
+import { resolveHistorySeriesKey } from '@pages/hardware/controllers/data/effects.ts';
 import type { HardwareDataController } from '@pages/hardware/controllers/dataController.ts';
 import { getPointBudget, type HardwareChartContext } from '@pages/hardware/controllers/render/effects.ts';
 import { buildDeviceCategoryOptions, buildMetricOptions } from '@pages/hardware/mappers/mappers.ts';
@@ -12,6 +13,7 @@ type HardwareRenderFiltersContext = {
     state: HardwarePageState;
     dataController: HardwareDataController;
     historyControlsManager: HistoryChartControlsManager;
+    rangeAvailability: HistoryRangeAvailability;
     chartContext: HardwareChartContext;
     chartFilters: ChartFilters | null;
 };
@@ -31,13 +33,15 @@ const applyChartDefaults = (context: HardwareRenderFiltersContext, { timeRanges,
     });
 };
 
-const refreshChartControls = async (context: HardwareRenderFiltersContext, { range = true, candles = true } = {}): Promise<void> => {
+const refreshChartControls = async (context: HardwareRenderFiltersContext, { range = true, candles = true } = {}): Promise<boolean> => {
     const syncSequence = nextChartControlSyncSequence(context);
     const isCurrent = (): boolean => isCurrentChartControlSync(context, syncSequence);
     if (range) {
         await syncHistoryTimeRangeFilter({
             chartFilters: context.chartFilters,
             historyControlsManager: context.historyControlsManager,
+            rangeAvailability: context.rangeAvailability,
+            seriesKey: resolveHistorySeriesKey(context.state, context.dataController.getSelectedHistoryTarget()),
             retentionMinutes: context.state.maxRetentionMinutes,
             baseOptions: context.state.baseTimeRangeOptions,
             selectedMinutes: context.state.timeRange,
@@ -48,7 +52,7 @@ const refreshChartControls = async (context: HardwareRenderFiltersContext, { ran
             isCurrent
         });
         if (!isCurrent()) {
-            return;
+            return false;
         }
     }
     if (candles) {
@@ -69,6 +73,7 @@ const refreshChartControls = async (context: HardwareRenderFiltersContext, { ran
             isCurrent
         });
     }
+    return isCurrent();
 };
 
 const updateDeviceSelector = (context: HardwareRenderFiltersContext, snapshot: HardwarePageSnapshot | null = context.state.lastSnapshot): boolean => {

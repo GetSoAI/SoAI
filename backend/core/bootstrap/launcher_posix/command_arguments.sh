@@ -42,6 +42,7 @@ soai_launcher__parse_args() {
     SOAI_LAUNCHER_COMMAND_SET=0
     SOAI_INSTALL_TARGET_EXPLICIT=0
     SOAI_INSTALL_OPTIONS_USED=0
+    SOAI_PASSTHROUGH_ARGS_PRESENT=0
     SOAI_PASSTHROUGH_ARGS=()
     while [ "$#" -gt 0 ]; do
         case "$1" in
@@ -109,6 +110,7 @@ soai_launcher__parse_args() {
                 ;;
             *)
                 SOAI_PASSTHROUGH_ARGS+=("$1")
+                SOAI_PASSTHROUGH_ARGS_PRESENT=1
                 shift
                 ;;
         esac

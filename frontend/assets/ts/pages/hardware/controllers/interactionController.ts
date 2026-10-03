@@ -4,14 +4,15 @@
 import { ensureError } from '@core/errors/coerce.ts';
 import type { Router } from '@core/routing/router/Router.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
-import { FILTER_TYPES } from '@features/charts/public.ts';
-import { METRIC_CONFIG, type SystemInfoModal } from '@features/hardware/public.ts';
+import { FILTER_TYPES, isOhlcChartType } from '@features/charts/public.ts';
+import { METRIC_CONFIG, type SoAIBenchHistoryPagePanel, type SoAIBenchRunModal, type SystemInfoModal } from '@features/hardware/public.ts';
 import type { HardwareActionId } from '@pages/hardware/actions.ts';
 import { isCandlestickActive } from '@pages/hardware/controllers/data/effects.ts';
 import type { HardwareDataController } from '@pages/hardware/controllers/dataController.ts';
 import type { GpuControlManager } from '@pages/hardware/controllers/gpucontrol/GpuControlManager.ts';
 import { createHardwareInteractionHandlers, type HardwareInteractionHandlers } from '@pages/hardware/controllers/interaction/events.ts';
 import type { HardwareRealtimeController } from '@pages/hardware/controllers/realtimeController.ts';
+import { updateMainChart } from '@pages/hardware/controllers/render/effects.ts';
 import { refreshChartControls, syncMetricOptions, updateChartFilterValue, updateDeviceSelector, updateMetricFilterOptions } from '@pages/hardware/controllers/render/events.ts';
 import { renderNetworkCard, renderStorageCard, setHistoryStatus } from '@pages/hardware/controllers/render/rendering.ts';
 import type { HardwareRenderController } from '@pages/hardware/controllers/renderController.ts';
@@ -27,6 +28,8 @@ type HardwareInteractionControllerDependencies = {
     memorySwapController: MemorySwapPanelController;
     gpuController: GpuControlManager;
     systemInfoModal: SystemInfoModal;
+    soaibenchRunModal: SoAIBenchRunModal;
+    soaibenchHistoryPagePanel: SoAIBenchHistoryPagePanel;
     dataController: HardwareDataController;
     renderController: HardwareRenderController;
     realtimeController: HardwareRealtimeController;
@@ -66,6 +69,8 @@ class HardwareInteractionController {
             memorySwapController: this.memorySwapController,
             gpuController: this.gpuController,
             systemInfoModal: this.systemInfoModal,
+            soaibenchHistoryPagePanel: dependencies.soaibenchHistoryPagePanel,
+            openSoAIBenchGpuSelection: () => dependencies.soaibenchRunModal.open(),
             exportHistoryCsv: this.exportHistoryCsv,
             navigateToLogs: dependencies.navigateToLogs,
             applyDeviceSelectionWithUi: (value: string | number, preferredMetric: string | null) => this.applyDeviceSelectionWithUi(value, preferredMetric),
@@ -137,11 +142,19 @@ class HardwareInteractionController {
     }
 
     async handleChartTypeChange(value: string | number): Promise<void> {
+        const state = this.dataController.state;
         const chartType = String(value);
-        this.dataController.state.chartType = chartType;
-        await refreshChartControls(this.renderController.filtersContext, { range: false, candles: true });
+        if (chartType === state.chartType) return;
+        const kindChanged = isOhlcChartType(chartType) !== isOhlcChartType(state.chartType);
+        state.chartType = chartType;
         this.persistPageControls();
-        await this.scheduleChartBootstrap({ force: true, resetView: true });
+        if (!kindChanged) {
+            updateMainChart(this.renderController.chartContext);
+            return;
+        }
+        this.realtimeController.history.invalidate();
+        await refreshChartControls(this.renderController.filtersContext, { range: false, candles: true });
+        await this.updateAndBootstrap();
     }
 
     async handleDeviceChange(value: string | number): Promise<void> {
@@ -156,6 +169,7 @@ class HardwareInteractionController {
         const metric = String(value);
         if (metricSupportsDevice(metric, target.type, METRIC_CONFIG) && this.dataController.state.selectedMetric !== metric) {
             this.dataController.state.selectedMetric = metric;
+            this.realtimeController.history.invalidate();
             await this.updateAndBootstrap();
             this.persistPageControls();
         } else {
@@ -167,6 +181,7 @@ class HardwareInteractionController {
         const range = Number.parseInt(String(value), 10);
         if (!isFiniteNumber(range) || range === this.dataController.state.timeRange) return;
         this.dataController.state.timeRange = range;
+        this.realtimeController.history.invalidate();
         this.dataController.state.lastResolvedCandlestickIntervalMs = undefined;
         await refreshChartControls(this.renderController.filtersContext);
         this.persistPageControls();
@@ -177,6 +192,7 @@ class HardwareInteractionController {
         const interval = Number.parseInt(String(value), 10);
         if (isFiniteNumber(interval) && interval > 0) {
             this.dataController.state.candlestickIntervalMinutes = interval;
+            this.realtimeController.history.invalidate();
             this.dataController.state.lastResolvedCandlestickIntervalMs = undefined;
             await refreshChartControls(this.renderController.filtersContext, { range: false, candles: true });
             if (isCandlestickActive(this.dataController.state)) {
@@ -214,6 +230,7 @@ class HardwareInteractionController {
             setHistoryStatus(this.renderController.actionsContext, this.renderController.renderCache, formatHistoryErrorMessage(runtimeError));
             throw runtimeError;
         }
+        this.realtimeController.history.invalidate();
         updateDeviceSelector(this.renderController.filtersContext, this.dataController.state.lastSnapshot);
         syncMetricOptions(this.renderController.filtersContext);
         renderStorageCard(this.renderController.actionsContext);

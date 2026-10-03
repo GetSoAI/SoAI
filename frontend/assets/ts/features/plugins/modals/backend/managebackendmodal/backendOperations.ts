@@ -8,7 +8,7 @@ import { WEBSOCKET_MESSAGE_TYPES } from '@core/websocketEvents.ts';
 import { requireBackendVariantSelectorValue } from '@features/plugins/modals/backend/backendVariantSelector.ts';
 import { runBackendOperation } from '@features/plugins/modals/backend/backendOperationRunner.ts';
 import type { BackendManagerDependencies, ManageState } from '@features/plugins/modals/backend/managebackendmodal/types.ts';
-import { hideManageBackendUpdateControls, setManageBackendButtonsDisabled, syncManageBackendFooterActions } from '@features/plugins/modals/backend/managebackendmodal/view.ts';
+import { hideManageBackendUpdateControls, renderManageBackendBadge, setManageBackendButtonsDisabled, syncManageBackendFooterActions } from '@features/plugins/modals/backend/managebackendmodal/view.ts';
 
 interface ManageBackendOperationDependencies extends BackendManagerDependencies {
     modalId: string;
@@ -24,6 +24,13 @@ const isCurrentOperation = (dependencies: ManageBackendOperationDependencies, pl
 const setButtonsIfCurrent = (dependencies: ManageBackendOperationDependencies, plugin: PluginRecord, operationToken: number, modalRoot: HTMLElement, disabled: boolean): void => {
     if (isCurrentOperation(dependencies, plugin, operationToken)) {
         setManageBackendButtonsDisabled({ host: dependencies.host, classNames: dependencies.classNames }, dependencies.modalId, modalRoot, disabled);
+    }
+};
+
+const restoreBadgeIfCurrent = (dependencies: ManageBackendOperationDependencies, plugin: PluginRecord, operationToken: number, modalRoot: HTMLElement): void => {
+    if (isCurrentOperation(dependencies, plugin, operationToken)) {
+        const badge = dependencies.host.view.requireHTMLElement('.plugin-install-badge', modalRoot);
+        renderManageBackendBadge(badge, dependencies.host.status.getPluginStatus(plugin), 'ready');
     }
 };
 
@@ -65,13 +72,13 @@ const startManageBackendInstall = async (dependencies: ManageBackendOperationDep
         failMessage: i18n.t('plugins.notifications.backendInstallFailed'),
         onBefore: (): void => {
             setManageBackendButtonsDisabled({ host: dependencies.host, classNames: dependencies.classNames }, dependencies.modalId, modalRoot, true);
-            const badge = dependencies.host.view.optionalHTMLElement('.plugin-install-badge', modalRoot);
-            if (badge) {
-                dependencies.host.view.updateText(badge, i18n.t('plugins.loading.installing'));
-                dependencies.host.view.updateAttribute(badge, 'data-state', 'installing');
-            }
+            const badge = dependencies.host.view.requireHTMLElement('.plugin-install-badge', modalRoot);
+            renderManageBackendBadge(badge, dependencies.host.status.getPluginStatus(plugin), 'installing');
         },
-        onAfter: (): void => setButtonsIfCurrent(dependencies, plugin, operationToken, modalRoot, !dependencies.state.backendVariantsReady),
+        onAfter: (): void => {
+            setButtonsIfCurrent(dependencies, plugin, operationToken, modalRoot, !dependencies.state.backendVariantsReady);
+            restoreBadgeIfCurrent(dependencies, plugin, operationToken, modalRoot);
+        },
         onSuccess: (): void => refreshIfCurrent(dependencies, plugin, operationToken),
         onFailure: (): void => refreshIfCurrent(dependencies, plugin, operationToken)
     });
@@ -91,12 +98,16 @@ const startManageBackendUninstall = async (dependencies: ManageBackendOperationD
             const modalRoot = dependencies.host.view.modals.requireElement(dependencies.modalId);
             setManageBackendButtonsDisabled({ host: dependencies.host, classNames: dependencies.classNames }, dependencies.modalId, modalRoot, true);
             hideManageBackendUpdateControls({ host: dependencies.host, classNames: dependencies.classNames }, dependencies.modalId, modalRoot);
+            const badge = dependencies.host.view.requireHTMLElement('.plugin-install-badge', modalRoot);
+            renderManageBackendBadge(badge, dependencies.host.status.getPluginStatus(plugin), 'uninstalling');
         },
         onAfter: (): void => {
             if (isCurrentOperation(dependencies, plugin, operationToken)) {
                 const modalRoot = dependencies.host.view.modals.requireElement(dependencies.modalId);
                 syncManageBackendFooterActions({ host: dependencies.host, classNames: dependencies.classNames }, dependencies.modalId, modalRoot, plugin);
                 setManageBackendButtonsDisabled({ host: dependencies.host, classNames: dependencies.classNames }, dependencies.modalId, modalRoot, !dependencies.state.backendVariantsReady);
+                const badge = dependencies.host.view.requireHTMLElement('.plugin-install-badge', modalRoot);
+                renderManageBackendBadge(badge, dependencies.host.status.getPluginStatus(plugin), 'ready');
             }
         },
         onSuccess: (): void => refreshIfCurrent(dependencies, plugin, operationToken)

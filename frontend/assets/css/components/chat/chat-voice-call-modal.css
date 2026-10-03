@@ -7,8 +7,9 @@
         justify-items: center;
         align-content: start;
         position: relative;
-        overflow: hidden;
-        min-height: 360px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        min-height: 0;
         padding: var(--space-12) var(--space-4) var(--space-8);
         background: radial-gradient(120% 90% at 50% 18%, color-mix(in srgb, var(--glass-surface-decorative-highlight) 16%, transparent), transparent 60%), var(--glass-surface-light);
         -webkit-backdrop-filter: var(--glass-blur-base);
@@ -63,7 +64,7 @@
         place-items: center;
         border-radius: var(--border-round);
         color: var(--voice-call-accent);
-        background: linear-gradient(145deg, color-mix(in srgb, var(--surface-highlight-tint) 14%, transparent), transparent 42%), color-mix(in srgb, var(--voice-call-accent) 14%, var(--glass-surface-strong));
+        background: color-mix(in srgb, var(--voice-call-accent) 14%, var(--glass-surface-strong));
         border: var(--border-width-2) solid color-mix(in srgb, var(--voice-call-accent) 46%, var(--glass-border-subtle));
         box-shadow:
             var(--shadow-lift-soft),
@@ -200,11 +201,10 @@
     }
 
     .voice-call-status .voice-call-status-spinner {
+        --soai-spinner-stroke: var(--border-width-150);
         display: none;
         width: 14px;
         height: 14px;
-        border-width: var(--border-width-150);
-        border-top-width: var(--border-width-150);
     }
 
     .voice-call-modal-body[data-voice-call-status='assistantThinking'] .voice-call-status-spinner {
@@ -231,7 +231,7 @@
         box-shadow: var(--glass-shadow-base);
         font-size: var(--font-size-sm);
         line-height: 1.5;
-        text-align: left;
+        text-align: start;
         color: var(--text-secondary);
     }
 

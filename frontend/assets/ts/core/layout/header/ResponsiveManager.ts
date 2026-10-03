@@ -1,7 +1,7 @@
 /* SoAI - Shared layout responsive manager [frontend/assets/ts/core/layout/header/ResponsiveManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
+import { measureLayoutBox, measureScrollbarInlineSize } from '@core/layout/elementGeometry.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
 import { dom } from '@core/dom/dom.ts';
 import { getLayoutRuntimeManager } from '@core/runtime/LayoutManager.ts';
@@ -117,6 +117,8 @@ export class ResponsiveManager {
         if (!root) {
             return;
         }
+
+        dom.setStyle(root, '--ui-scrollbar-inline-size', `${measureScrollbarInlineSize(root)}px`);
 
         if (hidden) {
             return;

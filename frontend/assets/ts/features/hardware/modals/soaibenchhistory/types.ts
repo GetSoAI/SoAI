@@ -85,6 +85,7 @@ interface SoAIBenchHistoryModalHost {
 
 interface SoAIBenchHistoryModalDependencies {
     host: SoAIBenchHistoryModalHost;
+    confirmDeleteLocalRun(): Promise<boolean>;
     deleteLocalRun(runId: string): Promise<void>;
     publishRun(run: SoAIBenchHistoryRun, setDisabled: (disabled: boolean) => void): Promise<void>;
 }

@@ -11,7 +11,7 @@ const refreshWithNotification = async (host: AutomationPageActionDispatcherHost)
     await refreshAutomationDataOrNotify(host, { logSource: 'AutomationZoneActions', logMessage: 'Refresh failed after selecting zone' });
 };
 
-const handleSelectZone = (host: AutomationPageActionDispatcherHost, zoneKey: string | null): void => {
+const selectZone = (host: AutomationPageActionDispatcherHost, zoneKey: string | null, mode: 'activate' | 'details'): void => {
     const state = host.state.getState();
     const selectedZone = zoneKey ? resolveAutomationZoneByKey(state.zones, zoneKey) : null;
     const { state: nextState, requiresWindowRefresh } = applyZoneSelection(state, zoneKey);
@@ -20,7 +20,7 @@ const handleSelectZone = (host: AutomationPageActionDispatcherHost, zoneKey: str
     if (!zoneKey) {
         occurrenceModal?.close();
     } else if (selectedZone) {
-        const conversationId = normalizeConversationId(selectedZone.convId);
+        const conversationId = mode === 'activate' ? normalizeConversationId(selectedZone.convId) : null;
         if (conversationId) {
             occurrenceModal?.close();
             host.state.navigateToConversation(conversationId);
@@ -38,4 +38,12 @@ const handleSelectZone = (host: AutomationPageActionDispatcherHost, zoneKey: str
     host.state.queueRender();
 };
 
-export { handleSelectZone };
+const handleSelectZone = (host: AutomationPageActionDispatcherHost, zoneKey: string | null): void => {
+    selectZone(host, zoneKey, 'activate');
+};
+
+const handleOpenOccurrenceDetails = (host: AutomationPageActionDispatcherHost, zoneKey: string): void => {
+    selectZone(host, zoneKey, 'details');
+};
+
+export { handleOpenOccurrenceDetails, handleSelectZone };

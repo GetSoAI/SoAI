@@ -45,6 +45,7 @@ from core.licensing.types import Edition
 from core.logging.trace import get_logger
 from core.orchestrator.routing_config import RoutingConfig
 from core.plugins.protocols_instance import FilesProtocol
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.protocols import RuntimeFlagsViewProtocol, RuntimeStateStoreProtocol
 from core.timing.monotonic import monotonic_ms
 from core.webui_manager.protocols import WebUIManagerDatabaseDependencies
@@ -76,6 +77,7 @@ async def build_manager_services(
     startup_timings: StartupTimingsRecorder,
     licensing_status: LicensingStatusProtocol,
     edition: Edition,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> tuple[
     InfrastructureServices,
     PluginServices,
@@ -176,6 +178,9 @@ async def build_manager_services(
         plugin_manager=plugin_manager,
         model_bootstrap_components=model_bootstrap_components,
         prompt_token_counter=infrastructure_services.prompt_token_counter,
+        chat_template_role_policy_resolver=(
+            infrastructure_services.chat_template_role_policy_resolver
+        ),
         domain_event_delivery=infrastructure_services.domain_event_delivery,
         licensing_status=licensing_status,
     )
@@ -263,6 +268,7 @@ async def build_manager_services(
         orchestrator_control_instance=orchestrator_control_instance,
         lifecycle_logger=lifecycle_logger,
         orchestrator_components=orchestrator_components,
+        process_exit_deadline=process_exit_deadline,
         startup_timings=startup_timings,
         licensing_status=licensing_status,
         edition=edition,

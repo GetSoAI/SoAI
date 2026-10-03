@@ -5,13 +5,13 @@ from __future__ import annotations
 
 from playwright.async_api import Error
 
+from core.browser.playwright_driver_errors import (
+    PlaywrightDriverConnectionClosedError,
+)
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import SoAIError, ValidationError
 from core.logging.protocols import LoggerProtocol
-from mcp.tools.browser.playwright_driver_errors import (
-    PlaywrightDriverConnectionClosedError,
-)
 from mcp.tools.browser.types import BrowserSessionState
 
 __all__ = (

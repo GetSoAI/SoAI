@@ -5,13 +5,15 @@ from __future__ import annotations
 
 import os
 import shutil
-import uuid
 from contextlib import ExitStack
 from dataclasses import dataclass
 
 from core.errors.exception_logging import log_handled_exception
+from core.errors.exceptions import StateError
 from core.files.secure_open_flags import secure_read_only_open_flags
-from core.filesystem.path_coercion import coerce_path
+from core.filesystem.atomic_write_names import atomic_temporary_path
+from core.filesystem.exclusive_rename import rename_file_without_replacement
+from core.filesystem.path_coercion import coerce_path, normalize_filesystem_path
 from core.logging.trace import get_logger
 
 __all__ = (
@@ -25,6 +27,8 @@ __all__ = (
     "finalize_atomic_write_create_and_clear_callbacks",
     "fsync_directory",
     "open_temp_file_descriptor",
+    "allocate_atomic_temporary_file",
+    "copy_existing_file_to_descriptor",
     "set_file_mode_after_replace",
 )
 
@@ -40,9 +44,10 @@ class AtomicWriteTarget:
 
 
 def cleanup_temp_file_on_failure(temp_path: str) -> None:
-    if os.path.exists(temp_path):
+    filesystem_path = normalize_filesystem_path(temp_path)
+    if os.path.exists(filesystem_path):
         try:
-            os.unlink(temp_path)
+            os.unlink(filesystem_path)
         except OSError as exception:
             log_handled_exception(
                 get_logger(ATOMIC_WRITE_LOGGER_NAME),
@@ -61,7 +66,7 @@ def fsync_directory(path: str, *, strict: bool = False) -> None:
         if os.name == "nt":
             return
         strict_directory_descriptor = os.open(
-            path,
+            normalize_filesystem_path(path),
             secure_read_only_open_flags(directory=True),
         )
         try:
@@ -75,7 +80,9 @@ def fsync_directory(path: str, *, strict: bool = False) -> None:
         return
     directory_descriptor: int | None = None
     try:
-        directory_descriptor = os.open(path, os.O_RDONLY | directory_flag)
+        directory_descriptor = os.open(
+            normalize_filesystem_path(path), os.O_RDONLY | directory_flag
+        )
         os.fsync(directory_descriptor)
     except OSError as exception:
         log_handled_exception(
@@ -106,9 +113,9 @@ def ensure_parent_directory(path: str, *, mode: int | None) -> None:
     if not parent:
         return
     if mode is None:
-        os.makedirs(parent, exist_ok=True)
+        os.makedirs(normalize_filesystem_path(parent), exist_ok=True)
         return
-    os.makedirs(parent, mode=mode, exist_ok=True)
+    os.makedirs(normalize_filesystem_path(parent), mode=mode, exist_ok=True)
 
 
 def finalize_atomic_write_replace(
@@ -121,35 +128,36 @@ def finalize_atomic_write_replace(
     fsync_parent_directory: bool,
 ) -> None:
     if backup_path:
-        backup_resolved = coerce_path(backup_path)
-        if os.path.exists(resolved):
-            if file_mode is None:
-                shutil.copy2(resolved, backup_resolved)
-            else:
-                _copy_file_to_secure_backup(resolved, backup_resolved, file_mode)
-    os.replace(temp_path, resolved)
+        backup_resolved = normalize_filesystem_path(coerce_path(backup_path))
+        if os.path.exists(normalize_filesystem_path(resolved)):
+            _copy_file_to_secure_backup(resolved, backup_resolved, file_mode)
+    os.replace(normalize_filesystem_path(temp_path), normalize_filesystem_path(resolved))
     if file_mode is not None:
         set_file_mode_after_replace(resolved, file_mode)
     if fsync_parent_directory:
         fsync_directory(parent)
 
 
-def _copy_file_to_secure_backup(source_path: str, backup_path: str, file_mode: int) -> None:
-    temp_path = f"{backup_path}.tmp.{os.getpid()}.{uuid.uuid4().hex}"
+def _copy_file_to_secure_backup(source_path: str, backup_path: str, file_mode: int | None) -> None:
+    descriptor, temp_path = allocate_atomic_temporary_file(backup_path, file_mode=file_mode)
     try:
-        descriptor = open_temp_file_descriptor(
-            temp_path,
-            append=False,
-            exclusive=True,
-            file_mode=file_mode,
-        )
-        with os.fdopen(descriptor, "wb") as target_handle:
-            with open(source_path, "rb") as source_handle:
+        try:
+            target_handle = os.fdopen(descriptor, "wb")
+        except (OSError, ValueError):
+            os.close(descriptor)
+            raise
+        with target_handle:
+            with open(normalize_filesystem_path(source_path), "rb") as source_handle:
                 shutil.copyfileobj(source_handle, target_handle)
             target_handle.flush()
+            if file_mode is None:
+                shutil.copystat(
+                    normalize_filesystem_path(source_path), normalize_filesystem_path(temp_path)
+                )
             os.fsync(target_handle.fileno())
-        os.replace(temp_path, backup_path)
-        set_file_mode_after_replace(backup_path, file_mode)
+        os.replace(normalize_filesystem_path(temp_path), normalize_filesystem_path(backup_path))
+        if file_mode is not None:
+            set_file_mode_after_replace(backup_path, file_mode)
     finally:
         cleanup_temp_file_on_failure(temp_path)
 
@@ -180,13 +188,12 @@ def finalize_atomic_write_create_and_clear_callbacks(
     file_mode: int | None,
     fsync_parent_directory: bool,
 ) -> None:
-    os.link(target.temp_path, target.resolved)
+    rename_file_without_replacement(target.temp_path, target.resolved)
+    stack.pop_all()
     if file_mode is not None:
         set_file_mode_after_replace(target.resolved, file_mode)
-    cleanup_temp_file_on_failure(target.temp_path)
     if fsync_parent_directory:
         fsync_directory(target.parent)
-    stack.pop_all()
 
 
 def open_temp_file_descriptor(
@@ -201,20 +208,21 @@ def open_temp_file_descriptor(
     if exclusive:
         flags |= os.O_EXCL
     creation_mode = file_mode if file_mode is not None else 0o666
-    descriptor = os.open(temp_path, flags, creation_mode)
+    descriptor = os.open(normalize_filesystem_path(temp_path), flags, creation_mode)
     if file_mode is None or os.name == "nt":
         return descriptor
     try:
         os.fchmod(descriptor, file_mode)
     except OSError:
         os.close(descriptor)
+        cleanup_temp_file_on_failure(temp_path)
         raise
     return descriptor
 
 
 def set_file_mode_after_replace(path: str, file_mode: int) -> None:
     try:
-        os.chmod(path, file_mode)
+        os.chmod(normalize_filesystem_path(path), file_mode)
     except OSError as exception:
         log_handled_exception(
             get_logger(ATOMIC_WRITE_LOGGER_NAME),
@@ -224,3 +232,35 @@ def set_file_mode_after_replace(path: str, file_mode: int) -> None:
             details={"path": path},
             level="debug",
         )
+
+
+def allocate_atomic_temporary_file(
+    destination: str, *, file_mode: int | None, partial: bool = False
+) -> tuple[int, str]:
+    for attempt in range(3):
+        temp_path = atomic_temporary_path(destination, partial=partial)
+        try:
+            descriptor = open_temp_file_descriptor(
+                temp_path, append=False, exclusive=True, file_mode=file_mode
+            )
+        except FileExistsError:
+            if attempt == 2:
+                raise
+        else:
+            return descriptor, temp_path
+    raise StateError("Atomic allocation exhausted without an explicit outcome.")
+
+
+def copy_existing_file_to_descriptor(
+    source: str, descriptor: int, *, preserve_permissions: bool
+) -> None:
+    with open(normalize_filesystem_path(source), "rb") as source_handle:
+        if preserve_permissions and os.name != "nt":
+            os.fchmod(descriptor, os.fstat(source_handle.fileno()).st_mode & 0o7777)
+        while content := source_handle.read(1024 * 1024):
+            remaining = memoryview(content)
+            while remaining:
+                written = os.write(descriptor, remaining)
+                if written <= 0:
+                    raise OSError("Atomic append could not copy existing bytes.")
+                remaining = remaining[written:]

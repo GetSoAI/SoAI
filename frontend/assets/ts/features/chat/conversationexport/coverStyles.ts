@@ -8,10 +8,12 @@ const CONVERSATION_EXPORT_COVER_STYLE = `
 ${PDF_PAGE_RULE}
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; font-family: ${PDF_FONT_STACK_SANS}; color: ${PDF_COLOR_HEADING}; ${PDF_COLOR_EXACT_RULES} }
+:root:lang(ar) *, :root:lang(fa) * { letter-spacing: 0; text-transform: none; font-style: normal; }
+[dir="auto"] { text-align: start; unicode-bidi: isolate; }
 .cover { height: calc(100% - 1px); overflow: hidden; padding: ${COVER_PADDING_BLOCK_PX}px ${COVER_PADDING_INLINE_PX}px; display: flex; flex-direction: column; gap: ${COVER_SECTION_GAP_PX}px; border: 1px solid #b8d2bd; border-radius: 10px; background: linear-gradient(135deg, #ffffff 0%, #eff8ec 52%, #d7efdc 100%); }
 .cover-masthead { margin: -${COVER_MASTHEAD_BLEED_PX}px -${COVER_PADDING_INLINE_PX}px 0; padding: ${COVER_MASTHEAD_PADDING_TOP_PX}px ${COVER_PADDING_INLINE_PX}px ${COVER_MASTHEAD_PADDING_BOTTOM_PX}px; display: flex; align-items: stretch; gap: 18px; background: linear-gradient(135deg, #243528 0%, #334b3a 52%, #1e2d22 100%); color: #f1f5ee; }
-.cover-brand { display: flex; flex: 0 0 auto; align-items: center; padding-right: 18px; border-right: 1px solid rgba(255, 255, 255, 0.25); }
-.cover-brand img { display: block; width: auto; height: ${COVER_BRAND_HEIGHT_PX}px; margin-left: -8px; }
+.cover-brand { display: flex; flex: 0 0 auto; align-items: center; padding-inline-end: 18px; border-inline-end: 1px solid rgba(255, 255, 255, 0.25); }
+.cover-brand img { display: block; width: auto; height: ${COVER_BRAND_HEIGHT_PX}px; margin-inline-start: -8px; }
 .cover-head { display: flex; flex: 1 1 auto; min-width: 0; min-height: ${COVER_HEAD_MIN_HEIGHT_PX}px; flex-direction: column; justify-content: center; gap: ${COVER_HEAD_GAP_PX}px; }
 .cover-kicker { margin: 0; color: #b7d977; font-size: 10px; line-height: ${COVER_KICKER_HEIGHT_PX}px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cover-title { margin: 0; font-size: 18px; line-height: ${COVER_TITLE_LINE_HEIGHT_PX}px; max-height: ${COVER_TITLE_HEIGHT_PX}px; font-weight: 800; letter-spacing: -0.01em; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: ${COVER_TITLE_LINE_CLAMP}; -webkit-box-orient: vertical; overflow: hidden; }

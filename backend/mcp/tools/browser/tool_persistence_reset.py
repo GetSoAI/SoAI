@@ -14,6 +14,7 @@ from core.errors.exceptions import ValidationError
 from core.files.locking import async_guarded_file_lock
 from core.files.operations import async_remove
 from core.filesystem.async_queries import async_makedirs
+from core.filesystem.path_coercion import normalize_filesystem_path
 from mcp.tools.argument_fields import require_allowed_keys
 from mcp.tools.browser.profile_config import resolve_profile_config
 from mcp.tools.browser.profile_persistence import (
@@ -62,7 +63,7 @@ async def _delete_user_data_dir(
     lock_dir = os.path.dirname(lock_path)
     if lock_dir:
         await async_makedirs(lock_dir, exist_ok=True)
-    lock = FileLock(lock_path, timeout=0, thread_local=False)
+    lock = FileLock(normalize_filesystem_path(lock_path), timeout=0, thread_local=False)
     try:
         await acquire_file_lock(lock, timeout_sec=lock_timeout_sec)
     except Timeout as exception:

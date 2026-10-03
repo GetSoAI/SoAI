@@ -1,10 +1,10 @@
 /* SoAI - Shared chat message motion helpers [frontend/assets/ts/features/chat/message/messageMotion.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { requestPresenceEnter } from '@core/animations/presence/public.ts';
 import { resolveMaxCssAnimationTotalMs } from '@core/animations/parseMaxCssDurationMs.ts';
 
 const chatMessageEnterAnimationClass = 'fade-slide-in';
-const chatMessageActionButtonsEnterAnimationClass = 'message-action-buttons-enter';
 const chatMessageDeletedExitAnimationClass = 'chat-message-deleted-exit';
 const chatMessageAnimationCleanupBufferMs = 50;
 
@@ -37,16 +37,10 @@ const applySelfCleaningAnimationClass = (element: HTMLElement, className: string
 
 const applyChatMessageEnterAnimation = (element: HTMLElement, options: ChatMessageInsertAnimationOptions = {}): void => {
     if (options.suppressInsertAnimations === true) {
+        requestPresenceEnter(element, false);
         return;
     }
     applySelfCleaningAnimationClass(element, chatMessageEnterAnimationClass);
-};
-
-const applyChatMessageActionButtonsEnterAnimation = (element: HTMLElement, options: ChatMessageInsertAnimationOptions = {}): void => {
-    if (options.suppressInsertAnimations === true) {
-        return;
-    }
-    applySelfCleaningAnimationClass(element, chatMessageActionButtonsEnterAnimationClass);
 };
 
 const prefersReducedMotion = (element: Element): boolean => {
@@ -75,5 +69,5 @@ const applyChatMessageDeletedExitAnimation = (element: HTMLElement, onAnimationE
     return true;
 };
 
-export { applyChatMessageActionButtonsEnterAnimation, applyChatMessageDeletedExitAnimation, applyChatMessageEnterAnimation, prefersReducedMotion };
+export { applyChatMessageDeletedExitAnimation, applyChatMessageEnterAnimation, prefersReducedMotion };
 export type { ChatMessageInsertAnimationOptions };

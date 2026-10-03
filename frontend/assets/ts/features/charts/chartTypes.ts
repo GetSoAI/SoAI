@@ -15,21 +15,15 @@ export interface PointerState {
     nativeScrollPointerIds: Set<number>;
     primaryId: number | null;
     pinch: {
-        initialDistance: number;
-        initialZoom: number;
-        centerX: number;
-        centerY: number;
-        anchorRatio?: number;
-        startDistance?: number;
-        startLevel?: number;
-        lastCenterX?: number;
-        lastCenterY?: number;
+        lastDistance: number;
+        lastCenterX: number;
     } | null;
     lastTap: {
         time: number;
         x: number;
         y: number;
     } | null;
+    hoverX: number | null;
 }
 
 export interface CrosshairState {
@@ -45,6 +39,7 @@ export interface CrosshairState {
     low: number | null;
     close: number | null;
     datasetValues: Record<string, number> | null;
+    gap: boolean;
 }
 
 export interface OhlcValues {
@@ -57,22 +52,16 @@ export interface OhlcValues {
 export interface VisiblePointsCache {
     series: Float64Array | number[];
     start: number;
-    displayCount: number;
-    offsetFraction: number;
+    end: number;
     dataLength: number;
     scaleMin: number | null;
     scaleMax: number | null;
-    chartWidth: number;
     chartHeight: number;
     chartTop: number;
-    spacing: number;
-    baseLeft: number;
-    originBase: number;
-    visibleCount: number;
-    effectiveWidth: number;
-    timeStart: number | null;
-    timeEnd: number | null;
-    timeSpan: number | null;
+    plotLeft: number;
+    plotWidth: number;
+    rightEdgeTs: number;
+    msPerPx: number;
     x?: Float64Array | undefined;
     y?: Float64Array | undefined;
     value?: Float64Array | undefined;
@@ -101,8 +90,6 @@ export interface ThemeStyles {
     isDark?: boolean | undefined;
     background?: string | undefined;
     plotBackground?: string | undefined;
-    tooltipBackground?: string | undefined;
-    tooltipTextColor?: string | undefined;
     legendBackground?: string | undefined;
     legendTextColor?: string | null | undefined;
     legendBorderColor?: string | undefined;
@@ -153,14 +140,7 @@ export interface ChartThemeManagedPaletteInput {
 
 export interface ChartTimestampChartReference {
     timestampFormatConfig?: TimestampFormatConfig | undefined;
-    visibleRange?:
-        | {
-              start: number;
-              end: number;
-              displayCount?: number | undefined;
-              offsetFraction?: number | undefined;
-          }
-        | undefined;
+    visibleRange?: { startTs: number; endTs: number } | undefined;
     dataLength?: number | undefined;
     timestamps?: Float64Array | undefined;
     formatDateTime?: ((timestamp: number, base?: Intl.DateTimeFormatOptions) => string) | undefined;
@@ -198,7 +178,16 @@ export type ChartStatusThresholds = { red?: number | undefined; yellow?: number 
 export type ChartScaleBounds = { min?: number | undefined; max?: number | undefined };
 export type ChartPaddingOptions = { top: number; right: number; bottom: number; left: number };
 export type ChartValueFormatter = (value: number) => string;
-export type ChartOptionValue = ComponentOptionValue | ColorPalette | ChartThemeManagedPaletteInput | TimestampFormatConfig | ChartTimestampFormatOptionInput | ChartColorContext | ChartStatusThresholds | ChartScaleBounds | ChartPaddingOptions | ChartTimestampFormatter | ChartValueFormatter | CallableFunction | ((timestamp: number) => void | Promise<void>) | ((level: number) => void) | ((startTs: number | undefined, endTs: number | undefined) => void) | Float64Array | number[] | null | undefined;
+export type ChartHistoryStatus = 'idle' | 'loading' | 'failed' | 'exhausted' | 'capped';
+
+export interface ChartHistoryPort {
+    readonly status: ChartHistoryStatus;
+    readonly oldestNavigableTs: number | null;
+    demand(visibleStartTs: number, visibleEndTs: number): void;
+    retry(): void;
+}
+
+export type ChartOptionValue = ComponentOptionValue | ColorPalette | ChartThemeManagedPaletteInput | TimestampFormatConfig | ChartTimestampFormatOptionInput | ChartColorContext | ChartStatusThresholds | ChartScaleBounds | ChartPaddingOptions | ChartTimestampFormatter | ChartValueFormatter | ChartHistoryPort | CallableFunction | ((startTs: number, endTs: number) => void) | Float64Array | number[] | null | undefined;
 export type ChartOptionsRecord = Record<string, ChartOptionValue>;
 
 export interface ChartOptions {
@@ -211,7 +200,6 @@ export interface ChartOptions {
     timestampFormat: string | ChartTimestampFormatter | TimestampFormatConfig | ChartTimestampFormatOptionInput;
     enableCrosshair: boolean;
     enableMagnetMode: boolean;
-    enableInertialPanning: boolean;
     enableSmoothZoom: boolean;
     enableXAxisZoom: boolean;
     showAxisCoordinates: boolean;
@@ -219,19 +207,16 @@ export interface ChartOptions {
     showLegendTimestamp: boolean;
     metricName: string | null;
     statusThresholds: ChartStatusThresholds | null;
-    rightMarginBars: number;
-    maxRightMarginPx: number;
-    maxRightMarginRatio: number;
     verticalPaddingRatio: number;
+    expectedSampleIntervalMs: number;
     maxDataPoints: number;
     minHeight: number;
     bottomAxisPadding: number;
     scaleBounds: ChartScaleBounds | null;
     updateThrottleMs: number;
     zoomEasingMs: number;
-    onRequestHistoricalData: ((timestamp: number) => void | Promise<void>) | null;
-    onZoomChange: ((level: number) => void) | null;
-    onTimeRangeChange: ((startTs: number | undefined, endTs: number | undefined) => void) | null;
+    history: ChartHistoryPort | null;
+    onTimeRangeChange: ((startTs: number, endTs: number) => void) | null;
     chartColorContext: ChartColorContext | null;
     padding?: ChartPaddingOptions | undefined;
     [key: string]: ChartOptionValue;

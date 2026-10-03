@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 from fastapi import Depends, Request
+from fastapi.responses import JSONResponse
+from starlette.responses import Response
 
 from core.state.access import AccessAction
 from core.validation.booleans import parse_bool
@@ -24,15 +26,21 @@ def register_routes(routers: ApiRouters) -> None:
     async def reset_hardware_history(
         request: Request,
         api_context: ApiContext = Depends(resolve_api_context),
-    ) -> dict[str, str]:
+    ) -> Response:
         log_audit_event(request, "RESET_HARDWARE_HISTORY", "hardware_history")
-        await api_context.dependencies.hardware_soaibench.reset_history()
-        if parse_bool(
-            api_context.dependencies.config.get(
-                "OBSERVABILITY.METRICS.RESET_GENESIS_ON_CLEAR",
-                False,
+        outcome = await api_context.dependencies.hardware_soaibench.reset_history(
+            reset_genesis_uptime=parse_bool(
+                api_context.dependencies.config.get(
+                    "OBSERVABILITY.METRICS.RESET_GENESIS_ON_CLEAR",
+                    False,
+                ),
+                default=False,
             ),
-            default=False,
-        ):
-            await api_context.dependencies.database_metrics.reset_genesis_uptime()
-        return {"message": "Hardware history has been cleared from persistence."}
+        )
+        return JSONResponse(
+            status_code=202,
+            content={
+                "message": "Hardware history has been cleared from persistence.",
+                **outcome.to_response_fields(),
+            },
+        )

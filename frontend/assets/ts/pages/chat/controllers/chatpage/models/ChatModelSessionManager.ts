@@ -58,6 +58,7 @@ class ChatModelSessionManager implements ChatModelSessionContract {
 
     dispose(): void {
         this.#page.comparisonNavigation.dispose();
+        this.#modelControl?.closeMenu();
         this.#models = null;
         this.#modelControl = null;
     }
@@ -129,6 +130,10 @@ class ChatModelSessionManager implements ChatModelSessionContract {
 
     handleControlSearchInput(input: HTMLInputElement): void {
         this.#modelControl?.handleSearchInput(input);
+    }
+
+    async selectPrimaryModel(modelId: string): Promise<boolean> {
+        return this.#modelControl === null ? false : this.#modelControl.selectPrimaryModel(modelId);
     }
 
     handleComparisonNavigation(actionElement: HTMLElement): void {

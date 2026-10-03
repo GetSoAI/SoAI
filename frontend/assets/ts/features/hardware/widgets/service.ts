@@ -1,20 +1,38 @@
 /* SoAI - Hardware feature widgets service [frontend/assets/ts/features/hardware/widgets/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { i18n } from '@core/i18n/index.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import { isFiniteNumber, isHTMLElement } from '@core/typeGuards.ts';
-import { getCpuDevices, getGpuDevices } from '@features/hardware/models/mappers.ts';
 import { WIDGET_SIZE, type WidgetSize } from '@features/hardware/widgets/constants.ts';
-import { CPUWidget } from '@features/hardware/widgets/CPUWidget.ts';
-import { clearWidgetContainer, renderHardwareWidgets } from '@features/hardware/widgets/dom.ts';
-import { GPUWidget } from '@features/hardware/widgets/GPUWidget.ts';
+import type { CPUWidget } from '@features/hardware/widgets/CPUWidget.ts';
+import { commitWidgetOrder, createCpuWidget, createGpuWidget, createNetworkWidget } from '@features/hardware/widgets/dom.ts';
+import type { GPUWidget } from '@features/hardware/widgets/GPUWidget.ts';
 import { HardwareWidgetHistoryCoordinator } from '@features/hardware/widgets/historyCoordinator.ts';
-import type { HardwareData, HardwareSnapshot } from '@features/hardware/widgets/internalContracts.ts';
-import { NetworkWidget } from '@features/hardware/widgets/NetworkWidget.ts';
+import type { CPUDevice, GPUDevice, HardwareData, HardwareSnapshot, NetworkDevice } from '@features/hardware/widgets/internalContracts.ts';
+import type { NetworkWidget } from '@features/hardware/widgets/NetworkWidget.ts';
 import type { HardwareWidgetManagerOptions } from '@features/hardware/widgets/types.ts';
-import { extractCpuDevices, extractGpuDevices, extractNetworkDevices, formatCpuData, formatGpuData, readFiniteNonNegativeInt, readNonEmptyString, resolveCpuName, resolveCpuSocketsCount, resolveCpuSocketIndex } from '@features/hardware/widgets/mappers.ts';
+import { extractCpuDevices, extractGpuDevices, extractNetworkDevices } from '@features/hardware/widgets/mappers.ts';
 
 type HardwarePayload = HardwareSnapshot | HardwareData;
+
+interface ManagedHardwareWidget {
+    readonly container: HTMLElement;
+    destroy(): void;
+}
+
+interface HardwareWidgetDevices {
+    cpu: CPUDevice[];
+    gpu: GPUDevice[];
+    network: NetworkDevice[];
+}
+
+const extractWidgetDevices = (hardware: HardwarePayload): HardwareWidgetDevices => ({
+    cpu: extractCpuDevices(hardware),
+    gpu: extractGpuDevices(hardware),
+    network: extractNetworkDevices(hardware)
+});
+
+const serializeTopologyKeys = <TKey>(keys: Iterable<TKey>): string => JSON.stringify([...new Set(keys)]);
 
 class HardwareWidgetManager {
     readonly #container: HTMLElement;
@@ -27,6 +45,7 @@ class HardwareWidgetManager {
     #operationPromise: Promise<void> | null = null;
     #pendingSnapshot: HardwarePayload | null = null;
     #lifecycleVersion = 0;
+    #networkWidgetSequence = 0;
 
     constructor(options: HardwareWidgetManagerOptions) {
         if (!isHTMLElement(options.container)) {
@@ -41,7 +60,7 @@ class HardwareWidgetManager {
             await this.handleSnapshotUpdate(snapshot);
             return;
         }
-        await this.#runExclusive(snapshot, (lifecycleVersion) => this.#initializeWidgets(snapshot, lifecycleVersion));
+        await this.#runExclusive(snapshot, (lifecycleVersion) => this.#reconcileWidgets(snapshot, lifecycleVersion));
     }
 
     async handleSnapshotUpdate(snapshot: HardwarePayload): Promise<void> {
@@ -53,12 +72,12 @@ class HardwareWidgetManager {
             await this.#operationPromise;
             return;
         }
-        const hardware = this.#resolveHardwareSnapshot(snapshot);
-        if (this.#requiresTopologyRebuild(hardware)) {
-            await this.#runExclusive(snapshot, (lifecycleVersion) => this.#initializeWidgets(snapshot, lifecycleVersion));
+        const devices = extractWidgetDevices(snapshot);
+        if (this.#hasTopologyChanged(devices)) {
+            await this.#runExclusive(snapshot, (lifecycleVersion) => this.#reconcileWidgets(snapshot, lifecycleVersion));
             return;
         }
-        this.#updateExistingWidgets(hardware);
+        this.#applyDevices(devices, new Set());
     }
 
     destroy(): void {
@@ -68,6 +87,10 @@ class HardwareWidgetManager {
         this.#historyCoordinator.abortHistoryFetch();
         this.#destroyWidgets();
         this.#initialized = false;
+    }
+
+    get container(): HTMLElement {
+        return this.#container;
     }
 
     get widgetCount(): number {
@@ -113,63 +136,108 @@ class HardwareWidgetManager {
         }
     }
 
-    async #initializeWidgets(snapshot: HardwarePayload, lifecycleVersion: number): Promise<void> {
-        this.#historyCoordinator.abortHistoryFetch();
-        this.#destroyWidgets();
-        const hardware = this.#resolveHardwareSnapshot(snapshot);
-        const cpuDevices = extractCpuDevices(hardware);
-        const gpuDevices = extractGpuDevices(hardware);
-        const networkDevices = extractNetworkDevices(hardware);
-        const rendered = await renderHardwareWidgets({
-            container: this.#container,
-            size: this.#size,
-            cpuDevices,
-            gpuDevices,
-            networkDevices,
-            shouldCommit: () => lifecycleVersion === this.#lifecycleVersion
-        });
+    async #reconcileWidgets(snapshot: HardwarePayload, lifecycleVersion: number): Promise<void> {
+        const devices = extractWidgetDevices(snapshot);
+        const created = new Set<ManagedHardwareWidget>();
+        let cpuWidgets: Map<number, CPUWidget>;
+        let gpuWidgets: Map<number, GPUWidget>;
+        let networkWidgets: Map<string, NetworkWidget>;
+        try {
+            cpuWidgets = await this.#collectWidgets(
+                devices.cpu,
+                (cpu) => cpu.socketIndex,
+                this.#cpuWidgets,
+                (cpu) => createCpuWidget(cpu, this.#size),
+                created
+            );
+            gpuWidgets = await this.#collectWidgets(
+                devices.gpu,
+                (gpu) => gpu.index,
+                this.#gpuWidgets,
+                (gpu) => createGpuWidget(gpu, this.#size),
+                created
+            );
+            networkWidgets = await this.#collectWidgets(
+                devices.network,
+                (network) => network.deviceId,
+                this.#networkWidgets,
+                (network) => createNetworkWidget(network, this.#size, this.#nextNetworkWidgetId()),
+                created
+            );
+        } catch (error) {
+            created.forEach((widget) => widget.destroy());
+            throw ensureError(error);
+        }
         if (lifecycleVersion !== this.#lifecycleVersion) {
+            created.forEach((widget) => widget.destroy());
             return;
         }
-        this.#cpuWidgets = rendered.cpuWidgets;
-        this.#gpuWidgets = rendered.gpuWidgets;
-        this.#networkWidgets = rendered.networkWidgets;
+        this.#historyCoordinator.abortHistoryFetch();
+        this.#retireRemovedWidgets(this.#cpuWidgets, cpuWidgets);
+        this.#retireRemovedWidgets(this.#gpuWidgets, gpuWidgets);
+        this.#retireRemovedWidgets(this.#networkWidgets, networkWidgets);
+        this.#cpuWidgets = cpuWidgets;
+        this.#gpuWidgets = gpuWidgets;
+        this.#networkWidgets = networkWidgets;
+        commitWidgetOrder(
+            this.#container,
+            [...cpuWidgets.values(), ...gpuWidgets.values(), ...networkWidgets.values()].map((widget) => widget.container)
+        );
+        this.#applyDevices(devices, created);
         this.#initialized = true;
-        await this.#historyCoordinator.fetchHistoricalData(cpuDevices, gpuDevices, networkDevices, snapshot, {
+        await this.#historyCoordinator.fetchHistoricalData(devices.cpu, devices.gpu, devices.network, snapshot, {
             cpuWidgets: this.#cpuWidgets,
             gpuWidgets: this.#gpuWidgets,
             networkWidgets: this.#networkWidgets
         });
     }
 
-    #updateExistingWidgets(hardware: HardwarePayload): void {
-        const normalizedMemoryData = hardware.memory ?? {};
-        const cpuArray = getCpuDevices(hardware);
-        const sockets = resolveCpuSocketsCount(cpuArray);
-        for (const [index, cpu] of cpuArray.entries()) {
-            const socketIndex = resolveCpuSocketIndex(cpu, index);
-            const widget = this.#cpuWidgets.get(socketIndex);
-            if (widget) {
-                widget.updateConfig({
-                    name: resolveCpuName(cpu),
-                    sockets,
-                    cores: readFiniteNonNegativeInt(cpu.physicalCores) ?? 0,
-                    threads: readFiniteNonNegativeInt(cpu.logicalCores) ?? 0
-                });
-                widget.updateData(formatCpuData(cpu, normalizedMemoryData));
+    async #collectWidgets<TKey, TDevice, TWidget extends ManagedHardwareWidget>(devices: ReadonlyArray<TDevice>, resolveKey: (device: TDevice) => TKey, current: ReadonlyMap<TKey, TWidget>, create: (device: TDevice) => Promise<TWidget>, created: Set<ManagedHardwareWidget>): Promise<Map<TKey, TWidget>> {
+        const next = new Map<TKey, TWidget>();
+        for (const device of devices) {
+            const key = resolveKey(device);
+            if (next.has(key)) {
+                continue;
+            }
+            const existing = current.get(key);
+            if (existing) {
+                next.set(key, existing);
+                continue;
+            }
+            const widget = await create(device);
+            created.add(widget);
+            next.set(key, widget);
+        }
+        return next;
+    }
+
+    #retireRemovedWidgets<TKey, TWidget extends ManagedHardwareWidget>(current: ReadonlyMap<TKey, TWidget>, next: ReadonlyMap<TKey, TWidget>): void {
+        for (const [key, widget] of current) {
+            if (!next.has(key)) {
+                widget.destroy();
+                widget.container.remove();
             }
         }
-        for (const [index, gpuData] of getGpuDevices(hardware).entries()) {
-            const resolvedIndex = isFiniteNumber(gpuData.index) ? Math.max(0, Math.floor(gpuData.index)) : index;
-            const widget = this.#gpuWidgets.get(resolvedIndex);
-            if (widget) {
-                widget.updateConfig({ name: readNonEmptyString(gpuData.name) ?? i18n.t('hardware.components.gpu') });
-                widget.updateData(formatGpuData(gpuData));
+    }
+
+    #applyDevices(devices: HardwareWidgetDevices, skip: ReadonlySet<ManagedHardwareWidget>): void {
+        for (const cpu of devices.cpu) {
+            const widget = this.#cpuWidgets.get(cpu.socketIndex);
+            if (widget && !skip.has(widget)) {
+                widget.updateConfig({ name: cpu.name, sockets: cpu.sockets, cores: cpu.cores, threads: cpu.threads });
+                widget.updateData(cpu.data);
             }
         }
-        for (const network of extractNetworkDevices(hardware)) {
+        for (const gpu of devices.gpu) {
+            const widget = this.#gpuWidgets.get(gpu.index);
+            if (widget && !skip.has(widget)) {
+                widget.updateConfig({ name: gpu.name });
+                widget.updateData(gpu.data);
+            }
+        }
+        for (const network of devices.network) {
             const widget = this.#networkWidgets.get(network.deviceId);
-            if (widget) {
+            if (widget && !skip.has(widget)) {
                 widget.updateConfig({ index: network.index, name: network.name });
                 widget.updateData(network.data);
             }
@@ -177,17 +245,13 @@ class HardwareWidgetManager {
     }
 
     #destroyWidgets(): void {
-        this.#cpuWidgets.forEach((widget) => widget.destroy());
-        this.#gpuWidgets.forEach((widget) => widget.destroy());
-        this.#networkWidgets.forEach((widget) => widget.destroy());
+        for (const widget of [...this.#cpuWidgets.values(), ...this.#gpuWidgets.values(), ...this.#networkWidgets.values()]) {
+            widget.destroy();
+            widget.container.remove();
+        }
         this.#cpuWidgets.clear();
         this.#gpuWidgets.clear();
         this.#networkWidgets.clear();
-        clearWidgetContainer(this.#container);
-    }
-
-    #resolveHardwareSnapshot(snapshot: HardwarePayload): HardwarePayload {
-        return snapshot;
     }
 
     async #replayPendingSnapshot(): Promise<void> {
@@ -198,26 +262,13 @@ class HardwareWidgetManager {
         }
     }
 
-    #requiresTopologyRebuild(hardware: HardwarePayload): boolean {
-        return this.#cpuKeys(hardware) !== [...this.#cpuWidgets.keys()].join('|') || this.#gpuKeys(hardware) !== [...this.#gpuWidgets.keys()].join('|') || this.#networkKeys(hardware) !== [...this.#networkWidgets.keys()].join('|');
+    #hasTopologyChanged(devices: HardwareWidgetDevices): boolean {
+        return serializeTopologyKeys(devices.cpu.map((cpu) => cpu.socketIndex)) !== serializeTopologyKeys(this.#cpuWidgets.keys()) || serializeTopologyKeys(devices.gpu.map((gpu) => gpu.index)) !== serializeTopologyKeys(this.#gpuWidgets.keys()) || serializeTopologyKeys(devices.network.map((network) => network.deviceId)) !== serializeTopologyKeys(this.#networkWidgets.keys());
     }
 
-    #cpuKeys(hardware: HardwarePayload): string {
-        return extractCpuDevices(hardware)
-            .map((device) => device.socketIndex)
-            .join('|');
-    }
-
-    #gpuKeys(hardware: HardwarePayload): string {
-        return extractGpuDevices(hardware)
-            .map((device) => device.index)
-            .join('|');
-    }
-
-    #networkKeys(hardware: HardwarePayload): string {
-        return extractNetworkDevices(hardware)
-            .map((device) => device.deviceId)
-            .join('|');
+    #nextNetworkWidgetId(): string {
+        this.#networkWidgetSequence += 1;
+        return `network-widget-${this.#networkWidgetSequence}`;
     }
 
     #resolveWidgetSize(size: WidgetSize | undefined): WidgetSize {

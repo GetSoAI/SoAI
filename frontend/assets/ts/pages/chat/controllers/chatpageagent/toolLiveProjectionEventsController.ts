@@ -35,13 +35,25 @@ type ToolCallLiveProjectionApplyOptions = {
 
 const PENDING_TOOL_LIVE_EVENT_TTL_MS = 300000;
 const PENDING_TOOL_LIVE_EVENT_LIMIT = 128;
+const isDetailHydratedActiveProjection = (tool: ToolActivityItem): boolean => {
+    return (tool.status === 'pending' || tool.status === 'running') && toolRunningResultIsDetailHydrated(tool.toolName);
+};
+
 const omitDetailHydratedActiveProjectionResult = (tool: ToolActivityItem): ToolActivityItem => {
-    if ((tool.status !== 'pending' && tool.status !== 'running') || !toolRunningResultIsDetailHydrated(tool.toolName)) {
+    if (!isDetailHydratedActiveProjection(tool)) {
         return tool;
     }
     const nextTool = { ...tool };
     delete nextTool.result;
     return nextTool;
+};
+
+const upsertLiveToolCallProjection = (message: ChatMessage, tool: ToolActivityItem): boolean => {
+    const hydratedResult = findToolProjectionByCallId(message, tool.callId)?.result;
+    if (hydratedResult === undefined || !isDetailHydratedActiveProjection(tool)) {
+        return upsertToolCallProjection(message, tool);
+    }
+    return upsertToolCallProjection(message, { ...tool, result: hydratedResult });
 };
 
 const parseToolCallLiveUpdatedPayload = (value: ToolCallLiveUpdatedEvent): ToolCallLiveUpdatedPayload | null => {
@@ -183,7 +195,7 @@ const applyToolCallLiveProjectionEvent = async (host: ChatPageAgentHost, value: 
     let changed = false;
     if (hasSequenceGap) {
         payload.tool.syncStatus = 'out_of_sync';
-        changed = upsertToolCallProjection(message, payload.tool);
+        changed = upsertLiveToolCallProjection(message, payload.tool);
         const resynced = await requestProjectionResyncNoncritical(payload);
         if (options?.isDisposed()) {
             return 'none';
@@ -196,12 +208,12 @@ const applyToolCallLiveProjectionEvent = async (host: ChatPageAgentHost, value: 
             resynced.syncStatus = 'in_sync';
             const current = findToolProjectionByCallId(message, payload.callId);
             if ((current === null || !hasProjectionCaughtUpToTool(current, resynced)) && canApplyToolCallProjectionWithoutSequenceGap(message, resynced)) {
-                changed = upsertToolCallProjection(message, resynced) || changed;
+                changed = upsertLiveToolCallProjection(message, resynced) || changed;
             }
         }
     } else {
         payload.tool.syncStatus = 'in_sync';
-        changed = upsertToolCallProjection(message, payload.tool);
+        changed = upsertLiveToolCallProjection(message, payload.tool);
     }
     if (!changed) {
         return 'none';

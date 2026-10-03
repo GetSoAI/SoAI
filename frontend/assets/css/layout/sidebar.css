@@ -16,14 +16,14 @@
         --sidebar-active-rail-y: 0;
         position: fixed;
         top: var(--layout-top-offset);
-        left: 0;
+        inset-inline-start: 0;
         bottom: 0;
         width: var(--sidebar-width-collapsed);
         display: flex;
         flex-direction: column;
         background: var(--glass-surface-darker);
-        border-right: var(--sidebar-border-inline-end-width) solid var(--glass-border-strong);
-        border-left: var(--sidebar-border-inline-start-width) solid transparent;
+        border-inline-end: var(--sidebar-border-inline-end-width) solid var(--glass-border-strong);
+        border-inline-start: var(--sidebar-border-inline-start-width) solid transparent;
         box-shadow: var(--glass-shadow-base);
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
@@ -112,6 +112,7 @@
     }
 
     .sidebar-version-container span {
+        display: block;
         color: var(--text-muted);
         white-space: nowrap;
         font-size: calc(var(--font-size-micro) * 0.9);
@@ -119,7 +120,7 @@
     }
 
     .sidebar .sidebar-icon-button {
-        transform: translateX(var(--sidebar-button-alignment-offset-x));
+        transform: translateX(calc(var(--sidebar-button-alignment-offset-x) * var(--dir-sign)));
     }
 
     .sidebar:not(.is-collapsed) .sidebar-version-small {

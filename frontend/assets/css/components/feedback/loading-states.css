@@ -3,14 +3,13 @@
 
 @layer components {
     .loading-spinner {
+        --soai-spinner-active-color: var(--accent-primary);
+        --soai-spinner-duration: var(--spinner-duration-1000);
+        --soai-spinner-stroke: var(--border-width-2);
+        --soai-spinner-track-color: var(--border-color);
+        --motion-essential-duration: var(--spinner-duration-1000);
         width: 20px;
         height: 20px;
-        border: var(--border-width-2) solid var(--border-color);
-        border-top: var(--border-width-2) solid var(--accent-primary);
-        border-radius: var(--border-round);
-        display: inline-block;
-        flex-shrink: 0;
-        animation: spin var(--duration-1000) var(--ease-linear) infinite;
     }
 
     .inline-loading-status {
@@ -21,10 +20,9 @@
     }
 
     .inline-loading-status .inline-loading-status-spinner.loading-spinner {
+        --soai-spinner-stroke: var(--border-width-1);
         width: 12px;
         height: 12px;
-        border-width: var(--border-width-1);
-        border-top-width: var(--border-width-1);
     }
 
     .inline-loading-status .inline-loading-status-text {

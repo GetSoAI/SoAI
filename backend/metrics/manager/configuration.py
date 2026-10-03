@@ -11,6 +11,7 @@ from core.history.config import build_metrics_history_config
 from core.history.config_view import HistoryConfigView, build_history_config_view
 from core.metrics.keyspace_base import (
     DIRECTOR_GAUGE_QUEUE_SIZE,
+    DIRECTOR_GAUGE_REQUEST_LATENCY_MS,
     DIRECTOR_REQUESTS_COMPLETED,
     DIRECTOR_REQUESTS_FAILED,
     DIRECTOR_REQUESTS_TOTAL,
@@ -25,6 +26,7 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
+    "TOTAL_EFFECTIVE_TOKEN_RATE_HISTORY_KEY",
     "build_history_config_from_raw",
     "build_metrics_history_view",
     "require_managed_task_group",
@@ -34,6 +36,7 @@ MAX_BILLING_CLIENT_CARDINALITY: int = 10000
 MAX_BILLING_MODEL_CARDINALITY: int = 10000
 
 CAPABILITIES_CACHE_TTL_SEC: float = 30.0
+TOTAL_EFFECTIVE_TOKEN_RATE_HISTORY_KEY = "token_rates.total.effective_rate"
 
 
 def _default_tracked_metrics() -> tuple[str, ...]:
@@ -43,6 +46,8 @@ def _default_tracked_metrics() -> tuple[str, ...]:
         ".".join(DIRECTOR_REQUESTS_FAILED),
         ".".join((METRIC_BLOCK_BILLING, METRIC_KEY_TOTAL_TOKENS_GENERATED)),
         ".".join(DIRECTOR_GAUGE_QUEUE_SIZE),
+        ".".join(DIRECTOR_GAUGE_REQUEST_LATENCY_MS),
+        TOTAL_EFFECTIVE_TOKEN_RATE_HISTORY_KEY,
     )
 
 

@@ -11,8 +11,8 @@
         opacity: 0;
         padding: 0;
         background: var(--glass-surface-darker);
-        border-bottom-left-radius: var(--border-radius);
-        border-bottom-right-radius: var(--border-radius);
+        border-end-start-radius: var(--border-radius);
+        border-end-end-radius: var(--border-radius);
         min-width: 0;
         min-inline-size: 0;
         width: 100%;

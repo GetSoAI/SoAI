@@ -10,7 +10,7 @@ const hasCanonicalPathSegments = (value: string): boolean => {
 };
 
 const normalizeConversationVirtualPathValue = (value: JsonValue | null | undefined): string | null => {
-    if (!isString(value) || value !== value.trim()) {
+    if (!isString(value)) {
         return null;
     }
     if (!value.startsWith('/') || value === '/' || value.includes('\\') || value.includes('\0')) {
@@ -24,7 +24,7 @@ const normalizeConversationVirtualPathValue = (value: JsonValue | null | undefin
 };
 
 const normalizeWorkspaceRelativePathValue = (value: JsonValue | null | undefined): string | null => {
-    if (!isString(value) || value !== value.trim()) {
+    if (!isString(value)) {
         return null;
     }
     if (!value || value.startsWith('/') || value.includes('\\') || value.includes('\0')) {

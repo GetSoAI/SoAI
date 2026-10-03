@@ -10,20 +10,20 @@ import { ComposerDraftClientMutations } from '@features/chat/composerdraft/compo
 import { buildProjectionSignature, isProjectionEmpty, projectComposerDraft } from '@features/chat/composerdraft/composerDraftEntryProjection.ts';
 import { ComposerDraftMemoryStore } from '@features/chat/composerdraft/composerDraftMemoryStore.ts';
 import { ComposerDraftLoadRegistry } from '@features/chat/composerdraft/composerDraftLoadRegistry.ts';
-import { emptyParsedComposerDraft, parseComposerDraftResponse } from '@features/chat/composerdraft/composerDraftParsing.ts';
+import { emptyParsedComposerDraft } from '@features/chat/composerdraft/composerDraftParsing.ts';
 import { ComposerDraftPersister } from '@features/chat/composerdraft/composerDraftPersister.ts';
 import { ComposerDraftSaveChain } from '@features/chat/composerdraft/composerDraftSaveChain.ts';
 import { presentComposerDraftRestoreFailure, trackComposerDraftTaskFailure } from '@features/chat/composerdraft/composerDraftTaskLogging.ts';
 import { ComposerDraftOwnershipState, type ComposerDraftOwnershipSnapshot, type ComposerDraftTransferMode } from '@features/chat/composerdraft/ComposerDraftOwnershipState.ts';
 import { ComposerDraftRevisionState } from '@features/chat/composerdraft/ComposerDraftRevisionState.ts';
 import { ComposerDraftDebounce } from '@features/chat/composerdraft/ComposerDraftDebounce.ts';
-import type { ComposerDraftFlushOptions, ComposerDraftLoadSettlement, ComposerDraftManagerDependencies, ComposerDraftProjection, ComposerDraftTransferTicket, ParsedComposerDraft } from '@features/chat/composerdraft/composerDraftTypes.ts';
+import type { ComposerDraftFlushOptions, ComposerDraftLoadSettlement, ComposerDraftManagerDependencies, ComposerDraftProjection, ComposerDraftSurfaceSnapshot, ComposerDraftTransferTicket, ParsedComposerDraft } from '@features/chat/composerdraft/composerDraftTypes.ts';
 
 class ChatComposerDraftManager {
     readonly #dependencies: ComposerDraftManagerDependencies;
     readonly #saveChain = new ComposerDraftSaveChain();
     readonly #memoryDrafts = new ComposerDraftMemoryStore();
-    readonly #draftLoads = new ComposerDraftLoadRegistry();
+    readonly #draftLoads: ComposerDraftLoadRegistry;
     readonly #mutations = new ComposerDraftClientMutations();
     readonly #revisions: ComposerDraftRevisionState;
     readonly #debounce: ComposerDraftDebounce;
@@ -31,13 +31,15 @@ class ChatComposerDraftManager {
     readonly #ownership: ComposerDraftOwnershipState;
     #disposed = false;
     #applying = false;
+    #surfaceRevision = 0;
     #appliedSignature = buildProjectionSignature('', '', []);
     #pendingFlush: { conversationId: string; signature: string; immediate: boolean; promise: Promise<void> } | null = null;
     #unsubscribeAttachments: (() => void) | null = null;
     #unsubscribeDraftEvents: (() => void) | null = null;
     constructor(dependencies: ComposerDraftManagerDependencies) {
         this.#dependencies = dependencies;
-        this.#ownership = new ComposerDraftOwnershipState(normalizeConversationId(dependencies.getCurrentConversationId()));
+        this.#ownership = new ComposerDraftOwnershipState(normalizeConversationId(dependencies.getCurrentConversationId()) || null);
+        this.#draftLoads = new ComposerDraftLoadRegistry({ api: dependencies.api, memoryDrafts: this.#memoryDrafts, saveChain: this.#saveChain, isConversationPersisted: dependencies.isConversationPersisted });
         this.#revisions = new ComposerDraftRevisionState(dependencies.showNotification);
         this.#debounce = new ComposerDraftDebounce(dependencies);
         this.#persister = new ComposerDraftPersister({
@@ -85,6 +87,16 @@ class ChatComposerDraftManager {
         });
     }
 
+    captureSurfaceSnapshot(): ComposerDraftSurfaceSnapshot {
+        this.ensureInitialized();
+        const ownership = this.#ownership.snapshot();
+        return { conversationId: ownership.conversationId, generation: ownership.generation, mutationToken: ownership.mutationToken, surfaceRevision: this.#surfaceRevision, mode: ownership.mode, signature: this.#projectCurrent().signature };
+    }
+
+    matchesSurfaceSnapshot(snapshot: ComposerDraftSurfaceSnapshot, adoptedConversationId?: string): boolean {
+        return this.#ownership.matchesCurrentOrAdopted(snapshot, adoptedConversationId) && !this.#ownership.surfaceChangedSince(snapshot) && this.#surfaceRevision === snapshot.surfaceRevision && this.#projectCurrent().signature === snapshot.signature;
+    }
+
     async flushNow(reason: string, options: ComposerDraftFlushOptions = {}): Promise<void> {
         if (this.#disposed && reason !== 'dispose') {
             return;
@@ -123,7 +135,7 @@ class ChatComposerDraftManager {
 
     beginComposerTransfer(nextConversationId: string | null, options: { mode: ComposerDraftTransferMode; signal?: AbortSignal }): ComposerDraftTransferTicket {
         this.ensureInitialized();
-        const normalizedNextId = normalizeConversationId(nextConversationId);
+        const normalizedNextId = normalizeConversationId(nextConversationId) || null;
         if (this.#ownership.conversationId && (this.#ownership.isLocalProjectionAuthoritative() || this.#projectCurrent().signature !== this.#appliedSignature)) {
             this.#debounce.clear();
             trackComposerDraftTaskFailure(this.#persister.persist(this.#projectCurrent(), {}), this.#dependencies, 'Failed to save composer draft during transfer');
@@ -133,7 +145,7 @@ class ChatComposerDraftManager {
         const transferAbortController = new AbortController();
         const transferSignalScope = createAbortSignalScope([options.signal, transferAbortController.signal]);
         const draftPromise = this.#draftLoads
-            .load(transferSignalScope.signal, async (signal) => await this.#readDraft(normalizedNextId, signal))
+            .readLatest(normalizedNextId, transferSignalScope.signal)
             .then(
                 (draft): ComposerDraftLoadSettlement => ({ status: 'ready', draft }),
                 (error): ComposerDraftLoadSettlement => ({ status: 'failed', error: ensureError(error) })
@@ -163,9 +175,7 @@ class ChatComposerDraftManager {
     }
 
     dispose(): void {
-        if (this.#disposed) {
-            return;
-        }
+        if (this.#disposed) return;
         trackComposerDraftTaskFailure(this.flushNow('dispose'), this.#dependencies, 'Failed to flush composer draft during disposal');
         this.#disposed = true;
         this.#debounce.clear();
@@ -177,25 +187,13 @@ class ChatComposerDraftManager {
     }
 
     #projectCurrent(): ComposerDraftProjection {
-        const conversationId = normalizeConversationId(this.#ownership.conversationId ?? this.#dependencies.getCurrentConversationId());
+        const conversationId = normalizeConversationId(this.#ownership.conversationId ?? this.#dependencies.getCurrentConversationId()) || null;
         return projectComposerDraft({
             conversationId,
             text: this.#dependencies.readText(),
             sourceText: this.#dependencies.readSourceText(),
             attachments: this.#dependencies.attachmentManager.getAttachments()
         });
-    }
-
-    async #readDraft(conversationId: string | null, signal?: AbortSignal): Promise<ParsedComposerDraft> {
-        if (!conversationId) {
-            return emptyParsedComposerDraft();
-        }
-        if (!this.#dependencies.isConversationPersisted(conversationId)) {
-            return this.#memoryDrafts.read(conversationId);
-        }
-        await this.#saveChain.wait(conversationId);
-        const response = await this.#dependencies.api.get(conversationId, signal === undefined ? {} : { signal });
-        return parseComposerDraftResponse(conversationId, response);
     }
 
     async #completeTransfer(ownership: ComposerDraftOwnershipSnapshot, draftPromise: Promise<ComposerDraftLoadSettlement>, signal?: AbortSignal): Promise<void> {
@@ -215,7 +213,7 @@ class ChatComposerDraftManager {
             const conversationId = ownership.conversationId;
             const deferredRevision = this.#ownership.highestDeferredRevision(ownership);
             if (conversationId !== null && deferredRevision > loadResult.draft.revision) {
-                const reread = await this.#readDraft(conversationId, signal);
+                const reread = await this.#draftLoads.read(conversationId, signal);
                 if (this.#disposed || !this.#ownership.isCurrent(ownership, signal)) return;
                 const latestDeferredRevision = this.#ownership.highestDeferredRevision(ownership);
                 if (reread.revision < latestDeferredRevision) {
@@ -264,7 +262,7 @@ class ChatComposerDraftManager {
     async #reloadDraftFromEvent(conversationId: string): Promise<void> {
         const ownership = this.#ownership.snapshot();
         try {
-            const draft = await this.#draftLoads.load(undefined, async (signal) => await this.#readDraft(conversationId, signal));
+            const draft = await this.#draftLoads.readLatest(conversationId);
             if (this.#disposed || !this.#ownership.isCurrent(ownership) || this.#ownership.conversationId !== conversationId || this.#ownership.phase === 'loading') return;
             if (this.#projectCurrent().signature !== this.#appliedSignature) {
                 this.#revisions.record(conversationId, draft.revision, true);
@@ -289,6 +287,7 @@ class ChatComposerDraftManager {
             this.#dependencies.attachmentManager.addResolvedSoaiPathRecords(draft.soaiPathRecords);
             this.#dependencies.refreshComposerUi();
             this.#dependencies.noteInputDraftChanged(draft.text);
+            this.#surfaceRevision += 1;
             this.#appliedSignature = draft.signature;
             if (this.#ownership.conversationId !== null) this.#revisions.record(this.#ownership.conversationId, draft.revision, false);
         } finally {

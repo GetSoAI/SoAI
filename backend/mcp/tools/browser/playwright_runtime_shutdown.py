@@ -9,17 +9,19 @@ from typing import TYPE_CHECKING
 
 from playwright.async_api import Error
 
+from core.browser.playwright_driver_errors import (
+    classify_playwright_driver_connection_closed_exception,
+)
+from core.browser.playwright_lifecycle import stop_playwright_session
 from core.errors.cancellation import raise_cancelled_error
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from mcp.tools.browser.playwright_driver_errors import (
-    classify_playwright_driver_connection_closed_exception,
-)
 
 if TYPE_CHECKING:
-    from playwright.async_api import Browser, BrowserContext, Playwright
+    from playwright.async_api import Browser, BrowserContext
 
+    from core.browser.playwright_lifecycle import PlaywrightDriverSession
     from core.logging.protocols import LoggerProtocol
     from core.types.json import JSONValue
 
@@ -69,7 +71,7 @@ async def close_browser_with_logging(
         await browser.close()
     except asyncio.CancelledError as exception:
         raise_cancelled_error(exception)
-    except _PLAYWRIGHT_SHUTDOWN_EXCEPTIONS as exception:
+    except Exception as exception:
         driver_error = classify_playwright_driver_connection_closed_exception(
             exception,
             operation=_OPERATION_CLOSE_BROWSER,
@@ -88,26 +90,27 @@ async def close_browser_with_logging(
                 level="debug",
             )
             return
-        if not isinstance(exception, _PLAYWRIGHT_SHUTDOWN_EXCEPTIONS):
-            raise
-        _log_playwright_shutdown_exception(
-            logger,
-            exception,
-            operation=_OPERATION_CLOSE_BROWSER,
-            recoverable_message="Failed to close Playwright browser during shutdown (non-critical).",
-        )
+        if isinstance(exception, _PLAYWRIGHT_SHUTDOWN_EXCEPTIONS):
+            _log_playwright_shutdown_exception(
+                logger,
+                exception,
+                operation=_OPERATION_CLOSE_BROWSER,
+                recoverable_message="Failed to close Playwright browser during shutdown (non-critical).",
+            )
+            return
+        raise
 
 
 async def stop_playwright_with_logging(
-    playwright: Playwright,
+    playwright: PlaywrightDriverSession,
     *,
     logger: LoggerProtocol,
 ) -> None:
     try:
-        await playwright.stop()
+        await stop_playwright_session(playwright)
     except asyncio.CancelledError as exception:
         raise_cancelled_error(exception)
-    except _PLAYWRIGHT_SHUTDOWN_EXCEPTIONS as exception:
+    except Exception as exception:
         driver_error = classify_playwright_driver_connection_closed_exception(
             exception,
             operation=_OPERATION_STOP_PLAYWRIGHT,
@@ -126,14 +129,15 @@ async def stop_playwright_with_logging(
                 level="debug",
             )
             return
-        if not isinstance(exception, _PLAYWRIGHT_SHUTDOWN_EXCEPTIONS):
-            raise
-        _log_playwright_shutdown_exception(
-            logger,
-            exception,
-            operation=_OPERATION_STOP_PLAYWRIGHT,
-            recoverable_message="Failed to stop Playwright during shutdown (non-critical).",
-        )
+        if isinstance(exception, _PLAYWRIGHT_SHUTDOWN_EXCEPTIONS):
+            _log_playwright_shutdown_exception(
+                logger,
+                exception,
+                operation=_OPERATION_STOP_PLAYWRIGHT,
+                recoverable_message="Failed to stop Playwright during shutdown (non-critical).",
+            )
+            return
+        raise
 
 
 async def close_browser_context_with_logging(
@@ -147,7 +151,7 @@ async def close_browser_context_with_logging(
         await context.close()
     except asyncio.CancelledError as exception:
         raise_cancelled_error(exception)
-    except _PLAYWRIGHT_SHUTDOWN_EXCEPTIONS as exception:
+    except Exception as exception:
         driver_error = classify_playwright_driver_connection_closed_exception(
             exception,
             operation=operation,
@@ -164,12 +168,13 @@ async def close_browser_context_with_logging(
                 level="debug",
             )
             return
-        if not isinstance(exception, _PLAYWRIGHT_SHUTDOWN_EXCEPTIONS):
-            raise
-        _log_playwright_shutdown_exception(
-            logger,
-            exception,
-            operation=operation,
-            recoverable_message="Failed to close Playwright browser context during shutdown (non-critical).",
-            details=details,
-        )
+        if isinstance(exception, _PLAYWRIGHT_SHUTDOWN_EXCEPTIONS):
+            _log_playwright_shutdown_exception(
+                logger,
+                exception,
+                operation=operation,
+                recoverable_message="Failed to close Playwright browser context during shutdown (non-critical).",
+                details=details,
+            )
+            return
+        raise

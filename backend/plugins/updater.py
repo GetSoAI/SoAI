@@ -20,6 +20,7 @@ from core.plugins.protocols_guardian import UpdaterModuleDependenciesProtocol
 from core.runtime.platform import get_runtime_platform
 from plugins.protocols_internal.runtime.internal_protocols import (
     FetchLatestSoAIReleaseAsyncProtocol,
+    FetchSoAIReleaseHistoryAsyncProtocol,
 )
 
 if TYPE_CHECKING:
@@ -41,6 +42,7 @@ class Updater:
         edition: str,
         module_dependencies_type: type[UpdaterModuleDependenciesProtocol],
         fetch_latest_release_async: FetchLatestSoAIReleaseAsyncProtocol,
+        fetch_release_history_async: FetchSoAIReleaseHistoryAsyncProtocol,
     ) -> None:
         if not isinstance(module_dependencies, module_dependencies_type):
             raise ValidationError("ApplicationUpdaterModuleDependencies are required.")
@@ -50,6 +52,7 @@ class Updater:
         self.github_token = config.get_str("MODELS.CREDENTIALS.GITHUB_TOKEN")
         self.module_dependencies = module_dependencies
         self.fetch_latest_release_async = fetch_latest_release_async
+        self.fetch_release_history_async = fetch_release_history_async
         self.supported_platforms = supported_update_platforms_for_edition(edition)
 
     async def check_for_app_update(self) -> JSONDict:
@@ -75,8 +78,20 @@ class Updater:
         if not success or release_info is None:
             return {"update_available": False, "message": message, **platform_status}
         try:
+            current_version = get_core_version()
+            status = build_update_status(current_version, release_info)
+            history, complete = await self.fetch_release_history_async(
+                self.http_client,
+                timeout=self.timeout,
+                current_version=current_version,
+                latest_release=release_info,
+                logger=logger,
+                github_token=self.github_token,
+            )
             return {
-                **build_update_status(get_core_version(), release_info),
+                **status,
+                "release_history": history,
+                "release_history_complete": complete,
                 **platform_status,
             }
         except (SoAIError, TypeError, ValueError) as exception:

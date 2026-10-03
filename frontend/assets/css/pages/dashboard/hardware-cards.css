@@ -24,7 +24,7 @@
     :where([data-section='dashboard'], [data-page-scope='dashboard']) :is([data-section-id='network'], [data-section-id='storage']) > .dashboard-section-surface > .section-header .u-text-muted {
         font-size: var(--font-size-compact);
         letter-spacing: var(--tracking-04px);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-grid[data-columns='1'] :is(.hardware-network-list, .hardware-storage-list) {
@@ -34,7 +34,7 @@
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.hardware-network-list .hardware-network-row, .hardware-storage-list .hardware-storage-row) {
-        margin-right: 0;
+        margin-inline-end: 0;
     }
 
     @container ui-viewport (width <= 1400px) {

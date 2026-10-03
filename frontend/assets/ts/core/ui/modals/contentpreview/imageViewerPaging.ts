@@ -1,6 +1,7 @@
 /* SoAI - Image viewer touch paging and dismissal [frontend/assets/ts/core/ui/modals/contentpreview/imageViewerPaging.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { inlineDelta } from '@core/layout/direction.ts';
 import { prefersReducedMotion } from '@core/animations/prefersReducedMotion.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import type { ContentPreviewImageViewerRefs } from '@core/ui/modals/contentpreview/imageViewerDom.ts';
@@ -63,7 +64,7 @@ const createContentPreviewImageViewerPaging = (refs: ContentPreviewImageViewerRe
     const finish = (mode: ImageViewerPagingMode, delta: Point, elapsed: number): void => {
         const duration = Math.max(1, elapsed);
         if (mode === 'page' && actions.canNavigate() && (Math.abs(delta.x) >= Math.max(56, refs.viewport.clientWidth * 0.16) || (Math.abs(delta.x) >= 24 && Math.abs(delta.x) / duration >= 0.5))) {
-            actions.requestNavigation(delta.x < 0 ? 'next' : 'previous', offset.x);
+            actions.requestNavigation(inlineDelta(delta.x, refs.viewport) < 0 ? 'next' : 'previous', offset.x);
         } else if (mode === 'dismiss' && delta.y > 0 && (delta.y >= Math.max(80, refs.viewport.clientHeight * 0.14) || (delta.y >= 32 && delta.y / duration >= 0.55))) {
             actions.requestClose();
         } else {

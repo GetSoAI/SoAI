@@ -8,6 +8,8 @@ import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { createEditAttachmentStrip, renderEditTextareaMarkup } from '@features/chat/message/messageEditAttachmentDom.ts';
 import { preserveStableAttachmentThumbnailVisuals } from '@features/chat/attachments/attachmentThumbnailDom.ts';
 
+const MESSAGE_EDITING_CLASS = 'is-editing';
+
 type RestoreRenderedMessageTextArguments = {
     container: HTMLElement;
     message: ChatMessage;
@@ -33,9 +35,11 @@ const beginMessageTextEditing = (container: HTMLElement, editableText: string, r
     textarea.defaultValue = editableText;
     textarea.focus();
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-    container.classList.add('is-editing');
+    container.classList.add(MESSAGE_EDITING_CLASS);
     return textarea;
 };
+
+const isMessageTextEditing = (container: HTMLElement | null): boolean => container !== null && container.classList.contains(MESSAGE_EDITING_CLASS);
 
 const resolveMessageTextEditingBusyTargets = (container: HTMLElement): BusyDisabledTarget[] => {
     return dom.resolveAll('.message-edit-input, .edit-message-cancel-btn, .message-edit-remove-attachment-btn', container).filter((element): element is BusyDisabledTarget => element instanceof HTMLButtonElement || element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement || element instanceof HTMLAnchorElement);
@@ -55,7 +59,7 @@ const setMessageTextEditingBusy = (container: HTMLElement, busy: boolean): void 
 };
 
 const restoreRenderedMessageText = (inputArguments: RestoreRenderedMessageTextArguments): void => {
-    inputArguments.container.classList.remove('is-editing');
+    inputArguments.container.classList.remove(MESSAGE_EDITING_CLASS);
     const messageTextNode = dom.resolve('.message-text', inputArguments.container);
     if (!(messageTextNode instanceof HTMLElement)) {
         return;
@@ -71,4 +75,4 @@ const restoreRenderedMessageText = (inputArguments: RestoreRenderedMessageTextAr
     inputArguments.postRender(messageTextNode);
 };
 
-export { beginMessageTextEditing, restoreRenderedMessageText, setMessageTextEditingBusy };
+export { beginMessageTextEditing, isMessageTextEditing, restoreRenderedMessageText, setMessageTextEditingBusy };

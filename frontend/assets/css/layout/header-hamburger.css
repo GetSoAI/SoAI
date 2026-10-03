@@ -40,12 +40,14 @@
         display: none;
         align-items: center;
         justify-content: center;
-        margin-left: var(--sidebar-collapsed-icon-button-margin-inline-start);
+        margin-inline-start: var(--sidebar-collapsed-icon-button-margin-inline-start);
     }
 
     .hamburger-menu :is(.hamburger-icon, .close-icon) {
         position: absolute;
         top: 50%;
+
+        /* direction: physical — centering uses physical negative half-width translation */
         left: 50%;
         transform: translate(-50%, -50%);
         width: var(--icon-size);
@@ -63,20 +65,26 @@
 
     .hamburger-menu .hamburger-icon {
         opacity: 1;
+
+        /* direction: physical — hamburger glyph remains centered around its physical rotation origin */
         transform: translate(-50%, -50%) rotate(0deg);
     }
 
     .hamburger-menu .close-icon {
         opacity: 0;
+
+        /* direction: physical — hamburger glyph remains centered around its physical rotation origin */
         transform: translate(-50%, -50%) rotate(-90deg);
     }
 
     .hamburger-menu.is-active .hamburger-icon {
+        /* direction: physical — hamburger glyph remains centered around its physical rotation origin */
         transform: translate(-50%, -50%) rotate(90deg);
         opacity: 0;
     }
 
     .hamburger-menu.is-active .close-icon {
+        /* direction: physical — hamburger glyph remains centered around its physical rotation origin */
         transform: translate(-50%, -50%) rotate(0deg);
         opacity: 1;
     }

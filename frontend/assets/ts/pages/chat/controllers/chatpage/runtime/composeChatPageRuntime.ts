@@ -35,7 +35,7 @@ interface ChatPageRuntimeComposition extends ChatSessions {
 
 const composeChatPageRuntime = (owners: ChatPageRuntimeOwners, dependencies: ChatPageDependencies, logger: ModuleLogger): ChatPageRuntimeComposition => {
     const { domain, page, platform } = owners;
-    const foundation = createChatFoundation({ storage: platform.storage, pageDom: page.pageDom, pageResources: page.pageResources, getDocumentElement: () => platform.dom.getDocumentElement() }, logger);
+    const foundation = createChatFoundation({ storage: platform.storage, pageDom: page.pageDom, pageResources: page.pageResources, getDocumentElement: () => platform.dom.getDocumentElement(), isDetached: () => page.services.isDetached() }, logger);
     const settings = foundation.settings;
     const runtimeServices = new ChatRuntimeServices(dependencies, foundation.timers);
     const taskScope = new ChatUiTaskScopeManager({ runWithBoundary: (operationId, task) => page.pageLifecycle.run(operationId, task), getCurrentConversationId: () => domain.conversationState.currentConversationId });

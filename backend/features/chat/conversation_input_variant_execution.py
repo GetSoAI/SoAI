@@ -13,6 +13,7 @@ from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
+from core.openai.openai_sse_error_escalation import OpenAIStreamError
 from core.tasks.interaction_secrets import InteractionSecretEffectUnknownError
 from features.api.routes.system.events.websocket_chat_stream.completion_followups import (
     track_auto_title_generation,
@@ -236,7 +237,16 @@ async def execute_conversation_input_variant(
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
         coerced = coerce_to_soai_error(exception, operation=OPERATION)
         effect_unknown = isinstance(exception, InteractionSecretEffectUnknownError)
-        if not effect_unknown:
+        if isinstance(coerced, OpenAIStreamError):
+            log_handled_exception(
+                logger,
+                coerced,
+                message="Conversation input variant execution failed.",
+                operation=OPERATION,
+                trace_id=context.trace_id,
+                details={"input_id": execution.input_id, "conv_id": execution.conv_id},
+            )
+        elif not effect_unknown:
             log_exception(
                 logger,
                 coerced,

@@ -11,6 +11,7 @@ const PAGE_TRANSITIONING_IN = 'page-transitioning-in';
 const PAGE_CONTENT_READY = 'page-content-ready';
 const PAGE_TRANSITION_SURFACE_SELECTOR = '[data-page-transition-surface="true"]';
 const PAGE_TRANSITION_MODE_ATTRIBUTE = 'data-page-transition-mode';
+const PAGE_EXITING_ATTRIBUTE = 'data-page-exiting';
 const ANIMATION_WAIT_TIMEOUT_MS = 1500;
 
 interface PageTransitionSurfaceResolution {
@@ -182,5 +183,5 @@ const waitForElementAnimations = async (element: Element, { ensureStarted = true
     }
 };
 
-export { PAGE_CONTENT_READY, PAGE_TRANSITIONING_IN, PAGE_TRANSITION_MODE_ATTRIBUTE, isReduceMotionsEnabled, resolveActiveSection, requirePageTransitionSurface, revealMountedPageSection, waitForElementAnimations };
+export { PAGE_CONTENT_READY, PAGE_EXITING_ATTRIBUTE, PAGE_TRANSITIONING_IN, PAGE_TRANSITION_MODE_ATTRIBUTE, isReduceMotionsEnabled, resolveActiveSection, requirePageTransitionSurface, revealMountedPageSection, waitForElementAnimations };
 export type { PageTransitionSurfaceResolution };

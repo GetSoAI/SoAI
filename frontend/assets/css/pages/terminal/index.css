@@ -17,6 +17,7 @@
         padding: 0;
         margin: 0;
         overflow: hidden;
+        background: none;
     }
 
     body.page-terminal:not(.detached-window) .main-content > .terminal-page:where([data-section='terminal'], [data-page-scope='terminal']) {
@@ -24,6 +25,12 @@
         min-height: 100%;
         height: 100%;
         overflow: hidden;
+        scrollbar-gutter: auto;
+        background: none;
+    }
+
+    body.page-terminal:not(.detached-window) .header::before {
+        inset-inline-end: 0;
     }
 
     :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-container {
@@ -42,7 +49,7 @@
     :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-toolbar {
         position: absolute;
         top: calc(var(--layout-section-padding) + var(--space-5));
-        right: calc(var(--layout-section-padding) + var(--space-5));
+        inset-inline-end: calc(var(--layout-section-padding) + var(--space-5));
         z-index: var(--z-raised);
         display: flex;
         gap: var(--space-2);
@@ -56,7 +63,7 @@
 
     body.detached-window :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-toolbar {
         top: calc(var(--layout-container-padding) + var(--space-5));
-        right: calc(var(--layout-container-padding) + var(--space-5));
+        inset-inline-end: calc(var(--layout-container-padding) + var(--space-5));
     }
 
     :where([data-section='terminal'], [data-page-scope='terminal']) .terminal-btn {

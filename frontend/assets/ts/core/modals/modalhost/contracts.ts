@@ -19,6 +19,7 @@ interface ModalHostState {
     resizeState: Map<string, ResizeState>;
     fullscreenState: Map<string, FullscreenState>;
     layoutOverrides: Map<string, ModalLayoutPreset>;
+    desktopOpenHeights: Map<string, number>;
     dockHintElement: HTMLElement | null;
     dockHintVisible: boolean;
     dockHintVisibilityToken: number;
@@ -46,6 +47,7 @@ const createModalHostState = ({ storage, resolveModalElement, ensureModalElement
         resizeState: new Map(),
         fullscreenState: new Map(),
         layoutOverrides: new Map(),
+        desktopOpenHeights: new Map(),
         dockHintElement: null,
         dockHintVisible: false,
         dockHintVisibilityToken: 0,

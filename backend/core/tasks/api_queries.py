@@ -29,13 +29,7 @@ class TaskVisibilityUserPayload(TypedDict):
 
 
 def task_to_response(task: Task) -> TaskQueryResponse:
-    public_terminal_fields = resolve_public_task_terminal_fields(
-        status=task.status,
-        error_code=task.error_code,
-        error_type=task.error_type,
-        status_message=task.status_message,
-        error_message=task.error_message,
-    )
+    public_terminal_fields = resolve_public_task_terminal_fields(task)
     identity_payload = build_task_identity_payload(task)
     task_id_value = identity_payload.get("task_id")
     task_id = task_id_value if isinstance(task_id_value, str) else task.task_id

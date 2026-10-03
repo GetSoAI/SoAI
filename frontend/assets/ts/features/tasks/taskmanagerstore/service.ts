@@ -6,6 +6,7 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { LifecycleModel } from '@core/LifecycleModel.ts';
 import { toTrimmedStringOrNull } from '@core/normalize.ts';
 import { normalizeProgress } from '@core/primitives/progress.ts';
+import { isPluginStopEligibleStatus } from '@core/state/pluginStatus.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isFunction, isObject, isString } from '@core/typeGuards.ts';
 import type { OperationDefinition, OperationEntry, PluginEntry } from '@features/tasks/taskmanager/taskManagerModels.ts';
@@ -170,12 +171,9 @@ class TaskManagerStore extends LifecycleModel implements TaskManagerStoreApi {
     }
 
     getStoppablePlugins(): PluginEntry[] {
-        return getStoppablePlugins(this.#state, (plugin) => plugin.isPersistent === true || this.isPersistentStatus(plugin.state || null));
+        return getStoppablePlugins(this.#state, (plugin) => plugin.isPersistent === true || !isPluginStopEligibleStatus(plugin.state || ''));
     }
 
-    getStoppableCount(): number {
-        return this.getStoppablePlugins().length;
-    }
     getActiveOperations(): OperationEntry[] {
         return getActiveOperations(this.#state);
     }

@@ -24,7 +24,6 @@ from hardware.gpu_info_resolution import get_gpu_info_snapshot_for_services
 from hardware.info_cpu import get_cpu_info
 from hardware.info_memory import get_memory_info, get_swap_info
 from hardware.info_motherboard import get_motherboard_info
-from hardware.info_network import get_network_info
 from hardware.info_system import get_uptime_info
 from hardware.internal_protocols import (
     GPUInfoCacheServiceProtocol,
@@ -80,7 +79,7 @@ def collect_system_info_snapshot(
         "disk": lambda: get_disk_info(executor),
         "disk_speed": lambda: get_disk_speed_snapshot(manager) or {},
         "motherboard": lambda: get_motherboard_info(executor),
-        "network": get_network_info,
+        "network": manager.get_network_info,
         "network_speed": lambda: get_network_speed(manager),
     }
     requested_components = set(components or component_funcs.keys())

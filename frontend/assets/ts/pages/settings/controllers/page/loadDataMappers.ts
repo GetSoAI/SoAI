@@ -31,7 +31,6 @@ const createUiPrefsSnapshot = (page: SettingsRuntimeContext): JsonObject => {
         animationSpeed: storage.getAnimationSpeed(),
         interfaceScale: storage.getInterfaceScale(),
         wallpaperOverlay: storage.getWallpaperOverlay(),
-        solidBackground: storage.getSolidBackground(),
         headerAutoHide: storage.getHeaderAutoHide(),
         showScrollToTopButton: storage.getShowScrollToTopButton(),
         showMainStatusIndicator: storage.getShowMainStatusIndicator(),

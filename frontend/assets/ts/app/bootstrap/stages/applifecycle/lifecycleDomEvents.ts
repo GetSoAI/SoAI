@@ -45,7 +45,6 @@ const setupLifecycleEventListeners = ({ tracker, taskManager, state, recoverFres
         const section = getElementByIdStrict(id);
         const isVisible = !dom.hasClass(section, 'u-hidden') && section.offsetParent !== null;
         state.toggleHidden(section, isVisible);
-        dom.setStyle(section, 'display', isVisible ? 'none' : '');
         dom.toggleClass(toggle, 'is-active', !isVisible);
     });
     tracker.addEventListener(getEventHub(), SETUP_REQUIRED_AUTH_EVENT, () => {

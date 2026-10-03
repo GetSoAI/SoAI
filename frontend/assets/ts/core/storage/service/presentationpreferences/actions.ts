@@ -8,6 +8,7 @@ import { isAnimationSpeed, isAnimationType, isChartColorModeType } from '@core/s
 import { normalizeModalState } from '@core/storage/modalState.ts';
 import type { StorageRuntime } from '@core/storage/service/types.ts';
 import type { ModalState } from '@core/storage/types.ts';
+import type { DefaultWallpaperId } from '@core/theme/defaultWallpapers.ts';
 import { applyAccentColor, normalizeAccentColorPreference } from '@core/theme/accentColor.ts';
 import { trimHexColorOrNull } from '@core/theme/hexColor.ts';
 import { applySurfaceColor, normalizeSurfaceColorPreference } from '@core/theme/surfaceColor.ts';
@@ -46,6 +47,7 @@ const createPresentationPreferenceActions = (
     clearAllModalStates: () => void;
     setWallpaperOverlay: (value: number) => void;
     setSolidBackground: (color: string | null) => void;
+    setDefaultWallpaper: (id: DefaultWallpaperId | null) => void;
     setChartColorMode: (mode: string) => void;
     setChartStaticColor: (color: string) => void;
     setAdvancedMode: (enabled: boolean) => void;
@@ -249,6 +251,11 @@ const createPresentationPreferenceActions = (
         terminateHandledPromise(core.queuePersist('ui'));
     };
 
+    const setDefaultWallpaper = (id: DefaultWallpaperId | null): void => {
+        state.cache.ui.defaultWallpaper = id;
+        terminateHandledPromise(core.queuePersist('ui'));
+    };
+
     const setChartColorMode = (mode: string): void => {
         const normalized = isChartColorModeType(mode) ? mode : 'auto';
         state.cache.ui.chartColorMode = normalized;
@@ -291,6 +298,7 @@ const createPresentationPreferenceActions = (
         clearAllModalStates,
         setWallpaperOverlay,
         setSolidBackground,
+        setDefaultWallpaper,
         setChartColorMode,
         setChartStaticColor,
         setAdvancedMode,

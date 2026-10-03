@@ -1,8 +1,7 @@
 /* SoAI - File explorer page control layer operations [frontend/assets/ts/pages/fileexplorer/controllers/fileExplorerOperations.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
-import { requirePathLeaf } from '@core/filePathResolution.ts';
+import { basenameVirtualPath, toVirtualPath } from '@core/fileexplorerbrowser/paths.ts';
 
 type FileExplorerRenameLeafError = 'invalid' | 'pathSeparator' | 'required' | 'unchanged';
 
@@ -18,7 +17,9 @@ const toFiles = (files: FileList): File[] => {
 };
 
 const filenameFromPath = (path: string): string => {
-    return requirePathLeaf(toVirtualPath(path), 'fileExplorer.path filename is required');
+    const filename = basenameVirtualPath(toVirtualPath(path));
+    if (filename === '/') throw new Error('fileExplorer.path filename is required');
+    return filename;
 };
 
 const normalizeFileExplorerRenameLeaf = (value: string): string => value.trim();

@@ -11,7 +11,7 @@ import type { ChatTokenCounterController } from '@pages/chat/widgets/tokencounte
 import { insertTranscription, refreshChatInputUiState } from '@pages/chat/controllers/page/dom/input.ts';
 import { persistParametersToConversation } from '@pages/chat/controllers/chatpage/construction/persistConversationParameters.ts';
 import { syncToolApprovalRequiredToConversation, syncToolsEnabledToConversation, type SyncToolsEnabledHost } from '@pages/chat/controllers/chatpage/construction/syncToolsEnabled.ts';
-import type { ChatComposerDraftManager, ChatElicitationSession, ComposerDraftFlushOptions } from '@features/chat/public.ts';
+import type { ChatComposerDraftManager, ChatElicitationSession, ComposerDraftFlushOptions, ComposerDraftSurfaceSnapshot } from '@features/chat/public.ts';
 import type { ChatComposerContract, ChatComposerDependencies } from '@pages/chat/controllers/chatpage/composer/contracts.ts';
 import { applyInputActionVisibilityLifecycle } from '@pages/chat/controllers/chatpage/construction/inputActionVisibilityController.ts';
 import { ChatComposerSession } from '@pages/chat/controllers/chatpage/composer/ChatComposerSession.ts';
@@ -174,8 +174,18 @@ class ChatComposerController implements ChatComposerContract {
         this.#syncTokenCounterForParameterChange();
     }
 
-    insertTranscription(text: string): void {
-        insertTranscription(this.#inputUiHost(), this.#dependencies.input.getChatInput(), text, (value) => this.noteDraftChanged(value));
+    insertTranscription(text: string, options: { focus?: boolean } = {}): void {
+        insertTranscription(this.#inputUiHost(), this.#dependencies.input.getChatInput(), text, (value) => this.noteDraftChanged(value), options);
+    }
+
+    captureDraftSurface(): ComposerDraftSurfaceSnapshot {
+        const manager = this.#session.draft;
+        if (!manager) throw new Error('Chat composer draft manager is not initialized');
+        return manager.captureSurfaceSnapshot();
+    }
+
+    matchesDraftSurface(snapshot: ComposerDraftSurfaceSnapshot, adoptedConversationId?: string): boolean {
+        return this.#session.draft?.matchesSurfaceSnapshot(snapshot, adoptedConversationId) === true;
     }
 
     insertTextAtCaret(text: string, mode: 'inline' | 'block'): void {
@@ -232,7 +242,8 @@ class ChatComposerController implements ChatComposerContract {
         await handleToggleToolsForPage({
             settings: this.#dependencies.state.settings,
             conversationView: this.#dependencies.sessions.conversationView,
-            syncToolsEnabledToConversation: (enabled) => this.syncToolsEnabled(enabled)
+            syncToolsEnabledToConversation: (enabled) => this.syncToolsEnabled(enabled),
+            openToolsSettings: () => this.#dependencies.openToolsSettings()
         });
     }
 

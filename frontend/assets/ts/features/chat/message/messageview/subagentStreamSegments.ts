@@ -6,7 +6,9 @@ import { readNonNegativeIntegerOrNullValue } from '@core/types/payloadNumberRead
 import { isJsonArray, isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { resolveAnchoredAssistantSegments, type AnchoredAssistantActivity } from '@features/chat/message/anchoredAssistantSegments.ts';
 import type { InlineToolActivitySegment, MessageSegment, TextSegment } from '@features/chat/message/messageSegments.ts';
+import { resolveLatestInlineActivityName } from '@features/chat/message/messageview/inlineActivityName.ts';
 import { buildSubagentChildToolSegment } from '@features/chat/message/messageview/subagentToolCallSegments.ts';
+import { normalizeToolLeafName } from '@features/chat/toolactivity/toolLeafName.ts';
 
 type SubagentTextBlockSegment = TextSegment & {
     readonly startedAtMs: number;
@@ -180,5 +182,19 @@ const resolveSubagentToolResultModel = (payload: JsonValue, parentCallId: string
     };
 };
 
+const hasSubagentStreamPayload = (payload: JsonValue | undefined): payload is JsonValue => {
+    if (!isJsonObject(payload)) {
+        return false;
+    }
+    return isJsonObject(payload['subagent']) && isJsonObject(payload['subagentStream']);
+};
+
+const resolveSubagentLatestActivityName = (segment: InlineToolActivitySegment): string | null => {
+    if (segment.status !== 'running' || normalizeToolLeafName(segment.toolName) !== 'subagent_spawn' || !hasSubagentStreamPayload(segment.result)) {
+        return null;
+    }
+    return resolveLatestInlineActivityName(resolveSubagentToolResultModel(segment.result, segment.callId, { assistantTurnTimestamp: 0, modelVariantIndex: 0 }).streamSegments);
+};
+
 export type { SubagentToolResultModel };
-export { resolveSubagentToolResultModel };
+export { hasSubagentStreamPayload, resolveSubagentLatestActivityName, resolveSubagentToolResultModel };

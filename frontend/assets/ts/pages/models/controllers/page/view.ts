@@ -7,8 +7,10 @@ import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import type { BuildConfig } from '@core/uiprimitives/types.ts';
 import { buildModelsLayout } from '@pages/models/view.ts';
+import type { CollectionDisplayMode } from '@core/uiprimitives/viewmode/collection.ts';
 
 interface ModelsLayoutDependencies {
+    viewMode: CollectionDisplayMode;
     sortBy: string;
     sortOrder: 'asc' | 'desc';
     onSortChange: (event: Event) => void;
@@ -17,6 +19,7 @@ interface ModelsLayoutDependencies {
 }
 
 interface ModelsPageLayoutHost {
+    viewMode: CollectionDisplayMode;
     sortBy: string;
     sortOrder: 'asc' | 'desc';
     onSortChange: (event: Event) => void;
@@ -28,6 +31,7 @@ interface ModelsPageLayoutHost {
 
 const buildModelsCollectionLayout = (dependencies: ModelsLayoutDependencies): CollectionLayout => {
     return buildModelsLayout({
+        viewMode: dependencies.viewMode,
         getIconSync: (iconName: IconName, options?: IconOptions) => dependencies.getIconSync(iconName, options),
         buildLayout: (config) => dependencies.buildLayout(config),
         sortBy: dependencies.sortBy,
@@ -39,6 +43,7 @@ const buildModelsCollectionLayout = (dependencies: ModelsLayoutDependencies): Co
 const createModelsPageCollectionLayout = (host: ModelsPageLayoutHost): CollectionLayout => {
     const builder = host.createLayoutBuilder();
     return buildModelsCollectionLayout({
+        viewMode: host.viewMode,
         sortBy: host.sortBy,
         sortOrder: host.sortOrder,
         onSortChange: host.onSortChange,

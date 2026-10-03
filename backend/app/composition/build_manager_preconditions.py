@@ -223,6 +223,7 @@ def build_manager_preconditions(
         database_tool_calls=database_tool_calls,
         database_read_video=database_services.read_video,
         database_files=database_files,
+        database_operation_status=database_services.operation_status,
         database_conversation_knowledge_attachments=(
             database_services.conversation_knowledge_attachments
         ),

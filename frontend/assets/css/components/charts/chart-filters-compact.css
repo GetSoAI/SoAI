@@ -32,7 +32,7 @@
         content: '';
         width: var(--control-icon-size-compact);
         height: var(--control-icon-size-compact);
-        margin-left: var(--space-1);
+        margin-inline-start: var(--space-1);
         background-image: var(--control-select-arrow-image);
         background-repeat: no-repeat;
         background-position: center;
@@ -48,7 +48,7 @@
         display: none;
         position: absolute;
         top: 100%;
-        right: 0;
+        inset-inline-end: 0;
         z-index: var(--z-dropdown);
         width: min(calc(72 * var(--ui-viewport-width-unit)), 56ch);
         max-width: calc(calc(100 * var(--ui-viewport-width-unit)) - var(--space-6));
@@ -80,7 +80,7 @@
     }
 
     .chart-filters-bar[data-compact-filters='true'] .chart-filter-fullscreen {
-        margin-left: auto;
+        margin-inline-start: auto;
         order: 10;
     }
 }

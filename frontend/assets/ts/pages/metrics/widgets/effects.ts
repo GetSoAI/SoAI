@@ -171,7 +171,7 @@ const updateDistributionChart = (host: MetricsPageWidgetHost, options: UpdateDis
                 const label = host.owners.services.sanitizeText(item.label);
                 const value = host.owners.services.sanitizeText(item.value);
                 const itemClass = item.separatorBefore === true ? 'distribution-legend__item distribution-legend__item--others-boundary' : 'distribution-legend__item';
-                return `<li class="${itemClass}"><span class="distribution-legend__swatch" style="${item.swatchStyle}"></span><div class="distribution-legend__text"><span class="distribution-legend__label">${label}</span><span class="distribution-legend__value">${value}</span></div></li>`;
+                return `<li class="${itemClass}"><span class="distribution-legend__swatch" style="${item.swatchStyle}"></span><div class="distribution-legend__text"><span dir="auto" class="distribution-legend__label">${label}</span><span class="distribution-legend__value">${value}</span></div></li>`;
             })
             .join('');
         host.owners.pageDom.updateHtml(legendContentElement, toTrustedUiHtml(`<ul class="distribution-legend">${markup}</ul>`));

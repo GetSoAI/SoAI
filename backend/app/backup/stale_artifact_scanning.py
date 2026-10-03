@@ -6,6 +6,8 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 
+from core.filesystem.path_coercion import normalize_filesystem_path
+
 __all__ = ("sync_collect_stale_paths_by_mtime",)
 
 
@@ -17,7 +19,7 @@ def sync_collect_stale_paths_by_mtime(
     include_entry: Callable[[os.DirEntry[str]], bool] | None = None,
 ) -> list[str]:
     expired: list[str] = []
-    with os.scandir(parent) as it:
+    with os.scandir(normalize_filesystem_path(parent)) as it:
         for entry in it:
             if include_entry is not None and not include_entry(entry):
                 continue
@@ -28,5 +30,5 @@ def sync_collect_stale_paths_by_mtime(
             age_seconds = now_seconds - float(stat_info.st_mtime)
             if age_seconds <= max_age_seconds:
                 continue
-            expired.append(entry.path)
+            expired.append(os.path.join(parent, entry.name))
     return expired

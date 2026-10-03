@@ -6,6 +6,31 @@
     body.glass-disabled {
         --glass-underlay-page: var(--glass-user-disabled-underlay-page);
         --glass-underlay-surface: var(--glass-user-disabled-underlay-surface);
+        --glass-surface-opacity: 90%;
+        --glass-surface-strong-base: color-mix(in srgb, var(--glass-disabled-surface-strong-color) 75%, var(--glass-underlay-page));
+        --glass-surface-darker-base: color-mix(in srgb, var(--glass-disabled-surface-darker-color) 75%, var(--glass-underlay-page));
+        --glass-surface-medium-color-base: color-mix(in srgb, var(--glass-disabled-surface-medium-color) 70%, var(--glass-underlay-page));
+        --glass-surface-light-base: color-mix(in srgb, var(--glass-disabled-surface-light-color) 65%, var(--glass-underlay-page));
+        --glass-surface-interactive-base: color-mix(in srgb, var(--glass-disabled-surface-interactive-color) 85%, var(--glass-underlay-page));
+        --glass-surface-interactive-strong-base: color-mix(in srgb, var(--glass-disabled-surface-interactive-strong-color) 90%, var(--glass-underlay-page));
+        --glass-surface-weak-base: color-mix(in srgb, var(--glass-disabled-surface-weak-color) 55%, var(--glass-underlay-page));
+        --glass-surface-strong: color-mix(in srgb, var(--glass-surface-strong-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-darker: color-mix(in srgb, var(--glass-surface-darker-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-medium: color-mix(in srgb, var(--glass-surface-medium-color-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-light: color-mix(in srgb, var(--glass-surface-light-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-interactive: color-mix(in srgb, var(--glass-surface-interactive-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-interactive-strong: color-mix(in srgb, var(--glass-surface-interactive-strong-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-weak: color-mix(in srgb, var(--glass-surface-weak-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-chat-message: color-mix(in srgb, var(--glass-surface-chat-message-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-chat-input: color-mix(in srgb, var(--glass-surface-chat-input-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-overlay: color-mix(in srgb, var(--glass-surface-overlay-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-overlay-strong: color-mix(in srgb, var(--glass-surface-overlay-strong-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-progress: color-mix(in srgb, var(--glass-surface-progress-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-terminal-btn: color-mix(in srgb, var(--glass-surface-terminal-btn-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-terminal-btn-hover: color-mix(in srgb, var(--glass-surface-terminal-btn-hover-base) var(--glass-surface-opacity), transparent);
+        --alternating-grey-light: color-mix(in srgb, var(--alternating-grey-light-base) var(--glass-surface-opacity), transparent);
+        --alternating-grey-dark: color-mix(in srgb, var(--alternating-grey-dark-base) var(--glass-surface-opacity), transparent);
+        --glass-surface-interactive-hover: color-mix(in srgb, var(--glass-surface-interactive-hover-base) 90%, transparent);
         --glass-border-strong: color-mix(in srgb, var(--glass-border-strong-base) 65%, var(--glass-surface-strong));
         --glass-border-medium: color-mix(in srgb, var(--glass-border-strong) 70%, var(--glass-underlay-surface));
         --glass-border-subtle: color-mix(in srgb, var(--glass-border-strong) 50%, var(--glass-surface-strong));
@@ -28,6 +53,24 @@
         --glass-surface-hover-strong: color-mix(in srgb, var(--glass-surface-interactive-strong) 76%, var(--hover-layer-mix-base) 24%);
         --glass-border-chat-message-user: color-mix(in srgb, var(--glass-surface-chat-message-user) 78%, var(--accent-green-light) 22%);
         --glass-surface-chat-message-user-badge: color-mix(in srgb, var(--glass-surface-chat-message-user) 90%, var(--glass-surface-medium));
+    }
+
+    body.glass-disabled .header::before,
+    body.glass-disabled .sidebar,
+    body.glass-disabled .page-header-panel {
+        background: var(--glass-surface-darker);
+    }
+
+    body.glass-disabled .chat-conversation-header.glass-surface--no-shadow {
+        background: var(--glass-surface-light);
+    }
+
+    body.glass-disabled :is(.automation-window-runs-root, .automation-automations-root) > .automation-pane-section > .automation-pane-section-header {
+        background-color: var(--glass-surface-medium);
+    }
+
+    body.glass-disabled :is(.glass-surface, .glass-surface-strong, .glass-surface-medium, .glass-surface-light, .glass-surface-darker, .glass-surface-weak, .glass-surface-interactive, .glass-surface-interactive-strong, .glass-surface-full).setting-change-surface:is(.modified, .is-invalid)::before {
+        background-color: color-mix(in srgb, var(--glass-surface-bg) 90%, transparent);
     }
 
     body.glass-disabled :is(.dropdown-item, .plugin-item.dropdown-item, .task-item.dropdown-item):is(:hover, :focus-visible) {

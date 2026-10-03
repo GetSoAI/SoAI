@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { JsonValue } from '@core/types/jsonValues.ts';
-import type { RequestDistributionChartSizeWatcher } from '@core/models/requestDistributionChartSizing.ts';
+import type { ElementResizeRedrawWatcher } from '@core/layout/elementResizeRedraw.ts';
 import { getMainStatusMonitor } from '@core/mainstatusmonitor/public.ts';
-import { updateMainStateIndicatorUI } from '@features/indicators/public.ts';
 import { DASHBOARD_REQUIRED_STREAMS, isStatusManagerContract, type StatusManagerContract } from '@pages/dashboard/contracts/constants.ts';
 import type { DashboardBlueprint, DashboardBlueprintId } from '@pages/dashboard/controllers/dashboardBlueprints.ts';
 import type { DashboardLiveDataKey, DashboardSectionId } from '@pages/dashboard/controllers/dashboardLiveData.ts';
@@ -18,7 +17,7 @@ interface DashboardSubscriptionSetupDependencies {
     subscribeToData: (resource: string, handler: (payload: JsonValue) => void) => () => void;
     registerDashboardSubscription: (subscription: () => void) => void;
     handleLiveData: (type: DashboardLiveDataKey, payload: JsonValue) => void;
-    getMainStateIndicator: () => Element | null;
+    queueStatusRender: () => void;
 }
 
 interface DashboardSectionRenderDependencies {
@@ -32,18 +31,15 @@ const resolveDashboardStatusManager = (source: DashboardStatusSource | undefined
     return isStatusManagerContract(status) ? status : null;
 };
 
-const createMainStateMonitorCleanup = (dependencies: { getMainStateIndicator: () => Element | null }): (() => void) => {
+const createMainStateMonitorCleanup = (dependencies: { queueStatusRender: () => void }): (() => void) => {
     return setupDashboardMainStateMonitoring({
         subscribeMainState: (callback: (state: string) => void): (() => void) => {
             return getMainStatusMonitor().subscribe((state: string): void => {
                 callback(state);
             });
         },
-        updateMainStateIndicator: (state: string): void => {
-            const element = dependencies.getMainStateIndicator();
-            if (element instanceof HTMLElement) {
-                updateMainStateIndicatorUI(element, state);
-            }
+        updateMainStateIndicator: (): void => {
+            dependencies.queueStatusRender();
         }
     });
 };
@@ -57,7 +53,7 @@ const runDashboardSubscriptions = (dependencies: DashboardSubscriptionSetupDepen
             dependencies.handleLiveData(type, payload);
         }
     });
-    return createMainStateMonitorCleanup({ getMainStateIndicator: dependencies.getMainStateIndicator });
+    return createMainStateMonitorCleanup({ queueStatusRender: dependencies.queueStatusRender });
 };
 
 const queueDashboardSectionRender = (dependencies: DashboardSectionRenderDependencies, sectionId: DashboardSectionId): void => {
@@ -87,7 +83,7 @@ interface DashboardWidgetRuntimeLifecycle {
     throughput: DashboardDestroyable;
     layoutEdit: DashboardDestroyable;
     layout: DashboardDestroyable;
-    requestDistributionChartSizeWatcher: RequestDistributionChartSizeWatcher;
+    requestDistributionChartSizeWatcher: ElementResizeRedrawWatcher;
 }
 
 const destroyDashboardWidgetRuntime = (runtime: DashboardWidgetRuntimeLifecycle): void => {

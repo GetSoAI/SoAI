@@ -17,6 +17,7 @@ from core.bootstrap.runtime_directories import (
     TMPDIR_ENV,
     ensure_runtime_directory_environment,
 )
+from core.browser.playwright_driver_commands import build_playwright_install_command
 from core.concurrency.bounded_blocking import (
     BoundedBlockingPool,
     BoundedBlockingTimeoutBase,
@@ -47,10 +48,6 @@ _PLAYWRIGHT_INSTALL_EXECUTOR_WORKERS: int = 1
 
 class _PlaywrightInstallExecutorState:
     executor: BoundedBlockingPool | None = None
-
-
-def _build_playwright_install_command(*, python_executable: str) -> list[str]:
-    return [python_executable, "-m", "playwright", "install", "chromium"]
 
 
 def _should_use_with_deps() -> bool:
@@ -117,11 +114,13 @@ def install_chromium(
             int(float(timeout_sec) - (time.monotonic() - start_monotonic)),
         )
 
-        argv = _build_playwright_install_command(python_executable=python_executable)
+        install_command = build_playwright_install_command(python_executable=python_executable)
+        argv = install_command.argv
         if _should_use_with_deps():
             argv = [*argv[:4], "--with-deps", *argv[4:]]
 
         env = dict(os.environ)
+        env.update(install_command.environment)
         env[PLAYWRIGHT_BROWSERS_PATH_ENV] = browsers_path
         env[TMPDIR_ENV] = runtime_directories.temp_path
         env[PIP_CACHE_DIR_ENV] = runtime_directories.pip_cache_path

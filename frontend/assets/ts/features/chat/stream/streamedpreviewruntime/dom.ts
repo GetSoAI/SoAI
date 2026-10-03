@@ -7,8 +7,8 @@ import { STREAMED_PREVIEW_ATTRIBUTE_NAMES } from '@features/chat/message/message
 import { COLLAPSED_LOADING_SUMMARY_SELECTOR } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
 
 const STREAMED_PREVIEW_SELECTOR = `.inline-activity-preview[${STREAMED_PREVIEW_ATTRIBUTE_NAMES.root}="true"]`;
-const THINKING_PREVIEW_OWNER_SELECTOR = '.inline-activity-type-thinking[data-call-id]';
-const STREAMED_PREVIEW_OWNER_SELECTOR = `${THINKING_PREVIEW_OWNER_SELECTOR}, ${COLLAPSED_LOADING_SUMMARY_SELECTOR}`;
+const CALL_ID_PREVIEW_OWNER_SELECTOR = '.inline-activity-type-thinking[data-call-id], .inline-activity-type-tool[data-tool-leaf="subagent_spawn"][data-call-id]';
+const STREAMED_PREVIEW_OWNER_SELECTOR = `${CALL_ID_PREVIEW_OWNER_SELECTOR}, ${COLLAPSED_LOADING_SUMMARY_SELECTOR}`;
 
 const requireStreamedPreviewTextElement = (queryElement: HTMLElement): HTMLElement => {
     let candidate: HTMLElement | null = null;
@@ -40,7 +40,7 @@ const requireStreamedPreviewKey = (queryElement: HTMLElement): string => {
     if (callId === null || !callId.trim()) {
         throw new Error('Streamed preview query is missing call id.');
     }
-    return `thinking:${callId.trim()}`;
+    return `activity:${callId.trim()}`;
 };
 
 const readStreamedPreviewAttribute = (queryElement: HTMLElement, attributeName: string): string => {
@@ -54,6 +54,18 @@ const readStreamedPreviewStatus = (queryElement: HTMLElement): 'running' | 'comp
         return status;
     }
     throw new Error('Streamed preview query has invalid status.');
+};
+
+const readStreamedPreviewRevealAtMs = (queryElement: HTMLElement): number | null => {
+    const value = queryElement.getAttribute(STREAMED_PREVIEW_ATTRIBUTE_NAMES.revealAt);
+    if (value === null) {
+        return null;
+    }
+    const revealAtMs = Number(value);
+    if (!Number.isFinite(revealAtMs)) {
+        throw new Error('Streamed preview query has invalid reveal time.');
+    }
+    return revealAtMs;
 };
 
 const requireStreamedPreviewWindow = (queryElement: HTMLElement): Window => {
@@ -78,4 +90,4 @@ const resolveStreamedPreviewElement = (activity: HTMLElement): HTMLElement | nul
     return null;
 };
 
-export { STREAMED_PREVIEW_OWNER_SELECTOR, STREAMED_PREVIEW_SELECTOR, readStreamedPreviewAttribute, readStreamedPreviewStatus, requireStreamedPreviewKey, requireStreamedPreviewTextElement, requireStreamedPreviewWindow, resolveStreamedPreviewElement };
+export { STREAMED_PREVIEW_OWNER_SELECTOR, STREAMED_PREVIEW_SELECTOR, readStreamedPreviewAttribute, readStreamedPreviewRevealAtMs, readStreamedPreviewStatus, requireStreamedPreviewKey, requireStreamedPreviewTextElement, requireStreamedPreviewWindow, resolveStreamedPreviewElement };

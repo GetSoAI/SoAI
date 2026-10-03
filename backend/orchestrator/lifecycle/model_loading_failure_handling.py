@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING
 
 from core.errors.error_types import ErrorType
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import SoAITimeoutError
+from core.errors.exceptions import SoAIError, SoAITimeoutError
+from core.errors.public_projection import project_public_error
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.state.state_names import ORCH_STATE_ERROR, ORCH_STATE_STOPPED
 from core.timing.constants import RESPONSIVE_TIMEOUT_SEC
@@ -79,6 +80,11 @@ async def handle_model_loading_exception(
         )
         return ModelLoadingResult.deferred()
     classification = classify_model_load_failure(exception)
+    public_error = (
+        project_public_error(exception)
+        if isinstance(exception, SoAIError) and exception.public_message is not None
+        else None
+    )
     failure_context = "model-scoped load" if classification.model_scoped else "start/load"
     if deps.shutdown_event.is_set():
         await _terminate_model_load_backend(
@@ -139,6 +145,7 @@ async def handle_model_loading_exception(
             ),
             error_type=failure.error_type,
             allow_failover=failure.allow_failover,
+            public_error=public_error,
         )
     error_message = (
         f"Timed out loading plugin {plugin_name} after {load_timeout}s."
@@ -194,7 +201,17 @@ async def handle_model_loading_exception(
             reason=f"Model test load failed; plugin stopped. Exception: {classification.reason}",
             logger=logger,
         )
-    return ModelLoadingResult.failed(f"Plugin '{plugin_name}' failed during model load.")
+    failure = classify_execution_failure(universal_id, exception, load_timeout)
+    return ModelLoadingResult.failed(
+        (
+            failure.user_message
+            if public_error is not None
+            else f"Plugin '{plugin_name}' failed during model load."
+        ),
+        error_type=failure.error_type if public_error is not None else ErrorType.SERVER_ERROR,
+        allow_failover=failure.allow_failover if public_error is not None else True,
+        public_error=public_error,
+    )
 
 
 async def _terminate_model_load_backend(

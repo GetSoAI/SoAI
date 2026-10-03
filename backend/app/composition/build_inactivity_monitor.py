@@ -11,6 +11,7 @@ from core.config.protocols import ConfigProtocol
 from core.events.protocols import EventBusProtocol
 from core.logging.trace import get_logger
 from core.metrics.protocols import MetricsManagerProtocol
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.protocols import RuntimeStateStoreProtocol
 from core.tasks.protocols import (
     TaskCancellationBinderProtocol,
@@ -34,6 +35,7 @@ def build_inactivity_monitor(
     metrics_manager: MetricsManagerProtocol,
     lifecycle_logger: logging.Logger,
     lifecycle_coordinator: LifecycleCoordinatorProtocol,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> InactivityMonitor:
     async def shutdown_from_inactivity() -> None:
         initiate_shutdown_signal(
@@ -43,6 +45,8 @@ def build_inactivity_monitor(
             "inactivity_monitor",
             lifecycle_logger,
             runtime_state.is_shutting_down,
+            config=config,
+            process_exit_deadline=process_exit_deadline,
         )
 
     monitor = InactivityMonitor(

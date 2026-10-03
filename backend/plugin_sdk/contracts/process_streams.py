@@ -13,6 +13,8 @@ from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.logging.formatter_support import resolve_log_level
+from core.logging.plugin_log_entries import parse_plugin_log_line
 from core.timing.constants import MODERATE_DELAY_SEC
 
 __all__ = ("consume_process_stream",)
@@ -104,23 +106,35 @@ async def consume_process_stream(
             if not line_bytes:
                 break
 
+            line_text = line_bytes.decode("utf-8", errors="replace").rstrip("\r\n")
+            level_name, _message = parse_plugin_log_line(line_text)
+            level_number = resolve_log_level(level_name)
+            record = logger.makeRecord(logger.name, level_number, __file__, 0, line_text, (), None)
+            if not logger.filter(record):
+                continue
+            filtered_text = record.getMessage()
+            filtered_bytes = (
+                line_bytes
+                if filtered_text == line_text and record.levelno == level_number
+                else f"[{record.levelname}] {filtered_text}\n".encode("utf-8")
+            )
             if log_file_handle is not None:
                 await _write_process_log_line(
                     logger=logger,
                     plugin_label=plugin_label,
                     log_file_handle=log_file_handle,
-                    line_bytes=line_bytes,
+                    line_bytes=filtered_bytes,
                 )
-
-            line_text = line_bytes.decode("utf-8", errors="replace").rstrip("\r\n")
             if strip_ansi:
-                line_text = re.sub(
+                filtered_text = re.sub(
                     r"\x1b(?:[@-Z\-_]|\[[0-?][ -/][@-~])|\r",
                     "",
-                    line_text,
+                    filtered_text,
                 )
-            if line_text:
-                logger.info(line_text)
+            if filtered_text and not logger.disabled and logger.isEnabledFor(record.levelno):
+                record.msg = filtered_text
+                record.args = ()
+                logger.callHandlers(record)
         except asyncio.CancelledError:
             break
         except PROCESS_STREAM_OPERATION_EXCEPTIONS as exception:

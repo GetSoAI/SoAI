@@ -71,6 +71,9 @@ const setupResponsiveLayout = (page: BasePageLayoutHost, state: BasePageLayoutSt
     if (contentArea) {
         state.layoutResizeObserver = new ResizeObserver(schedule);
         state.layoutResizeObserver.observe(contentArea);
+        for (const headerSurface of page.queryUI('.page-header-title-section, .page-actions__menu')) {
+            state.layoutResizeObserver.observe(headerSurface);
+        }
     }
     schedule();
 };

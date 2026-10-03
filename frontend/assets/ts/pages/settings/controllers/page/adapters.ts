@@ -7,10 +7,11 @@ import type { JsonObject } from '@core/types/jsonValues.ts';
 import { McpManager, MessagingManager } from '@features/settings/public.ts';
 import { canManageInstanceIdentity, hasSettingsAction } from '@pages/settings/controllers/page/settingsAccessController.ts';
 import type { SettingsManagerCallbacks, SettingsRuntimeContext } from '@pages/settings/controllers/page/contracts.ts';
+import { createConnectManager } from '@pages/settings/controllers/page/connectManager.ts';
 import { createExternalAccountsManager } from '@pages/settings/controllers/page/externalAccountsManager.ts';
 import { createPreferencesManagerHost, createSystemManagerHost, createThemeManagerHost, createUsersManagerHost } from '@pages/settings/controllers/page/managerhosts/adapters.ts';
 import type { SettingsPageState } from '@pages/settings/controllers/page/state.ts';
-import { buildBaseHostBindings, hasSearchQuery } from '@pages/settings/controllers/page/hostBindings.ts';
+import { buildBaseHostBindings } from '@pages/settings/controllers/page/hostBindings.ts';
 import { PreferencesManager } from '@pages/settings/controllers/PreferencesManager.ts';
 import { SystemManager } from '@pages/settings/controllers/systemmanager/SystemManager.ts';
 import { ThemeManager } from '@pages/settings/controllers/thememanager/ThemeManager.ts';
@@ -51,12 +52,12 @@ const createCoreSettingsManagers = (page: SettingsRuntimeContext, state: Setting
         host: {
             ...baseBindings,
             api: page.owners.api.webui.messaging.accounts,
+            loadModelCatalog: (options) => page.owners.api.models.list(options),
             resolveWorkspaceBrowserAccess: async () =>
                 await resolveWorkspaceBrowserAccess({
                     getCurrentUser: () => page.owners.api.webui.auth.getMe(),
                     scopedBrowserApi: page.owners.api.fileExplorer
-                }),
-            hasSearchQuery: (): boolean => hasSearchQuery(page)
+                })
         }
     });
 
@@ -75,11 +76,11 @@ const createCoreSettingsManagers = (page: SettingsRuntimeContext, state: Setting
                         }
                         return normalized;
                     },
-                    hasSearchQuery: (): boolean => hasSearchQuery(page),
+                    hasSearchQuery: baseBindings.hasSearchQuery,
                     createDebouncedHandler: (handler, debounceTime) => page.owners.services.createDebouncedHandler(handler, debounceTime),
                     pageContext: page.owners.pageContext,
                     dom: page.owners.dom,
-                    filterSettings: callbacks.filterSettings
+                    filterSettings: baseBindings.filterSettings
                 },
                 view: {
                     pageDom: page.owners.pageDom,
@@ -163,6 +164,7 @@ const createCoreSettingsManagers = (page: SettingsRuntimeContext, state: Setting
         });
     }
     createExternalAccountsManager(page, state, callbacks);
+    createConnectManager(page, state, callbacks);
 
     const settingsContribution = page.edition.product;
     const hostApi = page.owners.api.os;

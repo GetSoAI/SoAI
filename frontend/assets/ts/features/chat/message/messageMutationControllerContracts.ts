@@ -40,6 +40,7 @@ interface ChatMessageEditControllerDependencies extends ChatMessageMutationDepen
     resolveMessageReference: MessageReferenceResolver;
     resubmitUserMessage: (conversation: ConversationContract, inputArguments: { createdAtMs: number; messageId: number; message: ChatStorageMessageRecord }) => Promise<void>;
     commitPendingDeletesForConversation: (conversation: ConversationContract) => Promise<void>;
+    notifyEditingChanged: () => void;
 }
 
 export type { ChatMessageEditControllerDependencies, ChatMessageMutationDependencies };

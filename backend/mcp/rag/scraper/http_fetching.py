@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import TYPE_CHECKING
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 import httpx2
 
@@ -13,6 +13,7 @@ from core.concurrency.deadlines import deadline_after
 from core.config.numeric_lenient import coerce_timeout_seconds
 from core.errors.exceptions import ValidationError
 from core.network.outbound_http_profiles import build_browser_document_headers
+from core.network.redirect_headers import resolve_redirect_url
 from core.timing.retry_backoff import compute_exponential_backoff_seconds
 from mcp.rag.scraper.fetch_progress import invoke_progress_callback
 from mcp.rag.scraper.proxy import get_http_client
@@ -82,13 +83,9 @@ async def fetch_with_redirect_policy(
                 timeout=self.timeout,
                 follow_redirects=False,
             ) as response:
-                if response.status_code in (301, 302, 303, 307, 308):
-                    redirect_url = response.headers.get("Location")
-                    if not redirect_url:
-                        raise ValidationError(
-                            f"Redirect from {current_url} missing Location header",
-                        )
-                    current_url = urljoin(current_url, redirect_url)
+                next_url = resolve_redirect_url(response, current_url)
+                if next_url is not None:
+                    current_url = next_url
                     continue
                 response.raise_for_status()
                 content_type = response.headers.get("content-type", "")

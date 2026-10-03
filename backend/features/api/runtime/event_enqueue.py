@@ -14,7 +14,7 @@ from core.timing.constants import CONTROL_TIMEOUT_SEC
 from features.api.runtime.container.enqueue_warning_tracker import EnqueueWarningTracker
 
 __all__ = (
-    "enqueue_correlated_media_event",
+    "enqueue_correlated_event",
     "enqueue_event_must_deliver",
     "enqueue_event_or_warn",
 )
@@ -36,7 +36,7 @@ def enqueue_event_or_warn[EventItem](
     return True
 
 
-async def enqueue_correlated_media_event[EventItem](
+async def enqueue_correlated_event[EventItem](
     enqueue_warning_tracker: EnqueueWarningTracker,
     queue: asyncio.Queue[EventItem],
     event: EventItem,

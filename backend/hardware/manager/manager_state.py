@@ -22,6 +22,8 @@ class HardwareManagerState:
     cache_lock: threading.Lock = field(default_factory=threading.Lock)
     last_full_info: JSONDict = field(default_factory=dict[str, JSONValue])
     last_update_time_monotonic: float = 0.0
+    issued_network_query_sequence: int = 0
+    committed_network_query_sequence: int = 0
     main_loop: asyncio.AbstractEventLoop | None = None
     os_info: JSONDict = field(default_factory=dict[str, JSONValue])
     last_network_stats: dict[str, JSONDict] = field(default_factory=dict[str, JSONDict])

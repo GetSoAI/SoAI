@@ -186,6 +186,8 @@ class HardwarePage extends StaticBasePage {
     }
     override async onHide(): Promise<void> {
         this.pageLifecycle.abortListeners();
+        this.#runtime.soaibenchHistoryPagePanel.dispose();
+        this.#runtime.soaibenchRunModal.disposeForPageLifecycle('pageHide');
         this.#disposeDetachAction();
         this.#runtime.gpuController.setDomRequired(false);
         this.#runtime.exportPreviewModal.disposeForPageLifecycle('pageHide');
@@ -209,6 +211,8 @@ class HardwarePage extends StaticBasePage {
     }
     override async onDestroy(): Promise<void> {
         this.pageLifecycle.abortListeners();
+        this.#runtime.soaibenchHistoryPagePanel.dispose();
+        this.#runtime.soaibenchRunModal.disposeForPageLifecycle('pageDestroy');
         this.#disposeDetachAction();
         this.#runtime.exportPreviewModal.disposeForPageLifecycle('pageDestroy');
         this.#runtime.overflowNavController.dispose();

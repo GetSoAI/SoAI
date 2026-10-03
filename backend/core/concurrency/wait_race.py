@@ -138,6 +138,8 @@ async def _wrap_awaitable_or_event_token[T](
 
 async def wait_for_first_completed_tasks[T](
     tasks: set[asyncio.Task[T]],
+    *,
+    cancel_pending: bool = True,
 ) -> set[asyncio.Task[T]]:
     if not tasks:
         return set()
@@ -153,7 +155,8 @@ async def wait_for_first_completed_tasks[T](
                 break
         wait_succeeded = True
     finally:
-        if not wait_succeeded:
+        if not wait_succeeded and cancel_pending:
             await _cancel_and_gather_tasks(*tasks)
-    await _cancel_and_gather_tasks(*pending)
+    if cancel_pending:
+        await _cancel_and_gather_tasks(*pending)
     return done

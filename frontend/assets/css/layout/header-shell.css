@@ -19,27 +19,39 @@
         gap: var(--header-button-gap);
         padding: var(--space-3) var(--space-2);
         background: transparent;
-        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
-        box-shadow: var(--glass-shadow-base);
+        border-bottom: var(--border-width-1) solid transparent;
         isolation: isolate;
         pointer-events: none;
         z-index: var(--z-modal);
-        transition:
-            box-shadow var(--transition-header),
-            border-color var(--transition-slow);
         user-select: none;
     }
 
     .header::before {
         content: '';
         position: absolute;
-        inset: 0 var(--ui-scrollbar-inline-size) 0 0;
+        inset-block: 0 calc(-1 * var(--border-width-1));
+        inset-inline: 0;
         background: var(--glass-surface-darker);
+        border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+        box-shadow: var(--glass-shadow-base);
+        clip-path: inset(0 0 -100%);
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
         pointer-events: auto;
         z-index: var(--z-layer-background);
-        transition: background var(--transition-header);
+        transition:
+            background var(--transition-header),
+            box-shadow var(--transition-header),
+            border-color var(--transition-slow),
+            inset-inline-end var(--header-surface-inset-transition);
+
+        --header-surface-inset-transition: var(--effect-page-exit-duration) var(--ease-in);
+    }
+
+    .app-container:where(:has(> .main-content > [data-section].page-content-ready:not([data-page-exiting]).page-scrollable, > .main-content > [data-section].page-content-ready:not([data-page-exiting]) .page-scrollable)) > .header::before {
+        inset-inline-end: var(--ui-scrollbar-inline-size);
+
+        --header-surface-inset-transition: var(--effect-page-enter-duration) var(--ease-smooth);
     }
 
     .header > * {
@@ -73,8 +85,8 @@
 
     .header-dropdown-scroll-list:has(> .task-list-empty:last-child),
     .header-dropdown-scroll-list > .task-list-empty:last-child {
-        border-bottom-left-radius: var(--border-radius);
-        border-bottom-right-radius: var(--border-radius);
+        border-end-start-radius: var(--border-radius);
+        border-end-end-radius: var(--border-radius);
     }
 
     .header-dropdown-loading-footer {
@@ -92,22 +104,21 @@
 
     .header-notification-manager-panel-inner > .header-dropdown-scroll-list:has(+ .header-dropdown-loading-footer.u-hidden),
     .header-notification-manager-panel-inner > .header-dropdown-loading-footer:not(.u-hidden) {
-        border-bottom-left-radius: var(--border-radius);
-        border-bottom-right-radius: var(--border-radius);
+        border-end-start-radius: var(--border-radius);
+        border-end-end-radius: var(--border-radius);
     }
 
     .header-dropdown-loading-footer .loading-spinner {
+        --soai-spinner-stroke: var(--border-width-150);
         width: 16px;
         height: 16px;
-        border-width: var(--border-width-150);
-        border-top-width: var(--border-width-150);
     }
 
     .settings-dropdown,
     .user-dropdown {
         position: absolute;
         top: calc(100% + 8px);
-        right: 0;
+        inset-inline-end: 0;
         z-index: var(--z-dropdown);
         min-width: 200px;
         overflow: hidden;

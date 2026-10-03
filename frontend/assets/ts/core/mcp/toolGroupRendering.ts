@@ -143,7 +143,7 @@ const renderToolGroupBody = <TKnowledgeState extends JsonValue | null>(inputArgu
             inputArguments.buildToggleSwitch({
                 id: `${inputArguments.togglePrefix}-${inputArguments.mode}-${inputArguments.groupIndex}-${toolIndex}`,
                 className: inputArguments.toggleCls,
-                checked: lockedSelection || (available && inputArguments.selectedTools.has(tool.name)),
+                checked: lockedSelection || inputArguments.selectedTools.has(tool.name),
                 data: {
                     toolName: tool.name,
                     serverId: inputArguments.group.id,

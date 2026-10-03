@@ -19,6 +19,7 @@ from core.hardware.reservation_claims import claim_reserved_write
 from core.logging.trace import get_logger
 from core.network.http_download import download_http_stream_to_file
 from core.network.outbound_http_profiles import build_default_browser_asset_headers
+from core.network.transfer_retry import build_http_transfer_retry_policy
 from core.network.urls import normalize_http_url
 from core.tasks.cancellation_ids import normalize_cancellation_id
 from core.tasks.cancellation_token_scope import cancellation_token_scope
@@ -210,6 +211,7 @@ class WallpaperManager:
                     http_client=http_client,
                     url=normalized_url,
                     destination_path=staged_file_path,
+                    retry_policy=build_http_transfer_retry_policy("artifact"),
                     cancellation_token=token,
                     max_bytes=settings.max_size_bytes,
                     max_redirects=settings.download.max_redirects,

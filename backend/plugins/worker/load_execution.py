@@ -25,7 +25,7 @@ from core.ipc.managed_worker import ManagedIpcWorkerDependencies
 from core.ipc.multiplexed import MultiplexedIpcServer
 from core.logging.trace import get_logger
 from core.meta.paths import get_backend_root
-from core.timing.constants import BACKGROUND_TIMEOUT_SEC
+from core.timing.constants import EXTENDED_TIMEOUT_SEC, LONG_REQUEST_TIMEOUT_SEC
 from core.types.json import JSONDict
 from plugins.package_leases import (
     PluginPackageLease,
@@ -150,11 +150,14 @@ async def load_plugin_worker(
     package_lease_path: str | None = None
     registered_runtime: PluginWorkerRuntime | None = None
     try:
-        await worker.spawn(server=server, startup_timeout_sec=BACKGROUND_TIMEOUT_SEC)
+        await worker.spawn(
+            server=server,
+            startup_timeout_sec=LONG_REQUEST_TIMEOUT_SEC,
+        )
         surface = await load_plugin_worker_surface(
             server=server,
             worker_id=worker_id,
-            surface_timeout_sec=BACKGROUND_TIMEOUT_SEC,
+            surface_timeout_sec=EXTENDED_TIMEOUT_SEC,
         )
         proxy = ProxyPluginInstance(
             ProxyPluginInstanceDependencies(

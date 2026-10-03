@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { LifecycleResources } from '@core/lifecyclemodel/LifecycleResources.ts';
+import { refreshCrosshair } from '@features/charts/crosshair.ts';
 import { setupEventListeners } from '@features/charts/effects/events.ts';
 import type { ChartInteractionScene } from '@features/charts/interaction/chartInteractionScene.ts';
 
@@ -23,6 +24,10 @@ class ChartInteraction {
         });
     }
 
+    refreshCrosshair(): void {
+        refreshCrosshair(this.#scene);
+    }
+
     async destroy(): Promise<void> {
         if (!this.#active) return;
         this.#active = false;
@@ -32,6 +37,7 @@ class ChartInteraction {
         this.#scene.interaction.pointer.primaryId = null;
         this.#scene.interaction.pointer.pinch = null;
         this.#scene.interaction.pointer.lastTap = null;
+        this.#scene.interaction.pointer.hoverX = null;
         this.#scene.interaction.wheelPayload = null;
         this.#scene.interaction.wheelPending = false;
     }

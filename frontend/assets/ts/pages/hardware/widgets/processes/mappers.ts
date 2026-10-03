@@ -4,6 +4,7 @@
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { getCurrentLocale } from '@core/languageservice/service.ts';
+import { getCollator } from '@core/localization/intlCache.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
 import type { ProcessDisplayRow, ProcessRecord, ProcessSortColumn, SortDirection } from '@pages/hardware/widgets/processes/types.ts';
 
@@ -64,9 +65,10 @@ const resolveProcessDisplayName = (processRow: ProcessDisplayRow): string => {
 
 const sortProcessRows = (processes: readonly ProcessDisplayRow[], column: ProcessSortColumn, direction: SortDirection): ProcessDisplayRow[] => {
     const multiplier = direction === 'asc' ? 1 : -1;
+    const collator = getCollator(getCurrentLocale(), { sensitivity: 'base' });
     return [...processes].sort((left, right) => {
         if (column === 'name') {
-            return multiplier * left.name.localeCompare(right.name, getCurrentLocale(), { sensitivity: 'base' });
+            return multiplier * collator.compare(left.name, right.name);
         }
         const propertyKey = processNumericPropertyBySortColumn[column];
         const leftValue = left[propertyKey];

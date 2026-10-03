@@ -5,9 +5,8 @@ import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { updateRepositoryLink } from '@features/models/modals/downloadmodal/effects.ts';
 import type { DownloadModalManagerRuntime } from '@features/models/modals/downloadmodal/manager/contracts.ts';
-import { hasActiveModelDownloads } from '@features/models/modals/downloadmodal/manager/modelDownloadOperations.ts';
 import { getManualDiscoveryState, getModelSearchState, resetManualDiscoveryState } from '@features/models/modals/downloadmodal/manager/state.ts';
-import { cancelModelSearchRequest, updateDownloadModalUI, updatePluginRequiredMarkers, updateSelectedModelDisplay } from '@features/models/modals/downloadmodal/manager/view.ts';
+import { cancelModelSearchRequest, hasActiveModelDownloads, updateDownloadModalUI, updatePluginRequiredMarkers, updateSelectedModelDisplay } from '@features/models/modals/downloadmodal/manager/view.ts';
 
 const disposeDownloadModal = (runtime: DownloadModalManagerRuntime, { clearActiveDownloads = false }: { clearActiveDownloads?: boolean } = {}): void => {
     runtime.state.providerDiscoveryAbort?.abort();

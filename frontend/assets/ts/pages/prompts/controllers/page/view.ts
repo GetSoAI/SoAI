@@ -78,19 +78,26 @@ const preparePromptPresentation = (host: PromptsPageViewHost, prompts: PromptRec
     });
 };
 
+const getPromptForRendering = (host: PromptsPageViewHost, prompt: PromptRecord): PromptRecord => {
+    const editingDraft = host.state.editingDraft;
+    if (host.state.editingPromptId !== prompt.id || editingDraft?.promptId !== prompt.id) return prompt;
+    return { ...prompt, name: editingDraft.name, content: editingDraft.content, color: editingDraft.color };
+};
+
 const renderItemCard = (host: PromptsPageViewHost, item: ResourceItem): HTMLElement => {
     const normalized = normalizePromptCandidate(item);
     if (!normalized) {
         throw new TypeError('PromptsPage card item is invalid');
     }
-    const card = host.components.cardRenderer.render(normalized, {
+    const presentation = getPromptForRendering(host, normalized);
+    const card = host.components.cardRenderer.render(presentation, {
         selected: host.components.selectionController.has(normalized.id),
         editing: host.state.editingPromptId === normalized.id
     });
     if (!card) {
         throw new Error('PromptsPage card renderer returned no card');
     }
-    host.components.colorToolkit.applyToCard(card, normalized.color);
+    host.components.colorToolkit.applyToCard(card, presentation.color);
     return renderCollectionGroupEntry({ card, heading: host.state.grouping.headingFor(String(normalized.id)), identityAttribute: PROMPTS_CARD_IDENTITY_ATTRIBUTE });
 };
 
@@ -99,13 +106,15 @@ const renderItemListRow = (host: PromptsPageViewHost, item: ResourceItem): HTMLE
     if (!normalized) {
         throw new TypeError('PromptsPage list row item is invalid');
     }
-    const row = host.components.listRowRenderer.render(normalized, {
-        selected: host.components.selectionController.has(normalized.id)
+    const presentation = getPromptForRendering(host, normalized);
+    const row = host.components.listRowRenderer.render(presentation, {
+        selected: host.components.selectionController.has(normalized.id),
+        editing: host.state.editingPromptId === normalized.id
     });
     if (!row) {
         throw new Error('PromptsPage list row renderer returned no row');
     }
-    host.components.colorToolkit.applyToCard(row, normalized.color);
+    host.components.colorToolkit.applyToCard(row, presentation.color);
     return row;
 };
 

@@ -2,33 +2,28 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { CheckerboardService, createCheckerboardService } from '@core/dom/checkerboardService.ts';
-import { createDomResolver } from '@core/dom/actions/adapters.ts';
+import { createDomResolver } from '@core/dom/domResolver.ts';
 import { createDomActions } from '@core/dom/actions/service.ts';
-import { createDomCache } from '@core/dom/domCache.ts';
 import { getDomDocument, getDomWindow, initializeDomEnvironment } from '@core/dom/domEnvironment.ts';
 import type { DomPropertyMap, DomPropertyValue } from '@core/dom/propertyValues.ts';
 import { DomObserver, observeMutationsUntil, type ObserveMutationsOptions } from '@core/dom/domObserver.ts';
 import { createDomUpdateService, DOMUpdateService } from '@core/dom/service.ts';
 import type { DOMChildContent, DOMContext, DOMQueryRoot, DOMRuntimeCandidate, DOMTarget, DOMUpdate, ElementOptions, PerformanceMetrics, ReplaceContentOptions, ScrollStateEntry, SetHTMLOptions } from '@core/dom/types.ts';
 import { narrowAnchor, narrowButton, narrowForm, narrowHTMLElement, narrowImage, narrowInput, narrowSelect, narrowTable, narrowTableSection, narrowTextarea, optionalAnchor, optionalButton, optionalHTMLElement, optionalImage, optionalInput, optionalSelect, optionalTextarea } from '@core/dom/narrowElement.ts';
-import { createUIElementServiceFactory, UIElementService, type GetElementOptions } from '@core/dom/uiElementService.ts';
 import { getCancelAnimationFrame, getRequestAnimationFrame } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureArray, toString, toTrimmedString } from '@core/normalize.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { securityApi, type TrustedHtml } from '@core/security/public.ts';
-import { applyDynamicStyle, captureScrollState, getDynamicStyleValue, restoreScrollState } from '@core/dom/state.ts';
+import { applyDynamicStyle, cancelScrollRestore, captureScrollState, getDynamicStyleValue, restoreScrollState, trackScrolledElements } from '@core/dom/state.ts';
 import { isArray, isHTMLElement, isElementNode, isNode, isNullOrUndefined, isPlainObject, isString } from '@core/typeGuards.ts';
 import { generateSecureId } from '@core/primitives/idGenerator.ts';
 
 type DomRuntime = {
-    readonly domCache: ReturnType<typeof createDomCache>;
     readonly domResolver: ReturnType<typeof createDomResolver>;
     readonly domUpdateService: DOMUpdateService;
     readonly dom: ReturnType<typeof createDomActions>['dom'];
-    readonly createUIElementService: ReturnType<typeof createUIElementServiceFactory>;
     readonly checkerboardService: CheckerboardService;
-    readonly uiElementServiceModule: { readonly create: (ownerId: string) => UIElementService };
 };
 
 let runtime: DomRuntime | null = null;
@@ -38,10 +33,9 @@ const ensureDomRuntime = (): DomRuntime => {
         return runtime;
     }
 
-    const domCacheValue = createDomCache(getDomDocument);
+    trackScrolledElements(getDomDocument());
     const domResolverValue = createDomResolver({
-        getDomDocument,
-        domCache: domCacheValue
+        getDomDocument
     });
 
     const domUpdateServiceValue = createDomUpdateService({
@@ -62,17 +56,12 @@ const ensureDomRuntime = (): DomRuntime => {
         getCancelAnimationFrame,
         captureScrollState,
         restoreScrollState,
+        cancelScrollRestore,
         applyDynamicStyle: (element, property, value) => applyDynamicStyle(element, property, value),
         resolve: domResolverValue.resolve
     });
 
     const { dom } = createDomActions({ domUpdateService: domUpdateServiceValue, getDynamicStyleValue }, domResolverValue);
-
-    const createUIElementServiceValue = createUIElementServiceFactory({
-        getDomDocument,
-        resolve: domResolverValue.resolve,
-        resolveAll: domResolverValue.resolveAll
-    });
 
     const checkerboardServiceValue = createCheckerboardService({
         createResourceTracker: (): ResourceTracker => new ResourceTracker(),
@@ -86,27 +75,13 @@ const ensureDomRuntime = (): DomRuntime => {
         }
     });
 
-    const uiElementServiceModuleValue = Object.freeze({
-        create: (ownerId: string): UIElementService => createUIElementServiceValue(ownerId)
-    });
-
     runtime = {
-        domCache: domCacheValue,
         domResolver: domResolverValue,
         domUpdateService: domUpdateServiceValue,
         dom,
-        createUIElementService: createUIElementServiceValue,
-        checkerboardService: checkerboardServiceValue,
-        uiElementServiceModule: uiElementServiceModuleValue
+        checkerboardService: checkerboardServiceValue
     };
     return runtime;
-};
-
-const domCache = {
-    get: (selector: string, context?: DOMContext): Element | null => ensureDomRuntime().domCache.get(selector, context),
-    getAll: (selector: string, context?: DOMContext): Element[] => ensureDomRuntime().domCache.getAll(selector, context),
-    clear: (): void => ensureDomRuntime().domCache.clear(),
-    invalidate: (selector: string): void => ensureDomRuntime().domCache.invalidate(selector)
 };
 
 const getDomUpdateService = (): DOMUpdateService => ensureDomRuntime().domUpdateService;
@@ -167,12 +142,6 @@ const checkerboardService = {
     getContainerId: (container: Element): string => ensureDomRuntime().checkerboardService.getContainerId(container)
 };
 
-const createUIElementService = (ownerId: string): UIElementService => ensureDomRuntime().createUIElementService(ownerId);
-
-const uiElementServiceModule = Object.freeze({
-    create: (ownerId: string): UIElementService => ensureDomRuntime().uiElementServiceModule.create(ownerId)
-});
-
 const querySafe = (selector: string, context?: DOMContext): Element | null => ensureDomRuntime().domResolver.querySafe(selector, context);
 const querySafeAll = (selector: string, context?: DOMContext): Element[] => ensureDomRuntime().domResolver.safeQueryAll(selector, context);
 const resolve = (target: DOMTarget, context?: DOMContext): Element | null => ensureDomRuntime().domResolver.resolve(target, context);
@@ -198,6 +167,6 @@ const domResolverApi = {
     apply: (targets: DOMTarget | DOMTarget[], callback: ((element: Element, index: number) => void) | undefined, context?: DOMContext): Element[] => ensureDomRuntime().domResolver.domResolverApi.apply(targets, callback, context)
 };
 
-export { CheckerboardService, DomObserver, DOMUpdateService, UIElementService, apply, captureScrollState, checkerboardService, closest, createUIElementService, dom, domCache, domResolverApi, ensureArray, getDomUpdateService, getUI, initializeDomEnvironment, matches, narrowAnchor, narrowButton, narrowForm, narrowHTMLElement, narrowImage, narrowInput, narrowSelect, narrowTable, narrowTableSection, narrowTextarea, normalizeContext, observeMutationsUntil, optionalAnchor, optionalButton, optionalHTMLElement, optionalImage, optionalInput, optionalSelect, optionalTextarea, querySafe, querySafeAll, restoreScrollState, resolve, resolveAll, resolveContainer, uiElementServiceModule };
+export { CheckerboardService, DomObserver, DOMUpdateService, apply, captureScrollState, checkerboardService, closest, dom, domResolverApi, ensureArray, getDomUpdateService, getUI, initializeDomEnvironment, matches, narrowAnchor, narrowButton, narrowForm, narrowHTMLElement, narrowImage, narrowInput, narrowSelect, narrowTable, narrowTableSection, narrowTextarea, normalizeContext, observeMutationsUntil, optionalAnchor, optionalButton, optionalHTMLElement, optionalImage, optionalInput, optionalSelect, optionalTextarea, querySafe, querySafeAll, restoreScrollState, resolve, resolveAll, resolveContainer };
 
-export type { DOMChildContent, DOMRuntimeCandidate, DOMTarget, DOMContext, DOMQueryRoot, DOMUpdate, SetHTMLOptions, ReplaceContentOptions, GetElementOptions, ObserveMutationsOptions, ScrollStateEntry, PerformanceMetrics, ElementOptions };
+export type { DOMChildContent, DOMRuntimeCandidate, DOMTarget, DOMContext, DOMQueryRoot, DOMUpdate, SetHTMLOptions, ReplaceContentOptions, ObserveMutationsOptions, ScrollStateEntry, PerformanceMetrics, ElementOptions };

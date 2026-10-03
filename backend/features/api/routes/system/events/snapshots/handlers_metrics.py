@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 
 from core.errors.exceptions import ValidationError
 from core.history.request.aggregation import normalize_history_aggregation_or_default
+from core.history.request.availability import parse_include_availability
 from core.history.request.export_window import parse_optional_export_time_window
 from core.history.request.query import build_history_query
 from core.metrics.export import (
@@ -56,6 +57,7 @@ async def snapshot_metrics_history(
     metric_key = metric_key_value.strip() if isinstance(metric_key_value, str) else ""
     if not metric_key:
         raise ValidationError("system.metrics.history snapshot requires metric_key.")
+    include_availability = parse_include_availability(data.get("include_availability"))
     aggregation = normalize_history_aggregation_or_default(
         data.get("aggregation"),
         allowed_values={"avg", "min", "max", "count", "delta", "ohlc", "delta_ohlc"},
@@ -75,7 +77,12 @@ async def snapshot_metrics_history(
         default_aggregation=aggregation,
         default_window_ms=3_600_000,
     )
-    return await load_metrics_history_payload(metrics_mgr, metric_key, history_request)
+    return await load_metrics_history_payload(
+        metrics_mgr,
+        metric_key,
+        history_request,
+        include_availability=include_availability,
+    )
 
 
 async def snapshot_metrics_export(

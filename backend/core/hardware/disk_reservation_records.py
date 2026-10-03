@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypedDict
 
 from core.errors.exceptions import StateError, ValidationError
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.hardware.disk_reservation_processes import (
     is_process_reservation_stale,
     read_process_start_token,
@@ -104,7 +105,7 @@ def resolve_disk_reservation_target(path: str) -> DiskReservationTarget:
     check_path = os.path.abspath(path)
     try:
         usage = read_disk_usage_with_parent_fallback(check_path)
-        stat_result = os.stat(usage.disk_usage_path)
+        stat_result = os.stat(normalize_filesystem_path(usage.disk_usage_path))
     except OSError as exception:
         raise StateError(
             f"Failed to read disk usage for '{check_path}'.",

@@ -10,6 +10,7 @@ interface SystemMetricsHistoryRequest {
     points: number;
     intervalMs?: number | undefined;
     aggregation: string;
+    includeAvailability?: boolean | undefined;
 }
 
 const serializeSystemMetricsHistoryRequest = (request: SystemMetricsHistoryRequest): JsonObject => {
@@ -21,6 +22,7 @@ const serializeSystemMetricsHistoryRequest = (request: SystemMetricsHistoryReque
         aggregation: request.aggregation
     };
     if (request.intervalMs !== undefined) serialized['interval_ms'] = request.intervalMs;
+    if (request.includeAvailability === true) serialized['include_availability'] = true;
     return serialized;
 };
 

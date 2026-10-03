@@ -6,7 +6,10 @@ from __future__ import annotations
 import asyncio
 
 from app.internal_protocols import BannerSystemProtocol
+from app.lifecycle.budgets import arm_lifecycle_shutdown_deadline
+from core.config.protocols import ConfigProtocol
 from core.logging.protocols import LoggerProtocol
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.protocols import RuntimeStateStoreProtocol
 
 __all__ = (
@@ -40,7 +43,11 @@ def initiate_restart_signal(
     async_loop: asyncio.AbstractEventLoop | None,
     lifecycle_logger: LoggerProtocol,
     is_shutting_down: bool,
+    *,
+    config: ConfigProtocol,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> bool:
+    arm_lifecycle_shutdown_deadline(config, process_exit_deadline)
     if is_shutting_down or system_stop_event.is_set():
         lifecycle_logger.warning("Shutdown or restart already in progress. Ignoring request.")
         return False
@@ -55,18 +62,23 @@ def request_runtime_restart(
     runtime: RuntimeStateStoreProtocol,
     lifecycle_logger: LoggerProtocol,
     reason: str = "",
+    *,
+    config: ConfigProtocol,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> bool:
-    normalized_reason = str(reason or "").strip()
-    if normalized_reason:
-        lifecycle_logger.info("System restart requested: %s", normalized_reason)
     requested = initiate_restart_signal(
         runtime.system_stop_event,
         runtime.async_loop,
         lifecycle_logger,
         runtime.is_shutting_down,
+        config=config,
+        process_exit_deadline=process_exit_deadline,
     )
     if requested:
         runtime.set_restart_required()
+    normalized_reason = str(reason or "").strip()
+    if normalized_reason:
+        lifecycle_logger.info("System restart requested: %s", normalized_reason)
     return requested
 
 
@@ -74,8 +86,17 @@ def require_runtime_restart(
     runtime: RuntimeStateStoreProtocol,
     lifecycle_logger: LoggerProtocol,
     reason: str,
+    *,
+    config: ConfigProtocol,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> bool:
-    if request_runtime_restart(runtime, lifecycle_logger, reason):
+    if request_runtime_restart(
+        runtime,
+        lifecycle_logger,
+        reason,
+        config=config,
+        process_exit_deadline=process_exit_deadline,
+    ):
         return True
     runtime.set_restart_required()
     lifecycle_logger.info("Restart requirement attached to the active shutdown.")
@@ -89,7 +110,11 @@ def initiate_shutdown_signal(
     reason: str | None,
     lifecycle_logger: LoggerProtocol,
     is_shutting_down: bool,
+    *,
+    config: ConfigProtocol,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> bool:
+    arm_lifecycle_shutdown_deadline(config, process_exit_deadline)
     if is_shutting_down or shutdown_event.is_set() or system_stop_event.is_set():
         lifecycle_logger.warning("Shutdown already in progress. Ignoring request.")
         return False

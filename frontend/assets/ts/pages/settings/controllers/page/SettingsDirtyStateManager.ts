@@ -186,12 +186,10 @@ class SettingsDirtyStateManager implements SettingsDirtyStateSurface {
     #resolveOriginalValue(fieldKey: string): JsonValue | undefined {
         const parsed = parseSettingsFieldKey(fieldKey);
         if (parsed?.fieldType === 'config') {
-            const manager = this.#requireConfigManager();
-            return manager.getValueByPath(manager.originalData, parsed.sourceKey);
+            return this.#requireConfigManager().getOriginalValue(parsed.sourceKey);
         }
         if (parsed?.fieldType === 'ui') {
-            const manager = this.#requireUiPrefsManager();
-            return manager.getValueByPath(manager.originalData, parsed.sourceKey);
+            return this.#requireUiPrefsManager().getOriginalValue(parsed.sourceKey);
         }
         return undefined;
     }

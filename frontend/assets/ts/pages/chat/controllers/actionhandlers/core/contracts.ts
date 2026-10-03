@@ -71,6 +71,8 @@ interface ChatComposerActionPort {
     cycleTokenCounter(): void;
     requireInput(): HTMLTextAreaElement;
     setInput(input: HTMLTextAreaElement, value: string): void;
+    openConversationInput(conversationId: string, inputId: string): Promise<void>;
+    canRemoveConversationInput(conversationId: string, inputId: string): boolean;
     cancelConversationInput(conversationId: string, inputId: string): Promise<void>;
     retryConversationRegeneration(conversationId: string, inputId: string): Promise<void>;
     resolveAskUser(conversationId: string, taskId: string, action: 'submit' | 'cancel'): Promise<void>;
@@ -98,6 +100,7 @@ type ChatAttachDraftRemovalSource = keyof ChatAttachDraftCounts;
 interface ChatAttachmentActionPort {
     fileUploadEnabled(): boolean;
     cameraEnabled(): boolean;
+    sketchEnabled(): boolean;
     drafts(): readonly ChatAttachment[];
     draftCounts(): ChatAttachDraftCounts;
     draftCommitEpoch(): number;
@@ -107,6 +110,7 @@ interface ChatAttachmentActionPort {
     uploadFiles(files: File[]): Promise<void>;
     uploadFolder(files: File[]): Promise<void>;
     captureCamera(file: File): Promise<void>;
+    uploadSketch(file: File): Promise<void>;
     addSoaiPaths(records: readonly SoaiPathDraftRecord[], source: 'browse' | 'soaiLink'): number;
     removeFile(fileId: string): Promise<void>;
     removeKnowledge(knowledgeAttachmentId: string): Promise<void>;

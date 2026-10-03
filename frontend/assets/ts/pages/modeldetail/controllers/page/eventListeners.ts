@@ -11,13 +11,14 @@ import { MODELS } from '@core/realtime/streammanager/resources/ids.ts';
 import type { SuccessfulMutationResponse } from '@core/api/contracts/successfulMutationContract.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import { MODELS_RENAME_MODEL_MODAL_ID, RenameModelModalManager } from '@features/models/public.ts';
+import type { ParameterGroup, ParameterView } from '@pages/modeldetail/contracts/parameterTypes.ts';
+import { isParameterGroup, isParameterView } from '@pages/modeldetail/controllers/parameterviewmanager/constants.ts';
 import { createModelDetailActionHandlers } from '@pages/modeldetail/controllers/modelDetailActionHandlers.ts';
 import { resetModelDetailOpenAICapabilityOverrides, toggleModelDetailOpenAICapabilityOverride } from '@pages/modeldetail/controllers/openaicapabilities/overrideActions.ts';
 import { resetAllModelDetailParameters, type ModelDetailActionsHost } from '@pages/modeldetail/controllers/page/actionEffects.ts';
 import { handleModelDetailLanguageChanged } from '@pages/modeldetail/controllers/page/dom.ts';
 import { deleteModelDetailModel, stopModelDetailPlugin } from '@pages/modeldetail/controllers/page/operations/effects.ts';
 import { handleModelDetailBackendDocumentationClick } from '@pages/modeldetail/controllers/page/view/service.ts';
-import { persistModelDetailParameterFilter } from '@pages/modeldetail/controllers/parameterviewmanager/parameterViewControlsManager.ts';
 import type { ModelDetailViewHost } from '@pages/modeldetail/controllers/page/view/types.ts';
 import type { ModelDetailUi } from '@pages/modeldetail/dom.ts';
 import { toggleModelDetailEnabled } from '@pages/modeldetail/state/enabled/enableActions.ts';
@@ -37,9 +38,12 @@ type RouterContract = {
 };
 
 type ParameterViewContract = {
-    handleFilterSelection: (value: string) => void;
     addArrayItem: (parameterKey: string) => void;
     removeArrayItem: (parameterKey: string, index: number) => void;
+    resetParameter: (parameterKey: string) => void;
+    setView: (view: ParameterView) => void;
+    toggleGroup: (group: ParameterGroup) => void;
+    navigateToCategory: (category: string) => void;
 };
 
 type TestModalManagerContract = {
@@ -56,7 +60,7 @@ interface ModelDetailEventDependencies extends PageDomOwnerHost, PageResourcesOw
     parameterView: ParameterViewContract;
     storage: PageControlsStorageInput;
     testModalManager: TestModalManagerContract;
-    handleSwitchToParametersAction: () => void;
+    copyText: (value: string) => Promise<void>;
     modalPresenter: ModalPresenterApi;
     ensureUi: () => ModelDetailUi;
     requireModelId: () => string;
@@ -69,12 +73,29 @@ interface ModelDetailEventDependencies extends PageDomOwnerHost, PageResourcesOw
     };
 }
 
-const readRequiredActionParameter = (element: HTMLElement): string => {
-    const value = element.dataset['param'];
+const requireActionData = (value: string | undefined, attribute: string): string => {
     if (!value) {
-        throw new Error('ModelDetailPage action requires data-param');
+        throw new Error(`ModelDetailPage action requires ${attribute}`);
     }
     return value;
+};
+
+const readRequiredActionParameter = (element: HTMLElement): string => requireActionData(element.dataset['param'], 'data-param');
+
+const readRequiredActionView = (element: HTMLElement): ParameterView => {
+    const view = element.dataset['parameterView'];
+    if (!isParameterView(view)) {
+        throw new Error('ModelDetailPage parameter view action requires a known data-parameter-view');
+    }
+    return view;
+};
+
+const readRequiredActionGroup = (element: HTMLElement): ParameterGroup => {
+    const group = element.dataset['parameterGroup'];
+    if (!isParameterGroup(group)) {
+        throw new Error('ModelDetailPage parameter group action requires a known data-parameter-group');
+    }
+    return group;
 };
 
 const readRequiredActionIndex = (element: HTMLElement): number => {
@@ -141,7 +162,6 @@ const createModelDetailDelegatedActionHandlers = (dependencies: { host: ModelDet
                 }
                 host.router.navigate('models');
             },
-            switchToParameters: () => host.handleSwitchToParametersAction(),
             openBackendDocumentation: () => {
                 terminateHandledPromise(handleModelDetailBackendDocumentationClick(view));
             }
@@ -182,6 +202,13 @@ const createModelDetailDelegatedActionHandlers = (dependencies: { host: ModelDet
             },
             toggleModelEnabled: (_event: Event, element: HTMLElement) => {
                 terminateHandledPromise(toggleModelDetailEnabled(actionsHost, element));
+            },
+            copyValue: (element: HTMLElement) => {
+                const source = host.pageDom.optionalHTMLElement(requireActionData(element.dataset['copySource'], 'data-copy-source'));
+                const value = (source?.dataset['copyValue'] ?? source?.textContent)?.trim();
+                if (value) {
+                    terminateHandledPromise(host.copyText(value));
+                }
             }
         },
         test: {
@@ -212,22 +239,25 @@ const createModelDetailDelegatedActionHandlers = (dependencies: { host: ModelDet
             },
             removeParameterArrayItem: (element: HTMLElement) => {
                 host.parameterView.removeArrayItem(readRequiredActionParameter(element), readRequiredActionIndex(element));
+            },
+            revertParameter: (element: HTMLElement) => {
+                host.parameterView.resetParameter(readRequiredActionParameter(element));
+            },
+            selectParameterView: (element: HTMLElement) => {
+                host.parameterView.setView(readRequiredActionView(element));
+            },
+            selectParameterGroup: (element: HTMLElement) => {
+                host.parameterView.toggleGroup(readRequiredActionGroup(element));
+            },
+            navigateParameterCategory: (element: HTMLElement) => {
+                host.parameterView.navigateToCategory(requireActionData(element.dataset['category'], 'data-category'));
             }
         }
     });
 };
 
-const bindModelDetailAuxEventListeners = (dependencies: { host: Pick<ModelDetailEventDependencies, 'parameterView' | 'storage' | 'pageDom'> & Parameters<typeof handleModelDetailLanguageChanged>[1]; session: ModelDetailSession; ui: ModelDetailUi; signal: AbortSignal }): void => {
-    const { host, ui, signal } = dependencies;
-    ui.parameterUnifiedFilter.addEventListener(
-        'change',
-        (event: Event) => {
-            event.preventDefault();
-            host.parameterView.handleFilterSelection(ui.parameterUnifiedFilter.value);
-            persistModelDetailParameterFilter(host.storage, ui.parameterUnifiedFilter.value);
-        },
-        { signal }
-    );
+const bindModelDetailAuxEventListeners = (dependencies: { host: Parameters<typeof handleModelDetailLanguageChanged>[1]; session: ModelDetailSession; signal: AbortSignal }): void => {
+    const { host, signal } = dependencies;
     const handleSoaiLanguageChanged = (): void => terminateHandledPromise(handleModelDetailLanguageChanged(dependencies.session, host));
     getWindow().addEventListener('soai:language:changed', handleSoaiLanguageChanged, { signal });
 };

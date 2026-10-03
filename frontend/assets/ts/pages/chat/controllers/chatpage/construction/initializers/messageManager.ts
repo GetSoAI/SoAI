@@ -195,7 +195,8 @@ const initializeMessageManager = (page: ChatControllerInitializationContext): vo
             },
             stopSpeaking: () => {
                 page.sessions.voiceSession.stopSpeaking();
-            }
+            },
+            notifyMessageEditingChanged: () => page.runtime.composerSurface.optionalUi()?.syncChatChromeVisibility()
         },
         rendering: {
             getAttachmentDraftRevision: () => {

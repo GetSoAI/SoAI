@@ -109,6 +109,10 @@ interface DownloadManagerHost {
     view: PluginDownloadViewPort;
     execution: PluginDownloadExecutionPort;
     session: PluginDownloadSessionPort;
+    timing: {
+        setTimer(callback: () => void, delayMs: number): number | null;
+        clearTimer(id: number | null | undefined): void;
+    };
 }
 
 interface DownloadManagerOptions {

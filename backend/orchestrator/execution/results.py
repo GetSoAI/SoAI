@@ -191,6 +191,7 @@ class ResultProcessor:
             prompt_token_counter=self._prompt_token_counter,
             metrics=self._metrics,
             plugin_name=plugin_name,
+            model_info=model_info,
             model_name=resolve_source_model_id(model_info),
         )
         self._record_streaming_result_modality_usage(task, model_info, streaming_completion)
@@ -208,6 +209,7 @@ class ResultProcessor:
             queue=self._queue,
             active_inferences=self._active_inferences,
             task=task,
+            model_info=model_info,
             result=result,
             health_check_config=self._health_check_config,
             metrics=self._metrics,

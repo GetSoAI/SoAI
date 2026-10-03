@@ -1,6 +1,7 @@
 /* SoAI - Hardware page process table rendering [frontend/assets/ts/pages/hardware/widgets/processes/processTableRendering.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { removeWithPresence } from '@core/animations/presence/public.ts';
 import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { getDocument } from '@core/environment/public.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -16,10 +17,10 @@ type ProcessRowRefs = {
     nameSpan: HTMLSpanElement;
     killButton: HTMLButtonElement | null;
     ownerSpan: HTMLSpanElement | null;
-    pidCell: HTMLTableCellElement;
-    cpuCell: HTMLTableCellElement;
-    memCell: HTMLTableCellElement;
-    runtimeCell: HTMLTableCellElement;
+    pidValue: HTMLElement;
+    cpuValue: HTMLElement;
+    memoryValue: HTMLElement;
+    runtimeValue: HTMLElement;
 };
 
 type ProcessTableElements = {
@@ -52,17 +53,30 @@ const createRowRefs = (documentRef: Document, pid: number, allowKillButtons: boo
     const nameCell = documentRef.createElement('td');
     const nameSpan = documentRef.createElement('span');
     nameSpan.className = 'process-name';
+    nameSpan.dir = 'auto';
     nameCell.appendChild(nameSpan);
 
     const pidCell = documentRef.createElement('td');
     const cpuCell = documentRef.createElement('td');
-    const memCell = documentRef.createElement('td');
+    const memoryCell = documentRef.createElement('td');
     const runtimeCell = documentRef.createElement('td');
+    const pidValue = documentRef.createElement('bdi');
+    const cpuValue = documentRef.createElement('bdi');
+    const memoryValue = documentRef.createElement('bdi');
+    const runtimeValue = documentRef.createElement('bdi');
+    pidValue.dir = 'ltr';
+    cpuValue.dir = 'ltr';
+    memoryValue.dir = 'ltr';
+    runtimeValue.dir = 'auto';
+    pidCell.appendChild(pidValue);
+    cpuCell.appendChild(cpuValue);
+    memoryCell.appendChild(memoryValue);
+    runtimeCell.appendChild(runtimeValue);
 
     row.appendChild(nameCell);
     row.appendChild(pidCell);
     row.appendChild(cpuCell);
-    row.appendChild(memCell);
+    row.appendChild(memoryCell);
     row.appendChild(runtimeCell);
 
     const refs: ProcessRowRefs = {
@@ -71,10 +85,10 @@ const createRowRefs = (documentRef: Document, pid: number, allowKillButtons: boo
         nameSpan,
         killButton: null,
         ownerSpan: null,
-        pidCell,
-        cpuCell,
-        memCell,
-        runtimeCell
+        pidValue,
+        cpuValue,
+        memoryValue,
+        runtimeValue
     };
 
     if (allowKillButtons && pid > 0) {
@@ -98,7 +112,7 @@ const updateRowRefs = (documentRef: Document, refs: ProcessRowRefs, processRow: 
             button.setAttribute('aria-label', killLabel);
         }
     } else if (refs.killButton) {
-        refs.killButton.remove();
+        removeWithPresence(refs.killButton);
         refs.killButton = null;
     }
 
@@ -106,6 +120,8 @@ const updateRowRefs = (documentRef: Document, refs: ProcessRowRefs, processRow: 
         if (!refs.ownerSpan) {
             const owner = documentRef.createElement('span');
             owner.className = 'process-owner u-text-muted';
+            owner.dir = 'ltr';
+            owner.classList.add('u-ltr-inline');
             refs.nameCell.appendChild(owner);
             refs.ownerSpan = owner;
         }
@@ -124,13 +140,13 @@ const updateRowRefs = (documentRef: Document, refs: ProcessRowRefs, processRow: 
     }
 
     const pidText = String(processRow.pid);
-    if (refs.pidCell.textContent !== pidText) refs.pidCell.textContent = pidText;
+    if (refs.pidValue.textContent !== pidText) refs.pidValue.textContent = pidText;
     const cpuText = formatProcessCpu(processRow.cpu);
-    if (refs.cpuCell.textContent !== cpuText) refs.cpuCell.textContent = cpuText;
+    if (refs.cpuValue.textContent !== cpuText) refs.cpuValue.textContent = cpuText;
     const memText = formatProcessMemory(processRow.mem);
-    if (refs.memCell.textContent !== memText) refs.memCell.textContent = memText;
+    if (refs.memoryValue.textContent !== memText) refs.memoryValue.textContent = memText;
     const runtimeText = formatProcessRuntime(processRow.time);
-    if (refs.runtimeCell.textContent !== runtimeText) refs.runtimeCell.textContent = runtimeText;
+    if (refs.runtimeValue.textContent !== runtimeText) refs.runtimeValue.textContent = runtimeText;
 };
 
 const updateSortIndicators = (dependencies: ProcessTableManagerDependencies, elements: ProcessTableElements, sortColumn: ProcessSortColumn, sortDirection: SortDirection, lastSortIndicator: { column: ProcessSortColumn; direction: SortDirection } | null): { column: ProcessSortColumn; direction: SortDirection } | null => {

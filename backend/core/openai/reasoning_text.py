@@ -8,7 +8,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from core.types.json import JSONValue
 
-__all__ = ("normalize_reasoning_text",)
+__all__ = ("REASONING_FIELD_NAMES", "normalize_reasoning_text")
+
+REASONING_FIELD_NAMES: tuple[str, ...] = ("reasoning_content", "reasoning", "thinking")
 
 
 def normalize_reasoning_text(payload: JSONValue | None, visited: set[int] | None = None) -> str:

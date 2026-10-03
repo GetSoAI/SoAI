@@ -1,14 +1,13 @@
 /* SoAI - Automation page UI connections controller [frontend/assets/ts/pages/automation/controllers/AutomationPageUiConnectionsController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { AutomationCalendarPagerController } from '@pages/automation/controllers/AutomationCalendarPagerController.ts';
 import { AutomationMonthLayoutController } from '@pages/automation/controllers/AutomationMonthLayoutController.ts';
 import { connectAutomationNowLineLiveUpdates } from '@pages/automation/controllers/automationNowLineLiveUpdates.ts';
 import { AutomationSplitterController } from '@pages/automation/controllers/AutomationSplitterController.ts';
 import { AutomationTimeGridInteractionController } from '@pages/automation/controllers/AutomationTimeGridInteractionController.ts';
 import { AUTOMATION_SPLIT_MAX_PERCENT, AUTOMATION_SPLIT_MIN_PERCENT } from '@pages/automation/state/preferences.ts';
-import type { AutomationUiRefs, AutomationViewMode } from '@pages/automation/types.ts';
+import type { AutomationCalendarTimeFormat, AutomationUiRefs, AutomationViewMode } from '@pages/automation/types.ts';
 
 interface AutomationPageUiConnectionsControllerDependencies {
     ui: AutomationUiRefs;
@@ -17,6 +16,7 @@ interface AutomationPageUiConnectionsControllerDependencies {
     setSplitPercent: (value: number) => void;
     commitSplitPercent: (value: number) => void;
     openCreateModalAt: (utcMs: number) => void;
+    getTimeFormat: () => AutomationCalendarTimeFormat;
     hourHeightPx: number;
     requestAnimationFrame: (callback: () => void) => number;
     setTimeout: (callback: () => void, delay: number) => number | null;
@@ -61,10 +61,11 @@ class AutomationPageUiConnectionsController {
             this.#splitter = new AutomationSplitterController({
                 root: this.#dependencies.ui.root,
                 splitter: this.#dependencies.ui.splitter,
+                minPercent: AUTOMATION_SPLIT_MIN_PERCENT,
+                maxPercent: AUTOMATION_SPLIT_MAX_PERCENT,
                 getInitialPercent: () => this.#dependencies.getInitialSplitPercent(),
                 setPercent: (value) => this.#dependencies.setSplitPercent(value),
-                commitPercent: (value) => this.#dependencies.commitSplitPercent(value),
-                clampPercent: (value) => clampNumber(value, AUTOMATION_SPLIT_MIN_PERCENT, AUTOMATION_SPLIT_MAX_PERCENT)
+                commitPercent: (value) => this.#dependencies.commitSplitPercent(value)
             });
             this.#splitter.connect(connectionSignal);
 
@@ -81,6 +82,7 @@ class AutomationPageUiConnectionsController {
             this.#timeGridInteractions = new AutomationTimeGridInteractionController({
                 ui: this.#dependencies.ui,
                 openCreateModalAt: (utcMs) => this.#dependencies.openCreateModalAt(utcMs),
+                getTimeFormat: () => this.#dependencies.getTimeFormat(),
                 hourHeightPx: this.#dependencies.hourHeightPx
             });
             this.#timeGridInteractions.connect(connectionSignal);

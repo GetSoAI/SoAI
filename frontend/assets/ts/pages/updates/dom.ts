@@ -6,6 +6,8 @@ import type { UpdatesUiRefs } from '@pages/updates/types.ts';
 
 const requireUpdatesUi = (pageDom: PageDom): UpdatesUiRefs => ({
     pageNotice: pageDom.requireHTMLElement('#updatesPageNotice'),
+    pageNoticeBody: pageDom.requireHTMLElement('#updatesPageNoticeBody'),
+    pageProgress: pageDom.requireHTMLElement('#updatesPageProgress'),
     pageNoticeIndicator: pageDom.requireHTMLElement('#updatesPageNoticeIndicator'),
     pageNoticeHeading: pageDom.requireHTMLElement('#updatesPageNoticeHeading'),
     pageNoticeDetail: pageDom.requireHTMLElement('#updatesPageNoticeDetail'),

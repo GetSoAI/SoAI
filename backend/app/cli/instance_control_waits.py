@@ -39,32 +39,18 @@ RESTART_INITIAL_DELAY_SECONDS = 10.0
 DISCOVERY_WAIT_INTERVAL_SECONDS = 1.0
 
 
-def wait_for_process_exit(pid: int, timeout_seconds: float) -> bool:
+def wait_for_process_exit(process: psutil.Process, timeout_seconds: float) -> bool:
     deadline = deadline_after(timeout_seconds)
     while True:
-        try:
-            process = psutil.Process(pid)
-            status: str | None
-            try:
-                status = process.status()
-            except psutil.Error:
-                status = None
-            if status == psutil.STATUS_ZOMBIE:
-                return True
-            if not process.is_running():
-                return True
-        except psutil.NoSuchProcess:
+        if not is_process_running(process):
             return True
-        except psutil.Error:
-            process = None
         if deadline.expired():
             return False
         sleep_seconds(PROCESS_POLL_INTERVAL_SECONDS)
 
 
-def is_process_running(pid: int) -> bool:
+def is_process_running(process: psutil.Process) -> bool:
     try:
-        process = psutil.Process(pid)
         status: str | None
         try:
             status = process.status()
@@ -127,14 +113,12 @@ def wait_for_api_transition_down(
     *,
     deadline: MonotonicDeadline,
 ) -> bool:
-    observed_up = True
     consecutive_down = 0
     while not deadline.expired():
         is_reachable = probe_discovery_api_reachable(discovery_info)
         if is_reachable:
-            observed_up = True
             consecutive_down = 0
-        elif observed_up:
+        else:
             consecutive_down += 1
             if consecutive_down >= 2:
                 return True
@@ -245,7 +229,7 @@ def wait_for_stop_api_down(
     base_dir: str,
     *,
     expected_edition: str,
-    pid: int,
+    process: psutil.Process,
     timeout_seconds: float,
 ) -> bool:
     deadline = deadline_after(timeout_seconds)
@@ -255,7 +239,7 @@ def wait_for_stop_api_down(
     )
     consecutive_down = 0
     while True:
-        if not is_process_running(pid):
+        if not is_process_running(process):
             return True
         if baseline_discovery is not None:
             is_reachable = probe_discovery_api_reachable(baseline_discovery)

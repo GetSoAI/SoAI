@@ -12,9 +12,9 @@ import { loadLanguageFile, loadLanguageFlags, loadManifest } from '@core/languag
 import { EVENT_CHANGE, PRIMARY_LANGUAGE, SERVICE_NAME } from '@core/languageservice/constants.ts';
 import { resolveStorage } from '@core/languageservice/adapters.ts';
 import { isTranslationObject } from '@core/languageservice/guards.ts';
-import { formatLocalizedDate, formatLocalizedNumber, getResolvedLocalizationLocale } from '@core/localization/public.ts';
+import { formatLocalizedDate, formatLocalizedNumber, getResolvedLocalizationLocale, hasRtlScriptLetters } from '@core/localization/public.ts';
 import type { JsonRecord } from '@core/types/jsonValues.ts';
-import type { LanguageEntry, LanguageEntryWithFlag, LanguageManifest, TranslationObject, TranslationValue } from '@core/languageservice/types.ts';
+import type { LanguageEntry, LanguageEntryWithCountryCode, LanguageManifest, TranslationObject, TranslationValue } from '@core/languageservice/types.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { resolveSupportedLanguageCode } from '@core/languageservice/mappers.ts';
 
@@ -28,7 +28,7 @@ class LanguageService {
     defaultLanguage: string = PRIMARY_LANGUAGE;
     loadedLanguages: Map<string, TranslationObject> = new Map();
     loadingLanguages: Map<string, Promise<TranslationObject>> = new Map();
-    languageFlags: Map<string, string> = new Map();
+    languageCountryCodes: Map<string, string> = new Map();
     manifest: LanguageManifest | null = null;
     initialized: boolean = false;
     initializePromise: Promise<void> | null = null;
@@ -133,15 +133,15 @@ class LanguageService {
         return code === this.currentLanguage && code === this.#requestedLanguage;
     }
 
-    getAvailableLanguages(): LanguageEntryWithFlag[] {
+    getAvailableLanguages(): LanguageEntryWithCountryCode[] {
         return Array.from(this.languages.values()).map((entry) => {
-            const flag = this.languageFlags.get(entry.code);
-            return flag === undefined ? { ...entry } : { ...entry, flag };
+            const countryCode = this.languageCountryCodes.get(entry.code);
+            return countryCode === undefined ? { ...entry } : { ...entry, countryCode };
         });
     }
 
-    getLanguageFlag(code: string): string | undefined {
-        return this.languageFlags.get(code);
+    getLanguageCountryCode(code: string): string | undefined {
+        return this.languageCountryCodes.get(code);
     }
 
     notifyLanguageChange(code: string): void {
@@ -195,11 +195,16 @@ class LanguageService {
         return isString(current) ? current : null;
     }
 
-    interpolate(template: string, parameters: JsonRecord): string {
+    interpolate(template: string, parameters: JsonRecord, direction: 'ltr' | 'rtl' = this.getDirection()): string {
         if (!parameters || !Object.keys(parameters).length) {
             return template;
         }
-        return template.replace(/\{(\w+)\}/g, (match, key: string) => (key in parameters ? String(parameters[key]) : match));
+        const isolateValues = direction === 'rtl' && hasRtlScriptLetters(template);
+        return template.replace(/\{(\w+)\}/g, (match, key: string) => {
+            if (!(key in parameters)) return match;
+            const value = String(parameters[key]);
+            return isolateValues ? `\u2068${value}\u2069` : value;
+        });
     }
 
     plural(key: string, count: number, parameters: JsonRecord = {}): string {
@@ -222,13 +227,15 @@ class LanguageService {
     }
 
     formatDate(date: Date, options: Intl.DateTimeFormatOptions = {}): string {
+        let formatted: string;
         try {
-            return formatLocalizedDate(date, options);
+            formatted = formatLocalizedDate(date, options);
         } catch (error) {
             const runtimeError = ensureError(error);
             errorHandler.error(SERVICE_NAME, 'Formatting date failed', runtimeError);
-            return date.toString();
+            formatted = date.toString();
         }
+        return this.getDirection() === 'rtl' ? `\u2068${formatted}\u2069` : formatted;
     }
 
     getLocale(): string {
@@ -244,7 +251,7 @@ class LanguageService {
             const document = dom.getDocument();
             if (document?.documentElement) {
                 document.documentElement.setAttribute('lang', this.currentLanguage);
-                document.documentElement.setAttribute('dir', 'ltr');
+                document.documentElement.setAttribute('dir', this.getDirection());
             }
         } catch (error) {
             const runtimeError = ensureError(error);
@@ -260,7 +267,7 @@ class LanguageService {
         this.languages.clear();
         this.loadedLanguages.clear();
         this.loadingLanguages.clear();
-        this.languageFlags.clear();
+        this.languageCountryCodes.clear();
         this.manifest = null;
         this.currentLanguage = PRIMARY_LANGUAGE;
         this.#requestedLanguage = PRIMARY_LANGUAGE;
@@ -291,4 +298,4 @@ const resetLanguageService = (): void => {
 const getCurrentLocale = (): string => getResolvedLocalizationLocale();
 
 export { LanguageService, getCurrentLocale, getLanguageService, resetLanguageService };
-export type { LanguageEntry, LanguageEntryWithFlag, TranslationObject, TranslationValue };
+export type { LanguageEntry, LanguageEntryWithCountryCode, TranslationObject, TranslationValue };

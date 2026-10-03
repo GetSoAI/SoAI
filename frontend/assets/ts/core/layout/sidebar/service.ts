@@ -14,6 +14,7 @@ import { SIDEBAR_BASE_WIDTH_PROPERTY, SIDEBAR_EXPANDED_WIDTH_PROPERTY, SIDEBAR_L
 import { normalizeComponentToken } from '@core/layout/sidebar/foundation.ts';
 import { isSidebarStoragePluginIndicatorContract, type SidebarStoragePluginIndicatorContract } from '@core/layout/sidebar/pluginIndicator.ts';
 import type { SidebarState } from '@core/layout/sidebar/state.ts';
+import { isSidebarCollapsed } from '@core/layout/sidebar/stateUi.ts';
 import type { ComponentInstance } from '@core/componentsupport/types.ts';
 import type { SidebarComponentInstance, SidebarConfigEntry } from '@core/layout/sidebar/view.ts';
 import { resolveKernelService, resolveOptionalKernelService } from '@core/runtime/runtimeContext.ts';
@@ -195,21 +196,15 @@ const syncSidebarExpandedWidth = (sidebar: HTMLElement | null): void => {
 const updateSidebarMainStateIndicator = (componentRegistry: ComponentRegistryContract | null, state: SidebarState): void => {
     const component = getSidebarComponentByPath(componentRegistry, MAIN_STATE_SERVICE_ID);
     if (component) {
-        component.setCollapsed?.(state.mobile ? !state.open : state.collapsed);
+        component.setCollapsed?.(isSidebarCollapsed(state));
     }
 };
 
-const loadSidebarGrantedActions = async (user: UserInfo | null): Promise<ReadonlySet<string>> => {
+const loadSidebarGrantedActions = async (user: UserInfo | null, signal?: AbortSignal): Promise<ReadonlySet<string>> => {
     if (!user) {
         return new Set();
     }
-    try {
-        return (await loadWebuiPermissionsSnapshot()).grantedActions;
-    } catch (error) {
-        const runtimeError = ensureError(error);
-        errorHandler.warn('Sidebar', 'Failed to load webui.permissions snapshot', runtimeError);
-        return new Set();
-    }
+    return (await loadWebuiPermissionsSnapshot({ signal })).grantedActions;
 };
 
 const captureSidebarAuthSnapshot = (user: UserInfo | null | undefined): UserInfo | null => user || null;

@@ -21,7 +21,7 @@
     }
 
     .log-message:is(.checkerboard-light, .checkerboard-dark) {
-        background-image: var(--log-cell-reflection), linear-gradient(to bottom, color-mix(in srgb, var(--text-primary) 5%, transparent), transparent 62%);
+        background-image: linear-gradient(to bottom, color-mix(in srgb, var(--text-primary) 5%, transparent), transparent 62%);
     }
 
     .hardware-widget.checkerboard-light,
@@ -87,9 +87,6 @@
     .automation-week-header-day.checkerboard-light,
     .automation-week-header-day.checkerboard-dark {
         background-color: var(--ui-button-bg);
-        background-image: var(--ui-button-reflection);
-        background-repeat: no-repeat;
-        background-size: 100% 100%;
     }
 
     .checkerboard-light .ui-collection-card__body .ui-metric-badge:not(.ui-metric-badge--status-full) {

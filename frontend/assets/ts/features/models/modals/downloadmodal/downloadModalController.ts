@@ -8,12 +8,11 @@ import { createInitialDownloadModalState, type DownloadModalState } from '@featu
 import type { DownloadModalHost } from '@features/models/modals/downloadmodal/downloadModalTypes.ts';
 import { handleConfirmAction } from '@features/models/modals/downloadmodal/manager/actions/confirmAction.ts';
 import { disposeDownloadModal } from '@features/models/modals/downloadmodal/manager/actions/dispose.ts';
-import { hasActiveModelDownloads } from '@features/models/modals/downloadmodal/manager/modelDownloadOperations.ts';
 import type { DownloadModalManagerRuntime } from '@features/models/modals/downloadmodal/manager/contracts.ts';
 import { handleManualTabClick, handleModelSearch, handleModelSearchInput, handleModelSearchInputKeydown, handleModelSearchResultClick, handleModelSearchResultKeydown, handleRepositoryLinkClick } from '@features/models/modals/downloadmodal/manager/events.ts';
 import { handleManualDiscovery, handleManualOpenFileExplorer, handleManualPathCopy } from '@features/models/modals/downloadmodal/manager/service.ts';
 import { handleVariantCheck } from '@features/models/modals/downloadmodal/manager/variantEvents.ts';
-import { handleDownloadTabClick, handlePluginSelectChange, handleProviderPluginSelectChange, handleProviderTabClick, handleVariantInputChange, openDownloadModelModal, updateDownloadBadge, updateDownloadButtonState, updateSelectedModelDisplay } from '@features/models/modals/downloadmodal/manager/view.ts';
+import { handleDownloadTabClick, handlePluginSelectChange, handleProviderPluginSelectChange, handleProviderTabClick, handleVariantInputChange, hasActiveModelDownloads, openDownloadModelModal, updateDownloadBadge, updateDownloadButtonState, updateSelectedModelDisplay } from '@features/models/modals/downloadmodal/manager/view.ts';
 import { MODELS_DOWNLOAD_MODAL_ID } from '@features/models/modals/constants.ts';
 import { MODEL_DOWNLOAD_OPERATION_FILTER } from '@features/models/modelDownloadOperation.ts';
 

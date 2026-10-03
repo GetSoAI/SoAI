@@ -9,14 +9,22 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
 from filelock import BaseFileLock, FileLock, Timeout
-from playwright.async_api import BrowserContext, Error, HttpCredentials
+from playwright.async_api import Browser, BrowserContext, Error, HttpCredentials
 
+from core.browser.playwright_driver_errors import (
+    PlaywrightDriverConnectionClosedError,
+    classify_playwright_driver_connection_closed_exception,
+)
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
+from core.errors.cancellation import raise_cancelled_error
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import SoAITimeoutError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.files.locking import async_guarded_file_lock
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.logging.trace import get_logger
+from core.timing.constants import CONTROL_TIMEOUT_SEC
 from mcp.tools.browser.context_options import resolve_browser_context_options
 from mcp.tools.browser.profile_persistence import (
     acquire_file_lock,
@@ -49,6 +57,7 @@ _BROWSER_SERVICE_WORKERS_POLICY: Literal["block"] = "block"
 @dataclass(frozen=True, slots=True)
 class BrowserContextOpenResult:
     context: BrowserContext
+    driver_generation: int
     profile_lock: BaseFileLock | None = None
     user_data_dir: str | None = None
     storage_state_path: str | None = None
@@ -80,19 +89,20 @@ async def open_user_data_dir_context(
     lock_timeout_sec = resolve_user_data_dir_lock_timeout_sec(config=self.config)
     lock_dir = os.path.dirname(lock_path)
     if lock_dir:
-        await asyncio.to_thread(os.makedirs, lock_dir, exist_ok=True)
-    await asyncio.to_thread(os.makedirs, user_data_dir, exist_ok=True)
-    profile_lock = FileLock(lock_path, timeout=0, thread_local=False)
-    result_profile_lock: BaseFileLock | None = profile_lock
+        await asyncio.to_thread(os.makedirs, normalize_filesystem_path(lock_dir), exist_ok=True)
+    await asyncio.to_thread(os.makedirs, normalize_filesystem_path(user_data_dir), exist_ok=True)
+    profile_lock = FileLock(normalize_filesystem_path(lock_path), timeout=0, thread_local=False)
     try:
         await acquire_file_lock(profile_lock, timeout_sec=lock_timeout_sec)
     except Timeout as exception:
         raise SoAITimeoutError(
             "Timed out waiting for browser profile lock. Another session may still be using this profile.",
         ) from exception
+    context: BrowserContext
+    launched = False
     try:
         context_options = resolve_browser_context_options(self.config, profile=profile)
-        context = await self.runtime.launch_persistent_context(
+        context, driver_generation = await self.runtime.launch_persistent_context(
             profile=profile,
             user_data_dir=user_data_dir,
             http_credentials=http_credentials,
@@ -103,12 +113,7 @@ async def open_user_data_dir_context(
             viewport=context_options.viewport,
             device_scale_factor=context_options.device_scale_factor,
         )
-    except asyncio.CancelledError:
-        try:
-            await asyncio.shield(asyncio.to_thread(profile_lock.release))
-        finally:
-            result_profile_lock = None
-        raise
+        launched = True
     except RECOVERABLE_EXCEPTIONS as exception:
         logger = get_logger(LOGGER_NAME)
         coerced = coerce_to_soai_error(exception, operation=OPERATION_CONTEXT_INIT)
@@ -120,14 +125,19 @@ async def open_user_data_dir_context(
             details={"user_data_dir": user_data_dir, "profile": profile},
             level="warning",
         )
-        try:
-            await asyncio.shield(asyncio.to_thread(profile_lock.release))
-        finally:
-            result_profile_lock = None
         raise
+    finally:
+        if not launched:
+            await uncancel_then_cleanup(
+                asyncio.wait_for(
+                    asyncio.to_thread(profile_lock.release),
+                    timeout=CONTROL_TIMEOUT_SEC,
+                ),
+            )
     return BrowserContextOpenResult(
         context=context,
-        profile_lock=result_profile_lock,
+        driver_generation=driver_generation,
+        profile_lock=profile_lock,
         user_data_dir=user_data_dir,
         http_credentials=http_credentials,
         ignore_https_errors=bool(ignore_https_errors),
@@ -144,6 +154,53 @@ async def open_storage_state_context(
     ignore_https_errors: bool = False,
 ) -> BrowserContextOpenResult:
     browser = await self.runtime.ensure_browser(profile=profile)
+    driver_generation = await self.runtime.generation_for_browser(browser)
+    try:
+        return await _open_storage_state_context(
+            self,
+            browser=browser,
+            driver_generation=driver_generation,
+            owner_key=owner_key,
+            profile=profile,
+            session_scope=session_scope,
+            http_credentials=http_credentials,
+            ignore_https_errors=ignore_https_errors,
+        )
+    except asyncio.CancelledError as exception:
+        raise_cancelled_error(exception)
+    except Exception as exception:
+        driver_error = classify_playwright_driver_connection_closed_exception(
+            exception,
+            operation=OPERATION_NEW_CONTEXT,
+            details={"profile": profile},
+        )
+        if driver_error is None:
+            raise
+        log_exception(
+            get_logger(LOGGER_NAME),
+            coerce_to_soai_error(driver_error, operation=OPERATION_NEW_CONTEXT),
+            message="Browser context creation lost the Playwright driver connection.",
+            operation=OPERATION_NEW_CONTEXT,
+            details={"profile": profile},
+            level="warning",
+        )
+        await self.runtime.handle_driver_disconnect(driver_generation, driver_error)
+        if driver_error is exception:
+            raise
+        raise driver_error from exception
+
+
+async def _open_storage_state_context(
+    self: BrowserSessionStoreProtocol,
+    *,
+    browser: Browser,
+    driver_generation: int,
+    owner_key: str,
+    profile: str,
+    session_scope: str,
+    http_credentials: HttpCredentials | None,
+    ignore_https_errors: bool,
+) -> BrowserContextOpenResult:
     context_options = resolve_browser_context_options(self.config, profile=profile)
     storage_state_path: str | None = None
     storage_state_error: str | None = None
@@ -160,7 +217,7 @@ async def open_storage_state_context(
         storage_state_lock_path = resolve_storage_state_lock_path(path=storage_state_path)
         lock_dir = os.path.dirname(storage_state_lock_path)
         if lock_dir:
-            await asyncio.to_thread(os.makedirs, lock_dir, exist_ok=True)
+            await asyncio.to_thread(os.makedirs, normalize_filesystem_path(lock_dir), exist_ok=True)
     if storage_state_path and storage_state_lock_path is not None:
         failure_message = (
             "Failed to load browser storage_state. Run "
@@ -199,6 +256,13 @@ async def open_storage_state_context(
                         device_scale_factor=context_options.device_scale_factor,
                     )
             except Error as exception:
+                driver_error = classify_playwright_driver_connection_closed_exception(
+                    exception,
+                    operation=OPERATION_NEW_CONTEXT,
+                    details={"profile": profile},
+                )
+                if driver_error is not None:
+                    raise driver_error from exception
                 logger = get_logger(LOGGER_NAME)
                 coerced = coerce_to_soai_error(
                     exception,
@@ -215,6 +279,8 @@ async def open_storage_state_context(
                 storage_state_error = str(coerced)
                 raise ValidationError(failure_message) from exception
             except RECOVERABLE_EXCEPTIONS as exception:
+                if isinstance(exception, PlaywrightDriverConnectionClosedError):
+                    raise
                 logger = get_logger(LOGGER_NAME)
                 coerced = coerce_to_soai_error(
                     exception,
@@ -232,6 +298,7 @@ async def open_storage_state_context(
                 raise ValidationError(failure_message) from exception
             return BrowserContextOpenResult(
                 context=context,
+                driver_generation=driver_generation,
                 storage_state_path=storage_state_path,
                 storage_state_error=storage_state_error,
                 http_credentials=http_credentials,
@@ -250,6 +317,7 @@ async def open_storage_state_context(
     )
     return BrowserContextOpenResult(
         context=context,
+        driver_generation=driver_generation,
         storage_state_path=storage_state_path,
         storage_state_error=storage_state_error,
         http_credentials=http_credentials,

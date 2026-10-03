@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
-import { reconcileElementChildrenFromTrustedHtml } from '@core/dom/childNodeReconciliation.ts';
+import { reconcileRepeatedElementChildrenFromTrustedHtml } from '@core/dom/childNodeReconciliation.ts';
 import { syncAttributeValue } from '@core/dom/patching.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { CHAT_ICON_SIZE_MD, CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
@@ -13,6 +13,8 @@ import { resolveConversationAuthorityLock } from '@core/chat/conversationAuthori
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 import { isAgentModeRequiringTools } from '@features/chat/conversationsettings/mcpToolsActiveState.ts';
 import { applyMcpToolsToggleButtonState } from '@features/chat/conversationsettings/mcpToolsToggleButtonState.ts';
+
+export const COMPOSER_STOP_MODE_CLASS = 'is-stop-mode';
 
 const renderExecutionControls = (context: ChatUIManagerContext, controlState: ChatComposerControlState): void => {
     const nextIsExecuting = controlState.isExecuting;
@@ -30,7 +32,7 @@ const renderExecutionControls = (context: ChatUIManagerContext, controlState: Ch
         context.dependencies.updateAttribute(messagesArea, 'data-chat-executing', nextIsExecuting ? 'true' : null);
     }
     const mode = nextIsExecuting && !nextIsChatStreaming && controlState.actionMode !== 'queue' ? 'send' : controlState.actionMode;
-    context.dependencies.toggleClassName(actionBtn, 'is-stop-mode', mode === 'stop');
+    context.dependencies.toggleClassName(actionBtn, COMPOSER_STOP_MODE_CLASS, mode === 'stop');
     syncAttributeValue(actionBtn, 'data-chat-action-mode', mode);
     if (mode === 'stop') {
         const hasConversation = context.dependencies.session.getCurrentConversationId() !== null;
@@ -44,7 +46,7 @@ const renderExecutionControls = (context: ChatUIManagerContext, controlState: Ch
     }
 
     const iconName = mode === 'stop' ? 'stop' : 'arrow-up';
-    reconcileElementChildrenFromTrustedHtml({ target: actionBtn, html: context.dependencies.getCachedIcon(iconName, CHAT_ICON_SIZE_MD) });
+    reconcileRepeatedElementChildrenFromTrustedHtml({ target: actionBtn, html: context.dependencies.getCachedIcon(iconName, CHAT_ICON_SIZE_MD) });
 
     const label = mode === 'stop' ? i18n.t('chat.input.stop') : mode === 'steer' ? i18n.t('chat.input.steer') : mode === 'queue' ? i18n.t('chat.input.queue') : i18n.t('chat.input.send');
     setTooltipText(actionBtn, label);

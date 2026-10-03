@@ -14,6 +14,11 @@ from core.bootstrap.files import compute_sha256, write_text_file_atomic
 from core.bootstrap.lock import acquire_interprocess_lock
 from core.bootstrap.managed_archive_extraction import extract_managed_asset_archive
 from core.bootstrap.managed_install_marker import read_managed_install_marker
+from core.bootstrap.packaged_asset_paths import resolve_packaged_asset
+from core.bootstrap.runtime_directory_publication import (
+    publish_runtime_directory,
+    recover_runtime_directory_publication,
+)
 from core.errors.exceptions import StateError
 from core.filesystem.open_files import open_text
 from core.media.tesseract_data import require_complete_tesseract_data, require_tesseract_model
@@ -27,7 +32,9 @@ from core.timing.constants import CONTROL_TIMEOUT_SEC
 
 __all__ = (
     "TESSERACT_RELEASE",
+    "TESSERACT_WINDOWS_ARCHIVE_NAME",
     "TESSERACT_WINDOWS_BUILD",
+    "TESSERACT_WINDOWS_MANIFEST_NAME",
     "TESSERACT_WINDOWS_VERSION_LINE",
     "ensure_tesseract_runtime_installed",
     "is_tesseract_runtime_installed",
@@ -36,8 +43,8 @@ __all__ = (
 TESSERACT_RELEASE = "5.5.3"
 TESSERACT_WINDOWS_BUILD = "5.5.3.20260724"
 TESSERACT_WINDOWS_VERSION_LINE = "tesseract v5.5.3.20260724"
-_WINDOWS_ARCHIVE_NAME = "tesseract-5.5.3-windows-x64.zip"
-_WINDOWS_MANIFEST_NAME = "tesseract-5.5.3-windows-x64.json"
+TESSERACT_WINDOWS_ARCHIVE_NAME = "tesseract-5.5.3-windows-x64.zip"
+TESSERACT_WINDOWS_MANIFEST_NAME = "tesseract-5.5.3-windows-x64.json"
 
 
 def is_tesseract_runtime_installed(repo_root_path: str) -> bool:
@@ -64,6 +71,20 @@ def ensure_tesseract_runtime_installed(repo_root_path: str) -> tuple[str, str]:
         "soai.tesseract_runtime.lock",
     )
     with acquire_interprocess_lock(lock_path, timeout_sec=1800.0):
+        install_directory = _windows_install_directory(repo_root_path)
+        manifest = _read_asset_manifest(
+            _resolve_windows_runtime_asset(
+                repo_root_path,
+                TESSERACT_WINDOWS_MANIFEST_NAME,
+            )
+        )
+        recover_runtime_directory_publication(
+            install_directory,
+            lambda directory: _require_windows_install_directory(
+                directory,
+                manifest["archive_sha256"],
+            ),
+        )
         try:
             executable, data_directory = _resolve_windows_installed_candidate(repo_root_path)
             _require_valid_runtime(executable, data_directory)
@@ -96,17 +117,14 @@ def _resolve_posix_candidate(repo_root_path: str) -> tuple[str, str]:
 
 def _resolve_windows_installed_candidate(repo_root_path: str) -> tuple[str, str]:
     _require_windows_x64()
-    install_directory = join_data_abs(
-        repo_root_path,
-        "state",
-        "tesseract",
-        f"tesseract-{TESSERACT_RELEASE}",
-        "windows-x64",
-    )
+    install_directory = _windows_install_directory(repo_root_path)
     marker_path = os.path.join(install_directory, "install.json")
     marker = read_managed_install_marker(marker_path, field="managed Tesseract install marker")
     manifest = _read_asset_manifest(
-        os.path.join(repo_root_path, "runtime-assets", _WINDOWS_MANIFEST_NAME),
+        _resolve_windows_runtime_asset(
+            repo_root_path,
+            TESSERACT_WINDOWS_MANIFEST_NAME,
+        ),
     )
     if (
         marker is None
@@ -122,9 +140,14 @@ def _resolve_windows_installed_candidate(repo_root_path: str) -> tuple[str, str]
 
 def _install_windows_runtime(repo_root_path: str) -> tuple[str, str]:
     _require_windows_x64()
-    asset_directory = os.path.join(repo_root_path, "runtime-assets")
-    archive_path = os.path.join(asset_directory, _WINDOWS_ARCHIVE_NAME)
-    manifest_path = os.path.join(asset_directory, _WINDOWS_MANIFEST_NAME)
+    archive_path = _resolve_windows_runtime_asset(
+        repo_root_path,
+        TESSERACT_WINDOWS_ARCHIVE_NAME,
+    )
+    manifest_path = _resolve_windows_runtime_asset(
+        repo_root_path,
+        TESSERACT_WINDOWS_MANIFEST_NAME,
+    )
     manifest = _read_asset_manifest(manifest_path)
     expected_sha256 = manifest.get("archive_sha256", "")
     try:
@@ -133,13 +156,7 @@ def _install_windows_runtime(repo_root_path: str) -> tuple[str, str]:
         raise StateError("Managed Windows Tesseract archive is missing.") from exception
     if not expected_sha256 or actual_sha256 != expected_sha256:
         raise StateError("Managed Windows Tesseract archive digest is invalid.")
-    install_directory = join_data_abs(
-        repo_root_path,
-        "state",
-        "tesseract",
-        f"tesseract-{TESSERACT_RELEASE}",
-        "windows-x64",
-    )
+    install_directory = _windows_install_directory(repo_root_path)
     parent_directory = os.path.dirname(install_directory)
     os.makedirs(parent_directory, exist_ok=True)
     staging_directory = os.path.join(
@@ -168,7 +185,14 @@ def _install_windows_runtime(repo_root_path: str) -> tuple[str, str]:
             os.path.join(staging_directory, "install.json"),
             f"{serialize_json_pretty_sorted_strict(marker_payload)}\n",
         )
-        _replace_runtime_directory(staging_directory, install_directory)
+        publish_runtime_directory(
+            staging_directory,
+            install_directory,
+            lambda directory: _require_windows_install_directory(
+                directory,
+                expected_sha256,
+            ),
+        )
     finally:
         if os.path.isdir(staging_directory):
             shutil.rmtree(staging_directory)
@@ -199,21 +223,45 @@ def _read_asset_manifest(path: str) -> dict[str, str]:
     return values
 
 
-def _replace_runtime_directory(staging_directory: str, install_directory: str) -> None:
-    backup_directory = f"{install_directory}.replaced.{uuid.uuid4().hex}"
-    moved_existing = False
-    try:
-        if os.path.isdir(install_directory):
-            os.replace(install_directory, backup_directory)
-            moved_existing = True
-        os.replace(staging_directory, install_directory)
-    except OSError:
-        if moved_existing and not os.path.exists(install_directory):
-            os.replace(backup_directory, install_directory)
-        raise
-    finally:
-        if os.path.isdir(backup_directory):
-            shutil.rmtree(backup_directory)
+def _resolve_windows_runtime_asset(repo_root_path: str, filename: str) -> str:
+    path = resolve_packaged_asset(
+        repo_root_path,
+        selected_directory=("runtime-assets",),
+        filename=filename,
+        managed_asset="Windows Tesseract",
+    )
+    if path is None:
+        raise StateError("Managed Windows Tesseract runtime asset is missing.")
+    return path
+
+
+def _windows_install_directory(repo_root_path: str) -> str:
+    return join_data_abs(
+        repo_root_path,
+        "state",
+        "tesseract",
+        f"tesseract-{TESSERACT_RELEASE}",
+        "windows-x64",
+    )
+
+
+def _require_windows_install_directory(
+    install_directory: str,
+    expected_archive_sha256: str,
+) -> None:
+    marker = read_managed_install_marker(
+        os.path.join(install_directory, "install.json"),
+        field="managed Tesseract install marker",
+    )
+    if marker != {
+        "archive_sha256": expected_archive_sha256,
+        "release": TESSERACT_RELEASE,
+    }:
+        raise StateError("Managed Tesseract install marker is missing or invalid.")
+    executable = os.path.join(install_directory, "tesseract.exe")
+    data_directory = os.path.join(install_directory, "tessdata")
+    _require_valid_runtime(executable, data_directory)
+    require_complete_tesseract_data(data_directory)
 
 
 def _require_windows_x64() -> None:

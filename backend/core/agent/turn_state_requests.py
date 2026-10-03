@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from core.agent.status_values import AGENT_TURN_STATUS_RUNNING
 from core.agent.todo_state_models import AgentTurnTodoState
 from core.agent.turn_record_fields import TurnStateHeader, read_turn_state_header
 from core.database.requests import WriteAgentTurnStateRequest
@@ -17,6 +18,7 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
+    "build_running_turn_start_request",
     "build_turn_state_request",
     "build_turn_state_request_from_header",
     "compose_turn_state_request_from_existing_turn",
@@ -149,6 +151,47 @@ def compose_turn_state_request_from_existing_turn(
         started_at_ms=started_at_ms,
         updated_at_ms=updated_at_ms,
         finished_at_ms=finished_at_ms,
+    )
+
+
+def build_running_turn_start_request(
+    *,
+    conv_id: str,
+    user_id: int,
+    turn_id: str,
+    header: TurnStateHeader,
+    execution_token: str,
+    mode: str,
+    max_iterations: int,
+    turn_cancellation_id: str | None,
+    active_inference_cancellation_id: str | None,
+    todo_state: AgentTurnTodoState,
+    started_at_ms: int,
+) -> WriteAgentTurnStateRequest:
+    return build_turn_state_request(
+        conv_id=conv_id,
+        user_id=user_id,
+        turn_id=turn_id,
+        header=header,
+        execution_token=execution_token,
+        status=AGENT_TURN_STATUS_RUNNING,
+        mode=mode,
+        max_iterations=max_iterations,
+        iteration_index=0,
+        sequence=0,
+        turn_cancellation_id=turn_cancellation_id,
+        active_inference_cancellation_id=active_inference_cancellation_id,
+        assistant_text=None,
+        tool_calls=[],
+        tool_results=[],
+        activities=[],
+        reached_max_iterations=False,
+        error_message=None,
+        error_type=None,
+        todo_state=todo_state,
+        started_at_ms=started_at_ms,
+        updated_at_ms=started_at_ms,
+        finished_at_ms=None,
     )
 
 

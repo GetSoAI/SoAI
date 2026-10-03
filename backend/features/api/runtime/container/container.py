@@ -103,6 +103,7 @@ def build_api_dependencies(
         webui_manager=services.plugins.webui_manager,
         log_manager=services.infrastructure.log_manager,
         prompt_token_counter=services.infrastructure.prompt_token_counter,
+        chat_template_role_policy_resolver=services.infrastructure.chat_template_role_policy_resolver,
         agent_chronology_sequencer=api_runtime_services.agent_chronology_sequencer,
         agent_state_service=api_runtime_services.agent_state_service,
         database_plugins=services.databases.plugins,

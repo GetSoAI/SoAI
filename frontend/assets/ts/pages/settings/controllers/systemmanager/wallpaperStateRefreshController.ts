@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { narrowButton, narrowInput } from '@core/dom/narrowElement.ts';
-import { i18n } from '@core/i18n/index.ts';
 import { UI_IDS } from '@features/settings/public.ts';
 import type { ResetActionExecutionContext } from '@pages/settings/controllers/systemmanager/contracts.ts';
+import { formatWallpaperOverlayValue } from '@pages/settings/controllers/thememanager/mappers.ts';
 import { ThemeColorPreferenceController } from '@pages/settings/controllers/thememanager/ThemeColorPreferenceController.ts';
 import { SOLID_BACKGROUND_PICKER_FALLBACK } from '@pages/settings/controllers/thememanager/themeColorControlsWidget.ts';
 
@@ -20,7 +20,7 @@ const refreshWallpaperFromState = (host: ResetActionExecutionContext['host']): v
 
     const overlayValueElement = host.view.pageDom.optionalHTMLElement(UI_IDS.WALLPAPER_OVERLAY_VALUE);
     if (overlayValueElement) {
-        host.view.pageDom.updateText(overlayValueElement, i18n.t('settings.wallpaper.overlay.value', { percent: host.api.getWallpaperOverlay() }));
+        host.view.pageDom.updateText(overlayValueElement, formatWallpaperOverlayValue(host.api.getWallpaperOverlay()));
     }
 
     const solidPicker = host.view.pageDom.optionalHTMLElement(UI_IDS.SOLID_BACKGROUND_PICKER);
@@ -35,6 +35,7 @@ const refreshWallpaperFromState = (host: ResetActionExecutionContext['host']): v
         ThemeColorPreferenceController.setClearButtonVisibility(narrowButton(solidClearButton, 'Solid background clear button'), host.api.getSolidBackground() !== null);
     }
 
+    host.workflow.scheduleWallpaperRefresh();
     host.workflow.refreshWallpaperPreview();
 };
 

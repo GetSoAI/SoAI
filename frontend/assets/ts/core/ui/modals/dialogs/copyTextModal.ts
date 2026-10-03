@@ -36,7 +36,7 @@ const createCopyTextModal = (dependencies: { confirmationFlow: ConfirmationFlowA
         const variant = toTrimmedLower(config.variant || 'info');
         const icon = config.icon !== false ? config.icon || resolveVariantIcon(variant) : null;
 
-        const description = `<div class="settings-token-secret-display form-row-split manual-path-row"><div class="form-col-main"><input type="text" class="form-input settings-token-secret-field" readonly value="${securityApi.escapeAttribute(config.text)}" spellcheck="false" autocapitalize="off" autocomplete="off"></div></div>`;
+        const description = `<div class="settings-token-secret-display form-row-split manual-path-row"><div class="form-col-main"><input dir="ltr" type="text" class="form-input settings-token-secret-field" readonly value="${securityApi.escapeAttribute(config.text)}" spellcheck="false" autocapitalize="off" autocomplete="off"></div></div>`;
         const copy = async (): Promise<boolean> => {
             return await copyTextToClipboard(config.text, {
                 notify,

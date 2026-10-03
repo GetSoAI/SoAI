@@ -5,8 +5,8 @@
     .ui-notification-stack {
         position: fixed;
         bottom: calc(var(--space-5) + var(--ui-safe-area-inset-bottom));
-        right: calc(var(--space-3) + var(--ui-safe-area-inset-right));
-        left: auto;
+        inset-inline-end: calc(var(--space-3) + var(--ui-safe-area-inset-inline-end));
+        inset-inline-start: auto;
         z-index: var(--z-notification);
         pointer-events: none;
         width: fit-content;
@@ -29,7 +29,8 @@
         backdrop-filter: var(--glass-blur-base);
         box-shadow: var(--glass-shadow-base);
         border-radius: var(--border-radius);
-        padding: var(--space-3) var(--space-10) var(--space-3) 0;
+        padding-block: var(--space-3) var(--space-3);
+        padding-inline: 0 var(--space-10);
         min-width: min(300px, calc(calc(100 * var(--ui-viewport-width-unit)) - var(--space-6)));
         max-width: 100%;
         position: relative;
@@ -157,7 +158,7 @@
         font-size: var(--font-size-body-sm);
         font-weight: 500;
         line-height: 1.4;
-        padding-right: var(--space-2);
+        padding-inline-end: var(--space-2);
         display: -webkit-box;
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 2;
@@ -182,7 +183,7 @@
         --ui-round-button-surface-hover: var(--control-round-button-activity-close-bg-hover);
         position: absolute;
         top: 7px;
-        right: 7px;
+        inset-inline-end: 7px;
         z-index: var(--z-raised);
         box-shadow: none;
         overflow: hidden;
@@ -196,7 +197,8 @@
 
     .ui-notification--persistent {
         min-width: min(350px, calc(calc(100 * var(--ui-viewport-width-unit)) - var(--space-6)));
-        padding: var(--space-4) var(--space-10) var(--space-4) var(--space-5);
+        padding-block: var(--space-4) var(--space-4);
+        padding-inline: var(--space-5) var(--space-10);
         pointer-events: auto;
     }
 
@@ -243,6 +245,8 @@
     .ui-notification--swipe-active {
         animation: none;
         opacity: 1;
+
+        /* direction: physical — toast swipe supplies direction-resolved physical pointer displacement */
         transform: translate3d(var(--ui-notification-swipe-x), 0, 0);
         cursor: grabbing;
         user-select: none;
@@ -250,6 +254,8 @@
 
     .ui-notification--swipe-dragging {
         animation: none;
+
+        /* direction: physical — toast swipe supplies direction-resolved physical pointer displacement */
         transform: translate3d(var(--ui-notification-swipe-x), 0, 0);
         opacity: var(--ui-notification-swipe-opacity);
         transition: none;
@@ -257,12 +263,15 @@
 
     .ui-notification--swipe-dismissed {
         animation: none;
+
+        /* direction: physical — toast swipe supplies direction-resolved physical pointer displacement */
         transform: translate3d(var(--ui-notification-swipe-x), 0, 0);
         opacity: 0;
         transition: opacity var(--duration-200) var(--ease-in);
     }
 
     .ui-notification--closing {
+        /* direction: physical — toast swipe supplies direction-resolved physical pointer displacement */
         transform: translate3d(var(--ui-notification-swipe-x), 0, 0);
         animation: effect-fade-enter var(--duration-200) var(--ease-in) reverse forwards;
     }

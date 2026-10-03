@@ -7,11 +7,10 @@ from dataclasses import dataclass
 
 from starlette.requests import Request
 
-from core.agent.status_values import AGENT_TURN_STATUS_RUNNING
 from core.agent.todo_state_models import AgentTurnTodoState
 from core.agent.turn_record_fields import TurnStateHeader
 from core.agent.turn_scope_values import TURN_SCOPE_ROOT
-from core.agent.turn_state_requests import build_turn_state_request
+from core.agent.turn_state_requests import build_running_turn_start_request
 from core.database.requests import ClaimAgentTurnStateRequest
 from core.errors.exceptions import ValidationError
 from core.runtime.soai_identifiers import create_prefixed_hex_id, create_system_id
@@ -78,7 +77,7 @@ def _build_manual_compaction_turn_claim(
     started_at_ms: int,
 ) -> ClaimAgentTurnStateRequest:
     return ClaimAgentTurnStateRequest(
-        turn_state=build_turn_state_request(
+        turn_state=build_running_turn_start_request(
             conv_id=conv_id,
             user_id=user_id,
             turn_id=turn_id,
@@ -92,24 +91,12 @@ def _build_manual_compaction_turn_claim(
                 owner_task_id=None,
             ),
             execution_token=execution_token,
-            status=AGENT_TURN_STATUS_RUNNING,
             mode=mode,
             max_iterations=1,
-            iteration_index=0,
-            sequence=0,
             turn_cancellation_id=turn_cancellation_id,
             active_inference_cancellation_id=None,
-            assistant_text=None,
-            tool_calls=[],
-            tool_results=[],
-            activities=[],
-            reached_max_iterations=False,
-            error_message=None,
-            error_type=None,
             todo_state=todo_state,
             started_at_ms=started_at_ms,
-            updated_at_ms=started_at_ms,
-            finished_at_ms=None,
         ),
     )
 

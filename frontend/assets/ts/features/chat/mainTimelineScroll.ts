@@ -4,6 +4,7 @@
 import { CHAT_SCROLL_BOTTOM_THRESHOLD } from '@features/chat/chatConstants.ts';
 
 const MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE = 'data-auto-scroll-lock';
+const programmaticScrollOffsets = new WeakMap<HTMLElement, number>();
 
 type MainTimelineScrollMeasurement = {
     clientHeight: number;
@@ -23,5 +24,19 @@ const isMainTimelineAtBottom = (element: HTMLElement): boolean => isMainTimeline
 
 const isMainTimelineAutoScrollLocked = (element: HTMLElement): boolean => element.getAttribute(MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE) === 'true';
 
-export { MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, isMainTimelineAtBottom, isMainTimelineAutoScrollLocked, isMainTimelineMeasurementAtBottom, measureMainTimelineScroll };
+const writeMainTimelineScrollTop = (element: HTMLElement, top: number): void => {
+    const previousTop = element.scrollTop;
+    if (top === previousTop) return;
+    element.scrollTop = top;
+    const appliedOffset = element.scrollTop - previousTop;
+    if (appliedOffset !== 0) programmaticScrollOffsets.set(element, (programmaticScrollOffsets.get(element) ?? 0) + appliedOffset);
+};
+
+const consumeMainTimelineProgrammaticScrollOffset = (element: HTMLElement): number => {
+    const offset = programmaticScrollOffsets.get(element) ?? 0;
+    programmaticScrollOffsets.delete(element);
+    return offset;
+};
+
+export { MAIN_TIMELINE_AUTO_SCROLL_LOCK_ATTRIBUTE, consumeMainTimelineProgrammaticScrollOffset, isMainTimelineAtBottom, isMainTimelineAutoScrollLocked, isMainTimelineMeasurementAtBottom, measureMainTimelineScroll, writeMainTimelineScrollTop };
 export type { MainTimelineScrollMeasurement };

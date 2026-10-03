@@ -54,7 +54,7 @@ const resolveCandlestickIntervalMs = ({ chartRuntime, metadataIntervalMs, lastRe
     }
 
     const requestedMs = minutesToMs(readRequiredPositiveNumberRoundedIntegerValue(requestedIntervalMinutes, 'History chart controls require a positive candlestick interval in minutes'));
-    const baselineMs = readPositiveNumberRoundedIntegerOrNullValue(monitoringIntervalMs) ?? requestedMs;
+    const baselineMs = Math.max(requestedMs, readPositiveNumberRoundedIntegerOrNullValue(monitoringIntervalMs) ?? requestedMs);
     if (!isArray(supportedHistoryIntervalsMs) || !supportedHistoryIntervalsMs.length) {
         return baselineMs;
     }

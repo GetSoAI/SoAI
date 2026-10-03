@@ -7,21 +7,21 @@ import asyncio
 import errno
 import math
 import os
-import uuid
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, override
 
 from core.concurrency.cancellation import TaskCancelledError
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.concurrency.protocols import CancellationTokenProtocol
 from core.config.byte_sizes import MIB_BYTES
 from core.errors.exceptions import ValidationError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from core.files.move_errors import DestinationExistsError
-from core.files.operations import async_remove, async_remove_if_exists
-from core.filesystem.async_queries import async_makedirs
+from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
+from core.files.move_errors import DestinationExistsError, MoveFileCommittedError
+from core.filesystem.atomic_write_primitives import allocate_atomic_temporary_file
+from core.filesystem.exclusive_rename import rename_file_without_replacement
 from core.filesystem.file_sync import flush_and_fsync_file
 from core.filesystem.open_files import open_binary
-from core.timing.constants import YIELD_CONTROL_SEC
+from core.filesystem.path_coercion import normalize_filesystem_path
 
 if TYPE_CHECKING:
     from core.types.json import JSONValue
@@ -92,89 +92,104 @@ async def move_file_with_cancellation(
         raise ValidationError("Chunk size must be positive.")
     if flush_every_chunks < 0:
         raise ValidationError("flush_every_chunks must be non-negative.")
-    file_size = os.path.getsize(src)
+    src = os.path.abspath(src)
+    dst = os.path.abspath(dst)
+    if os.path.normcase(src) == os.path.normcase(dst):
+        raise ValidationError("Source and destination must be different paths.")
+    file_size = os.path.getsize(normalize_filesystem_path(src))
     if file_size > 0:
         min_chunks = 32
         target_chunk = max(1, math.ceil(file_size / min_chunks))
         chunk_size = min(chunk_size, target_chunk)
     chunk_size = max(1, int(chunk_size))
-    dest_dir = os.path.dirname(dst)
-    if dest_dir:
-        await async_makedirs(dest_dir, exist_ok=True)
-    temp_target = f"{dst}.partial.{uuid.uuid4().hex}"
-
     cancellation_probe_interval = 0.005
 
     def _raise_if_cancelled() -> None:
         if token.thread_event.is_set():
             raise TaskCancelledError(token.cancellation_id, token.cancellation_reason)
 
-    def _raise_if_committed_and_cancelled() -> None:
-        if not target_committed:
-            return
-        if not token.thread_event.is_set():
-            return
-        raise MoveFileCommittedAfterCancellationError(
-            cancellation_id=token.cancellation_id,
-            source_path=src,
-            destination_path=dst,
-            reason=token.cancellation_reason,
-        )
-
     target_committed = False
 
     def _blocking_copy() -> None:
         nonlocal target_committed
-        _raise_if_cancelled()
-        with (
-            open_binary(src, mode="rb") as src_file,
-            open_binary(temp_target, mode="wb") as dst_file,
-        ):
-            chunks_written = 0
-            while True:
-                if token.thread_event.is_set():
-                    raise TaskCancelledError(token.cancellation_id, token.cancellation_reason)
-                chunk = src_file.read(chunk_size)
-                if not chunk:
-                    break
-                dst_file.write(chunk)
-                chunks_written += 1
-                if flush_every_chunks and chunks_written % flush_every_chunks == 0:
-                    flush_and_fsync_file(dst_file)
-                if token.thread_event.wait(cancellation_probe_interval):
-                    raise TaskCancelledError(token.cancellation_id, token.cancellation_reason)
-            flush_and_fsync_file(dst_file)
-        if token.thread_event.wait(cancellation_probe_interval):
-            raise TaskCancelledError(token.cancellation_id, token.cancellation_reason)
-        if allow_overwrite:
-            os.replace(temp_target, dst)
-            target_committed = True
-            return
+        temp_target: str | None = None
         try:
-            os.link(temp_target, dst)
-        except FileExistsError as exception:
-            raise DestinationExistsError(
-                "A file or directory with this name already exists.",
-            ) from exception
-        except OSError as exception:
-            if exception.errno in {errno.EEXIST, errno.EISDIR}:
-                raise DestinationExistsError(
-                    "A file or directory with this name already exists.",
+            _raise_if_cancelled()
+            os.makedirs(normalize_filesystem_path(os.path.dirname(dst)), exist_ok=True)
+            with open_binary(src, mode="rb") as src_file:
+                _raise_if_cancelled()
+                descriptor, temp_target = allocate_atomic_temporary_file(
+                    dst, file_mode=None, partial=True
+                )
+                try:
+                    dst_file = os.fdopen(descriptor, "wb")
+                except (OSError, ValueError):
+                    os.close(descriptor)
+                    raise
+                with dst_file:
+                    chunks_written = 0
+                    while True:
+                        _raise_if_cancelled()
+                        chunk = src_file.read(chunk_size)
+                        if not chunk:
+                            break
+                        dst_file.write(chunk)
+                        chunks_written += 1
+                        if flush_every_chunks and chunks_written % flush_every_chunks == 0:
+                            flush_and_fsync_file(dst_file)
+                        if token.thread_event.wait(cancellation_probe_interval):
+                            raise TaskCancelledError(
+                                token.cancellation_id, token.cancellation_reason
+                            )
+                    flush_and_fsync_file(dst_file)
+            if token.thread_event.wait(cancellation_probe_interval):
+                raise TaskCancelledError(token.cancellation_id, token.cancellation_reason)
+            if allow_overwrite:
+                os.replace(normalize_filesystem_path(temp_target), normalize_filesystem_path(dst))
+                target_committed = True
+                temp_target = None
+            else:
+                try:
+                    rename_file_without_replacement(temp_target, dst)
+                except OSError as exception:
+                    if exception.errno in {errno.EEXIST, errno.EISDIR}:
+                        raise DestinationExistsError(
+                            "A file or directory with this name already exists."
+                        ) from exception
+                    raise
+                target_committed = True
+                temp_target = None
+            os.remove(normalize_filesystem_path(src))
+        except HANDLED_RUNTIME_EXCEPTIONS as exception:
+            if target_committed:
+                raise MoveFileCommittedError(
+                    source_path=src, destination_path=dst, cause=exception
                 ) from exception
             raise
-        target_committed = True
-        os.remove(temp_target)
+        finally:
+            if temp_target is not None:
+                try:
+                    os.remove(normalize_filesystem_path(temp_target))
+                except OSError as exception:
+                    if target_committed:
+                        raise MoveFileCommittedError(
+                            source_path=src, destination_path=dst, cause=exception
+                        ) from exception
+                    raise
+
+    def _cancel_copy() -> None:
+        token.cancel("Task cancelled.")
 
     try:
-        await asyncio.to_thread(_blocking_copy)
-        await asyncio.sleep(YIELD_CONTROL_SEC)
-        if not target_committed:
-            _raise_if_cancelled()
-        await async_remove(src)
-        _raise_if_committed_and_cancelled()
+        await run_joined_thread_call(
+            _blocking_copy,
+            task_name="core.files.move_with_cancellation.copy",
+            retain_resources_until_complete=True,
+            on_cancel=_cancel_copy,
+        )
+        _raise_if_cancelled()
     except TaskCancelledError as exception:
         if target_committed:
-            await async_remove_if_exists(src)
             raise MoveFileCommittedAfterCancellationError(
                 cancellation_id=token.cancellation_id,
                 source_path=src,
@@ -182,14 +197,9 @@ async def move_file_with_cancellation(
                 reason=token.cancellation_reason,
                 cancellation_cause=exception,
             ) from exception
-        await async_remove_if_exists(temp_target)
         raise
     except asyncio.CancelledError as exception:
-        if not token.thread_event.is_set():
-            token.cancel("Task cancelled.")
-        await async_remove_if_exists(temp_target)
         if target_committed:
-            await async_remove_if_exists(src)
             raise MoveFileCommittedAfterCancellationError(
                 cancellation_id=token.cancellation_id,
                 source_path=src,
@@ -197,10 +207,4 @@ async def move_file_with_cancellation(
                 reason=token.cancellation_reason,
                 cancellation_cause=exception,
             ) from exception
-        raise
-    except DestinationExistsError:
-        await async_remove_if_exists(temp_target)
-        raise
-    except RECOVERABLE_EXCEPTIONS:
-        await async_remove_if_exists(temp_target)
         raise

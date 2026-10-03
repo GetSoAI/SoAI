@@ -2,18 +2,6 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
-    .chat-attach-modal-actions {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-start;
-        gap: var(--space-3);
-    }
-
-    .chat-attach-modal-action-button {
-        width: auto;
-        min-width: 10rem;
-    }
-
     .chat-attach-knowledge-progress {
         --chat-attach-knowledge-visible-rows: 8;
         --chat-attach-knowledge-row-block-size: 5.5rem;
@@ -44,7 +32,7 @@
         display: none;
     }
 
-    .chat-attach-modal-pane :is(.rag-documents-pager) {
+    .chat-attach-modal .ui-modal-tab-panel :is(.rag-documents-pager) {
         grid-column: 1 / -1;
     }
 
@@ -59,7 +47,7 @@
         font-size: var(--font-size-xs);
     }
 
-    .chat-attach-modal-pane :is(.rag-document-item, .chat-attach-draft-attachment-row) {
+    .chat-attach-modal .ui-modal-tab-panel :is(.rag-document-item, .chat-attach-draft-attachment-row) {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
@@ -71,12 +59,12 @@
         transition: border-color var(--transition-fast);
     }
 
-    .chat-attach-modal-pane :is(.rag-document-item, .chat-attach-draft-attachment-row):is(:hover, :focus-within) {
+    .chat-attach-modal .ui-modal-tab-panel :is(.rag-document-item, .chat-attach-draft-attachment-row):is(:hover, :focus-within) {
         border-color: var(--glass-border-strong);
         background: var(--glass-surface-interactive-hover);
     }
 
-    .chat-attach-modal-pane :is(.rag-document-info, .chat-attach-draft-attachment-row-info) {
+    .chat-attach-modal .ui-modal-tab-panel :is(.rag-document-info, .chat-attach-draft-attachment-row-info) {
         display: flex;
         flex: 1 1 auto;
         flex-direction: column;
@@ -84,13 +72,13 @@
         min-width: 0;
     }
 
-    .chat-attach-modal-pane .rag-document-leading-icon {
+    .chat-attach-modal .ui-modal-tab-panel .rag-document-leading-icon {
         flex: 0 0 44px;
         width: 44px;
         height: 44px;
     }
 
-    .chat-attach-modal-pane :is(.rag-document-header, .chat-attach-draft-attachment-row-header) {
+    .chat-attach-modal .ui-modal-tab-panel :is(.rag-document-header, .chat-attach-draft-attachment-row-header) {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -98,7 +86,7 @@
         min-width: 0;
     }
 
-    .chat-attach-modal-pane :is(.rag-document-name, .chat-attach-draft-attachment-row-name) {
+    .chat-attach-modal .ui-modal-tab-panel :is(.rag-document-name, .chat-attach-draft-attachment-row-name) {
         overflow: hidden;
         color: var(--text-primary);
         font-weight: var(--font-weight-semibold);
@@ -106,14 +94,14 @@
         white-space: nowrap;
     }
 
-    .chat-attach-modal-pane :is(.rag-document-meta, .chat-attach-draft-attachment-row-meta),
-    .chat-attach-modal-pane .rag-document-chunks,
-    .chat-attach-modal-pane :is(.rag-document-detail, .chat-attach-draft-attachment-row-detail) {
+    .chat-attach-modal .ui-modal-tab-panel :is(.rag-document-meta, .chat-attach-draft-attachment-row-meta),
+    .chat-attach-modal .ui-modal-tab-panel .rag-document-chunks,
+    .chat-attach-modal .ui-modal-tab-panel :is(.rag-document-detail, .chat-attach-draft-attachment-row-detail) {
         color: var(--text-tertiary);
         font-size: var(--font-size-xs);
     }
 
-    .chat-attach-modal-pane .rag-document-progress {
+    .chat-attach-modal .ui-modal-tab-panel .rag-document-progress {
         --soai-progress-color: var(--status-orange);
         height: var(--border-width-4);
         margin-top: var(--space-1);
@@ -122,27 +110,27 @@
         background: var(--glass-surface-medium);
     }
 
-    .chat-attach-modal-pane .rag-document-progress-bar {
+    .chat-attach-modal .ui-modal-tab-panel .rag-document-progress-bar {
         height: 100%;
         border-radius: var(--border-radius);
         background: var(--soai-progress-color);
         transition: width var(--transition-normal);
     }
 
-    .chat-attach-modal-pane .rag-document-progress-bar[data-indeterminate='true'] {
+    .chat-attach-modal .ui-modal-tab-panel .rag-document-progress-bar[data-indeterminate='true'] {
         width: 45%;
         animation: task-progress-indeterminate var(--duration-1600) var(--ease-in-out) infinite;
-        transform-origin: left;
+        transform-origin: var(--inline-start-percent) center;
     }
 
-    .chat-attach-modal-pane .rag-documents-pager-controls {
+    .chat-attach-modal .ui-modal-tab-panel .rag-documents-pager-controls {
         display: flex;
         flex-shrink: 0;
         gap: var(--space-2);
         align-items: center;
     }
 
-    .chat-attach-modal-pane :is(.rag-document-actions, .chat-attach-draft-attachment-row-actions) {
+    .chat-attach-modal .ui-modal-tab-panel :is(.rag-document-actions, .chat-attach-draft-attachment-row-actions) {
         display: flex;
         flex-shrink: 0;
         gap: var(--space-2);
@@ -150,10 +138,10 @@
         align-self: flex-start;
         justify-content: flex-end;
         margin-top: calc(-1 * var(--space-1));
-        margin-right: calc(-1 * var(--space-1));
+        margin-inline-end: calc(-1 * var(--space-1));
     }
 
-    .chat-attach-modal-pane .rag-documents-pager {
+    .chat-attach-modal .ui-modal-tab-panel .rag-documents-pager {
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -183,17 +171,8 @@
     }
 
     @container ui-viewport (width <= 480px) {
-        .chat-attach-modal-dropzone-unified {
+        .chat-attach-modal-body .ui-file-drop-area {
             display: none;
-        }
-
-        .chat-attach-modal-actions {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .chat-attach-modal-action-button {
-            width: 100%;
         }
     }
 }

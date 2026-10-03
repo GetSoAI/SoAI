@@ -10,22 +10,17 @@ interface NormalizedTabsOptions {
     rightButtons: Record<string, RightButtonConfig[]>;
     onTabChange: ((activeTab: string, previousTab: string | null) => void) | null;
     activeTab: string | null;
-    enableOverflowNav: boolean;
-    navScrollAmount: number;
 }
 
 const normalizeTabsOptions = (options: TabsOptions): NormalizedTabsOptions => {
     const tabs = isArray(options.tabs) ? options.tabs : [];
     const rightButtons = isObject(options.rightButtons) ? options.rightButtons : {};
     const activeTab = options.activeTab ?? tabs[0]?.id ?? null;
-    const configuredScrollAmount = options.navScrollAmount;
     return {
         tabs,
         rightButtons,
         onTabChange: typeof options.onTabChange === 'function' ? options.onTabChange : null,
-        activeTab,
-        enableOverflowNav: options.enableOverflowNav !== false,
-        navScrollAmount: typeof configuredScrollAmount === 'number' && Number.isFinite(configuredScrollAmount) ? configuredScrollAmount : 0.8
+        activeTab
     };
 };
 
@@ -52,7 +47,7 @@ const findRightButtonConfig = (buttonId: string, activeTab: string | null, right
 const findFirstEnabledTab = (tabs: TabConfig[], getElementByTabId: (tabId: string) => Element | null | undefined): TabConfig | null => {
     for (const tab of tabs) {
         const element = getElementByTabId(tab.id);
-        if (element instanceof HTMLButtonElement && !element.disabled) {
+        if (element instanceof HTMLButtonElement && element.getAttribute('aria-disabled') !== 'true') {
             return tab;
         }
     }

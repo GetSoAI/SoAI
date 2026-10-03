@@ -8,7 +8,7 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { renderContentImmediately, transitionContentElements } from '@core/animations/contentFadeTransition.ts';
 import { buildApiKeyRequestDistributionDataset, buildModelRequestDistributionDataset, buildModelTokenDistributionDataset, buildPluginRequestDistributionDataset, type RequestDistributionDataset, type RequestDistributionSource } from '@core/models/requestDistribution.ts';
-import type { RequestDistributionChartSizeWatcher } from '@core/models/requestDistributionChartSizing.ts';
+import type { ElementResizeRedrawWatcher } from '@core/layout/elementResizeRedraw.ts';
 import { renderRequestDistributionChartMarkup, renderRequestDistributionEmptyStateMarkup } from '@core/models/requestdistributionglass/chartMarkup.ts';
 import { EMPTY_REQUEST_DISTRIBUTION_SIGNATURE, claimRequestDistributionRender, computeRequestDistributionChartSignature, computeRequestDistributionLegendSignature } from '@core/models/requestDistributionRenderState.ts';
 import { buildRequestDistributionPresentation, resolveRequestDistributionEmptyStateText, resolveRequestDistributionOthersColor, resolveRequestDistributionPalette, resolveRequestDistributionSourceToggleLabel, resolveRequestDistributionTitle, type RequestDistributionLegendItem, type RequestDistributionViewState } from '@core/models/requestDistributionRendering.ts';
@@ -21,7 +21,7 @@ import { renderDashboardSectionState } from '@pages/dashboard/controllers/dashbo
 
 interface DashboardRequestsRendererDependencies {
     host: DashboardHost;
-    chartSizeWatcher: RequestDistributionChartSizeWatcher;
+    chartSizeWatcher: ElementResizeRedrawWatcher;
     getMetrics: () => JsonValue;
     getApiKeyUsage: () => JsonValue | null;
     hasApiKeyUsage: () => boolean;
@@ -87,9 +87,11 @@ const buildDashboardRequestsLegendList = (host: DashboardHost, legendItems: read
         swatchElement.style.setProperty('--distribution-legend-swatch-color', entry.swatchColor);
         const textWrapper = host.createElement('div', { className: 'distribution-legend__text' });
         const textWrapperElement = narrowHTMLElement(textWrapper, 'requests legend text wrapper');
-        const labelNode = host.createElement('span', { className: 'distribution-legend__label' }, label);
+        const labelNode = host.createElement('span', { className: 'distribution-legend__label', dir: 'auto' }, label);
         const valueNode = host.createElement('span', { className: 'distribution-legend__value' }, detail);
-        textWrapperElement.append(narrowHTMLElement(labelNode, 'requests legend label'), narrowHTMLElement(valueNode, 'requests legend value'));
+        const labelElement = narrowHTMLElement(labelNode, 'requests legend label');
+        setTooltipText(labelElement, label);
+        textWrapperElement.append(labelElement, narrowHTMLElement(valueNode, 'requests legend value'));
         itemElement.append(swatchElement, narrowHTMLElement(textWrapperElement, 'requests legend text wrapper'));
         legendListElement.appendChild(itemElement);
     });

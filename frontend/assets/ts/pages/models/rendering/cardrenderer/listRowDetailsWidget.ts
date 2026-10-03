@@ -24,7 +24,7 @@ const renderListFact = (fact: ListFact, host: ModelCardHost): string => {
     const typeAttribute = fact.clickable ? ' type="button"' : '';
     const actionAttribute = fact.clickable ? ` data-action="${MODELS_ACTION_METRIC_BADGE}"` : '';
     const value = fact.compactValue ? renderAdaptiveNumber(String(fact.value), fact.compactValue) : host.presentation.sanitizeText(String(fact.value ?? ''));
-    return `<${tag}${typeAttribute} class="ui-collection-list__fact${fact.clickable ? ' ui-collection-list__fact--action' : ''}"${actionAttribute} data-metric-key="${host.sanitizeClassName(fact.key, 'metric')}"><span class="ui-metric-label">${host.presentation.sanitizeText(fact.label)}</span><span class="ui-metric-value">${value}</span></${tag}>`;
+    return `<${tag}${typeAttribute} class="ui-collection-list__fact${fact.clickable ? ' ui-collection-list__fact--action' : ''}"${actionAttribute} data-metric-key="${host.sanitizeClassName(fact.key, 'metric')}"><span class="ui-metric-label">${host.presentation.sanitizeText(fact.label)}</span><span dir="auto" class="ui-metric-value">${value}</span></${tag}>`;
 };
 
 const buildModelListMetrics = (model: ModelData, host: ModelCardHost): string => {

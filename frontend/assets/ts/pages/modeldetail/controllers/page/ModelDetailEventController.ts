@@ -49,7 +49,7 @@ class ModelDetailEventController {
         bindPluginLogoFallbacks(ui.root, signal);
         ui.modelTestModal.addEventListener('core.modal.close', this.#handleTestModalClose, { signal });
         dependencies.save.attach({
-            resolveSaveButtons: () => [ui.saveParametersHeaderButton, ui.openAICapabilitiesSaveButton],
+            resolveSaveButtons: () => [ui.saveParametersHeaderButton],
             autoNotifyRoot: ui.root,
             onBusyChange: (busy) => {
                 dependencies.saveStatus.update(busy);
@@ -94,7 +94,7 @@ class ModelDetailEventController {
                 }
             }
         });
-        bindModelDetailAuxEventListeners({ host: dependencies.events, session: dependencies.session, ui, signal });
+        bindModelDetailAuxEventListeners({ host: dependencies.events, session: dependencies.session, signal });
     }
 }
 

@@ -162,14 +162,14 @@ async def publish_ready_pending_dispatch_state(
     logger: LoggerProtocol,
 ) -> bool:
     try:
-        await publish_runtime_state_change_and_wait(
+        return await publish_runtime_state_change_and_wait(
             publisher=publisher,
             plugin_name=plugin_name,
             new_state=ORCH_STATE_READY_PENDING_DISPATCH,
             reason="Model loaded, awaiting dispatch",
             details={"universal_id": universal_id},
+            expected_previous_state=ORCH_STATE_LOADING,
         )
-        return True
     except RECOVERABLE_EXCEPTIONS as exception:
         if is_invalid_transition_error(exception):
             log_exception(

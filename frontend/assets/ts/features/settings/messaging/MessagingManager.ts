@@ -17,6 +17,7 @@ import { openMessagingAccountModal } from '@features/settings/messaging/modal.ts
 import { resolveMessagingPersistenceError } from '@features/settings/messaging/modalPersistenceErrors.ts';
 import { buildMessagingModelOptions } from '@features/settings/messaging/modelOptions.ts';
 import { SettingsSectionLifecycle } from '@features/settings/sectionLifecycle.ts';
+import { settleSettingsCapability } from '@features/settings/capabilityAvailability.ts';
 import type { MessagingManagerDependencies, MessagingManagerHost, MessagingModelCatalogStatus, MessagingModelOption } from '@features/settings/messaging/types.ts';
 import { renderMessagingSection } from '@features/settings/messaging/view.ts';
 
@@ -27,6 +28,7 @@ class MessagingManager {
     #models: readonly MessagingModelOption[] = [];
     #modelCatalogStatus: MessagingModelCatalogStatus = 'idle';
     #mcpCatalog: McpFormCatalog | null = null;
+    #latestReload: Promise<void> | null = null;
     #operationInFlight = false;
     #toolCatalogWarningShown = false;
 
@@ -34,12 +36,12 @@ class MessagingManager {
         this.#host = host;
     }
 
-    setModelCatalog(catalog: ModelCatalogResponse): void {
+    #setModelCatalog(catalog: ModelCatalogResponse): void {
         this.#models = buildMessagingModelOptions(catalog);
         this.#modelCatalogStatus = 'ready';
     }
 
-    setModelCatalogUnavailable(): void {
+    #setModelCatalogUnavailable(): void {
         this.#models = [];
         this.#modelCatalogStatus = 'error';
     }
@@ -49,23 +51,38 @@ class MessagingManager {
     }
 
     async reload(): Promise<void> {
+        const reload = this.#reload();
+        this.#latestReload = reload;
+        try {
+            await reload;
+        } finally {
+            if (this.#latestReload === reload) {
+                this.#latestReload = null;
+            }
+        }
+    }
+
+    async #reload(): Promise<void> {
         const reloadRun = this.#lifecycle.beginReload('messaging-reload');
         if (reloadRun === null) return;
-        const [accounts, mcpCatalog] = await Promise.all([
-            this.#host.api.list(),
-            this.#host.api.listMcpTools().then(
-                (catalog): McpFormCatalog | null => catalog,
-                (): null => null
-            )
-        ]);
+        const [accounts, mcpCatalog, modelCatalog] = await Promise.all([this.#host.api.list({ signal: reloadRun.signal }), settleSettingsCapability(() => this.#host.api.listMcpTools({ signal: reloadRun.signal })), settleSettingsCapability(() => this.#host.loadModelCatalog({ signal: reloadRun.signal }))]);
         if (!this.#lifecycle.isReloadCurrent(reloadRun)) return;
         this.#accounts = this.#sortAccounts(accounts);
-        this.#mcpCatalog = mcpCatalog;
-        if (mcpCatalog) {
+        this.#mcpCatalog = mcpCatalog.succeeded ? mcpCatalog.value : null;
+        if (modelCatalog.succeeded && modelCatalog.value) {
+            this.#setModelCatalog(modelCatalog.value);
+        } else {
+            this.#setModelCatalogUnavailable();
+        }
+        if (mcpCatalog.succeeded) {
             this.#toolCatalogWarningShown = false;
         } else if (!this.#toolCatalogWarningShown) {
             this.#toolCatalogWarningShown = true;
+            if (mcpCatalog.error) this.#host.feedback.handle(mcpCatalog.error, 'Messaging MCP catalog reload', { severity: 'warn' });
             this.#host.feedback.show(i18n.t('settings.messaging.notifications.toolCatalogUnavailable'), 'warning');
+        }
+        if (!modelCatalog.succeeded && modelCatalog.error) {
+            this.#host.feedback.handle(modelCatalog.error, 'Messaging model catalog reload', { severity: 'warn' });
         }
         if (this.#lifecycle.isMounted) this.#rerender();
     }
@@ -116,7 +133,10 @@ class MessagingManager {
         return account;
     }
 
-    #requireEditorCatalogs(): McpFormCatalog | null {
+    async #requireEditorCatalogs(): Promise<McpFormCatalog | null> {
+        if (this.#modelCatalogStatus === 'idle' && this.#latestReload) {
+            await this.#latestReload;
+        }
         if (this.#modelCatalogStatus !== 'ready') {
             this.#host.feedback.show(i18n.t('settings.messaging.modelCatalog.unavailable'), 'warning');
             return null;
@@ -151,7 +171,7 @@ class MessagingManager {
     }
 
     async #createAccount(): Promise<void> {
-        const mcpCatalog = this.#requireEditorCatalogs();
+        const mcpCatalog = await this.#requireEditorCatalogs();
         if (!mcpCatalog) return;
         if (this.#models.length === 0) {
             this.#host.feedback.show(i18n.t('settings.messaging.modelCatalog.unavailable'), 'warning');
@@ -175,7 +195,7 @@ class MessagingManager {
     }
 
     async #editAccount(account: MessagingAccount): Promise<void> {
-        const mcpCatalog = this.#requireEditorCatalogs();
+        const mcpCatalog = await this.#requireEditorCatalogs();
         if (!mcpCatalog) return;
         const latest = await this.#host.api.get(account.accountId);
         const workspaceBrowserAccess = await this.#host.resolveWorkspaceBrowserAccess();

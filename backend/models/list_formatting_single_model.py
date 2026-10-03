@@ -232,10 +232,13 @@ def format_single_model_for_list(
     }
     if provider_id:
         response["provider_id"] = provider_id
-    if raw_upstream_model_id := coerce_optional_trimmed_str(
-        model_data.get("raw_upstream_model_id"),
+    for source_key, response_key in (
+        ("raw_upstream_model_id", "raw_upstream_model_id"),
+        ("repo_id", "repository_id"),
+        ("requested_revision", "requested_revision"),
     ):
-        response["raw_upstream_model_id"] = raw_upstream_model_id
+        if value := coerce_optional_trimmed_str(model_data.get(source_key)):
+            response[response_key] = value
     if provider_info is not None:
         response["provider_metadata"] = provider_info
     write_source_model_id(response, model_data)

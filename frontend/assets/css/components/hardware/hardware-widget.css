@@ -85,8 +85,8 @@
     .hardware-widget .hardware-widget__metrics {
         position: absolute;
         bottom: 8cqw;
-        left: 8cqw;
-        right: 8cqw;
+        inset-inline-start: 8cqw;
+        inset-inline-end: 8cqw;
         z-index: var(--hardware-widget-z-content);
     }
 
@@ -125,13 +125,13 @@
     .hardware-widget .hardware-widget__metric-indicator {
         position: absolute;
         top: 50%;
-        left: clamp(-0.5rem, -3cqw, -0.25rem);
+        inset-inline-start: clamp(-0.5rem, -3cqw, -0.25rem);
         width: calc(100% + clamp(var(--space-3), 6cqw, var(--space-4)));
         height: clamp(1rem, 8cqw, 1.5rem);
         border-radius: var(--border-radius);
         opacity: 0;
         transform: translateY(-50%) scaleX(0);
-        transform-origin: left center;
+        transform-origin: var(--inline-start-percent) center;
         transition:
             opacity var(--duration-300) var(--ease-material),
             transform var(--duration-300) var(--ease-material);
@@ -184,7 +184,7 @@
         transition:
             opacity var(--duration-300) var(--ease-default),
             color var(--duration-300) var(--ease-default);
-        margin-left: 5cqw;
+        margin-inline-start: 5cqw;
     }
 
     @keyframes widget-fade-switch {
@@ -200,7 +200,7 @@
     .hardware-widget .hardware-widget__bottom-bar {
         position: absolute;
         bottom: 0;
-        left: 0;
+        inset-inline-start: 0;
         width: 100%;
         height: 2cqw;
         background-color: var(--hardware-widget-bar-unknown);

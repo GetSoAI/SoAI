@@ -42,6 +42,8 @@
         --clock-hand-angle: 0deg;
 
         position: absolute;
+
+        /* direction: physical — centering uses physical negative half-width translation */
         left: 50%;
         bottom: 50%;
         width: 2px;
@@ -73,6 +75,8 @@
 
     .clock-face-center {
         position: absolute;
+
+        /* direction: physical — centering uses physical negative half-width translation */
         left: 50%;
         top: 50%;
         width: 2px;

@@ -1,8 +1,17 @@
 /* SoAI - Chat page events contracts [frontend/assets/ts/pages/chat/controllers/page/events/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { ChatActionId, ChatComposerActionMode, ChatTurnAdmissionSnapshot } from '@features/chat/public.ts';
-import type { ConversationInputComposerOutcome, SendMessageOptions } from '@pages/chat/controllers/chatmessagesendingcontroller/types.ts';
+import type { ChatActionId, ChatComposerActionMode, ChatConfigurationTabId, ChatTurnAdmissionSnapshot, ComposerDraftSurfaceSnapshot } from '@features/chat/public.ts';
+import type { GeometryPoint } from '@core/layout/elementGeometry.ts';
+import type { ConversationInputComposerOutcome, QueueConversationInputOptions, SendMessageOptions } from '@pages/chat/controllers/chatmessagesendingcontroller/types.ts';
+
+interface ChatSidebarPeekEventsPort {
+    handlePointerOver(event: Event): void;
+    handlePointerOut(event: Event): void;
+    handlePointerDown(target: Element): void;
+    handleKeydown(event: Event): void;
+    dismiss(): void;
+}
 
 interface ChatRootShellEventsPort {
     ensureRootElement(): HTMLElement;
@@ -12,6 +21,7 @@ interface ChatRootShellEventsPort {
     hideConversationColorPicker(): void;
     collapseSidebarIfNarrowViewport(): void;
     handleMobileSidebarClickAway(target: Element): void;
+    sidebarPeek: ChatSidebarPeekEventsPort;
     closeChatModelControlMenu(): void;
     handleChatModelControlSearchInput(input: HTMLInputElement): void;
     showNotification(message: string, type: 'error' | 'warning' | 'success' | 'info', duration?: number): void;
@@ -37,7 +47,7 @@ interface ChatRootComposerEventsPort {
     resolveCurrentTurnAdmission(): ChatTurnAdmissionSnapshot | null;
     resolveSyncedCurrentTurnAdmission(): Promise<ChatTurnAdmissionSnapshot | null>;
     sendMessage(options?: SendMessageOptions): Promise<void>;
-    queueConversationInputFromComposer(intent: 'queued' | 'steer'): Promise<ConversationInputComposerOutcome>;
+    queueConversationInputFromComposer(intent: 'queued' | 'steer', options?: QueueConversationInputOptions): Promise<ConversationInputComposerOutcome>;
     getComposerAttachmentCount(): number;
     isCurrentConversationStreaming(): boolean;
     isCtrlEnterSendRequired(): boolean;
@@ -60,11 +70,25 @@ interface ChatRootConversationEventsPort {
     exitConversationSelectMode(): void;
 }
 
+interface ChatRootHoldSession {
+    move(current: GeometryPoint): void;
+    release(current: GeometryPoint): void;
+    cancel(showStatus: boolean): void;
+}
+
+interface ChatRootHoldShortcutsPort {
+    openConfiguration(tabId: ChatConfigurationTabId, attentionTarget?: 'context-window'): void;
+    canStartPushToTalk(): boolean;
+    beginPushToTalk(button: HTMLButtonElement, start: GeometryPoint, draftSnapshot: ComposerDraftSurfaceSnapshot): ChatRootHoldSession | null;
+    captureDraftSurface(): ComposerDraftSurfaceSnapshot;
+}
+
 interface ChatRootEventsHost {
     shell: ChatRootShellEventsPort;
     composer: ChatRootComposerEventsPort;
     messages: ChatRootMessageEventsPort;
     conversations: ChatRootConversationEventsPort;
+    holdShortcuts: ChatRootHoldShortcutsPort;
 }
 
-export type { ChatRootEventsHost };
+export type { ChatRootEventsHost, ChatRootHoldShortcutsPort };

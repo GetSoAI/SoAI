@@ -17,5 +17,8 @@ def metrics_bucket_builder(
     if possible_buckets <= 0:
         possible_buckets = 1
     bucket_count = min(limit, possible_buckets) if limit > 0 else possible_buckets
-    expected_timestamps = [anchor_ts_ms + (index * interval_ms) for index in range(bucket_count)]
+    first_bucket_ts_ms = anchor_ts_ms + (possible_buckets - bucket_count) * interval_ms
+    expected_timestamps = [
+        first_bucket_ts_ms + (index * interval_ms) for index in range(bucket_count)
+    ]
     return expected_timestamps, bucket_count

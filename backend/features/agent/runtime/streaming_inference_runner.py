@@ -96,6 +96,19 @@ class StreamingInferenceRunner(AgentStreamingInferenceRunnerProtocol):
         self.iteration_session.iteration_state.chunk_emitter.tool_sequence_offset += int(count)
 
     @override
+    def synchronize_chronology_bases(
+        self,
+        *,
+        sequence_index: int,
+        content_index: int,
+        thinking_index: int,
+    ) -> None:
+        emitter = self.iteration_session.iteration_state.chunk_emitter
+        emitter.tool_sequence_offset = sequence_index
+        emitter.content_index_offset = content_index
+        emitter.thinking_index_offset = thinking_index
+
+    @override
     def commit_latest_iteration(
         self,
         *,

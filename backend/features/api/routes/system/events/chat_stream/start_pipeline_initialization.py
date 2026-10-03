@@ -93,6 +93,7 @@ async def initialize_ws_chat_stream_runtime_or_error(
             plugin_manager=api_context.dependencies.plugin_manager,
             state_aggregator=api_context.dependencies.state_aggregator,
             orchestrator_lifecycle=api_context.dependencies.orchestrator_lifecycle,
+            chat_template_role_policy_resolver=api_context.dependencies.chat_template_role_policy_resolver,
             request_context=request_context,
         )
         runtime.latest_user_message_excerpt = resolve_latest_user_message_excerpt(

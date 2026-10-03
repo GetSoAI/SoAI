@@ -14,6 +14,7 @@ from core.concurrency.cancellation_cleanup import uncancel_and_wait
 from core.concurrency.deadlines import deadline_after
 from core.errors.exceptions import ServiceUnavailableError, StateError
 from core.files.locking import async_guarded_file_lock
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.plugins.portable_identifiers import require_portable_plugin_identifier
 from core.timing.epoch import epoch_ms
 from core.validation.strict_numbers import require_positive_int_strict
@@ -81,7 +82,9 @@ async def plugin_lifecycle_advisory_lock(
         raise StateError("Plugin lifecycle mutation lock requires a complete claim identity.")
     lock_directory = os.path.join(manager.paths.plugin_directory, ".locks")
     await uncancel_and_wait(
-        asyncio.to_thread(os.makedirs, lock_directory, mode=0o700, exist_ok=True)
+        asyncio.to_thread(
+            os.makedirs, normalize_filesystem_path(lock_directory), mode=0o700, exist_ok=True
+        )
     )
     lock_path = resolve_plugin_lifecycle_lock_path(
         manager.paths.plugin_directory,

@@ -19,7 +19,7 @@ const normalizeAggregation = (value: string): string | null => {
     return trimmed.toLowerCase();
 };
 
-export const buildHistorySeriesFromPayload = (inputArguments: { payload: HardwareHistoryResponse; aggregation: string; metricKey: string | undefined; monitoringIntervalMs: number; chartOhlc: ChartOhlcContract }): HistorySeriesResult | null => {
+export const buildHistorySeriesFromPayload = (inputArguments: { payload: HardwareHistoryResponse; aggregation: string; metricKey: string | undefined; monitoringIntervalMs: number; chartOhlc: ChartOhlcContract }): HistorySeriesResult => {
     if (!Number.isFinite(inputArguments.monitoringIntervalMs) || inputArguments.monitoringIntervalMs <= 0) {
         throw new TypeError('History series builder requires a valid monitoringIntervalMs');
     }
@@ -28,6 +28,12 @@ export const buildHistorySeriesFromPayload = (inputArguments: { payload: Hardwar
     if (!aggregation) {
         throw new TypeError('history payload metadata.aggregation is required');
     }
+    if (aggregation !== normalizeAggregation(inputArguments.aggregation) || aggregation !== normalizeAggregation(payload.aggregation)) {
+        throw new TypeError('Hardware history aggregation differs from the requested series');
+    }
+    if (payload.intervalMs !== payload.metadata.intervalMs) {
+        throw new TypeError('Hardware history interval differs between payload and metadata');
+    }
     const chartOhlc = inputArguments.chartOhlc;
 
     if (aggregation === STR_OHLC) {
@@ -35,9 +41,8 @@ export const buildHistorySeriesFromPayload = (inputArguments: { payload: Hardwar
             throw new TypeError('history payload metricKey is required for ohlc aggregation');
         }
         const parsed = chartOhlc.parseBackendOhlcResponse(payload, { metricKey: inputArguments.metricKey });
-        if (!parsed) return null;
+        if (!parsed) throw new TypeError('Hardware OHLC parser returned no history result');
         const series = parsed.candles;
-        if (series.length === 0) return null;
         const intervalMs = parsed.metadata.intervalMs;
         if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
             throw new TypeError('ohlc metadata.intervalMs must be a positive number');
@@ -58,9 +63,6 @@ export const buildHistorySeriesFromPayload = (inputArguments: { payload: Hardwar
         buildOptions.metricKey = inputArguments.metricKey;
     }
     const result = buildHardwareValueSeriesFromHistoryPayload(payload, buildOptions);
-    if (!result) {
-        return null;
-    }
     return {
         type: 'value',
         series: result.series,

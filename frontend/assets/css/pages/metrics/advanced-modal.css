@@ -57,7 +57,7 @@
 
     :where([data-section='metrics'], [data-page-scope='metrics']).metrics-advanced-modal .metrics-advanced-nodata {
         color: var(--text-tertiary);
-        font-style: italic;
+        font-style: var(--font-style-emphasis);
         padding: var(--modal-section-padding);
         text-align: center;
     }

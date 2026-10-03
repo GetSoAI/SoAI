@@ -1,7 +1,7 @@
 /* SoAI - Frontend hardware domain model contracts [frontend/assets/ts/features/hardware/models/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { HardwareCapabilitiesResponse, HardwareGpuSnapshot } from '@core/api/contracts/hardwareContracts.ts';
+import type { HardwareCapabilitiesResponse, HardwareGpuSnapshot, WindowsNetworkInventoryStatus } from '@core/api/contracts/hardwareContracts.ts';
 
 interface NetworkSpeedEntry {
     downloadMbps?: number | undefined;
@@ -74,6 +74,7 @@ interface NetworkInterfaceModel {
 }
 interface NetworkInterfaceOptions {
     ignorePrefixes?: readonly string[] | undefined;
+    windowsInventoryStatus?: WindowsNetworkInventoryStatus | null | undefined;
 }
 interface NetworkModelOptions {
     speeds?: NetworkSpeedSnapshot | undefined;
@@ -117,7 +118,7 @@ interface HardwareSnapshot {
     swap?: MemoryRaw | null | undefined;
     uptime?: { uptimeMs?: number | undefined; bootTimeMs?: number | undefined } | undefined;
     gpu?: { gpus?: HardwareGpuSnapshot[] | undefined } | undefined;
-    network?: { interfaces?: NetworkInterfaceRaw[] | undefined; byDeviceId?: Record<string, NetworkInterfaceRaw> | undefined } | undefined;
+    network?: { interfaces?: NetworkInterfaceRaw[] | undefined; byDeviceId?: Record<string, NetworkInterfaceRaw> | undefined; windowsInventoryStatus?: WindowsNetworkInventoryStatus | undefined } | undefined;
     networkSpeed?: NetworkSpeedSnapshot | undefined;
 }
 

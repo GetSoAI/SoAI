@@ -32,15 +32,14 @@ from core.prompts.colors import validate_prompt_color
 from core.types.json import JSONDict, JSONValue
 from core.validation.strings import require_trimmed_json_text
 
-__all__ = ("validate_automation_payload",)
+__all__ = ("validate_automation_definition_payload", "validate_automation_payload")
 
 _ALLOWED_AUTOMATION_PAYLOAD_KEYS: tuple[str, ...] = AUTOMATION_PAYLOAD_FIELDS
 
 
-def validate_automation_payload(
+def validate_automation_definition_payload(
     payload: Mapping[str, JSONValue],
     *,
-    now_ms: int,
     disallowed_unqualified_tools: tuple[str, ...],
 ) -> JSONDict:
     if not isinstance(payload, Mapping):
@@ -101,14 +100,26 @@ def validate_automation_payload(
             interactive_tool_approval=interactive_tool_approval,
             disallowed_unqualified_tools=disallowed_unqualified_tools,
         ),
-        "next_run_at_ms": resolve_next_run_at(
-            timezone_name=timezone_value,
-            start_local=start_local_value,
-            recurrence=recurrence_value,
-            enabled=enabled,
-            now_ms=now_ms,
-        ),
     }
+
+
+def validate_automation_payload(
+    payload: Mapping[str, JSONValue],
+    *,
+    now_ms: int,
+    disallowed_unqualified_tools: tuple[str, ...],
+) -> JSONDict:
+    validated = validate_automation_definition_payload(
+        payload, disallowed_unqualified_tools=disallowed_unqualified_tools
+    )
+    validated["next_run_at_ms"] = resolve_next_run_at(
+        timezone_name=_require_timezone_name(validated["timezone"]),
+        start_local=_require_start_local(validated["start_local"]),
+        recurrence=_require_recurrence(validated["recurrence"]),
+        enabled=_require_bool(validated["enabled"], field_name="enabled"),
+        now_ms=now_ms,
+    )
+    return validated
 
 
 def _require_title(value: JSONValue) -> str:

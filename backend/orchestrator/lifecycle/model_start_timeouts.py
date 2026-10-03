@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
-from core.timing.constants import CONTROL_TIMEOUT_SEC, LONG_REQUEST_TIMEOUT_SEC
+from core.timing.constants import CONTROL_TIMEOUT_SEC
 
 __all__ = ("resolve_start_with_model_timeout",)
 
 _START_WITH_MODEL_TIMEOUT_FRACTION: float = 0.25
+_START_WITH_MODEL_TIMEOUT_CAP_SEC: float = 900.0
 
 
 def resolve_start_with_model_timeout(load_timeout_sec: float) -> float:
@@ -17,7 +18,7 @@ def resolve_start_with_model_timeout(load_timeout_sec: float) -> float:
             CONTROL_TIMEOUT_SEC,
             min(
                 load_timeout_sec * _START_WITH_MODEL_TIMEOUT_FRACTION,
-                LONG_REQUEST_TIMEOUT_SEC,
+                _START_WITH_MODEL_TIMEOUT_CAP_SEC,
             ),
         ),
     )

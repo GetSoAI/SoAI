@@ -29,13 +29,19 @@ WORKER_OPERATION = "hardware.soaibench.worker"
 async def close_execution_or_fail(
     *,
     opencl_pool: SoAIBenchOpenCLExecutionProtocol,
+    primary_exception: BaseException,
     runtime_context: SoAIBenchWorkerRuntimeContext,
     event_context: SoAIBenchWorkerEventContext,
     deferred_tool_activity: DeferredToolCallActivity | None,
 ) -> bool:
     try:
         await opencl_pool.close()
-    except ProcessError:
+    except ProcessError as cleanup_exception:
+        if not opencl_pool.degraded:
+            primary_exception.add_note(
+                f"SoAIBench OpenCL child exited during cleanup: {cleanup_exception}"
+            )
+            return True
         terminal = await finish_failure(
             database_hardware=runtime_context.database_hardware,
             run_id=runtime_context.run_id,

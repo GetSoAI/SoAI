@@ -4,10 +4,10 @@
 import type { DisposableResource } from '@core/resourcetracker/types.ts';
 import type { StreamRuntimeOwners } from '@core/realtime/streammanager/public.ts';
 import type { ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
-import type { GetStreamManagerOptions, PeekStreamManagerOptions } from '@core/lifecyclemodel/types.ts';
+import type { GetStreamManagerOptions } from '@core/lifecyclemodel/types.ts';
 import type { HistoryChartControlsManager } from '@features/charts/public.ts';
-import type { HistoryStateManager } from '@features/hardware/public.ts';
-import type { ChartDataTransformsContract, ChartOhlcContract, ResourcesInterface } from '@pages/hardware/contracts/contracts.ts';
+import type { HistoryStateManager, SoAIBenchRunModal } from '@features/hardware/public.ts';
+import type { ChartOhlcContract, ResourcesInterface } from '@pages/hardware/contracts/contracts.ts';
 import type { HardwareDataController } from '@pages/hardware/controllers/dataController.ts';
 import type { GpuControlManager } from '@pages/hardware/controllers/gpucontrol/GpuControlManager.ts';
 import type { HardwareRenderController } from '@pages/hardware/controllers/renderController.ts';
@@ -22,21 +22,21 @@ type HardwareRealtimeControllerDependencies = {
     renderController: HardwareRenderController;
     historyStateManager: HistoryStateManager;
     historyControlsManager: HistoryChartControlsManager;
-    chartDataTransforms: ChartDataTransformsContract;
     chartOhlc: ChartOhlcContract;
     logger: ModuleLoggerFunctionValue;
     runWithBoundary: <T>(boundaryKey: string, functionValue: () => Promise<T>) => Promise<T>;
     handleError: (error: Error, message: string, options?: { notify?: boolean }) => void;
     getStreamManager: (options: GetStreamManagerOptions) => Promise<StreamRuntimeOwners>;
-    peekStreamManager: (options: PeekStreamManagerOptions) => StreamRuntimeOwners | null;
     ensureDataSubscriptions: (options?: { signal?: AbortSignal }) => Promise<void>;
     subscribeToResourceState: (resource: string, listener: (snapshot: ResourceReconciliationSnapshot) => void) => (() => void) | null;
     trackDisposable: (resource: DisposableResource, onDispose?: () => void) => void;
     hasProcessPanel: () => boolean;
     resources: ResourcesInterface | null;
     gpuController: GpuControlManager;
+    soaibenchRunModal: Pick<SoAIBenchRunModal, 'handleRunsUpdate' | 'setRunsFreshness'>;
     processController: ProcessTableManager;
     memorySwapController: MemorySwapPanelController;
+    persistPageControls: () => void;
 };
 
 export type { HardwareRealtimeControllerDependencies };

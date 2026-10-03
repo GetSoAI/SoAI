@@ -40,11 +40,11 @@
         content: attr(data-media-type-label);
         position: absolute;
         top: var(--space-2);
-        right: var(--space-2);
+        inset-inline-end: var(--space-2);
         z-index: var(--z-raised);
         font-size: var(--font-size-compact-plus);
         letter-spacing: var(--tracking-08em);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         color: var(--surface-code-label);
         pointer-events: none;
     }
@@ -54,7 +54,7 @@
         justify-self: end;
         font-size: var(--font-size-compact-plus);
         letter-spacing: var(--tracking-08em);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         color: var(--surface-code-label);
         pointer-events: none;
     }
@@ -63,11 +63,11 @@
         content: attr(data-media-type-label);
         position: absolute;
         top: var(--space-2);
-        right: var(--space-2);
+        inset-inline-end: var(--space-2);
         z-index: var(--z-raised);
         font-size: var(--font-size-compact-plus);
         letter-spacing: var(--tracking-08em);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         color: var(--surface-code-label);
         pointer-events: none;
     }

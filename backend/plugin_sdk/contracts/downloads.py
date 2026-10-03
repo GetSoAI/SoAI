@@ -8,28 +8,34 @@ import inspect
 import io
 import os
 import time
+import unicodedata
 from collections.abc import Awaitable, Callable, Mapping
+from contextlib import AbstractAsyncContextManager, AsyncExitStack
+from functools import partial
 from typing import TYPE_CHECKING
 
+import httpx2
+
+from core.bootstrap.runtime_directories import LOCKS_PATH_ENV
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.config.byte_sizes import MIB_BYTES
-from core.errors.exception_logging import log_handled_exception
+from core.config.locks import get_lock_path, resolve_lock_directory
 from core.errors.exceptions import ValidationError
-from core.logging.trace import get_logger
-from core.network.download_reservations import remove_partial_download_file
-from core.network.download_temp_files import create_download_temp_handle
-from core.network.http_download_metadata import read_http_download_response_metadata
-from core.network.http_download_progress import (
-    emit_download_progress,
-    emit_final_download_progress,
-)
+from core.files.locking import async_guarded_file_lock
+from core.network.download_temp_files import DownloadFile, create_download_temp_handle
+from core.network.http_download_progress import emit_download_progress, emit_final_download_progress
 from core.network.outbound_http_profiles import build_outbound_request_headers
+from core.network.resumable_downloads import DownloadStreamState
+from core.network.resumable_http_stream import ResumableHTTPStream
+from core.network.transfer_retry import build_http_transfer_retry_policy
 from core.types.protocols import HttpClientProtocol
-from plugin_sdk.contracts.disk_claims import claim_plugin_reserved_write
+from core.validation.strict_numbers import require_non_negative_int_strict
 from plugin_sdk.contracts.progress import DownloadProgressReporter
 from plugin_sdk.contracts.resumable_downloads import (
+    RetainedDownloadPrefix,
+    flush_plugin_download_buffer,
+    inspect_resumable_download,
     open_resumable_download,
-    resolve_download_response_range,
-    resume_offset,
 )
 from plugin_sdk.filesystem.directory_creation import ensure_parent_dirs_exist
 
@@ -44,9 +50,17 @@ if TYPE_CHECKING:
 
 __all__ = ("async_stream_download_to_file",)
 
-LOGGER_NAME = "SoAI.plugin_sdk.contracts.downloads"
-OPERATION_PLUGIN_SDK_DOWNLOADS_CLEANUP_PARTIAL = "plugin_sdk.downloads.cleanup_partial"
-OPERATION_PLUGIN_SDK_DOWNLOADS_CLOSE_HANDLE = "plugin_sdk.downloads.close_handle"
+
+class _DownloadInterruption:
+    def __init__(self, shutdown_event: asyncio.Event | None) -> None:
+        self.event = shutdown_event if shutdown_event is not None else asyncio.Event()
+
+    async def wait(self) -> None:
+        await self.event.wait()
+
+    def raise_if_cancelled(self) -> None:
+        if self.event.is_set():
+            raise ValidationError("Download cancelled.")
 
 
 async def async_stream_download_to_file(
@@ -69,231 +83,164 @@ async def async_stream_download_to_file(
     reservation_details: Mapping[str, JSONValue] | None = None,
     resume_partial: bool = False,
 ) -> None:
-    logger = get_logger(LOGGER_NAME)
     if not url.strip():
         raise ValidationError("url must be provided.")
     if not destination_path.strip():
         raise ValidationError("destination_path must be provided.")
     if shutdown_event is not None and shutdown_event.is_set():
         raise ValidationError("Shutdown requested before download start.")
-    await ensure_parent_dirs_exist([destination_path])
-
-    buffer = bytearray()
-    handle: io.BufferedWriter | None = None
-    temp_path = ""
-    download_completed = False
-    declared_reservation: PluginStorageReservationLeaseProtocol | None = None
-    bytes_written = 0
-    started_at = time.monotonic()
-    request_headers = build_outbound_request_headers(
-        profile_type="artifact_download",
-        extra_headers=headers,
+    require_non_negative_int_strict(
+        flush_threshold_bytes, error_message="Flush threshold must be nonnegative."
     )
+    request_headers = build_outbound_request_headers(
+        profile_type="artifact_download", extra_headers=headers
+    )
+    state = DownloadStreamState(
+        url=url,
+        headers=request_headers,
+        policy=build_http_transfer_retry_policy("artifact"),
+        timeout=timeout,
+        max_bytes=max_bytes,
+    )
+    destination_path = os.path.abspath(destination_path)
+    await ensure_parent_dirs_exist([destination_path])
+    lock_directory = await run_joined_thread_call(
+        resolve_lock_directory,
+        os.environ.get(LOCKS_PATH_ENV, "") or os.path.dirname(destination_path),
+        task_name="download-lock-directory",
+        retain_resources_until_complete=True,
+    )
+    lock_path = get_lock_path(
+        unicodedata.normalize("NFD", os.path.realpath(destination_path)).casefold(),
+        lock_directory=lock_directory,
+    )
+    interruption = _DownloadInterruption(shutdown_event)
     resume_path = f"{destination_path}.partial"
-    resumed_bytes = 0
-    if resume_partial:
-        resumed_bytes = await asyncio.to_thread(resume_offset, resume_path, max_bytes)
-        if max_bytes is not None and resumed_bytes == max_bytes:
-            resumed_bytes = 0
-        if resumed_bytes > 0:
-            request_headers = {**request_headers, "Range": f"bytes={resumed_bytes}-"}
-    try:
-        async with http_client.stream(
-            "GET",
-            url,
-            headers=request_headers,
-            follow_redirects=follow_redirects,
-            timeout=timeout,
-        ) as response:
-            response.raise_for_status()
-            metadata = read_http_download_response_metadata(
-                response.headers,
-                max_bytes=max_bytes,
+    async with (
+        async_guarded_file_lock(
+            lock_path,
+            timeout=0.0,
+            on_timeout=ValidationError("A download already owns this destination."),
+        ),
+        AsyncExitStack() as reservations,
+        DownloadFile(destination_path, retain_partial=resume_partial) as download_file,
+    ):
+        interruption.raise_if_cancelled()
+        prefix = RetainedDownloadPrefix()
+        if resume_partial:
+            prefix = await run_joined_thread_call(
+                inspect_resumable_download,
+                resume_path,
+                max_bytes,
+                task_name="download-prefix-verification",
+                retain_resources_until_complete=True,
             )
-            declared_content_length = metadata.declared_content_length
-            response_range = resolve_download_response_range(
-                status_code=response.status_code,
-                headers=response.headers,
-                offset=resumed_bytes,
-                content_length=declared_content_length,
+            state.retain_prefix(prefix.length, prefix.sha256)
+
+        def open_response(
+            effective_headers: Mapping[str, str], io_timeout: float
+        ) -> AbstractAsyncContextManager[httpx2.Response]:
+            return http_client.stream(
+                "GET",
+                url,
+                headers=effective_headers,
+                follow_redirects=follow_redirects,
+                timeout=io_timeout,
             )
-            resumed_bytes = response_range.offset
-            append_resume = resumed_bytes > 0
-            declared_total_length = response_range.total_length
-            if max_bytes is not None and (
-                resumed_bytes > max_bytes
-                or (declared_total_length is not None and declared_total_length > max_bytes)
-            ):
-                raise ValidationError("Download size exceeds the configured maximum size.")
-            if (
-                reporter is not None
-                and reporter.total_size <= 0
-                and declared_total_length is not None
-            ):
-                reporter.total_size = declared_total_length
-            if reporter is not None and resumed_bytes > 0:
-                await reporter.report_async(resumed_bytes)
-            if declared_content_length is not None and declared_content_length > 0:
+
+        started_at = time.monotonic()
+        async with ResumableHTTPStream(
+            open_response, state=state, interruption=interruption
+        ) as stream:
+            declared_reservation: PluginStorageReservationLeaseProtocol | None = None
+            details: dict[str, JSONValue] = {
+                "url": url,
+                "destination_path": destination_path,
+                "declared_content_length": state.total_length,
+                "context": dict(reservation_details or {}),
+            }
+            if state.total_length is not None and state.total_length > state.resumed_bytes:
                 declared_reservation = await reservation_provider.reserve_disk_space(
                     path=reservation_path or destination_path,
-                    required_bytes=declared_content_length,
+                    required_bytes=state.total_length - state.resumed_bytes,
                     operation=reservation_operation,
-                    details={
-                        "url": url,
-                        "destination_path": destination_path,
-                        "declared_content_length": declared_content_length,
-                        "context": dict(reservation_details or {}),
-                    },
+                    details=details,
                 )
+                reservations.push_async_callback(declared_reservation.release)
+            interruption.raise_if_cancelled()
             if resume_partial:
-                handle = await asyncio.to_thread(
-                    open_resumable_download,
-                    resume_path,
-                    append=append_resume,
-                )
-                temp_path = resume_path
-                bytes_written = resumed_bytes
+
+                def open_partial() -> tuple[io.BufferedWriter, str]:
+                    return (
+                        open_resumable_download(
+                            resume_path,
+                            append=state.resumed_bytes > 0,
+                            expected_status=prefix.status,
+                        ),
+                        resume_path,
+                    )
+
+                handle = await download_file.open(open_partial)
             else:
-                handle, temp_path = await asyncio.to_thread(
-                    create_download_temp_handle,
-                    destination_path,
+                handle = await download_file.open(
+                    partial(create_download_temp_handle, destination_path)
                 )
-            if handle is None:
-                raise ValidationError("Failed to open destination file for writing.")
-            opened_handle = handle
-            async for chunk in response.aiter_bytes():
-                if shutdown_event is not None and shutdown_event.is_set():
-                    raise ValidationError("Download cancelled.")
-                if not chunk:
-                    continue
-                next_total = bytes_written + len(chunk)
-                if max_bytes is not None and next_total > max_bytes:
-                    raise ValidationError(
-                        f"Download size ({next_total} bytes) exceeds maximum size ({max_bytes} bytes).",
+            if reporter is not None:
+                if reporter.total_size <= 0 and state.total_length is not None:
+                    reporter.total_size = state.total_length
+                if state.resumed_bytes:
+                    await reporter.report_async(
+                        state.resumed_bytes, maximum_percent=max(0, reporter.progress_end - 1)
                     )
-                if declared_total_length is not None and next_total > declared_total_length:
-                    raise ValidationError(
-                        "Download size "
-                        f"({next_total} bytes) exceeds declared "
-                        f"total length ({declared_total_length} bytes).",
-                    )
-                buffer.extend(chunk)
-                bytes_written = next_total
-                if reporter is not None:
-                    await reporter.report_async(len(chunk))
-                if chunk_observer is not None:
-                    observer_result = chunk_observer(len(chunk))
-                    if inspect.isawaitable(observer_result):
-                        await observer_result
-                if len(buffer) >= flush_threshold_bytes:
-                    await _flush_download_buffer(
-                        buffer,
-                        handle=opened_handle,
-                        declared_reservation=declared_reservation,
-                        reservation_provider=reservation_provider,
-                        reservation_path=reservation_path or destination_path,
-                        reservation_operation=reservation_operation,
-                        reservation_details={
-                            "url": url,
-                            "destination_path": destination_path,
-                            "declared_content_length": declared_content_length,
-                            "context": dict(reservation_details or {}),
-                        },
-                    )
-                    await emit_download_progress(
-                        on_progress,
-                        bytes_written=bytes_written,
-                        declared_content_length=declared_total_length,
-                        started_at=started_at,
-                    )
-        if buffer:
-            await _flush_download_buffer(
+            bytes_written = state.resumed_bytes
+            if bytes_written:
+                await emit_download_progress(
+                    on_progress,
+                    bytes_written=bytes_written,
+                    declared_content_length=state.total_length,
+                    started_at=started_at,
+                )
+            buffer = bytearray()
+            flush = partial(
+                flush_plugin_download_buffer,
                 buffer,
-                handle=opened_handle,
+                handle=handle,
                 declared_reservation=declared_reservation,
                 reservation_provider=reservation_provider,
                 reservation_path=reservation_path or destination_path,
                 reservation_operation=reservation_operation,
-                reservation_details={
-                    "url": url,
-                    "destination_path": destination_path,
-                    "declared_content_length": declared_content_length,
-                    "context": dict(reservation_details or {}),
-                },
+                reservation_details=details,
             )
-        await emit_final_download_progress(
-            on_progress,
-            bytes_written=bytes_written,
-            declared_content_length=declared_total_length,
-            started_at=started_at,
-        )
-        if handle is None or not temp_path:
-            raise ValidationError("Failed to finalize downloaded file.")
-        await asyncio.to_thread(handle.close)
-        handle = None
-        await asyncio.to_thread(os.replace, temp_path, destination_path)
-        temp_path = ""
-        download_completed = True
-    finally:
-        if handle is not None:
-            try:
-                await asyncio.to_thread(handle.close)
-            except OSError as exception:
-                log_handled_exception(
-                    logger,
-                    exception,
-                    message="Failed to close download file handle (non-critical).",
-                    operation=OPERATION_PLUGIN_SDK_DOWNLOADS_CLOSE_HANDLE,
-                    details={"destination_path": destination_path},
-                    level="debug",
-                )
-        if not download_completed and temp_path and not resume_partial:
-            await remove_partial_download_file(
-                temp_path,
-                logger=logger,
-                operation=OPERATION_PLUGIN_SDK_DOWNLOADS_CLEANUP_PARTIAL,
-            )
-        if declared_reservation is not None:
-            await declared_reservation.release()
-        if reporter is not None and download_completed:
-            await reporter.finalize_async()
-
-
-async def _flush_download_buffer(
-    buffer: bytearray,
-    *,
-    handle: io.BufferedWriter,
-    declared_reservation: PluginStorageReservationLeaseProtocol | None,
-    reservation_provider: PluginStorageRuntimeProtocol,
-    reservation_path: str,
-    reservation_operation: str,
-    reservation_details: Mapping[str, JSONValue] | None,
-) -> None:
-    if not buffer:
-        return
-    data = bytes(buffer)
-    buffer.clear()
-    byte_count = len(data)
-    if declared_reservation is not None:
-        async with claim_plugin_reserved_write(
-            declared_reservation,
-            size_bytes=byte_count,
-            cleanup_action="Plugin SDK download declared claim commit after write failure",
-        ):
-            await asyncio.to_thread(handle.write, data)
-        return
-    reservation = await reservation_provider.reserve_disk_space(
-        path=reservation_path,
-        required_bytes=byte_count,
-        operation=reservation_operation,
-        details=reservation_details,
+            async for chunk in stream:
+                interruption.raise_if_cancelled()
+                buffer.extend(chunk)
+                bytes_written += len(chunk)
+                if reporter is not None:
+                    await reporter.report_async(
+                        len(chunk), maximum_percent=max(0, reporter.progress_end - 1)
+                    )
+                if chunk_observer is not None:
+                    observed = chunk_observer(len(chunk))
+                    if inspect.isawaitable(observed):
+                        await observed
+                if len(buffer) >= flush_threshold_bytes:
+                    await flush()
+                    interruption.raise_if_cancelled()
+                    await emit_download_progress(
+                        on_progress,
+                        bytes_written=bytes_written,
+                        declared_content_length=state.total_length,
+                        started_at=started_at,
+                    )
+            interruption.raise_if_cancelled()
+            await flush()
+        interruption.raise_if_cancelled()
+        await download_file.publish(interruption)
+    await emit_final_download_progress(
+        on_progress,
+        bytes_written=bytes_written,
+        declared_content_length=state.total_length,
+        started_at=started_at,
     )
-    try:
-        async with claim_plugin_reserved_write(
-            reservation,
-            size_bytes=byte_count,
-            cleanup_action="Plugin SDK download chunk claim commit after write failure",
-        ):
-            await asyncio.to_thread(handle.write, data)
-    finally:
-        await reservation.release()
+    if reporter is not None:
+        await reporter.finalize_async()

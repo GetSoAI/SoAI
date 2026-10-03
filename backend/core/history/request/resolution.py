@@ -10,7 +10,18 @@ from core.errors.exceptions import ValidationError
 from core.history.request.models import HistoryRequestResolution
 from core.timing.durations import hours_to_ms
 
-__all__ = ("resolve_history_request",)
+__all__ = ("resolve_aligned_history_query_start", "resolve_history_request")
+
+
+def resolve_aligned_history_query_start(
+    resolution: HistoryRequestResolution, retention_hours: int
+) -> int:
+    if retention_hours <= 0:
+        return resolution.aligned_start_ts_ms
+    return max(
+        resolution.aligned_start_ts_ms,
+        resolution.end_ts_ms - hours_to_ms(retention_hours),
+    )
 
 
 def resolve_history_request(

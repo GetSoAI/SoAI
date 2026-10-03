@@ -81,6 +81,7 @@ class FileManager(Shutdownable):
             command,
             storage_root=self._storage_root,
             database_files=self._deps.database_files,
+            database_operation_status=self._deps.database_operation_status,
             storage_manager=self._deps.storage_manager,
             token_collection=self._deps.token_collection,
             cancellation_history=self._deps.cancellation_history,

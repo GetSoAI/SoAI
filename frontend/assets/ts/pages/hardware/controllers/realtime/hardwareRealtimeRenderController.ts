@@ -3,12 +3,10 @@
 
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { HardwareProcessesResource } from '@core/realtime/streammanager/resources/resourceValueContracts.ts';
-import { signalAborted } from '@core/lifecycle/abortSignals.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import type { HardwareDataController } from '@pages/hardware/controllers/dataController.ts';
 import { applyChartDataLimits } from '@pages/hardware/controllers/render/effects.ts';
 import type { HardwareRenderController } from '@pages/hardware/controllers/renderController.ts';
-import type { HardwareHistoryStreamState } from '@pages/hardware/controllers/realtime/state.ts';
 import type { MemorySwapPanelController } from '@pages/hardware/widgets/memoryswap/MemorySwapPanelController.ts';
 import type { ProcessTableManager } from '@pages/hardware/widgets/processes/service.ts';
 import type { HardwarePageSnapshot } from '@pages/hardware/types.ts';
@@ -18,7 +16,6 @@ type HardwareRealtimeRenderEventContext = {
     renderController: HardwareRenderController;
     processController: ProcessTableManager;
     memorySwapController: MemorySwapPanelController;
-    historyStreamState: HardwareHistoryStreamState;
     scheduleChartBootstrap: (options: { force: boolean; resetView: boolean }) => Promise<void>;
     handleChartBootstrapError: (error: Error) => void;
     handleHistoryUpdate: (data: HardwarePageSnapshot) => void;
@@ -46,15 +43,12 @@ const handleDecodedHardwareSnapshotRenderEvent = (context: HardwareRealtimeRende
             context.handleChartBootstrapError(ensureError(error));
         });
     }
-    const streamState = context.historyStreamState;
-    if (streamState.historyStreamInitialized && streamState.historyRequestToken && !signalAborted(streamState.historyStreamAbortController?.signal ?? null)) {
-        context.handleHistoryUpdate(snapshot);
-    }
+    context.handleHistoryUpdate(snapshot);
 };
 
 const handleHardwareProcessRenderEvent = (context: HardwareRealtimeRenderEventContext, value: HardwareProcessesResource): void => {
-    context.processController.handleResourceUpdate(value);
     context.memorySwapController.handleProcessResourceUpdate(value);
+    context.processController.handleResourceUpdate(value);
     context.renderController.refreshHeaderStats();
 };
 

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { parseSingleRootElement } from '@core/dom/parseSingleRootElement.ts';
+import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
 import { computeHash } from '@core/primitives/hash.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import { hasAttachmentThumbnail, preserveStableAttachmentThumbnailVisuals } from '@features/chat/attachments/attachmentThumbnailDom.ts';
@@ -26,6 +27,9 @@ type AttachmentPreviewReconciliation = {
 
 const ATTACHMENT_UI_ID_ATTRIBUTE = 'data-attachment-ui-id';
 const ATTACHMENT_SIGNATURE_ATTRIBUTE = 'data-attachment-render-signature';
+const PRESENCE_ATTRIBUTE = 'data-presence';
+const PRESENCE_ATOMIC_ATTRIBUTE = 'data-presence-atomic';
+const PRESENCE_VISUAL_ONLY_ATTRIBUTE = 'data-presence-visual-only';
 
 const resolveEntrySignature = (entry: AttachmentPreviewEntry): string => `${String(entry.html.html.length)}:${computeHash(entry.html.html).toString(36)}`;
 
@@ -37,6 +41,9 @@ const createEntryElement = (context: AttachmentPreviewReconcilerContext, entry: 
     }
     context.dependencies.updateAttribute(element, ATTACHMENT_UI_ID_ATTRIBUTE, entry.id);
     context.dependencies.updateAttribute(element, ATTACHMENT_SIGNATURE_ATTRIBUTE, signature);
+    context.dependencies.updateAttribute(element, PRESENCE_ATTRIBUTE, '');
+    context.dependencies.updateAttribute(element, PRESENCE_ATOMIC_ATTRIBUTE, '');
+    context.dependencies.updateAttribute(element, PRESENCE_VISUAL_ONLY_ATTRIBUTE, '');
     return element;
 };
 
@@ -73,16 +80,22 @@ const patchEntryElement = (context: AttachmentPreviewReconcilerContext, current:
         }
         context.dependencies.updateAttribute(current, name, value);
     }
-    const thumbnailPreserved = preserveStableAttachmentThumbnailVisuals(current, next) > 0;
-    current.replaceChildren();
-    while (next.firstChild !== null) {
-        current.appendChild(next.firstChild);
+    if (!hasAttachmentThumbnail(current) && !hasAttachmentThumbnail(next)) {
+        reconcileChildNodes(current, Array.from(next.childNodes));
+        return false;
     }
+    const thumbnailPreserved = preserveStableAttachmentThumbnailVisuals(current, next, 'clone') > 0;
+    reconcileChildNodes(current, Array.from(next.childNodes));
     return !thumbnailPreserved && hasAttachmentThumbnail(current);
 };
 
-const reconcileAttachmentPreview = (context: AttachmentPreviewReconcilerContext, preview: HTMLElement, entries: readonly AttachmentPreviewEntry[]): AttachmentPreviewReconciliation => {
+const reconcileAttachmentPreview = (context: AttachmentPreviewReconcilerContext, preview: HTMLElement, entries: readonly AttachmentPreviewEntry[], detached: Map<string, HTMLElement> = new Map()): AttachmentPreviewReconciliation => {
     const existing = collectExistingElements(preview);
+    for (const [id, element] of detached.entries()) {
+        if (!existing.has(id)) {
+            existing.set(id, element);
+        }
+    }
     const retainedIds = new Set<string>();
     let thumbnailsChanged = false;
     for (const [index, entry] of entries.entries()) {
@@ -105,6 +118,9 @@ const reconcileAttachmentPreview = (context: AttachmentPreviewReconcilerContext,
     for (const [id, element] of existing.entries()) {
         if (!retainedIds.has(id)) {
             element.remove();
+            detached.set(id, element);
+        } else {
+            detached.delete(id);
         }
     }
     return { thumbnailsChanged };

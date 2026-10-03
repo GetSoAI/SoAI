@@ -4,7 +4,6 @@
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
-import { showOperationFailureNotification } from '@core/ui/notifications/operationFailure.ts';
 import { resetAutomationPagePreferenceState } from '@pages/automation/controllers/automationPageState.ts';
 import { navigateCalendar } from '@pages/automation/controllers/stateTransitions.ts';
 import { resetAutomationPreferences } from '@pages/automation/state/preferences.ts';
@@ -15,7 +14,7 @@ interface AutomationPagePreferenceResetHost {
     getState: () => AutomationPageState;
     setState: (next: AutomationPageState) => void;
     applySplit: (percent: number) => void;
-    initializeInteractions: () => Promise<void>;
+    initializeInteractions: () => void;
     reconnectInteractions: () => void;
     queueRender: () => void;
     refreshData: () => Promise<void>;
@@ -29,7 +28,7 @@ interface AutomationPageScrollNavigationHost {
     queueRender: () => void;
     refreshDataWithBoundary: () => Promise<void>;
     cancelPendingScrollShift: () => void;
-    showErrorNotification: (message: string) => void;
+    reportRefreshFailure: (error: Error) => void;
 }
 
 const resetAutomationPagePreferencesAndRefresh = async (host: AutomationPagePreferenceResetHost): Promise<void> => {
@@ -38,7 +37,7 @@ const resetAutomationPagePreferencesAndRefresh = async (host: AutomationPagePref
     const nextState = resetAutomationPagePreferenceState(host.getState());
     host.setState(nextState);
     host.applySplit(nextState.splitLeftPercent);
-    await host.initializeInteractions();
+    host.initializeInteractions();
     host.reconnectInteractions();
     host.queueRender();
     await host.refreshData();
@@ -54,11 +53,7 @@ const shiftAutomationPageVisiblePeriod = async (host: AutomationPageScrollNaviga
         const runtimeError = ensureError(error);
         host.cancelPendingScrollShift();
         host.queueRender();
-        showOperationFailureNotification({
-            error: runtimeError,
-            operation: i18n.t('common.refresh'),
-            showNotification: (message): void => host.showErrorNotification(message)
-        });
+        host.reportRefreshFailure(runtimeError);
         throw runtimeError;
     }
 };

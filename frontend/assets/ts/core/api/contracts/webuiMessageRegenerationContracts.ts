@@ -35,6 +35,8 @@ interface ConversationRegenerationReceipt {
     previewContractFeedback: JsonObject | null;
 }
 
+type ConversationLatestRegenerationStatus = { status: 'no_attempt' } | { status: 'attempt'; attempt: ConversationRegenerationReceipt };
+
 const serializeConversationRegenerationRequest = (request: ConversationRegenerationRequest): JsonObject => {
     const payload: JsonObject = {
         'client_id': request.clientId,
@@ -73,5 +75,12 @@ const decodeConversationRegenerationReceipt = (value: ApiResponsePayload): Conve
     };
 };
 
-export { decodeConversationRegenerationReceipt, serializeConversationRegenerationRequest };
-export type { ConversationRegenerationReceipt, ConversationRegenerationRequest, ConversationRegenerationState };
+const decodeConversationLatestRegenerationStatus = (value: ApiResponsePayload): ConversationLatestRegenerationStatus => {
+    const record = requireRecord(value, 'Latest conversation regeneration response');
+    const status = readRequiredEnumValue(record['status'], 'Latest conversation regeneration response.status', ['no_attempt', 'attempt']);
+    if (status === 'no_attempt') return { status };
+    return { status, attempt: decodeConversationRegenerationReceipt(record['attempt']) };
+};
+
+export { decodeConversationLatestRegenerationStatus, decodeConversationRegenerationReceipt, serializeConversationRegenerationRequest };
+export type { ConversationLatestRegenerationStatus, ConversationRegenerationReceipt, ConversationRegenerationRequest, ConversationRegenerationState };

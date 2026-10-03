@@ -1,6 +1,7 @@
 /* SoAI - Chat preview container layout ownership [frontend/assets/ts/features/chat/chatuimanager/previewLayout.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isRtl } from '@core/layout/direction.ts';
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
@@ -10,40 +11,41 @@ import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts
 import { acquireMainTimelineCoordinator } from '@features/chat/mainTimelineCoordinator.ts';
 
 const CHAT_PREVIEWS_CONTAINER_BOTTOM_VAR = '--chat-previews-container-bottom';
-const CHAT_PREVIEWS_CONTAINER_LEFT_VAR = '--chat-previews-container-left';
-const CHAT_PREVIEWS_CONTAINER_FOCUS_LEFT_VAR = '--chat-previews-container-focus-left';
-const CHAT_PREVIEWS_CONTAINER_RIGHT_VAR = '--chat-previews-container-right';
+const CHAT_PREVIEWS_CONTAINER_INLINE_START_VAR = '--chat-previews-container-inline-start';
+const CHAT_PREVIEWS_CONTAINER_FOCUS_INLINE_START_VAR = '--chat-previews-container-focus-inline-start';
+const CHAT_PREVIEWS_CONTAINER_INLINE_END_VAR = '--chat-previews-container-inline-end';
 const CHAT_MAIN_CONTAINER_SELECTOR = '.chat-main-container';
 const CHAT_INPUT_ACTIONS_SELECTOR = '.chat-input-actions';
 const AGENT_MODE_POPUP_SELECTOR = '.agent-mode-popup';
 
-function applyPreviewsContainerInsets(context: ChatUIManagerContext, containerElement: HTMLElement, mainContainer: HTMLElement, inputWrapper: HTMLElement, chatInput: HTMLTextAreaElement, popupWidth: number, extraLeftPadding: number): void {
+function applyPreviewsContainerInsets(context: ChatUIManagerContext, containerElement: HTMLElement, mainContainer: HTMLElement, inputWrapper: HTMLElement, chatInput: HTMLTextAreaElement, popupWidth: number, extraInlineStartPadding: number): void {
     const mainContainerRect = measureLayoutBox(mainContainer);
     const wrapperRect = measureLayoutBox(inputWrapper);
     const inputRect = measureLayoutBox(chatInput);
 
     const rawBottomInset = mainContainerRect.bottom - wrapperRect.top;
-    const rawLeftInset = inputRect.left - mainContainerRect.left;
-    const rawRightInset = mainContainerRect.right - inputRect.right;
+    const rtl = isRtl(mainContainer);
+    const rawInlineStartInset = rtl ? mainContainerRect.right - inputRect.right : inputRect.left - mainContainerRect.left;
+    const rawInlineEndInset = rtl ? inputRect.left - mainContainerRect.left : mainContainerRect.right - inputRect.right;
 
     const bottomInset = Math.max(0, rawBottomInset);
     const clampedPopupWidth = clampNumber(popupWidth, 0, inputRect.width);
-    const clampedExtraPadding = clampNumber(extraLeftPadding, 0, inputRect.width);
-    const leftInset = Math.max(0, rawLeftInset);
-    const focusedLeftInset = Math.max(0, rawLeftInset + clampedPopupWidth + clampedExtraPadding);
-    const rightInset = Math.max(0, rawRightInset);
+    const clampedExtraPadding = clampNumber(extraInlineStartPadding, 0, inputRect.width);
+    const inlineStartInset = Math.max(0, rawInlineStartInset);
+    const focusedInlineStartInset = Math.max(0, rawInlineStartInset + clampedPopupWidth + clampedExtraPadding);
+    const inlineEndInset = Math.max(0, rawInlineEndInset);
 
     context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_BOTTOM_VAR, `calc(${bottomInset}px + var(--chat-previews-container-gap))`);
-    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_LEFT_VAR, `${leftInset}px`);
-    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_FOCUS_LEFT_VAR, `${focusedLeftInset}px`);
-    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_RIGHT_VAR, `${rightInset}px`);
+    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_INLINE_START_VAR, `${inlineStartInset}px`);
+    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_FOCUS_INLINE_START_VAR, `${focusedInlineStartInset}px`);
+    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_INLINE_END_VAR, `${inlineEndInset}px`);
 }
 
 function clearPreviewsContainerInsets(context: ChatUIManagerContext, containerElement: HTMLElement): void {
     context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_BOTTOM_VAR, null);
-    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_LEFT_VAR, null);
-    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_FOCUS_LEFT_VAR, null);
-    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_RIGHT_VAR, null);
+    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_INLINE_START_VAR, null);
+    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_FOCUS_INLINE_START_VAR, null);
+    context.dependencies.dom.setStyle(containerElement, CHAT_PREVIEWS_CONTAINER_INLINE_END_VAR, null);
 }
 
 export function setupPreviewsContainerLayout(context: ChatUIManagerContext, refreshAttachmentsPreview: () => void): void {
@@ -107,9 +109,9 @@ export function setupPreviewsContainerLayout(context: ChatUIManagerContext, refr
         const inputRect = measureLayoutBox(inputElement);
         const previewsRect = measureLayoutBox(previewsContainer);
         const verticalGap = inputRect.top - previewsRect.bottom;
-        const extraLeftPadding = verticalGap > 0 ? verticalGap : 0;
+        const extraInlineStartPadding = verticalGap > 0 ? verticalGap : 0;
 
-        applyPreviewsContainerInsets(context, previewsContainer, mainContainer, wrapper, inputElement, resolvePopupWidth(), extraLeftPadding);
+        applyPreviewsContainerInsets(context, previewsContainer, mainContainer, wrapper, inputElement, resolvePopupWidth(), extraInlineStartPadding);
         refreshAttachmentsPreview();
     };
 

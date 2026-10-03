@@ -5,9 +5,9 @@ param(
     [Parameter(Mandatory=$true)][string]$Version,
     [string]$MakensisPath,
     [switch]$NoNSISBootstrap,
-    [string]$PythonVersion = '3.13.14',
-    [string]$PythonUrl = 'https://www.nuget.org/api/v2/package/python/3.13.14',
-    [string]$PythonSha256 = '9AC15CFA6CAB1115C83D48F2AF55C554EFA4D1BB044BBC4AB1C9D17AD426E16C',
+    [Parameter(Mandatory=$true)][string]$PythonVersion,
+    [Parameter(Mandatory=$true)][string]$PythonUrl,
+    [Parameter(Mandatory=$true)][string]$PythonSha256,
     [string]$WebView2BootstrapperUrl = 'https://go.microsoft.com/fwlink/p/?LinkId=2124703',
     [int]$RuntimeFootprintReserveMb = 3000
 )
@@ -92,11 +92,38 @@ if (Test-Path -LiteralPath $outputFile) {
 $versionQuad = Convert-ToVersionQuad $Version
 $script = Join-Path $PSScriptRoot 'soai-installer.nsi'
 $payloadInclude = Join-Path $outputRoot 'payload-files.nsh'
-$payloadInstructions = @('File /x "soai.exe" "${PAYLOAD_DIR}\*"')
-foreach ($directory in Get-ChildItem -LiteralPath $payloadRoot -Directory -Force | Sort-Object Name) {
-    $escapedName = $directory.Name.Replace('$', '$$')
-    $payloadInstructions += 'File /r "${PAYLOAD_DIR}\' + $escapedName + '"'
+$maximumPayloadRelativeLength = 0
+foreach ($file in Get-ChildItem -LiteralPath $payloadRoot -Recurse -File -Force) {
+    $relativeLength = $file.FullName.Substring($payloadRoot.TrimEnd('\').Length + 1).Length
+    $maximumPayloadRelativeLength = [Math]::Max($maximumPayloadRelativeLength, $relativeLength)
 }
+$payloadInstructions = @('StrCpy $InstallerCreateDirectories 1')
+foreach ($directory in Get-ChildItem -LiteralPath $payloadRoot -Directory -Recurse -Force | Sort-Object FullName) {
+    $relative = $directory.FullName.Substring($payloadRoot.TrimEnd('\').Length + 1)
+    $escapedRelative = $relative.Replace('$', '$$')
+    $payloadInstructions += 'Push "$INSTDIR\' + $escapedRelative + '"'
+    $payloadInstructions += 'Call RetainInstallerAncestors'
+    $payloadInstructions += 'StrCmp $InstallFailed 1 install_failed'
+}
+$payloadInstructions += 'StrCpy $InstallerCreateDirectories 0'
+$payloadInstructions += 'ClearErrors'
+$payloadInstructions += 'SetOverwrite try'
+foreach ($file in Get-ChildItem -LiteralPath $payloadRoot -File -Recurse -Force | Sort-Object FullName) {
+    $relative = $file.FullName.Substring($payloadRoot.TrimEnd('\').Length + 1)
+    if ($relative -in @('soai.exe', 'soai.exe.config')) { continue }
+    $escapedRelative = $relative.Replace('$', '$$')
+    $sizeSuffix = ''
+    if ($file.Length -ge 1MB) {
+        $sizeSuffix = [string]::Format([Globalization.CultureInfo]::InvariantCulture, ' ({0:0.0} MB)', $file.Length / 1MB)
+    }
+    $payloadInstructions += 'StrCpy $InstallerPayloadEntry "' + $escapedRelative + '"'
+    $payloadInstructions += 'SetDetailsPrint both'
+    $payloadInstructions += 'DetailPrint "Extract: $InstallerPayloadEntry' + $sizeSuffix + '"'
+    $payloadInstructions += 'SetDetailsPrint none'
+    $payloadInstructions += 'File "/oname=$InstallerFilesystemRoot\$InstallerPayloadEntry" "${PAYLOAD_DIR}\' + $relative + '"'
+    $payloadInstructions += 'IfErrors payload_file_failed'
+}
+$payloadInstructions += 'SetOverwrite on'
 Set-Content -LiteralPath $payloadInclude -Value $payloadInstructions -Encoding Unicode
 
 $defines = @(
@@ -104,6 +131,7 @@ $defines = @(
     "/DPRODUCT_VERSION_QUAD=$versionQuad",
     "/DPAYLOAD_DIR=$payloadRoot",
     "/DPAYLOAD_FILES_INCLUDE=$payloadInclude",
+    "/DPAYLOAD_MAX_RELATIVE_LENGTH=$maximumPayloadRelativeLength",
     "/DOUTPUT_FILE=$outputFile",
     "/DLICENSE_FILE=$licenseFile",
     "/DESTIMATED_SIZE_KB=$estimatedSizeKb",

@@ -30,7 +30,7 @@ soai_managed_runtime__publish_tesseract_environment() {
 soai_managed_runtime__ensure_tesseract() {
     local env_dir="$1"
     local state_dir="$2"
-    local micromamba_version="${3:-2.5.0}"
+    local micromamba_version="${3:-}"
     local offline_mode="${4:-0}"
     if soai_managed_runtime__tesseract_is_valid "$env_dir"; then
         soai_managed_runtime__publish_tesseract_environment "$env_dir"

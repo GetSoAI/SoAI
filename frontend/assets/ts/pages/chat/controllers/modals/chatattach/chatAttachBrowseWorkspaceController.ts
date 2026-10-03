@@ -5,11 +5,8 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { toTrimmedStringOrNull } from '@core/normalize.ts';
 import { buildSoaiPathToken } from '@core/soailinks/codec.ts';
-import { createDocumentContentPreviewRequest, createTextContentPreviewRequest } from '@core/ui/modals/contentpreview/requestFactories.ts';
-import { requireContentPreviewModalService } from '@core/ui/modals/contentpreview/service.ts';
-import { copyTextWithHostClipboardFeedback } from '@core/ui/notifications/clipboardCopy.ts';
 import { showUserError } from '@core/ui/notifications/notifications.ts';
-import { captureSoaiLinkWorkspaceSnapshot, matchesSoaiLinkWorkspaceSnapshot, requireMatchingResolveRecords, resolveSoaiPathDraftRecordTitle, type SoaiPathDraftRecord } from '@features/chat/public.ts';
+import { ChatSoaiPathContentPreview, captureSoaiLinkWorkspaceSnapshot, matchesSoaiLinkWorkspaceSnapshot, requireMatchingResolveRecords, resolveSoaiPathDraftRecordTitle, type SoaiPathDraftRecord } from '@features/chat/public.ts';
 import type { ChatAttachBrowseWorkspaceHost } from '@pages/chat/controllers/modals/chatattach/contracts.ts';
 import { abortTrackedBrowseAbortControllers, createTrackedBrowseAbortController, releaseTrackedBrowseAbortController, type BrowseAbortControllerRegistry } from '@pages/chat/controllers/modals/chatattach/chatAttachBrowseAbortController.ts';
 import type { ChatAttachBrowseResult } from '@pages/chat/controllers/modals/chatattach/chatAttachBrowseResultsWidget.ts';
@@ -17,31 +14,23 @@ import type { ChatAttachBrowseResult } from '@pages/chat/controllers/modals/chat
 type WorkspaceBrowseResult = Extract<ChatAttachBrowseResult, { type: 'workspace' }>;
 type BrowseActionGuard = () => boolean;
 
-const copyPreviewText = async (host: ChatAttachBrowseWorkspaceHost, text: string): Promise<void> => {
-    await copyTextWithHostClipboardFeedback(
-        {
-            copyToClipboard: (value, options) => host.presentation.copyToClipboard(value, options),
-            hasClipboardSupport: () => host.presentation.hasClipboardSupport(),
-            showNotification: (message, type, duration) => host.shared.feedback.show(message, type, duration)
-        },
-        {
-            text,
-            successMessage: i18n.t('chat.message.copied'),
-            errorMessage: i18n.t('chat.message.copyFailed'),
-            unavailableMessage: i18n.t('chat.message.copyFailed'),
-            unavailableType: 'error'
-        }
-    );
-};
-
 class ChatAttachBrowseWorkspaceOperations {
     readonly #host: ChatAttachBrowseWorkspaceHost;
     readonly #signal: AbortSignal;
     readonly #controllers: BrowseAbortControllerRegistry = new Set();
+    readonly #preview: ChatSoaiPathContentPreview;
 
     constructor(host: ChatAttachBrowseWorkspaceHost, signal: AbortSignal) {
         this.#host = host;
         this.#signal = signal;
+        this.#preview = new ChatSoaiPathContentPreview({
+            soaiPathsApi: host.shared.api.webui.chat.soaiPaths,
+            runWithBoundary: (name, operation) => host.execution.boundary(name, operation),
+            hasClipboardSupport: () => host.presentation.hasClipboardSupport(),
+            copyToClipboard: (text, options) => host.presentation.copyToClipboard(text, options),
+            showNotification: (message, type) => host.shared.feedback.show(message, type)
+        });
+        signal.addEventListener('abort', this.abortPending, { once: true });
     }
 
     async preview(result: WorkspaceBrowseResult, isCurrent: BrowseActionGuard): Promise<void> {
@@ -55,34 +44,21 @@ class ChatAttachBrowseWorkspaceOperations {
                 return;
             }
             const contentPart = record.contentPart;
-            const rootFingerprint = contentPart.workspaceScope.rootFingerprint;
-            const value = contentPart.sourceReference.value;
             const conversationId = this.#conversationId();
             if (conversationId === null || !isCurrent()) {
                 return;
             }
-            if (result.entryType === 'folder') {
-                await this.#openFolderPreview(result, record, conversationId, rootFingerprint, value, controller.signal, isCurrent);
-                return;
-            }
-            if (!isCurrent()) {
-                return;
-            }
-            requireContentPreviewModalService().open(
-                createDocumentContentPreviewRequest({
-                    scope: 'chat',
-                    type: 'document',
-                    headerDescription: result.chip,
-                    title: resolveSoaiPathDraftRecordTitle(record),
-                    sourceReference: { type: 'conversation_soai_path', conversationId, rootFingerprint, value },
-                    onRequestDownload: null,
-                    onRequestAttach: async () => {
-                        await this.attach(result, isCurrent);
-                    },
-                    openSourceUrl: null,
-                    externalOpenBehavior: 'neverConfirm'
-                })
-            );
+            const workspaceSnapshot = captureSoaiLinkWorkspaceSnapshot(this.#host.conversation.current());
+            this.#preview.open({
+                conversationId,
+                contentPart,
+                title: resolveSoaiPathDraftRecordTitle(record),
+                headerDescription: result.chip,
+                isCurrent: () => !this.#signal.aborted && isCurrent() && matchesSoaiLinkWorkspaceSnapshot(this.#host.conversation.current(), workspaceSnapshot),
+                onRequestAttach: async () => {
+                    await this.attach(result, isCurrent);
+                }
+            });
         } catch (error) {
             if (controller.signal.aborted) {
                 return;
@@ -118,9 +94,10 @@ class ChatAttachBrowseWorkspaceOperations {
         }
     }
 
-    abortPending(): void {
+    readonly abortPending = (): void => {
         abortTrackedBrowseAbortControllers(this.#controllers);
-    }
+        this.#preview.reset();
+    };
 
     #conversationId(): string | null {
         return toTrimmedStringOrNull(this.#host.conversation.currentId());
@@ -145,39 +122,6 @@ class ChatAttachBrowseWorkspaceOperations {
             throw new Error('SoAI link resolve response did not include a record');
         }
         return first;
-    }
-
-    async #openFolderPreview(result: WorkspaceBrowseResult, record: SoaiPathDraftRecord, conversationId: string, rootFingerprint: string, value: string, signal: AbortSignal, isCurrent: BrowseActionGuard): Promise<void> {
-        const workspaceSnapshot = captureSoaiLinkWorkspaceSnapshot(this.#host.conversation.current());
-        const preview = await this.#host.shared.api.webui.chat.soaiPaths.preview(conversationId, { contentPart: record.contentPart }, { signal });
-        if (signal.aborted || !isCurrent() || !matchesSoaiLinkWorkspaceSnapshot(this.#host.conversation.current(), workspaceSnapshot)) {
-            return;
-        }
-        const lines = preview.state === 'available' && preview.entries !== undefined ? preview.entries.map((entry) => entry.name) : [];
-        requireContentPreviewModalService().open(
-            createTextContentPreviewRequest({
-                scope: 'chat',
-                type: 'text',
-                headerDescription: i18n.t('chat.attachModal.browseChipLiveFolder'),
-                baseline: { title: resolveSoaiPathDraftRecordTitle(record), content: lines.join('\n'), promptColor: null },
-                editable: false,
-                languageMode: 'default',
-                disableCopyWhenEmpty: true,
-                disableDownloadWhenEmpty: true,
-                colorToolkit: null,
-                onRequestSave: null,
-                onRequestDownload: null,
-                onRequestCopy: async (text) => await copyPreviewText(this.#host, text),
-                onRequestAttach: async () => {
-                    await this.attach(result, isCurrent);
-                },
-                enhance: null,
-                openSourceUrl: null,
-                onStatePotentiallyChanged: null,
-                sourceReference: { type: 'conversation_soai_path', conversationId, rootFingerprint, value },
-                externalOpenBehavior: 'neverConfirm'
-            })
-        );
     }
 }
 

@@ -67,9 +67,7 @@ const requestSaveSafely = async (scope: SaveScope, context: string): Promise<Sav
         if (state.promise === null) throw new Error('Save request state is missing its in-flight Promise');
         return await state.promise;
     }
-    if (now - state.lastStartedAt < SAVE_REQUEST_DEBOUNCE_MS) {
-        return 'debounced';
-    }
+    if (now - state.lastStartedAt < SAVE_REQUEST_DEBOUNCE_MS && !scope.hasChanges()) return 'debounced';
     state.inFlight = true;
     state.lastStartedAt = now;
     state.promise = (async (): Promise<SaveRequestOutcome> => {
@@ -106,6 +104,10 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
     const requestSave = options.requestSave;
     if (!isFunction(requestSave)) {
         throw new Error('bindSaveScope requires requestSave()');
+    }
+    const isRequestInFlight = options.isRequestInFlight;
+    if (isRequestInFlight !== undefined && !isFunction(isRequestInFlight)) {
+        throw new Error('bindSaveScope optional isRequestInFlight must be a function');
     }
     const resolveSaveButtons = options.resolveSaveButtons;
     if (!isFunction(resolveSaveButtons)) {
@@ -159,7 +161,7 @@ const bindSaveScope = (options: BindSaveScopeOptions): SaveBinding => {
         const hasChanges = scope.hasChanges();
         const canSave = (options.canRequestSave?.() ?? true) && scope.canSave();
         const saving = scope.isSaving();
-        const inFlight = saveRequestState.get(scope)?.inFlight === true;
+        const inFlight = saveRequestState.get(scope)?.inFlight === true || isRequestInFlight?.() === true;
         const busy = saving || inFlight;
         const busyChanged = lastBusy !== busy;
         if (busyChanged) {

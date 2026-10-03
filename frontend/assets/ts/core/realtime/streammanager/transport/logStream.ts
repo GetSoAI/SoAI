@@ -6,12 +6,20 @@ import { toTrimmedString } from '@core/normalize.ts';
 import { isJsonArray, isJsonValue, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { isObject, isPlainObject } from '@core/typeGuards.ts';
 import { WEBSOCKET_EVENT_TYPES, WEBSOCKET_LIFECYCLE_EVENT_TYPES, WEBSOCKET_LOG_STREAM_EVENT_TYPES, WEBSOCKET_MESSAGE_TYPES } from '@core/websocketEvents.ts';
+import { TimeoutTimer } from '@core/timers/timeoutTimer.ts';
+import { CONNECTION_WAIT_TIMEOUT_MS, SNAPSHOT_TIMEOUT_MS } from '@core/websocketclient/constants.ts';
+import { LogStreamError } from '@core/realtime/streammanager/transport/logStreamError.ts';
+import { requireRecord } from '@core/types/payloadRecordReaders.ts';
+import { readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import type { StreamSafeCallback, StreamSafeCallbackArgument } from '@core/realtime/streammanager/types.ts';
 
 interface WebSocketClientContract {
     subscribe: (eventType: string, handler: (payload: JsonValue) => void | Promise<void>) => () => void;
-    sendMessage: (payload: JsonObject) => Promise<void>;
+    sendMessage: (payload: JsonObject, options?: { signal?: AbortSignal; waitForConnection?: boolean }) => Promise<void>;
+    waitForConnection: (timeoutMs: number, options: { signal: AbortSignal }) => Promise<void>;
+    isConnected: () => boolean;
+    readonly connectionEpoch: number;
 }
 
 interface StreamLogHandlers {
@@ -48,10 +56,17 @@ const streamLogs = (options: StreamLogsOptions): { unsubscribe: () => void; clos
     const unsubscribers: Array<() => void> = [];
     let closed = false;
     let manualClose = false;
+    let acknowledged = false;
+    let subscriptionEpoch: number | null = null;
+    const controller = new AbortController();
+    const acknowledgementTimer = new TimeoutTimer(SNAPSHOT_TIMEOUT_MS, () => {
+        if (!closed && !acknowledged) safe(handlers.onError, new LogStreamError('Log subscription acknowledgement timed out', 'await-connection'));
+    });
     const safeClose = (): void => {
         if (closed) return;
         closed = true;
-        if (!manualClose) safe(handlers.onClose);
+        controller.abort();
+        acknowledgementTimer.stop();
         unsubscribers.splice(0, unsubscribers.length).forEach((callback) => {
             try {
                 callback();
@@ -60,6 +75,13 @@ const streamLogs = (options: StreamLogsOptions): { unsubscribe: () => void; clos
                 errorHandler.debug(moduleName, 'Log stream unsubscribe failed', err);
             }
         });
+        if (!manualClose) safe(handlers.onClose);
+    };
+    const fail = (error: Error): void => {
+        if (closed) return;
+        manualClose = true;
+        safeClose();
+        safe(handlers.onError, error);
     };
     const matchesSource = (payload: JsonValue): string | null => {
         const record = isPlainObject(payload) ? payload : null;
@@ -72,12 +94,12 @@ const streamLogs = (options: StreamLogsOptions): { unsubscribe: () => void; clos
         if (!sourceName || closed) return;
         const record = isPlainObject(payload) ? payload : null;
         if (!record) {
-            safe(handlers.onError, new Error('Log batch payload must be an object'));
+            fail(new LogStreamError('Log batch payload must be an object', 'stop'));
             return;
         }
         const entries = record['entries'];
         if (!isJsonArray(entries)) {
-            safe(handlers.onError, new Error('Log batch missing entries'));
+            fail(new LogStreamError('Log batch missing entries', 'stop'));
             return;
         }
         const mode = record['mode'];
@@ -92,25 +114,31 @@ const streamLogs = (options: StreamLogsOptions): { unsubscribe: () => void; clos
     const handleSubscribed = (payload: JsonValue): void => {
         const sourceName = matchesSource(payload);
         if (!sourceName || closed) return;
+        if (acknowledged) return;
+        acknowledged = true;
+        acknowledgementTimer.stop();
         safe(handlers.onOpen);
     };
     const handleClosed = (payload: JsonValue): void => {
         const sourceName = matchesSource(payload);
-        if (!sourceName || closed) return;
+        if (!sourceName || closed || !acknowledged) return;
         safeClose();
     };
     const handleError = (payload: JsonValue): void => {
-        const sourceName = matchesSource(payload);
-        if (!sourceName || closed) return;
-        const record = isPlainObject(payload) ? payload : null;
-        if (!record) {
-            safe(handlers.onError, new Error('Log stream error payload must be an object'));
-            return;
+        if (closed || !isPlainObject(payload)) return;
+        const detail = payload['error'];
+        const details = isPlainObject(detail) && isPlainObject(detail['details']) ? detail['details'] : null;
+        const sourceName = toTrimmedString(details?.['source_name']) || toTrimmedString(payload['source_name']);
+        if (sourceName !== source) return;
+        try {
+            const record = requireRecord(detail, 'Log stream error');
+            const code = readRequiredTrimmedStringValue(record['code'], 'Log stream error.code');
+            const traceId = toTrimmedString(record['trace_id']) || null;
+            const message = readRequiredTrimmedStringValue(payload['message'], 'Log stream error.message');
+            fail(new LogStreamError(message, code === 'service_unavailable' || code === 'server_error' ? 'retry' : 'stop', traceId));
+        } catch (error) {
+            fail(new LogStreamError(ensureError(error).message, 'stop'));
         }
-        const message = toTrimmedString(record['message']);
-        const detail = record['error'];
-        const error = detail != null ? new Error(message || 'Log stream error', { cause: detail }) : new Error(message || 'Log stream error');
-        safe(handlers.onError, error);
     };
     const handleStreamEvent = (eventType: string, payload: JsonValue): void => {
         switch (eventType) {
@@ -141,17 +169,27 @@ const streamLogs = (options: StreamLogsOptions): { unsubscribe: () => void; clos
 
     const historyLimit = typeof options.historyLimit === 'number' && Number.isInteger(options.historyLimit) && options.historyLimit > 0 ? options.historyLimit : undefined;
     const subscribePayload = serializeLogStreamSubscription(WEBSOCKET_MESSAGE_TYPES.SUBSCRIBE_LOG_STREAM, source, historyLimit);
-    ws.sendMessage(subscribePayload).catch((error) => {
-        safe(handlers.onError, error);
-    });
+    void ws
+        .waitForConnection(CONNECTION_WAIT_TIMEOUT_MS, { signal: controller.signal })
+        .then(async () => {
+            if (closed) return;
+            subscriptionEpoch = ws.connectionEpoch;
+            acknowledgementTimer.start();
+            await ws.sendMessage(subscribePayload, { signal: controller.signal, waitForConnection: false });
+        })
+        .catch((error) => {
+            if (!closed) fail(new LogStreamError(ensureError(error).message, 'retry'));
+        });
 
     const unsubscribe = (): void => {
         if (closed) return;
         manualClose = true;
-        ws.sendMessage(serializeLogStreamSubscription(WEBSOCKET_MESSAGE_TYPES.UNSUBSCRIBE_LOG_STREAM, source)).catch((error) => {
-            safe(handlers.onError, error);
-        });
         safeClose();
+        if (subscriptionEpoch !== null && ws.isConnected() && ws.connectionEpoch === subscriptionEpoch) {
+            void ws.sendMessage(serializeLogStreamSubscription(WEBSOCKET_MESSAGE_TYPES.UNSUBSCRIBE_LOG_STREAM, source), { waitForConnection: false }).catch((error) => {
+                errorHandler.debug(moduleName, 'Log stream unsubscribe send failed', ensureError(error));
+            });
+        }
     };
     const detach = (): void => {
         if (closed) return;

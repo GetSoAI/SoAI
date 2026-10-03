@@ -11,6 +11,15 @@ import { applyTextContent } from '@core/dom/textContent.ts';
 import { applyClassList, applyDataset, applyKnownProperty, applyStyleValue, appendNodes } from '@core/dom/adapters/updatePrimitives.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 
+const SCROLL_RESTORE_AXIS_BY_PROPERTY: Readonly<Record<string, 'top' | 'left'>> = { scrollTop: 'top', scrollLeft: 'left' };
+
+const cancelScrollRestoreForProperty = (runtime: DOMUpdateServiceRuntime, element: Element, property: string): void => {
+    const axis = SCROLL_RESTORE_AXIS_BY_PROPERTY[property];
+    if (axis) {
+        runtime.dependencies.cancelScrollRestore(element, axis);
+    }
+};
+
 const applyDOMUpdate = (runtime: DOMUpdateServiceRuntime, element: Element | DocumentFragment, updates: DOMUpdate[]): void => {
     if (isDocumentFragment(element)) {
         for (const update of updates) {
@@ -128,6 +137,8 @@ const applyDOMUpdate = (runtime: DOMUpdateServiceRuntime, element: Element | Doc
                         applyDataset(runtime, element, update.value);
                     } else if (!applyKnownProperty({ element, property: update.property, value: update.value, toString: runtime.dependencies.toString })) {
                         throw new Error(`Unsupported DOM property update: ${update.property}`);
+                    } else {
+                        cancelScrollRestoreForProperty(runtime, element, update.property);
                     }
                     break;
                 case 'properties':
@@ -140,6 +151,7 @@ const applyDOMUpdate = (runtime: DOMUpdateServiceRuntime, element: Element | Doc
                             continue;
                         }
                         if (applyKnownProperty({ element, property, value, toString: runtime.dependencies.toString })) {
+                            cancelScrollRestoreForProperty(runtime, element, property);
                             continue;
                         }
                         if (runtime.dependencies.isNullOrUndefined(value) || value === false) {

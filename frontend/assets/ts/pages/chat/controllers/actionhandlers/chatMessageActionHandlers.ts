@@ -3,9 +3,10 @@
 
 import { isString } from '@core/typeGuards.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { requireNonNegativeIntegerAttribute } from '@core/dom/attributes.ts';
+import { dom } from '@core/dom/dom.ts';
+import { optionalClosestElement, requireTrimmedDataAttribute, requireNonNegativeIntegerAttribute } from '@core/dom/attributes.ts';
 import { parseRequiredJsonObjectText } from '@core/serialization/json.ts';
-import { CHAT_ACTIONS, ChatSoaiFileContentPreview, ChatSoaiPathContentPreview, isSoaiFilePreviewType, normalizeSoaiPathStoragePart, openKnowledgeAttachmentFirstPreview, type ChatActionId } from '@features/chat/public.ts';
+import { CHAT_CONVERSATION_INPUT_MODAL_ID, CHAT_ACTIONS, ChatSoaiFileContentPreview, ChatSoaiPathContentPreview, isSoaiFilePreviewType, normalizeSoaiPathStoragePart, openKnowledgeAttachmentFirstPreview, type ChatActionId } from '@features/chat/public.ts';
 import { handleOpenMultimediaPreviewAction, type ChatMultimediaPreviewActionHost } from '@pages/chat/controllers/actionhandlers/chatMultimediaPreviewActionController.ts';
 import type { SoaiPathOperationRequest } from '@core/api/contracts/webuiChatOperationContracts.ts';
 import type { ChatConfigurationActionPort, ChatConversationActionPort, ChatExecutionActionPort, ChatPresentationActionPort, ChatRagActionPort, ChatSharedActionPort } from '@pages/chat/controllers/actionhandlers/core/contracts.ts';
@@ -131,6 +132,14 @@ const fetchSoaiFilePreviewText = async (host: ChatMessageActionHandlersHost, url
     return response.text();
 };
 
+const resolveAttachmentPreviewOrigin = (host: ChatMessageActionHandlersHost, actionElement: HTMLElement, conversationId: string | null): (() => boolean) => {
+    const modal = optionalClosestElement(actionElement, `#${CHAT_CONVERSATION_INPUT_MODAL_ID}`);
+    if (modal === null) return () => host.conversation.currentId() === conversationId;
+    const originConversationId = requireTrimmedDataAttribute(modal, 'conversation-id', 'Conversation input attachment preview');
+    const signature = dom.getData(actionElement, 'attachmentRenderSignature');
+    return () => originConversationId === conversationId && host.conversation.currentId() === conversationId && actionElement.isConnected && modal.contains(actionElement) && dom.getData(actionElement, 'attachmentRenderSignature') === signature;
+};
+
 const openKnowledgePreview = (host: ChatMessageActionHandlersHost, actionElement: HTMLElement): void => {
     const conversationId = host.conversation.currentId();
     if (!conversationId) {
@@ -140,6 +149,8 @@ const openKnowledgePreview = (host: ChatMessageActionHandlersHost, actionElement
     if (!knowledgeAttachmentId) {
         throw new Error('Chat knowledge preview requires a knowledge attachment id');
     }
+    const isCurrent = resolveAttachmentPreviewOrigin(host, actionElement, conversationId);
+    if (!isCurrent()) return;
     const fallbackTitle = host.presentation.actionData(actionElement, 'knowledgeTitle') ?? i18n.t('chat.ingestion.title');
     host.execution.run('chat:openKnowledgeAttachmentPreview', () =>
         openKnowledgeAttachmentFirstPreview({
@@ -152,7 +163,7 @@ const openKnowledgePreview = (host: ChatMessageActionHandlersHost, actionElement
             copyToClipboard: (text, options) => host.presentation.copyToClipboard(text, options),
             showNotification: (message, type) => host.shared.feedback.show(message, type),
             onKnowledgeAttachmentChanged: (summary) => host.rag.handleKnowledgeChanged(summary),
-            shouldOpen: () => host.conversation.currentId() === conversationId
+            shouldOpen: isCurrent
         })
     );
 };
@@ -166,6 +177,8 @@ const openSoaiFilePreview = (host: ChatMessageActionHandlersHost, preview: ChatS
     if (!previewType || !isSoaiFilePreviewType(previewType) || !previewUrl || !downloadUrl || !title || !conversationId) {
         throw new Error('Chat SoAI file preview requires a complete preview dataset');
     }
+    const isCurrent = resolveAttachmentPreviewOrigin(host, actionElement, conversationId);
+    if (!isCurrent()) return;
     const contentLength = requireNonNegativeIntegerAttribute(actionElement, 'data-soai-file-content-length', 'Chat SoAI file preview');
     preview.open({
         title,
@@ -174,7 +187,7 @@ const openSoaiFilePreview = (host: ChatMessageActionHandlersHost, preview: ChatS
         downloadUrl,
         contentType: host.presentation.actionData(actionElement, 'soaiFileContentType'),
         contentLength,
-        isCurrent: () => host.conversation.currentId() === conversationId
+        isCurrent
     });
 };
 
@@ -183,6 +196,8 @@ const openSoaiPathPreview = (host: ChatMessageActionHandlersHost, preview: ChatS
     if (!conversationId) {
         throw new Error('Chat SoAI path preview requires an active conversation');
     }
+    const isCurrent = resolveAttachmentPreviewOrigin(host, actionElement, conversationId);
+    if (!isCurrent()) return;
     const contentPartText = host.presentation.actionData(actionElement, 'soaiPathContentPart');
     if (!contentPartText) {
         throw new Error('Chat SoAI path preview requires a content part');
@@ -196,7 +211,8 @@ const openSoaiPathPreview = (host: ChatMessageActionHandlersHost, preview: ChatS
         conversationId,
         title,
         contentPart,
-        isCurrent: () => host.conversation.currentId() === conversationId
+        isCurrent: () => host.conversation.currentId() === conversationId,
+        shouldOpen: isCurrent
     });
 };
 
@@ -256,6 +272,8 @@ const createChatMessageActionHandlers = (host: ChatMessageActionHandlersHost): R
             host.execution.run(`chat:openInlineLocalFolder:${String(event.timeStamp)}`, () => host.presentation.openInlineMediaLocalFolder(actionElement));
         },
         [CHAT_ACTIONS.OPEN_MULTIMEDIA_PREVIEW]: (actionElement: HTMLElement): void => {
+            const conversationId = host.conversation.currentId();
+            if (!resolveAttachmentPreviewOrigin(host, actionElement, conversationId)()) return;
             handleOpenMultimediaPreviewAction(multimediaPreviewHost, actionElement);
         },
         [CHAT_ACTIONS.OPEN_KNOWLEDGE_ATTACHMENT_PREVIEW]: (actionElement: HTMLElement): void => openKnowledgePreview(host, actionElement),

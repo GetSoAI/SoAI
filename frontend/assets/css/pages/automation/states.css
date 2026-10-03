@@ -21,7 +21,7 @@
         display: flex;
         flex-direction: column;
         gap: var(--space-3);
-        text-align: left;
+        text-align: start;
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-blocking-title {
@@ -87,9 +87,9 @@
         :where([data-section='automation'], [data-page-scope='automation']) .automation-content-wrapper {
             gap: var(--space-3);
             top: calc(var(--layout-top-offset) + var(--space-3));
-            right: var(--space-3);
+            inset-inline-end: var(--space-3);
             bottom: calc(var(--space-3) + var(--ui-safe-area-inset-bottom));
-            left: var(--space-3);
+            inset-inline-start: var(--space-3);
         }
 
         :where([data-section='automation'], [data-page-scope='automation']) .automation-calendar-period--week {

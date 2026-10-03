@@ -169,6 +169,7 @@ interface ConversationContract {
     messageCount?: number;
     history?: {
         totalCount: number;
+        hasOlder?: boolean;
         hasNewer: boolean;
     };
     effectiveWorkspacePath?: string;

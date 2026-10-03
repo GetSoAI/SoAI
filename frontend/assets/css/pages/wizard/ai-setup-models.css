@@ -1,0 +1,194 @@
+/* SoAI - Wizard AI setup model selection styles [frontend/assets/css/pages/wizard/ai-setup-models.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-model,
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-cloud-model {
+        display: grid;
+        align-content: start;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-model--recommended {
+        gap: 0;
+        overflow: hidden;
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-model--recommended > .wizard-model-card {
+        border: none;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-model--recommended > .wizard-ai-model-details {
+        border: none;
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: 0;
+        background: transparent;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-stack {
+        display: grid;
+        align-content: start;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-contents {
+        display: contents;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-stack:has(> .wizard-ai-contents:only-child:empty) {
+        display: none;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) :is(.wizard-model-card, .wizard-ai-engine-card) {
+        min-height: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        margin-top: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-role-badge--recommended {
+        --status-badge-color: var(--status-green);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-role-badge--faster {
+        --status-badge-color: var(--accent-blue);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-role-badge--smallest {
+        --status-badge-color: var(--accent-purple);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .variant-check-badge--caution {
+        --status-badge-color: var(--accent-yellow);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .variant-check-badge--violet {
+        --status-badge-color: var(--accent-purple);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-model-details > summary {
+        padding: var(--space-3) var(--space-5);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-details-list {
+        grid-template-columns: max-content minmax(0, 1fr);
+        column-gap: var(--space-4);
+        row-gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-details-list > div {
+        display: contents;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-details-list :is(dt, dd) {
+        margin: 0;
+        font-size: var(--font-size-body-sm);
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-details-list dt {
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-details-list a {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        min-height: var(--space-6);
+        color: var(--accent-green);
+        font-weight: 600;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-open-chat {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-height: var(--control-height);
+        padding-inline-start: var(--space-5);
+        color: var(--text-secondary);
+        font-size: var(--font-size-body-sm);
+        cursor: pointer;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-open-chat input {
+        accent-color: var(--accent-green);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-scroll {
+        max-height: 420px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-scroll:empty {
+        display: none;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-cloud-list {
+        display: grid;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-cloud-choice {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        cursor: pointer;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-cloud-choice input {
+        position: absolute;
+        opacity: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-search-form {
+        display: grid;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-search-row {
+        display: flex;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-search-row > .searchbar-container {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-empty {
+        padding: var(--space-4);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-empty--limited .ui-empty-state__actions {
+        justify-content: flex-end;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-empty--back .ui-empty-state__actions {
+        justify-content: flex-start;
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-details-list a {
+            min-height: 44px;
+        }
+
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-details-list {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-search-row {
+            flex-direction: column;
+        }
+    }
+}

@@ -12,6 +12,7 @@ export type CommonModalDescriptionsTranslationKey =
     | 'common.modalDescriptions.chatMcpDefaultTools'
     | 'common.modalDescriptions.chatMemoryProfile'
     | 'common.modalDescriptions.chatPromptsPicker'
+    | 'common.modalDescriptions.conversationInput'
     | 'common.modalDescriptions.credits'
     | 'common.modalDescriptions.exportPreview'
     | 'common.modalDescriptions.fileExplorerMetadata'

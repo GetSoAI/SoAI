@@ -16,6 +16,7 @@ from core.files.workspace_descriptor import (
     open_workspace_directory_fd,
     open_workspace_parent_descriptor_stack,
 )
+from core.filesystem.path_coercion import normalize_filesystem_path
 
 __all__ = ("WorkspaceDirectoryEntry", "list_workspace_directory")
 
@@ -99,7 +100,9 @@ def _read_directory_entries(directory_descriptor: int) -> list[WorkspaceDirector
 
 def _read_directory_path_entries(directory_path: str) -> list[WorkspaceDirectoryEntry]:
     entries: list[WorkspaceDirectoryEntry] = []
-    for entry in sorted(os.scandir(directory_path), key=lambda candidate: candidate.name):
+    for entry in sorted(
+        os.scandir(normalize_filesystem_path(directory_path)), key=lambda candidate: candidate.name
+    ):
         stat_result = entry.stat(follow_symlinks=False)
         if is_disallowed_workspace_link(stat_result):
             continue

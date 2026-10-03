@@ -20,7 +20,11 @@ from core.automation.automation_run_task_lifecycle import (
 from core.automation.automation_tool_blocklist import (
     load_automation_disallowed_unqualified_tools,
 )
-from core.errors.exceptions import ConflictError, ValidationError
+from core.errors.exceptions import (
+    AutomationRevisionConflictError,
+    ConflictError,
+    ValidationError,
+)
 from core.state.access import AccessAction
 from core.timing.epoch import epoch_ms
 from core.workspaces.model_settings_workspace_path import (
@@ -33,11 +37,20 @@ from core.workspaces.user_workspace_path import (
 from features.api.routes.automations.query_validation import (
     require_automation_list_pagination,
 )
+from features.api.routes.automations.revision_preconditions import (
+    build_automation_etag_headers,
+    read_automation_expected_revision,
+)
 from features.api.runtime.access_dependencies import require_action_dependencies
 from features.api.runtime.container.api_routers import ApiRouters
 from features.api.runtime.context import ApiContext, resolve_api_context
 from features.api.runtime.current_user import CurrentUser, get_current_user
-from features.api.runtime.errors import raise_conflict, raise_invalid_request, raise_not_found
+from features.api.runtime.errors import (
+    raise_conflict,
+    raise_invalid_request,
+    raise_not_found,
+    raise_precondition_failed,
+)
 from features.api.runtime.request_payloads import (
     read_required_json_dict_payload_or_raise,
 )
@@ -71,7 +84,6 @@ async def _validate_automation_payload_model(
     try:
         await validate_automation_payload_model_reference(
             payload,
-            now_ms=epoch_ms(),
             disallowed_unqualified_tools=load_automation_disallowed_unqualified_tools(
                 api_context.dependencies.config,
             ),
@@ -144,7 +156,11 @@ async def create_automation(
         current_user["id"],
         normalized_payload,
     )
-    return JSONResponse(status_code=201, content=created)
+    return JSONResponse(
+        status_code=201,
+        content=created,
+        headers=build_automation_etag_headers(created),
+    )
 
 
 async def get_automation(
@@ -161,7 +177,7 @@ async def get_automation(
         ),
         message="Automation not found.",
     )
-    return JSONResponse(content=record)
+    return JSONResponse(content=record, headers=build_automation_etag_headers(record))
 
 
 async def update_automation(
@@ -170,6 +186,7 @@ async def update_automation(
     current_user: CurrentUser = Depends(get_current_user),
     api_context: ApiContext = Depends(resolve_api_context),
 ) -> JSONResponse:
+    expected_revision = read_automation_expected_revision(request)
     patch_payload = await read_required_json_dict_payload_or_raise(
         request,
         invalid_message="Request body must be a JSON object.",
@@ -200,19 +217,31 @@ async def update_automation(
             normalized_patch_payload,
         )
         await _validate_automation_payload_model(request, api_context, validation_payload)
-    result = await update_automation_definition(
-        api_context.dependencies.database_automations,
-        api_context.dependencies.task_registry,
-        automation_id=automation_id,
-        user_id=current_user["id"],
-        payload=normalized_patch_payload,
-        event_bus=api_context.dependencies.event_bus,
-        database_chat_identity_defaults=(api_context.dependencies.database_chat_identity_defaults),
-        database_chat_model_defaults=api_context.dependencies.database_chat_model_defaults,
-    )
+    try:
+        result = await update_automation_definition(
+            api_context.dependencies.database_automations,
+            automation_id=automation_id,
+            user_id=current_user["id"],
+            payload=normalized_patch_payload,
+            expected_revision=expected_revision,
+            database_chat_identity_defaults=(
+                api_context.dependencies.database_chat_identity_defaults
+            ),
+            database_chat_model_defaults=api_context.dependencies.database_chat_model_defaults,
+        )
+    except AutomationRevisionConflictError as exception:
+        raise_precondition_failed(
+            request,
+            str(exception),
+            error_type=str(exception.code),
+            extra=exception.details,
+        )
     if not isinstance(result.automation, dict):
         raise_not_found(request, "Automation not found.")
-    return JSONResponse(content=result.automation)
+    return JSONResponse(
+        content=result.automation,
+        headers=build_automation_etag_headers(result.automation),
+    )
 
 
 async def delete_automation(

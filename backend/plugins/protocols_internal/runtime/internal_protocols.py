@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "FetchLatestSoAIReleaseAsyncProtocol",
+    "FetchSoAIReleaseHistoryAsyncProtocol",
     "PluginDownloadManagerProtocol",
     "PluginManagerRuntimeProtocol",
     "RemoteSearchPluginProtocol",
@@ -69,6 +70,19 @@ class FetchLatestSoAIReleaseAsyncProtocol(Protocol):
         logger: LoggerProtocol | None = None,
         github_token: str | None = None,
     ) -> tuple[bool, JSONDict | None, str]: ...
+
+
+class FetchSoAIReleaseHistoryAsyncProtocol(Protocol):
+    async def __call__(
+        self,
+        http_client: httpx2.AsyncClient,
+        *,
+        timeout: float,
+        current_version: str,
+        latest_release: JSONDict,
+        logger: LoggerProtocol,
+        github_token: str | None = None,
+    ) -> tuple[list[JSONDict], bool]: ...
 
 
 class PluginWorkerControllerProtocol(Protocol):

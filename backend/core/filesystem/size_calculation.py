@@ -8,6 +8,7 @@ import os
 
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.logging.trace import get_logger
 
 __all__ = ("get_path_size",)
@@ -52,4 +53,4 @@ async def get_path_size(path: str) -> int | None:
             size = None
         return size
 
-    return await asyncio.to_thread(_get_size_sync, path)
+    return await asyncio.to_thread(_get_size_sync, normalize_filesystem_path(os.path.abspath(path)))

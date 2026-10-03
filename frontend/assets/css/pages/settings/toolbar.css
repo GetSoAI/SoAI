@@ -59,7 +59,7 @@
     :where([data-section='settings'], [data-page-scope='settings']) .no-wallpaper-message {
         color: var(--text-tertiary);
         font-size: var(--font-size-xs);
-        font-style: italic;
+        font-style: var(--font-style-emphasis);
     }
 
     :where([data-section='settings'], [data-page-scope='settings']) :is(.action-title, .settings-slider-value) {
@@ -137,6 +137,93 @@
         font-size: var(--font-size-sm);
         color: var(--text-secondary);
         word-break: break-word;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-builtin-carousel {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-builtin-state > .setting-info {
+        flex: 0 1 auto;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-builtin-state > .setting-control {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-builtin-options {
+        display: flex;
+        gap: var(--space-2);
+        flex: 0 1 auto;
+        min-width: 0;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: thin;
+        scrollbar-color: color-mix(in srgb, var(--glass-border-strong) 60%, transparent) transparent;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-builtin-nav {
+        flex-shrink: 0;
+        opacity: 0;
+        pointer-events: none;
+        visibility: hidden;
+        transition:
+            opacity var(--transition-fast),
+            visibility 0s var(--ease-linear) var(--duration-150);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-builtin-nav.is-active {
+        opacity: 1;
+        pointer-events: auto;
+        visibility: visible;
+        transition:
+            opacity var(--transition-fast),
+            visibility 0s;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-builtin-option {
+        flex: 0 0 auto;
+        height: var(--control-height);
+        aspect-ratio: 1;
+        padding: 0;
+        overflow: hidden;
+        background: var(--glass-surface-light);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        scroll-snap-align: start;
+        transition:
+            border-color var(--transition-fast),
+            outline-color var(--transition-fast);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-builtin-option > img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-builtin-option:not([data-default-wallpaper-id]) {
+        display: grid;
+        place-items: center;
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-builtin-option:is([aria-pressed='true'], :focus-visible) {
+        border-color: var(--control-focus-ring-color);
+        outline: var(--control-focus-ring-width) solid var(--control-focus-ring-color);
+        outline-offset: calc(var(--control-focus-ring-width) * -1);
+    }
+
+    :where([data-section='settings'], [data-page-scope='settings']) .wallpaper-builtin-option:not([data-default-wallpaper-id])[aria-pressed='true']:not(:focus-visible) {
+        border-color: var(--text-secondary);
+        outline-color: var(--text-secondary);
     }
 
     :where([data-section='settings'], [data-page-scope='settings']) .solid-background-controls {

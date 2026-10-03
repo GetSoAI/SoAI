@@ -48,4 +48,5 @@ class PreparedHistoryRequest:
     requested_points: int
     aggregation: str
     logging_interval_ms: int
+    retention_hours: int
     resolution: HistoryRequestResolution

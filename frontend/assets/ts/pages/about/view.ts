@@ -14,7 +14,7 @@ interface ExternalLinkConfig {
 
 const EXTERNAL_LINK_BASE_CONFIG: Readonly<Omit<ExternalLinkConfig, 'dataset'>> = Object.freeze({
     className: 'ui-button external-link-confirmation',
-    attributes: Object.freeze({ type: 'button' })
+    attributes: Object.freeze({ type: 'button', dir: 'auto' })
 });
 
 const buildExternalLinkAttributes = (href: string, linkType: 'about-website' | 'about-documentation'): string => {

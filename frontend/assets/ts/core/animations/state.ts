@@ -5,7 +5,7 @@ import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { dom } from '@core/dom/dom.ts';
 import { dispatchCustomEvent, getCancelAnimationFrame, getRequestAnimationFrame } from '@core/environment/public.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
-import { HYSTERESIS_BUFFER, MARGIN_SAFETY, PAGE_HEADER_STATE_CHANGED_EVENT, SCROLL_THRESHOLD } from '@core/animations/constants.ts';
+import { HYSTERESIS_BUFFER, MARGIN_SAFETY, PAGE_HEADER_STATE_CHANGED_EVENT, PAGE_HEADER_STICKY_OFFSET_PROPERTY, SCROLL_THRESHOLD } from '@core/animations/constants.ts';
 import { type HeaderState } from '@core/animations/types.ts';
 
 class HeaderAnimator {
@@ -21,6 +21,7 @@ class HeaderAnimator {
     resources: ResourceTracker;
     handleScroll: () => void;
     #handleScrollImpl: () => void;
+    #stickyOffset: number | null = null;
 
     constructor(scrollContainer: HTMLElement, resizeObserver: ResizeObserver | null, autoHideEnabled: boolean = true) {
         this.container = scrollContainer;
@@ -49,6 +50,7 @@ class HeaderAnimator {
                     this.lastScroll = scrollTop;
                     this.#removeStateClasses();
                     this.state = null;
+                    this.#syncStickyOffset();
                     this.#emitStateChanged(false);
                     this.rafId = null;
                     return;
@@ -86,6 +88,7 @@ class HeaderAnimator {
         } else {
             this.#removeStateClasses();
             this.state = null;
+            this.#syncStickyOffset();
         }
         this.lastScroll = this.container.scrollTop || 0;
         return true;
@@ -109,6 +112,7 @@ class HeaderAnimator {
 
         this.headerHeight = rect.height;
         dom.setStyle(this.header, '--header-measured-height', `${rect.height + marginBottom + MARGIN_SAFETY}px`);
+        this.#syncStickyOffset();
 
         if (this.container.scrollTop < this.headerHeight) {
             this.applyState('EXTENDED', true);
@@ -124,6 +128,7 @@ class HeaderAnimator {
             this.lastScroll = this.container?.scrollTop || 0;
             this.#removeStateClasses();
             this.state = null;
+            this.#syncStickyOffset();
             this.#emitStateChanged(false);
             return;
         }
@@ -155,6 +160,7 @@ class HeaderAnimator {
         classList.remove('page-header-panel--extended', 'page-header-panel--folded');
         classList.add(`page-header-panel--${newState.toLowerCase()}`);
         this.state = newState;
+        this.#syncStickyOffset();
         this.#emitStateChanged(newState === 'FOLDED');
 
         if (!noTransition) return;
@@ -165,6 +171,15 @@ class HeaderAnimator {
                 classList.remove('page-header-panel--no-transition');
             });
         });
+    }
+
+    #syncStickyOffset(): void {
+        if (!this.container || !this.header) return;
+        const headerCoversContent = this.header.classList.contains('is-floating') && this.state !== 'FOLDED';
+        const stickyOffset = headerCoversContent ? this.headerHeight : 0;
+        if (stickyOffset === this.#stickyOffset) return;
+        this.#stickyOffset = stickyOffset;
+        dom.setStyle(this.container, PAGE_HEADER_STICKY_OFFSET_PROPERTY, `${stickyOffset}px`);
     }
 
     #removeStateClasses(): void {
@@ -198,6 +213,10 @@ class HeaderAnimator {
             dom.setStyle(this.header, '--header-measured-height', null);
             dom.setStyle(this.header, 'transform', null);
         }
+        if (this.container) {
+            dom.setStyle(this.container, PAGE_HEADER_STICKY_OFFSET_PROPERTY, null);
+        }
+        this.#stickyOffset = null;
 
         this.container = null;
         this.header = null;

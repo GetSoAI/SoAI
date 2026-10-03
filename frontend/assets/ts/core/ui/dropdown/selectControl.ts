@@ -9,6 +9,7 @@ import { uiAttr, uiAttributes, uiText, type UiAttributeValue } from '@core/secur
 interface DropdownSelectControlOptions {
     selectMarkup: string;
     shellClassName?: string;
+    prefixMarkup?: string;
 }
 
 interface RepeatableDropdownSelectOption {
@@ -28,9 +29,9 @@ interface RepeatableDropdownSelectControlOptions {
 
 const REPEATABLE_SELECT_SENTINEL = '';
 
-const renderDropdownSelectControl = ({ selectMarkup, shellClassName }: DropdownSelectControlOptions): string => {
+const renderDropdownSelectControl = ({ selectMarkup, shellClassName, prefixMarkup }: DropdownSelectControlOptions): string => {
     const shellClass = shellClassName ? `dropdown-select ${shellClassName}` : 'dropdown-select';
-    return `<span class="${shellClass}">${selectMarkup}</span>`;
+    return `<span class="${shellClass}">${prefixMarkup ?? ''}${selectMarkup}</span>`;
 };
 
 const renderStandardDropdownSelectControl = (selectMarkup: string): string => {

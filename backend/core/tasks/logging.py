@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 
+from core.concurrency.cancellation import TaskCancelledError
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import SoAIError
@@ -20,19 +21,31 @@ __all__ = ("log_task_exception",)
 OPERATION = "task_helper.log_task_exception"
 
 
+def _unhandled_exception_kind(exception: BaseException) -> str:
+    return "grouped exception" if isinstance(exception, ExceptionGroup) else "exception"
+
+
 def log_task_exception[TaskResult](task: asyncio.Task[TaskResult], logger: LoggerProtocol) -> None:
+    exception: BaseException | None
     try:
-        task.result()
+        exception = task.exception()
     except asyncio.CancelledError:
         logger.debug("Background task '%s' was cancelled.", task.get_name())
-    except RECOVERABLE_EXCEPTIONS as exception:
+        return
+    except asyncio.InvalidStateError as state_error:
+        exception = state_error
+    if exception is None:
+        return
+    if isinstance(exception, TaskCancelledError):
+        logger.debug("Background task '%s' was cancelled.", task.get_name())
+    elif isinstance(exception, RECOVERABLE_EXCEPTIONS):
         log_exception(
             logger,
             exception,
             message=f"Unhandled exception in background task '{task.get_name()}'",
             operation=OPERATION,
         )
-    except SoAIError as exception:
+    elif isinstance(exception, SoAIError):
         log_handled_exception(
             logger,
             exception,
@@ -40,27 +53,27 @@ def log_task_exception[TaskResult](task: asyncio.Task[TaskResult], logger: Logge
             operation=OPERATION,
             level="warning",
         )
-    except UNEXPECTED_RUNTIME_EXCEPTIONS as exception:
-        coerced = coerce_to_soai_error(exception, operation=OPERATION)
+    elif isinstance(exception, UNEXPECTED_RUNTIME_EXCEPTIONS):
         log_exception(
             logger,
-            coerced,
+            coerce_to_soai_error(exception, operation=OPERATION),
             message=f"Unexpected exception in background task '{task.get_name()}'",
             operation=OPERATION,
         )
-    except HANDLED_RUNTIME_EXCEPTIONS as exception:
-        coerced = coerce_to_soai_error(exception, operation=OPERATION)
+    elif isinstance(exception, HANDLED_RUNTIME_EXCEPTIONS):
         log_exception(
             logger,
-            coerced,
+            coerce_to_soai_error(exception, operation=OPERATION),
             message=f"Unclassified exception in background task '{task.get_name()}'",
             operation=OPERATION,
         )
-    except ExceptionGroup as exception:
-        coerced = coerce_to_soai_error(exception, operation=OPERATION)
+    elif isinstance(exception, Exception):
+        exception_kind = _unhandled_exception_kind(exception)
         log_exception(
             logger,
-            coerced,
-            message=f"Unhandled grouped exception in background task '{task.get_name()}'",
+            coerce_to_soai_error(exception, operation=OPERATION),
+            message=f"Unhandled {exception_kind} in background task '{task.get_name()}'",
             operation=OPERATION,
         )
+    else:
+        raise exception

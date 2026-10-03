@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
-import { MODELS_ACTION_MANAGE_VIRTUAL_MODELS } from '@core/models/pageActions.ts';
 import { resolveTabFromQuery } from '@core/queryTabs.ts';
 import { IN_PLACE_SEARCH_DEBOUNCE_MS } from '@core/search/searchDebounce.ts';
-import { isFunction, isString } from '@core/typeGuards.ts';
+import { isFunction } from '@core/typeGuards.ts';
 import type { ModelDetailSession } from '@pages/modeldetail/state/ModelDetailSession.ts';
 import type { PageLayoutOwnerHost } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
@@ -24,11 +23,6 @@ interface ModelDetailSetupDependencies extends PageLayoutOwnerHost, PageResource
 interface ModelDetailLoadDependencies {
     loadModelDetails: () => Promise<void>;
     testModalManager: { openTestModal: () => void };
-}
-
-interface ModelDetailSwitchToParametersDependencies extends PageLayoutOwnerHost {
-    isVirtualModel: () => boolean;
-    router: { navigateWithQuery?: (page: string, query: Record<string, string>) => void } | null;
 }
 
 interface ModelDetailDestroyDependencies {
@@ -71,25 +65,6 @@ const loadModelDetailDataAndPendingAction = async (session: ModelDetailSession, 
     host.testModalManager.openTestModal();
 };
 
-const handleModelDetailSwitchToParametersAction = (session: ModelDetailSession, host: ModelDetailSwitchToParametersDependencies): void => {
-    if (host.isVirtualModel()) {
-        if (!host.router?.navigateWithQuery) {
-            throw new Error('ModelDetailPage requires router.navigateWithQuery for virtual model navigation');
-        }
-        const virtualModelCandidate = session.model?.name ?? session.model?.id;
-        if (!isString(virtualModelCandidate) || !virtualModelCandidate.trim()) {
-            throw new Error('ModelDetailPage virtual model navigation requires a model name or id');
-        }
-        host.router.navigateWithQuery('models', { action: MODELS_ACTION_MANAGE_VIRTUAL_MODELS, vm: virtualModelCandidate });
-        return;
-    }
-    const tabsComponent = host.layout.getTabs();
-    if (!tabsComponent) {
-        throw new Error('ModelDetailPage requires tabs component for parameter switching');
-    }
-    tabsComponent.setActiveTab('parameters');
-};
-
 const cleanupModelDetailPage = (session: ModelDetailSession, host: ModelDetailDestroyDependencies): void => {
     session.listeners?.abort();
     session.listeners = null;
@@ -130,5 +105,5 @@ const ensureModelDetailUi = <UiValue>(session: { ui: UiValue | null }, pageDom: 
     return session.ui;
 };
 
-export { cleanupModelDetailPage, ensureModelDetailUi, handleModelDetailSwitchToParametersAction, loadModelDetailDataAndPendingAction, setupModelDetailPage };
-export type { ModelDetailDestroyDependencies, ModelDetailLoadDependencies, ModelDetailSetupDependencies, ModelDetailSwitchToParametersDependencies };
+export { cleanupModelDetailPage, ensureModelDetailUi, loadModelDetailDataAndPendingAction, setupModelDetailPage };
+export type { ModelDetailDestroyDependencies, ModelDetailLoadDependencies, ModelDetailSetupDependencies };

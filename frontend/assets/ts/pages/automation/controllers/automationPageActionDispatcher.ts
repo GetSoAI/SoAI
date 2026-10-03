@@ -3,6 +3,8 @@
 
 import {
     AUTOMATION_ACTION_ADD_TURN,
+    AUTOMATION_ACTION_CONFLICT_KEEP_CHANGES,
+    AUTOMATION_ACTION_CONFLICT_LOAD_LATEST,
     AUTOMATION_ACTION_CYCLE_VIEW,
     AUTOMATION_ACTION_DELETE_AUTOMATION,
     AUTOMATION_ACTION_EDIT_AUTOMATION,
@@ -18,12 +20,15 @@ import {
     AUTOMATION_ACTION_OPEN_CHAT_TRANSCRIPT,
     AUTOMATION_ACTION_OPEN_CREATE_MODAL,
     AUTOMATION_ACTION_OPEN_FOLDER_MODAL,
+    AUTOMATION_ACTION_OPEN_OCCURRENCE_DETAILS,
     AUTOMATION_ACTION_OPEN_PARAMETERS_MODAL,
     AUTOMATION_ACTION_REGISTRY_NEXT,
     AUTOMATION_ACTION_REGISTRY_PREVIOUS,
     AUTOMATION_ACTION_PREVIEW_AUTOMATION,
     AUTOMATION_ACTION_REMOVE_TURN,
     AUTOMATION_ACTION_RESET_PREFERENCES,
+    AUTOMATION_ACTION_RETRY_EDITOR_PREREQUISITES,
+    AUTOMATION_ACTION_RETRY_PAGE_DATA,
     AUTOMATION_ACTION_SAVE_AUTOMATION,
     AUTOMATION_ACTION_SAVE_CALENDAR_SETTINGS,
     AUTOMATION_ACTION_SELECT_DAY,
@@ -40,11 +45,11 @@ import {
     type AutomationActionId
 } from '@features/automation/public.ts';
 import type { AutomationPageActionDispatcherHost } from '@pages/automation/controllers/actiondispatch/AutomationPageActionDispatcherHost.ts';
-import { handleAddTurn, handleEnterEditMode, handleOpenCalendarSettings, handleOpenCreate, handleOpenParametersModal, handleOpenWorkspaceModal, handleRemoveTurn, handleSaveAutomation, handleSaveCalendarSettings } from '@pages/automation/controllers/actiondispatch/modalActions.ts';
-import { handleCycleViewMode, handleNavigate, handleNavigateRegistryPage, handleNavigateToday, handleSelectDay, handleSetViewMode, handleToggleRegistryOverlay } from '@pages/automation/controllers/actiondispatch/navigationActions.ts';
+import { handleAddTurn, handleEnterEditMode, handleKeepConflictChanges, handleLoadLatestAfterConflict, handleOpenCalendarSettings, handleOpenCreate, handleOpenParametersModal, handleOpenWorkspaceModal, handleRemoveTurn, handleRetryEditorPrerequisites, handleSaveAutomation, handleSaveCalendarSettings } from '@pages/automation/controllers/actiondispatch/modalActions.ts';
+import { handleCycleViewMode, handleNavigate, handleNavigateRegistryPage, handleNavigateToday, handleRetryPageData, handleSelectDay, handleSetViewMode, handleToggleRegistryOverlay } from '@pages/automation/controllers/actiondispatch/navigationActions.ts';
 import { handleResetPreferences } from '@pages/automation/controllers/actiondispatch/preferencesActions.ts';
 import { handleOpenChatTranscript } from '@pages/automation/controllers/actiondispatch/transcriptActions.ts';
-import { handleSelectZone } from '@pages/automation/controllers/actiondispatch/zoneActions.ts';
+import { handleOpenOccurrenceDetails, handleSelectZone } from '@pages/automation/controllers/actiondispatch/zoneActions.ts';
 import { handleDeleteAutomation, handleEditAutomation, handlePreviewAutomation, handleToggleAutomationEnabled } from '@pages/automation/controllers/automationCrudActions.ts';
 import { requireAutomationId } from '@pages/automation/controllers/automationManagementActions.ts';
 
@@ -86,6 +91,12 @@ const dispatchAutomationPageAction = (host: AutomationPageActionDispatcherHost, 
             return;
         case AUTOMATION_ACTION_SELECT_ZONE:
             handleSelectZone(host, element.dataset['zoneKey'] ?? null);
+            return;
+        case AUTOMATION_ACTION_OPEN_OCCURRENCE_DETAILS:
+            handleOpenOccurrenceDetails(host, requireZoneKey(element, 'Open occurrence details'));
+            return;
+        case AUTOMATION_ACTION_RETRY_PAGE_DATA:
+            handleRetryPageData(host);
             return;
         case AUTOMATION_ACTION_TIME_GRID_CREATE_AT:
             return;
@@ -141,6 +152,15 @@ const dispatchAutomationPageAction = (host: AutomationPageActionDispatcherHost, 
             return;
         case AUTOMATION_ACTION_SAVE_AUTOMATION:
             handleSaveAutomation(host);
+            return;
+        case AUTOMATION_ACTION_RETRY_EDITOR_PREREQUISITES:
+            handleRetryEditorPrerequisites(host);
+            return;
+        case AUTOMATION_ACTION_CONFLICT_KEEP_CHANGES:
+            handleKeepConflictChanges(host);
+            return;
+        case AUTOMATION_ACTION_CONFLICT_LOAD_LATEST:
+            handleLoadLatestAfterConflict(host);
             return;
         case AUTOMATION_ACTION_SAVE_CALENDAR_SETTINGS:
             handleSaveCalendarSettings(host);

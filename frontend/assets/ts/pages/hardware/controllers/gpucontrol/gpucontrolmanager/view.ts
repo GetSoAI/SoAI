@@ -1,7 +1,7 @@
 /* SoAI - Hardware page GPU control manager rendering [frontend/assets/ts/pages/hardware/controllers/gpucontrol/gpucontrolmanager/view.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { dom, domCache } from '@core/dom/dom.ts';
+import { dom } from '@core/dom/dom.ts';
 import { replaceChildrenFromHtml } from '@core/dom/html.ts';
 import { securityApi } from '@core/security/public.ts';
 import { isArray } from '@core/typeGuards.ts';
@@ -194,7 +194,6 @@ export const renderGpuControls = (context: GpuControlManagerViewContext, { only 
         }
     });
 
-    domCache.invalidate('gpu-');
     restoreGpuControlsState(context, previousState, new Set(targets));
     hydratePreviewStates(context, targets);
     refreshedTargets.forEach((index) => context.refreshApplyState(index));
@@ -246,6 +245,7 @@ export const renderGpuControlPanelMarkup = (context: GpuControlManagerRenderPane
         {
             security: context.renderer.security,
             getIconSync: context.renderer.getIconSync,
+            soaibenchActivity: context.renderer.soaibenchActivity,
             capabilitiesByIndex: context.renderer.capabilitiesByIndex,
             telemetryByDeviceId: context.renderer.telemetryByDeviceId,
             soaibenchRuns: context.renderer.soaibenchRuns,
@@ -260,6 +260,7 @@ const toRendererContext = (context: GpuControlManagerViewContext): GpuControlMan
     return {
         security: context.security,
         getIconSync: context.dependencies.getIconSync,
+        soaibenchActivity: context.dependencies.soaibenchActivity,
         capabilitiesByIndex: context.capabilitiesByIndex,
         telemetryByDeviceId: context.telemetryByDeviceId,
         soaibenchRuns: context.soaibenchRuns,

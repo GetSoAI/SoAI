@@ -22,8 +22,10 @@
         --status-led-size: 8px;
         --status-led-size-sm: 7px;
         --status-led-margin: 6px;
-        --alternating-grey-light: color-mix(in srgb, rgb(242 242 242) 59%, var(--glass-underlay-surface));
-        --alternating-grey-dark: color-mix(in srgb, rgb(198 198 198) 81%, var(--glass-underlay-surface));
+        --alternating-grey-light-base: color-mix(in srgb, rgb(242 242 242) 59%, var(--glass-underlay-surface));
+        --alternating-grey-dark-base: color-mix(in srgb, rgb(198 198 198) 81%, var(--glass-underlay-surface));
+        --alternating-grey-light: var(--alternating-grey-light-base);
+        --alternating-grey-dark: var(--alternating-grey-dark-base);
         --status-green-hover: color-mix(in srgb, var(--status-green) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
         --status-yellow-hover: color-mix(in srgb, var(--status-yellow) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));
         --status-orange-hover: color-mix(in srgb, var(--status-orange) var(--hover-layer-strong-base), var(--hover-layer-mix-base) var(--hover-layer-strong));

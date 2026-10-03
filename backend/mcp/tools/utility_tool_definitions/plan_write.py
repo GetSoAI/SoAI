@@ -18,7 +18,7 @@ def build_plan_write_tool_definitions() -> dict[str, JSONDict]:
     return {
         "plan_write": {
             "title": "Plan Write",
-            "description": "Write the canonical long plan (markdown).",
+            "description": "Write the plan the user reviews and approves before execution (markdown). Each call replaces the whole plan. In plan mode, deliver the final plan here.",
             "icons": [build_tool_icon_entry(ICON_PLAN)],
             "input_schema": {
                 "type": "object",

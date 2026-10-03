@@ -14,6 +14,8 @@ interface FolderPickerModalOptions {
     initialVirtualPath?: string;
     initialAbsolutePathToBrowse?: string;
     allowManualPathEntry?: boolean;
+    browseOnly?: boolean;
+    signal?: AbortSignal | undefined;
 }
 
 export type { FolderPickerModalOptions, FolderPickerResult };

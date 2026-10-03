@@ -17,8 +17,9 @@ const buildChatContainerAndSidebarMarkup = (context: ChatPageMarkupContext): str
         toolbarExitSelect: strings.toolbarExitSelect
     });
     return `
-        <div class="chat-sidebar glass-surface-strong">
+        <div class="chat-sidebar glass-surface-strong" data-presence-suspended inert>
         <div class="chat-sidebar-header">
+        <button type="button" class="chat-sidebar-toggle-btn chat-sidebar-header-toggle-btn ui-icon-button u-hidden" data-action="chat:toggle-sidebar" ${renderLabelAttributes(strings.toggleSidebar)}></button>
         <button type="button" class="new-conversation-btn ui-icon-button" data-action="chat:new-conversation" ${renderLabelAttributes(strings.newConversation)}></button>
         <div class="model-selector page-header-filter-select" data-chat-model-control="true" data-scope="sidebar" ${renderLabelAttributes(strings.selectModel)}></div>
         </div>

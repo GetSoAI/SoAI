@@ -31,7 +31,7 @@ const configureModelParameterNavigation = (modal: HTMLElement, detailUniversalId
     if (!(unavailable instanceof HTMLElement)) throw new Error('Model parameter navigation status is missing');
     const normalized = toTrimmedString(detailUniversalId);
     setControlDisabledState(button, !normalized);
-    unavailable.hidden = Boolean(normalized);
+    unavailable.classList.toggle('u-hidden', Boolean(normalized));
     return normalized || null;
 };
 

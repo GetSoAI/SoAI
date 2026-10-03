@@ -8,7 +8,7 @@
 
     :where([data-section='models'], [data-page-scope='models']) .model-card > .ui-collection-card__action-bar > .ui-round-button:not(.ui-round-button--inline) {
         position: absolute;
-        right: 7px;
+        inset-inline-end: 7px;
     }
 
     :where([data-section='models'], [data-page-scope='models']) .model-card > .ui-collection-card__action-bar > .ui-round-button:not(.ui-round-button--inline):first-child {
@@ -41,34 +41,6 @@
         flex-shrink: 0;
         width: 12px;
         height: 12px;
-    }
-
-    :where([data-section='models'], [data-page-scope='models']) .manual-discovery-text {
-        font-size: var(--font-size-body-xs);
-        color: var(--text-secondary);
-        line-height: 1.4;
-    }
-
-    :where([data-section='models'], [data-page-scope='models']) .manual-discovery-text p {
-        margin: 0 0 var(--space-3);
-    }
-
-    :where([data-section='models'], [data-page-scope='models']) .manual-path-row {
-        margin-top: var(--space-3);
-    }
-
-    :where([data-section='models'], [data-page-scope='models']) .manual-models-path {
-        color: var(--text-tertiary);
-        background: var(--glass-surface-medium);
-        -webkit-backdrop-filter: var(--glass-blur-base);
-        backdrop-filter: var(--glass-blur-base);
-        border-color: var(--glass-border-strong);
-        box-shadow: var(--surface-card-shadow);
-        pointer-events: none;
-    }
-
-    :where([data-section='models'], [data-page-scope='models']) .manual-models-path:hover {
-        border-color: var(--glass-border-strong);
     }
 
     :where([data-section='models'], [data-page-scope='models']).download-model-modal .modal-body {
@@ -218,7 +190,7 @@
     :where([data-section='models'], [data-page-scope='models']) .variant-check-entry-quant {
         font-size: var(--font-size-xs);
         color: var(--text-secondary);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-04px);
     }
 

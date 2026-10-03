@@ -7,7 +7,8 @@ const STREAMED_PREVIEW_ATTRIBUTE_NAMES = Object.freeze({
     root: 'data-streamed-preview',
     status: 'data-streamed-preview-status',
     visible: 'data-streamed-preview-visible',
-    latest: 'data-streamed-preview-latest'
+    latest: 'data-streamed-preview-latest',
+    revealAt: 'data-streamed-preview-reveal-at-ms'
 });
 
 const THINKING_SENTENCE_TERMINATORS = new Set(['.', '!', '?', '…', '。', '！', '？']);

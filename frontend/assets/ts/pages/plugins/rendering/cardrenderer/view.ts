@@ -54,15 +54,15 @@ function renderCardContent(dependencies: RenderCardContentDependencies): string 
         <div class="ui-collection-card__title-bar plugin-title-bar">
         <div class="ui-collection-card__title plugin-title" data-full-title="${safeName}">
         ${pluginLogo ? `<img src="${sanitize(pluginLogo)}" data-plugin-logo-fallback="${sanitize(pluginLogoFallback)}" alt="${safeName}" class="plugin-logo-small" />` : ''}
-        <span class="ui-collection-card__title-text plugin-title-text" data-tooltip="${safeName}">${sanitize(host.presentation.formatPluginName(plugin.name) || unknownLabel)}</span>
+        <span dir="auto" class="ui-collection-card__title-text plugin-title-text" data-tooltip="${safeName}">${sanitize(host.presentation.formatPluginName(plugin.name) || unknownLabel)}</span>
         ${newBadge}
         </div>
         </div>
         </div>
-        <p class="${descriptionClass}" ${descriptionAttributes}>${sanitize(truncDesc)}</p>
+        <p dir="auto" class="${descriptionClass}" ${descriptionAttributes}>${sanitize(truncDesc)}</p>
         <div class="ui-collection-card__content plugin-card-content">
         <div class="plugin-info ui-collection-card__info">
-        <div class="plugin-author ui-collection-card__identifier">
+        <div dir="auto" class="plugin-author ui-collection-card__identifier">
             <span class="plugin-author-label">${i18n.t('plugins.labels.authorPrefix')}</span>
             <span class="plugin-author-value">${sanitize(plugin.authorSoaiplugin || unknownLabel)}</span>
         </div>
@@ -89,27 +89,27 @@ function renderCardContent(dependencies: RenderCardContentDependencies): string 
                 <div class="ui-metric-item">
                 <button type="button" class="ui-metric-badge ui-metric-badge--primary" data-action="${PLUGINS_ACTION_METRIC_BADGE}" data-metric-key="version" ${renderLabelAttributes(versionLabel)}>
                 <span class="ui-metric-label">${versionLabel}</span>
-                <span class="ui-metric-value">${sanitize(plugin.versionSoaiplugin || i18n.t('common.notAvailableShort'))}</span>
+                <span dir="auto" class="ui-metric-value">${sanitize(plugin.versionSoaiplugin || i18n.t('common.notAvailableShort'))}</span>
                 </button>
                 </div>
                 ${renderSecondBadge(plugin, statusAttrValue, host)}
                 <div class="ui-metric-item">
                 <button type="button" class="ui-metric-badge ui-metric-badge--tertiary" data-action="${PLUGINS_ACTION_METRIC_BADGE}" data-metric-key="models" ${renderLabelAttributes(modelsLabel)}>
                 <span class="ui-metric-label">${modelsLabel}</span>
-                <span class="ui-metric-value">${plugin.stats?.modelCount || 0}</span>
+                <span dir="auto" class="ui-metric-value">${plugin.stats?.modelCount || 0}</span>
                 </button>
                 </div>
                 <div class="ui-metric-item">
                 <div class="ui-metric-badge ui-metric-badge--quaternary">
                 <span class="ui-metric-label">${i18n.t('plugins.badges.type')}</span>
-                <span class="ui-metric-value">${pluginTypeLabel}</span>
+                <span dir="auto" class="ui-metric-value">${pluginTypeLabel}</span>
                 </div>
                 </div>
                 </div>
                 <div class="ui-collection-card__status-grid plugin-metrics-status">
                 <div class="ui-metric-item">
                 <div class="ui-metric-badge ui-metric-badge--status-full ${metricStatusBadgeClass}" ${statusAttrValue}>
-                <span class="ui-metric-value">${sanitize(permanentlyDisabled ? i18n.t('plugins.status.incompatible') : quarantined ? i18n.t('plugins.status.quarantined') : (data.statusLabel ?? ''))}</span>
+                <span dir="auto" class="ui-metric-value">${sanitize(permanentlyDisabled ? i18n.t('plugins.status.incompatible') : quarantined ? i18n.t('plugins.status.quarantined') : (data.statusLabel ?? ''))}</span>
                 ${renderInstallButton(plugin, host, { backendNotInstalled: constants.statuses.backendNotInstalled })}
                 ${renderDownloadModelButton(plugin, host, {
                     backendNotInstalled: constants.statuses.backendNotInstalled,

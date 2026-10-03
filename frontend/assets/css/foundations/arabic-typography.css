@@ -1,0 +1,48 @@
+/* SoAI - Arabic and Persian script typography [frontend/assets/css/foundations/arabic-typography.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root:lang(ar),
+    :root:lang(fa) {
+        --text-case-label: none;
+        --font-style-emphasis: normal;
+        --tracking-neg-1px: 0;
+        --tracking-neg-05px: 0;
+        --tracking-neg-032px: 0;
+        --tracking-neg-016px: 0;
+        --tracking-tight: 0;
+        --tracking-snug: 0;
+        --tracking-0: 0;
+        --tracking-01em: 0;
+        --tracking-02em: 0;
+        --tracking-025em: 0;
+        --tracking-03em: 0;
+        --tracking-04em: 0;
+        --tracking-05em: 0;
+        --tracking-08em: 0;
+        --tracking-015px: 0;
+        --tracking-03px: 0;
+        --tracking-035px: 0;
+        --tracking-04px: 0;
+        --tracking-045px: 0;
+        --tracking-05px: 0;
+        --tracking-055px: 0;
+        --tracking-1px: 0;
+        --line-height-body-compact: 1.5;
+        --line-height-compact: 1.4;
+        --line-height-badge: 1.4;
+        --line-height-badge-micro: 1.35;
+        --font-size-compact-sm: var(--font-size-070);
+        --font-size-compact: var(--font-size-075);
+        --font-size-compact-plus: var(--font-size-075);
+        --font-size-caption: var(--font-size-080);
+        --font-size-caption-plus: var(--font-size-080);
+        --font-size-caption-wide: var(--font-size-081);
+        --font-size-xs: var(--font-size-081);
+    }
+
+    :root:lang(ar) body,
+    :root:lang(fa) body {
+        line-height: 1.6;
+    }
+}

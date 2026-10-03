@@ -3,6 +3,7 @@
 
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { MAX_CHAT_COMPOSER_TEXT_LENGTH } from '@core/chat/protocols.ts';
+import { unicodeCodePointLength } from '@core/primitives/text.ts';
 import { readRequiredStringArrayValue } from '@core/types/payloadArrayReaders.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
 
@@ -16,7 +17,7 @@ const decodeChatPromptHistoryResponse = (value: ApiResponsePayload): ChatPromptH
     if (prompts.length > 100) throw new TypeError('Chat prompt history response.prompts exceeds 100 entries.');
     prompts.forEach((prompt) => {
         if (!prompt.trim()) throw new TypeError('Chat prompt history response.prompts must contain non-empty strings.');
-        if (prompt.length > MAX_CHAT_COMPOSER_TEXT_LENGTH) throw new TypeError('Chat prompt history response.prompts contains an oversized prompt.');
+        if (unicodeCodePointLength(prompt) > MAX_CHAT_COMPOSER_TEXT_LENGTH) throw new TypeError('Chat prompt history response.prompts contains an oversized prompt.');
     });
     return { prompts };
 };

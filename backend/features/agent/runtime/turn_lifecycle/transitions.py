@@ -5,10 +5,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from core.agent.status_values import AGENT_TURN_STATUS_RUNNING
 from core.agent.turn_record_fields import TurnStateHeader
 from core.agent.turn_scope_values import TURN_SCOPE_ROOT
-from core.agent.turn_state_requests import build_turn_state_request
+from core.agent.turn_state_requests import build_running_turn_start_request
 from core.database.requests import ClaimAgentTurnStateRequest
 from core.errors.exceptions import ConflictError, ValidationError
 from core.timing.epoch import epoch_ms
@@ -68,30 +67,18 @@ async def start_new_turn_state(
         initial_active_inference_cancellation_id=initial_active_inference_cancellation_id,
     )
     now = epoch_ms()
-    turn_state = build_turn_state_request(
+    turn_state = build_running_turn_start_request(
         conv_id=normalized_conv_id,
         user_id=normalized_user_id,
         turn_id=normalized_turn_id,
         header=header,
         execution_token=create_turn_execution_token(),
-        status=AGENT_TURN_STATUS_RUNNING,
         mode=normalized_mode,
         max_iterations=normalized_max_iterations,
-        iteration_index=0,
-        sequence=0,
         turn_cancellation_id=normalized_turn_cancellation_id,
         active_inference_cancellation_id=normalized_active_inference_cancellation_id,
-        assistant_text=None,
-        tool_calls=[],
-        tool_results=[],
-        activities=[],
-        reached_max_iterations=False,
-        error_message=None,
-        error_type=None,
         todo_state=todo_state,
         started_at_ms=now,
-        updated_at_ms=now,
-        finished_at_ms=None,
     )
     try:
         return await database_agent_turns.claim_turn_state(

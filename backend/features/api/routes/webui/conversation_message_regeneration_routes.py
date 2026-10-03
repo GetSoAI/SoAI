@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Request
 from starlette.responses import JSONResponse, Response
 
 from core.conversations.settings_authority import resolve_conversation_settings_authority
@@ -37,7 +37,6 @@ from features.api.runtime.current_user import CurrentUser, get_current_user
 from features.api.runtime.errors import (
     raise_conflict,
     raise_invalid_request,
-    raise_not_found,
 )
 from features.api.runtime.model_openai_capability_validation import (
     require_openai_capability_for_model,
@@ -274,42 +273,9 @@ async def regenerate_conversation_message(
     )
 
 
-async def get_conversation_regeneration_status(
-    request: Request,
-    conv_id: str,
-    client_id: str | None = Query(default=None, min_length=1, max_length=128),
-    client_request_id: str | None = Query(default=None, min_length=1, max_length=128),
-    current_user: CurrentUser = Depends(get_current_user),
-    api_context: ApiContext = Depends(resolve_api_context),
-) -> Response:
-    if (client_id is None) != (client_request_id is None):
-        raise_invalid_request(
-            request,
-            "Regeneration status requires both client_id and client_request_id.",
-        )
-    conversation_context = await require_conversation_access_context(
-        request,
-        api_context=api_context,
-        conv_id=conv_id,
-        user_id=current_user["id"],
-    )
-    attempt = await api_context.dependencies.database_regenerations.get_attempt(
-        conv_id=conversation_context.resolved_conv_id,
-        user_id=current_user["id"],
-        client_id=client_id,
-        client_request_id=client_request_id,
-    )
-    if attempt is None:
-        raise_not_found(request, "Conversation regeneration attempt was not found.")
-    return JSONResponse(content=serialize_conversation_regeneration_attempt(attempt))
-
-
 def register_endpoints(router: APIRouter) -> None:
     router.post("/conversations/{conv_id}/messages/regenerate", status_code=201)(
         regenerate_conversation_message,
-    )
-    router.get("/conversations/{conv_id}/messages/regenerate/status")(
-        get_conversation_regeneration_status,
     )
 
 

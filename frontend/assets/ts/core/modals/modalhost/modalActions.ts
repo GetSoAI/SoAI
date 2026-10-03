@@ -9,15 +9,14 @@ import { applyPosition, enforceBoundaries } from '@core/modals/modalhost/effects
 import { syncFullscreenButton } from '@core/modals/modalhost/eventsFullscreen.ts';
 import { advanceModalLayoutGeneration, isModalLayoutCurrent } from '@core/modals/modalhost/layoutGeneration.ts';
 import { resolveCenteredPosition, sanitizeSavedModalState } from '@core/modals/modalhost/layoutPolicy.ts';
-import { applySizeConstraints, resetSizeStyles } from '@core/modals/modalhost/sizePolicy.ts';
-import { ensureResizeHandles, setupModalTabsScroll } from '@core/modals/modalhost/layout.ts';
+import { applySizeConstraints, lockModalContentHeight, resetSizeStyles } from '@core/modals/modalhost/sizePolicy.ts';
+import { ensureResizeHandles } from '@core/modals/modalhost/layout.ts';
 import { notifyModalClosed, notifyModalOpened } from '@core/modals/modalhost/pageLock.ts';
 import type { ModalHostState } from '@core/modals/modalhost/contracts.ts';
 import { normalizeModalId } from '@core/modals/guards.ts';
 import type { ModalBeforeCloseDetail, ModalCloseOptions, ModalOpenOptions, ModalRegisterOptions, ModalUserCloseReason } from '@core/modals/types.ts';
 import { isFunction, isString } from '@core/typeGuards.ts';
-import { synchronizeModalStackAccessibility } from '@core/modals/modalhost/focusIsolation.ts';
-import { synchronizeModalFrame } from '@core/modals/modalhost/geometry.ts';
+import { isAvailableFocusTarget, synchronizeModalStackAccessibility } from '@core/modals/modalhost/focusIsolation.ts';
 
 const getModalElement = (id: string): Element | null => {
     const modalId = id ? id.trim() : '';
@@ -48,7 +47,8 @@ const focusNode = (element: Element | null | undefined): void => {
 };
 
 const restoreModalFocus = (state: ModalHostState, id: string): void => {
-    focusNode(state.focusMemory.get(id));
+    const target = state.focusMemory.get(id);
+    if (target instanceof HTMLElement && target.isConnected && isAvailableFocusTarget(target)) focusNode(target);
     state.focusMemory.delete(id);
 };
 
@@ -110,7 +110,6 @@ const openModal = (state: ModalHostState, id: string, options: ModalOpenOptions 
     } else {
         state.layoutOverrides.delete(modalId);
     }
-    setupModalTabsScroll(state, modal);
     raiseModalRoot(modal);
     if (modal instanceof HTMLElement) {
         syncFullscreenButton(state, modalId, modal);
@@ -130,22 +129,26 @@ const openModal = (state: ModalHostState, id: string, options: ModalOpenOptions 
     rememberFocus(state, modalId);
     const layoutGeneration = advanceModalLayoutGeneration(state);
     const content = requireModalContent(modal);
-    synchronizeModalFrame(modal, state.isMobileViewportState);
     prepareModalLayoutState(modal);
 
     try {
         const savedState = sanitizeSavedModalState(state.storage.getModalState(modalId));
-        const sizeResult = applySizeConstraints({
+        let sizeResult = applySizeConstraints({
             content,
             config,
             isMobileViewport: state.isMobileViewportState,
             savedState,
-            layoutOverride: options.layoutOverride
+            layoutOverride: options.layoutOverride,
+            desktopOpenHeight: state.desktopOpenHeights.get(modalId)
         });
+        if (sizeResult && !state.isMobileViewportState) {
+            const locked = lockModalContentHeight(content, sizeResult);
+            state.desktopOpenHeights.set(modalId, locked.desktopOpenHeight);
+            sizeResult = locked.sizeResult;
+        }
         const sizeOverride = sizeResult ? { width: sizeResult.width, height: sizeResult.height } : null;
         const centeredPosition = resolveCenteredPosition({
             content,
-            isMobileViewport: state.isMobileViewportState,
             sizeOverride
         });
         applyPosition(content, centeredPosition);
@@ -159,7 +162,6 @@ const openModal = (state: ModalHostState, id: string, options: ModalOpenOptions 
 
         enforceBoundaries({
             content,
-            isMobileViewport: state.isMobileViewportState,
             sizeOverride
         });
 
@@ -173,12 +175,13 @@ const openModal = (state: ModalHostState, id: string, options: ModalOpenOptions 
             const rect = measureLayoutBox(content);
             enforceBoundaries({
                 content,
-                isMobileViewport: state.isMobileViewportState,
                 sizeOverride: rect.width > 0 ? { width: rect.width, height: rect.height } : null
             });
         });
     } catch (error) {
         if (!wasOpen) {
+            state.desktopOpenHeights.delete(modalId);
+            resetSizeStyles(content);
             setModalOpenState(modal, false);
         }
         throw error;
@@ -241,9 +244,16 @@ const closeModal = (state: ModalHostState, id: string, options: ModalCloseOption
     }
     state.fullscreenState.delete(modalId);
     state.layoutOverrides.delete(modalId);
+    state.desktopOpenHeights.delete(modalId);
     setModalOpenState(modal, false);
     state.activeStack = state.activeStack.filter((value) => value !== modalId);
     synchronizeModalStackAccessibility(state);
+    const replacement = options.replacementFocusTarget;
+    if (replacement?.isConnected) {
+        for (const [savedModalId, target] of state.focusMemory) {
+            if (modal.contains(target)) state.focusMemory.set(savedModalId, replacement);
+        }
+    }
     modal.dispatchEvent(new Event('core.modal.close', { bubbles: true }));
 
     notifyModalClosed(state);

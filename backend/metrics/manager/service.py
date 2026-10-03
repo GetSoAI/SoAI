@@ -29,6 +29,8 @@ from metrics.manager.lifecycle import drain_background_queue, finalize_shutdown
 from metrics.manager.operations import MetricsQueueFullThrottle
 from metrics.manager.periodic_tasks import schedule_metrics_periodic_tasks
 from metrics.manager.public_operations import MetricsManagerOperations
+from metrics.manager.query import snapshot_metrics_with_token_rates
+from metrics.manager.reset import serialize_with_metrics_reset
 from metrics.manager.state_cleanup import (
     cleanup_metrics_state,
     prune_deleted_plugin_metrics,
@@ -58,6 +60,7 @@ class MetricsManager(MetricsManagerOperations, Shutdownable):
         self.database_plugins = deps.database_plugins
         self.event_bus = deps.event_bus
         self.lock = asyncio.Lock()
+        self.reset_lock = asyncio.Lock()
         self.lifecycle = deps.lifecycle
         self._shutdown_event = self.lifecycle.shutdown_event
         self.cancellation_binder = self.lifecycle.cancellation_binder
@@ -166,20 +169,35 @@ class MetricsManager(MetricsManagerOperations, Shutdownable):
                 database_plugins=self.database_plugins,
                 logger=logger,
             ),
-            flatten_and_flush_metrics=self._flatten_and_flush_metrics,
-            flush_genesis_deltas=self._flush_genesis_deltas,
-            log_historical_metrics=lambda: log_historical_metrics_if_enabled(
-                history_enabled=self.history_enabled,
-                snapshot_metrics=self._snapshot_metrics,
-                history_config=self.history_config,
-                database_metrics=self.database_metrics,
+            flatten_and_flush_metrics=serialize_with_metrics_reset(
+                self.reset_lock,
+                self._flatten_and_flush_metrics,
+            ),
+            flush_genesis_deltas=serialize_with_metrics_reset(
+                self.reset_lock,
+                self._flush_genesis_deltas,
+            ),
+            log_historical_metrics=serialize_with_metrics_reset(
+                self.reset_lock,
+                lambda: log_historical_metrics_if_enabled(
+                    history_enabled=self.history_enabled,
+                    snapshot_metrics=lambda: snapshot_metrics_with_token_rates(
+                        self._snapshot_metrics,
+                        self.token_rate_calculator,
+                    ),
+                    history_config=self.history_config,
+                    database_metrics=self.database_metrics,
+                ),
             ),
             prune_historical_metrics=lambda: prune_historical_metrics_if_enabled(
                 history_enabled=self.history_enabled,
                 history_config=self.history_config,
                 database_metrics=self.database_metrics,
             ),
-            broadcast_metrics=self._broadcast_metrics,
+            broadcast_metrics=serialize_with_metrics_reset(
+                self.reset_lock,
+                self._broadcast_metrics,
+            ),
             shutdown_event=self._shutdown_event,
             cancellation_binder=self.cancellation_binder,
             finalizer_tracker=self.lifecycle.finalizer_tracker,
@@ -195,9 +213,10 @@ class MetricsManager(MetricsManagerOperations, Shutdownable):
         if self._shutdown_event.is_set():
             return
         logger.debug("MetricsManager shutdown initiated.")
-        self.accepting_operations = False
-        await drain_background_queue(self.background_queue, self.background_worker_task)
-        self._shutdown_event.set()
+        async with self.reset_lock:
+            self.accepting_operations = False
+            await drain_background_queue(self.background_queue, self.background_worker_task)
+            self._shutdown_event.set()
         await finalize_shutdown(
             self._periodic_tasks,
             self._session_start_time_monotonic_ms,

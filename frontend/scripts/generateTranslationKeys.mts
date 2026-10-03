@@ -10,6 +10,8 @@ import { buildGeneratedTranslationHeader, resolveGeneratedTranslationLicense } f
 const MAX_KEYS_PER_GROUP = 240;
 const MAX_GROUP_TYPES_PER_NAMESPACE_AGGREGATOR = 60;
 
+const toRepositoryPath = (value: string): string => value.split(path.sep).join('/');
+
 const formatTypeUnion = (typeName: string, members: string[]): string => {
     if (!members.length) {
         return `export type ${typeName} = never;\n`;
@@ -236,7 +238,7 @@ const generate = async (): Promise<void> => {
             const filePath = path.join(namespaceDir, fileName);
 
             const keyGroupIdentity = [namespace, ...group.groupSegments].join('.');
-            const banner = buildGeneratedTranslationHeader(path.relative(soaiRoot, generatedOutputPath(filePath)), generatedLicense, privateOutput, `Translation declarations for key group \`${keyGroupIdentity}\``);
+            const banner = buildGeneratedTranslationHeader(toRepositoryPath(path.relative(soaiRoot, generatedOutputPath(filePath))), generatedLicense, privateOutput, `Translation declarations for key group \`${keyGroupIdentity}\``);
             const body = formatUnionType(groupTypeName, group.keys);
             const formatted = await formatTs(`${banner}\n\n${body}`, filePath);
             await fs.writeFile(filePath, formatted, 'utf8');
@@ -269,7 +271,7 @@ const generate = async (): Promise<void> => {
             }
 
             const sectionLabel = String(chunkIndex).padStart(2, '0');
-            const sectionBanner = buildGeneratedTranslationHeader(path.relative(soaiRoot, generatedOutputPath(sectionFilePath)), generatedLicense, privateOutput, `Translation declarations for \`${namespace}\` namespace section ${sectionLabel}`);
+            const sectionBanner = buildGeneratedTranslationHeader(toRepositoryPath(path.relative(soaiRoot, generatedOutputPath(sectionFilePath))), generatedLicense, privateOutput, `Translation declarations for \`${namespace}\` namespace section ${sectionLabel}`);
             const sectionUnion = formatTypeUnion(sectionTypeName, chunkTypeNames);
             const sectionFormatted = await formatTs(`${sectionBanner}\n${sectionImportLines.length ? `\n${sectionImportLines.join('\n')}\n` : '\n'}\n${sectionUnion}`, sectionFilePath);
             await fs.writeFile(sectionFilePath, sectionFormatted, 'utf8');
@@ -289,7 +291,7 @@ const generate = async (): Promise<void> => {
             }
         }
 
-        const banner = buildGeneratedTranslationHeader(path.relative(soaiRoot, generatedOutputPath(namespaceAggregatorPath)), generatedLicense, privateOutput, `Translation declarations for the \`${namespace}\` namespace`);
+        const banner = buildGeneratedTranslationHeader(toRepositoryPath(path.relative(soaiRoot, generatedOutputPath(namespaceAggregatorPath))), generatedLicense, privateOutput, `Translation declarations for the \`${namespace}\` namespace`);
         const union = formatTypeUnion(namespaceTypeName, sectionTypeNames);
         const formatted = await formatTs(`${banner}\n${importLines.length ? `\n${importLines.join('\n')}\n` : '\n'}\n${union}`, namespaceAggregatorPath);
         await fs.writeFile(namespaceAggregatorPath, formatted, 'utf8');
@@ -301,7 +303,7 @@ const generate = async (): Promise<void> => {
         namespaceTypeNames.map((entry) => entry.typeName)
     );
     const rootPlural = formatUnionType('PluralBaseKey', pluralBaseKeys);
-    const rootBanner = buildGeneratedTranslationHeader(path.relative(soaiRoot, rootOutputPath), generatedLicense, privateOutput, 'Translation root declaration catalog');
+    const rootBanner = buildGeneratedTranslationHeader(toRepositoryPath(path.relative(soaiRoot, rootOutputPath)), generatedLicense, privateOutput, 'Translation root declaration catalog');
     const baseContractTypes = privateOutput ? '' : '\nexport type BaseTranslationKey = TranslationKey;\nexport type BasePluralBaseKey = PluralBaseKey;\n';
 
     const rootFormatted = await formatTs(`${rootBanner}\n\n${rootImports.join('\n')}\n\n${rootUnion}\n${rootPlural}${baseContractTypes}`, tmpRootOutputPath);

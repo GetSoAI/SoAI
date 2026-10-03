@@ -1,6 +1,7 @@
 /* SoAI - Shared layout navigation [frontend/assets/ts/core/layout/sidebar/navigation.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isPresenceAnimating } from '@core/animations/presence/public.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
@@ -8,7 +9,7 @@ import { measureViewportBox } from '@core/layout/elementGeometry.ts';
 import type { NavigationEventDetail } from '@core/navigationEvents.ts';
 import type { Router } from '@core/routing/router/Router.ts';
 import { isString } from '@core/typeGuards.ts';
-import { resolveHTMLElement, SIDEBAR_LINK_SELECTOR } from '@core/layout/sidebar/dom.ts';
+import { resolveHTMLElement, SIDEBAR_ACTIVE_LINK_SELECTOR, SIDEBAR_LINK_SELECTOR } from '@core/layout/sidebar/dom.ts';
 
 const SIDEBAR_ACTIVE_RAIL_CLASS = 'sidebar-active-rail';
 const SIDEBAR_RAIL_MOTION_SLIDE = 'slide';
@@ -57,8 +58,31 @@ const updateSidebarActiveRail = (menu: HTMLElement | null, link: HTMLElement | n
     });
 };
 
+const sidebarRailFrames = new WeakMap<HTMLElement, number>();
+
+const followSidebarActiveRail = (menu: HTMLElement): void => {
+    const view = menu.ownerDocument.defaultView;
+    if (!view) {
+        return;
+    }
+    const pending = sidebarRailFrames.get(menu);
+    if (pending !== undefined) view.cancelAnimationFrame(pending);
+    const step = (): void => {
+        sidebarRailFrames.delete(menu);
+        const rail = resolveHTMLElement(`.${SIDEBAR_ACTIVE_RAIL_CLASS}`, menu);
+        if (!menu.isConnected || rail?.dataset['visible'] !== SIDEBAR_RAIL_VISIBLE) {
+            return;
+        }
+        updateSidebarActiveRail(menu, resolveHTMLElement(SIDEBAR_ACTIVE_LINK_SELECTOR, menu), null);
+        if (Array.from(menu.children).some(isPresenceAnimating)) {
+            sidebarRailFrames.set(menu, view.requestAnimationFrame(step));
+        }
+    };
+    sidebarRailFrames.set(menu, view.requestAnimationFrame(step));
+};
+
 const setSidebarActiveLink = (menu: HTMLElement | null, link: HTMLElement | null): void => {
-    const previousLink = menu ? resolveHTMLElement(`${SIDEBAR_LINK_SELECTOR}[data-active='true']`, menu) : null;
+    const previousLink = menu ? resolveHTMLElement(SIDEBAR_ACTIVE_LINK_SELECTOR, menu) : null;
     const existingRail = menu ? resolveHTMLElement(`.${SIDEBAR_ACTIVE_RAIL_CLASS}`, menu) : null;
     if (previousLink === link && existingRail?.dataset['visible'] === SIDEBAR_RAIL_VISIBLE) {
         return;
@@ -162,4 +186,4 @@ const resolveComponentFromNavigationDetail = (detail: NavigationEventDetail | nu
     return isString(componentValue) ? componentValue : null;
 };
 
-export { addSidebarNotificationBadge, highlightSidebarItem, navigateSidebarTo, resolveComponentFromNavigationDetail, resolveRouteFromNavigationDetail, setSidebarActiveByPage, setSidebarActiveLink, syncSidebarWithCurrentRoute };
+export { addSidebarNotificationBadge, followSidebarActiveRail, highlightSidebarItem, navigateSidebarTo, resolveComponentFromNavigationDetail, resolveRouteFromNavigationDetail, setSidebarActiveByPage, setSidebarActiveLink, syncSidebarWithCurrentRoute };

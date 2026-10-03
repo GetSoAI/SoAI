@@ -51,6 +51,7 @@ interface PageCollectionBehavior extends BasePageCollectionsFilterSortContract {
     getItemSearchFields?: ((item: ResourceItem) => (string | undefined)[]) | undefined;
     applyCustomFilters?: ((item: ResourceItem, context: { filterProvider: string; filterStatus: string }) => boolean) | undefined;
     getSortValue?: ((item: ResourceItem, field: string) => string | number | null) | undefined;
+    isPriorityItem?: ((item: ResourceItem) => boolean) | undefined;
     renderItems?: (() => void) | undefined;
     updateStats?: (() => void) | undefined;
     updateFilters?: (() => void) | undefined;

@@ -56,14 +56,14 @@ def register_routes(routers: ApiRouters) -> None:
         api_context: ApiContext = Depends(resolve_api_context),
     ) -> Response:
         log_audit_event(request, "RESET_METRICS", "all")
-        await api_context.dependencies.metrics_manager.reset_metrics()
+        outcome = await api_context.dependencies.metrics_manager.reset_metrics()
         return JSONResponse(
             status_code=202,
             content={
                 "message": (
-                    "In-memory metrics and live persistence reset. Historical time-series "
-                    "data preserved."
+                    "In-memory metrics, live persistence, and stored metrics history were reset."
                 ),
+                **outcome.to_response_fields(),
             },
         )
 
@@ -75,6 +75,7 @@ def register_routes(routers: ApiRouters) -> None:
         points: int,
         interval_ms: int | None,
         aggregation: Literal["avg", "min", "max", "count", "delta", "ohlc", "delta_ohlc"],
+        include_availability: bool,
     ) -> JSONDict:
         metrics_mgr = api_context.dependencies.metrics_manager
         params: JSONDict = {
@@ -85,7 +86,12 @@ def register_routes(routers: ApiRouters) -> None:
             "aggregation": aggregation,
         }
         history_request = build_history_query(params, metrics_mgr.history_config)
-        return await load_metrics_history_payload(metrics_mgr, metric_key, history_request)
+        return await load_metrics_history_payload(
+            metrics_mgr,
+            metric_key,
+            history_request,
+            include_availability=include_availability,
+        )
 
     @routers.metrics.get(
         "/history",
@@ -102,6 +108,7 @@ def register_routes(routers: ApiRouters) -> None:
         aggregation: Literal["avg", "min", "max", "count", "delta", "ohlc", "delta_ohlc"] = Query(
             "avg",
         ),
+        include_availability: bool = Query(False),
     ) -> Response:
         require_supported_query_parameters(request, allowed_keys=METRICS_QUERY_ALLOWED_KEYS)
         payload = await _get_metrics_history_initial_state(
@@ -112,5 +119,6 @@ def register_routes(routers: ApiRouters) -> None:
             points,
             interval_ms,
             aggregation,
+            include_availability,
         )
         return JSONResponse(content=payload)

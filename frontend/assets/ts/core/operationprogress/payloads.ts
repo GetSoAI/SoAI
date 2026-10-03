@@ -15,6 +15,7 @@ interface OperationProgressUpdatePayload {
     progressValue: number | undefined;
     stateValue: OperationProgressState | undefined;
     cancelableValue: boolean | undefined;
+    indeterminateValue: boolean | undefined;
 }
 
 const DEFAULT_OPERATION_PROGRESS_CANCEL_SELECTOR = 'button[data-operation-progress-action="cancel"]';
@@ -144,7 +145,8 @@ const readOperationProgressUpdatePayload = (data: OperationProgressData): Operat
         detailsValue: readOptionalStringField(data['details'], 'details'),
         progressValue: readOptionalProgress(data['progress']),
         stateValue: readOptionalState(data['state']),
-        cancelableValue: readOptionalBooleanField(data['cancelable'], 'cancelable')
+        cancelableValue: readOptionalBooleanField(data['cancelable'], 'cancelable'),
+        indeterminateValue: readOptionalBooleanField(data['indeterminate'], 'indeterminate')
     };
 };
 

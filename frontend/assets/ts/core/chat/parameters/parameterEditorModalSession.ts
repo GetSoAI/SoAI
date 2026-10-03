@@ -35,9 +35,11 @@ type OpenChatParameterEditorModalOptions = {
     modalId: string;
     initialState: ChatParameterEditorState;
     includeSystemPromptLock: boolean;
+    readOnly: boolean;
     canApply: () => boolean;
     resolveModelDetailId: () => string | null;
     supportedReasoningLevels: readonly ReasoningEffortLevel[] | null;
+    signal?: AbortSignal | undefined;
 };
 
 const isOpenModelSettingsAction = (value: string | undefined): value is typeof CHAT_PARAMETER_ACTION_OPEN_MODEL_SETTINGS => value === CHAT_PARAMETER_ACTION_OPEN_MODEL_SETTINGS;
@@ -163,12 +165,30 @@ const readEditorState = (modal: HTMLElement, state: ChatParameterEditorState, ba
     return reasoningEffortControl.syncValidity(state.parameters.reasoningEffort) && valid;
 };
 
+const lockEditorControls = (modal: HTMLElement, saveButton: HTMLButtonElement): (() => void) => {
+    const lockedControls: ParameterControl[] = [];
+    for (const element of dom.resolveAll('[data-param], [data-setting]', modal)) {
+        if ((element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement) && !element.disabled) {
+            element.disabled = true;
+            lockedControls.push(element);
+        }
+    }
+    saveButton.classList.add('u-hidden');
+    return (): void => {
+        for (const control of lockedControls) {
+            control.disabled = false;
+        }
+        saveButton.classList.remove('u-hidden');
+    };
+};
+
 const openChatParameterEditorModal = async (options: OpenChatParameterEditorModalOptions): Promise<ChatParameterEditorState | null> => {
     const draft = cloneChatParameterEditorState(options.initialState);
     const baseline = cloneChatParameterEditorState(options.initialState);
     return await runModalSession<ChatParameterEditorState | null>({
         presenter: options.presenter,
         modalId: options.modalId,
+        signal: options.signal,
         onAlreadyOpen: 'replace',
         initialResult: null,
         initialize: ({ modal, signal, setResult, close }) => {
@@ -178,6 +198,7 @@ const openChatParameterEditorModal = async (options: OpenChatParameterEditorModa
             reasoningEffortControl.syncValidity(draft.parameters.reasoningEffort);
             syncCompletionTokenMaximum(modal, options.modalId, draft);
             const saveButton = requireSaveButton(modal, options.modalId);
+            const unlockEditorControls = options.readOnly ? lockEditorControls(modal, saveButton) : null;
             const changeSurfaces = createFormChangeSurfaceTracker(modal);
             changeSurfaces.captureBaseline();
             let completed = false;
@@ -190,7 +211,7 @@ const openChatParameterEditorModal = async (options: OpenChatParameterEditorModa
                     {
                         id: 'chat-parameters',
                         hasChanges: () => changeSurfaces.hasChanges(),
-                        isValid: () => options.canApply() && readEditorState(modal, draft, baseline, reasoningEffortControl),
+                        isValid: () => !options.readOnly && options.canApply() && readEditorState(modal, draft, baseline, reasoningEffortControl),
                         save: (): void => {
                             savedState = cloneChatParameterEditorState(draft);
                         }
@@ -246,6 +267,7 @@ const openChatParameterEditorModal = async (options: OpenChatParameterEditorModa
                     detachDirtyGuard();
                     changeSurfaces.clear();
                     save.dispose();
+                    unlockEditorControls?.();
                 }
             };
         }

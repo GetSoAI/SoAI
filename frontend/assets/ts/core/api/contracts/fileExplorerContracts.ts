@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { BufferedApiResponse } from '@core/api/bufferedResponse.ts';
+import { decodeFileExplorerEntry } from '@core/api/contracts/fileExplorerEntryContract.ts';
 import { decodeFileExplorerListingAcceptedResponse, decodeFileExplorerListingLocateResponse, decodeFileExplorerListingPageResponse, decodeFileExplorerListingReleasedResponse } from '@core/api/contracts/fileExplorerListingContracts.ts';
 import type { FileExplorerBatchItemResponse, FileExplorerBatchMetadataItemResponse, FileExplorerBatchMetadataResponse, FileExplorerBatchResponse, FileExplorerBatchUploadItemResponse, FileExplorerBatchUploadResponse, FileExplorerEntryResponse, FileExplorerListResponse, FileExplorerMetadataResponse, FileExplorerMoveMutationResponse, FileExplorerPathMutationResponse, FileExplorerReadResponse, FileExplorerSearchEntryResponse, FileExplorerSearchResponse, FileExplorerTaskAcceptedResponse, FileExplorerUploadResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
-import { isFileEntryTypeId } from '@core/fileexplorerbrowser/entryTypeMappings.ts';
 import { readNullableNonNegativeIntegerValue, readRequiredNonNegativeIntegerValue } from '@core/types/payloadNumberReaders.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
-import { readNullableTrimmedStringValue, readRequiredBooleanValue, readRequiredTrimmedString } from '@core/types/payloadValueReaders.ts';
+import { readNullableTrimmedStringValue, readRequiredBooleanValue, readRequiredPresentStringValue, readRequiredTrimmedString } from '@core/types/payloadValueReaders.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import { isString } from '@core/typeGuards.ts';
 
@@ -25,26 +25,9 @@ const requireString = (value: JsonValue | undefined, label: string): string => {
     return value;
 };
 
-const decodeEntry = (value: JsonValue, label: string): FileExplorerEntryResponse => {
-    const record = requireRecord(value, label);
-    const typeId = readRequiredTrimmedString(record, 'type_id', `${label}.type_id`);
-    if (!isFileEntryTypeId(typeId)) throw new TypeError(`${label}.type_id is unsupported.`);
-    const typeRank = readRequiredNonNegativeIntegerValue(record['type_rank'], `${label}.type_rank`);
-    return {
-        name: readRequiredTrimmedString(record, 'name', `${label}.name`),
-        isDirectory: readRequiredBooleanValue(record['is_directory'], `${label}.is_directory`),
-        size: readRequiredNonNegativeIntegerValue(record['size'], `${label}.size`),
-        modifiedAtMs: readRequiredNonNegativeIntegerValue(record['modified_at_ms'], `${label}.modified_at_ms`),
-        mimeType: requireString(record['mime_type'], `${label}.mime_type`),
-        typeId,
-        typeRank,
-        permissions: requireString(record['permissions'], `${label}.permissions`)
-    };
-};
-
 const decodeEntries = (value: JsonValue | undefined, label: string): FileExplorerEntryResponse[] => {
     if (!Array.isArray(value)) throw new TypeError(`${label} must be an array.`);
-    return value.map((entry, index) => decodeEntry(entry, `${label}[${String(index)}]`));
+    return value.map((entry, index) => decodeFileExplorerEntry(entry, `${label}[${String(index)}]`));
 };
 
 const decodeSearchEntries = (value: JsonValue | undefined, label: string): FileExplorerSearchEntryResponse[] => {
@@ -53,27 +36,17 @@ const decodeSearchEntries = (value: JsonValue | undefined, label: string): FileE
         const entryLabel = `${label}[${String(index)}]`;
         const record = requireRecord(entry, entryLabel);
         return {
-            ...decodeEntry(entry, entryLabel),
-            path: readRequiredTrimmedString(record, 'path', `${entryLabel}.path`)
+            ...decodeFileExplorerEntry(entry, entryLabel),
+            path: readRequiredPresentStringValue(record['path'], `${entryLabel}.path`)
         };
     });
 };
 
 const decodeMetadataRecord = <Value>(value: Value, label: string): FileExplorerMetadataResponse => {
     const record = requireRecord(value, label);
-    const typeId = readRequiredTrimmedString(record, 'type_id', `${label}.type_id`);
-    if (!isFileEntryTypeId(typeId)) throw new TypeError(`${label}.type_id is unsupported.`);
-    const typeRank = readRequiredNonNegativeIntegerValue(record['type_rank'], `${label}.type_rank`);
     return {
-        name: readRequiredTrimmedString(record, 'name', `${label}.name`),
-        path: readRequiredTrimmedString(record, 'path', `${label}.path`),
-        isDirectory: readRequiredBooleanValue(record['is_directory'], `${label}.is_directory`),
-        size: readRequiredNonNegativeIntegerValue(record['size'], `${label}.size`),
-        modifiedAtMs: readRequiredNonNegativeIntegerValue(record['modified_at_ms'], `${label}.modified_at_ms`),
-        mimeType: requireString(record['mime_type'], `${label}.mime_type`),
-        typeId,
-        typeRank,
-        permissions: requireString(record['permissions'], `${label}.permissions`),
+        ...decodeFileExplorerEntry(record, label),
+        path: readRequiredPresentStringValue(record['path'], `${label}.path`),
         sha256: readNullableTrimmedStringValue(record['sha256'], `${label}.sha256`)
     };
 };
@@ -82,12 +55,12 @@ const decodeFileExplorerListResponse = (value: ApiResponsePayload): FileExplorer
     const label = 'File explorer list response';
     const record = requireRecord(value, label);
     return {
-        path: readRequiredTrimmedString(record, 'path', `${label}.path`),
+        path: readRequiredPresentStringValue(record['path'], `${label}.path`),
         entries: decodeEntries(record['entries'], `${label}.entries`),
         total: readRequiredNonNegativeIntegerValue(record['total'], `${label}.total`),
         offset: readRequiredNonNegativeIntegerValue(record['offset'], `${label}.offset`),
         limit: readRequiredNonNegativeIntegerValue(record['limit'], `${label}.limit`),
-        workspacePathResolved: readRequiredTrimmedString(record, 'workspace_path_resolved', `${label}.workspace_path_resolved`)
+        workspacePathResolved: readRequiredPresentStringValue(record['workspace_path_resolved'], `${label}.workspace_path_resolved`)
     };
 };
 
@@ -96,14 +69,14 @@ const decodeFileExplorerSearchResponse = (value: ApiResponsePayload): FileExplor
     const record = requireRecord(value, label);
     return {
         query: readRequiredTrimmedString(record, 'query', `${label}.query`),
-        searchRoot: readRequiredTrimmedString(record, 'search_root', `${label}.search_root`),
+        searchRoot: readRequiredPresentStringValue(record['search_root'], `${label}.search_root`),
         entries: decodeSearchEntries(record['entries'], `${label}.entries`),
         total: readRequiredNonNegativeIntegerValue(record['total'], `${label}.total`),
         offset: readRequiredNonNegativeIntegerValue(record['offset'], `${label}.offset`),
         limit: readRequiredNonNegativeIntegerValue(record['limit'], `${label}.limit`),
         truncated: readRequiredBooleanValue(record['truncated'], `${label}.truncated`),
         scannedEntries: readRequiredNonNegativeIntegerValue(record['scanned_entries'], `${label}.scanned_entries`),
-        workspacePathResolved: readRequiredTrimmedString(record, 'workspace_path_resolved', `${label}.workspace_path_resolved`)
+        workspacePathResolved: readRequiredPresentStringValue(record['workspace_path_resolved'], `${label}.workspace_path_resolved`)
     };
 };
 
@@ -114,12 +87,12 @@ const decodeFileExplorerMetadataResponse = (value: ApiResponsePayload): FileExpl
 const decodeFileExplorerReadResponse = (value: ApiResponsePayload): FileExplorerReadResponse => {
     const label = 'File explorer read response';
     const record = requireRecord(value, label);
-    return { path: readRequiredTrimmedString(record, 'path', `${label}.path`), content: requireString(record['content'], `${label}.content`) };
+    return { path: readRequiredPresentStringValue(record['path'], `${label}.path`), content: requireString(record['content'], `${label}.content`) };
 };
 
 const decodeBatchItem = (value: JsonValue, label: string): FileExplorerBatchItemResponse => {
     const record = requireRecord(value, label);
-    return { path: readRequiredTrimmedString(record, 'path', `${label}.path`), success: readRequiredBooleanValue(record['success'], `${label}.success`), error: readNullableTrimmedStringValue(record['error'], `${label}.error`) };
+    return { path: readRequiredPresentStringValue(record['path'], `${label}.path`), success: readRequiredBooleanValue(record['success'], `${label}.success`), error: readNullableTrimmedStringValue(record['error'], `${label}.error`) };
 };
 
 const decodeBatchItems = (value: JsonValue | undefined, label: string): FileExplorerBatchItemResponse[] => {
@@ -131,7 +104,8 @@ const decodeFileExplorerBatchResponse = (value: ApiResponsePayload): FileExplore
     const label = 'File explorer batch response';
     const record = requireRecord(value, label);
     const response: FileExplorerBatchResponse = { status: requireStatus(record, 'ok', label), total: readRequiredNonNegativeIntegerValue(record['total'], `${label}.total`), succeeded: readRequiredNonNegativeIntegerValue(record['succeeded'], `${label}.succeeded`), failed: readRequiredNonNegativeIntegerValue(record['failed'], `${label}.failed`), results: decodeBatchItems(record['results'], `${label}.results`) };
-    const destination = readNullableTrimmedStringValue(record['destination'], `${label}.destination`);
+    const destinationValue = record['destination'];
+    const destination = destinationValue === null || destinationValue === undefined ? null : readRequiredPresentStringValue(destinationValue, `${label}.destination`);
     if (destination !== null) response.destination = destination;
     return response;
 };
@@ -145,7 +119,7 @@ const decodeFileExplorerBatchMetadataResponse = (value: ApiResponsePayload): Fil
         const itemLabel = `${label}.results[${String(index)}]`;
         const item = requireRecord(entry, itemLabel);
         return {
-            path: readRequiredTrimmedString(item, 'path', `${itemLabel}.path`),
+            path: readRequiredPresentStringValue(item['path'], `${itemLabel}.path`),
             success: readRequiredBooleanValue(item['success'], `${itemLabel}.success`),
             metadata: item['metadata'] === null ? null : decodeMetadataRecord(item['metadata'], `${itemLabel}.metadata`),
             error: readNullableTrimmedStringValue(item['error'], `${itemLabel}.error`)
@@ -157,7 +131,7 @@ const decodeFileExplorerBatchMetadataResponse = (value: ApiResponsePayload): Fil
 const decodeFileExplorerUploadResponse = (value: ApiResponsePayload): FileExplorerUploadResponse => {
     const label = 'File explorer upload response';
     const record = requireRecord(value, label);
-    return { status: requireStatus(record, 'ok', label), path: readRequiredTrimmedString(record, 'path', `${label}.path`), size: readRequiredNonNegativeIntegerValue(record['size'], `${label}.size`), taskId: readRequiredTrimmedString(record, 'task_id', `${label}.task_id`) };
+    return { status: requireStatus(record, 'ok', label), path: readRequiredPresentStringValue(record['path'], `${label}.path`), size: readRequiredNonNegativeIntegerValue(record['size'], `${label}.size`), taskId: readRequiredTrimmedString(record, 'task_id', `${label}.task_id`) };
 };
 
 const decodeFileExplorerBatchUploadResponse = (value: ApiResponsePayload): FileExplorerBatchUploadResponse => {
@@ -168,7 +142,7 @@ const decodeFileExplorerBatchUploadResponse = (value: ApiResponsePayload): FileE
     const results = resultsValue.map((entry, index): FileExplorerBatchUploadItemResponse => {
         const itemLabel = `${label}.results[${String(index)}]`;
         const item = requireRecord(entry, itemLabel);
-        const result: FileExplorerBatchUploadItemResponse = { path: readRequiredTrimmedString(item, 'path', `${itemLabel}.path`), success: readRequiredBooleanValue(item['success'], `${itemLabel}.success`) };
+        const result: FileExplorerBatchUploadItemResponse = { path: readRequiredPresentStringValue(item['path'], `${itemLabel}.path`), success: readRequiredBooleanValue(item['success'], `${itemLabel}.success`) };
         const size = readNullableNonNegativeIntegerValue(item['size'], `${itemLabel}.size`);
         const error = readNullableTrimmedStringValue(item['error'], `${itemLabel}.error`);
         if (size !== null) result.size = size;
@@ -188,13 +162,13 @@ const decodeFileExplorerBatchUploadResponse = (value: ApiResponsePayload): FileE
 const decodeFileExplorerPathMutationResponse = (value: ApiResponsePayload): FileExplorerPathMutationResponse => {
     const label = 'File explorer path mutation response';
     const record = requireRecord(value, label);
-    return { status: requireStatus(record, 'ok', label), path: readRequiredTrimmedString(record, 'path', `${label}.path`) };
+    return { status: requireStatus(record, 'ok', label), path: readRequiredPresentStringValue(record['path'], `${label}.path`) };
 };
 
 const decodeFileExplorerMoveMutationResponse = (value: ApiResponsePayload): FileExplorerMoveMutationResponse => {
     const label = 'File explorer move mutation response';
     const record = requireRecord(value, label);
-    return { status: requireStatus(record, 'ok', label), source: readRequiredTrimmedString(record, 'source', `${label}.source`), destination: readRequiredTrimmedString(record, 'destination', `${label}.destination`) };
+    return { status: requireStatus(record, 'ok', label), source: readRequiredPresentStringValue(record['source'], `${label}.source`), destination: readRequiredPresentStringValue(record['destination'], `${label}.destination`) };
 };
 
 const decodeFileExplorerTaskAcceptedResponse = (value: ApiResponsePayload): FileExplorerTaskAcceptedResponse => {

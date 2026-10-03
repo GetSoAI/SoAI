@@ -3,11 +3,16 @@
 
 import { DEFAULT_CHART_PADDING } from '@core/charts/constants.ts';
 import type { ChartOptions, CrosshairState, Dataset, OhlcValues, PointerState, TimestampFormatConfig } from '@features/charts/chartTypes.ts';
-import { BASE_MAX_ZOOM_LEVEL, computeDynamicMinZoomLevel, DEFAULT_BOTTOM_AXIS_PADDING, DEFAULT_CHART_COLORS, DEFAULT_MAX_DATA_POINTS, DEFAULT_MAX_RIGHT_MARGIN_PX, DEFAULT_MAX_RIGHT_MARGIN_RATIO, DEFAULT_MIN_HEIGHT, DEFAULT_VERTICAL_SCALE_PADDING_RATIO, MAX_DATA_POINTS_HARD_LIMIT } from '@features/charts/component/chartComponentStatics.ts';
-import type { CanvasContexts, CanvasDimensions, CanvasLayers, ChartPadding, ChartRuntimeInstance, OhlcData, PanState, RenderBuffers, RuntimeLayer, Scale, ThemeColorFlags, TimeRange, ViewportIntent, VisibleRange, VisibleRangeStats, XAxisDragState, YAxisDragState, ZoomState } from '@features/charts/component/chartComponentTypes.ts';
+import { DEFAULT_BOTTOM_AXIS_PADDING, DEFAULT_CHART_COLORS, DEFAULT_MAX_DATA_POINTS, DEFAULT_MIN_HEIGHT, DEFAULT_VERTICAL_SCALE_PADDING_RATIO, MAX_DATA_POINTS_HARD_LIMIT } from '@features/charts/component/chartComponentStatics.ts';
+import type { CanvasContexts, CanvasDimensions, CanvasLayers, ChartPadding, ChartRuntimeInstance, OhlcData, PanState, RenderBuffers, RuntimeLayer, Scale, ThemeColorFlags, TimeRange, VisibleRange, VisibleRangeStats, XAxisDragState, YAxisDragState } from '@features/charts/component/chartComponentTypes.ts';
 import { normalizeChartType, normalizeClampedFloat, normalizeClampedInt, normalizeScaleBounds, normalizeScaleType, normalizeValuePrecision } from '@features/charts/component/state/actions.ts';
 import { mergeColorPalette, resolvePaletteFromCssAndOverrides, sanitizeThemeFlags } from '@features/charts/component/state/service.ts';
 import { normalizeTimestampFormat } from '@features/charts/component/data/timeFormatting.ts';
+import type { WheelPayload } from '@features/charts/types.ts';
+import { createScaleGlideState, type ScaleGlideState } from '@features/charts/scales/scaleGlide.ts';
+import type { TimeViewportState } from '@features/charts/viewport/timeViewport.ts';
+import type { ViewportFit } from '@features/charts/viewport/viewportFit.ts';
+import { createViewportAnimationState, type ViewportAnimationState } from '@features/charts/viewport/viewportAnimation.ts';
 
 interface ChartConfigurationState {
     options: ChartOptions;
@@ -32,20 +37,18 @@ interface ChartSeriesState {
 }
 
 interface ChartViewportState {
+    time: TimeViewportState;
+    animation: ViewportAnimationState;
+    pendingFit: ViewportFit | null;
     visibleRange: VisibleRange;
     visibleRangeStats: VisibleRangeStats;
     scale: Scale;
-    baseBarPixelWidth: number;
-    zoom: ZoomState;
+    scaleGlide: ScaleGlideState;
     pan: PanState;
+    historyBoundaryHitAt: number;
     yAxisMinRange: number;
     yAxisDrag: YAxisDragState;
     xAxisDrag: XAxisDragState;
-    viewportIntent: ViewportIntent | null;
-    pendingViewportIntent: ViewportIntent | null;
-    suspendIntentRecording: boolean;
-    isHistoricalDataLoading: boolean;
-    lastHistoricalRequestTimestamp: number | null;
     lastEmittedTimeRange: TimeRange;
 }
 
@@ -67,7 +70,7 @@ interface ChartSurfaceState {
 interface ChartInteractionState {
     pointer: PointerState;
     crosshair: CrosshairState;
-    wheelPayload: import('@features/charts/types.ts').WheelPayload | null;
+    wheelPayload: WheelPayload | null;
     wheelPending: boolean;
 }
 
@@ -79,8 +82,8 @@ interface ChartState {
     interaction: ChartInteractionState;
 }
 
-type ChartBooleanOption = 'enableCrosshair' | 'enableMagnetMode' | 'enableInertialPanning' | 'enableSmoothZoom' | 'enableXAxisZoom' | 'showAxisCoordinates' | 'showDelta' | 'showLegendTimestamp' | 'autoScale';
-const CHART_BOOLEAN_OPTIONS: readonly ChartBooleanOption[] = ['enableCrosshair', 'enableMagnetMode', 'enableInertialPanning', 'enableSmoothZoom', 'enableXAxisZoom', 'showAxisCoordinates', 'showDelta', 'showLegendTimestamp', 'autoScale'];
+type ChartBooleanOption = 'enableCrosshair' | 'enableMagnetMode' | 'enableSmoothZoom' | 'enableXAxisZoom' | 'showAxisCoordinates' | 'showDelta' | 'showLegendTimestamp' | 'autoScale';
+const CHART_BOOLEAN_OPTIONS: readonly ChartBooleanOption[] = ['enableCrosshair', 'enableMagnetMode', 'enableSmoothZoom', 'enableXAxisZoom', 'showAxisCoordinates', 'showDelta', 'showLegendTimestamp', 'autoScale'];
 const CHART_PADDING_SIDES: readonly (keyof ChartPadding)[] = ['top', 'right', 'bottom', 'left'];
 
 const createRenderBuffers = (requestedCapacity: number): RenderBuffers => {
@@ -99,7 +102,6 @@ const createChartOptions = (element: HTMLElement, input: Partial<ChartOptions>):
         timestampFormat: 'auto',
         enableCrosshair: true,
         enableMagnetMode: false,
-        enableInertialPanning: true,
         enableSmoothZoom: true,
         enableXAxisZoom: true,
         showAxisCoordinates: true,
@@ -107,18 +109,15 @@ const createChartOptions = (element: HTMLElement, input: Partial<ChartOptions>):
         showLegendTimestamp: true,
         metricName: null,
         statusThresholds: null,
-        rightMarginBars: 20,
-        maxRightMarginPx: DEFAULT_MAX_RIGHT_MARGIN_PX,
-        maxRightMarginRatio: DEFAULT_MAX_RIGHT_MARGIN_RATIO,
         verticalPaddingRatio: DEFAULT_VERTICAL_SCALE_PADDING_RATIO,
+        expectedSampleIntervalMs: 0,
         maxDataPoints: DEFAULT_MAX_DATA_POINTS,
         minHeight: DEFAULT_MIN_HEIGHT,
         bottomAxisPadding: DEFAULT_BOTTOM_AXIS_PADDING,
         scaleBounds: null,
         updateThrottleMs: 16,
         zoomEasingMs: 120,
-        onRequestHistoricalData: null,
-        onZoomChange: null,
+        history: null,
         onTimeRangeChange: null,
         chartColorContext: null
     };
@@ -135,14 +134,12 @@ const createChartOptions = (element: HTMLElement, input: Partial<ChartOptions>):
     }
     options.chartType = normalizeChartType(options.chartType);
     options.scaleType = normalizeScaleType(options.scaleType);
-    options.rightMarginBars = normalizeClampedInt(options.rightMarginBars, defaults.rightMarginBars, 0);
     options.updateThrottleMs = normalizeClampedInt(options.updateThrottleMs, defaults.updateThrottleMs, 0);
     options.zoomEasingMs = normalizeClampedInt(options.zoomEasingMs, defaults.zoomEasingMs, 60);
     options.maxDataPoints = normalizeClampedInt(options.maxDataPoints, defaults.maxDataPoints, 1, MAX_DATA_POINTS_HARD_LIMIT);
     options.minHeight = normalizeClampedInt(options.minHeight, defaults.minHeight, 40);
-    options.maxRightMarginPx = normalizeClampedInt(options.maxRightMarginPx, defaults.maxRightMarginPx, 16);
-    options.maxRightMarginRatio = normalizeClampedFloat(options.maxRightMarginRatio, defaults.maxRightMarginRatio, 0.02, 0.45);
     options.verticalPaddingRatio = normalizeClampedFloat(options.verticalPaddingRatio, defaults.verticalPaddingRatio, 0, 0.5);
+    options.expectedSampleIntervalMs = normalizeClampedInt(options.expectedSampleIntervalMs, defaults.expectedSampleIntervalMs, 0);
     options.bottomAxisPadding = normalizeClampedInt(options.bottomAxisPadding, defaults.bottomAxisPadding, 12, 160);
     options.valuePrecision = normalizeValuePrecision(options.valuePrecision);
     options.colors = mergeColorPalette(element, resolvedColors.palette);
@@ -155,29 +152,26 @@ const createChartOptions = (element: HTMLElement, input: Partial<ChartOptions>):
 const createChartState = (element: HTMLElement, input: Partial<ChartOptions> = {}): ChartState => {
     const configuration = createChartOptions(element, input);
     const capacity = configuration.options.maxDataPoints;
-    const dynamicMin = computeDynamicMinZoomLevel(capacity, 10);
     return {
         configuration,
         series: { timestamps: new Float64Array(capacity), values: new Float64Array(capacity), renderBuffers: createRenderBuffers(capacity), dataLength: 0, datasets: [], dataStructure: 'value', sourceSeriesMode: 'value', ohlc: null, heikin: null, heikinDirtyIndex: 0, heikinValidLength: 0, ohlcScratch: { open: null, high: null, low: null, close: null } },
         viewport: {
-            visibleRange: { start: 0, end: 0, displayCount: 0, totalSlots: 0, marginSlots: 0, offsetFraction: 0 },
+            time: { rightEdgeTs: Number.NaN, msPerPx: Number.NaN, followLive: true },
+            animation: createViewportAnimationState(),
+            pendingFit: null,
+            visibleRange: { start: 0, end: 0, startTs: Number.NaN, endTs: Number.NaN },
             visibleRangeStats: { min: null, max: null, sum: 0, count: 0 },
             scale: { min: null, max: null, auto: configuration.options.autoScale },
-            baseBarPixelWidth: 10,
-            zoom: { level: 1, targetLevel: 1, minLevel: dynamicMin, maxLevel: BASE_MAX_ZOOM_LEVEL, isAnimating: false, startTime: 0, startLevel: 1, wheelAccumulator: 0 },
-            pan: { offset: 0, velocity: 0, isDragging: false, lastX: 0, lastY: 0, isAtTail: true, startOffset: 0, targetOffset: 0, isZooming: false },
+            scaleGlide: createScaleGlideState(),
+            pan: { isDragging: false, lastX: 0, lastY: 0, travelPx: 0 },
+            historyBoundaryHitAt: Number.NaN,
             yAxisMinRange: 1e-6,
             yAxisDrag: { active: false, startY: 0, startMin: 0, startMax: 0, startRange: 0, startCenter: 0, minRange: 1e-6 },
-            xAxisDrag: { active: false, startX: 0, startZoomLevel: 1, anchor: 0.5, startPanOffset: 0, startMetrics: { totalSlots: 1, dataSlots: 1, marginSlots: 0 } },
-            viewportIntent: null,
-            pendingViewportIntent: null,
-            suspendIntentRecording: false,
-            isHistoricalDataLoading: false,
-            lastHistoricalRequestTimestamp: null,
-            lastEmittedTimeRange: { start: 0, end: 0, startTs: null, endTs: null }
+            xAxisDrag: { active: false, startX: 0, startMsPerPx: 0, anchorX: 0 },
+            lastEmittedTimeRange: { startTs: null, endTs: null }
         },
         surface: { element, canvasLayers: { static: null, data: null, interaction: null }, canvasDimensions: { width: 0, height: 0, dpr: 0 }, interactionCanvasDimensions: { width: 0, height: 0, dpr: 0 }, contexts: { static: null, data: null, interaction: null }, chartRuntime: null, runtimeLayers: null, offscreenCanvas: null, offscreenContext: null, pendingResizeFrame: null, resizeObserver: null, canvasBaseBackground: null },
-        interaction: { pointer: { activePointers: new Map(), nativeScrollPointerIds: new Set(), primaryId: null, pinch: null, lastTap: null }, crosshair: { visible: false, x: 0, y: 0, dataIndex: -1, rawIndex: null, value: null, timestamp: null, open: null, high: null, low: null, close: null, datasetValues: null }, wheelPayload: null, wheelPending: false }
+        interaction: { pointer: { activePointers: new Map(), nativeScrollPointerIds: new Set(), primaryId: null, pinch: null, lastTap: null, hoverX: null }, crosshair: { visible: false, x: 0, y: 0, dataIndex: -1, rawIndex: null, value: null, timestamp: null, open: null, high: null, low: null, close: null, datasetValues: null, gap: false }, wheelPayload: null, wheelPending: false }
     };
 };
 

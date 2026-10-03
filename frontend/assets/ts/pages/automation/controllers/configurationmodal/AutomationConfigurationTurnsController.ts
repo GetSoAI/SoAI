@@ -1,10 +1,10 @@
 /* SoAI - Automation page configuration turns controller [frontend/assets/ts/pages/automation/controllers/configurationmodal/AutomationConfigurationTurnsController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { insertWithPresence, removeWithPresence } from '@core/animations/presence/public.ts';
 import { parseNonNegativeIntegerFromStringOrNull } from '@core/dom/attributes.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { clampNumber } from '@core/primitives/clampNumber.ts';
-import { isString } from '@core/typeGuards.ts';
+import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { AUTOMATION_ACTION_REMOVE_TURN } from '@features/automation/public.ts';
 import { HARD_MAX_TURN_CHARS, HARD_MAX_TURNS } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationFormModel.ts';
 import { queryAutomationTurnTextareas } from '@pages/automation/dom.ts';
@@ -12,18 +12,19 @@ import { queryAutomationTurnTextareas } from '@pages/automation/dom.ts';
 const AUTOMATION_CONFIGURATION_TURNS_UPDATED_EVENT = 'automation:configuration:turns-updated';
 
 interface TurnsControllerDependencies {
+    addTurnButton: HTMLButtonElement;
+    modalId: string;
     turnsList: HTMLElement;
     turnsCharCounter: HTMLElement;
 }
 
-const normalizeTurns = (turns: readonly string[]): string[] => {
-    const normalized: string[] = [];
-    for (const turn of turns) {
-        const value = isString(turn) ? turn.trim() : '';
-        normalized.push(value);
-    }
-    return normalized;
-};
+interface TurnRow {
+    row: HTMLElement;
+    label: HTMLLabelElement;
+    textarea: HTMLTextAreaElement;
+    fields: HTMLElement;
+    removeButton: HTMLButtonElement;
+}
 
 const applyCharCounterState = (counter: HTMLElement, used: number): void => {
     counter.textContent = i18n.t('automation.modal.counters.turnChars', { used });
@@ -36,145 +37,179 @@ const applyCharCounterState = (counter: HTMLElement, used: number): void => {
     counter.classList.toggle('is-over', isOver);
 };
 
-const createTurnConnector = (documentRef: Document): HTMLElement => {
-    const connector = documentRef.createElement('div');
+const refreshTurnCounters = (dependencies: TurnsControllerDependencies, rows: readonly TurnRow[]): void => {
+    applyCharCounterState(
+        dependencies.turnsCharCounter,
+        rows.reduce((maxUsed, row) => Math.max(maxUsed, row.textarea.value.length), 0)
+    );
+};
+
+const createDecorativeTextarea = (className: string, rows: number): HTMLTextAreaElement => {
+    const textarea = document.createElement('textarea');
+    textarea.className = `form-input automation-turn-input ${className}`;
+    textarea.rows = rows;
+    textarea.disabled = true;
+    textarea.readOnly = true;
+    textarea.tabIndex = -1;
+    textarea.setAttribute('aria-hidden', 'true');
+    return textarea;
+};
+
+const createTurnConnector = (): HTMLElement => {
+    const connector = document.createElement('div');
     connector.className = 'automation-turn-connector';
     connector.setAttribute('aria-hidden', 'true');
     return connector;
 };
 
-const resolveTurnPlaceholder = (turnCount: number, index: number): string => {
-    if (turnCount <= 1) {
-        return i18n.t('automation.modal.placeholders.turn');
-    }
-    return i18n.t('automation.modal.placeholders.turnIndexed', { index: String(index + 1) });
-};
-
 class AutomationConfigurationTurnsController {
     readonly #dependencies: TurnsControllerDependencies;
+    readonly #endMarker: HTMLElement;
+    readonly #rows: TurnRow[] = [];
+    readonly #abort = new AbortController();
+    #nextRowId = 0;
+    #readOnly = false;
 
     constructor(dependencies: TurnsControllerDependencies) {
         this.#dependencies = dependencies;
-    }
-
-    getSnapshotKey(): { turns: string[] } {
-        return {
-            turns: this.readNormalizedTurns()
+        const endMarker = createDecorativeTextarea('automation-turn-end-input', 1);
+        endMarker.value = i18n.t('automation.modal.placeholders.endOfAutomation');
+        const endMarkerGroup = document.createElement('div');
+        endMarkerGroup.className = 'automation-turn-end';
+        endMarkerGroup.setAttribute('aria-hidden', 'true');
+        endMarkerGroup.append(createTurnConnector(), endMarker);
+        this.#endMarker = endMarkerGroup;
+        const handleTurnInput = (event: Event): void => {
+            if (event.target instanceof HTMLTextAreaElement && event.target.classList.contains('automation-turn-input')) {
+                refreshTurnCounters(this.#dependencies, this.#rows);
+            }
         };
+        dependencies.turnsList.addEventListener('input', handleTurnInput, { signal: this.#abort.signal });
     }
 
     readTurns(): string[] {
-        const inputs = queryAutomationTurnTextareas(this.#dependencies.turnsList);
-        const turns: string[] = [];
-        for (const element of inputs) {
-            turns.push(element.value);
-        }
-        return turns.length ? turns : [''];
+        return this.#rows.map((row) => row.textarea.value);
     }
 
     readNormalizedTurns(): string[] {
-        return normalizeTurns(this.readTurns());
+        return this.readTurns().map((turn) => turn.trim());
     }
 
     refreshCounters(): void {
-        const turnInputs = queryAutomationTurnTextareas(this.#dependencies.turnsList);
-        const maxUsed = turnInputs.reduce((acc, textarea) => Math.max(acc, textarea.value.length), 0);
-        applyCharCounterState(this.#dependencies.turnsCharCounter, maxUsed);
-    }
-
-    renderTurns(turns: readonly string[], render: { readOnly: boolean }): void {
-        this.#dependencies.turnsList.replaceChildren();
-
-        const removeLabel = i18n.t('common.delete');
-        const assistantPlaceholder = i18n.t('automation.modal.placeholders.assistantTurn');
-        const endMarkerText = i18n.t('automation.modal.placeholders.endOfAutomation');
-        const visibleTurns = turns.length ? turns.slice() : [''];
-
-        const maxUsed = visibleTurns.reduce((acc, turn) => Math.max(acc, turn.length), 0);
-        applyCharCounterState(this.#dependencies.turnsCharCounter, maxUsed);
-
-        visibleTurns.forEach((turn, index) => {
-            const row = document.createElement('div');
-            row.className = 'automation-turn-row';
-            const fields = document.createElement('div');
-            fields.className = 'automation-turn-fields';
-
-            const textarea = document.createElement('textarea');
-            textarea.className = 'form-input automation-turn-input';
-            textarea.rows = 2;
-            textarea.placeholder = resolveTurnPlaceholder(visibleTurns.length, index);
-            textarea.value = turn;
-            textarea.dataset['turnIndex'] = String(index);
-            textarea.readOnly = render.readOnly;
-
-            const assistant = document.createElement('textarea');
-            assistant.className = 'form-input automation-turn-input automation-turn-assistant-input';
-            assistant.rows = 2;
-            assistant.placeholder = assistantPlaceholder;
-            assistant.disabled = true;
-            assistant.readOnly = true;
-            assistant.tabIndex = -1;
-            assistant.setAttribute('aria-disabled', 'true');
-
-            const actions = document.createElement('div');
-            actions.className = 'automation-turn-actions';
-
-            if (!render.readOnly) {
-                const removeButton = document.createElement('button');
-                removeButton.type = 'button';
-                removeButton.className = 'ui-button ui-variant-danger';
-                removeButton.textContent = removeLabel;
-                removeButton.dataset['action'] = AUTOMATION_ACTION_REMOVE_TURN;
-                removeButton.dataset['turnIndex'] = String(index);
-                removeButton.disabled = visibleTurns.length <= 1;
-                actions.append(removeButton);
-            }
-            fields.append(textarea, createTurnConnector(document), assistant);
-            if (index === visibleTurns.length - 1) {
-                const endMarker = document.createElement('textarea');
-                endMarker.className = 'form-input automation-turn-input automation-turn-end-input';
-                endMarker.rows = 1;
-                endMarker.value = endMarkerText;
-                endMarker.disabled = true;
-                endMarker.readOnly = true;
-                endMarker.tabIndex = -1;
-                endMarker.setAttribute('aria-disabled', 'true');
-                endMarker.setAttribute('aria-label', endMarkerText);
-                fields.append(createTurnConnector(document), endMarker);
-            }
-            row.append(fields, actions);
-            this.#dependencies.turnsList.append(row);
-        });
-
-        this.#dependencies.turnsList.dispatchEvent(new CustomEvent(AUTOMATION_CONFIGURATION_TURNS_UPDATED_EVENT, { bubbles: true }));
+        refreshTurnCounters(this.#dependencies, this.#rows);
     }
 
     canAddTurn(): boolean {
-        const turns = this.readTurns();
-        return turns.length < HARD_MAX_TURNS;
+        return !this.#readOnly && this.#rows.length < HARD_MAX_TURNS;
+    }
+
+    listTextareas(): HTMLTextAreaElement[] {
+        return queryAutomationTurnTextareas(this.#dependencies.turnsList);
+    }
+
+    renderTurns(turns: readonly string[]): void {
+        this.#rows.splice(0, this.#rows.length);
+        this.#dependencies.turnsList.replaceChildren();
+        for (const turn of turns.length ? turns : ['']) {
+            this.#appendRow(turn, false);
+        }
+        this.#syncRows();
+    }
+
+    setReadOnly(readOnly: boolean): void {
+        this.#readOnly = readOnly;
+        this.#syncRows();
+    }
+
+    destroy(): void {
+        this.#abort.abort();
     }
 
     addTurn(): void {
-        const turns = this.readTurns();
-        if (turns.length >= HARD_MAX_TURNS) {
+        if (!this.canAddTurn()) {
             return;
         }
-        turns.push('');
-        this.renderTurns(turns, { readOnly: false });
+        const row = this.#appendRow('', true);
+        this.#syncRows();
+        row.textarea.focus();
     }
 
     removeTurn(indexCandidate: string | null): void {
         const index = indexCandidate === null ? null : parseNonNegativeIntegerFromStringOrNull(indexCandidate);
-        if (index === null) {
+        if (this.#readOnly || index === null || this.#rows.length <= 1 || index >= this.#rows.length) {
             return;
         }
-        const turns = this.readTurns();
-        if (turns.length <= 1) {
-            return;
+        const [removed] = this.#rows.splice(index, 1);
+        if (removed) {
+            delete removed.textarea.dataset['turnIndex'];
+            removeWithPresence(removed.row);
         }
-        const clamped = clampNumber(index, 0, turns.length - 1);
-        const next = turns.filter((_turn, index) => index !== clamped);
-        this.renderTurns(next.length ? next : [''], { readOnly: false });
+        this.#syncRows();
+        const focusTarget = this.#rows[Math.min(index, this.#rows.length - 1)];
+        focusTarget?.textarea.focus();
+    }
+
+    #appendRow(value: string, animate: boolean): TurnRow {
+        this.#nextRowId += 1;
+        const textareaId = `${this.#dependencies.modalId}-turn-${String(this.#nextRowId)}`;
+        const row = document.createElement('div');
+        row.className = 'automation-turn-row';
+        row.setAttribute('role', 'listitem');
+        row.dataset['presence'] = '';
+        row.dataset['presenceAtomic'] = '';
+        const fields = document.createElement('div');
+        fields.className = 'automation-turn-fields';
+        const label = document.createElement('label');
+        label.className = 'automation-turn-label';
+        label.htmlFor = textareaId;
+        const textarea = document.createElement('textarea');
+        textarea.id = textareaId;
+        textarea.className = 'form-input automation-turn-input';
+        textarea.rows = 2;
+        textarea.placeholder = i18n.t('automation.modal.placeholders.turn');
+        textarea.value = value;
+        const error = document.createElement('p');
+        error.id = `${textareaId}-error`;
+        error.className = 'form-field-error u-hidden';
+        error.setAttribute('aria-live', 'polite');
+        const assistant = createDecorativeTextarea('automation-turn-assistant-input', 2);
+        assistant.placeholder = i18n.t('automation.modal.placeholders.assistantTurn');
+        fields.append(label, textarea, error, createTurnConnector(), assistant);
+        const actions = document.createElement('div');
+        actions.className = 'automation-turn-actions';
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.className = 'ui-button ui-variant-danger';
+        removeButton.textContent = i18n.t('common.delete');
+        removeButton.dataset['action'] = AUTOMATION_ACTION_REMOVE_TURN;
+        actions.append(removeButton);
+        row.append(fields, actions);
+        insertWithPresence(this.#dependencies.turnsList, row, null, animate);
+        const turnRow: TurnRow = { row, label, textarea, fields, removeButton };
+        this.#rows.push(turnRow);
+        return turnRow;
+    }
+
+    #syncRows(): void {
+        const lastIndex = this.#rows.length - 1;
+        this.#rows.forEach((turnRow, index) => {
+            const turnLabel = i18n.t('automation.modal.turns.label', { index: String(index + 1) });
+            const removeLabel = i18n.t('automation.modal.turns.remove', { index: String(index + 1) });
+            turnRow.label.textContent = turnLabel;
+            turnRow.textarea.dataset['turnIndex'] = String(index);
+            turnRow.textarea.readOnly = this.#readOnly;
+            turnRow.removeButton.dataset['turnIndex'] = String(index);
+            turnRow.removeButton.setAttribute('aria-label', removeLabel);
+            setTooltipText(turnRow.removeButton, removeLabel);
+            turnRow.removeButton.disabled = this.#rows.length <= 1;
+            turnRow.removeButton.classList.toggle('u-hidden', this.#readOnly);
+            if (index === lastIndex) {
+                turnRow.fields.append(this.#endMarker);
+            }
+        });
+        this.refreshCounters();
+        this.#dependencies.addTurnButton.disabled = !this.canAddTurn();
+        this.#dependencies.turnsList.dispatchEvent(new CustomEvent(AUTOMATION_CONFIGURATION_TURNS_UPDATED_EVENT, { bubbles: true }));
     }
 }
 

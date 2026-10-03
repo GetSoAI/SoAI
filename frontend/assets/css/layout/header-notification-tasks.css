@@ -48,7 +48,7 @@
         font-size: var(--font-size-xs);
         font-weight: 500;
         color: var(--text-secondary);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-05px);
         min-width: 0;
         overflow: hidden;
@@ -61,7 +61,7 @@
         align-items: center;
         gap: var(--space-1);
         padding: 0;
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     .header-notification-tasks .stop-all-tasks.ui-icon-button {
@@ -183,7 +183,7 @@
         height: 100%;
         background: linear-gradient(90deg, var(--accent-green), var(--accent-green-light));
         animation: task-progress-indeterminate var(--duration-1600) var(--ease-in-out) infinite;
-        transform-origin: left;
+        transform-origin: var(--inline-start-percent) center;
     }
 
     .header-notification-tasks .header-task-manager-panel .task-progress--operation .task-progress-bar {

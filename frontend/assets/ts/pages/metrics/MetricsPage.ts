@@ -18,7 +18,7 @@ import { isMetricsActionId } from '@pages/metrics/actions.ts';
 import { PAGE_ID } from '@pages/metrics/contracts/MetricsPageSupport.ts';
 import { setupMetricsPage, teardownMetricsChartUi } from '@pages/metrics/controllers/page/effects.ts';
 import { handleMetricsRootClick, handleMetricsRootKeydown, setupMetricsPageUiEffects } from '@pages/metrics/controllers/page/events.ts';
-import { resetMetricsValueHistory } from '@pages/metrics/controllers/page/metricsUpdateProcessing.ts';
+import { refreshMetricsPresentation, resetMetricsValueHistory } from '@pages/metrics/controllers/page/metricsUpdateProcessing.ts';
 import { renderMetricsPageView } from '@pages/metrics/view.ts';
 import { MetricsPageRuntime } from '@pages/metrics/controllers/page/MetricsPageRuntime.ts';
 
@@ -48,7 +48,24 @@ class MetricsPage extends StaticBasePage {
         if (!signal) {
             throw new Error('MetricsPage prepareInitialContent requires an abort signal');
         }
+        this.#runtime.presentation.prepare();
         await this.#runtime.deferredController.prepare(signal);
+    }
+    override async commitInitialContent(context: { signal?: AbortSignal } = {}): Promise<void> {
+        this.#runtime.presentation.hold();
+        await super.commitInitialContent(context);
+    }
+    override async afterPageReveal(context: { signal?: AbortSignal } = {}): Promise<void> {
+        await super.afterPageReveal(context);
+        if (signalAborted(context.signal ?? null)) {
+            return;
+        }
+        if (this.#runtime.presentation.release()) {
+            refreshMetricsPresentation(this.#runtime);
+        }
+    }
+    protected override onCancel(_reason: string): void {
+        this.#runtime.presentation.cancel();
     }
     override async startLiveUpdates(parameters?: JsonObject | null, context: { signal?: AbortSignal } = {}): Promise<void> {
         await super.startLiveUpdates(parameters, context);
@@ -62,6 +79,7 @@ class MetricsPage extends StaticBasePage {
         this.pageLifecycle.abortListeners();
         await teardownMetricsChartUi(this.#runtime);
         this.#runtime.deferredController.hide();
+        this.#runtime.history.dispose();
         resetMetricsValueHistory(this.#runtime);
     }
     override async onDestroy(): Promise<void> {
@@ -72,6 +90,7 @@ class MetricsPage extends StaticBasePage {
         this.#runtime.metricsServices.telemetryPresenter?.dispose();
         await teardownMetricsChartUi(this.#runtime);
         this.#runtime.deferredController.hide();
+        this.#runtime.history.dispose();
         this.#runtime.state.resetTransientState();
         this.#runtime.layoutController.destroy();
     }

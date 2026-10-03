@@ -86,7 +86,7 @@ def resolve_log_level(level_name: str) -> int:
     if upper_name == "TRACE":
         return TRACE_LEVEL
     match upper_name:
-        case "CRITICAL":
+        case "CRITICAL" | "FATAL":
             return logging.CRITICAL
         case "ERROR":
             return logging.ERROR

@@ -5,7 +5,7 @@ import { registerAllServices } from '@app/bootstrap/registerServices.ts';
 import { AppLifecycle } from '@app/bootstrap/stages/applifecycle/AppLifecycle.ts';
 import { resetInitializeCoreServices } from '@app/bootstrap/stages/initializeCoreServices.ts';
 import { setBootstrapPhase } from '@app/bootstrap/stages/phases.ts';
-import { detectNavigationReload, finalizePreloader } from '@app/bootstrap/stages/preloader.ts';
+import { detectNavigationReload, finalizePreloader, releaseBootStateAfterPreloaderReveal } from '@app/bootstrap/stages/preloader.ts';
 import type { BootstrapApi } from '@app/bootstrap/stages/types.ts';
 import { getApiClient, resetApiClient } from '@core/api/service.ts';
 import { getAuthManager } from '@core/auth/public.ts';
@@ -47,7 +47,7 @@ const clearBootState = (): void => {
     if (!root) {
         throw new Error('Document element must exist to clear boot state');
     }
-    root.removeAttribute('data-soai-boot-state');
+    releaseBootStateAfterPreloaderReveal(() => root.removeAttribute('data-soai-boot-state'));
 };
 
 interface LayoutShellContract {

@@ -7,7 +7,7 @@ import { monotonicMs } from '@core/time/clock.ts';
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import { handleIncomingMessage, requestWebSocketSnapshot, sendPong, sendWebSocketMessage } from '@core/websocketclient/actions.ts';
-import { SNAPSHOT_TIMEOUT_MESSAGE_PREFIX, SNAPSHOT_TIMEOUT_MS, type ConnectionState } from '@core/websocketclient/constants.ts';
+import { CONNECTION_WAIT_TIMEOUT_MS, SNAPSHOT_TIMEOUT_MESSAGE_PREFIX, SNAPSHOT_TIMEOUT_MS, type ConnectionState } from '@core/websocketclient/constants.ts';
 import { isWebSocketReconnectInterruption, WebSocketReconnectInterruptionError } from '@core/websocketclient/connectionInterruption.ts';
 import { WebSocketLatencyProbe } from '@core/websocketclient/latencyProbe.ts';
 import type { EventCallback, GlobalEventCallback, SnapshotRequestOptions, SnapshotResponseEnvelope, WaitForConnectionOptions, WebSocketDispatchContext } from '@core/websocketclient/types.ts';
@@ -169,15 +169,20 @@ class WebSocketClient {
         return this.#connectionEpoch;
     }
 
-    waitForConnection(timeoutMs: number = 15000, options: WaitForConnectionOptions = {}): Promise<void> {
+    waitForConnection(timeoutMs: number = CONNECTION_WAIT_TIMEOUT_MS, options: WaitForConnectionOptions = {}): Promise<void> {
         return this.#controller.waitForConnection(timeoutMs, options);
     }
 
     async requestSnapshot(resourceName: string, parameters: JsonObject | null = null, options: SnapshotRequestOptions = {}): Promise<SnapshotResponseEnvelope> {
         throwIfAborted(options.signal);
         this.connect();
-        const totalTimeoutMs = typeof options.timeoutMs === 'number' && Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : SNAPSHOT_TIMEOUT_MS;
-        const deadlineMs = monotonicMs() + totalTimeoutMs;
+        const explicitTimeoutMs = typeof options.timeoutMs === 'number' && Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : null;
+        let deadlineMs = explicitTimeoutMs === null ? null : monotonicMs() + explicitTimeoutMs;
+        if (deadlineMs === null) {
+            await this.waitForConnection(CONNECTION_WAIT_TIMEOUT_MS, { signal: options.signal });
+            throwIfAborted(options.signal);
+            deadlineMs = monotonicMs() + SNAPSHOT_TIMEOUT_MS;
+        }
         while (true) {
             const remainingMs = Math.max(0, deadlineMs - monotonicMs());
             if (remainingMs <= 0) {

@@ -83,5 +83,5 @@ async def snapshot_system_logs_core(
     try:
         entries = await asyncio.to_thread(log_manager.get_recent_logs, source, limit)
     except (ValidationError, ValueError) as error:
-        raise ValidationError(str(error)) from error
+        raise ValidationError("Log source unavailable. Choose an available log source.") from error
     return {"entries": entries, "source": source, "limit": limit}

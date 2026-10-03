@@ -1,6 +1,7 @@
 /* SoAI - Settings page control layer theme manager mapping [frontend/assets/ts/pages/settings/controllers/thememanager/mappers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { i18n } from '@core/i18n/index.ts';
 import { formatKilobytesFromBytes } from '@core/primitives/byteSize.ts';
 import type { WallpaperMetadata } from '@core/settings/contracts.ts';
 
@@ -22,4 +23,6 @@ const formatWallpaperInfo = (metadata: WallpaperMetadata | null): string => {
     return parts.join(' · ');
 };
 
-export { formatWallpaperInfo };
+const formatWallpaperOverlayValue = (percent: number): string => i18n.t('settings.wallpaper.overlay.value', { percent });
+
+export { formatWallpaperInfo, formatWallpaperOverlayValue };

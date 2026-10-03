@@ -8,8 +8,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-from playwright.async_api import Error, async_playwright
+from playwright.async_api import Error
 
+from core.browser.playwright_lifecycle import managed_playwright
 from core.browser_adblock.protocols import EasyListAdblockServiceProtocol
 from core.config.protocols import ConfigProtocol
 from core.errors.exception_coercion import coerce_to_soai_error
@@ -134,7 +135,7 @@ async def render_url_to_html(
         raise ValueError(f"Only http/https URLs are supported for browser rendering: {url}")
     await enforce_offline_policy(runtime_flags, normalized_url, source="browser render")
 
-    async with async_playwright() as playwright:
+    async with managed_playwright() as playwright:
         browser: Browser | None = None
         context: BrowserContext | None = None
 

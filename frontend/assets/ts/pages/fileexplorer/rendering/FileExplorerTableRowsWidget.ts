@@ -26,11 +26,11 @@ const renderFileExplorerEntryRowMarkup = (entry: FileBrowserEntry, getIconSync: 
     const iconName = resolveFileEntryIconName(entry);
     const iconMarkup = getIconSync(iconName, { size: 16, strokeWidth: 1.5 });
     return uiHtml`<tr${rowAttributes} data-action="${uiAttr(FILE_EXPLORER_ACTION_ROW_OPEN)}" data-path="${uiAttr(entry.path)}" data-directory="${uiAttr(entry.isDirectory ? '1' : '0')}">
-	        <td><input type="checkbox" data-action="${uiAttr(FILE_EXPLORER_ACTION_SELECT_ROW)}" data-path="${uiAttr(entry.path)}"></td>
-	        <td class="file-explorer-name-cell"><button type="button" class="file-explorer-open-btn"${renderLabelAttributes({ ariaLabel: entry.name, tooltip: entry.path })}><span class="file-explorer-entry-icon" aria-hidden="true">${iconMarkup}<span class="loading-spinner file-explorer-entry-open-spinner"></span></span><span class="file-explorer-entry-name">${uiText(entry.name)}</span></button></td>
+	        <td><input type="checkbox" class="file-explorer-row-select" data-action="${uiAttr(FILE_EXPLORER_ACTION_SELECT_ROW)}" data-path="${uiAttr(entry.path)}"></td>
+	        <td class="file-explorer-name-cell"><button type="button" class="file-explorer-open-btn"${renderLabelAttributes({ ariaLabel: entry.name, tooltip: entry.path })}><span class="file-explorer-entry-icon" aria-hidden="true">${iconMarkup}<span class="loading-spinner file-explorer-entry-open-spinner"></span></span><span dir="auto" class="file-explorer-entry-name">${uiText(entry.name)}</span></button></td>
 	        <td class="file-explorer-meta-cell file-explorer-meta-cell--type" aria-label="${uiAttr(typeLabel)}">${typeCellContent}</td>
-        <td class="${uiAttr(sizeCellClass)}">${uiText(sizeLabel)}</td>
-        <td class="file-explorer-meta-cell">${uiText(entry.modifiedAt)}</td>
+        <td class="${uiAttr(sizeCellClass)}"><span class="u-ltr-inline">${uiText(sizeLabel)}</span></td>
+        <td class="file-explorer-meta-cell"><bdi dir="ltr">${uiText(entry.modifiedAt)}</bdi></td>
 	    </tr>`;
 };
 

@@ -8,7 +8,7 @@ import { renderLabelAttributes, securityApi, toTrustedUiHtml, type TrustedHtml }
 import { EMPTY_UI_HTML } from '@core/security/uiHtml.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { CHAT_ACTIONS, type ChatActionId } from '@features/chat/chatActionIds.ts';
-import { CHAT_CHARACTER_MAP_BUTTON_CLASS, CHAT_ICON_SIZE_MD, CHAT_ICON_SIZE_SM } from '@features/chat/chatConstants.ts';
+import { CHAT_CHARACTER_MAP_BUTTON_CLASS, CHAT_ICON_SIZE_MD, CHAT_SKETCH_BUTTON_CLASS, CHAT_ICON_SIZE_SM } from '@features/chat/chatConstants.ts';
 
 type ChatMobileAuxiliaryActionIconSlotType = 'none' | 'standard' | 'microphone' | 'agent_mode' | 'token_counter';
 
@@ -34,6 +34,7 @@ const CHAT_MOBILE_AUXILIARY_ACTION_DESCRIPTORS: ReadonlyArray<ChatMobileAuxiliar
     { id: 'camera', buttonClassNames: 'camera-btn', actionId: CHAT_ACTIONS.OPEN_CAMERA, iconName: 'camera', iconSlotType: 'standard' },
     { id: 'attach', buttonClassNames: 'attach-add-btn', actionId: CHAT_ACTIONS.OPEN_ATTACH_MODAL, iconName: 'paperclip', iconSlotType: 'standard' },
     { id: 'character_map', buttonClassNames: CHAT_CHARACTER_MAP_BUTTON_CLASS, actionId: CHAT_ACTIONS.OPEN_CHARACTER_MAP, iconName: 'character-map', iconSlotType: 'standard' },
+    { id: 'sketch', buttonClassNames: CHAT_SKETCH_BUTTON_CLASS, actionId: CHAT_ACTIONS.OPEN_SKETCH, iconName: 'sketch', iconSlotType: 'standard' },
     { id: 'new_conversation', buttonClassNames: 'new-conversation-input-btn', actionId: CHAT_ACTIONS.NEW_CONVERSATION, iconName: 'add', iconSlotType: 'standard' },
     { id: 'prompts', buttonClassNames: 'goto-prompts-btn', actionId: CHAT_ACTIONS.GOTO_PROMPTS, iconName: 'prompt', iconSlotType: 'standard' }
 ]);
@@ -78,6 +79,8 @@ const renderOptionLabel = (sanitizer: SanitizerApi, descriptor: ChatMobileAuxili
             return i18n.html(sanitizer, 'chat.header.newConversation');
         case 'character_map':
             return i18n.html(sanitizer, 'chat.characterMap.mobileOption');
+        case 'sketch':
+            return i18n.html(sanitizer, 'chat.sketch.mobileOption');
         case 'prompts':
             return i18n.html(sanitizer, 'chat.configuration.inputActions.auxiliary.options.prompts');
     }
@@ -113,6 +116,8 @@ const resolveButtonLabel = (descriptor: ChatMobileAuxiliaryActionDescriptor): st
             return i18n.t('chat.header.newConversation');
         case 'character_map':
             return i18n.t('chat.characterMap.open');
+        case 'sketch':
+            return i18n.t('chat.sketch.open');
         case 'prompts':
             return i18n.t('chat.header.gotoPrompts');
     }
@@ -129,12 +134,22 @@ const renderActionDataAttribute = (actionId: ChatActionId | null): string => {
     return actionId === null ? '' : ` data-action="${securityApi.escapeAttribute(actionId)}"`;
 };
 
+const renderTranslatedHoldDescription = (description: string): string => ` aria-description="${securityApi.escapeAttribute(description)}"`;
+
+const renderHoldDescriptionAttribute = (descriptor: ChatMobileAuxiliaryActionDescriptor): string => {
+    if (descriptor.id === 'token_counter') return renderTranslatedHoldDescription(i18n.t('chat.holdShortcuts.parametersHint'));
+    if (descriptor.id === 'configuration') return renderTranslatedHoldDescription(i18n.t('chat.holdShortcuts.presetsHint'));
+    if (descriptor.id === 'voice') return renderTranslatedHoldDescription(i18n.t('chat.holdShortcuts.pushToTalkHint'));
+    if (descriptor.id === 'tools') return renderTranslatedHoldDescription(i18n.t('chat.holdShortcuts.toolsHint'));
+    return '';
+};
+
 const renderStandardIconSlot = (iconMarkup: TrustedHtml): string => {
     return `<span class="ui-icon chat-action-icon" aria-hidden="true">${iconMarkup.html}</span><span class="chat-action-label"></span>`;
 };
 
-const renderMicrophoneIconSlots = (microphoneIcon: TrustedHtml, stopIcon: TrustedHtml): string => {
-    return `<span class="ui-icon chat-action-icon chat-action-icon--microphone microphone-btn-icon--microphone" aria-hidden="true">${microphoneIcon.html}</span><span class="ui-icon chat-action-icon chat-action-icon--stop microphone-btn-icon--stop" aria-hidden="true">${stopIcon.html}</span>`;
+const renderMicrophoneIconSlots = (microphoneIcon: TrustedHtml, stopIcon: TrustedHtml, closeIcon: TrustedHtml): string => {
+    return `<span class="ui-icon chat-action-icon chat-action-icon--microphone microphone-btn-icon--microphone" aria-hidden="true">${microphoneIcon.html}</span><span class="ui-icon chat-action-icon chat-action-icon--stop microphone-btn-icon--stop" aria-hidden="true">${stopIcon.html}</span><span class="ui-icon chat-action-icon chat-action-icon--close microphone-btn-icon--close" aria-hidden="true">${closeIcon.html}</span>`;
 };
 
 const renderChatMobileAuxiliaryActionButton = (inputArguments: { descriptor: ChatMobileAuxiliaryActionDescriptor; getIcon: (iconName: IconName, size: typeof CHAT_ICON_SIZE_MD) => TrustedHtml }): TrustedHtml => {
@@ -144,25 +159,27 @@ const renderChatMobileAuxiliaryActionButton = (inputArguments: { descriptor: Cha
     }
     const label = resolveButtonLabel(actionDescriptor);
     const actionDataAttribute = renderActionDataAttribute(actionDescriptor.actionId);
+    const holdDescriptionAttribute = renderHoldDescriptionAttribute(actionDescriptor);
     const buttonClassNames = securityApi.escapeAttribute(actionDescriptor.buttonClassNames);
     const actionId = securityApi.escapeAttribute(actionDescriptor.id);
     if (actionDescriptor.iconSlotType === 'microphone') {
         const microphoneIcon = inputArguments.getIcon('microphone', CHAT_ICON_SIZE_MD);
         const stopIcon = inputArguments.getIcon('stop', CHAT_ICON_SIZE_MD);
-        return toTrustedUiHtml(`<button type="button" class="chat-mobile-auxiliary-action ui-icon-button ${buttonClassNames}" data-mobile-auxiliary-action="${actionId}"${actionDataAttribute} data-start-label="${securityApi.escapeAttribute(i18n.t('chat.input.startRecording'))}" data-stop-label="${securityApi.escapeAttribute(i18n.t('chat.input.stopRecording'))}" ${renderLabelAttributes(label)}>${renderMicrophoneIconSlots(microphoneIcon, stopIcon)}</button>`);
+        const closeIcon = inputArguments.getIcon('close', CHAT_ICON_SIZE_MD);
+        return toTrustedUiHtml(`<button type="button" class="chat-mobile-auxiliary-action ui-icon-button ${buttonClassNames}" data-mobile-auxiliary-action="${actionId}"${actionDataAttribute}${holdDescriptionAttribute} data-start-label="${securityApi.escapeAttribute(i18n.t('chat.input.startRecording'))}" data-stop-label="${securityApi.escapeAttribute(i18n.t('chat.input.stopRecording'))}" ${renderLabelAttributes(label)}>${renderMicrophoneIconSlots(microphoneIcon, stopIcon, closeIcon)}</button>`);
     }
     if (actionDescriptor.iconSlotType === 'agent_mode') {
         const iconMarkup = inputArguments.getIcon('chat', CHAT_ICON_SIZE_SM);
         return toTrustedUiHtml(`<button type="button" class="chat-mobile-auxiliary-action ui-icon-button ${buttonClassNames}" data-mobile-auxiliary-action="${actionId}" data-agent-mode="chat"${actionDataAttribute} ${renderLabelAttributes(label)}><span class="agent-mode-cycle-icon ui-icon" aria-hidden="true">${iconMarkup.html}</span><span class="agent-mode-cycle-label">${securityApi.escapeHtml(i18n.t('chat.agent.mode.chat'))}</span></button>`);
     }
     if (actionDescriptor.iconSlotType === 'token_counter') {
-        return toTrustedUiHtml(`<button type="button" class="chat-mobile-auxiliary-action ui-icon-button ${buttonClassNames}" data-mobile-auxiliary-action="${actionId}"${actionDataAttribute} ${renderLabelAttributes(label)} aria-pressed="false"><span class="chat-token-counter-label">${securityApi.escapeHtml(i18n.t('chat.tokenCounter.inactive'))}</span></button>`);
+        return toTrustedUiHtml(`<button type="button" class="chat-mobile-auxiliary-action ui-icon-button ${buttonClassNames}" data-mobile-auxiliary-action="${actionId}"${actionDataAttribute}${holdDescriptionAttribute} ${renderLabelAttributes(label)} aria-pressed="false"><span dir="ltr" class="chat-token-counter-label">${securityApi.escapeHtml(i18n.t('chat.tokenCounter.inactive'))}</span></button>`);
     }
     if (actionDescriptor.iconName === null) {
         throw new Error(`Chat mobile auxiliary action ${actionDescriptor.id} requires an icon`);
     }
     const iconMarkup = inputArguments.getIcon(actionDescriptor.iconName, CHAT_ICON_SIZE_MD);
-    return toTrustedUiHtml(`<button type="button" class="chat-mobile-auxiliary-action ui-icon-button ${buttonClassNames}" data-mobile-auxiliary-action="${actionId}"${actionDataAttribute} ${renderLabelAttributes(label)} aria-pressed="false">${renderStandardIconSlot(iconMarkup)}</button>`);
+    return toTrustedUiHtml(`<button type="button" class="chat-mobile-auxiliary-action ui-icon-button ${buttonClassNames}" data-mobile-auxiliary-action="${actionId}"${actionDataAttribute}${holdDescriptionAttribute} ${renderLabelAttributes(label)} aria-pressed="false">${renderStandardIconSlot(iconMarkup)}</button>`);
 };
 
 export { CHAT_MOBILE_AUXILIARY_ACTION_DESCRIPTORS, renderChatMobileAuxiliaryActionButton, renderChatMobileAuxiliaryActionSelectOptions, resolveChatMobileAuxiliaryActionDescriptor };

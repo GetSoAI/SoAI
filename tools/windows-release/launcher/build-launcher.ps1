@@ -19,6 +19,7 @@ function Resolve-FullPath {
 }
 
 function Find-CSharpCompiler {
+    param([switch]$Optional)
     $candidates = @(
         "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe",
         "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\csc.exe"
@@ -28,7 +29,65 @@ function Find-CSharpCompiler {
             return $candidate
         }
     }
+    if ($Optional) {
+        return $null
+    }
     throw 'The .NET Framework C# compiler was not found. Install the .NET Framework developer tools on the Windows release machine.'
+}
+
+function Test-CSharpCompilerApi {
+    return $null -ne ('Microsoft.CodeAnalysis.CSharp.CSharpCompilation' -as [type])
+}
+
+function Get-DependencyManifestEntry {
+    param([Parameter(Mandatory=$true)][string]$Name)
+    $dependencyManifestPath = Join-Path $PSScriptRoot '..\dependencies-v1.json'
+    $dependencyManifest = Get-Content -LiteralPath $dependencyManifestPath -Raw | ConvertFrom-Json
+    if ($dependencyManifest.schema_version -ne 1) {
+        throw 'Windows release dependency manifest is invalid.'
+    }
+    return $dependencyManifest.dependencies.$Name
+}
+
+function Expand-VerifiedNuGetPackage {
+    param(
+        [Parameter(Mandatory=$true)][string]$DependencyName,
+        [Parameter(Mandatory=$true)][string]$PackageId,
+        [Parameter(Mandatory=$true)][string]$DisplayName,
+        [Parameter(Mandatory=$true)][string]$RequiredFile,
+        [Parameter(Mandatory=$true)][string]$CachePath
+    )
+    $dependency = Get-DependencyManifestEntry -Name $DependencyName
+    if ([string]::IsNullOrWhiteSpace($dependency.url) -or [string]::IsNullOrWhiteSpace($dependency.version) -or $dependency.package_sha256 -notmatch '^[a-fA-F0-9]{64}$') {
+        throw "$DisplayName dependency manifest entry is invalid."
+    }
+
+    $cacheRoot = Resolve-FullPath $CachePath
+    $packageRoot = Join-Path $cacheRoot $PackageId
+    New-Item -ItemType Directory -Force -Path $cacheRoot | Out-Null
+    $nupkg = Join-Path $cacheRoot "$PackageId.nupkg"
+    $zip = Join-Path $cacheRoot "$PackageId.zip"
+    if (!(Test-Path -LiteralPath $nupkg -PathType Leaf)) {
+        Write-Host "Downloading $PackageId..."
+        Invoke-WebRequest -Uri $dependency.url -OutFile $nupkg -UseBasicParsing
+    }
+    $actualHash = (Get-FileHash -LiteralPath $nupkg -Algorithm SHA256).Hash
+    if (![string]::Equals($actualHash, $dependency.package_sha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Cached $DisplayName package failed SHA-256 verification."
+    }
+    Copy-Item -LiteralPath $nupkg -Destination $zip -Force
+    if (Test-Path -LiteralPath $packageRoot) {
+        Remove-Item -LiteralPath $packageRoot -Recurse -Force
+    }
+    Expand-Archive -LiteralPath $zip -DestinationPath $packageRoot -Force
+    if (!(Test-Path -LiteralPath (Join-Path $packageRoot $RequiredFile) -PathType Leaf)) {
+        throw "Downloaded $DisplayName package did not contain $RequiredFile."
+    }
+    [xml]$packageMetadata = Get-Content -LiteralPath (Join-Path $packageRoot "$PackageId.nuspec") -Raw
+    if ([string]$packageMetadata.package.metadata.version -ne [string]$dependency.version) {
+        throw "$DisplayName package version contradicts the dependency manifest."
+    }
+    return $packageRoot
 }
 
 function Find-WebView2Package {
@@ -43,43 +102,80 @@ function Find-WebView2Package {
         }
         throw "The supplied WebView2 package path is invalid: $resolved"
     }
+    return Expand-VerifiedNuGetPackage `
+        -DependencyName 'webview2_sdk' `
+        -PackageId 'Microsoft.Web.WebView2' `
+        -DisplayName 'WebView2 SDK' `
+        -RequiredFile 'lib\net462\Microsoft.Web.WebView2.Core.dll' `
+        -CachePath $CachePath
+}
 
-    $dependencyManifestPath = Join-Path $PSScriptRoot '..\dependencies-v1.json'
-    $dependencyManifest = Get-Content -LiteralPath $dependencyManifestPath -Raw | ConvertFrom-Json
-    if ($dependencyManifest.schema_version -ne 1) {
-        throw 'Windows release dependency manifest is invalid.'
+function Invoke-CSharpCompilerApi {
+    param(
+        [Parameter(Mandatory=$true)][string]$SourcePath,
+        [Parameter(Mandatory=$true)][string]$ManifestPath,
+        [string]$IconPath,
+        [Parameter(Mandatory=$true)][string]$OutputPath,
+        [Parameter(Mandatory=$true)][string[]]$ReferencePaths
+    )
+    # Hosts without the .NET Framework compiler, such as the Wine release builder, use the
+    # Roslyn compiler bundled with PowerShell 7 against pinned .NET Framework reference
+    # assemblies. C# 5 keeps the source compatible with the .NET Framework csc.exe path.
+    $references = [System.Collections.Generic.List[Microsoft.CodeAnalysis.MetadataReference]]::new()
+    foreach ($referencePath in $ReferencePaths) {
+        if (!(Test-Path -LiteralPath $referencePath -PathType Leaf)) {
+            throw "Launcher compilation reference is missing: $referencePath"
+        }
+        $references.Add([Microsoft.CodeAnalysis.MetadataReference]::CreateFromFile($referencePath))
     }
-    $webView2Dependency = $dependencyManifest.dependencies.webview2_sdk
-    if ([string]::IsNullOrWhiteSpace($webView2Dependency.url) -or [string]::IsNullOrWhiteSpace($webView2Dependency.version) -or $webView2Dependency.package_sha256 -notmatch '^[a-fA-F0-9]{64}$') {
-        throw 'WebView2 SDK dependency manifest entry is invalid.'
+    $parseOptions = [Microsoft.CodeAnalysis.CSharp.CSharpParseOptions]::new(
+        [Microsoft.CodeAnalysis.CSharp.LanguageVersion]::CSharp5
+    )
+    $sourceText = [Microsoft.CodeAnalysis.Text.SourceText]::From(
+        [IO.File]::ReadAllText($SourcePath),
+        [Text.Encoding]::UTF8
+    )
+    $syntaxTree = [Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree]::ParseText($sourceText, $parseOptions, $SourcePath)
+    $compilationOptions = [Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions]::new(
+        [Microsoft.CodeAnalysis.OutputKind]::WindowsApplication
+    ).WithOptimizationLevel(
+        [Microsoft.CodeAnalysis.OptimizationLevel]::Release
+    ).WithPlatform(
+        [Microsoft.CodeAnalysis.Platform]::X64
+    ).WithDeterministic($true)
+    $compilation = [Microsoft.CodeAnalysis.CSharp.CSharpCompilation]::Create(
+        [IO.Path]::GetFileNameWithoutExtension($OutputPath),
+        [Microsoft.CodeAnalysis.SyntaxTree[]]@($syntaxTree),
+        $references,
+        $compilationOptions
+    )
+    $manifestStream = [IO.File]::OpenRead($ManifestPath)
+    $iconStream = $null
+    $outputStream = $null
+    try {
+        if ($IconPath -and (Test-Path -LiteralPath $IconPath)) {
+            $iconStream = [IO.File]::OpenRead($IconPath)
+        }
+        $win32Resources = $compilation.CreateDefaultWin32Resources($true, $false, $manifestStream, $iconStream)
+        $outputStream = [IO.File]::Open($OutputPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+        $result = $compilation.Emit($outputStream, $null, $null, $win32Resources)
     }
-
-    $cacheRoot = Resolve-FullPath $CachePath
-    $packageRoot = Join-Path $cacheRoot 'Microsoft.Web.WebView2'
-    New-Item -ItemType Directory -Force -Path $cacheRoot | Out-Null
-    $nupkg = Join-Path $cacheRoot 'Microsoft.Web.WebView2.nupkg'
-    $zip = Join-Path $cacheRoot 'Microsoft.Web.WebView2.zip'
-    if (!(Test-Path -LiteralPath $nupkg -PathType Leaf)) {
-        Write-Host "Downloading Microsoft.Web.WebView2 SDK..."
-        Invoke-WebRequest -Uri $webView2Dependency.url -OutFile $nupkg -UseBasicParsing
+    finally {
+        foreach ($stream in @($outputStream, $iconStream, $manifestStream)) {
+            if ($null -ne $stream) {
+                $stream.Dispose()
+            }
+        }
     }
-    $actualHash = (Get-FileHash -LiteralPath $nupkg -Algorithm SHA256).Hash
-    if (![string]::Equals($actualHash, $webView2Dependency.package_sha256, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw 'Cached WebView2 SDK package failed SHA-256 verification.'
+    foreach ($diagnostic in $result.Diagnostics) {
+        if ($diagnostic.Severity -ge [Microsoft.CodeAnalysis.DiagnosticSeverity]::Warning) {
+            Write-Host $diagnostic.ToString()
+        }
     }
-    Copy-Item -LiteralPath $nupkg -Destination $zip -Force
-    if (Test-Path -LiteralPath $packageRoot) {
-        Remove-Item -LiteralPath $packageRoot -Recurse -Force
+    if (!$result.Success) {
+        Remove-Item -LiteralPath $OutputPath -Force -ErrorAction SilentlyContinue
+        throw 'Launcher compilation failed.'
     }
-    Expand-Archive -LiteralPath $zip -DestinationPath $packageRoot -Force
-    if (!(Test-Path -LiteralPath (Join-Path $packageRoot 'lib\net462\Microsoft.Web.WebView2.Core.dll'))) {
-        throw 'Downloaded WebView2 SDK package did not contain the expected net462 assemblies.'
-    }
-    [xml]$packageMetadata = Get-Content -LiteralPath (Join-Path $packageRoot 'Microsoft.Web.WebView2.nuspec') -Raw
-    if ([string]$packageMetadata.package.metadata.version -ne [string]$webView2Dependency.version) {
-        throw 'WebView2 SDK package version contradicts the dependency manifest.'
-    }
-    return $packageRoot
 }
 
 $outputRoot = Resolve-FullPath $OutputDir
@@ -99,50 +195,81 @@ Set-Content -LiteralPath $manifest -Value $manifestContent -Encoding UTF8
 $dependencyCacheRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
     'SoAI-Windows-Launcher-' + [Guid]::NewGuid().ToString('N')
 )
-$ownsDependencyCache = [string]::IsNullOrWhiteSpace($WebView2PackageDir)
 try {
     $webView2Package = Find-WebView2Package `
         -ExplicitPath $WebView2PackageDir `
         -CachePath $dependencyCacheRoot
-    $csc = Find-CSharpCompiler
+    $csc = Find-CSharpCompiler -Optional
+    if (!$csc -and !(Test-CSharpCompilerApi)) {
+        $csc = Find-CSharpCompiler
+    }
     $outExe = Join-Path $outputRoot 'soai.exe'
-
-    $references = @(
-        '/reference:System.dll',
-        '/reference:System.Core.dll',
-        '/reference:System.Drawing.dll',
-        '/reference:System.Windows.Forms.dll',
-        '/reference:System.Web.Extensions.dll',
-        "/reference:$($webView2Package)\lib\net462\Microsoft.Web.WebView2.Core.dll",
-        "/reference:$($webView2Package)\lib\net462\Microsoft.Web.WebView2.WinForms.dll"
+    $webView2References = @(
+        "$($webView2Package)\lib\net462\Microsoft.Web.WebView2.Core.dll",
+        "$($webView2Package)\lib\net462\Microsoft.Web.WebView2.WinForms.dll"
     )
 
-    $args = @(
-        '/nologo',
-        '/target:winexe',
-        '/platform:x64',
-        '/optimize+',
-        "/win32manifest:$manifest",
-        "/out:$outExe"
-    ) + $references + @($source)
+    if ($csc) {
+        Write-Host "Compiling launcher with the .NET Framework C# compiler: $csc"
+        $references = @(
+            '/reference:System.dll',
+            '/reference:System.Core.dll',
+            '/reference:System.Drawing.dll',
+            '/reference:System.Windows.Forms.dll',
+            '/reference:System.Web.Extensions.dll'
+        ) + @($webView2References | ForEach-Object { "/reference:$_" })
 
-    if ($IconPath -and (Test-Path -LiteralPath $IconPath)) {
         $args = @(
             '/nologo',
             '/target:winexe',
             '/platform:x64',
             '/optimize+',
-            "/win32icon:$IconPath",
             "/win32manifest:$manifest",
             "/out:$outExe"
         ) + $references + @($source)
+
+        if ($IconPath -and (Test-Path -LiteralPath $IconPath)) {
+            $args = @(
+                '/nologo',
+                '/target:winexe',
+                '/platform:x64',
+                '/optimize+',
+                "/win32icon:$IconPath",
+                "/win32manifest:$manifest",
+                "/out:$outExe"
+            ) + $references + @($source)
+        }
+
+        & $csc @args
+        if ($LASTEXITCODE -ne 0) {
+            throw "Launcher compilation failed with exit code $LASTEXITCODE."
+        }
+    } else {
+        $referenceAssemblies = Expand-VerifiedNuGetPackage `
+            -DependencyName 'netfx_reference_assemblies' `
+            -PackageId 'Microsoft.NETFramework.ReferenceAssemblies.net48' `
+            -DisplayName '.NET Framework reference assemblies' `
+            -RequiredFile 'build\.NETFramework\v4.8\mscorlib.dll' `
+            -CachePath $dependencyCacheRoot
+        $referenceRoot = Join-Path $referenceAssemblies 'build\.NETFramework\v4.8'
+        $referencePaths = @(@(
+            'mscorlib.dll',
+            'System.dll',
+            'System.Core.dll',
+            'System.Drawing.dll',
+            'System.Windows.Forms.dll',
+            'System.Web.Extensions.dll'
+        ) | ForEach-Object { Join-Path $referenceRoot $_ }) + $webView2References
+        Write-Host 'Compiling launcher with the PowerShell Roslyn compiler and pinned .NET Framework 4.8 reference assemblies.'
+        Invoke-CSharpCompilerApi `
+            -SourcePath $source `
+            -ManifestPath $manifest `
+            -IconPath $IconPath `
+            -OutputPath $outExe `
+            -ReferencePaths $referencePaths
     }
 
-    & $csc @args
-    if ($LASTEXITCODE -ne 0) {
-        throw "Launcher compilation failed with exit code $LASTEXITCODE."
-    }
-
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'src\soai.exe.config') -Destination $outputRoot -Force
     Copy-Item -LiteralPath (Join-Path $webView2Package 'lib\net462\Microsoft.Web.WebView2.Core.dll') -Destination $outputRoot -Force
     Copy-Item -LiteralPath (Join-Path $webView2Package 'lib\net462\Microsoft.Web.WebView2.WinForms.dll') -Destination $outputRoot -Force
     Copy-Item -LiteralPath (Join-Path $webView2Package 'runtimes\win-x64\native\WebView2Loader.dll') -Destination $outputRoot -Force
@@ -151,7 +278,7 @@ try {
     }
 }
 finally {
-    if ($ownsDependencyCache -and (Test-Path -LiteralPath $dependencyCacheRoot)) {
+    if (Test-Path -LiteralPath $dependencyCacheRoot) {
         Remove-Item -LiteralPath $dependencyCacheRoot -Recurse -Force
     }
 }

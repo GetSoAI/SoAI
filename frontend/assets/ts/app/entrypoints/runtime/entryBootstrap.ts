@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { assertNonEmptyString } from '@core/assertions.ts';
+import { startDesktopLauncherAppearanceSync } from '@core/desktophost/desktopLauncher.ts';
 import { bootstrapEntry } from '@app/entrypoints/runtime/entryLoader.ts';
 import { selectFrontendEditionComposition, type FrontendEditionComposition } from '@app/edition/frontendEditionComposition.ts';
 import { getLanguageService } from '@core/languageservice/service.ts';
@@ -10,5 +11,6 @@ export const startSoaiEntry = async (entry: string, composition: FrontendEdition
     const normalizedEntry = assertNonEmptyString(entry, 'runtime entry identifier');
     selectFrontendEditionComposition(composition);
     getLanguageService().configureCatalogs(composition.translationCatalogs);
+    startDesktopLauncherAppearanceSync();
     await bootstrapEntry({ entry: normalizedEntry });
 };

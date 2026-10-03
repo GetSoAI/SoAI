@@ -10,6 +10,8 @@ import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 import type { WorkspaceBrowserAccess } from '@core/fileexplorerbrowser/workspaceBrowserAccess.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
+import type { ModelCatalogResponse } from '@core/api/contracts/modelCatalogContracts.ts';
+import type { SignalOptions } from '@core/api/requestOptions.ts';
 
 type MessagingModelCatalogStatus = 'idle' | 'ready' | 'error';
 
@@ -50,6 +52,7 @@ interface MessagingAccountModalOptions {
 
 interface MessagingManagerHost extends PageDomOwnerHost, PageFeedbackOwnerHost {
     api: WebuiMessagingAccountEndpoints;
+    loadModelCatalog(options?: SignalOptions): Promise<ModelCatalogResponse>;
     resolveWorkspaceBrowserAccess(): Promise<WorkspaceBrowserAccess>;
     runWithBoundary<T>(name: string, task: () => Promise<T> | T): Promise<T>;
     confirmAndExecute<Result>(boundaryName: string, confirmOptions: ConfirmationOptions | null, action: () => Promise<Result>, successMessage: string | null, onSuccess: (() => Promise<void> | void) | null, onError: ((error: Error) => void) | null): Promise<void>;

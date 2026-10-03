@@ -8,13 +8,13 @@
     }
 
     :where([data-section='models'], [data-page-scope='models']) :is(.alias-badge, .orphan-badge, .custom-badge, .ui-status-badge) {
-        margin-left: var(--space-2);
-        margin-right: var(--space-2);
+        margin-inline-start: var(--space-2);
+        margin-inline-end: var(--space-2);
     }
 
     :where([data-section='models'], [data-page-scope='models']) .alias-badge {
         --status-badge-color: var(--accent-green);
-        margin-right: var(--space-3);
+        margin-inline-end: var(--space-3);
     }
 
     :where([data-section='models'], [data-page-scope='models']) .orphan-badge {
@@ -137,7 +137,7 @@
         flex: 1;
         display: flex;
         justify-content: flex-end;
-        margin-left: 0;
+        margin-inline-start: 0;
     }
 
     :where([data-section='models'], [data-page-scope='models']) .model-title-bar {
@@ -153,7 +153,7 @@
         font-size: var(--font-size-heading-xs);
         font-weight: 600;
         color: var(--text-primary);
-        text-align: left;
+        text-align: start;
         font-family: var(--font-family-mono);
     }
 
@@ -185,7 +185,7 @@
     }
 
     :where([data-section='models'], [data-page-scope='models']) .provider-item:has(> .ui-collection-card__action-bar) > .provider-info {
-        padding-right: calc(var(--control-round-button-size) + var(--space-3));
+        padding-inline-end: calc(var(--control-round-button-size) + var(--space-3));
     }
 
     @container ui-viewport (width <= 768px) {

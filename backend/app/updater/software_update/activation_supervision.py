@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 
 from app.updater.soai_instance import wait_for_instance_lock_release
 from app.updater.soai_process import start_soai
+from app.updater.software_update.activation_identity import UpdateActivationIdentity
 from app.updater.software_update.activation_state import (
-    UpdateActivationIdentity,
     activation_commit_lock_path,
     activation_process_path,
     activation_receipt_path,
@@ -40,7 +40,12 @@ from core.runtime.instance_record import (
     runtime_record_matches_process_tree,
 )
 from core.tasks.software_update_result import write_software_update_result
-from core.timing.constants import CONTROL_TIMEOUT_SEC, MODERATE_DELAY_SEC, SETUP_TIMEOUT_SEC
+from core.timing.constants import (
+    CONTROL_TIMEOUT_SEC,
+    LONG_IDLE_TIMEOUT_SEC,
+    LONG_REQUEST_TIMEOUT_SEC,
+    MODERATE_DELAY_SEC,
+)
 from core.timing.sleep import sleep_seconds
 
 if TYPE_CHECKING:
@@ -134,7 +139,7 @@ def wait_for_update_activation(
     process_handle = candidate.process_handle
     expected = candidate.expected
     if process_handle is not None and expected is not None:
-        deadline = deadline_after(SETUP_TIMEOUT_SEC)
+        deadline = deadline_after(LONG_IDLE_TIMEOUT_SEC)
         while not deadline.expired():
             if _has_committed_receipt(pending, expected):
                 break
@@ -142,7 +147,7 @@ def wait_for_update_activation(
                 break
             sleep_seconds(MODERATE_DELAY_SEC)
     with acquire_interprocess_lock(
-        activation_commit_lock_path(pending.paths.base_path), timeout_sec=CONTROL_TIMEOUT_SEC
+        activation_commit_lock_path(pending.paths.base_path), timeout_sec=LONG_REQUEST_TIMEOUT_SEC
     ):
         if expected is not None and _has_committed_receipt(pending, expected):
             return True

@@ -1,6 +1,7 @@
 /* SoAI - Shared localization date time formatting [frontend/assets/ts/core/localization/dateTimeFormatting.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { getDateTimeFormat, getRelativeTimeFormat } from '@core/localization/intlCache.ts';
 import { getLocalizationSnapshot } from '@core/localization/runtime.ts';
 
 const UTC_LABEL = ' UTC';
@@ -58,16 +59,16 @@ const resolveDateFormattingLocale = (): string => {
 
 const formatLocalizedDate = (date: Date, options: Intl.DateTimeFormatOptions = {}): string => {
     const resolvedOptions = applyClockPreference(applyDateOrderPreference(options));
-    return new Intl.DateTimeFormat(resolveDateFormattingLocale(), resolvedOptions).format(date);
+    return getDateTimeFormat(resolveDateFormattingLocale(), resolvedOptions).format(date);
 };
 
 const formatLocalizedDateParts = (date: Date, options: Intl.DateTimeFormatOptions = {}): Intl.DateTimeFormatPart[] => {
     const resolvedOptions = applyClockPreference(applyDateOrderPreference(options));
-    return new Intl.DateTimeFormat(resolveDateFormattingLocale(), resolvedOptions).formatToParts(date);
+    return getDateTimeFormat(resolveDateFormattingLocale(), resolvedOptions).formatToParts(date);
 };
 
 const formatLocalizedRelativeTime = (value: number, unit: Intl.RelativeTimeFormatUnit): string => {
-    return new Intl.RelativeTimeFormat(getLocalizationSnapshot().locale, { numeric: 'auto' }).format(value, unit);
+    return getRelativeTimeFormat(getLocalizationSnapshot().locale, { numeric: 'auto' }).format(value, unit);
 };
 
 export { formatLocalizedDate, formatLocalizedDateParts, formatLocalizedRelativeTime, formatUtcLogTimestamp };

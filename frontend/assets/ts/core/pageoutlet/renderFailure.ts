@@ -13,7 +13,7 @@ interface PageOutletRenderFailureContext {
 
 interface PageOutletRenderFailureHost {
     applyErrorState: (error: Error) => void;
-    emitEvent: (stage: string, payload?: Record<string, JsonValue>, severity?: string) => void;
+    emitEvent?: ((stage: string, payload?: Record<string, JsonValue>, severity?: string) => void) | undefined;
 }
 
 const reportPageOutletRenderFailure = (context: PageOutletRenderFailureContext, host: PageOutletRenderFailureHost): void => {
@@ -26,7 +26,7 @@ const reportPageOutletRenderFailure = (context: PageOutletRenderFailureContext, 
         message: runtimeError.message || null
     };
     host.applyErrorState(runtimeError);
-    if (claimErrorReporting(runtimeError)) {
+    if (host.emitEvent && claimErrorReporting(runtimeError)) {
         host.emitEvent('component:load:error', payload, 'error');
     }
 };

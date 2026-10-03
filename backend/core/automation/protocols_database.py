@@ -6,7 +6,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-    from core.automation.automation_mutation_results import AutomationConversationVersion
+    from core.automation.automation_mutation_results import (
+        AutomationPreparedUpdate,
+        AutomationUpdateResult,
+    )
     from core.types.json import JSONDict
 
 __all__ = (
@@ -18,6 +21,19 @@ __all__ = (
 
 
 class DatabaseAutomationsProtocol(Protocol):
+    async def prepare_automation_update(
+        self,
+        automation_id: str,
+        user_id: int,
+        payload: JSONDict,
+        *,
+        expected_revision: str | None,
+    ) -> AutomationPreparedUpdate | None: ...
+    async def commit_automation_update(
+        self,
+        prepared: AutomationPreparedUpdate,
+        conversation_model_settings: JSONDict | None,
+    ) -> AutomationUpdateResult: ...
     async def create_automation(self, user_id: int, payload: JSONDict) -> JSONDict: ...
     async def get_automation(self, automation_id: str, user_id: int) -> JSONDict | None: ...
     async def list_automations(
@@ -27,27 +43,6 @@ class DatabaseAutomationsProtocol(Protocol):
         limit: int,
         offset: int,
     ) -> tuple[list[JSONDict], bool]: ...
-    async def update_automation(
-        self,
-        automation_id: str,
-        user_id: int,
-        payload: JSONDict,
-    ) -> JSONDict | None: ...
-    async def propagate_automation_conversation_model_settings(
-        self,
-        automation_id: str,
-        user_id: int,
-        model_settings: JSONDict,
-    ) -> tuple[AutomationConversationVersion, ...]: ...
-    async def update_automation_and_abandon_disabled_runs(
-        self,
-        automation_id: str,
-        user_id: int,
-        payload: JSONDict,
-        *,
-        finished_at_ms: int,
-        status_message: str,
-    ) -> tuple[JSONDict | None, list[str], list[str]]: ...
     async def delete_automation(self, automation_id: str, user_id: int) -> bool: ...
     async def list_enabled_automations(self, user_id: int) -> list[JSONDict]: ...
     async def list_enabled_automation_window_sources(self, user_id: int) -> list[JSONDict]: ...

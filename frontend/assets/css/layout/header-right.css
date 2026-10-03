@@ -9,7 +9,7 @@
         gap: var(--header-button-gap);
         flex: 0 1 auto;
         min-width: 0;
-        margin-right: calc((var(--sidebar-collapsed-width) - var(--icon-button-size)) / 2 - var(--space-2));
+        margin-inline-end: calc((var(--sidebar-collapsed-width) - var(--icon-button-size)) / 2 - var(--space-2));
     }
 
     .header-right > * {
@@ -35,7 +35,7 @@
     :is(.header-right .header-badge, .sidebar .sidebar-plugin-indicator, .sidebar .sidebar-chat-indicator, .sidebar .sidebar-busy-indicator) {
         position: absolute;
         top: -2px;
-        right: -2px;
+        inset-inline-end: -2px;
         background-color: var(--status-red);
         color: var(--color-white);
         font-size: var(--font-size-compact);

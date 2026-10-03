@@ -12,13 +12,20 @@ import psutil
 from app.updater.soai_instance import resolve_running_soai_pid, wait_for_instance_lock_release
 from app.updater.software_update_task_logging import log_software_update_task_for_dependencies
 from core.bootstrap.venv_paths import get_venv_path, get_venv_python_executable
+from core.concurrency.deadlines import deadline_after
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.protocols import LoggerProtocol
-from core.system.commands import run_argv_capture
+from core.system.pid_liveness import pid_is_running
 from core.system.process_launcher import DEVNULL_STREAM, spawn_handoff_process
 from core.system.subprocess_platform import windows_isolated_process_creationflags
-from core.timing.constants import STANDARD_DELAY_SEC
+from core.timing.constants import (
+    BACKGROUND_TIMEOUT_SEC,
+    CONTROL_TIMEOUT_SEC,
+    LONG_REQUEST_TIMEOUT_SEC,
+    MODERATE_DELAY_SEC,
+    STANDARD_DELAY_SEC,
+)
 from core.timing.sleep import sleep_seconds
 
 if TYPE_CHECKING:
@@ -28,7 +35,6 @@ if TYPE_CHECKING:
 __all__ = (
     "InstanceStopResult",
     "stop_running_instance",
-    "is_pid_running",
     "start_soai",
     "stop_soai",
     "wait_for_instance_shutdown",
@@ -41,33 +47,16 @@ OPERATION_APPLICATION_UPDATER_STOP_SOAI = "application_updater.stop_soai"
 OPERATION_APPLICATION_UPDATER_TERMINATE_SOAI_PSUTIL = "application_updater.terminate_soai.psutil"
 
 
-def is_pid_running(*, platform_name: str, pid: int) -> bool:
-    try:
-        if platform_name == "Windows":
-            result = run_argv_capture(["tasklist", "/FI", f"PID eq {pid}"], timeout=5)
-            return result.return_code == 0 and str(pid) in result.stdout
-        os.kill(pid, 0)
-        return True
-    except PermissionError:
-        return True
-    except OSError:
-        return False
-
-
 def wait_for_instance_shutdown(
     *,
     logger: LoggerProtocol,
-    platform_name: str,
     pid: int,
     base_path: str,
     allow_force: bool = True,
 ) -> bool:
     logger.info("Waiting for SoAI process (PID: %s) to shut down gracefully...", pid)
-    for _ in range(60):
-        if not is_pid_running(platform_name=platform_name, pid=pid):
-            logger.info("SoAI process has terminated.")
-            sleep_seconds(STANDARD_DELAY_SEC)
-            break
+    if _wait_for_pid_exit(logger=logger, pid=pid, timeout_sec=LONG_REQUEST_TIMEOUT_SEC):
+        logger.info("SoAI process has terminated.")
         sleep_seconds(STANDARD_DELAY_SEC)
     else:
         if not allow_force:
@@ -79,7 +68,7 @@ def wait_for_instance_shutdown(
             "SoAI process (PID: %s) did not shut down in time. Attempting forceful termination.",
             pid,
         )
-        if not stop_soai(logger=logger, platform_name=platform_name, soai_pid=pid):
+        if not stop_soai(logger=logger, soai_pid=pid):
             return False
     if not wait_for_instance_lock_release(logger=logger, base_path=base_path):
         logger.error("SoAI instance lock remains held after handoff shutdown. Update aborted.")
@@ -87,10 +76,22 @@ def wait_for_instance_shutdown(
     return True
 
 
+def _wait_for_pid_exit(*, logger: LoggerProtocol, pid: int, timeout_sec: float) -> bool:
+    deadline = deadline_after(timeout_sec)
+    next_progress = deadline_after(CONTROL_TIMEOUT_SEC)
+    while pid_is_running(pid):
+        if deadline.expired():
+            return False
+        if next_progress.expired():
+            logger.info("Still waiting for SoAI process (PID: %s) to exit...", pid)
+            next_progress = deadline_after(CONTROL_TIMEOUT_SEC)
+        sleep_seconds(MODERATE_DELAY_SEC)
+    return True
+
+
 def stop_soai(
     *,
     logger: LoggerProtocol,
-    platform_name: str,
     soai_pid: int | None,
 ) -> bool:
     if not soai_pid:
@@ -110,11 +111,9 @@ def stop_soai(
                 operation=OPERATION_APPLICATION_UPDATER_TERMINATE_SOAI_PSUTIL,
                 level="warning",
             )
-        for _ in range(15):
-            if not is_pid_running(platform_name=platform_name, pid=soai_pid):
-                logger.info("SoAI stopped gracefully.")
-                return True
-            sleep_seconds(STANDARD_DELAY_SEC)
+        if _wait_for_pid_exit(logger=logger, pid=soai_pid, timeout_sec=BACKGROUND_TIMEOUT_SEC):
+            logger.info("SoAI stopped gracefully.")
+            return True
     except OSError:
         logger.warning(
             "Process with PID %s not found or permission denied for termination.",
@@ -147,8 +146,7 @@ def stop_soai(
                 level="warning",
             )
             return False
-        sleep_seconds(STANDARD_DELAY_SEC)
-        if not is_pid_running(platform_name=platform_name, pid=soai_pid):
+        if _wait_for_pid_exit(logger=logger, pid=soai_pid, timeout_sec=STANDARD_DELAY_SEC):
             logger.info("SoAI process terminated forcefully.")
             return True
         logger.warning("Failed to terminate process forcefully.")
@@ -229,7 +227,6 @@ def stop_running_instance(
     if deps.args.wait_for_pid is not None:
         stopped = wait_for_instance_shutdown(
             logger=deps.logger,
-            platform_name=deps.platform_name,
             pid=deps.args.wait_for_pid,
             base_path=deps.base_path,
             allow_force=deps.args.task_id is None,
@@ -268,7 +265,6 @@ def stop_running_instance(
     )
     if not stop_soai(
         logger=deps.logger,
-        platform_name=deps.platform_name,
         soai_pid=running_pid,
     ):
         deps.logger.warning(

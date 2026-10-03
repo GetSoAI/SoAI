@@ -15,11 +15,10 @@
     }
 
     :where(.chat-container) .inline-activity[data-details-loading='true'] > .inline-activity-header .inline-activity-close-button.ui-round-button > .inline-activity-details-loading-spinner.loading-spinner {
+        --soai-spinner-active-color: var(--text-secondary);
+        --soai-spinner-stroke: var(--border-width-1);
         width: calc(var(--control-round-button-icon-size) - 2px);
         height: calc(var(--control-round-button-icon-size) - 2px);
-        border-width: var(--border-width-1);
-        border-top-width: var(--border-width-1);
-        border-top-color: var(--text-secondary);
     }
 
     :where(.chat-container) .inline-activity[data-details-loading='true'][data-collapsed='true'] > .inline-activity-header {

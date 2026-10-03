@@ -147,7 +147,7 @@ class BackupManager {
         try {
             this.#host.state.setBackupListLoadStatus('loading');
             this.#updateBackupList();
-            const response = await this.#host.execution.runWithBoundary('settings:loadBackups', async () => this.#host.api.listBackups());
+            const response = await this.#host.execution.runWithBoundary('settings:loadBackups', async () => this.#host.api.listBackups({ signal: reloadRun.signal }));
             if (!this.#lifecycle.isReloadCurrent(reloadRun)) {
                 return;
             }

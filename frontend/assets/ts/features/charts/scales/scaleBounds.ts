@@ -13,14 +13,16 @@ interface ScaleBoundsHost {
     requestRedraw: (request?: { data?: boolean; interaction?: boolean }) => void;
 }
 
-const enforceScaleBounds = (host: ScaleBoundsHost, { preserveRange = false } = {}): void => {
+type ScaleRangeHost = Pick<ScaleBoundsHost, 'chartOptions' | 'yAxisMinRange'>;
+
+const resolveBoundedScale = (host: ScaleRangeHost, inputMin: number, inputMax: number, preserveRange: boolean): { min: number; max: number } => {
     const bounds = host.chartOptions.scaleBounds;
-    if (!bounds || !isFiniteNumber(host.scale.min) || !isFiniteNumber(host.scale.max)) return;
+    if (!bounds) return { min: inputMin, max: inputMax };
     const { min: boundsMin, max: boundsMax } = bounds;
     const isLog = host.chartOptions.scaleType === 'logarithmic';
     const minRange = Math.max(host.yAxisMinRange || 1e-6, isLog ? 1e-6 : 0);
-    let min = host.scale.min;
-    let max = host.scale.max;
+    let min = inputMin;
+    let max = inputMax;
     if (min > max) [min, max] = [max, min];
     const currentRange = Math.max(minRange, max - min);
     if (preserveRange) {
@@ -87,8 +89,14 @@ const enforceScaleBounds = (host: ScaleBoundsHost, { preserveRange = false } = {
             }
         }
     }
-    host.scale.min = min;
-    host.scale.max = max;
+    return { min, max };
+};
+
+const enforceScaleBounds = (host: ScaleBoundsHost, { preserveRange = false } = {}): void => {
+    if (!isFiniteNumber(host.scale.min) || !isFiniteNumber(host.scale.max)) return;
+    const bounded = resolveBoundedScale(host, host.scale.min, host.scale.max, preserveRange);
+    host.scale.min = bounded.min;
+    host.scale.max = bounded.max;
 };
 
 const panVertical = (host: ScaleBoundsHost, deltaY: number): boolean => {
@@ -124,4 +132,4 @@ const panVertical = (host: ScaleBoundsHost, deltaY: number): boolean => {
     return true;
 };
 
-export { enforceScaleBounds, panVertical };
+export { enforceScaleBounds, panVertical, resolveBoundedScale };

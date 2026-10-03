@@ -67,6 +67,10 @@ from app.types_services_foundation import (
 )
 from core.app.service_groups import HardwareRuntimeServices
 from core.logging.trace import get_logger
+from core.openai.chat_template_role_policy_resolver import (
+    ChatTemplateRolePolicyResolver,
+    ChatTemplateRolePolicyResolverDependencies,
+)
 from core.secrets.handle_store import SecretHandleStore
 from features.chat.attention.coordinator import (
     ConversationAttentionCoordinator,
@@ -203,6 +207,7 @@ def assemble_application_bootstrap_state(
                 database_automation_runs=deps.database_services.automation_runs,
                 database_automation_run_scheduler=deps.database_services.automation_run_scheduler,
                 event_bus=deps.event_bus,
+                durable_event_delivery=deps.domain_event_delivery,
                 cancellation_binder=deps.cancellation_system.binder,
                 finalizer_tracker=deps.cancellation_system.finalizer_tracker,
                 runtime_state=deps.runtime_foundation.runtime_state,
@@ -227,6 +232,9 @@ def assemble_application_bootstrap_state(
             storage=deps.storage_manager,
         ),
         prompt_token_counter=deps.prompt_token_counter,
+        chat_template_role_policy_resolver=ChatTemplateRolePolicyResolver(
+            ChatTemplateRolePolicyResolverDependencies(config=deps.config),
+        ),
         command_executor=deps.command_executor,
         secret_handle_store=SecretHandleStore(
             max_total_entries=deps.config.get_int("TOOLS.MCP.SECRET_PROMPT.HANDLE_STORE_MAX_TOTAL"),

@@ -20,6 +20,7 @@ def sync_enqueue_conversation_updated_event(
     conv_id: str,
     last_modified_at_ms: int,
     model_settings: JSONDict,
+    settings_authority_changed: bool = False,
 ) -> None:
     payload = build_domain_event_payload(
         fields={
@@ -27,6 +28,7 @@ def sync_enqueue_conversation_updated_event(
             "conv_id": conv_id,
             "last_modified_at_ms": last_modified_at_ms,
             "model_settings": model_settings,
+            "settings_authority_changed": settings_authority_changed,
         }
     )
     sync_enqueue_domain_event_payload(

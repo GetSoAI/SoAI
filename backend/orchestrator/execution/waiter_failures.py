@@ -9,6 +9,7 @@ from collections.abc import Awaitable, Callable
 
 from core.errors.error_types import ErrorType
 from core.errors.exception_logging import log_exception
+from core.errors.payload import ErrorPublicPayload
 from core.logging.trace import get_logger
 from core.tasks.task import Task
 from orchestrator.execution.internal_protocols import (
@@ -61,6 +62,7 @@ async def fail_waiters_for_routing_key(
     error_type: ErrorType,
     unregister_pending_queue: Callable[[str], Awaitable[deque[Task]]],
     fail_task: FailTaskCallable,
+    public_error: ErrorPublicPayload | None = None,
 ) -> None:
     logger = get_logger(LOGGER_NAME)
     tasks = await _pop_waiter_tasks(routing_key, unregister_pending_queue)
@@ -73,7 +75,13 @@ async def fail_waiters_for_routing_key(
         reason,
     )
     fail_tasks = [
-        fail_task(task, reason=reason, allow_failover=allow_failover, error_type=error_type)
+        fail_task(
+            task,
+            reason=reason,
+            allow_failover=allow_failover,
+            error_type=error_type,
+            public_error=public_error,
+        )
         for task in tasks
     ]
     gather_results = await asyncio.gather(*fail_tasks, return_exceptions=True)

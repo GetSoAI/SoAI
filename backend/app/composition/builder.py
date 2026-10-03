@@ -34,6 +34,7 @@ class ApplicationAssemblyBuilder:
         self.startup_timings = deps.startup_timings
         self.module_dependencies = deps.module_dependencies
         self.edition_composition = deps.edition_composition
+        self.process_exit_deadline = deps.process_exit_deadline
         self.application_logger = get_logger(LOGGER_NAME)
 
     async def build(self) -> ApplicationAssembly:
@@ -88,6 +89,7 @@ class ApplicationAssemblyBuilder:
                 startup_timings=self.startup_timings,
                 edition_composition=self.edition_composition,
                 licensing_status=licensing_services.runtime,
+                process_exit_deadline=self.process_exit_deadline,
             )
             self.startup_timings.record_since_ms(
                 "assembly.build_application_services_ms",

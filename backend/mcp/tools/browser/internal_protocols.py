@@ -10,6 +10,7 @@ from typing import Literal, Protocol
 from playwright.async_api import HttpCredentials, Page
 
 from core.browser_adblock.protocols import EasyListAdblockServiceProtocol
+from core.concurrency.lock_registry import TTLAsyncLockRegistry
 from core.config.protocols import ConfigProtocol
 from core.hardware.protocols_storage import StorageManagerProtocol
 from core.runtime.protocols import RuntimeFlagsViewProtocol
@@ -51,7 +52,8 @@ class BrowserSessionStoreProtocol(Protocol):
     runtime_flags: RuntimeFlagsViewProtocol
     sessions: dict[str, BrowserSessionState]
     sessions_lock: asyncio.Lock
-    owner_create_locks: dict[str, asyncio.Lock]
+    closing: bool
+    owner_create_locks: TTLAsyncLockRegistry[str]
     runtime: PlaywrightBrowserRuntime
     runtime_sessions: BrowserWorkspaceRuntimeSessionsProtocol
     storage_manager: StorageManagerProtocol

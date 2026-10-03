@@ -1,112 +1,167 @@
-/* SoAI - Hardware feature renderer [frontend/assets/ts/features/hardware/modals/soaibenchrun/renderer.ts] */
+/* SoAI - SoAI Bench combined run modal renderer [frontend/assets/ts/features/hardware/modals/soaibenchrun/renderer.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { createOperationProgressReporter } from '@core/operationprogress/public.ts';
-import { i18n } from '@core/i18n/index.ts';
-import { requireRunBody, setExportButtonState, setHistoryButtonState, setPublicationButtonState, setStartButtonState, type SoAIBenchRunFooterActionMode } from '@features/hardware/modals/soaibenchrun/dom.ts';
-import { isTerminalSoAIBenchStatus } from '@features/hardware/modals/soaibenchrun/mappers.ts';
-import type { SoAIBenchRunModalHost, SoAIBenchRunOpenRequest, SoAIBenchRunProgressRuntime, SoAIBenchRunRecord } from '@features/hardware/modals/soaibenchrun/types.ts';
-import { progressDetailsForRun, progressMessageForRun, progressPercentForRun, renderRunIntro, renderRunProgressShell, renderRunReport } from '@features/hardware/modals/soaibenchrun/view.ts';
+import { insertWithPresence, removeWithPresence } from '@core/animations/presence/public.ts';
+import { AnimationFrameRenderQueue } from '@core/animations/renderQueue.ts';
+import { dom } from '@core/dom/dom.ts';
+import { scrollElementIntoView } from '@core/scroll.ts';
+import { toggleHidden } from '@core/ui/visibility.ts';
+import { requireComposerElement, requireModalBody, requireRunList, requireToolbar, resolveComposerFocusTarget } from '@features/hardware/modals/soaibenchrun/dom.ts';
+import type { SoAIBenchResultActions } from '@features/hardware/modals/soaibenchrun/resultActions.ts';
+import { SoAIBenchRunSectionView } from '@features/hardware/modals/soaibenchrun/sectionRenderer.ts';
+import type { SoAIBenchGpuSelection } from '@features/hardware/modals/soaibenchrun/selection.ts';
+import type { SoAIBenchRunSessionState } from '@features/hardware/modals/soaibenchrun/sessionState.ts';
+import type { SoAIBenchRunModalHost } from '@features/hardware/modals/soaibenchrun/types.ts';
 
-const RUN_PROGRESS_KEY = 'hardware-soaibench-run';
-
-const isExportableRun = (run: SoAIBenchRunRecord | null): boolean => {
-    return run !== null && isTerminalSoAIBenchStatus(run.status);
-};
-
-interface SoAiBenchRunRendererDependencies {
+interface SoAIBenchRunModalRendererDependencies {
     host: SoAIBenchRunModalHost;
     modalId: string;
-    onCancel: () => Promise<void>;
-}
-
-interface SoAIBenchRunRenderRequest {
-    request: SoAIBenchRunOpenRequest;
-    run: SoAIBenchRunRecord | null;
-    cancelRequested: boolean;
-    terminalReason: string | null;
-    runId: string | null;
-    historyAvailable: boolean;
+    state: SoAIBenchRunSessionState;
+    selection: SoAIBenchGpuSelection;
+    resultActions: SoAIBenchResultActions;
+    isDeviceBusy(deviceId: string): boolean;
 }
 
 class SoAIBenchRunModalRenderer {
-    readonly #host: SoAIBenchRunModalHost;
-    readonly #modalId: string;
-    readonly #onCancel: () => Promise<void>;
-    readonly #progress: SoAIBenchRunProgressRuntime = { reporter: null };
+    readonly #dependencies: SoAIBenchRunModalRendererDependencies;
+    readonly #sections = new Map<string, SoAIBenchRunSectionView>();
+    readonly #queue: AnimationFrameRenderQueue<true>;
+    #composerMarkup = '';
+    #visible = false;
+    #scrollTop = 0;
 
-    constructor(dependencies: SoAiBenchRunRendererDependencies) {
-        this.#host = dependencies.host;
-        this.#modalId = dependencies.modalId;
-        this.#onCancel = dependencies.onCancel;
+    constructor(dependencies: SoAIBenchRunModalRendererDependencies) {
+        this.#dependencies = dependencies;
+        this.#queue = new AnimationFrameRenderQueue<true>({
+            label: 'Hardware SoAIBench run modal',
+            render: () => this.#render(),
+            merge: () => true,
+            isDisposed: () => !this.#visible
+        });
     }
 
-    renderIntro(request: SoAIBenchRunOpenRequest, historyAvailable: boolean): void {
-        this.destroyProgress();
-        const modalRoot = this.#modalRoot();
-        this.#host.setHTML(requireRunBody(this.#host, modalRoot), renderRunIntro({ request, run: null, cancelRequested: false, terminalReason: null }));
-        this.#setFooterButton('start', false);
-        setHistoryButtonState(this.#host, modalRoot, { visible: historyAvailable, disabled: false });
-        setExportButtonState(this.#host, modalRoot, false);
-        setPublicationButtonState(this.#host, modalRoot, false);
+    show(): void {
+        this.#visible = true;
+        this.#render();
     }
 
-    renderProgress(inputArguments: SoAIBenchRunRenderRequest): void {
+    hide(): void {
+        this.#visible = false;
+        this.#queue.cancel();
+    }
+
+    schedule(): void {
+        if (this.#visible) {
+            this.#queue.schedule(true);
+        }
+    }
+
+    render(): void {
+        this.#render();
+    }
+
+    #render(): void {
         const modalRoot = this.#modalRoot();
-        this.destroyProgress();
-        this.#host.setHTML(requireRunBody(this.#host, modalRoot), renderRunProgressShell({ request: inputArguments.request, run: inputArguments.run, cancelRequested: inputArguments.cancelRequested, terminalReason: null }));
-        this.#setFooterButton(inputArguments.cancelRequested ? 'stopping' : 'stop', !(inputArguments.run?.runId || inputArguments.runId) || inputArguments.cancelRequested);
-        setHistoryButtonState(this.#host, modalRoot, { visible: inputArguments.historyAvailable, disabled: false });
-        setExportButtonState(this.#host, modalRoot, isExportableRun(inputArguments.run));
-        setPublicationButtonState(this.#host, modalRoot, inputArguments.run?.publicationEligible === true);
-        const container = this.#host.requireHTMLElement('#hardware-soaibench-run-modal-progress', modalRoot);
-        this.#progress.reporter = createOperationProgressReporter(container, {
-            showCancel: true,
-            showBadge: false,
-            extraClassName: 'hardware-soaibench-progress',
-            onCancel: async () => {
-                await this.#onCancel();
+        const hasSections = this.#dependencies.state.entries().length > 0;
+        modalRoot.dataset['soaibenchLayout'] = hasSections ? 'runs' : 'composer';
+        toggleHidden(requireToolbar(this.#dependencies.host, modalRoot), !hasSections || this.#dependencies.selection.composer.type !== 'closed');
+        this.#renderComposer(modalRoot, hasSections);
+        this.#syncSections(modalRoot);
+    }
+
+    revealSection(sectionId: string): void {
+        const view = this.#sections.get(sectionId);
+        if (view === undefined) {
+            return;
+        }
+        scrollElementIntoView(view.root, { block: 'start' });
+        view.focusHeading();
+    }
+
+    revealComposer(): void {
+        const composer = requireComposerElement(this.#dependencies.host, this.#modalRoot());
+        scrollElementIntoView(composer, { block: 'start' });
+        resolveComposerFocusTarget(composer)?.focus({ preventScroll: true });
+    }
+
+    focusNewBenchmark(): void {
+        const button = dom.resolve('button', requireToolbar(this.#dependencies.host, this.#modalRoot()));
+        if (button instanceof HTMLButtonElement) {
+            button.focus({ preventScroll: true });
+        }
+    }
+
+    captureScroll(): void {
+        if (this.#visible) {
+            this.#scrollTop = requireModalBody(this.#dependencies.host, this.#modalRoot()).scrollTop;
+        }
+    }
+
+    restoreScroll(): void {
+        requireModalBody(this.#dependencies.host, this.#modalRoot()).scrollTop = this.#scrollTop;
+    }
+
+    resolveActionButton(runId: string, action: string): HTMLButtonElement | null {
+        const entry = this.#dependencies.state.entries().find((candidate) => candidate.runId === runId);
+        const view = entry === undefined ? undefined : this.#sections.get(entry.sectionId);
+        const button = view === undefined ? null : dom.resolve(`[data-action="${action}"]`, view.root);
+        return button instanceof HTMLButtonElement ? button : null;
+    }
+
+    reset(): void {
+        this.hide();
+        for (const view of this.#sections.values()) {
+            view.destroy();
+            removeWithPresence(view.root);
+        }
+        this.#sections.clear();
+        this.#scrollTop = 0;
+    }
+
+    #renderComposer(modalRoot: HTMLElement, hasSections: boolean): void {
+        const composer = requireComposerElement(this.#dependencies.host, modalRoot);
+        const selection = this.#dependencies.selection;
+        toggleHidden(composer, selection.composer.type === 'closed');
+        const markup = selection.render({ modalId: this.#dependencies.modalId, hasSections, isBusy: (deviceId) => this.#dependencies.isDeviceBusy(deviceId), hasHistory: (deviceId) => this.#dependencies.state.hasHistory(deviceId) });
+        if (markup.html === this.#composerMarkup) {
+            return;
+        }
+        const hadFocus = composer.contains(composer.ownerDocument.activeElement);
+        this.#composerMarkup = markup.html;
+        this.#dependencies.host.setHTML(composer, markup);
+        if (hadFocus) {
+            resolveComposerFocusTarget(composer)?.focus({ preventScroll: true });
+        }
+    }
+
+    #syncSections(modalRoot: HTMLElement): void {
+        const list = requireRunList(this.#dependencies.host, modalRoot);
+        const entries = this.#dependencies.state.entries();
+        const current = new Set(entries.map((entry) => entry.sectionId));
+        for (const [sectionId, view] of this.#sections) {
+            if (!current.has(sectionId)) {
+                view.destroy();
+                this.#sections.delete(sectionId);
+                removeWithPresence(view.root);
             }
-        });
-        this.#progress.reporter.update(RUN_PROGRESS_KEY, {
-            message: progressMessageForRun(inputArguments.run, inputArguments.cancelRequested),
-            details: progressDetailsForRun(inputArguments.run),
-            progress: progressPercentForRun(inputArguments.run),
-            state: inputArguments.cancelRequested ? 'pending' : 'downloading',
-            cancelable: Boolean(inputArguments.run?.runId || inputArguments.runId) && !inputArguments.cancelRequested
-        });
-    }
-
-    renderReport(inputArguments: SoAIBenchRunRenderRequest): void {
-        this.destroyProgress();
-        const modalRoot = this.#modalRoot();
-        this.#host.setHTML(requireRunBody(this.#host, modalRoot), renderRunReport({ request: inputArguments.request, run: inputArguments.run, cancelRequested: false, terminalReason: inputArguments.terminalReason }));
-        this.#setFooterButton('retry', false);
-        setHistoryButtonState(this.#host, modalRoot, { visible: inputArguments.historyAvailable, disabled: false });
-        setExportButtonState(this.#host, modalRoot, isExportableRun(inputArguments.run));
-        setPublicationButtonState(this.#host, modalRoot, inputArguments.run?.publicationEligible === true);
-    }
-
-    setHistoryAvailable(available: boolean): void {
-        setHistoryButtonState(this.#host, this.#modalRoot(), { visible: available, disabled: false });
-    }
-
-    destroyProgress(): void {
-        this.#progress.reporter?.destroy();
-        this.#progress.reporter = null;
+        }
+        for (const entry of entries) {
+            const context = { historyAvailable: this.#dependencies.state.hasHistory(entry.request.deviceId), publishing: this.#dependencies.resultActions.isPublishing(entry.runId), freshness: this.#dependencies.state.freshness };
+            const existing = this.#sections.get(entry.sectionId);
+            if (existing !== undefined) {
+                existing.render(entry, context);
+                continue;
+            }
+            const view = new SoAIBenchRunSectionView(this.#dependencies.host, entry);
+            view.render(entry, context);
+            this.#sections.set(entry.sectionId, view);
+            insertWithPresence(list, view.root, null);
+        }
     }
 
     #modalRoot(): HTMLElement {
-        return this.#host.modals.requireElement(this.#modalId);
-    }
-
-    #setFooterButton(mode: SoAIBenchRunFooterActionMode, disabled: boolean): void {
-        const modalRoot = this.#modalRoot();
-        const label = mode === 'start' ? i18n.t('hardware.modals.soaibenchRun.start') : mode === 'retry' ? i18n.t('hardware.modals.soaibenchRun.retry') : mode === 'stop' ? i18n.t('hardware.modals.soaibenchRun.stop') : i18n.t('hardware.modals.soaibenchRun.stopping');
-        const ariaLabel = mode === 'start' ? i18n.t('hardware.modals.soaibenchRun.ariaLabels.start') : mode === 'retry' ? i18n.t('hardware.modals.soaibenchRun.ariaLabels.retry') : mode === 'stop' ? i18n.t('hardware.modals.soaibenchRun.ariaLabels.stop') : i18n.t('hardware.modals.soaibenchRun.ariaLabels.stopping');
-        setStartButtonState(this.#host, modalRoot, { hidden: false, disabled, mode, label, ariaLabel });
+        return this.#dependencies.host.modals.requireElement(this.#dependencies.modalId);
     }
 }
 
 export { SoAIBenchRunModalRenderer };
-export type { SoAIBenchRunRenderRequest, SoAiBenchRunRendererDependencies };

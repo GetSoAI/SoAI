@@ -61,6 +61,7 @@ class PromptsPageRuntime implements PromptsRuntimeContext {
     readonly collectionLifecycle: CollectionPageLifecycle;
     readonly #collectionBehavior: CollectionCompositionBehavior;
     #controlsHydrated = false;
+    #draftProjectionReady = false;
 
     constructor({ owners }: PromptsPageRuntimeOptions) {
         this.state = new PromptsPageSession();
@@ -154,6 +155,7 @@ class PromptsPageRuntime implements PromptsRuntimeContext {
         };
         ensureDataAdapter(this);
         this.state.cardController = createPromptsCardController(this, (item: ResourceIncomingValue) => normalizeCollectionPromptId(item));
+        this.#draftProjectionReady = true;
     }
 
     getCollectionViewOverrides(): Partial<CollectionConfigurationOptions> {
@@ -165,6 +167,7 @@ class PromptsPageRuntime implements PromptsRuntimeContext {
             defineLayout: () => {
                 this.#hydrateControls();
                 const config = buildPromptsLayoutConfig({
+                    viewMode: this.state.viewMode,
                     getIconSync: (iconName, options) => this.owners.services.getIconSync(iconName, options),
                     sortBy: this.controls.getSortBy() ?? 'none',
                     sortOrder: this.controls.getSortOrder() ?? 'asc',
@@ -174,7 +177,10 @@ class PromptsPageRuntime implements PromptsRuntimeContext {
                 if (!isPlainObject(built)) throw new Error('Prompts layout builder returned invalid output');
                 return built;
             },
-            onSnapshot: (snapshot: ResourceSnapshot) => toJsonCompatibleValue(snapshot),
+            onSnapshot: (snapshot: ResourceSnapshot) => {
+                this.#preserveActiveDraft(snapshot);
+                return toJsonCompatibleValue(snapshot);
+            },
             preparePresentation: (context) =>
                 preparePromptPresentation(
                     this,
@@ -192,6 +198,7 @@ class PromptsPageRuntime implements PromptsRuntimeContext {
             getItemSearchFields: (item) => getPromptItemSearchFields(item),
             applyCustomFilters: () => applyPromptCustomFilters(),
             getSortValue: (item, field) => getPromptsListSortValue(item, field, this.components.colorToolkit),
+            isPriorityItem: (item) => this.state.draftPromptId !== null && item.id === this.state.draftPromptId,
             isValidItem: defaultCollectionDataBehavior.isValidItem,
             normalizeItem: (prompt) => normalizeCollectionPrompt(prompt),
             getItemCardId: (item) => getDefaultCollectionItemCardId(item),
@@ -211,6 +218,21 @@ class PromptsPageRuntime implements PromptsRuntimeContext {
         const target = event.target;
         if (!(target instanceof HTMLSelectElement)) throw new TypeError('Prompts sort change requires an HTMLSelectElement');
         applyPromptsSortSelection(this, consumeRepeatableDropdownSelection(target));
+    }
+
+    #preserveActiveDraft(snapshot: ResourceSnapshot): void {
+        const draftId = this.state.draftPromptId;
+        const editingDraft = this.state.editingDraft;
+        if (!this.#draftProjectionReady || !draftId || !editingDraft || editingDraft.promptId !== draftId) return;
+        if (snapshot.items.some((item) => item.id === draftId)) return;
+        this.operations.upsertItem({
+            id: draftId,
+            name: editingDraft.name,
+            content: editingDraft.content,
+            color: editingDraft.color,
+            createdAtMs: editingDraft.createdAtMs,
+            modifiedAtMs: editingDraft.modifiedAtMs
+        });
     }
 }
 

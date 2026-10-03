@@ -3,10 +3,12 @@ param(
     [Parameter(Mandatory=$true)][string]$InstallRoot,
     [string]$BackupRoot,
     [string]$CandidateManifestPath,
+    [string]$ControlLauncherPath = '',
     [Parameter(Mandatory=$true)][ValidateSet('Backup','Restore','Cleanup','Inventory')][string]$Mode
 )
 
 $ErrorActionPreference = 'Stop'
+trap { if ($env:SOAI_INSTALLER_FAILURE_PATH) { try { [IO.File]::WriteAllText($env:SOAI_INSTALLER_FAILURE_PATH, (($_.Exception.Message -replace '\s+', ' ').Trim()), [Text.Encoding]::Unicode) } catch { } }; break }
 
 function Resolve-FullPath {
     param([Parameter(Mandatory=$true)][string]$Path)
@@ -156,6 +158,7 @@ $runtimeRollbackDirectories = @(
     'installer-support\logs'
 )
 $runtimeRollbackFiles = @(
+    'soai.exe.config',
     'data\state\windows-install.json',
     'msvcp140.dll',
     'msvcp140_1.dll',
@@ -255,7 +258,7 @@ if ($Mode -eq 'Restore') {
         }
     }
     if (![string]::IsNullOrWhiteSpace($CandidateManifestPath)) {
-        & (Join-Path $PSScriptRoot 'Remove-SoAI.ps1') -InstallRoot $resolvedInstallRoot -Mode Upgrade -ManifestPath $CandidateManifestPath
+        & (Join-Path $PSScriptRoot 'Remove-SoAI.ps1') -InstallRoot $resolvedInstallRoot -Mode Upgrade -ManifestPath $CandidateManifestPath -ControlLauncherPath $ControlLauncherPath -InstallerRollback
         if (!$?) {
             throw 'The candidate files could not be removed; retained originals were not copied.'
         }

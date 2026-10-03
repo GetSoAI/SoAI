@@ -7,6 +7,7 @@ import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { MetricsPageControlState } from '@core/storage/types.ts';
 import { isFiniteNumber, isFunction, isObject } from '@core/typeGuards.ts';
 import { normalizeStoredSortState } from '@core/ui/tables/sortableTable.ts';
+import { normalizeChartTypeToken } from '@features/charts/public.ts';
 import { API_KEY_USAGE_SORT_COLUMNS, API_KEY_USAGE_SORT_DEFAULT_DIRECTIONS, FRONTEND_TELEMETRY_SORT_COLUMNS, FRONTEND_TELEMETRY_SORT_DEFAULT_DIRECTIONS, MODEL_TABLE_SORT_COLUMNS, MODEL_TABLE_SORT_DEFAULT_DIRECTIONS, PLUGIN_HEALTH_SORT_COLUMNS, PLUGIN_HEALTH_SORT_DEFAULT_DIRECTIONS, SYSTEM_STATS_SORT_COLUMNS, SYSTEM_STATS_SORT_DEFAULT_DIRECTIONS } from '@pages/metrics/widgets/MetricsSortDefinitionsWidget.ts';
 
 interface MetricsPageControlsStorageCandidate {
@@ -59,7 +60,7 @@ const readMetricsPageControls = (storage: MetricsPageControlsStorage): MetricsPa
 
 const applyMetricsPageControls = (host: MetricsPageControlHost): void => {
     const state = readMetricsPageControls(host.storage);
-    host.currentChartType = state.chartType || 'area';
+    host.currentChartType = normalizeChartTypeToken(state.chartType) ?? 'area';
     host.currentMetricType = state.subcategory || 'requests';
     host.timeRange = positiveIntegerOrFallback(state.timeRange, 120);
     host.candlestickIntervalMinutes = positiveIntegerOrFallback(state.candleInterval, 1);

@@ -17,7 +17,7 @@ const renderNewsListItem = (host: ChatMessageRenderHost, article: NewsArticlePay
     const title = host.escapeHtml(article.title);
     const source = host.escapeHtml(formatNewsSourceLabel(article.source));
     const dayLabel = host.escapeHtml(formatPublishedDayLabel(article.published));
-    return [`<label class="assistant-news-widget__item" for="${host.escapeAttribute(radioId)}">`, `<span class="assistant-news-widget__item-index">${ordinal}</span>`, `<span class="assistant-news-widget__item-title">${title}</span>`, `<span class="assistant-news-widget__item-meta">${source} &middot; ${dayLabel}</span>`, '</label>'].join('');
+    return [`<label class="assistant-news-widget__item" for="${host.escapeAttribute(radioId)}">`, `<span class="assistant-news-widget__item-index">${ordinal}</span>`, `<span dir="auto" class="assistant-news-widget__item-title">${title}</span>`, `<span class="assistant-news-widget__item-meta">${source} &middot; ${dayLabel}</span>`, '</label>'].join('');
 };
 
 const renderNewsScope = (host: ChatMessageRenderHost, payload: ToolResultNewsPayload): string => {
@@ -32,7 +32,7 @@ const renderNewsHeader = (host: ChatMessageRenderHost, payload: ToolResultNewsPa
     const label = host.escapeHtml(i18n.t('chat.news.label'));
     const query = host.escapeHtml(payload.query);
     const scope = renderNewsScope(host, payload);
-    return ['<header class="assistant-news-widget__header">', '<span class="assistant-news-widget__title">', `<span class="assistant-news-widget__title-icon">${headerIcon}</span>`, `<span class="assistant-news-widget__label">${label}</span>`, `<span class="assistant-news-widget__query">${query}</span>`, '</span>', `<span class="assistant-news-widget__scope">${scope}</span>`, '</header>'].join('');
+    return ['<header class="assistant-news-widget__header">', '<span dir="auto" class="assistant-news-widget__title">', `<span class="assistant-news-widget__title-icon">${headerIcon}</span>`, `<span class="assistant-news-widget__label">${label}</span>`, `<span class="assistant-news-widget__query">${query}</span>`, '</span>', `<span class="assistant-news-widget__scope">${scope}</span>`, '</header>'].join('');
 };
 
 const renderNewsWidget = (host: ChatMessageRenderHost, payload: ToolResultNewsPayload, callId: string, startedAtMs: number | undefined): string => {

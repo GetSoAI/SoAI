@@ -31,6 +31,7 @@ interface StorageService {
     clearRedirectAfterLogin: () => void;
     isWizardCompletionPending: () => boolean;
     isWizardCompleted: () => boolean;
+    isAiSetupResumable: () => boolean;
     getDefaultPage: () => string | null;
 }
 

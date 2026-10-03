@@ -102,10 +102,6 @@ const readThemeStyleColor = (themeStyles: ThemeStyles | null, key: ThemeColorKey
             return themeStyles.background;
         case 'plotBackground':
             return themeStyles.plotBackground;
-        case 'tooltipBackground':
-            return themeStyles.tooltipBackground;
-        case 'tooltipTextColor':
-            return themeStyles.tooltipTextColor;
         case 'legendBackground':
             return themeStyles.legendBackground;
         case 'legendTextColor':

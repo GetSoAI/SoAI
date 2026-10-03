@@ -46,13 +46,6 @@ class VoiceCallAssistantStatusController {
             this.#uiState.setStatus('assistantThinking', null);
         }
     }
-
-    handlePlaybackError(): void {
-        if (!this.#isActive() || this.#isPaused()) {
-            return;
-        }
-        this.reconcile();
-    }
 }
 
 export { VoiceCallAssistantStatusController };

@@ -4,9 +4,8 @@
 import { isLocalModelCatalogEntry, type LocalModelCatalogEntry, type ModelCatalogEntry, type ModelCatalogResponse } from '@core/api/contracts/modelCatalogContracts.ts';
 import { intersectSupportedReasoningLevels, parseSupportedReasoningLevels, type ReasoningEffortLevel } from '@core/chat/parameters/reasoningEffort.ts';
 import { getCurrentLocale } from '@core/languageservice/service.ts';
-import { isChatSelectableModel } from '@core/models/chatModelAvailability.ts';
+import { resolveChatExecutionEligibility } from '@core/models/chatExecutionEligibility.ts';
 import { resolveModelDisplayName, resolveOpenAiEndpointModelId } from '@core/models/modelIdentity.ts';
-import { supportsOpenAIEndpointForEntry } from '@core/openai/capabilityChecks.ts';
 import { cloneJsonObject } from '@core/primitives/clone.ts';
 import { deepEqual } from '@core/primitives/equality.ts';
 import type { ModelData } from '@core/types/modelTypes.ts';
@@ -60,15 +59,6 @@ const toModelData = (entry: ModelCatalogEntry): ModelData => {
     };
 };
 
-const isEligibleCandidate = (entry: ModelCatalogEntry, model: ModelData): boolean => {
-    if (!isLocalModelCatalogEntry(entry)) {
-        if (!entry.isEnabled) return false;
-    } else if (entry.status.toLowerCase() !== 'active' || !entry.isEnabled || entry.isOrphaned) {
-        return false;
-    }
-    return isChatSelectableModel(model) && supportsOpenAIEndpointForEntry(model, 'chat_completions');
-};
-
 const resolveEntryReasoningLevels = (entry: ModelCatalogEntry, localModelsByUniversalId: LocalModelsByUniversalId): readonly ReasoningEffortLevel[] | null => {
     if (isLocalModelCatalogEntry(entry)) return parseSupportedReasoningLevels(entry.openaiCapabilities);
     const constituentIds = [...new Set(entry.models.map((constituent) => constituent.universalId))];
@@ -91,7 +81,7 @@ const createCandidate = (entry: ModelCatalogEntry, localModelsByUniversalId: Loc
         entry,
         executionId,
         displayName: resolveModelDisplayName(model) || executionId,
-        selectable: isEligibleCandidate(entry, model),
+        selectable: resolveChatExecutionEligibility(entry).eligible,
         supportedReasoningLevels: resolveEntryReasoningLevels(entry, localModelsByUniversalId)
     };
 };

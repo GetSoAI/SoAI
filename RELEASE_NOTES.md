@@ -1,5 +1,72 @@
 # SoAI Release Notes
 
+## 1.3.0
+
+SoAI 1.3.0 adds a guided setup that gets a first model running, push-to-talk and a sketch pad in Chat, right-to-left layouts for Arabic and Persian, QR pairing for the SoAI Connect app, and built-in wallpapers. It also lowers idle CPU use, makes downloads and in-app updates more dependable, and moves the llama.cpp and embedding plugins to llama.cpp v0.5.0.
+
+### Highlights
+
+- First-run setup now continues after account creation and helps you get a model working. You choose whether models run on this device, through a cloud provider, or both, and SoAI can install a suitable local engine, suggest models that fit your hardware with their download size and expected speed, connect a provider from its API URL and key, and send a short test message before opening Chat. Downloads and installations keep running in the background if you move on early, and a Finish SoAI setup link brings you back to any step that still needs attention.
+- Chat supports push-to-talk. Hold the microphone button to record, release it to send, or slide left to cancel. SoAI transcribes the recording and sends it, unless the draft or the selected model changed while it was transcribing, in which case the transcript stays in the composer for you to review. Holding the token counter opens Parameters at the context length setting, and holding the configuration or Tools button opens Presets or Tools settings.
+- Chat can show a Sketch input action, which you turn on under Chat configuration > Appearance > Input actions. Draw with a mouse, pen, or finger using brushes, shapes, colors, and undo/redo, then attach the drawing as an image. Vision models receive the image, and other models can use the existing OCR path.
+- Arabic and Persian now use a mirrored right-to-left layout throughout the WebUI, while code, file paths, and logs stay left-to-right.
+- Settings > Connect shows a QR code and the reachable server addresses for pairing the SoAI Connect Android app, version 1.0.3 or later, so you no longer need to type the server address. The phone must be able to reach the chosen address on the same network or through a VPN.
+- The WebUI uses less CPU while idle. With all Dashboard widgets enabled, idle CPU use on the Dashboard is about 55% lower than in 1.2.1, and about 30 to 35% lower on the Metrics and Hardware pages. Pages also render faster on a cold load, and the server spends less time scanning plugin worker processes, which could delay realtime updates on busy systems.
+
+### Improvements
+
+- The empty chat composer and the conversation header can fold away while you read earlier messages. Both settings are under Chat configuration > Appearance and are enabled by default. The composer returns when you scroll down, type, or need to answer an assistant prompt, and a running response keeps its Stop button visible.
+- Opening Chat without choosing a conversation reopens the one you last had open, at the same scroll position, or the most recent conversation if that one no longer exists.
+- When the Chat sidebar is collapsed, resting the mouse on its toggle button opens it over the conversation without resizing the page, and it closes again shortly after the pointer leaves. The main WebUI navigation sidebar opens the same way from its menu button.
+- In Plan mode, the assistant's system prompt now has models deliver the finished plan through the plan tool with only a brief summary in chat, so the plan appears in the conversation's plan view where you can review and approve it. Models no longer offer to carry out the plan themselves and instead ask you to switch to Execute mode.
+- Context compaction first asks the model for its summary with reasoning turned off, so thinking models compact conversations faster. If that attempt fails or returns nothing, SoAI retries once with the model's normal reasoning.
+- Collapsed subagent activity shows the latest live child activity during longer runs. Activity details no longer repeat the subagent's final text, and streamed tool activity follows the order in which it was produced.
+- The model detail page has been redesigned. Parameters are grouped in a category rail that can also show only customized settings or unsaved changes, each unsaved change can be reverted on its own, and backend defaults appear as placeholders. The Overview tab shows status in its own column next to the model details, inference defaults, and capabilities.
+- The Automation editor shows when an automation will next run, in its time zone and in yours, and explains when a clock change moves or repeats a scheduled time. It checks that the selected model is installed, enabled, and supports chat before saving, and warns when the automation was changed elsewhere while you were editing it, letting you keep your changes or load the latest version. Skipping, stopping, or removing an occurrence now asks for confirmation, the calendar and side pane can be resized, and the page marks its data as out of date when it cannot refresh.
+- On the Hardware page, SoAIBench can ask which GPU to benchmark when several are available, and a runs panel makes completed runs easier to find. Benchmarks keep running when you close their window, which shows every run from the current visit with its own progress and report. When the same GPU appears on several OpenCL platforms, SoAIBench prefers the vendor's own platform, and score sharing shows a clearer confirmation with a link to the published result.
+- Metrics can chart historical effective token throughput. Metrics and Hardware history charts load older samples as you pan and zoom, switch to a finer or coarser resolution as you zoom, keep the visible time range steady while earlier data arrives, and label periods when SoAI was offline.
+- Resetting Metrics now clears stored metrics history along with live and in-memory metrics, and reconnecting views reconcile with the cleared history.
+- Settings > Theme includes 10 built-in wallpapers in a carousel. Wallpapers and solid background colors apply immediately, and the WebUI waits for the selected wallpaper before showing the page. Buttons, menus, and panels use flatter surfaces without the previous reflection effect.
+- Plugin controls show the backend operation state, and enable and disable notifications include the plugin name.
+- On Windows, the launcher window follows the WebUI theme and interface scale and shows the WebUI startup screen while SoAI starts.
+- The Updates page shows the notes for every published release between the installed and latest versions, renders their formatting, and identifies incomplete note history. During a self-update it shows preparation, download, verification, staging, and handoff progress when available.
+- Windows in-app updates no longer depend on the desktop window staying open. A small update window stays on screen while the installer replaces SoAI and closes when the updated version opens. If the updater fails unexpectedly, it writes the error to `application_updater.stderr.log` in the SoAI logs folder and restarts the previous version.
+- After an update, the WebUI reloads without stale cached files and each user sees once whether SoAI moved to the new version or kept the previous one. Browser tabs that stayed open during the update offer to reload.
+- Model, backend, and update downloads retry temporary connection and server failures with bounded waits. Resumed transfers check that the retained bytes belong to the same file, and cancelling waits for active file writes to finish before freeing their storage. Network installers also retry temporary download failures, and Windows keeps a diagnostic record for each attempt.
+- Model download progress reaches completion only once the model is ready, Ollama pulls require confirmed completion, and cTranslate2 converts models in a staging directory so an existing model stays intact.
+- Long upload filenames keep their display names while the stored and temporary names fit the destination filesystem. Cancelling an upload waits for active file work, and if the database result is lost, the uploaded file is kept until SoAI can confirm whether the upload was accepted.
+- The Windows installer has been improved and updated.
+- Windows setup and complete-archive installation enable long-path support before preparing Python and preserve quoted installation arguments. Unsafe folders, conflicting launcher configuration, and unfinished update recovery are rejected before an existing installation is replaced.
+- Startup and readiness waits allow more time on slow machines. The database writer, RAG startup, and document parsing have longer defaults, and a saved configuration that still uses the previous default values is upgraded once while other saved values stay unchanged.
+- Updated Python dependencies: `python-dotenv` 1.2.3, `tinytag` 2.3.2, and `tqdm` 4.70.1.
+
+### Fixes
+
+- Streamed responses route provider errors to the correct operation and no longer repeat echoed prompt text at the start of the reply.
+- OpenAI-compatible streams that request `stream_options.include_usage` now receive a single usage chunk before the end of the stream instead of usage reported twice.
+- Saving several selected chat MCP tools at once keeps the full selection. Saved tools and servers that are currently unavailable are listed and kept rather than dropped from the selection.
+- If your saved memory profile cannot be loaded, SoAI pauses saving so the stored profile is not overwritten. A voice call that fails now stops and explains why.
+- Large file uploads no longer fail on a fixed overall time limit while data is still arriving.
+- On slow or unreliable connections, the WebUI waits up to 90 seconds instead of 30 for the server, and a temporary network failure no longer discards the saved server address or your session. If startup or permission loading fails, the page shows a translated message with a Reload button.
+- Compacting a conversation manually keeps the existing history when the summary would not be smaller, and reports that nothing was compacted. When compaction fails, the error now shows the actual cause, such as a model that is not loaded.
+- Editing and saving prompts on the Prompts page, scrolling in the first-run wizard and in cloned conversations, and conversation PDF export work correctly again. Browser automation recovers more reliably from driver disconnects and shutdown races.
+- Stopping a SoAIBench run also stops its child process. History tables keep existing rows visible while a GPU's runs reload, update individual rows in place, and ask for confirmation before deleting an eligible local run.
+- On Windows, the Dashboard and Hardware pages list the network adapters that Windows shows, including disconnected and virtual adapters, and no longer include hidden ones. Hardware widgets keep their selected metrics when device ordering changes.
+- Stop all in the header cancels queued requests before stopping plugins and cannot be started twice while it runs.
+- Secret fields in desktop Microsoft Edge, including the Windows launcher, no longer show two reveal buttons. Background gradients no longer show banding in Firefox, and the update confirmation button uses the correct color.
+- On Linux and macOS, SoAI keeps writing to its terminal and to the service logs after an in-place restart.
+- The macOS network installer and service installation work with the system's Bash 3.2.
+- Uninstalling SoAI on Windows waits for SoAI's own runtime processes to exit before removing files, and stops without removing anything if they are still running after 60 seconds.
+
+### Plugin updates
+
+- The llama.cpp and embedding plugins now install the llama.cpp v0.5.0 server release (build b11146).
+
+### Upgrade notes
+
+- The updated llama.cpp, embedding, vLLM, cTranslate2, and Ollama plugins require SoAI 1.3.0 or later, so update SoAI before installing these plugin versions. To replace an existing cTranslate2 model, delete it before starting the new download.
+- On Windows, install this release with the setup program if SoAI 1.2.1 or earlier is installed. An in-app update started from those versions can stop before the installation begins; later in-app updates use the corrected process.
+
 ## 1.2.1
 
 SoAI 1.2.1 improves installation and startup reliability after the 1.2.0 release, especially on slower machines and systems with older graphics drivers.

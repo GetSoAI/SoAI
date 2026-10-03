@@ -1,9 +1,12 @@
 /* SoAI - Chat page model control render controller [frontend/assets/ts/pages/chat/controllers/chatmodelcontrol/ChatModelControlRenderController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
+import { readScrollInlineStart, scrollToInlineStart } from '@core/layout/direction.ts';
+import { PRESENCE_EXITING_SELECTOR } from '@core/animations/presence/public.ts';
 import { parseSingleRootElement } from '@core/dom/parseSingleRootElement.ts';
 import { dom } from '@core/dom/dom.ts';
+import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
+import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import type { SanitizerApi } from '@core/pagecontext/public.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { ModelData } from '@core/types/modelTypes.ts';
@@ -14,11 +17,12 @@ import { normalizeConversationId, type Conversation } from '@features/chat/publi
 import { resolveConversationAuthorityLock, type ConversationAuthorityLock } from '@core/chat/conversationAuthorityLock.ts';
 import { renderChatModelControlMarkup, type ModelControlMenuOpenState, type ModelControlScope } from '@pages/chat/controllers/chatmodelcontrol/ChatModelControlWidget.ts';
 import { normalizeChatModelId, type EffectiveModels } from '@pages/chat/controllers/chatmodelcontrol/chatModelControlStateManager.ts';
-import { CHAT_MODEL_CONTROL_SELECTOR, CHAT_MODEL_MENU_SELECTOR, CHAT_MODEL_OPEN_MENU_SELECTOR, CHAT_MODEL_OPEN_TRIGGER_SELECTOR, requireChatModelControlScopeFromRoot } from '@pages/chat/controllers/chatmodelcontrol/chatModelControlDomController.ts';
+import { CHAT_MODEL_CONTROL_SELECTOR, CHAT_MODEL_MENU_SELECTOR, CHAT_MODEL_OPEN_MENU_SELECTOR, CHAT_MODEL_OPEN_TRIGGER_SELECTOR, CHAT_MODEL_SLOTS_SELECTOR, requireChatModelControlScopeFromRoot } from '@pages/chat/controllers/chatmodelcontrol/chatModelControlDomController.ts';
 import { applyChatModelMenuSearchFilter, captureChatModelMenuSearchInputState, restoreChatModelMenuSearchInputState } from '@pages/chat/controllers/chatmodelcontrol/ChatModelControlMenuSearchWidget.ts';
+import { reconcileChatModelControl } from '@pages/chat/controllers/chatmodelcontrol/chatModelControlReconcileController.ts';
+import { openChatModelMenuLayout } from '@pages/chat/controllers/chatmodelcontrol/chatModelMenuLayoutController.ts';
 
 const CHAT_INPUT_WRAPPER_SELECTOR = '.chat-input-wrapper';
-const CHAT_MODEL_MENU_MAX_HEIGHT_PROPERTY = '--chat-model-menu-max-height';
 
 interface ChatModelControlRenderHost extends PageDomOwnerHost {
     pageContext: { sanitizer: SanitizerApi };
@@ -44,6 +48,7 @@ type ChatModelControlRenderState = {
 
 class ChatModelControlRenderController {
     readonly #host: ChatModelControlRenderHost;
+    #menuLayout: { menu: HTMLElement; dispose: () => void } | null = null;
 
     constructor(host: ChatModelControlRenderHost) {
         this.#host = host;
@@ -59,6 +64,7 @@ class ChatModelControlRenderController {
 
     renderOpenMenuState(openMenu: ModelControlMenuOpenState, menuSearchQuery: string): ModelControlMenuOpenState {
         const state = this.#resolveRenderState(openMenu, menuSearchQuery);
+        this.#releaseMenuLayout();
         for (const root of this.#queryRoots()) {
             const scope = requireChatModelControlScopeFromRoot(root);
             this.#closeRootMenu(root);
@@ -69,8 +75,40 @@ class ChatModelControlRenderController {
         return state.nextOpenMenu;
     }
 
+    isScopeAtInlineEnd(scope: ModelControlScope): boolean {
+        return this.#queryScopeSlots(scope).some((slots) => Math.max(0, slots.scrollWidth - slots.clientWidth) - readScrollInlineStart(slots) <= 1);
+    }
+
+    scrollScopeToInlineEnd(scope: ModelControlScope): void {
+        for (const slots of this.#queryScopeSlots(scope)) {
+            const animations = Array.from(slots.children).flatMap((slot) => slot.getAnimations());
+            const scrollToEnd = (): void => {
+                if (!slots.isConnected) return;
+                const maximumScroll = Math.max(0, slots.scrollWidth - slots.clientWidth);
+                if (maximumScroll > 0) scrollToInlineStart(slots, maximumScroll, 'smooth');
+            };
+            if (animations.length === 0) scrollToEnd();
+            else
+                terminateHandledPromise(
+                    Promise.allSettled(animations.map((animation) => animation.finished)).then((results) => {
+                        if (results.every((result) => result.status === 'fulfilled')) scrollToEnd();
+                    })
+                );
+        }
+    }
+
     #queryRoots(): HTMLElement[] {
         return this.#host.resolveChatModelControlRoots();
+    }
+
+    #queryScopeSlots(scope: ModelControlScope): HTMLElement[] {
+        return this.#queryRoots()
+            .filter((root) => requireChatModelControlScopeFromRoot(root) === scope)
+            .map((root) => {
+                const slots = dom.resolve(CHAT_MODEL_SLOTS_SELECTOR, root);
+                if (!(slots instanceof HTMLElement)) throw new Error('Chat model controls require rendered model slots');
+                return slots;
+            });
     }
 
     #resolveRenderState(openMenu: ModelControlMenuOpenState, menuSearchQuery: string): ChatModelControlRenderState {
@@ -93,8 +131,29 @@ class ChatModelControlRenderController {
         const scope = requireChatModelControlScopeFromRoot(root);
         const markup = this.#renderMarkup(scope, state);
         const searchInputState = captureChatModelMenuSearchInputState(root);
-        this.#host.pageDom.updateHtml(root, markup, { escape: false });
-        this.#syncOpenMenuHeight(root, state);
+        const currentControl = dom.resolve(CHAT_MODEL_CONTROL_SELECTOR, root);
+        const nextControl = parseSingleRootElement({ documentRef: root.ownerDocument, html: markup, context: root });
+        if (!(nextControl instanceof HTMLElement)) {
+            throw new Error('Chat model control render output requires a single HTMLElement root');
+        }
+        let needsMenuLayout = true;
+        if (currentControl instanceof HTMLElement) {
+            const currentMenu = dom.resolve(CHAT_MODEL_MENU_SELECTOR, currentControl);
+            const currentTrigger = state.nextOpenMenu === null ? null : this.#resolveTrigger(currentControl, state.nextOpenMenu.slotIndex);
+            reconcileChatModelControl(currentControl, nextControl);
+            const nextMenu = dom.resolve(CHAT_MODEL_MENU_SELECTOR, nextControl);
+            if (currentMenu instanceof HTMLElement && nextMenu instanceof HTMLElement) {
+                reconcileChildNodes(currentMenu, Array.from(nextMenu.childNodes));
+                needsMenuLayout = state.nextOpenMenu !== null && currentTrigger !== this.#resolveTrigger(currentControl, state.nextOpenMenu.slotIndex);
+                if (needsMenuLayout) this.#releaseMenuLayout();
+            } else {
+                if (currentMenu) this.#closeRootMenu(root);
+                if (nextMenu) dom.appendChild(currentControl, nextMenu);
+            }
+        } else {
+            this.#host.pageDom.updateHtml(root, markup, { escape: false });
+        }
+        if (needsMenuLayout) this.#syncOpenMenuLayout(root, state);
         this.#syncOpenMenuSearch(root, state);
         restoreChatModelMenuSearchInputState(root, searchInputState);
     }
@@ -118,6 +177,7 @@ class ChatModelControlRenderController {
     }
 
     #closeRootMenu(root: HTMLElement): void {
+        if (this.#menuLayout !== null && root.contains(this.#menuLayout.menu)) this.#releaseMenuLayout();
         for (const menu of dom.resolveAll(CHAT_MODEL_MENU_SELECTOR, root)) {
             dom.remove(menu);
         }
@@ -138,9 +198,7 @@ class ChatModelControlRenderController {
             context: root
         });
         if (this.#requiresStructureRender(currentControl, nextControl)) {
-            this.#host.pageDom.updateHtml(root, nextMarkup, { escape: false });
-            this.#syncOpenMenuHeight(root, state);
-            this.#syncOpenMenuSearch(root, state);
+            this.#renderRoot(root, state);
             return;
         }
         const nextMenu = nextControl ? dom.resolve(CHAT_MODEL_OPEN_MENU_SELECTOR, nextControl) : null;
@@ -150,11 +208,11 @@ class ChatModelControlRenderController {
         }
         dom.addClass(trigger, 'is-open');
         dom.appendChild(currentControl, nextMenu);
-        this.#syncMenuHeight(nextMenu, scope);
+        this.#openMenuLayout(nextMenu, trigger, scope);
         applyChatModelMenuSearchFilter(nextMenu, state.menuSearchQuery);
     }
 
-    #syncOpenMenuHeight(root: HTMLElement, state: ChatModelControlRenderState): void {
+    #syncOpenMenuLayout(root: HTMLElement, state: ChatModelControlRenderState): void {
         if (state.nextOpenMenu === null) {
             return;
         }
@@ -166,39 +224,27 @@ class ChatModelControlRenderController {
         if (!(menu instanceof HTMLElement)) {
             throw new Error('Chat model control menu height sync requires an open menu');
         }
-        this.#syncMenuHeight(menu, scope);
+        const trigger = this.#resolveTrigger(root, state.nextOpenMenu.slotIndex);
+        if (!trigger) throw new Error('Chat model control menu requires a matching trigger');
+        this.#openMenuLayout(menu, trigger, scope);
     }
 
-    #syncMenuHeight(menu: HTMLElement, scope: ModelControlScope): void {
+    #openMenuLayout(menu: HTMLElement, trigger: HTMLElement, scope: ModelControlScope): void {
+        let boundary: HTMLElement | null = null;
         if (scope === 'composer') {
-            const header = this.#host.pageDom.optionalHTMLElement('.chat-conversation-header');
-            if (!header) {
+            boundary = this.#host.pageDom.optionalHTMLElement('.chat-conversation-header');
+            if (!boundary) {
                 throw new Error('Composer model menu requires the conversation header boundary');
             }
-            const availableHeight = measureLayoutBox(menu).bottom - measureLayoutBox(header).bottom;
-            dom.setStyle(menu, CHAT_MODEL_MENU_MAX_HEIGHT_PROPERTY, `${String(Math.max(0, availableHeight))}px`);
-            return;
-        }
-        if (scope === 'empty-state') {
-            this.#syncMenuHeightToBoundary(menu, this.#resolveInputWrapper());
-            return;
-        }
-        if (scope === 'configuration') {
-            this.#syncMenuHeightToBoundary(menu, this.#host.resolveModelControlOverlayBoundary());
-            return;
-        }
-        dom.setStyle(menu, CHAT_MODEL_MENU_MAX_HEIGHT_PROPERTY, null);
+        } else if (scope === 'empty-state') boundary = this.#resolveInputWrapper();
+        else if (scope === 'configuration') boundary = this.#host.resolveModelControlOverlayBoundary();
+        this.#releaseMenuLayout();
+        this.#menuLayout = { menu, dispose: openChatModelMenuLayout(menu, trigger, scope, boundary) };
     }
 
-    #syncMenuHeightToBoundary(menu: HTMLElement, boundary: HTMLElement | null): void {
-        if (!boundary) {
-            dom.setStyle(menu, CHAT_MODEL_MENU_MAX_HEIGHT_PROPERTY, null);
-            return;
-        }
-        const menuRect = measureLayoutBox(menu);
-        const boundaryRect = measureLayoutBox(boundary);
-        const availableHeight = boundaryRect.bottom - menuRect.top;
-        dom.setStyle(menu, CHAT_MODEL_MENU_MAX_HEIGHT_PROPERTY, `${String(Math.max(0, availableHeight))}px`);
+    #releaseMenuLayout(): void {
+        this.#menuLayout?.dispose();
+        this.#menuLayout = null;
     }
 
     #syncOpenMenuSearch(root: HTMLElement, state: ChatModelControlRenderState): void {
@@ -230,7 +276,7 @@ class ChatModelControlRenderController {
 
     #resolveTrigger(control: HTMLElement, slotIndex: number): HTMLElement | null {
         const selector = `.chat-model-control-primary[data-slot-index="${String(slotIndex)}"], .chat-model-slot[data-slot-index="${String(slotIndex)}"]`;
-        const trigger = dom.resolve(selector, control);
+        const trigger = dom.resolveAll(selector, control).find((candidate) => candidate.closest(PRESENCE_EXITING_SELECTOR) === null);
         return trigger instanceof HTMLElement ? trigger : null;
     }
 

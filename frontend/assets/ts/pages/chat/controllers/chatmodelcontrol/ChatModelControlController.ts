@@ -144,6 +144,15 @@ export class ChatModelControlController {
         await this.#applyModels(next, null);
     }
 
+    async selectPrimaryModel(modelId: string): Promise<boolean> {
+        const model = this.#host.modelIndex.get(modelId);
+        if (!model || !isChatSelectableModel(model) || this.#host.isModelSelectionLocked()) {
+            return false;
+        }
+        await this.#applyModels({ primary: modelId, comparison: [] }, null);
+        return true;
+    }
+
     async #handleAddModel(actionElement: HTMLElement): Promise<void> {
         const host = this.#host;
         if (!host.hasSelectableModels()) {
@@ -168,6 +177,7 @@ export class ChatModelControlController {
         const nextModelId = resolveNextComparisonModelId({ models: host.models, primary, comparison: effective.comparison });
         const scope = this.#requireActionScope(actionElement);
         await this.#applyModels({ primary, comparison: [...effective.comparison, nextModelId] }, { scope, slotIndex: effectiveSlotCount });
+        this.#renderController.scrollScopeToInlineEnd(scope);
     }
 
     async #handleRemoveModel(actionElement: HTMLElement): Promise<void> {
@@ -178,25 +188,29 @@ export class ChatModelControlController {
             return;
         }
         const slotIndex = parseChatModelControlSlotIndex(actionElement);
-        this.#requireActionScope(actionElement);
+        const scope = this.#requireActionScope(actionElement);
         const effective = this.#host.resolveEffectiveModels();
         const primary = normalizeChatModelId(effective.primary);
         if (!primary) {
             return;
         }
+        let nextModels: EffectiveModels;
         if (slotIndex === 0) {
             const nextPrimary = normalizeChatModelId(effective.comparison[0] ?? null);
             if (!nextPrimary) {
                 return;
             }
-            await this.#applyModels({ primary: nextPrimary, comparison: effective.comparison.slice(1) }, null);
-            return;
+            nextModels = { primary: nextPrimary, comparison: effective.comparison.slice(1) };
+        } else {
+            const comparisonIndex = slotIndex - 1;
+            if (comparisonIndex < 0 || comparisonIndex >= effective.comparison.length) {
+                throw new Error('Chat model slot index is out of range');
+            }
+            nextModels = { primary, comparison: effective.comparison.filter((_modelId, index) => index !== comparisonIndex) };
         }
-        const comparisonIndex = slotIndex - 1;
-        if (comparisonIndex < 0 || comparisonIndex >= effective.comparison.length) {
-            throw new Error('Chat model slot index is out of range');
-        }
-        await this.#applyModels({ primary, comparison: effective.comparison.filter((_modelId, index) => index !== comparisonIndex) }, null);
+        const preserveInlineEnd = effective.comparison.length > 1 && this.#renderController.isScopeAtInlineEnd(scope);
+        await this.#applyModels(nextModels, null);
+        if (preserveInlineEnd) this.#renderController.scrollScopeToInlineEnd(scope);
     }
 
     async #applyModels(models: EffectiveModels, openMenu: ModelControlMenuOpenState): Promise<void> {

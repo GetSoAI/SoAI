@@ -3,7 +3,7 @@
 
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import { FILE_EXPLORER_BASE_PATH } from '@core/api/endpoints/fileExplorerPaths.ts';
-import { buildSignalRequestOptions, normalizeNonEmptyRequestStrings, requireNonEmptyRequestString } from '@core/api/requestOptions.ts';
+import { buildSignalRequestOptions, requireNonBlankRequestString, requireNonBlankRequestStrings } from '@core/api/requestOptions.ts';
 import { FILE_TRANSFER_REQUEST_TIMEOUT_MS } from '@core/api/fileTransferTimeout.ts';
 import { decodeBufferedFileResponse, decodeFileExplorerBatchMetadataResponse, decodeFileExplorerBatchResponse, decodeFileExplorerBatchUploadResponse, decodeFileExplorerListResponse, decodeFileExplorerMetadataResponse, decodeFileExplorerMoveMutationResponse, decodeFileExplorerPathMutationResponse, decodeFileExplorerReadResponse, decodeFileExplorerSearchResponse, decodeFileExplorerTaskAcceptedResponse, decodeFileExplorerUploadResponse, serializeFileExplorerBatchMoveRequest } from '@core/api/contracts/fileExplorerContracts.ts';
 import type { FileExplorerBatchMetadataResponse, FileExplorerBatchResponse, FileExplorerBatchUploadResponse, FileExplorerListResponse, FileExplorerMetadataResponse, FileExplorerMoveMutationResponse, FileExplorerPathMutationResponse, FileExplorerReadResponse, FileExplorerSearchResponse, FileExplorerTaskAcceptedResponse, FileExplorerUploadResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
@@ -33,9 +33,9 @@ interface FileExplorerSearchOptions extends FileExplorerRequestOptions {
     includeTotal?: boolean;
 }
 
-const requireNonEmpty = (value: string, field: string): string => requireNonEmptyRequestString(value, field, 'fileExplorer');
+const requireNonEmpty = (value: string, field: string): string => requireNonBlankRequestString(value, field, 'fileExplorer');
 
-const normalizePaths = (values: readonly string[], field: string): string[] => normalizeNonEmptyRequestStrings(values, field, 'fileExplorer');
+const normalizePaths = (values: readonly string[], field: string): string[] => requireNonBlankRequestStrings(values, field, 'fileExplorer');
 
 const requestOptions = (options: FileExplorerRequestOptions = {}): { signal?: AbortSignal } => buildSignalRequestOptions(options);
 
@@ -216,6 +216,7 @@ const createFileExplorerEndpoints = (
                     ...requestOptions(options),
                     headers: {},
                     timeoutMs: FILE_TRANSFER_REQUEST_TIMEOUT_MS,
+                    refreshTimeoutOnUploadProgress: true,
                     query: { path: destinationPath }
                 })
             );
@@ -238,6 +239,7 @@ const createFileExplorerEndpoints = (
                     ...requestOptions(options),
                     headers: {},
                     timeoutMs: FILE_TRANSFER_REQUEST_TIMEOUT_MS,
+                    refreshTimeoutOnUploadProgress: true,
                     query: { path: destinationPath }
                 })
             );

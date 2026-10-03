@@ -37,9 +37,9 @@ class McpAccessTokensManager {
         this.#reload = reload;
     }
 
-    async reload(): Promise<void> {
+    async reload(signal?: AbortSignal): Promise<void> {
         const host = this.#host;
-        const response = await host.services.api.webui.mcpAccessTokens.list();
+        const response = await host.services.api.webui.mcpAccessTokens.list({ signal });
         this.#tokens = response.tokens;
     }
 

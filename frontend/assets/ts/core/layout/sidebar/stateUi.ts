@@ -19,11 +19,22 @@ const handleSidebarResize = (state: SidebarState): void => {
         }
         state.open = false;
     }
+    if (isMobile) {
+        state.peeking = false;
+    }
     state.mobile = isMobile;
 };
 
+const isSidebarCollapsed = (state: SidebarState): boolean => {
+    return state.mobile ? !state.open : state.collapsed && !state.peeking;
+};
+
+const canSidebarHoverPeek = (state: SidebarState): boolean => {
+    return !state.mobile && state.collapsed && !state.peeking;
+};
+
 const updateSidebarStateUI = (state: SidebarState, domRefs: Map<string, HTMLElement | null>, versionController: SidebarVersionController, onMainStateIndicatorUpdate: () => void): void => {
-    const collapsed = state.mobile ? !state.open : state.collapsed;
+    const collapsed = isSidebarCollapsed(state);
     const sidebar = domRefs.get('sidebar');
     if (sidebar) {
         dom.toggleClass(sidebar, SIDEBAR_COLLAPSED_CLASS, collapsed);
@@ -52,7 +63,7 @@ const updateSidebarStateUI = (state: SidebarState, domRefs: Map<string, HTMLElem
     const menu = domRefs.get('menu');
     if (menu) {
         const hide = state.mobile && !state.open;
-        dom.setStyle(menu, STYLE_DISPLAY, hide ? 'none' : '');
+        dom.toggleClass(menu, 'u-hidden', hide);
         dom.setAttribute(menu, ARIA_HIDDEN_ATTR, String(hide));
     }
 
@@ -67,7 +78,7 @@ const resetSidebarBodyState = (): void => {
 };
 
 const isSidebarExpanded = (state: SidebarState): boolean => {
-    return state.mobile ? state.open : !state.collapsed;
+    return !isSidebarCollapsed(state);
 };
 
 const compactSidebarState = (state: SidebarState): boolean => {
@@ -78,12 +89,14 @@ const compactSidebarState = (state: SidebarState): boolean => {
         }
         return false;
     }
+    const wasPeeking = state.peeking;
+    state.peeking = false;
     if (!state.collapsed) {
         state.collapsed = true;
         state.lastDesktopCollapsed = true;
         return true;
     }
-    return false;
+    return wasPeeking;
 };
 
 const toggleSidebarState = (state: SidebarState): void => {
@@ -91,8 +104,20 @@ const toggleSidebarState = (state: SidebarState): void => {
         state.open = !state.open;
         return;
     }
+    state.peeking = false;
     state.collapsed = !state.collapsed;
     state.lastDesktopCollapsed = state.collapsed;
+};
+
+const setSidebarHoverPeekState = (state: SidebarState, peeking: boolean): boolean => {
+    if (peeking && !canSidebarHoverPeek(state)) {
+        return false;
+    }
+    if (state.peeking === peeking) {
+        return false;
+    }
+    state.peeking = peeking;
+    return true;
 };
 
 const closeSidebarMobile = (state: SidebarState): boolean => {
@@ -103,4 +128,4 @@ const closeSidebarMobile = (state: SidebarState): boolean => {
     return false;
 };
 
-export { closeSidebarMobile, compactSidebarState, handleSidebarResize, isSidebarExpanded, resetSidebarBodyState, toggleSidebarState, updateSidebarStateUI };
+export { canSidebarHoverPeek, closeSidebarMobile, compactSidebarState, handleSidebarResize, isSidebarCollapsed, isSidebarExpanded, resetSidebarBodyState, setSidebarHoverPeekState, toggleSidebarState, updateSidebarStateUI };

@@ -2,20 +2,18 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { getRequestAnimationFrame, getWindow } from '@core/environment/public.ts';
-import { signalAborted } from '@core/lifecycle/abortSignals.ts';
 import { MODELS, PROVIDERS } from '@core/realtime/streammanager/resources/ids.ts';
 import { serializeProviderSnapshotRequest } from '@core/plugins/pluginMutationContracts.ts';
 import { WEBSOCKET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/registry.ts';
 import { subscribeManagedWebSocketContract } from '@core/realtime/websocketBatchSubscription.ts';
 import type { EnsureCollectionStreamOptions } from '@core/routing/pages/pagetypes/public.ts';
-import { createDeferred } from '@core/runtime/deferred.ts';
 import { isJsonValue, type JsonValue } from '@core/types/jsonValues.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
 import { setAriaBusy } from '@core/ui/controls/ariaBusy.ts';
 import { requestWebSocketSnapshotArray } from '@core/websocketclient/snapshotPayload.ts';
 import { decodeProvidersResource } from '@core/realtime/streammanager/resources/resourceDecoders.ts';
 import { resolveOpenAIModalityDescriptor, resolveOpenAITokenDescriptor } from '@features/catalog/public.ts';
-import { EditModelModalManager, MODELS_DOWNLOAD_MODAL_ID, MODELS_EDIT_MODEL_MODAL_ID, MODELS_VIRTUAL_MODEL_EDIT_MODAL_ID, MODELS_VIRTUAL_MODELS_MODAL_ID, ProvidersManager, createDownloadModalController, type DownloadModalHost } from '@features/models/public.ts';
+import { EditModelModalManager, MODELS_DOWNLOAD_MODAL_ID, MODELS_EDIT_MODEL_MODAL_ID, MODELS_VIRTUAL_MODEL_EDIT_MODAL_ID, MODELS_VIRTUAL_MODELS_MODAL_ID, ProvidersManager, createDownloadModalController, type DownloadModalHost, type VariantProbeManager, waitForModelCatalogChange } from '@features/models/public.ts';
 import type { ModelsModalRuntimeDependencies } from '@pages/models/controllers/page/contracts.ts';
 import type { ModelPropertyInput } from '@pages/models/controllers/modelsModelProperties.ts';
 import { getPluginByName, isDownloadPluginOperational } from '@pages/models/controllers/page/effects.ts';
@@ -23,7 +21,6 @@ import { navigateToModelDetail } from '@pages/models/controllers/page/clickDispa
 import { createEditModelActionBridge } from '@pages/models/controllers/page/modalintegration/editModelActionsController.ts';
 import { createVirtualModelsManager } from '@pages/models/controllers/page/modalintegration/virtualModelsManager.ts';
 import type { ModelsModalManagerBundle } from '@pages/models/controllers/page/types.ts';
-import type { VariantProbeManager } from '@pages/models/controllers/variantprobemanager/service.ts';
 import { resolveModelStatusPresentation } from '@pages/models/rendering/cardrenderer/service.ts';
 
 const createModelsModalManagers = (
@@ -106,27 +103,7 @@ const createModelsModalManagers = (
             streams: infrastructure.streaming.pageTracker,
             variantProbe,
             getAvailablePlugins: () => session.availablePlugins,
-            waitForModelCatalogChange: (signal) => {
-                const completion = createDeferred<void>();
-                let settled = false;
-                let unsubscribe: (() => void) | null = null;
-                const finish = (): void => {
-                    if (settled) return;
-                    settled = true;
-                    signal.removeEventListener('abort', finish);
-                    const dispose = unsubscribe;
-                    unsubscribe = null;
-                    dispose?.();
-                    completion.resolve();
-                };
-                signal.addEventListener('abort', finish, { once: true });
-                if (signalAborted(signal)) {
-                    finish();
-                    return completion.promise;
-                }
-                unsubscribe = subscribeManagedWebSocketContract({ label: 'ModelsProviderDiscovery', contract: WEBSOCKET_EVENT_CONTRACTS.model.databaseChanged, handler: finish, signal });
-                return completion.promise;
-            },
+            waitForModelCatalogChange,
             refreshModelsAfterCatalogMutation: () => {
                 infrastructure.pageLifecycle.runDetached('models:refreshAfterDownloadModalMutation', async () => {
                     await infrastructure.streaming.runtime().resources.refresh(MODELS, { allowDiscovery: true, throwOnError: true });

@@ -40,6 +40,9 @@ class OpenAIStreamTranscript:
         result_format: Literal["chat", "completions"] = "chat",
         clock_ms: Callable[[], int] = monotonic_ms,
         collect_tool_calls: bool = True,
+        provider_id: str | None = None,
+        task_id: str | None = None,
+        trace_id: str | None = None,
     ) -> None:
         self._frame_accumulator = OpenAISSEFrameAccumulator()
         self._result_format: Literal["chat", "completions"] = result_format
@@ -47,6 +50,9 @@ class OpenAIStreamTranscript:
         self._usage: JSONDict | None = None
         self._metrics: JSONDict | None = None
         self._collect_tool_calls: bool = collect_tool_calls
+        self._provider_id = provider_id
+        self._task_id = task_id
+        self._trace_id = trace_id
         self._result_created_at: int | None = None
         self._result_id: str | None = None
         self._finalized = False
@@ -82,7 +88,13 @@ class OpenAIStreamTranscript:
     def _consume_frame(self, frame: str) -> None:
         parsed_error = parse_openai_sse_error_frame(frame)
         if parsed_error is not None:
-            raise_openai_streaming_error(parsed_error, operation=OPERATION_CONSUME_FRAME)
+            raise_openai_streaming_error(
+                parsed_error,
+                operation=OPERATION_CONSUME_FRAME,
+                provider_id=self._provider_id,
+                task_id=self._task_id,
+                trace_id=self._trace_id,
+            )
         for payload in parse_openai_sse_frame_payloads(frame):
             self._consume_payload(payload)
 

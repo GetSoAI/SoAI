@@ -14,6 +14,7 @@ interface ChatTemplateStringSet extends ChatParameterControlsStrings {
     exportAction: string;
     gotoPrompts: string;
     openCharacterMap: string;
+    openSketch: string;
     toggleTools: string;
     toggleFavorite: string;
     tokenCounterTooltip: string;
@@ -81,6 +82,10 @@ interface ChatTemplateStringSet extends ChatParameterControlsStrings {
     cancelCommon: string;
     widescreenMode: string;
     widescreenModeHint: string;
+    autoHideChatComposer: string;
+    autoHideChatComposerHint: string;
+    autoHideChatHeader: string;
+    autoHideChatHeaderHint: string;
     textZoom: string;
     textZoomSmall: string;
     textZoomNormal: string;
@@ -111,6 +116,8 @@ interface ChatTemplateStringSet extends ChatParameterControlsStrings {
     inputActionCameraHint: string;
     inputActionCharacterMap: string;
     inputActionCharacterMapHint: string;
+    inputActionSketch: string;
+    inputActionSketchHint: string;
     inputActionPrompts: string;
     inputActionPromptsHint: string;
     inputActionTokenCounter: string;

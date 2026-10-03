@@ -3,10 +3,9 @@
 
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isFirstRunModalPending, normalizeFirstRunModalStateMap } from '@core/firstrun/state.ts';
-import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { isFunction, isObject } from '@core/typeGuards.ts';
-import { ARIA_HIDDEN_ATTR, resolveHTMLElement } from '@core/layout/sidebar/dom.ts';
+import { syncSidebarLinkIndicator } from '@core/layout/sidebar/linkIndicator.ts';
 
 interface SidebarStoragePluginIndicatorContract {
     get?: ((key: string, defaultValue?: JsonValue) => JsonValue) | undefined;
@@ -26,24 +25,7 @@ class SidebarPluginIndicatorController {
     }
 
     updateIndicator(): void {
-        const link = this.#host.getPluginsLink();
-        const existing = link ? resolveHTMLElement('.sidebar-plugin-indicator', link) : null;
-        if (!this.#visible) {
-            if (existing) dom.remove(existing);
-            return;
-        }
-        if (!link) return;
-        const iconButton = resolveHTMLElement('.sidebar-icon-button', link);
-        const target = iconButton ?? link;
-        if (existing) {
-            if (existing.parentElement !== target) {
-                dom.appendChild(target, existing);
-            }
-            existing.removeAttribute('hidden');
-            return;
-        }
-        const indicator = dom.create('span', { className: 'sidebar-plugin-indicator', [ARIA_HIDDEN_ATTR]: 'true' });
-        dom.appendChild(target, indicator);
+        syncSidebarLinkIndicator(this.#host.getPluginsLink(), 'sidebar-plugin-indicator', this.#visible);
     }
 
     async refreshFromStorage(): Promise<void> {

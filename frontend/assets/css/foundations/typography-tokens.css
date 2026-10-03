@@ -3,7 +3,9 @@
 
 @layer foundations {
     :root {
-        --font-sans: 'SoAIType', system-ui, -apple-system, 'Segoe UI', roboto, 'Noto Sans', sans-serif;
+        --text-case-label: uppercase;
+        --font-style-emphasis: italic;
+        --font-sans: 'SoAIType', 'SoAI Arabic', system-ui, -apple-system, 'Segoe UI', roboto, 'Noto Sans', sans-serif;
         --font-family-sans: var(--font-sans);
         --font-family-generic-sans: sans-serif;
         --font-family-generic-serif: serif;

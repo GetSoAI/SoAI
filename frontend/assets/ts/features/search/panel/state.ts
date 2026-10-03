@@ -43,6 +43,7 @@ class SearchBackendState {
     searchIndex: SearchIndex | null;
     recentSearches: string[];
     grantedActions: ReadonlySet<string>;
+    permissionError: Error | null = null;
     pagesIndexed: boolean;
     streamSubscriptionsRegistered: boolean;
     streamSubscriptionTask: Promise<void> | null;
@@ -67,6 +68,7 @@ class SearchBackendState {
     }
 
     reset(): void {
+        this.permissionError = null;
         this.searchCache = new Map();
         this.pendingRemoteSearches.clear();
         this.searchIndex = null;

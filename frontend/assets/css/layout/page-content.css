@@ -32,7 +32,7 @@
     .initialization-error__details {
         margin-top: var(--space-5);
         color: var(--text-secondary);
-        text-align: left;
+        text-align: start;
     }
 
     .initialization-error__details:empty {
@@ -45,7 +45,7 @@
 
     .initialization-error__details ul {
         margin-top: var(--space-2);
-        padding-left: 1.2em;
+        padding-inline-start: 1.2em;
     }
 
     .initialization-error__actions {
@@ -65,7 +65,7 @@
         body.sidebar-expanded .main-content,
         body.sidebar-collapsed .main-content,
         body:not(.sidebar-ready) .main-content {
-            margin-left: 0;
+            margin-inline-start: 0;
         }
     }
 

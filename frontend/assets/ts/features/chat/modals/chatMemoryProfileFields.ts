@@ -17,6 +17,8 @@ interface ChatMemoryProfileFieldDefinition {
 
 const CHAT_MEMORY_PROFILE_FIELD_NAMES: readonly ChatMemoryProfileFieldName[] = Object.freeze(['preferred_name', 'assistant_name', 'role_background', 'current_goals', 'preferences', 'dislikes_to_avoid', 'communication_style', 'recurring_tools_projects', 'extra_notes']);
 
+const CHAT_MEMORY_PROFILE_VISIBLE_FIELD_NAMES: readonly ChatMemoryProfileFieldName[] = Object.freeze(['preferred_name', 'assistant_name', 'role_background', 'current_goals', 'preferences', 'communication_style']);
+
 const isChatMemoryProfileFieldName = (value: string | null | undefined): value is ChatMemoryProfileFieldName => isAllowedStringValue(value, CHAT_MEMORY_PROFILE_FIELD_NAMES);
 
 const resolveChatMemoryProfileFieldDefinition = (fieldName: string): ChatMemoryProfileFieldDefinition => {
@@ -100,5 +102,11 @@ const writeChatMemoryProfileFieldValue = (profile: ChatMemoryProfileUpdateReques
     }
 };
 
-export { CHAT_MEMORY_PROFILE_FIELD_NAMES, isChatMemoryProfileFieldName, readChatMemoryProfileFieldValue, resolveChatMemoryProfileFieldDefinition, writeChatMemoryProfileFieldValue };
+const createChatMemoryProfileUpdate = (profile: ChatMemoryProfile): ChatMemoryProfileUpdateRequest => {
+    const update: ChatMemoryProfileUpdateRequest = { preferredName: '', assistantName: '', roleBackground: '', currentGoals: '', preferences: '', dislikesToAvoid: '', communicationStyle: '', recurringToolsProjects: '', extraNotes: '' };
+    for (const fieldName of CHAT_MEMORY_PROFILE_FIELD_NAMES) writeChatMemoryProfileFieldValue(update, fieldName, readChatMemoryProfileFieldValue(profile, fieldName));
+    return update;
+};
+
+export { CHAT_MEMORY_PROFILE_FIELD_NAMES, CHAT_MEMORY_PROFILE_VISIBLE_FIELD_NAMES, createChatMemoryProfileUpdate, isChatMemoryProfileFieldName, readChatMemoryProfileFieldValue, resolveChatMemoryProfileFieldDefinition, writeChatMemoryProfileFieldValue };
 export type { ChatMemoryProfileFieldDefinition, ChatMemoryProfileFieldName };

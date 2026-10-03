@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from core.messaging.protocols_gateway import MessagingGatewayProtocol
     from core.metrics.protocols import MetricsManagerProtocol
     from core.notifications.protocols import ConversationAttentionCoordinatorProtocol
+    from core.openai.chat_template_role_policy_resolver import ChatTemplateRolePolicyResolver
     from core.openai.token_counter import PromptTokenCounter
     from core.secrets.handle_store import SecretHandleStore
     from core.state.protocols import StateAggregatorProtocol
@@ -44,6 +45,9 @@ class InfrastructureServicesProtocol(Protocol):
 
     @property
     def prompt_token_counter(self) -> PromptTokenCounter: ...
+
+    @property
+    def chat_template_role_policy_resolver(self) -> ChatTemplateRolePolicyResolver: ...
 
     @property
     def command_executor(self) -> CommandExecutorProtocol | None: ...

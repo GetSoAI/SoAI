@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { normalizeNonEmptyString } from '@core/api/apiNormalizers.ts';
+import { decodeConnectPairing, type ConnectPairingResponse } from '@core/api/contracts/systemConnectPairingContracts.ts';
 import { decodeAcceptedPowerActionResponse, decodeActivePowerOperationResponse, decodePowerOperationResponse, type AcceptedPowerActionResponse, type PowerOperationResponse } from '@core/api/contracts/powerContracts.ts';
 import { decodeSuccessfulMutationResponse, type SuccessfulMutationResponse } from '@core/api/contracts/successfulMutationContract.ts';
 import { decodeSystemMetricsResponse, type SystemMetricsResponse } from '@core/api/contracts/systemMetricsContracts.ts';
@@ -16,6 +17,7 @@ import { createMutationRequestId } from '@core/mutations/mutationIdentity.ts';
 interface SystemEndpoints {
     health: (options?: RequestOptions) => Promise<SystemHealthResponse>;
     updateInstanceName: (instanceName: string | null, options?: RequestOptions) => Promise<InstanceNameResponse>;
+    connectPairing: (options?: RequestOptions) => Promise<ConnectPairingResponse>;
     info: (options?: RequestOptions) => Promise<SystemInfoResponse>;
     license: () => Promise<SystemLicenseResponse>;
     requirements: () => Promise<string>;
@@ -40,6 +42,7 @@ const createSystemEndpoints = (api: ApiClientContext): SystemEndpoints => {
     return {
         health: async (options: RequestOptions = {}): Promise<SystemHealthResponse> => decodeSystemHealth(await api.get('/api/v1/system/health', options)),
         updateInstanceName: async (instanceName: string | null, options: RequestOptions = {}): Promise<InstanceNameResponse> => decodeInstanceNameResponse(await api.put('/api/v1/system/instance-name', serializeInstanceNameUpdateRequest(instanceName), options)),
+        connectPairing: async (options: RequestOptions = {}): Promise<ConnectPairingResponse> => decodeConnectPairing(await api.get('/api/v1/system/connect-pairing', options)),
         info: async (options: RequestOptions = {}): Promise<SystemInfoResponse> => decodeSystemInfo(await api.get('/api/v1/system/info', options)),
         license: async (): Promise<SystemLicenseResponse> => decodeSystemLicense(await api.get('/api/v1/system/license')),
         requirements: async (): Promise<string> => decodeRequirementsText(await api.get('/api/v1/system/requirements')),

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable
+from functools import partial
 from typing import TYPE_CHECKING
 
 from app.updater.disk_space import require_disk_space_for_update
@@ -24,6 +25,10 @@ from app.updater.software_update.install_transaction import (
 from app.updater.software_update.install_transaction_persisted_state import (
     resolve_update_plugins_path,
     resolve_update_state_files,
+)
+from app.updater.software_update.preparation_progress import (
+    report_download_progress,
+    write_preparation_progress,
 )
 from app.updater.target_runtime_preparation import prepare_target_update_runtime
 from core.bootstrap.install_payload import write_install_manifest
@@ -72,6 +77,7 @@ def perform_update(
     before_commit: Callable[[], bool],
     task_id: str,
     from_version: str,
+    report_preparation: bool = False,
 ) -> bool:
     downloaded_zip = None
     update_transaction: AppliedUpdateTransaction | None = None
@@ -107,9 +113,12 @@ def perform_update(
             max_download_bytes=archive_record.size_bytes,
             reservation_provider=reservation_provider,
             suffix=".zip",
+            on_progress=partial(report_download_progress, base_path, task_id, report_preparation),
         )
         if downloaded_zip is None:
             return False
+        if report_preparation:
+            write_preparation_progress(base_path, task_id, "verifying")
         zip_path = downloaded_zip.file_path
         if (
             downloaded_zip.size_bytes != archive_record.size_bytes
@@ -141,6 +150,8 @@ def perform_update(
             logger.error("Update aborted due to insufficient disk space.")
             return False
         logger.info("Applying update...")
+        if report_preparation:
+            write_preparation_progress(base_path, task_id, "staging")
         update_transaction = apply_update_from_zip(
             zip_path=zip_path,
             base_path=base_path,

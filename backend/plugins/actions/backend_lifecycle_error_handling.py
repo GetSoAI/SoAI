@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from core.errors.exception_coercion import coerce_to_soai_error
@@ -154,6 +155,7 @@ async def handle_lifecycle_failure(
             success=False,
             message=message,
             error_message=message,
+            public_error=replace(public_error, message=message),
             error_code=error.http_status,
             error_type=str(public_error.code),
             mutation_fencing_token=mutation_fencing_token,

@@ -6,6 +6,7 @@ import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
 import { MANAGE_BACKEND_MODAL_ID } from '@features/plugins/modals/backendModals.ts';
+import { renderManageBackendBadge } from '@features/plugins/modals/backend/managebackendmodal/view.ts';
 
 interface PluginStatusIndicatorHost {
     updateIndicator(element: HTMLElement, status: string): void;
@@ -19,24 +20,30 @@ interface PluginsModalLedUpdateHost {
     getBackendStatus(plugin: PluginRecord): string;
     getBackendVersion(plugin: PluginRecord): string;
     statusManager: PluginStatusIndicatorHost;
-    currentManagingPlugin: PluginRecord | null;
+    getCurrentManagingPlugin(): PluginRecord | null;
     setInterval(callback: () => void, delay: number): number | null;
     clearTimer(timerId: number): void;
 }
 
 const updatePluginsModalLeds = (host: PluginsModalLedUpdateHost): void => {
-    if (host.currentManagingPlugin) {
+    const currentManagingPlugin = host.getCurrentManagingPlugin();
+    if (currentManagingPlugin) {
         const modalRoot = host.modals.requireElement(MANAGE_BACKEND_MODAL_ID);
+        const pluginStatus = host.getPluginStatus(currentManagingPlugin);
         const manageLed = host.optionalHTMLElement(modalUiSelector(MANAGE_BACKEND_MODAL_ID, 'info-led'), modalRoot);
         if (manageLed) {
-            host.statusManager.updateIndicator(manageLed, host.getPluginStatus(host.currentManagingPlugin));
+            host.statusManager.updateIndicator(manageLed, pluginStatus);
         }
-        const backendStatus = host.getBackendStatus(host.currentManagingPlugin);
+        const badge = host.optionalHTMLElement('.plugin-install-badge', modalRoot);
+        if (badge && badge.dataset['state'] !== 'loading' && !badge.hasAttribute('data-local-backend-operation')) {
+            renderManageBackendBadge(badge, pluginStatus, 'ready');
+        }
+        const backendStatus = host.getBackendStatus(currentManagingPlugin);
         const statusElement = host.optionalHTMLElement('.plugin-info-status', modalRoot);
         if (statusElement) {
             host.updateText(statusElement, i18n.t('plugins.modal.manageBackend.backendStatus', { status: backendStatus }));
         }
-        const backendVersion = host.getBackendVersion(host.currentManagingPlugin) || i18n.t('common.unknown');
+        const backendVersion = host.getBackendVersion(currentManagingPlugin) || i18n.t('common.unknown');
         const versionElement = host.optionalHTMLElement('.plugin-backend-version', modalRoot);
         if (versionElement) {
             host.updateText(versionElement, i18n.t('plugins.modal.manageBackend.backend_version', { version: backendVersion }));

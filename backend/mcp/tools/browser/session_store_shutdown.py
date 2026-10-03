@@ -5,21 +5,21 @@ from __future__ import annotations
 
 import asyncio
 
+from core.browser.playwright_driver_errors import (
+    PlaywrightDriverConnectionClosedError,
+)
 from core.errors.cancellation import raise_cancelled_error
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
+from core.timing.constants import CONTROL_TIMEOUT_SEC
 from mcp.tools.browser.download_tasks import cancel_active_download_tasks
 from mcp.tools.browser.internal_protocols import BrowserSessionStoreProtocol
-from mcp.tools.browser.playwright_driver_errors import (
-    PlaywrightDriverConnectionClosedError,
-)
 from mcp.tools.browser.playwright_operation_exceptions import (
     PLAYWRIGHT_OPERATION_EXCEPTIONS,
 )
-from mcp.tools.browser.session_action_lock import browser_action_lock
 from mcp.tools.browser.session_state import browser_session_can_use_context
 from mcp.tools.browser.session_store_lifecycle import close_browser_context
 from mcp.tools.browser.storage_state import maybe_save_storage_state_for_session
@@ -48,12 +48,36 @@ def _session_shutdown_details(state: BrowserSessionState) -> dict[str, str]:
 async def shutdown(self: BrowserSessionStoreProtocol) -> None:
     logger = get_logger(LOGGER_NAME)
     async with self.sessions_lock:
+        self.closing = True
+    try:
+        await asyncio.wait_for(self.owner_create_locks.clear(), timeout=CONTROL_TIMEOUT_SEC)
+    except TimeoutError as exception:
+        log_handled_exception(
+            logger,
+            coerce_to_soai_error(exception, operation=OPERATION),
+            message="Timed out waiting for in-flight browser owner operations during shutdown.",
+            operation=OPERATION,
+            details={},
+            level="warning",
+        )
+    async with self.sessions_lock:
         to_close = list(self.sessions.values())
         self.sessions.clear()
-        self.owner_create_locks.clear()
     primary_exception: Exception | None = None
     for state in to_close:
-        async with browser_action_lock(state):
+        try:
+            await asyncio.wait_for(state.action_lock.acquire(), timeout=CONTROL_TIMEOUT_SEC)
+        except TimeoutError as exception:
+            log_handled_exception(
+                logger,
+                coerce_to_soai_error(exception, operation=OPERATION_CLOSE_CONTEXT),
+                message="Timed out waiting for browser session action during shutdown.",
+                operation=OPERATION_CLOSE_CONTEXT,
+                details=_session_shutdown_details(state),
+                level="warning",
+            )
+            continue
+        try:
             await cancel_active_download_tasks(state, reason="shutdown")
             if browser_session_can_use_context(state):
                 try:
@@ -116,8 +140,10 @@ async def shutdown(self: BrowserSessionStoreProtocol) -> None:
                 )
                 if primary_exception is None:
                     primary_exception = exception
+        finally:
+            state.action_lock.release()
     try:
-        await self.runtime.shutdown()
+        await asyncio.wait_for(self.runtime.shutdown(), timeout=CONTROL_TIMEOUT_SEC)
     except RECOVERABLE_EXCEPTIONS as exception:
         coerced = coerce_to_soai_error(
             exception,

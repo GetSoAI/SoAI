@@ -69,7 +69,7 @@
         flex-direction: column;
         flex: none;
         gap: calc(var(--space-1) - 1px);
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     .modal-header-top:active {
@@ -82,7 +82,7 @@
         font-size: var(--font-size-heading-xs);
         font-weight: 500;
         color: var(--text-primary);
-        text-align: left;
+        text-align: start;
     }
 
     .modal-header-title-copy {
@@ -118,11 +118,11 @@
 
     .modal-header-top > .prompt-modal-header > .modal-header-action-button {
         flex: none;
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     .modal-header-top > .prompt-modal-header + .modal-header-actions {
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     .prompt-modal-header-left {

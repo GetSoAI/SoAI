@@ -15,7 +15,7 @@ from features.api.routes.system.events.websocket_openai_audio.payloads import (
 from features.api.routes.system.events.websocket_openai_runner_failure_handling import (
     openai_ws_detach_event_is_set,
 )
-from features.api.runtime.event_enqueue import enqueue_correlated_media_event
+from features.api.runtime.event_enqueue import enqueue_correlated_event
 from features.api.streaming.openai_stream_binary_request_stream import (
     BinaryStreamRuntimeFailure,
     prepare_binary_stream_payload,
@@ -56,7 +56,7 @@ async def forward_speech_session_segment_stream(
         trace_id=request_context.trace_id,
     )
     if prepared.stream is None:
-        await enqueue_correlated_media_event(
+        await enqueue_correlated_event(
             enqueue_warning_tracker,
             connection.queue,
             build_openai_audio_speech_session_error(
@@ -78,7 +78,7 @@ async def forward_speech_session_segment_stream(
                 return
             if not chunk:
                 continue
-            delivered = await enqueue_correlated_media_event(
+            delivered = await enqueue_correlated_event(
                 enqueue_warning_tracker,
                 connection.queue,
                 build_openai_audio_speech_session_chunk(
@@ -96,7 +96,7 @@ async def forward_speech_session_segment_stream(
                 return
             chunk_sequence += 1
     except BinaryStreamRuntimeFailure as exception:
-        await enqueue_correlated_media_event(
+        await enqueue_correlated_event(
             enqueue_warning_tracker,
             connection.queue,
             build_openai_audio_speech_session_error(
@@ -111,7 +111,7 @@ async def forward_speech_session_segment_stream(
         runtime.detach_event.set()
         runtime.state_event.set()
         return
-    delivered = await enqueue_correlated_media_event(
+    delivered = await enqueue_correlated_event(
         enqueue_warning_tracker,
         connection.queue,
         build_openai_audio_speech_session_segment_completed(

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { OpaqueJsonObject } from '@core/api/contracts/opaquePayload.ts';
-import type { JsonObject } from '@core/types/jsonValues.ts';
+import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 
 interface GpuSoAIBenchStartRequest {
     profile: 'standard' | 'stress';
@@ -24,10 +24,10 @@ interface GpuIdentity {
 }
 
 interface GpuSoAIBenchSettingsSnapshot {
-    powerLimitWatts?: number | null;
-    fanSpeed?: number | null;
-    coreClockMhz?: number | null;
-    memClockMhz?: number | null;
+    powerLimitWatts?: JsonValue;
+    fanSpeed?: JsonValue;
+    coreClockMhz?: JsonValue;
+    memClockMhz?: JsonValue;
 }
 
 type GpuSoAIBenchPhaseDiagnostics = JsonObject & {

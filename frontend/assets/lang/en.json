@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "Now"
+                "now": "Now",
+                "occurrenceLabel": "{title}, {date} {time}, {status}",
+                "createAt": "Create automation on {date} at {time}. Use the arrow keys to change the time."
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "Start",
                     "turns": "Turns",
                     "timezone": "Timezone",
-                    "title": "Title"
+                    "title": "Title",
+                    "modelSettings": "Model, tools, and parameters"
                 },
                 "workspace": {
                     "button": "Choose folder",
                     "description": "Choose the folder used by this automation run. Recurring runs keep this automation folder.",
                     "fieldLabel": "Workspace folder",
-                    "title": "Automation workspace folder"
+                    "title": "Automation workspace folder",
+                    "viewButton": "Inspect workspace"
                 },
                 "parameters": {
                     "button": "Edit parameters",
@@ -166,17 +170,17 @@
                     "fieldLabel": "Model parameters",
                     "summaryCustom": "Custom automation parameters",
                     "summaryDefault": "Default model parameters",
-                    "title": "Automation model parameters"
+                    "title": "Automation model parameters",
+                    "viewButton": "View parameters"
                 },
                 "timezone": {
-                    "auto": "Auto"
+                    "autoWithZone": "Auto ({timezone})"
                 },
                 "placeholders": {
                     "assistantTurn": "Model response",
                     "endOfAutomation": "End of automation",
                     "model": "Select a model",
                     "turn": "Enter message",
-                    "turnIndexed": "Enter message {index}",
                     "title": "Enter title"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "Save",
                 "validation": {
                     "maxRunMinutesInvalid": "Max run minutes must be between 1 and 1440.",
-                    "modelUnavailable": "Selected model is unavailable.",
+                    "modelUnavailable": "{model} is unavailable. Choose another model.",
                     "modelRequired": "Model is required.",
                     "recurrenceInvalid": "Recurrence is invalid.",
                     "startInvalid": "Start date and time is invalid.",
@@ -195,7 +199,42 @@
                     "turnsRequired": "All turns are required.",
                     "tooManyTurns": "Too many turns (maximum {max}). Each turn is executed as one agent turn.",
                     "timezoneRequired": "Timezone is required.",
-                    "titleRequired": "Title is required."
+                    "titleRequired": "Title is required.",
+                    "modelDisabled": "{model} is disabled. Enable it or choose another model.",
+                    "modelMissing": "{model} is no longer installed. Choose another model.",
+                    "modelUnsupported": "{model} does not support chat. Choose another model.",
+                    "summary": "Fix {count} field(s) before saving.",
+                    "toolsRequired": "Execution requires tools to be enabled and todo_write to be selected.",
+                    "timezoneInvalid": "Timezone is invalid. Choose a supported timezone."
+                },
+                "conflict": {
+                    "message": "This automation was changed elsewhere while you were editing it. Your changes have not been saved.",
+                    "remoteChanges": "Changed elsewhere: {fields}",
+                    "localChanges": "Your changes: {fields}",
+                    "keepChanges": "Keep my changes",
+                    "loadLatest": "Load latest version"
+                },
+                "modelStatus": {
+                    "unavailable": "Unavailable",
+                    "unsupported": "No chat support"
+                },
+                "prerequisites": {
+                    "failed": "The editor could not load everything it needs.",
+                    "missing": "This automation no longer exists.",
+                    "toolsUnavailable": "Tools could not be loaded. Existing tool selections are kept.",
+                    "childFailed": "Settings could not be opened. Try again."
+                },
+                "schedule": {
+                    "ambiguous": "{start} occurs twice in {timezone} because of a clock change. The first occurrence is used.",
+                    "shiftedForward": "{start} does not exist in {timezone} because of a clock change. It runs at {effective} instead.",
+                    "disabled": "Disabled: no runs will be scheduled.",
+                    "nextRun": "Next run: {when} ({timezone})",
+                    "nextRunLocal": "Next run: {when} ({timezone}), {localWhen} your time",
+                    "unavailable": "The schedule preview is unavailable."
+                },
+                "turns": {
+                    "label": "Turn {index}",
+                    "remove": "Remove turn {index}"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "Automation preferences reset to defaults.",
                 "runOpenFailed": "Failed to open the requested automation run.",
                 "runUnavailable": "The requested automation run is no longer available in this view.",
-                "updated": "Automation updated."
+                "updated": "Automation updated.",
+                "changeRefreshFailed": "The change was applied, but the view could not be refreshed.",
+                "conflict": "This automation was changed elsewhere. Review the changes before saving again.",
+                "defaultsNotRemembered": "Saved, but these settings could not be remembered for new automations.",
+                "missingOnSave": "This automation no longer exists. It may have been deleted elsewhere."
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "Today",
                         "yesterday": "Yesterday"
                     },
-                    "turnsCount": "Turns: {count}",
                     "title": "Runs",
                     "toolbar": {
                         "batchDelete": "Delete selected runs",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "Delete {count} run(s)? Running runs will be stopped.",
-                        "deleteTitle": "Delete runs?"
+                        "deleteTitle": "Delete runs?",
+                        "skipTitle": "Skip occurrence?",
+                        "skipMessage": "{title} will not run at this time. Other occurrences are not affected.",
+                        "skipConfirm": "Skip",
+                        "stopTitle": "Stop run?",
+                        "stopMessage": "{title} is running. It will be stopped and removed from the calendar.",
+                        "stopConfirm": "Stop",
+                        "removeTitle": "Remove occurrence?",
+                        "removeMessage": "{title} will be removed from the calendar.",
+                        "removeConfirm": "Remove"
                     },
                     "notifications": {
-                        "deleteSuccess": "Deleted {count} run(s)."
-                    }
+                        "deleteSuccess": "Deleted {count} run(s).",
+                        "nothingToDelete": "The selected occurrences are no longer in this view.",
+                        "tooManySelected": "Select at most {max} occurrences at a time."
+                    },
+                    "occurrencesCount": "Occurrences: {count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "Previous",
                 "showCalendar": "Calendar",
                 "showRegistry": "Pane",
-                "today": "Today"
+                "today": "Today",
+                "staleData": "Out of date",
+                "staleDataSince": "Automation data may be out of date. Last updated {time}. Select to retry.",
+                "resizePanes": "Resize calendar and side pane"
             },
             "views": {
                 "day": "Day",
@@ -300,6 +357,7 @@
                     "bar": "Bar",
                     "candlestick": "OHLC",
                     "deviation": "Deviation",
+                    "heikin-ashi": "Heikin Ashi",
                     "label": "Chart type",
                     "line": "Line",
                     "precision-line": "Line"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "Min: ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "No data · SoAI offline",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "Realtime ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "Could not load history.",
             "loadingState": "Loading",
             "manualScaleLabel": "MANUAL"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "Attach SoAI links",
                 "tabBrowse": "Workspace",
                 "tabCamera": "Scan",
+                "tabDisabledReason": "Turn on {setting} in Chat configuration › {tab}",
                 "tabKnowledge": "Knowledge",
                 "tabSoaiLink": "SoAI link",
                 "tabUpload": "Upload",
@@ -559,7 +620,16 @@
                 "recordingStatus": "Recording {elapsed}",
                 "recordingTitle": "Voice recording",
                 "requestingStatus": "Waiting for browser permission",
-                "requestingTitle": "Requesting microphone"
+                "requestingTitle": "Requesting microphone",
+                "pushToTalk": {
+                    "cancelled": "Recording cancelled.",
+                    "queued": "Queued.",
+                    "releaseToCancel": "Release to cancel",
+                    "releaseToSend": "Release to send · Slide left to cancel",
+                    "sending": "Sending…",
+                    "transcribing": "Transcribing…",
+                    "transcriptReview": "Transcript added. Review your updated draft before sending."
+                }
             },
             "authorityLock": {
                 "automationReason": "This is an automation conversation. Change its execution settings in Automations → Edit automation.",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "Upload",
                 "assistantAvatarUploadLabel": "Upload assistant avatar",
                 "assistantNamePlaceholder": "Enter custom model name...",
+                "autoHideChatComposer": "Auto hide chat composer",
+                "autoHideChatComposerHint": "Hide the empty chat composer while reading earlier messages",
+                "autoHideChatHeader": "Auto hide chat header",
+                "autoHideChatHeaderHint": "Hide the conversation header while reading earlier messages",
                 "identityNameInvalid": "Display names must contain at most 50 Unicode characters and no invalid text.",
                 "promptInvalid": "The prompt contains invalid Unicode text.",
                 "close": "Close",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "Tool access cannot be changed while this conversation is running",
                     "toolsEnabledHint": "Enable MCP tools for this conversation. New chats start with your last saved value",
                     "tool_approval_required": "Require tool approval",
-                    "toolApprovalRequiredHint": "Ask for confirmation before running destructive tools"
+                    "toolApprovalRequiredHint": "Ask for confirmation before running destructive tools",
+                    "unavailableTools": "Unavailable saved tools: {tools}. Selections are preserved.",
+                    "unavailableServers": "Unavailable saved servers: {servers}. Settings are preserved."
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "Overrides the context length for this feature. Leave empty to use the selected model default",
@@ -1035,7 +1111,8 @@
                 "newTitle": "New conversation",
                 "renameFailed": "Failed to rename conversation.",
                 "switchFailed": "Failed to switch conversations.",
-                "untitled": "Untitled"
+                "untitled": "Untitled",
+                "titleRequired": "A conversation title is required."
             },
             "detached": {
                 "windowTitle": "Chat (Detached)"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "Requires HTTPS"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "Hold to open Parameters and reveal context length",
+                "presetsHint": "Hold to open Presets",
+                "pushToTalkHint": "Hold to talk",
+                "toolsHint": "Hold to open Tools settings",
+                "toolsRestrictedHint": "{reason}. Hold to open Tools settings",
+                "toolsToggleHint": "{action}. Hold to open Tools settings"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "Queued",
@@ -1286,7 +1371,8 @@
                     "running": "Running",
                     "inputRequired": "Action required"
                 },
-                "attachmentsCount": "(+{count} attachments)"
+                "attachmentsCount": "(+{count} attachments)",
+                "open": "Open prompt: {prompt}"
             },
             "loading": {
                 "errorType": "Error type",
@@ -1335,6 +1421,8 @@
                             "placeholder": "What role, expertise, or background should SoAI know?"
                         }
                     },
+                    "loadFailed": "Your saved profile could not be loaded. Saving is paused so nothing is overwritten.",
+                    "retry": "Retry",
                     "save": "Save",
                     "skip": "Skip",
                     "title": "Help SoAI know you"
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "yesterday",
                 "toolCall": "Tool invocation",
                 "waiting": "Waiting...",
-                "you": "You"
+                "you": "You",
+                "timestampWithTime": "{label}, {time}"
             },
             "modelControl": {
                 "compareModels": "Compare models",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "Multiple models share the name \"{model}\". Please select a specific model in the sidebar.",
                 "available": "(Available)",
-                "loaded": "(Loaded)"
+                "loaded": "(Loaded)",
+                "unavailable": "(Unavailable)"
             },
             "news": {
                 "articleCount": "{count} articles",
@@ -1470,10 +1560,52 @@
                 "cleared": "Prompt history cleared.",
                 "loadFailed": "Failed to load prompt history."
             },
+            "sketch": {
+                "open": "Open sketch",
+                "mobileOption": "Sketch",
+                "preference": "Sketch",
+                "preferenceHint": "Show the sketch pad in the chat composer to draw an image and attach it to your message",
+                "title": "Sketch",
+                "description": "Draw with your mouse, pen, or finger, then attach the drawing to your message as an image",
+                "canvasLabel": "Drawing canvas",
+                "toolsLabel": "Drawing tools",
+                "tools": {
+                    "pen": "Pen",
+                    "brush": "Brush",
+                    "highlighter": "Highlighter",
+                    "eraser": "Eraser",
+                    "line": "Line",
+                    "rectangle": "Rectangle",
+                    "ellipse": "Ellipse"
+                },
+                "colorsLabel": "Colors",
+                "colors": {
+                    "black": "Black",
+                    "grey": "Grey",
+                    "red": "Red",
+                    "orange": "Orange",
+                    "yellow": "Yellow",
+                    "green": "Green",
+                    "teal": "Teal",
+                    "blue": "Blue",
+                    "purple": "Purple",
+                    "brown": "Brown"
+                },
+                "customColor": "Custom color",
+                "size": "Size",
+                "undo": "Undo",
+                "redo": "Redo",
+                "clear": "Clear",
+                "resize": "Resize canvas",
+                "attach": "Attach",
+                "discardConfirm": "Discard this sketch?",
+                "discard": "Discard",
+                "exportFailed": "The sketch could not be exported. Please try again."
+            },
             "characterMap": {
                 "allEmoji": "All Emoji",
                 "allUnicode": "All Unicode",
-                "description": "Browse Unicode characters and emoji, collect a sequence, then copy or insert it into your message.",
+                "description": "Browse Unicode characters and emoji, collect a sequence, then copy or insert it into your message",
                 "font": "Font",
                 "fontHint": "Fonts affect display only; every listed character remains selectable",
                 "fonts": {
@@ -2201,7 +2333,8 @@
                 "started": "Voice call started.",
                 "transcriptionFailed": "Voice transcription failed.",
                 "ttsFailed": "Text-to-speech failed.",
-                "messageSendFailed": "Voice message send failed."
+                "messageSendFailed": "Voice message send failed.",
+                "stoppedAfterFailure": "The call has stopped. Fix the issue before starting a new call."
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "Playing the assistant response.",
@@ -2299,44 +2432,45 @@
                 "toggle": "Toggle fullscreen"
             },
             "modalDescriptions": {
-                "agentPlan": "Steps of the active agent plan.",
-                "automationCalendar": "Calendar locale and date formatting.",
-                "automationConfiguration": "Schedule, model, and run limits.",
-                "automationOccurrence": "A single scheduled run.",
-                "chatConfiguration": "Model, tools, memory, and interface for this chat.",
-                "chatAttach": "Upload files or attach linked knowledge to this chat.",
-                "chatAttachments": "Attachments referenced by this message.",
-                "chatMcpDefaultTools": "Default MCP tools for new chats.",
-                "chatMemoryProfile": "Personal details SoAI remembers across chats.",
-                "chatPromptsPicker": "Saved prompts ready to insert into this chat.",
-                "voiceCall": "Hands-free chat with microphone, transcription, streaming responses, and speech playback.",
-                "credits": "Third-party dependency credits.",
-                "fileExplorerMetadata": "File metadata.",
-                "folderPicker": "Pick a folder.",
-                "exportPreview": "Contents of the export.",
-                "hardwareSystemInfo": "Detailed system report.",
-                "license": "SoAI license text.",
-                "messageInfo": "Message metadata.",
-                "metricsAdvanced": "Extended runtime metrics.",
-                "modelDetailTest": "Send a test request to this model.",
-                "modelsDownload": "Download a new model.",
-                "modelsEdit": "Override what this model can do.",
-                "modelsProviders": "External model providers.",
-                "modelsRename": "Give this model a local name.",
-                "modelsVirtual": "Virtual model routing groups.",
-                "modelsVirtualEdit": "Routing for this virtual model.",
-                "pluginsClone": "Duplicate this plugin with new settings.",
-                "pluginsConcurrent": "Maximum concurrent plugin tasks.",
-                "pluginsConfig": "Plugin settings.",
-                "pluginsDownload": "Install a bundled or local plugin.",
-                "pluginsInfo": "Plugin details and diagnostics.",
-                "pluginsIntro": "How plugins extend SoAI.",
-                "pluginsManageBackend": "Manage backend versions.",
-                "promptEnhancer": "Rewrite a saved prompt with a model.",
-                "settingsApiKeyQuota": "Usage limits for this API key.",
-                "settingsExternalAccounts": "Mail and calendar accounts.",
-                "settingsMcpServer": "MCP server connection.",
-                "toolCallOutput": "Output of a tool call."
+                "agentPlan": "Steps of the active agent plan",
+                "automationCalendar": "Calendar locale and date formatting",
+                "automationConfiguration": "Schedule, model, and run limits",
+                "automationOccurrence": "A single scheduled run",
+                "chatConfiguration": "Model, tools, memory, and interface for this chat",
+                "chatAttach": "Upload files or attach linked knowledge to this chat",
+                "chatAttachments": "Attachments referenced by this message",
+                "chatMcpDefaultTools": "Default MCP tools for new chats",
+                "chatMemoryProfile": "Personal details SoAI remembers across chats",
+                "chatPromptsPicker": "Saved prompts ready to insert into this chat",
+                "voiceCall": "Hands-free chat with microphone, transcription, streaming responses, and speech playback",
+                "credits": "Third-party dependency credits",
+                "fileExplorerMetadata": "File metadata",
+                "folderPicker": "Pick a folder",
+                "exportPreview": "Contents of the export",
+                "hardwareSystemInfo": "Detailed system report",
+                "license": "SoAI license text",
+                "messageInfo": "Message metadata",
+                "metricsAdvanced": "Extended runtime metrics",
+                "modelDetailTest": "Send a test request to this model",
+                "modelsDownload": "Download models, connect external providers, or add local model files",
+                "modelsEdit": "Override what this model can do",
+                "modelsProviders": "External model providers",
+                "modelsRename": "Give this model a local name",
+                "modelsVirtual": "Virtual model routing groups",
+                "modelsVirtualEdit": "Routing for this virtual model",
+                "pluginsClone": "Duplicate this plugin with new settings",
+                "pluginsConcurrent": "Maximum concurrent plugin tasks",
+                "pluginsConfig": "Plugin settings",
+                "pluginsDownload": "Download, upload, or add plugins from the local plugins folder",
+                "pluginsInfo": "Plugin details and diagnostics",
+                "pluginsIntro": "How plugins extend SoAI",
+                "pluginsManageBackend": "Manage backend versions",
+                "promptEnhancer": "Rewrite a saved prompt with a model",
+                "settingsApiKeyQuota": "Usage limits for this API key",
+                "settingsExternalAccounts": "Mail and calendar accounts",
+                "settingsMcpServer": "MCP server connection",
+                "toolCallOutput": "Output of a tool call",
+                "conversationInput": "View this prompt and its attachments"
             },
             "loading": "Loading...",
             "confirm": "Confirm",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count}s"
+                    },
+                    "year": {
+                        "short": "{count}y"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "You have unsaved changes. Continue without saving?",
             "unsavedChangesTitle": "Unsaved changes",
             "view": "View",
-            "yes": "Yes"
+            "yes": "Yes",
+            "retry": "Retry"
         },
         "contentPreview": {
             "actions": {
@@ -2620,7 +2758,7 @@
                 }
             },
             "firstRun": {
-                "description": "A short setup path for local backends, remote providers, models, and updates.",
+                "description": "A short setup path for local backends, remote providers, models, and updates",
                 "sections": {
                     "models": {
                         "heading": "Add or download a model when the backend is ready",
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "Network",
+                    "unavailable": "Adapter list unavailable",
                     "waiting": "Detecting..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "Bench",
                     "soaibenchStop": "Stop",
                     "soaibenchStress": "Stress",
+                    "viewBenchmark": "View benchmark",
                     "test": "Test",
                     "reset": "Reset",
                     "save": "Save"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index} SoAIBench {profile} started",
                     "soaibenchStopRequested": "GPU {index} SoAIBench stop requested",
                     "soaibenchUnsupported": "GPU {index} SoAIBench unsupported: {reason}",
+                    "soaibenchSettingsLocked": "GPU {index} is running a benchmark. Stop it or wait for it to finish before saving its settings.",
                     "slotApplied": "GPU {index} slot {slot} applied",
                     "slotSaved": "GPU {index} slot {slot} saved"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "Delete local history",
+                "deleteLocalConfirm": {
+                    "title": "Delete SoAIBench run?",
+                    "message": "Delete this SoAIBench run from the local history? This cannot be undone."
+                },
                 "action": "Share",
+                "openRun": "Open run",
                 "ariaLabel": "Share this SoAIBench score",
                 "unavailable": "No publishable SoAIBench run is available",
-                "confirm": { "title": "Share SoAIBench score?", "message": "Publish score {score} and its {passes} measured passes on the public SoAIBench leaderboard?", "description": "This sends the score, five measured passes, public GPU and runtime information, benchmark settings, and optional sensor evidence. Account identity, files, configuration, analytics, and general telemetry are excluded. soai.to can see normal connection metadata such as your IP address." },
-                "outcomes": { "published": "SoAIBench score shared publicly.", "alreadyPublished": "This SoAIBench score was already shared.", "heldForReview": "This SoAIBench result is held for identity or anomaly review and does not count toward the leaderboard yet.", "offline": "The score could not be shared while SoAI is offline.", "unavailable": "The SoAIBench publication service is unavailable.", "timeout": "Sharing the SoAIBench score timed out. Try again to reconcile the same publication.", "rateLimited": "Too many scores were shared from this connection. Try again later.", "capacity": "The SoAIBench leaderboard is currently at capacity.", "rejected": "The SoAIBench leaderboard rejected this result.", "conflict": "This publication conflicts with existing leaderboard state.", "invalidResponse": "The SoAIBench leaderboard returned an invalid response.", "retryAfter": "Try again in {seconds} seconds." }
+                "confirm": {
+                    "title": "Share SoAIBench score?",
+                    "message": "Publish score {score} and its {passes} measured passes on the public SoAIBench leaderboard?",
+                    "description": "This sends the score, five measured passes, public GPU and runtime information, benchmark settings, and optional sensor evidence. Account identity, files, configuration, analytics, and general telemetry are excluded."
+                },
+                "outcomes": {
+                    "published": "SoAIBench score shared publicly.",
+                    "alreadyPublished": "This SoAIBench score was already shared.",
+                    "heldForReview": "This SoAIBench result is held for identity or anomaly review and does not count toward the leaderboard yet.",
+                    "offline": "The score could not be shared while SoAI is offline.",
+                    "unavailable": "The SoAIBench publication service is unavailable.",
+                    "timeout": "Sharing the SoAIBench score timed out. Try again to reconcile the same publication.",
+                    "rateLimited": "Too many scores were shared from this connection. Try again later.",
+                    "capacity": "The SoAIBench leaderboard is currently at capacity.",
+                    "rejected": "The SoAIBench leaderboard rejected this result.",
+                    "conflict": "This publication conflicts with existing leaderboard state.",
+                    "invalidResponse": "The SoAIBench leaderboard returned an invalid response.",
+                    "retryAfter": "Try again in {seconds} seconds."
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3123,9 +3286,11 @@
                         "quick": "Quick",
                         "varianceSuffix": "{variance}% variance"
                     },
-                    "description": "Previous SoAIBench runs for the selected GPU.",
+                    "description": "Previous SoAIBench runs for the selected GPU",
                     "empty": "No SoAIBench runs for this GPU yet.",
                     "loading": "Loading run history...",
+                    "pageEmpty": "No SoAIBench runs yet.",
+                    "pageLoadFailed": "Could not load SoAIBench runs. Try again.",
                     "matchBases": {
                         "device_id": "Device ID",
                         "gpu_model_key": "GPU model key",
@@ -3146,7 +3311,9 @@
                         "standard": "Standard",
                         "stress": "Stress"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "OpenCL workload numerical validation failed." },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "OpenCL workload numerical validation failed."
+                    },
                     "rowCopyUnavailable": "No SoAIBench run available to copy",
                     "staleHardware": "Stale hardware match",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "SoAIBench previous runs"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "Select a GPU to benchmark",
+                    "noGpus": "No GPUs are available for benchmarking.",
                     "ariaLabels": {
                         "close": "Close SoAIBench",
                         "copy": "Copy SoAIBench run",
@@ -3170,13 +3339,16 @@
                         "retry": "Retry certified SoAIBench",
                         "stop": "Stop certified SoAIBench",
                         "stopping": "Stopping certified SoAIBench",
+                        "newBenchmark": "Start a new certified SoAIBench run",
+                        "runAgain": "Run certified SoAIBench again on this GPU",
+                        "recover": "Check SoAIBench status again",
                         "start": "Start certified SoAIBench"
                     },
                     "close": "Close",
                     "copy": "Copy",
                     "copySuccess": "SoAIBench run copied to clipboard",
                     "copyUnavailable": "No SoAIBench run available to copy",
-                    "description": "Certified GPU benchmark for SoAI inference readiness.",
+                    "description": "Certified GPU benchmark for SoAI inference readiness",
                     "download": "Download",
                     "export": {
                         "deviceId": "Device ID",
@@ -3231,7 +3403,11 @@
                         "stopping": "Stopping SoAIBench",
                         "warmupDetail": "Warmup {pass}/{total}",
                         "warmupPhase": "Warmup: {phase}",
-                        "warmup": "Warmup pass complete"
+                        "warmup": "Warmup pass complete",
+                        "reconnecting": "Reconnecting... Last update: {age}",
+                        "checkingStatus": "Checking benchmark status...",
+                        "statusUnavailable": "Benchmark status is unavailable. Retry to check again.",
+                        "startUnconfirmed": "The benchmark start could not be confirmed and no run is active on this GPU. Check History before retrying."
                     },
                     "retry": "Retry",
                     "scoreLabel": "SoAIBench score",
@@ -3253,6 +3429,15 @@
                     "standardRun": "Standard run",
                     "stop": "Stop",
                     "stopping": "Stopping",
+                    "newBenchmark": "New benchmark",
+                    "runAgain": "Run again",
+                    "gpuBusy": "Benchmark in progress",
+                    "startedAt": "Started {time}",
+                    "states": {
+                        "starting": "Starting",
+                        "unresolved": "Status unknown",
+                        "rejected": "Not started"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "Documentation",
             "intro": {
                 "aboutButton": "About SoAI",
-                "paragraph1": "<strong>SoAI (Smart Orchestrator for Artificial Intelligence)</strong> manages local inference engines and remote AI providers from one WebUI. It presents their models through OpenAI-compatible and Anthropic-compatible APIs",
+                "paragraph1": "<strong dir=\"auto\">SoAI (Smart Orchestrator for Artificial Intelligence)</strong> manages local inference engines and remote AI providers from one WebUI. It presents their models through OpenAI-compatible and Anthropic-compatible APIs",
                 "paragraph2": "SoAI runs on Linux, macOS, and Windows. It is source-available and free for personal and homelab use. SoAI does not collect your data or send analytics, telemetry, or usage reports"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "Latency",
                         "queueDepth": "Queue depth",
                         "requests": "Requests",
+                        "throughput": "Token throughput",
                         "tokens": "Tokens"
                     },
                     "title": "Chart"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "Display name",
                     "source_model_id": "Source model ID",
-                    "provider": "Provider",
-                    "title": "Identity",
                     "type": "Type",
                     "universal_id": "Universal ID",
                     "virtual": "Virtual"
@@ -4064,30 +4248,20 @@
                     "title": "Inference defaults"
                 },
                 "metrics": {
-                    "avgLatency": "Avg latency",
                     "avgTokens": "Avg tokens/request",
                     "audioIn": "Audio in",
                     "audioOut": "Audio out",
-                    "failedRequests": "Failed requests",
                     "imagesIn": "Images in",
                     "imagesOut": "Images out",
                     "last_used": "Last used",
                     "modalityUsage": "Usage",
                     "success_rate": "Success rate",
                     "textTokens": "Text tokens",
-                    "title": "Metrics",
                     "tokensGenerated": "Tokens generated",
-                    "totalRequests": "Total requests",
-                    "waitTime": "Avg wait time"
+                    "totalRequests": "Total requests"
                 },
                 "plugin": {
-                    "author": "Author",
-                    "models": "Models",
-                    "plugin_status": "Plugin status",
-                    "providers": "Providers",
-                    "title": "Plugin",
-                    "type": "Type",
-                    "version": "Version"
+                    "title": "Plugin"
                 },
                 "status": {
                     "available": "Available",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "Rename",
                     "modelStatus": "Model status",
                     "orphaned": "Orphaned",
-                    "parameters": "Parameters",
                     "stopPlugin": "Stop plugin",
-                    "title": "Status & actions"
+                    "title": "Status"
                 },
                 "technical": {
                     "created": "Created",
-                    "description": "Description",
                     "family": "Family",
                     "license": "License",
                     "path": "Path",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "All parameters",
-                "category": "Category",
                 "groupInference": "Inference",
                 "groupStartup": "Startup"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "Add {itemType} item",
                 "aliasesPrefix": "Also known as:",
                 "arrayOfType": "Array of {itemType} values",
+                "backendDefault": "Backend default",
                 "backendDocumentationDescription": "These model parameters include <strong>backend-defined settings</strong> exposed by the plugin. Use the backend's own documentation for exact behavior, accepted values, and defaults.",
-                "backendDocumentationTitle": "Informations",
                 "badges": {
                     "custom": "CUSTOM",
-                    "default": "DEFAULT",
                     "requiresReload": "REQUIRES RELOAD"
                 },
-                "countLabel": "{count} parameters",
+                "count": {
+                    "plural": "{count} parameters",
+                    "singular": "{count} parameter"
+                },
                 "invalidJson": "Enter valid JSON for this parameter.",
                 "jsonObject": "JSON object",
                 "noMatchDescription": "Try adjusting your search or filter criteria.",
                 "noMatchTitle": "No parameters match your filters",
                 "noParameters": "No parameters available for this model",
+                "railLabel": "Parameter categories",
                 "range": "Range: {min} - {max}",
-                "removeItem": "Remove item"
+                "removeItem": "Remove item",
+                "revertChange": "Revert change",
+                "unsavedCount": {
+                    "plural": "{count} unsaved changes",
+                    "singular": "{count} unsaved change"
+                },
+                "views": {
+                    "customized": "Customized",
+                    "unsaved": "Unsaved changes"
+                }
             },
             "status": {
                 "loaded": "Loaded",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "Choose file",
                     "close": "Close",
                     "confirmDownload": "Download plugin",
                     "confirmUpload": "Upload plugin",
+                    "fileDropHint": "Click to choose a .soaiplugin file, or drag it here",
+                    "fileDropTitle": "Drop a plugin here",
                     "fileHelp": "Select a ZIP-format Python plugin package (.soaiplugin)",
                     "fileLabel": "Plugin file",
                     "manualCopySuccess": "Plugins folder path copied to clipboard.",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant} (installed)",
                     "loadFailed": "Backend variants could not be loaded.",
                     "loading": "Loading backend variants...",
+                    "loadingBackends": "Loading backends...",
                     "saveFailed": "Backend variant could not be saved."
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "Compatibility override enabled for {plugin}.",
                 "overrideRequired": "Enable the compatibility override before starting {plugin}.",
                 "persistentNoStop": "Persistent plugins cannot be stopped",
-                "pluginDisabled": "Plugin disabled",
-                "pluginEnabled": "Plugin enabled",
+                "pluginDisabled": "Plugin {plugin} disabled",
+                "pluginEnabled": "Plugin {plugin} enabled",
                 "pluginIncompatibleReason": "Plugin \"{plugin}\" is incompatible: {reason}",
                 "pluginInfoCopyFailed": "Failed to copy plugin information",
                 "pluginStopInProgress": "Stopping {plugin}...",
@@ -5489,16 +5674,21 @@
                 "restarting": "The application is restarting. This should only take a few moments.",
                 "shutdown": "The system is shutting down. You can close this browser window.",
                 "sleep": "The system is entering sleep mode. Wake it to continue using SoAI.",
-                "updating": "SoAI is downloading and installing updates. This may take several minutes."
+                "updateTimeout": "SoAI did not come back online after the update. Check application_updater.log in the SoAI logs folder, then reload this page.",
+                "updating": "SoAI will restart to finish the update. This page reloads automatically when SoAI is back online. This can take several minutes.",
+                "updatingDesktop": "SoAI will restart to finish the update. This window closes and reopens automatically when the update is complete. Please do not turn off your computer.",
+                "updatingSlow": "The update is taking longer than usual. SoAI is still working, so please keep this page open."
             },
             "messages": {
                 "connectionLost": "Backend connection lost",
+                "installingVersion": "Installing SoAI {version}...",
                 "pleaseWait": "Please wait...",
                 "rebooting": "System is rebooting...",
                 "rebootTimeout": "Reboot still in progress...",
                 "restarting": "SoAI is restarting...",
                 "shutdown": "System is shutting down",
                 "sleep": "System is going to sleep",
+                "updateTimeout": "SoAI has not come back yet",
                 "updating": "SoAI is updating..."
             },
             "reconnecting": "Attempting to reconnect..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "Select a custom color for all charts",
-                    "label": "Static color"
+                    "label": "Chart color"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "Control how code-like content is presented across SoAI.",
                 "subgroupTitle": "Code blocks"
+            },
+            "connect": {
+                "addressCopied": "Address copied",
+                "browserAddress": "This browser's address",
+                "chooseAddress": "Address for your phone",
+                "copyAddress": "Copy address",
+                "description": "Connect the SoAI Connect Android app to this server by scanning a QR code.",
+                "documentationHint": "For manual setup and troubleshooting, open \"Connect to a SoAI server\" in the SoAI documentation",
+                "documentationLink": "SoAI documentation",
+                "loadFailed": "Could not load the connection details",
+                "loopbackWarningMessage": "SoAI listens on a loopback address, so other devices cannot reach it directly. The QR code works only through a reverse proxy that uses the same scheme and port as SoAI. To allow direct connections, set the following option and restart SoAI:",
+                "loopbackWarningTitle": "Only reachable from this computer",
+                "noAddressesMessage": "Connect this server to a network, or open this page from the address your phone should use.",
+                "noAddressesTitle": "No reachable address found",
+                "qrLabel": "QR code for connecting SoAI Connect to {address}",
+                "refresh": "Refresh addresses",
+                "scanHint": "Scan this QR code with the SoAI Connect app",
+                "stepInstall": "Install SoAI Connect on your Android phone and open it",
+                "stepScan": "Tap the QR code button next to the server address field, then scan the code on this page",
+                "stepSignIn": "Review any certificate prompt, then sign in with your SoAI account",
+                "stepsTitle": "How to connect",
+                "title": "SoAI Connect",
+                "vpnHint": "Your phone must be able to reach this server. Use the same local network, or a VPN when you are away, rather than exposing SoAI to the internet",
+                "vpnTitle": "Away from home?"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "Auto-hide page header"
                     }
                 },
-                "subgroupTitle": "Motion",
+                "subgroupTitle": "Interface",
                 "subgroupDescription": "Tune motion, transitions, glass surfaces, and scroll behavior."
             },
             "externalAccounts": {
@@ -6975,7 +7189,7 @@
                     "authorizedSendersPlaceholder": "sender-id | Optional label",
                     "credentialsDescription": "Enter the credentials required by the selected provider.",
                     "credentialsTitle": "Provider credentials",
-                    "description": "Configure one real provider account and the canonical Chat execution settings it owns.",
+                    "description": "Configure one real provider account and the canonical Chat execution settings it owns",
                     "executionDescription": "Choose the Chat model, identity, prompts, workspace, and execution parameters.",
                     "executionTitle": "Chat execution",
                     "identityDescription": "Name the account and choose its provider and response language.",
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "Backup",
+                "connect": "Connect",
                 "externalAccounts": "Mail & calendar",
                 "licensing": "Licensing",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "Pick one to apply it",
+                    "label": "Built-in wallpapers",
+                    "none": "No wallpaper",
+                    "option": "Wallpaper {number}"
+                },
                 "downloadUrl": {
                     "button": "Download",
                     "help": "Provide a URL to download and set as wallpaper",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "Some release notes could not be loaded. Available notes are shown."
+            },
+            "outcome": {
+                "failureMessage": "The update to version {version} did not complete. SoAI {previousVersion} is still installed. Check application_updater.log in the SoAI logs folder for details.",
+                "failureTitle": "Update not completed",
+                "later": "Later",
+                "reloadMessage": "SoAI is now running version {version}. Reload this page to use the updated interface.",
+                "reloadTitle": "SoAI was updated",
+                "successMessage": "SoAI was updated successfully to version {version}.",
+                "successTitle": "Update complete"
+            },
+            "progress": {
+                "downloading": "Downloading update...",
+                "handoff": "Preparing to restart SoAI...",
+                "staging": "Preparing update files...",
+                "unavailable": "Live progress is temporarily unavailable.",
+                "verifying": "Verifying update..."
+            },
             "actions": {
                 "checkUpdates": "Check for updates",
                 "installUpdate": "Install update"
@@ -7777,6 +8017,184 @@
             "unknown": "Unknown"
         },
         "wizard": {
+            "aiSetup": {
+                "eyebrow": "SoAI setup",
+                "loadFailed": {
+                    "title": "SoAI setup could not load",
+                    "description": "SoAI could not read the available engines and providers. Check that SoAI is running, then try again, or finish setup later.",
+                    "retry": "Try again"
+                },
+                "nav": {
+                    "finishLater": "Skip",
+                    "skip": "Skip SoAI setup",
+                    "continue": "Continue",
+                    "installAndContinue": "Install",
+                    "downloadAndContinue": "Download",
+                    "startChatting": "Chat",
+                    "close": "Close"
+                },
+                "sources": {
+                    "heading": "Where should your AI run?",
+                    "description": "Choose one or both. You can change this later.",
+                    "local": {
+                        "title": "On this device",
+                        "description": "Private and works offline after setup. Needs a one-time download."
+                    },
+                    "cloud": {
+                        "title": "Cloud providers",
+                        "description": "Works anywhere with internet and a provider API key.",
+                        "recommended": "Recommended"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "Obtain a free API key",
+                    "accessibleName": "Obtain a free API key (opens in a new window)"
+                },
+                "limited": {
+                    "noCompatibleEngine": "No local engine supports this device.",
+                    "insufficientMemory": "Local models need about {required} of free memory; this device has about {available}.",
+                    "useCloud": "Use a cloud model instead",
+                    "searchManually": "Search models manually"
+                },
+                "connect": {
+                    "heading": "Get ready",
+                    "description": "Connect a provider and prepare this device.",
+                    "cloud": {
+                        "heading": "Connect a cloud provider",
+                        "description": "Paste the API URL and key from your provider.",
+                        "moreOptions": "More options",
+                        "modelFilter": "Model filter (optional)",
+                        "connect": "Connect",
+                        "connecting": "Connecting to {name}…",
+                        "connected": {
+                            "singular": "Connected · {count} model available",
+                            "plural": "Connected · {count} models available"
+                        },
+                        "change": "Change"
+                    },
+                    "local": {
+                        "heading": "Install a local engine",
+                        "description": "This lets models run on this device.",
+                        "automatic": "Automatic (recommended)",
+                        "usesGpu": "Uses {engine} with your graphics card",
+                        "usesProcessor": "Uses {engine} on the processor",
+                        "usesInstalled": "Uses {engine}, already installed",
+                        "chooseManually": "Choose manually",
+                        "status": {
+                            "installed": "Installed",
+                            "recommended": "Recommended",
+                            "warning": "Warning",
+                            "unavailable": "Unavailable"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "Choose a model",
+                    "description": "Pick what to chat with. You can add more later.",
+                    "local": {
+                        "heading": "Models for this device",
+                        "description": "Picked for your hardware."
+                    },
+                    "role": {
+                        "recommended": "Recommended",
+                        "faster": "Faster",
+                        "smallest": "Smallest"
+                    },
+                    "useCase": {
+                        "advanced": "Best quality for writing, coding, and reasoning",
+                        "balanced": "Great for everyday chat, writing, and coding",
+                        "reasoning": "Strong step-by-step reasoning",
+                        "light": "Quick answers on modest hardware"
+                    },
+                    "downloadSize": "{size} download",
+                    "runsOnGpu": "Runs on your graphics card",
+                    "runsOnCpu": "Runs on your processor",
+                    "speed": {
+                        "fast": "Fast replies",
+                        "moderate": "Moderate speed",
+                        "slow": "Slower replies"
+                    },
+                    "details": {
+                        "label": "Details",
+                        "quantization": "Quantization",
+                        "parameters": "Parameters",
+                        "parametersDense": "{total}B",
+                        "parametersMoe": "{total}B, {active}B active",
+                        "context": "Context length",
+                        "contextTokens": "{tokens} tokens",
+                        "contextReduced": "{tokens} tokens (reduced to fit this device)",
+                        "file": "File",
+                        "source": "Source"
+                    },
+                    "openChatWith": "Open Chat with this model",
+                    "searchAnother": "Search for another model",
+                    "cloud": {
+                        "heading": "Models from {provider}",
+                        "description": "Choose one or more.",
+                        "filterPlaceholder": "Filter models…",
+                        "noMatches": "No models match this filter.",
+                        "empty": "This provider returned no models. Check the model filter or try another provider.",
+                        "backToProvider": "Back to provider"
+                    }
+                },
+                "progress": {
+                    "heading": "Getting everything ready",
+                    "description": "You can start chatting as soon as one model is ready.",
+                    "readyCount": "{ready} of {total} ready",
+                    "installing": "Installing {engine}",
+                    "downloading": "Downloading {model}",
+                    "waitingForEngine": "Waiting for {engine} to finish installing",
+                    "discovering": "Adding {model} to your models",
+                    "configuring": "Applying starter settings",
+                    "testing": "Sending a short test message",
+                    "ready": "{model} is ready",
+                    "blocked": "Can’t start until {engine} is installed",
+                    "checkingStatus": "Checking status",
+                    "retry": "Retry",
+                    "retryInstallation": "Retry installation",
+                    "skipItem": "Skip this item",
+                    "testAgain": "Test again",
+                    "checkAgain": "Check again",
+                    "sendTest": "Send a test message",
+                    "error": {
+                        "empty": "The model loaded but did not reply. Try again or pick another model.",
+                        "loadError": "The model could not start on this device. Try again or pick a smaller model.",
+                        "timeout": "The model took too long to reply. Try again or pick a smaller model.",
+                        "disconnected": "The connection was lost during the test. Try again.",
+                        "downloadFailed": "The download stopped. Try again.",
+                        "installFailed": "The installation did not finish. Try again.",
+                        "noDiskSpace": "Not enough disk space for this model. Free up space or pick a smaller model."
+                    },
+                    "testPrompt": "Reply with one short, friendly sentence.",
+                    "testCancelled": "The SoAI setup test was cancelled."
+                },
+                "completion": {
+                    "modelsTitle": "AI models",
+                    "modelsReady": {
+                        "singular": "{count} ready",
+                        "plural": "{count} ready"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} still preparing in the background",
+                        "plural": "{count} still preparing in the background"
+                    }
+                },
+                "resume": {
+                    "link": "Finish SoAI setup",
+                    "toast": "Some SoAI setup steps need your attention."
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "The model download will continue in the background.",
+                        "plural": "{count} model downloads will continue in the background."
+                    },
+                    "installations": {
+                        "singular": "The backend installation will continue in the background.",
+                        "plural": "{count} backend installations will continue in the background."
+                    },
+                    "both": "Model downloads and backend installations will continue in the background."
+                }
+            },
             "completion": {
                 "backendNote": "Plugins may require backend installation before they can be used.",
                 "description": "Setup complete.",

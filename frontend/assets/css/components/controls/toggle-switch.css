@@ -14,16 +14,6 @@
         }
     }
 
-    @keyframes toggle-switch-spinner-spin {
-        from {
-            transform: translate(-50%, -50%) rotate(0deg);
-        }
-
-        to {
-            transform: translate(-50%, -50%) rotate(360deg);
-        }
-    }
-
     .toggle-switch {
         position: relative;
         display: flex;
@@ -94,7 +84,7 @@
     .toggle-switch.toggle-switch--checked > .slider::before,
     .toggle-switch input:checked + .slider::before {
         background: var(--toggle-handle-bg-on);
-        transform: translateX(var(--toggle-handle-translate));
+        transform: translateX(calc(var(--toggle-handle-translate) * var(--dir-sign)));
         box-shadow:
             0 4px 6px color-mix(in srgb, var(--color-black) 18%, transparent),
             0 0 0 1px color-mix(in srgb, var(--color-black) 4%, transparent);
@@ -106,25 +96,27 @@
     }
 
     .toggle-switch[data-pending] > .slider::after {
+        --soai-spinner-active-color: color-mix(in srgb, var(--color-black) 82%, transparent);
+        --soai-spinner-duration: var(--spinner-duration-600);
+        --soai-spinner-stroke: var(--border-width-1);
+        --soai-spinner-track-color: color-mix(in srgb, var(--color-black) 28%, transparent);
+        --toggle-spinner-size: min(8px, calc(var(--toggle-handle-size) - 4px));
         content: '';
         position: absolute;
-        inset-block-start: 50%;
-        inset-inline-start: calc(var(--toggle-handle-offset) + (var(--toggle-handle-size) / 2));
-        width: min(8px, calc(var(--toggle-handle-size) - 4px));
-        height: min(8px, calc(var(--toggle-handle-size) - 4px));
-        border: var(--border-width-1) solid color-mix(in srgb, var(--color-black) 28%, transparent);
-        border-block-start-color: color-mix(in srgb, var(--color-black) 82%, transparent);
-        border-radius: var(--border-round);
+        inset-block-start: calc(50% - (var(--toggle-spinner-size) / 2));
+        inset-inline-start: calc(var(--toggle-handle-offset) + ((var(--toggle-handle-size) - var(--toggle-spinner-size)) / 2));
+        width: var(--toggle-spinner-size);
+        height: var(--toggle-spinner-size);
         opacity: 0;
         pointer-events: none;
         z-index: var(--z-above-sibling);
         animation:
             toggle-switch-spinner-reveal var(--duration-150) var(--ease-out) forwards,
-            toggle-switch-spinner-spin var(--duration-600) var(--ease-linear) infinite;
+            spin var(--spinner-duration-600) var(--ease-linear) infinite;
     }
 
     .toggle-switch[data-pending].toggle-switch--checked > .slider::after,
     .toggle-switch[data-pending] input:checked + .slider::after {
-        inset-inline-start: calc(var(--toggle-handle-offset) + var(--toggle-handle-translate) + (var(--toggle-handle-size) / 2));
+        inset-inline-start: calc(var(--toggle-handle-offset) + var(--toggle-handle-translate) + ((var(--toggle-handle-size) - var(--toggle-spinner-size)) / 2));
     }
 }

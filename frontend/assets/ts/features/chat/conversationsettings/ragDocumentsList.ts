@@ -5,6 +5,7 @@ import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import { checkerboardService, type ElementOptions } from '@core/dom/dom.ts';
 import { resolveFileEntryIconName } from '@core/fileexplorerbrowser/entryIconResolution.ts';
 import { replaceChildrenFromTrustedHtml } from '@core/dom/html.ts';
+import { isolateLtrText } from '@core/localization/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { formatBytes } from '@core/primitives/byteSize.ts';
 import { normalizeProgressParts, normalizeProgressPercent } from '@core/primitives/progress.ts';
@@ -88,7 +89,7 @@ const renderRagDocumentsList = ({ host, container, emptyState, documents, count,
         replaceChildrenFromTrustedHtml({ element: leadingIcon, html: getIconSync(resolveFileEntryIconName({ name: item.filename, isDirectory: false }), { size: 20, strokeWidth: 1.5 }), context: leadingIcon });
         const info = host.createElement('div', { class: 'rag-document-info' });
         const header = host.createElement('div', { class: 'rag-document-header' });
-        const name = host.createElement('div', { class: 'rag-document-name' });
+        const name = host.createElement('div', { class: 'rag-document-name', dir: 'auto' });
         host.updateText(name, sanitizeTitle(item.filename));
         const statusInfo = resolveRagStatus(item);
         const badge = host.createElement('span', { class: `ui-status-badge ${statusInfo.className}` });
@@ -100,7 +101,7 @@ const renderRagDocumentsList = ({ host, container, emptyState, documents, count,
         const meta = host.createElement('div', { class: 'rag-document-meta' });
         const metaParts: string[] = [];
         if (isNumber(item.fileSizeBytes)) {
-            metaParts.push(formatBytes(item.fileSizeBytes));
+            metaParts.push(isolateLtrText(formatBytes(item.fileSizeBytes)));
         }
         if (isNumber(item.createdAtMs)) {
             metaParts.push(i18n.formatDate(new Date(item.createdAtMs)));

@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
+from core.openai.capability_taxonomy import OPENAI_CAPABILITY_CATEGORIES
 from core.validation.boolean_coercion import coerce_bool_with_default
 
 if TYPE_CHECKING:
@@ -19,6 +20,7 @@ __all__ = (
     "is_openai_input_feature_supported",
     "is_openai_model_audio_input_supported",
     "is_openai_model_capability_enabled",
+    "is_openai_model_capability_supported",
     "is_openai_model_vision_input_supported",
     "is_openai_vision_input_supported",
     "normalize_openai_capability_token",
@@ -116,6 +118,16 @@ def is_openai_model_capability_enabled(
     if not isinstance(openai_capabilities, Mapping):
         return False
     return is_openai_capability_enabled(openai_capabilities, category, token)
+
+
+def is_openai_model_capability_supported(
+    model_entry: Mapping[str, JSONValue],
+    token: str,
+) -> bool:
+    return any(
+        is_openai_model_capability_enabled(model_entry, category=category, token=token)
+        for category in OPENAI_CAPABILITY_CATEGORIES
+    )
 
 
 def has_openai_model_modality(

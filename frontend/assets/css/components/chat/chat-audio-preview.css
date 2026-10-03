@@ -16,10 +16,9 @@
     }
 
     :where(.chat-container) .voice-recording-preview-spinner.loading-spinner {
+        --soai-spinner-stroke: var(--border-width-1);
         width: 12px;
         height: 12px;
-        border-width: var(--border-width-1);
-        border-top-width: var(--border-width-1);
     }
 
     @keyframes chat-audio-preview-pulse {

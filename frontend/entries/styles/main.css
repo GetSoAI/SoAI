@@ -9,7 +9,6 @@
 @import url('../../assets/css/layout/index.css');
 @import url('../../assets/css/modes/detached-window.css');
 @import url('../../assets/css/states.css');
-@import url('../../assets/css/skeleton.css');
 @import url('../../assets/css/pages/login/index.css') layer(pages);
 @import url('../../assets/css/pages/dashboard/index.css') layer(pages);
 @import url('../../assets/css/pages/chat/index.css') layer(pages);

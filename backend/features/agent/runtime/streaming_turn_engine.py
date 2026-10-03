@@ -100,6 +100,11 @@ async def run_streaming_turn(
         output_publication_mode: AgentOutputPublicationMode,
         bootstrap: AgentTurnBootstrap,
     ) -> TurnLoopInferenceResult:
+        streaming_inference_runner.synchronize_chronology_bases(
+            sequence_index=bootstrap.tool_sequence_state.next_sequence_index,
+            content_index=bootstrap.tool_sequence_state.content_index_offset,
+            thinking_index=bootstrap.tool_sequence_state.thinking_index_offset,
+        )
         request_payload = await build_turn_inference_request_payload_for_iteration(
             deps=deps,
             context=context,
@@ -169,6 +174,7 @@ async def run_streaming_turn(
             output_publication_mode=output_publication_mode,
             on_tool_calls_detected=publish_detected_tool_calls,
             suppress_tools=suppress_tools,
+            content_index_base=bootstrap.tool_sequence_state.content_index_offset,
         )
         outcome = step_result.outcome
         assistant_text = step_result.assistant_text

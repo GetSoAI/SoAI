@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { errorHandler } from '@core/errorHandler.ts';
+import { isFlagCountryCode } from '@core/countryFlags.ts';
 import { hasOwn, isArray, isObject, isString } from '@core/typeGuards.ts';
 import { buildLanguageUrl, buildTranslationCatalogUrl, resolveApiClient, resolveAssetUrl } from '@core/languageservice/adapters.ts';
 import { mergeTranslationObjects, normalizeTranslationRoot, parseLanguageManifest, resolveManifestDefaultLanguage } from '@core/languageservice/mappers.ts';
@@ -54,11 +55,18 @@ const loadLanguageFlags = async (service: LanguageServiceRuntime): Promise<void>
         if (!isObject(flags)) {
             throw new Error('Language flags payload must be an object');
         }
-        for (const [code, flagValue] of Object.entries(flags)) {
-            if (isString(flagValue) && flagValue.trim()) {
-                service.languageFlags.set(code, flagValue);
-            }
+        const expectedCodes = new Set(service.languages.keys());
+        if (Object.keys(flags).length !== expectedCodes.size) {
+            throw new TypeError('Language flag country mapping has an incomplete locale set.');
         }
+        const countryCodes = new Map<string, string>();
+        for (const [code, countryCodeValue] of Object.entries(flags)) {
+            if (!expectedCodes.has(code) || !isString(countryCodeValue) || !isFlagCountryCode(countryCodeValue)) {
+                throw new TypeError('Invalid language flag country code.');
+            }
+            countryCodes.set(code, countryCodeValue);
+        }
+        service.languageCountryCodes = countryCodes;
     } catch (error) {
         const runtimeError = ensureError(error);
         errorHandler.warn(SERVICE_NAME, 'Failed to load language flags, continuing without flags', runtimeError);

@@ -18,7 +18,7 @@
         appearance: none;
         border: var(--border-width-1) solid var(--glass-border-subtle);
         background: var(--glass-surface-darker);
-        text-align: left;
+        text-align: start;
         cursor: pointer;
         transition: box-shadow var(--transition-fast);
     }

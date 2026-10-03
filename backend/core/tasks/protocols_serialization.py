@@ -15,6 +15,7 @@ __all__ = (
     "OrchestrationContextPersistenceViewProtocol",
     "OrchestrationContextSerializationSurfaceProtocol",
     "TaskSerializationSurfaceProtocol",
+    "TaskTerminalFieldsProtocol",
 )
 
 
@@ -103,10 +104,29 @@ class OrchestrationContextPersistenceViewProtocol(Protocol):
     def is_requeued(self) -> bool: ...
 
 
-class TaskSerializationSurfaceProtocol(Protocol):
+class TaskTerminalFieldsProtocol(Protocol):
+    @property
+    def status(self) -> TaskStatus: ...
+
+    @property
+    def error_code(self) -> int | None: ...
+
+    @property
+    def error_type(self) -> str | None: ...
+
+    @property
+    def status_message(self) -> str | None: ...
+
+    @property
+    def error_message(self) -> str | None: ...
+
+    @property
+    def public_error_message(self) -> str | None: ...
+
+
+class TaskSerializationSurfaceProtocol(TaskTerminalFieldsProtocol, Protocol):
     task_id: str
     task_type: TaskTypeId
-    status: TaskStatus
     user_id: int
     owner_type: str
     owner_id: str
@@ -118,13 +138,9 @@ class TaskSerializationSurfaceProtocol(Protocol):
     poll_interval_ms: int
     progress_current: int | None
     progress_total: int | None
-    status_message: str | None
     cancellation_requested_at_ms: int | None
     metadata: FrozenJsonDict
     result: dict[str, JSONValue] | None
-    error_code: int | None
-    error_type: str | None
-    error_message: str | None
 
     @property
     def orchestration_context(self) -> OrchestrationContextSerializationSurfaceProtocol | None: ...

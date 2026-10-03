@@ -1,6 +1,7 @@
 /* SoAI - Wheel + swipe gestures for comparison-turn carousel navigation [frontend/assets/ts/pages/chat/widgets/comparisonturn/comparisonTurnCarouselInteractionController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { inlineDelta, resolveInlineArrowStep } from '@core/layout/direction.ts';
 import type { ComparisonNavDirection, ComparisonTurnSelectionController } from '@pages/chat/widgets/comparisonturn/comparisonTurnSelectionController.ts';
 import { measureLayoutPoint } from '@core/layout/elementGeometry.ts';
 
@@ -99,7 +100,7 @@ class ComparisonTurnCarouselInteractionController {
                 event.preventDefault();
 
                 const accumulator = this.#wheelAccumulatorByRoot.get(inputArguments.root) ?? 0;
-                const nextAccumulator = accumulator + (event.shiftKey ? deltaY : deltaX);
+                const nextAccumulator = accumulator + (event.shiftKey ? deltaY : inlineDelta(deltaX, inputArguments.viewport));
                 this.#wheelAccumulatorByRoot.set(inputArguments.root, nextAccumulator);
                 const thresholdPx = 45;
                 if (Math.abs(nextAccumulator) < thresholdPx) {
@@ -128,7 +129,7 @@ class ComparisonTurnCarouselInteractionController {
                 if (signal.aborted) {
                     return;
                 }
-                if (event.button !== 0) {
+                if (event.button !== 0 || this.#dragStateByRoot.has(inputArguments.root)) {
                     return;
                 }
                 if (!(event.target instanceof Element)) {
@@ -188,7 +189,8 @@ class ComparisonTurnCarouselInteractionController {
                 return;
             }
             this.#dragStateByRoot.delete(inputArguments.root);
-            if (!dragState.isDragging) {
+            if (inputArguments.viewport.hasPointerCapture(event.pointerId)) inputArguments.viewport.releasePointerCapture(event.pointerId);
+            if (!dragState.isDragging || event.type !== 'pointerup') {
                 return;
             }
             const deltaX = dragState.lastX - dragState.startX;
@@ -197,7 +199,7 @@ class ComparisonTurnCarouselInteractionController {
             if (Math.abs(deltaX) < viewportWidth * thresholdRatio) {
                 return;
             }
-            const direction: ComparisonNavDirection = deltaX < 0 ? 'next' : 'prev';
+            const direction: ComparisonNavDirection = inlineDelta(deltaX, inputArguments.viewport) < 0 ? 'next' : 'prev';
             const slideCount = inputArguments.resolveSlideCount();
             if (slideCount === null || slideCount <= 0) {
                 return;
@@ -213,6 +215,7 @@ class ComparisonTurnCarouselInteractionController {
 
         inputArguments.viewport.addEventListener('pointerup', finalizeDrag, { passive: true, signal });
         inputArguments.viewport.addEventListener('pointercancel', finalizeDrag, { passive: true, signal });
+        inputArguments.viewport.addEventListener('lostpointercapture', finalizeDrag, { passive: true, signal });
 
         inputArguments.root.addEventListener(
             'keydown',
@@ -231,7 +234,7 @@ class ComparisonTurnCarouselInteractionController {
                 if (activeTextTarget) {
                     return;
                 }
-                const direction: ComparisonNavDirection = event.key === 'ArrowLeft' ? 'prev' : 'next';
+                const direction: ComparisonNavDirection = resolveInlineArrowStep(event.key, inputArguments.viewport) < 0 ? 'prev' : 'next';
                 const slideCount = inputArguments.resolveSlideCount();
                 if (slideCount === null || slideCount <= 0) {
                     return;

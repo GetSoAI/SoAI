@@ -3,12 +3,14 @@
 
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import { throwIfAborted } from '@core/errors/abort.ts';
+import { createAbortSignalScope, raceWithAbortSignal, throwIfAborted } from '@core/errors/abort.ts';
 import { runCleanup } from '@core/lifecycle/cleanup.ts';
 import { createDeferred } from '@core/runtime/deferred.ts';
+import { TimeoutTimer } from '@core/timers/timeoutTimer.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import { getWebSocketClient } from '@core/websocketclient/service.ts';
-import { WEBSOCKET_EVENT_TYPES, WEBSOCKET_MESSAGE_TYPES } from '@core/websocketEvents.ts';
+import { WEBSOCKET_EVENT_TYPES, WEBSOCKET_LIFECYCLE_EVENT_TYPES, WEBSOCKET_MESSAGE_TYPES } from '@core/websocketEvents.ts';
+import { ModelTestStreamError, readModelTestStreamResult, type ModelTestStreamFailureOutcome, type ModelTestStreamResult } from '@core/openai/modelTestStreamOutcome.ts';
 import { readModelTestDeltaText, readModelTestErrorMessage, readModelTestEventType, readModelTestRunId, readModelTestSequence } from '@core/openai/modelTestStreamParsing.ts';
 
 interface ModelTestStreamMessage {
@@ -29,6 +31,8 @@ type ModelTestStreamRunOptions = {
     signal: AbortSignal;
     cancelReason: string;
     isActive?: (() => boolean) | undefined;
+    timeoutMs?: number | undefined;
+    loadingTimeoutMs?: number | undefined;
     errorMessageFallback: string;
     onAssistantTextDelta: (delta: string) => void;
 };
@@ -65,39 +69,64 @@ const sendModelTestStreamCancel = async (runId: string, reason: string): Promise
     await client.sendMessage(serializeModelTestCancel(normalizedRunId, normalizedReason));
 };
 
-const runOpenAiModelTestStream = async (options: ModelTestStreamRunOptions): Promise<void> => {
+const runOpenAiModelTestStream = async (options: ModelTestStreamRunOptions): Promise<ModelTestStreamResult> => {
     if (options.signal.aborted) {
-        throw new Error('Model test stream aborted before starting');
+        throw new ModelTestStreamError('Model test stream aborted before starting', 'cancelled');
     }
     const client = getWebSocketClient();
     client.connect();
-    await client.waitForConnection(undefined, { signal: options.signal });
-    throwIfAborted(options.signal);
+    try {
+        await client.waitForConnection(undefined, { signal: options.signal });
+        throwIfAborted(options.signal);
+    } catch (error) {
+        throw new ModelTestStreamError(ensureError(error).message, options.signal.aborted ? 'cancelled' : 'disconnected');
+    }
 
     let lastSequence = -1;
-    const completion = createDeferred<void>();
-    let unsubscribe: (() => void) | null = null;
+    let visibleText = '';
+    const completion = createDeferred<ModelTestStreamResult>();
+    const unsubscribers: (() => void)[] = [];
+    let settled = false;
+    let generationStarted = false;
+    const transportController = new AbortController();
+    const transportScope = createAbortSignalScope([options.signal, transportController.signal]);
+    const timeout = new TimeoutTimer(0, () => {
+        cancelRemoteRun();
+        fail(new Error('Model test stream timed out'), 'timeout');
+    });
 
-    const cleanup = (abortListener: (() => void) | null): void => {
-        const dispose = unsubscribe;
-        unsubscribe = null;
-        runCleanup(dispose, (runtimeError) => {
-            errorHandler.warn('ModelTestStream', 'Model test stream cleanup failed', runtimeError);
-        });
-        if (abortListener) {
-            options.signal.removeEventListener('abort', abortListener);
+    const cleanup = (): void => {
+        settled = true;
+        transportController.abort();
+        transportScope.cleanup();
+        timeout.stop();
+        for (const dispose of unsubscribers.splice(0)) {
+            runCleanup(dispose, (runtimeError) => {
+                errorHandler.warn('ModelTestStream', 'Model test stream cleanup failed', runtimeError);
+            });
         }
+        options.signal.removeEventListener('abort', abortListener);
     };
 
-    const abortListener = (): void => {
+    const fail = (error: Error, outcome: ModelTestStreamFailureOutcome): void => {
+        if (settled) return;
+        cleanup();
+        completion.reject(new ModelTestStreamError(error.message, outcome));
+    };
+
+    const cancelRemoteRun = (): void => {
         void sendModelTestStreamCancel(options.runId, options.cancelReason).catch((error) => {
             errorHandler.warn('ModelTestStream', 'Model test stream cancellation failed', ensureError(error));
         });
-        cleanup(abortListener);
-        completion.reject(new Error('Model test stream aborted'));
+    };
+
+    const abortListener = (): void => {
+        cancelRemoteRun();
+        fail(new Error('Model test stream aborted'), 'cancelled');
     };
 
     const onEvent = (payload: JsonValue): void => {
+        if (settled) return;
         if (options.isActive && !options.isActive()) {
             return;
         }
@@ -107,24 +136,21 @@ const runOpenAiModelTestStream = async (options: ModelTestStreamRunOptions): Pro
         }
         const sequence = readModelTestSequence(payload);
         if (sequence === null) {
-            cleanup(abortListener);
-            completion.reject(new Error('Model test stream event is missing a sequence'));
+            fail(new Error('Model test stream event is missing a sequence'), 'disconnected');
             return;
         }
         if (sequence <= lastSequence) {
             return;
         }
         if (sequence !== lastSequence + 1) {
-            cleanup(abortListener);
-            completion.reject(new Error(`Model test stream sequence gap: expected ${String(lastSequence + 1)}, received ${String(sequence)}`));
+            fail(new Error(`Model test stream sequence gap: expected ${String(lastSequence + 1)}, received ${String(sequence)}`), 'disconnected');
             return;
         }
         lastSequence = sequence;
 
         const eventType = readModelTestEventType(payload);
         if (!eventType) {
-            cleanup(abortListener);
-            completion.reject(new Error('Model test stream event is missing its event type'));
+            fail(new Error('Model test stream event is missing its event type'), 'disconnected');
             return;
         }
         if (eventType === 'loading') {
@@ -133,37 +159,42 @@ const runOpenAiModelTestStream = async (options: ModelTestStreamRunOptions): Pro
         if (eventType === 'assistant_text_delta') {
             const delta = readModelTestDeltaText(payload);
             if (!delta) {
-                cleanup(abortListener);
-                completion.reject(new Error('Model test stream text delta is empty'));
+                fail(new Error('Model test stream text delta is empty'), 'disconnected');
                 return;
+            }
+            visibleText += delta;
+            if (!generationStarted && options.loadingTimeoutMs !== undefined) {
+                generationStarted = true;
+                timeout.stop();
+                if (options.timeoutMs !== undefined) timeout.start(options.timeoutMs);
             }
             options.onAssistantTextDelta(delta);
             return;
         }
         if (eventType === 'completed') {
-            cleanup(abortListener);
-            completion.resolve();
+            cleanup();
+            completion.resolve(readModelTestStreamResult(visibleText));
             return;
         }
         if (eventType === 'error') {
-            cleanup(abortListener);
-            completion.reject(new Error(readModelTestErrorMessage(payload) || options.errorMessageFallback));
+            fail(new Error(readModelTestErrorMessage(payload) || options.errorMessageFallback), 'load_error');
             return;
         }
-        cleanup(abortListener);
-        completion.reject(new Error(`Unsupported model test stream event type: ${eventType}`));
+        fail(new Error(`Unsupported model test stream event type: ${eventType}`), 'load_error');
     };
 
     try {
-        unsubscribe = client.subscribe(WEBSOCKET_EVENT_TYPES.MODEL_TEST_STREAM_EVENT, onEvent);
+        unsubscribers.push(client.subscribe(WEBSOCKET_EVENT_TYPES.MODEL_TEST_STREAM_EVENT, onEvent));
+        unsubscribers.push(client.subscribe(WEBSOCKET_LIFECYCLE_EVENT_TYPES.DISCONNECTED, () => fail(new Error('Model test stream connection was lost'), 'disconnected')));
         options.signal.addEventListener('abort', abortListener, { once: true });
         throwIfAborted(options.signal);
-        await client.sendMessage(serializeModelTestStart(options.runId, options.request), { signal: options.signal });
-        await completion.promise;
+        const initialTimeoutMs = options.loadingTimeoutMs ?? options.timeoutMs;
+        if (initialTimeoutMs !== undefined) timeout.start(initialTimeoutMs);
+        await raceWithAbortSignal(client.sendMessage(serializeModelTestStart(options.runId, options.request), { signal: transportScope.signal }), transportScope.signal);
     } catch (error) {
-        cleanup(abortListener);
-        throw ensureError(error);
+        fail(ensureError(error), options.signal.aborted ? 'cancelled' : 'disconnected');
     }
+    return completion.promise;
 };
 
 export { runOpenAiModelTestStream };

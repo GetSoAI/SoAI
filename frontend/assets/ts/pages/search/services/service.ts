@@ -1,6 +1,7 @@
 /* SoAI - Search page services service [frontend/assets/ts/pages/search/services/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { WebuiPermissionsUnavailableError } from '@core/access/permissionFailure.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { LatestRequestController, type LatestRequestRun } from '@core/concurrency/latestRequest.ts';
 import { isAbortError } from '@core/errors/abort.ts';
@@ -243,6 +244,7 @@ class SearchPageService {
             if (request.isStale() || isAbortError(runtimeError)) {
                 return;
             }
+            if (runtimeError instanceof WebuiPermissionsUnavailableError) throw runtimeError;
             this.#dependencies.errors.reportError(runtimeError, {
                 context: 'perform-file-search',
                 userMessage: i18n.t('search.errors.fileSearchFailed')
@@ -281,7 +283,12 @@ class SearchPageService {
 
     #handleSearchError(error: Error): void {
         const runtimeError = ensureError(error);
-        const status = resolveSearchFailureStatusCopy(isErrorHttpStatus(runtimeError, 422));
+        const permissionFailure = runtimeError instanceof WebuiPermissionsUnavailableError;
+        if (permissionFailure) {
+            this.#primaryResults = null;
+            this.#fileResults = [];
+        }
+        const status = resolveSearchFailureStatusCopy(isErrorHttpStatus(runtimeError, 422), permissionFailure);
         this.#dependencies.errors.reportError(runtimeError, {
             context: 'perform-search',
             userMessage: status.title

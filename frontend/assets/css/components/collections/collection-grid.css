@@ -74,9 +74,9 @@
     }
 
     .collection-edge-loader-content .loading-spinner {
+        --soai-spinner-stroke: var(--border-width-1);
         width: 16px;
         height: 16px;
-        border-width: var(--border-width-1);
     }
 
     @container ui-viewport (width <= 1024px) {

@@ -12,6 +12,7 @@ type NumericInputProps = {
     minimum?: number | undefined;
     maximum?: number | undefined;
     numericType: 'integer' | 'float';
+    placeholder?: string | undefined;
 };
 
 type ChoiceInputProps = {
@@ -25,6 +26,7 @@ type TextInputProps = {
     id: string;
     key: string;
     value: string | null | undefined;
+    placeholder?: string | undefined;
 };
 
 type ArrayItemProps = {

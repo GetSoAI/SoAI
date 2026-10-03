@@ -5,13 +5,13 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { encodeSegment } from '@core/identifiers.ts';
 import { toTrimmedString, toTrimmedUpper } from '@core/normalize.ts';
-import { resolveHttpUrl } from '@core/security/public.ts';
-import { isJsonArray, isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
+import { resolveHttpUrl, toTrustedUiHtml } from '@core/security/public.ts';
+import type { TrustedHtml } from '@core/security/htmlSanitizer.ts';
+import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { PluginModelRepositoryCatalogEntry, PluginRecord } from '@core/types/pluginTypes.ts';
-import { readOptionalStringValue } from '@core/types/payloadValueReaders.ts';
 import { isArray, isObject, isString } from '@core/typeGuards.ts';
 import { getBadgeColorClass } from '@core/ui/badgeColors.ts';
-import type { ModelSearchResult, ModelSearchResults, RepositoryLinkData } from '@features/models/modals/downloadmodal/modelSearchTypes.ts';
+import type { RepositoryLinkData } from '@features/models/search/modelSearchTypes.ts';
 
 interface RepositoryBadgeHost {
     session: {
@@ -135,35 +135,11 @@ const resolveRepositoryLinkData = (plugin: PluginRecord | null | undefined, mode
     return { url: resolvedUrl, label, badges };
 };
 
-const parseModelSearchResult = (value: JsonValue, index: number): ModelSearchResult => {
-    if (!isJsonObject(value)) throw new TypeError(`Model search result[${String(index)}] must be an object`);
-    const result: ModelSearchResult = {};
-    const id = readOptionalStringValue(value['id'], `Model search result[${String(index)}].id`);
-    const name = readOptionalStringValue(value['name'], `Model search result[${String(index)}].name`);
-    const summary = readOptionalStringValue(value['summary'], `Model search result[${String(index)}].summary`);
-    const source = readOptionalStringValue(value['source'], `Model search result[${String(index)}].source`);
-    const type = readOptionalStringValue(value['type'], `Model search result[${String(index)}].type`);
-    const variants = value['variants'];
-    if (variants !== undefined && variants !== null && !isJsonArray(variants)) throw new TypeError(`Model search result[${String(index)}].variants must be an array when provided`);
-    if (id !== undefined) result.id = id;
-    if (name !== undefined) result.name = name;
-    if (summary !== undefined) result.summary = summary;
-    if (source !== undefined) result.source = source;
-    if (type !== undefined) result.type = type;
-    if (isJsonArray(variants)) result.variants = [...variants];
-    return result;
-};
-
-const parseModelSearchResults = (value: JsonValue | null | undefined): ModelSearchResults => {
-    if (!isJsonArray(value)) return [];
-    return value.map(parseModelSearchResult);
-};
-
-const buildRepositoryBadgesMarkup = (host: RepositoryBadgeHost, plugin: PluginRecord | null | undefined, extraBadges: JsonValue[] | null | undefined): string => {
+const buildRepositoryBadgesMarkup = (host: RepositoryBadgeHost, plugin: PluginRecord | null | undefined, extraBadges: JsonValue[] | null | undefined): TrustedHtml => {
     const pluginObject = isObject(plugin) ? plugin : null;
     const badges = [...(isArray(extraBadges) ? extraBadges : []), ...(isArray(pluginObject?.modelTypes) ? pluginObject.modelTypes : [])];
     const uniqueBadges = new Set<string>();
-    return badges
+    const markup = badges
         .map((badge) => {
             if (!isString(badge)) {
                 return '';
@@ -173,11 +149,12 @@ const buildRepositoryBadgesMarkup = (host: RepositoryBadgeHost, plugin: PluginRe
                 return '';
             }
             uniqueBadges.add(normalizedBadge);
-            return `<span class="ui-model-type-badge ${getBadgeColorClass(normalizedBadge)}">${host.session.sanitizer.html(normalizedBadge)}</span>`;
+            return `<span dir="auto" class="ui-model-type-badge ${getBadgeColorClass(normalizedBadge)}">${host.session.sanitizer.html(normalizedBadge)}</span>`;
         })
         .filter(Boolean)
         .join('');
+    return toTrustedUiHtml(markup);
 };
 
-export { buildRepositoryBadgesMarkup, deriveRepositoryLabel, interpolateRepositoryTemplate, parseModelSearchResults, resolveRepositoryLinkData };
+export { buildRepositoryBadgesMarkup, deriveRepositoryLabel, interpolateRepositoryTemplate, resolveRepositoryLinkData };
 export type { RepositoryLinkData };

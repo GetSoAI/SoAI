@@ -4,8 +4,8 @@
 @layer components {
     :where(.chat-container) .custom-endpoint-fields {
         margin-top: var(--space-3);
-        padding-left: var(--space-4);
-        border-left: var(--border-width-2) solid var(--glass-border-subtle);
+        padding-inline-start: var(--space-4);
+        border-inline-start: var(--border-width-2) solid var(--glass-border-subtle);
     }
 
     :where(.chat-container) .custom-endpoint-fields.u-hidden {

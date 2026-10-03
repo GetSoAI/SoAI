@@ -148,22 +148,26 @@ async def run_soaibench_worker(
     except asyncio.CancelledError as exception:
         try:
             await uncancel_then_cleanup(opencl_pool.close())
-        except ProcessError:
-            terminal = await finish_failure(
-                database_hardware=database_hardware,
-                run_id=run_id,
-                started_at_ms=started_at_ms,
-                base_summary=base_summary,
-                reason="opencl_child_termination_failed",
-                message="SoAIBench OpenCL child termination could not be verified.",
+        except ProcessError as cleanup_exception:
+            if opencl_pool.degraded:
+                terminal = await finish_failure(
+                    database_hardware=database_hardware,
+                    run_id=run_id,
+                    started_at_ms=started_at_ms,
+                    base_summary=base_summary,
+                    reason="opencl_child_termination_failed",
+                    message="SoAIBench OpenCL child termination could not be verified.",
+                )
+                await settle_soaibench_terminal(
+                    event_context=event_context,
+                    task_registry=task_registry,
+                    deferred_tool_activity=deferred_tool_activity,
+                    run=terminal,
+                )
+                raise
+            exception.add_note(
+                f"SoAIBench OpenCL child exited during cancellation: {cleanup_exception}"
             )
-            await settle_soaibench_terminal(
-                event_context=event_context,
-                task_registry=task_registry,
-                deferred_tool_activity=deferred_tool_activity,
-                run=terminal,
-            )
-            raise
         await finish_direct_cancellation_preserving(
             runtime_context=runtime_context,
             profile=profile,
@@ -180,6 +184,7 @@ async def run_soaibench_worker(
     except ProcessError as exception:
         if not await close_execution_or_fail(
             opencl_pool=opencl_pool,
+            primary_exception=exception,
             runtime_context=runtime_context,
             event_context=event_context,
             deferred_tool_activity=deferred_tool_activity,
@@ -210,6 +215,7 @@ async def run_soaibench_worker(
             await stop_event.wait()
         if not await close_execution_or_fail(
             opencl_pool=opencl_pool,
+            primary_exception=exception,
             runtime_context=runtime_context,
             event_context=event_context,
             deferred_tool_activity=deferred_tool_activity,
@@ -228,6 +234,7 @@ async def run_soaibench_worker(
     except SoAIBenchUnsupported as exception:
         if not await close_execution_or_fail(
             opencl_pool=opencl_pool,
+            primary_exception=exception,
             runtime_context=runtime_context,
             event_context=event_context,
             deferred_tool_activity=deferred_tool_activity,
@@ -265,6 +272,7 @@ async def run_soaibench_worker(
     except RECOVERABLE_EXCEPTIONS as exception:
         if not await close_execution_or_fail(
             opencl_pool=opencl_pool,
+            primary_exception=exception,
             runtime_context=runtime_context,
             event_context=event_context,
             deferred_tool_activity=deferred_tool_activity,
@@ -293,6 +301,7 @@ async def run_soaibench_worker(
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
         if not await close_execution_or_fail(
             opencl_pool=opencl_pool,
+            primary_exception=exception,
             runtime_context=runtime_context,
             event_context=event_context,
             deferred_tool_activity=deferred_tool_activity,

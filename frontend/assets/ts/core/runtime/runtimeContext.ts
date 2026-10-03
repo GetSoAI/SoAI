@@ -3,7 +3,6 @@
 
 import { assertNonEmptyString } from '@core/assertions.ts';
 import { constants, TIMEOUTS } from '@core/constants.ts';
-import { domCache } from '@core/dom/dom.ts';
 import { createDiagnostics, createModuleLogger, type DiagnosticsResult, type LogLevel, type ModuleLogger } from '@core/moduleContext.ts';
 import { getServiceContainer } from '@core/serviceContainer.ts';
 import { isFiniteNumber, isString } from '@core/typeGuards.ts';
@@ -30,8 +29,6 @@ const getCoreTimeout = (key: TimeoutKey): number => {
     if (isFiniteNumber(value) && value > 0) return value;
     throw new Error(`Timeout configuration missing for ${String(key)}`);
 };
-
-const getDomCache = (): typeof domCache => domCache;
 
 const isCanonicalServiceId = (value: string): boolean => value.startsWith('core.') || value.startsWith('features.') || value.startsWith('pages.');
 
@@ -100,6 +97,6 @@ const waitForKernelServices = (identifiers: string[], options: { timeoutMs?: num
     return Promise.all(identifiers.map((identifier) => serviceContainer.waitFor(assertKernelServiceId(identifier), { timeoutMs })));
 };
 
-export { createKernelResolver, createModuleLogger, ensureDiagnostics, getConstants, getCoreTimeout, getDomCache, hasKernelService, resolveOptionalKernelService, resolveKernelService, waitForKernelService, waitForKernelServices };
+export { createKernelResolver, createModuleLogger, ensureDiagnostics, getConstants, getCoreTimeout, hasKernelService, resolveOptionalKernelService, resolveKernelService, waitForKernelService, waitForKernelServices };
 
 export type { LogLevel, DiagnosticsOptions, ModuleLoggerOptions, ModuleLogger, TimeoutKey };

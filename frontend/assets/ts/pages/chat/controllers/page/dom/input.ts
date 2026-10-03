@@ -28,6 +28,8 @@ interface ChatExportButtonHost extends PageDomOwnerHost {
 }
 type ChatInputActionHost = ChatConversationDomHost;
 
+const requestedExportButtonHidden = new WeakMap<HTMLButtonElement, boolean>();
+
 const applyInputActionVisibility = (host: ChatInputActionHost & VisionSupportHost, parameters: ChatParameters, getIcon: ChatIconResolver): void => {
     const auxiliaryAction = normalizeChatMobileAuxiliaryAction(parameters.inputActionMobileAuxiliaryAction);
     renderMobileAuxiliaryAction(host, parameters, getIcon);
@@ -43,6 +45,7 @@ const applyInputActionVisibility = (host: ChatInputActionHost & VisionSupportHos
             promptsEnabled: parameters.inputActionPromptsEnabled === true,
             newConversationEnabled: parameters.inputActionNewConversationEnabled === true,
             characterMapEnabled: parameters.inputActionCharacterMapEnabled === true,
+            sketchEnabled: parameters.inputActionSketchEnabled === true,
             tokenCounterEnabled: parameters.inputActionTokenCounterEnabled === true && auxiliaryAction !== 'token_counter',
             tokenCounterAuxiliaryEnabled: auxiliaryAction === 'token_counter'
         }
@@ -57,7 +60,7 @@ const refreshChatInputUiState = (host: ChatInputUiStateHost, input: HTMLTextArea
     host.updateEmptyStateInputHint();
 };
 
-const insertTranscription = (host: ChatInputMutationHost, input: HTMLTextAreaElement | null, text: string, noteDraftChanged: (value: string) => void): void => {
+const insertTranscription = (host: ChatInputMutationHost, input: HTMLTextAreaElement | null, text: string, noteDraftChanged: (value: string) => void, options: { focus?: boolean } = {}): void => {
     if (!input) {
         return;
     }
@@ -65,7 +68,7 @@ const insertTranscription = (host: ChatInputMutationHost, input: HTMLTextAreaEle
     const separator = currentValue.length > 0 && !currentValue.endsWith(' ') ? ' ' : '';
     const newValue = currentValue + separator + text;
     host.setUIValue(input, newValue, { attribute: 'value' });
-    input.focus();
+    if (options.focus !== false) input.focus();
     refreshChatInputUiState(host, input);
     noteDraftChanged(newValue);
 };
@@ -99,7 +102,11 @@ const updateExportButtonVisibility = (host: ChatExportButtonHost): void => {
         if (!(candidate instanceof HTMLButtonElement)) {
             continue;
         }
-        host.pageDom.toggleClass(candidate, 'u-hidden', !hasMessages);
+        const hidden = !hasMessages;
+        if (requestedExportButtonHidden.get(candidate) !== hidden) {
+            requestedExportButtonHidden.set(candidate, hidden);
+            host.pageDom.toggleClass(candidate, 'u-hidden', hidden);
+        }
         candidate.toggleAttribute('disabled', !hasMessages || isRunning);
     }
 };

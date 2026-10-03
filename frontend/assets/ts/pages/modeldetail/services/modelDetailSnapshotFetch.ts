@@ -1,6 +1,7 @@
 /* SoAI - Model detail page services snapshot fetch [frontend/assets/ts/pages/modeldetail/services/modelDetailSnapshotFetch.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { INITIAL_MODEL_COLLECTION_TIMEOUT_MS } from '@core/constants.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { waitForResourceSnapshot } from '@core/realtime/resourceSnapshotWait.ts';
 import { MODELS } from '@core/realtime/streammanager/resources/ids.ts';
@@ -30,7 +31,7 @@ const fetchModelSnapshotFromCollection = async (host: FetchModelSnapshotHost): P
             extract: (raw) => host.extractModelPayload(raw ?? null)
         },
         resourceName: MODELS,
-        timeoutMs: 5000,
+        timeoutMs: INITIAL_MODEL_COLLECTION_TIMEOUT_MS,
         timeoutMessage: `Model ${host.modelId || 'unavailable'} not found in collection`,
         logContext: 'ModelDetailPage',
         logMetadata: { id: host.modelId }

@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ChartOptions, ChartTimestampFormatter, CrosshairState, Dataset, ThemeStyles, VisiblePointsCache } from '@features/charts/chartTypes.ts';
-import type { ChartPadding, PanState, RenderBuffers, Scale, SlotMetrics, VisibleRange, VisibleRangeStats } from '@features/charts/component/chartComponentTypes.ts';
-import type { AxisCache, ChartDimensions, TimeWindow } from '@features/charts/rendering/renderingModels.ts';
+import type { ChartPadding, RenderBuffers, Scale, VisibleRange, VisibleRangeStats } from '@features/charts/component/chartComponentTypes.ts';
+import type { AxisCache, ChartDimensions, RenderGeometry } from '@features/charts/rendering/renderingModels.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { ComponentOptionsRecord } from '@core/BaseComponent.ts';
+import type { HistoryPreviewFrame } from '@features/charts/session/ChartHistoryPreview.ts';
 
 type CanvasContexts = {
     static: CanvasRenderingContext2D | null;
@@ -31,7 +32,6 @@ interface ChartRenderingStatePort {
     scale: Scale;
     visibleRange: VisibleRange;
     visibleRangeStats: VisibleRangeStats;
-    pan: PanState;
     visiblePointsCache: VisiblePointsCache | null;
     axisCache: AxisCache | null;
     legendData: Record<string, JsonValue | null | undefined>;
@@ -44,8 +44,6 @@ interface ChartRenderingSurfacePort {
     offscreenCanvas: OffscreenCanvas | null;
     offscreenContext: OffscreenCanvasRenderingContext2D | null;
     canvasBaseBackground: string | null;
-    isHistoricalDataLoading: boolean;
-    scheduleLoadingRedraw(): void;
 }
 
 interface ChartRenderingGeometryPort {
@@ -54,12 +52,8 @@ interface ChartRenderingGeometryPort {
     getCssPixelSize?: ((px: number) => number) | undefined;
     getThemeStyles: () => ThemeStyles;
     applyAlphaToColor?: ((color: string, alpha: number) => string) | undefined;
-    getPixelsPerBar: () => number | null;
-    getEffectiveDataLength: () => number;
-    getSlotMetrics: () => SlotMetrics;
-    getMaxOffsetForMetrics: (metrics?: SlotMetrics | null) => number;
+    getRenderGeometry: (dims?: ChartDimensions) => RenderGeometry | null;
     getVisibleTimeSpan?: (() => number) | undefined;
-    getVisibleTimeWindow: () => TimeWindow | null;
 }
 
 interface ChartRenderingFormatPort {
@@ -86,12 +80,17 @@ interface ChartRenderingBufferPort {
     getValueBufferForRendering?: (() => Float64Array) | undefined;
 }
 
+interface ChartRenderingPreviewPort {
+    frame(now: number): HistoryPreviewFrame;
+}
+
 interface ChartRenderingScene {
     state: ChartRenderingStatePort;
     surface: ChartRenderingSurfacePort;
     geometry: ChartRenderingGeometryPort;
     format: ChartRenderingFormatPort;
     buffers: ChartRenderingBufferPort;
+    preview: ChartRenderingPreviewPort;
 }
 
-export type { ChartRenderingBufferPort, ChartRenderingFormatPort, ChartRenderingGeometryPort, ChartRenderingScene, ChartRenderingStatePort, ChartRenderingSurfacePort };
+export type { ChartRenderingBufferPort, ChartRenderingFormatPort, ChartRenderingGeometryPort, ChartRenderingPreviewPort, ChartRenderingScene, ChartRenderingStatePort, ChartRenderingSurfacePort };

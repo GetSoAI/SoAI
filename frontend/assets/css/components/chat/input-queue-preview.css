@@ -2,10 +2,20 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    :where(.chat-container) .input-queue-preview .input-queue-attachment-count {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-05);
+        flex: 0 0 auto;
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        font-variant-numeric: tabular-nums;
+    }
+
     :where(.chat-container) .input-queue-badge {
         --status-badge-padding: var(--space-05) var(--space-15);
         --status-badge-letter-spacing: var(--tracking-05em);
-        margin-right: var(--space-1);
+        margin-inline-end: var(--space-1);
         flex: 0 0 auto;
     }
 
@@ -56,16 +66,8 @@
         white-space: nowrap;
     }
 
-    :where(.chat-container) .input-queue-preview .file-preview-item .file-status {
-        min-width: 0;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
     :where(.chat-container) .input-queue-preview .input-queue-badge {
-        margin-right: 0;
+        margin-inline-end: 0;
     }
 
     @container ui-viewport (width <= 640px) {

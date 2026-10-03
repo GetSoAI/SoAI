@@ -1,11 +1,11 @@
 /* SoAI - Chart settings ownership [frontend/assets/ts/features/charts/session/ChartSettings.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { DEFAULT_MAX_RIGHT_MARGIN_PX, DEFAULT_MAX_RIGHT_MARGIN_RATIO, INTERACTION_BOOLEAN_OPTIONS, MAX_DATA_POINTS_HARD_LIMIT, dateTimeFormatterCache } from '@features/charts/component/chartComponentStatics.ts';
+import { INTERACTION_BOOLEAN_OPTIONS, MAX_DATA_POINTS_HARD_LIMIT, dateTimeFormatterCache } from '@features/charts/component/chartComponentStatics.ts';
 import { normalizeTimestampFormat } from '@features/charts/component/data/timeFormatting.ts';
 import { normalizeChartType, normalizeClampedFloat, normalizeClampedInt, normalizeScaleBounds, normalizeScaleType, normalizeValuePrecision } from '@features/charts/component/state/actions.ts';
 import { deriveThemeFlags, mergeColorPalette, separatePaletteMetadata } from '@features/charts/component/state/service.ts';
-import type { ChartColorContext, ChartOptionValue, ChartOptions, ChartOptionsRecord, ChartPaddingInput, ChartPaddingOptions, ChartScaleBounds, ChartThemeManagedPaletteInput, ChartTimestampFormatInput, ChartTimestampFormatOptionInput, ChartTimestampFormatter, ChartValueFormatter } from '@features/charts/chartTypes.ts';
+import type { ChartColorContext, ChartHistoryPort, ChartOptionValue, ChartOptions, ChartOptionsRecord, ChartPaddingInput, ChartPaddingOptions, ChartScaleBounds, ChartThemeManagedPaletteInput, ChartTimestampFormatInput, ChartTimestampFormatOptionInput, ChartTimestampFormatter, ChartValueFormatter } from '@features/charts/chartTypes.ts';
 import type { ChartConfigurationState } from '@features/charts/session/chartState.ts';
 import { isObject, isString } from '@core/typeGuards.ts';
 import type { ChartRedrawQueue } from '@features/charts/session/ChartRedrawQueue.ts';
@@ -19,8 +19,7 @@ interface ChartSettingsViewportPort {
     readonly yAxisMinRange: number;
     setAutoScale(enabled: boolean): void;
     enforceScaleBounds(): void;
-    recalculateZoomBounds(): void;
-    clampPanOffset(): void;
+    syncToSeries(): void;
 }
 
 interface ChartSettingsSurfacePort {
@@ -46,8 +45,7 @@ const isChartTimestampFormatter = (value: ChartOptionValue): value is ChartTimes
 const isChartTimestampFormatOption = (value: ChartOptionValue): value is ChartTimestampFormatOptionInput => isObject(value);
 const isChartTimestampFormat = (value: ChartOptionValue): value is ChartTimestampFormatInput => isString(value) || isChartTimestampFormatter(value) || isChartTimestampFormatOption(value);
 const isChartValueFormatter = (value: ChartOptionValue): value is ChartValueFormatter => typeof value === 'function';
-const isHistoricalDataRequest = (value: ChartOptionValue): value is NonNullable<ChartOptions['onRequestHistoricalData']> => typeof value === 'function';
-const isZoomChangeHandler = (value: ChartOptionValue): value is NonNullable<ChartOptions['onZoomChange']> => typeof value === 'function';
+const isChartHistoryPort = (value: ChartOptionValue): value is ChartHistoryPort => isObject(value) && 'demand' in value && 'retry' in value && typeof value.demand === 'function' && typeof value.retry === 'function';
 const isTimeRangeChangeHandler = (value: ChartOptionValue): value is NonNullable<ChartOptions['onTimeRangeChange']> => typeof value === 'function';
 const isChartColorContext = (value: ChartOptionValue): value is ChartColorContext => isObject(value);
 const CHART_PADDING_SIDES: readonly (keyof ChartPaddingOptions)[] = ['top', 'right', 'bottom', 'left'];
@@ -150,6 +148,10 @@ class ChartSettings {
                 this.#configuration.options.verticalPaddingRatio = normalizeClampedFloat(isString(value) || typeof value === 'number' ? value : null, this.#configuration.options.verticalPaddingRatio, 0, 0.5);
                 this.#redraw.request({ static: this.#configuration.options.autoScale, data: true, interaction: true });
                 return;
+            case 'expectedSampleIntervalMs':
+                this.#configuration.options.expectedSampleIntervalMs = normalizeClampedInt(isString(value) || typeof value === 'number' ? value : null, this.#configuration.options.expectedSampleIntervalMs, 0);
+                this.#viewport.syncToSeries();
+                return;
             case 'scaleBounds':
                 this.#configuration.options.scaleBounds = normalizeScaleBounds({ yAxisMinRange: this.#viewport.yAxisMinRange }, isChartScaleBounds(value) ? value : null, this.#configuration.options.scaleType);
                 if (this.#configuration.options.scaleBounds) this.#viewport.enforceScaleBounds();
@@ -166,11 +168,9 @@ class ChartSettings {
             case 'zoomEasingMs':
                 this.#configuration.options.zoomEasingMs = normalizeClampedInt(isString(value) || typeof value === 'number' ? value : null, this.#configuration.options.zoomEasingMs, 60);
                 return;
-            case 'onRequestHistoricalData':
-                this.#configuration.options.onRequestHistoricalData = isHistoricalDataRequest(value) ? value : null;
-                return;
-            case 'onZoomChange':
-                this.#configuration.options.onZoomChange = isZoomChangeHandler(value) ? value : null;
+            case 'history':
+                this.#configuration.options.history = isChartHistoryPort(value) ? value : null;
+                this.#viewport.syncToSeries();
                 return;
             case 'onTimeRangeChange':
                 this.#configuration.options.onTimeRangeChange = isTimeRangeChangeHandler(value) ? value : null;
@@ -178,11 +178,6 @@ class ChartSettings {
             case 'chartColorContext':
                 this.#configuration.options.chartColorContext = isChartColorContext(value) ? value : null;
                 this.#redraw.request({ static: true, data: true, interaction: true });
-                return;
-            case 'rightMarginBars':
-            case 'maxRightMarginPx':
-            case 'maxRightMarginRatio':
-                this.#updateMargin(key, isString(value) || typeof value === 'number' ? value : null);
                 return;
             default:
                 throw new Error(`Unsupported chart option: ${key}`);
@@ -202,9 +197,7 @@ class ChartSettings {
         if (capacity === this.#configuration.options.maxDataPoints) return;
         this.#series.resizeCapacity(capacity);
         this.#configuration.options.maxDataPoints = capacity;
-        this.#viewport.recalculateZoomBounds();
-        this.#viewport.clampPanOffset();
-        this.#redraw.request({ static: true, data: true, interaction: true });
+        this.#viewport.syncToSeries();
     }
 
     #updateColors(value: ChartThemeManagedPaletteInput | null): void {
@@ -245,14 +238,6 @@ class ChartSettings {
         this.#configuration.options.timestampFormat = value ?? normalized;
         dateTimeFormatterCache.clear();
         this.#redraw.request({ static: true, data: true, interaction: true });
-    }
-
-    #updateMargin(key: 'rightMarginBars' | 'maxRightMarginPx' | 'maxRightMarginRatio', value: number | string | null): void {
-        const ratio = key === 'maxRightMarginRatio';
-        const fallback = ratio ? DEFAULT_MAX_RIGHT_MARGIN_RATIO : key === 'rightMarginBars' ? 20 : DEFAULT_MAX_RIGHT_MARGIN_PX;
-        this.#configuration.options[key] = ratio ? normalizeClampedFloat(value, fallback, 0.02, 0.45) : normalizeClampedInt(value, fallback, key === 'rightMarginBars' ? 0 : 16);
-        this.#viewport.clampPanOffset();
-        this.#redraw.request({ data: true, interaction: true });
     }
 }
 

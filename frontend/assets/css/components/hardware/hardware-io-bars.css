@@ -19,9 +19,9 @@
         border-radius: var(--border-radius);
         height: 100%;
         inset-block: 0;
-        left: 0;
+        inset-inline-start: 0;
         position: absolute;
-        transform-origin: left center;
+        transform-origin: var(--inline-start-percent) center;
         transition:
             background var(--duration-300) var(--ease-in-out),
             background-color var(--duration-300) var(--ease-in-out),

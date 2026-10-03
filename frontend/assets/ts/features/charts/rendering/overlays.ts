@@ -1,6 +1,7 @@
 /* SoAI - Charts feature overlays [frontend/assets/ts/features/charts/rendering/overlays.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { hasRtlScriptLetters, isolateLtrText } from '@core/localization/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
@@ -9,12 +10,14 @@ import type { ChartOptions, ColorPalette, CrosshairState } from '@features/chart
 import { isOhlcChartType } from '@features/charts/chartTypeNormalization.ts';
 import type { ChartRenderingScene } from '@features/charts/rendering/chartRenderingHost.ts';
 import { drawCoordinateLabel, drawRoundedRect, requireThemeColor, resolveThemeColor } from '@features/charts/rendering/primitives.ts';
+import { getChartTextStyle } from '@features/charts/rendering/textStyle.ts';
 
 const { max, min, round } = Math;
+const TOOLTIP_SECONDARY_ALPHA = 0.72;
 
 const optionalFiniteNumber = (value: JsonValue | null | undefined): number | null => (isFiniteNumber(value) ? value : null);
 
-const formatNumberDelta = (prefix: string, value: number, formatValue: (value: number) => string): string => `${prefix}${value >= 0 ? '+' : ''}${formatValue(value)}`;
+const formatNumberDelta = (prefix: string, value: number, formatValue: (value: number) => string): string => `${prefix}${isolateLtrText(`${value >= 0 ? '+' : ''}${formatValue(value)}`)}`;
 
 const getOhlcMetadata = (): { open: string; high: string; low: string; close: string } => ({
     open: i18n.t('charts.legend.openPrefix'),
@@ -27,52 +30,56 @@ const isOhlcType = (scene: ChartRenderingScene, options: ChartOptions): boolean 
 
 const drawTooltip = (scene: ChartRenderingScene, context: CanvasRenderingContext2D): void => {
     const crosshair: CrosshairState = scene.state.crosshair;
-    const { x: xCoordinate, y: yCoordinate, value, timestamp, open, high, low, close, datasetValues } = crosshair;
+    const { x: xCoordinate, y: yCoordinate, value, timestamp, open, high, low, close, datasetValues, gap } = crosshair;
     const theme = scene.geometry.getThemeStyles();
     const options: ChartOptions = scene.state.chartOptions;
     const colors: ColorPalette = options.colors;
     const isCandle = isOhlcType(scene, options);
+    const textStyle = getChartTextStyle(scene.state.element);
 
-    const lines: { text: string; font?: string | undefined; color?: string | undefined }[] = [];
-    if (isCandle) {
+    const lines: { text: string; font?: string | undefined; color?: string | undefined; secondary?: boolean | undefined }[] = [];
+    if (gap) {
+        lines.push({ text: i18n.t('charts.legend.noDataLabel') });
+    } else if (isCandle) {
         const meta = getOhlcMetadata();
-        if (isFiniteNumber(open)) lines.push({ text: `${meta.open}${scene.format.formatValue(open)}` });
-        if (isFiniteNumber(high)) lines.push({ text: `${meta.high}${scene.format.formatValue(high)}` });
-        if (isFiniteNumber(low)) lines.push({ text: `${meta.low}${scene.format.formatValue(low)}` });
+        if (isFiniteNumber(open)) lines.push({ text: `${meta.open}${isolateLtrText(scene.format.formatValue(open))}` });
+        if (isFiniteNumber(high)) lines.push({ text: `${meta.high}${isolateLtrText(scene.format.formatValue(high))}` });
+        if (isFiniteNumber(low)) lines.push({ text: `${meta.low}${isolateLtrText(scene.format.formatValue(low))}` });
         const closeValue = isFiniteNumber(close) ? close : isFiniteNumber(value) ? value : null;
-        if (closeValue !== null) lines.push({ text: `${meta.close}${scene.format.formatValue(closeValue)}` });
+        if (closeValue !== null) lines.push({ text: `${meta.close}${isolateLtrText(scene.format.formatValue(closeValue))}` });
     } else if (isFiniteNumber(value)) {
-        lines.push({ text: scene.format.formatValue(value) });
+        lines.push({ text: isolateLtrText(scene.format.formatValue(value)) });
     }
 
     if (isFiniteNumber(timestamp)) {
         lines.push({
             text: String(scene.format.formatDetailedTimestamp(timestamp, { includeSeconds: true, includeMilliseconds: (scene.geometry.getVisibleTimeSpan?.() ?? 0) <= 5000 })),
-            font: '11px sans-serif',
-            color: resolveThemeColor(theme, colors, ['textSecondary', 'text', 'axisGuideColor']) || undefined
+            font: `11px ${textStyle.fontFamily}`,
+            secondary: true
         });
     }
 
-    if (datasetValues) {
+    if (datasetValues && !gap) {
         const nameValueSeparator = i18n.t('charts.legend.nameValueSeparator');
-        const dsCols = [colors['secondary'], colors['tertiary'], colors['quaternary'], colors['statusGreen'], colors['statusYellow'], colors['statusRed'], colors['textSecondary']].filter((item): item is string => Boolean(item));
-        const defaultColor = resolveThemeColor(theme, colors, ['legendTextColor', 'text', 'textSecondary', 'statusGreen']) || undefined;
+        const dsCols = [colors['secondary'], colors['tertiary'], colors['quaternary'], colors['statusGreen'], colors['statusYellow'], colors['statusRed']].filter((item): item is string => Boolean(item));
         let colorIndex = 0;
         for (const [name, rawValue] of Object.entries(datasetValues)) {
             lines.push({
-                text: `${name}${nameValueSeparator}${scene.format.formatValue(rawValue)}`,
-                font: '11px sans-serif',
-                color: dsCols.length > 0 ? dsCols[colorIndex % dsCols.length] : defaultColor
+                text: `${name}${nameValueSeparator}${isolateLtrText(scene.format.formatValue(rawValue))}`,
+                font: `11px ${textStyle.fontFamily}`,
+                color: dsCols[colorIndex % dsCols.length]
             });
             colorIndex += 1;
         }
     }
 
-    const tooltipBg = resolveThemeColor(theme, colors, ['tooltipBackground', 'background', 'textSecondary', 'text', 'crosshair', 'axisGuideColor']);
-    const tooltipText = resolveThemeColor(theme, colors, ['tooltipTextColor', 'text', 'legendTextColor', 'textSecondary', 'statusRed']);
+    const tooltipBg = requireThemeColor(theme, 'crosshairValueBackground');
+    const tooltipText = requireThemeColor(theme, 'crosshairValueTextColor');
 
     context.save();
-    context.font = '12px sans-serif';
+    const baseAlpha = context.globalAlpha;
+    context.font = `12px ${textStyle.fontFamily}`;
+    context.direction = textStyle.direction;
     const lineHeight = 16;
     const maxWidth = lines.reduce((acc, line) => max(acc, context.measureText(line.text).width), 0);
     const boxPaddingX = 10;
@@ -90,11 +97,13 @@ const drawTooltip = (scene: ChartRenderingScene, context: CanvasRenderingContext
     for (let index = 0; index < lines.length; index++) {
         const line = lines[index];
         if (!line) continue;
-        context.font = line.font ?? '12px sans-serif';
+        context.font = line.font ?? `12px ${textStyle.fontFamily}`;
+        context.direction = hasRtlScriptLetters(line.text) ? 'rtl' : 'ltr';
         context.fillStyle = line.color ?? tooltipText;
-        context.textAlign = 'left';
+        context.globalAlpha = line.secondary ? baseAlpha * TOOLTIP_SECONDARY_ALPHA : baseAlpha;
+        context.textAlign = textStyle.direction === 'rtl' ? 'right' : 'left';
         context.textBaseline = 'middle';
-        context.fillText(line.text, boxX + boxPaddingX, boxY + boxPaddingY + lineHeight * (index + 0.5));
+        context.fillText(line.text, textStyle.direction === 'rtl' ? boxX + boxWidth - boxPaddingX : boxX + boxPaddingX, boxY + boxPaddingY + lineHeight * (index + 0.5));
     }
     context.restore();
 };
@@ -120,13 +129,14 @@ const drawCrosshair = (scene: ChartRenderingScene, context: CanvasRenderingConte
     context.stroke();
     context.restore();
 
-    if (scene.state.chartOptions.showAxisCoordinates && isFiniteNumber(value)) {
-        drawCoordinateLabel(context, dims.right + 4 + (context.measureText(scene.format.formatValue(value)).width + 16) / 2, yCoordinate, scene.format.formatValue(value), {
+    if (!scene.state.chartOptions.showAxisCoordinates || !isFiniteNumber(value)) return;
+    if (!crosshair.gap) {
+        drawCoordinateLabel(context, dims.right + 4 + (context.measureText(isolateLtrText(scene.format.formatValue(value))).width + 16) / 2, yCoordinate, isolateLtrText(scene.format.formatValue(value)), {
             bgColor: requireThemeColor(themeStyles, 'crosshairValueBackground'),
             textColor: requireThemeColor(themeStyles, 'crosshairValueTextColor')
         });
-        drawTooltip(scene, context);
     }
+    drawTooltip(scene, context);
 };
 
 const drawLegend = (scene: ChartRenderingScene, context: CanvasRenderingContext2D): void => {
@@ -154,6 +164,7 @@ const drawLegend = (scene: ChartRenderingScene, context: CanvasRenderingContext2
     const parts: string[] = [];
     const span = scene.geometry.getVisibleTimeSpan?.() ?? 0;
     const crosshair: CrosshairState = scene.state.crosshair;
+    const inGap = crosshair.visible && crosshair.gap;
     if (crosshair.visible && isFiniteNumber(crosshair.timestamp)) {
         parts.push(String(scene.format.formatDetailedTimestamp(crosshair.timestamp, { includeSeconds: span <= 90000 })));
     }
@@ -164,85 +175,111 @@ const drawLegend = (scene: ChartRenderingScene, context: CanvasRenderingContext2
         const highNumber = optionalFiniteNumber(high);
         const lowNumber = optionalFiniteNumber(low);
         const closeValue = closeNumber ?? valueNumber;
-        if (openNumber !== null) parts.push(`${meta.open}${scene.format.formatValue(openNumber)}`);
-        if (highNumber !== null) parts.push(`${meta.high}${scene.format.formatValue(highNumber)}`);
-        if (lowNumber !== null) parts.push(`${meta.low}${scene.format.formatValue(lowNumber)}`);
-        if (closeValue !== null) parts.push(`${meta.close}${scene.format.formatValue(closeValue)}`);
+        if (openNumber !== null) parts.push(`${meta.open}${isolateLtrText(scene.format.formatValue(openNumber))}`);
+        if (highNumber !== null) parts.push(`${meta.high}${isolateLtrText(scene.format.formatValue(highNumber))}`);
+        if (lowNumber !== null) parts.push(`${meta.low}${isolateLtrText(scene.format.formatValue(lowNumber))}`);
+        if (closeValue !== null) parts.push(`${meta.close}${isolateLtrText(scene.format.formatValue(closeValue))}`);
     } else if (valueNumber !== null) {
-        parts.push(scene.format.formatValue(valueNumber));
+        parts.push(inGap ? i18n.t('charts.legend.noDataLabel') : isolateLtrText(scene.format.formatValue(valueNumber)));
     }
 
     const deltaNumber = optionalFiniteNumber(delta);
-    if (options.showDelta && deltaNumber !== null) parts.push(formatNumberDelta(deltaPrefix, deltaNumber, (value) => scene.format.formatValue(value)));
+    if (options.showDelta && deltaNumber !== null && !inGap) parts.push(formatNumberDelta(deltaPrefix, deltaNumber, (value) => scene.format.formatValue(value)));
     const minNumber = optionalFiniteNumber(mn);
     const maxNumber = optionalFiniteNumber(mx);
-    if (minNumber !== null) parts.push(`${minPrefix}${scene.format.formatValue(minNumber)}`);
-    if (maxNumber !== null) parts.push(`${maxPrefix}${scene.format.formatValue(maxNumber)}`);
+    if (minNumber !== null) parts.push(`${minPrefix}${isolateLtrText(scene.format.formatValue(minNumber))}`);
+    if (maxNumber !== null) parts.push(`${maxPrefix}${isolateLtrText(scene.format.formatValue(maxNumber))}`);
 
     const baselineNumber = optionalFiniteNumber(baseline);
     if (options.chartType === 'deviation' && baselineNumber !== null) {
-        parts.push(`${baselinePrefix}${scene.format.formatValue(baselineNumber)}`);
+        parts.push(`${baselinePrefix}${isolateLtrText(scene.format.formatValue(baselineNumber))}`);
         if (valueNumber !== null) parts.push(formatNumberDelta(deviationPrefix, valueNumber - baselineNumber, (value) => scene.format.formatValue(value)));
     } else {
         const avgNumber = optionalFiniteNumber(avg);
-        if (avgNumber !== null) parts.push(`${avgPrefix}${scene.format.formatValue(avgNumber)}`);
+        if (avgNumber !== null) parts.push(`${avgPrefix}${isolateLtrText(scene.format.formatValue(avgNumber))}`);
     }
 
     const datasetValues = crosshair.datasetValues;
-    if (datasetValues) {
-        for (const [name, rawValue] of Object.entries(datasetValues)) parts.push(`${name}${nameValueSeparator}${scene.format.formatValue(rawValue)}`);
+    if (datasetValues && !inGap) {
+        for (const [name, rawValue] of Object.entries(datasetValues)) parts.push(`${name}${nameValueSeparator}${isolateLtrText(scene.format.formatValue(rawValue))}`);
     }
 
     const timestampNumber = optionalFiniteNumber(timestamp);
     if (options.showLegendTimestamp && timestampNumber !== null) {
         const age = serverEpochMs() - timestampNumber;
-        parts.push(age < 5000 ? realtimeLabel : age < 60000 ? `${round(age / 1000)}${secondsAgoSuffix}` : String(scene.format.formatTimestamp(timestampNumber, 'full')));
+        parts.push(age < 5000 ? realtimeLabel : age < 60000 ? `${isolateLtrText(String(round(age / 1000)))}${secondsAgoSuffix}` : String(scene.format.formatTimestamp(timestampNumber, 'full')));
     }
 
     const metricNamePrefix = options.metricName ? `${options.metricName}${metricNameSeparator}` : '';
-    const legendText = `${metricNamePrefix}${parts.join(partSeparator)}`;
-    context.font = '11px monospace';
+    const textStyle = getChartTextStyle(scene.state.element);
     const chartDims = scene.geometry.getChartDimensions();
-    const lx = scene.state.padding.left;
-    const ly = scene.state.padding.top - 16;
-    Object.assign(context, { textAlign: 'left', textBaseline: 'top' });
-
-    let tx = lx;
+    const startX = scene.state.padding.left;
+    const endX = chartDims.width - 8;
+    const rtl = textStyle.direction === 'rtl';
+    const directionSign = rtl ? -1 : 1;
+    const anchorX = rtl ? endX : startX;
+    context.save();
+    Object.assign(context, { font: `12px ${textStyle.fontFamily}`, direction: textStyle.direction, textAlign: rtl ? 'right' : 'left', textBaseline: 'top' });
     const colors: ColorPalette = options.colors;
+    const themeStyles = scene.geometry.getThemeStyles();
+    const legendColor = resolveThemeColor(themeStyles, colors, ['legendTextColor', 'text', 'textSecondary', 'axisGuideColor', 'statusYellow']);
+    const realtimeColor = resolveThemeColor(themeStyles, colors, ['statusRed', 'statusYellow', 'axisGuideColor', 'text', 'primary']);
+    type LegendRun = { text: string; color: string; alpha: number; width: number };
+    let currentRow: LegendRun[] = [];
+    const rows: LegendRun[][] = [currentRow];
+    let rowWidth = 0;
     if (status) {
         const key = `status${String(status)[0]?.toUpperCase()}${String(status).slice(1)}`;
         const statusColor = colors[key];
         if (statusColor) {
-            context.fillStyle = statusColor;
-            context.fillText(statusMarker, tx, ly);
-            tx += context.measureText(statusMarkerSpacing).width;
+            const width = context.measureText(statusMarkerSpacing).width;
+            currentRow.push({ text: statusMarker, color: statusColor, alpha: 1, width });
+            rowWidth += width;
         }
     }
-
-    const themeStyles = scene.geometry.getThemeStyles();
-    const legendColor = resolveThemeColor(themeStyles, colors, ['legendTextColor', 'text', 'textSecondary', 'axisGuideColor', 'statusYellow']);
-    const realtimeIndex = realtimeLabel ? legendText.indexOf(realtimeLabel) : -1;
-    const legendMaxWidth = max(1, chartDims.right - tx);
-
-    if (realtimeIndex !== -1) {
-        const pre = legendText.slice(0, realtimeIndex);
-        const post = legendText.slice(realtimeIndex + realtimeLabel.length);
-        if (context.measureText(legendText).width > legendMaxWidth) {
-            context.fillStyle = legendColor;
-            context.fillText(legendText, tx, ly, legendMaxWidth);
-            return;
+    const lineHeight = 18;
+    const maxRows = max(1, Math.floor((scene.state.padding.top - 4) / lineHeight));
+    const legendMaxWidth = max(1, endX - startX);
+    const separatorWidth = context.measureText(partSeparator).width;
+    for (let index = 0; index < parts.length; index += 1) {
+        const part = `${index === 0 ? metricNamePrefix : ''}${parts[index] ?? ''}`;
+        const partWidth = context.measureText(part).width;
+        if (index > 0 && rowWidth + separatorWidth + partWidth > legendMaxWidth && rows.length < maxRows) {
+            currentRow = [];
+            rows.push(currentRow);
+            rowWidth = 0;
+        } else if (index > 0) {
+            currentRow.push({ text: partSeparator, color: legendColor, alpha: 0.42, width: separatorWidth });
+            rowWidth += separatorWidth;
         }
-        context.fillStyle = legendColor;
-        context.fillText(pre, tx, ly);
-        const w1 = context.measureText(pre).width;
-        context.fillStyle = resolveThemeColor(themeStyles, colors, ['statusRed', 'statusYellow', 'axisGuideColor', 'text', 'primary']);
-        context.fillText(realtimeLabel, tx + w1, ly);
-        context.fillStyle = legendColor;
-        context.fillText(post, tx + w1 + context.measureText(realtimeLabel).width, ly);
-    } else {
-        context.fillStyle = legendColor;
-        context.fillText(legendText, tx, ly, legendMaxWidth);
+        const realtimeIndex = realtimeLabel ? part.indexOf(realtimeLabel) : -1;
+        if (realtimeIndex === -1) {
+            currentRow.push({ text: part, color: legendColor, alpha: 1, width: partWidth });
+        } else {
+            const before = part.slice(0, realtimeIndex);
+            const after = part.slice(realtimeIndex + realtimeLabel.length);
+            currentRow.push({ text: before, color: legendColor, alpha: 1, width: context.measureText(before).width }, { text: realtimeLabel, color: realtimeColor, alpha: 1, width: context.measureText(realtimeLabel).width }, { text: after, color: legendColor, alpha: 1, width: context.measureText(after).width });
+        }
+        rowWidth += partWidth;
     }
+    const baseAlpha = context.globalAlpha;
+    const firstY = scene.state.padding.top - 16 - lineHeight * (rows.length - 1);
+    for (const [rowIndex, row] of rows.entries()) {
+        const width = row.reduce((total, run) => total + run.width, 0);
+        const scale = min(1, legendMaxWidth / max(1, width));
+        context.save();
+        context.transform(scale, 0, 0, 1, anchorX * (1 - scale), 0);
+        let cursor = 0;
+        for (const run of row) {
+            context.direction = hasRtlScriptLetters(run.text) ? 'rtl' : 'ltr';
+            context.fillStyle = run.color;
+            context.globalAlpha = baseAlpha * run.alpha;
+            context.fillText(run.text, anchorX + directionSign * cursor, firstY + rowIndex * lineHeight);
+            cursor += run.width;
+        }
+        context.restore();
+    }
+    context.restore();
 };
 
 export { drawCrosshair, drawTooltip, drawLegend };

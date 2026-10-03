@@ -8,15 +8,10 @@ from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ModelOutputContractError
 from core.events.types_models_streaming import StreamEndEvent
-from core.openai.sse_events import (
-    format_openai_sse_data,
-)
 from core.openai.sse_frames import sse_done_chunk
+from core.openai.streaming_usage import build_openai_usage_chunk_bytes
 from core.openai.usage.serialization import extract_public_usage_payload
-from core.runtime.soai_identifiers import create_prefixed_hex_id
-from core.serialization.json import normalize_for_json
 from core.streaming.protocols import StreamGeneratorStateProtocol
-from core.timing.epoch import epoch_seconds
 from features.api.streaming.openai_stream_generator.runtime_state import (
     OpenAIStreamRuntimeState,
 )
@@ -25,10 +20,11 @@ from features.api.streaming.openai_stream_generator.stream_abort import (
 )
 
 if TYPE_CHECKING:
-    from core.types.json import JSONDict, JSONValue
+    from core.types.json import JSONValue
 
 __all__ = (
     "finalize_openai_stream_frames",
+    "iter_public_usage_chunk",
     "iter_stream_bytes_from_end_event",
 )
 
@@ -43,6 +39,28 @@ def finalize_openai_stream_frames(state: OpenAIStreamRuntimeState) -> None:
             "Provider ended stream with an incomplete OpenAI SSE frame.",
             "invalid_stream_error",
         ) from exception
+
+
+def iter_public_usage_chunk(
+    state: OpenAIStreamRuntimeState,
+    *,
+    include_usage: bool,
+    model: str | None,
+    reported_usage: JSONValue,
+) -> Iterator[bytes]:
+    if not include_usage or state.is_done_sent:
+        return
+    public_usage = extract_public_usage_payload(reported_usage)
+    if public_usage is None:
+        public_usage = state.withheld_provider_usage
+    if public_usage is None:
+        return
+    yield build_openai_usage_chunk_bytes(
+        public_usage=public_usage,
+        stream_id=state.stream_id,
+        object_type=state.stream_object or "chat.completion.chunk",
+        model=model,
+    )
 
 
 def iter_stream_bytes_from_end_event(
@@ -63,28 +81,14 @@ def iter_stream_bytes_from_end_event(
                 stream_result_state.payload = state.stream_transcript.build_result_payload()
             else:
                 stream_result_state.partial_payload = state.stream_transcript.build_result_payload()
-    public_usage = extract_public_usage_payload(end_event.usage)
     if stream_result_state is not None and isinstance(end_event.usage, dict):
         stream_result_state.usage = dict(end_event.usage)
-    if include_usage and public_usage is not None and not state.is_done_sent:
-        model_id = model or "unknown"
-        completion_id = state.stream_id or create_prefixed_hex_id(
-            "chatcmpl",
-            length=12,
-            separator="-",
-        )
-        object_type = state.stream_object or "chat.completion.chunk"
-        choices: list[JSONValue] = []
-        usage_payload: JSONDict = {
-            "id": completion_id,
-            "object": object_type,
-            "created": int(epoch_seconds()),
-            "model": model_id,
-            "choices": choices,
-            "usage": public_usage,
-        }
-        usage_chunk = normalize_for_json(usage_payload)
-        yield format_openai_sse_data(usage_chunk).encode("utf-8")
+    yield from iter_public_usage_chunk(
+        state,
+        include_usage=include_usage,
+        model=model,
+        reported_usage=end_event.usage,
+    )
     if emit_done_marker and not state.is_done_sent:
         yield done_chunk
         state.is_done_sent = True

@@ -137,6 +137,7 @@ class WebsocketConnection:
         self.close_code = 1000
         self.close_reason = ""
         self.session_revalidation_deadline = time.monotonic() + 300.0
+        self.effective_actions_refresh_deadline = 0.0
         self.chat_streams: dict[str, AssistantTimelineRuntime] = {}
         self.model_test_streams: dict[str, ModelTestStreamRuntime] = {}
         self.openai_audio_transcriptions: dict[str, OpenAiAudioTranscriptionRuntime] = {}

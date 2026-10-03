@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from mcp.tools.browser.playwright_driver_errors import (
+from core.browser.playwright_driver_errors import (
     is_playwright_driver_connection_closed,
 )
 from mcp.tools.browser.types import BrowserSessionState

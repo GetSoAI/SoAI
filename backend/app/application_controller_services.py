@@ -115,7 +115,6 @@ def build_application_controller_services(
             logging_manager=deps.services.infrastructure.log_manager,
             lifecycle_coordinator=deps.services.lifecycle.coordinator,
             discovery_service=deps.services.lifecycle.discovery_service,
-            hardware_manager=deps.services.infrastructure.hardware.manager,
             cancellation_binder=deps.services.tasks.cancellation.binder,
             finalizer_tracker=deps.services.tasks.cancellation.finalizer_tracker,
             module_dependencies=deps.module_dependencies.server,

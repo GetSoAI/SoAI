@@ -7,12 +7,16 @@ import functools
 from dataclasses import dataclass
 
 __all__ = (
+    "RIPGREP_RELEASE",
+    "RIPGREP_RELEASE_DIR",
+    "RIPGREP_VERSION_LINE",
     "RipgrepAsset",
     "get_ripgrep_assets",
 )
 
 RIPGREP_RELEASE = "15.1.0"
 RIPGREP_RELEASE_DIR = "15.1.0"
+RIPGREP_VERSION_LINE = "ripgrep 15.1.0 (rev af60c2de9d)"
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,14 +68,14 @@ def get_ripgrep_assets() -> dict[str, RipgrepAsset]:
             platform_id="darwin-x64",
             url=f"{base_url}/ripgrep-{RIPGREP_RELEASE}-x86_64-apple-darwin.tar.gz",
             sha256=(
-                "4811cb24"
-                "e77cac30"
-                "57d6c40b"
-                "63ac9bec"
-                "f9082eed"
-                "d54ca411"
-                "b475b755"
-                "d3348827"
+                "64811cb2"
+                "4e77cac3"
+                "057d6c40"
+                "b63ac9be"
+                "cf9082ee"
+                "dd54ca41"
+                "1b475b75"
+                "5d334882"
             ),
             filename=f"ripgrep-{RIPGREP_RELEASE}-x86_64-apple-darwin.tar.gz",
             archive_format="tar.gz",

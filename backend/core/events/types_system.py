@@ -54,9 +54,11 @@ __all__ = (
     "GPUCapabilitiesChangedEvent",
     "GPUSavedSettingsChangedEvent",
     "GPUStartupWarningEvent",
+    "HardwareHistoryResetEvent",
     "HardwareSnapshotUpdatedEvent",
     "KnowledgeAttachmentChangedEvent",
     "MessageSavedEvent",
+    "MetricsHistoryResetEvent",
     "MetricsUpdatedEvent",
     "ModelTestStreamEvent",
     "ConversationInputsChangedEvent",
@@ -159,6 +161,18 @@ class SoAIBenchRunUpdatedEvent(Event):
 class MetricsUpdatedEvent(Event):
     metrics: JSONDict
     delivery: EventDelivery = EventDelivery.DROPPABLE
+
+
+@dataclass(slots=True)
+class MetricsHistoryResetEvent(Event):
+    cleared_through_ms: int
+    delivery: EventDelivery = EventDelivery.MUST_DELIVER
+
+
+@dataclass(slots=True)
+class HardwareHistoryResetEvent(Event):
+    cleared_through_ms: int
+    delivery: EventDelivery = EventDelivery.MUST_DELIVER
 
 
 @dataclass(slots=True)

@@ -14,10 +14,14 @@
         --chat-input-mode-label-color: color-mix(in srgb, var(--status-grey) 72%, var(--text-secondary));
         --chat-input-mode-label-color-focus: var(--status-grey);
         --chat-input-actions-content-opacity: 1;
+        --chat-composer-hover-emphasis: 0%;
+        --chat-composer-resting-height: calc(var(--chat-input-empty-height) + var(--chat-composer-control-size) + var(--space-2) + (var(--chat-input-wrapper-padding) * 2));
+        --chat-composer-fold-visibility-delay: 0s;
+        --chat-composer-fold-transition: opacity var(--header-fold-duration) var(--header-fold-easing), translate var(--header-fold-duration) var(--header-fold-easing), visibility 0s linear var(--chat-composer-fold-visibility-delay);
         position: absolute;
         bottom: calc(0.5rem + var(--ui-safe-area-inset-bottom));
-        left: var(--chat-composer-inset-inline);
-        right: var(--chat-composer-inset-inline);
+        inset-inline-start: var(--chat-composer-inset-inline);
+        inset-inline-end: var(--chat-composer-inset-inline);
         display: flex;
         flex-direction: column;
         align-items: stretch;
@@ -31,7 +35,7 @@
             border-color var(--transition-fast),
             box-shadow var(--transition-fast);
         z-index: var(--z-raised);
-        min-height: calc(var(--chat-input-empty-height) + var(--chat-composer-control-size) + var(--space-2) + (var(--chat-input-wrapper-padding) * 2));
+        min-height: var(--chat-composer-resting-height);
     }
 
     :where(.chat-container) .chat-input-wrapper:has(.chat-input[data-agent-mode='plan']) {
@@ -51,15 +55,22 @@
     :where(.chat-container) .chat-input-wrapper.glass-surface-strong::before {
         inset: var(--chat-input-wrapper-padding);
         background: var(--chat-input-surface-color);
-        border: var(--border-width-1) solid var(--chat-input-border-color);
+        border: var(--border-width-1) solid color-mix(in srgb, var(--chat-input-mode-border-color-focus) var(--chat-composer-hover-emphasis), var(--chat-input-border-color));
         box-shadow: var(--glass-shadow-base);
         transition:
             background-color var(--transition-fast),
-            border-color var(--transition-fast);
+            border-color var(--transition-fast),
+            var(--chat-composer-fold-transition);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        :where(.chat-container) .chat-input-wrapper:hover {
+            --chat-composer-hover-emphasis: 50%;
+        }
     }
 
     :where(.chat-container) .chat-input-wrapper:has(.chat-input:focus)::before {
-        border-top-left-radius: 0;
+        border-start-start-radius: 0;
         border-color: var(--chat-input-mode-border-color-focus);
     }
 
@@ -82,6 +93,7 @@
         overflow-y: hidden;
         font-family: inherit;
         outline: none;
+        transition: var(--chat-composer-fold-transition);
     }
 
     :where(.chat-container) .chat-input:focus-visible {
@@ -155,8 +167,9 @@
         inset-inline-start: calc(-1 * (var(--chat-composer-separator-gap) + (var(--border-width-1) * 2)));
         inset-block: var(--space-2);
         width: var(--border-width-1);
-        background: var(--glass-border-strong);
+        background: var(--ui-separator-gradient-vertical);
         pointer-events: none;
+        transition: opacity var(--transition-fast);
     }
 
     :where(.chat-container) .chat-input-actions .chat-action-icon svg {

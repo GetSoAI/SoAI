@@ -6,29 +6,9 @@ import { isObject } from '@core/typeGuards.ts';
 import { readCoercedFiniteNumberOrNullValue } from '@core/types/numberCoercionReaders.ts';
 import type { ChartOptions, VisiblePointsCache } from '@features/charts/chartTypes.ts';
 import { normalizeChartTypeToken } from '@features/charts/chartTypeNormalization.ts';
-import { BASE_MAX_ZOOM_LEVEL, computeDynamicMinZoomLevel, DEFAULT_MAX_DATA_POINTS, isFin, MIN_VISIBLE_ZOOM_SLOTS, SUPPORTED_CHART_TYPES } from '@features/charts/component/chartComponentStatics.ts';
+import { isFin, SUPPORTED_CHART_TYPES } from '@features/charts/component/chartComponentStatics.ts';
 import type { RenderBuffers } from '@features/charts/component/chartComponentTypes.ts';
-import type { ZoomBoundsHost, ScaleBoundsHost, RenderBuffersHost } from '@features/charts/component/state/types.ts';
-
-const recalculateZoomBounds = (chart: ZoomBoundsHost, options: { preserveLevel?: boolean } = {}): void => {
-    const preserveLevel = options.preserveLevel !== false;
-    const { level: prevLevel = 1, targetLevel: prevTarget = 1 } = chart.zoom;
-    const sourcePoints = Math.max(chart.chartOptions.maxDataPoints || DEFAULT_MAX_DATA_POINTS, chart.getEffectiveDataLength() || 0);
-    const dynamicMin = computeDynamicMinZoomLevel(sourcePoints, chart.baseBarPixelWidth);
-    const dataLength = chart.getEffectiveDataLength();
-    const minimumVisibleSlots = Math.max(1, Math.min(MIN_VISIBLE_ZOOM_SLOTS, dataLength || MIN_VISIBLE_ZOOM_SLOTS));
-    const chartWidth = chart.getChartDimensions().chartWidth;
-    const widthLimitedMax = isFin(chartWidth) && chartWidth > 0 ? chartWidth / Math.max(1, chart.baseBarPixelWidth * minimumVisibleSlots) : BASE_MAX_ZOOM_LEVEL;
-    chart.zoom.minLevel = dynamicMin;
-    chart.zoom.maxLevel = Math.max(dynamicMin, Math.min(BASE_MAX_ZOOM_LEVEL, widthLimitedMax));
-    if (preserveLevel) {
-        chart.zoom.level = clampNumber(chart.zoom.level, dynamicMin, chart.zoom.maxLevel);
-        chart.zoom.targetLevel = clampNumber(chart.zoom.targetLevel, dynamicMin, chart.zoom.maxLevel);
-    } else {
-        chart.zoom.level = clampNumber(prevLevel, dynamicMin, chart.zoom.maxLevel);
-        chart.zoom.targetLevel = clampNumber(prevTarget, dynamicMin, chart.zoom.maxLevel);
-    }
-};
+import type { ScaleBoundsHost, RenderBuffersHost } from '@features/charts/component/state/types.ts';
 
 const normalizeChartType = (type: string | null | undefined): string => {
     const count = normalizeChartTypeToken(type) ?? '';
@@ -114,4 +94,4 @@ const invalidateVisiblePointsCache = (chart: { visiblePointsCache: VisiblePoints
     chart.visiblePointsCache = null;
 };
 
-export { ensureRenderBufferCapacity, initializeRenderBuffers, invalidateVisiblePointsCache, normalizeChartType, normalizeClampedFloat, normalizeClampedInt, normalizeScaleBounds, normalizeScaleType, normalizeValuePrecision, recalculateZoomBounds };
+export { ensureRenderBufferCapacity, initializeRenderBuffers, invalidateVisiblePointsCache, normalizeChartType, normalizeClampedFloat, normalizeClampedInt, normalizeScaleBounds, normalizeScaleType, normalizeValuePrecision };

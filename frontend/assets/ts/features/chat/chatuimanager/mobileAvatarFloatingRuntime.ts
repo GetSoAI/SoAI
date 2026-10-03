@@ -111,7 +111,7 @@ const createMobileAvatarFloatingRuntime = (messagesArea: HTMLElement, messagesRo
     };
 
     const mutationDisposer = coordinator.subscribeMutations((mutations) => {
-        if (mutations.some(mutationChangesAvatarStructure)) {
+        if (cachedPairs !== null && mutations.some(mutationChangesAvatarStructure)) {
             cachedPairs = null;
         }
     });

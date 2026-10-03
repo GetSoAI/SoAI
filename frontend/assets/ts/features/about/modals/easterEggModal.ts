@@ -30,7 +30,7 @@ const easterEggModalDefinition: ModalDefinition = {
             closeAttributes: { 'data-action': 'close' }
         });
         const body = renderModalBody(
-            uiHtml`<div class="easter-egg-scene" tabindex="0" role="button" aria-label="${uiAttr(interactHint)}" data-tooltip="${uiAttr(interactHint)}">
+            uiHtml`<div class="easter-egg-scene" tabindex="0" role="button" aria-label="${uiAttr(interactHint)}" data-tooltip="">
             <div class="easter-egg-aurora"></div>
             <div class="easter-egg-starfield"></div>
             <div class="easter-egg-glow"></div>

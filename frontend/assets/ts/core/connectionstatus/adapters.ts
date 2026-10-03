@@ -6,7 +6,8 @@ import { errorHandler } from '@core/errorHandler.ts';
 import type { StreamRuntimeOwners } from '@core/realtime/streammanager/public.ts';
 import type { ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
 import { isFunction, isObject, isString } from '@core/typeGuards.ts';
-import { getStatusStream, readTimer, requireAuthManager, resetStreamManagerCaches, startTimer } from '@core/connectionstatus/deps.ts';
+import { readTimer, requireAuthManager, resetStreamManagerCaches, startTimer } from '@core/connectionstatus/deps.ts';
+import { STATUS } from '@core/realtime/streammanager/resources/ids.ts';
 import { EVT_DISCO, EVT_UPDATE, INITIAL_RESTART_DELAY_MS, MODULE_NAME } from '@core/connectionstatus/constants.ts';
 
 import type { EnsureStreamHost, StopStreamHost } from '@core/connectionstatus/internalContracts.ts';
@@ -79,7 +80,7 @@ const ensureConnectionStatusStream = (host: EnsureStreamHost): Promise<void> | n
                 return;
             }
 
-            const unsubscribe = streamManager.subscriptions.subscribeResourceState(getStatusStream(), (resourceSnapshot) => processConnectionStatusResourceSnapshot(host, resourceSnapshot), { immediate: true });
+            const unsubscribe = streamManager.subscriptions.subscribeResourceState(STATUS, (resourceSnapshot) => processConnectionStatusResourceSnapshot(host, resourceSnapshot), { immediate: true });
 
             if (isFunction(unsubscribe)) {
                 state.unsubscribeHub = unsubscribe;

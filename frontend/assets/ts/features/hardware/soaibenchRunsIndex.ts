@@ -47,8 +47,24 @@ const getSoAIBenchRunById = (payload: JsonValue | null | undefined, runId: strin
     return requireDecodedSoAIBenchRun(run, 'SoAIBench runs byRunId entry');
 };
 
+const getSoAIBenchRuns = (payload: JsonValue | null | undefined): readonly DecodedSoAIBenchRun[] => {
+    if (isNullOrUndefined(payload)) return [];
+    if (!isJsonObject(payload) || !Array.isArray(payload['runs'])) {
+        throw new TypeError('SoAIBench runs payload must include runs');
+    }
+    return payload['runs'].map((run, index) => requireDecodedSoAIBenchRun(run, `SoAIBench runs entry ${String(index)}`));
+};
+
+const getDeletedSoAIBenchRunIds = (payload: JsonValue | null | undefined): readonly string[] => {
+    if (isNullOrUndefined(payload)) return [];
+    if (!isJsonObject(payload) || !isJsonObject(payload['deletedSeqByRunId'])) {
+        throw new TypeError('SoAIBench runs payload must include deletedSeqByRunId');
+    }
+    return Object.keys(payload['deletedSeqByRunId']);
+};
+
 const hasSoAIBenchHistoryForDevice = (payload: JsonValue | null | undefined, deviceId: string | null): boolean => {
     return getSoAIBenchRunsForDevice(payload, deviceId).length > 0;
 };
 
-export { getSoAIBenchRunById, getSoAIBenchRunsForDevice, hasSoAIBenchHistoryForDevice };
+export { getDeletedSoAIBenchRunIds, getSoAIBenchRunById, getSoAIBenchRuns, getSoAIBenchRunsForDevice, hasSoAIBenchHistoryForDevice };

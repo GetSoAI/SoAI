@@ -32,7 +32,7 @@
         flex-direction: column;
         align-items: flex-start;
         gap: var(--space-05);
-        text-align: left;
+        text-align: start;
         cursor: pointer;
         user-select: none;
         padding: var(--space-15) var(--space-2);
@@ -96,7 +96,7 @@
     }
 
     :where(.chat-container) .chat-message.user .message-content--deleted > .message-text {
-        text-align: right;
+        text-align: end;
     }
 
     @media (prefers-reduced-motion: no-preference) {
@@ -183,17 +183,17 @@
     }
 
     :where(.chat-container) .message-text blockquote {
-        border-left: var(--border-width-3) solid var(--accent-green);
-        padding-left: var(--space-4);
+        border-inline-start: var(--border-width-3) solid var(--accent-green);
+        padding-inline-start: var(--space-4);
         margin: var(--space-4) 0;
         color: var(--text-secondary);
-        font-style: italic;
+        font-style: var(--font-style-emphasis);
         font-size: calc(var(--font-size-body-lg) * var(--chat-text-scale));
     }
 
     :where(.chat-container) .message-text ul,
     :where(.chat-container) .message-text ol {
-        padding-left: var(--space-6);
+        padding-inline-start: var(--space-6);
         margin: var(--space-3) 0;
         font-size: calc(var(--font-size-body-lg) * var(--chat-text-scale));
     }
@@ -226,7 +226,7 @@
     }
 
     :where(.chat-container) .message-text em {
-        font-style: italic;
+        font-style: var(--font-style-emphasis);
         color: var(--text-secondary);
     }
 

@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isJsonObject, type JsonObject } from '@core/types/jsonValues.ts';
+import { cloneJsonObject, cloneJsonValue } from '@core/primitives/clone.ts';
+import { deepEqual } from '@core/primitives/equality.ts';
 
 const mergeJsonObjectPatch = (base: JsonObject, patch: JsonObject): JsonObject => {
     const merged: JsonObject = { ...base };
@@ -16,4 +18,21 @@ const mergeJsonObjectPatch = (base: JsonObject, patch: JsonObject): JsonObject =
     return merged;
 };
 
-export { mergeJsonObjectPatch };
+const rebaseJsonObjectChanges = (base: JsonObject, edited: JsonObject, latest: JsonObject): JsonObject => {
+    const rebased = cloneJsonObject(latest);
+    for (const key of new Set([...Object.keys(base), ...Object.keys(edited)])) {
+        const original = base[key];
+        const local = edited[key];
+        if (deepEqual(original, local)) continue;
+        if (local === undefined) {
+            delete rebased[key];
+        } else if (isJsonObject(original) && isJsonObject(local) && isJsonObject(latest[key])) {
+            rebased[key] = rebaseJsonObjectChanges(original, local, latest[key]);
+        } else {
+            rebased[key] = cloneJsonValue(local);
+        }
+    }
+    return rebased;
+};
+
+export { mergeJsonObjectPatch, rebaseJsonObjectChanges };

@@ -110,7 +110,7 @@
         --ui-button-focus-ring: color-mix(in srgb, var(--ui-button-border-strong) 45%, transparent);
     }
 
-    .ui-variant-ghost {
+    :is(.ui-button, .ui-icon-button).ui-variant-ghost {
         --ui-button-bg: transparent;
         --ui-button-border: transparent;
         --ui-button-color: var(--text-secondary);

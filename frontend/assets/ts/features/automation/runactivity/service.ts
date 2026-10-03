@@ -1,43 +1,37 @@
 /* SoAI - Automation feature run activity service [frontend/assets/ts/features/automation/runactivity/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { ApiClient } from '@core/api/service.ts';
-import { APIError } from '@core/apiError.ts';
 import { getAuthManager } from '@core/auth/public.ts';
+import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { getWebSocketClient } from '@core/websocketclient/service.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { createModuleLogger } from '@core/runtime/runtimeContext.ts';
 import { isFunction } from '@core/typeGuards.ts';
-import { parseRunStatusFromRecord } from '@features/automation/runactivity/parsing.ts';
+import { AutomationRunningStateSynchronizer, type AutomationRunActivityApi } from '@features/automation/runactivity/AutomationRunningStateSynchronizer.ts';
 import { bindAutomationRunActivityRealtimeSubscriptions } from '@features/automation/runactivity/realtimeSubscriptions.ts';
-import { AutomationRunActivityState } from '@features/automation/runactivity/state.ts';
 import type { AutomationRealtimeUpdate, AutomationRealtimeUpdateListener, AutomationRunActivityListener, AutomationRunActivityServiceContract, AutomationRunActivitySnapshot } from '@features/automation/runactivity/types.ts';
 
 const log = createModuleLogger('AutomationRunActivityService', { defaultLevel: 'warn' });
 
 class AutomationRunActivityService implements AutomationRunActivityServiceContract {
-    readonly #api: ApiClient;
+    readonly #synchronizer: AutomationRunningStateSynchronizer;
     readonly #listeners = new Set<AutomationRunActivityListener>();
     readonly #realtimeListeners = new Set<AutomationRealtimeUpdateListener>();
-    readonly #state = new AutomationRunActivityState();
     readonly #authSubscriptions = new ResourceTracker();
     readonly #websocketSubscriptions = new ResourceTracker();
-    readonly #pendingRunIds = new Set<string>();
-    readonly #notFoundRunIds = new Set<string>();
     readonly #generation = new SequenceToken();
     #initialized = false;
     #initializePromise: Promise<void> | null = null;
-    #initialSyncInFlight = false;
-    #refreshInFlight = false;
-    #refreshRequested = false;
 
-    constructor(api: ApiClient) {
-        this.#api = api;
+    constructor(api: AutomationRunActivityApi) {
+        this.#synchronizer = new AutomationRunningStateSynchronizer(api, () => this.#notifyListeners());
     }
 
     getSnapshot(): AutomationRunActivitySnapshot {
-        return this.#state.getSnapshot();
+        return this.#synchronizer.getSnapshot();
     }
 
     subscribe(listener: AutomationRunActivityListener): () => void {
@@ -60,6 +54,7 @@ class AutomationRunActivityService implements AutomationRunActivityServiceContra
             throw new Error('Automation realtime subscriber must be a function');
         }
         this.#realtimeListeners.add(listener);
+        if (!this.#synchronizer.isConnected()) listener({ updateType: 'connection-lost' });
         return () => {
             this.#realtimeListeners.delete(listener);
         };
@@ -89,48 +84,36 @@ class AutomationRunActivityService implements AutomationRunActivityServiceContra
     async destroy(): Promise<void> {
         this.#generation.invalidate();
         this.#clearSubscriptions();
-        this.#pendingRunIds.clear();
-        this.#notFoundRunIds.clear();
-        this.#initialSyncInFlight = false;
-        this.#refreshInFlight = false;
-        this.#refreshRequested = false;
+        this.#synchronizer.dispose();
         this.#initialized = false;
         this.#initializePromise = null;
-        this.#state.reset();
-        this.#notifyListeners();
     }
 
     async #initialize(generation: number): Promise<void> {
         this.#bindRealtimeSubscriptions();
         this.#bindAuthSubscriptions();
+        this.#synchronizer.setAuthenticated(getAuthManager().isAuthenticated);
+        if (!getWebSocketClient().isConnected()) this.#synchronizer.noteConnectionLost();
         if (getAuthManager().isAuthenticated) {
-            await this.#primeInitialRunningSet(generation);
+            await this.#resyncRunningSet();
         }
-        if (!this.#isGenerationActive(generation)) {
-            return;
-        }
-        this.#initialized = true;
-        this.#startRefreshDrain(generation);
+        if (this.#generation.isActive(generation)) this.#initialized = true;
     }
 
     #bindRealtimeSubscriptions(): void {
-        const scheduleRefreshForRun = (runId: string): void => {
-            if (!getAuthManager().isAuthenticated) {
-                return;
-            }
-            if (this.#notFoundRunIds.has(runId)) {
-                return;
-            }
-            this.#pendingRunIds.add(runId);
-            this.#refreshRequested = true;
-            this.#startRefreshDrain(this.#generation.value);
-        };
-
         bindAutomationRunActivityRealtimeSubscriptions({
             subscriptions: this.#websocketSubscriptions,
             notifyAutomationChanged: () => this.#notifyRealtimeListeners({ updateType: 'automation-changed' }),
             notifyRunChanged: (runId) => this.#notifyRealtimeListeners({ updateType: 'run-changed', runId }),
-            scheduleRefreshForRun
+            notifyConnectionLost: () => {
+                this.#synchronizer.noteConnectionLost();
+                this.#notifyRealtimeListeners({ updateType: 'connection-lost' });
+            },
+            notifyConnectionRestored: () => {
+                if (this.#synchronizer.noteConnectionRestored()) terminateHandledPromise(this.#resyncRunningSet());
+                this.#notifyRealtimeListeners({ updateType: 'connection-restored' });
+            },
+            scheduleRefreshForRun: (runId) => this.#synchronizer.noteRunChanged(runId)
         });
     }
 
@@ -140,118 +123,33 @@ class AutomationRunActivityService implements AutomationRunActivityServiceContra
         try {
             this.#authSubscriptions.track(
                 auth.onLogin(() => {
-                    const generation = this.#generation.value;
-                    void this.#primeInitialRunningSet(generation).catch((error) => {
-                        log('error', 'Automation run activity initial sync failed', ensureError(error));
-                    });
+                    this.#synchronizer.setAuthenticated(true);
+                    terminateHandledPromise(this.#resyncRunningSet());
                 })
             );
             this.#authSubscriptions.track(
                 auth.onLogout(() => {
-                    this.#generation.invalidate();
-                    this.#pendingRunIds.clear();
-                    this.#notFoundRunIds.clear();
-                    this.#initialSyncInFlight = false;
-                    this.#refreshInFlight = false;
-                    this.#refreshRequested = false;
-                    this.#state.reset();
-                    this.#notifyListeners();
+                    this.#synchronizer.setAuthenticated(false);
                 })
             );
-        } catch (subscriptionError) {
+        } catch (error) {
             this.#authSubscriptions.cleanup();
-            throw subscriptionError;
+            throw ensureError(error);
         }
     }
 
-    async #primeInitialRunningSet(generation: number): Promise<void> {
-        if (!getAuthManager().isAuthenticated || !this.#isGenerationActive(generation)) {
-            return;
-        }
-        if (this.#initialSyncInFlight) {
-            return;
-        }
-        this.#initialSyncInFlight = true;
+    async #resyncRunningSet(): Promise<void> {
         try {
-            this.#state.reset();
-            this.#notFoundRunIds.clear();
-            const payload = await this.#api.automations.runs.listActive();
-            if (!Array.isArray(payload)) {
-                throw new Error('Active automation runs response must be an array');
-            }
-            if (!getAuthManager().isAuthenticated || !this.#isGenerationActive(generation)) {
-                return;
-            }
-            for (const record of payload) {
-                const parsed = parseRunStatusFromRecord(record);
-                this.#state.applyRunUpdate(parsed);
-            }
-            this.#state.markInitialized();
-            this.#notifyListeners();
-        } finally {
-            if (this.#isGenerationActive(generation)) {
-                this.#initialSyncInFlight = false;
-                this.#startRefreshDrain(generation);
-            }
-        }
-    }
-
-    #startRefreshDrain(generation: number): void {
-        if (!this.#initialized || this.#initialSyncInFlight || this.#refreshInFlight || !this.#refreshRequested || !this.#isGenerationActive(generation) || !getAuthManager().isAuthenticated) {
-            return;
-        }
-        this.#refreshInFlight = true;
-        void this.#drainRefreshQueue(generation).catch((error) => {
-            log('error', 'Automation run activity refresh failed', ensureError(error));
-        });
-    }
-
-    async #drainRefreshQueue(generation: number): Promise<void> {
-        try {
-            while (this.#refreshRequested && this.#isGenerationActive(generation) && getAuthManager().isAuthenticated) {
-                this.#refreshRequested = false;
-                const runIds = Array.from(this.#pendingRunIds);
-                this.#pendingRunIds.clear();
-                for (const runId of runIds) {
-                    try {
-                        const record = await this.#api.automations.runs.get(runId);
-                        if (!this.#isGenerationActive(generation) || !getAuthManager().isAuthenticated) {
-                            return;
-                        }
-                        this.#notFoundRunIds.delete(runId);
-                        this.#state.applyRunUpdate(parseRunStatusFromRecord(record));
-                    } catch (error) {
-                        if (error instanceof APIError && error.status === 404) {
-                            if (!this.#isGenerationActive(generation) || !getAuthManager().isAuthenticated) {
-                                return;
-                            }
-                            this.#notFoundRunIds.add(runId);
-                            this.#state.removeRun(runId);
-                            continue;
-                        }
-                        throw error;
-                    }
-                }
-                if (!this.#isGenerationActive(generation) || !getAuthManager().isAuthenticated) {
-                    return;
-                }
-                this.#notifyListeners();
-            }
-        } finally {
-            if (this.#isGenerationActive(generation)) {
-                this.#refreshInFlight = false;
-                this.#startRefreshDrain(generation);
-            }
+            await this.#synchronizer.synchronize();
+        } catch (error) {
+            const runtimeError = ensureError(error);
+            if (!isAbortError(runtimeError)) log('debug', 'Automation running set is awaiting recovery', runtimeError);
         }
     }
 
     #clearSubscriptions(): void {
         this.#websocketSubscriptions.cleanup();
         this.#authSubscriptions.cleanup();
-    }
-
-    #isGenerationActive(generation: number): boolean {
-        return this.#generation.isActive(generation);
     }
 
     #notifyListeners(): void {

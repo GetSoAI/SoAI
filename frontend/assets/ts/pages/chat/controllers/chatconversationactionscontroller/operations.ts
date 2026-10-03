@@ -56,6 +56,7 @@ const commitConversationSwitchOperation = (dependencies: ConversationOperationsD
     const { storedModelKey } = dependencies.conversationManager.switchConversation(conversationId);
     dependencies.getConversationSettingsManager()?.handleConversationSwitch?.(conversationId);
     dependencies.storageManager.saveChatState();
+    dependencies.storageManager.rememberLastConversationId(conversationId);
     applyStoredConversationModel(dependencies, storedModelKey ?? null);
     const switchedConversation = dependencies.state.getCurrentConversationId() === conversationId ? dependencies.host.view.getCurrentConversation() : null;
     dependencies.state.setParameters(resolveHydratedConversationParameters(dependencies.state.getParameters(), switchedConversation));
@@ -75,6 +76,7 @@ const commitConversationClearOperation = (dependencies: ConversationOperationsDe
         status: 'idle'
     });
     dependencies.storageManager.saveChatState();
+    dependencies.storageManager.rememberLastConversationId(null);
     refreshConversationModelUi(dependencies);
     dependencies.uiManager.applyExecutionControls();
     dependencies.host.view.applyInputActionVisibility();

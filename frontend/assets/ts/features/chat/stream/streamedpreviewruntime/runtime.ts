@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { stripTrailingPreviewDot, STREAMED_PREVIEW_ATTRIBUTE_NAMES } from '@features/chat/message/messageview/inlineActivityText.ts';
-import { monotonicMs } from '@core/time/clock.ts';
+import { monotonicMs, serverEpochMs } from '@core/time/clock.ts';
 import { scheduleCheckpointTimer } from '@features/chat/stream/fadingTextScheduler.ts';
 import { clearStreamedPreviewTimers, getStreamedPreviewState, setStreamedPreviewState, type StreamedPreviewState } from '@features/chat/stream/streamedPreviewStateStore.ts';
 import { applyRenderedStreamedPreviewText, applyStreamedPreviewText, bindStreamedPreviewState, finalizeStreamedPreviewState, resetStreamingBuffer } from '@features/chat/stream/streamedpreviewruntime/stateTransitions.ts';
-import { readStreamedPreviewAttribute, readStreamedPreviewStatus, requireStreamedPreviewKey, requireStreamedPreviewTextElement, requireStreamedPreviewWindow } from '@features/chat/stream/streamedpreviewruntime/dom.ts';
+import { readStreamedPreviewAttribute, readStreamedPreviewRevealAtMs, readStreamedPreviewStatus, requireStreamedPreviewKey, requireStreamedPreviewTextElement, requireStreamedPreviewWindow } from '@features/chat/stream/streamedpreviewruntime/dom.ts';
 
 const STREAMED_PREVIEW_CHECKPOINT_DELAY_MS = 3000;
 const STREAMED_PREVIEW_STREAM_TICK_DELAY_MS = 44;
@@ -199,51 +199,22 @@ const reconcileStreamedPreviewCheckpoint = (document: Document, key: string, rec
     startStreamedPreviewStream(state, nextPreview, reconcileCheckpoint, reconcileTick);
 };
 
-const reconcileStreamedPreviewQuery = (queryElement: HTMLElement, reconcileCheckpoint: (documentRef: Document, key: string) => void, reconcileTick: (documentRef: Document, key: string) => void): void => {
-    const key = requireStreamedPreviewKey(queryElement);
-    const textElement = requireStreamedPreviewTextElement(queryElement);
-    const visiblePreview = stripTrailingPreviewDot(readStreamedPreviewAttribute(queryElement, STREAMED_PREVIEW_ATTRIBUTE_NAMES.visible));
-    const latestPreview = stripTrailingPreviewDot(readStreamedPreviewAttribute(queryElement, STREAMED_PREVIEW_ATTRIBUTE_NAMES.latest));
-    const status = readStreamedPreviewStatus(queryElement);
-    const documentRef = queryElement.ownerDocument;
-    const existing = getStreamedPreviewState(documentRef, key);
-    if (existing) {
-        bindStreamedPreviewState(existing, queryElement, textElement);
-        if (status === 'running') {
-            const nowMs = monotonicMs();
-            if (existing.cooldownUntilMs > nowMs) {
-                existing.nextCheckpointAt = existing.cooldownUntilMs;
-                scheduleStreamedPreviewCheckpoint(existing, reconcileCheckpoint);
-                return;
-            }
-            if (latestPreview && latestPreview !== existing.lastShownPreview && latestPreview !== existing.pendingText) {
-                if (updateActiveStreamTarget(existing, latestPreview)) {
-                    return;
-                }
-                if (existing.pendingText !== null) {
-                    return;
-                }
-                existing.nextCheckpointAt = monotonicMs() + STREAMED_PREVIEW_CHECKPOINT_DELAY_MS;
-                startStreamedPreviewStream(existing, latestPreview, reconcileCheckpoint, reconcileTick);
-                return;
-            }
-            scheduleStreamedPreviewCheckpoint(existing, reconcileCheckpoint);
-            return;
-        }
-        finalizeStreamedPreviewState(existing);
-        return;
-    }
+const resolveInitialCooldownUntilMs = (queryElement: HTMLElement): number => {
+    const revealAtMs = readStreamedPreviewRevealAtMs(queryElement);
+    return revealAtMs === null ? 0 : monotonicMs() + Math.max(0, revealAtMs - serverEpochMs());
+};
 
+const createStreamedPreviewState = (key: string, queryElement: HTMLElement, textElement: HTMLElement, visiblePreview: string): StreamedPreviewState => {
     const created: StreamedPreviewState = {
         key,
-        document: documentRef,
+        document: queryElement.ownerDocument,
         queryElement,
         textElement,
         view: requireStreamedPreviewWindow(queryElement),
         checkpointTimer: null,
         fadeTimer: null,
         nextCheckpointAt: monotonicMs() + STREAMED_PREVIEW_CHECKPOINT_DELAY_MS,
-        cooldownUntilMs: 0,
+        cooldownUntilMs: resolveInitialCooldownUntilMs(queryElement),
         lastShownPreview: visiblePreview,
         renderedPreview: visiblePreview,
         pendingText: null,
@@ -253,17 +224,39 @@ const reconcileStreamedPreviewQuery = (queryElement: HTMLElement, reconcileCheck
         streamWordsPerTick: 1
     };
     setStreamedPreviewState(created);
-    bindStreamedPreviewState(created, queryElement, textElement);
-    if (status === 'running') {
-        if (latestPreview && latestPreview !== created.lastShownPreview) {
-            created.nextCheckpointAt = monotonicMs() + STREAMED_PREVIEW_CHECKPOINT_DELAY_MS;
-            startStreamedPreviewStream(created, latestPreview, reconcileCheckpoint, reconcileTick);
-            return;
-        }
-        scheduleStreamedPreviewCheckpoint(created, reconcileCheckpoint);
+    return created;
+};
+
+const reconcileStreamedPreviewQuery = (queryElement: HTMLElement, reconcileCheckpoint: (documentRef: Document, key: string) => void, reconcileTick: (documentRef: Document, key: string) => void): void => {
+    const key = requireStreamedPreviewKey(queryElement);
+    const textElement = requireStreamedPreviewTextElement(queryElement);
+    const visiblePreview = stripTrailingPreviewDot(readStreamedPreviewAttribute(queryElement, STREAMED_PREVIEW_ATTRIBUTE_NAMES.visible));
+    const latestPreview = stripTrailingPreviewDot(readStreamedPreviewAttribute(queryElement, STREAMED_PREVIEW_ATTRIBUTE_NAMES.latest));
+    const status = readStreamedPreviewStatus(queryElement);
+    const state = getStreamedPreviewState(queryElement.ownerDocument, key) ?? createStreamedPreviewState(key, queryElement, textElement, visiblePreview);
+    bindStreamedPreviewState(state, queryElement, textElement);
+    if (status !== 'running') {
+        finalizeStreamedPreviewState(state);
         return;
     }
-    finalizeStreamedPreviewState(created);
+    const nowMs = monotonicMs();
+    if (state.cooldownUntilMs > nowMs) {
+        state.nextCheckpointAt = state.cooldownUntilMs;
+        scheduleStreamedPreviewCheckpoint(state, reconcileCheckpoint);
+        return;
+    }
+    if (latestPreview && latestPreview !== state.lastShownPreview && latestPreview !== state.pendingText) {
+        if (updateActiveStreamTarget(state, latestPreview)) {
+            return;
+        }
+        if (state.pendingText !== null) {
+            return;
+        }
+        state.nextCheckpointAt = monotonicMs() + STREAMED_PREVIEW_CHECKPOINT_DELAY_MS;
+        startStreamedPreviewStream(state, latestPreview, reconcileCheckpoint, reconcileTick);
+        return;
+    }
+    scheduleStreamedPreviewCheckpoint(state, reconcileCheckpoint);
 };
 
 export { reconcileStreamedPreviewCheckpoint, reconcileStreamedPreviewQuery, reconcileStreamedPreviewStreamTick };

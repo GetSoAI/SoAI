@@ -23,6 +23,7 @@ __all__ = (
 )
 
 SOAI_RELEASE_DISCOVERY_URL = "https://soai.to/update/latest"
+SOAI_GITHUB_RELEASES_API_URL = "https://api.github.com/repos/GetSoAI/SoAI/releases"
 SOAI_UPDATE_ARCHIVE_BASE_URL = "https://soai.to/update/archive"
 SOAI_UPDATE_INSTALLER_BASE_URL = "https://soai.to/update/installer"
 GITHUB_LATEST_RELEASE_PATH_PATTERN = (

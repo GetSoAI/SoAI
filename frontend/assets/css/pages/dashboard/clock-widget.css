@@ -115,10 +115,24 @@
         z-index: var(--z-base);
     }
 
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-brand {
+        position: absolute;
+        inset-block-start: 27%;
+        z-index: var(--z-base);
+        color: color-mix(in srgb, var(--text-tertiary) 72%, transparent);
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        letter-spacing: var(--tracking-05px);
+        line-height: 1;
+        pointer-events: none;
+    }
+
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-tick {
         position: absolute;
         inset-block-start: 0;
-        inset-inline-start: 50%;
+
+        /* direction: physical — clock geometry uses physical rotation around the dial */
+        left: 50%;
         block-size: 50%;
         inline-size: var(--border-width-2);
         transform-origin: bottom center;
@@ -129,7 +143,9 @@
         content: '';
         position: absolute;
         inset-block-start: 7%;
-        inset-inline-start: 50%;
+
+        /* direction: physical — clock geometry uses physical rotation around the dial */
+        left: 50%;
         block-size: 8%;
         inline-size: 0.14rem;
         border-radius: var(--border-round);
@@ -145,7 +161,9 @@
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-hand {
         position: absolute;
-        inset-inline-start: 50%;
+
+        /* direction: physical — clock geometry uses physical rotation around the dial */
+        left: 50%;
         inset-block-end: 50%;
         border-radius: var(--border-round);
         transform-origin: bottom center;
@@ -156,6 +174,8 @@
         block-size: 27%;
         inline-size: 0.34rem;
         background: color-mix(in srgb, var(--text-primary) 92%, transparent);
+
+        /* direction: physical — clock hands remain centered on the physical dial */
         transform: translateX(-50%) rotate(var(--dashboard-clock-hour-angle));
     }
 
@@ -164,6 +184,8 @@
         block-size: 37%;
         inline-size: 0.24rem;
         background: color-mix(in srgb, var(--text-primary) 82%, transparent);
+
+        /* direction: physical — clock hands remain centered on the physical dial */
         transform: translateX(-50%) rotate(var(--dashboard-clock-minute-angle));
     }
 
@@ -173,6 +195,8 @@
         inline-size: 0.1rem;
         background: var(--dashboard-clock-accent);
         box-shadow: 0 0 0.5rem color-mix(in srgb, var(--dashboard-clock-accent) 60%, transparent);
+
+        /* direction: physical — clock hands remain centered on the physical dial */
         transform: translateX(-50%) rotate(var(--dashboard-clock-second-angle));
     }
 
@@ -183,7 +207,9 @@
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-clock-cap {
         position: absolute;
         inset-block-start: 50%;
-        inset-inline-start: 50%;
+
+        /* direction: physical — clock geometry uses physical rotation around the dial */
+        left: 50%;
         z-index: var(--z-sticky);
         block-size: 0.72rem;
         inline-size: 0.72rem;
@@ -206,7 +232,7 @@
         color: var(--text-secondary);
         font-size: var(--font-size-xs);
         font-weight: 600;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-04px);
         line-height: 1.2;
         text-align: center;
@@ -265,7 +291,7 @@
         color: var(--text-tertiary);
         font-size: var(--font-size-063);
         font-weight: 600;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         line-height: var(--line-height-badge);
     }
 

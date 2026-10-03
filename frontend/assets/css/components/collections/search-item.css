@@ -12,7 +12,7 @@
             border-color var(--transition-fast),
             box-shadow var(--transition-fast);
         min-width: 0;
-        text-align: left;
+        text-align: start;
         position: relative;
         cursor: pointer;
         appearance: none;
@@ -111,7 +111,7 @@
         font-weight: 600;
         line-height: 1.3;
         font-size: var(--font-size-sm);
-        text-align: left;
+        text-align: start;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -139,6 +139,6 @@
 
     .search-item-status {
         flex-shrink: 0;
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 }

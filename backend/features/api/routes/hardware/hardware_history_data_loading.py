@@ -21,6 +21,7 @@ async def load_hardware_history_data(
     component: str,
     gpu_index: int | None,
     identifier: str | None,
+    availability_metric: str | None = None,
 ) -> JSONDict:
     return await hardware_manager.get_historical_data(
         start_ts_ms=history_request.start_ts_ms,
@@ -31,4 +32,5 @@ async def load_hardware_history_data(
         component=component,
         gpu_index=gpu_index,
         identifier=identifier,
+        availability_metric=availability_metric,
     )

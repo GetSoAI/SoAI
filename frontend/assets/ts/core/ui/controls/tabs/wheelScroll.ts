@@ -2,25 +2,16 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isFiniteNumber } from '@core/typeGuards.ts';
+import { inlineDelta, readScrollInlineStart, scrollToInlineStart } from '@core/layout/direction.ts';
+import { normalizeWheelDeltaPx } from '@core/ui/controls/wheelDelta.ts';
 
 const TAB_WHEEL_SCROLL_EPSILON = 4;
-const LINE_WHEEL_DELTA_PX = 16;
-
-const normalizeWheelDelta = (scroller: HTMLElement, event: WheelEvent, value: number): number => {
-    if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
-        return value * LINE_WHEEL_DELTA_PX;
-    }
-    if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
-        return value * Math.max(scroller.clientWidth, 1);
-    }
-    return value;
-};
 
 const resolveTabsWheelScrollDelta = (scroller: HTMLElement, event: WheelEvent): number => {
     const deltaX = isFiniteNumber(event.deltaX) ? event.deltaX : 0;
     const deltaY = isFiniteNumber(event.deltaY) ? event.deltaY : 0;
-    const selectedDelta = event.shiftKey && deltaY !== 0 ? deltaY : Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY;
-    return normalizeWheelDelta(scroller, event, selectedDelta);
+    const selectedDelta = event.shiftKey && deltaY !== 0 ? deltaY : Math.abs(deltaX) > Math.abs(deltaY) ? inlineDelta(deltaX, scroller) : deltaY;
+    return normalizeWheelDeltaPx(selectedDelta, event.deltaMode, scroller.clientWidth);
 };
 
 const applyTabsWheelScroll = (scroller: HTMLElement, event: WheelEvent, epsilon = TAB_WHEEL_SCROLL_EPSILON): boolean => {
@@ -32,12 +23,12 @@ const applyTabsWheelScroll = (scroller: HTMLElement, event: WheelEvent, epsilon 
     if (delta === 0) {
         return false;
     }
-    const currentScroll = scroller.scrollLeft;
+    const currentScroll = readScrollInlineStart(scroller);
     if ((delta < 0 && currentScroll <= epsilon) || (delta > 0 && currentScroll >= maxScrollLeft - epsilon)) {
         return false;
     }
     event.preventDefault();
-    scroller.scrollLeft += delta;
+    scrollToInlineStart(scroller, currentScroll + delta, 'instant');
     return true;
 };
 

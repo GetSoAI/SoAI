@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 from core.archives.errors import ArchiveLinkTargetNotFoundError
+from core.concurrency.cancellation_cleanup import run_idempotent_current_task_operation
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.config.protocols import ConfigProtocol
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception, log_handled_exception
@@ -13,6 +15,7 @@ from core.errors.memory_exhaustion import (
 )
 from core.events.protocols import EventBusProtocol
 from core.files.locking import guarded_file_lock
+from core.files.temp_files import create_persistent_staging_directory
 from core.filesystem.async_queries import (
     async_isdir,
     async_isfile,
@@ -28,6 +31,8 @@ from core.filesystem.hashing import (
 )
 from core.filesystem.size_calculation import get_path_size
 from core.models.remote_model_search_payloads import normalize_model_search_payload
+from core.network.errors import HTTPReadUnavailableError
+from core.network.retryable_reads import run_retryable_http_read
 from core.openai.audio_upload_responses import (
     AUDIO_UPLOAD_ERROR_RESPONSE_MARKER,
     build_audio_upload_error_response,
@@ -204,6 +209,10 @@ from plugin_sdk.contracts.safe_paths import (
     safe_join_under_base,
 )
 from plugin_sdk.contracts.schema_cli_arguments import build_schema_cli_arguments
+from plugin_sdk.contracts.server_observation import (
+    ServerObservation,
+    ServerObservationDependencies,
+)
 from plugin_sdk.contracts.tar_zst_extraction import async_safe_tar_zst_extractall
 from plugin_sdk.contracts.transfer import (
     calculate_eta,
@@ -326,6 +335,8 @@ __all__ = (
     "SoAIError",
     "normalize_external_provider_mode",
     "StateError",
+    "ServerObservation",
+    "ServerObservationDependencies",
     "SystemMemoryExhaustedError",
     "normalize_openai_modalities",
     "ValidationError",
@@ -385,6 +396,11 @@ __all__ = (
     "async_safe_tar_extractall",
     "async_safe_zip_extractall",
     "async_stream_download_to_file",
+    "run_retryable_http_read",
+    "run_idempotent_current_task_operation",
+    "run_joined_thread_call",
+    "create_persistent_staging_directory",
+    "HTTPReadUnavailableError",
     "build_config",
     "build_auto_backend_variant_option",
     "LocalArtifact",

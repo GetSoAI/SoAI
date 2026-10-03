@@ -40,6 +40,7 @@ export interface ConfigurationControllerHost extends PageDomOwnerHost, PageFeedb
 
     applyTextZoom: () => void;
     applyWidescreenMode: () => void;
+    updateInputState: () => void;
     applyInputActionVisibility: () => void;
     syncToolsEnabledToConversation: (enabled: boolean) => void;
     syncToolApprovalRequiredToConversation: (required: boolean) => void;

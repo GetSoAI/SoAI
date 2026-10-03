@@ -6,7 +6,8 @@ import { AutomationWindowRunsDeleteController } from '@pages/automation/controll
 import { resolveAutomationWindowRunsToolbarUi } from '@pages/automation/controllers/windowrunstoolbar/dom.ts';
 import { AutomationWindowRunsSelectionManager } from '@pages/automation/controllers/windowrunstoolbar/selectionManager.ts';
 import { AutomationWindowRunsToolbarController } from '@pages/automation/controllers/windowrunstoolbar/toolbarController.ts';
-import type { AutomationDataService } from '@features/automation/public.ts';
+import type { AutomationDataService, AutomationOccurrenceResponse } from '@features/automation/public.ts';
+import { buildAutomationZoneKeyForZone } from '@pages/automation/contracts/zoneKey.ts';
 import type { AutomationPageState } from '@pages/automation/types.ts';
 
 type AutomationWindowRunsPaneControllerDependencies = {
@@ -25,6 +26,7 @@ class AutomationWindowRunsPaneController {
     readonly #selection: AutomationWindowRunsSelectionManager;
     readonly #toolbar: AutomationWindowRunsToolbarController;
     readonly #delete: AutomationWindowRunsDeleteController;
+    #windowSignature: string | null = null;
 
     constructor(dependencies: AutomationWindowRunsPaneControllerDependencies) {
         this.#dependencies = dependencies;
@@ -37,11 +39,13 @@ class AutomationWindowRunsPaneController {
             getState: dependencies.getState,
             refreshData: dependencies.refreshData,
             showNotification: dependencies.showNotification,
-            selection: this.#selection
+            selection: this.#selection,
+            onPendingChanged: (pending) => this.#selection.setMutationPending(pending)
         });
     }
 
     dispose(): void {
+        this.#delete.dispose();
         this.#toolbar.dispose();
     }
 
@@ -53,9 +57,17 @@ class AutomationWindowRunsPaneController {
         return this.#selection.keys();
     }
 
+    reconcileSelection(zones: readonly AutomationOccurrenceResponse[], windowSignature: string): void {
+        if (this.#windowSignature !== windowSignature) {
+            this.#delete.cancelPending();
+            this.#windowSignature = windowSignature;
+            this.#selection.deactivate({ queueRender: false });
+        }
+        this.#selection.reconcile(new Set(zones.map(buildAutomationZoneKeyForZone)));
+    }
+
     bindUi(windowRunsRoot: HTMLElement, totalRunsCount: number): void {
-        const refs = resolveAutomationWindowRunsToolbarUi(windowRunsRoot);
-        this.#toolbar.bindUi(refs);
+        this.#toolbar.bindUi(resolveAutomationWindowRunsToolbarUi(windowRunsRoot));
         this.#toolbar.updateTotalRunsCount(totalRunsCount);
     }
 
@@ -85,7 +97,8 @@ class AutomationWindowRunsPaneController {
     deleteOne(zoneKey: string): void {
         this.#dependencies.run('automation:windowRuns:deleteOne', async () => {
             const deleted = await this.#delete.deleteOne(zoneKey);
-            if (deleted) {
+            const state = this.#dependencies.getState();
+            if (deleted && state.selectedZoneKey === zoneKey) {
                 this.#dependencies.closeOccurrenceModal();
             }
         });

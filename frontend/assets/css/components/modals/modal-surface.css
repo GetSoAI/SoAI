@@ -19,6 +19,8 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+
+        /* direction: physical — modal host supplies physical viewport coordinates */
         transform: translate(var(--motion-modal-translate-x), var(--motion-modal-translate-y));
         animation: modal-appear var(--duration-200) var(--ease-smooth);
         pointer-events: auto;
@@ -46,7 +48,7 @@
     .modal-content.is-fullscreen {
         border-radius: 0;
         border-top-color: transparent;
-        border-left-color: transparent;
+        border-inline-start-color: transparent;
     }
 
     .ui-modal.u-hidden .modal-content {

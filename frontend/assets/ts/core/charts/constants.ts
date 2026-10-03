@@ -12,12 +12,14 @@ interface ChartPadding {
 
 const DEFAULT_CHART_PADDING: Readonly<ChartPadding> = Object.freeze({
     top: 45,
-    right: 60,
+    right: 116,
     bottom: 20,
     left: 30
 });
 
-const DEFAULT_CHART_TYPE_SEQUENCE: readonly string[] = Object.freeze(['precision-line', 'area', 'deviation', 'bar', 'candlestick']);
+const DEFAULT_CHART_TYPE_SEQUENCE: readonly string[] = Object.freeze(['precision-line', 'area', 'deviation', 'bar', 'candlestick', 'heikin-ashi']);
+
+const CHART_FULL_VALUE_LIMIT = 100_000;
 
 const HISTORY_CHART_MIN_HEIGHT = 40;
 
@@ -48,5 +50,5 @@ const resolveChartPadding = (overrides: Partial<ChartPadding> | null | undefined
     return resolved;
 };
 
-export { DEFAULT_CHART_PADDING, DEFAULT_CHART_TYPE_SEQUENCE, DEFAULT_PRIMARY_BOTTOM_AXIS_PADDING, DOUBLE_TAP_CONFIG, HISTORY_CHART_MIN_HEIGHT, INTERACTION_CLASS_MAP, LOG_SCOPE, resolveChartPadding };
+export { CHART_FULL_VALUE_LIMIT, DEFAULT_CHART_PADDING, DEFAULT_CHART_TYPE_SEQUENCE, DEFAULT_PRIMARY_BOTTOM_AXIS_PADDING, DOUBLE_TAP_CONFIG, HISTORY_CHART_MIN_HEIGHT, INTERACTION_CLASS_MAP, LOG_SCOPE, resolveChartPadding };
 export type { ChartPadding };

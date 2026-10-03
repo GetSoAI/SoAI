@@ -10,7 +10,7 @@
         min-width: 0;
         flex: 0 1 auto;
         position: sticky;
-        top: calc(var(--chat-conversation-header-height) + var(--chat-plan-overlay-height));
+        top: calc(var(--chat-conversation-header-offset) + var(--chat-plan-overlay-height));
         align-self: flex-start;
         margin-top: var(--space-4);
         z-index: var(--z-raised);
@@ -47,7 +47,7 @@
         border-radius: var(--border-radius);
     }
 
-    :where(.chat-container) :is(.chat-sidebar, .chat-sidebar-header, .chat-toolbar-container, .attached-files-preview, .ask-user-preview, .secret-prompt-preview, .tool-approval-preview, .input-queue-preview, .voice-recording-preview, .chat-conversation-header):not(.glass-surface, .glass-surface-strong, .glass-surface-medium, .glass-surface-light, .glass-surface-darker, .glass-surface-weak, .glass-surface-interactive, .glass-surface-interactive-strong, .glass-surface-full) {
+    :where(.chat-container) :is(.chat-sidebar-header, .chat-toolbar-container, .attached-files-preview, .ask-user-preview, .secret-prompt-preview, .tool-approval-preview, .input-queue-preview, .voice-recording-preview, .chat-conversation-header):not(.glass-surface, .glass-surface-strong, .glass-surface-medium, .glass-surface-light, .glass-surface-darker, .glass-surface-weak, .glass-surface-interactive, .glass-surface-interactive-strong, .glass-surface-full) {
         background: var(--glass-surface-strong);
         -webkit-backdrop-filter: var(--glass-blur-base);
 

@@ -68,6 +68,7 @@ interface WhenReadyOptions {
 }
 
 interface DestroyOptions {
+    expectedInstance?: PageInstance;
     force?: boolean;
     reason?: string;
 }

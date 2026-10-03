@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
+import { renderInlineLoadingStatusMarkup } from '@core/ui/loadingStatus.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { DecodedSoAIBenchRun } from '@core/realtime/streammanager/resources/soaibenchRunsResource.ts';
 import { isFiniteNumber, isString } from '@core/typeGuards.ts';
-import { getSoAIBenchRunsForDevice, hasSoAIBenchHistoryForDevice, resolveSoAIBenchProfileLabel, resolveSoAIBenchStatusLabel } from '@features/hardware/public.ts';
+import { getSoAIBenchRunsForDevice, hasSoAIBenchHistoryForDevice, isCertifiedSoAIBenchRun, resolveSoAIBenchProfileLabel, resolveSoAIBenchStatusLabel, type SoAIBenchActivityProjection } from '@features/hardware/public.ts';
 import { hasPendingGpuApplyAction } from '@pages/hardware/controllers/gpucontrol/gpuControlPrimaryActionController.ts';
 import type { GpuControlManagerDependencies, GpuUiState, SecurityService } from '@pages/hardware/controllers/gpucontrol/gpuControlTypes.ts';
 
@@ -78,7 +79,7 @@ const formatRun = (run: SoAIBenchPanelRun): string => {
         return i18n.t('hardware.gpu.soaibench.stressRunningLabel');
     }
     const parts = [resolveSoAIBenchProfileLabel(run.profile), resolveSoAIBenchStatusLabel(run.status)];
-    if (run.profile === 'standard' && run.benchmarkMode === 'certified') {
+    if (isCertifiedSoAIBenchRun(run)) {
         parts.splice(1, 0, i18n.t('hardware.modals.soaibenchHistory.certification.certified'));
     }
     if (run.score !== null) {
@@ -136,21 +137,25 @@ const renderSoAIBenchActions = (context: SoAIBenchActionRenderContext, index: st
     return [renderSoAIBenchActionButton(context, index, 'hardware.gpu.soaibench.standard', resolveSoAIBenchActionLabel('hardware.gpu.soaibench.standard'), 'ui-variant-warning', startDisabled), secondaryAction].join('');
 };
 
-const renderSoAIBenchState = (context: SoAIBenchActionRenderContext, payload: JsonValue | null | undefined, index: string, state: GpuUiState): string => {
+const renderSoAIBenchState = (context: SoAIBenchActionRenderContext, payload: JsonValue | null | undefined, state: GpuUiState): string => {
     if (!state.deviceId || state.soaibenchStopRequested) {
         return '';
     }
     const run = activeRunForDevice(payload, state.deviceId);
-    if (!run) {
+    if (!run || isCertifiedSoAIBenchRun(run)) {
         return '';
     }
     const label = formatRun(run);
     const labelAttr = escAttr(label, context.security);
-    const gpuIndexAttr = escAttr(index, context.security);
-    if (run.profile === 'standard' && run.benchmarkMode === 'certified') {
-        return `<button type="button" class="gpu-soaibench-state ui-status-badge warning" data-action="hardware.gpu.soaibench.reopen" data-gpu-index="${gpuIndexAttr}" data-soaibench-run-id="${escAttr(run.runId, context.security)}" aria-label="${labelAttr}" data-tooltip="${labelAttr}">${esc(label, context.security)}</button>`;
-    }
     return `<span class="gpu-soaibench-state ui-status-badge warning" aria-label="${labelAttr}" data-tooltip="${labelAttr}">${esc(label, context.security)}</span>`;
 };
 
-export { hasActiveSoAIBenchRunForDevice, hasActiveStressSoAIBenchRunForDevice, isSoAIBenchToggleDisabled, renderSoAIBenchActions, renderSoAIBenchHistoryButton, renderSoAIBenchState, renderSoAIBenchToggleButton };
+const isCertifiedSoAIBenchRunLocked = (activity: SoAIBenchActivityProjection, state: GpuUiState): boolean => activity.deviceActivity(state.deviceId) !== null;
+
+const renderSoAIBenchReopenButton = (context: SoAIBenchActionRenderContext, index: string): string => {
+    const label = i18n.t('hardware.gpu.actions.viewBenchmark');
+    const labelAttr = escAttr(label, context.security);
+    return `<button type="button" class="ui-button ui-button--sm ui-variant-warning gpu-soaibench-reopen-btn" data-action="hardware.gpu.soaibench.reopen" data-gpu-index="${escAttr(index, context.security)}" aria-label="${labelAttr}" data-tooltip="${labelAttr}">${renderInlineLoadingStatusMarkup({ text: label, loading: true }).html}</button>`;
+};
+
+export { hasActiveSoAIBenchRunForDevice, hasActiveStressSoAIBenchRunForDevice, isCertifiedSoAIBenchRunLocked, isSoAIBenchToggleDisabled, renderSoAIBenchActions, renderSoAIBenchHistoryButton, renderSoAIBenchReopenButton, renderSoAIBenchState, renderSoAIBenchToggleButton };

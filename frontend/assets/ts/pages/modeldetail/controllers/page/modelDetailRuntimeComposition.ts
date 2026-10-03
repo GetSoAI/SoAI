@@ -22,14 +22,13 @@ import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import { TestModalManager, type TestModalManagerHost } from '@features/modeldetail/public.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { PageLayout } from '@core/routing/pages/basepagelayout/PageLayout.ts';
-import type { Router } from '@core/routing/router/Router.ts';
 import type { StatusManager } from '@core/state/public.ts';
 import type { ModelDetailSession } from '@pages/modeldetail/state/ModelDetailSession.ts';
 import type { ChangeNotificationSource } from '@core/primitives/changeNotificationSource.ts';
 import { isCollapseController, isTestModalLogStreamHandle } from '@pages/modeldetail/contracts/modelDetailPageSupport.ts';
 import { ParameterStateManager } from '@pages/modeldetail/controllers/ParameterStateManager.ts';
 import { ParameterViewManager } from '@pages/modeldetail/controllers/ParameterViewManager.ts';
-import type { ParameterViewHost, ParameterViewNavigationQueryValue } from '@pages/modeldetail/controllers/parameterviewmanager/types.ts';
+import type { ParameterViewHost } from '@pages/modeldetail/controllers/parameterviewmanager/types.ts';
 import { getModelDetailDisplayName, getModelDetailPluginStatus, getModelDetailSourceModelId } from '@pages/modeldetail/controllers/page/state.ts';
 import { toModelDetailIconOptions } from '@pages/modeldetail/rendering/modelDetailIconOptions.ts';
 
@@ -51,7 +50,6 @@ interface ModelDetailRuntimeOwners {
     };
     layout: PageLayout;
     modalPresenter: ModalPresenterApi;
-    router: Router;
     saveRequests: ChangeNotificationSource;
     session: ModelDetailSession;
     statusManager: StatusManager;
@@ -62,6 +60,7 @@ interface ModelDetailRuntimeComposition {
     parameterState: ParameterStateManager;
     parameterView: ParameterViewManager;
     testModalManager: TestModalManager;
+    copyText: (value: string) => Promise<void>;
 }
 
 const composeModelDetailRuntime = (owners: ModelDetailRuntimeOwners): ModelDetailRuntimeComposition => {
@@ -69,7 +68,7 @@ const composeModelDetailRuntime = (owners: ModelDetailRuntimeOwners): ModelDetai
     const parameterState = new ParameterStateManager();
     const parameterView = new ParameterViewManager({ host: createParameterViewDependencies(owners), parameterState });
     const testModalManager = new TestModalManager({ host: createTestModalDependencies(owners, streamManager) });
-    return { streamManager, parameterState, parameterView, testModalManager };
+    return { streamManager, parameterState, parameterView, testModalManager, copyText: (value) => copyModelDetailText(owners, value) };
 };
 
 const createParameterViewDependencies = (owners: ModelDetailRuntimeOwners): ParameterViewHost => ({
@@ -81,13 +80,8 @@ const createParameterViewDependencies = (owners: ModelDetailRuntimeOwners): Para
     setUIValue: (element, value, options) => owners.pageElements.setValue(element, value, options),
     getIconSync: (name, options) => owners.services.getIconFromStringSync(name, options),
     dom: owners.dom,
-    router: {
-        navigateWithQuery: (page, query) => {
-            void owners.router.navigateWithQuery(page, normalizeNavigationQuery(query));
-        }
-    },
     notifySaveChanged: () => owners.saveRequests.notify(),
-    updateParametersBadge: (count) => owners.layout.getTabs()?.updateTabNotifyBadge('parameters', Number(count) || 0)
+    updateUnsavedParametersBadge: (count) => owners.layout.getTabs()?.updateTabNotifyBadge('parameters', count, i18n.plural('modelDetail.parameters.unsavedCount', count, { count: i18n.formatNumber(count) }))
 });
 
 const createTestModalDependencies = (owners: ModelDetailRuntimeOwners, streamManager: ReturnType<PageStreaming['runtime']>): TestModalManagerHost => {
@@ -147,15 +141,6 @@ const createTestModalDependencies = (owners: ModelDetailRuntimeOwners, streamMan
             getIconSync: (name, options) => owners.services.getIconFromStringSync(name, toModelDetailIconOptions(options))
         }
     };
-};
-
-const normalizeNavigationQuery = (query: Record<string, ParameterViewNavigationQueryValue>): Record<string, string> => {
-    const normalized: Record<string, string> = {};
-    for (const [key, value] of Object.entries(query)) {
-        if (!key) throw new Error('ModelDetailPage router.navigateWithQuery requires non-empty query keys');
-        normalized[key] = String(value);
-    }
-    return normalized;
 };
 
 const normalizeTimerOptions = (options?: JsonObject): { repeat?: boolean; immediate?: boolean } => {

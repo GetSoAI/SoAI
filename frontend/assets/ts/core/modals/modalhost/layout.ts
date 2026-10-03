@@ -7,12 +7,9 @@ import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
 import { applyPosition, enforceBoundaries } from '@core/modals/modalhost/effects.ts';
 import { applyFullscreenLayout, syncFullscreenButton } from '@core/modals/modalhost/eventsFullscreen.ts';
-import { advanceModalLayoutGeneration, isModalLayoutCurrent } from '@core/modals/modalhost/layoutGeneration.ts';
 import { resolveCenteredPosition, sanitizeSavedModalState } from '@core/modals/modalhost/layoutPolicy.ts';
 import { lockPage, restorePage } from '@core/modals/modalhost/state.ts';
-import { applySizeConstraints } from '@core/modals/modalhost/sizePolicy.ts';
-import { applyTabsWheelScroll } from '@core/ui/controls/tabs/wheelScroll.ts';
-import { synchronizeModalFrame } from '@core/modals/modalhost/geometry.ts';
+import { applySizeConstraints, lockModalContentHeight, resetSizeStyles } from '@core/modals/modalhost/sizePolicy.ts';
 import type { ModalHostState } from '@core/modals/modalhost/contracts.ts';
 import { hideDockHint } from '@core/modals/modalhost/drag/dockHint.ts';
 
@@ -41,12 +38,8 @@ const handleModalViewportChange = (state: ModalHostState): void => {
     }
 
     state.viewportRefreshScheduled = true;
-    const generation = advanceModalLayoutGeneration(state);
     state.resources.requestAnimationFrame(() => {
         state.viewportRefreshScheduled = false;
-        if (state.layoutGeneration !== generation) {
-            return;
-        }
         if (!state.activeStack.length) {
             state.previousMobileViewportState = state.isMobileViewportState;
             return;
@@ -58,7 +51,6 @@ const handleModalViewportChange = (state: ModalHostState): void => {
             if (!(modal instanceof HTMLElement)) {
                 return;
             }
-            synchronizeModalFrame(modal, state.isMobileViewportState);
             syncFullscreenButton(state, id, modal);
             const contentElement = modal ? dom.resolve('.modal-content', modal) : null;
             const content = contentElement instanceof HTMLElement ? contentElement : null;
@@ -71,20 +63,30 @@ const handleModalViewportChange = (state: ModalHostState): void => {
             const isFullscreen = state.fullscreenState.has(id);
             const layoutOverride = state.layoutOverrides.get(id);
 
-            const size = isFullscreen
+            if (shouldRecenter) {
+                resetSizeStyles(content);
+            }
+
+            let size = isFullscreen
                 ? null
                 : applySizeConstraints({
                       content,
                       config,
                       isMobileViewport: state.isMobileViewportState,
                       savedState,
-                      layoutOverride
+                      layoutOverride,
+                      desktopOpenHeight: state.desktopOpenHeights.get(id)
                   });
 
-            if (isFullscreen) {
-                if (!isModalLayoutCurrent(state, id, generation)) {
-                    return;
+            if (size && !state.isMobileViewportState) {
+                const locked = lockModalContentHeight(content, size);
+                if (!state.desktopOpenHeights.has(id)) {
+                    state.desktopOpenHeights.set(id, locked.desktopOpenHeight);
                 }
+                size = locked.sizeResult;
+            }
+
+            if (isFullscreen) {
                 reapplyFullscreenState(state, id, content);
                 return;
             }
@@ -95,7 +97,6 @@ const handleModalViewportChange = (state: ModalHostState): void => {
                     content,
                     resolveCenteredPosition({
                         content,
-                        isMobileViewport: state.isMobileViewportState,
                         sizeOverride
                     })
                 );
@@ -103,7 +104,6 @@ const handleModalViewportChange = (state: ModalHostState): void => {
 
             enforceBoundaries({
                 content,
-                isMobileViewport: state.isMobileViewportState,
                 sizeOverride
             });
         });
@@ -156,31 +156,6 @@ const setupMobileViewportListener = (state: ModalHostState): void => {
     state.resources.addEventListener(win, INTERFACE_SCALE_CHANGED_EVENT, synchronize);
 };
 
-const setupModalTabsScroll = (state: ModalHostState, modal: Element): void => {
-    dom.resolveAll('.tabs-nav', modal).forEach((candidate) => {
-        const nav = candidate instanceof HTMLElement ? candidate : null;
-        if (!nav) {
-            return;
-        }
-        const initialized = dom.getData(nav, 'tabsWheelScroll');
-        if (initialized === 'true') {
-            return;
-        }
-        dom.setData(nav, 'tabsWheelScroll', 'true');
-        state.resources.addEventListener(
-            nav,
-            'wheel',
-            (event: Event) => {
-                if (!(event instanceof WheelEvent)) {
-                    return;
-                }
-                applyTabsWheelScroll(nav, event);
-            },
-            { passive: false }
-        );
-    });
-};
-
 const ensureResizeHandles = (content: Element): void => {
     const existing = new Set<string>();
     dom.resolveAll('.modal-resize-handle', content).forEach((handle) => {
@@ -219,4 +194,4 @@ const restoreModalPage = (state: ModalHostState): void => {
     state.pageLockSnapshot = null;
 };
 
-export { ensureResizeHandles, handleModalViewportChange, initializeModalLayoutObservers, lockModalPage, restoreModalPage, setupMobileViewportListener, setupModalTabsScroll };
+export { ensureResizeHandles, handleModalViewportChange, initializeModalLayoutObservers, lockModalPage, restoreModalPage, setupMobileViewportListener };

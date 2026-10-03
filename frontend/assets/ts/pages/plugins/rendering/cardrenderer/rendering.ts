@@ -107,17 +107,17 @@ function renderSecondBadge(plugin: PluginRecord, backendStatusAttr: string, host
 
         const tagName = isManaged ? 'button' : 'div';
         const typeAttribute = isManaged ? ' type="button"' : '';
-        return `<div class="ui-metric-item"><${tagName}${typeAttribute} class="ui-metric-badge ui-metric-badge--secondary" ${attrs}${labelAttributes}><span class="ui-metric-label">${i18n.t('plugins.badges.providers')}</span><span class="ui-metric-value">${host.presentation.sanitizeText(String(value), { allowEmpty: true })}</span></${tagName}></div>`;
+        return `<div class="ui-metric-item"><${tagName}${typeAttribute} class="ui-metric-badge ui-metric-badge--secondary" ${attrs}${labelAttributes}><span class="ui-metric-label">${i18n.t('plugins.badges.providers')}</span><span dir="auto" class="ui-metric-value">${host.presentation.sanitizeText(String(value), { allowEmpty: true })}</span></${tagName}></div>`;
     }
 
     if (capabilities.supportsBackendInstallation !== false) {
         const backendAttr = backendStatusAttr ? ` ${backendStatusAttr}` : '';
         const backendLabel = i18n.t('plugins.badges.backend');
-        return `<div class="ui-metric-item"><button type="button" class="ui-metric-badge ui-metric-badge--secondary" data-action="${PLUGINS_ACTION_METRIC_BADGE}" data-metric-key="backend"${backendAttr} ${renderLabelAttributes(backendLabel)}><span class="ui-metric-label">${backendLabel}</span><span class="ui-metric-value">${getBackendBadgeValue(plugin, host)}</span></button></div>`;
+        return `<div class="ui-metric-item"><button type="button" class="ui-metric-badge ui-metric-badge--secondary" data-action="${PLUGINS_ACTION_METRIC_BADGE}" data-metric-key="backend"${backendAttr} ${renderLabelAttributes(backendLabel)}><span class="ui-metric-label">${backendLabel}</span><span dir="auto" class="ui-metric-value">${getBackendBadgeValue(plugin, host)}</span></button></div>`;
     }
 
     const requestsLabel = i18n.t('plugins.badges.requests');
-    return `<div class="ui-metric-item"><button type="button" class="ui-metric-badge ui-metric-badge--secondary" data-action="${PLUGINS_ACTION_METRIC_BADGE}" data-metric-key="requests" ${renderLabelAttributes(requestsLabel)}><span class="ui-metric-label">${requestsLabel}</span><span class="ui-metric-value">${plugin.technical?.maxConcurrentRequests || 0}</span></button></div>`;
+    return `<div class="ui-metric-item"><button type="button" class="ui-metric-badge ui-metric-badge--secondary" data-action="${PLUGINS_ACTION_METRIC_BADGE}" data-metric-key="requests" ${renderLabelAttributes(requestsLabel)}><span class="ui-metric-label">${requestsLabel}</span><span dir="auto" class="ui-metric-value">${plugin.technical?.maxConcurrentRequests || 0}</span></button></div>`;
 }
 
 function renderInstallButton(plugin: PluginRecord, host: PluginCardHost, statuses: { backendNotInstalled: string }): string {
@@ -172,7 +172,7 @@ function renderModelTypeBadges(plugin: PluginRecord): string {
             if (!isString(entry)) return '';
             const label = entry.trim();
             if (!label) return '';
-            return `<span class="ui-model-type-badge ${getBadgeColorClass(label)}">${label.toUpperCase()}</span>`;
+            return `<span dir="auto" class="ui-model-type-badge ${getBadgeColorClass(label)}">${label.toUpperCase()}</span>`;
         })
         .filter(Boolean)
         .join('');

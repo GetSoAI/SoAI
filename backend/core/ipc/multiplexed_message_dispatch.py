@@ -17,6 +17,7 @@ from core.ipc.remote_error_metadata import (
     REMOTE_ERROR_TRACE_ID_KEY,
 )
 from core.types.json import JSONDict
+from core.validation.strict_numbers import require_int_in_range_strict
 
 __all__ = ("dispatch_ipc_message",)
 
@@ -75,13 +76,36 @@ def _handle_response(
         if isinstance(message_value, str) and message_value
         else "IPC worker request failed."
     )
-    pending.set_exception(
-        IpcRemoteRequestError(
-            error_message,
-            operation="core.ipc.multiplexed.response.error",
-            details=details,
-        ),
+    error = IpcRemoteRequestError(
+        error_message,
+        operation="core.ipc.multiplexed.response.error",
+        details=details,
     )
+    if isinstance(payload_value, dict) and "http_status" in payload_value:
+        status_code = require_int_in_range_strict(
+            payload_value["http_status"],
+            minimum=400,
+            maximum=599,
+            error_message="IPC error HTTP status must be an integer from 400 through 599.",
+        )
+        code = payload_value.get("code")
+        if not isinstance(code, str | int) or isinstance(code, bool) or code == "":
+            raise ValidationError("IPC error code must be a non-empty string or integer.")
+        error.code = code
+        error.http_status = status_code
+        trace_id = payload_value.get("trace_id")
+        if isinstance(trace_id, str) and trace_id:
+            error.trace_id = trace_id
+        if "public_message" in payload_value:
+            public_message = payload_value["public_message"]
+            if not isinstance(public_message, str) or not public_message.strip():
+                raise ValidationError("IPC public error guidance must be a non-empty string.")
+            public_details = payload_value.get("public_details")
+            if public_details is not None and not isinstance(public_details, dict):
+                raise ValidationError("IPC public error details must be a JSON object.")
+            error.public_message = public_message
+            error.public_details = public_details
+    pending.set_exception(error)
 
 
 def _build_remote_error_details(payload: JSONDict, *, worker_id: int) -> JSONDict:

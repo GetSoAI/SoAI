@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { getResolvedLocalizationLocale } from '@core/localization/public.ts';
+import { getCollator } from '@core/localization/intlCache.ts';
 import { resolveNextSortState, type SortDirection } from '@core/ui/tables/sortableTable.ts';
 import { SOAIBENCH_HISTORY_COLUMNS, resolveHistoryColumnDefaultDirection, type SoAIBenchHistorySortColumn } from '@features/hardware/modals/soaibenchhistory/columns.ts';
 import type { SoAIBenchHistoryRun } from '@features/hardware/modals/soaibenchhistory/types.ts';
@@ -23,7 +24,7 @@ const compareText = (left: string | null, right: string | null): number => {
     if (!rightText) {
         return -1;
     }
-    return leftText.localeCompare(rightText, getResolvedLocalizationLocale(), { numeric: true, sensitivity: 'base' });
+    return getCollator(getResolvedLocalizationLocale(), { numeric: true, sensitivity: 'base' }).compare(leftText, rightText);
 };
 
 const compareNullableNumber = (left: number | null, right: number | null): number => {

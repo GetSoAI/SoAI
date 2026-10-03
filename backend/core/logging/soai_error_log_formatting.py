@@ -57,4 +57,7 @@ def build_soai_error_log_suffix(payload: Mapping[str, JSONValue] | None) -> str:
     error_message = payload.get("error_message")
     if isinstance(error_message, str) and error_message:
         parts.append(f"error={_sanitize_error_message(error_message)}")
+    stream_diagnostic = payload.get("stream_diagnostic")
+    if isinstance(stream_diagnostic, str) and stream_diagnostic:
+        parts.append(f"stream={stream_diagnostic[:2048]}")
     return f" | {' '.join(parts)}" if parts else ""

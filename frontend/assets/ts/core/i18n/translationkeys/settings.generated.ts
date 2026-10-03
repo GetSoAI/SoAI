@@ -14,6 +14,7 @@ import type { SettingsBackupTranslationKey } from '@core/i18n/translationkeys/se
 import type { SettingsBasicModeTranslationKey } from '@core/i18n/translationkeys/settings/basicMode.generated.ts';
 import type { SettingsChartsTranslationKey } from '@core/i18n/translationkeys/settings/charts.generated.ts';
 import type { SettingsCodeBlocksTranslationKey } from '@core/i18n/translationkeys/settings/codeBlocks.generated.ts';
+import type { SettingsConnectTranslationKey } from '@core/i18n/translationkeys/settings/connect.generated.ts';
 import type { SettingsDashboardTranslationKey } from '@core/i18n/translationkeys/settings/dashboard.generated.ts';
 import type { SettingsDescriptionTranslationKey } from '@core/i18n/translationkeys/settings/description.generated.ts';
 import type { SettingsEffectsTranslationKey } from '@core/i18n/translationkeys/settings/effects.generated.ts';
@@ -75,6 +76,7 @@ export type SettingsTranslationKey =
     | SettingsBasicModeTranslationKey
     | SettingsChartsTranslationKey
     | SettingsCodeBlocksTranslationKey
+    | SettingsConnectTranslationKey
     | SettingsDashboardTranslationKey
     | SettingsDescriptionTranslationKey
     | SettingsEffectsTranslationKey

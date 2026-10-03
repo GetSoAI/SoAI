@@ -19,6 +19,8 @@ const normalizeUpdatePayload = (payload: SoftwareUpdateCheckResponse | null): No
         message: normalizeUpdateText(payload.message),
         releaseUrl: normalizeUpdateText(payload.releaseUrl),
         releaseNotes: payload.releaseNotes ?? '',
+        releaseHistory: payload.releaseHistory ?? [],
+        releaseHistoryComplete: payload.releaseHistoryComplete ?? true,
         publishedAt: normalizeUpdateText(payload.publishedAt),
         platformId: normalizeUpdateText(payload.platformId),
         deliveryType: payload.deliveryType,

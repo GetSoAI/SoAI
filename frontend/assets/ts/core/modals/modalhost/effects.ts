@@ -96,27 +96,27 @@ const getTransformTranslate = (content: Element): Position | null => {
     return { x: 0, y: 0 };
 };
 
-const calculateModalBoundaries = ({ content, isMobileViewport, sizeOverride = null }: ModalBoundsDependencies): Boundaries => {
+const calculateModalBoundaries = ({ content, sizeOverride = null }: ModalBoundsDependencies): Boundaries => {
     const measuredSize = sizeOverride ?? measureLayoutBox(content);
     const width = Math.max(measuredSize.width, 1);
     const height = Math.max(measuredSize.height, 1);
-    return calculateModalTranslateBoundaries({ content, width, height, isMobileViewport });
+    return calculateModalTranslateBoundaries({ content, width, height });
 };
 
-const clampPosition = ({ content, position, isMobileViewport, sizeOverride = null }: ModalPositionDependencies): Position => {
-    const boundaries = calculateModalBoundaries({ content, isMobileViewport, sizeOverride });
+const clampPosition = ({ content, position, sizeOverride = null }: ModalPositionDependencies): Position => {
+    const boundaries = calculateModalBoundaries({ content, sizeOverride });
     return {
         x: clampNumber(position.x, boundaries.minX, boundaries.maxX),
         y: clampNumber(position.y, boundaries.minY, boundaries.maxY)
     };
 };
 
-const enforceBoundaries = ({ content, isMobileViewport, sizeOverride = null }: ModalBoundsDependencies): Position | null => {
+const enforceBoundaries = ({ content, sizeOverride = null }: ModalBoundsDependencies): Position | null => {
     const current = getTransformTranslate(content);
     if (!current) {
         return null;
     }
-    const clamped = clampPosition({ content, position: current, isMobileViewport, sizeOverride });
+    const clamped = clampPosition({ content, position: current, sizeOverride });
     if (clamped.x !== current.x || clamped.y !== current.y) {
         applyPosition(content, clamped);
     }

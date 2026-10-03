@@ -14,6 +14,6 @@
         pointer-events: none;
         opacity: var(--chat-model-menu-option-hover-overlay-opacity);
         transition: opacity var(--transition-fast);
-        background: linear-gradient(to right, var(--chat-model-menu-option-left-rail-color) 0, var(--chat-model-menu-option-left-rail-color) var(--border-width-3), transparent var(--border-width-3)), var(--chat-model-menu-option-hover-surface);
+        background: linear-gradient(calc(90deg * var(--dir-sign)), var(--chat-model-menu-option-inline-start-rail-color) 0, var(--chat-model-menu-option-inline-start-rail-color) var(--border-width-3), transparent var(--border-width-3)), var(--chat-model-menu-option-hover-surface);
     }
 }

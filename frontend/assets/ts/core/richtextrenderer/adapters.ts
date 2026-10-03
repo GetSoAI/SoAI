@@ -6,9 +6,9 @@ import { isHorizontalRuleLine, matchBlockquoteLine, matchHeadingLine, matchOrder
 import { TABLE_END_TOKEN, TABLE_START_TOKEN } from '@core/richtextrenderer/tableRendering.ts';
 
 const buildList = (type: 'ul' | 'ol', items: string[], start: number | null = null): string => {
-    const listItems = items.map((item) => `<li>${item}</li>`).join('');
+    const listItems = items.map((item) => `<li dir="auto">${item}</li>`).join('');
     const startAttribute = type === 'ol' && start !== null && start !== 1 ? ` start="${String(start)}"` : '';
-    return `<${type}${startAttribute}>${listItems}</${type}>`;
+    return `<${type} dir="auto"${startAttribute}>${listItems}</${type}>`;
 };
 
 const buildTaskList = (items: Array<{ content: string; checked?: boolean }>): string => {
@@ -16,10 +16,10 @@ const buildTaskList = (items: Array<{ content: string; checked?: boolean }>): st
         .map((item) => {
             const checkedAttribute = item.checked ? ' checked' : '';
             const checkedClass = item.checked ? ' task-list-item-checked' : '';
-            return `<li class="task-list-item${checkedClass}"><input type="checkbox" class="task-list-checkbox" disabled${checkedAttribute}>${item.content}</li>`;
+            return `<li dir="auto" class="task-list-item${checkedClass}"><input type="checkbox" class="task-list-checkbox" disabled${checkedAttribute}>${item.content}</li>`;
         })
         .join('');
-    return `<ul class="task-list">${listItems}</ul>`;
+    return `<ul dir="auto" class="task-list">${listItems}</ul>`;
 };
 
 export const processTextLines = (text: string, footnotes: Map<string, FootnoteDefinition> = new Map(), renderInlineText: (value: string, footnotesMap: Map<string, FootnoteDefinition>) => string): string => {
@@ -57,7 +57,7 @@ export const processTextLines = (text: string, footnotes: Map<string, FootnoteDe
             return;
         }
         const content = blockquoteLines.map((line) => renderInlineText(line, footnotes)).join('<br>');
-        html += `<blockquote>${content}</blockquote>`;
+        html += `<blockquote dir="auto">${content}</blockquote>`;
         blockquoteLines = [];
     };
 
@@ -67,7 +67,7 @@ export const processTextLines = (text: string, footnotes: Map<string, FootnoteDe
         }
         const content = paragraphBuffer.join('\n');
         if (content.trim()) {
-            html += `<p>${renderInlineText(content, footnotes)}</p>`;
+            html += `<p dir="auto">${renderInlineText(content, footnotes)}</p>`;
         }
         paragraphBuffer = [];
     };
@@ -99,7 +99,7 @@ export const processTextLines = (text: string, footnotes: Map<string, FootnoteDe
             flushAll();
             const level = headerMatch[1].length;
             const content = renderInlineText(headerMatch[2], footnotes);
-            html += `<h${level}>${content}</h${level}>`;
+            html += `<h${level} dir="auto">${content}</h${level}>`;
             continue;
         }
 
@@ -164,5 +164,5 @@ export const processTextLines = (text: string, footnotes: Map<string, FootnoteDe
     }
 
     flushAll();
-    return html || '<p></p>';
+    return html || '<p dir="auto"></p>';
 };

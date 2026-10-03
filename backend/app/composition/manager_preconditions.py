@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from core.conversations.protocols_database_password_vault import (
         DatabasePasswordVaultProtocol,
     )
+    from core.database.protocols import DatabaseOperationStatusProtocol
     from core.database.protocols_tasks import DatabaseTasksProtocol
     from core.events.protocols import EventBusProtocol
     from core.files.protocols import DatabaseFilesProtocol
@@ -118,6 +119,7 @@ class ManagerPreconditions:
     database_tool_calls: DatabaseToolCallsProtocol
     database_read_video: DatabaseReadVideoJobsProtocol
     database_files: DatabaseFilesProtocol
+    database_operation_status: DatabaseOperationStatusProtocol
     database_conversation_knowledge_attachments: DatabaseConversationKnowledgeAttachmentsProtocol
     database_knowledge_prompt_state: DatabaseKnowledgePromptStateProtocol
     database_tasks: DatabaseTasksProtocol

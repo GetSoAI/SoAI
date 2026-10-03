@@ -10,6 +10,7 @@ from core.errors.exceptions import ValidationError
 from core.validation.integers import is_strict_int
 from database.core.flags import FEATURE_PROMPTS
 from database.core.query_execution import query_one_to_dict, query_to_dicts
+from database.core.read_transaction import run_read_transaction
 from database.repositories.users.canonical_agent_history_reads import (
     query_canonical_agent_history,
 )
@@ -26,7 +27,6 @@ from database.repositories.users.message_row_mapping import (
 from database.repositories.users.message_tool_projection_attachment import (
     attach_tool_call_projections,
 )
-from database.repositories.users.read_transactions import run_user_read_transaction
 
 if TYPE_CHECKING:
     import aiosqlite
@@ -117,6 +117,6 @@ async def get_conversation_start_snapshot(
                 canonical_history=canonical_history,
             )
 
-        return await run_user_read_transaction(database, _transaction)
+        return await run_read_transaction(database, _transaction)
 
     return await self.core.reader.execute_read(_query)

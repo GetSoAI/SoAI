@@ -12,10 +12,20 @@ import type { PromptsUiRefs } from '@pages/prompts/types.ts';
 
 const PROMPTS_VIEW_MODE_STORAGE_KEY = 'soai.prompts.viewMode';
 
+interface PromptEditingDraft {
+    promptId: string;
+    name: string;
+    content: string;
+    color: string | null;
+    createdAtMs: number;
+    modifiedAtMs: number;
+}
+
 class PromptsPageSession {
     ui: PromptsUiRefs | null = null;
     unsavedChangesGuardCleanup: (() => void) | null = null;
     editingPromptId: string | null = null;
+    editingDraft: PromptEditingDraft | null = null;
     draftPromptId: string | null = null;
     promptsApi: PromptsApiClient | null = null;
     groupResolvers: GroupResolvers | null = null;
@@ -32,6 +42,7 @@ class PromptsPageSession {
         this.unsavedChangesGuardCleanup?.();
         this.unsavedChangesGuardCleanup = null;
         this.editingPromptId = null;
+        this.editingDraft = null;
         this.draftPromptId = null;
         this.promptsApi = null;
         this.dataAdapterReadyTask = null;

@@ -9,7 +9,7 @@ import type { TrustedHtml } from '@core/security/public.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
-import type { ChatMessageRenderHost } from '@features/chat/message/messageview/types.ts';
+import type { ChatAttachmentCardRenderHost, ChatMessageRenderHost } from '@features/chat/message/messageview/types.ts';
 import type { ChatActivityDurationDisplayMode } from '@features/chat/message/messageview/activityDurationDisplay.ts';
 
 type MainThreadChatMessageRenderHostDependencies = {
@@ -25,6 +25,13 @@ type MainThreadChatMessageRenderHostDependencies = {
     isCurrentConversationExecuting: () => boolean;
 };
 
+const createChatAttachmentCardRenderHost = (dependencies: Pick<MainThreadChatMessageRenderHostDependencies, 'sanitizer' | 'getIcon'>): ChatAttachmentCardRenderHost => ({
+    escapeHtml: (unsafe: string) => dependencies.sanitizer.html(unsafe),
+    escapeAttribute: (value: string) => dependencies.sanitizer.attribute(value),
+    sanitizeImage: (value: string) => dependencies.sanitizer.image(value),
+    getIconHtml: (name: IconName, options?: IconOptions) => dependencies.getIcon(name, options).html
+});
+
 const createMainThreadChatMessageRenderHost = (dependencies: MainThreadChatMessageRenderHostDependencies): ChatMessageRenderHost => {
     const richTextRenderer = new RichTextRenderer({
         sanitizer: dependencies.sanitizer,
@@ -35,10 +42,7 @@ const createMainThreadChatMessageRenderHost = (dependencies: MainThreadChatMessa
     return {
         nowMs: serverEpochMs,
         getCanonicalPlan: () => dependencies.getCanonicalPlan(),
-        escapeHtml: (unsafe: string) => dependencies.sanitizer.html(unsafe),
-        escapeAttribute: (value: string) => dependencies.sanitizer.attribute(value),
-        sanitizeImage: (value: string) => dependencies.sanitizer.image(value),
-        getIconHtml: (name: IconName, options?: IconOptions) => dependencies.getIcon(name, options).html,
+        ...createChatAttachmentCardRenderHost(dependencies),
         getToolIconHtml: (toolName: string) => dependencies.getToolIconHtml(toolName),
         isRichTextEnabled: () => dependencies.isRichTextEnabled(),
         isInlineMultimediaPreviewsEnabled: () => dependencies.isInlineMultimediaPreviewsEnabled(),
@@ -51,5 +55,5 @@ const createMainThreadChatMessageRenderHost = (dependencies: MainThreadChatMessa
     };
 };
 
-export { createMainThreadChatMessageRenderHost };
+export { createChatAttachmentCardRenderHost, createMainThreadChatMessageRenderHost };
 export type { MainThreadChatMessageRenderHostDependencies };

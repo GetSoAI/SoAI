@@ -160,44 +160,79 @@ soai_bootstrap__download() {
     local destination="$2"
     local maximum_bytes="$3"
     local timeout_seconds="$4"
-    curl \
-        --fail \
-        --show-error \
-        --location \
-        --proto '=https' \
-        --tlsv1.2 \
-        --connect-timeout 15 \
-        --max-time "$timeout_seconds" \
-        --max-filesize "$maximum_bytes" \
-        --retry 3 \
-        --retry-delay 2 \
-        --output "$destination" \
-        "$url"
-    if [ ! -s "$destination" ]; then
-        soai_bootstrap__die "Downloaded asset is empty: ${url}"
+    shift 4
+    local resume_archive="${1:-0}"
+    if [ "$#" -gt 0 ]; then
+        shift
     fi
+    local attempt=1
+    local delay=2
+    local status=0
+    local http_status=""
+    local range_restarted=0
+    local resume_attempt=0
+    local curl_arguments=()
+    while [ "$attempt" -le 6 ]; do
+        resume_attempt=0
+        curl_arguments=(
+            --fail --show-error --location --proto '=https' --proto-redir '=https'
+            --tlsv1.2 --connect-timeout 15 --max-time "$timeout_seconds"
+            --max-filesize "$maximum_bytes" --retry 3 --retry-delay 2
+            --speed-limit 1024 --speed-time 60 --write-out '%{http_code}'
+            --output "$destination"
+        )
+        if [ "$resume_archive" = "1" ] && [ -s "$destination" ]; then
+            curl_arguments+=(--continue-at -)
+            resume_attempt=1
+        else
+            rm -f "$destination" || return $?
+        fi
+        if http_status="$(curl "${curl_arguments[@]}" "$@" "$url")"; then
+            if [ ! -s "$destination" ]; then
+                soai_bootstrap__die "Downloaded asset is empty: ${url}"
+            fi
+            return 0
+        else
+            status=$?
+        fi
+        soai_bootstrap__status "Download attempt ${attempt}/6 failed (curl ${status}, HTTP ${http_status})."
+        case "$status" in
+            5|6|7|18|28|52|55|56|92) ;;
+            22|33|36)
+                if [ "$resume_attempt" != "1" ] || [ "$range_restarted" = "1" ]; then
+                    return "$status"
+                fi
+                if [ "$status" = "22" ] && [ "$http_status" != "416" ]; then
+                    return "$status"
+                fi
+                range_restarted=1
+                rm -f "$destination" || return $?
+                ;;
+            *) return "$status" ;;
+        esac
+        if [ "$attempt" -eq 6 ]; then
+            return "$status"
+        fi
+        soai_bootstrap__status "Retrying download in ${delay} seconds..."
+        sleep "$delay" || return $?
+        attempt=$((attempt + 1))
+        delay=$((delay * 2))
+        if [ "$delay" -gt 30 ]; then
+            delay=30
+        fi
+    done
 }
 
 soai_bootstrap__resolve_release() {
     local release_json="$SOAI_BOOTSTRAP_TEMP_DIR/release.json"
     local metadata_path="$SOAI_BOOTSTRAP_TEMP_DIR/release-metadata.tsv"
     soai_bootstrap__status "Resolving the latest published SoAI release from GitHub..."
-    curl \
-        --fail \
-        --show-error \
-        --location \
-        --proto '=https' \
-        --tlsv1.2 \
-        --connect-timeout 15 \
-        --max-time 120 \
-        --max-filesize 8388608 \
-        --retry 3 \
-        --retry-delay 2 \
+    soai_bootstrap__download \
+        'https://api.github.com/repos/GetSoAI/SoAI/releases/latest' \
+        "$release_json" 8388608 120 0 \
         --header 'Accept: application/vnd.github+json' \
         --header 'X-GitHub-Api-Version: 2022-11-28' \
-        --user-agent 'SoAI-Installer/1' \
-        --output "$release_json" \
-        'https://api.github.com/repos/GetSoAI/SoAI/releases/latest'
+        --user-agent 'SoAI-Installer/1'
     python3 - "$release_json" "$metadata_path" "$SOAI_BOOTSTRAP_PLATFORM" <<'PYTHON'
 import json
 import re
@@ -275,7 +310,7 @@ soai_bootstrap__download_release() {
     soai_bootstrap__download "$SOAI_BOOTSTRAP_MANIFEST_URL" "$SOAI_BOOTSTRAP_MANIFEST_PATH" 67108864 120
     soai_bootstrap__download "$SOAI_BOOTSTRAP_SIGNATURE_URL" "$SOAI_BOOTSTRAP_SIGNATURE_PATH" 1024 120
     soai_bootstrap__download "$SOAI_BOOTSTRAP_CHECKSUM_URL" "$SOAI_BOOTSTRAP_CHECKSUM_PATH" 1024 120
-    soai_bootstrap__download "$SOAI_BOOTSTRAP_ARCHIVE_URL" "$SOAI_BOOTSTRAP_ARCHIVE_PATH" 2147483648 7200
+    soai_bootstrap__download "$SOAI_BOOTSTRAP_ARCHIVE_URL" "$SOAI_BOOTSTRAP_ARCHIVE_PATH" 2147483648 7200 1
 }
 
 soai_bootstrap__verify_signature() {

@@ -4,7 +4,7 @@
 import type { SoaiPathContentPart } from '@core/api/contracts/webuiChatOperationContractTypes.ts';
 import { readRequiredNonNegativeIntegerValue } from '@core/types/payloadNumberReaders.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
-import { readRequiredEnumValue, readRequiredEpochMsValue, readRequiredStringValue, readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
+import { readRequiredEnumValue, readRequiredEpochMsValue, readRequiredPresentStringValue, readRequiredSignedEpochMsValue, readRequiredStringValue, readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 
 interface WebuiTextContentPart {
@@ -110,15 +110,15 @@ const decodeWebuiMessageContentPart = (value: JsonValue, label: string): WebuiMe
         return {
             type,
             entryType: readRequiredEnumValue(record['entry_type'], `${label}.entry_type`, ['file', 'folder']),
-            sourceReference: { type: readRequiredEnumValue(sourceReference['type'], `${label}.source_reference.type`, ['conversation_virtual_path']), value: readRequiredTrimmedStringValue(sourceReference['value'], `${label}.source_reference.value`) },
-            toolReference: { type: readRequiredEnumValue(toolReference['type'], `${label}.tool_reference.type`, ['workspace_relative_path']), value: readRequiredTrimmedStringValue(toolReference['value'], `${label}.tool_reference.value`) },
+            sourceReference: { type: readRequiredEnumValue(sourceReference['type'], `${label}.source_reference.type`, ['conversation_virtual_path']), value: readRequiredPresentStringValue(sourceReference['value'], `${label}.source_reference.value`) },
+            toolReference: { type: readRequiredEnumValue(toolReference['type'], `${label}.tool_reference.type`, ['workspace_relative_path']), value: readRequiredPresentStringValue(toolReference['value'], `${label}.tool_reference.value`) },
             workspaceScope: { type: readRequiredEnumValue(workspaceScope['type'], `${label}.workspace_scope.type`, ['conversation_effective_workspace']), rootFingerprint: readRequiredTrimmedStringValue(workspaceScope['root_fingerprint'], `${label}.workspace_scope.root_fingerprint`) },
             targetFingerprint: { type: readRequiredEnumValue(targetFingerprint['type'], `${label}.target_fingerprint.type`, ['file_sha256', 'folder_listing_sha256']), value: readRequiredTrimmedStringValue(targetFingerprint['value'], `${label}.target_fingerprint.value`) },
             title: readRequiredTrimmedStringValue(record['title'], `${label}.title`),
             previewType: readRequiredTrimmedStringValue(record['preview_type'], `${label}.preview_type`),
             mimeType: typeof record['mime_type'] === 'string' ? record['mime_type'] : null,
             sizeBytes: typeof record['size_bytes'] === 'number' ? record['size_bytes'] : null,
-            modifiedAtMs: readRequiredEpochMsValue(record['modified_at_ms'], `${label}.modified_at_ms`),
+            modifiedAtMs: readRequiredSignedEpochMsValue(record['modified_at_ms'], `${label}.modified_at_ms`),
             resolvedAtMs: readRequiredEpochMsValue(record['resolved_at_ms'], `${label}.resolved_at_ms`)
         };
     }

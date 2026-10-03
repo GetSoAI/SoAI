@@ -49,6 +49,7 @@ export type ChatAttachModalTranslationKey =
     | 'chat.attachModal.soaiLinkTitle'
     | 'chat.attachModal.tabBrowse'
     | 'chat.attachModal.tabCamera'
+    | 'chat.attachModal.tabDisabledReason'
     | 'chat.attachModal.tabKnowledge'
     | 'chat.attachModal.tabSoaiLink'
     | 'chat.attachModal.tabUpload'

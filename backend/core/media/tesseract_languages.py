@@ -32,7 +32,7 @@ class TesseractLanguage:
     code: str
     name: str
     native_name: str
-    flag: str
+    country_code: str | None
     ui_locale: str | None
     sha256: str
 
@@ -82,12 +82,22 @@ def get_tesseract_catalog() -> TesseractCatalog:
         ui_locale = entry.get("ui_locale")
         if ui_locale is not None and not isinstance(ui_locale, str):
             raise StateError("Invalid Tesseract catalog UI locale.")
+        if "country_code" not in entry:
+            raise StateError("Missing Tesseract catalog country code.")
+        country_code = entry["country_code"]
+        if country_code is not None and (
+            not isinstance(country_code, str)
+            or len(country_code) != 2
+            or not country_code.isascii()
+            or any(character not in ascii_lowercase for character in country_code)
+        ):
+            raise StateError("Invalid Tesseract catalog country code.")
         languages.append(
             TesseractLanguage(
                 code=_require_text(entry, "code"),
                 name=_require_text(entry, "name"),
                 native_name=_require_text(entry, "native_name"),
-                flag=_require_text(entry, "flag"),
+                country_code=country_code,
                 ui_locale=ui_locale,
                 sha256=_require_text(entry, "sha256"),
             )

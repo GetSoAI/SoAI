@@ -13,6 +13,7 @@ from core.validation.epoch import require_unix_epoch_ms
 from core.validation.integers import is_strict_int
 from database.core.data_conversions import SQLITE_BATCH_SIZE
 from database.core.query_execution import query_one_to_dict, query_to_dicts
+from database.core.read_transaction import run_read_transaction
 from database.core.sqlite_values import SQLiteValue
 from database.repositories.users.message_row_mapping import (
     build_message_payload_from_row,
@@ -23,7 +24,6 @@ from database.repositories.users.message_window_assistant_details import (
 from database.repositories.users.message_window_row_selection import (
     MESSAGE_WINDOW_SELECT_COLUMNS,
 )
-from database.repositories.users.read_transactions import run_user_read_transaction
 
 __all__ = ("load_conversation_running_activity_snapshot",)
 
@@ -143,4 +143,4 @@ async def load_conversation_running_activity_snapshot(
             user_id=user_id,
         )
 
-    return await run_user_read_transaction(database, _transaction)
+    return await run_read_transaction(database, _transaction)

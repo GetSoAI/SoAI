@@ -105,6 +105,7 @@ class PromptCardRenderer extends BaseCardRenderer<PromptRecord | null | undefine
             className: contentClasses,
             children: this.cards.section({
                 className: textClasses,
+                attributes: { dir: 'auto' },
                 children: textContent
             })
         });
@@ -166,17 +167,19 @@ class PromptCardRenderer extends BaseCardRenderer<PromptRecord | null | undefine
 
     renderTitleInput(prompt: PromptRecord): string {
         const value = this.cards.escapeAttribute(prompt.name);
-        return `<input type="text" data-field="name" value="${value}">`;
+        const label = this.cards.escapeAttribute(i18n.t('prompts.title'));
+        return `<input type="text" dir="auto" data-field="name" value="${value}" aria-label="${label}">`;
     }
 
     renderTitleText(prompt: PromptRecord): string {
         const value = this.cards.escapeHtml(prompt.name);
-        return `<span class="prompt-card-title-text">${value}</span>`;
+        return `<span dir="auto" class="prompt-card-title-text">${value}</span>`;
     }
 
     renderTextarea(prompt: PromptRecord): string {
         const value = this.cards.escapeHtml(prompt.content);
-        return `<textarea data-field="content">${value}</textarea>`;
+        const label = this.cards.escapeAttribute(i18n.t('prompts.description'));
+        return `<textarea dir="auto" data-field="content" aria-label="${label}">${value}</textarea>`;
     }
 
     renderContentText(prompt: PromptRecord): string {

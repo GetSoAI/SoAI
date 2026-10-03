@@ -15,16 +15,21 @@ from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 __all__ = ("write_windows_lifecycle_request",)
 
 OPERATION_WINDOWS_LIFECYCLE_REQUEST_WRITE = "app.cli.windows_lifecycle_request.write"
+WINDOWS_LIFECYCLE_REQUEST_WRITE_EXCEPTIONS: tuple[type[Exception], ...] = (
+    OSError,
+    *RECOVERABLE_EXCEPTIONS,
+)
 
 
 def write_windows_lifecycle_request(
     base_dir: str,
-    pid: int,
+    process: psutil.Process,
     action: Literal["restart", "stop"],
     logger: logging.Logger,
 ) -> str | None:
+    pid = process.pid
     try:
-        return write_lifecycle_request(base_dir, pid, action, logger)
+        return write_lifecycle_request(base_dir, process, action, logger)
     except psutil.NoSuchProcess:
         logger.info(
             "SoAI process %s exited before %s request could be written.",
@@ -42,7 +47,7 @@ def write_windows_lifecycle_request(
             level="error",
         )
         return None
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except WINDOWS_LIFECYCLE_REQUEST_WRITE_EXCEPTIONS as exception:
         log_exception(
             logger,
             exception,

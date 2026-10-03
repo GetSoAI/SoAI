@@ -9,6 +9,7 @@ import threading
 from collections.abc import Callable
 from queue import Full, Queue
 
+from core.errors.exceptions import SoAIError
 from core.logging.trace import get_logger
 from core.mutations.identifiers import create_timestamped_operation_id
 from core.state.errors import (
@@ -188,7 +189,13 @@ class DatabaseWriteOperationQueue:
             )
             raise DatabaseQueueSaturatedError(
                 "Database write queue is at capacity. Try again later.",
+                details={"operation_id": operation_id, "status": OperationStatus.FAILED.value},
+                headers={"X-SoAI-Operation-Id": operation_id},
             ) from exception
+
+        except SoAIError as exception:
+            exception.headers = {**(exception.headers or {}), "X-SoAI-Operation-Id": operation_id}
+            raise
 
     def _mark_cancelled_by_caller[T](
         self,

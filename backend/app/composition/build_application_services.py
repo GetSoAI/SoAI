@@ -21,6 +21,7 @@ from app.types_services_runtime import (
     StorageServices,
 )
 from core.licensing.protocols import LicensingStatusProtocol
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 
 if TYPE_CHECKING:
     from core.timing.startup_timings import StartupTimingsRecorder
@@ -50,6 +51,7 @@ async def build_application_services(
     startup_timings: StartupTimingsRecorder,
     edition_composition: EditionComposition,
     licensing_status: LicensingStatusProtocol,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> ApplicationServiceComposition:
     (
         infrastructure_services,
@@ -76,6 +78,7 @@ async def build_application_services(
         startup_timings=startup_timings,
         licensing_status=licensing_status,
         edition=edition_composition.licensing.edition,
+        process_exit_deadline=process_exit_deadline,
     )
     host_management_builder = edition_composition.host_management.build_services
     host_management_services = None

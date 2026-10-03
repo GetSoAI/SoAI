@@ -16,7 +16,7 @@ import { applyKeyedScrollableStateWithBottomDefault, readKeyedScrollableState } 
 type DetailsSectionType = 'args' | 'diffs' | 'result' | 'error';
 type ToolResultChildType = 'label' | 'media' | 'meta' | 'pre';
 
-const INLINE_TOOL_IMAGE_PRESERVED_ATTRIBUTES = new Set(['src', 'srcset', 'sizes', 'data-inline-tool-image-lifecycle-wired', 'data-media-load-state', 'data-media-open-source-url', 'data-media-preview-url', 'data-media-download-url', 'data-media-source-type', 'data-media-source-value']);
+const INLINE_TOOL_IMAGE_PRESERVED_ATTRIBUTES = new Set(['src', 'srcset', 'sizes', 'data-media-load-state', 'data-media-open-source-url', 'data-media-preview-url', 'data-media-download-url', 'data-media-source-type', 'data-media-source-value']);
 
 const resolveSectionType = (section: HTMLElement): DetailsSectionType | null => {
     if (section.classList.contains('inline-tool-args')) return 'args';

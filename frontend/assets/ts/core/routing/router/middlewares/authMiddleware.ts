@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { navigationResult, type NavigationResultType } from '@core/navigationMiddleware.ts';
+import { isAiSetupResumeRequest } from '@core/routing/router/aiSetupRoutes.ts';
 import { AUTH_ROUTE_LOGIN, AUTH_ROUTE_WIZARD, resolveAuthenticatedRouteTarget } from '@core/routing/router/authRouteTarget.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import type { AuthService, StorageService } from '@core/routing/router/routerDependencies.ts';
@@ -17,6 +18,9 @@ const createAuthEnforcementNavigationMiddleware = (auth: AuthService, storage: S
                 throw new Error('Storage service must expose wizard completion state');
             }
             if (storage.isWizardCompletionPending()) {
+                return next();
+            }
+            if (isAiSetupResumeRequest(context.parameters) && auth.isAdmin() && storage.isAiSetupResumable()) {
                 return next();
             }
         }

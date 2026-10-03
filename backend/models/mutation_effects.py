@@ -100,19 +100,14 @@ class ModelMutationEffects:
         reload_needed: bool,
         reload_reason: str,
     ) -> None:
-        if not await self._deps.database_models.update_model_parameters(universal_id, new_custom):
+        if not await self._deps.database_models.update_model_parameters(
+            universal_id, new_custom, increment_version=reload_needed
+        ):
             raise StateError(
                 f"Failed to save parameters for '{universal_id}' to database.",
                 operation="models.mutation_effects.commit_parameter_changes",
                 details={"universal_id": universal_id, "plugin_name": plugin_name},
             )
-        if reload_needed:
-            if await self._deps.database_models.increment_parameter_version(universal_id) < 0:
-                raise StateError(
-                    f"Failed to increment parameter version for '{universal_id}'.",
-                    operation="models.mutation_effects.commit_parameter_changes",
-                    details={"universal_id": universal_id, "plugin_name": plugin_name},
-                )
         await self._deps.parameter_cache.invalidate(universal_id)
         await self._deps.model_invalidate_list_caches()
         await self._deps.event_bus.publish(ModelParametersChangedEvent(universal_id=universal_id))

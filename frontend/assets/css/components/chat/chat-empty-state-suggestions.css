@@ -76,6 +76,15 @@
         margin: 0;
     }
 
+    :where(.chat-container) .chat-page-empty-state-setup-link {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        color: var(--accent-green);
+        font-size: var(--font-size-body-sm);
+        font-weight: 600;
+    }
+
     @container ui-viewport (height <= 500px) {
         :where(.chat-container) .chat-page-empty-state-subtitle {
             display: none;
@@ -90,10 +99,9 @@
     }
 
     :where(.chat-container) .chat-page-empty-state[data-state='loading'] .chat-page-loading-spinner {
+        --soai-spinner-stroke: var(--border-width-150);
         width: 16px;
         height: 16px;
-        border-width: var(--border-width-150);
-        border-top-width: var(--border-width-150);
     }
 
     :where(.chat-container) .chat-page-empty-state.has-input .chat-page-input-hint {

@@ -41,14 +41,14 @@ async def _finalize_openai_ws_result(
     if registry is None or task_id is None:
         return
     await finalize(
-        registry,
-        task_id,
-        status,
+        registry=registry,
+        task_id=task_id,
+        status=status,
+        status_message="Completed" if status is TaskStatus.COMPLETED else None,
         result=result,
         error_code=error_code,
         error_type=error_type,
         error_message=error_message,
-        status_message="Completed" if status is TaskStatus.COMPLETED else None,
     )
 
 
@@ -99,18 +99,31 @@ async def collect_openai_ws_result(
     async def handle_error(event: Event) -> JSONValue:
         if not isinstance(event, ErrorEvent):
             raise ValidationError("Expected ErrorEvent.")
-        message = event.message or "Request failed."
+        public_error = event.public_error
+        message = (
+            public_error.message if public_error is not None else event.message or "Request failed."
+        )
         error_type = event.error_type
-        status_code = error_type_to_status_code(error_type)
+        status_code = (
+            public_error.http_status
+            if public_error is not None and public_error.http_status is not None
+            else error_type_to_status_code(error_type)
+        )
+        code = public_error.code if public_error is not None else error_type.value
         await _finalize_openai_ws_result(
             registry=registry,
             task_id=task_id,
             status=TaskStatus.FAILED,
             error_code=status_code,
-            error_type=error_type.value,
+            error_type=str(code),
             error_message=message,
         )
-        raise ApiError(message, code=error_type.value, http_status=status_code)
+        error = ApiError(message, code=code, http_status=status_code)
+        if public_error is not None:
+            error.public_message = public_error.message
+            error.public_details = public_error.details
+            error.trace_id = public_error.trace_id
+        raise error
 
     async def handle_complete(event: Event) -> JSONValue:
         if not isinstance(event, TaskCompleteEvent):

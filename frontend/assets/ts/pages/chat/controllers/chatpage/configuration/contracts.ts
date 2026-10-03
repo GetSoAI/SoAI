@@ -6,6 +6,7 @@ import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 import type { PageServicesOwnerHost } from '@core/routing/pages/basepagecore/PageServices.ts';
 import type { PageLifecycle } from '@core/routing/pages/basepage/PageLifecycle.ts';
+import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { PageLayoutOwnerHost } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { ChatPageApi } from '@features/chat/public.ts';
 import type { ChatComposerHost } from '@pages/chat/controllers/chatpage/composer/ChatComposerController.ts';
@@ -20,7 +21,7 @@ import type { ChatMemoryTabHost } from '@pages/chat/widgets/memorytab/service.ts
 
 interface ChatConfigurationDomainPort extends ChatComposerSurfaceRuntimeOwner, ChatConfigurationRuntimeOwner, ChatConversationViewHost, ChatComposerHost, ChatModelSessionHost, ChatPagePresentationHost {}
 
-interface ChatConfigurationPlatformPort extends PageLayoutOwnerHost, PageServicesOwnerHost, PageDomOwnerHost, PageFeedbackOwnerHost {}
+interface ChatConfigurationPlatformPort extends PageLayoutOwnerHost, PageServicesOwnerHost, PageDomOwnerHost, PageFeedbackOwnerHost, PageResourcesOwnerHost {}
 
 interface ChatConfigurationDependencies extends ChatConfigurationDomainPort, ChatConfigurationPlatformPort, ChatUiTaskScopeHost {
     pageLifecycle: Pick<PageLifecycle, 'run'>;

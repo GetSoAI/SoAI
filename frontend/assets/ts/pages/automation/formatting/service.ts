@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
-import { formatLocalizedDateParts } from '@core/localization/public.ts';
+import { formatLocalizedDateParts, getDateTimeFormat } from '@core/localization/public.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { pad2, toIsoDate } from '@core/time/localCalendar.ts';
+import { parseLocalDateTimeToUtcDate } from '@core/time/localDateTime.ts';
 import type { AutomationWindow } from '@pages/automation/controllers/automationWindow.ts';
 import type { AutomationCalendarRangeTitleFormat, AutomationCalendarSettings, AutomationCalendarTimeFormat } from '@pages/automation/types.ts';
 
@@ -36,7 +37,7 @@ const resolveIsoDateForTimeZone = (date: Date, timeZone: string | undefined): st
     if (!timeZone) {
         return toIsoDate(date);
     }
-    const parts = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone }).formatToParts(date);
+    const parts = getDateTimeFormat('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone }).formatToParts(date);
     const year = parts.find((part) => part.type === 'year')?.value ?? '';
     const month = parts.find((part) => part.type === 'month')?.value ?? '';
     const day = parts.find((part) => part.type === 'day')?.value ?? '';
@@ -163,11 +164,21 @@ const formatRangeTitle = (window: AutomationWindow, settings: AutomationCalendar
     return `${weekday} · ${base}`;
 };
 
-const formatAutomationRunWhen = (utcMs: number, settings: AutomationCalendarSettings): string => {
+const formatAutomationFullDate = (date: Date): string => i18n.formatDate(date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+const formatAutomationRunWhen = (utcMs: number, settings: AutomationCalendarSettings, timeZone?: string): string => {
     const date = new Date(utcMs);
-    const dateLabel = formatAutomationDate(date, settings.rangeTitleFormat, { includeYear: true, weekday: 'short', timeZone: undefined });
-    const timeLabel = formatAutomationTime(date, settings.timeFormat, { timeZone: undefined });
+    const dateLabel = formatAutomationDate(date, settings.rangeTitleFormat, { includeYear: true, weekday: 'short', timeZone });
+    const timeLabel = formatAutomationTime(date, settings.timeFormat, { timeZone });
     return `${dateLabel} • ${timeLabel}`;
+};
+
+const formatAutomationStartLocal = (startLocal: string, settings: AutomationCalendarSettings): string => {
+    const naiveDate = parseLocalDateTimeToUtcDate(startLocal);
+    if (!naiveDate) {
+        throw new Error('Automation start_local must be a valid local date and time');
+    }
+    return formatAutomationRunWhen(naiveDate.getTime(), settings, 'UTC');
 };
 
 const formatAutomationWeekdayLabel = (date: Date, settings: AutomationCalendarSettings, weekday: WeekdayFormat, options: { timeZone?: string | undefined } = {}): string => {
@@ -215,5 +226,5 @@ const resolveNowLineTopPx = (hourHeightPx: number, now: Date): number => {
     return (minutes / 60) * hourHeightPx;
 };
 
-export { buildHourLabels, formatAutomationDate, formatAutomationRunWhen, formatAutomationTime, formatAutomationWeekdayLabel, formatDay2, formatRangeTitle, resolveIsoDateForTimeZone, resolveNowLineTopPx };
+export { buildHourLabels, formatAutomationDate, formatAutomationFullDate, formatAutomationRunWhen, formatAutomationStartLocal, formatAutomationTime, formatAutomationWeekdayLabel, formatDay2, formatRangeTitle, resolveIsoDateForTimeZone, resolveNowLineTopPx };
 export type { AutomationHourLabel, WeekdayFormat };

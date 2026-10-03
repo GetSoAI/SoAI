@@ -5,26 +5,20 @@ import type { TrustedHtml } from '@core/security/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { getIcon } from '@core/ui/icons/iconservice/public.ts';
 
-type ModelDetailIconKey = 'PARAMETERS' | 'BACK' | 'FILTER' | 'CLOSE' | 'SEARCH' | 'MODIFIED' | 'RESET' | 'SAVE' | 'TEST' | 'ADD' | 'ALIAS' | 'INFERENCE' | 'DELETE' | 'BACKEND_DOCUMENTATION';
+type ModelDetailIconKey = 'PARAMETERS' | 'CLOSE' | 'RESET' | 'SAVE' | 'TEST' | 'ADD' | 'BACKEND_DOCUMENTATION' | 'REVERT';
 
 const MODEL_DETAIL_ICON_DEFINITIONS: Record<ModelDetailIconKey, { name: IconName; size: number }> = {
     PARAMETERS: { name: 'parameters', size: 16 },
-    BACK: { name: 'arrow-left', size: 16 },
-    FILTER: { name: 'filter', size: 14 },
     CLOSE: { name: 'close', size: 14 },
-    SEARCH: { name: 'search', size: 16 },
-    MODIFIED: { name: 'modified', size: 14 },
     RESET: { name: 'close', size: 14 },
     SAVE: { name: 'save', size: 14 },
     TEST: { name: 'model-test', size: 14 },
     ADD: { name: 'add', size: 16 },
-    ALIAS: { name: 'edit', size: 24 },
-    INFERENCE: { name: 'send', size: 24 },
-    DELETE: { name: 'close', size: 24 },
-    BACKEND_DOCUMENTATION: { name: 'book-open', size: 14 }
+    BACKEND_DOCUMENTATION: { name: 'book-open', size: 14 },
+    REVERT: { name: 'undo', size: 14 }
 };
 
-const MODEL_DETAIL_ICON_KEYS: ModelDetailIconKey[] = ['PARAMETERS', 'BACK', 'FILTER', 'CLOSE', 'SEARCH', 'MODIFIED', 'RESET', 'SAVE', 'TEST', 'ADD', 'ALIAS', 'INFERENCE', 'DELETE', 'BACKEND_DOCUMENTATION'];
+const MODEL_DETAIL_ICON_KEYS: ModelDetailIconKey[] = ['PARAMETERS', 'CLOSE', 'RESET', 'SAVE', 'TEST', 'ADD', 'BACKEND_DOCUMENTATION', 'REVERT'];
 
 const loadModelDetailIcons = async (): Promise<Record<string, TrustedHtml>> => {
     const markup: Record<string, TrustedHtml> = {};

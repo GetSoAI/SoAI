@@ -36,11 +36,11 @@
     }
 
     .searchbar-container--control :is(.searchbar-icon, .searchbar-clear) {
-        right: 0.75rem;
+        inset-inline-end: 0.75rem;
     }
 
     .searchbar-container--collection :is(.searchbar-icon, .searchbar-clear) {
-        right: 0.75rem;
+        inset-inline-end: 0.75rem;
     }
 
     @container ui-viewport (width <= 768px) {

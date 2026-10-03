@@ -81,7 +81,7 @@
         font-weight: 600;
         letter-spacing: var(--tracking-05px);
         margin-bottom: var(--space-2);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     :where([data-section='login'], [data-page-scope='login']) .login-button {
@@ -131,7 +131,6 @@
         position: absolute;
         inset: 0;
         z-index: var(--z-base);
-        background: linear-gradient(135deg, var(--auth-page-bg-start) 0%, var(--auth-page-bg-end) 100%);
     }
 
     :where([data-section='login'], [data-page-scope='login']) .login-background-pattern {

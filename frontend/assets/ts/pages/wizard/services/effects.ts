@@ -7,6 +7,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { isString } from '@core/typeGuards.ts';
 import { beginLoadingButton, clearLoadingButtonIfNeeded } from '@core/ui/loadingbuttons/service.ts';
 import { isCanonicalUsernameInput, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from '@core/users/username.ts';
+import { syncWizardSteps } from '@pages/wizard/contracts/constants.ts';
 import { readWizardAccountFields, type WizardAccountFields } from '@pages/wizard/guards/validation.ts';
 import type { WizardPageServiceHost } from '@pages/wizard/services/contracts.ts';
 import type { WizardAccountUi } from '@pages/wizard/types.ts';
@@ -109,6 +110,7 @@ const handleWizardAccountSubmission = async (host: WizardPageServiceHost, accoun
             host.view.state.adminUser = result.user;
             host.view.state.completedSummary = result.completion;
             host.view.state.isSessionActivationRequired = result.status === 'sessionActivationFailed';
+            syncWizardSteps(host.view.state);
             host.data.markWizardHasUsers();
             const notification = result.status === 'authenticated' ? i18n.t('wizard.notifications.accountCreated') : i18n.t('wizard.notifications.accountCreatedSignInRequired');
             host.completion.notify(notification, result.status === 'authenticated' ? 'success' : 'warning');

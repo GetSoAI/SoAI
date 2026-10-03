@@ -92,7 +92,7 @@ def commit_staged_update(
         )
         write_marker(paths.transaction_path, ROLLBACK_REQUIRED_MARKER)
         if staged_directories:
-            inventory = require_rollback_inventory(paths, old_complete=True)
+            inventory = require_rollback_inventory(paths, old_complete=True, verify_content=False)
             if inventory is None:
                 raise StateError("Configured directory replacement requires a rollback inventory.")
             install_persisted_update_directories(
@@ -128,6 +128,7 @@ def _finalize_successful_transaction(
     *,
     paths: UpdateTransactionPaths,
     logger: LoggerProtocol,
+    cleanup_after_commit: bool,
 ) -> bool:
     committed = False
     try:
@@ -138,19 +139,21 @@ def _finalize_successful_transaction(
             raise StateError("A restored update cannot be committed as an activated candidate.")
         if os.path.exists(marker_path(paths.transaction_path, SUCCESS_COMPLETE_MARKER)):
             persist_committed_activation_result(paths)
-            cleanup_update_transaction(paths, logger)
+            if cleanup_after_commit:
+                cleanup_update_transaction(paths, logger)
             return True
         if not all(
             os.path.exists(marker_path(paths.transaction_path, marker))
             for marker in (OLD_COMPLETE_MARKER, NEW_COMPLETE_MARKER, ROLLBACK_REQUIRED_MARKER)
         ):
             raise StateError("Update replacement is incomplete; commit evidence was preserved.")
-        require_rollback_inventory(paths, old_complete=True)
+        require_rollback_inventory(paths, old_complete=True, verify_content=False)
         write_marker(paths.transaction_path, SUCCESS_COMPLETE_MARKER)
         committed = True
         persist_committed_activation_result(paths)
         remove_marker(paths.transaction_path, ROLLBACK_REQUIRED_MARKER)
-        cleanup_update_transaction(paths, logger)
+        if cleanup_after_commit:
+            cleanup_update_transaction(paths, logger)
         return True
     except TRANSACTION_CLEANUP_EXCEPTIONS as exception:
         if committed:
@@ -178,6 +181,7 @@ def finalize_update_transaction(
     transaction: AppliedUpdateTransaction,
     update_success: bool,
     logger: LoggerProtocol,
+    cleanup_after_commit: bool = True,
 ) -> bool:
     paths = paths_from_transaction_directory(
         transaction.base_path,
@@ -187,7 +191,9 @@ def finalize_update_transaction(
     if not os.path.isdir(paths.transaction_path):
         return True
     if update_success:
-        return _finalize_successful_transaction(paths=paths, logger=logger)
+        return _finalize_successful_transaction(
+            paths=paths, logger=logger, cleanup_after_commit=cleanup_after_commit
+        )
     return restore_transaction(
         paths=paths,
         top_level_ignore_patterns=top_level_ignore_patterns,

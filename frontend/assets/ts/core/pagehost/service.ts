@@ -172,9 +172,16 @@ class PageHost {
         return prepared.instance;
     }
 
-    async destroyCurrent({ force = false, reason = 'teardown' }: DestroyOptions = {}): Promise<void> {
-        this.cancelPrepared(reason);
+    async destroyCurrent({ expectedInstance, force = false, reason = 'teardown' }: DestroyOptions = {}): Promise<void> {
         const current = this.#current;
+        if (expectedInstance) {
+            if (current?.instance !== expectedInstance) return;
+            this.#current = null;
+            this.#cancelledCurrent = null;
+            await this.#teardownPage(current, { swallowErrors: force, reason });
+            return;
+        }
+        this.cancelPrepared(reason);
         this.#activeToken = null;
         this.#current = null;
         this.#cancelledCurrent = null;

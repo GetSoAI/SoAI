@@ -2,19 +2,22 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
+import { reconcileRepeatedElementChildrenFromTrustedHtml } from '@core/dom/childNodeReconciliation.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { isSameDay } from '@core/time/localCalendar.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import { renderIconSlot } from '@core/ui/icons/view.ts';
-import { formatRangeTitle } from '@pages/automation/formatting/service.ts';
+import { setStatusSurface } from '@core/ui/statusSurface.ts';
+import { formatAutomationRunWhen, formatRangeTitle } from '@pages/automation/formatting/service.ts';
 import { renderAutomationCalendar, type AutomationCalendarRenderCache } from '@pages/automation/controllers/automationCalendarPresentation.ts';
+import type { AutomationPageDataStatus } from '@pages/automation/controllers/AutomationPageDataController.ts';
 import { resolveAutomationWindow, type AutomationWindow } from '@pages/automation/controllers/automationWindow.ts';
 import { queryAutomationViewToggleButtons, requireAutomationViewCycleButton } from '@pages/automation/dom.ts';
 import { renderAutomationsListView } from '@pages/automation/rendering/automationsListView.ts';
 import { renderWindowRunsListView } from '@pages/automation/rendering/windowRunsListView.ts';
-import type { AutomationDefinition, AutomationZone } from '@features/automation/public.ts';
+import type { AutomationDefinitionResponse, AutomationOccurrenceResponse } from '@features/automation/public.ts';
 import type { AutomationPageState, AutomationUiRefs } from '@pages/automation/types.ts';
 
 interface RenderHost {
@@ -24,17 +27,6 @@ interface RenderHost {
     hourHeightPx: number;
     getIconSync: (icon: IconName, options?: IconOptions) => TrustedHtml;
 }
-
-const registryMarkupCache = new WeakMap<HTMLElement, string>();
-
-const replaceCachedMarkup = (host: RenderHost, element: HTMLElement, markup: string): void => {
-    if (registryMarkupCache.get(element) === markup) {
-        return;
-    }
-    const trustedMarkup = toTrustedUiHtml(markup);
-    host.replaceElementContent(element, trustedMarkup);
-    registryMarkupCache.set(element, markup);
-};
 
 const applyAccentVariant = (button: HTMLButtonElement, isAccent: boolean): void => {
     button.classList.toggle('ui-variant-accent', isAccent);
@@ -99,6 +91,14 @@ const renderRegistryOverlayToggle = (state: AutomationPageState, host: RenderHos
     setTooltipText(ui.registryOverlayToggle, label);
 };
 
+const renderDataRecovery = (state: AutomationPageState, ui: AutomationUiRefs, status: AutomationPageDataStatus): void => {
+    ui.calendarRoot.dataset['stale'] = String(status.stale);
+    ui.calendarRoot.dataset['lastSyncedAtMs'] = status.lastSyncedAtMs === null ? '' : String(status.lastSyncedAtMs);
+    ui.dataRecovery.classList.toggle('u-hidden', !status.recoveryRequired);
+    const message = status.lastSyncedAtMs === null ? i18n.t('common.errors.operationFailed') : i18n.t('automation.toolbar.staleDataSince', { time: formatAutomationRunWhen(status.lastSyncedAtMs, state.calendarSettings) });
+    setStatusSurface({ surface: ui.dataRecoveryMessage, message: status.recoveryRequired ? message : null, tone: 'warning' });
+};
+
 const renderTodayButtonState = (state: AutomationPageState, ui: AutomationUiRefs, now: Date): void => {
     const isToday = isSameDay(new Date(state.selectedDateUtcMs), now);
     applyAccentVariant(ui.todayButton, isToday);
@@ -110,13 +110,14 @@ const renderAutomationPage = (
     options: {
         monthMaxChipsPerDay: number;
         calendarCache: AutomationCalendarRenderCache;
-        registryAutomations: readonly AutomationDefinition[];
+        registryAutomations: readonly AutomationDefinitionResponse[];
         selectedAutomationId: string | null;
         runningAutomationIds: ReadonlySet<string>;
         registryLimit: number;
         registryOffset: number;
         registryHasMore: boolean;
-        visibleWindowRuns: readonly AutomationZone[];
+        visibleWindowRuns: readonly AutomationOccurrenceResponse[];
+        dataStatus: AutomationPageDataStatus;
         preferencesCorrupt?: boolean | undefined;
         totalWindowRunsCount?: number | undefined;
         windowRunsSelectionActive?: boolean | undefined;
@@ -133,6 +134,7 @@ const renderAutomationPage = (
 
     renderViewToggle(host.ui.viewToggle, state.viewMode);
     renderRegistryOverlayToggle(state, host);
+    renderDataRecovery(state, host.ui, options.dataStatus);
     const window = resolveAutomationWindow(state);
     const now = new Date();
     renderTodayButtonState(state, host.ui, now);
@@ -143,33 +145,35 @@ const renderAutomationPage = (
     setTooltipText(host.ui.rangeTitle, host.ui.rangeTitle.textContent || '');
     host.ui.rangeTitle.classList.toggle('is-current-range', isCurrentRange(window, now));
     const renderedWindowSignature = renderAutomationCalendar(state, host, options.calendarCache, options.monthMaxChipsPerDay);
-    replaceCachedMarkup(
-        host,
-        host.ui.automationsRoot,
-        renderAutomationsListView({
-            automations: options.registryAutomations,
-            selectedAutomationId: options.selectedAutomationId,
-            runningAutomationIds: options.runningAutomationIds,
-            calendarSettings: state.calendarSettings,
-            registryLimit: options.registryLimit,
-            registryOffset: options.registryOffset,
-            registryHasMore: options.registryHasMore,
-            getIconSync: host.getIconSync
-        })
-    );
-    replaceCachedMarkup(
-        host,
-        host.ui.windowRunsRoot,
-        renderWindowRunsListView({
-            zones: options.visibleWindowRuns,
-            totalCount: options.totalWindowRunsCount ?? state.zones.length,
-            selectedZoneKey: state.selectedZoneKey,
-            calendarSettings: state.calendarSettings,
-            selectionActive: options.windowRunsSelectionActive === true,
-            selectedKeys: options.windowRunsSelectedKeys ?? new Set<string>(),
-            getIconSync: host.getIconSync
-        })
-    );
+    reconcileRepeatedElementChildrenFromTrustedHtml({
+        target: host.ui.automationsRoot,
+        html: toTrustedUiHtml(
+            renderAutomationsListView({
+                automations: options.registryAutomations,
+                selectedAutomationId: options.selectedAutomationId,
+                runningAutomationIds: options.runningAutomationIds,
+                calendarSettings: state.calendarSettings,
+                registryLimit: options.registryLimit,
+                registryOffset: options.registryOffset,
+                registryHasMore: options.registryHasMore,
+                getIconSync: host.getIconSync
+            })
+        )
+    });
+    reconcileRepeatedElementChildrenFromTrustedHtml({
+        target: host.ui.windowRunsRoot,
+        html: toTrustedUiHtml(
+            renderWindowRunsListView({
+                zones: options.visibleWindowRuns,
+                totalCount: options.totalWindowRunsCount ?? state.zones.length,
+                selectedZoneKey: state.selectedZoneKey,
+                calendarSettings: state.calendarSettings,
+                selectionActive: options.windowRunsSelectionActive === true,
+                selectedKeys: options.windowRunsSelectedKeys ?? new Set<string>(),
+                getIconSync: host.getIconSync
+            })
+        )
+    });
     host.flushDOMUpdates();
     host.ui.registryScroll.scrollTop = registryScrollTop;
     return renderedWindowSignature;

@@ -7,7 +7,7 @@ import type { GpuOperationResponse } from '@core/api/contracts/hardwareContracts
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
-import type { SoAIBenchHistoryOpenRequest, SoAIBenchRunOpenRequest } from '@features/hardware/public.ts';
+import type { SoAIBenchActivityProjection, SoAIBenchHistoryOpenRequest, SoAIBenchRunOpenRequest } from '@features/hardware/public.ts';
 import type { GpuSoAIBenchRunLookupPayload, GpuSoAIBenchStartPayload } from '@pages/hardware/controllers/gpucontrol/soaibench/types.ts';
 
 export type GpuControlType = 'power' | 'core' | 'memory' | 'fan';
@@ -122,7 +122,7 @@ export interface GpuControlManagerDependencies {
     showNotification: (message: string, type: string) => void;
     showSoAIBenchHistory: (request: SoAIBenchHistoryOpenRequest) => Promise<void>;
     showSoAIBenchRun: (request: SoAIBenchRunOpenRequest) => Promise<void>;
-    handleSoAIBenchRunsUpdate: (value: JsonValue | null) => void;
+    soaibenchActivity: SoAIBenchActivityProjection;
     resolveStreamManager: () => Promise<StreamRefresher>;
     getIconSync: (iconName: IconName, options?: IconOptions) => TrustedHtml;
 }

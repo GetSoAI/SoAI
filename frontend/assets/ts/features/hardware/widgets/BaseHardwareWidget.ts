@@ -49,6 +49,10 @@ class BaseHardwareWidget<TData = JsonObject> {
         this.#units = defaults.units;
     }
 
+    get container(): HTMLElement {
+        return this.#container;
+    }
+
     get config(): WidgetConfig<TData> {
         return this.#config;
     }

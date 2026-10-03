@@ -6,6 +6,7 @@ import type { ChatUiStorage } from '@core/chat/protocols.ts';
 import type { ChatPageApi } from '@features/chat/pagecontracts/types.ts';
 import type { ChatStreamMessageSavedReconciliation } from '@features/chat/chatstreamservice/messageSavedReconciliation.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
+import type { ChatNavigationMemory } from '@features/chat/storage/chatNavigationMemory.ts';
 import type { ChatParameters, Conversation } from '@features/chat/storage/storageModels.ts';
 
 interface ChatStorageConversationManager {
@@ -36,8 +37,11 @@ interface ChatStorageManagerState {
     setShowFavoritesAtTop(show: boolean): void;
 }
 
+type ChatStorageNavigationMemory = Pick<ChatNavigationMemory, 'readLastConversationId' | 'rememberLastConversationId'>;
+
 interface ChatStorageManagerDependencies {
     storage: ChatUiStorage;
+    navigationMemory: ChatStorageNavigationMemory;
     api: ChatPageApi;
     state: ChatStorageManagerState;
     conversationManager: ChatStorageConversationManager;
@@ -69,4 +73,4 @@ interface SaveAndSyncOptions {
     messageSyncMode?: 'replace' | 'append_tail';
 }
 
-export type { ChatStorageChatStreamService, ChatStorageConversationManager, ChatStorageManagerDependencies, ChatStorageManagerOptions, ChatStorageManagerState, ErrorHandler, SaveAndSyncOptions };
+export type { ChatStorageChatStreamService, ChatStorageConversationManager, ChatStorageManagerDependencies, ChatStorageNavigationMemory, ChatStorageManagerOptions, ChatStorageManagerState, ErrorHandler, SaveAndSyncOptions };

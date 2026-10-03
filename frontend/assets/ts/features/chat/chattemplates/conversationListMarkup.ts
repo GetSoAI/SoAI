@@ -48,7 +48,7 @@ const buildConversationListMarkup = ({ items, deleteIconHtml, deleteTitle, renam
             const itemDeleteTitle = attr(itemDeleteTitleValue);
             const itemTitleLabel = attr(item.titleLabel);
 
-            const titleMarkup = item.isRenaming ? item.titleEditorHtml : `<div class="conversation-item-title">${item.titleHtml}</div>`;
+            const titleMarkup = item.isRenaming ? item.titleEditorHtml : `<div dir="auto" class="conversation-item-title">${item.titleHtml}</div>`;
             const informationContent = `${titleMarkup}<div class="conversation-meta"><span class="conversation-date">${item.dateLabel}</span><span class="conversation-messages">${item.messageLabel}</span>${automationIndicator}${messagingIndicator}${favoriteIndicator}</div>`;
             const informationMarkup = item.isRenaming ? `<div class="conversation-info">${informationContent}</div>` : `<button type="button" class="conversation-info" data-action="chat:switch-conversation" aria-label="${itemTitleLabel}" data-tooltip="${itemTitleLabel}">${informationContent}</button>`;
 
@@ -56,7 +56,7 @@ const buildConversationListMarkup = ({ items, deleteIconHtml, deleteTitle, renam
             const defaultActionsMarkup = `${deleteButtonMarkup}<button type="button" class="conversation-action-btn color-picker-trigger message-action ui-icon-button ui-icon-button-small${favoritePickerClass}" data-action="chat:open-conversation-color-picker" aria-label="${itemColorTitle}" data-tooltip="${itemColorTitle}">${renderIconSlot(colorPickerIconHtml)}</button>`;
 
             const actionsMarkup = item.isRenaming ? `<button type="button" class="conversation-action-btn rename-cancel-conversation message-action ui-icon-button ui-icon-button-small ui-variant-neutral" data-action="chat:conversation-list-title-cancel" aria-label="${renameCancelLabel}" data-tooltip="${renameCancelLabel}">${renderIconSlot(renameCancelIconHtml)}</button><button type="button" class="conversation-action-btn rename-save-conversation message-action ui-icon-button ui-icon-button-small ui-variant-accent" data-action="chat:conversation-list-title-save" aria-label="${renameSaveLabel}" data-tooltip="${renameSaveLabel}">${renderIconSlot(renameSaveIconHtml)}</button>` : defaultActionsMarkup;
-            return `<div class="conversation-item${activeClass}${selectedClass}${renamingClass}" data-id="${safeId}"${colorAttr}${favoriteAttr}${executionAttr}${attentionAttr}${terminalIndicatorAttr}${automationAttr}${messagingAttr}>${informationMarkup}<div class="conversation-item-actions">${actionsMarkup}</div></div>`;
+            return `<div class="conversation-item${activeClass}${selectedClass}${renamingClass}" data-presence-suspended data-id="${safeId}"${colorAttr}${favoriteAttr}${executionAttr}${attentionAttr}${terminalIndicatorAttr}${automationAttr}${messagingAttr}>${informationMarkup}<div class="conversation-item-actions">${actionsMarkup}</div></div>`;
         })
         .join('');
     return toTrustedUiHtml(markup);

@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.error_types import ErrorType
+from core.errors.payload import ErrorPublicPayload
 from core.events.protocols import EventBusProtocol
 from core.metrics.protocols import MetricsManagerProtocol
 from core.models.protocols_database import DatabaseModelsProtocol
@@ -120,6 +121,7 @@ class OutcomeManager:
         allow_failover: bool = True,
         error_type: ErrorType = ErrorType.SERVER_ERROR,
         reason_is_public: bool = False,
+        public_error: ErrorPublicPayload | None = None,
     ) -> None:
         cached_task = await self._task_registry.get(task.task_id)
         task = cached_task if cached_task is not None else task
@@ -135,6 +137,7 @@ class OutcomeManager:
                 return
             if not requeue_result.blocked_by_delivery:
                 reason = TASK_STATE_PERSISTENCE_FAILED_MESSAGE
+                public_error = None
         await execute_terminal_failure_outcome(
             queue=self._queue,
             delivery=self._delivery,
@@ -147,6 +150,7 @@ class OutcomeManager:
             status=TaskStatus.FAILED,
             error_type=error_type,
             reason_is_public=reason_is_public,
+            public_error=public_error,
         )
 
     async def fail_waiters(
@@ -156,12 +160,14 @@ class OutcomeManager:
         *,
         allow_failover: bool = True,
         error_type: ErrorType = ErrorType.SERVER_ERROR,
+        public_error: ErrorPublicPayload | None = None,
     ) -> None:
         await fail_waiters_for_routing_key(
             routing_key=routing_key,
             reason=reason,
             allow_failover=allow_failover,
             error_type=error_type,
+            public_error=public_error,
             unregister_pending_queue=self._queue.tracking.unregister_pending_queue,
             fail_task=self.fail_task,
         )

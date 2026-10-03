@@ -21,6 +21,7 @@ from app.cli.restart_request import (
 from app.composition.builder import ApplicationAssemblyBuilder
 from app.dependencies import build_application_module_dependencies
 from app.edition_composition import EditionComposition
+from app.lifecycle.budgets import arm_lifecycle_shutdown_deadline
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
@@ -55,83 +56,107 @@ async def run_application(
         stop_event,
         logger=dependencies.lifecycle_logger,
         restart_signal_event=restart_signal_event,
+        windows_console_control=dependencies.windows_console_control,
     )
-    controller_cls = _load_controller_class()
-    environment = ApplicationEnvironment(
-        base_dir=dependencies.base_dir,
-        config_path=dependencies.config_path,
-        main_venv_dir=dependencies.venv_path,
-        version=dependencies.version,
-    )
-    module_dependencies = build_application_module_dependencies()
-    assembly_builder = ApplicationAssemblyBuilder(
-        ApplicationAssemblyBuilderDependencies(
-            environment=environment,
-            stop_event=stop_event,
-            gui_status=emit_gui_status,
-            bootstrap_logger=dependencies.bootstrap_logger,
-            lifecycle_logger=dependencies.lifecycle_logger,
-            startup_timings=startup_timings,
-            module_dependencies=module_dependencies,
-            edition_composition=edition_composition,
-        ),
-    )
-    assembly_started_ms = monotonic_ms()
-    assembly = await assembly_builder.build()
-    startup_timings.record_since_ms("assembly.total_ms", assembly_started_ms)
-    application_controller = controller_cls(assembly, startup_timings=startup_timings)
-    application_context = application_controller.context
-    application_context.runtime.set_pid_lock(dependencies.pid_lock)
-    exit_code = 0
-    lifecycle_request_task: asyncio.Task[Literal["restart", "stop"] | None] | None = None
     try:
-        if is_windows():
-            lifecycle_request_task = start_lifecycle_request_watch(
-                base_dir=dependencies.base_dir,
+        controller_cls = _load_controller_class()
+        environment = ApplicationEnvironment(
+            base_dir=dependencies.base_dir,
+            config_path=dependencies.config_path,
+            main_venv_dir=dependencies.venv_path,
+            version=dependencies.version,
+        )
+        module_dependencies = build_application_module_dependencies()
+        assembly_builder = ApplicationAssemblyBuilder(
+            ApplicationAssemblyBuilderDependencies(
+                environment=environment,
                 stop_event=stop_event,
-                logger=dependencies.lifecycle_logger,
-            )
-        await application_controller.start()
-        if lifecycle_request_task is not None:
-            requested_action = await resolve_lifecycle_request_watch(
-                lifecycle_request_task,
-                stop_event=stop_event,
-            )
-            if requested_action == "restart":
-                application_context.runtime.set_restart_required()
-        else:
-            await stop_event.wait()
-    except asyncio.CancelledError:
-        dependencies.lifecycle_logger.info("Main application task cancelled.")
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_exception(
-            dependencies.lifecycle_logger,
-            exception,
-            message="Unhandled exception in main application loop.",
-            operation=OPERATION_MAIN_APPLICATION_LOOP,
-            level="critical",
+                gui_status=emit_gui_status,
+                bootstrap_logger=dependencies.bootstrap_logger,
+                lifecycle_logger=dependencies.lifecycle_logger,
+                startup_timings=startup_timings,
+                module_dependencies=module_dependencies,
+                edition_composition=edition_composition,
+                process_exit_deadline=dependencies.process_exit_deadline,
+            ),
         )
-        application_context.runtime.set_critical_shutdown(
-            "Unhandled exception in main application loop.",
-            1,
+        assembly_started_ms = monotonic_ms()
+        assembly = await assembly_builder.build()
+        startup_timings.record_since_ms("assembly.total_ms", assembly_started_ms)
+        application_controller = controller_cls(
+            assembly,
+            startup_timings=startup_timings,
+            process_exit_deadline=dependencies.process_exit_deadline,
         )
-        exit_code = 1
-    except UNEXPECTED_RUNTIME_EXCEPTIONS as exception:
-        coerced = coerce_to_soai_error(exception, operation="main.application_loop")
-        log_exception(
-            dependencies.lifecycle_logger,
-            coerced,
-            message="Unexpected exception in main application loop.",
-            operation=OPERATION_MAIN_APPLICATION_LOOP,
-            level="critical",
-        )
-        application_context.runtime.set_critical_shutdown(
-            "Unexpected exception in main application loop.",
-            1,
-        )
-        exit_code = 1
-    finally:
+        application_context = application_controller.context
+        application_context.runtime.set_pid_lock(dependencies.pid_lock)
+        exit_code = 0
+        lifecycle_request_task: asyncio.Task[Literal["restart", "stop"] | None] | None = None
         try:
+            if is_windows():
+                lifecycle_request_task = start_lifecycle_request_watch(
+                    base_dir=dependencies.base_dir,
+                    stop_event=stop_event,
+                    logger=dependencies.lifecycle_logger,
+                    config=application_context.services.configuration.config,
+                    process_exit_deadline=dependencies.process_exit_deadline,
+                )
+            await application_controller.start()
+            if lifecycle_request_task is not None:
+                requested_action = await resolve_lifecycle_request_watch(
+                    lifecycle_request_task,
+                    stop_event=stop_event,
+                )
+                if requested_action == "restart":
+                    application_context.runtime.set_restart_required()
+            else:
+                await stop_event.wait()
+        except asyncio.CancelledError:
+            arm_lifecycle_shutdown_deadline(
+                application_context.services.configuration.config,
+                dependencies.process_exit_deadline,
+            )
+            dependencies.lifecycle_logger.info("Main application task cancelled.")
+        except RECOVERABLE_EXCEPTIONS as exception:
+            arm_lifecycle_shutdown_deadline(
+                application_context.services.configuration.config,
+                dependencies.process_exit_deadline,
+            )
+            log_exception(
+                dependencies.lifecycle_logger,
+                exception,
+                message="Unhandled exception in main application loop.",
+                operation=OPERATION_MAIN_APPLICATION_LOOP,
+                level="critical",
+            )
+            application_context.runtime.set_critical_shutdown(
+                "Unhandled exception in main application loop.",
+                1,
+            )
+            exit_code = 1
+        except UNEXPECTED_RUNTIME_EXCEPTIONS as exception:
+            arm_lifecycle_shutdown_deadline(
+                application_context.services.configuration.config,
+                dependencies.process_exit_deadline,
+            )
+            coerced = coerce_to_soai_error(exception, operation="main.application_loop")
+            log_exception(
+                dependencies.lifecycle_logger,
+                coerced,
+                message="Unexpected exception in main application loop.",
+                operation=OPERATION_MAIN_APPLICATION_LOOP,
+                level="critical",
+            )
+            application_context.runtime.set_critical_shutdown(
+                "Unexpected exception in main application loop.",
+                1,
+            )
+            exit_code = 1
+        finally:
+            arm_lifecycle_shutdown_deadline(
+                application_context.services.configuration.config,
+                dependencies.process_exit_deadline,
+            )
             await cancel_lifecycle_request_watch(
                 lifecycle_request_task,
                 logger=dependencies.lifecycle_logger,
@@ -144,8 +169,10 @@ async def run_application(
                 lifecycle_logger=dependencies.lifecycle_logger,
                 restart_cli_module=edition_composition.lifecycle.restart_cli_module,
                 exit_code=exit_code,
+                process_exit_deadline=dependencies.process_exit_deadline,
             )
-        finally:
-            if windows_console_service is not None:
-                windows_console_service.release_ctrl_handler()
-    return exit_code
+        return exit_code
+    finally:
+        dependencies.process_exit_deadline.begin_finalization()
+        if windows_console_service is not None:
+            windows_console_service.release_ctrl_handler()

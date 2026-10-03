@@ -52,6 +52,7 @@ class Task:
     error_code: int | None = None
     error_type: str | None = None
     error_message: str | None = None
+    public_error_message: str | None = None
     cancellation_requested_at_ms: int | None = None
     reply_queue: asyncio.Queue[Event] | None = field(
         default=None,
@@ -191,6 +192,7 @@ class Task:
             error_code=persisted.error_code,
             error_type=persisted.error_type,
             error_message=persisted.error_message,
+            public_error_message=persisted.public_error_message,
             cancellation_requested_at_ms=persisted.cancellation_requested_at_ms,
             orchestration_context=(
                 None
@@ -240,6 +242,7 @@ class Task:
             error_code=self.error_code,
             error_type=self.error_type,
             error_message=self.error_message,
+            public_error_message=self.public_error_message,
             cancellation_requested_at_ms=self.cancellation_requested_at_ms,
             reply_queue=None,
             _last_terminal_progress_percent=self._last_terminal_progress_percent,

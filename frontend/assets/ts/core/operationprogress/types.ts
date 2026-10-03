@@ -31,6 +31,7 @@ interface OperationProgressData {
     details?: string;
     state?: 'success' | 'error' | 'downloading' | 'pending' | 'info';
     cancelable?: boolean;
+    indeterminate?: boolean;
 }
 
 export type { OperationProgressCancelContext, OperationProgressData, OperationProgressOptions, OperationProgressReporter };

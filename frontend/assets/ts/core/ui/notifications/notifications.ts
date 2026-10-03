@@ -83,7 +83,7 @@ const showNotification = (message: string, type: NotificationType = 'info', dura
     const icon = NOTIFICATION_ICON_MAP[type];
     const closeLabel = i18n.t('common.close');
     const closeIcon = getIconFromStringSync('close', { size: 14, strokeWidth: 1.5 });
-    dom.setHTML(notification, uiHtml`<div class="ui-notification__content"><div class="ui-notification__icon">${getIconFromStringSync(icon, { size: 16 })}</div><span class="ui-notification__message">${normalizedMessage}</span></div><button type="button" class="ui-notification__close ui-round-button" data-tooltip="${uiAttr(closeLabel)}" aria-label="${uiAttr(closeLabel)}">${closeIcon}</button>`, { escape: false });
+    dom.setHTML(notification, uiHtml`<div class="ui-notification__content"><div class="ui-notification__icon">${getIconFromStringSync(icon, { size: 16 })}</div><span dir="auto" class="ui-notification__message">${normalizedMessage}</span></div><button type="button" class="ui-notification__close ui-round-button" data-tooltip="${uiAttr(closeLabel)}" aria-label="${uiAttr(closeLabel)}">${closeIcon}</button>`, { escape: false });
 
     const lifecycle = createNotificationLifecycleController({ notification });
     const handleCloseClick = (): void => lifecycle.dismissWithFade();
@@ -166,7 +166,7 @@ const showPersistentNotification = (options: NotificationOptions | string, type?
 
     const closeLabel = i18n.t('common.close');
     const closeIcon = getIconFromStringSync('close', { size: 14, strokeWidth: 1.5 });
-    dom.setHTML(notification, uiHtml`<div class="ui-notification__content"><div class="ui-notification__body"><div class="ui-notification__icon">${iconMarkup}</div><span class="ui-notification__message">${config.message}</span></div>${actionsMarkup}<div class="ui-notification__action-error u-hidden" role="alert" hidden></div></div><button type="button" class="ui-notification__close ui-round-button" data-tooltip="${uiAttr(closeLabel)}" aria-label="${uiAttr(closeLabel)}">${closeIcon}</button>`, { escape: false });
+    dom.setHTML(notification, uiHtml`<div class="ui-notification__content"><div class="ui-notification__body"><div class="ui-notification__icon">${iconMarkup}</div><span dir="auto" class="ui-notification__message">${config.message}</span></div>${actionsMarkup}<div class="ui-notification__action-error u-hidden" role="alert" hidden></div></div><button type="button" class="ui-notification__close ui-round-button" data-tooltip="${uiAttr(closeLabel)}" aria-label="${uiAttr(closeLabel)}">${closeIcon}</button>`, { escape: false });
 
     const lifecycle = createNotificationLifecycleController({
         notification,

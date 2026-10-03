@@ -6,6 +6,7 @@ import type { TelemetryFields, TelemetryValue } from '@core/telemetry/contracts.
 import { ensureStreamManagerReady } from '@core/realtime/streammanager/readiness.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isFunction } from '@core/typeGuards.ts';
+import { raceWithAbortSignal, throwIfAborted } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { isLogStreamManager } from '@features/logging/logstreamservice/guards.ts';
 import type { LogApi, LogBundleSubscription, StreamManagerWithLogs } from '@features/logging/logstreamservice/types.ts';
@@ -20,6 +21,7 @@ interface StreamManagerState {
 
 interface StreamManagerReadyDependencies {
     ensureDeclaredResources: () => Promise<void>;
+    signal: AbortSignal;
 }
 
 interface SnapshotSubscriptionState {
@@ -33,13 +35,14 @@ interface SnapshotSubscriptionDependencies {
     publishMetric: (metric: string, value: number, tags: TelemetryFields) => void;
 }
 
-const ensureLogApiReady = async (state: ApiState): Promise<LogApi> => {
+const ensureLogApiReady = async (state: ApiState, signal?: AbortSignal): Promise<LogApi> => {
     const api = state.api;
     if (!api) {
         throw new Error('API client is unavailable for LogStreamService');
     }
     if (isFunction(api.whenReady)) {
-        await api.whenReady({ allowDiscovery: true });
+        const ready = api.whenReady({ allowDiscovery: true, ...(signal ? { signal } : {}) });
+        await (signal ? raceWithAbortSignal(ready, signal) : ready);
     }
     return api;
 };
@@ -56,9 +59,10 @@ const resolveLogStreamManager = (state: StreamManagerState): StreamManagerWithLo
 };
 
 const ensureLogStreamManagerReady = async (state: StreamManagerState, dependencies: StreamManagerReadyDependencies): Promise<StreamManagerWithLogs> => {
-    await dependencies.ensureDeclaredResources();
+    await raceWithAbortSignal(dependencies.ensureDeclaredResources(), dependencies.signal);
+    throwIfAborted(dependencies.signal);
     const manager = resolveLogStreamManager(state);
-    await ensureStreamManagerReady(manager.resources, { allowDiscovery: true });
+    await ensureStreamManagerReady(manager.resources, { allowDiscovery: true, signal: dependencies.signal });
     return manager;
 };
 

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING
 
 import pydantic
@@ -25,7 +26,7 @@ from features.api.routes.system.events.snapshots.payloads import (
 from features.api.routes.system.events.snapshots.resource_registry import (
     resolve_snapshot_handler,
 )
-from features.api.runtime.event_enqueue import enqueue_event_or_warn
+from features.api.runtime.event_enqueue import enqueue_correlated_event
 from features.api.streaming.websocket import WebsocketConnection
 
 if TYPE_CHECKING:
@@ -81,7 +82,7 @@ def _coerce_snapshot_validation_exception(exception: BaseException) -> Validatio
     return ValidationError(str(exception), cause=exception)
 
 
-def _handle_snapshot_validation_failure(
+async def _handle_snapshot_validation_failure(
     exception: BaseException,
     *,
     resource: str,
@@ -89,6 +90,7 @@ def _handle_snapshot_validation_failure(
     trace_id: str | None,
     enqueue_warning_tracker: EnqueueWarningTracker,
     connection: WebsocketConnection,
+    shutdown_event: asyncio.Event,
 ) -> None:
     validation_error = _coerce_snapshot_validation_exception(exception)
     log_handled_exception(
@@ -100,13 +102,14 @@ def _handle_snapshot_validation_failure(
         details={"resource": resource},
         level="debug",
     )
-    send_snapshot_error_event(
+    await send_snapshot_error_event(
         validation_error,
         resource,
         snapshot_id,
         trace_id,
         enqueue_warning_tracker,
         connection,
+        shutdown_event,
     )
 
 
@@ -114,6 +117,7 @@ async def handle_snapshot_request(
     data: JSONDict,
     connection: WebsocketConnection,
     websocket: WebSocket,
+    shutdown_event: asyncio.Event | None = None,
 ) -> None:
     resource_value = data.get("resource")
     resource = resource_value if isinstance(resource_value, str) else ""
@@ -130,6 +134,7 @@ async def handle_snapshot_request(
         except AttributeError:
             trace_id = None
     enqueue_warning_tracker = connection.api_context.dependencies.enqueue_warning_tracker
+    delivery_shutdown_event = shutdown_event if shutdown_event is not None else asyncio.Event()
     try:
         resource, snapshot_id, handler_payload = _parse_snapshot_request_envelope(data)
         required_permission: AccessAction | None = None
@@ -138,12 +143,13 @@ async def handle_snapshot_request(
                 required_permission = permission
                 break
         if not required_permission or required_permission not in connection.granted_actions:
-            send_permission_error(
+            await send_permission_error(
                 resource,
                 snapshot_id,
                 trace_id,
                 enqueue_warning_tracker,
                 connection,
+                delivery_shutdown_event,
             )
             return
         handler = resolve_snapshot_handler(resource)
@@ -151,20 +157,22 @@ async def handle_snapshot_request(
             raise ValidationError(f"Unknown resource: {resource}")
         handler_snapshot_data: JSONValue = await handler(handler_payload, connection, websocket)
         response_event = build_snapshot_response_event(resource, snapshot_id, handler_snapshot_data)
-        enqueue_event_or_warn(
+        await enqueue_correlated_event(
             enqueue_warning_tracker,
             connection.queue,
             response_event,
+            delivery_shutdown_event,
             f"WebSocket snapshot response to {connection.user.get('username', 'unknown')}",
         )
     except (ValidationError, pydantic.ValidationError) as exception:
-        _handle_snapshot_validation_failure(
+        await _handle_snapshot_validation_failure(
             exception,
             resource=resource,
             snapshot_id=snapshot_id,
             trace_id=trace_id,
             enqueue_warning_tracker=enqueue_warning_tracker,
             connection=connection,
+            shutdown_event=delivery_shutdown_event,
         )
     except HANDLED_RUNTIME_EXCEPTIONS as exception:
         log_exception(
@@ -175,11 +183,12 @@ async def handle_snapshot_request(
             trace_id=trace_id,
             details={"resource": resource},
         )
-        send_snapshot_error_event(
+        await send_snapshot_error_event(
             exception,
             resource,
             snapshot_id,
             trace_id,
             enqueue_warning_tracker,
             connection,
+            delivery_shutdown_event,
         )

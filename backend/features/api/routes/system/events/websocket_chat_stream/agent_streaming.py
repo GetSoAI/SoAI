@@ -135,6 +135,7 @@ def create_ws_chat_agent_stream(
             plugin_manager=api_context.dependencies.plugin_manager,
             state_aggregator=api_context.dependencies.state_aggregator,
             orchestrator_lifecycle=api_context.dependencies.orchestrator_lifecycle,
+            chat_template_role_policy_resolver=api_context.dependencies.chat_template_role_policy_resolver,
             request_context=context,
         ),
         create_iteration_task=create_ws_agent_iteration_task,

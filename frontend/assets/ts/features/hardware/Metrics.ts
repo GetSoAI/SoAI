@@ -5,7 +5,8 @@ import { formatPercent } from '@core/primitives/percent.ts';
 import { formatPower, formatTemperature } from '@core/localization/public.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { DEFAULT_CHART_PADDING, DEFAULT_CHART_TYPE_SEQUENCE, DEFAULT_PRIMARY_BOTTOM_AXIS_PADDING } from '@core/charts/constants.ts';
+import { CHART_FULL_VALUE_LIMIT, DEFAULT_CHART_PADDING, DEFAULT_CHART_TYPE_SEQUENCE, DEFAULT_PRIMARY_BOTTOM_AXIS_PADDING } from '@core/charts/constants.ts';
+import { formatCompactNumber } from '@core/primitives/compactNumber.ts';
 import { hardwareFormatters } from '@features/hardware/Formatters.ts';
 
 if (!hardwareFormatters || !isFunction(hardwareFormatters.safeNumberFormat)) {
@@ -23,7 +24,7 @@ const temperatureFormatter: ValueFormatter = (value: number): string => hardware
 
 const powerFormatter: ValueFormatter = (value: number): string => hardwareFormatters.safeNumberFormat(value, (numeric) => formatPower(numeric, 1));
 
-const clockFormatter: ValueFormatter = (value: number): string => hardwareFormatters.safeNumberFormat(value, (numeric) => `${Math.round(numeric)} MHz`);
+const clockFormatter: ValueFormatter = (value: number): string => hardwareFormatters.safeNumberFormat(value, (numeric) => `${Math.abs(numeric) >= CHART_FULL_VALUE_LIMIT ? formatCompactNumber(numeric) : Math.round(numeric)} MHz`);
 
 interface MetricBounds {
     min: number;

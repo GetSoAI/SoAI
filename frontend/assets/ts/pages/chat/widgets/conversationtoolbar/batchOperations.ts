@@ -24,6 +24,7 @@ interface BatchCloneDependencies {
     cloneConversation(sourceConversationId: string, targetConversationId: string): Promise<Conversation>;
     showNotification(message: string, type: NotificationType): void;
     refreshConversationsUI(): Promise<void>;
+    revealConversationInList(conversationId: string): Promise<boolean>;
     invalidateChatMarkup(scope: 'current' | 'list' | 'both'): void;
     saveChatState(force?: boolean): void;
     exitSelectMode(): void;
@@ -91,6 +92,7 @@ const executeBatchClone = async (dependencies: BatchCloneDependencies, selectedI
         return;
     }
     let clonedCount = 0;
+    let lastClonedConversationId: string | null = null;
     let lastError: Error | null = null;
     for (const conversationId of selectedIds) {
         const initialSource = dependencies.conversations.get(conversationId);
@@ -99,11 +101,13 @@ const executeBatchClone = async (dependencies: BatchCloneDependencies, selectedI
             const cloned = await dependencies.cloneConversation(conversationId, dependencies.createConversationId());
             dependencies.conversations.set(cloned.id, cloned);
             clonedCount += 1;
+            lastClonedConversationId = cloned.id;
         } catch (error) {
             lastError = ensureError(error);
         }
     }
     await finalizeBatchOperation(dependencies);
+    if (lastClonedConversationId !== null) await dependencies.revealConversationInList(lastClonedConversationId);
     if (lastError) {
         dependencies.showNotification(i18n.t('chat.toolbar.batchCloneFailed'), 'error');
         throw lastError;

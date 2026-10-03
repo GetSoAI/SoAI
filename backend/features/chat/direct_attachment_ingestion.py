@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -18,7 +19,14 @@ from core.attachments.direct_upload_storage import (
     store_direct_attachment_upload,
     store_staged_direct_attachment_upload,
 )
+from core.concurrency.cancellation_cleanup import (
+    run_idempotent_current_task_operation,
+    wait_for_task_completion,
+)
 from core.config.upload_limits import UploadLimitType, resolve_upload_limit_bytes
+from core.database.operation_status import DatabaseOperationStatusValue
+from core.database.protocols import DatabaseOperationStatusProtocol
+from core.database.write_acceptance import completed_write_outcome
 from core.di.validation import require_dependencies
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.files.storage_root_resolution import resolve_managed_files_storage_root
@@ -51,6 +59,7 @@ class DirectAttachmentIngestionDependencies:
     config: ConfigProtocol
     files: FilesPathResolverProtocol
     database_attachments: DatabaseConversationAttachmentsProtocol
+    database_operation_status: DatabaseOperationStatusProtocol
     storage_manager: StorageManagerProtocol
     token_collection: TokenCollectionProtocol
     cancellation_history: CancellationHistoryProtocol
@@ -62,6 +71,7 @@ class DirectAttachmentIngestionDependencies:
             config=self.config,
             files=self.files,
             database_attachments=self.database_attachments,
+            database_operation_status=self.database_operation_status,
             storage_manager=self.storage_manager,
             token_collection=self.token_collection,
             cancellation_history=self.cancellation_history,
@@ -83,8 +93,8 @@ async def _persist_direct_attachment(
     user_id: int,
     normalized_client_id: str,
 ) -> DirectAttachmentIngestionResult:
-    try:
-        staged = await deps.database_attachments.stage_physical_attachment(
+    write_task = asyncio.create_task(
+        deps.database_attachments.stage_physical_attachment(
             conv_id=conv_id,
             user_id=user_id,
             file_id=stored.file_id,
@@ -97,9 +107,41 @@ async def _persist_direct_attachment(
             client_attachment_id=normalized_client_id,
             created_at_ms=stored.created_at_ms,
             expires_at_ms=stored.expires_at_ms,
+        ),
+        name="features.chat.direct_attachment_ingestion.accept",
+    )
+
+    async def _resolve_failure() -> None:
+        await wait_for_task_completion(write_task, retain_resources_until_complete=True)
+        outcome = await completed_write_outcome(write_task, deps.database_operation_status)
+        if outcome in {
+            DatabaseOperationStatusValue.FAILED,
+            DatabaseOperationStatusValue.SKIPPED,
+            DatabaseOperationStatusValue.NOT_COMMITTED,
+        }:
+            existing = await deps.database_attachments.get_attachment_by_client_id(
+                conv_id=conv_id,
+                user_id=user_id,
+                client_attachment_id=normalized_client_id,
+            )
+            if existing is None or existing.get("file_path") != stored.file_path:
+                await cleanup_upload_artifacts(temp_path=None, permanent_path=stored.file_path)
+        elif not write_task.cancelled() and write_task.exception() is None:
+            accepted = write_task.result()
+            if accepted.get("file_id") != stored.file_id:
+                await cleanup_upload_artifacts(temp_path=None, permanent_path=stored.file_path)
+
+    try:
+        staged = await asyncio.shield(write_task)
+    except asyncio.CancelledError:
+        await run_idempotent_current_task_operation(
+            _resolve_failure, restore_cancellation_requests=False
         )
+        raise
     except HANDLED_RUNTIME_EXCEPTIONS:
-        await cleanup_upload_artifacts(temp_path=None, permanent_path=stored.file_path)
+        await run_idempotent_current_task_operation(
+            _resolve_failure, restore_cancellation_requests=False
+        )
         raise
     created = staged.get("file_id") == stored.file_id
     if not created:

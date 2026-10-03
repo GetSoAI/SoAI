@@ -8,7 +8,7 @@ import type { ChatPageApi } from '@features/chat/pagecontracts/types.ts';
 
 interface ChatConversationInputsManagerDependencies {
     conversationInputsApi: ChatPageApi['webui']['chat']['inputQueue'];
-    regenerationApi?: Pick<ChatPageApi['webui']['chat']['messages'], 'regenerate' | 'regenerationStatus'>;
+    regenerationApi?: Pick<ChatPageApi['webui']['chat']['messages'], 'regenerate' | 'regenerationStatus' | 'latestRegenerationStatus'>;
     getCurrentConversationId: () => string | null;
     logWarning: (message: string, error?: Error) => void;
     updateInputQueuePreview: () => void;

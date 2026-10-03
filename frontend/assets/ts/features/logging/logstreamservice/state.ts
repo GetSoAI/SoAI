@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { LogEntry } from '@core/logNormalization.ts';
+import { ResourceRecoverySupervisor } from '@core/realtime/streammanager/resources/resourceRecoverySupervisor.ts';
+import { DEFAULT_RECONCILIATION_POLICY } from '@core/realtime/streammanager/resources/resourceReconciliationPolicy.ts';
 import { DEFAULT_LOG_SOURCE, DEFAULT_REPLAY_LIMIT, MAX_BUFFER_SIZE } from '@features/logging/logstreamservice/constants.ts';
 import type { LogApi, LogBundleSubscription, LogStreamListener, SnapshotExpansionTask, SnapshotMeta, StreamManagerWithLogs, StreamSubscriptionHandle } from '@features/logging/logstreamservice/types.ts';
 
@@ -10,7 +12,11 @@ interface LogStreamMutableState {
     replayedSubscribers: Set<LogStreamListener>;
     logBuffer: LogEntry[];
     snapshotMeta: SnapshotMeta;
+    sourceAbort: AbortController;
     connectionGeneration: number;
+    connectionAbort: AbortController | null;
+    recovery: ResourceRecoverySupervisor;
+    recoveryStopped: boolean;
     connectionStartedAt: number;
     isConnected: boolean;
     connectionHandle: StreamSubscriptionHandle | null;
@@ -39,7 +45,11 @@ const createLogStreamMutableState = (source: string = DEFAULT_LOG_SOURCE): LogSt
         replayedSubscribers: new Set(),
         logBuffer: [],
         snapshotMeta: createInitialSnapshotMeta(source),
+        sourceAbort: new AbortController(),
         connectionGeneration: 0,
+        connectionAbort: null,
+        recovery: new ResourceRecoverySupervisor(DEFAULT_RECONCILIATION_POLICY),
+        recoveryStopped: false,
         connectionStartedAt: 0,
         isConnected: false,
         connectionHandle: null,
@@ -61,12 +71,17 @@ const createLogStreamMutableState = (source: string = DEFAULT_LOG_SOURCE): LogSt
 
 const resetMutableStateAfterDestroy = (state: LogStreamMutableState): void => {
     const source = state.snapshotMeta.source;
+    state.sourceAbort.abort();
+    state.sourceAbort = new AbortController();
     state.subscribers.clear();
     state.replayedSubscribers.clear();
     state.logBuffer = [];
     state.sharedSnapshotEntries = [];
     state.currentBufferSize = DEFAULT_REPLAY_LIMIT;
     state.connectionGeneration += 1;
+    state.connectionAbort?.abort();
+    state.connectionAbort = null;
+    state.recovery.dispose();
     state.connectionStartedAt = 0;
     state.connectPromise = null;
     state.connectionHandle = null;

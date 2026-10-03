@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from core.errors.exceptions import SoAIError
 from core.errors.trace_logging import TRACE_LEVEL
 from core.logging.protocols import LoggerProtocol
+from core.openai.openai_sse_error_escalation import OpenAIStreamError
 
 if TYPE_CHECKING:
     from core.logging.protocols import ExcInfoType, LogArg
@@ -90,6 +91,8 @@ def log_exception(
         payload["operation"] = operation
     if details:
         payload["details"] = dict(details)
+    if isinstance(exception, OpenAIStreamError):
+        payload["stream_diagnostic"] = exception.diagnostic.render()
     exception_to_log: BaseException = exception
     if isinstance(exception, SoAIError):
         payload["code"] = exception.code
@@ -136,6 +139,8 @@ def log_handled_exception(
         payload["operation"] = operation
     if details:
         payload["details"] = dict(details)
+    if isinstance(exception, OpenAIStreamError):
+        payload["stream_diagnostic"] = exception.diagnostic.render()
     if isinstance(exception, SoAIError):
         payload["code"] = exception.code
         payload["http_status"] = int(exception.http_status)

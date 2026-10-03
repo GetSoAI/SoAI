@@ -17,7 +17,8 @@ const getEmptyStateHTML = (host: ChatCurrentConversationRenderDependencies): Tru
         activeAgentMode: resolveAgentMode(conversation),
         authorityLock: resolveConversationAuthorityLock(conversation),
         ctrlEnterSendRequired: host.settings.parameters.ctrlEnterSendEnabled === true,
-        isMac: navigator.platform.toUpperCase().indexOf('MAC') >= 0
+        isMac: navigator.platform.toUpperCase().indexOf('MAC') >= 0,
+        aiSetupResumeRoute: host.readAiSetupResumeRoute()
     });
 };
 

@@ -3,29 +3,38 @@
 
 import { i18n } from '@core/i18n/index.ts';
 import { dom, optionalInput } from '@core/dom/dom.ts';
-import { narrowInput } from '@core/dom/narrowElement.ts';
+import { narrowInput, narrowSelect } from '@core/dom/narrowElement.ts';
+import { syncFlagSelect } from '@core/ui/dropdown/flagSelect.ts';
 import { buildLanguageOptions } from '@core/languageservice/languageOptions.ts';
 import { isLicensingOperationInProgress } from '@core/licensing/operationLifecycle.ts';
 import { resolveBrowserCountryCode } from '@core/localization/public.ts';
 import { normalizeProgressRatio } from '@core/primitives/progress.ts';
 import { scrollElementIntoView } from '@core/scroll.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
-import type { LanguageEntryWithFlag } from '@core/languageservice/types.ts';
+import type { LanguageEntryWithCountryCode } from '@core/languageservice/types.ts';
 import { syncDeterminateProgress } from '@core/ui/progressWidths.ts';
 import { getTooltipText, setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { syncAttributeValue } from '@core/dom/patching.ts';
-import type { WizardState, WizardStepId } from '@features/wizard/public.ts';
+import type { AiSetupWizardStepId, WizardState, WizardStepId } from '@features/wizard/public.ts';
+import { isAiSetupWizardStepId } from '@pages/wizard/contracts/constants.ts';
 import { requireWizardAccountUi, requireWizardUi } from '@pages/wizard/dom.ts';
 import { isWizardAccountFormEligibleForSubmit } from '@pages/wizard/guards/validation.ts';
 import type { ProductAccessFlow, WizardAccountUi, WizardUi, WizardViewContext } from '@pages/wizard/types.ts';
 
 interface WizardLanguageService {
     getLanguage: () => string;
-    getAvailableLanguages: () => ReadonlyArray<LanguageEntryWithFlag>;
+    getAvailableLanguages: () => ReadonlyArray<LanguageEntryWithCountryCode>;
+}
+
+interface WizardAiSetupNavigation {
+    canContinue(stepId: AiSetupWizardStepId): boolean;
+    nextLabel(stepId: AiSetupWizardStepId): string;
+    hasReadyModel(): boolean;
 }
 
 interface WizardPageUiDependencies {
     readonly state: WizardState;
+    readonly aiSetup: WizardAiSetupNavigation;
     requireHTMLElement: (selector: string, context?: ParentNode) => HTMLElement;
     updateStyle: (element: HTMLElement, property: string, value: string) => void;
     toggleClassName: (element: HTMLElement, className: string, value: boolean) => void;
@@ -34,10 +43,7 @@ interface WizardPageUiDependencies {
     updateProperty: (element: HTMLElement, property: string, value: boolean) => void;
     updateAttribute: (element: HTMLElement, attribute: string, value: string | null) => void;
     getIconSync: (name: string, options: { width: number; height: number }) => TrustedHtml;
-    sanitizer: {
-        html: (value: string) => string;
-        attribute: (value: string) => string;
-    };
+    sanitizer: WizardViewContext['sanitizer'];
     languageService: WizardLanguageService;
 }
 
@@ -79,6 +85,10 @@ class WizardPageUiController {
         return requireWizardAccountUi(this.#dependencies);
     }
 
+    syncWelcomeLanguageFlag(content: HTMLElement): void {
+        syncFlagSelect(narrowSelect(this.#dependencies.requireHTMLElement('#language-select', content), 'Wizard language select'));
+    }
+
     createViewContext(): WizardViewContext {
         const currentLanguageValue = this.#dependencies.languageService.getLanguage();
         if (typeof currentLanguageValue !== 'string' || !currentLanguageValue.trim()) {
@@ -95,7 +105,8 @@ class WizardPageUiController {
             sanitizer: this.#dependencies.sanitizer,
             state: this.#dependencies.state,
             currentLanguage,
-            languageOptions: buildLanguageOptions(languageCandidates, currentLanguage)
+            languageOptions: buildLanguageOptions(languageCandidates, currentLanguage),
+            aiSetup: null
         };
     }
 
@@ -118,9 +129,15 @@ class WizardPageUiController {
     }
 
     syncNavigation(ui: WizardUi, stepId: WizardStepId): void {
-        const isBusy = this.#dependencies.state.isBusy;
-        const showBack = stepId !== 'welcome' && stepId !== 'complete';
+        const state = this.#dependencies.state;
+        const isBusy = state.isBusy;
+        const aiStep = isAiSetupWizardStepId(stepId) ? stepId : null;
+        const showBack = stepId !== 'welcome' && stepId !== 'complete' && stepId !== 'ai_sources' && !(state.isAiSetupResume && state.stepIndex === 0);
         const canGoBack = showBack && !isBusy;
+        this.#dependencies.toggleHidden(ui.navFinishLaterButton, aiStep === null);
+        this.#dependencies.updateProperty(ui.navFinishLaterButton, 'disabled', isBusy);
+        this.#dependencies.toggleHidden(ui.navSkipButton, aiStep !== 'ai_sources' || state.isAiSetupResume);
+        this.#dependencies.updateProperty(ui.navSkipButton, 'disabled', isBusy);
 
         this.#dependencies.toggleHidden(ui.navBackButton, !showBack);
         this.#dependencies.updateProperty(ui.navBackButton, 'disabled', !canGoBack);
@@ -137,11 +154,12 @@ class WizardPageUiController {
         if (stepId === 'product_access') this.#prefillOrganizationCountry(ui, selectedProductAccess);
         const productAccess = stepId === 'product_access' ? this.#productAccessNavigation(ui, isBusy, selectedProductAccess) : null;
         this.#dependencies.toggleHidden(ui.navNextButton, stepId === 'product_access' && selectedProductAccess === null);
-        const isNextDisabled = isBusy || isAccountSubmitBlocked || declarationBlocked || productAccess?.disabled === true;
+        const aiBlocked = aiStep !== null && !this.#dependencies.aiSetup.canContinue(aiStep);
+        const isNextDisabled = isBusy || isAccountSubmitBlocked || declarationBlocked || aiBlocked || productAccess?.disabled === true;
         this.#dependencies.updateProperty(ui.navNextButton, 'disabled', isNextDisabled);
         ui.navNextButton.toggleAttribute('aria-disabled', isNextDisabled);
 
-        const label = productAccess?.label ?? this.#getNextLabel(stepId);
+        const label = productAccess?.label ?? (aiStep === null ? this.#getNextLabel(stepId) : this.#dependencies.aiSetup.nextLabel(aiStep));
         syncAttributeValue(ui.navNextButton, 'data-action', productAccess?.action ?? 'wizard-next');
         this.#dependencies.updateText(ui.navNextButton, label);
         syncAttributeValue(ui.navNextButton, 'aria-label', label);
@@ -158,6 +176,7 @@ class WizardPageUiController {
         const attestationRegion = this.#dependencies.requireHTMLElement('.wizard-attestation-region', ui.content);
         const attestationInput = narrowInput(this.#dependencies.requireHTMLElement('#wizard-personal-attestation', attestationRegion), 'Personal use attestation');
         const personalSelected = selected === 'personal';
+        const revealAttestation = personalSelected && !attestationRegion.classList.contains('is-expanded');
 
         this.#dependencies.updateProperty(personalInput, 'checked', selected === 'personal');
         this.#dependencies.updateProperty(organizationInput, 'checked', selected === 'organization_commercial');
@@ -168,6 +187,7 @@ class WizardPageUiController {
         this.#dependencies.updateAttribute(attestationRegion, 'inert', personalSelected ? null : '');
         this.#dependencies.updateProperty(attestationInput, 'checked', this.#dependencies.state.attestationConfirmed);
         this.#dependencies.updateProperty(attestationInput, 'disabled', !personalSelected);
+        if (revealAttestation) scrollElementIntoView(attestationInput, { block: 'center' });
     }
 
     selectedProductAccessFlow(ui: WizardUi): ProductAccessFlow | null {
@@ -278,9 +298,17 @@ class WizardPageUiController {
             case 'account':
                 return i18n.t('wizard.navigation.createAccount');
             case 'complete':
-                return this.#dependencies.state.isSessionActivationRequired ? i18n.t('wizard.navigation.signIn') : i18n.t('wizard.navigation.enterSoai');
+                if (this.#dependencies.state.isSessionActivationRequired) return i18n.t('wizard.navigation.signIn');
+                if (this.#dependencies.aiSetup.hasReadyModel()) return i18n.t('wizard.aiSetup.nav.startChatting');
+                return this.#dependencies.state.isAiSetupResume ? i18n.t('wizard.aiSetup.nav.close') : i18n.t('wizard.navigation.enterSoai');
+            case 'ai_sources':
+            case 'ai_connect':
+            case 'ai_models':
+            case 'ai_progress':
+                return this.#dependencies.aiSetup.nextLabel(stepId);
         }
     }
 }
 
 export { WizardPageUiController };
+export type { WizardAiSetupNavigation };

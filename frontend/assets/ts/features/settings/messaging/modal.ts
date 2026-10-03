@@ -218,6 +218,7 @@ const openMessagingAccountModal = async (options: MessagingAccountModalOptions):
                                         modalId: SETTINGS_MESSAGING_PARAMETERS_MODAL_ID,
                                         initialState: editorState,
                                         includeSystemPromptLock: false,
+                                        readOnly: false,
                                         canApply: () => !signal.aborted && requireModalPresenter().isOpen(SETTINGS_MESSAGING_ACCOUNT_MODAL_ID),
                                         resolveModelDetailId: () => selectedModel?.detailUniversalId ?? null,
                                         supportedReasoningLevels: selectedModel?.supportedReasoningLevels ?? null

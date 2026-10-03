@@ -139,7 +139,7 @@
 
     .plugin-card.is-disabled .ui-collection-card__action-bar > .ui-round-button[data-action='delete'] {
         top: 7px;
-        right: 7px;
+        inset-inline-end: 7px;
         visibility: visible;
         opacity: 1;
         filter: none;
@@ -200,8 +200,8 @@
         flex: 0 0 auto;
 
         --status-badge-color: var(--status-orange);
-        margin-left: var(--space-2);
-        margin-right: var(--space-3);
+        margin-inline-start: var(--space-2);
+        margin-inline-end: var(--space-3);
     }
 
     .ui-collection-card__subtitle {

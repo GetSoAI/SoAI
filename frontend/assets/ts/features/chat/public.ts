@@ -29,7 +29,7 @@ export { parseAskUserPendingResponse } from '@features/chat/askuser/askUserModel
 export { focusAskUserPrompt, getAskUserPredefinedOptionButtons, getAskUserQuestionElements, getAskUserSelectedPredefinedOptionButtons, optionalAskUserCancelButton, optionalAskUserOtherButton, optionalAskUserPreview, optionalAskUserQuestionRootFromChild, optionalAskUserSubmitButton, optionalAskUserTextInput, optionalAskUserTextInputWrapper } from '@features/chat/askuser/dom.ts';
 export { buildAskUserPreviewMarkup } from '@features/chat/askuser/askUserPreviewMarkup.ts';
 export { isAgentModeRequiringTools } from '@features/chat/conversationsettings/mcpToolsActiveState.ts';
-export { applyMcpToolsToggleButtonState } from '@features/chat/conversationsettings/mcpToolsToggleButtonState.ts';
+export { applyMcpToolsToggleButtonState, isMcpToolsSettingsNavigationAllowed } from '@features/chat/conversationsettings/mcpToolsToggleButtonState.ts';
 export type { SecretPrompt } from '@features/chat/secretprompt/secretPromptModels.ts';
 export { parseSecretPromptPendingResponse } from '@features/chat/secretprompt/secretPromptModels.ts';
 export { focusSecretPrompt, optionalSecretPromptInput, optionalSecretPromptRootFromChild, optionalSecretPromptSaveCheckbox, setSecretPromptLabelVisibility } from '@features/chat/secretprompt/dom.ts';
@@ -48,7 +48,7 @@ export { ChatConversationAttentionService } from '@features/chat/background/Chat
 export { ChatAttachmentManager } from '@features/chat/ChatAttachmentManager.ts';
 export { ChatComposerDraftManager } from '@features/chat/composerdraft/ChatComposerDraftManager.ts';
 export type { ComposerDraftTransferMode } from '@features/chat/composerdraft/ComposerDraftOwnershipState.ts';
-export type { ComposerDraftFlushOptions } from '@features/chat/composerdraft/composerDraftTypes.ts';
+export type { ComposerDraftFlushOptions, ComposerDraftSurfaceSnapshot } from '@features/chat/composerdraft/composerDraftTypes.ts';
 export { createLinkedKnowledgeClientBatchId } from '@features/chat/attachments/linkedKnowledgeClientBatchId.ts';
 export type { LinkedKnowledgeClientBatchSelection } from '@features/chat/attachments/linkedKnowledgeClientBatchId.ts';
 export { knowledgeSummaryMatchesIngestion } from '@features/chat/knowledgeAttachmentPresentation.ts';
@@ -68,10 +68,10 @@ export type { SoaiPathDraftRecord } from '@features/chat/attachments/soaiPathDra
 export { transcribeAudioBlob } from '@features/chat/api/webuiMediaAudio.ts';
 export { ChatAudioManager } from '@features/chat/ChatAudioManager.ts';
 export { readChatErrorPresentation, resolveChatErrorDetailText, resolveChatRequestErrorNotificationMessage, resolveTokenCounterErrorNotificationMessage } from '@features/chat/chatErrorPresentation.ts';
-export type { AudioRecordingSnapshot, AudioState } from '@features/chat/ChatAudioManager.ts';
+export type { AudioRecordingIntent, AudioRecordingSnapshot, AudioRecordingStart, AudioRecordingTerminalOutcome, AudioRecordingTimerHost, AudioState } from '@features/chat/ChatAudioManager.ts';
 export { ChatColorToolkit } from '@features/chat/ChatColorToolkit.ts';
-export { CHAT_ACTION_ID_OPEN_MODEL_DETAIL, CHAT_ACTION_ID_SECRET_PROMPT_CANCEL, CHAT_ACTION_ID_SECRET_PROMPT_SUBMIT, CHAT_CHARACTER_MAP_BUTTON_CLASS, CHAT_EVENT_MODEL_SELECTION_CHANGED, CONVERSATION_TITLE_MAX_LENGTH, CHAT_MOBILE_SIDEBAR_BREAKPOINT_PX, CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX, CHAT_ATTACHMENT_INLINE_LIMIT, CHAT_ICON_SIZE_MD, CHAT_ICON_SIZE_SM, CHAT_ICON_SIZE_XS, CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
-export { CHAT_CHARACTER_MAP_MODAL_ID } from '@features/chat/modals/constants.ts';
+export { CHAT_ACTION_ID_OPEN_MODEL_DETAIL, CHAT_ACTION_ID_SECRET_PROMPT_CANCEL, CHAT_ACTION_ID_SECRET_PROMPT_SUBMIT, CHAT_CHARACTER_MAP_BUTTON_CLASS, CHAT_SKETCH_BUTTON_CLASS, CHAT_EVENT_MODEL_SELECTION_CHANGED, CONVERSATION_TITLE_MAX_LENGTH, CHAT_MOBILE_SIDEBAR_BREAKPOINT_PX, CHAT_ACTIVITY_COMPACT_BREAKPOINT_PX, CHAT_ATTACHMENT_INLINE_LIMIT, CHAT_ICON_SIZE_MD, CHAT_ICON_SIZE_SM, CHAT_ICON_SIZE_XS, CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
+export { CHAT_CHARACTER_MAP_MODAL_ID, CHAT_SKETCH_MODAL_ID } from '@features/chat/modals/constants.ts';
 export { CHARACTER_MAP_ACTIONS, isCharacterMapAction } from '@features/chat/charactermap/actions.ts';
 export type { CharacterMapAction } from '@features/chat/charactermap/actions.ts';
 export { CharacterMapCatalogIndex } from '@features/chat/charactermap/catalog.ts';
@@ -80,6 +80,13 @@ export { CHARACTER_MAP_DEFAULT_FONT_ID, CHARACTER_MAP_FONT_CLASSES, CHARACTER_MA
 export type { CharacterMapFontId } from '@features/chat/charactermap/fontCatalog.ts';
 export type { CharacterMapCatalog } from '@features/chat/charactermap/catalogContracts.ts';
 export type { CharacterMapQueryResult, CharacterMapResultItem } from '@features/chat/charactermap/catalog.ts';
+export { CHAT_SKETCH_ACTIONS, isChatSketchAction } from '@features/chat/sketch/actions.ts';
+export type { ChatSketchAction } from '@features/chat/sketch/actions.ts';
+export { CHAT_SKETCH_CANVAS_HEIGHT, CHAT_SKETCH_CANVAS_MAX_EXTENT, CHAT_SKETCH_CANVAS_MIN_EXTENT, CHAT_SKETCH_CANVAS_WIDTH, CHAT_SKETCH_DEFAULT_COLOR, CHAT_SKETCH_DEFAULT_TOOL, CHAT_SKETCH_FILE_NAME, CHAT_SKETCH_FILE_TYPE, CHAT_SKETCH_SIZE_MAX, CHAT_SKETCH_SIZE_MIN, CHAT_SKETCH_TOOLS, findChatSketchTool, isChatSketchShapeType, normalizeChatSketchColor } from '@features/chat/sketch/sketchCatalog.ts';
+export type { ChatSketchToolType } from '@features/chat/sketch/sketchCatalog.ts';
+export { ChatSketchDocument } from '@features/chat/sketch/sketchDocument.ts';
+export type { ChatSketchDrawOperation, ChatSketchPoint } from '@features/chat/sketch/sketchDocument.ts';
+export { paintChatSketchBackground, paintChatSketchOperation } from '@features/chat/sketch/sketchPainter.ts';
 export { preflightComparisonTurn } from '@features/chat/comparisonTurnPreflight.ts';
 export type { ComparisonTurnPreflightResult, ComparisonTurnPreflightVariant } from '@features/chat/comparisonTurnPreflight.ts';
 export { isComparisonOnlyAssistantVariant, resolveComparisonTurnStatesByTurn, resolveChatComparisonTurnMeta } from '@features/chat/comparisonTurnMetadata.ts';
@@ -104,7 +111,7 @@ export { CHAT_ATTACH_MODAL_ACTIONS, isChatAttachModalAction } from '@features/ch
 export { createCameraCaptureRuntime } from '@features/chat/composerattachmodal/cameraCapture.ts';
 export type { ChatAttachModalAction } from '@features/chat/composerattachmodal/actions.ts';
 export type { ChatAttachCameraElements, ChatAttachCameraRuntime } from '@features/chat/composerattachmodal/cameraCapture.ts';
-export { ARCHIVED_CONVERSATIONS_MODAL_ID, CHAT_ATTACH_MODAL_ID, CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, CHAT_PROMPTS_PICKER_MODAL_ID, CHAT_TOOL_CALL_OUTPUT_MODAL_ID, CHAT_VOICE_CALL_MODAL_ID } from '@features/chat/modals/constants.ts';
+export { CHAT_CONVERSATION_INPUT_MODAL_ID, ARCHIVED_CONVERSATIONS_MODAL_ID, CHAT_ATTACH_MODAL_ID, CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, CHAT_PROMPTS_PICKER_MODAL_ID, CHAT_TOOL_CALL_OUTPUT_MODAL_ID, CHAT_VOICE_CALL_MODAL_ID } from '@features/chat/modals/constants.ts';
 export { MESSAGE_INFO_MODAL_ID } from '@features/chat/message/messageinfomodal/constants.ts';
 export { ChatConversationManager } from '@features/chat/ChatConversationManager.ts';
 export { ChatPageEmptyState } from '@features/chat/ChatEmptyState.ts';
@@ -158,7 +165,7 @@ export type { ConversationSettingsActionInput, ConversationSettingsActionResult,
 export { parseConversationWorkspacePathConfig, parseMcpConfig, parseMcpTools, parseRagConfig, parseRagDocumentsPage } from '@features/chat/conversationsettings/conversationSettingsParsing.ts';
 export { countProcessingRagDocuments, isRagDocumentProcessingStatus } from '@features/chat/conversationsettings/ragDocumentStatus.ts';
 export { renderRagDocumentsList } from '@features/chat/conversationsettings/ragDocumentsList.ts';
-export { isToolsEffectivelyEnabled } from '@features/chat/conversationsettings/mcpToolsActiveState.ts';
+export { hasSelectedToolsForActiveMode, isToolsEffectivelyEnabled } from '@features/chat/conversationsettings/mcpToolsActiveState.ts';
 export { renderMcpDefaultToolsModal, renderMcpDefaultToolsSummary, renderMcpServers, renderMcpTools } from '@features/chat/conversationsettings/mcpConversationSettingsUi.ts';
 export { isMcpConversationActionId } from '@features/chat/conversationsettings/mcpconversationsettingscontroller/actionIds.ts';
 export type { McpConversationActionId } from '@features/chat/conversationsettings/mcpconversationsettingscontroller/actionIds.ts';
@@ -214,7 +221,7 @@ export { canApplyToolCallProjectionWithoutSequenceGap } from '@features/chat/too
 export { ToolImageHydrationCoordinator } from '@features/chat/toolactivity/toolImageHydrationCoordinator.ts';
 export { messageContainsToolDetailHydrationCandidate, messageContainsToolMediaHydrationCandidate, toolProjectionNeedsDetailHydration, toolProjectionProvidesHydratedDetails } from '@features/chat/toolactivity/toolDetailsHydrationPolicy.ts';
 export type { ToolImageHydrationRequest } from '@features/chat/toolactivity/toolImageHydrationCoordinator.ts';
-export { resolveToolProjectionActiveStreamingSignature, resolveToolProjectionHeaderPreviewText, resolveToolProjectionVisibleStreamingSignature, resolveToolProjectionVisibleStructureStreamingSignature } from '@features/chat/toolactivity/toolProjectionStreamingSignature.ts';
+export { resolveToolProjectionActiveStreamingSignature, resolveToolProjectionVisibleStreamingSignature, resolveToolProjectionVisibleStructureStreamingSignature } from '@features/chat/toolactivity/toolProjectionStreamingSignature.ts';
 export { resolveCollapsedOverrideMap } from '@features/chat/assistanteventtimeline/timelineIndexResolution.ts';
 export { mapAssistantTimelineToolPayload, mapDecodedAssistantTimelineTool } from '@features/chat/assistanteventtimeline/toolPayloadMapper.ts';
 export { ChatMessageManager } from '@features/chat/message/service.ts';
@@ -236,6 +243,8 @@ export { ChatConversationInputsManager } from '@features/chat/conversationinputs
 export { mountOptimisticInputUserMessage, resolveOptimisticInputOrderingAnchor } from '@features/chat/conversationinputs/optimisticInputUserMessage.ts';
 export { ChatAttachmentProcessor } from '@features/chat/ChatAttachmentProcessor.ts';
 export { ChatStorageManager } from '@features/chat/storage/service.ts';
+export { createChatNavigationMemory } from '@features/chat/storage/chatNavigationMemory.ts';
+export type { ChatNavigationMemory } from '@features/chat/storage/chatNavigationMemory.ts';
 export { serializeStorageContentPart } from '@features/chat/storage/messageNormalization.ts';
 export { normalizeConversationId, requireConversationId } from '@features/chat/validation/ids.ts';
 export { resolveConversationChatStreaming, resolveConversationExecutionState } from '@features/chat/conversationExecutionState.ts';

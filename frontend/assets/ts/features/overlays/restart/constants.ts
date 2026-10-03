@@ -1,17 +1,26 @@
 /* SoAI - Overlays feature restart constants [frontend/assets/ts/features/overlays/restart/constants.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isDesktopLauncherHost } from '@core/desktophost/desktopLauncher.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { minutesToMs } from '@core/time/durations.ts';
 import type { OperationType, PersistentRestartOperationType, RestartContent } from '@features/overlays/restart/types.ts';
 
 const DEFAULT_MAX_RETRIES = 300;
 const REBOOT_MAX_RETRIES = 900;
+const UPDATE_MAX_RETRIES = 7200;
+const UPDATE_SLOW_NOTICE_RETRIES = 600;
 const RESTART_CACHE_TTL_MS = minutesToMs(10);
 const RESTART_OVERLAY_SERVICE_ID = 'features.overlays.restart';
 const RESTART_STATUS_ICON_HIDDEN_CLASS = 'restart-overlay--status-icon-hidden';
 
-const getRestartContent = (type: OperationType): RestartContent => {
+const resolveRestartMaxRetries = (type: OperationType): number => {
+    if (type === 'system-reboot') return REBOOT_MAX_RETRIES;
+    if (type === 'update-soai') return UPDATE_MAX_RETRIES;
+    return DEFAULT_MAX_RETRIES;
+};
+
+const getRestartContent = (type: OperationType, targetVersion: string | null = null): RestartContent => {
     switch (type) {
         case 'restart-application':
             return {
@@ -39,8 +48,8 @@ const getRestartContent = (type: OperationType): RestartContent => {
             };
         case 'update-soai':
             return {
-                message: i18n.t('restartOverlay.messages.updating'),
-                description: i18n.t('restartOverlay.descriptions.updating'),
+                message: targetVersion === null ? i18n.t('restartOverlay.messages.updating') : i18n.t('restartOverlay.messages.installingVersion', { version: targetVersion }),
+                description: isDesktopLauncherHost() ? i18n.t('restartOverlay.descriptions.updatingDesktop') : i18n.t('restartOverlay.descriptions.updating'),
                 statusIcon: 'application-power-cycle'
             };
         case 'connection-lost':
@@ -62,4 +71,4 @@ const shouldPollForRestartOperation = (type: OperationType): boolean => type !==
 
 const shouldPersistRestartOperation = (type: OperationType): type is PersistentRestartOperationType => type !== 'connection-lost';
 
-export { DEFAULT_MAX_RETRIES, REBOOT_MAX_RETRIES, RESTART_CACHE_TTL_MS, RESTART_OVERLAY_SERVICE_ID, RESTART_STATUS_ICON_HIDDEN_CLASS, getRestartContent, shouldPersistRestartOperation, shouldPollForRestartOperation };
+export { DEFAULT_MAX_RETRIES, REBOOT_MAX_RETRIES, RESTART_CACHE_TTL_MS, RESTART_OVERLAY_SERVICE_ID, RESTART_STATUS_ICON_HIDDEN_CLASS, UPDATE_MAX_RETRIES, UPDATE_SLOW_NOTICE_RETRIES, getRestartContent, resolveRestartMaxRetries, shouldPersistRestartOperation, shouldPollForRestartOperation };

@@ -23,6 +23,7 @@ from core.files.locking import async_guarded_file_lock
 from core.files.temp_files import create_persistent_staging_directory
 from core.filesystem.atomic_writes import atomic_write_text
 from core.filesystem.open_files import open_regular_binary_no_symlink
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.hardware.reservation_claims import claim_reserved_write
 from plugins.fs_permissions import ensure_correct_permissions
 from plugins.package_archive import open_validated_plugin_package
@@ -126,15 +127,17 @@ async def _prepare_hash_directory(
             package_root=package_root,
             entrypoint_path=entrypoint_path,
         )
-    if os.path.lexists(package_root):
-        if os.path.isdir(package_root) and not os.path.islink(package_root):
-            removal = asyncio.to_thread(shutil.rmtree, package_root)
+    if os.path.lexists(normalize_filesystem_path(package_root)):
+        if os.path.isdir(normalize_filesystem_path(package_root)) and not os.path.islink(
+            normalize_filesystem_path(package_root)
+        ):
+            removal = asyncio.to_thread(shutil.rmtree, normalize_filesystem_path(package_root))
         else:
-            removal = asyncio.to_thread(os.unlink, package_root)
+            removal = asyncio.to_thread(os.unlink, normalize_filesystem_path(package_root))
         await uncancel_and_wait(removal)
         if current_task_has_pending_cancellation():
             raise asyncio.CancelledError
-    os.makedirs(package_cache_directory, exist_ok=True)
+    os.makedirs(normalize_filesystem_path(package_cache_directory), exist_ok=True)
     staging_directory = create_persistent_staging_directory(
         prefix=f".staging.{audit.content.archive_hash}.",
         directory=package_cache_directory,
@@ -164,7 +167,9 @@ async def _prepare_hash_directory(
                 if current_task_has_pending_cancellation():
                     raise asyncio.CancelledError
                 staged_entrypoint = os.path.join(staging_directory, "__init__.py")
-                if os.path.islink(staged_entrypoint) or not os.path.isfile(staged_entrypoint):
+                if os.path.islink(
+                    normalize_filesystem_path(staged_entrypoint)
+                ) or not os.path.isfile(normalize_filesystem_path(staged_entrypoint)):
                     raise StateError("Prepared plugin package entrypoint is not a regular file.")
                 await uncancel_and_wait(ensure_correct_permissions(staging_directory))
                 if current_task_has_pending_cancellation():
@@ -178,11 +183,14 @@ async def _prepare_hash_directory(
                 )
                 if current_task_has_pending_cancellation():
                     raise asyncio.CancelledError
-                os.rename(staging_directory, package_root)
+                os.rename(
+                    normalize_filesystem_path(staging_directory),
+                    normalize_filesystem_path(package_root),
+                )
     finally:
-        if os.path.lexists(staging_directory):
+        if os.path.lexists(normalize_filesystem_path(staging_directory)):
             await uncancel_then_cleanup(
-                asyncio.to_thread(shutil.rmtree, staging_directory),
+                asyncio.to_thread(shutil.rmtree, normalize_filesystem_path(staging_directory)),
             )
     return PreparedPluginPackage(
         plugin_name=audit.plugin_name,
@@ -217,23 +225,29 @@ async def prepare_plugin_package(
             audit.content.archive_hash,
         )
     )
-    os.makedirs(os.path.dirname(cache_lock_path), exist_ok=True)
+    os.makedirs(normalize_filesystem_path(os.path.dirname(cache_lock_path)), exist_ok=True)
     async with async_guarded_file_lock(cache_lock_path, timeout=120):
         packages_root = os.path.dirname(package_cache_directory)
-        if os.path.islink(packages_root) or (
-            os.path.lexists(packages_root) and not os.path.isdir(packages_root)
+        if os.path.islink(normalize_filesystem_path(packages_root)) or (
+            os.path.lexists(normalize_filesystem_path(packages_root))
+            and not os.path.isdir(normalize_filesystem_path(packages_root))
         ):
-            await uncancel_and_wait(asyncio.to_thread(os.unlink, packages_root))
+            await uncancel_and_wait(
+                asyncio.to_thread(os.unlink, normalize_filesystem_path(packages_root))
+            )
             if current_task_has_pending_cancellation():
                 raise asyncio.CancelledError
-        os.makedirs(packages_root, exist_ok=True)
-        if os.path.islink(package_cache_directory) or (
-            os.path.lexists(package_cache_directory) and not os.path.isdir(package_cache_directory)
+        os.makedirs(normalize_filesystem_path(packages_root), exist_ok=True)
+        if os.path.islink(normalize_filesystem_path(package_cache_directory)) or (
+            os.path.lexists(normalize_filesystem_path(package_cache_directory))
+            and not os.path.isdir(normalize_filesystem_path(package_cache_directory))
         ):
-            await uncancel_and_wait(asyncio.to_thread(os.unlink, package_cache_directory))
+            await uncancel_and_wait(
+                asyncio.to_thread(os.unlink, normalize_filesystem_path(package_cache_directory))
+            )
             if current_task_has_pending_cancellation():
                 raise asyncio.CancelledError
-        os.makedirs(package_cache_directory, exist_ok=True)
+        os.makedirs(normalize_filesystem_path(package_cache_directory), exist_ok=True)
         async with async_guarded_file_lock(hash_lock_path, timeout=120):
             return await _prepare_hash_directory(
                 manager,

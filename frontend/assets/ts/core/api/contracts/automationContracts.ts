@@ -3,7 +3,7 @@
 
 import { AUTOMATION_RECURRENCES, AUTOMATION_RUN_STATUSES, AUTOMATION_ZONE_STATUSES } from '@core/automation/protocols.ts';
 import { readAgentMaxIterationsFromAgentSettings } from '@core/chat/parameters/agentMaxIterations.ts';
-import { CHAT_PARAMETER_SEND_FLAG_KEYS, CHAT_PARAMETER_WIRE_KEYS } from '@core/chat/parameters/chatParameterKeySets.ts';
+import { CHAT_PARAMETER_SEND_FLAG_KEYS, CHAT_PARAMETER_WIRE_KEYS, STORED_CHAT_PARAMETER_KEYS } from '@core/chat/parameters/chatParameterKeySets.ts';
 import { splitTrimmedList } from '@core/normalize.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
 import { readNullableFiniteNumberValue, readRequiredNonNegativeIntegerValue, readRequiredPositiveIntegerValue } from '@core/types/payloadNumberReaders.ts';
@@ -15,7 +15,10 @@ import { parseMcpFormValues, parseMcpToolList } from '@core/mcp/configParsing.ts
 import { requireJsonResponsePayload } from '@core/api/jsonResponsePayload.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { readPaginatedArrayPayload } from '@core/data/paginatedPayload.ts';
-import type { AutomationColor, AutomationDefinitionResponse, AutomationDefinitionsPageResponse, AutomationMcpCatalogResponse, AutomationOccurrenceResponse, AutomationOccurrencesDeleteResponse, AutomationOccurrencesPageResponse, AutomationRunResponse } from '@core/api/contracts/automationContractTypes.ts';
+import type { AutomationColor, AutomationDefinitionResponse, AutomationDefinitionsPageResponse, AutomationLatestRunResponse, AutomationMcpCatalogResponse, AutomationOccurrenceResponse, AutomationOccurrencesDeleteResponse, AutomationOccurrencesPageResponse, AutomationRunResponse, AutomationSchedulePreviewResponse, AutomationStartLocalResolution } from '@core/api/contracts/automationContractTypes.ts';
+
+const AUTOMATION_REVISION_PATTERN = /^[0-9a-f]{64}$/;
+const AUTOMATION_START_LOCAL_RESOLUTIONS: readonly AutomationStartLocalResolution[] = ['exact', 'nonexistent', 'ambiguous'];
 
 const normalizeAutomationColor = (value: JsonValue | null | undefined): AutomationColor => {
     if (value === null) {
@@ -43,12 +46,15 @@ const parseAutomationMcpSettings = (value: JsonValue | null | undefined, interac
         throw new Error('Automation.model_settings.mcp must be a JSON object');
     }
     const mcp = parseMcpFormValues(value);
+    const additionalSettings: JsonObject = { ...value };
+    for (const key of ['default_tools', 'plan_tools', 'execute_tools', 'server_configs', 'tools_enabled', 'tool_approval_required']) delete additionalSettings[key];
     const approvalValue = value['tool_approval_required'];
     if ((approvalValue === true || approvalValue === false) && approvalValue !== interactiveToolApproval) {
         throw new Error('Automation.model_settings.mcp.tool_approval_required must match Automation.interactive_tool_approval');
     }
     return {
         ...mcp,
+        ...(Object.keys(additionalSettings).length > 0 ? { additionalSettings } : {}),
         toolApprovalRequired: interactiveToolApproval
     };
 };
@@ -108,6 +114,26 @@ const parseAutomationPromptSettings = (value: JsonValue | null | undefined): Aut
     };
 };
 
+const readAutomationRevision = (record: JsonObject): string => {
+    const revision = readRequiredTrimmedString(record, 'revision', 'Automation.revision');
+    if (!AUTOMATION_REVISION_PATTERN.test(revision)) {
+        throw new Error('Automation.revision must be a lowercase SHA-256 digest');
+    }
+    return revision;
+};
+
+const parseAutomationLatestRun = (value: JsonValue | null | undefined): AutomationLatestRunResponse | null => {
+    if (value === null) {
+        return null;
+    }
+    const record = requireRecord(value, 'Automation.latest_run');
+    return {
+        status: readRequiredEnumValue(record['status'], 'Automation.latest_run.status', AUTOMATION_RUN_STATUSES),
+        scheduledAtMs: readRequiredEpochMsValue(record['scheduled_at_ms'], 'Automation.latest_run.scheduled_at_ms'),
+        finishedAtMs: readNullableEpochMsValue(record['finished_at_ms'], 'Automation.latest_run.finished_at_ms')
+    };
+};
+
 const parseAutomationDefinition = (value: JsonValue | null | undefined): AutomationDefinitionResponse => {
     const record = requireRecord(value, 'Automation');
     const modelSettingsRecord = requireRecord(record['model_settings'], 'Automation.model_settings');
@@ -122,6 +148,13 @@ const parseAutomationDefinition = (value: JsonValue | null | undefined): Automat
         agent: { mode: 'execute', maxIterations: readAgentMaxIterationsFromAgentSettings(agentRecord) },
         mcp: parseAutomationMcpSettings(modelSettingsRecord['mcp'], interactiveToolApproval)
     };
+    const additionalSettings: JsonObject = { ...modelSettingsRecord };
+    for (const key of ['model', 'agent', 'mcp', 'workspace_path', 'prompts', 'seed', ...STORED_CHAT_PARAMETER_KEYS.map((parameter) => CHAT_PARAMETER_WIRE_KEYS[parameter] ?? parameter)]) delete additionalSettings[key];
+    if (Object.keys(additionalSettings).length > 0) modelSettings.additionalSettings = additionalSettings;
+    const additionalAgentSettings: JsonObject = { ...agentRecord };
+    delete additionalAgentSettings['mode'];
+    delete additionalAgentSettings['max_iterations'];
+    if (Object.keys(additionalAgentSettings).length > 0) modelSettings.agent.additionalSettings = additionalAgentSettings;
     const workspacePath = readOptionalTrimmedStringField(modelSettingsRecord, 'workspace_path', 'Automation.model_settings.workspace_path');
     if (workspacePath !== undefined) modelSettings.workspacePath = workspacePath;
     const prompts = parseAutomationPromptSettings(modelSettingsRecord['prompts']);
@@ -157,6 +190,7 @@ const parseAutomationDefinition = (value: JsonValue | null | undefined): Automat
     }
     return {
         id: readRequiredTrimmedString(record, 'id', 'Automation.id'),
+        revision: readAutomationRevision(record),
         title: readRequiredTrimmedString(record, 'title', 'Automation.title'),
         enabled: readRequiredBooleanValue(record['enabled'], 'Automation.enabled'),
         interactiveToolApproval: interactiveToolApproval,
@@ -171,35 +205,49 @@ const parseAutomationDefinition = (value: JsonValue | null | undefined): Automat
         modelSettings: modelSettings,
         nextRunAtMs: readNullableEpochMsValue(record['next_run_at_ms'], 'Automation.next_run_at_ms'),
         createdAtMs: readRequiredEpochMsValue(record['created_at_ms'], 'Automation.created_at_ms'),
-        lastModifiedAtMs: readRequiredEpochMsValue(record['last_modified_at_ms'], 'Automation.last_modified_at_ms')
+        lastModifiedAtMs: readRequiredEpochMsValue(record['last_modified_at_ms'], 'Automation.last_modified_at_ms'),
+        latestRun: parseAutomationLatestRun(record['latest_run'])
+    };
+};
+
+const parseAutomationSchedulePreview = (value: JsonValue | null | undefined): AutomationSchedulePreviewResponse => {
+    const record = requireRecord(value, 'AutomationSchedulePreviewResponse');
+    return {
+        timezone: readRequiredTrimmedString(record, 'timezone', 'AutomationSchedulePreviewResponse.timezone'),
+        startLocal: readRequiredTrimmedString(record, 'start_local', 'AutomationSchedulePreviewResponse.start_local'),
+        effectiveStartLocal: readRequiredTrimmedString(record, 'effective_start_local', 'AutomationSchedulePreviewResponse.effective_start_local'),
+        startLocalResolution: readRequiredEnumValue(record['start_local_resolution'], 'AutomationSchedulePreviewResponse.start_local_resolution', AUTOMATION_START_LOCAL_RESOLUTIONS),
+        firstOccurrenceAtMs: readRequiredEpochMsValue(record['first_occurrence_at_ms'], 'AutomationSchedulePreviewResponse.first_occurrence_at_ms'),
+        nextOccurrenceAtMs: readNullableEpochMsValue(record['next_occurrence_at_ms'], 'AutomationSchedulePreviewResponse.next_occurrence_at_ms'),
+        oneShotStartInPast: readRequiredBooleanValue(record['one_shot_start_in_past'], 'AutomationSchedulePreviewResponse.one_shot_start_in_past')
     };
 };
 
 const parseAutomationMcpCatalog = (value: JsonValue | null | undefined): AutomationMcpCatalogResponse => {
-    const record = requireRecord(value, 'AutomationMcpCatalog');
+    const record = requireRecord(value, 'AutomationMcpCatalogResponse');
     return {
         tools: parseMcpToolList(record),
         defaultTools: [],
         planTools: [],
-        executeTools: readRequiredTrimmedStringArrayValue(record['execute_tools'], 'AutomationMcpCatalog.execute_tools')
+        executeTools: readRequiredTrimmedStringArrayValue(record['execute_tools'], 'AutomationMcpCatalogResponse.execute_tools')
     };
 };
 
 const parseAutomationZone = (value: JsonValue | null | undefined): AutomationOccurrenceResponse => {
-    const record = requireRecord(value, 'AutomationZone');
+    const record = requireRecord(value, 'AutomationOccurrenceResponse');
     return {
-        automationId: readRequiredTrimmedString(record, 'automation_id', 'AutomationZone.automation_id'),
-        scheduledAtMs: readRequiredEpochMsValue(record['scheduled_at_ms'], 'AutomationZone.scheduled_at_ms'),
-        title: readRequiredTrimmedString(record, 'title', 'AutomationZone.title'),
-        enabled: readNullableBooleanValue(record['enabled'], 'AutomationZone.enabled'),
+        automationId: readRequiredTrimmedString(record, 'automation_id', 'AutomationOccurrenceResponse.automation_id'),
+        scheduledAtMs: readRequiredEpochMsValue(record['scheduled_at_ms'], 'AutomationOccurrenceResponse.scheduled_at_ms'),
+        title: readRequiredTrimmedString(record, 'title', 'AutomationOccurrenceResponse.title'),
+        enabled: readNullableBooleanValue(record['enabled'], 'AutomationOccurrenceResponse.enabled'),
         color: normalizeAutomationColor(record['color']),
-        runId: readNullableTrimmedStringValue(record['run_id'], 'AutomationZone.run_id'),
-        status: readRequiredEnumValue(record['status'], 'AutomationZone.status', AUTOMATION_ZONE_STATUSES),
-        resultExcerpt: readNullableTrimmedStringValue(record['result_excerpt'], 'AutomationZone.result_excerpt'),
-        statusMessage: readNullableTrimmedStringValue(record['status_message'], 'AutomationZone.status_message'),
-        convId: readNullableTrimmedStringValue(record['conv_id'], 'AutomationZone.conv_id'),
-        startedAtActualMs: readNullableEpochMsValue(record['started_at_actual_ms'], 'AutomationZone.started_at_actual_ms'),
-        finishedAtMs: readNullableEpochMsValue(record['finished_at_ms'], 'AutomationZone.finished_at_ms')
+        runId: readNullableTrimmedStringValue(record['run_id'], 'AutomationOccurrenceResponse.run_id'),
+        status: readRequiredEnumValue(record['status'], 'AutomationOccurrenceResponse.status', AUTOMATION_ZONE_STATUSES),
+        resultExcerpt: readNullableTrimmedStringValue(record['result_excerpt'], 'AutomationOccurrenceResponse.result_excerpt'),
+        statusMessage: readNullableTrimmedStringValue(record['status_message'], 'AutomationOccurrenceResponse.status_message'),
+        convId: readNullableTrimmedStringValue(record['conv_id'], 'AutomationOccurrenceResponse.conv_id'),
+        startedAtActualMs: readNullableEpochMsValue(record['started_at_actual_ms'], 'AutomationOccurrenceResponse.started_at_actual_ms'),
+        finishedAtMs: readNullableEpochMsValue(record['finished_at_ms'], 'AutomationOccurrenceResponse.finished_at_ms')
     };
 };
 
@@ -222,11 +270,11 @@ const parseAutomationRunRecord = (value: JsonValue | null | undefined): Automati
 };
 
 const parseAutomationOccurrencesDeleteResult = (value: JsonValue | null | undefined): AutomationOccurrencesDeleteResponse => {
-    const record = requireRecord(value, 'AutomationOccurrencesDeleteResult');
+    const record = requireRecord(value, 'AutomationOccurrencesDeleteResponse');
     return {
-        deletedOccurrenceCount: readRequiredPositiveIntegerValue(record['deleted_occurrence_count'], 'AutomationOccurrencesDeleteResult.deleted_occurrence_count'),
-        deletedRunCount: readRequiredNonNegativeIntegerValue(record['deleted_run_count'], 'AutomationOccurrencesDeleteResult.deleted_run_count'),
-        cancelledRunIds: readRequiredTrimmedStringArrayValue(record['cancelled_run_ids'], 'AutomationOccurrencesDeleteResult.cancelled_run_ids')
+        deletedOccurrenceCount: readRequiredNonNegativeIntegerValue(record['deleted_occurrence_count'], 'AutomationOccurrencesDeleteResponse.deleted_occurrence_count'),
+        deletedRunCount: readRequiredNonNegativeIntegerValue(record['deleted_run_count'], 'AutomationOccurrencesDeleteResponse.deleted_run_count'),
+        cancelledRunIds: readRequiredTrimmedStringArrayValue(record['cancelled_run_ids'], 'AutomationOccurrencesDeleteResponse.cancelled_run_ids')
     };
 };
 
@@ -256,4 +304,6 @@ const decodeAutomationMcpCatalog = (value: ApiResponsePayload): AutomationMcpCat
 
 const decodeAutomationOccurrencesDeleteResult = (value: ApiResponsePayload): AutomationOccurrencesDeleteResponse => parseAutomationOccurrencesDeleteResult(requireJsonResponsePayload(value, 'Automation occurrences delete'));
 
-export { decodeAutomationDefinition, decodeAutomationDefinitionList, decodeAutomationMcpCatalog, decodeAutomationOccurrenceList, decodeAutomationOccurrencesDeleteResult, decodeAutomationRun, decodeAutomationRunList };
+const decodeAutomationSchedulePreview = (value: ApiResponsePayload): AutomationSchedulePreviewResponse => parseAutomationSchedulePreview(requireJsonResponsePayload(value, 'Automation schedule preview'));
+
+export { decodeAutomationDefinition, decodeAutomationDefinitionList, decodeAutomationMcpCatalog, decodeAutomationOccurrenceList, decodeAutomationOccurrencesDeleteResult, decodeAutomationRun, decodeAutomationRunList, decodeAutomationSchedulePreview };

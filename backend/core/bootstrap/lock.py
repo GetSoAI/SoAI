@@ -11,10 +11,13 @@ import time
 from collections.abc import Generator
 from contextlib import contextmanager
 
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.timing.epoch import epoch_seconds
 from core.timing.sleep import sleep_seconds
 
-__all__ = ("acquire_interprocess_lock",)
+__all__ = ("INSTALLATION_TRANSACTION_LOCK_FILENAME", "acquire_interprocess_lock")
+
+INSTALLATION_TRANSACTION_LOCK_FILENAME = "soai.installation.transaction.lock"
 
 
 def _is_lock_contended_error(exception: BaseException) -> bool:
@@ -97,11 +100,11 @@ def acquire_interprocess_lock(lock_path: str, *, timeout_sec: float) -> Generato
     resolved_path = os.path.abspath(lock_path)
     lock_dir = os.path.dirname(resolved_path)
     if lock_dir:
-        os.makedirs(lock_dir, exist_ok=True)
+        os.makedirs(normalize_filesystem_path(lock_dir), exist_ok=True)
 
     start = time.monotonic()
     sleep_delay_seconds = 0.1
-    with open(resolved_path, "a+b") as handle:
+    with open(normalize_filesystem_path(resolved_path), "a+b") as handle:
         acquired = False
         while not acquired:
             try:

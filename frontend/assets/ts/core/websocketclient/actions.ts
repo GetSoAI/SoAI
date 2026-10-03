@@ -8,7 +8,7 @@ import { parseRequiredJsonText } from '@core/serialization/json.ts';
 import { telemetry } from '@core/telemetry/service.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { isFiniteNumber, isString } from '@core/typeGuards.ts';
-import { CONNECTION_STATES, WEBSOCKET_PROTOCOL_VERSION, type ConnectionState } from '@core/websocketclient/constants.ts';
+import { CONNECTION_STATES, CONNECTION_WAIT_TIMEOUT_MS, WEBSOCKET_PROTOCOL_VERSION, type ConnectionState } from '@core/websocketclient/constants.ts';
 import { type SnapshotRequestOptions, type SnapshotResponseEnvelope, type WebSocketMessageData } from '@core/websocketclient/types.ts';
 import { WebSocketReconnectInterruptionError } from '@core/websocketclient/connectionInterruption.ts';
 import { WEBSOCKET_EVENT_TYPES, WEBSOCKET_MESSAGE_TYPES } from '@core/websocketEvents.ts';
@@ -148,7 +148,7 @@ const sendWebSocketMessage = async (options: SendWebSocketMessageOptions): Promi
         throw new Error('WebSocket payload requires a type');
     }
     if (options.waitForConnection) {
-        const timeout = isFiniteNumber(options.timeoutMs) ? options.timeoutMs : 15000;
+        const timeout = isFiniteNumber(options.timeoutMs) ? options.timeoutMs : CONNECTION_WAIT_TIMEOUT_MS;
         await options.awaitConnection(timeout, options.signal);
     }
     throwIfAborted(options.signal);

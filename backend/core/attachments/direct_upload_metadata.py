@@ -18,7 +18,6 @@ __all__ = (
     "ensure_existing_direct_upload_matches",
     "normalize_direct_upload_declared_size",
     "normalize_direct_upload_mime_type",
-    "normalize_direct_upload_suffix",
     "require_direct_upload_client_id",
     "resolve_direct_upload_display_name",
     "resolve_direct_upload_preview_type",
@@ -79,20 +78,6 @@ def normalize_direct_upload_mime_type(content_type: str | None) -> str:
     if isinstance(content_type, str) and content_type.strip():
         return content_type.strip().lower()
     return "application/octet-stream"
-
-
-def normalize_direct_upload_suffix(filename: str) -> str:
-    root, extension = os.path.splitext(filename)
-    _ = root
-    if not extension or extension == ".":
-        return ""
-    normalized = extension.lower()
-    if not normalized.startswith("."):
-        return ""
-    value = normalized[1:]
-    if not value or len(value) > 16 or not value.isalnum():
-        return ""
-    return normalized
 
 
 def resolve_direct_upload_preview_type(filename: str, mime_type: str) -> str:

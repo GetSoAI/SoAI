@@ -3,10 +3,10 @@
 
 @layer pages {
     :where([data-section='automation'], [data-page-scope='automation']) .automation-window-run-item {
-        --automation-window-run-overlay-inset-left: 0;
-        --automation-window-run-overlay-inset-right: 0;
-        --automation-window-run-left-rail-color: transparent;
-        --automation-window-run-right-rail-color: transparent;
+        --automation-window-run-overlay-inset-inline-start: 0;
+        --automation-window-run-overlay-inset-inline-end: 0;
+        --automation-window-run-inline-start-rail-color: transparent;
+        --automation-window-run-inline-end-rail-color: transparent;
         --automation-window-run-overlay-surface: none;
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -24,8 +24,9 @@
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-window-run-item::before {
-        inset: 0 var(--automation-window-run-overlay-inset-right) 0 var(--automation-window-run-overlay-inset-left);
-        background: linear-gradient(to right, var(--automation-window-run-left-rail-color) 0, var(--automation-window-run-left-rail-color) var(--border-width-3), transparent var(--border-width-3)), linear-gradient(to left, var(--automation-window-run-right-rail-color) 0, var(--automation-window-run-right-rail-color) var(--border-width-3), transparent var(--border-width-3)), var(--automation-window-run-overlay-surface), var(--button-surface-hover);
+        inset-block: 0 0;
+        inset-inline: var(--automation-window-run-overlay-inset-inline-start) var(--automation-window-run-overlay-inset-inline-end);
+        background: linear-gradient(calc(90deg * var(--dir-sign)), var(--automation-window-run-inline-start-rail-color) 0, var(--automation-window-run-inline-start-rail-color) var(--border-width-3), transparent var(--border-width-3)), linear-gradient(calc(-90deg * var(--dir-sign)), var(--automation-window-run-inline-end-rail-color) 0, var(--automation-window-run-inline-end-rail-color) var(--border-width-3), transparent var(--border-width-3)), var(--automation-window-run-overlay-surface), var(--button-surface-hover);
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-window-run-item:focus-within {
@@ -34,8 +35,6 @@
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-window-run-delete-btn {
-        top: 0;
-        right: 0;
         z-index: calc(var(--z-raised) + 1);
         opacity: 1;
     }
@@ -49,8 +48,8 @@
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-window-run-item.is-batch-selected {
-        --automation-window-run-overlay-inset-left: 0;
-        --automation-window-run-left-rail-color: transparent;
+        --automation-window-run-overlay-inset-inline-start: 0;
+        --automation-window-run-inline-start-rail-color: transparent;
         --automation-item-status-overlay: linear-gradient(135deg, color-mix(in srgb, var(--accent-green) 20%, transparent), color-mix(in srgb, var(--accent-green) 10%, transparent));
     }
 
@@ -76,13 +75,16 @@
     :where([data-section='automation'], [data-page-scope='automation']) .automation-window-run-row-actions-buttons {
         position: absolute;
         top: 7px;
-        right: 7px;
+        inset-inline-end: 7px;
         z-index: calc(var(--z-above-sibling) + 1);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
         width: var(--control-round-button-size);
-        height: var(--control-round-button-size);
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-window-run-row-actions-buttons > .ui-round-button {
+        position: relative;
         z-index: calc(var(--z-above-sibling) + 1);
         pointer-events: auto;
     }
@@ -141,7 +143,7 @@
         background: transparent;
         font: inherit;
         color: inherit;
-        text-align: left;
+        text-align: start;
         cursor: pointer;
     }
 

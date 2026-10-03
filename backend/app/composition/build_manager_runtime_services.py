@@ -32,6 +32,7 @@ from core.models.protocols import (
 from core.orchestrator.protocols_lifecycle import OrchestratorControlProtocol
 from core.plugins.protocols import PluginManagerProtocol
 from core.plugins.protocols_instance import FilesProtocol
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.protocols import RuntimeFlagsViewProtocol, RuntimeStateStoreProtocol
 from core.tool_calls.protocols import ToolCallExecutorProtocol
 from orchestrator.tool_calls.dependencies import ToolCallProcessorDependencies
@@ -91,6 +92,7 @@ def build_manager_runtime_services(
     orchestrator_components: OrchestratorServiceComponents,
     licensing_status: LicensingStatusProtocol,
     edition: Edition,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> tuple[
     OrchestratorServices,
     StorageServices,
@@ -185,11 +187,13 @@ def build_manager_runtime_services(
         database_core=preconditions.database_core,
         database_notifications=preconditions.database_notifications,
         database_files=preconditions.database_files,
+        database_operation_status=preconditions.database_operation_status,
         orchestrator_control=orchestrator_control_instance,
         config_manager=config_manager,
         storage_manager=infrastructure_services.hardware.storage,
         lifecycle_coordinator=lifecycle_coordinator,
         media_parsing=media_parsing,
+        process_exit_deadline=process_exit_deadline,
     )
     inactivity_monitor_instance = build_inactivity_monitor(
         config=config,
@@ -200,6 +204,7 @@ def build_manager_runtime_services(
         metrics_manager=preconditions.metrics_manager,
         lifecycle_logger=lifecycle_logger,
         lifecycle_coordinator=lifecycle_coordinator,
+        process_exit_deadline=process_exit_deadline,
     )
     orchestrator_services = OrchestratorServices(
         queue=orchestrator_components.queue,

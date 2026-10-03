@@ -73,7 +73,7 @@ const renderPasswordInput = (modalId: string, token: string, autocomplete: strin
     return toTrustedUiHtml(
         renderSecretInputControl({
             inputId,
-            inputMarkup: `<input type="${uiAttr(resolveSecretInputType()).html}" id="${uiAttr(inputId).html}" class="form-input secret-input" spellcheck="false" autocapitalize="off" autocomplete="${uiAttr(autocomplete).html}">`
+            inputMarkup: `<input dir="ltr" type="${uiAttr(resolveSecretInputType()).html}" id="${uiAttr(inputId).html}" class="form-input secret-input" spellcheck="false" autocapitalize="off" autocomplete="${uiAttr(autocomplete).html}">`
         })
     );
 };
@@ -144,9 +144,9 @@ const usernameRenameModalDefinition: ModalDefinition = {
         const passwordInputId = modalUiId(modalId, USERNAME_RENAME_UI_TOKENS.PASSWORD);
         const passwordInput = renderSecretInputControl({
             inputId: passwordInputId,
-            inputMarkup: `<input type="${uiAttr(resolveSecretInputType()).html}" id="${uiAttr(passwordInputId).html}" class="form-input secret-input" spellcheck="false" autocapitalize="off" autocomplete="current-password">`
+            inputMarkup: `<input dir="ltr" type="${uiAttr(resolveSecretInputType()).html}" id="${uiAttr(passwordInputId).html}" class="form-input secret-input" spellcheck="false" autocapitalize="off" autocomplete="current-password">`
         });
-        const body = renderModalBody(uiHtml`<div class="form-group"><label id="${uiAttr(modalUiId(modalId, USERNAME_RENAME_UI_TOKENS.USERNAME_LABEL))}" for="${uiAttr(usernameInputId)}"></label><input id="${uiAttr(usernameInputId)}" class="form-input" type="text" autocomplete="username" maxlength="50" spellcheck="false" autocapitalize="off"></div><div class="form-group"><label id="${uiAttr(passwordLabelId)}" for="${uiAttr(passwordInputId)}"></label>${toTrustedUiHtml(passwordInput)}</div><div class="form-disclaimer form-disclaimer-error" id="${uiAttr(modalUiId(modalId, USERNAME_RENAME_UI_TOKENS.ERROR))}" role="alert" aria-live="polite" hidden></div>`);
+        const body = renderModalBody(uiHtml`<div class="form-group"><label id="${uiAttr(modalUiId(modalId, USERNAME_RENAME_UI_TOKENS.USERNAME_LABEL))}" for="${uiAttr(usernameInputId)}"></label><input dir="ltr" id="${uiAttr(usernameInputId)}" class="form-input" type="text" autocomplete="username" maxlength="50" spellcheck="false" autocapitalize="off"></div><div class="form-group"><label id="${uiAttr(passwordLabelId)}" for="${uiAttr(passwordInputId)}"></label>${toTrustedUiHtml(passwordInput)}</div><div class="form-disclaimer form-disclaimer-error" id="${uiAttr(modalUiId(modalId, USERNAME_RENAME_UI_TOKENS.ERROR))}" role="alert" aria-live="polite" hidden></div>`);
         const footer = renderSplitModalFooter({
             left: renderModalFooterCloseButton({ modalId, id: modalUiId(modalId, USERNAME_RENAME_UI_TOKENS.CANCEL), text: i18n.t('common.cancel') }),
             right: renderModalFooterActionButton({ id: modalUiId(modalId, USERNAME_RENAME_UI_TOKENS.SUBMIT), text: i18n.t('common.save'), variant: 'neutral' })

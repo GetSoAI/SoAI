@@ -3,10 +3,12 @@
 
 import type { AutomationRunStatus } from '@core/automation/protocols.ts';
 
-type AutomationRealtimeUpdate = { updateType: 'automation-changed' } | { updateType: 'run-changed'; runId: string };
+type AutomationRealtimeUpdate = { updateType: 'automation-changed' } | { updateType: 'run-changed'; runId: string } | { updateType: 'connection-lost' } | { updateType: 'connection-restored' };
 
 interface AutomationRunActivitySnapshot {
     initialized: boolean;
+    stale: boolean;
+    lastSyncedAtMs: number | null;
     hasRunning: boolean;
     runningAutomationIds: ReadonlySet<string>;
 }

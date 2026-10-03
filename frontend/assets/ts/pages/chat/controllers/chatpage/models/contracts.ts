@@ -18,6 +18,7 @@ interface ChatModelSessionContract {
     closeControlMenu(): void;
     handleControlAction(actionElement: HTMLElement): void;
     handleControlSearchInput(input: HTMLInputElement): void;
+    selectPrimaryModel(modelId: string): Promise<boolean>;
     handleComparisonNavigation(actionElement: HTMLElement): void;
     syncComparisonSelection(analysis: ConversationProjectionAnalysis): ReadonlyMap<number, number>;
     syncComparisonPresentation(container: Element, state: ComparisonPresentationState): void;

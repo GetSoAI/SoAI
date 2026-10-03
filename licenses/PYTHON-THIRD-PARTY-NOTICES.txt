@@ -1,6 +1,6 @@
 SoAI Backend Python Third-Party Notices (requirements.txt)
 
-Generated: 2026-08-26
+Generated: 2026-09-24
 
 This file lists Python packages pinned in requirements.txt and their license metadata as observed in the
 SoAI development environment. These packages are downloaded/installed at first start and are not shipped
@@ -119,7 +119,7 @@ pypika==0.51.1 -> Apache-2.0
 pyproject-hooks==1.2.0 -> MIT
 pytesseract==0.3.13 -> Apache-2.0
 python-dateutil==2.9.0.post0 -> BSD; Apache-2.0
-python-dotenv==1.2.2 -> BSD-3-Clause
+python-dotenv==1.2.3 -> BSD-3-Clause
 python-multipart==0.0.32 -> Apache-2.0
 pyyaml==6.0.3 -> MIT
 rapidocr-onnxruntime==1.2.3 -> Apache-2.0
@@ -144,10 +144,10 @@ sympy==1.14.0 -> BSD
 tenacity==9.1.4 -> Apache-2.0
 tika==3.3.2 -> (metadata does not provide a concise SPDX identifier)
 tiktoken==0.13.0 -> (metadata does not provide a concise SPDX identifier)
-tinytag==2.3.0 -> MIT
+tinytag==2.3.2 -> MIT
 tokenizers==0.23.1 -> Apache-2.0
 torch==2.13.0+cpu -> Apache-2.0 AND Apache-2.0 WITH LLVM-exception AND BSD-2-Clause AND BSD-3-Clause AND BSL-1.0 AND MIT
-tqdm==4.70.0 -> MPL-2.0 AND MIT
+tqdm==4.70.1 -> MPL-2.0 AND MIT
 triton==3.7.1 -> MIT
 truststore==0.10.4 -> MIT
 typer==0.27.1 -> MIT

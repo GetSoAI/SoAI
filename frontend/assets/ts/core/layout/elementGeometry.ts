@@ -73,6 +73,18 @@ const createGeometryBox = (rectangle: DOMRect | DOMRectReadOnly, divisor: number
     height: rectangle.height / divisor
 });
 
+const SCROLLBAR_PROBE_CLASS = 'ui-scrollbar-probe';
+
+const measureScrollbarInlineSize = (scope: Document | Element = getDocumentElement()): number => {
+    const documentRef = resolveScopeDocument(scope);
+    const probe = documentRef.createElement('div');
+    probe.className = SCROLLBAR_PROBE_CLASS;
+    documentRef.body.append(probe);
+    const inlineSize = Math.max(0, probe.offsetWidth - probe.clientWidth);
+    probe.remove();
+    return inlineSize;
+};
+
 const measureViewportBox = (measurable: GeometryMeasurable): GeometryBox => createGeometryBox(measurable.getBoundingClientRect(), 1);
 
 const measureLayoutBox = (measurable: GeometryMeasurable): GeometryBox => {
@@ -94,5 +106,5 @@ const measureLayoutTouchPoint = (touch: Touch, scope: Document | Element = getDo
     y: toLayoutPixels(touch.clientY, scope)
 });
 
-export { measureElementLayoutDimensions, measureLayoutBox, measureLayoutPoint, measureLayoutTouchPoint, measureLayoutViewport, measureViewportBox, measureViewportPoint, measureViewportTouchPoint, toLayoutPixels };
+export { measureElementLayoutDimensions, measureLayoutBox, measureLayoutPoint, measureLayoutTouchPoint, measureLayoutViewport, measureScrollbarInlineSize, measureViewportBox, measureViewportPoint, measureViewportTouchPoint, toLayoutPixels };
 export type { GeometryBox, GeometryDimensions, GeometryMeasurable, GeometryPoint, PointerGeometryEvent };

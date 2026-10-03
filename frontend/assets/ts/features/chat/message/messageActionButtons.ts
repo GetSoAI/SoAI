@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
+import type { TrustedHtml } from '@core/security/public.ts';
 import { isString } from '@core/typeGuards.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
@@ -10,7 +11,7 @@ import { CHAT_ICON_SIZE_XS } from '@features/chat/chatConstants.ts';
 
 interface MessageActionButtonRenderContext {
     escapeAttribute(value: string): string;
-    getIcon(name: IconName, options?: IconOptions): string;
+    getIcon(name: IconName, options?: IconOptions): TrustedHtml;
 }
 
 interface MessageActionButtonMarkupArguments {

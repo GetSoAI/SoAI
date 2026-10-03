@@ -31,6 +31,7 @@ from core.media_preview.media_preview_proxy_response import (
 from core.media_preview.media_preview_settings import MediaPreviewSettings
 from core.network.http_download import download_http_stream_to_file
 from core.network.outbound_http_profiles import build_default_browser_asset_headers
+from core.network.transfer_retry import build_http_transfer_retry_policy
 from core.network.urls import normalize_http_url
 from core.runtime.network_policy import OfflineModeError
 from webui.manager.media_preview_proxy_cache import (
@@ -162,6 +163,7 @@ class ProxyFileService:
                 http_client=http_client,
                 url=normalized_url,
                 destination_path=temp_path,
+                retry_policy=build_http_transfer_retry_policy("interactive"),
                 cancellation_token=CancellationToken(
                     "webui_media_proxy",
                     owner="webui_media_proxy",

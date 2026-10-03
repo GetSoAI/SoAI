@@ -9,6 +9,7 @@ import { getLocation } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { isAiSetupResumeRequest } from '@core/routing/router/aiSetupRoutes.ts';
 import { AUTH_ROUTE_LOGIN, AUTH_ROUTE_WIZARD, resolveAuthenticatedRouteTarget } from '@core/routing/router/authRouteTarget.ts';
 import type { PageInstance } from '@core/pagehost/types.ts';
 import type { NavigationDetail } from '@core/routing/router/types.ts';
@@ -85,33 +86,26 @@ export const resolveRouteKey = (route: LifecycleRoute | undefined): string | nul
     return null;
 };
 
+const parseHashRoute = (router: Router, hash: string): ReturnType<Router['parseRoute']> => {
+    if (!hash) return null;
+    try {
+        return router.parseRoute(hash);
+    } catch (error) {
+        errorHandler.warn('AppLifecycle', 'Ignoring an unparseable initial route', ensureError(error));
+        return null;
+    }
+};
+
 export const resolveInitialRoute = async ({ isAuthenticated, needsWizard, router, toggleMainUI, isWizardCompletionPending }: ResolveInitialRouteOptions): Promise<RouteKey> => {
     toggleMainUI(isAuthenticated);
     const hash = getLocation().hash.slice(1);
+    const parsed = parseHashRoute(router, hash);
 
     if (!isAuthenticated) {
-        if (hash) {
-            let parsed: ReturnType<Router['parseRoute']> = null;
-            try {
-                parsed = router.parseRoute(hash);
-            } catch (error) {
-                ensureError(error);
-                parsed = null;
-            }
-            if (parsed) {
-                const routeObject = parsed.route;
-                const auth = routeObject.auth;
-                if (auth !== true) {
-                    const component = routeObject.component;
-                    if (isString(component) && component) {
-                        if (component === AUTH_ROUTE_WIZARD) {
-                            return hash;
-                        }
-                        if (!needsWizard) {
-                            return hash;
-                        }
-                    }
-                }
+        if (parsed && parsed.route.auth !== true) {
+            const component = parsed.route.component;
+            if (isString(component) && component && (component === AUTH_ROUTE_WIZARD || !needsWizard)) {
+                return hash;
             }
         }
         return needsWizard ? AUTH_ROUTE_WIZARD : AUTH_ROUTE_LOGIN;
@@ -119,6 +113,10 @@ export const resolveInitialRoute = async ({ isAuthenticated, needsWizard, router
 
     if (isWizardCompletionPending()) {
         return AUTH_ROUTE_WIZARD;
+    }
+
+    if (parsed?.route.component === AUTH_ROUTE_WIZARD && isAiSetupResumeRequest(parsed.parameters)) {
+        return hash;
     }
 
     return resolveAuthenticatedRouteTarget(router, { currentRoute: hash });
@@ -158,7 +156,7 @@ export const ensureRouteRendered = async ({ route, router }: EnsureRouteRendered
     const outlet = router.getPageOutlet();
     const host = requirePageHostApi(outlet.getPageHost(), routeKey);
 
-    await host.whenReady({ waitForReveal: false });
+    await host.whenReady();
     const stateCandidate = host.getCurrent();
     const hasState = stateCandidate !== undefined && stateCandidate !== null;
     const stateObject: RenderedPageState | null = hasState && isObject(stateCandidate) ? stateCandidate : null;

@@ -19,7 +19,7 @@ export const renderLoginPageView = (dependencies: { sanitizer: Sanitizer }): str
     const passwordPlaceholder = sanitizer.attribute(i18n.t('login.passwordPlaceholder'));
     const signInTitle = sanitizer.attribute(i18n.t('login.signInButton'));
     const passwordType = resolveSecretInputType();
-    const passwordInput = `<input type="${passwordType}" id="password" name="password" required autocomplete="current-password"
+    const passwordInput = `<input dir="ltr" type="${passwordType}" id="password" name="password" required autocomplete="current-password"
                                        class="form-input secret-input" placeholder="${passwordPlaceholder}">`;
     const documentationLinkPlaceholder = 'DOCUMENTATION_LINK_PLACEHOLDER';
     const helpTextEscaped = sanitizer.html(i18n.t('login.helpText', { documentationLink: documentationLinkPlaceholder }));
@@ -41,7 +41,7 @@ export const renderLoginPageView = (dependencies: { sanitizer: Sanitizer }): str
                     <form id="login-form" class="login-form" method="post">
                         <div class="form-group">
                             <label for="username">${usernameLabel}</label>
-                            <input type="text" id="username" name="username" required autocomplete="username"
+                            <input dir="ltr" type="text" id="username" name="username" required autocomplete="username"
                                    class="form-input" placeholder="${usernamePlaceholder}">
                         </div>
                         <div class="form-group" id="password-section">

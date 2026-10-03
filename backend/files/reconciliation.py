@@ -19,6 +19,7 @@ from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.files.operations import async_remove
 from core.files.protocols import DatabaseFilesProtocol
 from core.filesystem.async_queries import async_isdir
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.logging.trace import get_logger
 from core.timing.constants import RESPONSIVE_TIMEOUT_SEC
 
@@ -68,7 +69,7 @@ async def collect_physical_files(
         records: list[tuple[str, bool, bool]] = []
         error_count = 0
         try:
-            with os.scandir(path) as it:
+            with os.scandir(normalize_filesystem_path(path)) as it:
                 for entry in it:
                     try:
                         if entry.is_symlink():
@@ -78,7 +79,7 @@ async def collect_physical_files(
                     except OSError:
                         error_count += 1
                         continue
-                    records.append((entry.path, is_dir, is_file))
+                    records.append((os.path.join(path, entry.name), is_dir, is_file))
         except OSError:
             return ([], 1)
         return (records, error_count)

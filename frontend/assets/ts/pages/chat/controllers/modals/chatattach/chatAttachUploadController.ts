@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ChatAttachUploadHost } from '@pages/chat/controllers/modals/chatattach/contracts.ts';
+import { bindFileDropArea } from '@core/ui/fileDropArea.ts';
 import { ChatAttachDraftAttachmentListController } from '@pages/chat/controllers/modals/chatattach/ChatAttachDraftAttachmentListController.ts';
 import { acceptsUploadDrop } from '@pages/chat/controllers/modals/chatattach/chatAttachDropAcceptanceController.ts';
-import { bindChatAttachDropTarget } from '@pages/chat/controllers/modals/chatattach/chatAttachDropTargetController.ts';
 import { resolveChatAttachDroppedPayloadType } from '@pages/chat/controllers/modals/chatattach/chatAttachDroppedPayloadController.ts';
 import type { ChatAttachUploadElements } from '@pages/chat/controllers/modals/chatattach/types.ts';
 import { openFilePicker, setButtonEnabled } from '@pages/chat/controllers/modals/chatattach/view.ts';
@@ -72,7 +72,7 @@ class ChatAttachUploadController {
     }
 
     #bind(): void {
-        bindChatAttachDropTarget({
+        bindFileDropArea({
             element: this.#elements.dropzoneButton,
             signal: this.#signal,
             setTimer: (functionValue, delayMs) => this.#host.shared.pageResources.setTimer(functionValue, delayMs),

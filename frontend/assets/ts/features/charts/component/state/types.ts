@@ -2,19 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ChartColorInput, ChartOptions, ChartThemeManagedPaletteInput, VisiblePointsCache } from '@features/charts/chartTypes.ts';
-import type { CanvasLayers, RenderBuffers, ThemeColorFlags, ZoomState } from '@features/charts/component/chartComponentTypes.ts';
+import type { CanvasLayers, RenderBuffers, ThemeColorFlags } from '@features/charts/component/chartComponentTypes.ts';
 
 export interface ChartStorageService {
     getChartColorMode: () => string | null | undefined;
     getChartStaticColor: () => string | null | undefined;
-}
-
-export interface ZoomBoundsHost {
-    zoom: ZoomState;
-    chartOptions: ChartOptions;
-    baseBarPixelWidth: number;
-    getEffectiveDataLength: () => number;
-    getChartDimensions: () => { chartWidth: number };
 }
 
 export interface DynamicPrimaryColorHost {

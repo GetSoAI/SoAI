@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "Nu"
+                "now": "Nu",
+                "occurrenceLabel": "{title}, {date} {time}, {status}",
+                "createAt": "Automatisering maken op {date} om {time}. Gebruik de pijltoetsen om de tijd te wijzigen."
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "Start",
                     "turns": "Beurten",
                     "timezone": "Tijdzone",
-                    "title": "Titel"
+                    "title": "Titel",
+                    "modelSettings": "Model, tools en parameters"
                 },
                 "workspace": {
                     "button": "Map kiezen",
                     "description": "Kies de map die voor deze automatiseringsuitvoering wordt gebruikt. Terugkerende uitvoeringen behouden deze automatiseringsmap.",
                     "fieldLabel": "Werkruimtemap",
-                    "title": "Werkruimtemap voor automatisering"
+                    "title": "Werkruimtemap voor automatisering",
+                    "viewButton": "Werkruimte bekijken"
                 },
                 "parameters": {
                     "button": "Parameters bewerken",
@@ -166,17 +170,17 @@
                     "fieldLabel": "Modelparameters",
                     "summaryCustom": "Aangepaste automatiseringsparameters",
                     "summaryDefault": "Standaardmodelparameters",
-                    "title": "Modelparameters voor automatisering"
+                    "title": "Modelparameters voor automatisering",
+                    "viewButton": "Parameters bekijken"
                 },
                 "timezone": {
-                    "auto": "Automatisch"
+                    "autoWithZone": "Automatisch ({timezone})"
                 },
                 "placeholders": {
                     "assistantTurn": "Modelantwoord",
                     "endOfAutomation": "Einde van automatisering",
                     "model": "Selecteer een model",
                     "turn": "Voer een bericht in",
-                    "turnIndexed": "Voer bericht {index} in",
                     "title": "Voer een titel in"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "Opslaan",
                 "validation": {
                     "maxRunMinutesInvalid": "De maximale uitvoeringsduur moet tussen 1 en 1440 minuten liggen.",
-                    "modelUnavailable": "Het geselecteerde model is niet beschikbaar.",
+                    "modelUnavailable": "{model} is niet beschikbaar. Kies een ander model.",
                     "modelRequired": "Model is vereist.",
                     "recurrenceInvalid": "Herhaling is ongeldig.",
                     "startInvalid": "Startdatum en -tijd zijn ongeldig.",
@@ -195,7 +199,42 @@
                     "turnsRequired": "Alle beurten zijn vereist.",
                     "tooManyTurns": "Te veel beurten (maximaal {max}). Elke beurt wordt als één agentbeurt uitgevoerd.",
                     "timezoneRequired": "Tijdzone is vereist.",
-                    "titleRequired": "Titel is vereist."
+                    "titleRequired": "Titel is vereist.",
+                    "modelDisabled": "{model} is uitgeschakeld. Schakel het in of kies een ander model.",
+                    "modelMissing": "{model} is niet meer geïnstalleerd. Kies een ander model.",
+                    "modelUnsupported": "{model} ondersteunt geen chat. Kies een ander model.",
+                    "summary": "Corrigeer {count} veld(en) voordat u opslaat.",
+                    "toolsRequired": "Voor uitvoering moeten hulpmiddelen zijn ingeschakeld en todo_write zijn geselecteerd.",
+                    "timezoneInvalid": "De tijdzone is ongeldig. Kies een ondersteunde tijdzone."
+                },
+                "conflict": {
+                    "message": "Deze automatisering is elders gewijzigd terwijl u haar bewerkte. Uw wijzigingen zijn niet opgeslagen.",
+                    "remoteChanges": "Elders gewijzigd: {fields}",
+                    "localChanges": "Uw wijzigingen: {fields}",
+                    "keepChanges": "Mijn wijzigingen behouden",
+                    "loadLatest": "Nieuwste versie laden"
+                },
+                "modelStatus": {
+                    "unavailable": "Niet beschikbaar",
+                    "unsupported": "Geen chatondersteuning"
+                },
+                "prerequisites": {
+                    "failed": "De editor kon niet alles laden wat nodig is.",
+                    "missing": "Deze automatisering bestaat niet meer.",
+                    "toolsUnavailable": "Tools konden niet worden geladen. Bestaande toolselecties blijven behouden.",
+                    "childFailed": "De instellingen konden niet worden geopend. Probeer het opnieuw."
+                },
+                "schedule": {
+                    "ambiguous": "{start} komt door een klokwijziging twee keer voor in {timezone}. Het eerste tijdstip wordt gebruikt.",
+                    "shiftedForward": "{start} bestaat door een klokwijziging niet in {timezone}. De uitvoering vindt in plaats daarvan plaats om {effective}.",
+                    "disabled": "Uitgeschakeld: er worden geen uitvoeringen gepland.",
+                    "nextRun": "Volgende uitvoering: {when} ({timezone})",
+                    "nextRunLocal": "Volgende uitvoering: {when} ({timezone}), {localWhen} uw tijd",
+                    "unavailable": "Het schemavoorbeeld is niet beschikbaar."
+                },
+                "turns": {
+                    "label": "Beurt {index}",
+                    "remove": "Beurt {index} verwijderen"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "Automatiseringsvoorkeuren teruggezet naar de standaardwaarden.",
                 "runOpenFailed": "Openen van de gevraagde automatiseringsuitvoering mislukt.",
                 "runUnavailable": "De gevraagde automatiseringsuitvoering is niet meer beschikbaar in deze weergave.",
-                "updated": "Automatisering bijgewerkt."
+                "updated": "Automatisering bijgewerkt.",
+                "changeRefreshFailed": "De wijziging is toegepast, maar de weergave kon niet worden vernieuwd.",
+                "conflict": "Deze automatisering is elders gewijzigd. Bekijk de wijzigingen voordat u opnieuw opslaat.",
+                "defaultsNotRemembered": "Opgeslagen, maar deze instellingen konden niet worden onthouden voor nieuwe automatiseringen.",
+                "missingOnSave": "Deze automatisering bestaat niet meer. Mogelijk is ze elders verwijderd."
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "Vandaag",
                         "yesterday": "Gisteren"
                     },
-                    "turnsCount": "Beurten: {count}",
                     "title": "Uitvoeringen",
                     "toolbar": {
                         "batchDelete": "Geselecteerde uitvoeringen verwijderen",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "{count} uitvoering(en) verwijderen? Actieve uitvoeringen worden gestopt.",
-                        "deleteTitle": "Uitvoeringen verwijderen?"
+                        "deleteTitle": "Uitvoeringen verwijderen?",
+                        "skipTitle": "Uitvoering overslaan?",
+                        "skipMessage": "{title} wordt op dit tijdstip niet uitgevoerd. Andere uitvoeringen worden niet beïnvloed.",
+                        "skipConfirm": "Overslaan",
+                        "stopTitle": "Uitvoering stoppen?",
+                        "stopMessage": "{title} wordt uitgevoerd. De uitvoering wordt gestopt en uit de agenda verwijderd.",
+                        "stopConfirm": "Stoppen",
+                        "removeTitle": "Uitvoering verwijderen?",
+                        "removeMessage": "{title} wordt uit de agenda verwijderd.",
+                        "removeConfirm": "Verwijderen"
                     },
                     "notifications": {
-                        "deleteSuccess": "{count} uitvoering(en) verwijderd."
-                    }
+                        "deleteSuccess": "{count} uitvoering(en) verwijderd.",
+                        "nothingToDelete": "De geselecteerde uitvoeringen staan niet meer in deze weergave.",
+                        "tooManySelected": "Selecteer maximaal {max} uitvoeringen tegelijk."
+                    },
+                    "occurrencesCount": "Uitvoeringen: {count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "Vorige",
                 "showCalendar": "Agenda",
                 "showRegistry": "Deelvenster",
-                "today": "Vandaag"
+                "today": "Vandaag",
+                "staleData": "Verouderd",
+                "staleDataSince": "Automatiseringsgegevens zijn mogelijk verouderd. Laatst bijgewerkt: {time}. Selecteer om opnieuw te proberen.",
+                "resizePanes": "Grootte van agenda en zijvenster wijzigen"
             },
             "views": {
                 "day": "Dag",
@@ -300,6 +357,7 @@
                     "bar": "Staaf",
                     "candlestick": "OHLC",
                     "deviation": "Afwijking",
+                    "heikin-ashi": "Heikin Ashi",
                     "label": "Grafiektype",
                     "line": "Lijn",
                     "precision-line": "Lijn"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "Min: ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "Geen gegevens · SoAI offline",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "Realtime ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "De geschiedenis kon niet worden geladen.",
             "loadingState": "Laden",
             "manualScaleLabel": "HANDMATIG"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "SoAI-links bijvoegen",
                 "tabBrowse": "Werkruimte",
                 "tabCamera": "Scannen",
+                "tabDisabledReason": "Schakel {setting} in via Chatconfiguratie › {tab}",
                 "tabKnowledge": "Kennis",
                 "tabSoaiLink": "SoAI-link",
                 "tabUpload": "Uploaden",
@@ -559,7 +620,16 @@
                 "recordingStatus": "Opname {elapsed}",
                 "recordingTitle": "Spraakopname",
                 "requestingStatus": "Wachten op browsertoestemming",
-                "requestingTitle": "Microfoontoegang aanvragen"
+                "requestingTitle": "Microfoontoegang aanvragen",
+                "pushToTalk": {
+                    "cancelled": "Opname geannuleerd.",
+                    "queued": "In de wachtrij geplaatst.",
+                    "releaseToCancel": "Laat los om te annuleren",
+                    "releaseToSend": "Laat los om te verzenden · Schuif naar links om te annuleren",
+                    "sending": "Verzenden…",
+                    "transcribing": "Transcriberen…",
+                    "transcriptReview": "Transcript toegevoegd. Controleer je bijgewerkte concept voordat je verzendt."
+                }
             },
             "authorityLock": {
                 "automationReason": "Dit is een automatiseringsgesprek. Wijzig de uitvoeringsinstellingen via Automatiseringen → Automatisering bewerken.",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "Uploaden",
                 "assistantAvatarUploadLabel": "Assistentavatar uploaden",
                 "assistantNamePlaceholder": "Voer een aangepaste modelnaam in...",
+                "autoHideChatComposer": "Chatinvoer automatisch verbergen",
+                "autoHideChatComposerHint": "Verberg de lege chatinvoer tijdens het lezen van eerdere berichten",
+                "autoHideChatHeader": "Chatkop automatisch verbergen",
+                "autoHideChatHeaderHint": "Verberg de gesprekskop tijdens het lezen van eerdere berichten",
                 "identityNameInvalid": "Weergavenamen mogen maximaal 50 Unicode-tekens bevatten en geen ongeldige tekst.",
                 "promptInvalid": "De prompt bevat ongeldige Unicode-tekst.",
                 "close": "Sluiten",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "Tooltoegang kan niet worden gewijzigd terwijl dit gesprek actief is",
                     "toolsEnabledHint": "Schakel MCP-tools in voor dit gesprek. Nieuwe chats starten met je laatst opgeslagen waarde",
                     "tool_approval_required": "Toolgoedkeuring vereisen",
-                    "toolApprovalRequiredHint": "Vraag om bevestiging voordat destructieve tools worden uitgevoerd"
+                    "toolApprovalRequiredHint": "Vraag om bevestiging voordat destructieve tools worden uitgevoerd",
+                    "unavailableTools": "Niet-beschikbare opgeslagen hulpmiddelen: {tools}. De selecties blijven behouden.",
+                    "unavailableServers": "Niet-beschikbare opgeslagen servers: {servers}. De instellingen blijven behouden."
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "Overschrijft de contextlengte voor deze functie. Laat leeg om de standaardwaarde van het geselecteerde model te gebruiken",
@@ -1035,7 +1111,8 @@
                 "newTitle": "Nieuw gesprek",
                 "renameFailed": "Gesprek hernoemen mislukt.",
                 "switchFailed": "Wisselen van gesprek mislukt.",
-                "untitled": "Naamloos"
+                "untitled": "Naamloos",
+                "titleRequired": "Een gesprekstitel is vereist."
             },
             "detached": {
                 "windowTitle": "Chat (Losgekoppeld)"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "HTTPS vereist"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "Houd ingedrukt om Parameters te openen en de contextlengte te tonen",
+                "presetsHint": "Houd ingedrukt om Voorinstellingen te openen",
+                "pushToTalkHint": "Houd ingedrukt om te praten",
+                "toolsHint": "Houd ingedrukt om de instellingen voor Hulpmiddelen te openen",
+                "toolsRestrictedHint": "{reason}. Houd ingedrukt om de instellingen voor Hulpmiddelen te openen",
+                "toolsToggleHint": "{action}. Houd ingedrukt om de instellingen voor Hulpmiddelen te openen"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "In wachtrij",
@@ -1286,7 +1371,8 @@
                     "running": "Actief",
                     "inputRequired": "Actie vereist"
                 },
-                "attachmentsCount": "(+{count} bijlagen)"
+                "attachmentsCount": "(+{count} bijlagen)",
+                "open": "Prompt openen: {prompt}"
             },
             "loading": {
                 "errorType": "Fouttype",
@@ -1337,7 +1423,9 @@
                     },
                     "save": "Opslaan",
                     "skip": "Overslaan",
-                    "title": "Help SoAI je te leren kennen"
+                    "title": "Help SoAI je te leren kennen",
+                    "loadFailed": "Je opgeslagen profiel kon niet worden geladen. Opslaan is gepauzeerd zodat er niets wordt overschreven.",
+                    "retry": "Opnieuw proberen"
                 },
                 "viewer": {
                     "none": "Geen",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "gisteren",
                 "toolCall": "Toolaanroep",
                 "waiting": "Wachten...",
-                "you": "Jij"
+                "you": "Jij",
+                "timestampWithTime": "{label}, {time}"
             },
             "modelControl": {
                 "compareModels": "Modellen vergelijken",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "Meerdere modellen hebben de naam \"{model}\". Selecteer een specifiek model in de zijbalk.",
                 "available": "(Beschikbaar)",
-                "loaded": "(Geladen)"
+                "loaded": "(Geladen)",
+                "unavailable": "(Niet beschikbaar)"
             },
             "news": {
                 "articleCount": "{count} artikelen",
@@ -1470,10 +1560,52 @@
                 "cleared": "Promptgeschiedenis gewist.",
                 "loadFailed": "Promptgeschiedenis laden mislukt."
             },
+            "sketch": {
+                "open": "Schets openen",
+                "mobileOption": "Schets",
+                "preference": "Schets",
+                "preferenceHint": "Toon het schetsblok in de chatinvoer om een afbeelding te tekenen en aan je bericht toe te voegen",
+                "title": "Schets",
+                "description": "Teken met je muis, pen of vinger en voeg de tekening daarna als afbeelding aan je bericht toe",
+                "canvasLabel": "Tekenvlak",
+                "toolsLabel": "Tekengereedschap",
+                "tools": {
+                    "pen": "Pen",
+                    "brush": "Penseel",
+                    "highlighter": "Markeerstift",
+                    "eraser": "Gum",
+                    "line": "Lijn",
+                    "rectangle": "Rechthoek",
+                    "ellipse": "Ellips"
+                },
+                "colorsLabel": "Kleuren",
+                "colors": {
+                    "black": "Zwart",
+                    "grey": "Grijs",
+                    "red": "Rood",
+                    "orange": "Oranje",
+                    "yellow": "Geel",
+                    "green": "Groen",
+                    "teal": "Blauwgroen",
+                    "blue": "Blauw",
+                    "purple": "Paars",
+                    "brown": "Bruin"
+                },
+                "customColor": "Aangepaste kleur",
+                "size": "Grootte",
+                "undo": "Ongedaan maken",
+                "redo": "Opnieuw",
+                "clear": "Wissen",
+                "resize": "Canvasgrootte wijzigen",
+                "attach": "Toevoegen",
+                "discardConfirm": "Deze schets verwijderen?",
+                "discard": "Verwijderen",
+                "exportFailed": "De schets kon niet worden geëxporteerd. Probeer het opnieuw."
+            },
             "characterMap": {
                 "allEmoji": "Alle emoji",
                 "allUnicode": "Volledig Unicode",
-                "description": "Blader door Unicode-tekens en emoji, stel een reeks samen en kopieer deze of voeg deze in uw bericht in.",
+                "description": "Blader door Unicode-tekens en emoji, stel een reeks samen en kopieer deze of voeg deze in uw bericht in",
                 "font": "Lettertype",
                 "fontHint": "Lettertypen beïnvloeden alleen de weergave; elk vermeld teken blijft selecteerbaar",
                 "fonts": {
@@ -2201,7 +2333,8 @@
                 "started": "Spraakoproep gestart.",
                 "transcriptionFailed": "Spraaktranscriptie mislukt.",
                 "ttsFailed": "Text-to-speech mislukt.",
-                "messageSendFailed": "Spraakbericht verzenden mislukt."
+                "messageSendFailed": "Spraakbericht verzenden mislukt.",
+                "stoppedAfterFailure": "Het gesprek is gestopt. Los het probleem op voordat je een nieuw gesprek start."
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "Antwoord van de assistent afspelen.",
@@ -2299,44 +2432,45 @@
                 "toggle": "Volledig scherm in-/uitschakelen"
             },
             "modalDescriptions": {
-                "agentPlan": "Stappen van het actieve agentplan.",
-                "automationCalendar": "Agenda-landinstelling en datumnotatie.",
-                "automationConfiguration": "Planning, model en uitvoeringslimieten.",
-                "automationOccurrence": "Eén geplande uitvoering.",
-                "chatConfiguration": "Model, tools, geheugen en interface voor deze chat.",
-                "chatAttach": "Upload bestanden of voeg gekoppelde kennis toe aan deze chat.",
-                "chatAttachments": "Bijlagen waarnaar dit bericht verwijst.",
-                "chatMcpDefaultTools": "Standaard MCP-tools voor nieuwe chats.",
-                "chatMemoryProfile": "Persoonlijke gegevens die SoAI in verschillende chats onthoudt.",
-                "chatPromptsPicker": "Opgeslagen prompts die klaarstaan om in deze chat in te voegen.",
-                "voiceCall": "Handsfree chatten met microfoon, transcriptie, streamingantwoorden en spraakweergave.",
-                "credits": "Credits van afhankelijkheden van derden.",
-                "fileExplorerMetadata": "Bestandsmetadata.",
-                "folderPicker": "Kies een map.",
-                "exportPreview": "Inhoud van de export.",
-                "hardwareSystemInfo": "Gedetailleerd systeemrapport.",
-                "license": "SoAI-licentietekst.",
-                "messageInfo": "Berichtmetadata.",
-                "metricsAdvanced": "Uitgebreide runtime-metrieken.",
-                "modelDetailTest": "Stuur een testverzoek naar dit model.",
-                "modelsDownload": "Download een nieuw model.",
-                "modelsEdit": "Overschrijf wat dit model kan doen.",
-                "modelsProviders": "Externe modelproviders.",
-                "modelsRename": "Geef dit model een lokale naam.",
-                "modelsVirtual": "Routeringsgroepen voor virtuele modellen.",
-                "modelsVirtualEdit": "Routering voor dit virtuele model.",
-                "pluginsClone": "Dupliceer deze plugin met nieuwe instellingen.",
-                "pluginsConcurrent": "Maximaal aantal gelijktijdige plugintaken.",
-                "pluginsConfig": "Plugininstellingen.",
-                "pluginsDownload": "Installeer een meegeleverde of lokale plugin.",
-                "pluginsInfo": "Plugindetails en diagnostiek.",
-                "pluginsIntro": "Hoe plugins SoAI uitbreiden.",
-                "pluginsManageBackend": "Backendversies beheren.",
-                "promptEnhancer": "Herschrijf een opgeslagen prompt met een model.",
-                "settingsApiKeyQuota": "Gebruikslimieten voor deze API-sleutel.",
-                "settingsExternalAccounts": "E-mail- en agenda-accounts.",
-                "settingsMcpServer": "MCP-serververbinding.",
-                "toolCallOutput": "Uitvoer van een toolaanroep."
+                "agentPlan": "Stappen van het actieve agentplan",
+                "automationCalendar": "Agenda-landinstelling en datumnotatie",
+                "automationConfiguration": "Planning, model en uitvoeringslimieten",
+                "automationOccurrence": "Eén geplande uitvoering",
+                "chatConfiguration": "Model, tools, geheugen en interface voor deze chat",
+                "chatAttach": "Upload bestanden of voeg gekoppelde kennis toe aan deze chat",
+                "chatAttachments": "Bijlagen waarnaar dit bericht verwijst",
+                "chatMcpDefaultTools": "Standaard MCP-tools voor nieuwe chats",
+                "chatMemoryProfile": "Persoonlijke gegevens die SoAI in verschillende chats onthoudt",
+                "chatPromptsPicker": "Opgeslagen prompts die klaarstaan om in deze chat in te voegen",
+                "voiceCall": "Handsfree chatten met microfoon, transcriptie, streamingantwoorden en spraakweergave",
+                "credits": "Credits van afhankelijkheden van derden",
+                "fileExplorerMetadata": "Bestandsmetadata",
+                "folderPicker": "Kies een map",
+                "exportPreview": "Inhoud van de export",
+                "hardwareSystemInfo": "Gedetailleerd systeemrapport",
+                "license": "SoAI-licentietekst",
+                "messageInfo": "Berichtmetadata",
+                "metricsAdvanced": "Uitgebreide runtime-metrieken",
+                "modelDetailTest": "Stuur een testverzoek naar dit model",
+                "modelsDownload": "Download modellen, koppel externe providers of voeg lokale modelbestanden toe",
+                "modelsEdit": "Overschrijf wat dit model kan doen",
+                "modelsProviders": "Externe modelproviders",
+                "modelsRename": "Geef dit model een lokale naam",
+                "modelsVirtual": "Routeringsgroepen voor virtuele modellen",
+                "modelsVirtualEdit": "Routering voor dit virtuele model",
+                "pluginsClone": "Dupliceer deze plugin met nieuwe instellingen",
+                "pluginsConcurrent": "Maximaal aantal gelijktijdige plugintaken",
+                "pluginsConfig": "Plugininstellingen",
+                "pluginsDownload": "Download of upload plugins of voeg ze toe vanuit de lokale pluginmap",
+                "pluginsInfo": "Plugindetails en diagnostiek",
+                "pluginsIntro": "Hoe plugins SoAI uitbreiden",
+                "pluginsManageBackend": "Backendversies beheren",
+                "promptEnhancer": "Herschrijf een opgeslagen prompt met een model",
+                "settingsApiKeyQuota": "Gebruikslimieten voor deze API-sleutel",
+                "settingsExternalAccounts": "E-mail- en agenda-accounts",
+                "settingsMcpServer": "MCP-serververbinding",
+                "toolCallOutput": "Uitvoer van een toolaanroep",
+                "conversationInput": "Bekijk deze prompt en de bijlagen"
             },
             "loading": "Laden...",
             "confirm": "Bevestigen",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count}s"
+                    },
+                    "year": {
+                        "short": "{count}j"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "Je hebt niet-opgeslagen wijzigingen. Doorgaan zonder op te slaan?",
             "unsavedChangesTitle": "Niet-opgeslagen wijzigingen",
             "view": "Bekijken",
-            "yes": "Ja"
+            "yes": "Ja",
+            "retry": "Opnieuw proberen"
         },
         "contentPreview": {
             "actions": {
@@ -2620,7 +2758,7 @@
                 }
             },
             "firstRun": {
-                "description": "Een korte configuratieroute voor lokale backends, externe providers, modellen en updates.",
+                "description": "Een korte configuratieroute voor lokale backends, externe providers, modellen en updates",
                 "sections": {
                     "models": {
                         "heading": "Voeg een model toe of download er een wanneer de backend gereed is",
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "Netwerk",
+                    "unavailable": "Adapterlijst niet beschikbaar",
                     "waiting": "Detecteren..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "Benchmark",
                     "soaibenchStop": "Stoppen",
                     "soaibenchStress": "Stresstest",
+                    "viewBenchmark": "Benchmark bekijken",
                     "test": "Test",
                     "reset": "Opnieuw instellen",
                     "save": "Opslaan"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index}: SoAIBench {profile} gestart",
                     "soaibenchStopRequested": "Stopverzoek voor SoAIBench op GPU {index} verzonden",
                     "soaibenchUnsupported": "SoAIBench wordt niet ondersteund op GPU {index}: {reason}",
+                    "soaibenchSettingsLocked": "GPU {index} voert een benchmark uit. Stop deze of wacht tot deze klaar is voordat je de instellingen opslaat.",
                     "slotApplied": "GPU {index}: slot {slot} toegepast",
                     "slotSaved": "GPU {index}: slot {slot} opgeslagen"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "Lokale geschiedenis verwijderen",
+                "deleteLocalConfirm": {
+                    "title": "SoAIBench-uitvoering verwijderen?",
+                    "message": "Deze SoAIBench-uitvoering uit de lokale geschiedenis verwijderen? Dit kan niet ongedaan worden gemaakt."
+                },
                 "action": "Delen",
+                "openRun": "Resultaat openen",
                 "ariaLabel": "Deze SoAIBench-score delen",
                 "unavailable": "Er is geen publiceerbare SoAIBench-run beschikbaar",
-                "confirm": { "title": "SoAIBench-score delen?", "message": "Score {score} en de {passes} gemeten passages publiceren op het openbare SoAIBench-klassement?", "description": "Dit verzendt de score, vijf gemeten passages, openbare GPU- en runtime-informatie, benchmarkinstellingen en optionele sensorgegevens. Accountidentiteit, bestanden, configuratie, analyses en algemene telemetrie worden uitgesloten. soai.to kan normale verbindingsmetadata zien, zoals uw IP-adres." },
-                "outcomes": { "published": "SoAIBench-score openbaar gedeeld.", "alreadyPublished": "Deze SoAIBench-score was al gedeeld.", "heldForReview": "Het SoAIBench-resultaat wordt vastgehouden voor controle van de identiteit of afwijkingen en telt nog niet mee voor de ranglijst.", "offline": "De score kon niet worden gedeeld terwijl SoAI offline is.", "unavailable": "De SoAIBench-publicatieservice is niet beschikbaar.", "timeout": "Time-out bij het delen van de score. Probeer opnieuw om dezelfde publicatie af te stemmen.", "rateLimited": "Via deze verbinding zijn te veel scores gedeeld. Probeer het later opnieuw.", "capacity": "Het SoAIBench-klassement heeft momenteel geen capaciteit.", "rejected": "Het SoAIBench-klassement heeft dit resultaat geweigerd.", "conflict": "Deze publicatie conflicteert met de bestaande klassementstatus.", "invalidResponse": "Het SoAIBench-klassement gaf een ongeldig antwoord.", "retryAfter": "Probeer het over {seconds} seconden opnieuw." }
+                "confirm": {
+                    "title": "SoAIBench-score delen?",
+                    "message": "Score {score} en de {passes} gemeten passages publiceren op het openbare SoAIBench-klassement?",
+                    "description": "Dit verzendt de score, vijf gemeten passages, openbare GPU- en runtime-informatie, benchmarkinstellingen en optionele sensorgegevens. Accountidentiteit, bestanden, configuratie, analyses en algemene telemetrie worden uitgesloten."
+                },
+                "outcomes": {
+                    "published": "SoAIBench-score openbaar gedeeld.",
+                    "alreadyPublished": "Deze SoAIBench-score was al gedeeld.",
+                    "heldForReview": "Het SoAIBench-resultaat wordt vastgehouden voor controle van de identiteit of afwijkingen en telt nog niet mee voor de ranglijst.",
+                    "offline": "De score kon niet worden gedeeld terwijl SoAI offline is.",
+                    "unavailable": "De SoAIBench-publicatieservice is niet beschikbaar.",
+                    "timeout": "Time-out bij het delen van de score. Probeer opnieuw om dezelfde publicatie af te stemmen.",
+                    "rateLimited": "Via deze verbinding zijn te veel scores gedeeld. Probeer het later opnieuw.",
+                    "capacity": "Het SoAIBench-klassement heeft momenteel geen capaciteit.",
+                    "rejected": "Het SoAIBench-klassement heeft dit resultaat geweigerd.",
+                    "conflict": "Deze publicatie conflicteert met de bestaande klassementstatus.",
+                    "invalidResponse": "Het SoAIBench-klassement gaf een ongeldig antwoord.",
+                    "retryAfter": "Probeer het over {seconds} seconden opnieuw."
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3123,9 +3286,11 @@
                         "quick": "Snel",
                         "varianceSuffix": "{variance}% variatie"
                     },
-                    "description": "Eerdere SoAIBench-uitvoeringen voor de geselecteerde GPU.",
+                    "description": "Eerdere SoAIBench-uitvoeringen voor de geselecteerde GPU",
                     "empty": "Nog geen SoAIBench-uitvoeringen voor deze GPU.",
                     "loading": "Uitvoeringsgeschiedenis laden...",
+                    "pageEmpty": "Nog geen SoAIBench-runs.",
+                    "pageLoadFailed": "SoAIBench-runs konden niet worden geladen. Probeer het opnieuw.",
                     "matchBases": {
                         "device_id": "Apparaat-ID",
                         "gpu_model_key": "GPU-modelsleutel",
@@ -3146,7 +3311,9 @@
                         "standard": "Standaard",
                         "stress": "Stresstest"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "De numerieke validatie van de OpenCL-werklast is mislukt." },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "De numerieke validatie van de OpenCL-werklast is mislukt."
+                    },
                     "rowCopyUnavailable": "Geen SoAIBench-uitvoering beschikbaar om te kopiëren",
                     "staleHardware": "Verouderde hardwareovereenkomst",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "Eerdere SoAIBench-uitvoeringen"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "Selecteer een GPU voor de benchmark",
+                    "noGpus": "Er zijn geen GPU’s beschikbaar voor de benchmark.",
                     "ariaLabels": {
                         "close": "SoAIBench sluiten",
                         "copy": "SoAIBench-uitvoering kopiëren",
@@ -3170,13 +3339,16 @@
                         "retry": "Gecertificeerde SoAIBench opnieuw proberen",
                         "stop": "Gecertificeerde SoAIBench stoppen",
                         "stopping": "Gecertificeerde SoAIBench stoppen",
+                        "newBenchmark": "Een nieuwe gecertificeerde SoAIBench-uitvoering starten",
+                        "runAgain": "Gecertificeerde SoAIBench opnieuw uitvoeren op deze GPU",
+                        "recover": "SoAIBench-status opnieuw controleren",
                         "start": "Gecertificeerde SoAIBench starten"
                     },
                     "close": "Sluiten",
                     "copy": "Kopiëren",
                     "copySuccess": "SoAIBench-uitvoering naar klembord gekopieerd",
                     "copyUnavailable": "Geen SoAIBench-uitvoering beschikbaar om te kopiëren",
-                    "description": "Gecertificeerde GPU-benchmark voor gereedheid voor SoAI-inferentie.",
+                    "description": "Gecertificeerde GPU-benchmark voor gereedheid voor SoAI-inferentie",
                     "download": "Downloaden",
                     "export": {
                         "deviceId": "Apparaat-ID",
@@ -3231,7 +3403,11 @@
                         "stopping": "SoAIBench stoppen",
                         "warmupDetail": "Opwarmronde {pass}/{total}",
                         "warmupPhase": "Opwarmen: {phase}",
-                        "warmup": "Opwarmronde voltooid"
+                        "warmup": "Opwarmronde voltooid",
+                        "reconnecting": "Opnieuw verbinden... Laatste update: {age}",
+                        "checkingStatus": "Benchmarkstatus controleren...",
+                        "statusUnavailable": "De benchmarkstatus is niet beschikbaar. Probeer opnieuw om deze opnieuw te controleren.",
+                        "startUnconfirmed": "De start van de benchmark kon niet worden bevestigd en er is geen uitvoering actief op deze GPU. Bekijk de geschiedenis voordat je het opnieuw probeert."
                     },
                     "retry": "Opnieuw proberen",
                     "scoreLabel": "SoAIBench-score",
@@ -3253,6 +3429,15 @@
                     "standardRun": "Standaarduitvoering",
                     "stop": "Stoppen",
                     "stopping": "Stoppen",
+                    "newBenchmark": "Nieuwe benchmark",
+                    "runAgain": "Opnieuw uitvoeren",
+                    "gpuBusy": "Benchmark bezig",
+                    "startedAt": "Gestart {time}",
+                    "states": {
+                        "starting": "Starten",
+                        "unresolved": "Status onbekend",
+                        "rejected": "Niet gestart"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "Documentatie",
             "intro": {
                 "aboutButton": "Over SoAI",
-                "paragraph1": "<strong>SoAI (Smart Orchestrator for Artificial Intelligence)</strong> beheert lokale inferentie-engines en externe AI-providers vanuit één WebUI. De modellen worden aangeboden via OpenAI- en Anthropic-compatibele API's",
+                "paragraph1": "<strong dir=\"auto\">SoAI (Smart Orchestrator for Artificial Intelligence)</strong> beheert lokale inferentie-engines en externe AI-providers vanuit één WebUI. De modellen worden aangeboden via OpenAI- en Anthropic-compatibele API's",
                 "paragraph2": "SoAI draait op Linux, macOS en Windows. De broncode is beschikbaar en het gebruik is gratis voor persoonlijk gebruik en homelabgebruik. SoAI verzamelt je gegevens niet en verzendt geen analyses, telemetrie of gebruiksrapporten"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "Latentie",
                         "queueDepth": "Wachtrijdiepte",
                         "requests": "Verzoeken",
+                        "throughput": "Tokendoorvoer",
                         "tokens": "Tokens"
                     },
                     "title": "Grafiek"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "Weergavenaam",
                     "source_model_id": "Bronmodel-ID",
-                    "provider": "Provider",
-                    "title": "Identiteit",
                     "type": "Type",
                     "universal_id": "Universele ID",
                     "virtual": "Virtueel"
@@ -4064,30 +4248,20 @@
                     "title": "Standaardwaarden voor inferentie"
                 },
                 "metrics": {
-                    "avgLatency": "Gem. latentie",
                     "avgTokens": "Gem. tokens/verzoek",
                     "audioIn": "Audio-in",
                     "audioOut": "Audio-uit",
-                    "failedRequests": "Mislukte verzoeken",
                     "imagesIn": "Afbeeldingen in",
                     "imagesOut": "Afbeeldingen uit",
                     "last_used": "Laatst gebruikt",
                     "modalityUsage": "Gebruik",
                     "success_rate": "Succespercentage",
                     "textTokens": "Teksttokens",
-                    "title": "Metrieken",
                     "tokensGenerated": "Gegenereerde tokens",
-                    "totalRequests": "Totaal aantal verzoeken",
-                    "waitTime": "Gem. wachttijd"
+                    "totalRequests": "Totaal aantal verzoeken"
                 },
                 "plugin": {
-                    "author": "Auteur",
-                    "models": "Modellen",
-                    "plugin_status": "Pluginstatus",
-                    "providers": "Providers",
-                    "title": "Plugin",
-                    "type": "Type",
-                    "version": "Versie"
+                    "title": "Plugin"
                 },
                 "status": {
                     "available": "Beschikbaar",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "Hernoemen",
                     "modelStatus": "Modelstatus",
                     "orphaned": "Verweesd",
-                    "parameters": "Parameters",
                     "stopPlugin": "Plugin stoppen",
-                    "title": "Status en acties"
+                    "title": "Status"
                 },
                 "technical": {
                     "created": "Gemaakt",
-                    "description": "Beschrijving",
                     "family": "Familie",
                     "license": "Licentie",
                     "path": "Pad",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "Alle parameters",
-                "category": "Categorie",
                 "groupInference": "Inferentie",
                 "groupStartup": "Opstarten"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "{itemType}-item toevoegen",
                 "aliasesPrefix": "Ook bekend als:",
                 "arrayOfType": "Array met waarden van het type {itemType}",
+                "backendDefault": "Backend-standaard",
                 "backendDocumentationDescription": "Deze modelparameters bevatten <strong>door de backend gedefinieerde instellingen</strong> die door de plugin beschikbaar worden gesteld. Raadpleeg de eigen documentatie van de backend voor het exacte gedrag, geaccepteerde waarden en standaardwaarden.",
-                "backendDocumentationTitle": "Informatie",
                 "badges": {
                     "custom": "AANGEPAST",
-                    "default": "STANDAARD",
                     "requiresReload": "VEREIST HERLADEN"
                 },
-                "countLabel": "{count} parameters",
+                "count": {
+                    "plural": "{count} parameters",
+                    "singular": "{count} parameter"
+                },
                 "invalidJson": "Voer geldige JSON in voor deze parameter.",
                 "jsonObject": "JSON-object",
                 "noMatchDescription": "Pas je zoekopdracht of filtercriteria aan.",
                 "noMatchTitle": "Geen parameters die overeenkomen met je filters",
                 "noParameters": "Geen parameters beschikbaar voor dit model",
+                "railLabel": "Parametercategorieën",
                 "range": "Bereik: {min} - {max}",
-                "removeItem": "Item verwijderen"
+                "removeItem": "Item verwijderen",
+                "revertChange": "Wijziging terugdraaien",
+                "unsavedCount": {
+                    "plural": "{count} niet-opgeslagen wijzigingen",
+                    "singular": "{count} niet-opgeslagen wijziging"
+                },
+                "views": {
+                    "customized": "Aangepast",
+                    "unsaved": "Niet-opgeslagen wijzigingen"
+                }
             },
             "status": {
                 "loaded": "Geladen",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "Bestand kiezen",
                     "close": "Sluiten",
                     "confirmDownload": "Plugin downloaden",
                     "confirmUpload": "Plugin uploaden",
+                    "fileDropHint": "Klik om een .soaiplugin-bestand te kiezen of sleep het hierheen",
+                    "fileDropTitle": "Zet hier een plugin neer",
                     "fileHelp": "Selecteer een Python-pluginpakket in ZIP-indeling (.soaiplugin)",
                     "fileLabel": "Pluginbestand",
                     "manualCopySuccess": "Pad naar pluginsmap naar klembord gekopieerd.",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant} (geïnstalleerd)",
                     "loadFailed": "Backendvarianten konden niet worden geladen.",
                     "loading": "Backendvarianten laden...",
+                    "loadingBackends": "Backends laden...",
                     "saveFailed": "Backendvariant kon niet worden opgeslagen."
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "Compatibiliteitsoverschrijving ingeschakeld voor {plugin}.",
                 "overrideRequired": "Schakel de compatibiliteitsoverschrijving in voordat je {plugin} start.",
                 "persistentNoStop": "Persistente plugins kunnen niet worden gestopt",
-                "pluginDisabled": "Plugin uitgeschakeld",
-                "pluginEnabled": "Plugin ingeschakeld",
+                "pluginDisabled": "Plugin {plugin} uitgeschakeld",
+                "pluginEnabled": "Plugin {plugin} ingeschakeld",
                 "pluginIncompatibleReason": "Plugin \"{plugin}\" is incompatibel: {reason}",
                 "pluginInfoCopyFailed": "Kopiëren van plugininformatie mislukt",
                 "pluginStopInProgress": "{plugin} stoppen...",
@@ -5489,16 +5674,21 @@
                 "restarting": "De applicatie wordt opnieuw gestart. Dit duurt normaal slechts enkele ogenblikken.",
                 "shutdown": "Het systeem wordt afgesloten. Je kunt dit browservenster sluiten.",
                 "sleep": "Het systeem gaat naar de slaapstand. Activeer het om SoAI te blijven gebruiken.",
-                "updating": "SoAI downloadt en installeert updates. Dit kan enkele minuten duren."
+                "updateTimeout": "SoAI is na de update niet meer online gekomen. Controleer application_updater.log in de logmap van SoAI en laad deze pagina daarna opnieuw.",
+                "updating": "SoAI wordt opnieuw gestart om de update te voltooien. Deze pagina wordt automatisch opnieuw geladen zodra SoAI weer online is. Dit kan enkele minuten duren.",
+                "updatingDesktop": "SoAI wordt opnieuw gestart om de update te voltooien. Dit venster sluit en opent automatisch opnieuw wanneer de update is voltooid. Zet je computer niet uit.",
+                "updatingSlow": "De update duurt langer dan normaal. SoAI is nog bezig, houd deze pagina dus open."
             },
             "messages": {
                 "connectionLost": "Backendverbinding verbroken",
+                "installingVersion": "SoAI {version} wordt geïnstalleerd...",
                 "pleaseWait": "Even geduld...",
                 "rebooting": "Systeem wordt opnieuw opgestart...",
                 "rebootTimeout": "Opnieuw opstarten is nog bezig...",
                 "restarting": "SoAI wordt opnieuw gestart...",
                 "shutdown": "Systeem wordt afgesloten",
                 "sleep": "Systeem gaat naar de slaapstand",
+                "updateTimeout": "SoAI is nog niet terug",
                 "updating": "SoAI wordt bijgewerkt..."
             },
             "reconnecting": "Verbinding opnieuw tot stand brengen..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "Selecteer een aangepaste kleur voor alle grafieken",
-                    "label": "Vaste kleur"
+                    "label": "Grafiekkleur"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "Bepaal hoe codeachtige inhoud in SoAI wordt weergegeven.",
                 "subgroupTitle": "Codeblokken"
+            },
+            "connect": {
+                "addressCopied": "Adres gekopieerd",
+                "browserAddress": "Adres van deze browser",
+                "chooseAddress": "Adres voor je telefoon",
+                "copyAddress": "Adres kopiëren",
+                "description": "Verbind de Android-app SoAI Connect met deze server door een QR-code te scannen.",
+                "documentationHint": "Open \"Connect to a SoAI server\" in de SoAI-documentatie voor handmatige installatie en probleemoplossing",
+                "documentationLink": "SoAI-documentatie",
+                "loadFailed": "Kan de verbindingsgegevens niet laden",
+                "loopbackWarningMessage": "SoAI luistert op een loopback-adres, dus andere apparaten kunnen het niet rechtstreeks bereiken. De QR-code werkt alleen via een reverse proxy die hetzelfde schema en dezelfde poort als SoAI gebruikt. Stel de volgende optie in en start SoAI opnieuw om directe verbindingen toe te staan:",
+                "loopbackWarningTitle": "Alleen bereikbaar vanaf deze computer",
+                "noAddressesMessage": "Verbind deze server met een netwerk, of open deze pagina via het adres dat je telefoon moet gebruiken.",
+                "noAddressesTitle": "Geen bereikbaar adres gevonden",
+                "qrLabel": "QR-code om SoAI Connect met {address} te verbinden",
+                "refresh": "Adressen vernieuwen",
+                "scanHint": "Scan deze QR-code met de SoAI Connect-app",
+                "stepInstall": "Installeer SoAI Connect op je Android-telefoon en open de app",
+                "stepScan": "Tik op de QR-codeknop naast het veld voor het serveradres en scan daarna de code op deze pagina",
+                "stepSignIn": "Controleer een eventuele certificaatmelding en log daarna in met je SoAI-account",
+                "stepsTitle": "Zo maak je verbinding",
+                "title": "SoAI Connect",
+                "vpnHint": "Je telefoon moet deze server kunnen bereiken. Gebruik hetzelfde lokale netwerk, of een VPN als je onderweg bent, in plaats van SoAI aan het internet bloot te stellen",
+                "vpnTitle": "Niet thuis?"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "Paginakop automatisch verbergen"
                     }
                 },
-                "subgroupTitle": "Beweging",
+                "subgroupTitle": "Interface",
                 "subgroupDescription": "Stel beweging, overgangen, glasoppervlakken en scrollgedrag af."
             },
             "externalAccounts": {
@@ -6975,7 +7189,7 @@
                     "authorizedSendersPlaceholder": "sender-id | Optioneel label",
                     "credentialsDescription": "Voer de inloggegevens in die de geselecteerde provider vereist.",
                     "credentialsTitle": "Provider-inloggegevens",
-                    "description": "Configureer één echt provideraccount en de canonieke uitvoeringsinstellingen voor Chat waarvan dit account eigenaar is.",
+                    "description": "Configureer één echt provideraccount en de canonieke uitvoeringsinstellingen voor Chat waarvan dit account eigenaar is",
                     "executionDescription": "Kies het Chat-model, de identiteit, prompts, werkruimte en uitvoeringsparameters.",
                     "executionTitle": "Chatuitvoering",
                     "identityDescription": "Geef het account een naam en kies de provider en antwoordtaal.",
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "Back-up",
+                "connect": "Verbinden",
                 "externalAccounts": "E-mail en agenda",
                 "licensing": "Licenties",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "Kies er een om toe te passen",
+                    "label": "Ingebouwde achtergronden",
+                    "none": "Geen achtergrond",
+                    "option": "Achtergrond {number}"
+                },
                 "downloadUrl": {
                     "button": "Downloaden",
                     "help": "Geef een URL op om te downloaden en als achtergrondafbeelding in te stellen",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "Sommige releaseopmerkingen konden niet worden geladen. Beschikbare opmerkingen worden getoond."
+            },
+            "outcome": {
+                "failureMessage": "De update naar versie {version} is niet voltooid. SoAI {previousVersion} is nog steeds geïnstalleerd. Controleer application_updater.log in de logmap van SoAI voor details.",
+                "failureTitle": "Update niet voltooid",
+                "later": "Later",
+                "reloadMessage": "SoAI draait nu versie {version}. Laad deze pagina opnieuw om de bijgewerkte interface te gebruiken.",
+                "reloadTitle": "SoAI is bijgewerkt",
+                "successMessage": "SoAI is succesvol bijgewerkt naar versie {version}.",
+                "successTitle": "Update voltooid"
+            },
+            "progress": {
+                "downloading": "Update wordt gedownload...",
+                "handoff": "Herstart van SoAI wordt voorbereid...",
+                "staging": "Updatebestanden worden voorbereid...",
+                "unavailable": "Live voortgang is tijdelijk niet beschikbaar.",
+                "verifying": "Update wordt geverifieerd..."
+            },
             "actions": {
                 "checkUpdates": "Controleren op updates",
                 "installUpdate": "Update installeren"
@@ -7943,6 +8183,184 @@
             "welcome": {
                 "description": "SoAI brengt lokale en externe LLM-backends samen achter één OpenAI-compatibele orchestratielaag.",
                 "heading": "Welkom bij SoAI!"
+            },
+            "aiSetup": {
+                "eyebrow": "SoAI-configuratie",
+                "loadFailed": {
+                    "title": "SoAI-configuratie kon niet worden geladen",
+                    "description": "SoAI kon de beschikbare engines en providers niet lezen. Controleer of SoAI draait en probeer het opnieuw, of rond de configuratie later af.",
+                    "retry": "Opnieuw proberen"
+                },
+                "nav": {
+                    "finishLater": "Overslaan",
+                    "skip": "SoAI-configuratie overslaan",
+                    "continue": "Doorgaan",
+                    "installAndContinue": "Installeren",
+                    "downloadAndContinue": "Downloaden",
+                    "startChatting": "Chatten",
+                    "close": "Sluiten"
+                },
+                "sources": {
+                    "heading": "Waar moet je AI draaien?",
+                    "description": "Kies een of beide. Je kunt dit later wijzigen.",
+                    "local": {
+                        "title": "Op dit apparaat",
+                        "description": "Privé en werkt offline na de configuratie. Vereist een eenmalige download."
+                    },
+                    "cloud": {
+                        "title": "Cloudproviders",
+                        "description": "Werkt overal met internet en een API-sleutel van de provider.",
+                        "recommended": "Aanbevolen"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "Een gratis API-sleutel verkrijgen",
+                    "accessibleName": "Een gratis API-sleutel verkrijgen (opent in een nieuw venster)"
+                },
+                "limited": {
+                    "noCompatibleEngine": "Geen enkele lokale engine ondersteunt dit apparaat.",
+                    "insufficientMemory": "Lokale modellen hebben ongeveer {required} vrij geheugen nodig; dit apparaat heeft ongeveer {available}.",
+                    "useCloud": "In plaats daarvan een cloudmodel gebruiken",
+                    "searchManually": "Handmatig naar modellen zoeken"
+                },
+                "connect": {
+                    "heading": "Voorbereiden",
+                    "description": "Verbind een provider en bereid dit apparaat voor.",
+                    "cloud": {
+                        "heading": "Een cloudprovider verbinden",
+                        "description": "Plak de API-URL en sleutel van je provider.",
+                        "moreOptions": "Meer opties",
+                        "modelFilter": "Modelfilter (optioneel)",
+                        "connect": "Verbinden",
+                        "connecting": "Verbinden met {name}…",
+                        "connected": {
+                            "singular": "Verbonden · {count} model beschikbaar",
+                            "plural": "Verbonden · {count} modellen beschikbaar"
+                        },
+                        "change": "Wijzigen"
+                    },
+                    "local": {
+                        "heading": "Een lokale engine installeren",
+                        "description": "Hiermee draaien modellen op dit apparaat.",
+                        "automatic": "Automatisch (aanbevolen)",
+                        "usesGpu": "Gebruikt {engine} met je videokaart",
+                        "usesProcessor": "Gebruikt {engine} op de processor",
+                        "usesInstalled": "Gebruikt {engine}, al geïnstalleerd",
+                        "chooseManually": "Handmatig kiezen",
+                        "status": {
+                            "installed": "Geïnstalleerd",
+                            "recommended": "Aanbevolen",
+                            "warning": "Waarschuwing",
+                            "unavailable": "Niet beschikbaar"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "Kies een model",
+                    "description": "Kies waarmee je wilt chatten. Je kunt er later meer toevoegen.",
+                    "local": {
+                        "heading": "Modellen voor dit apparaat",
+                        "description": "Gekozen voor je hardware."
+                    },
+                    "role": {
+                        "recommended": "Aanbevolen",
+                        "faster": "Sneller",
+                        "smallest": "Kleinste"
+                    },
+                    "useCase": {
+                        "advanced": "Beste kwaliteit voor schrijven, programmeren en redeneren",
+                        "balanced": "Ideaal voor dagelijks chatten, schrijven en programmeren",
+                        "reasoning": "Sterk stapsgewijs redeneren",
+                        "light": "Snelle antwoorden op bescheiden hardware"
+                    },
+                    "downloadSize": "Download van {size}",
+                    "runsOnGpu": "Draait op je videokaart",
+                    "runsOnCpu": "Draait op je processor",
+                    "speed": {
+                        "fast": "Snelle antwoorden",
+                        "moderate": "Gemiddelde snelheid",
+                        "slow": "Tragere antwoorden"
+                    },
+                    "details": {
+                        "label": "Details",
+                        "quantization": "Kwantisatie",
+                        "parameters": "Parameters",
+                        "parametersDense": "{total} mld.",
+                        "parametersMoe": "{total} mld., {active} mld. actief",
+                        "context": "Contextlengte",
+                        "contextTokens": "{tokens} tokens",
+                        "contextReduced": "{tokens} tokens (verkleind voor dit apparaat)",
+                        "file": "Bestand",
+                        "source": "Bron"
+                    },
+                    "openChatWith": "Chat openen met dit model",
+                    "searchAnother": "Naar een ander model zoeken",
+                    "cloud": {
+                        "heading": "Modellen van {provider}",
+                        "description": "Kies er een of meer.",
+                        "filterPlaceholder": "Modellen filteren…",
+                        "noMatches": "Geen modellen komen overeen met dit filter.",
+                        "empty": "Deze provider heeft geen modellen teruggegeven. Controleer het modelfilter of probeer een andere provider.",
+                        "backToProvider": "Terug naar provider"
+                    }
+                },
+                "progress": {
+                    "heading": "Alles wordt klaargezet",
+                    "description": "Je kunt beginnen met chatten zodra één model klaar is.",
+                    "readyCount": "{ready} van {total} klaar",
+                    "installing": "{engine} installeren",
+                    "downloading": "{model} downloaden",
+                    "waitingForEngine": "Wachten tot {engine} klaar is met installeren",
+                    "discovering": "{model} toevoegen aan je modellen",
+                    "configuring": "Startinstellingen toepassen",
+                    "testing": "Een kort testbericht verzenden",
+                    "ready": "{model} is klaar",
+                    "blocked": "Kan pas starten als {engine} is geïnstalleerd",
+                    "checkingStatus": "Status controleren",
+                    "retry": "Opnieuw proberen",
+                    "retryInstallation": "Installatie opnieuw proberen",
+                    "skipItem": "Dit item overslaan",
+                    "testAgain": "Opnieuw testen",
+                    "checkAgain": "Opnieuw controleren",
+                    "sendTest": "Een testbericht verzenden",
+                    "error": {
+                        "empty": "Het model is geladen maar gaf geen antwoord. Probeer het opnieuw of kies een ander model.",
+                        "loadError": "Het model kon niet starten op dit apparaat. Probeer het opnieuw of kies een kleiner model.",
+                        "timeout": "Het model deed er te lang over om te antwoorden. Probeer het opnieuw of kies een kleiner model.",
+                        "disconnected": "De verbinding is tijdens de test verbroken. Probeer het opnieuw.",
+                        "downloadFailed": "De download is gestopt. Probeer het opnieuw.",
+                        "installFailed": "De installatie is niet voltooid. Probeer het opnieuw.",
+                        "noDiskSpace": "Onvoldoende schijfruimte voor dit model. Maak ruimte vrij of kies een kleiner model."
+                    },
+                    "testPrompt": "Antwoord met één korte, vriendelijke zin.",
+                    "testCancelled": "De test van de SoAI-configuratie is geannuleerd."
+                },
+                "completion": {
+                    "modelsTitle": "AI-modellen",
+                    "modelsReady": {
+                        "singular": "{count} klaar",
+                        "plural": "{count} klaar"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} wordt nog op de achtergrond voorbereid",
+                        "plural": "{count} worden nog op de achtergrond voorbereid"
+                    }
+                },
+                "resume": {
+                    "link": "SoAI-configuratie afronden",
+                    "toast": "Sommige stappen van de SoAI-configuratie hebben je aandacht nodig."
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "De modeldownload gaat op de achtergrond verder.",
+                        "plural": "{count} modeldownloads gaan op de achtergrond verder."
+                    },
+                    "installations": {
+                        "singular": "De backend-installatie gaat op de achtergrond verder.",
+                        "plural": "{count} backend-installaties gaan op de achtergrond verder."
+                    },
+                    "both": "Modeldownloads en backend-installaties gaan op de achtergrond verder."
+                }
             }
         }
     }

@@ -53,8 +53,8 @@
         --archived-conversation-overlay-soft: 16%;
         --archived-conversation-overlay-accent: var(--glass-border-strong);
         --archived-conversation-hover-overlay-opacity: 0;
-        --archived-conversation-overlay-inset-left: 0;
-        --archived-conversation-left-rail-color: transparent;
+        --archived-conversation-overlay-inset-inline-start: 0;
+        --archived-conversation-inline-start-rail-color: transparent;
         --archived-conversation-before-surface: none;
         position: relative;
         isolation: isolate;
@@ -74,7 +74,8 @@
     .archived-conversation-item::after {
         content: '';
         position: absolute;
-        inset: 0 0 0 var(--archived-conversation-overlay-inset-left);
+        inset-block: 0 0;
+        inset-inline: var(--archived-conversation-overlay-inset-inline-start) 0;
         pointer-events: none;
         z-index: var(--z-base);
         opacity: var(--archived-conversation-hover-overlay-opacity);
@@ -88,7 +89,7 @@
         inset: 0;
         pointer-events: none;
         z-index: var(--z-base);
-        background: linear-gradient(to right, var(--archived-conversation-left-rail-color) 0, var(--archived-conversation-left-rail-color) var(--border-width-3), transparent var(--border-width-3)), var(--archived-conversation-before-surface);
+        background: linear-gradient(calc(90deg * var(--dir-sign)), var(--archived-conversation-inline-start-rail-color) 0, var(--archived-conversation-inline-start-rail-color) var(--border-width-3), transparent var(--border-width-3)), var(--archived-conversation-before-surface);
     }
 
     .archived-conversation-item:last-child {
@@ -96,14 +97,14 @@
     }
 
     .archived-conversation-item[data-conversation-color]:not(.is-selected) {
-        --archived-conversation-left-rail-color: var(--archived-conversation-overlay-accent);
+        --archived-conversation-inline-start-rail-color: var(--archived-conversation-overlay-accent);
         --archived-conversation-before-surface: linear-gradient(135deg, color-mix(in srgb, var(--archived-conversation-overlay-accent) var(--archived-conversation-overlay-strong), var(--glass-underlay-surface)), color-mix(in srgb, var(--archived-conversation-overlay-accent) var(--archived-conversation-overlay-soft), var(--glass-underlay-surface)));
     }
 
     .archived-conversation-item:not(.is-selected):hover {
         --archived-conversation-hover-overlay-opacity: 1;
-        --archived-conversation-overlay-inset-left: var(--border-width-3);
-        --archived-conversation-left-rail-color: var(--archived-conversation-overlay-accent);
+        --archived-conversation-overlay-inset-inline-start: var(--border-width-3);
+        --archived-conversation-inline-start-rail-color: var(--archived-conversation-overlay-accent);
     }
 
     .archived-conversation-item[data-conversation-color='Red' i] {
@@ -127,8 +128,8 @@
     }
 
     .archived-conversation-item.is-selected {
-        --archived-conversation-overlay-inset-left: var(--border-width-3);
-        --archived-conversation-left-rail-color: var(--ui-tone-green);
+        --archived-conversation-overlay-inset-inline-start: var(--border-width-3);
+        --archived-conversation-inline-start-rail-color: var(--ui-tone-green);
         --archived-conversation-before-surface: var(--ui-tone-green-surface-selected);
         background: var(--ui-tone-green-surface-selected);
     }
@@ -139,7 +140,8 @@
         display: none;
         flex: 0 0 auto;
         align-items: center;
-        padding: var(--space-3) 0 var(--space-3) var(--space-4);
+        padding-block: var(--space-3) var(--space-3);
+        padding-inline: var(--space-4) 0;
     }
 
     .archived-conversations-list.selection-mode .archived-conversation-select {
@@ -158,12 +160,13 @@
         border: none;
         background: transparent;
         color: inherit;
-        padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
-        text-align: left;
+        padding-block: var(--space-3) var(--space-3);
+        padding-inline: var(--space-4) var(--space-3);
+        text-align: start;
     }
 
     .archived-conversations-list.selection-mode .archived-conversation-info {
-        padding-left: var(--space-3);
+        padding-inline-start: var(--space-3);
     }
 
     .archived-conversation-title {
@@ -209,7 +212,8 @@
         align-items: center;
         gap: var(--space-1);
         flex-shrink: 0;
-        padding: var(--space-3) var(--space-4) var(--space-3) 0;
+        padding-block: var(--space-3) var(--space-3);
+        padding-inline: 0 var(--space-4);
         opacity: 0.25;
         transition: opacity var(--transition-fast);
     }

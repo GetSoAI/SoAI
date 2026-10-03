@@ -13,5 +13,6 @@ METRICS_QUERY_ALLOWED_KEYS: frozenset[str] = frozenset(
         "points",
         "interval_ms",
         "aggregation",
+        "include_availability",
     },
 )

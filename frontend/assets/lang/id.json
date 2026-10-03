@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "Sekarang"
+                "now": "Sekarang",
+                "occurrenceLabel": "{title}, {date} {time}, {status}",
+                "createAt": "Buat otomatisasi pada {date} pukul {time}. Gunakan tombol panah untuk mengubah waktu."
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "Mulai",
                     "turns": "Giliran",
                     "timezone": "Zona waktu",
-                    "title": "Judul"
+                    "title": "Judul",
+                    "modelSettings": "Model, alat, dan parameter"
                 },
                 "workspace": {
                     "button": "Pilih folder",
                     "description": "Pilih folder yang digunakan oleh eksekusi otomatisasi ini. Eksekusi berulang tetap menggunakan folder otomatisasi ini.",
                     "fieldLabel": "Folder ruang kerja",
-                    "title": "Folder ruang kerja otomatisasi"
+                    "title": "Folder ruang kerja otomatisasi",
+                    "viewButton": "Jelajahi ruang kerja"
                 },
                 "parameters": {
                     "button": "Edit parameter",
@@ -166,17 +170,17 @@
                     "fieldLabel": "Parameter model",
                     "summaryCustom": "Parameter otomatisasi khusus",
                     "summaryDefault": "Parameter model default",
-                    "title": "Parameter model otomatisasi"
+                    "title": "Parameter model otomatisasi",
+                    "viewButton": "Lihat parameter"
                 },
                 "timezone": {
-                    "auto": "Otomatis"
+                    "autoWithZone": "Otomatis ({timezone})"
                 },
                 "placeholders": {
                     "assistantTurn": "Respons model",
                     "endOfAutomation": "Akhir otomatisasi",
                     "model": "Pilih model",
                     "turn": "Masukkan pesan",
-                    "turnIndexed": "Masukkan pesan {index}",
                     "title": "Masukkan judul"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "Simpan",
                 "validation": {
                     "maxRunMinutesInvalid": "Menit eksekusi maksimum harus antara 1 dan 1440.",
-                    "modelUnavailable": "Model yang dipilih tidak tersedia.",
+                    "modelUnavailable": "{model} tidak tersedia. Pilih model lain.",
                     "modelRequired": "Model wajib diisi.",
                     "recurrenceInvalid": "Pengulangan tidak valid.",
                     "startInvalid": "Tanggal dan waktu mulai tidak valid.",
@@ -195,7 +199,42 @@
                     "turnsRequired": "Semua giliran wajib diisi.",
                     "tooManyTurns": "Terlalu banyak giliran (maksimum {max}). Setiap giliran dijalankan sebagai satu giliran agen.",
                     "timezoneRequired": "Zona waktu wajib diisi.",
-                    "titleRequired": "Judul wajib diisi."
+                    "titleRequired": "Judul wajib diisi.",
+                    "modelDisabled": "{model} dinonaktifkan. Aktifkan atau pilih model lain.",
+                    "modelMissing": "{model} tidak lagi terpasang. Pilih model lain.",
+                    "modelUnsupported": "{model} tidak mendukung obrolan. Pilih model lain.",
+                    "summary": "Perbaiki {count} kolom sebelum menyimpan.",
+                    "toolsRequired": "Eksekusi memerlukan alat diaktifkan dan todo_write dipilih.",
+                    "timezoneInvalid": "Zona waktu tidak valid. Pilih zona waktu yang didukung."
+                },
+                "conflict": {
+                    "message": "Otomatisasi ini diubah di tempat lain saat Anda mengeditnya. Perubahan Anda belum disimpan.",
+                    "remoteChanges": "Diubah di tempat lain: {fields}",
+                    "localChanges": "Perubahan Anda: {fields}",
+                    "keepChanges": "Pertahankan perubahan saya",
+                    "loadLatest": "Muat versi terbaru"
+                },
+                "modelStatus": {
+                    "unavailable": "Tidak tersedia",
+                    "unsupported": "Tidak mendukung obrolan"
+                },
+                "prerequisites": {
+                    "failed": "Editor tidak dapat memuat semua yang dibutuhkan.",
+                    "missing": "Otomatisasi ini sudah tidak ada.",
+                    "toolsUnavailable": "Alat tidak dapat dimuat. Pilihan alat yang ada tetap dipertahankan.",
+                    "childFailed": "Pengaturan tidak dapat dibuka. Coba lagi."
+                },
+                "schedule": {
+                    "ambiguous": "{start} terjadi dua kali di {timezone} karena perubahan jam. Kejadian pertama yang digunakan.",
+                    "shiftedForward": "{start} tidak ada di {timezone} karena perubahan jam. Eksekusi dilakukan pada {effective} sebagai gantinya.",
+                    "disabled": "Nonaktif: tidak ada eksekusi yang akan dijadwalkan.",
+                    "nextRun": "Eksekusi berikutnya: {when} ({timezone})",
+                    "nextRunLocal": "Eksekusi berikutnya: {when} ({timezone}), {localWhen} waktu Anda",
+                    "unavailable": "Pratinjau jadwal tidak tersedia."
+                },
+                "turns": {
+                    "label": "Giliran {index}",
+                    "remove": "Hapus giliran {index}"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "Preferensi otomatisasi direset ke default.",
                 "runOpenFailed": "Gagal membuka eksekusi otomatisasi yang diminta.",
                 "runUnavailable": "Eksekusi otomatisasi yang diminta tidak lagi tersedia dalam tampilan ini.",
-                "updated": "Otomatisasi diperbarui."
+                "updated": "Otomatisasi diperbarui.",
+                "changeRefreshFailed": "Perubahan telah diterapkan, tetapi tampilan tidak dapat disegarkan.",
+                "conflict": "Otomatisasi ini diubah di tempat lain. Tinjau perubahannya sebelum menyimpan lagi.",
+                "defaultsNotRemembered": "Tersimpan, tetapi pengaturan ini tidak dapat diingat untuk otomatisasi baru.",
+                "missingOnSave": "Otomatisasi ini sudah tidak ada. Mungkin telah dihapus di tempat lain."
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "Hari ini",
                         "yesterday": "Kemarin"
                     },
-                    "turnsCount": "Giliran: {count}",
                     "title": "Eksekusi",
                     "toolbar": {
                         "batchDelete": "Hapus eksekusi yang dipilih",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "Hapus {count} eksekusi? Eksekusi yang sedang berjalan akan dihentikan.",
-                        "deleteTitle": "Hapus eksekusi?"
+                        "deleteTitle": "Hapus eksekusi?",
+                        "skipTitle": "Lewati kejadian?",
+                        "skipMessage": "{title} tidak akan berjalan pada waktu ini. Kejadian lain tidak terpengaruh.",
+                        "skipConfirm": "Lewati",
+                        "stopTitle": "Hentikan eksekusi?",
+                        "stopMessage": "{title} sedang berjalan. Eksekusi akan dihentikan dan dihapus dari kalender.",
+                        "stopConfirm": "Hentikan",
+                        "removeTitle": "Hapus kejadian?",
+                        "removeMessage": "{title} akan dihapus dari kalender.",
+                        "removeConfirm": "Hapus"
                     },
                     "notifications": {
-                        "deleteSuccess": "{count} eksekusi dihapus."
-                    }
+                        "deleteSuccess": "{count} eksekusi dihapus.",
+                        "nothingToDelete": "Kejadian yang dipilih sudah tidak ada dalam tampilan ini.",
+                        "tooManySelected": "Pilih maksimal {max} kejadian sekaligus."
+                    },
+                    "occurrencesCount": "Kejadian: {count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "Sebelumnya",
                 "showCalendar": "Kalender",
                 "showRegistry": "Panel",
-                "today": "Hari ini"
+                "today": "Hari ini",
+                "staleData": "Tidak terbaru",
+                "staleDataSince": "Data otomatisasi mungkin tidak terbaru. Terakhir diperbarui {time}. Pilih untuk mencoba lagi.",
+                "resizePanes": "Ubah ukuran kalender dan panel samping"
             },
             "views": {
                 "day": "Hari",
@@ -300,6 +357,7 @@
                     "bar": "Batang",
                     "candlestick": "OHLC",
                     "deviation": "Deviasi",
+                    "heikin-ashi": "Heikin Ashi",
                     "label": "Jenis grafik",
                     "line": "Garis",
                     "precision-line": "Garis"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "Min: ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "Tidak ada data · SoAI offline",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "Waktu nyata ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "Gagal memuat riwayat.",
             "loadingState": "Memuat",
             "manualScaleLabel": "MANUAL"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "Lampirkan tautan SoAI",
                 "tabBrowse": "Ruang kerja",
                 "tabCamera": "Pindai",
+                "tabDisabledReason": "Aktifkan {setting} di Konfigurasi chat › {tab}",
                 "tabKnowledge": "Pengetahuan",
                 "tabSoaiLink": "Tautan SoAI",
                 "tabUpload": "Unggah",
@@ -559,7 +620,16 @@
                 "recordingStatus": "Merekam {elapsed}",
                 "recordingTitle": "Perekaman suara",
                 "requestingStatus": "Menunggu izin browser",
-                "requestingTitle": "Meminta akses mikrofon"
+                "requestingTitle": "Meminta akses mikrofon",
+                "pushToTalk": {
+                    "cancelled": "Perekaman dibatalkan.",
+                    "queued": "Ditambahkan ke antrean.",
+                    "releaseToCancel": "Lepaskan untuk membatalkan",
+                    "releaseToSend": "Lepaskan untuk mengirim · Geser ke kiri untuk membatalkan",
+                    "sending": "Mengirim…",
+                    "transcribing": "Mentranskripsikan…",
+                    "transcriptReview": "Transkrip ditambahkan. Tinjau draf yang diperbarui sebelum mengirim."
+                }
             },
             "authorityLock": {
                 "automationReason": "Ini adalah percakapan otomatisasi. Ubah pengaturan eksekusinya di Otomatisasi → Edit otomatisasi.",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "Unggah",
                 "assistantAvatarUploadLabel": "Unggah avatar asisten",
                 "assistantNamePlaceholder": "Masukkan nama model khusus...",
+                "autoHideChatComposer": "Sembunyikan kolom penulisan chat secara otomatis",
+                "autoHideChatComposerHint": "Sembunyikan kolom penulisan chat yang kosong saat membaca pesan sebelumnya",
+                "autoHideChatHeader": "Sembunyikan header chat secara otomatis",
+                "autoHideChatHeaderHint": "Sembunyikan header percakapan saat membaca pesan sebelumnya",
                 "identityNameInvalid": "Nama tampilan maksimal 50 karakter Unicode dan tidak boleh berisi teks yang tidak valid.",
                 "promptInvalid": "Prompt berisi teks Unicode yang tidak valid.",
                 "close": "Tutup",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "Akses alat tidak dapat diubah saat percakapan ini sedang berjalan",
                     "toolsEnabledHint": "Aktifkan alat MCP untuk percakapan ini. Chat baru dimulai dengan nilai terakhir yang Anda simpan",
                     "tool_approval_required": "Wajibkan persetujuan alat",
-                    "toolApprovalRequiredHint": "Minta konfirmasi sebelum menjalankan alat destruktif"
+                    "toolApprovalRequiredHint": "Minta konfirmasi sebelum menjalankan alat destruktif",
+                    "unavailableTools": "Alat tersimpan yang tidak tersedia: {tools}. Pilihan tetap disimpan.",
+                    "unavailableServers": "Server tersimpan yang tidak tersedia: {servers}. Pengaturan tetap disimpan."
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "Mengganti panjang konteks untuk fitur ini. Biarkan kosong untuk menggunakan default model yang dipilih",
@@ -1035,7 +1111,8 @@
                 "newTitle": "Percakapan baru",
                 "renameFailed": "Gagal mengganti nama percakapan.",
                 "switchFailed": "Gagal beralih percakapan.",
-                "untitled": "Tanpa judul"
+                "untitled": "Tanpa judul",
+                "titleRequired": "Judul percakapan wajib diisi."
             },
             "detached": {
                 "windowTitle": "Chat (Terpisah)"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "Memerlukan HTTPS"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "Tahan untuk membuka Parameter dan menampilkan panjang konteks",
+                "presetsHint": "Tahan untuk membuka Preset",
+                "pushToTalkHint": "Tahan untuk berbicara",
+                "toolsHint": "Tahan untuk membuka pengaturan Alat",
+                "toolsRestrictedHint": "{reason}. Tahan untuk membuka pengaturan Alat",
+                "toolsToggleHint": "{action}. Tahan untuk membuka pengaturan Alat"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "Dalam antrean",
@@ -1286,7 +1371,8 @@
                     "running": "Berjalan",
                     "inputRequired": "Tindakan diperlukan"
                 },
-                "attachmentsCount": "(+{count} lampiran)"
+                "attachmentsCount": "(+{count} lampiran)",
+                "open": "Buka prompt: {prompt}"
             },
             "loading": {
                 "errorType": "Jenis kesalahan",
@@ -1337,7 +1423,9 @@
                     },
                     "save": "Simpan",
                     "skip": "Lewati",
-                    "title": "Bantu SoAI mengenal Anda"
+                    "title": "Bantu SoAI mengenal Anda",
+                    "loadFailed": "Profil tersimpan Anda tidak dapat dimuat. Penyimpanan dijeda agar tidak ada yang tertimpa.",
+                    "retry": "Coba lagi"
                 },
                 "viewer": {
                     "none": "Tidak ada",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "kemarin",
                 "toolCall": "Pemanggilan alat",
                 "waiting": "Menunggu...",
-                "you": "Anda"
+                "you": "Anda",
+                "timestampWithTime": "{label}, {time}"
             },
             "modelControl": {
                 "compareModels": "Bandingkan model",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "Beberapa model memiliki nama \"{model}\". Pilih model tertentu di bilah samping.",
                 "available": "(Tersedia)",
-                "loaded": "(Dimuat)"
+                "loaded": "(Dimuat)",
+                "unavailable": "(Tidak tersedia)"
             },
             "news": {
                 "articleCount": "{count} artikel",
@@ -1470,10 +1560,52 @@
                 "cleared": "Riwayat prompt dihapus.",
                 "loadFailed": "Gagal memuat riwayat prompt."
             },
+            "sketch": {
+                "open": "Buka sketsa",
+                "mobileOption": "Sketsa",
+                "preference": "Sketsa",
+                "preferenceHint": "Tampilkan buku sketsa di kolom obrolan untuk menggambar dan melampirkannya ke pesan Anda",
+                "title": "Sketsa",
+                "description": "Gambar dengan mouse, pena, atau jari, lalu lampirkan gambar ke pesan Anda sebagai gambar",
+                "canvasLabel": "Kanvas gambar",
+                "toolsLabel": "Alat gambar",
+                "tools": {
+                    "pen": "Pena",
+                    "brush": "Kuas",
+                    "highlighter": "Stabilo",
+                    "eraser": "Penghapus",
+                    "line": "Garis",
+                    "rectangle": "Persegi panjang",
+                    "ellipse": "Elips"
+                },
+                "colorsLabel": "Warna",
+                "colors": {
+                    "black": "Hitam",
+                    "grey": "Abu-abu",
+                    "red": "Merah",
+                    "orange": "Oranye",
+                    "yellow": "Kuning",
+                    "green": "Hijau",
+                    "teal": "Hijau kebiruan",
+                    "blue": "Biru",
+                    "purple": "Ungu",
+                    "brown": "Cokelat"
+                },
+                "customColor": "Warna kustom",
+                "size": "Ukuran",
+                "undo": "Urungkan",
+                "redo": "Ulangi",
+                "clear": "Bersihkan",
+                "resize": "Ubah ukuran kanvas",
+                "attach": "Lampirkan",
+                "discardConfirm": "Buang sketsa ini?",
+                "discard": "Buang",
+                "exportFailed": "Sketsa tidak dapat diekspor. Silakan coba lagi."
+            },
             "characterMap": {
                 "allEmoji": "Semua emoji",
                 "allUnicode": "Semua Unicode",
-                "description": "Jelajahi karakter Unicode dan emoji, susun rangkaian, lalu salin atau sisipkan ke pesan Anda.",
+                "description": "Jelajahi karakter Unicode dan emoji, susun rangkaian, lalu salin atau sisipkan ke pesan Anda",
                 "font": "Font",
                 "fontHint": "Font hanya memengaruhi tampilan; setiap karakter yang tercantum tetap dapat dipilih",
                 "fonts": {
@@ -2201,7 +2333,8 @@
                 "started": "Panggilan suara dimulai.",
                 "transcriptionFailed": "Transkripsi suara gagal.",
                 "ttsFailed": "Text-to-speech gagal.",
-                "messageSendFailed": "Pengiriman pesan suara gagal."
+                "messageSendFailed": "Pengiriman pesan suara gagal.",
+                "stoppedAfterFailure": "Panggilan telah dihentikan. Atasi masalahnya sebelum memulai panggilan baru."
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "Memutar respons asisten.",
@@ -2299,44 +2432,45 @@
                 "toggle": "Aktifkan/nonaktifkan layar penuh"
             },
             "modalDescriptions": {
-                "agentPlan": "Langkah-langkah rencana agen yang aktif.",
-                "automationCalendar": "Setelan lokal kalender dan pemformatan tanggal.",
-                "automationConfiguration": "Jadwal, model, dan batas eksekusi.",
-                "automationOccurrence": "Satu eksekusi terjadwal.",
-                "chatConfiguration": "Model, alat, memori, dan antarmuka untuk chat ini.",
-                "chatAttach": "Unggah file atau lampirkan pengetahuan tertaut ke chat ini.",
-                "chatAttachments": "Lampiran yang dirujuk oleh pesan ini.",
-                "chatMcpDefaultTools": "Alat MCP default untuk chat baru.",
-                "chatMemoryProfile": "Detail pribadi yang diingat SoAI di berbagai chat.",
-                "chatPromptsPicker": "Prompt tersimpan yang siap dimasukkan ke chat ini.",
-                "voiceCall": "Chat hands-free dengan mikrofon, transkripsi, respons streaming, dan pemutaran suara.",
-                "credits": "Kredit dependensi pihak ketiga.",
-                "fileExplorerMetadata": "Metadata file.",
-                "folderPicker": "Pilih folder.",
-                "exportPreview": "Isi ekspor.",
-                "hardwareSystemInfo": "Laporan sistem terperinci.",
-                "license": "Teks lisensi SoAI.",
-                "messageInfo": "Metadata pesan.",
-                "metricsAdvanced": "Metrik runtime lanjutan.",
-                "modelDetailTest": "Kirim permintaan uji ke model ini.",
-                "modelsDownload": "Unduh model baru.",
-                "modelsEdit": "Ganti kemampuan model ini.",
-                "modelsProviders": "Penyedia model eksternal.",
-                "modelsRename": "Beri model ini nama lokal.",
-                "modelsVirtual": "Grup routing model virtual.",
-                "modelsVirtualEdit": "Routing untuk model virtual ini.",
-                "pluginsClone": "Duplikasikan plugin ini dengan pengaturan baru.",
-                "pluginsConcurrent": "Jumlah maksimum tugas plugin yang berjalan bersamaan.",
-                "pluginsConfig": "Pengaturan plugin.",
-                "pluginsDownload": "Instal plugin bawaan atau lokal.",
-                "pluginsInfo": "Detail dan diagnostik plugin.",
-                "pluginsIntro": "Cara plugin memperluas SoAI.",
-                "pluginsManageBackend": "Kelola versi backend.",
-                "promptEnhancer": "Tulis ulang prompt tersimpan dengan model.",
-                "settingsApiKeyQuota": "Batas penggunaan untuk kunci API ini.",
-                "settingsExternalAccounts": "Akun email dan kalender.",
-                "settingsMcpServer": "Koneksi server MCP.",
-                "toolCallOutput": "Output pemanggilan alat."
+                "agentPlan": "Langkah-langkah rencana agen yang aktif",
+                "automationCalendar": "Setelan lokal kalender dan pemformatan tanggal",
+                "automationConfiguration": "Jadwal, model, dan batas eksekusi",
+                "automationOccurrence": "Satu eksekusi terjadwal",
+                "chatConfiguration": "Model, alat, memori, dan antarmuka untuk chat ini",
+                "chatAttach": "Unggah file atau lampirkan pengetahuan tertaut ke chat ini",
+                "chatAttachments": "Lampiran yang dirujuk oleh pesan ini",
+                "chatMcpDefaultTools": "Alat MCP default untuk chat baru",
+                "chatMemoryProfile": "Detail pribadi yang diingat SoAI di berbagai chat",
+                "chatPromptsPicker": "Prompt tersimpan yang siap dimasukkan ke chat ini",
+                "voiceCall": "Chat hands-free dengan mikrofon, transkripsi, respons streaming, dan pemutaran suara",
+                "credits": "Kredit dependensi pihak ketiga",
+                "fileExplorerMetadata": "Metadata file",
+                "folderPicker": "Pilih folder",
+                "exportPreview": "Isi ekspor",
+                "hardwareSystemInfo": "Laporan sistem terperinci",
+                "license": "Teks lisensi SoAI",
+                "messageInfo": "Metadata pesan",
+                "metricsAdvanced": "Metrik runtime lanjutan",
+                "modelDetailTest": "Kirim permintaan uji ke model ini",
+                "modelsDownload": "Unduh model, hubungkan penyedia eksternal, atau tambahkan file model lokal",
+                "modelsEdit": "Ganti kemampuan model ini",
+                "modelsProviders": "Penyedia model eksternal",
+                "modelsRename": "Beri model ini nama lokal",
+                "modelsVirtual": "Grup routing model virtual",
+                "modelsVirtualEdit": "Routing untuk model virtual ini",
+                "pluginsClone": "Duplikasikan plugin ini dengan pengaturan baru",
+                "pluginsConcurrent": "Jumlah maksimum tugas plugin yang berjalan bersamaan",
+                "pluginsConfig": "Pengaturan plugin",
+                "pluginsDownload": "Unduh, unggah, atau tambahkan plugin dari folder plugin lokal",
+                "pluginsInfo": "Detail dan diagnostik plugin",
+                "pluginsIntro": "Cara plugin memperluas SoAI",
+                "pluginsManageBackend": "Kelola versi backend",
+                "promptEnhancer": "Tulis ulang prompt tersimpan dengan model",
+                "settingsApiKeyQuota": "Batas penggunaan untuk kunci API ini",
+                "settingsExternalAccounts": "Akun email dan kalender",
+                "settingsMcpServer": "Koneksi server MCP",
+                "toolCallOutput": "Output pemanggilan alat",
+                "conversationInput": "Lihat prompt ini dan lampirannya"
             },
             "loading": "Memuat...",
             "confirm": "Konfirmasi",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count}dtk"
+                    },
+                    "year": {
+                        "short": "{count} th"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "Anda memiliki perubahan yang belum disimpan. Lanjutkan tanpa menyimpan?",
             "unsavedChangesTitle": "Perubahan belum disimpan",
             "view": "Lihat",
-            "yes": "Ya"
+            "yes": "Ya",
+            "retry": "Coba lagi"
         },
         "contentPreview": {
             "actions": {
@@ -2620,7 +2758,7 @@
                 }
             },
             "firstRun": {
-                "description": "Panduan singkat penyiapan backend lokal, penyedia jarak jauh, model, dan pembaruan.",
+                "description": "Panduan singkat penyiapan backend lokal, penyedia jarak jauh, model, dan pembaruan",
                 "sections": {
                     "models": {
                         "heading": "Tambahkan atau unduh model setelah backend siap",
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "Jaringan",
+                    "unavailable": "Daftar adaptor tidak tersedia",
                     "waiting": "Mendeteksi..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "Benchmark",
                     "soaibenchStop": "Hentikan",
                     "soaibenchStress": "Stres",
+                    "viewBenchmark": "Lihat benchmark",
                     "test": "Uji",
                     "reset": "Reset",
                     "save": "Simpan"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index} SoAIBench {profile} dimulai",
                     "soaibenchStopRequested": "Permintaan penghentian SoAIBench pada GPU {index} dikirim",
                     "soaibenchUnsupported": "SoAIBench pada GPU {index} tidak didukung: {reason}",
+                    "soaibenchSettingsLocked": "GPU {index} sedang menjalankan benchmark. Hentikan atau tunggu hingga selesai sebelum menyimpan pengaturannya.",
                     "slotApplied": "GPU {index} slot {slot} diterapkan",
                     "slotSaved": "GPU {index} slot {slot} disimpan"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "Hapus riwayat lokal",
+                "deleteLocalConfirm": {
+                    "title": "Hapus proses SoAIBench?",
+                    "message": "Hapus proses SoAIBench ini dari riwayat lokal? Tindakan ini tidak dapat dibatalkan."
+                },
                 "action": "Bagikan",
+                "openRun": "Buka hasil",
                 "ariaLabel": "Bagikan skor SoAIBench ini",
                 "unavailable": "Tidak ada proses SoAIBench yang dapat dipublikasikan",
-                "confirm": { "title": "Bagikan skor SoAIBench?", "message": "Publikasikan skor {score} dan {passes} lintasan terukurnya ke papan peringkat SoAIBench publik?", "description": "Tindakan ini mengirim skor, lima lintasan terukur, informasi GPU dan runtime publik, pengaturan benchmark, serta bukti sensor opsional. Identitas akun, file, konfigurasi, analitik, dan telemetri umum tidak disertakan. soai.to dapat melihat metadata koneksi normal seperti alamat IP Anda." },
-                "outcomes": { "published": "Skor SoAIBench dibagikan secara publik.", "alreadyPublished": "Skor SoAIBench ini sudah dibagikan.", "heldForReview": "Hasil SoAIBench ditahan untuk peninjauan identitas atau anomali dan belum dihitung dalam peringkat.", "offline": "Skor tidak dapat dibagikan saat SoAI luring.", "unavailable": "Layanan publikasi SoAIBench tidak tersedia.", "timeout": "Waktu berbagi skor habis. Coba lagi untuk merekonsiliasi publikasi yang sama.", "rateLimited": "Terlalu banyak skor dibagikan dari koneksi ini. Coba lagi nanti.", "capacity": "Papan peringkat SoAIBench sedang mencapai kapasitas.", "rejected": "Papan peringkat SoAIBench menolak hasil ini.", "conflict": "Publikasi ini bertentangan dengan status papan peringkat yang ada.", "invalidResponse": "Papan peringkat SoAIBench mengembalikan respons yang tidak valid.", "retryAfter": "Coba lagi dalam {seconds} detik." }
+                "confirm": {
+                    "title": "Bagikan skor SoAIBench?",
+                    "message": "Publikasikan skor {score} dan {passes} lintasan terukurnya ke papan peringkat SoAIBench publik?",
+                    "description": "Tindakan ini mengirim skor, lima lintasan terukur, informasi GPU dan runtime publik, pengaturan benchmark, serta bukti sensor opsional. Identitas akun, file, konfigurasi, analitik, dan telemetri umum tidak disertakan."
+                },
+                "outcomes": {
+                    "published": "Skor SoAIBench dibagikan secara publik.",
+                    "alreadyPublished": "Skor SoAIBench ini sudah dibagikan.",
+                    "heldForReview": "Hasil SoAIBench ditahan untuk peninjauan identitas atau anomali dan belum dihitung dalam peringkat.",
+                    "offline": "Skor tidak dapat dibagikan saat SoAI luring.",
+                    "unavailable": "Layanan publikasi SoAIBench tidak tersedia.",
+                    "timeout": "Waktu berbagi skor habis. Coba lagi untuk merekonsiliasi publikasi yang sama.",
+                    "rateLimited": "Terlalu banyak skor dibagikan dari koneksi ini. Coba lagi nanti.",
+                    "capacity": "Papan peringkat SoAIBench sedang mencapai kapasitas.",
+                    "rejected": "Papan peringkat SoAIBench menolak hasil ini.",
+                    "conflict": "Publikasi ini bertentangan dengan status papan peringkat yang ada.",
+                    "invalidResponse": "Papan peringkat SoAIBench mengembalikan respons yang tidak valid.",
+                    "retryAfter": "Coba lagi dalam {seconds} detik."
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3123,9 +3286,11 @@
                         "quick": "Cepat",
                         "varianceSuffix": "Varians {variance}%"
                     },
-                    "description": "Proses SoAIBench sebelumnya untuk GPU yang dipilih.",
+                    "description": "Proses SoAIBench sebelumnya untuk GPU yang dipilih",
                     "empty": "Belum ada proses SoAIBench untuk GPU ini.",
                     "loading": "Memuat riwayat proses...",
+                    "pageEmpty": "Belum ada proses SoAIBench.",
+                    "pageLoadFailed": "Proses SoAIBench tidak dapat dimuat. Coba lagi.",
                     "matchBases": {
                         "device_id": "ID perangkat",
                         "gpu_model_key": "Kunci model GPU",
@@ -3146,7 +3311,9 @@
                         "standard": "Standar",
                         "stress": "Stres"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "Validasi numerik beban kerja OpenCL gagal." },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "Validasi numerik beban kerja OpenCL gagal."
+                    },
                     "rowCopyUnavailable": "Tidak ada proses SoAIBench yang tersedia untuk disalin",
                     "staleHardware": "Kecocokan perangkat keras usang",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "Proses SoAIBench sebelumnya"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "Pilih GPU untuk diuji",
+                    "noGpus": "Tidak ada GPU yang tersedia untuk pengujian kinerja.",
                     "ariaLabels": {
                         "close": "Tutup SoAIBench",
                         "copy": "Salin proses SoAIBench",
@@ -3170,13 +3339,16 @@
                         "retry": "Coba lagi SoAIBench tersertifikasi",
                         "stop": "Hentikan SoAIBench tersertifikasi",
                         "stopping": "Menghentikan SoAIBench tersertifikasi",
+                        "newBenchmark": "Mulai proses SoAIBench tersertifikasi baru",
+                        "runAgain": "Jalankan lagi SoAIBench tersertifikasi pada GPU ini",
+                        "recover": "Periksa lagi status SoAIBench",
                         "start": "Mulai SoAIBench tersertifikasi"
                     },
                     "close": "Tutup",
                     "copy": "Salin",
                     "copySuccess": "Proses SoAIBench disalin ke clipboard",
                     "copyUnavailable": "Tidak ada proses SoAIBench yang tersedia untuk disalin",
-                    "description": "Benchmark GPU tersertifikasi untuk kesiapan inferensi SoAI.",
+                    "description": "Benchmark GPU tersertifikasi untuk kesiapan inferensi SoAI",
                     "download": "Unduh",
                     "export": {
                         "deviceId": "ID perangkat",
@@ -3231,7 +3403,11 @@
                         "stopping": "Menghentikan SoAIBench",
                         "warmupDetail": "Pemanasan {pass}/{total}",
                         "warmupPhase": "Pemanasan: {phase}",
-                        "warmup": "Pass pemanasan selesai"
+                        "warmup": "Pass pemanasan selesai",
+                        "reconnecting": "Menyambungkan ulang... Pembaruan terakhir: {age}",
+                        "checkingStatus": "Memeriksa status benchmark...",
+                        "statusUnavailable": "Status benchmark tidak tersedia. Coba lagi untuk memeriksanya kembali.",
+                        "startUnconfirmed": "Awal benchmark tidak dapat dikonfirmasi dan tidak ada proses yang aktif pada GPU ini. Periksa riwayat sebelum mencoba lagi."
                     },
                     "retry": "Coba lagi",
                     "scoreLabel": "Skor SoAIBench",
@@ -3253,6 +3429,15 @@
                     "standardRun": "Proses standar",
                     "stop": "Hentikan",
                     "stopping": "Menghentikan",
+                    "newBenchmark": "Benchmark baru",
+                    "runAgain": "Jalankan lagi",
+                    "gpuBusy": "Benchmark sedang berjalan",
+                    "startedAt": "Dimulai {time}",
+                    "states": {
+                        "starting": "Memulai",
+                        "unresolved": "Status tidak diketahui",
+                        "rejected": "Tidak dimulai"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "Dokumentasi",
             "intro": {
                 "aboutButton": "Tentang SoAI",
-                "paragraph1": "<strong>SoAI (Smart Orchestrator for Artificial Intelligence)</strong> mengelola engine inferensi lokal dan penyedia AI jarak jauh dari satu WebUI. SoAI menyajikan model mereka melalui API yang kompatibel dengan OpenAI dan Anthropic",
+                "paragraph1": "<strong dir=\"auto\">SoAI (Smart Orchestrator for Artificial Intelligence)</strong> mengelola engine inferensi lokal dan penyedia AI jarak jauh dari satu WebUI. SoAI menyajikan model mereka melalui API yang kompatibel dengan OpenAI dan Anthropic",
                 "paragraph2": "SoAI berjalan di Linux, macOS, dan Windows. Kode sumbernya tersedia dan gratis untuk penggunaan pribadi dan homelab. SoAI tidak mengumpulkan data Anda atau mengirim analitik, telemetri, maupun laporan penggunaan"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "Latensi",
                         "queueDepth": "Kedalaman antrean",
                         "requests": "Permintaan",
+                        "throughput": "Laju token",
                         "tokens": "Token"
                     },
                     "title": "Grafik"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "Nama tampilan",
                     "source_model_id": "ID model sumber",
-                    "provider": "Penyedia",
-                    "title": "Identitas",
                     "type": "Jenis",
                     "universal_id": "ID universal",
                     "virtual": "Virtual"
@@ -4064,30 +4248,20 @@
                     "title": "Default inferensi"
                 },
                 "metrics": {
-                    "avgLatency": "Latensi rata-rata",
                     "avgTokens": "Rata-rata token/permintaan",
                     "audioIn": "Audio masuk",
                     "audioOut": "Audio keluar",
-                    "failedRequests": "Permintaan gagal",
                     "imagesIn": "Gambar masuk",
                     "imagesOut": "Gambar keluar",
                     "last_used": "Terakhir digunakan",
                     "modalityUsage": "Penggunaan",
                     "success_rate": "Tingkat keberhasilan",
                     "textTokens": "Token teks",
-                    "title": "Metrik",
                     "tokensGenerated": "Token yang dihasilkan",
-                    "totalRequests": "Total permintaan",
-                    "waitTime": "Waktu tunggu rata-rata"
+                    "totalRequests": "Total permintaan"
                 },
                 "plugin": {
-                    "author": "Penulis",
-                    "models": "Model",
-                    "plugin_status": "Status plugin",
-                    "providers": "Penyedia",
-                    "title": "Plugin",
-                    "type": "Jenis",
-                    "version": "Versi"
+                    "title": "Plugin"
                 },
                 "status": {
                     "available": "Tersedia",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "Ganti nama",
                     "modelStatus": "Status model",
                     "orphaned": "Orphaned",
-                    "parameters": "Parameter",
                     "stopPlugin": "Hentikan plugin",
-                    "title": "Status & tindakan"
+                    "title": "Status"
                 },
                 "technical": {
                     "created": "Dibuat",
-                    "description": "Deskripsi",
                     "family": "Keluarga",
                     "license": "Lisensi",
                     "path": "Path",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "Semua parameter",
-                "category": "Kategori",
                 "groupInference": "Inferensi",
                 "groupStartup": "Startup"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "Tambah item {itemType}",
                 "aliasesPrefix": "Juga dikenal sebagai:",
                 "arrayOfType": "Array nilai {itemType}",
+                "backendDefault": "Bawaan backend",
                 "backendDocumentationDescription": "Parameter model ini mencakup <strong>pengaturan yang ditentukan backend</strong> yang disediakan oleh plugin. Gunakan dokumentasi backend untuk mengetahui perilaku, nilai yang diterima, dan default secara tepat.",
-                "backendDocumentationTitle": "Informasi",
                 "badges": {
                     "custom": "KUSTOM",
-                    "default": "DEFAULT",
                     "requiresReload": "MEMERLUKAN MUAT ULANG"
                 },
-                "countLabel": "{count} parameter",
+                "count": {
+                    "plural": "{count} parameter",
+                    "singular": "{count} parameter"
+                },
                 "invalidJson": "Masukkan JSON yang valid untuk parameter ini.",
                 "jsonObject": "Objek JSON",
                 "noMatchDescription": "Coba sesuaikan kriteria pencarian atau filter Anda.",
                 "noMatchTitle": "Tidak ada parameter yang cocok dengan filter Anda",
                 "noParameters": "Tidak ada parameter yang tersedia untuk model ini",
+                "railLabel": "Kategori parameter",
                 "range": "Rentang: {min} - {max}",
-                "removeItem": "Hapus item"
+                "removeItem": "Hapus item",
+                "revertChange": "Kembalikan perubahan",
+                "unsavedCount": {
+                    "plural": "{count} perubahan belum disimpan",
+                    "singular": "{count} perubahan belum disimpan"
+                },
+                "views": {
+                    "customized": "Disesuaikan",
+                    "unsaved": "Perubahan belum disimpan"
+                }
             },
             "status": {
                 "loaded": "Dimuat",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "Pilih file",
                     "close": "Tutup",
                     "confirmDownload": "Unduh plugin",
                     "confirmUpload": "Unggah plugin",
+                    "fileDropHint": "Klik untuk memilih file .soaiplugin, atau seret ke sini",
+                    "fileDropTitle": "Letakkan plugin di sini",
                     "fileHelp": "Pilih paket plugin Python berformat ZIP (.soaiplugin)",
                     "fileLabel": "File plugin",
                     "manualCopySuccess": "Path folder plugin disalin ke clipboard.",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant} (terinstal)",
                     "loadFailed": "Varian backend tidak dapat dimuat.",
                     "loading": "Memuat varian backend...",
+                    "loadingBackends": "Memuat backend...",
                     "saveFailed": "Varian backend tidak dapat disimpan."
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "Override kompatibilitas diaktifkan untuk {plugin}.",
                 "overrideRequired": "Aktifkan override kompatibilitas sebelum memulai {plugin}.",
                 "persistentNoStop": "Plugin persisten tidak dapat dihentikan",
-                "pluginDisabled": "Plugin dinonaktifkan",
-                "pluginEnabled": "Plugin diaktifkan",
+                "pluginDisabled": "Plugin {plugin} dinonaktifkan",
+                "pluginEnabled": "Plugin {plugin} diaktifkan",
                 "pluginIncompatibleReason": "Plugin \"{plugin}\" tidak kompatibel: {reason}",
                 "pluginInfoCopyFailed": "Gagal menyalin informasi plugin",
                 "pluginStopInProgress": "Menghentikan {plugin}...",
@@ -5489,16 +5674,21 @@
                 "restarting": "Aplikasi sedang dimulai ulang. Proses ini seharusnya hanya memerlukan beberapa saat.",
                 "shutdown": "Sistem sedang dimatikan. Anda dapat menutup jendela browser ini.",
                 "sleep": "Sistem memasuki mode tidur. Bangunkan sistem untuk melanjutkan penggunaan SoAI.",
-                "updating": "SoAI sedang mengunduh dan menginstal pembaruan. Proses ini mungkin memerlukan beberapa menit."
+                "updateTimeout": "SoAI tidak kembali online setelah pembaruan. Periksa application_updater.log di folder log SoAI, lalu muat ulang halaman ini.",
+                "updating": "SoAI akan dimulai ulang untuk menyelesaikan pembaruan. Halaman ini akan dimuat ulang secara otomatis saat SoAI kembali online. Proses ini dapat memakan waktu beberapa menit.",
+                "updatingDesktop": "SoAI akan dimulai ulang untuk menyelesaikan pembaruan. Jendela ini akan tertutup dan terbuka kembali secara otomatis setelah pembaruan selesai. Jangan matikan komputer Anda.",
+                "updatingSlow": "Pembaruan memakan waktu lebih lama dari biasanya. SoAI masih bekerja, jadi biarkan halaman ini tetap terbuka."
             },
             "messages": {
                 "connectionLost": "Koneksi backend terputus",
+                "installingVersion": "Menginstal SoAI {version}...",
                 "pleaseWait": "Harap tunggu...",
                 "rebooting": "Sistem sedang dimulai ulang...",
                 "rebootTimeout": "Proses mulai ulang masih berlangsung...",
                 "restarting": "SoAI sedang dimulai ulang...",
                 "shutdown": "Sistem sedang dimatikan",
                 "sleep": "Sistem memasuki mode tidur",
+                "updateTimeout": "SoAI belum kembali",
                 "updating": "SoAI sedang diperbarui..."
             },
             "reconnecting": "Mencoba menyambungkan kembali..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "Pilih warna kustom untuk semua bagan",
-                    "label": "Warna statis"
+                    "label": "Warna bagan"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "Atur bagaimana konten yang menyerupai kode ditampilkan di seluruh SoAI.",
                 "subgroupTitle": "Blok kode"
+            },
+            "connect": {
+                "addressCopied": "Alamat disalin",
+                "browserAddress": "Alamat browser ini",
+                "chooseAddress": "Alamat untuk ponsel Anda",
+                "copyAddress": "Salin alamat",
+                "description": "Hubungkan aplikasi Android SoAI Connect ke server ini dengan memindai kode QR.",
+                "documentationHint": "Untuk penyiapan manual dan pemecahan masalah, buka \"Connect to a SoAI server\" di dokumentasi SoAI",
+                "documentationLink": "Dokumentasi SoAI",
+                "loadFailed": "Gagal memuat detail koneksi",
+                "loopbackWarningMessage": "SoAI mendengarkan di alamat loopback, sehingga perangkat lain tidak dapat menjangkaunya secara langsung. Kode QR hanya berfungsi melalui reverse proxy yang memakai skema dan port yang sama dengan SoAI. Untuk mengizinkan koneksi langsung, atur opsi berikut lalu mulai ulang SoAI:",
+                "loopbackWarningTitle": "Hanya dapat dijangkau dari komputer ini",
+                "noAddressesMessage": "Hubungkan server ini ke jaringan, atau buka halaman ini dari alamat yang akan digunakan ponsel Anda.",
+                "noAddressesTitle": "Tidak ada alamat yang dapat dijangkau",
+                "qrLabel": "Kode QR untuk menghubungkan SoAI Connect ke {address}",
+                "refresh": "Segarkan alamat",
+                "scanHint": "Pindai kode QR ini dengan aplikasi SoAI Connect",
+                "stepInstall": "Pasang SoAI Connect di ponsel Android Anda lalu buka aplikasinya",
+                "stepScan": "Ketuk tombol kode QR di samping kolom alamat server, lalu pindai kode di halaman ini",
+                "stepSignIn": "Tinjau permintaan sertifikat jika ada, lalu masuk dengan akun SoAI Anda",
+                "stepsTitle": "Cara menghubungkan",
+                "title": "SoAI Connect",
+                "vpnHint": "Ponsel Anda harus dapat menjangkau server ini. Gunakan jaringan lokal yang sama, atau VPN saat Anda berada di luar, alih-alih membuka SoAI ke internet",
+                "vpnTitle": "Sedang di luar rumah?"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "Sembunyikan header halaman otomatis"
                     }
                 },
-                "subgroupTitle": "Gerakan",
+                "subgroupTitle": "Antarmuka",
                 "subgroupDescription": "Sesuaikan gerakan, transisi, permukaan kaca, dan perilaku gulir."
             },
             "externalAccounts": {
@@ -6975,7 +7189,7 @@
                     "authorizedSendersPlaceholder": "sender-id | Label opsional",
                     "credentialsDescription": "Masukkan kredensial yang diperlukan oleh penyedia yang dipilih.",
                     "credentialsTitle": "Kredensial penyedia",
-                    "description": "Konfigurasikan satu akun penyedia nyata dan pengaturan eksekusi Chat kanonis yang dimilikinya.",
+                    "description": "Konfigurasikan satu akun penyedia nyata dan pengaturan eksekusi Chat kanonis yang dimilikinya",
                     "executionDescription": "Pilih model Chat, identitas, prompt, ruang kerja, dan parameter eksekusi.",
                     "executionTitle": "Eksekusi Chat",
                     "identityDescription": "Beri nama akun dan pilih penyedia serta bahasa responsnya.",
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "Cadangan",
+                "connect": "Hubungkan",
                 "externalAccounts": "Email & kalender",
                 "licensing": "Lisensi",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "Pilih satu untuk menerapkannya",
+                    "label": "Wallpaper bawaan",
+                    "none": "Tanpa wallpaper",
+                    "option": "Wallpaper {number}"
+                },
                 "downloadUrl": {
                     "button": "Unduh",
                     "help": "Berikan URL untuk mengunduh dan menetapkannya sebagai wallpaper",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "Sebagian catatan rilis tidak dapat dimuat. Catatan yang tersedia ditampilkan."
+            },
+            "outcome": {
+                "failureMessage": "Pembaruan ke versi {version} tidak selesai. SoAI {previousVersion} masih terpasang. Periksa application_updater.log di folder log SoAI untuk detailnya.",
+                "failureTitle": "Pembaruan tidak selesai",
+                "later": "Nanti",
+                "reloadMessage": "SoAI sekarang menjalankan versi {version}. Muat ulang halaman ini untuk menggunakan antarmuka yang diperbarui.",
+                "reloadTitle": "SoAI telah diperbarui",
+                "successMessage": "SoAI berhasil diperbarui ke versi {version}.",
+                "successTitle": "Pembaruan selesai"
+            },
+            "progress": {
+                "downloading": "Mengunduh pembaruan...",
+                "handoff": "Bersiap memulai ulang SoAI...",
+                "staging": "Menyiapkan berkas pembaruan...",
+                "unavailable": "Progres langsung sementara tidak tersedia.",
+                "verifying": "Memverifikasi pembaruan..."
+            },
             "actions": {
                 "checkUpdates": "Periksa pembaruan",
                 "installUpdate": "Instal pembaruan"
@@ -7943,6 +8183,184 @@
             "welcome": {
                 "description": "SoAI menyatukan backend LLM lokal dan jarak jauh di balik satu lapisan orkestrasi yang kompatibel dengan OpenAI.",
                 "heading": "Selamat datang di SoAI!"
+            },
+            "aiSetup": {
+                "eyebrow": "Penyiapan SoAI",
+                "loadFailed": {
+                    "title": "Penyiapan SoAI tidak dapat dimuat",
+                    "description": "SoAI tidak dapat membaca mesin dan penyedia yang tersedia. Pastikan SoAI sedang berjalan, lalu coba lagi, atau selesaikan penyiapan nanti.",
+                    "retry": "Coba lagi"
+                },
+                "nav": {
+                    "finishLater": "Lewati",
+                    "skip": "Lewati penyiapan SoAI",
+                    "continue": "Lanjutkan",
+                    "installAndContinue": "Instal",
+                    "downloadAndContinue": "Unduh",
+                    "startChatting": "Mengobrol",
+                    "close": "Tutup"
+                },
+                "sources": {
+                    "heading": "Di mana AI Anda harus berjalan?",
+                    "description": "Pilih salah satu atau keduanya. Anda dapat mengubahnya nanti.",
+                    "local": {
+                        "title": "Di perangkat ini",
+                        "description": "Privat dan dapat bekerja offline setelah penyiapan. Memerlukan unduhan satu kali."
+                    },
+                    "cloud": {
+                        "title": "Penyedia cloud",
+                        "description": "Berfungsi di mana saja dengan internet dan kunci API penyedia.",
+                        "recommended": "Disarankan"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "Dapatkan kunci API gratis",
+                    "accessibleName": "Dapatkan kunci API gratis (terbuka di jendela baru)"
+                },
+                "limited": {
+                    "noCompatibleEngine": "Tidak ada mesin lokal yang mendukung perangkat ini.",
+                    "insufficientMemory": "Model lokal memerlukan sekitar {required} memori kosong; perangkat ini memiliki sekitar {available}.",
+                    "useCloud": "Gunakan model cloud sebagai gantinya",
+                    "searchManually": "Cari model secara manual"
+                },
+                "connect": {
+                    "heading": "Bersiap",
+                    "description": "Hubungkan penyedia dan siapkan perangkat ini.",
+                    "cloud": {
+                        "heading": "Hubungkan penyedia cloud",
+                        "description": "Tempel URL API dan kunci dari penyedia Anda.",
+                        "moreOptions": "Opsi lainnya",
+                        "modelFilter": "Filter model (opsional)",
+                        "connect": "Hubungkan",
+                        "connecting": "Menghubungkan ke {name}…",
+                        "connected": {
+                            "singular": "Terhubung · {count} model tersedia",
+                            "plural": "Terhubung · {count} model tersedia"
+                        },
+                        "change": "Ubah"
+                    },
+                    "local": {
+                        "heading": "Instal mesin lokal",
+                        "description": "Ini memungkinkan model berjalan di perangkat ini.",
+                        "automatic": "Otomatis (disarankan)",
+                        "usesGpu": "Menggunakan {engine} dengan kartu grafis Anda",
+                        "usesProcessor": "Menggunakan {engine} pada prosesor",
+                        "usesInstalled": "Menggunakan {engine}, sudah terinstal",
+                        "chooseManually": "Pilih secara manual",
+                        "status": {
+                            "installed": "Terinstal",
+                            "recommended": "Disarankan",
+                            "warning": "Peringatan",
+                            "unavailable": "Tidak tersedia"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "Pilih model",
+                    "description": "Pilih model untuk mengobrol. Anda dapat menambahkan lebih banyak nanti.",
+                    "local": {
+                        "heading": "Model untuk perangkat ini",
+                        "description": "Dipilih untuk perangkat keras Anda."
+                    },
+                    "role": {
+                        "recommended": "Disarankan",
+                        "faster": "Lebih cepat",
+                        "smallest": "Terkecil"
+                    },
+                    "useCase": {
+                        "advanced": "Kualitas terbaik untuk menulis, coding, dan penalaran",
+                        "balanced": "Cocok untuk obrolan, menulis, dan coding sehari-hari",
+                        "reasoning": "Penalaran langkah demi langkah yang kuat",
+                        "light": "Jawaban cepat pada perangkat keras sederhana"
+                    },
+                    "downloadSize": "Unduhan {size}",
+                    "runsOnGpu": "Berjalan di kartu grafis Anda",
+                    "runsOnCpu": "Berjalan di prosesor Anda",
+                    "speed": {
+                        "fast": "Balasan cepat",
+                        "moderate": "Kecepatan sedang",
+                        "slow": "Balasan lebih lambat"
+                    },
+                    "details": {
+                        "label": "Detail",
+                        "quantization": "Kuantisasi",
+                        "parameters": "Parameter",
+                        "parametersDense": "{total} M",
+                        "parametersMoe": "{total} M, {active} M aktif",
+                        "context": "Panjang konteks",
+                        "contextTokens": "{tokens} token",
+                        "contextReduced": "{tokens} token (dikurangi agar sesuai dengan perangkat ini)",
+                        "file": "Berkas",
+                        "source": "Sumber"
+                    },
+                    "openChatWith": "Buka Chat dengan model ini",
+                    "searchAnother": "Cari model lain",
+                    "cloud": {
+                        "heading": "Model dari {provider}",
+                        "description": "Pilih satu atau lebih.",
+                        "filterPlaceholder": "Filter model…",
+                        "noMatches": "Tidak ada model yang cocok dengan filter ini.",
+                        "empty": "Penyedia ini tidak mengembalikan model apa pun. Periksa filter model atau coba penyedia lain.",
+                        "backToProvider": "Kembali ke penyedia"
+                    }
+                },
+                "progress": {
+                    "heading": "Menyiapkan semuanya",
+                    "description": "Anda dapat mulai mengobrol segera setelah satu model siap.",
+                    "readyCount": "{ready} dari {total} siap",
+                    "installing": "Menginstal {engine}",
+                    "downloading": "Mengunduh {model}",
+                    "waitingForEngine": "Menunggu {engine} selesai diinstal",
+                    "discovering": "Menambahkan {model} ke model Anda",
+                    "configuring": "Menerapkan pengaturan awal",
+                    "testing": "Mengirim pesan uji singkat",
+                    "ready": "{model} siap",
+                    "blocked": "Tidak dapat dimulai sampai {engine} terinstal",
+                    "checkingStatus": "Memeriksa status",
+                    "retry": "Coba lagi",
+                    "retryInstallation": "Coba instal lagi",
+                    "skipItem": "Lewati item ini",
+                    "testAgain": "Uji lagi",
+                    "checkAgain": "Periksa lagi",
+                    "sendTest": "Kirim pesan uji",
+                    "error": {
+                        "empty": "Model termuat tetapi tidak membalas. Coba lagi atau pilih model lain.",
+                        "loadError": "Model tidak dapat dimulai di perangkat ini. Coba lagi atau pilih model yang lebih kecil.",
+                        "timeout": "Model terlalu lama membalas. Coba lagi atau pilih model yang lebih kecil.",
+                        "disconnected": "Koneksi terputus selama pengujian. Coba lagi.",
+                        "downloadFailed": "Unduhan berhenti. Coba lagi.",
+                        "installFailed": "Instalasi tidak selesai. Coba lagi.",
+                        "noDiskSpace": "Ruang disk tidak cukup untuk model ini. Kosongkan ruang atau pilih model yang lebih kecil."
+                    },
+                    "testPrompt": "Balas dengan satu kalimat pendek yang ramah.",
+                    "testCancelled": "Pengujian penyiapan SoAI dibatalkan."
+                },
+                "completion": {
+                    "modelsTitle": "Model AI",
+                    "modelsReady": {
+                        "singular": "{count} siap",
+                        "plural": "{count} siap"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} masih disiapkan di latar belakang",
+                        "plural": "{count} masih disiapkan di latar belakang"
+                    }
+                },
+                "resume": {
+                    "link": "Selesaikan penyiapan SoAI",
+                    "toast": "Beberapa langkah penyiapan SoAI memerlukan perhatian Anda."
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "Unduhan model akan berlanjut di latar belakang.",
+                        "plural": "{count} unduhan model akan berlanjut di latar belakang."
+                    },
+                    "installations": {
+                        "singular": "Instalasi backend akan berlanjut di latar belakang.",
+                        "plural": "{count} instalasi backend akan berlanjut di latar belakang."
+                    },
+                    "both": "Unduhan model dan instalasi backend akan berlanjut di latar belakang."
+                }
             }
         }
     }

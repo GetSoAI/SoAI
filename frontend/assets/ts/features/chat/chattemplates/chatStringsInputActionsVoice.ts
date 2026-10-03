@@ -24,6 +24,8 @@ type InputActionsVoice = Pick<
     | 'inputActionCameraHint'
     | 'inputActionCharacterMap'
     | 'inputActionCharacterMapHint'
+    | 'inputActionSketch'
+    | 'inputActionSketchHint'
     | 'inputActionPrompts'
     | 'inputActionPromptsHint'
     | 'inputActionTokenCounter'
@@ -73,6 +75,8 @@ const resolveInputActionsVoiceTemplateStrings = (sanitizer: SanitizerApi): Input
         inputActionCameraHint: i18n.html(sanitizer, 'chat.configuration.inputActions.cameraHint'),
         inputActionCharacterMap: i18n.html(sanitizer, 'chat.characterMap.preference'),
         inputActionCharacterMapHint: i18n.html(sanitizer, 'chat.characterMap.preferenceHint'),
+        inputActionSketch: i18n.html(sanitizer, 'chat.sketch.preference'),
+        inputActionSketchHint: i18n.html(sanitizer, 'chat.sketch.preferenceHint'),
         inputActionPrompts: i18n.html(sanitizer, 'chat.configuration.inputActions.prompts'),
         inputActionPromptsHint: i18n.html(sanitizer, 'chat.configuration.inputActions.promptsHint'),
         inputActionTokenCounter: i18n.html(sanitizer, 'chat.configuration.inputActions.tokenCounter'),

@@ -81,7 +81,7 @@
     .chat-configuration-modal .rag-document-progress-bar[data-indeterminate='true'] {
         width: 45%;
         animation: task-progress-indeterminate var(--duration-1600) var(--ease-in-out) infinite;
-        transform-origin: left;
+        transform-origin: var(--inline-start-percent) center;
     }
 
     .chat-configuration-modal .rag-document-actions {
@@ -228,11 +228,13 @@
     }
 
     :where(.chat-container) .chat-message.assistant .message-avatar::before {
+        /* direction: physical — callout side is selected from physical viewport space */
         left: calc(100% + 0.5rem);
         transform: translateY(-50%) rotate(-45deg);
     }
 
     :where(.chat-container) .chat-message.user .message-avatar::before {
+        /* direction: physical — callout side is selected from physical viewport space */
         right: calc(100% + 0.5rem);
         transform: translateY(-50%) rotate(135deg);
     }

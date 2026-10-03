@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
-import { ensureError } from '@core/errors/coerce.ts';
-import { errorHandler } from '@core/errorHandler.ts';
-import { isAgentMode, normalizeConversationId, type ChatTurnAdmissionSnapshot } from '@features/chat/public.ts';
+import { toTrimmedString } from '@core/normalize.ts';
+import { CHAT_SELECTORS, isAgentMode, normalizeConversationId, type ChatTurnAdmissionSnapshot } from '@features/chat/public.ts';
 import type { ChatRootEventsHost } from '@pages/chat/controllers/page/events/contracts.ts';
 import { setupChatRootEvents } from '@pages/chat/controllers/page/events/setup.ts';
 import type { ChatComposerSurfaceRuntimeOwner } from '@pages/chat/controllers/chatpage/runtime/ChatComposerSurfaceRuntime.ts';
@@ -23,10 +22,14 @@ import type { ChatPagePresentationHost } from '@pages/chat/controllers/chatpage/
 import type { PageUiOwnerHost } from '@core/routing/pages/basepagecore/PageUi.ts';
 import type { PageLifecycleOwnerHost } from '@core/routing/pages/basepage/PageLifecycle.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
+import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { ChatUiBehaviorsOwner } from '@pages/chat/controllers/chatUiBehaviors.ts';
 import type { ChatMessageSendingOwner } from '@pages/chat/controllers/chatmessagesendingcontroller/ChatMessageSendingController.ts';
+import type { ChatConfigurationController } from '@pages/chat/controllers/chatpage/configuration/ChatConfigurationController.ts';
+import type { ChatVoiceSessionHost } from '@pages/chat/controllers/chatpage/voice/ChatVoiceSession.ts';
 
-interface DeterministicLifecycleSource extends ChatComposerSurfaceRuntimeOwner, ChatConversationRuntimeOwner, ChatTurnRuntimeOwner, ChatConversationStateHost, ChatComposerHost, ChatSettingsStateHost, ChatViewStateHost, ChatRuntimeServicesHost, ChatUiTaskScopeHost, ChatConversationViewHost, ChatModelSessionHost, ChatPagePresentationHost, PageUiOwnerHost, PageLifecycleOwnerHost, PageFeedbackOwnerHost, ChatUiBehaviorsOwner, ChatMessageSendingOwner {
+interface DeterministicLifecycleSource extends ChatComposerSurfaceRuntimeOwner, ChatConversationRuntimeOwner, ChatTurnRuntimeOwner, ChatConversationStateHost, ChatComposerHost, ChatSettingsStateHost, ChatViewStateHost, ChatRuntimeServicesHost, ChatUiTaskScopeHost, ChatConversationViewHost, ChatModelSessionHost, ChatPagePresentationHost, PageUiOwnerHost, PageLifecycleOwnerHost, PageFeedbackOwnerHost, PageResourcesOwnerHost, ChatUiBehaviorsOwner, ChatMessageSendingOwner, ChatVoiceSessionHost {
+    configurationSession: ChatConfigurationController;
     conversationToolbarSession: ChatConversationToolbarManager;
     getDomContext(): Element | null;
     dom: { getData: (element: Element | null, key: string) => string | null };
@@ -57,27 +60,13 @@ const setupDeterministicLifecycleForChatPage = (page: DeterministicLifecycleSour
         return element;
     };
 
+    const collapseSidebarIfNarrowViewport = (): void => page.conversationView.requireActions().collapseSidebarIfNarrowViewport();
+
     const handleMobileSidebarClickAway = (target: Element): void => {
-        if (!page.viewState.sidebarOpen) {
+        if (optionalRootElement(CHAT_SELECTORS.SIDEBAR)?.contains(target) || target.closest(CHAT_SELECTORS.SIDEBAR_TOGGLE)) {
             return;
         }
-        if (!page.uiBehaviors.presentation.isMobileSidebarViewport()) {
-            return;
-        }
-        const sidebar = optionalRootElement('.chat-sidebar');
-        const toggle = optionalRootElement('.chat-sidebar-toggle-btn');
-        if (!sidebar || !toggle) {
-            return;
-        }
-        if (sidebar.contains(target) || toggle.contains(target)) {
-            return;
-        }
-        page.viewState.sidebarOpen = false;
-        void Promise.resolve(page.uiBehaviors.layout.applySidebarState()).catch((error) => {
-            errorHandler.warn('ChatPage', 'Failed to apply the chat sidebar state', ensureError(error));
-        });
-        page.settings.storage.setChatSidebarOpen(false);
-        page.conversationRuntime.requireStorage().saveState();
+        collapseSidebarIfNarrowViewport();
     };
 
     const eventsHost: ChatRootEventsHost = {
@@ -87,8 +76,9 @@ const setupDeterministicLifecycleForChatPage = (page: DeterministicLifecycleSour
             handleChatMessageHoverChange: (messageId, hovering) => page.conversationRuntime.requireMessages().handleDeleteUndoHoverChange(messageId, hovering),
             handleAgentKeyDown: (event) => page.composer.handleAgentKeyDown(event),
             hideConversationColorPicker: () => page.presentation.hideConversationColorPicker(),
-            collapseSidebarIfNarrowViewport: () => page.conversationView.requireActions().collapseSidebarIfNarrowViewport(),
+            collapseSidebarIfNarrowViewport,
             handleMobileSidebarClickAway,
+            sidebarPeek: page.uiBehaviors.sidebarPeek,
             closeChatModelControlMenu: () => page.modelSession.closeControlMenu(),
             handleChatModelControlSearchInput: (input) => page.modelSession.handleControlSearchInput(input),
             showNotification: (message, type, duration) => page.feedback.show(message, type, duration),
@@ -132,7 +122,7 @@ const setupDeterministicLifecycleForChatPage = (page: DeterministicLifecycleSour
                 return conversationId ? await page.turnRuntime.requireStreaming().resolveSyncedTurnAdmission(conversationId, page.pageLifecycle.signal()) : null;
             },
             sendMessage: async (options) => page.messageSending.sendMessage(options),
-            queueConversationInputFromComposer: async (intent: 'queued' | 'steer') => page.messageSending.queueConversationInputFromComposer(intent),
+            queueConversationInputFromComposer: async (intent, options) => page.messageSending.queueConversationInputFromComposer(intent, options),
             getComposerAttachmentCount: () => page.composerSurface.optionalAttachments()?.getAttachments().length ?? 0,
             isCurrentConversationStreaming: () => {
                 const conversationId = page.conversationState.currentConversationId;
@@ -161,6 +151,28 @@ const setupDeterministicLifecycleForChatPage = (page: DeterministicLifecycleSour
             cancelConversationListTitleRename: () => page.conversationView.requireActions().handleConversationListTitleCancel(),
             isConversationSelectionActive: () => page.conversationToolbarSession.isSelectionActive(),
             exitConversationSelectMode: () => page.conversationToolbarSession.exitSelectMode()
+        },
+        holdShortcuts: {
+            openConfiguration: (tabId, attentionTarget) => page.configurationSession.openDestination({ tabId, attentionTarget }),
+            canStartPushToTalk: () => page.voiceSession.canStartPushToTalk(),
+            captureDraftSurface: () => page.composer.captureDraftSurface(),
+            beginPushToTalk: (button, start, draftSnapshot) =>
+                page.voiceSession.beginPushToTalk({
+                    button,
+                    start,
+                    lifecycleSignal: signal,
+                    timers: page.pageResources.tracker,
+                    conversationId: normalizeConversationId(page.conversationState.currentConversationId) || null,
+                    modelId: toTrimmedString(page.conversationState.currentModel) || null,
+                    draftSnapshot,
+                    getConversationId: () => normalizeConversationId(page.conversationState.currentConversationId) || null,
+                    getModelId: () => toTrimmedString(page.conversationState.currentModel) || null,
+                    matchesDraftSurface: (snapshot, adoptedConversationId) => page.composer.matchesDraftSurface(snapshot, adoptedConversationId),
+                    captureDraftSurface: () => page.composer.captureDraftSurface(),
+                    insertTranscript: (text) => page.composer.insertTranscription(text, { focus: false }),
+                    queueInput: (options) => page.messageSending.queueConversationInputFromComposer('queued', options),
+                    present: (snapshot) => page.composerSurface.requireUi().updateAudioRecordingPreview(snapshot)
+                })
         }
     };
 

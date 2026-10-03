@@ -15,7 +15,7 @@ from app.lifecycle.signals import require_runtime_restart
 from app.media_parsing_services import MediaParsingServices
 from app.types_services_runtime import StorageServices
 from core.config.protocols import ConfigManagerProtocol, ConfigProtocol
-from core.database.protocols import DatabaseCoreProtocol
+from core.database.protocols import DatabaseCoreProtocol, DatabaseOperationStatusProtocol
 from core.events.protocols import DurableEventDeliveryProtocol, EventBusProtocol
 from core.files.protocols import DatabaseFilesProtocol
 from core.files.storage_root_resolution import resolve_managed_files_storage_root
@@ -25,6 +25,7 @@ from core.logging.trace import get_logger
 from core.notifications.protocols_database import DatabaseNotificationsProtocol
 from core.orchestrator.protocols_lifecycle import OrchestratorControlProtocol
 from core.plugins.protocols_instance import FilesProtocol
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.protocols import RuntimeStateStoreProtocol
 from core.tasks.protocols import (
     CancellationCoordinatorProtocol,
@@ -62,11 +63,13 @@ def build_storage_services(
     database_core: DatabaseCoreProtocol,
     database_notifications: DatabaseNotificationsProtocol,
     database_files: DatabaseFilesProtocol,
+    database_operation_status: DatabaseOperationStatusProtocol,
     orchestrator_control: OrchestratorControlProtocol,
     config_manager: ConfigManagerProtocol,
     storage_manager: StorageManagerProtocol,
     lifecycle_coordinator: LifecycleCoordinatorProtocol,
     media_parsing: MediaParsingServices,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> StorageServices:
     _ = domain_event_delivery
     storage_root = resolve_managed_files_storage_root(config, files)
@@ -77,6 +80,7 @@ def build_storage_services(
         FileManagerDependencies(
             config=config,
             database_files=database_files,
+            database_operation_status=database_operation_status,
             storage_manager=storage_manager,
             event_bus=event_bus,
             shutdown_event=runtime_state.shutdown_event,
@@ -112,6 +116,8 @@ def build_storage_services(
                 require_runtime_restart,
                 runtime_state,
                 get_logger(BACKUP_RESTORE_LOGGER_NAME),
+                config=config,
+                process_exit_deadline=process_exit_deadline,
             ),
             startup_ready_event=runtime_state.startup_ready_event,
         ),

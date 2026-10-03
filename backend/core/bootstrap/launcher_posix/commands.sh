@@ -122,7 +122,11 @@ soai_launcher__dispatch() {
     soai_launcher__configure_paths
     case "$SOAI_LAUNCHER_COMMAND" in
         install)
-            soai_install__install_to_target "$SOAI_INSTALL_TARGET" "${SOAI_PASSTHROUGH_ARGS[@]}"
+            if [ "$SOAI_PASSTHROUGH_ARGS_PRESENT" = "1" ]; then
+                soai_install__install_to_target "$SOAI_INSTALL_TARGET" "${SOAI_PASSTHROUGH_ARGS[@]}"
+            else
+                soai_install__install_to_target "$SOAI_INSTALL_TARGET"
+            fi
             ;;
         install-deps)
             soai_launcher__install_deps

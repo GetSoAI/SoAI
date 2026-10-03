@@ -17,8 +17,8 @@ interface LanguageEntry {
     region: string | null;
 }
 
-interface LanguageEntryWithFlag extends LanguageEntry {
-    flag?: string;
+interface LanguageEntryWithCountryCode extends LanguageEntry {
+    countryCode?: string | null;
 }
 
 interface LanguageManifest {
@@ -46,4 +46,4 @@ interface ApiClient {
     fetchAsset(path: string, options: { responseType: string }): Promise<JsonValue>;
 }
 
-export type { ApiClient, LanguageEntry, LanguageEntryWithFlag, LanguageManifest, ManifestLanguageEntry, StorageInterface, TranslationArray, TranslationObject, TranslationValue };
+export type { ApiClient, LanguageEntry, LanguageEntryWithCountryCode, LanguageManifest, ManifestLanguageEntry, StorageInterface, TranslationArray, TranslationObject, TranslationValue };

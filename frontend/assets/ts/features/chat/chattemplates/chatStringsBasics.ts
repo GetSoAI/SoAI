@@ -5,7 +5,7 @@ import type { SanitizerApi } from '@core/pagecontext/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { ChatTemplateStringSet } from '@features/chat/chattemplates/stringSetTypes.ts';
 
-type Basics = Pick<ChatTemplateStringSet, 'selectModel' | 'newChat' | 'toggleSidebar' | 'toggleFavorites' | 'newConversation' | 'newTitle' | 'configuration' | 'exportAction' | 'gotoPrompts' | 'openCharacterMap' | 'toggleTools' | 'toggleFavorite' | 'tokenCounterTooltip' | 'tokenCounterInactive' | 'inputPlaceholder' | 'attachAdd' | 'openCamera' | 'startRecording' | 'stopRecording' | 'voiceCallStart' | 'send' | 'stop'>;
+type Basics = Pick<ChatTemplateStringSet, 'selectModel' | 'newChat' | 'toggleSidebar' | 'toggleFavorites' | 'newConversation' | 'newTitle' | 'configuration' | 'exportAction' | 'gotoPrompts' | 'openCharacterMap' | 'openSketch' | 'toggleTools' | 'toggleFavorite' | 'tokenCounterTooltip' | 'tokenCounterInactive' | 'inputPlaceholder' | 'attachAdd' | 'openCamera' | 'startRecording' | 'stopRecording' | 'voiceCallStart' | 'send' | 'stop'>;
 
 const resolveBasicsTemplateStrings = (sanitizer: SanitizerApi): Basics => {
     return {
@@ -19,6 +19,7 @@ const resolveBasicsTemplateStrings = (sanitizer: SanitizerApi): Basics => {
         exportAction: i18n.attr(sanitizer, 'chat.header.export'),
         gotoPrompts: i18n.attr(sanitizer, 'chat.header.gotoPrompts'),
         openCharacterMap: i18n.attr(sanitizer, 'chat.characterMap.open'),
+        openSketch: i18n.attr(sanitizer, 'chat.sketch.open'),
         toggleTools: i18n.attr(sanitizer, 'chat.header.toggleTools'),
         toggleFavorite: i18n.attr(sanitizer, 'chat.header.toggleFavorite'),
         tokenCounterTooltip: i18n.attr(sanitizer, 'chat.tokenCounter.tooltip'),

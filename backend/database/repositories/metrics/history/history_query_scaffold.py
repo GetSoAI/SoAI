@@ -32,6 +32,7 @@ def build_empty_metric_history_payload(
     return {
         "timestamps_ms": [],
         "values": [],
+        "sample_counts": [],
         **dict(extra),
         "interval_ms": interval_ms,
         "metadata": {

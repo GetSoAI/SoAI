@@ -26,7 +26,7 @@
         }
 
         :where([data-section='settings'], [data-page-scope='settings']) .settings-instance-id .settings-control-code {
-            text-align: left;
+            text-align: start;
         }
     }
 
@@ -41,7 +41,7 @@
         color: var(--text-secondary);
         font-size: var(--font-size-body-xs);
         line-height: 1.3;
-        text-align: right;
+        text-align: end;
         overflow-wrap: anywhere;
     }
 
@@ -105,8 +105,10 @@
             box-shadow var(--transition-fast);
     }
 
-    :where([data-section='settings'], [data-page-scope='settings']) .secret-input-container > input.setting-input.secret-input {
-        padding-right: calc(var(--space-3) + var(--control-height));
+    :where([data-section='settings'], [data-page-scope='settings']) .secret-input-container.ui-inline-action-field > input.setting-input.secret-input {
+        --inline-action-input-padding: var(--space-3);
+
+        padding-inline-end: calc(var(--space-3) + var(--control-height));
     }
 
     :where([data-section='settings'], [data-page-scope='settings']) .setting-textarea {
@@ -154,7 +156,7 @@
 
     :where([data-section='settings'], [data-page-scope='settings']) .settings-record-list--sessions {
         max-height: 22rem;
-        padding-right: var(--space-2);
+        padding-inline-end: var(--space-2);
         overflow-y: auto;
         overscroll-behavior: contain;
     }
@@ -201,7 +203,7 @@
 
     @container ui-viewport (width <= 480px) {
         :where([data-section='settings'], [data-page-scope='settings']) .settings-record-item--user .settings-record-header .settings-record-badge {
-            margin-left: auto;
+            margin-inline-start: auto;
             flex-shrink: 0;
         }
     }

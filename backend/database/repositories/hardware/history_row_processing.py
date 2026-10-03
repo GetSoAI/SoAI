@@ -28,16 +28,16 @@ def process_ohlc_rows(
     for timestamp in expected_timestamps:
         row = row_map.get(timestamp)
         row_data: JSONDict = {}
-        is_row_gap_filled = False
+        is_missing_bucket = True
         if row:
-            sample_count_raw = row.get("sample_count")
-            if isinstance(sample_count_raw, int):
-                sample_count = sample_count_raw
-            elif isinstance(sample_count_raw, str | float):
-                sample_count = int(sample_count_raw)
-            else:
-                sample_count = 0
             for col in metric_cols:
+                sample_count_raw = row.get(f"{col}_count")
+                if isinstance(sample_count_raw, int):
+                    sample_count = sample_count_raw
+                elif isinstance(sample_count_raw, str | float):
+                    sample_count = int(sample_count_raw)
+                else:
+                    sample_count = 0
                 open_val = coerce_float_or_none(row.get(f"{col}_open"))
                 high_val = coerce_float_or_none(row.get(f"{col}_high"))
                 low_val = coerce_float_or_none(row.get(f"{col}_low"))
@@ -49,6 +49,7 @@ def process_ohlc_rows(
                 ):
                     row_data[col] = None
                     continue
+                is_missing_bucket = False
                 row_data[col] = {
                     "open": open_val,
                     "high": high_val,
@@ -72,9 +73,8 @@ def process_ohlc_rows(
                 if entry is None:
                     row_data[col] = None
                     continue
-                is_row_gap_filled = True
                 row_data[col] = entry
-        if is_row_gap_filled:
+        if is_missing_bucket:
             gap_count += 1
         data_rows.append(row_data)
     return (data_rows, gap_count)

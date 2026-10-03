@@ -6,6 +6,7 @@ import { CollectionCommitAwaiter } from '@core/data/boundedcollectionrenderer/co
 import { captureViewportAnchor, commitPlannedNodes, createEdgeLoader, createPlannedNode, indexExistingCollectionNodes, restoreKeyedViewportAnchor, restoreViewportAnchor } from '@core/data/boundedcollectionrenderer/transaction.ts';
 import type { BoundedCollectionCommitContext, BoundedCollectionRendererOptions, BoundedCollectionUpdate, CollectionBuild, CollectionEdge, CollectionSequenceState, CollectionViewportAnchor } from '@core/data/boundedcollectionrenderer/types.ts';
 import { CollectionViewportCoordinator } from '@core/data/boundedcollectionrenderer/viewportCoordinator.ts';
+import { dom } from '@core/dom/dom.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { requirePerformanceNow } from '@core/environment/public.ts';
@@ -286,7 +287,9 @@ class BoundedCollectionRenderer<TItem> {
         if (generation !== this.#revealGeneration || container === null) return;
         for (const child of container.children) {
             if (child instanceof HTMLElement && child.dataset['collectionId'] === identifier) {
-                child.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+                const revealTargetCandidate = dom.resolveAll('*', child).find((candidate) => candidate instanceof HTMLElement && this.#options.resolveItemIdentifier(candidate) === identifier);
+                const revealTarget = revealTargetCandidate instanceof HTMLElement ? revealTargetCandidate : child;
+                revealTarget.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
                 this.#settleReveal(true);
                 return;
             }

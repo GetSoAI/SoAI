@@ -5,6 +5,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { pluginsPageConfig } from '@core/routing/pages/collections/collectionPageConfig.ts';
 import { buildCardGridHeader, buildCollectionSections, buildEmptyState } from '@core/routing/pages/collections/collectionViewBuilders.ts';
 import { uiHtml } from '@core/security/uiHtml.ts';
+import { getCollectionDisplayModeOption, type CollectionDisplayMode } from '@core/uiprimitives/viewmode/collection.ts';
 import { renderListTable, type ListTableColumn } from '@core/uiprimitives/listTable.ts';
 import { renderSortControl } from '@core/uiprimitives/sortableList.ts';
 import type { SortDirection } from '@core/ui/tables/sortableTable.ts';
@@ -16,7 +17,8 @@ import type { GetIconSyncFunctionValue } from '@pages/plugins/rendering/contract
 const PLUGINS_GRID = pluginsPageConfig.grid;
 const PLUGIN_EMPTY_STATES = PLUGINS_GRID.emptyStateIds;
 
-const buildPluginsHeader = (getIconSync: GetIconSyncFunctionValue, sortBy: string, sortOrder: SortDirection) => {
+const buildPluginsHeader = (getIconSync: GetIconSyncFunctionValue, viewMode: CollectionDisplayMode, sortBy: string, sortOrder: SortDirection) => {
+    const viewModeOption = getCollectionDisplayModeOption(viewMode);
     return buildCardGridHeader({
         title: i18n.t('plugins.title'),
         description: i18n.t('plugins.description'),
@@ -57,11 +59,11 @@ const buildPluginsHeader = (getIconSync: GetIconSyncFunctionValue, sortBy: strin
             },
             {
                 type: 'button',
-                content: uiHtml`${getIconSync('dashboard', { size: 24, strokeWidth: 1.5 })}<span>${i18n.t('common.actions.cardView')}</span>`,
+                content: uiHtml`${getIconSync(viewModeOption.icon, { size: 24, strokeWidth: 1.5 })}<span>${viewModeOption.label}</span>`,
                 variant: 'ui-variant-neutral',
                 id: 'plugins-view-mode-toggle',
-                attributes: { 'data-action': PLUGINS_ACTION_TOGGLE_VIEW_MODE, 'aria-pressed': 'false' },
-                ariaLabel: i18n.t('common.actions.cardView')
+                attributes: { 'data-action': PLUGINS_ACTION_TOGGLE_VIEW_MODE, 'aria-pressed': String(viewModeOption.pressed) },
+                ariaLabel: viewModeOption.label
             },
             {
                 type: 'button',

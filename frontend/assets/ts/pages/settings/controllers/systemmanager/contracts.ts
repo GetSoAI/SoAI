@@ -64,6 +64,7 @@ interface SystemManagerWorkflowHost {
     clearTimer: (timerId: number | null | undefined) => void;
     applyWallpaperOverlay: (value: string) => void;
     refreshWallpaperPreview: () => void;
+    scheduleWallpaperRefresh: () => void;
     refreshSettingsAfterPreferencesReset: () => Promise<void> | void;
     navigate: (route: string, options?: Record<string, JsonValue>) => void;
     filterSettings: () => void;

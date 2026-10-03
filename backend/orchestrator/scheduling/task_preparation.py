@@ -99,6 +99,7 @@ class SchedulerTaskPreparation:
                             or f"Model '{action.universal_id}' failed to load on plugin '{plugin_name}'.",
                             error_type=result.error_type,
                             allow_failover=result.allow_failover,
+                            public_error=result.public_error,
                         )
                         return
                     if not result.loaded:

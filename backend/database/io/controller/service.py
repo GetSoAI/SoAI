@@ -15,6 +15,7 @@ from core.logging.trace import get_logger
 from core.sqlite.policy import SQLITE_JOURNAL_SIZE_LIMIT_BYTES, SQLITE_WRITE_PRAGMAS
 from core.state.errors import DatabaseUnavailableError
 from core.tasks.type_catalog import TaskTypeCatalog
+from core.timing.constants import EXTENDED_TIMEOUT_SEC
 from database.core.wal_lineage_guard import WalLineageGuard
 from database.io.controller.operation_queue import DatabaseWriteOperationQueue
 from database.io.controller.recovery import (
@@ -47,7 +48,7 @@ class DatabaseIOController:
         metrics_monitor: DatabaseIOMetricsMonitor,
         *,
         lineage_guard: WalLineageGuard,
-        init_timeout: float = 30.0,
+        init_timeout: float = float(EXTENDED_TIMEOUT_SEC),
         shutdown_timeout: float = 5.0,
         connect_timeout: float = 10.0,
         write_pragmas: tuple[str, ...] = SQLITE_WRITE_PRAGMAS,

@@ -44,7 +44,7 @@ const renderScalarControl = (value: JsonValue, path: string): string => {
         return `<input type="text" id="${inputId}" class="setting-input setting-input--wide" data-path="${escapedPath}" value="${escapedValue}">`;
     }
     const escapedJson = securityApi.escapeHtml(formatNullableJsonFormValue(value));
-    return `<textarea id="${inputId}" class="setting-textarea setting-json" data-path="${escapedPath}" rows="6">${escapedJson}</textarea>`;
+    return `<textarea dir="ltr" id="${inputId}" class="setting-textarea setting-json" data-path="${escapedPath}" rows="6">${escapedJson}</textarea>`;
 };
 
 const renderConfigItem = (key: string, value: JsonValue, path: string): string => {

@@ -10,7 +10,7 @@ from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import SoAIError
 from core.logging.trace import get_logger
 from core.openai.openai_error_objects import parse_openai_sse_error_frame
-from core.openai.openai_sse_error_escalation import raise_openai_streaming_error
+from core.openai.openai_sse_error_escalation import OpenAIStreamError, raise_openai_streaming_error
 from core.openai.request_fields import resolve_optional_model_name
 from core.openai.sse_chunk_decoding import decode_sse_chunk_bytes
 from core.openai.stream_frame_processing import process_openai_stream_frame
@@ -159,7 +159,11 @@ async def run_ws_model_test_stream(
                 continue
             parsed_error = parse_openai_sse_error_frame(bytes(chunk))
             if parsed_error is not None:
-                raise_openai_streaming_error(parsed_error, operation=OPERATION)
+                raise_openai_streaming_error(
+                    parsed_error,
+                    operation=OPERATION,
+                    origin="local_terminal",
+                )
             decoded = decode_sse_chunk_bytes(chunk)
             if decoded is None:
                 continue
@@ -200,7 +204,10 @@ async def run_ws_model_test_stream(
                 runtime=runtime,
                 reason="Model test stream failed after task admission.",
             )
-        if int(exception.http_status) >= 500:
+        local_terminal_error = False
+        if isinstance(exception, OpenAIStreamError):
+            local_terminal_error = exception.origin == "local_terminal"
+        if not local_terminal_error and int(exception.http_status) >= 500:
             log_exception(
                 logger,
                 exception,
@@ -210,7 +217,7 @@ async def run_ws_model_test_stream(
                 level="warning",
                 details={"run_id": runtime.run_id},
             )
-        else:
+        elif not local_terminal_error:
             log_handled_exception(
                 logger,
                 exception,

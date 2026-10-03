@@ -5,7 +5,7 @@
     .tab-notify-badge {
         position: absolute;
         top: 2px;
-        right: -6px;
+        inset-inline-end: -6px;
         background: var(--accent-green);
         color: var(--color-white);
         font-size: var(--font-size-compact);

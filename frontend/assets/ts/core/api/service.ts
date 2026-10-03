@@ -28,6 +28,7 @@ import { ApiBaseUrlCoordinator } from '@core/api/baseUrlCoordinator.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { decodeSearchResults, type SearchResultsResponse } from '@core/api/contracts/searchContracts.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { resolveKernelService } from '@core/runtime/runtimeContext.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
@@ -45,6 +46,7 @@ class ApiClient {
     });
     #networkRecoveryBase: string | null = null;
     #networkRecoveryGeneration = 0;
+    #networkRecoveryAbort: AbortController | null = null;
     #networkRecoveryPromise: Promise<void> | null = null;
     #authTransitionGate: (() => Promise<void>) | null = null;
     defaultHeaders: Record<string, string> = { ...getDefaultHeaders() };
@@ -107,33 +109,43 @@ class ApiClient {
         if (this.#networkRecoveryPromise && this.#networkRecoveryBase === baseUrl) {
             return;
         }
+        this.#networkRecoveryAbort?.abort();
+        const controller = new AbortController();
+        this.#networkRecoveryAbort = controller;
         this.#networkRecoveryGeneration += 1;
         const recoveryGeneration = this.#networkRecoveryGeneration;
+        const endpointRevision = this.connectionState.revision;
         this.#networkRecoveryBase = baseUrl;
         const recoveryPromise = (async (): Promise<void> => {
-            const healthy = await this.#baseUrlCoordinator.revalidateBaseUrl(baseUrl);
+            const outcome = await this.#baseUrlCoordinator.revalidateBaseUrl(baseUrl, controller.signal);
             if (this.#networkRecoveryGeneration !== recoveryGeneration) {
                 return;
             }
-            if (this.connectionState.getBaseUrl() !== baseUrl) {
+            if (this.connectionState.getBaseUrl() !== baseUrl || this.connectionState.revision !== endpointRevision) {
                 return;
             }
-            if (healthy) {
+            if (outcome !== 'invalid') {
                 return;
             }
             this.connectionState.clearBaseUrl({ releaseConfigured: false });
+            const recoveryRevision = endpointRevision + 1;
+            if (this.connectionState.revision !== recoveryRevision) return;
             this.#baseUrlCoordinator.discoveryComplete = false;
             this.#baseUrlCoordinator.initialized = false;
             await this.#baseUrlCoordinator.recoverBaseUrl({
                 allowDiscovery: true,
-                shouldContinue: () => this.#networkRecoveryGeneration === recoveryGeneration
+                signal: controller.signal,
+                shouldContinue: () => this.#networkRecoveryGeneration === recoveryGeneration && this.connectionState.revision === recoveryRevision
             });
         })()
             .catch((error) => {
-                errorHandler.warn('ApiClient', 'Automatic discovery after network failure failed', ensureError(error));
+                const runtimeError = ensureError(error);
+                if (controller.signal.aborted || isAbortError(runtimeError)) return;
+                errorHandler.warn('ApiClient', 'Automatic discovery after network failure failed', runtimeError);
             })
             .finally(() => {
                 if (this.#networkRecoveryPromise === recoveryPromise && this.#networkRecoveryGeneration === recoveryGeneration) {
+                    this.#networkRecoveryAbort = null;
                     this.#networkRecoveryBase = null;
                     this.#networkRecoveryPromise = null;
                 }
@@ -151,6 +163,8 @@ class ApiClient {
         return decodeSearchResults(await this.get('/api/v1/search', buildQueryRequestOptions({ q: query, limit }, options.signal)));
     };
     reset = (): void => {
+        this.#networkRecoveryAbort?.abort();
+        this.#networkRecoveryAbort = null;
         this.#requestRuntime.resetNetworkErrorState();
         this.#networkRecoveryGeneration += 1;
         this.#networkRecoveryBase = null;

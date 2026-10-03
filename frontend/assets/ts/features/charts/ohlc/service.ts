@@ -9,7 +9,6 @@ import { isArray, isFiniteNumber, isObject } from '@core/typeGuards.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { readRuntimeFiniteNumberOrFallbackValue } from '@core/types/numberCoercionReaders.ts';
 import { OHLC, logDebug, logError } from '@features/charts/ohlc/constants.ts';
-import { ensureContinuousCandles } from '@features/charts/ohlc/actions.ts';
 import { isPreNormalizedOhlcSeries, isSortedByTimestamp, lowerBoundTimestamp, normalizeCandlestickInput, normalizeOhlcRecord, toTimestampMs } from '@features/charts/ohlc/guards.ts';
 import type { BuildCandlestickOptions, CandlestickPoint, ParseOptions, ParsedOhlcMetadata, ParsedOhlcResult } from '@features/charts/ohlc/types.ts';
 
@@ -109,7 +108,12 @@ const parseBackendOhlcResponse = (payload: HardwareHistoryResponse | MetricsHist
                 throw new TypeError('parseBackendOhlcResponse requires epoch millisecond timestamps');
             }
 
-            const normalized = normalizeOhlcRecord(ohlcRows[index], transform);
+            const row = ohlcRows[index];
+            if (isObject(row) && (row['gap_fill'] === true || row['interpolated'] === true)) {
+                invalidCount += 1;
+                continue;
+            }
+            const normalized = normalizeOhlcRecord(row, transform);
             if (!normalized) {
                 invalidCount += 1;
                 continue;
@@ -140,18 +144,9 @@ const parseBackendOhlcResponse = (payload: HardwareHistoryResponse | MetricsHist
         }
 
         const sorted = candles.slice().sort((left: CandlestickPoint, right: CandlestickPoint): number => left.timestamp - right.timestamp);
-        const continuityLimit = Math.min(20000, Math.max(sorted.length * 2, 120));
-        const finalCandles = ensureContinuousCandles(sorted, intervalMs, { maxFill: continuityLimit });
-
-        for (const candle of finalCandles) {
-            if (!buckets.has(candle.timestamp)) {
-                buckets.set(candle.timestamp, { ...candle, count: 0 });
-            }
-        }
-
         logDebug(`parseBackendOhlcResponse: Parsed ${validCount} candles, intervalMs=${intervalMs}`);
         return {
-            candles: finalCandles,
+            candles: sorted,
             metadata: parsedMetadata,
             intervalMs,
             candlestickBuckets: buckets
@@ -204,10 +199,7 @@ const buildCandlestickSeries = (data: JsonValue | null | undefined, options: Bui
         return [];
     }
 
-    const continuityLimit = Math.min(20000, Math.max((hardLimit || filtered.length) * 2, filtered.length * 2, 120));
-    const finalSeries = ensureContinuousCandles(filtered, intervalMs, { maxFill: continuityLimit });
-
-    return hardLimit && finalSeries.length > hardLimit ? finalSeries.slice(-hardLimit) : finalSeries;
+    return filtered;
 };
 
 export { buildCandlestickSeries, parseBackendOhlcResponse };

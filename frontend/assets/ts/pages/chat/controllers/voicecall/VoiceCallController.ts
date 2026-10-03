@@ -83,6 +83,7 @@ class VoiceCallController {
             setUserTranscript: (text) => this.#uiState.setUserTranscript(text),
             clearAssistantCaption: () => this.#uiState.clearAssistantCaption(),
             stopUnboundConversationChange: () => this.#stopForConversationSwitch(),
+            onFailure: (message) => this.#handleRuntimeFailure(message),
             conversationBinding: this.#conversationBinding
         });
         this.#audioCapture = new VoiceCallAudioCapture(
@@ -102,7 +103,7 @@ class VoiceCallController {
             uiState: this.#uiState,
             isRuntimeActive: () => this.#runtimeState.isActive(),
             isStarting: () => this.#runtimeState.isStarting(),
-            showNotification: (message, type, duration) => host.feedback.show(message, type, duration)
+            onFailure: (message) => this.#handleRuntimeFailure(message)
         });
         this.#assistantStatus = new VoiceCallAssistantStatusController({
             turnManager: this.#turnManager,
@@ -113,7 +114,7 @@ class VoiceCallController {
         this.#speechEventsExit = this.#speechEvents.subscribe({
             speechStateChanged: (speaking) => this.#assistantStatus.handleSpeechStateChange(speaking),
             speechQueueDrained: () => this.#assistantStatus.reconcile(),
-            playbackFailed: () => this.#assistantStatus.handlePlaybackError()
+            playbackFailed: () => this.#handleRuntimeFailure(i18n.t('chat.voiceCall.ttsFailed'))
         });
         this.#teardown = new VoiceCallTeardownController({
             speaker: this.#speaker,
@@ -151,20 +152,21 @@ class VoiceCallController {
             return;
         }
         const token = this.#runtimeState.beginStart();
-        this.#pauseController.reset();
-        this.#turnManager.bindInitialConversation();
-        this.#host.cancelAudioRecording();
-        this.#uiState.reset();
-        this.#uiState.open();
-        this.#uiState.setStatus('connecting', null);
         try {
+            await this.#teardown.waitForIdle();
+            if (!this.#runtimeState.isStartCurrent(token)) return;
+            this.#pauseController.reset();
+            this.#turnManager.bindInitialConversation();
+            this.#host.cancelAudioRecording();
+            this.#uiState.reset();
+            this.#uiState.open();
+            this.#uiState.setStatus('connecting', null);
             await this.#wakeLock.start();
             if (!this.#runtimeState.isStartCurrent(token)) {
                 return;
             }
             await this.#audioCapture.start();
             if (!this.#runtimeState.isStartCurrent(token)) {
-                await this.#audioCapture.stop();
                 return;
             }
             this.#speaker.start();
@@ -198,21 +200,21 @@ class VoiceCallController {
     }
 
     #handleCaptureError(error: Error): void {
-        const shouldTeardown = this.#runtimeState.isRuntimeActive();
-        if (shouldTeardown) {
-            this.#deactivate();
-        }
         this.#host.feedback.handle(error, 'Voice call capture failed');
-        const failureMessage = i18n.t('chat.voiceCall.failed');
+        this.#handleRuntimeFailure(i18n.t('chat.voiceCall.failed'));
+    }
+
+    #handleRuntimeFailure(message: string): void {
+        if (!this.#runtimeState.isRuntimeActive()) return;
+        this.#deactivate();
+        const failureMessage = `${message} ${i18n.t('chat.voiceCall.stoppedAfterFailure')}`;
         try {
             this.#uiState.setStatus('error', failureMessage);
             this.#host.feedback.show(failureMessage, 'error');
         } finally {
-            if (shouldTeardown) {
-                void this.#teardown.perform().catch((teardownError) => {
-                    errorHandler.warn('VoiceCallController', 'Voice call capture error teardown failed', ensureError(teardownError));
-                });
-            }
+            void this.#teardown.perform().catch((teardownError) => {
+                errorHandler.warn('VoiceCallController', 'Voice call failure teardown failed', ensureError(teardownError));
+            });
         }
     }
 
@@ -268,6 +270,10 @@ class VoiceCallController {
             return;
         }
         if (!this.#speaker.markTerminalized(update)) {
+            return;
+        }
+        if (update.status === 'error') {
+            this.#handleRuntimeFailure(i18n.t('chat.voiceCall.messageSendFailed'));
             return;
         }
         if (this.#pauseController.isPaused()) {

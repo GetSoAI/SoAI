@@ -5,7 +5,8 @@ import { createUiPrefsSnapshot } from '@pages/settings/controllers/page/loadData
 import type { SettingsRuntimeContext } from '@pages/settings/controllers/page/contracts.ts';
 import { setupManagersEventListeners } from '@pages/settings/controllers/page/service.ts';
 import type { SettingsPageState } from '@pages/settings/controllers/page/state.ts';
-import { filterSettings, renderAllContent } from '@pages/settings/controllers/page/view.ts';
+import { renderAllContent } from '@pages/settings/controllers/page/settingsTabsController.ts';
+import { filterSettings } from '@pages/settings/controllers/page/view.ts';
 
 type PreferencesResetRefreshDependencies = {
     rebindConfigForm: () => void;

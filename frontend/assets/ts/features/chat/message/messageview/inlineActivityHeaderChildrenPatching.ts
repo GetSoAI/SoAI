@@ -1,6 +1,7 @@
 /* SoAI - Chat feature inline activity header children patching [frontend/assets/ts/features/chat/message/messageview/inlineActivityHeaderChildrenPatching.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { insertWithPresence, isPresenceExiting, removeWithPresence } from '@core/animations/presence/public.ts';
 import { haveEqualChildNodes, syncAttribute, syncAttributes, syncClass } from '@core/dom/patching.ts';
 import { reapplyInlineActivityDetailsPendingChrome } from '@features/chat/message/inlineActivityDetailsPendingState.ts';
 import { patchInlineActivityPreviewNode } from '@features/chat/message/messageview/inlineActivityPreviewPatching.ts';
@@ -8,26 +9,37 @@ import { insertBeforeHeaderActions, moveBeforeAnchorIfAfter, removeUnownedHeader
 
 const INLINE_ACTIVITY_STOP_REQUESTED_ATTRIBUTE = 'data-inline-activity-stop-requested';
 
-const syncHeaderChildNode = (inputArguments: { existingHeader: HTMLElement; existingNode: HTMLElement | null; createdNode: HTMLElement | null; anchor: HTMLElement | null }): boolean => {
+const syncHeaderChildNode = (inputArguments: { existingHeader: HTMLElement; existingNode: HTMLElement | null; createdNode: HTMLElement | null; anchor: HTMLElement | null; presence?: boolean }): boolean => {
     const existingNode = inputArguments.existingNode;
     const createdNode = inputArguments.createdNode;
     if (!createdNode) {
-        if (!existingNode) {
+        if (!existingNode || isPresenceExiting(existingNode)) {
             return false;
         }
-        existingNode.remove();
+        if (inputArguments.presence === true) {
+            removeWithPresence(existingNode);
+        } else {
+            existingNode.remove();
+        }
         return true;
     }
     if (!existingNode) {
         const cloned = createdNode.cloneNode(true);
-        if (inputArguments.anchor) {
-            inputArguments.existingHeader.insertBefore(cloned, inputArguments.anchor);
-            return true;
+        if (!(cloned instanceof HTMLElement)) {
+            throw new Error('Inline activity header patch failed to clone a header child.');
         }
-        inputArguments.existingHeader.appendChild(cloned);
+        if (inputArguments.presence === true) {
+            insertWithPresence(inputArguments.existingHeader, cloned, inputArguments.anchor);
+        } else {
+            inputArguments.existingHeader.insertBefore(cloned, inputArguments.anchor);
+        }
         return true;
     }
     let changed = false;
+    if (inputArguments.presence === true && isPresenceExiting(existingNode)) {
+        insertWithPresence(inputArguments.existingHeader, existingNode, inputArguments.anchor);
+        changed = true;
+    }
     if (syncClass(existingNode, createdNode)) {
         changed = true;
     }
@@ -182,12 +194,12 @@ const patchInlineActivityHeaderChildrenInPlace = (existingHeader: HTMLElement, c
     const activity = existingHeader.closest('.inline-activity');
     const stopRequested = activity instanceof HTMLElement && activity.getAttribute(INLINE_ACTIVITY_STOP_REQUESTED_ATTRIBUTE) === 'true';
     const createdStopButton = stopRequested ? null : createdChildren.stopButton;
-    const actionChildren = resolveHeaderChildren(existingHeader);
-    if (syncHeaderChildNode({ existingHeader, existingNode: actionChildren.stopButton, createdNode: createdStopButton, anchor: actionChildren.closeButton })) {
+    const actionChildren = resolveHeaderChildren(existingHeader, true);
+    if (syncHeaderChildNode({ existingHeader, existingNode: actionChildren.stopButton, createdNode: createdStopButton, anchor: actionChildren.closeButton, presence: true })) {
         changed = true;
     }
-    const refreshedActionChildren = resolveHeaderChildren(existingHeader);
-    if (syncHeaderChildNode({ existingHeader, existingNode: refreshedActionChildren.closeButton, createdNode: createdChildren.closeButton, anchor: null })) {
+    const refreshedActionChildren = resolveHeaderChildren(existingHeader, true);
+    if (syncHeaderChildNode({ existingHeader, existingNode: refreshedActionChildren.closeButton, createdNode: createdChildren.closeButton, anchor: null, presence: true })) {
         changed = true;
     }
     if (activity instanceof HTMLElement) {

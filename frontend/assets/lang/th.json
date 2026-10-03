@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "ตอนนี้"
+                "now": "ตอนนี้",
+                "occurrenceLabel": "{title}, {date} {time}, {status}",
+                "createAt": "สร้างงานอัตโนมัติวันที่ {date} เวลา {time} ใช้ปุ่มลูกศรเพื่อเปลี่ยนเวลา"
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "เริ่ม",
                     "turns": "เทิร์น",
                     "timezone": "เขตเวลา",
-                    "title": "ชื่อ"
+                    "title": "ชื่อ",
+                    "modelSettings": "โมเดล เครื่องมือ และพารามิเตอร์"
                 },
                 "workspace": {
                     "button": "เลือกโฟลเดอร์",
                     "description": "เลือกโฟลเดอร์ที่ใช้โดยการรันงานอัตโนมัตินี้ การรันแบบทำซ้ำจะใช้โฟลเดอร์ของงานอัตโนมัตินี้ต่อไป.",
                     "fieldLabel": "โฟลเดอร์พื้นที่ทำงาน",
-                    "title": "โฟลเดอร์พื้นที่ทำงานของงานอัตโนมัติ"
+                    "title": "โฟลเดอร์พื้นที่ทำงานของงานอัตโนมัติ",
+                    "viewButton": "สำรวจพื้นที่ทำงาน"
                 },
                 "parameters": {
                     "button": "แก้ไขพารามิเตอร์",
@@ -166,17 +170,17 @@
                     "fieldLabel": "พารามิเตอร์โมเดล",
                     "summaryCustom": "พารามิเตอร์งานอัตโนมัติแบบกำหนดเอง",
                     "summaryDefault": "พารามิเตอร์โมเดลเริ่มต้น",
-                    "title": "พารามิเตอร์โมเดลของงานอัตโนมัติ"
+                    "title": "พารามิเตอร์โมเดลของงานอัตโนมัติ",
+                    "viewButton": "ดูพารามิเตอร์"
                 },
                 "timezone": {
-                    "auto": "อัตโนมัติ"
+                    "autoWithZone": "อัตโนมัติ ({timezone})"
                 },
                 "placeholders": {
                     "assistantTurn": "คำตอบจากโมเดล",
                     "endOfAutomation": "สิ้นสุดงานอัตโนมัติ",
                     "model": "เลือกโมเดล",
                     "turn": "ป้อนข้อความ",
-                    "turnIndexed": "ป้อนข้อความ {index}",
                     "title": "ป้อนชื่อ"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "บันทึก",
                 "validation": {
                     "maxRunMinutesInvalid": "เวลารันสูงสุดต้องอยู่ระหว่าง 1 ถึง 1440 นาที.",
-                    "modelUnavailable": "โมเดลที่เลือกไม่พร้อมใช้งาน.",
+                    "modelUnavailable": "{model} ไม่พร้อมใช้งาน เลือกโมเดลอื่น",
                     "modelRequired": "จำเป็นต้องเลือกโมเดล.",
                     "recurrenceInvalid": "การทำซ้ำไม่ถูกต้อง.",
                     "startInvalid": "วันที่และเวลาเริ่มต้นไม่ถูกต้อง.",
@@ -195,7 +199,42 @@
                     "turnsRequired": "จำเป็นต้องกรอกทุกเทิร์น.",
                     "tooManyTurns": "มีเทิร์นมากเกินไป (สูงสุด {max}) แต่ละเทิร์นจะถูกดำเนินการเป็นหนึ่งเทิร์นของเอเจนต์.",
                     "timezoneRequired": "จำเป็นต้องระบุเขตเวลา.",
-                    "titleRequired": "จำเป็นต้องระบุชื่อ."
+                    "titleRequired": "จำเป็นต้องระบุชื่อ.",
+                    "modelDisabled": "{model} ถูกปิดใช้งาน เปิดใช้งานหรือเลือกโมเดลอื่น",
+                    "modelMissing": "{model} ไม่ได้ติดตั้งอยู่แล้ว เลือกโมเดลอื่น",
+                    "modelUnsupported": "{model} ไม่รองรับแชต เลือกโมเดลอื่น",
+                    "summary": "แก้ไข {count} ช่องก่อนบันทึก",
+                    "toolsRequired": "การทำงานต้องเปิดใช้งานเครื่องมือและเลือก todo_write",
+                    "timezoneInvalid": "เขตเวลาไม่ถูกต้อง โปรดเลือกเขตเวลาที่รองรับ"
+                },
+                "conflict": {
+                    "message": "งานอัตโนมัตินี้ถูกเปลี่ยนแปลงจากที่อื่นขณะที่คุณกำลังแก้ไข การเปลี่ยนแปลงของคุณยังไม่ได้บันทึก",
+                    "remoteChanges": "เปลี่ยนจากที่อื่น: {fields}",
+                    "localChanges": "การเปลี่ยนแปลงของคุณ: {fields}",
+                    "keepChanges": "เก็บการเปลี่ยนแปลงของฉัน",
+                    "loadLatest": "โหลดเวอร์ชันล่าสุด"
+                },
+                "modelStatus": {
+                    "unavailable": "ไม่พร้อมใช้งาน",
+                    "unsupported": "ไม่รองรับแชต"
+                },
+                "prerequisites": {
+                    "failed": "ตัวแก้ไขไม่สามารถโหลดข้อมูลที่จำเป็นได้ทั้งหมด",
+                    "missing": "งานอัตโนมัตินี้ไม่มีอยู่แล้ว",
+                    "toolsUnavailable": "ไม่สามารถโหลดเครื่องมือได้ การเลือกเครื่องมือที่มีอยู่จะยังคงไว้",
+                    "childFailed": "ไม่สามารถเปิดการตั้งค่าได้ โปรดลองอีกครั้ง"
+                },
+                "schedule": {
+                    "ambiguous": "{start} เกิดขึ้นสองครั้งใน {timezone} เนื่องจากการเปลี่ยนเวลา ระบบจะใช้ครั้งแรก",
+                    "shiftedForward": "{start} ไม่มีอยู่ใน {timezone} เนื่องจากการเปลี่ยนเวลา ระบบจะรันเวลา {effective} แทน",
+                    "disabled": "ปิดใช้งาน: จะไม่มีการกำหนดเวลาการรัน",
+                    "nextRun": "การรันครั้งถัดไป: {when} ({timezone})",
+                    "nextRunLocal": "การรันครั้งถัดไป: {when} ({timezone}), {localWhen} ตามเวลาของคุณ",
+                    "unavailable": "ไม่สามารถแสดงตัวอย่างกำหนดการได้"
+                },
+                "turns": {
+                    "label": "เทิร์น {index}",
+                    "remove": "ลบเทิร์น {index}"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "รีเซ็ตการตั้งค่างานอัตโนมัติเป็นค่าเริ่มต้นแล้ว.",
                 "runOpenFailed": "เปิดการรันงานอัตโนมัติที่ขอไม่สำเร็จ.",
                 "runUnavailable": "การรันงานอัตโนมัติที่ขอไม่พร้อมใช้งานในมุมมองนี้แล้ว.",
-                "updated": "อัปเดตงานอัตโนมัติแล้ว."
+                "updated": "อัปเดตงานอัตโนมัติแล้ว.",
+                "changeRefreshFailed": "ใช้การเปลี่ยนแปลงแล้ว แต่ไม่สามารถรีเฟรชมุมมองได้",
+                "conflict": "งานอัตโนมัตินี้ถูกเปลี่ยนแปลงจากที่อื่น ตรวจสอบการเปลี่ยนแปลงก่อนบันทึกอีกครั้ง",
+                "defaultsNotRemembered": "บันทึกแล้ว แต่ไม่สามารถจดจำการตั้งค่าเหล่านี้สำหรับงานอัตโนมัติใหม่ได้",
+                "missingOnSave": "งานอัตโนมัตินี้ไม่มีอยู่แล้ว อาจถูกลบจากที่อื่น"
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "วันนี้",
                         "yesterday": "เมื่อวาน"
                     },
-                    "turnsCount": "เทิร์น: {count}",
                     "title": "การรัน",
                     "toolbar": {
                         "batchDelete": "ลบการรันที่เลือก",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "ลบการรัน {count} รายการ? การรันที่กำลังทำงานจะถูกหยุด.",
-                        "deleteTitle": "ลบการรัน?"
+                        "deleteTitle": "ลบการรัน?",
+                        "skipTitle": "ข้ามรายการนี้?",
+                        "skipMessage": "{title} จะไม่รันในเวลานี้ รายการอื่นจะไม่ได้รับผลกระทบ",
+                        "skipConfirm": "ข้าม",
+                        "stopTitle": "หยุดการรัน?",
+                        "stopMessage": "{title} กำลังทำงาน ระบบจะหยุดและนำออกจากปฏิทิน",
+                        "stopConfirm": "หยุด",
+                        "removeTitle": "นำรายการนี้ออก?",
+                        "removeMessage": "{title} จะถูกนำออกจากปฏิทิน",
+                        "removeConfirm": "นำออก"
                     },
                     "notifications": {
-                        "deleteSuccess": "ลบการรันแล้ว {count} รายการ."
-                    }
+                        "deleteSuccess": "ลบการรันแล้ว {count} รายการ.",
+                        "nothingToDelete": "รายการที่เลือกไม่อยู่ในมุมมองนี้แล้ว",
+                        "tooManySelected": "เลือกได้สูงสุด {max} รายการต่อครั้ง"
+                    },
+                    "occurrencesCount": "รายการ: {count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "ก่อนหน้า",
                 "showCalendar": "ปฏิทิน",
                 "showRegistry": "บานหน้าต่าง",
-                "today": "วันนี้"
+                "today": "วันนี้",
+                "staleData": "ไม่เป็นปัจจุบัน",
+                "staleDataSince": "ข้อมูลงานอัตโนมัติอาจไม่เป็นปัจจุบัน อัปเดตล่าสุด {time} เลือกเพื่อลองอีกครั้ง",
+                "resizePanes": "ปรับขนาดปฏิทินและแผงด้านข้าง"
             },
             "views": {
                 "day": "วัน",
@@ -300,6 +357,7 @@
                     "bar": "แท่ง",
                     "candlestick": "OHLC",
                     "deviation": "ส่วนเบี่ยงเบน",
+                    "heikin-ashi": "ไฮเคน อาชิ",
                     "label": "ประเภทกราฟ",
                     "line": "เส้น",
                     "precision-line": "เส้น"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "ต่ำสุด: ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "ไม่มีข้อมูล · SoAI ออฟไลน์",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "เรียลไทม์ ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "ไม่สามารถโหลดประวัติได้",
             "loadingState": "กำลังโหลด",
             "manualScaleLabel": "กำหนดเอง"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "แนบลิงก์ SoAI",
                 "tabBrowse": "พื้นที่ทำงาน",
                 "tabCamera": "สแกน",
+                "tabDisabledReason": "เปิด {setting} ใน การตั้งค่าแชต › {tab}",
                 "tabKnowledge": "ความรู้",
                 "tabSoaiLink": "ลิงก์ SoAI",
                 "tabUpload": "อัปโหลด",
@@ -559,7 +620,16 @@
                 "recordingStatus": "กำลังบันทึก {elapsed}",
                 "recordingTitle": "การบันทึกเสียง",
                 "requestingStatus": "กำลังรอสิทธิ์จากเบราว์เซอร์",
-                "requestingTitle": "กำลังขอใช้ไมโครโฟน"
+                "requestingTitle": "กำลังขอใช้ไมโครโฟน",
+                "pushToTalk": {
+                    "cancelled": "ยกเลิกการบันทึกแล้ว",
+                    "queued": "เพิ่มลงในคิวแล้ว",
+                    "releaseToCancel": "ปล่อยเพื่อยกเลิก",
+                    "releaseToSend": "ปล่อยเพื่อส่ง · เลื่อนไปทางซ้ายเพื่อยกเลิก",
+                    "sending": "กำลังส่ง…",
+                    "transcribing": "กำลังถอดเสียง…",
+                    "transcriptReview": "เพิ่มข้อความถอดเสียงแล้ว โปรดตรวจสอบฉบับร่างที่อัปเดตก่อนส่ง"
+                }
             },
             "authorityLock": {
                 "automationReason": "นี่คือการสนทนาของงานอัตโนมัติ เปลี่ยนการตั้งค่าการดำเนินการได้ที่ งานอัตโนมัติ → แก้ไขงานอัตโนมัติ.",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "อัปโหลด",
                 "assistantAvatarUploadLabel": "อัปโหลดรูปโปรไฟล์ผู้ช่วย",
                 "assistantNamePlaceholder": "ป้อนชื่อโมเดลที่กำหนดเอง...",
+                "autoHideChatComposer": "ซ่อนช่องเขียนแชตอัตโนมัติ",
+                "autoHideChatComposerHint": "ซ่อนช่องเขียนแชตที่ว่างอยู่ขณะอ่านข้อความก่อนหน้า",
+                "autoHideChatHeader": "ซ่อนส่วนหัวแชตอัตโนมัติ",
+                "autoHideChatHeaderHint": "ซ่อนส่วนหัวของการสนทนาขณะอ่านข้อความก่อนหน้า",
                 "identityNameInvalid": "ชื่อที่แสดงต้องมีอักขระ Unicode ไม่เกิน 50 อักขระและต้องไม่มีข้อความที่ไม่ถูกต้อง.",
                 "promptInvalid": "พรอมต์มีข้อความ Unicode ที่ไม่ถูกต้อง.",
                 "close": "ปิด",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "ไม่สามารถเปลี่ยนการเข้าถึงเครื่องมือได้ขณะที่การสนทนานี้กำลังทำงาน",
                     "toolsEnabledHint": "เปิดใช้งานเครื่องมือ MCP สำหรับการสนทนานี้ แชตใหม่จะเริ่มด้วยค่าที่คุณบันทึกล่าสุด",
                     "tool_approval_required": "ต้องอนุมัติเครื่องมือ",
-                    "toolApprovalRequiredHint": "ขอการยืนยันก่อนเรียกใช้เครื่องมือที่มีผลทำลายข้อมูล"
+                    "toolApprovalRequiredHint": "ขอการยืนยันก่อนเรียกใช้เครื่องมือที่มีผลทำลายข้อมูล",
+                    "unavailableTools": "เครื่องมือที่บันทึกไว้แต่ไม่พร้อมใช้งาน: {tools} ระบบจะเก็บการเลือกไว้",
+                    "unavailableServers": "เซิร์ฟเวอร์ที่บันทึกไว้แต่ไม่พร้อมใช้งาน: {servers} ระบบจะเก็บการตั้งค่าไว้"
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "แทนที่ความยาวบริบทสำหรับฟีเจอร์นี้ เว้นว่างเพื่อใช้ค่าเริ่มต้นของโมเดลที่เลือก",
@@ -1035,7 +1111,8 @@
                 "newTitle": "การสนทนาใหม่",
                 "renameFailed": "เปลี่ยนชื่อการสนทนาไม่สำเร็จ.",
                 "switchFailed": "สลับการสนทนาไม่สำเร็จ.",
-                "untitled": "ไม่มีชื่อ"
+                "untitled": "ไม่มีชื่อ",
+                "titleRequired": "ต้องระบุชื่อการสนทนา"
             },
             "detached": {
                 "windowTitle": "แชต (หน้าต่างแยก)"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "ต้องใช้ HTTPS"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "กดค้างเพื่อเปิดพารามิเตอร์และแสดงความยาวบริบท",
+                "presetsHint": "กดค้างเพื่อเปิดค่าที่ตั้งไว้",
+                "pushToTalkHint": "กดค้างเพื่อพูด",
+                "toolsHint": "กดค้างเพื่อเปิดการตั้งค่าเครื่องมือ",
+                "toolsRestrictedHint": "{reason} กดค้างเพื่อเปิดการตั้งค่าเครื่องมือ",
+                "toolsToggleHint": "{action} กดค้างเพื่อเปิดการตั้งค่าเครื่องมือ"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "อยู่ในคิว",
@@ -1286,7 +1371,8 @@
                     "running": "กำลังรัน",
                     "inputRequired": "ต้องดำเนินการ"
                 },
-                "attachmentsCount": "(+ไฟล์แนบ {count} รายการ)"
+                "attachmentsCount": "(+ไฟล์แนบ {count} รายการ)",
+                "open": "เปิดพรอมต์: {prompt}"
             },
             "loading": {
                 "errorType": "ประเภทข้อผิดพลาด",
@@ -1337,7 +1423,9 @@
                     },
                     "save": "บันทึก",
                     "skip": "ข้าม",
-                    "title": "ช่วยให้ SoAI รู้จักคุณ"
+                    "title": "ช่วยให้ SoAI รู้จักคุณ",
+                    "loadFailed": "ไม่สามารถโหลดโปรไฟล์ที่บันทึกไว้ได้ การบันทึกถูกหยุดชั่วคราวเพื่อไม่ให้มีข้อมูลใดถูกเขียนทับ",
+                    "retry": "ลองอีกครั้ง"
                 },
                 "viewer": {
                     "none": "ไม่มี",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "เมื่อวาน",
                 "toolCall": "การเรียกใช้เครื่องมือ",
                 "waiting": "กำลังรอ...",
-                "you": "คุณ"
+                "you": "คุณ",
+                "timestampWithTime": "{label}, {time}"
             },
             "modelControl": {
                 "compareModels": "เปรียบเทียบโมเดล",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "มีหลายโมเดลที่ใช้ชื่อ \"{model}\" โปรดเลือกโมเดลที่ต้องการโดยเฉพาะในแถบด้านข้าง.",
                 "available": "(พร้อมใช้งาน)",
-                "loaded": "(โหลดแล้ว)"
+                "loaded": "(โหลดแล้ว)",
+                "unavailable": "(ไม่พร้อมใช้งาน)"
             },
             "news": {
                 "articleCount": "{count} บทความ",
@@ -1469,6 +1559,48 @@
                 "clearFailed": "ล้างประวัติพรอมต์ไม่สำเร็จ.",
                 "cleared": "ล้างประวัติพรอมต์แล้ว.",
                 "loadFailed": "โหลดประวัติพรอมต์ไม่สำเร็จ."
+            },
+            "sketch": {
+                "open": "เปิดภาพร่าง",
+                "mobileOption": "ภาพร่าง",
+                "preference": "ภาพร่าง",
+                "preferenceHint": "แสดงสมุดร่างภาพในช่องเขียนข้อความแชท เพื่อวาดภาพและแนบไปกับข้อความของคุณ",
+                "title": "ภาพร่าง",
+                "description": "วาดด้วยเมาส์ ปากกา หรือนิ้ว แล้วแนบภาพวาดไปกับข้อความของคุณเป็นรูปภาพ",
+                "canvasLabel": "พื้นที่วาดภาพ",
+                "toolsLabel": "เครื่องมือวาดภาพ",
+                "tools": {
+                    "pen": "ปากกา",
+                    "brush": "แปรง",
+                    "highlighter": "ปากกาเน้นข้อความ",
+                    "eraser": "ยางลบ",
+                    "line": "เส้นตรง",
+                    "rectangle": "สี่เหลี่ยมผืนผ้า",
+                    "ellipse": "วงรี"
+                },
+                "colorsLabel": "สี",
+                "colors": {
+                    "black": "ดำ",
+                    "grey": "เทา",
+                    "red": "แดง",
+                    "orange": "ส้ม",
+                    "yellow": "เหลือง",
+                    "green": "เขียว",
+                    "teal": "เขียวอมฟ้า",
+                    "blue": "น้ำเงิน",
+                    "purple": "ม่วง",
+                    "brown": "น้ำตาล"
+                },
+                "customColor": "สีกำหนดเอง",
+                "size": "ขนาด",
+                "undo": "เลิกทำ",
+                "redo": "ทำซ้ำ",
+                "clear": "ล้าง",
+                "resize": "ปรับขนาดผืนผ้าใบ",
+                "attach": "แนบ",
+                "discardConfirm": "ทิ้งภาพร่างนี้หรือไม่",
+                "discard": "ทิ้ง",
+                "exportFailed": "ไม่สามารถส่งออกภาพร่างได้ โปรดลองอีกครั้ง"
             },
             "characterMap": {
                 "allEmoji": "อีโมจิทั้งหมด",
@@ -2201,7 +2333,8 @@
                 "started": "เริ่มการโทรด้วยเสียงแล้ว.",
                 "transcriptionFailed": "ถอดเสียงไม่สำเร็จ.",
                 "ttsFailed": "การแปลงข้อความเป็นเสียงล้มเหลว.",
-                "messageSendFailed": "ส่งข้อความเสียงไม่สำเร็จ."
+                "messageSendFailed": "ส่งข้อความเสียงไม่สำเร็จ.",
+                "stoppedAfterFailure": "หยุดการโทรแล้ว โปรดแก้ไขปัญหาก่อนเริ่มการโทรใหม่"
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "กำลังเล่นคำตอบของผู้ช่วย.",
@@ -2299,44 +2432,45 @@
                 "toggle": "สลับโหมดเต็มหน้าจอ"
             },
             "modalDescriptions": {
-                "agentPlan": "ขั้นตอนของแผนเอเจนต์ที่ใช้งานอยู่.",
-                "automationCalendar": "โลแคลของปฏิทินและรูปแบบวันที่.",
-                "automationConfiguration": "กำหนดการ โมเดล และขีดจำกัดการรัน.",
-                "automationOccurrence": "การรันตามกำหนดเวลาหนึ่งครั้ง.",
-                "chatConfiguration": "โมเดล เครื่องมือ หน่วยความจำ และอินเทอร์เฟซสำหรับแชตนี้.",
-                "chatAttach": "อัปโหลดไฟล์หรือแนบความรู้ที่เชื่อมโยงกับแชตนี้.",
-                "chatAttachments": "ไฟล์แนบที่ข้อความนี้อ้างอิง.",
-                "chatMcpDefaultTools": "เครื่องมือ MCP เริ่มต้นสำหรับแชตใหม่.",
-                "chatMemoryProfile": "รายละเอียดส่วนบุคคลที่ SoAI จดจำข้ามแชต.",
-                "chatPromptsPicker": "พรอมต์ที่บันทึกไว้และพร้อมแทรกลงในแชตนี้.",
-                "voiceCall": "แชตแบบแฮนด์ฟรีด้วยไมโครโฟน การถอดเสียง การตอบแบบสตรีม และการเล่นเสียงพูด.",
-                "credits": "เครดิตของ dependency จากบุคคลที่สาม.",
-                "fileExplorerMetadata": "เมทาดาทาไฟล์.",
-                "folderPicker": "เลือกโฟลเดอร์.",
-                "exportPreview": "เนื้อหาของการส่งออก.",
-                "hardwareSystemInfo": "รายงานระบบโดยละเอียด.",
-                "license": "ข้อความใบอนุญาตของ SoAI.",
-                "messageInfo": "เมทาดาทาข้อความ.",
-                "metricsAdvanced": "เมตริกรันไทม์เพิ่มเติม.",
-                "modelDetailTest": "ส่งคำขอทดสอบไปยังโมเดลนี้.",
-                "modelsDownload": "ดาวน์โหลดโมเดลใหม่.",
-                "modelsEdit": "กำหนดทับความสามารถของโมเดลนี้.",
-                "modelsProviders": "ผู้ให้บริการโมเดลภายนอก.",
-                "modelsRename": "ตั้งชื่อภายในเครื่องให้โมเดลนี้.",
-                "modelsVirtual": "กลุ่มการกำหนดเส้นทางโมเดลเสมือน.",
-                "modelsVirtualEdit": "การกำหนดเส้นทางสำหรับโมเดลเสมือนนี้.",
-                "pluginsClone": "ทำสำเนาปลั๊กอินนี้พร้อมการตั้งค่าใหม่.",
-                "pluginsConcurrent": "จำนวนงานปลั๊กอินที่ทำพร้อมกันได้สูงสุด.",
-                "pluginsConfig": "การตั้งค่าปลั๊กอิน.",
-                "pluginsDownload": "ติดตั้งปลั๊กอินที่มาพร้อมระบบหรือปลั๊กอินภายในเครื่อง.",
-                "pluginsInfo": "รายละเอียดและข้อมูลวินิจฉัยของปลั๊กอิน.",
-                "pluginsIntro": "ปลั๊กอินช่วยขยายความสามารถของ SoAI อย่างไร.",
-                "pluginsManageBackend": "จัดการเวอร์ชัน backend.",
-                "promptEnhancer": "เขียนพรอมต์ที่บันทึกไว้ใหม่ด้วยโมเดล.",
-                "settingsApiKeyQuota": "ขีดจำกัดการใช้งานสำหรับ API key นี้.",
-                "settingsExternalAccounts": "บัญชีอีเมลและปฏิทิน.",
-                "settingsMcpServer": "การเชื่อมต่อเซิร์ฟเวอร์ MCP.",
-                "toolCallOutput": "เอาต์พุตของการเรียกใช้เครื่องมือ."
+                "agentPlan": "ขั้นตอนของแผนเอเจนต์ที่ใช้งานอยู่",
+                "automationCalendar": "โลแคลของปฏิทินและรูปแบบวันที่",
+                "automationConfiguration": "กำหนดการ โมเดล และขีดจำกัดการรัน",
+                "automationOccurrence": "การรันตามกำหนดเวลาหนึ่งครั้ง",
+                "chatConfiguration": "โมเดล เครื่องมือ หน่วยความจำ และอินเทอร์เฟซสำหรับแชตนี้",
+                "chatAttach": "อัปโหลดไฟล์หรือแนบความรู้ที่เชื่อมโยงกับแชตนี้",
+                "chatAttachments": "ไฟล์แนบที่ข้อความนี้อ้างอิง",
+                "chatMcpDefaultTools": "เครื่องมือ MCP เริ่มต้นสำหรับแชตใหม่",
+                "chatMemoryProfile": "รายละเอียดส่วนบุคคลที่ SoAI จดจำข้ามแชต",
+                "chatPromptsPicker": "พรอมต์ที่บันทึกไว้และพร้อมแทรกลงในแชตนี้",
+                "voiceCall": "แชตแบบแฮนด์ฟรีด้วยไมโครโฟน การถอดเสียง การตอบแบบสตรีม และการเล่นเสียงพูด",
+                "credits": "เครดิตของ dependency จากบุคคลที่สาม",
+                "fileExplorerMetadata": "เมทาดาทาไฟล์",
+                "folderPicker": "เลือกโฟลเดอร์",
+                "exportPreview": "เนื้อหาของการส่งออก",
+                "hardwareSystemInfo": "รายงานระบบโดยละเอียด",
+                "license": "ข้อความใบอนุญาตของ SoAI",
+                "messageInfo": "เมทาดาทาข้อความ",
+                "metricsAdvanced": "เมตริกรันไทม์เพิ่มเติม",
+                "modelDetailTest": "ส่งคำขอทดสอบไปยังโมเดลนี้",
+                "modelsDownload": "ดาวน์โหลดโมเดล เชื่อมต่อผู้ให้บริการภายนอก หรือเพิ่มไฟล์โมเดลในเครื่อง",
+                "modelsEdit": "กำหนดทับความสามารถของโมเดลนี้",
+                "modelsProviders": "ผู้ให้บริการโมเดลภายนอก",
+                "modelsRename": "ตั้งชื่อภายในเครื่องให้โมเดลนี้",
+                "modelsVirtual": "กลุ่มการกำหนดเส้นทางโมเดลเสมือน",
+                "modelsVirtualEdit": "การกำหนดเส้นทางสำหรับโมเดลเสมือนนี้",
+                "pluginsClone": "ทำสำเนาปลั๊กอินนี้พร้อมการตั้งค่าใหม่",
+                "pluginsConcurrent": "จำนวนงานปลั๊กอินที่ทำพร้อมกันได้สูงสุด",
+                "pluginsConfig": "การตั้งค่าปลั๊กอิน",
+                "pluginsDownload": "ดาวน์โหลด อัปโหลด หรือเพิ่มปลั๊กอินจากโฟลเดอร์ปลั๊กอินในเครื่อง",
+                "pluginsInfo": "รายละเอียดและข้อมูลวินิจฉัยของปลั๊กอิน",
+                "pluginsIntro": "ปลั๊กอินช่วยขยายความสามารถของ SoAI อย่างไร",
+                "pluginsManageBackend": "จัดการเวอร์ชัน backend",
+                "promptEnhancer": "เขียนพรอมต์ที่บันทึกไว้ใหม่ด้วยโมเดล",
+                "settingsApiKeyQuota": "ขีดจำกัดการใช้งานสำหรับ API key นี้",
+                "settingsExternalAccounts": "บัญชีอีเมลและปฏิทิน",
+                "settingsMcpServer": "การเชื่อมต่อเซิร์ฟเวอร์ MCP",
+                "toolCallOutput": "เอาต์พุตของการเรียกใช้เครื่องมือ",
+                "conversationInput": "ดูพรอมต์นี้และไฟล์แนบ"
             },
             "loading": "กำลังโหลด...",
             "confirm": "ยืนยัน",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count}วินาที"
+                    },
+                    "year": {
+                        "short": "{count} ปี"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก ดำเนินการต่อโดยไม่บันทึกหรือไม่?",
             "unsavedChangesTitle": "การเปลี่ยนแปลงที่ยังไม่ได้บันทึก",
             "view": "ดู",
-            "yes": "ใช่"
+            "yes": "ใช่",
+            "retry": "ลองอีกครั้ง"
         },
         "contentPreview": {
             "actions": {
@@ -2620,7 +2758,7 @@
                 }
             },
             "firstRun": {
-                "description": "ขั้นตอนการตั้งค่าแบบย่อสำหรับ backend ภายในเครื่อง ผู้ให้บริการระยะไกล โมเดล และการอัปเดต.",
+                "description": "ขั้นตอนการตั้งค่าแบบย่อสำหรับ backend ภายในเครื่อง ผู้ให้บริการระยะไกล โมเดล และการอัปเดต",
                 "sections": {
                     "models": {
                         "heading": "เพิ่มหรือดาวน์โหลดโมเดลเมื่อ backend พร้อม",
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "เครือข่าย",
+                    "unavailable": "ไม่สามารถใช้รายการอะแดปเตอร์ได้",
                     "waiting": "กำลังตรวจหา..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "เบนช์มาร์ก",
                     "soaibenchStop": "หยุด",
                     "soaibenchStress": "ทดสอบภาระหนัก",
+                    "viewBenchmark": "ดูเบนช์มาร์ก",
                     "test": "ทดสอบ",
                     "reset": "รีเซ็ต",
                     "save": "บันทึก"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index} เริ่ม SoAIBench {profile} แล้ว",
                     "soaibenchStopRequested": "ส่งคำขอหยุด SoAIBench บน GPU {index} แล้ว",
                     "soaibenchUnsupported": "GPU {index} ไม่รองรับ SoAIBench: {reason}",
+                    "soaibenchSettingsLocked": "GPU {index} กำลังรันเบนช์มาร์ก โปรดหยุดหรือรอให้เสร็จก่อนบันทึกการตั้งค่า",
                     "slotApplied": "GPU {index} นำสล็อต {slot} ไปใช้แล้ว",
                     "slotSaved": "GPU {index} บันทึกสล็อต {slot} แล้ว"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "ลบประวัติในเครื่อง",
+                "deleteLocalConfirm": {
+                    "title": "ลบการรัน SoAIBench หรือไม่",
+                    "message": "ลบการรัน SoAIBench นี้ออกจากประวัติในเครื่องหรือไม่ การดำเนินการนี้ไม่สามารถย้อนกลับได้"
+                },
                 "action": "แชร์",
+                "openRun": "เปิดผลลัพธ์",
                 "ariaLabel": "แชร์คะแนน SoAIBench นี้",
                 "unavailable": "ไม่มีการเรียกใช้ SoAIBench ที่เผยแพร่ได้",
-                "confirm": { "title": "แชร์คะแนน SoAIBench หรือไม่", "message": "เผยแพร่คะแนน {score} และรอบที่วัด {passes} รอบบนตารางอันดับ SoAIBench สาธารณะหรือไม่", "description": "ระบบจะส่งคะแนน รอบที่วัดห้ารอบ ข้อมูล GPU และรันไทม์สาธารณะ การตั้งค่าเบนช์มาร์ก และหลักฐานเซ็นเซอร์ที่เลือกได้ โดยไม่รวมข้อมูลระบุตัวตนบัญชี ไฟล์ การกำหนดค่า การวิเคราะห์ และข้อมูลการวัดและส่งข้อมูลทั่วไป soai.to สามารถเห็นข้อมูลเมตาการเชื่อมต่อตามปกติ เช่น ที่อยู่ IP ของคุณ" },
-                "outcomes": { "published": "แชร์คะแนน SoAIBench สู่สาธารณะแล้ว", "alreadyPublished": "คะแนน SoAIBench นี้ได้รับการแชร์แล้ว", "heldForReview": "ผล SoAIBench ถูกพักไว้เพื่อตรวจสอบข้อมูลระบุตัวตนหรือความผิดปกติ และยังไม่นำไปคำนวณอันดับ", "offline": "ไม่สามารถแชร์คะแนนขณะที่ SoAI ออฟไลน์", "unavailable": "บริการเผยแพร่ SoAIBench ไม่พร้อมใช้งาน", "timeout": "การแชร์คะแนนหมดเวลา ลองอีกครั้งเพื่อกระทบยอดการเผยแพร่เดิม", "rateLimited": "มีการแชร์คะแนนจากการเชื่อมต่อนี้มากเกินไป โปรดลองอีกครั้งภายหลัง", "capacity": "ตารางอันดับ SoAIBench เต็มความจุในขณะนี้", "rejected": "ตารางอันดับ SoAIBench ปฏิเสธผลลัพธ์นี้", "conflict": "การเผยแพร่นี้ขัดแย้งกับสถานะตารางอันดับที่มีอยู่", "invalidResponse": "ตารางอันดับ SoAIBench ส่งการตอบกลับที่ไม่ถูกต้อง", "retryAfter": "ลองอีกครั้งในอีก {seconds} วินาที" }
+                "confirm": {
+                    "title": "แชร์คะแนน SoAIBench หรือไม่",
+                    "message": "เผยแพร่คะแนน {score} และรอบที่วัด {passes} รอบบนตารางอันดับ SoAIBench สาธารณะหรือไม่",
+                    "description": "ระบบจะส่งคะแนน รอบที่วัดห้ารอบ ข้อมูล GPU และรันไทม์สาธารณะ การตั้งค่าเบนช์มาร์ก และหลักฐานเซ็นเซอร์ที่เลือกได้ โดยไม่รวมข้อมูลระบุตัวตนบัญชี ไฟล์ การกำหนดค่า การวิเคราะห์ และข้อมูลการวัดและส่งข้อมูลทั่วไป"
+                },
+                "outcomes": {
+                    "published": "แชร์คะแนน SoAIBench สู่สาธารณะแล้ว",
+                    "alreadyPublished": "คะแนน SoAIBench นี้ได้รับการแชร์แล้ว",
+                    "heldForReview": "ผล SoAIBench ถูกพักไว้เพื่อตรวจสอบข้อมูลระบุตัวตนหรือความผิดปกติ และยังไม่นำไปคำนวณอันดับ",
+                    "offline": "ไม่สามารถแชร์คะแนนขณะที่ SoAI ออฟไลน์",
+                    "unavailable": "บริการเผยแพร่ SoAIBench ไม่พร้อมใช้งาน",
+                    "timeout": "การแชร์คะแนนหมดเวลา ลองอีกครั้งเพื่อกระทบยอดการเผยแพร่เดิม",
+                    "rateLimited": "มีการแชร์คะแนนจากการเชื่อมต่อนี้มากเกินไป โปรดลองอีกครั้งภายหลัง",
+                    "capacity": "ตารางอันดับ SoAIBench เต็มความจุในขณะนี้",
+                    "rejected": "ตารางอันดับ SoAIBench ปฏิเสธผลลัพธ์นี้",
+                    "conflict": "การเผยแพร่นี้ขัดแย้งกับสถานะตารางอันดับที่มีอยู่",
+                    "invalidResponse": "ตารางอันดับ SoAIBench ส่งการตอบกลับที่ไม่ถูกต้อง",
+                    "retryAfter": "ลองอีกครั้งในอีก {seconds} วินาที"
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3123,9 +3286,11 @@
                         "quick": "ด่วน",
                         "varianceSuffix": "ความแปรปรวน {variance}%"
                     },
-                    "description": "การรัน SoAIBench ก่อนหน้าสำหรับ GPU ที่เลือก.",
+                    "description": "การรัน SoAIBench ก่อนหน้าสำหรับ GPU ที่เลือก",
                     "empty": "ยังไม่มีการรัน SoAIBench สำหรับ GPU นี้.",
                     "loading": "กำลังโหลดประวัติการรัน...",
+                    "pageEmpty": "ยังไม่มีการรัน SoAIBench",
+                    "pageLoadFailed": "โหลดการรัน SoAIBench ไม่สำเร็จ โปรดลองอีกครั้ง",
                     "matchBases": {
                         "device_id": "ID อุปกรณ์",
                         "gpu_model_key": "คีย์โมเดล GPU",
@@ -3146,7 +3311,9 @@
                         "standard": "มาตรฐาน",
                         "stress": "ทดสอบภาระหนัก"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "การตรวจสอบค่าตัวเลขของเวิร์กโหลด OpenCL ล้มเหลว" },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "การตรวจสอบค่าตัวเลขของเวิร์กโหลด OpenCL ล้มเหลว"
+                    },
                     "rowCopyUnavailable": "ไม่มีการรัน SoAIBench ให้คัดลอก",
                     "staleHardware": "การจับคู่ฮาร์ดแวร์ที่ไม่เป็นปัจจุบัน",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "การรัน SoAIBench ก่อนหน้า"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "เลือก GPU สำหรับการทดสอบประสิทธิภาพ",
+                    "noGpus": "ไม่มี GPU ที่พร้อมสำหรับการทดสอบประสิทธิภาพ",
                     "ariaLabels": {
                         "close": "ปิด SoAIBench",
                         "copy": "คัดลอกการรัน SoAIBench",
@@ -3170,13 +3339,16 @@
                         "retry": "ลอง SoAIBench ที่ได้รับการรับรองอีกครั้ง",
                         "stop": "หยุด SoAIBench ที่ได้รับการรับรอง",
                         "stopping": "กำลังหยุด SoAIBench ที่ได้รับการรับรอง",
+                        "newBenchmark": "เริ่มการรัน SoAIBench ที่ได้รับการรับรองครั้งใหม่",
+                        "runAgain": "รัน SoAIBench ที่ได้รับการรับรองอีกครั้งบน GPU นี้",
+                        "recover": "ตรวจสอบสถานะ SoAIBench อีกครั้ง",
                         "start": "เริ่ม SoAIBench ที่ได้รับการรับรอง"
                     },
                     "close": "ปิด",
                     "copy": "คัดลอก",
                     "copySuccess": "คัดลอกการรัน SoAIBench ไปยังคลิปบอร์ดแล้ว",
                     "copyUnavailable": "ไม่มีการรัน SoAIBench ให้คัดลอก",
-                    "description": "เบนช์มาร์ก GPU ที่ได้รับการรับรองสำหรับตรวจสอบความพร้อมในการอนุมานของ SoAI.",
+                    "description": "เบนช์มาร์ก GPU ที่ได้รับการรับรองสำหรับตรวจสอบความพร้อมในการอนุมานของ SoAI",
                     "download": "ดาวน์โหลด",
                     "export": {
                         "deviceId": "ID อุปกรณ์",
@@ -3231,7 +3403,11 @@
                         "stopping": "กำลังหยุด SoAIBench",
                         "warmupDetail": "วอร์มอัป {pass}/{total}",
                         "warmupPhase": "วอร์มอัป: {phase}",
-                        "warmup": "รอบวอร์มอัปเสร็จสมบูรณ์"
+                        "warmup": "รอบวอร์มอัปเสร็จสมบูรณ์",
+                        "reconnecting": "กำลังเชื่อมต่อใหม่... อัปเดตล่าสุด: {age}",
+                        "checkingStatus": "กำลังตรวจสอบสถานะเบนช์มาร์ก...",
+                        "statusUnavailable": "ไม่สามารถดูสถานะเบนช์มาร์กได้ ลองอีกครั้งเพื่อตรวจสอบใหม่",
+                        "startUnconfirmed": "ไม่สามารถยืนยันการเริ่มเบนช์มาร์กได้ และไม่มีการรันที่ทำงานอยู่บน GPU นี้ โปรดตรวจสอบประวัติก่อนลองอีกครั้ง"
                     },
                     "retry": "ลองอีกครั้ง",
                     "scoreLabel": "คะแนน SoAIBench",
@@ -3253,6 +3429,15 @@
                     "standardRun": "การรันมาตรฐาน",
                     "stop": "หยุด",
                     "stopping": "กำลังหยุด",
+                    "newBenchmark": "เบนช์มาร์กใหม่",
+                    "runAgain": "รันอีกครั้ง",
+                    "gpuBusy": "กำลังรันเบนช์มาร์ก",
+                    "startedAt": "เริ่มเมื่อ {time}",
+                    "states": {
+                        "starting": "กำลังเริ่ม",
+                        "unresolved": "ไม่ทราบสถานะ",
+                        "rejected": "ยังไม่เริ่ม"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "เอกสารประกอบ",
             "intro": {
                 "aboutButton": "เกี่ยวกับ SoAI",
-                "paragraph1": "<strong>SoAI (ระบบประสานการทำงานอัจฉริยะสำหรับปัญญาประดิษฐ์)</strong> จัดการเอนจินการอนุมานภายในเครื่องและผู้ให้บริการ AI ระยะไกลจาก WebUI เดียว พร้อมให้ใช้งานโมเดลเหล่านั้นผ่าน API ที่เข้ากันได้กับ OpenAI และ Anthropic",
+                "paragraph1": "<strong dir=\"auto\">SoAI (ระบบประสานการทำงานอัจฉริยะสำหรับปัญญาประดิษฐ์)</strong> จัดการเอนจินการอนุมานภายในเครื่องและผู้ให้บริการ AI ระยะไกลจาก WebUI เดียว พร้อมให้ใช้งานโมเดลเหล่านั้นผ่าน API ที่เข้ากันได้กับ OpenAI และ Anthropic",
                 "paragraph2": "SoAI ทำงานบน Linux, macOS และ Windows โดยเปิดให้เข้าถึงซอร์สโค้ดและใช้งานฟรีสำหรับการใช้งานส่วนบุคคลและ homelab SoAI ไม่เก็บรวบรวมข้อมูลของคุณหรือส่งข้อมูลวิเคราะห์ ข้อมูล telemetry หรือรายงานการใช้งาน"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "เวลาแฝง",
                         "queueDepth": "ความลึกคิว",
                         "requests": "คำขอ",
+                        "throughput": "อัตราการสร้างโทเค็น",
                         "tokens": "โทเค็น"
                     },
                     "title": "แผนภูมิ"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "ชื่อที่แสดง",
                     "source_model_id": "ID โมเดลต้นทาง",
-                    "provider": "ผู้ให้บริการ",
-                    "title": "ข้อมูลประจำตัว",
                     "type": "ประเภท",
                     "universal_id": "ID สากล",
                     "virtual": "เสมือน"
@@ -4064,30 +4248,20 @@
                     "title": "ค่าเริ่มต้นการอนุมาน"
                 },
                 "metrics": {
-                    "avgLatency": "เวลาแฝงเฉลี่ย",
                     "avgTokens": "โทเค็นเฉลี่ย/คำขอ",
                     "audioIn": "เสียงเข้า",
                     "audioOut": "เสียงออก",
-                    "failedRequests": "คำขอที่ล้มเหลว",
                     "imagesIn": "รูปภาพเข้า",
                     "imagesOut": "รูปภาพออก",
                     "last_used": "ใช้ล่าสุด",
                     "modalityUsage": "การใช้งาน",
                     "success_rate": "อัตราความสำเร็จ",
                     "textTokens": "โทเค็นข้อความ",
-                    "title": "เมตริก",
                     "tokensGenerated": "โทเค็นที่สร้าง",
-                    "totalRequests": "คำขอทั้งหมด",
-                    "waitTime": "เวลารอเฉลี่ย"
+                    "totalRequests": "คำขอทั้งหมด"
                 },
                 "plugin": {
-                    "author": "ผู้พัฒนา",
-                    "models": "โมเดล",
-                    "plugin_status": "สถานะปลั๊กอิน",
-                    "providers": "ผู้ให้บริการ",
-                    "title": "ปลั๊กอิน",
-                    "type": "ประเภท",
-                    "version": "เวอร์ชัน"
+                    "title": "ปลั๊กอิน"
                 },
                 "status": {
                     "available": "พร้อมใช้งาน",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "เปลี่ยนชื่อ",
                     "modelStatus": "สถานะโมเดล",
                     "orphaned": "ไม่มีต้นทาง",
-                    "parameters": "พารามิเตอร์",
                     "stopPlugin": "หยุดปลั๊กอิน",
-                    "title": "สถานะและการดำเนินการ"
+                    "title": "สถานะ"
                 },
                 "technical": {
                     "created": "สร้างเมื่อ",
-                    "description": "คำอธิบาย",
                     "family": "ตระกูล",
                     "license": "ใบอนุญาต",
                     "path": "พาธ",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "พารามิเตอร์ทั้งหมด",
-                "category": "หมวดหมู่",
                 "groupInference": "การอนุมาน",
                 "groupStartup": "การเริ่มต้น"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "เพิ่มรายการ {itemType}",
                 "aliasesPrefix": "หรือที่เรียกว่า:",
                 "arrayOfType": "อาร์เรย์ของค่า {itemType}",
+                "backendDefault": "ค่าเริ่มต้นของแบ็กเอนด์",
                 "backendDocumentationDescription": "พารามิเตอร์โมเดลเหล่านี้รวม <strong>การตั้งค่าที่กำหนดโดย backend</strong> ซึ่งปลั๊กอินเปิดให้ใช้งาน โปรดดูเอกสารประกอบของ backend เพื่อดูพฤติกรรม ค่าที่รองรับ และค่าเริ่มต้นอย่างถูกต้อง.",
-                "backendDocumentationTitle": "ข้อมูล",
                 "badges": {
                     "custom": "กำหนดเอง",
-                    "default": "ค่าเริ่มต้น",
                     "requiresReload": "ต้องโหลดใหม่"
                 },
-                "countLabel": "{count} พารามิเตอร์",
+                "count": {
+                    "plural": "{count} พารามิเตอร์",
+                    "singular": "{count} พารามิเตอร์"
+                },
                 "invalidJson": "ป้อน JSON ที่ถูกต้องสำหรับพารามิเตอร์นี้.",
                 "jsonObject": "ออบเจ็กต์ JSON",
                 "noMatchDescription": "ลองปรับคำค้นหาหรือเกณฑ์ตัวกรอง.",
                 "noMatchTitle": "ไม่มีพารามิเตอร์ที่ตรงกับตัวกรอง",
                 "noParameters": "ไม่มีพารามิเตอร์ที่พร้อมใช้งานสำหรับโมเดลนี้",
+                "railLabel": "หมวดหมู่พารามิเตอร์",
                 "range": "ช่วง: {min} - {max}",
-                "removeItem": "นำรายการออก"
+                "removeItem": "นำรายการออก",
+                "revertChange": "ย้อนกลับการเปลี่ยนแปลง",
+                "unsavedCount": {
+                    "plural": "การเปลี่ยนแปลงที่ยังไม่บันทึก {count} รายการ",
+                    "singular": "การเปลี่ยนแปลงที่ยังไม่บันทึก {count} รายการ"
+                },
+                "views": {
+                    "customized": "ปรับแต่งแล้ว",
+                    "unsaved": "การเปลี่ยนแปลงที่ยังไม่บันทึก"
+                }
             },
             "status": {
                 "loaded": "โหลดแล้ว",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "เลือกไฟล์",
                     "close": "ปิด",
                     "confirmDownload": "ดาวน์โหลดปลั๊กอิน",
                     "confirmUpload": "อัปโหลดปลั๊กอิน",
+                    "fileDropHint": "คลิกเพื่อเลือกไฟล์ .soaiplugin หรือลากมาวางที่นี่",
+                    "fileDropTitle": "วางปลั๊กอินที่นี่",
                     "fileHelp": "เลือกแพ็กเกจปลั๊กอิน Python รูปแบบ ZIP (.soaiplugin)",
                     "fileLabel": "ไฟล์ปลั๊กอิน",
                     "manualCopySuccess": "คัดลอกพาธโฟลเดอร์ปลั๊กอินไปยังคลิปบอร์ดแล้ว.",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant} (ติดตั้งแล้ว)",
                     "loadFailed": "ไม่สามารถโหลดเวอร์ชันย่อยของ backend ได้.",
                     "loading": "กำลังโหลดเวอร์ชันย่อยของ backend...",
+                    "loadingBackends": "กำลังโหลด backend...",
                     "saveFailed": "ไม่สามารถบันทึกเวอร์ชันย่อยของ backend ได้."
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "เปิดการกำหนดทับความเข้ากันได้สำหรับ {plugin} แล้ว.",
                 "overrideRequired": "เปิดการกำหนดทับความเข้ากันได้ก่อนเริ่ม {plugin}.",
                 "persistentNoStop": "ปลั๊กอินแบบถาวรไม่สามารถหยุดได้",
-                "pluginDisabled": "ปิดใช้งานปลั๊กอินแล้ว",
-                "pluginEnabled": "เปิดใช้งานปลั๊กอินแล้ว",
+                "pluginDisabled": "ปิดใช้งานปลั๊กอิน {plugin} แล้ว",
+                "pluginEnabled": "เปิดใช้งานปลั๊กอิน {plugin} แล้ว",
                 "pluginIncompatibleReason": "ปลั๊กอิน \"{plugin}\" ไม่เข้ากัน: {reason}",
                 "pluginInfoCopyFailed": "คัดลอกข้อมูลปลั๊กอินไม่สำเร็จ",
                 "pluginStopInProgress": "กำลังหยุด {plugin}...",
@@ -5489,16 +5674,21 @@
                 "restarting": "แอปพลิเคชันกำลังเริ่มใหม่ ซึ่งควรใช้เวลาเพียงครู่เดียว.",
                 "shutdown": "ระบบกำลังปิด คุณสามารถปิดหน้าต่างเบราว์เซอร์นี้ได้.",
                 "sleep": "ระบบกำลังเข้าสู่โหมดสลีป ปลุกระบบเพื่อใช้งาน SoAI ต่อ.",
-                "updating": "SoAI กำลังดาวน์โหลดและติดตั้งการอัปเดต ซึ่งอาจใช้เวลาหลายนาที."
+                "updateTimeout": "SoAI ไม่กลับมาออนไลน์หลังการอัปเดต ตรวจสอบไฟล์ application_updater.log ในโฟลเดอร์บันทึกของ SoAI แล้วโหลดหน้านี้ใหม่",
+                "updating": "SoAI จะรีสตาร์ทเพื่อทำการอัปเดตให้เสร็จสมบูรณ์ หน้านี้จะโหลดใหม่โดยอัตโนมัติเมื่อ SoAI กลับมาออนไลน์ อาจใช้เวลาหลายนาที",
+                "updatingDesktop": "SoAI จะรีสตาร์ทเพื่อทำการอัปเดตให้เสร็จสมบูรณ์ หน้าต่างนี้จะปิดและเปิดขึ้นใหม่โดยอัตโนมัติเมื่ออัปเดตเสร็จ โปรดอย่าปิดคอมพิวเตอร์",
+                "updatingSlow": "การอัปเดตใช้เวลานานกว่าปกติ SoAI ยังคงทำงานอยู่ โปรดเปิดหน้านี้ไว้"
             },
             "messages": {
                 "connectionLost": "การเชื่อมต่อ backend ขาดหาย",
+                "installingVersion": "กำลังติดตั้ง SoAI {version}...",
                 "pleaseWait": "โปรดรอสักครู่...",
                 "rebooting": "ระบบกำลังรีบูต...",
                 "rebootTimeout": "การรีบูตยังดำเนินอยู่...",
                 "restarting": "SoAI กำลังเริ่มใหม่...",
                 "shutdown": "ระบบกำลังปิด",
                 "sleep": "ระบบกำลังเข้าสู่โหมดสลีป",
+                "updateTimeout": "SoAI ยังไม่กลับมาทำงาน",
                 "updating": "SoAI กำลังอัปเดต..."
             },
             "reconnecting": "กำลังพยายามเชื่อมต่อใหม่..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "เลือกสีแบบกำหนดเองสำหรับแผนภูมิทั้งหมด",
-                    "label": "สีคงที่"
+                    "label": "สีแผนภูมิ"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "ควบคุมวิธีแสดงเนื้อหาที่มีลักษณะเป็นโค้ดทั่วทั้ง SoAI.",
                 "subgroupTitle": "บล็อกโค้ด"
+            },
+            "connect": {
+                "addressCopied": "คัดลอกที่อยู่แล้ว",
+                "browserAddress": "ที่อยู่ของเบราว์เซอร์นี้",
+                "chooseAddress": "ที่อยู่สำหรับโทรศัพท์ของคุณ",
+                "copyAddress": "คัดลอกที่อยู่",
+                "description": "เชื่อมต่อแอป Android SoAI Connect กับเซิร์ฟเวอร์นี้ด้วยการสแกนคิวอาร์โค้ด",
+                "documentationHint": "สำหรับการตั้งค่าด้วยตนเองและการแก้ไขปัญหา ให้เปิด \"Connect to a SoAI server\" ในเอกสาร SoAI",
+                "documentationLink": "เอกสาร SoAI",
+                "loadFailed": "โหลดรายละเอียดการเชื่อมต่อไม่ได้",
+                "loopbackWarningMessage": "SoAI รอรับการเชื่อมต่อบนที่อยู่ loopback อุปกรณ์อื่นจึงเข้าถึงโดยตรงไม่ได้ คิวอาร์โค้ดจะใช้ได้ผ่าน reverse proxy ที่ใช้ scheme และพอร์ตเดียวกับ SoAI เท่านั้น หากต้องการอนุญาตการเชื่อมต่อโดยตรง ให้ตั้งค่าตัวเลือกต่อไปนี้แล้วรีสตาร์ต SoAI:",
+                "loopbackWarningTitle": "เข้าถึงได้จากคอมพิวเตอร์เครื่องนี้เท่านั้น",
+                "noAddressesMessage": "เชื่อมต่อเซิร์ฟเวอร์นี้กับเครือข่าย หรือเปิดหน้านี้จากที่อยู่ที่โทรศัพท์ของคุณจะใช้",
+                "noAddressesTitle": "ไม่พบที่อยู่ที่เข้าถึงได้",
+                "qrLabel": "คิวอาร์โค้ดสำหรับเชื่อมต่อ SoAI Connect กับ {address}",
+                "refresh": "รีเฟรชที่อยู่",
+                "scanHint": "สแกนคิวอาร์โค้ดนี้ด้วยแอป SoAI Connect",
+                "stepInstall": "ติดตั้ง SoAI Connect บนโทรศัพท์ Android แล้วเปิดแอป",
+                "stepScan": "แตะปุ่มคิวอาร์โค้ดข้างช่องที่อยู่เซิร์ฟเวอร์ จากนั้นสแกนโค้ดในหน้านี้",
+                "stepSignIn": "ตรวจสอบข้อความแจ้งเกี่ยวกับใบรับรองหากมี แล้วลงชื่อเข้าใช้ด้วยบัญชี SoAI ของคุณ",
+                "stepsTitle": "วิธีเชื่อมต่อ",
+                "title": "SoAI Connect",
+                "vpnHint": "โทรศัพท์ของคุณต้องเข้าถึงเซิร์ฟเวอร์นี้ได้ ให้ใช้เครือข่ายภายในเดียวกัน หรือใช้ VPN เมื่ออยู่นอกบ้าน แทนการเปิด SoAI สู่อินเทอร์เน็ต",
+                "vpnTitle": "อยู่นอกบ้าน?"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "ซ่อนส่วนหัวหน้าอัตโนมัติ"
                     }
                 },
-                "subgroupTitle": "การเคลื่อนไหว",
+                "subgroupTitle": "อินเทอร์เฟซ",
                 "subgroupDescription": "ปรับการเคลื่อนไหว การเปลี่ยนผ่าน พื้นผิวแบบกระจก และพฤติกรรมการเลื่อน."
             },
             "externalAccounts": {
@@ -6975,7 +7189,7 @@
                     "authorizedSendersPlaceholder": "sender-id | ป้ายกำกับเสริม",
                     "credentialsDescription": "ป้อนข้อมูลรับรองที่ผู้ให้บริการที่เลือกกำหนดให้ใช้.",
                     "credentialsTitle": "ข้อมูลรับรองผู้ให้บริการ",
-                    "description": "กำหนดค่าบัญชีผู้ให้บริการจริงหนึ่งบัญชีและการตั้งค่าการเรียกใช้ Chat มาตรฐานที่บัญชีนั้นเป็นเจ้าของ.",
+                    "description": "กำหนดค่าบัญชีผู้ให้บริการจริงหนึ่งบัญชีและการตั้งค่าการเรียกใช้ Chat มาตรฐานที่บัญชีนั้นเป็นเจ้าของ",
                     "executionDescription": "เลือกโมเดล Chat, ข้อมูลประจำตัว, พรอมต์, พื้นที่ทำงาน และพารามิเตอร์การเรียกใช้.",
                     "executionTitle": "การเรียกใช้ Chat",
                     "identityDescription": "ตั้งชื่อบัญชีและเลือกผู้ให้บริการกับภาษาสำหรับการตอบกลับ.",
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "ข้อมูลสำรอง",
+                "connect": "เชื่อมต่อ",
                 "externalAccounts": "เมลและปฏิทิน",
                 "licensing": "ใบอนุญาต",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "เลือกเพื่อใช้งาน",
+                    "label": "วอลเปเปอร์ในตัว",
+                    "none": "ไม่มีวอลเปเปอร์",
+                    "option": "วอลเปเปอร์ {number}"
+                },
                 "downloadUrl": {
                     "button": "ดาวน์โหลด",
                     "help": "ระบุ URL เพื่อดาวน์โหลดและตั้งเป็นวอลเปเปอร์",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "ไม่สามารถโหลดบันทึกประจำรุ่นบางรายการได้ จะแสดงรายการที่มีอยู่"
+            },
+            "outcome": {
+                "failureMessage": "การอัปเดตเป็นเวอร์ชัน {version} ไม่เสร็จสมบูรณ์ SoAI {previousVersion} ยังคงติดตั้งอยู่ ตรวจสอบไฟล์ application_updater.log ในโฟลเดอร์บันทึกของ SoAI เพื่อดูรายละเอียด",
+                "failureTitle": "อัปเดตไม่สำเร็จ",
+                "later": "ภายหลัง",
+                "reloadMessage": "ขณะนี้ SoAI ทำงานบนเวอร์ชัน {version} โหลดหน้านี้ใหม่เพื่อใช้อินเทอร์เฟซที่อัปเดตแล้ว",
+                "reloadTitle": "อัปเดต SoAI แล้ว",
+                "successMessage": "อัปเดต SoAI เป็นเวอร์ชัน {version} สำเร็จแล้ว",
+                "successTitle": "อัปเดตเสร็จสมบูรณ์"
+            },
+            "progress": {
+                "downloading": "กำลังดาวน์โหลดอัปเดต...",
+                "handoff": "กำลังเตรียมเริ่ม SoAI ใหม่...",
+                "staging": "กำลังเตรียมไฟล์อัปเดต...",
+                "unavailable": "ความคืบหน้าแบบเรียลไทม์ไม่พร้อมใช้งานชั่วคราว",
+                "verifying": "กำลังตรวจสอบอัปเดต..."
+            },
             "actions": {
                 "checkUpdates": "ตรวจหาการอัปเดต",
                 "installUpdate": "ติดตั้งอัปเดต"
@@ -7943,6 +8183,184 @@
             "welcome": {
                 "description": "SoAI รวม backend LLM ในเครื่องและระยะไกลไว้เบื้องหลังเลเยอร์ orchestration เดียวที่เข้ากันได้กับ OpenAI.",
                 "heading": "ยินดีต้อนรับสู่ SoAI!"
+            },
+            "aiSetup": {
+                "eyebrow": "ตั้งค่า SoAI",
+                "loadFailed": {
+                    "title": "ไม่สามารถโหลดการตั้งค่า SoAI ได้",
+                    "description": "SoAI อ่านรายการเอนจินและผู้ให้บริการที่มีอยู่ไม่ได้ ตรวจสอบว่า SoAI ทำงานอยู่ แล้วลองอีกครั้ง หรือตั้งค่าให้เสร็จภายหลัง",
+                    "retry": "ลองอีกครั้ง"
+                },
+                "nav": {
+                    "finishLater": "ข้าม",
+                    "skip": "ข้ามการตั้งค่า SoAI",
+                    "continue": "ดำเนินการต่อ",
+                    "installAndContinue": "ติดตั้ง",
+                    "downloadAndContinue": "ดาวน์โหลด",
+                    "startChatting": "แชต",
+                    "close": "ปิด"
+                },
+                "sources": {
+                    "heading": "ต้องการให้ AI ทำงานที่ใด",
+                    "description": "เลือกอย่างใดอย่างหนึ่งหรือทั้งสองอย่าง คุณเปลี่ยนได้ภายหลัง",
+                    "local": {
+                        "title": "บนอุปกรณ์นี้",
+                        "description": "เป็นส่วนตัวและใช้งานออฟไลน์ได้หลังตั้งค่า ต้องดาวน์โหลดครั้งเดียว"
+                    },
+                    "cloud": {
+                        "title": "ผู้ให้บริการคลาวด์",
+                        "description": "ใช้งานได้ทุกที่เมื่อมีอินเทอร์เน็ตและคีย์ API ของผู้ให้บริการ",
+                        "recommended": "แนะนำ"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "รับคีย์ API ฟรี",
+                    "accessibleName": "รับคีย์ API ฟรี (เปิดในหน้าต่างใหม่)"
+                },
+                "limited": {
+                    "noCompatibleEngine": "ไม่มีเอนจินในเครื่องที่รองรับอุปกรณ์นี้",
+                    "insufficientMemory": "โมเดลในเครื่องต้องใช้หน่วยความจำว่างประมาณ {required} แต่อุปกรณ์นี้มีประมาณ {available}",
+                    "useCloud": "ใช้โมเดลคลาวด์แทน",
+                    "searchManually": "ค้นหาโมเดลด้วยตนเอง"
+                },
+                "connect": {
+                    "heading": "เตรียมพร้อม",
+                    "description": "เชื่อมต่อผู้ให้บริการและเตรียมอุปกรณ์นี้",
+                    "cloud": {
+                        "heading": "เชื่อมต่อผู้ให้บริการคลาวด์",
+                        "description": "วาง URL ของ API และคีย์จากผู้ให้บริการของคุณ",
+                        "moreOptions": "ตัวเลือกเพิ่มเติม",
+                        "modelFilter": "ตัวกรองโมเดล (ไม่บังคับ)",
+                        "connect": "เชื่อมต่อ",
+                        "connecting": "กำลังเชื่อมต่อกับ {name}…",
+                        "connected": {
+                            "singular": "เชื่อมต่อแล้ว · มี {count} โมเดล",
+                            "plural": "เชื่อมต่อแล้ว · มี {count} โมเดล"
+                        },
+                        "change": "เปลี่ยน"
+                    },
+                    "local": {
+                        "heading": "ติดตั้งเอนจินในเครื่อง",
+                        "description": "ช่วยให้โมเดลทำงานบนอุปกรณ์นี้ได้",
+                        "automatic": "อัตโนมัติ (แนะนำ)",
+                        "usesGpu": "ใช้ {engine} กับการ์ดจอของคุณ",
+                        "usesProcessor": "ใช้ {engine} บนโปรเซสเซอร์",
+                        "usesInstalled": "ใช้ {engine} ที่ติดตั้งไว้แล้ว",
+                        "chooseManually": "เลือกด้วยตนเอง",
+                        "status": {
+                            "installed": "ติดตั้งแล้ว",
+                            "recommended": "แนะนำ",
+                            "warning": "คำเตือน",
+                            "unavailable": "ไม่พร้อมใช้งาน"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "เลือกโมเดล",
+                    "description": "เลือกโมเดลที่จะแชตด้วย คุณเพิ่มโมเดลอื่นได้ภายหลัง",
+                    "local": {
+                        "heading": "โมเดลสำหรับอุปกรณ์นี้",
+                        "description": "คัดเลือกให้เหมาะกับฮาร์ดแวร์ของคุณ"
+                    },
+                    "role": {
+                        "recommended": "แนะนำ",
+                        "faster": "เร็วกว่า",
+                        "smallest": "เล็กที่สุด"
+                    },
+                    "useCase": {
+                        "advanced": "คุณภาพดีที่สุดสำหรับการเขียน เขียนโค้ด และการใช้เหตุผล",
+                        "balanced": "เหมาะสำหรับการแชต การเขียน และการเขียนโค้ดในชีวิตประจำวัน",
+                        "reasoning": "ใช้เหตุผลทีละขั้นได้ดี",
+                        "light": "ตอบเร็วบนฮาร์ดแวร์ทั่วไป"
+                    },
+                    "downloadSize": "ดาวน์โหลด {size}",
+                    "runsOnGpu": "ทำงานบนการ์ดจอของคุณ",
+                    "runsOnCpu": "ทำงานบนโปรเซสเซอร์ของคุณ",
+                    "speed": {
+                        "fast": "ตอบเร็ว",
+                        "moderate": "ความเร็วปานกลาง",
+                        "slow": "ตอบช้ากว่า"
+                    },
+                    "details": {
+                        "label": "รายละเอียด",
+                        "quantization": "ควอนไทซ์",
+                        "parameters": "พารามิเตอร์",
+                        "parametersDense": "{total}B",
+                        "parametersMoe": "{total}B, ใช้งาน {active}B",
+                        "context": "ความยาวบริบท",
+                        "contextTokens": "{tokens} โทเค็น",
+                        "contextReduced": "{tokens} โทเค็น (ลดลงให้เหมาะกับอุปกรณ์นี้)",
+                        "file": "ไฟล์",
+                        "source": "แหล่งที่มา"
+                    },
+                    "openChatWith": "เปิดแชตด้วยโมเดลนี้",
+                    "searchAnother": "ค้นหาโมเดลอื่น",
+                    "cloud": {
+                        "heading": "โมเดลจาก {provider}",
+                        "description": "เลือกหนึ่งรายการขึ้นไป",
+                        "filterPlaceholder": "กรองโมเดล…",
+                        "noMatches": "ไม่มีโมเดลที่ตรงกับตัวกรองนี้",
+                        "empty": "ผู้ให้บริการนี้ไม่ได้ส่งโมเดลกลับมา ตรวจสอบตัวกรองโมเดลหรือลองผู้ให้บริการอื่น",
+                        "backToProvider": "กลับไปที่ผู้ให้บริการ"
+                    }
+                },
+                "progress": {
+                    "heading": "กำลังเตรียมทุกอย่าง",
+                    "description": "คุณเริ่มแชตได้ทันทีที่มีโมเดลพร้อมหนึ่งโมเดล",
+                    "readyCount": "พร้อม {ready} จาก {total}",
+                    "installing": "กำลังติดตั้ง {engine}",
+                    "downloading": "กำลังดาวน์โหลด {model}",
+                    "waitingForEngine": "กำลังรอให้ {engine} ติดตั้งเสร็จ",
+                    "discovering": "กำลังเพิ่ม {model} ในโมเดลของคุณ",
+                    "configuring": "กำลังใช้การตั้งค่าเริ่มต้น",
+                    "testing": "กำลังส่งข้อความทดสอบสั้นๆ",
+                    "ready": "{model} พร้อมแล้ว",
+                    "blocked": "เริ่มไม่ได้จนกว่าจะติดตั้ง {engine}",
+                    "checkingStatus": "กำลังตรวจสอบสถานะ",
+                    "retry": "ลองอีกครั้ง",
+                    "retryInstallation": "ลองติดตั้งอีกครั้ง",
+                    "skipItem": "ข้ามรายการนี้",
+                    "testAgain": "ทดสอบอีกครั้ง",
+                    "checkAgain": "ตรวจสอบอีกครั้ง",
+                    "sendTest": "ส่งข้อความทดสอบ",
+                    "error": {
+                        "empty": "โหลดโมเดลแล้วแต่ไม่มีการตอบกลับ ลองอีกครั้งหรือเลือกโมเดลอื่น",
+                        "loadError": "โมเดลเริ่มทำงานบนอุปกรณ์นี้ไม่ได้ ลองอีกครั้งหรือเลือกโมเดลที่เล็กกว่า",
+                        "timeout": "โมเดลใช้เวลาตอบนานเกินไป ลองอีกครั้งหรือเลือกโมเดลที่เล็กกว่า",
+                        "disconnected": "การเชื่อมต่อขาดหายระหว่างการทดสอบ ลองอีกครั้ง",
+                        "downloadFailed": "การดาวน์โหลดหยุดลง ลองอีกครั้ง",
+                        "installFailed": "การติดตั้งไม่เสร็จสมบูรณ์ ลองอีกครั้ง",
+                        "noDiskSpace": "พื้นที่ดิสก์ไม่พอสำหรับโมเดลนี้ เพิ่มพื้นที่ว่างหรือเลือกโมเดลที่เล็กกว่า"
+                    },
+                    "testPrompt": "ตอบกลับด้วยประโยคสั้นๆ ที่เป็นมิตรหนึ่งประโยค",
+                    "testCancelled": "ยกเลิกการทดสอบการตั้งค่า SoAI แล้ว"
+                },
+                "completion": {
+                    "modelsTitle": "โมเดล AI",
+                    "modelsReady": {
+                        "singular": "พร้อม {count}",
+                        "plural": "พร้อม {count}"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} รายการยังเตรียมอยู่เบื้องหลัง",
+                        "plural": "{count} รายการยังเตรียมอยู่เบื้องหลัง"
+                    }
+                },
+                "resume": {
+                    "link": "ตั้งค่า SoAI ให้เสร็จ",
+                    "toast": "ขั้นตอนการตั้งค่า SoAI บางขั้นต้องการความสนใจของคุณ"
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "การดาวน์โหลดโมเดลจะดำเนินต่อในเบื้องหลัง",
+                        "plural": "การดาวน์โหลดโมเดล {count} รายการจะดำเนินต่อในเบื้องหลัง"
+                    },
+                    "installations": {
+                        "singular": "การติดตั้งแบ็กเอนด์จะดำเนินต่อในเบื้องหลัง",
+                        "plural": "การติดตั้งแบ็กเอนด์ {count} รายการจะดำเนินต่อในเบื้องหลัง"
+                    },
+                    "both": "การดาวน์โหลดโมเดลและการติดตั้งแบ็กเอนด์จะดำเนินต่อในเบื้องหลัง"
+                }
             }
         }
     }

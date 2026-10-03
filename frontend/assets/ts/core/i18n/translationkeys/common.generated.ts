@@ -38,6 +38,7 @@ import type { CommonPlaceholdersTranslationKey } from '@core/i18n/translationkey
 import type { CommonPreviousTranslationKey } from '@core/i18n/translationkeys/common/previous.generated.ts';
 import type { CommonProcessingTranslationKey } from '@core/i18n/translationkeys/common/processing.generated.ts';
 import type { CommonRefreshTranslationKey } from '@core/i18n/translationkeys/common/refresh.generated.ts';
+import type { CommonRetryTranslationKey } from '@core/i18n/translationkeys/common/retry.generated.ts';
 import type { CommonSaveTranslationKey } from '@core/i18n/translationkeys/common/save.generated.ts';
 import type { CommonSearchTranslationKey } from '@core/i18n/translationkeys/common/search.generated.ts';
 import type { CommonSecretInputTranslationKey } from '@core/i18n/translationkeys/common/secretInput.generated.ts';
@@ -93,6 +94,7 @@ export type CommonTranslationKey =
     | CommonPreviousTranslationKey
     | CommonProcessingTranslationKey
     | CommonRefreshTranslationKey
+    | CommonRetryTranslationKey
     | CommonSaveTranslationKey
     | CommonSearchTranslationKey
     | CommonSecretInputTranslationKey

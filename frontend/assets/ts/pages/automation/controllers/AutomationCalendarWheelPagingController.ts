@@ -1,6 +1,7 @@
 /* SoAI - Automation page calendar wheel paging controller [frontend/assets/ts/pages/automation/controllers/AutomationCalendarWheelPagingController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { normalizeWheelDeltaPx } from '@core/ui/controls/wheelDelta.ts';
 import { isMonthPeriod, isPeriodAtBottom, isPeriodAtTop, isWeekOrDayPeriod, resolveCenteredPeriod } from '@pages/automation/controllers/AutomationCalendarPeriodScrollDomain.ts';
 
 type WheelPagingDecision = { direction: -1 | 1 };
@@ -27,13 +28,14 @@ class AutomationCalendarWheelPagingController {
     }
 
     handleWheel(event: WheelEvent): WheelPagingDecision | null {
-        if (this.#dependencies.isLocked() || this.#dependencies.isDragging()) {
+        if (event.ctrlKey || event.metaKey || this.#dependencies.isLocked() || this.#dependencies.isDragging()) {
             return null;
         }
 
-        const rawDy = event.deltaY;
+        const pageSizePx = this.#dependencies.resolveViewportHeightPx();
+        const rawDy = normalizeWheelDeltaPx(event.deltaY, event.deltaMode, pageSizePx);
 
-        const absX = Math.abs(event.deltaX);
+        const absX = Math.abs(normalizeWheelDeltaPx(event.deltaX, event.deltaMode, pageSizePx));
         const absY = Math.abs(rawDy);
 
         const pagingIntent = this.#resolvePagingWheelIntent({ event, absX, absY, rawDy });
@@ -56,8 +58,7 @@ class AutomationCalendarWheelPagingController {
         if (now - this.#lastWheelAtMs < WHEEL_DEBOUNCE_MS) {
             return null;
         }
-        const height = this.#dependencies.resolveViewportHeightPx();
-        if (height <= 0) {
+        if (pageSizePx <= 0) {
             return null;
         }
         this.#lastWheelAtMs = now;

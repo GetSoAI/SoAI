@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ChartRenderingScene } from '@features/charts/rendering/chartRenderingHost.ts';
-import { drawRoundedRect, getChartCornerRadius } from '@features/charts/rendering/primitives.ts';
+import { drawRoundedRect, getChartCornerRadii, getChartCornerRadius, hexToRgba } from '@features/charts/rendering/primitives.ts';
 import type { ChartDimensions } from '@features/charts/rendering/renderingModels.ts';
 
 const { max } = Math;
@@ -41,4 +41,27 @@ const drawChartFrame = (scene: ChartRenderingScene, context: CanvasRenderingCont
     context.restore();
 };
 
-export { drawChartFrame };
+const tracePlotArea = (scene: ChartRenderingScene, context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, dims: ChartDimensions): { x: number; y: number; width: number; height: number } => {
+    const lineWidth = scene.geometry.getCssPixelSize?.(1) ?? 1;
+    const inset = lineWidth / 2;
+    const element = scene.state.element;
+    if (!element) throw new Error('Chart requires an element to resolve corner radii');
+    const radii = getChartCornerRadii(element);
+    const area = { x: dims.left + inset, y: dims.top + inset, width: dims.chartWidth - lineWidth, height: dims.chartHeight - lineWidth };
+    drawRoundedRect(context, area.x, area.y, area.width, area.height, { tl: max(0, (radii.tl || 0) - inset), tr: max(0, (radii.tr || 0) - inset), br: max(0, (radii.br || 0) - inset), bl: max(0, (radii.bl || 0) - inset) });
+    return area;
+};
+
+const clipToPlotArea = (scene: ChartRenderingScene, context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, dims: ChartDimensions): { x: number; y: number; width: number; height: number } => {
+    const area = tracePlotArea(scene, context, dims);
+    context.clip();
+    return area;
+};
+
+const resolvePlotBackground = (scene: ChartRenderingScene): string => {
+    const theme = scene.geometry.getThemeStyles();
+    const colors = scene.state.chartOptions.colors;
+    return theme?.plotBackground || hexToRgba(theme?.background || colors.background || colors.textSecondary || colors.text || colors.grid || '', 0.08);
+};
+
+export { clipToPlotArea, drawChartFrame, resolvePlotBackground };

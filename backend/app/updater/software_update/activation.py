@@ -12,7 +12,10 @@ from app.updater.software_update.activation_state import (
     find_pending_update_activation,
 )
 from app.updater.software_update.install_transaction import finalize_update_transaction
-from app.updater.software_update.install_transaction_state import AppliedUpdateTransaction
+from app.updater.software_update.install_transaction_state import (
+    AppliedUpdateTransaction,
+    cleanup_update_transaction,
+)
 from core.bootstrap.lock import acquire_interprocess_lock
 from core.errors.exceptions import StateError
 from core.logging.protocols import LoggerProtocol
@@ -66,8 +69,10 @@ def commit_ready_update_activation(
             transaction=AppliedUpdateTransaction(base_path, pending.paths.transaction_path),
             update_success=True,
             logger=logger,
+            cleanup_after_commit=False,
         ):
             raise StateError("Candidate update could not durably commit activation.")
         if not os.path.isfile(activation_receipt_path(pending)):
             raise StateError("Activation committed but result publication requires repair.")
-        return True
+    cleanup_update_transaction(pending.paths, logger, deferrable=True)
+    return True

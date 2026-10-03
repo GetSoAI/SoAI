@@ -1,6 +1,7 @@
 /* SoAI - Shared frontend storage persistence merge remote preferences adapters [frontend/assets/ts/core/storage/persistence/mergeremotepreferences/adapters.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { decodeAiSetupState } from '@core/storage/aisetup/aiSetupCodec.ts';
 import { normalizeStringArray } from '@core/storage/normalization.ts';
 import type { HardwareCache, LogsCache, StorageCache, TerminalCache } from '@core/storage/persistence/mergeremotepreferences/types.ts';
 import { isJsonObject, isJsonValue, type JsonRecord, type JsonValue } from '@core/types/jsonValues.ts';
@@ -88,6 +89,7 @@ const applyWizardPatch = (patch: JsonValue | undefined, target: StorageCache['wi
     if (isBoolean(completed)) {
         target.completed = completed;
     }
+    target.aiSetup = decodeAiSetupState(patch['ai_setup']);
 };
 
 const applySettingsPatch = (patch: JsonValue | undefined, target: StorageCache['settings']): void => {

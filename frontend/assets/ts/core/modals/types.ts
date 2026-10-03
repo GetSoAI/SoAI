@@ -14,6 +14,7 @@ export interface ModalOpenOptions {
 }
 
 export interface ModalCloseOptions {
+    replacementFocusTarget?: HTMLElement | undefined;
     force?: boolean | undefined;
     restoreFocus?: boolean | undefined;
     reason?: string | undefined;

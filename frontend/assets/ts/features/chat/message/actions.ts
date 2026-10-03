@@ -75,7 +75,8 @@ class ChatMessageActions {
             ...createMessageMutationSharedDependencies(this.#dependencies),
             resolveMessageReference: (conversation, messageId) => this.#dependencies.presentation.resolveMessageReference(conversation, messageId),
             resubmitUserMessage: (conversation, inputArguments) => this.#dependencies.runtime.resubmitUserMessage(conversation, inputArguments),
-            commitPendingDeletesForConversation: (conversation) => this.#dependencies.runtime.commitPendingDeletesForConversation(conversation)
+            commitPendingDeletesForConversation: (conversation) => this.#dependencies.runtime.commitPendingDeletesForConversation(conversation),
+            notifyEditingChanged: () => this.#dependencies.runtime.notifyMessageEditingChanged()
         });
         this.#regenerationController = new ChatMessageRegenerationController({
             ...createMessageMutationSharedDependencies(this.#dependencies),
@@ -88,6 +89,10 @@ class ChatMessageActions {
         this.#speakActionController.dispose();
         this.#editController.dispose();
         this.#runningActivityRevealOperations.clear();
+    }
+
+    isMessageEditing(): boolean {
+        return this.#editController.isEditing();
     }
 
     #isCurrentConversationActionBlocked(): boolean {
@@ -225,6 +230,7 @@ class ChatMessageActions {
                     return;
                 }
                 this.#editController.beginEditing(message, messageId);
+                this.#dependencies.runtime.notifyMessageEditingChanged();
                 break;
             case CHAT_ACTIONS.EDIT_CANCEL:
                 if (!this.#isEditableUserMessage(message, index)) {

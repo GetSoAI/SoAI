@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
 from core.files.path_policy import ensure_path_within_base
+from core.filesystem.path_coercion import normalize_filesystem_path
 from mcp.tools.browser.session_sync import sync_session_state
 from mcp.tools.error import MCPToolError
 
@@ -34,7 +35,7 @@ class BrowserDownloadPaths:
 
 def _ensure_directory(path: str, *, description: str) -> None:
     try:
-        os.makedirs(path, exist_ok=True)
+        os.makedirs(normalize_filesystem_path(path), exist_ok=True)
     except OSError as exception:
         raise MCPToolError(-32603, f"Failed to create {description}: {path}") from exception
 

@@ -92,7 +92,8 @@ const initializeLanguageService = async (service: LanguageServiceRuntime): Promi
         registerStorageReadyListener(service);
     }
 
-    await Promise.all([loadManifest(service), loadLanguageFlags(service)]);
+    await loadManifest(service);
+    await loadLanguageFlags(service);
     await service.setLanguage(resolveInitialLanguagePreference(service, store));
 
     if (store?.ready) {

@@ -65,25 +65,25 @@ const renderStructuredTextList = (block: StructuredTextListBlock): string => {
     }
     const renderItem = (item: StructuredTextListItem): string => {
         if (isFunction(item)) {
-            return `<li>${item()}</li>`;
+            return `<li dir="auto">${item()}</li>`;
         }
         if (!isStructuredTextListItemObject(item)) {
             throw new Error('Structured text list item object requires getText()');
         }
-        const children = isArray(item.children) && item.children.length > 0 ? `<ul>${item.children.map((child) => `<li>${child()}</li>`).join('')}</ul>` : '';
-        return `<li>${item.getText()}${children}</li>`;
+        const children = isArray(item.children) && item.children.length > 0 ? `<ul dir="auto">${item.children.map((child) => `<li dir="auto">${child()}</li>`).join('')}</ul>` : '';
+        return `<li dir="auto">${item.getText()}${children}</li>`;
     };
     const elementName = block.ordered === true ? 'ol' : 'ul';
-    return `<${elementName}>${block.items.map((item) => renderItem(item)).join('')}</${elementName}>`;
+    return `<${elementName} dir="auto">${block.items.map((item) => renderItem(item)).join('')}</${elementName}>`;
 };
 
 const renderStructuredTextBlock = (block: StructuredTextBlock): string => {
     if (block.type === 'paragraph') {
-        return `<p>${block.getText()}</p>`;
+        return `<p dir="auto">${block.getText()}</p>`;
     }
     if (block.type === 'heading') {
         const level = clampHeadingLevel(block.level);
-        return `<h${level}>${block.getText()}</h${level}>`;
+        return `<h${level} dir="auto">${block.getText()}</h${level}>`;
     }
     if (block.type === 'list') {
         return renderStructuredTextList(block);
@@ -98,7 +98,7 @@ const renderStructuredTextSection = (section: StructuredTextSection, options: St
         `
         <div class="${uiAttr(options.sectionClassName).html}" id="${uiAttr(id).html}">
             <div class="${uiAttr(options.titleClassName).html}">${section.getTitle()}</div>
-            <h2>${section.getHeading()}</h2>
+            <h2 dir="auto">${section.getHeading()}</h2>
             ${section.blocks.map((block) => renderStructuredTextBlock(block)).join('')}
         </div>
     `.trim()

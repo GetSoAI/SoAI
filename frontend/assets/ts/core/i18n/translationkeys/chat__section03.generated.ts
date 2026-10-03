@@ -1,6 +1,10 @@
 /* SoAI - Frontend core Translation declarations for `chat` namespace section 03 [frontend/assets/ts/core/i18n/translationkeys/chat__section03.generated.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ChatConfigurationTextZoomNormalTranslationKey } from '@core/i18n/translationkeys/chat/configuration__textZoomNormal.generated.ts';
+import type { ChatConfigurationTextZoomSmallTranslationKey } from '@core/i18n/translationkeys/chat/configuration__textZoomSmall.generated.ts';
+import type { ChatConfigurationTitleTranslationKey } from '@core/i18n/translationkeys/chat/configuration__title.generated.ts';
+import type { ChatConfigurationToolApprovalRequiredTranslationKey } from '@core/i18n/translationkeys/chat/configuration__toolApprovalRequired.generated.ts';
 import type { ChatConfigurationToolApprovalRequiredHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__toolApprovalRequiredHint.generated.ts';
 import type { ChatConfigurationTopLogprobsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topLogprobs.generated.ts';
 import type { ChatConfigurationTopLogprobsHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__topLogprobsHint.generated.ts';
@@ -30,6 +34,7 @@ import type { ChatEmptyTranslationKey } from '@core/i18n/translationkeys/chat/em
 import type { ChatErrorsTranslationKey } from '@core/i18n/translationkeys/chat/errors.generated.ts';
 import type { ChatExportTranslationKey } from '@core/i18n/translationkeys/chat/export.generated.ts';
 import type { ChatHeaderTranslationKey } from '@core/i18n/translationkeys/chat/header.generated.ts';
+import type { ChatHoldShortcutsTranslationKey } from '@core/i18n/translationkeys/chat/holdShortcuts.generated.ts';
 import type { ChatIngestionTranslationKey } from '@core/i18n/translationkeys/chat/ingestion.generated.ts';
 import type { ChatInlinePreviewsTranslationKey } from '@core/i18n/translationkeys/chat/inlinePreviews.generated.ts';
 import type { ChatInputTranslationKey } from '@core/i18n/translationkeys/chat/input.generated.ts';
@@ -50,19 +55,18 @@ import type { ChatPromptsPickerTranslationKey } from '@core/i18n/translationkeys
 import type { ChatSearchTranslationKey } from '@core/i18n/translationkeys/chat/search.generated.ts';
 import type { ChatSecretPromptTranslationKey } from '@core/i18n/translationkeys/chat/secretPrompt.generated.ts';
 import type { ChatSidebarTranslationKey } from '@core/i18n/translationkeys/chat/sidebar.generated.ts';
+import type { ChatSketchTranslationKey } from '@core/i18n/translationkeys/chat/sketch.generated.ts';
 import type { ChatStatusTranslationKey } from '@core/i18n/translationkeys/chat/status.generated.ts';
 import type { ChatStreamTranslationKey } from '@core/i18n/translationkeys/chat/stream.generated.ts';
 import type { ChatSuggestionsTranslationKey } from '@core/i18n/translationkeys/chat/suggestions.generated.ts';
 import type { ChatSyncTranslationKey } from '@core/i18n/translationkeys/chat/sync.generated.ts';
 import type { ChatThinkingTranslationKey } from '@core/i18n/translationkeys/chat/thinking.generated.ts';
-import type { ChatTimeTranslationKey } from '@core/i18n/translationkeys/chat/time.generated.ts';
-import type { ChatTokenCounterTranslationKey } from '@core/i18n/translationkeys/chat/tokenCounter.generated.ts';
-import type { ChatToolActivityTranslationKey } from '@core/i18n/translationkeys/chat/toolActivity.generated.ts';
-import type { ChatToolApprovalTranslationKey } from '@core/i18n/translationkeys/chat/toolApproval.generated.ts';
-import type { ChatToolbarTranslationKey } from '@core/i18n/translationkeys/chat/toolbar.generated.ts';
-import type { ChatToolCallOutputModalTranslationKey } from '@core/i18n/translationkeys/chat/toolCallOutputModal.generated.ts';
 
 export type ChatSection03TranslationKey =
+    | ChatConfigurationTextZoomNormalTranslationKey
+    | ChatConfigurationTextZoomSmallTranslationKey
+    | ChatConfigurationTitleTranslationKey
+    | ChatConfigurationToolApprovalRequiredTranslationKey
     | ChatConfigurationToolApprovalRequiredHintTranslationKey
     | ChatConfigurationTopLogprobsTranslationKey
     | ChatConfigurationTopLogprobsHintTranslationKey
@@ -92,6 +96,7 @@ export type ChatSection03TranslationKey =
     | ChatErrorsTranslationKey
     | ChatExportTranslationKey
     | ChatHeaderTranslationKey
+    | ChatHoldShortcutsTranslationKey
     | ChatIngestionTranslationKey
     | ChatInlinePreviewsTranslationKey
     | ChatInputTranslationKey
@@ -112,14 +117,9 @@ export type ChatSection03TranslationKey =
     | ChatSearchTranslationKey
     | ChatSecretPromptTranslationKey
     | ChatSidebarTranslationKey
+    | ChatSketchTranslationKey
     | ChatStatusTranslationKey
     | ChatStreamTranslationKey
     | ChatSuggestionsTranslationKey
     | ChatSyncTranslationKey
-    | ChatThinkingTranslationKey
-    | ChatTimeTranslationKey
-    | ChatTokenCounterTranslationKey
-    | ChatToolActivityTranslationKey
-    | ChatToolApprovalTranslationKey
-    | ChatToolbarTranslationKey
-    | ChatToolCallOutputModalTranslationKey;
+    | ChatThinkingTranslationKey;

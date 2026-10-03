@@ -107,7 +107,7 @@ const createOperationProgressReporter = (container: HTMLElement | string, option
                 containerElement.append(progressElement);
                 progressElements.set(key, progressElement);
             }
-            updateProgressElement(progressElement, updatePayload.progressValue, updatePayload.messageValue, updatePayload.badgeValue, updatePayload.detailsValue, updatePayload.stateValue, updatePayload.cancelableValue);
+            updateProgressElement(progressElement, updatePayload.progressValue, updatePayload.messageValue, updatePayload.badgeValue, updatePayload.detailsValue, updatePayload.stateValue, updatePayload.cancelableValue, updatePayload.indeterminateValue);
             syncBackgroundButton();
         },
         remove: (key: string): void => {

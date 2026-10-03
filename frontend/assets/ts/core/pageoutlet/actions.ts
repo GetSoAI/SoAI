@@ -11,7 +11,7 @@ import { isHTMLElement } from '@core/typeGuards.ts';
 import { createTimeoutError, isTimeoutError } from '@core/pageoutlet/state.ts';
 import type { PageOutletErrorState, PageOutletStateOptions } from '@core/pageoutlet/types.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import { isAbortError, raceWithAbortSignal } from '@core/errors/abort.ts';
+import { createAbortError, isAbortError, raceWithAbortSignal } from '@core/errors/abort.ts';
 
 const closeHeaderDropdowns = (): void => {
     if (windowIdentity.isDetachedContext()) {
@@ -52,6 +52,16 @@ const runPreNavigationCleanup = (): void => {
     closeHeaderDropdowns();
 };
 
+const runPageOutletRenderHook = async (hook: (() => void | Promise<void>) | Promise<void> | null, signal?: AbortSignal): Promise<void> => {
+    if (!hook) return;
+    const task = typeof hook === 'function' ? Promise.resolve(hook()) : Promise.resolve(hook);
+    if (signal) {
+        await raceWithAbortSignal(task, signal);
+        return;
+    }
+    await task;
+};
+
 const awaitCommitWindow = async (pendingCommit: Promise<void>, signal: AbortSignal | undefined): Promise<boolean> => {
     if (!signal) {
         await pendingCommit;
@@ -68,32 +78,100 @@ const awaitCommitWindow = async (pendingCommit: Promise<void>, signal: AbortSign
     }
 };
 
-const awaitStageWithTimeout = async (taskFactory: () => Promise<void>, timeoutMs: number, token: symbol, component: string, stage: string, isActiveToken: (token: symbol) => boolean, cancelStage: () => void | Promise<void>): Promise<void> => {
+const awaitStageWithTimeout = async (taskFactory: () => Promise<void>, timeoutMs: number, token: symbol, component: string, stage: string, isActiveToken: (token: symbol) => boolean, cancelStage: () => void | Promise<void>, signal?: AbortSignal): Promise<void> => {
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
         throw new RangeError('PageOutlet requires a positive stage timeout');
     }
+    if (signal?.aborted) {
+        throw createAbortError();
+    }
     const stagePromise = taskFactory();
-    let timeoutHandle = 0;
     const windowRef = getWindow();
-    const timeoutPromise = new Promise<never>((_unusedValue, reject) => {
-        timeoutHandle = windowRef.setTimeout(() => {
+    return new Promise<void>((resolve, reject) => {
+        let settled = false;
+        let timeoutClaimed = false;
+        let timeoutHandle: number | null = null;
+        const cleanup = (): void => {
+            if (timeoutHandle !== null) {
+                windowRef.clearTimeout(timeoutHandle);
+                timeoutHandle = null;
+            }
+            signal?.removeEventListener('abort', onAbort);
+        };
+        const settleSuccess = (): void => {
+            if (settled || timeoutClaimed) return;
+            settled = true;
+            cleanup();
+            resolve();
+        };
+        const settleFailure = <FailureT>(error: FailureT): void => {
+            if (settled || timeoutClaimed) return;
+            settled = true;
+            cleanup();
+            reject(error);
+        };
+        const onAbort = (): void => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            reject(createAbortError());
+        };
+        const reportLateCancellationFailure = <FailureT>(error: FailureT): void => {
+            const runtimeError = ensureError(error);
+            if (settled) {
+                errorHandler.warn('PageOutlet', `Page ${component} cancellation failed after ${stage} timeout and navigation abort`, runtimeError);
+                return;
+            }
+            settled = true;
+            cleanup();
+            reject(new AggregateError([createTimeoutError(component, stage, timeoutMs), runtimeError], `Page ${component} cancellation failed after ${stage} timeout`));
+        };
+        const claimTimeout = (): void => {
+            if (settled) return;
+            if (!isActiveToken(token)) {
+                settled = true;
+                cleanup();
+                resolve();
+                return;
+            }
+            timeoutClaimed = true;
+            if (timeoutHandle !== null) {
+                windowRef.clearTimeout(timeoutHandle);
+                timeoutHandle = null;
+            }
             const timeoutError = createTimeoutError(component, stage, timeoutMs);
-            void Promise.resolve()
-                .then(cancelStage)
-                .then(() => reject(timeoutError))
-                .catch((error) => {
-                    reject(new AggregateError([timeoutError, ensureError(error)], `Page ${component} cancellation failed after ${stage} timeout`));
-                });
-        }, timeoutMs);
-    });
-    try {
-        await Promise.race([stagePromise, timeoutPromise]);
-        if (!isActiveToken(token)) {
+            let cancellation: void | Promise<void> = undefined;
+            try {
+                if (!isActiveToken(token)) {
+                    timeoutClaimed = false;
+                    settled = true;
+                    cleanup();
+                    resolve();
+                    return;
+                }
+                cancellation = cancelStage();
+            } catch (error) {
+                reportLateCancellationFailure(ensureError(error));
+            }
+            if (!settled) {
+                void Promise.resolve(cancellation)
+                    .then(() => {
+                        if (settled) return;
+                        settled = true;
+                        cleanup();
+                        reject(timeoutError);
+                    }, reportLateCancellationFailure)
+                    .catch((error) => errorHandler.warn('PageOutlet', `Page ${component} timeout settlement failed`, ensureError(error)));
+            }
+        };
+        signal?.addEventListener('abort', onAbort, { once: true });
+        void stagePromise.then(settleSuccess, settleFailure).catch((error) => errorHandler.warn('PageOutlet', `Page ${component} stage settlement failed`, ensureError(error)));
+        if (signal?.aborted) {
+            onAbort();
             return;
         }
-    } finally {
-        windowRef.clearTimeout(timeoutHandle);
-    }
+        timeoutHandle = windowRef.setTimeout(claimTimeout, timeoutMs);
+    });
 };
 
 const resolveErrorState = (error: Error): PageOutletErrorState => {
@@ -115,4 +193,4 @@ const applyPageOutletErrorState = (error: Error, setState: (state: string, optio
     setState('error', { label, detail });
 };
 
-export { applyPageOutletErrorState, awaitCommitWindow, awaitStageWithTimeout, runPreNavigationCleanup, resolveErrorState };
+export { applyPageOutletErrorState, awaitCommitWindow, awaitStageWithTimeout, runPageOutletRenderHook, runPreNavigationCleanup, resolveErrorState };

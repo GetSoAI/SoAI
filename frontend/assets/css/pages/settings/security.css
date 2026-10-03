@@ -73,7 +73,7 @@
     :where([data-section='settings'], [data-page-scope='settings']) .settings-security-finding-references > .ui-model-type-badge {
         max-width: 100%;
         justify-content: flex-start;
-        text-align: left;
+        text-align: start;
         white-space: normal;
         overflow-wrap: anywhere;
     }

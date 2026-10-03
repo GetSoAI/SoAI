@@ -7,9 +7,13 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 from core.automation.automation_constants import AUTOMATION_PAYLOAD_FIELDS
-from core.automation.automation_payload_validation import validate_automation_payload
+from core.automation.automation_payload_validation import validate_automation_definition_payload
 from core.errors.exceptions import ValidationError
-from core.models.reference_validation import validate_active_model_reference
+from core.models.reference_validation import (
+    RequiredModelCapability,
+    validate_active_model_reference,
+)
+from core.openai.capability_taxonomy import OpenAIEndpoint
 from core.types.json import is_json_dict
 
 if TYPE_CHECKING:
@@ -51,15 +55,13 @@ def should_validate_automation_update_model_reference(
 async def validate_automation_payload_model_reference(
     payload: Mapping[str, JSONValue],
     *,
-    now_ms: int,
     disallowed_unqualified_tools: tuple[str, ...],
     model_resolution_service: ModelResolutionServiceProtocol,
     model_information_service: ModelInformationServiceProtocol,
     model_virtual_model_service: VirtualModelServiceProtocol,
 ) -> JSONDict:
-    validated = validate_automation_payload(
+    validated = validate_automation_definition_payload(
         payload,
-        now_ms=now_ms,
         disallowed_unqualified_tools=disallowed_unqualified_tools,
     )
     model_settings = validated.get("model_settings")
@@ -95,6 +97,12 @@ async def validate_automation_model_settings_reference(
         virtual_model_get=model_virtual_model_service.virtual_model_get,
         unknown_message=f"Automation model_settings.model is unknown: {model_name}",
         disabled_message=f"Automation model_settings.model is disabled: {model_name}",
+        required_capability=RequiredModelCapability(
+            token=OpenAIEndpoint.CHAT_COMPLETIONS.value,
+            unsupported_message=(
+                f"Automation model_settings.model does not support chat completions: {model_name}"
+            ),
+        ),
         details={"param": "model_settings.model"},
     )
     return validated.routing_key

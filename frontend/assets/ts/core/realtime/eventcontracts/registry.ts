@@ -7,6 +7,7 @@ import { AUTOMATION_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/automa
 import { CHAT_CONTROL_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/chatControlContracts.ts';
 import { CHAT_STREAM_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/chatStreamContracts.ts';
 import { CONVERSATION_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/conversationContracts.ts';
+import { HISTORY_RESET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/historyResetContracts.ts';
 import { LIFECYCLE_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/lifecycleContracts.ts';
 import { LICENSING_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/licensingContracts.ts';
 import { MCP_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/mcpContracts.ts';
@@ -24,6 +25,7 @@ const WEBSOCKET_EVENT_CONTRACTS = Object.freeze({
     attachment: ATTACHMENT_EVENT_CONTRACTS,
     chatStream: CHAT_STREAM_EVENT_CONTRACTS,
     conversation: CONVERSATION_EVENT_CONTRACTS,
+    historyReset: HISTORY_RESET_EVENT_CONTRACTS,
     lifecycle: LIFECYCLE_EVENT_CONTRACTS,
     licensing: LICENSING_EVENT_CONTRACTS,
     terminal: TERMINAL_EVENT_CONTRACTS,
@@ -76,6 +78,8 @@ const listWebSocketEventContracts = () =>
         WEBSOCKET_EVENT_CONTRACTS.conversation.updated,
         WEBSOCKET_EVENT_CONTRACTS.conversation.deleted,
         WEBSOCKET_EVENT_CONTRACTS.conversation.messageSaved,
+        WEBSOCKET_EVENT_CONTRACTS.historyReset.metrics,
+        WEBSOCKET_EVENT_CONTRACTS.historyReset.hardware,
         WEBSOCKET_EVENT_CONTRACTS.lifecycle.connected,
         WEBSOCKET_EVENT_CONTRACTS.lifecycle.disconnected,
         WEBSOCKET_EVENT_CONTRACTS.licensing.statusChanged,

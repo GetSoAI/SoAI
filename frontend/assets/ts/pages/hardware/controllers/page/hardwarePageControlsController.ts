@@ -6,6 +6,7 @@ import { requirePageControlsStorage, type PageControlsStorage } from '@core/page
 import type { HardwarePageControlState } from '@core/storage/types.ts';
 import { isFunction, isObject } from '@core/typeGuards.ts';
 import { normalizeStoredSortState } from '@core/ui/tables/sortableTable.ts';
+import { normalizeChartTypeToken } from '@features/charts/public.ts';
 import { STR_CPU, STR_USAGE } from '@pages/hardware/contracts/hardwarePageSupport.ts';
 import type { HardwareLayoutStorage } from '@pages/hardware/controllers/page/hardwareLayoutController.ts';
 import type { HardwarePageState } from '@pages/hardware/state/state.ts';
@@ -46,7 +47,7 @@ const readHardwareProcessSortState = (storage: HardwarePageControlsStorage): Har
 
 const applyHardwarePageControls = (storage: HardwarePageControlsStorage, state: HardwarePageState): void => {
     const controls = requireHardwarePageControlsStorage(storage).getPageControlState('hardware');
-    state.chartType = controls.chartType || 'area';
+    state.chartType = normalizeChartTypeToken(controls.chartType) ?? 'area';
     state.selectedDevice = controls.category || STR_CPU;
     state.selectedMetric = controls.subcategory || STR_USAGE;
     state.timeRange = positiveIntegerOrFallback(controls.timeRange, 120);

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { JsonValue, JsonRecord } from '@core/types/jsonValues.ts';
-import type { LanguageEntryWithFlag } from '@core/languageservice/types.ts';
+import type { LanguageEntryWithCountryCode } from '@core/languageservice/types.ts';
 
 export interface SetUIValueOptions {
     formatter?: (value: JsonValue | null | undefined, element: Element) => JsonValue | null | undefined;
@@ -57,7 +57,7 @@ export interface LanguageService {
     initialize: () => Promise<void>;
     setLanguage: (code: string) => Promise<void>;
     getLanguage: () => string;
-    getAvailableLanguages: () => ReadonlyArray<LanguageEntryWithFlag>;
+    getAvailableLanguages: () => ReadonlyArray<LanguageEntryWithCountryCode>;
     getLocale: () => string;
     getTranslation: (key: string, langCode?: string | null) => string | null;
     interpolate: (template: string, parameters: JsonRecord) => string;

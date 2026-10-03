@@ -7,15 +7,18 @@ from typing import TYPE_CHECKING
 
 from fastapi import WebSocket
 
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import ApiError, ValidationError
+from core.hardware.gpu_slot_failures import translate_gpu_slot_failure
 from core.hardware.soaibench_limits import (
     SOAIBENCH_HISTORY_DEFAULT_LIMIT,
     SOAIBENCH_LIST_MAX_LIMIT,
     SOAIBENCH_LIST_MIN_LIMIT,
     SOAIBENCH_RUNS_DEFAULT_LIMIT,
 )
+from core.logging.trace import get_logger
 from core.validation.integers import is_positive_strict_int
 from core.validation.numbers import coerce_int_clamped_with_default
+from core.validation.runtime import is_success_payload
 from features.api.schemas.hardware import (
     GPUSettingsRequest,
     GPUSlotApplyRequest,
@@ -46,6 +49,28 @@ __all__ = (
     "snapshot_hardware_processes",
     "snapshot_hardware_snapshot",
 )
+
+LOGGER_NAME = "SoAI.features.api.handlers_hardware"
+
+
+def _require_gpu_operation_success(result: JSONValue, *, operation: str) -> JSONDict:
+    if not isinstance(result, dict):
+        raise ValidationError("GPU operation returned invalid payload.")
+    if is_success_payload(
+        result,
+        get_logger(LOGGER_NAME),
+        operation=operation,
+        recover_message="Failed to parse GPU operation success flag.",
+    ):
+        return result
+    status_code, code, message, details = translate_gpu_slot_failure(result)
+    raise ApiError(
+        message,
+        code=code,
+        http_status=status_code,
+        details=details,
+        operation=operation,
+    )
 
 
 async def snapshot_hardware_snapshot(
@@ -91,7 +116,13 @@ async def snapshot_hardware_gpu_settings_update(
         payload.model_dump(),
     )
     if not outcome.success:
-        raise ValidationError(outcome.error_message or "GPU settings operation failed.")
+        raise ApiError(
+            outcome.error_message or "GPU settings operation failed.",
+            code=outcome.error_type or "gpu_error",
+            http_status=outcome.status_code,
+            details=outcome.error_detail,
+            operation="hardware.gpu.settings.update",
+        )
     return outcome.payload or {}
 
 
@@ -179,9 +210,10 @@ async def snapshot_hardware_gpu_slots(
     device_id = (
         device_value.strip() if isinstance(device_value, str) and device_value.strip() else None
     )
-    return await connection.api_context.dependencies.hw_gpu_tuning.list_gpu_slots(
+    result = await connection.api_context.dependencies.hw_gpu_tuning.list_gpu_slots(
         device_id=device_id,
     )
+    return _require_gpu_operation_success(result, operation="hardware.gpu.slots.list")
 
 
 async def snapshot_hardware_gpu_slot_preview(
@@ -198,9 +230,7 @@ async def snapshot_hardware_gpu_slot_preview(
         payload.device_id,
         slot,
     )
-    if not isinstance(result, dict):
-        raise ValidationError("GPU slot preview returned invalid payload")
-    return result
+    return _require_gpu_operation_success(result, operation="hardware.gpu.slots.preview")
 
 
 async def snapshot_hardware_gpu_slot_apply(
@@ -218,9 +248,7 @@ async def snapshot_hardware_gpu_slot_apply(
         slot,
         apply_at_boot=payload.apply_at_boot,
     )
-    if not isinstance(result, dict):
-        raise ValidationError("GPU slot apply returned invalid payload")
-    return result
+    return _require_gpu_operation_success(result, operation="hardware.gpu.slots.apply")
 
 
 async def snapshot_hardware_gpu_slot_store(
@@ -240,9 +268,7 @@ async def snapshot_hardware_gpu_slot_store(
         field_modes=payload.field_modes,
         apply_at_boot=payload.apply_at_boot,
     )
-    if not isinstance(result, dict):
-        raise ValidationError("GPU slot store returned invalid payload")
-    return result
+    return _require_gpu_operation_success(result, operation="hardware.gpu.slots.store")
 
 
 async def snapshot_hardware_processes(

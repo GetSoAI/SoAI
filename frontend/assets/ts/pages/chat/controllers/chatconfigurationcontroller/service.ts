@@ -6,7 +6,7 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { isBackendOwnedNoConversationParameter, isInputActionParameter, type CommitConfigurationEditStateResult } from '@pages/chat/controllers/chatconfigurationcontroller/effects.ts';
 import type { ConfigurationControllerHost, ConfigurationControllerStateAccess } from '@pages/chat/controllers/chatconfigurationcontroller/types.ts';
 
-type ConfigurationProjectionEffect = 'storage' | 'parameters' | 'widescreen' | 'input-actions' | 'worker-rendering' | 'markup' | 'conversation-render' | 'conversation-list';
+type ConfigurationProjectionEffect = 'storage' | 'parameters' | 'widescreen' | 'input-state' | 'input-actions' | 'worker-rendering' | 'markup' | 'conversation-render' | 'conversation-list';
 
 const refreshConfigurationParameterUi = (stateAccess: ConfigurationControllerStateAccess): void => {
     stateAccess.getParameterManager()?.updateParameterUI?.();
@@ -17,7 +17,7 @@ const runAsyncConfigurationSideEffect = (operationId: string, operation: Promise
 };
 
 const requiredConfigurationProjectionEffects = (commitState: CommitConfigurationEditStateResult): ConfigurationProjectionEffect[] => {
-    const effects: ConfigurationProjectionEffect[] = ['storage', 'parameters', 'widescreen'];
+    const effects: ConfigurationProjectionEffect[] = ['storage', 'parameters', 'widescreen', 'input-state'];
     if (commitState.inputActionsChanged) effects.push('input-actions');
     if (commitState.sendHotkeyChanged) effects.push('conversation-render');
     if (commitState.richTextChanged) effects.push('worker-rendering');
@@ -31,7 +31,7 @@ const applyConfigurationCommitSideEffects = async (
     commitState: CommitConfigurationEditStateResult,
     dependencies: {
         stateAccess: ConfigurationControllerStateAccess;
-        host: Pick<ConfigurationControllerHost, 'applyWidescreenMode' | 'applyInputActionVisibility' | 'invalidateChatMarkup' | 'renderCurrentConversation' | 'refreshConversationsUI' | 'refreshChatWorkerRendering'>;
+        host: Pick<ConfigurationControllerHost, 'applyWidescreenMode' | 'updateInputState' | 'applyInputActionVisibility' | 'invalidateChatMarkup' | 'renderCurrentConversation' | 'refreshConversationsUI' | 'refreshChatWorkerRendering'>;
     },
     retainedEffects: readonly ConfigurationProjectionEffect[] = [],
     includeCommitEffects = true
@@ -44,6 +44,7 @@ const applyConfigurationCommitSideEffects = async (
             if (effect === 'storage') dependencies.stateAccess.getStorageManager()?.saveState?.(true);
             else if (effect === 'parameters') refreshConfigurationParameterUi(dependencies.stateAccess);
             else if (effect === 'widescreen') dependencies.host.applyWidescreenMode();
+            else if (effect === 'input-state') dependencies.host.updateInputState();
             else if (effect === 'input-actions') dependencies.host.applyInputActionVisibility();
             else if (effect === 'worker-rendering') dependencies.host.refreshChatWorkerRendering();
             else if (effect === 'markup') dependencies.host.invalidateChatMarkup('current');
@@ -62,7 +63,7 @@ const applyConfigurationParameterSideEffects = (
     dependencies: {
         isEditingConfiguration: () => boolean;
         stateAccess: ConfigurationControllerStateAccess;
-        host: Pick<ConfigurationControllerHost, 'applyWidescreenMode' | 'applyInputActionVisibility' | 'syncToolsEnabledToConversation' | 'syncToolApprovalRequiredToConversation' | 'persistBackendChatPreferences'>;
+        host: Pick<ConfigurationControllerHost, 'applyWidescreenMode' | 'updateInputState' | 'applyInputActionVisibility' | 'syncToolsEnabledToConversation' | 'syncToolApprovalRequiredToConversation' | 'persistBackendChatPreferences'>;
         recalculateDirtyState: () => void;
     }
 ): void => {
@@ -73,6 +74,9 @@ const applyConfigurationParameterSideEffects = (
     dependencies.stateAccess.getStorageManager()?.savePreferences?.();
     if (parameter === 'widescreen_mode') {
         dependencies.host.applyWidescreenMode();
+    }
+    if (parameter === 'auto_hide_chat_composer' || parameter === 'auto_hide_chat_header') {
+        dependencies.host.updateInputState();
     }
     if (isInputActionParameter(parameter)) {
         dependencies.host.applyInputActionVisibility();

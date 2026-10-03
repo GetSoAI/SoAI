@@ -17,16 +17,41 @@ import { renderSearchFieldActions } from '@core/ui/searchField.ts';
 import type { FirstRunStateStorage } from '@core/firstrun/protocols.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import type { WebuiUserEndpoints } from '@core/api/endpoints/webuiUserEndpoints.ts';
-import { AGENT_PLAN_MODAL_ID, ARCHIVED_CONVERSATIONS_MODAL_ID, CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, CHAT_PROMPTS_PICKER_MODAL_ID, CHAT_TOOL_CALL_OUTPUT_MODAL_ID } from '@features/chat/modals/constants.ts';
+import { CHAT_CONVERSATION_INPUT_MODAL_ID, AGENT_PLAN_MODAL_ID, ARCHIVED_CONVERSATIONS_MODAL_ID, CHAT_ATTACHMENT_OVERFLOW_MODAL_ID, CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, CHAT_PROMPTS_PICKER_MODAL_ID, CHAT_TOOL_CALL_OUTPUT_MODAL_ID } from '@features/chat/modals/constants.ts';
 import { createChatAttachModalDefinition } from '@features/chat/composerattachmodal/definition.ts';
 import { CHARACTER_MAP_MODAL_DEFINITION } from '@features/chat/charactermap/definition.ts';
+import { CHAT_SKETCH_MODAL_DEFINITION } from '@features/chat/sketch/definition.ts';
 import { createChatMemoryProfileModalDefinition } from '@features/chat/modals/chatMemoryProfileModal.ts';
 import { createVoiceCallModalDefinition } from '@features/chat/modals/voiceCallModal.ts';
 import { renderArchivedConversationsModalScaffold } from '@features/chat/modals/archived/archivedConversationsModalScaffold.ts';
 import { buildChatConfigurationModalMarkup } from '@features/chat/modals/markup/chatPageConfigurationModalMarkup.ts';
 import { createChatPageMarkupContext } from '@features/chat/modals/markup/chatPageMarkupContext.ts';
 import { buildChatMcpDefaultToolsModalMarkup } from '@features/chat/modals/markup/chatPageMcpDefaultToolsModalMarkup.ts';
+import { CHAT_ACTIONS } from '@features/chat/chatActionIds.ts';
 import { MESSAGE_INFO_MODAL_ID } from '@features/chat/message/messageinfomodal/constants.ts';
+
+const conversationInputModalDefinition: ModalDefinition = {
+    id: CHAT_CONVERSATION_INPUT_MODAL_ID,
+    layout: 'md',
+    initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
+    createElement: (): HTMLElement => {
+        const modalId = CHAT_CONVERSATION_INPUT_MODAL_ID;
+        const header = renderStandardModalHeader({
+            modalId,
+            title: i18n.t('chat.attachments.conversationInputQueue'),
+            description: i18n.t('common.modalDescriptions.conversationInput'),
+            closeLabel: i18n.t('common.close'),
+            titleId: modalUiId(modalId, 'title')
+        });
+        const content = uiHtml`<p id="${uiAttr(modalUiId(modalId, 'text'))}" class="u-text-pre"></p><div id="${uiAttr(modalUiId(modalId, 'attachments'))}"></div>`;
+        const body = renderModalBody(content, { id: modalUiId(modalId, 'content'), className: 'chat-conversation-input-modal-body u-flex u-flex-col u-gap-3' });
+        const footer = renderSplitModalFooter({
+            left: renderModalFooterCloseButton({ modalId, id: modalUiId(modalId, 'close'), text: i18n.t('common.close') }),
+            right: renderModalFooterActionButton({ id: modalUiId(modalId, 'delete'), text: i18n.t('common.delete'), variant: 'danger', action: CHAT_ACTIONS.REMOVE_CONVERSATION_INPUT, disabled: true })
+        });
+        return createModalElement({ id: modalId, rootAttributes: { 'data-page-scope': 'chat' }, header, body, footer });
+    }
+};
 
 const messageInfoModalDefinition: ModalDefinition = {
     id: MESSAGE_INFO_MODAL_ID,
@@ -268,7 +293,7 @@ const archivedConversationsModalDefinition: ModalDefinition = {
 };
 
 const createChatModalDefinitions = (dependencies: { storage: FirstRunStateStorage; apiClient: ApiClientContext & { webui?: Pick<WebuiUserEndpoints, 'memory'> | undefined } }): readonly ModalDefinition[] => {
-    return Object.freeze([messageInfoModalDefinition, toolCallOutputModalDefinition, createChatAttachModalDefinition(), attachmentOverflowModalDefinition, chatPromptsPickerModalDefinition, CHARACTER_MAP_MODAL_DEFINITION, chatConfigurationModalDefinition, chatMcpDefaultToolsModalDefinition, agentPlanModalDefinition, archivedConversationsModalDefinition, createChatMemoryProfileModalDefinition(dependencies), createVoiceCallModalDefinition()]);
+    return Object.freeze([conversationInputModalDefinition, messageInfoModalDefinition, toolCallOutputModalDefinition, createChatAttachModalDefinition(), attachmentOverflowModalDefinition, chatPromptsPickerModalDefinition, CHARACTER_MAP_MODAL_DEFINITION, CHAT_SKETCH_MODAL_DEFINITION, chatConfigurationModalDefinition, chatMcpDefaultToolsModalDefinition, agentPlanModalDefinition, archivedConversationsModalDefinition, createChatMemoryProfileModalDefinition(dependencies), createVoiceCallModalDefinition()]);
 };
 
-export { createChatModalDefinitions };
+export { conversationInputModalDefinition, createChatModalDefinitions };

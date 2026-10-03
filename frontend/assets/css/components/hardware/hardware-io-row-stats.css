@@ -42,6 +42,8 @@
     }
 
     .hardware-resource-stat-item {
+        --layout-label-alignment: center;
+
         align-items: center;
         display: flex;
         flex: 1;
@@ -60,7 +62,7 @@
         line-height: var(--line-height-compact);
         overflow-wrap: anywhere;
         text-align: center;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         white-space: normal;
         word-break: break-word;
     }

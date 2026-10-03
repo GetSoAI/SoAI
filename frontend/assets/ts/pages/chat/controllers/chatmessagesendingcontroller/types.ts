@@ -25,6 +25,12 @@ interface SendMessageOptions {
     onEffectiveSendCommitted?: (() => void) | undefined;
 }
 
+interface QueueConversationInputOptions extends SendMessageOptions {
+    signal?: AbortSignal;
+    beforeSend?: QueuedSendGuard;
+    onAdmissionStarted?: () => void;
+}
+
 interface StartRagIngestionArguments {
     conversationId: string;
     conversation: Conversation;
@@ -52,7 +58,7 @@ interface ChatMessageSendingPort {
     sendQueuedTextMessage: (text: string, attachmentContent: readonly ChatContentSegment[], signal: AbortSignal, beforeSend: (context: QueuedSendGuardContext) => QueuedSendGuardResult) => Promise<QueuedSendOutcome>;
     resolveSoaiLinksFromInput: (input: HTMLTextAreaElement, inputValue: string) => Promise<void>;
     runConversationExecutionIfIdle: (conversationId: string, task: () => Promise<void>) => Promise<ConversationExecutionRunResult>;
-    queueConversationInputFromComposer: (intent: 'queued' | 'steer') => Promise<ConversationInputComposerOutcome>;
+    queueConversationInputFromComposer: (intent: 'queued' | 'steer', options?: QueueConversationInputOptions) => Promise<ConversationInputComposerOutcome>;
     steerActiveStream: () => Promise<ConversationInputComposerOutcome>;
     removeAttachedFile: (fileId: string) => Promise<void>;
     removeDraftKnowledgeAttachment: (knowledgeAttachmentId: string) => Promise<void>;
@@ -198,4 +204,4 @@ interface MessageSendingHost {
     services: MessageSendingServicePort;
 }
 
-export type { AttachmentManager, ConversationInputsManager, StorageManager, ChatMessageSendingPort, ChatRagAttachmentPort, ChatStreamingController, ConversationManager, MessageSendingHost, ConversationInputComposerOutcome, QueuedSendBlockReason, QueuedSendGuard, QueuedSendGuardContext, QueuedSendGuardResult, QueuedSendOutcome, SendMessageOptions, StartRagIngestionArguments, ChatParameters, ChatPageApi, Conversation, Message };
+export type { AttachmentManager, ConversationInputsManager, StorageManager, ChatMessageSendingPort, ChatRagAttachmentPort, ChatStreamingController, ConversationManager, MessageSendingHost, ConversationInputComposerOutcome, QueueConversationInputOptions, QueuedSendBlockReason, QueuedSendGuard, QueuedSendGuardContext, QueuedSendGuardResult, QueuedSendOutcome, SendMessageOptions, StartRagIngestionArguments, ChatParameters, ChatPageApi, Conversation, Message };

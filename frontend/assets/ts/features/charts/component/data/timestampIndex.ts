@@ -52,4 +52,33 @@ const findLastIndexAtOrBefore = (timestamps: Float64Array, dataLength: number, t
     return candidate;
 };
 
-export { findFirstIndexAtOrAfter, findLastIndexAtOrBefore, findTimestampSlot };
+const offsetForTimestamp = (timestamps: Float64Array, dataLength: number, timestamp: number, intervalMs: number): number | null => {
+    if (dataLength === 0 || !isFin(timestamp) || !isFin(intervalMs) || intervalMs <= 0) return null;
+    const first = timestamps[0];
+    const last = timestamps[dataLength - 1];
+    if (first === undefined || last === undefined || !isFin(first) || !isFin(last)) return null;
+    if (timestamp <= first) return (timestamp - first) / intervalMs;
+    if (timestamp >= last) return dataLength - 1 + (timestamp - last) / intervalMs;
+    const rightIndex = findFirstIndexAtOrAfter(timestamps, dataLength, timestamp);
+    if (rightIndex < 1) return null;
+    const leftTimestamp = timestamps[rightIndex - 1];
+    const rightTimestamp = timestamps[rightIndex];
+    if (leftTimestamp === undefined || rightTimestamp === undefined || rightTimestamp <= leftTimestamp) return null;
+    return rightIndex - 1 + (timestamp - leftTimestamp) / (rightTimestamp - leftTimestamp);
+};
+
+const timestampForOffset = (timestamps: Float64Array, dataLength: number, offset: number, intervalMs: number): number | null => {
+    if (dataLength === 0 || !isFin(offset) || !isFin(intervalMs) || intervalMs <= 0) return null;
+    const first = timestamps[0];
+    const last = timestamps[dataLength - 1];
+    if (first === undefined || last === undefined || !isFin(first) || !isFin(last)) return null;
+    if (offset <= 0) return first + offset * intervalMs;
+    if (offset >= dataLength - 1) return last + (offset - dataLength + 1) * intervalMs;
+    const leftIndex = Math.floor(offset);
+    const leftTimestamp = timestamps[leftIndex];
+    const rightTimestamp = timestamps[leftIndex + 1];
+    if (leftTimestamp === undefined || rightTimestamp === undefined || rightTimestamp <= leftTimestamp) return null;
+    return leftTimestamp + (rightTimestamp - leftTimestamp) * (offset - leftIndex);
+};
+
+export { findFirstIndexAtOrAfter, findLastIndexAtOrBefore, findTimestampSlot, offsetForTimestamp, timestampForOffset };

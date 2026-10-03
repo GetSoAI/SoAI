@@ -5,29 +5,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from core.hardware.gpu_identity_normalization import is_specific_gpu_name, normalize_identity_name
+from core.hardware.gpu_model_catalog import resolve_catalog_submission_identity
 from hardware.gpu_inventory.identity import (
-    normalize_identity_name,
     normalize_physical_pci_bdf,
     normalize_uuid,
 )
 from hardware.soaibench.errors import SoAIBenchUnsupported
 from hardware.soaibench.opencl_devices import OpenCLGpuDevice
+from hardware.soaibench.opencl_platform_priority import (
+    preferred_platform_candidates,
+    preferred_platform_match,
+)
 from hardware.soaibench.types import SoAIBenchGpuIdentity
 from hardware.vendors.vendor_metadata import vendor_aliases
-from hardware.vendors.vendor_types import AMD_VENDOR, INTEL_VENDOR, NVIDIA_VENDOR
 
 __all__ = (
     "OpenCLDeviceMatch",
     "match_opencl_device",
 )
-
-AMD_OPENCL_PLATFORM_PRIORITY: tuple[tuple[str, ...], ...] = (
-    ("rocm", "acceleratedparallelprocessing", "advancedmicrodevices"),
-    ("rusticl",),
-    ("clover",),
-)
-INTEL_OPENCL_PLATFORM_PRIORITY: tuple[tuple[str, ...], ...] = (("levelzero", "oneapi", "intel"),)
-NVIDIA_OPENCL_PLATFORM_PRIORITY: tuple[tuple[str, ...], ...] = (("cuda", "nvidia"),)
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,15 +38,38 @@ def match_opencl_device(
 ) -> OpenCLDeviceMatch:
     matching_vendor = identity.raw_vendor or identity.vendor
     matching_name = identity.raw_gpu_name or identity.gpu_name
+    matching_name_keys: set[str] = set()
+    if matching_name is not None and is_specific_gpu_name(matching_name):
+        normalized_name = normalize_identity_name(matching_name)
+        if normalized_name:
+            matching_name_keys.add(normalized_name)
+    catalog_model = resolve_catalog_submission_identity(
+        matching_name, identity.gpu_model_key, matching_vendor
+    ).model
+    if catalog_model is not None:
+        matching_name_keys.update(
+            normalize_identity_name(name) for name in (catalog_model.name, *catalog_model.aliases)
+        )
     uuid_matches = [
         candidate
         for candidate in candidates
         if _same_uuid(identity.gpu_uuid, candidate.device_uuid)
     ]
+    if any(
+        _pci_evidence_contradicts(identity.pci_bdf, candidate.pci_bdf) for candidate in uuid_matches
+    ):
+        raise SoAIBenchUnsupported(
+            reason="opencl_device_identity_conflict",
+            message="OpenCL PCI evidence conflicts with the selected GPU UUID identity.",
+        )
     if len(uuid_matches) == 1:
         return OpenCLDeviceMatch(device=uuid_matches[0], match_basis="gpu_uuid")
     if len(uuid_matches) > 1:
-        preferred = _preferred_platform_match(matching_vendor, uuid_matches)
+        preferred = (
+            preferred_platform_match(matching_vendor, uuid_matches)
+            if _candidates_share_physical_identity(uuid_matches)
+            else None
+        )
         if preferred is not None:
             return OpenCLDeviceMatch(device=preferred, match_basis="gpu_uuid_preferred_platform")
         raise SoAIBenchUnsupported(
@@ -74,8 +93,8 @@ def match_opencl_device(
     if len(pci_matches) == 1:
         return OpenCLDeviceMatch(device=pci_matches[0], match_basis="pci_bdf")
     if len(pci_matches) > 1:
-        if _pci_candidates_share_physical_identity(pci_matches):
-            preferred = _preferred_platform_match(matching_vendor, pci_matches)
+        if _candidates_share_physical_identity(pci_matches):
+            preferred = preferred_platform_match(matching_vendor, pci_matches)
             if preferred is not None:
                 return OpenCLDeviceMatch(
                     device=preferred,
@@ -92,37 +111,52 @@ def match_opencl_device(
     ]
     named = [
         candidate
-        for candidate in vendor_matches
-        if _same_name(matching_name, candidate.device_name)
+        for candidate in candidates
+        if normalize_identity_name(candidate.device_name) in matching_name_keys
+        and (
+            _same_vendor(matching_vendor, candidate.device_vendor, candidate.platform_vendor)
+            or _vendor_evidence_missing(candidate)
+        )
     ]
+    if any(_physical_evidence_contradicts(identity, candidate) for candidate in named):
+        raise SoAIBenchUnsupported(
+            reason="opencl_device_identity_conflict",
+            message="OpenCL physical identity conflicts with the selected GPU.",
+        )
     if len(named) == 1:
         return OpenCLDeviceMatch(device=named[0], match_basis="vendor_name")
     if len(named) > 1:
-        preferred_candidates = _preferred_platform_candidates(matching_vendor, named)
+        if _candidates_share_physical_identity(named):
+            preferred_candidates = preferred_platform_candidates(matching_vendor, named)
+        else:
+            preferred_candidates = []
         if len(preferred_candidates) == 1:
             return OpenCLDeviceMatch(
                 device=preferred_candidates[0],
                 match_basis="vendor_name_preferred_platform",
             )
-        if identity.gpu_index is not None and preferred_candidates:
-            indexed = [
-                candidate
-                for candidate in preferred_candidates
-                if candidate.platform_device_index == identity.gpu_index
-            ]
-            if len(indexed) == 1:
-                return OpenCLDeviceMatch(
-                    device=indexed[0],
-                    match_basis="vendor_name_preferred_platform_index",
-                )
         raise SoAIBenchUnsupported(
             reason="opencl_device_match_ambiguous",
             message=_ambiguous_message("vendor and normalized GPU name", named),
         )
+    if matching_name is not None:
+        raise SoAIBenchUnsupported(
+            reason="opencl_device_match_missing",
+            message=_missing_message(identity),
+        )
+    if any(_physical_evidence_contradicts(identity, candidate) for candidate in vendor_matches):
+        raise SoAIBenchUnsupported(
+            reason="opencl_device_identity_conflict",
+            message="OpenCL physical identity conflicts with the selected GPU.",
+        )
     if len(vendor_matches) == 1:
         return OpenCLDeviceMatch(device=vendor_matches[0], match_basis="vendor_single")
     if len(vendor_matches) > 1:
-        preferred = _preferred_platform_match(matching_vendor, vendor_matches)
+        preferred = (
+            preferred_platform_match(matching_vendor, vendor_matches)
+            if _candidates_share_physical_identity(vendor_matches)
+            else None
+        )
         if preferred is not None:
             return OpenCLDeviceMatch(device=preferred, match_basis="vendor_preferred_platform")
         raise SoAIBenchUnsupported(
@@ -135,68 +169,55 @@ def match_opencl_device(
     )
 
 
-def _preferred_platform_match(
-    identity_vendor: str | None,
-    candidates: list[OpenCLGpuDevice],
-) -> OpenCLGpuDevice | None:
-    if len(candidates) < 2:
-        return None
-    scores = [(_platform_score(identity_vendor, candidate), candidate) for candidate in candidates]
-    best_score = min(score for score, _candidate in scores)
-    best_candidates = [candidate for score, candidate in scores if score == best_score]
-    if best_score >= 100 or len(best_candidates) != 1:
-        return None
-    return best_candidates[0]
-
-
-def _preferred_platform_candidates(
-    identity_vendor: str | None,
-    candidates: list[OpenCLGpuDevice],
-) -> list[OpenCLGpuDevice]:
-    scores = [(_platform_score(identity_vendor, candidate), candidate) for candidate in candidates]
-    best_score = min(score for score, _candidate in scores)
-    if best_score >= 100:
-        return []
-    return [candidate for score, candidate in scores if score == best_score]
-
-
-def _platform_score(identity_vendor: str | None, candidate: OpenCLGpuDevice) -> int:
-    aliases = vendor_aliases(identity_vendor or "")
-    platform_text = normalize_identity_name(
-        f"{candidate.platform_name} {candidate.platform_vendor} {candidate.device_vendor}",
-    )
-    if AMD_VENDOR in aliases:
-        return _priority_score(platform_text, AMD_OPENCL_PLATFORM_PRIORITY)
-    if INTEL_VENDOR in aliases:
-        return _priority_score(platform_text, INTEL_OPENCL_PLATFORM_PRIORITY)
-    if NVIDIA_VENDOR in aliases:
-        return _priority_score(platform_text, NVIDIA_OPENCL_PLATFORM_PRIORITY)
-    return 100
-
-
-def _priority_score(platform_text: str, priorities: tuple[tuple[str, ...], ...]) -> int:
-    for priority_index, markers in enumerate(priorities):
-        if any(marker in platform_text for marker in markers):
-            return priority_index
-    return 100
-
-
 def _same_vendor(
     identity_vendor: str | None,
     device_vendor: str,
     platform_vendor: str,
 ) -> bool:
-    if identity_vendor is None:
+    if identity_vendor is None or normalize_identity_name(identity_vendor) in {"", "unknown"}:
         return True
     identity_aliases = vendor_aliases(identity_vendor)
     device_aliases = vendor_aliases(device_vendor) | vendor_aliases(platform_vendor)
-    return bool(identity_aliases & device_aliases)
+    return bool((identity_aliases - {""}) & (device_aliases - {""}))
 
 
-def _same_name(identity_name: str | None, opencl_name: str) -> bool:
-    if identity_name is None:
+def _vendor_evidence_missing(candidate: OpenCLGpuDevice) -> bool:
+    return all(
+        normalize_identity_name(value) in {"", "unknown"}
+        for value in (candidate.device_vendor, candidate.platform_vendor)
+    )
+
+
+def _physical_evidence_contradicts(
+    identity: SoAIBenchGpuIdentity, candidate: OpenCLGpuDevice
+) -> bool:
+    return _uuid_evidence_contradicts(
+        identity.gpu_uuid, candidate.device_uuid
+    ) or _pci_evidence_contradicts(identity.pci_bdf, candidate.pci_bdf)
+
+
+def _pci_evidence_contradicts(identity_pci: str | None, device_pci: str | None) -> bool:
+    if identity_pci is None or device_pci is None:
         return False
-    return normalize_identity_name(identity_name) == normalize_identity_name(opencl_name)
+    identity_address = normalize_physical_pci_bdf(identity_pci)
+    device_address = normalize_physical_pci_bdf(device_pci)
+    return bool(identity_address and device_address) and not _same_pci_bdf(
+        identity_address, device_address
+    )
+
+
+def _candidates_share_physical_identity(candidates: list[OpenCLGpuDevice]) -> bool:
+    uuids = [
+        normalized
+        for candidate in candidates
+        if candidate.device_uuid is not None
+        and (normalized := _comparable_uuid(candidate.device_uuid)) is not None
+    ]
+    addresses = [normalize_physical_pci_bdf(candidate.pci_bdf or "") for candidate in candidates]
+    full_addresses = [address for address in addresses if address.count(":") == 2]
+    if len(set(uuids)) > 1 or len(set(full_addresses)) > 1:
+        return False
+    return len(uuids) == len(candidates) or len(full_addresses) == len(candidates)
 
 
 def _same_uuid(identity_uuid: str | None, device_uuid: str | None) -> bool:
@@ -235,15 +256,6 @@ def _uuid_evidence_contradicts(identity_uuid: str | None, device_uuid: str | Non
         and normalized_device is not None
         and normalized_identity != normalized_device
     )
-
-
-def _pci_candidates_share_physical_identity(candidates: list[OpenCLGpuDevice]) -> bool:
-    domains = {
-        normalized
-        for candidate in candidates
-        if (normalized := normalize_physical_pci_bdf(candidate.pci_bdf or "")).count(":") == 2
-    }
-    return len(domains) <= 1
 
 
 def _comparable_uuid(value: str) -> str | None:

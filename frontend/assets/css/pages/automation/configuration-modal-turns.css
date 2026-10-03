@@ -22,6 +22,18 @@
         isolation: isolate;
     }
 
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-label {
+        margin-bottom: var(--space-1);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text-secondary);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-end {
+        display: flex;
+        flex-direction: column;
+    }
+
     :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-connector {
         position: relative;
         flex: 0 0 var(--space-2);
@@ -33,6 +45,8 @@
         content: '';
         position: absolute;
         inset-block: 0;
+
+        /* direction: physical — centering uses physical negative half-width translation */
         left: 50%;
         width: var(--border-width-3);
         background: color-mix(in srgb, var(--text-secondary) 18%, transparent);
@@ -73,7 +87,7 @@
         font-size: var(--font-size-body-xs);
         color: var(--text-muted);
         white-space: nowrap;
-        margin-left: var(--space-2);
+        margin-inline-start: var(--space-2);
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-turn-char-counter.is-warning {

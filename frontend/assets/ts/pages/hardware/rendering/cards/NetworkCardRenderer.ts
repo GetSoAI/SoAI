@@ -3,7 +3,7 @@
 
 import { buildFragment } from '@core/dom/renderCache.ts';
 import { i18n } from '@core/i18n/index.ts';
-import { buildNetworkInterfaceModels, buildNetworkSummaryText, createNetworkInterfaceRow, DEFAULT_IGNORED_NETWORK_PREFIXES, type NetworkCardLabelSet } from '@features/hardware/public.ts';
+import { buildNetworkEmptyText, buildNetworkInterfaceModels, buildNetworkSummaryText, createNetworkInterfaceRow, DEFAULT_IGNORED_NETWORK_PREFIXES, getWindowsNetworkInventoryStatus, type NetworkCardLabelSet } from '@features/hardware/public.ts';
 import { BaseHardwareCardRenderer, type BaseHardwareCardRendererHost } from '@pages/hardware/rendering/cards/BaseHardwareCardRenderer.ts';
 import type { HardwarePageSnapshot } from '@pages/hardware/types.ts';
 
@@ -60,14 +60,15 @@ class NetworkCardRenderer extends BaseHardwareCardRenderer<NetworkCardRendererHo
             ignorePrefixes: DEFAULT_IGNORED_NETWORK_PREFIXES
         });
         if (!rows.length) {
-            host.renderCachedContent(container, 'network-empty', () => {
+            const windowsInventoryStatus = getWindowsNetworkInventoryStatus(snapshot);
+            host.renderCachedContent(container, windowsInventoryStatus === 'unavailable' ? 'network-unavailable' : 'network-empty', () => {
                 const emptyElement = host.createElement('div', {
                     className: 'hardware-network-empty u-text-muted'
                 });
-                host.updateText(emptyElement, i18n.t('hardware.cards.network.empty'));
+                host.updateText(emptyElement, buildNetworkEmptyText(windowsInventoryStatus));
                 return emptyElement;
             });
-            const summaryText = i18n.t('hardware.cards.network.summary.none');
+            const summaryText = buildNetworkSummaryText(rows, windowsInventoryStatus);
             if (summaryText !== this.summaryText) {
                 host.updateText(summary, summaryText);
                 this.summaryText = summaryText;

@@ -1,14 +1,31 @@
-"""SoAI - HTTP redirect header safety helpers [backend/core/network/redirect_headers.py]"""
+"""SoAI - HTTP redirect safety helpers [backend/core/network/redirect_headers.py]"""
 # SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 from __future__ import annotations
 
 from collections.abc import Mapping
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
-__all__ = ("headers_for_redirect",)
+import httpx2
 
+from core.network.errors import HTTPDownloadRedirectError
+from core.network.urls import normalize_http_url
+
+__all__ = ("REDIRECT_STATUS_CODES", "headers_for_redirect", "resolve_redirect_url")
+
+REDIRECT_STATUS_CODES = frozenset((301, 302, 303, 307, 308))
 SENSITIVE_REDIRECT_HEADERS = frozenset(("authorization", "cookie", "proxy-authorization"))
+
+
+def resolve_redirect_url(response: httpx2.Response, current_url: str) -> str | None:
+    if response.status_code not in REDIRECT_STATUS_CODES:
+        return None
+    location = response.headers.get("Location")
+    if not location:
+        raise HTTPDownloadRedirectError(
+            "Server sent a redirect response without a Location header.",
+        )
+    return normalize_http_url(urljoin(current_url, location))
 
 
 def headers_for_redirect(

@@ -35,17 +35,19 @@ class HistoryChartPresentation {
     begin(): number {
         this.#loadSequence += 1;
         this.#readySequence = 0;
-        const sequence = this.#loadSequence;
         const hasVisibleChart = this.#host.classList.contains(CHART_READY_CLASS);
-        this.#clearTransitionLayers();
         this.#setLoading(true);
-        if (hasVisibleChart) {
-            const outgoing = this.#createOutgoingLayer(sequence);
+        if (hasVisibleChart && !this.#activeTransitionLayer()) {
+            const outgoing = this.#createOutgoingLayer();
             if (outgoing) {
-                this.#startOutgoingFade(outgoing, sequence);
+                this.#startOutgoingFade(outgoing);
             }
         }
-        return sequence;
+        return this.#loadSequence;
+    }
+
+    current(): number {
+        return this.#loadSequence;
     }
 
     complete(sequence: number): void {
@@ -88,14 +90,17 @@ class HistoryChartPresentation {
         return { layers, width: first.width, height: first.height };
     }
 
-    #createOutgoingLayer(sequence: number): HTMLCanvasElement | null {
+    #activeTransitionLayer(): Element | null {
+        return dom.resolve(`.${CHART_TRANSITION_LAYER_CLASS}`, this.#host);
+    }
+
+    #createOutgoingLayer(): HTMLCanvasElement | null {
         const source = this.#resolveSnapshotSource();
         if (!source) {
             return null;
         }
         const overlay = this.#host.ownerDocument.createElement('canvas');
         overlay.className = CHART_TRANSITION_LAYER_CLASS;
-        overlay.dataset['chartTransitionSequence'] = String(sequence);
         overlay.width = source.width;
         overlay.height = source.height;
         const context = overlay.getContext('2d');
@@ -107,31 +112,31 @@ class HistoryChartPresentation {
         return overlay;
     }
 
-    #startOutgoingFade(overlay: HTMLCanvasElement, sequence: number): void {
+    #startOutgoingFade(overlay: HTMLCanvasElement): void {
         const animation = overlay.animate([{ opacity: 1 }, { opacity: 0 }], {
             duration: scaleAnimationDurationMs(CHART_TRANSITION_DURATION_MS, overlay),
             easing: 'ease',
             fill: 'forwards'
         });
         void animation.finished.then(
-            () => this.#finishOutgoingLayer(overlay, sequence),
-            () => this.#finishOutgoingLayer(overlay, sequence)
+            () => this.#finishOutgoingLayer(overlay),
+            () => this.#finishOutgoingLayer(overlay)
         );
     }
 
-    #finishOutgoingLayer(overlay: HTMLCanvasElement, sequence: number): void {
-        if (this.#loadSequence === sequence && overlay.isConnected) {
-            overlay.remove();
-            this.#revealIfReady(sequence);
+    #finishOutgoingLayer(overlay: HTMLCanvasElement): void {
+        if (!overlay.isConnected) {
+            return;
         }
+        overlay.remove();
+        this.#revealIfReady(this.#loadSequence);
     }
 
     #revealIfReady(sequence: number): void {
         if (this.#loadSequence !== sequence || this.#readySequence !== sequence) {
             return;
         }
-        const activeTransition = dom.resolve(`.${CHART_TRANSITION_LAYER_CLASS}[data-chart-transition-sequence="${sequence}"]`, this.#host);
-        if (activeTransition) {
+        if (this.#activeTransitionLayer()) {
             return;
         }
         const scheduleAnimationFrame = getRequestAnimationFrame();

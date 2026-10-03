@@ -73,6 +73,7 @@ def build_model_services(
             state_aggregator=core_deps.state_aggregator,
             model_registry=core_deps.model_registry,
             parameter_manager=core_deps.parameter_manager,
+            model_record_locks=model_record_locks,
             installed_plugin_names_ref=installed_plugin_names_ref,
             event_bus=core_deps.event_bus,
             routing_config_holder=core_deps.routing_config_holder,

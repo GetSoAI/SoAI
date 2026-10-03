@@ -8,17 +8,15 @@ const resolveFolderPickerPathOverride = (result: FolderPickerResult): string | n
         return undefined;
     }
     if (result.workspacePathResolved === null && result.absolutePath !== null) {
-        const trimmedAbsolutePath = result.absolutePath.trim();
-        return trimmedAbsolutePath || undefined;
+        return result.absolutePath.trim() ? result.absolutePath : undefined;
     }
-    const trimmedVirtualPath = result.virtualPath.trim();
-    if (!trimmedVirtualPath) {
+    if (!result.virtualPath.trim()) {
         return undefined;
     }
-    if (trimmedVirtualPath === '.' || trimmedVirtualPath === '/') {
+    if (result.virtualPath === '.' || result.virtualPath === '/') {
         return null;
     }
-    return trimmedVirtualPath;
+    return result.virtualPath;
 };
 
 export { resolveFolderPickerPathOverride };

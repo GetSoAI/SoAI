@@ -11,6 +11,7 @@ __all__ = (
     "DatabaseQueueSaturatedError",
     "DatabaseTimeoutError",
     "DatabaseUnavailableError",
+    "DatabaseWriteAcceptanceUnresolvedError",
     "DuplicateMCPServerError",
     "DuplicateProviderError",
 )
@@ -20,6 +21,11 @@ class DatabaseUnavailableError(DatabaseError): ...
 
 
 class DatabaseQueueSaturatedError(DatabaseError): ...
+
+
+class DatabaseWriteAcceptanceUnresolvedError(DatabaseError):
+    code: str | int = "database_acceptance_unresolved"
+    http_status = 503
 
 
 class DatabaseTimeoutError(DatabaseError):

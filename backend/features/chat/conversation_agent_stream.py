@@ -143,6 +143,7 @@ async def execute_conversation_agent_stream(
                 plugin_manager=api_dependencies.plugin_manager,
                 state_aggregator=api_dependencies.state_aggregator,
                 orchestrator_lifecycle=api_dependencies.orchestrator_lifecycle,
+                chat_template_role_policy_resolver=api_dependencies.chat_template_role_policy_resolver,
                 request_context=turn_context,
             ),
             on_compacted_prompt_occupancy=None,

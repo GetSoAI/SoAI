@@ -9,16 +9,17 @@ import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import { createModelDetailCardSectionsHost, createModelDetailModelInfoHost } from '@pages/modeldetail/controllers/page/view/mappers.ts';
 import type { ModelDetailViewHost } from '@pages/modeldetail/controllers/page/view/types.ts';
 import { resolveModelDetailBackendDocumentation } from '@pages/modeldetail/formatting/modelDetailBackendDocumentation.ts';
-import { populateModelDetailCapabilityBadges, populateModelDetailExternalProviderCard, populateModelDetailInferenceDefaults, populateModelDetailPluginInfoCard, updateModelDetailCardVisibility } from '@pages/modeldetail/rendering/modelDetailCardSections.ts';
+import { populateModelDetailCapabilityBadges, populateModelDetailExternalProviderCard, populateModelDetailInferenceDefaults, populateModelDetailPluginInfo, updateModelDetailCardVisibility } from '@pages/modeldetail/rendering/modelDetailCardSections.ts';
 import { populateModelDetailModelInfo } from '@pages/modeldetail/rendering/modelDetailModelInfoSection.ts';
 
 const populateModelDetailCards = (host: ModelDetailViewHost): void => {
     const cardHost = createModelDetailCardSectionsHost(host);
     populateModelDetailExternalProviderCard(cardHost);
-    populateModelDetailPluginInfoCard(cardHost);
+    populateModelDetailPluginInfo(cardHost);
     updateModelDetailCardVisibility(cardHost);
     populateModelDetailInferenceDefaults(cardHost);
     populateModelDetailCapabilityBadges(cardHost);
+    host.presentation.updateHeaderInfo();
 };
 
 const populateModelDetailModelInformation = (host: ModelDetailViewHost): void => {

@@ -23,7 +23,7 @@
     }
 
     html[data-notification-animation='lateral'] .ui-notification:not(.ui-notification--swipe-active, .ui-notification--closing, .ui-notification--entry-complete) {
-        transform: translateX(100%);
+        transform: translateX(calc(100% * var(--dir-sign)));
         animation: effect-lateral-enter var(--effect-notification-enter-duration) var(--ease-smooth) forwards;
     }
 

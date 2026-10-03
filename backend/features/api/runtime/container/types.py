@@ -95,6 +95,7 @@ if TYPE_CHECKING:
         ModelResolutionServiceProtocol,
         VirtualModelServiceProtocol,
     )
+    from core.openai.chat_template_role_policy_resolver import ChatTemplateRolePolicyResolver
     from core.openai.token_counter import PromptTokenCounter
     from core.orchestrator.protocols_lifecycle import (
         OrchestratorControlProtocol,
@@ -160,6 +161,7 @@ class ApiDependencies(ApiDatabaseDependencies):
     webui_manager: WebUIManagerProtocol
     log_manager: LoggingManagerProtocol
     prompt_token_counter: PromptTokenCounter
+    chat_template_role_policy_resolver: ChatTemplateRolePolicyResolver
     agent_chronology_sequencer: AgentChronologySequencerProtocol
     agent_state_service: AgentStateServiceProtocol
     messaging_gateway: MessagingGatewayProtocol
@@ -271,6 +273,7 @@ class ApiDependencies(ApiDatabaseDependencies):
             plugin_manager=self.plugin_manager,
             power_operation_supervisor=self.power_operation_supervisor,
             prompt_token_counter=self.prompt_token_counter,
+            chat_template_role_policy_resolver=self.chat_template_role_policy_resolver,
             prompts_update_locks=self.prompts_update_locks,
             conversation_rag_ingest_locks=self.conversation_rag_ingest_locks,
             conversation_agent_settings_locks=self.conversation_agent_settings_locks,

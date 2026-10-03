@@ -6,10 +6,12 @@ import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
+import { attachPendingOperationCloseGuard } from '@core/modals/closeGuard.ts';
 import { runModalSession } from '@core/modals/modalSession.ts';
 import { toTrustedHtml, type TrustedHtml } from '@core/security/public.ts';
 import { EMPTY_UI_HTML } from '@core/security/uiHtml.ts';
 import { getIconFromStringSync } from '@core/ui/icons/iconservice/public.ts';
+import { DeferredButtonLoading } from '@core/ui/loadingbuttons/deferredLoadingButton.ts';
 import { resolveConfirmationDom } from '@core/ui/modals/dialogs/confirmationDom.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 
@@ -19,11 +21,13 @@ type ConfirmationActionButton = {
     disabled: boolean;
     title: string | null;
     perform: (() => Promise<boolean> | boolean) | null;
+    deferredBusy?: boolean;
 };
 
 type ConfirmationActionButtons = Readonly<{ first: ConfirmationActionButton | null; second: ConfirmationActionButton | null }>;
 
 type ConfirmationDomConfig = {
+    signal?: AbortSignal | undefined;
     title: string;
     typeTokens: readonly string[];
     icon: string | null;
@@ -60,6 +64,7 @@ const createConfirmationFlow = (dependencies: { modalId: string }): Confirmation
             modalId: dependencies.modalId,
             onAlreadyOpen: 'replace',
             initialResult: false,
+            signal: config.signal,
             initialize: ({ modal, signal, setResult, close }): { dispose: () => void } => {
                 const domElements = resolveConfirmationDom(modal, dependencies.modalId);
 
@@ -125,20 +130,30 @@ const createConfirmationFlow = (dependencies: { modalId: string }): Confirmation
                 const action2 = config.actions.second;
                 configureActionButton(action1Button, action1);
                 configureActionButton(action2Button, action2);
+                const deferredLoading = new DeferredButtonLoading();
+                let actionPending = false;
+                const detachCloseGuard = attachPendingOperationCloseGuard({ modal, isPending: () => actionPending });
 
                 const cancel = (event: Event): void => {
                     event.preventDefault();
                     event.stopPropagation();
+                    if (actionPending) return;
                     close('cancel');
                 };
                 cancelButton.addEventListener('click', cancel, { signal });
 
-                const runAction = async (action: ConfirmationActionButton | null, reason: string): Promise<void> => {
-                    if (!action || action.disabled) {
+                const runAction = async (action: ConfirmationActionButton | null, button: HTMLButtonElement, reason: string): Promise<void> => {
+                    if (!action || action.disabled || actionPending) {
                         return;
                     }
+                    actionPending = true;
+                    cancelButton.disabled = true;
+                    action1Button.disabled = true;
+                    action2Button.disabled = true;
+                    if (action.deferredBusy === true) deferredLoading.begin(button);
                     try {
                         const allowed = action.perform ? await action.perform() : true;
+                        if (signal.aborted) return;
                         if (allowed === false) {
                             return;
                         }
@@ -147,29 +162,36 @@ const createConfirmationFlow = (dependencies: { modalId: string }): Confirmation
                     } catch (error) {
                         const runtimeError = ensureError(error);
                         errorHandler.warn('Dialogs', 'Confirmation action failed', runtimeError);
+                    } finally {
+                        deferredLoading.settle();
+                        actionPending = false;
+                        if (!signal.aborted) {
+                            cancelButton.disabled = false;
+                            action1Button.disabled = action1?.disabled ?? true;
+                            action2Button.disabled = action2?.disabled ?? true;
+                        }
                     }
                 };
 
-                action1Button.addEventListener(
-                    'click',
-                    (event: Event): void => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        terminateHandledPromise(runAction(action1, 'action1'));
-                    },
-                    { signal }
-                );
-                action2Button.addEventListener(
-                    'click',
-                    (event: Event): void => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        terminateHandledPromise(runAction(action2, 'action2'));
-                    },
-                    { signal }
-                );
+                const handleFirstAction = (event: Event): void => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    terminateHandledPromise(runAction(action1, action1Button, 'action1'));
+                };
+                const handleSecondAction = (event: Event): void => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    terminateHandledPromise(runAction(action2, action2Button, 'action2'));
+                };
+                action1Button.addEventListener('click', handleFirstAction, { signal });
+                action2Button.addEventListener('click', handleSecondAction, { signal });
 
-                return { dispose: () => void 0 };
+                return {
+                    dispose: () => {
+                        detachCloseGuard();
+                        deferredLoading.settle();
+                    }
+                };
             }
         });
     };

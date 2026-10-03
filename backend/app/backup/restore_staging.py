@@ -27,6 +27,7 @@ from core.files.temp_files import (
     create_secure_temp_file_descriptor,
 )
 from core.filesystem.atomic_write_primitives import fsync_directory
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.logging.protocols import LoggerProtocol
 
 __all__ = (
@@ -104,7 +105,9 @@ def _sync_commit_staged_item(
         if is_directory or os.path.isdir(destination_path):
             sync_remove_tree_no_symlinks(destination_path)
     try:
-        os.replace(staging_path, destination_path)
+        os.replace(
+            normalize_filesystem_path(staging_path), normalize_filesystem_path(destination_path)
+        )
     except OSError as exception:
         if exception.errno == errno.EXDEV:
             raise StateError(

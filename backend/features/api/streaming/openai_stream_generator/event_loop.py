@@ -6,10 +6,12 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator, Callable
 from typing import TYPE_CHECKING
 
+from core.errors.exception_logging import log_handled_exception
 from core.events.types_base import Event
 from core.events.types_models_streaming import StreamChunkEvent, StreamEndEvent
 from core.events.types_plugins import ErrorEvent
 from core.events.types_tasks import TaskCompleteEvent, TaskProgressEvent
+from core.openai.openai_sse_error_escalation import OpenAIStreamError
 from core.openai.sse_frames import sse_keepalive_chunk
 from features.api.streaming.openai_stream_generator.chunk_event_processing import (
     iter_stream_bytes_from_chunk_event,
@@ -42,6 +44,8 @@ if TYPE_CHECKING:
     from features.api.streaming.types import StreamDependencies
 
 __all__ = ("run_stream_event_loop",)
+
+OPERATION_PROVIDER_ERROR_DELIVERY = "api_streaming.stream_event_loop.provider_error"
 
 
 async def run_stream_event_loop(
@@ -80,6 +84,8 @@ async def run_stream_event_loop(
                 emit_done_marker=emit_done_marker,
                 send_error=send_error,
                 stream_result_state=stream_result_state,
+                include_usage=include_usage,
+                model=model,
             ):
                 yield chunk
             break
@@ -108,10 +114,19 @@ async def run_stream_event_loop(
                     trace_id=trace_id,
                     logger=logger,
                     schedule_task_cancel=schedule_task_cancel,
+                    include_usage=include_usage,
                     allow_image_events=allow_image_events,
                 ):
                     yield stream_bytes
             except OpenAIStreamAbortRequested as exception:
+                if isinstance(exception.__cause__, OpenAIStreamError):
+                    log_handled_exception(
+                        logger,
+                        exception.__cause__,
+                        message="Provider stream error reached API stream delivery.",
+                        trace_id=trace_id,
+                        operation=OPERATION_PROVIDER_ERROR_DELIVERY,
+                    )
                 async for chunk in send_error(exception.message, exception.error_type):
                     yield chunk
                 break
@@ -137,6 +152,7 @@ async def run_stream_event_loop(
                 event,
                 state,
                 send_error=send_error,
+                emit_done_marker=emit_done_marker,
             ):
                 yield chunk
             break
@@ -147,6 +163,8 @@ async def run_stream_event_loop(
                 emit_done_marker=emit_done_marker,
                 send_error=send_error,
                 stream_result_state=stream_result_state,
+                include_usage=include_usage,
+                model=model,
             ):
                 yield chunk
             break

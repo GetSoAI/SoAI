@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "الآن"
+                "now": "الآن",
+                "occurrenceLabel": "{title}، {date} {time}، {status}",
+                "createAt": "إنشاء أتمتة في {date} الساعة {time}. استخدم مفاتيح الأسهم لتغيير الوقت."
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "البدء",
                     "turns": "الأدوار",
                     "timezone": "المنطقة الزمنية",
-                    "title": "العنوان"
+                    "title": "العنوان",
+                    "modelSettings": "النموذج والأدوات والمعلمات"
                 },
                 "workspace": {
                     "button": "اختيار مجلد",
                     "description": "اختر المجلد المستخدم في تشغيل الأتمتة هذا. تحتفظ عمليات التشغيل المتكررة بمجلد الأتمتة هذا.",
                     "fieldLabel": "مجلد مساحة العمل",
-                    "title": "مجلد مساحة عمل الأتمتة"
+                    "title": "مجلد مساحة عمل الأتمتة",
+                    "viewButton": "استعراض مساحة العمل"
                 },
                 "parameters": {
                     "button": "تعديل المعلمات",
@@ -166,17 +170,17 @@
                     "fieldLabel": "معلمات النموذج",
                     "summaryCustom": "معلمات أتمتة مخصصة",
                     "summaryDefault": "معلمات النموذج الافتراضية",
-                    "title": "معلمات نموذج الأتمتة"
+                    "title": "معلمات نموذج الأتمتة",
+                    "viewButton": "عرض المعلمات"
                 },
                 "timezone": {
-                    "auto": "تلقائي"
+                    "autoWithZone": "تلقائي ({timezone})"
                 },
                 "placeholders": {
                     "assistantTurn": "استجابة النموذج",
                     "endOfAutomation": "نهاية الأتمتة",
                     "model": "اختيار نموذج",
                     "turn": "أدخل رسالة",
-                    "turnIndexed": "أدخل الرسالة {index}",
                     "title": "أدخل عنوانًا"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "حفظ",
                 "validation": {
                     "maxRunMinutesInvalid": "يجب أن يكون الحد الأقصى لدقائق التشغيل بين 1 و1440.",
-                    "modelUnavailable": "النموذج المحدد غير متوفر.",
+                    "modelUnavailable": "النموذج {model} غير متوفر. اختر نموذجًا آخر.",
                     "modelRequired": "النموذج مطلوب.",
                     "recurrenceInvalid": "التكرار غير صالح.",
                     "startInvalid": "تاريخ ووقت البدء غير صالحين.",
@@ -195,7 +199,42 @@
                     "turnsRequired": "جميع الأدوار مطلوبة.",
                     "tooManyTurns": "عدد الأدوار كبير جدًا (الحد الأقصى {max}). يُنفَّذ كل دور كدور واحد للوكيل.",
                     "timezoneRequired": "المنطقة الزمنية مطلوبة.",
-                    "titleRequired": "العنوان مطلوب."
+                    "titleRequired": "العنوان مطلوب.",
+                    "modelDisabled": "النموذج {model} معطّل. فعّله أو اختر نموذجًا آخر.",
+                    "modelMissing": "النموذج {model} لم يعد مثبتًا. اختر نموذجًا آخر.",
+                    "modelUnsupported": "النموذج {model} لا يدعم الدردشة. اختر نموذجًا آخر.",
+                    "summary": "أصلح الحقول ({count}) قبل الحفظ.",
+                    "toolsRequired": "يتطلب التنفيذ تفعيل الأدوات واختيار todo_write.",
+                    "timezoneInvalid": "المنطقة الزمنية غير صالحة. اختر منطقة زمنية مدعومة."
+                },
+                "conflict": {
+                    "message": "تم تغيير هذه الأتمتة في مكان آخر أثناء تعديلك لها. لم يتم حفظ تغييراتك.",
+                    "remoteChanges": "تم تغييره في مكان آخر: {fields}",
+                    "localChanges": "تغييراتك: {fields}",
+                    "keepChanges": "الاحتفاظ بتغييراتي",
+                    "loadLatest": "تحميل أحدث إصدار"
+                },
+                "modelStatus": {
+                    "unavailable": "غير متوفر",
+                    "unsupported": "لا يدعم الدردشة"
+                },
+                "prerequisites": {
+                    "failed": "تعذّر على المحرر تحميل كل ما يحتاج إليه.",
+                    "missing": "لم تعد هذه الأتمتة موجودة.",
+                    "toolsUnavailable": "تعذّر تحميل الأدوات. يتم الاحتفاظ بالأدوات المحددة حاليًا.",
+                    "childFailed": "تعذر فتح الإعدادات. حاول مجددًا."
+                },
+                "schedule": {
+                    "ambiguous": "يتكرر الوقت {start} مرتين في {timezone} بسبب تغيير الساعة. يتم استخدام المرة الأولى.",
+                    "shiftedForward": "الوقت {start} غير موجود في {timezone} بسبب تغيير الساعة. سيتم التشغيل في {effective} بدلًا من ذلك.",
+                    "disabled": "معطّلة: لن تتم جدولة أي عمليات تشغيل.",
+                    "nextRun": "التشغيل التالي: {when} ({timezone})",
+                    "nextRunLocal": "التشغيل التالي: {when} ({timezone})، {localWhen} بتوقيتك",
+                    "unavailable": "معاينة الجدول غير متاحة."
+                },
+                "turns": {
+                    "label": "الدور {index}",
+                    "remove": "إزالة الدور {index}"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "تمت إعادة تعيين تفضيلات الأتمتة إلى الإعدادات الافتراضية.",
                 "runOpenFailed": "تعذّر فتح تشغيل الأتمتة المطلوب.",
                 "runUnavailable": "لم يعد تشغيل الأتمتة المطلوب متاحًا في طريقة العرض هذه.",
-                "updated": "تم تحديث الأتمتة."
+                "updated": "تم تحديث الأتمتة.",
+                "changeRefreshFailed": "تم تطبيق التغيير، لكن تعذّر تحديث طريقة العرض.",
+                "conflict": "تم تغيير هذه الأتمتة في مكان آخر. راجع التغييرات قبل الحفظ مرة أخرى.",
+                "defaultsNotRemembered": "تم الحفظ، لكن تعذّر تذكّر هذه الإعدادات للأتمتات الجديدة.",
+                "missingOnSave": "لم تعد هذه الأتمتة موجودة. ربما تم حذفها في مكان آخر."
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "اليوم",
                         "yesterday": "أمس"
                     },
-                    "turnsCount": "الأدوار: {count}",
                     "title": "عمليات التشغيل",
                     "toolbar": {
                         "batchDelete": "حذف عمليات التشغيل المحددة",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "حذف {count} من عمليات التشغيل؟ سيتم إيقاف عمليات التشغيل الجارية.",
-                        "deleteTitle": "حذف عمليات التشغيل؟"
+                        "deleteTitle": "حذف عمليات التشغيل؟",
+                        "skipTitle": "تخطي مرة التشغيل؟",
+                        "skipMessage": "لن يتم تشغيل {title} في هذا الوقت. لن تتأثر مرات التشغيل الأخرى.",
+                        "skipConfirm": "تخطٍّ",
+                        "stopTitle": "إيقاف التشغيل؟",
+                        "stopMessage": "{title} قيد التشغيل. سيتم إيقافه وإزالته من التقويم.",
+                        "stopConfirm": "إيقاف",
+                        "removeTitle": "إزالة مرة التشغيل؟",
+                        "removeMessage": "ستتم إزالة {title} من التقويم.",
+                        "removeConfirm": "إزالة"
                     },
                     "notifications": {
-                        "deleteSuccess": "تم حذف {count} من عمليات التشغيل."
-                    }
+                        "deleteSuccess": "تم حذف {count} من عمليات التشغيل.",
+                        "nothingToDelete": "لم تعد مرات التشغيل المحددة موجودة في طريقة العرض هذه.",
+                        "tooManySelected": "حدد {max} مرة تشغيل كحد أقصى في كل مرة."
+                    },
+                    "occurrencesCount": "مرات التشغيل: {count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "السابق",
                 "showCalendar": "التقويم",
                 "showRegistry": "اللوحة",
-                "today": "اليوم"
+                "today": "اليوم",
+                "staleData": "غير محدّث",
+                "staleDataSince": "قد تكون بيانات الأتمتة غير محدّثة. آخر تحديث {time}. اختر لإعادة المحاولة.",
+                "resizePanes": "تغيير حجم التقويم واللوحة الجانبية"
             },
             "views": {
                 "day": "اليوم",
@@ -300,6 +357,7 @@
                     "bar": "أعمدة",
                     "candlestick": "OHLC",
                     "deviation": "الانحراف",
+                    "heikin-ashi": "هيكين آشي",
                     "label": "نوع المخطط",
                     "line": "خطي",
                     "precision-line": "خطي"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "الحد الأدنى: ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "لا توجد بيانات · SoAI غير متصل",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "الوقت الفعلي ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "تعذر تحميل السجل.",
             "loadingState": "جارٍ التحميل",
             "manualScaleLabel": "يدوي"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "إرفاق روابط SoAI",
                 "tabBrowse": "مساحة العمل",
                 "tabCamera": "مسح ضوئي",
+                "tabDisabledReason": "فعّل {setting} في تكوين الدردشة › {tab}",
                 "tabKnowledge": "المعرفة",
                 "tabSoaiLink": "رابط SoAI",
                 "tabUpload": "رفع",
@@ -559,7 +620,16 @@
                 "recordingStatus": "جارٍ التسجيل {elapsed}",
                 "recordingTitle": "التسجيل الصوتي",
                 "requestingStatus": "في انتظار إذن المتصفح",
-                "requestingTitle": "جارٍ طلب الوصول إلى الميكروفون"
+                "requestingTitle": "جارٍ طلب الوصول إلى الميكروفون",
+                "pushToTalk": {
+                    "cancelled": "تم إلغاء التسجيل.",
+                    "queued": "تمت الإضافة إلى قائمة الانتظار.",
+                    "releaseToCancel": "حرّر للإلغاء",
+                    "releaseToSend": "حرّر للإرسال · اسحب إلى اليسار للإلغاء",
+                    "sending": "جارٍ الإرسال…",
+                    "transcribing": "جارٍ النسخ…",
+                    "transcriptReview": "تمت إضافة النص المنسوخ. راجع المسودة المحدّثة قبل الإرسال."
+                }
             },
             "authorityLock": {
                 "automationReason": "هذه محادثة أتمتة. غيّر إعدادات تنفيذها من عمليات الأتمتة → تعديل الأتمتة.",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "رفع",
                 "assistantAvatarUploadLabel": "رفع الصورة الرمزية للمساعد",
                 "assistantNamePlaceholder": "أدخل اسمًا مخصصًا للنموذج...",
+                "autoHideChatComposer": "إخفاء محرر الدردشة تلقائيًا",
+                "autoHideChatComposerHint": "إخفاء محرر الدردشة الفارغ أثناء قراءة الرسائل السابقة",
+                "autoHideChatHeader": "إخفاء ترويسة الدردشة تلقائيًا",
+                "autoHideChatHeaderHint": "إخفاء ترويسة المحادثة أثناء قراءة الرسائل السابقة",
                 "identityNameInvalid": "يجب ألا تتجاوز أسماء العرض 50 حرف Unicode وألا تحتوي على نص غير صالح.",
                 "promptInvalid": "تحتوي المطالبة على نص Unicode غير صالح.",
                 "close": "إغلاق",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "لا يمكن تغيير الوصول إلى الأدوات أثناء تشغيل هذه المحادثة",
                     "toolsEnabledHint": "فعّل أدوات MCP لهذه المحادثة. تبدأ الدردشات الجديدة بآخر قيمة محفوظة لديك",
                     "tool_approval_required": "طلب الموافقة على الأداة",
-                    "toolApprovalRequiredHint": "اطلب التأكيد قبل تشغيل الأدوات التي تُجري تغييرات مدمرة"
+                    "toolApprovalRequiredHint": "اطلب التأكيد قبل تشغيل الأدوات التي تُجري تغييرات مدمرة",
+                    "unavailableTools": "الأدوات المحفوظة غير المتاحة: {tools}. يتم الاحتفاظ بالاختيارات.",
+                    "unavailableServers": "الخوادم المحفوظة غير المتاحة: {servers}. يتم الاحتفاظ بالإعدادات."
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "يتجاوز طول السياق لهذه الميزة. اتركه فارغًا لاستخدام القيمة الافتراضية للنموذج المحدد",
@@ -1035,7 +1111,8 @@
                 "newTitle": "محادثة جديدة",
                 "renameFailed": "تعذّرت إعادة تسمية المحادثة.",
                 "switchFailed": "تعذّر تبديل المحادثات.",
-                "untitled": "بلا عنوان"
+                "untitled": "بلا عنوان",
+                "titleRequired": "عنوان المحادثة مطلوب."
             },
             "detached": {
                 "windowTitle": "الدردشة (منفصلة)"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "يتطلب HTTPS"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "اضغط مطولًا لفتح المعلمات وإظهار طول السياق",
+                "presetsHint": "اضغط مطولًا لفتح الإعدادات المسبقة",
+                "pushToTalkHint": "اضغط مطولًا للتحدث",
+                "toolsHint": "اضغط مطولًا لفتح إعدادات الأدوات",
+                "toolsRestrictedHint": "{reason}. اضغط مطولًا لفتح إعدادات الأدوات",
+                "toolsToggleHint": "{action}. اضغط مطولًا لفتح إعدادات الأدوات"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "في قائمة الانتظار",
@@ -1286,7 +1371,8 @@
                     "running": "قيد التشغيل",
                     "inputRequired": "إجراء مطلوب"
                 },
-                "attachmentsCount": "(+{count} مرفقات)"
+                "attachmentsCount": "(+{count} مرفقات)",
+                "open": "افتح الطلب: {prompt}"
             },
             "loading": {
                 "errorType": "نوع الخطأ",
@@ -1337,7 +1423,9 @@
                     },
                     "save": "حفظ",
                     "skip": "تخطّي",
-                    "title": "ساعد SoAI على التعرّف إليك"
+                    "title": "ساعد SoAI على التعرّف إليك",
+                    "loadFailed": "تعذّر تحميل ملفك الشخصي المحفوظ. أُوقف الحفظ مؤقتًا حتى لا يُستبدل أي شيء.",
+                    "retry": "إعادة المحاولة"
                 },
                 "viewer": {
                     "none": "بلا",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "أمس",
                 "toolCall": "استدعاء الأداة",
                 "waiting": "جارٍ الانتظار...",
-                "you": "أنت"
+                "you": "أنت",
+                "timestampWithTime": "{label}، {time}"
             },
             "modelControl": {
                 "compareModels": "مقارنة النماذج",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "توجد عدة نماذج تحمل الاسم \"{model}\". يُرجى تحديد نموذج بعينه من الشريط الجانبي.",
                 "available": "(متاح)",
-                "loaded": "(محمّل)"
+                "loaded": "(محمّل)",
+                "unavailable": "(غير متاح)"
             },
             "news": {
                 "articleCount": "{count} مقالات",
@@ -1470,10 +1560,52 @@
                 "cleared": "تم مسح سجل المطالبات.",
                 "loadFailed": "تعذّر تحميل سجل المطالبات."
             },
+            "sketch": {
+                "open": "فتح الرسم",
+                "mobileOption": "رسم",
+                "preference": "رسم",
+                "preferenceHint": "إظهار لوحة الرسم في محرر الدردشة لرسم صورة وإرفاقها برسالتك",
+                "title": "رسم",
+                "description": "ارسم باستخدام الفأرة أو القلم أو إصبعك، ثم أرفق الرسم برسالتك كصورة",
+                "canvasLabel": "لوحة الرسم",
+                "toolsLabel": "أدوات الرسم",
+                "tools": {
+                    "pen": "قلم",
+                    "brush": "فرشاة",
+                    "highlighter": "قلم تمييز",
+                    "eraser": "ممحاة",
+                    "line": "خط",
+                    "rectangle": "مستطيل",
+                    "ellipse": "قطع ناقص"
+                },
+                "colorsLabel": "الألوان",
+                "colors": {
+                    "black": "أسود",
+                    "grey": "رمادي",
+                    "red": "أحمر",
+                    "orange": "برتقالي",
+                    "yellow": "أصفر",
+                    "green": "أخضر",
+                    "teal": "أزرق مخضر",
+                    "blue": "أزرق",
+                    "purple": "بنفسجي",
+                    "brown": "بني"
+                },
+                "customColor": "لون مخصص",
+                "size": "الحجم",
+                "undo": "تراجع",
+                "redo": "إعادة",
+                "clear": "مسح",
+                "resize": "تغيير حجم اللوحة",
+                "attach": "إرفاق",
+                "discardConfirm": "هل تريد تجاهل هذا الرسم؟",
+                "discard": "تجاهل",
+                "exportFailed": "تعذر تصدير الرسم. يرجى المحاولة مرة أخرى."
+            },
             "characterMap": {
                 "allEmoji": "كل الرموز التعبيرية",
                 "allUnicode": "كل Unicode",
-                "description": "تصفح محارف Unicode والرموز التعبيرية، واجمع تسلسلاً، ثم انسخه أو أدرجه في رسالتك.",
+                "description": "تصفح محارف Unicode والرموز التعبيرية، واجمع تسلسلاً، ثم انسخه أو أدرجه في رسالتك",
                 "font": "الخط",
                 "fontHint": "تؤثر الخطوط في العرض فقط؛ ويظل كل محرف مدرج قابلاً للتحديد",
                 "fonts": {
@@ -2201,7 +2333,8 @@
                 "started": "بدأت المكالمة الصوتية.",
                 "transcriptionFailed": "فشل تحويل الصوت إلى نص.",
                 "ttsFailed": "فشل تحويل النص إلى كلام.",
-                "messageSendFailed": "فشل إرسال الرسالة الصوتية."
+                "messageSendFailed": "فشل إرسال الرسالة الصوتية.",
+                "stoppedAfterFailure": "توقفت المكالمة. أصلح المشكلة قبل بدء مكالمة جديدة."
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "جارٍ تشغيل استجابة المساعد.",
@@ -2299,44 +2432,45 @@
                 "toggle": "تبديل ملء الشاشة"
             },
             "modalDescriptions": {
-                "agentPlan": "خطوات خطة الوكيل النشطة.",
-                "automationCalendar": "الإعدادات المحلية للتقويم وتنسيق التاريخ.",
-                "automationConfiguration": "الجدول الزمني والنموذج وحدود التشغيل.",
-                "automationOccurrence": "تشغيل مجدول واحد.",
-                "chatConfiguration": "النموذج والأدوات والذاكرة والواجهة لهذه الدردشة.",
-                "chatAttach": "ارفع الملفات أو أرفق المعرفة المرتبطة بهذه الدردشة.",
-                "chatAttachments": "المرفقات المشار إليها في هذه الرسالة.",
-                "chatMcpDefaultTools": "أدوات MCP الافتراضية للدردشات الجديدة.",
-                "chatMemoryProfile": "التفاصيل الشخصية التي يتذكرها SoAI عبر المحادثات.",
-                "chatPromptsPicker": "مطالبات محفوظة جاهزة للإدراج في هذه الدردشة.",
-                "voiceCall": "دردشة دون استخدام اليدين مع الميكروفون والنسخ الصوتي والاستجابات المتدفقة وتشغيل الكلام.",
-                "credits": "بيانات إسناد تبعيات الجهات الخارجية.",
-                "fileExplorerMetadata": "البيانات الوصفية للملف.",
-                "folderPicker": "اختر مجلدًا.",
-                "exportPreview": "محتويات التصدير.",
-                "hardwareSystemInfo": "تقرير مفصل عن النظام.",
-                "license": "نص ترخيص SoAI.",
-                "messageInfo": "البيانات الوصفية للرسالة.",
-                "metricsAdvanced": "مقاييس موسّعة لوقت التشغيل.",
-                "modelDetailTest": "أرسل طلب اختبار إلى هذا النموذج.",
-                "modelsDownload": "نزّل نموذجًا جديدًا.",
-                "modelsEdit": "تجاوز إمكانات هذا النموذج.",
-                "modelsProviders": "مزوّدو النماذج الخارجيون.",
-                "modelsRename": "امنح هذا النموذج اسمًا محليًا.",
-                "modelsVirtual": "مجموعات توجيه النماذج الافتراضية.",
-                "modelsVirtualEdit": "التوجيه لهذا النموذج الافتراضي.",
-                "pluginsClone": "أنشئ نسخة من هذه الإضافة بإعدادات جديدة.",
-                "pluginsConcurrent": "الحد الأقصى لمهام الإضافات المتزامنة.",
-                "pluginsConfig": "إعدادات الإضافة.",
-                "pluginsDownload": "ثبّت إضافة مضمّنة أو محلية.",
-                "pluginsInfo": "تفاصيل الإضافة وتشخيصاتها.",
-                "pluginsIntro": "كيف توسّع الإضافات إمكانات SoAI.",
-                "pluginsManageBackend": "إدارة إصدارات الواجهة الخلفية.",
-                "promptEnhancer": "أعد صياغة مطالبة محفوظة باستخدام نموذج.",
-                "settingsApiKeyQuota": "حدود الاستخدام لمفتاح API هذا.",
-                "settingsExternalAccounts": "حسابات البريد والتقويم.",
-                "settingsMcpServer": "اتصال خادم MCP.",
-                "toolCallOutput": "ناتج استدعاء أداة."
+                "agentPlan": "خطوات خطة الوكيل النشطة",
+                "automationCalendar": "الإعدادات المحلية للتقويم وتنسيق التاريخ",
+                "automationConfiguration": "الجدول الزمني والنموذج وحدود التشغيل",
+                "automationOccurrence": "تشغيل مجدول واحد",
+                "chatConfiguration": "النموذج والأدوات والذاكرة والواجهة لهذه الدردشة",
+                "chatAttach": "ارفع الملفات أو أرفق المعرفة المرتبطة بهذه الدردشة",
+                "chatAttachments": "المرفقات المشار إليها في هذه الرسالة",
+                "chatMcpDefaultTools": "أدوات MCP الافتراضية للدردشات الجديدة",
+                "chatMemoryProfile": "التفاصيل الشخصية التي يتذكرها SoAI عبر المحادثات",
+                "chatPromptsPicker": "مطالبات محفوظة جاهزة للإدراج في هذه الدردشة",
+                "voiceCall": "دردشة دون استخدام اليدين مع الميكروفون والنسخ الصوتي والاستجابات المتدفقة وتشغيل الكلام",
+                "credits": "بيانات إسناد تبعيات الجهات الخارجية",
+                "fileExplorerMetadata": "البيانات الوصفية للملف",
+                "folderPicker": "اختر مجلدًا",
+                "exportPreview": "محتويات التصدير",
+                "hardwareSystemInfo": "تقرير مفصل عن النظام",
+                "license": "نص ترخيص SoAI",
+                "messageInfo": "البيانات الوصفية للرسالة",
+                "metricsAdvanced": "مقاييس موسّعة لوقت التشغيل",
+                "modelDetailTest": "أرسل طلب اختبار إلى هذا النموذج",
+                "modelsDownload": "نزّل النماذج أو اربط موفّري خدمات خارجيين أو أضف ملفات نماذج محلية",
+                "modelsEdit": "تجاوز إمكانات هذا النموذج",
+                "modelsProviders": "مزوّدو النماذج الخارجيون",
+                "modelsRename": "امنح هذا النموذج اسمًا محليًا",
+                "modelsVirtual": "مجموعات توجيه النماذج الافتراضية",
+                "modelsVirtualEdit": "التوجيه لهذا النموذج الافتراضي",
+                "pluginsClone": "أنشئ نسخة من هذه الإضافة بإعدادات جديدة",
+                "pluginsConcurrent": "الحد الأقصى لمهام الإضافات المتزامنة",
+                "pluginsConfig": "إعدادات الإضافة",
+                "pluginsDownload": "نزّل الإضافات أو ارفعها أو أضفها من مجلد الإضافات المحلي",
+                "pluginsInfo": "تفاصيل الإضافة وتشخيصاتها",
+                "pluginsIntro": "كيف توسّع الإضافات إمكانات SoAI",
+                "pluginsManageBackend": "إدارة إصدارات الواجهة الخلفية",
+                "promptEnhancer": "أعد صياغة مطالبة محفوظة باستخدام نموذج",
+                "settingsApiKeyQuota": "حدود الاستخدام لمفتاح API هذا",
+                "settingsExternalAccounts": "حسابات البريد والتقويم",
+                "settingsMcpServer": "اتصال خادم MCP",
+                "toolCallOutput": "ناتج استدعاء أداة",
+                "conversationInput": "اعرض هذا الطلب ومرفقاته"
             },
             "loading": "جارٍ التحميل...",
             "confirm": "تأكيد",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count}ث"
+                    },
+                    "year": {
+                        "short": "{count}سنة"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "لديك تغييرات غير محفوظة. هل تريد المتابعة دون حفظ؟",
             "unsavedChangesTitle": "تغييرات غير محفوظة",
             "view": "عرض",
-            "yes": "نعم"
+            "yes": "نعم",
+            "retry": "إعادة المحاولة"
         },
         "contentPreview": {
             "actions": {
@@ -2620,7 +2758,7 @@
                 }
             },
             "firstRun": {
-                "description": "مسار إعداد مختصر للواجهات الخلفية المحلية والمزوّدين البعيدين والنماذج والتحديثات.",
+                "description": "مسار إعداد مختصر للواجهات الخلفية المحلية والمزوّدين البعيدين والنماذج والتحديثات",
                 "sections": {
                     "models": {
                         "heading": "أضف نموذجًا أو نزّله عندما تصبح الواجهة الخلفية جاهزة",
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "الشبكة",
+                    "unavailable": "قائمة المحولات غير متاحة",
                     "waiting": "جارٍ الاكتشاف..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "اختبار أداء",
                     "soaibenchStop": "إيقاف",
                     "soaibenchStress": "إجهاد",
+                    "viewBenchmark": "عرض اختبار الأداء",
                     "test": "اختبار",
                     "reset": "إعادة تعيين",
                     "save": "حفظ"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "بدأ GPU {index} تشغيل SoAIBench {profile}",
                     "soaibenchStopRequested": "طُلب إيقاف SoAIBench على GPU {index}",
                     "soaibenchUnsupported": "SoAIBench غير مدعوم على GPU {index}: {reason}",
+                    "soaibenchSettingsLocked": "يُجري GPU {index} اختبار أداء. أوقفه أو انتظر حتى ينتهي قبل حفظ إعداداته.",
                     "slotApplied": "تم تطبيق فتحة GPU {index} رقم {slot}",
                     "slotSaved": "تم حفظ فتحة GPU {index} رقم {slot}"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "حذف السجل المحلي",
+                "deleteLocalConfirm": {
+                    "title": "هل تريد حذف تشغيل SoAIBench؟",
+                    "message": "هل تريد حذف تشغيل SoAIBench هذا من السجل المحلي؟ لا يمكن التراجع عن هذا الإجراء."
+                },
                 "action": "مشاركة",
+                "openRun": "افتح النتيجة",
                 "ariaLabel": "مشاركة نتيجة SoAIBench هذه",
                 "unavailable": "لا يتوفر تشغيل SoAIBench صالح للنشر",
-                "confirm": { "title": "هل تريد مشاركة نتيجة SoAIBench؟", "message": "هل تريد نشر النتيجة {score} وتمريراتها المقاسة وعددها {passes} في لوحة صدارة SoAIBench العامة؟", "description": "يؤدي هذا إلى إرسال النتيجة وخمس تمريرات مقاسة ومعلومات GPU وبيئة التشغيل العامة وإعدادات الاختبار وأدلة المستشعرات الاختيارية. تُستبعد هوية الحساب والملفات والتكوين والتحليلات وبيانات القياس العامة. يمكن لموقع soai.to رؤية بيانات الاتصال الوصفية العادية مثل عنوان IP الخاص بك." },
-                "outcomes": { "published": "تمت مشاركة نتيجة SoAIBench علنًا.", "alreadyPublished": "سبق أن تمت مشاركة نتيجة SoAIBench هذه.", "heldForReview": "تم تعليق نتيجة SoAIBench لمراجعة الهوية أو القيم الشاذة، ولم تُحتسب في لوحة الصدارة بعد.", "offline": "تعذرت مشاركة النتيجة أثناء عدم اتصال SoAI.", "unavailable": "خدمة نشر SoAIBench غير متاحة.", "timeout": "انتهت مهلة مشاركة النتيجة. أعد المحاولة لتسوية عملية النشر نفسها.", "rateLimited": "تمت مشاركة نتائج كثيرة جدًا من هذا الاتصال. أعد المحاولة لاحقًا.", "capacity": "بلغت لوحة صدارة SoAIBench سعتها القصوى حاليًا.", "rejected": "رفضت لوحة صدارة SoAIBench هذه النتيجة.", "conflict": "تتعارض عملية النشر هذه مع حالة لوحة الصدارة الحالية.", "invalidResponse": "أعادت لوحة صدارة SoAIBench استجابة غير صالحة.", "retryAfter": "أعد المحاولة بعد {seconds} ثانية." }
+                "confirm": {
+                    "title": "هل تريد مشاركة نتيجة SoAIBench؟",
+                    "message": "هل تريد نشر النتيجة {score} وتمريراتها المقاسة وعددها {passes} في لوحة صدارة SoAIBench العامة؟",
+                    "description": "يؤدي هذا إلى إرسال النتيجة وخمس تمريرات مقاسة ومعلومات GPU وبيئة التشغيل العامة وإعدادات الاختبار وأدلة المستشعرات الاختيارية. تُستبعد هوية الحساب والملفات والتكوين والتحليلات وبيانات القياس العامة."
+                },
+                "outcomes": {
+                    "published": "تمت مشاركة نتيجة SoAIBench علنًا.",
+                    "alreadyPublished": "سبق أن تمت مشاركة نتيجة SoAIBench هذه.",
+                    "heldForReview": "تم تعليق نتيجة SoAIBench لمراجعة الهوية أو القيم الشاذة، ولم تُحتسب في لوحة الصدارة بعد.",
+                    "offline": "تعذرت مشاركة النتيجة أثناء عدم اتصال SoAI.",
+                    "unavailable": "خدمة نشر SoAIBench غير متاحة.",
+                    "timeout": "انتهت مهلة مشاركة النتيجة. أعد المحاولة لتسوية عملية النشر نفسها.",
+                    "rateLimited": "تمت مشاركة نتائج كثيرة جدًا من هذا الاتصال. أعد المحاولة لاحقًا.",
+                    "capacity": "بلغت لوحة صدارة SoAIBench سعتها القصوى حاليًا.",
+                    "rejected": "رفضت لوحة صدارة SoAIBench هذه النتيجة.",
+                    "conflict": "تتعارض عملية النشر هذه مع حالة لوحة الصدارة الحالية.",
+                    "invalidResponse": "أعادت لوحة صدارة SoAIBench استجابة غير صالحة.",
+                    "retryAfter": "أعد المحاولة بعد {seconds} ثانية."
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3123,9 +3286,11 @@
                         "quick": "سريع",
                         "varianceSuffix": "تباين {variance}%"
                     },
-                    "description": "عمليات تشغيل SoAIBench السابقة لـ GPU المحدد.",
+                    "description": "عمليات تشغيل SoAIBench السابقة لـ GPU المحدد",
                     "empty": "لا توجد عمليات تشغيل SoAIBench لهذا GPU حتى الآن.",
                     "loading": "جارٍ تحميل سجل عمليات التشغيل...",
+                    "pageEmpty": "لا توجد تشغيلات SoAIBench بعد.",
+                    "pageLoadFailed": "تعذر تحميل تشغيلات SoAIBench. حاول مرة أخرى.",
                     "matchBases": {
                         "device_id": "معرّف الجهاز",
                         "gpu_model_key": "مفتاح طراز GPU",
@@ -3146,7 +3311,9 @@
                         "standard": "قياسي",
                         "stress": "إجهاد"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "فشل التحقق العددي من حمل عمل OpenCL." },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "فشل التحقق العددي من حمل عمل OpenCL."
+                    },
                     "rowCopyUnavailable": "لا تتوفر عملية تشغيل SoAIBench لنسخها",
                     "staleHardware": "تطابق عتاد قديم",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "عمليات تشغيل SoAIBench السابقة"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "اختر وحدة معالجة رسومية لاختبارها",
+                    "noGpus": "لا توجد وحدات معالجة رسومية متاحة للاختبار.",
                     "ariaLabels": {
                         "close": "إغلاق SoAIBench",
                         "copy": "نسخ تشغيل SoAIBench",
@@ -3170,13 +3339,16 @@
                         "retry": "إعادة محاولة SoAIBench المعتمد",
                         "stop": "إيقاف SoAIBench المعتمد",
                         "stopping": "جارٍ إيقاف SoAIBench المعتمد",
+                        "newBenchmark": "بدء تشغيل جديد لـ SoAIBench المعتمد",
+                        "runAgain": "تشغيل SoAIBench المعتمد مرة أخرى على هذا GPU",
+                        "recover": "التحقق من حالة SoAIBench مرة أخرى",
                         "start": "بدء SoAIBench المعتمد"
                     },
                     "close": "إغلاق",
                     "copy": "نسخ",
                     "copySuccess": "تم نسخ تشغيل SoAIBench إلى الحافظة",
                     "copyUnavailable": "لا تتوفر عملية تشغيل SoAIBench لنسخها",
-                    "description": "اختبار أداء GPU معتمد للتحقق من جاهزيته للاستدلال في SoAI.",
+                    "description": "اختبار أداء GPU معتمد للتحقق من جاهزيته للاستدلال في SoAI",
                     "download": "تنزيل",
                     "export": {
                         "deviceId": "معرّف الجهاز",
@@ -3231,7 +3403,11 @@
                         "stopping": "جارٍ إيقاف SoAIBench",
                         "warmupDetail": "إحماء {pass}/{total}",
                         "warmupPhase": "الإحماء: {phase}",
-                        "warmup": "اكتمل تمرير الإحماء"
+                        "warmup": "اكتمل تمرير الإحماء",
+                        "reconnecting": "جارٍ إعادة الاتصال... آخر تحديث: {age}",
+                        "checkingStatus": "جارٍ التحقق من حالة اختبار الأداء...",
+                        "statusUnavailable": "حالة اختبار الأداء غير متاحة. أعد المحاولة للتحقق مرة أخرى.",
+                        "startUnconfirmed": "تعذّر تأكيد بدء اختبار الأداء، ولا يوجد تشغيل نشط على هذا GPU. راجع السجل قبل إعادة المحاولة."
                     },
                     "retry": "إعادة المحاولة",
                     "scoreLabel": "نتيجة SoAIBench",
@@ -3253,6 +3429,15 @@
                     "standardRun": "تشغيل قياسي",
                     "stop": "إيقاف",
                     "stopping": "جارٍ الإيقاف",
+                    "newBenchmark": "اختبار أداء جديد",
+                    "runAgain": "تشغيل مرة أخرى",
+                    "gpuBusy": "اختبار الأداء قيد التنفيذ",
+                    "startedAt": "بدأ في {time}",
+                    "states": {
+                        "starting": "جارٍ البدء",
+                        "unresolved": "الحالة غير معروفة",
+                        "rejected": "لم يبدأ"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "التوثيق",
             "intro": {
                 "aboutButton": "حول SoAI",
-                "paragraph1": "يدير <strong>SoAI (Smart Orchestrator for Artificial Intelligence)</strong> محرّكات الاستدلال المحلية ومزوّدي الذكاء الاصطناعي البعيدين من واجهة ويب واحدة، ويعرض نماذجهم عبر واجهات API متوافقة مع OpenAI وAnthropic",
+                "paragraph1": "يدير <strong dir=\"auto\">SoAI (Smart Orchestrator for Artificial Intelligence)</strong> محرّكات الاستدلال المحلية ومزوّدي الذكاء الاصطناعي البعيدين من واجهة ويب واحدة، ويعرض نماذجهم عبر واجهات API متوافقة مع OpenAI وAnthropic",
                 "paragraph2": "يعمل SoAI على Linux وmacOS وWindows. مصدره متاح للقراءة واستخدامه الشخصي والمنزلي مجاني. لا يجمع SoAI بياناتك ولا يرسل تحليلات أو قياسات عن بُعد أو تقارير استخدام"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "زمن الاستجابة",
                         "queueDepth": "عمق قائمة الانتظار",
                         "requests": "الطلبات",
+                        "throughput": "معدل إنتاج الرموز",
                         "tokens": "الرموز"
                     },
                     "title": "المخطط"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "اسم العرض",
                     "source_model_id": "معرّف النموذج المصدر",
-                    "provider": "المزوّد",
-                    "title": "الهوية",
                     "type": "النوع",
                     "universal_id": "المعرّف العام",
                     "virtual": "افتراضي"
@@ -4064,30 +4248,20 @@
                     "title": "إعدادات الاستدلال الافتراضية"
                 },
                 "metrics": {
-                    "avgLatency": "متوسط زمن الاستجابة",
                     "avgTokens": "متوسط الرموز/طلب",
                     "audioIn": "الصوت الوارد",
                     "audioOut": "الصوت الصادر",
-                    "failedRequests": "الطلبات الفاشلة",
                     "imagesIn": "الصور الواردة",
                     "imagesOut": "الصور الصادرة",
                     "last_used": "آخر استخدام",
                     "modalityUsage": "الاستخدام",
                     "success_rate": "معدل النجاح",
                     "textTokens": "رموز النص",
-                    "title": "المقاييس",
                     "tokensGenerated": "الرموز المُنشأة",
-                    "totalRequests": "إجمالي الطلبات",
-                    "waitTime": "متوسط وقت الانتظار"
+                    "totalRequests": "إجمالي الطلبات"
                 },
                 "plugin": {
-                    "author": "المؤلف",
-                    "models": "النماذج",
-                    "plugin_status": "حالة الإضافة",
-                    "providers": "المزوّدون",
-                    "title": "إضافة",
-                    "type": "النوع",
-                    "version": "الإصدار"
+                    "title": "إضافة"
                 },
                 "status": {
                     "available": "المتاح",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "إعادة تسمية",
                     "modelStatus": "حالة النموذج",
                     "orphaned": "يتيم",
-                    "parameters": "المعلمات",
                     "stopPlugin": "إيقاف الإضافة",
-                    "title": "الحالة والإجراءات"
+                    "title": "الحالة"
                 },
                 "technical": {
                     "created": "أُنشئت",
-                    "description": "الوصف",
                     "family": "العائلة",
                     "license": "الترخيص",
                     "path": "المسار",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "كل المعلمات",
-                "category": "الفئة",
                 "groupInference": "الاستدلال",
                 "groupStartup": "بدء التشغيل"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "إضافة عنصر من نوع {itemType}",
                 "aliasesPrefix": "يُعرف أيضًا باسم:",
                 "arrayOfType": "مصفوفة من قيم {itemType}",
+                "backendDefault": "الإعداد الافتراضي للواجهة الخلفية",
                 "backendDocumentationDescription": "تتضمن معلمات النموذج هذه <strong>إعدادات تحددها الواجهة الخلفية</strong> وتعرضها الإضافة. استخدم توثيق الواجهة الخلفية نفسه لمعرفة السلوك الدقيق والقيم المقبولة والإعدادات الافتراضية.",
-                "backendDocumentationTitle": "معلومات",
                 "badges": {
                     "custom": "مخصص",
-                    "default": "افتراضي",
                     "requiresReload": "يتطلب إعادة التحميل"
                 },
-                "countLabel": "{count} من المعلمات",
+                "count": {
+                    "plural": "{count} معلمات",
+                    "singular": "{count} معلمة"
+                },
                 "invalidJson": "أدخل JSON صالحًا لهذه المعلمة.",
                 "jsonObject": "كائن JSON",
                 "noMatchDescription": "جرّب تعديل معايير البحث أو التصفية.",
                 "noMatchTitle": "لا توجد معلمات تطابق عوامل التصفية",
                 "noParameters": "لا توجد معلمات متاحة لهذا النموذج",
+                "railLabel": "فئات المعلمات",
                 "range": "النطاق: {min} - {max}",
-                "removeItem": "إزالة العنصر"
+                "removeItem": "إزالة العنصر",
+                "revertChange": "التراجع عن التغيير",
+                "unsavedCount": {
+                    "plural": "{count} تغييرات غير محفوظة",
+                    "singular": "{count} تغيير غير محفوظ"
+                },
+                "views": {
+                    "customized": "مخصصة",
+                    "unsaved": "تغييرات غير محفوظة"
+                }
             },
             "status": {
                 "loaded": "محمّل",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "اختيار ملف",
                     "close": "إغلاق",
                     "confirmDownload": "تنزيل الإضافة",
                     "confirmUpload": "رفع الإضافة",
+                    "fileDropHint": "انقر لاختيار ملف .soaiplugin أو اسحبه إلى هنا",
+                    "fileDropTitle": "أفلِت إضافة هنا",
                     "fileHelp": "حدد حزمة إضافة Python بتنسيق ZIP (.soaiplugin)",
                     "fileLabel": "ملف الإضافة",
                     "manualCopySuccess": "تم نسخ مسار مجلد الإضافات إلى الحافظة.",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant} (مثبّت)",
                     "loadFailed": "تعذّر تحميل متغيرات الواجهة الخلفية.",
                     "loading": "جارٍ تحميل متغيرات الواجهة الخلفية...",
+                    "loadingBackends": "جارٍ تحميل الواجهات الخلفية...",
                     "saveFailed": "تعذّر حفظ متغير الواجهة الخلفية."
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "تم تفعيل تجاوز التوافق لـ {plugin}.",
                 "overrideRequired": "فعّل تجاوز التوافق قبل بدء {plugin}.",
                 "persistentNoStop": "لا يمكن إيقاف الإضافات الدائمة",
-                "pluginDisabled": "تم تعطيل الإضافة",
-                "pluginEnabled": "تم تفعيل الإضافة",
+                "pluginDisabled": "تم تعطيل الإضافة {plugin}",
+                "pluginEnabled": "تم تفعيل الإضافة {plugin}",
                 "pluginIncompatibleReason": "الإضافة \"{plugin}\" غير متوافقة: {reason}",
                 "pluginInfoCopyFailed": "فشل نسخ معلومات الإضافة",
                 "pluginStopInProgress": "جارٍ إيقاف {plugin}...",
@@ -5489,16 +5674,21 @@
                 "restarting": "التطبيق قيد إعادة التشغيل. يُفترض ألا يستغرق ذلك سوى بضع لحظات.",
                 "shutdown": "النظام قيد إيقاف التشغيل. يمكنك إغلاق نافذة المتصفح هذه.",
                 "sleep": "النظام يدخل وضع السكون. أيقظه لمتابعة استخدام SoAI.",
-                "updating": "يقوم SoAI بتنزيل التحديثات وتثبيتها. قد يستغرق ذلك عدة دقائق."
+                "updateTimeout": "لم يعد SoAI إلى الاتصال بعد التحديث. تحقّق من الملف application_updater.log في مجلد سجلات SoAI، ثم أعد تحميل هذه الصفحة.",
+                "updating": "سيُعاد تشغيل SoAI لإكمال التحديث. ستُعاد تحميل هذه الصفحة تلقائيًا عندما يعود SoAI إلى الاتصال. قد يستغرق ذلك عدة دقائق.",
+                "updatingDesktop": "سيُعاد تشغيل SoAI لإكمال التحديث. ستُغلق هذه النافذة وتُفتح من جديد تلقائيًا عند اكتمال التحديث. يُرجى عدم إيقاف تشغيل الكمبيوتر.",
+                "updatingSlow": "يستغرق التحديث وقتًا أطول من المعتاد. لا يزال SoAI يعمل، لذا يُرجى إبقاء هذه الصفحة مفتوحة."
             },
             "messages": {
                 "connectionLost": "فُقد الاتصال بالواجهة الخلفية",
+                "installingVersion": "جارٍ تثبيت SoAI {version}...",
                 "pleaseWait": "يُرجى الانتظار...",
                 "rebooting": "النظام قيد إعادة التشغيل...",
                 "rebootTimeout": "إعادة التشغيل ما تزال جارية...",
                 "restarting": "SoAI قيد إعادة التشغيل...",
                 "shutdown": "النظام قيد إيقاف التشغيل",
                 "sleep": "النظام في طريقه إلى السكون",
+                "updateTimeout": "لم يعد SoAI بعد",
                 "updating": "SoAI قيد التحديث..."
             },
             "reconnecting": "جارٍ محاولة إعادة الاتصال..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "اختر لونًا مخصصًا لجميع المخططات",
-                    "label": "لون ثابت"
+                    "label": "لون المخطط"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "تحكّم في كيفية عرض المحتوى الشبيه بالتعليمات البرمجية في SoAI.",
                 "subgroupTitle": "كتل التعليمات البرمجية"
+            },
+            "connect": {
+                "addressCopied": "تم نسخ العنوان",
+                "browserAddress": "عنوان هذا المتصفح",
+                "chooseAddress": "العنوان الذي سيستخدمه هاتفك",
+                "copyAddress": "نسخ العنوان",
+                "description": "اربط تطبيق SoAI Connect لنظام Android بهذا الخادم عن طريق مسح رمز QR.",
+                "documentationHint": "للإعداد اليدوي واستكشاف الأخطاء وإصلاحها، افتح صفحة \"Connect to a SoAI server\" في وثائق SoAI",
+                "documentationLink": "وثائق SoAI",
+                "loadFailed": "تعذّر تحميل تفاصيل الاتصال",
+                "loopbackWarningMessage": "يستمع SoAI على عنوان استرجاع (loopback)، لذا لا تستطيع الأجهزة الأخرى الوصول إليه مباشرة. لا يعمل رمز QR إلا عبر وكيل عكسي يستخدم المخطط والمنفذ نفسيهما اللذين يستخدمهما SoAI. للسماح بالاتصالات المباشرة، اضبط الخيار التالي وأعد تشغيل SoAI:",
+                "loopbackWarningTitle": "يمكن الوصول إليه من هذا الحاسوب فقط",
+                "noAddressesMessage": "صِل هذا الخادم بشبكة، أو افتح هذه الصفحة من العنوان الذي يجب أن يستخدمه هاتفك.",
+                "noAddressesTitle": "لم يُعثر على عنوان يمكن الوصول إليه",
+                "qrLabel": "رمز QR لربط SoAI Connect بالعنوان {address}",
+                "refresh": "تحديث العناوين",
+                "scanHint": "امسح رمز QR هذا باستخدام تطبيق SoAI Connect",
+                "stepInstall": "ثبّت SoAI Connect على هاتف Android وافتحه",
+                "stepScan": "اضغط على زر رمز QR بجوار حقل عنوان الخادم، ثم امسح الرمز الموجود في هذه الصفحة",
+                "stepSignIn": "راجع أي طلب متعلق بالشهادة، ثم سجّل الدخول بحساب SoAI الخاص بك",
+                "stepsTitle": "طريقة الاتصال",
+                "title": "SoAI Connect",
+                "vpnHint": "يجب أن يتمكن هاتفك من الوصول إلى هذا الخادم. استخدم الشبكة المحلية نفسها، أو شبكة VPN عندما تكون بعيدًا، بدلًا من كشف SoAI على الإنترنت",
+                "vpnTitle": "خارج المنزل؟"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "إخفاء ترويسة الصفحة تلقائيًا"
                     }
                 },
-                "subgroupTitle": "الحركة",
+                "subgroupTitle": "الواجهة",
                 "subgroupDescription": "اضبط الحركة والانتقالات والأسطح الزجاجية وسلوك التمرير."
             },
             "externalAccounts": {
@@ -6975,7 +7189,7 @@
                     "authorizedSendersPlaceholder": "sender-id | تسمية اختيارية",
                     "credentialsDescription": "أدخل بيانات الاعتماد المطلوبة للمزوّد المحدد.",
                     "credentialsTitle": "بيانات اعتماد المزوّد",
-                    "description": "كوّن حساب مزوّد فعليًا واحدًا وإعدادات تنفيذ الدردشة القياسية التي يملكها.",
+                    "description": "كوّن حساب مزوّد فعليًا واحدًا وإعدادات تنفيذ الدردشة القياسية التي يملكها",
                     "executionDescription": "اختر نموذج الدردشة والهوية والمطالبات ومساحة العمل ومعلمات التنفيذ.",
                     "executionTitle": "تنفيذ الدردشة",
                     "identityDescription": "سمِّ الحساب واختر مزوّده ولغة الرد.",
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "نسخ احتياطي",
+                "connect": "الاتصال",
                 "externalAccounts": "البريد والتقويم",
                 "licensing": "الترخيص",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "اختر واحدة لتطبيقها",
+                    "label": "خلفيات مدمجة",
+                    "none": "بدون خلفية",
+                    "option": "الخلفية {number}"
+                },
                 "downloadUrl": {
                     "button": "تنزيل",
                     "help": "أدخل عنوان URL لتنزيله وتعيينه كخلفية",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "تعذّر تحميل بعض ملاحظات الإصدارات. تُعرض الملاحظات المتاحة."
+            },
+            "outcome": {
+                "failureMessage": "لم يكتمل التحديث إلى الإصدار {version}. لا يزال SoAI {previousVersion} مثبتًا. تحقّق من الملف application_updater.log في مجلد سجلات SoAI لمعرفة التفاصيل.",
+                "failureTitle": "لم يكتمل التحديث",
+                "later": "لاحقًا",
+                "reloadMessage": "يعمل SoAI الآن بالإصدار {version}. أعد تحميل هذه الصفحة لاستخدام الواجهة المحدّثة.",
+                "reloadTitle": "تم تحديث SoAI",
+                "successMessage": "تم تحديث SoAI بنجاح إلى الإصدار {version}.",
+                "successTitle": "اكتمل التحديث"
+            },
+            "progress": {
+                "downloading": "جارٍ تنزيل التحديث...",
+                "handoff": "جارٍ التحضير لإعادة تشغيل SoAI...",
+                "staging": "جارٍ تجهيز ملفات التحديث...",
+                "unavailable": "التقدم المباشر غير متاح مؤقتًا.",
+                "verifying": "جارٍ التحقق من التحديث..."
+            },
             "actions": {
                 "checkUpdates": "التحقق من وجود تحديثات",
                 "installUpdate": "تثبيت التحديث"
@@ -7943,6 +8183,184 @@
             "welcome": {
                 "description": "يوحّد SoAI الواجهات الخلفية المحلية والبعيدة لنماذج LLM خلف طبقة تنسيق واحدة متوافقة مع OpenAI.",
                 "heading": "مرحبًا بك في SoAI!"
+            },
+            "aiSetup": {
+                "eyebrow": "إعداد SoAI",
+                "loadFailed": {
+                    "title": "تعذّر تحميل إعداد SoAI",
+                    "description": "لم يتمكن SoAI من قراءة المحركات والمزوّدين المتاحين. تأكد من أن SoAI يعمل ثم أعد المحاولة، أو أكمل الإعداد لاحقًا.",
+                    "retry": "إعادة المحاولة"
+                },
+                "nav": {
+                    "finishLater": "تخطٍّ",
+                    "skip": "تخطّي إعداد SoAI",
+                    "continue": "متابعة",
+                    "installAndContinue": "تثبيت",
+                    "downloadAndContinue": "تنزيل",
+                    "startChatting": "دردشة",
+                    "close": "إغلاق"
+                },
+                "sources": {
+                    "heading": "أين تريد تشغيل الذكاء الاصطناعي؟",
+                    "description": "اختر أحدهما أو كليهما. يمكنك تغيير ذلك لاحقًا.",
+                    "local": {
+                        "title": "على هذا الجهاز",
+                        "description": "خاص ويعمل دون اتصال بعد الإعداد. يتطلب تنزيلًا لمرة واحدة."
+                    },
+                    "cloud": {
+                        "title": "مزوّدو السحابة",
+                        "description": "يعمل في أي مكان مع اتصال بالإنترنت ومفتاح API من المزوّد.",
+                        "recommended": "موصى به"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "احصل على مفتاح API مجاني",
+                    "accessibleName": "احصل على مفتاح API مجاني (يُفتح في نافذة جديدة)"
+                },
+                "limited": {
+                    "noCompatibleEngine": "لا يوجد محرك محلي يدعم هذا الجهاز.",
+                    "insufficientMemory": "تحتاج النماذج المحلية إلى نحو {required} من الذاكرة الحرة؛ ويتوفر في هذا الجهاز نحو {available}.",
+                    "useCloud": "استخدام نموذج سحابي بدلًا من ذلك",
+                    "searchManually": "البحث عن النماذج يدويًا"
+                },
+                "connect": {
+                    "heading": "الاستعداد",
+                    "description": "اربط مزوّدًا وجهّز هذا الجهاز.",
+                    "cloud": {
+                        "heading": "ربط مزوّد سحابي",
+                        "description": "الصق عنوان URL لواجهة API والمفتاح من مزوّدك.",
+                        "moreOptions": "مزيد من الخيارات",
+                        "modelFilter": "مرشّح النماذج (اختياري)",
+                        "connect": "ربط",
+                        "connecting": "جارٍ الاتصال بـ {name}…",
+                        "connected": {
+                            "singular": "متصل · {count} نموذج متاح",
+                            "plural": "متصل · {count} نماذج متاحة"
+                        },
+                        "change": "تغيير"
+                    },
+                    "local": {
+                        "heading": "تثبيت محرك محلي",
+                        "description": "يتيح تشغيل النماذج على هذا الجهاز.",
+                        "automatic": "تلقائي (موصى به)",
+                        "usesGpu": "يستخدم {engine} مع بطاقة الرسومات",
+                        "usesProcessor": "يستخدم {engine} على المعالج",
+                        "usesInstalled": "يستخدم {engine} المثبّت مسبقًا",
+                        "chooseManually": "الاختيار يدويًا",
+                        "status": {
+                            "installed": "مثبّت",
+                            "recommended": "موصى به",
+                            "warning": "تحذير",
+                            "unavailable": "غير متاح"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "اختر نموذجًا",
+                    "description": "اختر ما تريد الدردشة معه. يمكنك إضافة المزيد لاحقًا.",
+                    "local": {
+                        "heading": "نماذج لهذا الجهاز",
+                        "description": "مختارة لتناسب عتادك."
+                    },
+                    "role": {
+                        "recommended": "موصى به",
+                        "faster": "أسرع",
+                        "smallest": "الأصغر"
+                    },
+                    "useCase": {
+                        "advanced": "أفضل جودة للكتابة والبرمجة والاستدلال",
+                        "balanced": "رائع للدردشة والكتابة والبرمجة اليومية",
+                        "reasoning": "استدلال قوي خطوة بخطوة",
+                        "light": "إجابات سريعة على عتاد متواضع"
+                    },
+                    "downloadSize": "تنزيل بحجم {size}",
+                    "runsOnGpu": "يعمل على بطاقة الرسومات",
+                    "runsOnCpu": "يعمل على المعالج",
+                    "speed": {
+                        "fast": "ردود سريعة",
+                        "moderate": "سرعة متوسطة",
+                        "slow": "ردود أبطأ"
+                    },
+                    "details": {
+                        "label": "التفاصيل",
+                        "quantization": "التكميم",
+                        "parameters": "المعاملات",
+                        "parametersDense": "{total} مليار",
+                        "parametersMoe": "{total} مليار، {active} مليار نشطة",
+                        "context": "طول السياق",
+                        "contextTokens": "{tokens} رمز",
+                        "contextReduced": "{tokens} رمز (مخفّض ليناسب هذا الجهاز)",
+                        "file": "الملف",
+                        "source": "المصدر"
+                    },
+                    "openChatWith": "فتح الدردشة بهذا النموذج",
+                    "searchAnother": "البحث عن نموذج آخر",
+                    "cloud": {
+                        "heading": "نماذج من {provider}",
+                        "description": "اختر واحدًا أو أكثر.",
+                        "filterPlaceholder": "تصفية النماذج…",
+                        "noMatches": "لا توجد نماذج تطابق هذا المرشّح.",
+                        "empty": "لم يُرجع هذا المزوّد أي نماذج. تحقق من مرشّح النماذج أو جرّب مزوّدًا آخر.",
+                        "backToProvider": "العودة إلى المزوّد"
+                    }
+                },
+                "progress": {
+                    "heading": "جارٍ تجهيز كل شيء",
+                    "description": "يمكنك بدء الدردشة بمجرد أن يصبح نموذج واحد جاهزًا.",
+                    "readyCount": "{ready} من {total} جاهزة",
+                    "installing": "جارٍ تثبيت {engine}",
+                    "downloading": "جارٍ تنزيل {model}",
+                    "waitingForEngine": "بانتظار انتهاء تثبيت {engine}",
+                    "discovering": "جارٍ إضافة {model} إلى نماذجك",
+                    "configuring": "جارٍ تطبيق الإعدادات الأولية",
+                    "testing": "جارٍ إرسال رسالة اختبار قصيرة",
+                    "ready": "{model} جاهز",
+                    "blocked": "لا يمكن البدء قبل تثبيت {engine}",
+                    "checkingStatus": "جارٍ التحقق من الحالة",
+                    "retry": "إعادة المحاولة",
+                    "retryInstallation": "إعادة محاولة التثبيت",
+                    "skipItem": "تخطي هذا العنصر",
+                    "testAgain": "الاختبار مرة أخرى",
+                    "checkAgain": "التحقق مرة أخرى",
+                    "sendTest": "إرسال رسالة اختبار",
+                    "error": {
+                        "empty": "حُمّل النموذج لكنه لم يرد. أعد المحاولة أو اختر نموذجًا آخر.",
+                        "loadError": "تعذّر تشغيل النموذج على هذا الجهاز. أعد المحاولة أو اختر نموذجًا أصغر.",
+                        "timeout": "استغرق النموذج وقتًا طويلًا للرد. أعد المحاولة أو اختر نموذجًا أصغر.",
+                        "disconnected": "انقطع الاتصال أثناء الاختبار. أعد المحاولة.",
+                        "downloadFailed": "توقف التنزيل. أعد المحاولة.",
+                        "installFailed": "لم يكتمل التثبيت. أعد المحاولة.",
+                        "noDiskSpace": "لا توجد مساحة كافية على القرص لهذا النموذج. حرّر بعض المساحة أو اختر نموذجًا أصغر."
+                    },
+                    "testPrompt": "رد بجملة واحدة قصيرة وودودة.",
+                    "testCancelled": "أُلغي اختبار إعداد SoAI."
+                },
+                "completion": {
+                    "modelsTitle": "نماذج الذكاء الاصطناعي",
+                    "modelsReady": {
+                        "singular": "{count} جاهز",
+                        "plural": "{count} جاهزة"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} لا يزال قيد التجهيز في الخلفية",
+                        "plural": "{count} لا تزال قيد التجهيز في الخلفية"
+                    }
+                },
+                "resume": {
+                    "link": "إكمال إعداد SoAI",
+                    "toast": "بعض خطوات إعداد SoAI تحتاج إلى انتباهك."
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "سيستمر تنزيل النموذج في الخلفية.",
+                        "plural": "ستستمر {count} عمليات تنزيل للنماذج في الخلفية."
+                    },
+                    "installations": {
+                        "singular": "سيستمر تثبيت الواجهة الخلفية في الخلفية.",
+                        "plural": "ستستمر {count} عمليات تثبيت للواجهات الخلفية في الخلفية."
+                    },
+                    "both": "ستستمر عمليات تنزيل النماذج وتثبيت الواجهات الخلفية في الخلفية."
+                }
             }
         }
     }

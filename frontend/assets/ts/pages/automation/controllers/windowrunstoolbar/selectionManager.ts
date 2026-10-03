@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { CSS_CLASSES } from '@core/cssConstants.ts';
+import { resolve } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { SelectionState } from '@core/selection/state.ts';
 import { syncSelectionActionVisibility, syncSelectionToolbarVisibility } from '@core/selection/toolbarVisibility.ts';
@@ -20,6 +21,7 @@ class AutomationWindowRunsSelectionManager {
     readonly #dependencies: SelectionManagerDependencies;
     #ui: AutomationWindowRunsToolbarUiRefs | null = null;
     #totalRunsCount = 0;
+    #mutationPending = false;
     readonly #selection = new SelectionState();
 
     constructor(dependencies: SelectionManagerDependencies) {
@@ -29,7 +31,7 @@ class AutomationWindowRunsSelectionManager {
     bindUi(refs: AutomationWindowRunsToolbarUiRefs): void {
         this.#ui = refs;
         this.#syncToolbarUi();
-        this.#syncRunItemSelectionClasses();
+        this.#syncRunItemSelection();
     }
 
     isActive(): boolean {
@@ -52,6 +54,11 @@ class AutomationWindowRunsSelectionManager {
         return this.#selection.size();
     }
 
+    setMutationPending(pending: boolean): void {
+        this.#mutationPending = pending;
+        this.#syncToolbarUi();
+    }
+
     setTotalRunsCount(count: number): void {
         this.#totalRunsCount = Number.isInteger(count) && count > 0 ? count : 0;
         if (this.#totalRunsCount < 2 && this.#selection.isActive()) {
@@ -59,7 +66,7 @@ class AutomationWindowRunsSelectionManager {
             this.#selection.setActive(false);
         }
         this.#syncToolbarUi();
-        this.#syncRunItemSelectionClasses();
+        this.#syncRunItemSelection();
     }
 
     activate(options: SelectionModeOptions = {}): void {
@@ -72,7 +79,7 @@ class AutomationWindowRunsSelectionManager {
         this.#selection.clear();
         this.#selection.setActive(true);
         this.#syncToolbarUi();
-        this.#syncRunItemSelectionClasses();
+        this.#syncRunItemSelection();
         if (options.queueRender !== false) {
             this.#dependencies.queueRender();
         }
@@ -85,10 +92,19 @@ class AutomationWindowRunsSelectionManager {
         this.#selection.clear();
         this.#selection.setActive(false);
         this.#syncToolbarUi();
-        this.#syncRunItemSelectionClasses();
+        this.#syncRunItemSelection();
         if (options.queueRender !== false) {
             this.#dependencies.queueRender();
         }
+    }
+
+    reconcile(availableKeys: ReadonlySet<string>): void {
+        const staleKeys = this.#selection.list().filter((key) => !availableKeys.has(key));
+        if (staleKeys.length === 0) {
+            return;
+        }
+        this.#selection.removeMany(staleKeys);
+        this.#syncToolbarUi();
     }
 
     toggleOccurrence(zoneKey: string): void {
@@ -101,7 +117,7 @@ class AutomationWindowRunsSelectionManager {
         }
         this.#selection.toggle(key);
         this.#syncToolbarUi();
-        this.#syncRunItemSelectionForKey(key);
+        this.#syncRunItemSelection(key);
     }
 
     #syncToolbarUi(): void {
@@ -125,7 +141,7 @@ class AutomationWindowRunsSelectionManager {
         const count = this.#selection.size();
         ui.selectedCountLabel.textContent = i18n.t('automation.pane.windowRuns.toolbar.selectedCount', { count });
         const hasSelection = count > 0;
-        ui.batchDeleteButton.disabled = !hasSelection;
+        ui.batchDeleteButton.disabled = !hasSelection || this.#mutationPending;
         syncSelectionActionVisibility(ui.batchDeleteButton, hasSelection);
         if (!active) {
             ui.batchDeleteButton.disabled = true;
@@ -133,31 +149,25 @@ class AutomationWindowRunsSelectionManager {
         }
     }
 
-    #syncRunItemSelectionClasses(): void {
+    #syncRunItemSelection(onlyKey: string | null = null): void {
         const ui = this.#ui;
         if (!ui) {
             return;
         }
+        const active = this.#selection.isActive();
         for (const element of queryAutomationWindowRunItems(ui.runsList)) {
             const zoneKey = (element.dataset['zoneKey'] ?? '').trim();
-            if (!zoneKey) {
+            if (!zoneKey || (onlyKey !== null && zoneKey !== onlyKey)) {
                 continue;
             }
-            element.classList.toggle('is-batch-selected', this.#selection.isActive() && this.#selection.has(zoneKey));
-        }
-    }
-
-    #syncRunItemSelectionForKey(zoneKey: string): void {
-        const ui = this.#ui;
-        if (!ui) {
-            return;
-        }
-        for (const element of queryAutomationWindowRunItems(ui.runsList)) {
-            const elementKey = (element.dataset['zoneKey'] ?? '').trim();
-            if (elementKey !== zoneKey) {
-                continue;
+            const selected = active && this.#selection.has(zoneKey);
+            element.classList.toggle('is-batch-selected', selected);
+            const hit = resolve('.automation-window-run-item-hit', element);
+            if (active) {
+                hit?.setAttribute('aria-pressed', selected ? 'true' : 'false');
+            } else {
+                hit?.removeAttribute('aria-pressed');
             }
-            element.classList.toggle('is-batch-selected', this.#selection.isActive() && this.#selection.has(zoneKey));
         }
     }
 }

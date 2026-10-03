@@ -20,5 +20,6 @@ export const syncInputWrapperScrollState = (context: ChatUIManagerContext): void
     if (!wrapper) {
         return;
     }
-    context.dependencies.toggleClassName(wrapper, CHAT_INPUT_WRAPPER_SCROLLED_CLASS, !context.state.autoScrollEnabled);
+    const dimsActionsWhileReadingHistory = !context.state.autoScrollEnabled && !context.dependencies.settings.isAutoHideChatComposerEnabled();
+    context.dependencies.toggleClassName(wrapper, CHAT_INPUT_WRAPPER_SCROLLED_CLASS, dimsActionsWhileReadingHistory);
 };

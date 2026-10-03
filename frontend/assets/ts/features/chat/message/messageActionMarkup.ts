@@ -29,9 +29,9 @@ const formatMessageTimestamp = (timestamp: number): { label: string; title: stri
     const yesterdayLabel = i18n.t('chat.message.timestampYesterday');
     let label: string;
     if (bucket.type === 'today') {
-        label = `${todayLabel}, ${timeFormat}`;
+        label = i18n.t('chat.message.timestampWithTime', { label: todayLabel, time: timeFormat });
     } else if (bucket.type === 'yesterday') {
-        label = `${yesterdayLabel}, ${timeFormat}`;
+        label = i18n.t('chat.message.timestampWithTime', { label: yesterdayLabel, time: timeFormat });
     } else {
         label = i18n.formatDate(date, {
             year: 'numeric',

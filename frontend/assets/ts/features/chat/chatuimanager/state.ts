@@ -34,7 +34,8 @@ function createChatUIManagerState(): ChatUIManagerState {
         scrollListenerMessagesArea: null,
         messagesAutoScrollLockDisposer: null,
         messagesAutoScrollLockArea: null,
-        conversationScrollSnapshotByConversationId: new Map(),
+        conversationScrollSnapshotPersistTimer: null,
+        conversationScrollSnapshotPersistenceDisposer: null,
         pendingConversationScrollRestoreConversationId: null,
         activeConversationScrollRestore: null,
         conversationScrollRestoreGeneration: 0,
@@ -44,6 +45,8 @@ function createChatUIManagerState(): ChatUIManagerState {
         advancedScrollPreviewVisibilityController: null,
         activeConversationTransitionId: null,
         messagesAreaInsetsDisposer: null,
+        chatChromeVisibilityRuntime: null,
+        conversationInputModal: null,
         modalPresenter: null
     };
 }

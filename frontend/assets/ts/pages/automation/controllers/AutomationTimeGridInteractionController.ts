@@ -7,14 +7,20 @@ import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { requireIsoDateToUtcMs } from '@core/time/localCalendar.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
 import { AUTOMATION_ACTION_TIME_GRID_CREATE_AT } from '@features/automation/public.ts';
-import { requireAutomationTimeGridCanvasInner, resolveAutomationWeekColumnCanvas } from '@pages/automation/dom.ts';
-import type { AutomationUiRefs } from '@pages/automation/types.ts';
+import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
+import { formatAutomationCreateAtLabel } from '@pages/automation/controllers/automationZoneFormatters.ts';
+import { requireAutomationTimeGridCanvasInner, resolveAutomationTimeGridCanvas } from '@pages/automation/dom.ts';
+import type { AutomationCalendarTimeFormat, AutomationUiRefs } from '@pages/automation/types.ts';
 
 interface InteractionDependencies {
     ui: AutomationUiRefs;
     openCreateModalAt: (scheduledAtUtcMs: number) => void;
+    getTimeFormat: () => AutomationCalendarTimeFormat;
     hourHeightPx: number;
 }
+
+const DAY_LAST_SLOT_MINUTES = 24 * 60 - 15;
+const KEYBOARD_MINUTE_ADJUSTMENTS: Readonly<Record<string, number>> = { ArrowUp: -15, ArrowDown: 15, PageUp: -60, PageDown: 60 };
 
 const resolveMinutesFromPointer = (canvasInner: HTMLElement, clientY: number, hourHeightPx: number): number => {
     const rect = measureLayoutBox(canvasInner);
@@ -30,6 +36,10 @@ const snapshotMinutes = (minutes: number, snapshot: number): number => {
 
 const isTimeGridCreateAction = (value: string | undefined): value is typeof AUTOMATION_ACTION_TIME_GRID_CREATE_AT => value === AUTOMATION_ACTION_TIME_GRID_CREATE_AT;
 
+const isKeyboardCreateButton = (element: Element | null): element is HTMLButtonElement => element instanceof HTMLButtonElement && element.dataset['automationKeyboardCreate'] === 'true';
+
+const readKeyboardMinutes = (button: HTMLButtonElement): number => clampNumber(Number(button.dataset['keyboardMinutes'] ?? 540), 0, DAY_LAST_SLOT_MINUTES);
+
 class AutomationTimeGridInteractionController {
     readonly #dependencies: InteractionDependencies;
     #hoverCanvas: HTMLElement | null = null;
@@ -43,26 +53,17 @@ class AutomationTimeGridInteractionController {
     }
 
     connect(signal: AbortSignal): void {
-        bindDataActionListener({
-            root: this.#dependencies.ui.calendarRoot,
-            eventType: 'click',
-            signal,
-            isAction: isTimeGridCreateAction,
-            preventDefault: 'never',
-            onAction: ({ event, actionElement }): void => this.onCalendarCreateClick(event, actionElement)
-        });
-        bindDataActionListener({
-            root: this.#dependencies.ui.calendarRoot,
-            eventType: 'keydown',
-            signal,
-            isAction: isTimeGridCreateAction,
-            preventDefault: 'never',
-            onAction: ({ event, actionElement }): void => this.onCalendarCreateKeydown(event, actionElement)
-        });
+        const root = this.#dependencies.ui.calendarRoot;
+        bindDataActionListener({ root, eventType: 'click', signal, isAction: isTimeGridCreateAction, preventDefault: 'never', onAction: ({ event, actionElement }): void => this.onCalendarCreateClick(event, actionElement) });
+        bindDataActionListener({ root, eventType: 'keydown', signal, isAction: isTimeGridCreateAction, preventDefault: 'never', onAction: ({ event, actionElement }): void => this.onCalendarCreateKeydown(event, actionElement) });
         const handlePointerMove = (event: PointerEvent): void => this.onPointerHover(event);
-        this.#dependencies.ui.calendarRoot.addEventListener('pointermove', handlePointerMove, { signal });
+        root.addEventListener('pointermove', handlePointerMove, { signal });
         const handlePointerLeave = (): void => this.clearHover();
-        this.#dependencies.ui.calendarRoot.addEventListener('pointerleave', handlePointerLeave, { signal });
+        root.addEventListener('pointerleave', handlePointerLeave, { signal });
+        const handleFocusIn = (event: FocusEvent): void => this.#onFocusIn(event);
+        root.addEventListener('focusin', handleFocusIn, { signal });
+        const handleFocusOut = (event: FocusEvent): void => this.#onFocusOut(event);
+        root.addEventListener('focusout', handleFocusOut, { signal });
     }
 
     destroy(): void {
@@ -70,47 +71,65 @@ class AutomationTimeGridInteractionController {
     }
 
     onCalendarCreateClick(event: Event, actionElement: HTMLElement): void {
+        if (isKeyboardCreateButton(actionElement)) {
+            this.#openCreateAtMinutes(actionElement.dataset['date'] ?? '', readKeyboardMinutes(actionElement));
+            return;
+        }
         if (!(event instanceof MouseEvent)) {
             return;
         }
         if (actionElement.dataset['automationDayCanvas'] === 'true') {
-            const iso = actionElement.dataset['date'] ?? '';
-            this.#openCreateAtCanvasPoint(actionElement, iso, measureLayoutPoint(event, actionElement).y);
+            this.#openCreateAtCanvasPoint(actionElement, actionElement.dataset['date'] ?? '', measureLayoutPoint(event, actionElement).y);
             return;
         }
         if (actionElement.dataset['automationWeekColumn'] === 'true') {
-            const iso = actionElement.dataset['date'] ?? '';
-            const canvas = resolveAutomationWeekColumnCanvas(actionElement);
-            this.#openCreateAtCanvasPoint(canvas, iso, measureLayoutPoint(event, canvas).y);
+            const canvas = resolveAutomationTimeGridCanvas(actionElement);
+            this.#openCreateAtCanvasPoint(canvas, actionElement.dataset['date'] ?? '', measureLayoutPoint(event, canvas).y);
         }
     }
 
     onCalendarCreateKeydown(event: Event, actionElement: HTMLElement): void {
-        if (!(event instanceof KeyboardEvent)) return;
-        const currentMinutes = Number(actionElement.dataset['keyboardMinutes'] ?? 540);
-        const keyAdjustments: Readonly<Record<string, number>> = { ArrowUp: -15, ArrowDown: 15, PageUp: -60, PageDown: 60 };
-        const adjustment = keyAdjustments[event.key];
-        if (adjustment !== undefined || event.key === 'Home' || event.key === 'End') {
-            event.preventDefault();
-            const nextMinutes = event.key === 'Home' ? 0 : event.key === 'End' ? 24 * 60 - 15 : clampNumber(currentMinutes + (adjustment ?? 0), 0, 24 * 60 - 15);
-            actionElement.dataset['keyboardMinutes'] = String(nextMinutes);
-            const canvas = actionElement.dataset['automationWeekColumn'] === 'true' ? resolveAutomationWeekColumnCanvas(actionElement) : actionElement;
-            const canvasInner = requireAutomationTimeGridCanvasInner(canvas);
-            canvasInner.style.setProperty('--automation-hover-top', `${(nextMinutes / 60) * this.#dependencies.hourHeightPx}px`);
-            canvasInner.classList.add('is-hovering');
-            return;
-        }
-        if (event.key !== 'Enter' && event.key !== ' ') return;
+        if (!(event instanceof KeyboardEvent) || !isKeyboardCreateButton(actionElement)) return;
+        const adjustment = KEYBOARD_MINUTE_ADJUSTMENTS[event.key];
+        if (adjustment === undefined && event.key !== 'Home' && event.key !== 'End') return;
         event.preventDefault();
-        const isoDate = actionElement.dataset['date'] ?? '';
-        this.#openCreateAtMinutes(isoDate, clampNumber(currentMinutes, 0, 24 * 60 - 15));
+        const nextMinutes = event.key === 'Home' ? 0 : event.key === 'End' ? DAY_LAST_SLOT_MINUTES : clampNumber(readKeyboardMinutes(actionElement) + (adjustment ?? 0), 0, DAY_LAST_SLOT_MINUTES);
+        actionElement.dataset['keyboardMinutes'] = String(nextMinutes);
+        const label = formatAutomationCreateAtLabel(actionElement.dataset['date'] ?? '', nextMinutes, this.#dependencies.getTimeFormat());
+        actionElement.setAttribute('aria-label', label);
+        setTooltipText(actionElement, label);
+        this.#showKeyboardSlot(actionElement);
+    }
+
+    #onFocusIn(event: FocusEvent): void {
+        if (isKeyboardCreateButton(event.target instanceof Element ? event.target : null) && event.target instanceof HTMLButtonElement) {
+            this.#showKeyboardSlot(event.target);
+        }
+    }
+
+    #onFocusOut(event: FocusEvent): void {
+        if (isKeyboardCreateButton(event.target instanceof Element ? event.target : null)) {
+            this.clearHover();
+        }
+    }
+
+    #showKeyboardSlot(button: HTMLButtonElement): void {
+        const container = button.parentElement;
+        if (!container) return;
+        const canvasInner = requireAutomationTimeGridCanvasInner(resolveAutomationTimeGridCanvas(container));
+        if (this.#hoverCanvas !== canvasInner) {
+            this.clearHover();
+            this.#hoverCanvas = canvasInner;
+        }
+        this.#hoverTopPx = (readKeyboardMinutes(button) / 60) * this.#dependencies.hourHeightPx;
+        canvasInner.style.setProperty('--automation-hover-top', `${this.#hoverTopPx}px`);
+        canvasInner.classList.add('is-hovering', 'is-keyboard-slot');
     }
 
     #openCreateAtCanvasPoint(canvas: HTMLElement, isoDate: string, clientY: number): void {
         const startUtcMs = requireIsoDateToUtcMs(isoDate, 'Automation time grid date');
         const minutes = resolveMinutesFromPointer(requireAutomationTimeGridCanvasInner(canvas), clientY, this.#dependencies.hourHeightPx);
-        const snappedMinutes = snapshotMinutes(minutes, 15);
-        this.#openCreateAtMinutes(isoDate, snappedMinutes, startUtcMs);
+        this.#openCreateAtMinutes(isoDate, snapshotMinutes(minutes, 15), startUtcMs);
     }
 
     #openCreateAtMinutes(isoDate: string, minutes: number, startUtcMs = requireIsoDateToUtcMs(isoDate, 'Automation time grid date')): void {
@@ -141,8 +160,6 @@ class AutomationTimeGridInteractionController {
         const minutes = resolveMinutesFromPointer(inner, measureLayoutPoint(event, inner).y, this.#dependencies.hourHeightPx);
         const hourIndex = Math.floor(minutes / 60);
         const topPx = hourIndex * this.#dependencies.hourHeightPx;
-        const atStart = hourIndex === 0;
-        const atEnd = hourIndex === 23;
 
         if (this.#hoverCanvas !== inner) {
             this.clearHover();
@@ -150,20 +167,19 @@ class AutomationTimeGridInteractionController {
             this.#hoverTopPx = null;
         }
 
-        if (this.#hoverCanvas && this.#hoverTopPx !== topPx) {
-            this.#hoverCanvas.style.setProperty('--automation-hover-top', `${topPx}px`);
+        if (this.#hoverTopPx !== topPx) {
+            inner.style.setProperty('--automation-hover-top', `${topPx}px`);
             this.#hoverTopPx = topPx;
         }
-        this.#hoverCanvas.classList.add('is-hovering');
-        this.#hoverCanvas.classList.toggle('is-hovering-start', atStart);
-        this.#hoverCanvas.classList.toggle('is-hovering-end', atEnd);
+        inner.classList.remove('is-keyboard-slot');
+        inner.classList.add('is-hovering');
+        inner.classList.toggle('is-hovering-start', hourIndex === 0);
+        inner.classList.toggle('is-hovering-end', hourIndex === 23);
     }
 
     clearHover(): void {
         if (this.#hoverCanvas) {
-            this.#hoverCanvas.classList.remove('is-hovering');
-            this.#hoverCanvas.classList.remove('is-hovering-start');
-            this.#hoverCanvas.classList.remove('is-hovering-end');
+            this.#hoverCanvas.classList.remove('is-hovering', 'is-hovering-start', 'is-hovering-end', 'is-keyboard-slot');
             this.#hoverCanvas.style.removeProperty('--automation-hover-top');
         }
         this.#hoverCanvas = null;

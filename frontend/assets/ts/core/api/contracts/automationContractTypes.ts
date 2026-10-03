@@ -10,8 +10,9 @@ type AutomationColor = 'Red' | 'Yellow' | 'Purple' | 'Green' | 'Blue' | null;
 
 type AutomationModelSettings = Partial<ChatRequestParameters> & {
     model: string;
-    agent: { mode: 'execute'; maxIterations?: number };
-    mcp: McpFormValues;
+    agent: { mode: 'execute'; maxIterations?: number; additionalSettings?: JsonObject };
+    mcp: McpFormValues & { additionalSettings?: JsonObject };
+    additionalSettings?: JsonObject;
     workspacePath?: string | null;
     prompts?: {
         userSystemPrompt?: string | null;
@@ -24,8 +25,17 @@ type AutomationModelSettings = Partial<ChatRequestParameters> & {
     seed?: number | null;
 };
 
+type AutomationStartLocalResolution = 'exact' | 'nonexistent' | 'ambiguous';
+
+interface AutomationLatestRunResponse {
+    status: AutomationRunStatus;
+    scheduledAtMs: number;
+    finishedAtMs: number | null;
+}
+
 interface AutomationDefinitionResponse {
     id: string;
+    revision: string;
     title: string;
     enabled: boolean;
     interactiveToolApproval: boolean;
@@ -41,6 +51,24 @@ interface AutomationDefinitionResponse {
     nextRunAtMs: number | null;
     createdAtMs: number;
     lastModifiedAtMs: number;
+    latestRun: AutomationLatestRunResponse | null;
+}
+
+interface AutomationSchedulePreviewRequest {
+    startLocal: string;
+    timezone: string;
+    recurrence: AutomationRecurrence;
+    enabled: boolean;
+}
+
+interface AutomationSchedulePreviewResponse {
+    timezone: string;
+    startLocal: string;
+    effectiveStartLocal: string;
+    startLocalResolution: AutomationStartLocalResolution;
+    firstOccurrenceAtMs: number;
+    nextOccurrenceAtMs: number | null;
+    oneShotStartInPast: boolean;
 }
 
 interface AutomationOccurrenceResponse {
@@ -137,4 +165,4 @@ interface UpdateAutomationRequest {
     modelSettings?: AutomationModelSettings;
 }
 
-export type { AutomationColor, AutomationDefinitionResponse, AutomationDefinitionsPageResponse, AutomationMcpCatalogResponse, AutomationModelSettings, AutomationOccurrenceKeyRequest, AutomationOccurrenceResponse, AutomationOccurrencesDeleteResponse, AutomationOccurrencesPageResponse, AutomationRunResponse, CreateAutomationRequest, UpdateAutomationRequest };
+export type { AutomationColor, AutomationDefinitionResponse, AutomationDefinitionsPageResponse, AutomationLatestRunResponse, AutomationMcpCatalogResponse, AutomationModelSettings, AutomationOccurrenceKeyRequest, AutomationOccurrenceResponse, AutomationOccurrencesDeleteResponse, AutomationOccurrencesPageResponse, AutomationRunResponse, AutomationSchedulePreviewRequest, AutomationSchedulePreviewResponse, AutomationStartLocalResolution, CreateAutomationRequest, UpdateAutomationRequest };

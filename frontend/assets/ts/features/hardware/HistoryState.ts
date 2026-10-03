@@ -41,8 +41,6 @@ interface HistorySnapshot {
     candleData: HistoryCandleEntry[];
     candleMetadata: HistoryMetadataEntry | null;
     candleBuckets: Map<number, HistoryCandleBucketEntry>;
-    lineHistoryExhausted?: boolean | undefined;
-    candlestickHistoryExhausted?: boolean | undefined;
     lastResolvedCandlestickIntervalSec?: number | undefined;
 }
 
@@ -52,8 +50,6 @@ interface HistorySource {
     candlestickData: HistoryCandleEntry[];
     candlestickMetadata: HistoryMetadataEntry | null;
     candlestickBuckets: Map<number, HistoryCandleBucketEntry>;
-    lineHistoryExhausted: boolean;
-    candlestickHistoryExhausted: boolean;
     lastResolvedCandlestickIntervalMs: number | undefined;
 }
 
@@ -80,8 +76,6 @@ class HistoryStateManager {
             candleData: cloneCandleSeries(source.candlestickData),
             candleMetadata: cloneMetadata(source.candlestickMetadata),
             candleBuckets: cloneBuckets(source.candlestickBuckets),
-            lineHistoryExhausted: source.lineHistoryExhausted,
-            candlestickHistoryExhausted: source.candlestickHistoryExhausted,
             lastResolvedCandlestickIntervalSec: Number.isFinite(source.lastResolvedCandlestickIntervalMs) ? source.lastResolvedCandlestickIntervalMs : undefined
         };
     }
@@ -93,8 +87,6 @@ class HistoryStateManager {
         target.candlestickData = cloneCandleSeries(snapshot.candleData);
         target.candlestickMetadata = cloneMetadata(snapshot.candleMetadata);
         target.candlestickBuckets = cloneBuckets(snapshot.candleBuckets);
-        if (snapshot.lineHistoryExhausted !== undefined) target.lineHistoryExhausted = snapshot.lineHistoryExhausted;
-        if (snapshot.candlestickHistoryExhausted !== undefined) target.candlestickHistoryExhausted = snapshot.candlestickHistoryExhausted;
         if (Number.isFinite(snapshot.lastResolvedCandlestickIntervalSec)) target.lastResolvedCandlestickIntervalMs = snapshot.lastResolvedCandlestickIntervalSec;
     }
 }

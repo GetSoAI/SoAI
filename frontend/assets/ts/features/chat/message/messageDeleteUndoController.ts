@@ -137,7 +137,19 @@ class ChatMessageDeleteUndoController {
             return;
         }
         this.#dependencies.invalidateChatMarkup('current');
-        await this.#dependencies.renderCurrentConversation();
+        try {
+            await this.#dependencies.renderCurrentConversation();
+            if (this.#isDisposed) return;
+            if (this.#conversationResolver.isCurrentConversationKey(conversationKey)) {
+                this.#pendingRegistry.markPresented(conversationKey, normalizedMessageDomId, created);
+            } else if (this.#cancelPendingDelete(conversationKey, normalizedMessageDomId, created)) {
+                this.#dependencies.invalidateChatMarkup('current');
+            }
+        } catch (error) {
+            this.#cancelPendingDelete(conversationKey, normalizedMessageDomId, created);
+            this.#dependencies.invalidateChatMarkup('current');
+            throw error;
+        }
     }
 
     async undoDelete(conversation: ConversationContract, messageDomId: string): Promise<void> {
@@ -149,15 +161,18 @@ class ChatMessageDeleteUndoController {
             return;
         }
         const conversationKey = this.#conversationResolver.resolveKey(conversation);
-        const wasPending = this.#pendingRegistry.undoDelete(conversationKey, normalizedMessageDomId);
+        const wasPending = this.#cancelPendingDelete(conversationKey, normalizedMessageDomId);
         if (!wasPending) {
             return;
         }
-        if (!this.#pendingRegistry.isConversationActive(conversationKey)) {
-            this.#conversationResolver.releaseLocalConversationKey(conversationKey);
-        }
         this.#dependencies.invalidateChatMarkup('current');
         await this.#dependencies.renderCurrentConversation();
+    }
+
+    #cancelPendingDelete(conversationKey: string, messageDomId: string, nonce?: string): boolean {
+        if (!this.#pendingRegistry.undoDelete(conversationKey, messageDomId, nonce)) return false;
+        if (!this.#pendingRegistry.isConversationActive(conversationKey)) this.#conversationResolver.releaseLocalConversationKey(conversationKey);
+        return true;
     }
 
     async commitDeleteNow(conversation: ConversationContract, messageDomId: string): Promise<void> {

@@ -34,6 +34,13 @@ const resolveContainer = (target: HTMLElement | string): HTMLElement => {
     throw new Error('PageOutlet could not resolve the container element');
 };
 
+const requirePageOutletContainer = (container: HTMLElement | null): HTMLElement => {
+    if (!container) {
+        throw new Error('PageOutlet requires a container before performing this action');
+    }
+    return container;
+};
+
 const createOverlayElements = (container: HTMLElement, overlayAddRetryListener: (button: HTMLButtonElement) => void): PageOutletOverlayElements => {
     const doc = container.ownerDocument ?? dom.getDocument();
     const overlay = doc.createElement('div');
@@ -147,4 +154,4 @@ const setPageOutletState = ({ state, label = null, detail = null, delayed = fals
     return overlayElements;
 };
 
-export { createOverlayElements, hideOverlay, resolveContainer, setPageOutletState, showOverlay };
+export { createOverlayElements, hideOverlay, requirePageOutletContainer, resolveContainer, setPageOutletState, showOverlay };

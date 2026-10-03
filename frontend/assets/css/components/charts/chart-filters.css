@@ -28,7 +28,7 @@
         font-weight: 600;
         letter-spacing: var(--tracking-05px);
         line-height: 1.2;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         white-space: nowrap;
     }
 
@@ -38,14 +38,15 @@
         min-width: 14ch;
         max-width: 26ch;
         min-height: var(--control-height-compact);
-        padding: 0 calc(var(--space-2) + var(--control-icon-size-compact) + var(--space-15)) 0 var(--space-2);
+        padding-block: 0 0;
+        padding-inline: var(--space-2) calc(var(--space-2) + var(--control-icon-size-compact) + var(--space-15));
         border: var(--border-width-1) solid var(--glass-border-strong);
         border-radius: var(--border-radius);
         color: var(--text-primary);
         background-color: var(--bg-secondary);
         background-image: var(--control-select-arrow-image);
         background-repeat: no-repeat;
-        background-position: right var(--space-15) center;
+        background-position: var(--inline-end-edge) var(--space-15) center;
         background-size: var(--control-icon-size-compact);
         box-shadow: none;
         font: inherit;
@@ -111,7 +112,7 @@
     }
 
     .chart-filter-fullscreen {
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     .chart-filters-trigger {
@@ -151,7 +152,7 @@
     }
 
     .chart-filters-bar[data-chart-filters-layout='titlebar-inline'] .chart-filter-fullscreen {
-        margin-left: 0;
+        margin-inline-start: 0;
     }
 
     .chart-filters-bar[data-chart-filters-layout='titlebar-inline'] .chart-filters-panel {
@@ -183,7 +184,7 @@
 
     @container ui-viewport (width <= 900px) {
         .chart-filter-fullscreen {
-            margin-left: 0;
+            margin-inline-start: 0;
             order: 10;
         }
     }

@@ -62,7 +62,7 @@ const createContentPreviewImageViewerMotion = (refs: ContentPreviewImageViewerRe
                 state.scheduleMinimapHide(900);
                 return;
             }
-            const remaining = Math.exp(-8 * progress) * (Math.cos(10 * progress) + 0.8 * Math.sin(10 * progress));
+            const remaining = (1 + 10 * progress) * Math.exp(-10 * progress);
             const geometry = state.getGeometry();
             const scale = clampNumber(target.scale + (initial.scale - target.scale) * remaining, geometry.fitScale * 0.84, CONTENT_PREVIEW_IMAGE_MAX_SCALE * 1.08);
             state.applyTransform(scale, target.offsetX + (initial.offsetX - target.offsetX) * remaining, target.offsetY + (initial.offsetY - target.offsetY) * remaining, true, true);

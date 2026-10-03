@@ -4,6 +4,8 @@
 import { createHtmlFragment } from '@core/dom/html.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 
+const repeatedReconcileMarkupByTarget = new WeakMap<Element, { html: string; markup: string }>();
+
 const syncElementAttributes = (target: Element, source: Element): void => {
     for (let index = target.attributes.length - 1; index >= 0; index -= 1) {
         const attr = target.attributes[index];
@@ -111,4 +113,13 @@ const reconcileElementChildrenFromTrustedHtml = (inputArguments: { target: Eleme
     reconcileElementChildrenFromHtml({ target: inputArguments.target, html: inputArguments.html.html, context: inputArguments.context });
 };
 
-export { reconcileChildNodes, reconcileElementChildrenFromHtml, reconcileElementChildrenFromTrustedHtml };
+const reconcileRepeatedElementChildrenFromTrustedHtml = (inputArguments: { target: Element; html: TrustedHtml }): void => {
+    const previous = repeatedReconcileMarkupByTarget.get(inputArguments.target);
+    if (previous !== undefined && previous.html === inputArguments.html.html && previous.markup === inputArguments.target.innerHTML) {
+        return;
+    }
+    reconcileElementChildrenFromTrustedHtml({ target: inputArguments.target, html: inputArguments.html });
+    repeatedReconcileMarkupByTarget.set(inputArguments.target, { html: inputArguments.html.html, markup: inputArguments.target.innerHTML });
+};
+
+export { reconcileChildNodes, reconcileElementChildrenFromHtml, reconcileElementChildrenFromTrustedHtml, reconcileRepeatedElementChildrenFromTrustedHtml };

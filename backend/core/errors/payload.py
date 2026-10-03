@@ -20,6 +20,7 @@ class ErrorPublicPayload:
     param: str | None = None
     details: Mapping[str, JSONValue] | None = None
     trace_id: str | None = None
+    http_status: int | None = None
 
     def to_dict(self) -> JSONDict:
         payload: JSONDict = {

@@ -17,6 +17,9 @@ from core.models.context_parameter_mapping import (
     map_standardized_context_updates,
     resolve_context_parameter_name,
 )
+from core.models.persisted_parameter_values import (
+    decode_persisted_parameter_values,
+)
 from core.models.protocols import ParameterManagerProtocol
 from core.models.protocols_database import DatabaseModelsProtocol
 from core.models.universal_id import is_universal_id
@@ -29,7 +32,7 @@ from models.internal_protocols import (
 )
 from models.parameters.mutation_ordering import MutationCallable
 from models.parameters.schema_access import (
-    get_default_parameters,
+    get_effective_parameters,
     get_validated_parameter_schema,
 )
 from models.parameters.schema_projection import normalize_parameter_schema
@@ -96,10 +99,6 @@ class ModelParameterService:
             model_info = await self._deps.model_get_info(universal_id)
             if not model_info:
                 return ({}, 0)
-            parameters = await get_default_parameters(
-                self._deps.param_manager,
-                str(model_info["plugin"]),
-            )
             if cached and cached[1] >= database_version:
                 custom_parameters, parameter_version = cached
             else:
@@ -112,8 +111,10 @@ class ModelParameterService:
                     custom_parameters,
                     parameter_version,
                 )
-            parameters.update(custom_parameters)
-            return (copy_json_dict(parameters), parameter_version)
+            parameters = await get_effective_parameters(
+                self._deps.param_manager, str(model_info["plugin"]), custom_parameters
+            )
+            return (parameters, parameter_version)
 
     async def model_get_parameter_definitions(self, universal_id: str) -> JSONDict:
         _plugin_name, schema = await self._get_validated_parameter_schema(universal_id)
@@ -238,6 +239,7 @@ class ModelParameterService:
             if not (response := mutation(schema, existing_parameters)):
                 return
             updated_parameters, reload_needed, reload_reason = response
+            updated_parameters = decode_persisted_parameter_values(schema, updated_parameters)
             changed_keys = {
                 key
                 for key in set(existing_parameters) | set(updated_parameters)

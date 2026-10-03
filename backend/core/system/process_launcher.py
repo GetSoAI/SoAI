@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING
 from core.system.protocols import StartupInfoProtocol
 from core.system.subprocess_platform import (
     resolve_subprocess_creationflags,
+    resolve_subprocess_environment,
+    resolve_subprocess_paths,
     resolve_subprocess_startupinfo,
 )
 
@@ -52,10 +54,12 @@ def spawn_managed_process(
     errors: str | None = None,
     startupinfo: StartupInfoProtocol | None = None,
 ) -> ManagedProcess:
+    process_paths = resolve_subprocess_paths(command, cwd)
     return subprocess.Popen(
         list(command),
-        cwd=cwd,
-        env=dict(env) if env is not None else None,
+        executable=process_paths.executable,
+        cwd=process_paths.working_directory,
+        env=resolve_subprocess_environment(env),
         start_new_session=start_new_session,
         creationflags=resolve_subprocess_creationflags(creationflags),
         close_fds=close_fds,

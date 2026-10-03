@@ -1,6 +1,7 @@
 /* SoAI - Image viewer scene preparation and transitions [frontend/assets/ts/core/ui/modals/contentpreview/imageViewerScene.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { inlineDelta } from '@core/layout/direction.ts';
 import { resolveMaxCssTransitionTotalMs } from '@core/animations/parseMaxCssDurationMs.ts';
 import { createAbortError, runWithAbortSignalScope, throwIfAborted } from '@core/errors/abort.ts';
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
@@ -115,7 +116,7 @@ const slideImageScene = async (outgoing: ContentPreviewImageViewerRefs, incoming
     } else {
         track.append(incoming.scene, outgoing.scene);
     }
-    track.style.transform = `translate3d(${offset - (direction === 'previous' ? outgoing.viewport.clientWidth : 0)}px, 0, 0)`;
+    track.style.transform = `translate3d(${offset - inlineDelta(direction === 'previous' ? outgoing.viewport.clientWidth : 0, outgoing.viewport)}px, 0, 0)`;
     measureLayoutBox(track);
     track.classList.add('is-sliding', 'is-active');
     track.style.transform = '';

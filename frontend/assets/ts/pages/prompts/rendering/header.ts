@@ -4,6 +4,7 @@
 import { i18n } from '@core/i18n/index.ts';
 import { buildCardGridHeader } from '@core/routing/pages/collections/collectionViewBuilders.ts';
 import { uiHtml } from '@core/security/uiHtml.ts';
+import { getCollectionDisplayModeOption, type CollectionDisplayMode } from '@core/uiprimitives/viewmode/collection.ts';
 import { renderSortControl } from '@core/uiprimitives/sortableList.ts';
 import type { SortDirection } from '@core/ui/tables/sortableTable.ts';
 import { PROMPTS_ACTION_TOGGLE_VIEW_MODE } from '@pages/prompts/actions.ts';
@@ -12,7 +13,8 @@ import type { PromptsGetIconSync } from '@pages/prompts/rendering/internalContra
 
 const withDataAction = (action: string): Record<string, string> => ({ 'data-action': action });
 
-const buildPromptsHeader = (getIconSync: PromptsGetIconSync, sortBy: string, sortOrder: SortDirection) => {
+const buildPromptsHeader = (getIconSync: PromptsGetIconSync, viewMode: CollectionDisplayMode, sortBy: string, sortOrder: SortDirection) => {
+    const viewModeOption = getCollectionDisplayModeOption(viewMode);
     return buildCardGridHeader({
         containerClass: 'prompts-container collections-page page-scrollable',
         title: i18n.t('prompts.title'),
@@ -22,11 +24,11 @@ const buildPromptsHeader = (getIconSync: PromptsGetIconSync, sortBy: string, sor
             { type: 'custom', html: renderSortControl(createPromptsSortControlDefinition(normalizePromptsSortState({ sortBy, sortOrder }))) },
             {
                 type: 'button',
-                content: uiHtml`${getIconSync('dashboard', { size: 24, strokeWidth: 1.5 })}<span>${i18n.t('common.actions.cardView')}</span>`,
+                content: uiHtml`${getIconSync(viewModeOption.icon, { size: 24, strokeWidth: 1.5 })}<span>${viewModeOption.label}</span>`,
                 variant: 'ui-variant-neutral',
                 id: 'prompts-view-mode-toggle',
-                ariaLabel: i18n.t('common.actions.cardView'),
-                attributes: { 'data-action': PROMPTS_ACTION_TOGGLE_VIEW_MODE, 'aria-pressed': 'false' }
+                ariaLabel: viewModeOption.label,
+                attributes: { 'data-action': PROMPTS_ACTION_TOGGLE_VIEW_MODE, 'aria-pressed': String(viewModeOption.pressed) }
             },
             {
                 type: 'button',

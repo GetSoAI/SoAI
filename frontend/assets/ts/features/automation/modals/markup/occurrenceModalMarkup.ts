@@ -76,7 +76,7 @@ const renderAutomationOccurrenceModalMarkup = (): TrustedHtml => {
             variant: 'neutral',
             action: AUTOMATION_ACTION_PREVIEW_AUTOMATION,
             disabled: true,
-            attributes: { 'data-automation-id': '', 'data-modal-close': modalId }
+            attributes: { 'data-automation-id': '' }
         })}`
     });
     return renderModalScaffoldMarkup({ id: modalId, header, body, footer, rootAttributes: { 'data-page-scope': 'automation' } });

@@ -3,7 +3,7 @@
 
 import { ensureBootstrapCore, ensureBootstrapServiceRegistered } from '@app/bootstrap/stages/bootstrapCore.ts';
 import { getBootstrapPhase, setBootstrapPhase } from '@app/bootstrap/stages/phases.ts';
-import { detectNavigationReload, finalizePreloader } from '@app/bootstrap/stages/preloader.ts';
+import { detectNavigationReload, finalizePreloader, releaseBootStateAfterPreloaderReveal } from '@app/bootstrap/stages/preloader.ts';
 import { applyTheme, attachStorageThemeListeners } from '@app/bootstrap/stages/theme.ts';
 import type { BootstrapApi, BootstrapPhase, Theme } from '@app/bootstrap/stages/types.ts';
 
@@ -23,5 +23,5 @@ const bootstrap: BootstrapApi = Object.freeze({
     getPhase: (): BootstrapPhase => getBootstrapPhase()
 });
 
-export { bootstrap, detectNavigationReload, finalizePreloader };
+export { bootstrap, detectNavigationReload, finalizePreloader, releaseBootStateAfterPreloaderReveal };
 export type { BootstrapApi, BootstrapPhase, Theme, ThemePreference } from '@app/bootstrap/stages/types.ts';

@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from core.messaging.protocols_gateway import MessagingGatewayProtocol
     from core.metrics.protocols import MetricsManagerProtocol
     from core.notifications.protocols import ConversationAttentionCoordinatorProtocol
+    from core.openai.chat_template_role_policy_resolver import ChatTemplateRolePolicyResolver
     from core.openai.token_counter import PromptTokenCounter
     from core.orchestrator.routing_config import RoutingConfig
     from core.plugins.protocols_instance import FilesProtocol
@@ -105,6 +106,7 @@ class InfrastructureServices:
     http_client: AsyncClient
     hardware: HardwareRuntimeServices
     prompt_token_counter: PromptTokenCounter
+    chat_template_role_policy_resolver: ChatTemplateRolePolicyResolver
     command_executor: CommandExecutorProtocol | None
     secret_handle_store: SecretHandleStore
     communications: CommunicationsServicesProtocol
@@ -133,6 +135,7 @@ class InfrastructureServices:
             http_client=self.http_client,
             hardware=self.hardware,
             prompt_token_counter=self.prompt_token_counter,
+            chat_template_role_policy_resolver=self.chat_template_role_policy_resolver,
             secret_handle_store=self.secret_handle_store,
             communications=self.communications,
             conversation_attention=self.conversation_attention,

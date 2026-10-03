@@ -17,21 +17,23 @@ from core.errors.exceptions import (
     ValidationError,
 )
 from core.errors.external_service_exception import ExternalServiceError
-from core.errors.http_status_classification import resolve_execution_error_type_for_http_status
 from core.errors.memory_exhaustion import (
     ACCELERATOR_MEMORY_EXHAUSTED_MESSAGE,
     SYSTEM_MEMORY_EXHAUSTED_MESSAGE,
 )
+from core.errors.public_projection import project_public_error
 from core.events.publication_errors import PublicationDeadlineExceededError
 from core.ipc.remote_error_metadata import REMOTE_ERROR_CODE_KEY
+from core.openai.chat_template_role_policy_resolver import is_chat_template_role_policy_rejection
 from core.openai.context_overflow_validation import extract_context_overflow_validation
-from orchestrator.execution.chat_template_role_policy import is_chat_template_role_policy_rejection
 from orchestrator.execution.failure_classification_models import ExecutionFailureDetails
 from orchestrator.execution.http_status_failure_classification import (
     build_chat_template_role_rejection_execution_failure,
+    classify_http_error_execution_failure,
     classify_http_status_execution_failure,
 )
 from orchestrator.execution.requirement_failure_classification import (
+    classify_configuration_execution_failure,
     classify_validation_execution_failure,
 )
 from orchestrator.execution.result_processing_error import ResultProcessingError
@@ -44,7 +46,6 @@ from orchestrator.execution.streaming import (
 from orchestrator.execution.upstream_error_metadata import has_upstream_provider_marker
 from orchestrator.execution.upstream_failure_classification import (
     build_upstream_provider_failure_details,
-    should_allow_failover_for_external_upstream_error,
 )
 
 __all__ = (
@@ -52,28 +53,6 @@ __all__ = (
     "classify_execution_failure",
     "resolve_remote_error_code",
 )
-
-
-def _classify_api_execution_failure(
-    task_id: str,
-    exception: ApiError,
-) -> ExecutionFailureDetails:
-    error_type = resolve_execution_error_type_for_http_status(exception.http_status)
-    affects_plugin_health = exception.http_status >= 500
-    if exception.code == ErrorType.PLUGIN_UNAVAILABLE.value:
-        user_message = "Plugin backend became unavailable. Retry after recovery completes."
-    else:
-        user_message = (
-            exception.message if exception.http_status < 500 else "Request execution failed."
-        )
-    return ExecutionFailureDetails(
-        user_message=user_message,
-        state_reason=f"Task {task_id} failed with HTTP {exception.http_status}",
-        log_stack=affects_plugin_health,
-        error_type=error_type,
-        affects_plugin_health=affects_plugin_health,
-        allow_failover=should_allow_failover_for_external_upstream_error(error_type),
-    )
 
 
 def resolve_remote_error_code(exception: IpcRemoteRequestError) -> str | None:
@@ -216,7 +195,7 @@ def classify_execution_failure(
     if isinstance(root_exception, httpx2.HTTPStatusError) and root_exception.response is not None:
         return classify_http_status_execution_failure(task_id, root_exception)
     if isinstance(root_exception, ApiError):
-        return _classify_api_execution_failure(task_id, root_exception)
+        return classify_http_error_execution_failure(task_id, root_exception)
     if isinstance(root_exception, SoAITimeoutError):
         publication_timeout = isinstance(root_exception, PublicationDeadlineExceededError)
         failure_label = "orchestration publication timeout" if publication_timeout else "timeout"
@@ -260,7 +239,7 @@ def classify_execution_failure(
                 allow_failover=False,
             )
         return ExecutionFailureDetails(
-            user_message="Request validation failed.",
+            user_message=project_public_error(root_exception).message,
             state_reason=f"Task {task_id} failed: remote request validation error.",
             log_stack=False,
             error_type=ErrorType.INVALID_REQUEST,
@@ -275,7 +254,14 @@ def classify_execution_failure(
         root_exception,
     ):
         return build_upstream_provider_failure_details(task_id, root_exception)
+    if isinstance(root_exception, ConfigurationError) or (
+        isinstance(root_exception, IpcRemoteRequestError)
+        and root_exception.code == ConfigurationError.code
+    ):
+        return classify_configuration_execution_failure(task_id, root_exception)
     if isinstance(root_exception, IpcRemoteRequestError):
+        if root_exception.public_message is not None:
+            return classify_http_error_execution_failure(task_id, root_exception)
         return ExecutionFailureDetails(
             user_message="Plugin backend became unavailable.",
             state_reason=f"Task {task_id} failed: plugin worker request failed",
@@ -286,15 +272,6 @@ def classify_execution_failure(
         )
     if isinstance(root_exception, ValidationError):
         return classify_validation_execution_failure(task_id, root_exception)
-    if isinstance(root_exception, ConfigurationError):
-        return ExecutionFailureDetails(
-            user_message="Request configuration is invalid.",
-            state_reason=f"Task {task_id} failed: configuration error",
-            log_stack=False,
-            error_type=ErrorType.INVALID_REQUEST,
-            affects_plugin_health=False,
-            allow_failover=False,
-        )
     if isinstance(root_exception, ExternalServiceError) and is_chat_template_role_policy_rejection(
         root_exception,
     ):

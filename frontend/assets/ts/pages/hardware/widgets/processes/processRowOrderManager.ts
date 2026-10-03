@@ -13,15 +13,15 @@ interface ProcessRowOrder {
 
 const createProcessRowOrder = (processes: readonly ProcessRecord[], sortColumn: ProcessSortColumn, sortDirection: SortDirection, previousPids: readonly number[]): ProcessRowOrder => {
     const normalizedRows = processes.map((entry) => normalizeProcessRecord(entry));
-    const sortedRows = sortProcessRows(normalizedRows, sortColumn, sortDirection);
     if (!previousPids.length) {
+        const sortedRows = sortProcessRows(normalizedRows, sortColumn, sortDirection);
         return {
             rows: sortedRows,
             pids: sortedRows.map((row) => row.pid)
         };
     }
     const rowsByPid = new Map<number, ProcessDisplayRow>();
-    for (const row of sortedRows) {
+    for (const row of normalizedRows) {
         rowsByPid.set(row.pid, row);
     }
     const orderedRows: ProcessDisplayRow[] = [];
@@ -32,7 +32,7 @@ const createProcessRowOrder = (processes: readonly ProcessRecord[], sortColumn: 
             rowsByPid.delete(pid);
         }
     }
-    orderedRows.push(...Array.from(rowsByPid.values()));
+    orderedRows.push(...sortProcessRows(Array.from(rowsByPid.values()), sortColumn, sortDirection));
     return {
         rows: orderedRows,
         pids: orderedRows.map((row) => row.pid)

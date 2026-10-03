@@ -9,7 +9,7 @@ import { SidebarBusyIndicatorRegistry } from '@core/layout/sidebar/busyIndicator
 import { requireStringRecord, requireStringSet } from '@core/layout/sidebar/foundation.ts';
 import { SidebarLinkIndicatorController } from '@core/layout/sidebar/linkIndicator.ts';
 import { SidebarPluginIndicatorController, type SidebarStoragePluginIndicatorContract } from '@core/layout/sidebar/pluginIndicator.ts';
-import { SidebarVersionController, type SidebarVersionDisplayState, type SidebarVersionDomRefKey } from '@core/layout/sidebar/version.ts';
+import { SidebarVersionController, type SidebarVersionDomRefKey } from '@core/layout/sidebar/version.ts';
 import { requireSidebarConfigEntries, type SidebarComponentInstance, type SidebarConfigEntry, type SidebarViewHost } from '@core/layout/sidebar/view.ts';
 
 interface SidebarStaticConfig {
@@ -34,7 +34,7 @@ interface SidebarAuxControllerFactory {
     getFileExplorerLink: () => HTMLElement | null;
     getAutomationLink: () => HTMLElement | null;
     resolveStorage: () => Promise<SidebarStoragePluginIndicatorContract | null>;
-    getDisplayState: () => SidebarVersionDisplayState;
+    isCollapsed: () => boolean;
     getDomRef: (key: SidebarVersionDomRefKey) => HTMLElement | null;
 }
 
@@ -113,7 +113,7 @@ const createSidebarAuxControllers = (factory: SidebarAuxControllerFactory): Side
         indicatorClassName: 'sidebar-busy-indicator'
     });
     const versionController = new SidebarVersionController({
-        getDisplayState: () => factory.getDisplayState(),
+        isCollapsed: () => factory.isCollapsed(),
         getDomRef: (key) => factory.getDomRef(key)
     });
     return { pluginIndicator, chatIndicator, busyIndicatorRegistry, automationRunningIndicator, versionController };

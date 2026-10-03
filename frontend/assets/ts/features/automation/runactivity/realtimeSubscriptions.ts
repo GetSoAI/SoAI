@@ -10,6 +10,8 @@ interface AutomationRunActivityRealtimeSubscriptionsOptions {
     subscriptions: ResourceTracker;
     notifyAutomationChanged: () => void;
     notifyRunChanged: (runId: string) => void;
+    notifyConnectionLost: () => void;
+    notifyConnectionRestored: () => void;
     scheduleRefreshForRun: (runId: string) => void;
 }
 
@@ -23,6 +25,8 @@ const bindAutomationRunActivityRealtimeSubscriptions = (options: AutomationRunAc
                     createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.automation.created, handler: options.notifyAutomationChanged }),
                     createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.automation.updated, handler: options.notifyAutomationChanged }),
                     createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.automation.deleted, handler: options.notifyAutomationChanged }),
+                    createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.lifecycle.disconnected, handler: options.notifyConnectionLost }),
+                    createWebSocketContractBinding({ contract: WEBSOCKET_EVENT_CONTRACTS.lifecycle.connected, handler: options.notifyConnectionRestored }),
                     createWebSocketContractBinding({
                         contract: WEBSOCKET_EVENT_CONTRACTS.automation.runCreated,
                         handler: (event): void => {

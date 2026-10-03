@@ -33,10 +33,8 @@ const requirePointerState = (chart: ChartInteractionScene): PointerState => {
 const resetDragState = (chart: ChartInteractionScene): void => {
     const { yAxisDrag, xAxisDrag } = chart.interaction;
     const { pan } = chart.viewportState;
-    yAxisDrag.active = xAxisDrag.active = pan.isDragging = pan.isZooming = false;
-    pan.velocity = 0;
-    pan.lastX = pan.lastY = 0;
-    pan.startOffset = pan.targetOffset = pan.offset;
+    yAxisDrag.active = xAxisDrag.active = pan.isDragging = false;
+    pan.lastX = pan.lastY = pan.travelPx = 0;
     setInteractionMode(chart, null);
 };
 

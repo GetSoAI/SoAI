@@ -8,6 +8,7 @@
 @import url('./mcp.css') layer(pages);
 @import url('./security.css') layer(pages);
 @import url('./licensing.css') layer(pages);
+@import url('./connect.css') layer(pages);
 @import url('./forms.css') layer(pages);
 @import url('./operation-preview.css') layer(pages);
 @import url('./drivers.css') layer(pages);

@@ -6,10 +6,11 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { showOperationFailureNotification } from '@core/ui/notifications/operationFailure.ts';
 import type { NotificationType } from '@core/ui/notifications/types.ts';
+import { refreshAfterAutomationChange } from '@pages/automation/controllers/AutomationMutationCompletionDomain.ts';
 import type { AutomationEditorController } from '@pages/automation/controllers/AutomationEditorController.ts';
-import { clearSelectionIfMatchesAutomation, confirmDeleteAutomation, requireCheckboxInput, resolveAutomationById, runDeleteAutomation, runToggleAutomationEnabled } from '@pages/automation/controllers/automationManagementActions.ts';
+import type { AutomationOccurrenceModalController } from '@pages/automation/controllers/AutomationOccurrenceModalController.ts';
+import { clearSelectionIfMatchesAutomation, confirmDeleteAutomation, requireCheckboxInput, resolveAutomationById } from '@pages/automation/controllers/automationManagementActions.ts';
 import { resolveAutomationOperationErrorMessage } from '@pages/automation/controllers/AutomationPageErrorNotifier.ts';
-import { AutomationUserNotifiedError } from '@pages/automation/controllers/AutomationUserNotifiedError.ts';
 import { requireAutomationToggleLabel } from '@pages/automation/dom.ts';
 import type { AutomationDataService } from '@features/automation/public.ts';
 import type { AutomationPageState } from '@pages/automation/types.ts';
@@ -24,6 +25,7 @@ interface AutomationCrudStatePort {
 
 interface AutomationCrudControllerPort {
     getEditor(): AutomationEditorController | null;
+    getOccurrenceModal(): AutomationOccurrenceModalController | null;
     run(operation: string, task: () => Promise<void> | void): void;
 }
 
@@ -41,35 +43,28 @@ const notifyOperationFailed = (host: AutomationCrudActionHost, operation: string
     });
 };
 
-const notifyRefreshFailedAndThrow = (host: AutomationCrudActionHost, refreshError: Error): never => {
-    showOperationFailureNotification({
-        error: refreshError,
-        operation: i18n.t('common.refresh'),
-        showNotification: (message, level): void => host.state.showNotification(message, level)
-    });
-    errorHandler.error('AutomationCrudActions', 'Refresh failed after successful operation', refreshError);
-    throw new AutomationUserNotifiedError(refreshError);
+const requireEditor = (host: { controllers: Pick<AutomationCrudControllerPort, 'getEditor'> }): AutomationEditorController => {
+    const editor = host.controllers.getEditor();
+    if (!editor) {
+        throw new Error('Automation editor is not initialized');
+    }
+    return editor;
+};
+
+const closeOccurrenceModalWhenEditorReady = (host: AutomationCrudActionHost): (() => void) | null => {
+    const occurrenceModal = host.controllers.getOccurrenceModal();
+    return occurrenceModal?.isOpen() === true ? (): void => occurrenceModal.close() : null;
 };
 
 const handleEditAutomation = (host: AutomationCrudActionHost, automationId: string): void => {
     host.controllers.run('automation:editAutomation', async () => {
-        const automation = resolveAutomationById(host.state.getState().automations, automationId);
-        const editor = host.controllers.getEditor();
-        if (!editor) {
-            throw new Error('Automation editor is not initialized');
-        }
-        await editor.openEdit(automation);
+        await requireEditor(host).openEdit(automationId, closeOccurrenceModalWhenEditorReady(host));
     });
 };
 
 const handlePreviewAutomation = (host: AutomationCrudActionHost, automationId: string): void => {
     host.controllers.run('automation:previewAutomation', async () => {
-        const automation = resolveAutomationById(host.state.getState().automations, automationId);
-        const editor = host.controllers.getEditor();
-        if (!editor) {
-            throw new Error('Automation editor is not initialized');
-        }
-        await editor.openPreview(automation);
+        await requireEditor(host).openPreview(automationId, closeOccurrenceModalWhenEditorReady(host));
     });
 };
 
@@ -93,7 +88,7 @@ const handleToggleAutomationEnabled = (host: AutomationCrudActionHost, element: 
             label.textContent = enabled ? i18n.t('common.enabled') : i18n.t('common.disabled');
 
             try {
-                await runToggleAutomationEnabled({ dataService: host.state.dataService }, { automationId, enabled });
+                await host.state.dataService.updateAutomation(automationId, { enabled }, null);
             } catch (error) {
                 const runtimeError = ensureError(error);
                 checkbox.checked = previous;
@@ -104,13 +99,8 @@ const handleToggleAutomationEnabled = (host: AutomationCrudActionHost, element: 
                 return;
             }
 
-            try {
-                await host.state.refreshData();
-            } catch (error) {
-                notifyRefreshFailedAndThrow(host, ensureError(error));
-            }
-
             host.state.showNotification(enabled ? i18n.t('automation.notifications.enabled') : i18n.t('automation.notifications.disabled'), enabled ? 'success' : 'warning');
+            await refreshAfterAutomationChange(host.state, 'AutomationCrudActions');
         } finally {
             checkbox.disabled = false;
         }
@@ -125,7 +115,7 @@ const handleDeleteAutomation = (host: AutomationCrudActionHost, automationId: st
             return;
         }
         try {
-            await runDeleteAutomation({ dataService: host.state.dataService }, automationId);
+            await host.state.dataService.deleteAutomation(automationId);
             host.state.setState(clearSelectionIfMatchesAutomation(host.state.getState(), automationId));
         } catch (error) {
             const runtimeError = ensureError(error);
@@ -134,14 +124,9 @@ const handleDeleteAutomation = (host: AutomationCrudActionHost, automationId: st
             return;
         }
 
-        try {
-            await host.state.refreshData();
-        } catch (error) {
-            notifyRefreshFailedAndThrow(host, ensureError(error));
-        }
-
         host.state.showNotification(i18n.t('automation.notifications.deleted'), 'success');
+        await refreshAfterAutomationChange(host.state, 'AutomationCrudActions');
     });
 };
 
-export { handleDeleteAutomation, handleEditAutomation, handlePreviewAutomation, handleToggleAutomationEnabled };
+export { handleDeleteAutomation, handleEditAutomation, handlePreviewAutomation, handleToggleAutomationEnabled, requireEditor };

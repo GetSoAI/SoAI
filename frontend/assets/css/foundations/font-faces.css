@@ -3,6 +3,15 @@
 
 @layer foundations {
     @font-face {
+        font-family: 'SoAI Arabic';
+        src: url('../../fonts/noto/NotoSansArabic-Regular.ttf') format('truetype');
+        font-style: normal;
+        font-weight: 400;
+        unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+FB50-FDFF, U+FE70-FEFF;
+        font-display: swap;
+    }
+
+    @font-face {
         font-family: SoAIType;
         src: url('../../fonts/soaitype/woff2/SoAIType[opsz,wght].woff2') format('woff2-variations');
         font-style: normal;

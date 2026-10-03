@@ -23,7 +23,7 @@
     }
 
     :where([data-section='plugins'], [data-page-scope='plugins']).plugin-config-modal .plugin-config-section-label {
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     :where([data-section='plugins'], [data-page-scope='plugins']).plugin-config-modal .plugin-config-fields-section {
@@ -39,12 +39,12 @@
     }
 
     :where([data-section='plugins'], [data-page-scope='plugins']).plugin-config-modal .plugin-gpu-binding-memory-counter {
-        margin-left: auto;
+        margin-inline-start: auto;
         color: var(--text-tertiary);
         font-size: var(--font-size-xs);
         font-weight: 600;
         line-height: 1.2;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         white-space: nowrap;
     }
 

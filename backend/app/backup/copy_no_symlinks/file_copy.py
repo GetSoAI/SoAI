@@ -13,6 +13,7 @@ from core.config.byte_sizes import MIB_BYTES
 from core.errors.exceptions import SecurityError, StateError, ValidationError
 from core.files.temp_files import create_secure_temp_file_descriptor
 from core.filesystem.file_sync import flush_and_fsync_file
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.hardware.reserved_writes import write_reserved_bytes
 from core.logging.trace import get_logger
 from files.archive import sync_raise_if_symlink
@@ -50,7 +51,7 @@ def _sync_copy_file_secure(
     if destination_path is not None:
         destination_parent = os.path.dirname(destination_path)
         if destination_parent:
-            os.makedirs(destination_parent, mode=0o700, exist_ok=True)
+            os.makedirs(normalize_filesystem_path(destination_parent), mode=0o700, exist_ok=True)
 
     read_flags = os.O_RDONLY
     try:
@@ -65,7 +66,7 @@ def _sync_copy_file_secure(
     temp_fd: int | None = None
     temp_path: str | None = None
     try:
-        source_fd = os.open(source_path, read_flags)
+        source_fd = os.open(normalize_filesystem_path(source_path), read_flags)
         stat_info = os.fstat(source_fd)
         if not stat.S_ISREG(stat_info.st_mode):
             raise ValidationError(f"Expected a regular file at {source_path}.")
@@ -114,7 +115,9 @@ def _sync_copy_file_secure(
         if destination_path is not None:
             if temp_path is None:
                 raise StateError("Secure copy failed to produce a temp file.")
-            os.replace(temp_path, destination_path)
+            os.replace(
+                normalize_filesystem_path(temp_path), normalize_filesystem_path(destination_path)
+            )
             temp_path = None
         digest = hasher.hexdigest() if hasher is not None else None
         return (total_bytes, digest)
@@ -138,7 +141,7 @@ def _sync_copy_file_secure(
                 logger.debug("Failed to close temp fd for %s", temp_path)
         if temp_path is not None:
             try:
-                os.remove(temp_path)
+                os.remove(normalize_filesystem_path(temp_path))
             except OSError:
                 logger.debug("Failed to remove temp file: %s", temp_path)
 

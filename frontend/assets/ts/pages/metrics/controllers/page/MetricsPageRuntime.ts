@@ -7,12 +7,14 @@ import { toJsonCompatibleValue } from '@core/primitives/clone.ts';
 import { ExportPreviewModal } from '@features/exportpreview/public.ts';
 import type { MetricsAdvancedModalHost } from '@features/metrics/public.ts';
 import { metricsLogger } from '@pages/metrics/contracts/MetricsPageSupport.ts';
-import { fetchMetricsCandlestickHistory, trimMetricsCandlestickData } from '@pages/metrics/controllers/page/adapters.ts';
+import { trimMetricsCandlestickData } from '@pages/metrics/controllers/page/adapters.ts';
 import { normalizeMetricsIntValue } from '@pages/metrics/controllers/page/constants.ts';
 import type { MetricsRuntimeContext, MetricsRuntimeOperations, MetricsRuntimeOwners, MetricsRuntimeServices } from '@pages/metrics/controllers/page/contracts.ts';
 import { syncMetricsChartControls } from '@pages/metrics/controllers/page/effects.ts';
 import { MetricsLayoutController } from '@pages/metrics/controllers/page/metricsLayoutController.ts';
 import { MetricsPageSession } from '@pages/metrics/controllers/page/MetricsPageSession.ts';
+import { MetricsHistoryController } from '@pages/metrics/controllers/page/metricsHistoryController.ts';
+import { MetricsRevealController } from '@pages/metrics/controllers/page/metricsRevealController.ts';
 import { getMetricsCachedUiElement, resolveMetricsTableBodyContext } from '@pages/metrics/controllers/page/tables.ts';
 import { createMetricsPageServices, MetricsDeferredController } from '@pages/metrics/services/runtime.ts';
 
@@ -21,6 +23,8 @@ class MetricsPageRuntime implements MetricsRuntimeContext {
     readonly owners: MetricsRuntimeOwners;
     readonly metricsServices: MetricsRuntimeServices;
     readonly operations: MetricsRuntimeOperations;
+    readonly history: MetricsHistoryController;
+    readonly presentation: MetricsRevealController;
     readonly deferredController: MetricsDeferredController;
     readonly layoutController: MetricsLayoutController;
     readonly advancedModalHost: MetricsAdvancedModalHost;
@@ -28,7 +32,8 @@ class MetricsPageRuntime implements MetricsRuntimeContext {
     constructor(owners: MetricsRuntimeOwners & { storage: StorageService; pageHost: PageHost }) {
         this.owners = owners;
         this.state = new MetricsPageSession(owners.storage);
-        const pageServices = createMetricsPageServices({ owners: { pageContext: owners.pageContext, pageElements: owners.pageElements } });
+        this.presentation = new MetricsRevealController();
+        const pageServices = createMetricsPageServices({ owners: { pageContext: owners.pageContext, pageElements: owners.pageElements }, requestPresentation: () => this.presentation.requestRefresh() });
         const exportPreviewModal = new ExportPreviewModal({
             host: {
                 modals: owners.services.modals,
@@ -51,9 +56,9 @@ class MetricsPageRuntime implements MetricsRuntimeContext {
             requestAnimationFrame: (callback) => owners.pageResources.tracker.requestAnimationFrame(callback),
             cancelAnimationFrame: (frameId) => owners.pageResources.tracker.cancelAnimationFrame(frameId),
             syncChartControls: (options = {}) => syncMetricsChartControls(this, options),
-            fetchCandlestickHistory: (options = {}) => fetchMetricsCandlestickHistory(this, options),
             trimCandlestickData: (force = false) => trimMetricsCandlestickData(this, force)
         };
+        this.history = new MetricsHistoryController(this);
         this.deferredController = new MetricsDeferredController(this);
         this.layoutController = new MetricsLayoutController({
             state: this.state,

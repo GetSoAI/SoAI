@@ -52,6 +52,7 @@
     }
 
     .confirmation-icon {
+        --confirmation-icon-size: 86.4px;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -64,8 +65,8 @@
         justify-content: center;
         align-items: center;
         transform: none;
-        width: 86.4px;
-        height: 86.4px;
+        width: var(--confirmation-icon-size);
+        height: var(--confirmation-icon-size);
     }
 
     .confirmation-modal .confirmation-icon :is(.ui-icon, svg),
@@ -75,7 +76,11 @@
 
     .confirmation-message,
     .confirmation-description--link {
-        text-align: left;
+        text-align: start;
+    }
+
+    .confirmation-modal.notice-modal :is(.confirmation-message, .confirmation-description) {
+        text-align: center;
     }
 
     .confirmation-modal-content .confirmation-body > .confirmation-description {
@@ -114,5 +119,40 @@
         overflow: auto;
         white-space: pre-wrap;
         overflow-wrap: anywhere;
+    }
+
+    .confirmation-description > .soaibench-publication-preview {
+        align-self: stretch;
+        flex: 1 1 auto;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        min-height: 0;
+        max-height: none;
+        margin: 0;
+        padding: var(--space-3);
+        overflow: auto;
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        background: color-mix(in srgb, var(--glass-surface-strong) 84%, transparent);
+        color: var(--text-secondary);
+        font-family: var(--font-family-code);
+        font-size: var(--font-size-xs);
+        line-height: 1.5;
+    }
+
+    .confirmation-modal:has(.soaibench-publication-preview) .confirmation-modal-content > .modal-body {
+        padding-inline: var(--space-5);
+        overflow: hidden;
+    }
+
+    .confirmation-modal:has(.soaibench-publication-preview) .confirmation-description {
+        overflow: hidden;
+    }
+
+    .confirmation-modal:has(.soaibench-publication-preview) .confirmation-icon {
+        --confirmation-icon-size: 64px;
+        margin-top: var(--space-2);
+        margin-bottom: var(--space-4);
     }
 }

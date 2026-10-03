@@ -3,7 +3,6 @@
 
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { DashboardLiveDataKey, DashboardSectionId } from '@pages/dashboard/controllers/dashboardLiveData.ts';
-import { optionalDashboardMainStateIndicator } from '@pages/dashboard/dom.ts';
 import { runDashboardSubscriptions } from '@pages/dashboard/services/service.ts';
 import type { PageStreamingOwnerHost } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
@@ -31,9 +30,7 @@ class DashboardSubscriptionsController {
             handleLiveData: (type: DashboardLiveDataKey, payload: JsonValue): void => {
                 host.handleLiveDataUpdate(type, payload);
             },
-            getMainStateIndicator: (): Element | null => {
-                return optionalDashboardMainStateIndicator(host);
-            }
+            queueStatusRender: (): void => host.queueSectionRender('status')
         });
 
         if (subscribeProduct) {

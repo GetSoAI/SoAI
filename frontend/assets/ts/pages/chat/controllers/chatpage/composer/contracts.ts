@@ -3,7 +3,7 @@
 
 import type { ApiClient } from '@core/api/service.ts';
 import type { SecretPromptInteractionResolutionRequest } from '@core/api/contracts/webuiChatOperationContracts.ts';
-import type { ChatComposerDraftManager, ChatElicitationSession, ComposerDraftFlushOptions } from '@features/chat/public.ts';
+import type { ChatComposerDraftManager, ChatElicitationSession, ComposerDraftFlushOptions, ComposerDraftSurfaceSnapshot } from '@features/chat/public.ts';
 import type { ChatPreferencesManager } from '@pages/chat/controllers/chatpage/configuration/ChatPreferencesManager.ts';
 import type { ChatConversationViewContract } from '@pages/chat/controllers/chatpage/conversations/contracts.ts';
 import type { ChatComposerSurfaceRuntimeOwner } from '@pages/chat/controllers/chatpage/runtime/ChatComposerSurfaceRuntime.ts';
@@ -53,6 +53,7 @@ interface ChatComposerDependencies {
         dom: ChatPageDomHost['dom'];
     };
     input: ChatComposerInputController;
+    openToolsSettings(): void;
 }
 
 interface ChatComposerContract {
@@ -69,7 +70,9 @@ interface ChatComposerContract {
     refreshTokenCounterPreview(): void;
     handleConversationRendered(conversationId: string | null): void;
     applyParameterValueFromElement(element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement): void;
-    insertTranscription(text: string): void;
+    insertTranscription(text: string, options?: { focus?: boolean }): void;
+    captureDraftSurface(): ComposerDraftSurfaceSnapshot;
+    matchesDraftSurface(snapshot: ComposerDraftSurfaceSnapshot, adoptedConversationId?: string): boolean;
     insertTextAtCaret(text: string, mode: 'inline' | 'block'): void;
     resizeInput(textarea: Element): void;
     updateEmptyStateInputHint(): void;

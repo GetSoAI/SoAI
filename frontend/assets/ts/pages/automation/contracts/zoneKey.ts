@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isEpochMsNumber } from '@core/time/epochMs.ts';
-import type { AutomationZone } from '@features/automation/public.ts';
+import type { AutomationOccurrenceResponse } from '@features/automation/public.ts';
 
 const INTEGER_TEXT_PATTERN = /^\d+$/;
 
@@ -17,9 +17,9 @@ const buildAutomationZoneKey = (automationId: string, scheduledAtMs: number): st
     return `${id}:${scheduledAtMs}`;
 };
 
-const buildAutomationZoneKeyForZone = (zone: Pick<AutomationZone, 'automationId' | 'scheduledAtMs'>): string => buildAutomationZoneKey(zone.automationId, zone.scheduledAtMs);
+const buildAutomationZoneKeyForZone = (zone: Pick<AutomationOccurrenceResponse, 'automationId' | 'scheduledAtMs'>): string => buildAutomationZoneKey(zone.automationId, zone.scheduledAtMs);
 
-const resolveAutomationZoneByKey = (zones: readonly AutomationZone[], key: string): AutomationZone | null => {
+const resolveAutomationZoneByKey = (zones: readonly AutomationOccurrenceResponse[], key: string): AutomationOccurrenceResponse | null => {
     const token = key.trim();
     if (!token) {
         return null;

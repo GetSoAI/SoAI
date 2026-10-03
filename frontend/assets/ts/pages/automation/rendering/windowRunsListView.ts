@@ -10,21 +10,21 @@ import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import { renderIconSlot } from '@core/ui/icons/view.ts';
 import { addDays, startOfDay } from '@core/time/localCalendar.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
-import { AUTOMATION_ACTION_SELECT_ZONE, AUTOMATION_ACTION_WINDOW_RUNS_BATCH_DELETE, AUTOMATION_ACTION_WINDOW_RUNS_DELETE_OCCURRENCE, AUTOMATION_ACTION_WINDOW_RUNS_ENTER_SELECT_MODE, AUTOMATION_ACTION_WINDOW_RUNS_EXIT_SELECT_MODE, AUTOMATION_ACTION_WINDOW_RUNS_TOGGLE_SELECTED, type AutomationZone } from '@features/automation/public.ts';
+import { AUTOMATION_ACTION_OPEN_OCCURRENCE_DETAILS, AUTOMATION_ACTION_SELECT_ZONE, AUTOMATION_ACTION_WINDOW_RUNS_BATCH_DELETE, AUTOMATION_ACTION_WINDOW_RUNS_DELETE_OCCURRENCE, AUTOMATION_ACTION_WINDOW_RUNS_ENTER_SELECT_MODE, AUTOMATION_ACTION_WINDOW_RUNS_EXIT_SELECT_MODE, AUTOMATION_ACTION_WINDOW_RUNS_TOGGLE_SELECTED, type AutomationOccurrenceResponse } from '@features/automation/public.ts';
 import { buildAutomationZoneKeyForZone } from '@pages/automation/contracts/zoneKey.ts';
 import { formatAutomationDate } from '@pages/automation/formatting/service.ts';
-import { formatAutomationRunStatusLabel, formatAutomationRunTime, resolveAutomationRunStatusBadgeClass, resolveAutomationRunStatusContainerClass } from '@pages/automation/controllers/automationZoneFormatters.ts';
+import { formatAutomationOccurrenceLabel, formatAutomationRunStatusLabel, formatAutomationRunTime, resolveAutomationRunStatusBadgeClass, resolveAutomationRunStatusContainerClass } from '@pages/automation/controllers/automationZoneFormatters.ts';
 import { renderAutomationColorAttribute } from '@pages/automation/rendering/automationColorMarkup.ts';
 import type { AutomationCalendarSettings } from '@pages/automation/types.ts';
 
 interface WindowRunDayGroup {
     dayStartMs: number;
-    zones: AutomationZone[];
+    zones: AutomationOccurrenceResponse[];
 }
 
 interface WindowRunRenderGroup {
     label: string;
-    zones: AutomationZone[];
+    zones: AutomationOccurrenceResponse[];
 }
 
 const NEXT_RUNS_LIMIT = 10;
@@ -33,7 +33,7 @@ const resolveWindowRunDayStartMs = (utcMs: number): number => {
     return startOfDay(new Date(utcMs)).getTime();
 };
 
-const buildWindowRunDayGroups = (zones: readonly AutomationZone[]): WindowRunDayGroup[] => {
+const buildWindowRunDayGroups = (zones: readonly AutomationOccurrenceResponse[]): WindowRunDayGroup[] => {
     const groups: WindowRunDayGroup[] = [];
     for (const zone of zones) {
         const dayStartMs = resolveWindowRunDayStartMs(zone.scheduledAtMs);
@@ -68,7 +68,7 @@ const formatWindowRunMetaDateLabel = (utcMs: number, todayStartMs: number, yeste
     return formatAutomationDate(new Date(utcMs), settings.rangeTitleFormat, { includeYear: true, weekday: 'short' });
 };
 
-const buildWindowRunRenderGroups = (zones: readonly AutomationZone[], options: { nowMs: number; todayStartMs: number; yesterdayStartMs: number; settings: AutomationCalendarSettings }): WindowRunRenderGroup[] => {
+const buildWindowRunRenderGroups = (zones: readonly AutomationOccurrenceResponse[], options: { nowMs: number; todayStartMs: number; yesterdayStartMs: number; settings: AutomationCalendarSettings }): WindowRunRenderGroup[] => {
     const seen = new Set<string>();
     const nextRuns = zones
         .filter((zone) => zone.scheduledAtMs >= options.nowMs)
@@ -100,12 +100,13 @@ const buildWindowRunRenderGroups = (zones: readonly AutomationZone[], options: {
     return groups;
 };
 
-const renderWindowRunsListView = (inputArguments: { zones: readonly AutomationZone[]; totalCount: number; selectedZoneKey: string | null; calendarSettings: AutomationCalendarSettings; selectionActive: boolean; selectedKeys: ReadonlySet<string>; getIconSync: (icon: IconName, options?: IconOptions) => TrustedHtml }): string => {
+const renderWindowRunsListView = (inputArguments: { zones: readonly AutomationOccurrenceResponse[]; totalCount: number; selectedZoneKey: string | null; calendarSettings: AutomationCalendarSettings; selectionActive: boolean; selectedKeys: ReadonlySet<string>; getIconSync: (icon: IconName, options?: IconOptions) => TrustedHtml }): string => {
     const title = i18n.t('automation.pane.windowRuns.title');
     const empty = i18n.t('automation.pane.windowRuns.empty');
     const toolbarSelect = i18n.t('automation.pane.windowRuns.toolbar.select');
     const toolbarBatchDelete = i18n.t('automation.pane.windowRuns.toolbar.batchDelete');
     const toolbarExitSelect = i18n.t('automation.pane.windowRuns.toolbar.exitSelect');
+    const detailsLabel = i18n.t('automation.pane.details.title');
 
     const zones = inputArguments.zones;
     const selectedCount = inputArguments.selectedKeys.size;
@@ -124,7 +125,7 @@ const renderWindowRunsListView = (inputArguments: { zones: readonly AutomationZo
     const toolbarMarkup =
         `<div class="automation-window-runs-toolbar batch-toolbar-container is-expanded" id="automation-window-runs-toolbar-container">` +
         `<div class="automation-window-runs-toolbar-content batch-toolbar-content">` +
-        `<div class="automation-window-runs-toolbar-metrics batch-toolbar-metrics">` +
+        `<div class="automation-window-runs-toolbar-metrics batch-toolbar-metrics" aria-live="polite">` +
         `<span class="automation-window-runs-toolbar-count-icon batch-toolbar-count-icon automation-window-runs-total-icon${inputArguments.selectionActive ? ' u-hidden' : ''}" aria-hidden="true">${totalRunsIcon}</span>` +
         `<span class="automation-window-runs-toolbar-metric automation-window-runs-total${inputArguments.selectionActive ? ' u-hidden' : ''}">${uiText(totalRunsLabel).html}</span>` +
         `<span class="automation-window-runs-toolbar-count-icon batch-toolbar-count-icon automation-window-runs-selected-icon${inputArguments.selectionActive ? '' : ' u-hidden'}" aria-hidden="true">${selectedRunsIcon}</span>` +
@@ -147,7 +148,7 @@ const renderWindowRunsListView = (inputArguments: { zones: readonly AutomationZo
 
     const itemsMarkup = dayGroups
         .map((dayGroup) => {
-            const turnsLabel = i18n.t('automation.pane.windowRuns.turnsCount', { count: dayGroup.zones.length });
+            const occurrencesLabel = i18n.t('automation.pane.windowRuns.occurrencesCount', { count: dayGroup.zones.length });
             const rows = dayGroup.zones
                 .map((zone) => {
                     const key = buildAutomationZoneKeyForZone(zone);
@@ -161,19 +162,24 @@ const renderWindowRunsListView = (inputArguments: { zones: readonly AutomationZo
                     const containerClass = resolveAutomationRunStatusContainerClass(zone.status);
                     const colorAttr = renderAutomationColorAttribute(zone.color);
                     const statusBadge = `<span class="ui-status-badge ${uiAttr(badgeClass).html} automation-window-run-status-badge" data-run-status="${uiAttr(zone.status).html}">${uiText(status).html}</span>`;
-                    const header = `<div class="automation-window-run-header">` + `<div class="automation-window-run-title">${uiText(zone.title).html}</div>` + `</div>`;
+                    const header = `<div class="automation-window-run-header">` + `<div dir="auto" class="automation-window-run-title">${uiText(zone.title).html}</div>` + `</div>`;
                     const deleteLabel = zone.status === 'queued' || zone.status === 'running' ? i18n.t('automation.pane.windowRuns.toolbar.stopOne') : i18n.t('automation.pane.windowRuns.toolbar.deleteOne');
                     const deleteIcon = renderIconSlot(inputArguments.getIconSync('close', { size: 14, strokeWidth: 1.5 }));
-                    const deleteButton = inputArguments.selectionActive ? '' : `<button type="button" class="ui-round-button ui-round-button--delete automation-window-run-delete-btn" data-action="${uiAttr(AUTOMATION_ACTION_WINDOW_RUNS_DELETE_OCCURRENCE).html}" data-zone-key="${uiAttr(key).html}" aria-label="${uiAttr(deleteLabel).html}" data-tooltip="${uiAttr(deleteLabel).html}">${deleteIcon}</button>`;
+                    const detailsIcon = renderIconSlot(inputArguments.getIconSync('info', { size: 14, strokeWidth: 1.5 }));
+                    const detailsButton = `<button type="button" class="ui-round-button ui-round-button--inline ui-round-button--neutral automation-window-run-details-btn" data-action="${uiAttr(AUTOMATION_ACTION_OPEN_OCCURRENCE_DETAILS).html}" data-zone-key="${uiAttr(key).html}" ${renderLabelAttributes(detailsLabel)}>${detailsIcon}</button>`;
+                    const deleteButton = `<button type="button" class="ui-round-button ui-round-button--inline ui-round-button--delete automation-window-run-delete-btn" data-action="${uiAttr(AUTOMATION_ACTION_WINDOW_RUNS_DELETE_OCCURRENCE).html}" data-zone-key="${uiAttr(key).html}" ${renderLabelAttributes(deleteLabel)}>${deleteIcon}</button>`;
+                    const rowButtons = inputArguments.selectionActive ? '' : deleteButton + detailsButton;
                     const actionId = inputArguments.selectionActive ? AUTOMATION_ACTION_WINDOW_RUNS_TOGGLE_SELECTED : AUTOMATION_ACTION_SELECT_ZONE;
                     const deleteClass = inputArguments.selectionActive ? '' : ' has-delete-btn';
-                    const actions = `<div class="automation-window-run-row-actions">${statusBadge}<div class="automation-window-run-row-actions-buttons">${deleteButton}</div></div>`;
+                    const actions = `<div class="automation-window-run-row-actions">${statusBadge}<div class="automation-window-run-row-actions-buttons">${rowButtons}</div></div>`;
                     const mainInner = `<div class="automation-window-run-row-main">` + header + `<div class="automation-window-run-meta">` + `<span class="automation-window-run-date">${uiText(date).html}</span>` + `<span class="automation-window-run-time">${uiText(when).html}</span>` + `</div>` + `</div>`;
-                    const hit = `<button type="button" class="automation-window-run-item-hit" data-action="${uiAttr(actionId).html}" data-zone-key="${uiAttr(key).html}" aria-label="${uiAttr(zone.title).html}" data-tooltip="${uiAttr(zone.title).html}">${mainInner}</button>`;
+                    const itemLabel = formatAutomationOccurrenceLabel(zone, inputArguments.calendarSettings.timeFormat);
+                    const pressed = inputArguments.selectionActive ? ` aria-pressed="${inputArguments.selectedKeys.has(key) ? 'true' : 'false'}"` : '';
+                    const hit = `<button type="button" class="automation-window-run-item-hit" data-action="${uiAttr(actionId).html}" data-zone-key="${uiAttr(key).html}"${pressed} aria-label="${uiAttr(itemLabel).html}" data-tooltip="${uiAttr(zone.title).html}">${mainInner}</button>`;
                     return `<div class="automation-window-run-item ${uiAttr(containerClass).html}${deleteClass}${detailSelected}${batchSelected}"${colorAttr} data-zone-key="${uiAttr(key).html}" data-run-status="${uiAttr(zone.status).html}">` + hit + actions + `</div>`;
                 })
                 .join('');
-            return `<div class="automation-window-run-group"><div class="automation-window-run-group-header">${uiText(dayGroup.label).html}<span class="ui-status-badge neutral automation-window-run-status-badge">${uiText(turnsLabel).html}</span></div><div class="automation-window-run-group-list">${rows}</div></div>`;
+            return `<div class="automation-window-run-group"><div class="automation-window-run-group-header">${uiText(dayGroup.label).html}<span class="ui-status-badge neutral automation-window-run-status-badge">${uiText(occurrencesLabel).html}</span></div><div class="automation-window-run-group-list">${rows}</div></div>`;
         })
         .join('');
 

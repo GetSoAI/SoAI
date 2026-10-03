@@ -26,6 +26,8 @@ interface CommandAcceptedWatcher {
     abort(error: Error): void;
 }
 
+const COMMAND_ACCEPT_TIMEOUT_MS = 60_000;
+
 class CommandAcceptanceTimeoutError extends Error {
     constructor() {
         super('Command dispatch timeout');
@@ -140,7 +142,7 @@ const runTaskCommand = (options: { command: JsonObject; action: { handlers?: Str
                 const watcher = createCommandAcceptedWatcher({
                     ws,
                     runId,
-                    timeoutMs: 15000,
+                    timeoutMs: COMMAND_ACCEPT_TIMEOUT_MS,
                     isSettled: () => acceptedTaskIdWatcher === null,
                     module,
                     logWarn

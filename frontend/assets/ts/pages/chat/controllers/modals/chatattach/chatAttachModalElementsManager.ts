@@ -92,6 +92,7 @@ const createChatAttachUploadElements = (modal: HTMLElement): ChatAttachUploadEle
 
 const createChatAttachSoaiLinkElements = (modal: HTMLElement): ChatAttachSoaiLinkElements => ({
     input: requireChatAttachModalTextarea(modal, 'soai-link-input'),
+    error: requireChatAttachModalChild(modal, 'soai-link-error'),
     draftList: createChatAttachDraftListElements(modal, 'soai-link')
 });
 

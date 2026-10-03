@@ -14,7 +14,7 @@ import { patchToolDetailsMarkup } from '@features/chat/message/assistantToolDeta
 import { INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
 import { INLINE_ACTIVITY_DETAILS_LOADING_ATTRIBUTE, INLINE_ACTIVITY_DETAILS_OPEN_PENDING_ATTRIBUTE } from '@features/chat/message/inlineActivityDetailsPendingState.ts';
 import { resolveDirectStreamSegments } from '@features/chat/stream/streamSegmentsMarker.ts';
-import { patchRichTextContent } from '@features/chat/stream/streamRichTextPatching.ts';
+import { patchRevealedRichTextContent } from '@features/chat/stream/streamRichTextPatching.ts';
 import { patchStreamingPlainTextContinuation } from '@features/chat/stream/streamRichTextTailContinuation.ts';
 import { wrapStreamingTextFadeTailHtml } from '@features/chat/stream/streamingTextFadeTail.ts';
 import { normalizeStreamingRevealTree } from '@features/chat/stream/streamingTextFadeWrap.ts';
@@ -187,7 +187,7 @@ const patchInlineActionUpdateMarkup = (existing: HTMLElement, created: HTMLEleme
     const nextTextHtml = applyStreamingReveal && !appendedInPlace ? wrapStreamingTextFadeTailHtml(createdTextHtml, existingText) : createdTextHtml;
     if (!appendedInPlace && existingTextHtml !== nextTextHtml) {
         if (applyStreamingReveal) {
-            patchRichTextContent(existingText, createdTextHtml);
+            patchRevealedRichTextContent(existingText, nextTextHtml);
         } else {
             reconcileAssistantDom({ target: existingText, source: createRichTextSourceRoot(existingText, createdTextHtml), mode: 'streamingRichText' });
         }

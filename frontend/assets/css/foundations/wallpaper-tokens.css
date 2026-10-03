@@ -20,7 +20,9 @@
         --app-background-gradient-start: color-mix(in srgb, var(--app-background-gradient-start-base), var(--app-background-gradient-start-tinted) var(--surface-user-tint-strength));
         --app-background-gradient-mid: color-mix(in srgb, var(--app-background-gradient-mid-base), var(--app-background-gradient-mid-tinted) var(--surface-user-tint-strength));
         --app-background-gradient-end: color-mix(in srgb, var(--app-background-gradient-end-base), var(--app-background-gradient-end-tinted) var(--surface-user-tint-strength));
-        --app-background-gradient: linear-gradient(135deg, var(--app-background-gradient-start) 0%, var(--app-background-gradient-mid) 46%, var(--app-background-gradient-end) 100%);
+        --app-background-gradient-image: url('../../img/background-light.png');
+        --app-background-gradient-tint: color-mix(in srgb, transparent, color-mix(in srgb, transparent, var(--surface-user-tint) var(--surface-tint-bg-amount)) var(--surface-user-tint-strength));
+        --app-background-gradient: linear-gradient(var(--app-background-gradient-tint), var(--app-background-gradient-tint)), var(--app-background-gradient-image);
         --app-background-base-tinted: color-mix(in srgb, var(--app-background-base-source), var(--surface-user-tint) var(--surface-tint-bg-amount));
         --app-background-base: color-mix(in srgb, var(--app-background-base-source), var(--app-background-base-tinted) var(--surface-user-tint-strength));
         --wallpaper-overlay-opacity: 0;

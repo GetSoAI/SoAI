@@ -39,6 +39,7 @@ const createContentPreviewMediaInfoItem = (documentRef: Document, host: HTMLDLis
 
     const value = documentRef.createElement('dd');
     value.className = CONTENT_PREVIEW_MEDIA_INFO_CLASSES.value;
+    value.dir = 'auto';
     value.textContent = i18n.t('common.unknown');
 
     item.appendChild(title);

@@ -6,7 +6,7 @@ import { getPerformance } from '@core/environment/public.ts';
 import type { ResourceTracker } from '@core/resourcetracker/service.ts';
 
 const DELAYED_LOADING_LABEL_MS = 5000;
-const DELAYED_LOADING_ERROR_MS = 30000;
+const DELAYED_LOADING_ERROR_MS = 90000;
 const DELAYED_LOADING_TICK_MS = 250;
 
 class DelayedPageOutletLoading {

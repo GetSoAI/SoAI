@@ -2,6 +2,8 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @import url('./font-faces.css') layer(foundations);
+@import url('./direction.css') layer(foundations);
+@import url('./arabic-typography.css') layer(foundations);
 @import url('./reset.css') layer(foundations);
 @import url('./background-tokens.css') layer(foundations);
 @import url('./typography-tokens.css') layer(foundations);

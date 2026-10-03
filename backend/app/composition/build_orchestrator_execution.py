@@ -15,10 +15,6 @@ from orchestrator.execution.active_inferences import (
     ActiveInferenceRegistryDependencies,
 )
 from orchestrator.execution.cancellation import InflightCancellationManager
-from orchestrator.execution.chat_template_role_policy import (
-    ChatTemplateRolePolicyResolver,
-    ChatTemplateRolePolicyResolverDependencies,
-)
 from orchestrator.execution.delivery import DeliveryManager
 from orchestrator.execution.dependencies import (
     DeliveryManagerDependencies,
@@ -97,9 +93,6 @@ def build_orchestrator_execution(
             temp_directory=temp_directory,
         ),
     )
-    role_policy_resolver = ChatTemplateRolePolicyResolver(
-        ChatTemplateRolePolicyResolverDependencies(config=deps.config),
-    )
     engine = ExecutorEngine(
         ExecutorEngineDependencies(
             queue=queue,
@@ -113,7 +106,7 @@ def build_orchestrator_execution(
             outcomes=outcomes,
             metrics=deps.metrics,
             health_check_config=config.health_check_config,
-            role_policy_resolver=role_policy_resolver,
+            role_policy_resolver=deps.chat_template_role_policy_resolver,
             licensing_status=deps.licensing_status,
         ),
     )

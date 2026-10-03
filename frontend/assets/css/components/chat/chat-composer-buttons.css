@@ -5,8 +5,8 @@
     :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .chat-input-actions :is(.chat-input-action-inline, .chat-mobile-auxiliary-action, .chat-model-control-primary, .chat-model-slot):not(:focus-visible, :active, .is-active, .is-open, .is-recording, .is-stop-mode, .is-processing, .is-tools-active, .is-warning, .is-critical, .chat-token-counter-btn, .chat-model-slot--placeholder, [aria-pressed='true'], [aria-expanded='true'], [aria-busy='true'], [data-agent-mode='plan'], [data-agent-mode='execute']):is(:not(:hover), :disabled, [aria-disabled='true']),
     :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .chat-input-actions .chat-token-counter-btn:not(:hover, :focus-visible, :active, .is-warning, .is-critical),
     :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .chat-input-actions > .chat-action-btn:disabled:not(.is-stop-mode, :focus-visible, :active) {
-        border-color: var(--chat-input-border-color);
-        background-color: var(--glass-surface-light);
+        border-color: color-mix(in srgb, var(--ui-button-neutral-color) var(--chat-composer-hover-emphasis), var(--chat-input-border-color));
+        background-color: color-mix(in srgb, var(--ui-button-neutral-bg) var(--chat-composer-hover-emphasis), var(--glass-surface-light));
     }
 
     :where(.chat-container) .chat-input-wrapper:not(:has(.chat-input:focus)) .chat-input-actions :is(.chat-input-action-inline, .chat-mobile-auxiliary-action, .chat-token-counter-inline, .chat-model-control-primary, .chat-model-slot, .chat-action-btn):not(:hover, :focus-visible, :active, .is-open, .chat-model-slot--placeholder) {
@@ -21,19 +21,24 @@
             color var(--transition-fast),
             box-shadow var(--transition-fast),
             filter var(--transition-fast),
-            opacity var(--transition-fast);
+            opacity var(--transition-fast),
+            translate var(--header-fold-duration) var(--header-fold-easing);
     }
 
     :where(.chat-container) .chat-input-actions .model-selector--composer :is(.ui-icon-button, .ui-button):not(:focus-visible) {
         box-shadow: none;
     }
 
-    :where(.chat-container) .microphone-btn:is(.ui-button, .ui-icon-button) > .ui-icon.chat-action-icon:is(.microphone-btn-icon--microphone, .microphone-btn-icon--stop) {
+    :where(.chat-container) .microphone-btn:is(.ui-button, .ui-icon-button) {
+        touch-action: none;
+    }
+
+    :where(.chat-container) .microphone-btn:is(.ui-button, .ui-icon-button) > .ui-icon.chat-action-icon:is(.microphone-btn-icon--microphone, .microphone-btn-icon--stop, .microphone-btn-icon--close) {
         line-height: 0;
         place-items: center;
     }
 
-    :where(.chat-container) .microphone-btn:is(.ui-button, .ui-icon-button) > .ui-icon.chat-action-icon.microphone-btn-icon--stop {
+    :where(.chat-container) .microphone-btn:is(.ui-button, .ui-icon-button) > .ui-icon.chat-action-icon:is(.microphone-btn-icon--stop, .microphone-btn-icon--close) {
         display: none;
     }
 
@@ -50,6 +55,61 @@
         pointer-events: none;
     }
 
+    :where(.chat-container) .microphone-btn.is-ptt-initiator {
+        --ptt-translate-x: 0;
+        --ptt-cancel-progress: 0;
+        --ptt-microphone-opacity: 1;
+        position: relative;
+        z-index: var(--z-above-sibling);
+        border-color: color-mix(in srgb, var(--status-red) calc(var(--ptt-cancel-progress) * 100%), var(--border-color));
+        background-color: color-mix(in srgb, var(--status-red) calc(var(--ptt-cancel-progress) * 18%), var(--button-surface-bg));
+
+        /* direction: physical — push-to-talk supplies direction-resolved physical pointer displacement */
+        translate: var(--ptt-translate-x) 0;
+        transition: scale var(--ptt-activation-duration) var(--ease-out);
+        will-change: translate;
+    }
+
+    :where(.chat-container) .microphone-btn.is-ptt-initiator.is-ptt-recording {
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--status-red) 22%, transparent);
+        scale: var(--ptt-recording-scale);
+    }
+
+    :where(.chat-container) .microphone-btn.is-ptt-initiator.is-ptt-recording.is-ptt-reduced-motion {
+        scale: 1;
+    }
+
+    :where(.chat-container) .microphone-btn.is-ptt-initiator.is-ptt-returning {
+        scale: 1;
+        translate: 0 0;
+        transition:
+            translate var(--ptt-return-duration) var(--ease-out),
+            scale var(--ptt-return-duration) var(--ease-out),
+            background-color var(--ptt-return-duration) var(--ease-out),
+            border-color var(--ptt-return-duration) var(--ease-out);
+    }
+
+    :where(.chat-container) .microphone-btn.is-ptt-initiator > .microphone-btn-icon--stop {
+        display: none;
+    }
+
+    :where(.chat-container) .microphone-btn.is-ptt-initiator > .microphone-btn-icon--microphone {
+        display: inline-grid;
+        opacity: var(--ptt-microphone-opacity);
+    }
+
+    :where(.chat-container) .microphone-btn.is-ptt-initiator > .microphone-btn-icon--close {
+        position: absolute;
+        display: inline-grid;
+        opacity: var(--ptt-cancel-progress);
+    }
+
+    :where(.chat-container) .microphone-btn.is-ptt-cancel-armed {
+        border-color: var(--status-red);
+        background-color: color-mix(in srgb, var(--status-red) 18%, var(--ui-button-inherited-underlay));
+        color: var(--status-red);
+    }
+
     :where(.chat-container) .square-btn {
         width: var(--icon-button-size);
         height: var(--icon-button-size);
@@ -61,15 +121,10 @@
         border: var(--border-width-1) solid var(--border-color);
         border-radius: var(--border-radius);
         background-color: var(--button-surface-bg);
-        background-image: var(--surface-reflection-compact);
-        background-repeat: no-repeat;
-        background-size: 100% 100%;
         -webkit-backdrop-filter: var(--glass-blur-base);
 
         backdrop-filter: var(--glass-blur-base);
         box-shadow:
-            inset 2px 2px 4px var(--surface-inner-highlight-soft),
-            inset -2px -2px 4px var(--surface-inner-shadow-soft),
             0 2px 4px var(--surface-drop-shadow-soft),
             0 0 0 1px var(--surface-outline-highlight-soft);
         flex-shrink: 0;

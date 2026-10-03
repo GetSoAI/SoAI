@@ -97,8 +97,7 @@ const handleResizeMove = (state: ModalHostState, event: Event): void => {
     const nextLayout = calculateAnchoredResize({
         resizeState,
         deltaX,
-        deltaY,
-        isMobileViewport: state.isMobileViewportState
+        deltaY
     });
 
     dom.setStyles(resizeState.modalContent, { width: `${nextLayout.width}px`, height: `${nextLayout.height}px` });
@@ -121,14 +120,13 @@ const handleResizeEnd = (state: ModalHostState): void => {
         return;
     }
 
+    const rect = measureLayoutBox(resizeState.modalContent);
     if (shouldPersistModalDesktopState(state.isMobileViewportState)) {
-        const rect = measureLayoutBox(resizeState.modalContent);
+        state.desktopOpenHeights.set(id, rect.height);
         state.storage.setModalState(id, { size: { width: rect.width, height: rect.height } });
     }
-    const rect = measureLayoutBox(resizeState.modalContent);
     enforceBoundaries({
         content: resizeState.modalContent,
-        isMobileViewport: state.isMobileViewportState,
         sizeOverride: { width: rect.width, height: rect.height }
     });
 

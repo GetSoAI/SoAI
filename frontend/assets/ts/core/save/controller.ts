@@ -103,10 +103,16 @@ const createSaveController = (options: CreateSaveControllerOptions): SaveControl
         const operation = executeSave(context).finally(() => release?.());
         const trackedOperation = operation.then(
             (): void => {
-                if (requestInFlight === trackedOperation) requestInFlight = null;
+                if (requestInFlight === trackedOperation) {
+                    requestInFlight = null;
+                    scope.notifyChanged();
+                }
             },
             (error): never => {
-                if (requestInFlight === trackedOperation) requestInFlight = null;
+                if (requestInFlight === trackedOperation) {
+                    requestInFlight = null;
+                    scope.notifyChanged();
+                }
                 throw error;
             }
         );
@@ -127,6 +133,7 @@ const createSaveController = (options: CreateSaveControllerOptions): SaveControl
             binding = bindSaveScope({
                 scope,
                 requestSave: requestSaveWithContext,
+                isRequestInFlight: () => requestInFlight !== null,
                 canRequestSave: () => options.admission?.canAcquire() ?? true,
                 headerContextId,
                 headerPriority,

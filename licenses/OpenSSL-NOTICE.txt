@@ -3,8 +3,9 @@ OpenSSL Third-Party Notice (Windows managed Python runtime)
 
 Reviewed: 2026-08-21
 
-The SoAI Windows installer downloads the pinned Python 3.13 NuGet runtime into the SoAI installation. That runtime
-contains OpenSSL libraries, including `libssl-3.dll` and `libcrypto-3.dll`, and retains its upstream `LICENSE.txt`.
+The SoAI Windows distribution includes the pinned Python 3.13 NuGet runtime package and installs it into the managed
+runtime only when needed. That package contains OpenSSL libraries, including `libssl-3.dll` and `libcrypto-3.dll`,
+and retains its upstream `LICENSE.txt`.
 
 OpenSSL is licensed under the Apache License, Version 2.0.
 The full text of the Apache 2.0 license is provided in:

@@ -2,29 +2,27 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
-import { bindPageActionDispatcher } from '@core/dom/dataActionBinding.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { getEventHub } from '@core/environment/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
-import { bindAvatarUploadEvents, bindChatConfigurationModalParameterEvents, CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, CHAT_MEMORY_UPDATED_EVENT, CHAT_SELECTORS, isManagedConfigurationTabHidden, openChatToolCallOutputModal, resolveChatConfigurationTabId, type ChatConfigurationModalBindingsHost } from '@features/chat/public.ts';
+import { bindAvatarUploadEvents, bindChatConfigurationModalParameterEvents, CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID, CHAT_MEMORY_UPDATED_EVENT, CHAT_SELECTORS, openChatToolCallOutputModal, resolveChatConfigurationTabId, type ChatConfigurationModalBindingsHost } from '@features/chat/public.ts';
 import { isConversationAuthorityLocked } from '@core/chat/conversationAuthorityLock.ts';
-import { isChatActionId, isChatHostedActionId } from '@pages/chat/actions.ts';
 import { beginChatConfigurationModalOpen, invalidateChatConfigurationModalOpen } from '@pages/chat/controllers/chatConfigurationModalOpenController.ts';
 import { createChatConfigurationTabsHost } from '@pages/chat/controllers/chatConfigurationTabsHostController.ts';
-import { dispatchResolvedActionCandidate } from '@pages/chat/controllers/page/events/dispatch.ts';
 import type { ChatRootEventsHost } from '@pages/chat/controllers/page/events/contracts.ts';
 import { disposeChatConfigurationTabs, type ChatConfigurationTabsHost } from '@pages/chat/widgets/chatconfigurationtabs/ChatConfigurationTabsController.ts';
 import { refreshChatMemoryTab, type ChatMemoryTabHost } from '@pages/chat/widgets/memorytab/service.ts';
 import { ChatPresetLibraryController } from '@pages/chat/controllers/chatconfigurationcontroller/ChatPresetLibraryController.ts';
 import { ChatPresetSectionAdapterRegistry } from '@pages/chat/controllers/chatconfigurationcontroller/adapters.ts';
-import { bindChatConfigurationInputs, routeConfigurationModelControlAction } from '@pages/chat/controllers/chatpage/configuration/events.ts';
-import { attachChatConfigurationCloseGuards } from '@pages/chat/controllers/chatpage/configuration/guards.ts';
+import { bindChatConfigurationInputs, bindChatConfigurationModalEvents } from '@pages/chat/controllers/chatpage/configuration/events.ts';
 import type { ChatConfigurationDependencies } from '@pages/chat/controllers/chatpage/configuration/contracts.ts';
+import { ChatConfigurationDestinationController, type ChatConfigurationDestination } from '@pages/chat/controllers/chatpage/configuration/ChatConfigurationDestinationController.ts';
 
 class ChatConfigurationController {
     readonly #page: ChatConfigurationDependencies;
+    readonly #destinations: ChatConfigurationDestinationController;
     #inputDisposer: (() => void) | null = null;
     #tabsHost: ChatConfigurationTabsHost | null = null;
     #presetLibrary: ChatPresetLibraryController | null = null;
@@ -32,9 +30,17 @@ class ChatConfigurationController {
 
     constructor(page: ChatConfigurationDependencies) {
         this.#page = page;
+        this.#destinations = new ChatConfigurationDestinationController({
+            pageResources: page.pageResources,
+            isAuthorityLocked: () => isConversationAuthorityLocked(page.conversationView.current()),
+            getTabs: () => page.layout.getTabs(),
+            setStoredTab: (tabId) => page.configurationRuntime.requireConfiguration().setActiveTab(tabId),
+            openModal: () => page.composerSurface.requireUi().toggleConfiguration(true)
+        });
     }
 
     dispose(): void {
+        this.#destinations.dispose();
         this.#resetSessionState();
         this.#presetLibrary?.dispose();
         this.#presetLibrary = null;
@@ -43,7 +49,18 @@ class ChatConfigurationController {
 
     bindEvents(rootElement: HTMLElement, signal: AbortSignal, getRootEventsHost: () => ChatRootEventsHost | null): void {
         this.#resetSessionState();
-        this.#bindModalEvents(signal, getRootEventsHost);
+        bindChatConfigurationModalEvents(
+            {
+                configuration: this.#page.configurationRuntime.requireConfiguration(),
+                hasPresetDraft: () => this.#presetLibrary?.hasOpenEditor() === true,
+                handleModelAction: (actionElement) => this.handleModelAction(actionElement),
+                openConfiguration: (modal) => this.#open(modal),
+                closeConfiguration: () => this.#close(),
+                setDefaultToolsExpanded: (expanded) => this.#setDefaultToolsExpanded(expanded)
+            },
+            signal,
+            getRootEventsHost
+        );
         bindAvatarUploadEvents(this.#createModalBindingsHost(), { inputsRoot: rootElement, resolvePreviewRoot: () => this.#resolveOpenConfigurationModal() }, signal);
         const handleMemoryUpdated = (): void => this.#refreshMemoryTabInBackground('Unexpected refreshMemoryTab rejection after chat memory update event');
         getEventHub().addEventListener(CHAT_MEMORY_UPDATED_EVENT, handleMemoryUpdated, { signal });
@@ -57,19 +74,11 @@ class ChatConfigurationController {
     }
 
     openTab(tabId: string): void {
-        const requestedTabId = resolveChatConfigurationTabId(tabId);
-        const normalizedTabId = isConversationAuthorityLocked(this.#page.conversationView.current()) && isManagedConfigurationTabHidden(requestedTabId) ? 'general' : requestedTabId;
-        const presenter = requireModalPresenter();
-        if (presenter.isOpen(CHAT_CONFIGURATION_MODAL_ID)) {
-            const tabs = this.#page.layout.getTabs();
-            if (tabs) {
-                this.#requireTabsHost().setActiveTab(normalizedTabId);
-                return;
-            }
-            presenter.close(CHAT_CONFIGURATION_MODAL_ID);
-        }
-        this.#page.configurationRuntime.requireConfiguration().setActiveTab(normalizedTabId);
-        this.#page.composerSurface.requireUi().toggleConfiguration(true);
+        this.openDestination({ tabId: resolveChatConfigurationTabId(tabId) });
+    }
+
+    openDestination(destination: ChatConfigurationDestination): void {
+        this.#destinations.open(destination);
     }
 
     async openToolCallOutput(inputArguments: { conversationId: string; callId: string; assistantTurnTimestamp: number; modelVariantIndex: number }): Promise<void> {
@@ -159,52 +168,6 @@ class ChatConfigurationController {
         this.#requirePresetLibrary().reviewEditor();
     }
 
-    #bindModalEvents(signal: AbortSignal, getRootEventsHost: () => ChatRootEventsHost | null): void {
-        const bindModal = (modalId: string, onOpen: (modal: HTMLElement) => void, onClose: () => void, requireInitialActions: boolean): void => {
-            const modal = requireModalPresenter().requireElement(modalId);
-            if (modalId === CHAT_CONFIGURATION_MODAL_ID) {
-                const configuration = this.#page.configurationRuntime.requireConfiguration();
-                attachChatConfigurationCloseGuards({ modal, configuration, hasPresetDraft: () => this.#presetLibrary?.hasOpenEditor() === true, signal });
-            }
-            const handleModalOpen = (): void => onOpen(modal);
-            modal.addEventListener('core.modal.open', handleModalOpen, { signal });
-            modal.addEventListener('core.modal.close', onClose, { signal });
-            bindPageActionDispatcher({
-                root: modal,
-                signal,
-                label: `ChatPage ${modalId}`,
-                isAction: isChatHostedActionId,
-                assertKnownActions: requireInitialActions,
-                events: {
-                    click: {
-                        mouseButton: 'primary',
-                        preventDefault: 'never',
-                        ignorePrevented: true,
-                        onAction: ({ event, action, actionElement }): void => {
-                            if (routeConfigurationModelControlAction({ action, actionElement, event, handle: () => this.handleModelAction(actionElement) })) {
-                                return;
-                            }
-                            const host = getRootEventsHost();
-                            if (host && isChatActionId(action) && !(actionElement instanceof HTMLInputElement) && !(actionElement instanceof HTMLSelectElement) && !(actionElement instanceof HTMLTextAreaElement)) dispatchResolvedActionCandidate(host, event, { action, actionElement });
-                        }
-                    }
-                }
-            });
-        };
-        bindModal(
-            CHAT_CONFIGURATION_MODAL_ID,
-            (modal) => this.#open(modal),
-            () => this.#close(),
-            true
-        );
-        bindModal(
-            CHAT_MCP_DEFAULT_TOOLS_MODAL_ID,
-            () => this.#setDefaultToolsExpanded(true),
-            () => this.#setDefaultToolsExpanded(false),
-            false
-        );
-    }
-
     #open(modal: HTMLElement): void {
         const bindings = this.#createModalBindingsHost();
         this.#resetSessionState();
@@ -233,11 +196,13 @@ class ChatConfigurationController {
                 this.#page.configurationRuntime.requireConversationSettings().handleConfigurationOpen();
                 this.#page.modelSession.updateUi(modal);
                 this.#requirePresetLibrary().open(sessionAbort.signal);
+                this.#destinations.handleTabsReady(modal);
             }
         });
     }
 
     #close(): void {
+        this.#destinations.cancel();
         invalidateChatConfigurationModalOpen(this.#page);
         this.#resetSessionState();
         const presenter = requireModalPresenter();
@@ -273,6 +238,7 @@ class ChatConfigurationController {
                 page: { ...this.#page, layout: this.#page.layout, pageDom: this.#page.pageDom, getConversationSettingsManager: () => this.#page.configurationRuntime.optionalConversationSettings() },
                 refreshMemoryTabInBackground: (message) => this.#refreshMemoryTabInBackground(message),
                 onTabChange: (tabId) => {
+                    this.#destinations.handleTabChange(tabId);
                     if (tabId === 'presets') this.#presetLibrary?.enterTab();
                 }
             });

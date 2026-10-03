@@ -30,7 +30,7 @@
         font-size: var(--font-size-caption-plus);
         font-weight: 700;
         letter-spacing: var(--tracking-1px);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-document-fingerprint {
@@ -84,7 +84,7 @@
         transition: opacity var(--transition-fast);
     }
 
-    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card:not(.is-disabled):is(:hover, .is-selected) {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card:not(.is-disabled):is(:hover, .is-selected, :has(> input:checked)) {
         --wizard-choice-overlay-opacity: 1;
     }
 
@@ -112,7 +112,8 @@
         box-shadow: inset 0 0 0 4px transparent;
     }
 
-    :where([data-section='wizard'], [data-page-scope='wizard']) .is-selected .wizard-choice-orb {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .is-selected .wizard-choice-orb,
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card > input:checked + .wizard-choice-orb {
         border-color: var(--accent-green);
         background: var(--accent-green);
         box-shadow: inset 0 0 0 4px var(--glass-surface-strong);

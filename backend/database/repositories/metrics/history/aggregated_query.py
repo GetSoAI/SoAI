@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import aiosqlite
 
 from core.config.numeric import coerce_float_or_none
+from database.core.sqlite_row_scalars import require_sqlite_row_int
 from database.repositories.metrics.history.history_query_scaffold import (
     fetch_metric_history_index_or_empty_payload,
 )
@@ -46,14 +47,19 @@ async def get_aggregated_historical_data(
     expected_timestamps, row_map, bucket_count = index_or_payload
 
     values: list[float | None] = []
+    sample_counts: list[int] = []
     gap_count = 0
     for timestamp in expected_timestamps:
         row = row_map.get(timestamp)
         if row:
             agg_value = coerce_float_or_none(row.get("agg_value"))
             values.append(agg_value)
+            sample_counts.append(
+                require_sqlite_row_int(row, "sample_count", label="metrics history bucket")
+            )
         else:
             values.append(None)
+            sample_counts.append(0)
             gap_count += 1
 
     metadata: JSONDict = {
@@ -65,6 +71,7 @@ async def get_aggregated_historical_data(
     return {
         "timestamps_ms": expected_timestamps,
         "values": values,
+        "sample_counts": sample_counts,
         "interval_ms": sanitized_interval_ms,
         "aggregation": aggregation,
         "metadata": metadata,

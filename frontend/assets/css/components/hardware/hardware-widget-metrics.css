@@ -2,21 +2,26 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
+    .hardware-widget__metric-slot {
+        display: flex;
+        justify-content: flex-end;
+        min-width: 6ch;
+        margin-inline-start: auto;
+    }
+
     .hardware-widget .ui-metric-value {
         color: var(--hardware-widget-text-muted);
         font-size: clamp(var(--font-size-micro), 5cqw, var(--font-size-sm));
         font-weight: 500;
         text-shadow: 0 2px 4px color-mix(in srgb, var(--color-black) 20%, transparent);
-        text-align: right;
+        text-align: end;
         white-space: nowrap;
         flex-shrink: 0;
-        min-width: 6ch;
-        margin-left: auto;
         font-variant-numeric: tabular-nums;
         transition:
             color var(--duration-400) var(--ease-emphasized),
             transform var(--duration-400) var(--ease-emphasized);
-        transform-origin: right center;
+        transform-origin: calc(100% - var(--inline-start-percent)) center;
     }
 
     .hardware-widget .ui-metric-value.hardware-widget__metric-value--temperature-critical {

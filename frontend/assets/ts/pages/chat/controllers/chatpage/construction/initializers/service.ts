@@ -44,13 +44,14 @@ const initializeUIManager = (page: ChatControllerInitializationContext): void =>
                 applyWidescreenMode: () => applyWidescreenMode(page.sessions.uiBehaviors),
                 applySidebarState: () => page.sessions.uiBehaviors.layout.applySidebarState()
             },
+            settings: {
+                isAutoHideChatComposerEnabled: () => page.state.settings.parameters.autoHideChatComposer,
+                isAutoHideChatHeaderEnabled: () => page.state.settings.parameters.autoHideChatHeader
+            },
             sidebar: {
                 getSidebarOpen: () => page.state.viewState.sidebarOpen,
                 setSidebarOpen: (open) => {
                     page.state.viewState.sidebarOpen = open;
-                },
-                persistSidebarOpen: (open) => {
-                    page.state.settings.storage.setChatSidebarOpen(open);
                 }
             },
             session: {
@@ -65,6 +66,7 @@ const initializeUIManager = (page: ChatControllerInitializationContext): void =>
                 isThinkingFeatureEnabled,
                 hasPendingAttachmentProcessing: () => page.sessions.messageSending.hasPendingAttachmentProcessing()
             },
+            navigation: page.state.settings.navigationMemory,
             messageManager: page.runtime.conversationRuntime.requireMessages(),
             hydrateToolImageProjection: (inputArguments) => page.platform.toolImages.hydrate(inputArguments),
             drafts: {
@@ -271,14 +273,15 @@ const initializeAudioManager = (page: ChatControllerInitializationContext): void
     page.sessions.voiceSession.initializeAudio(
         new ChatAudioManager({
             apiClient: page.platform.api,
+            timers: page.page.pageResources.tracker,
             resolveSttModel: () => resolveVoiceSttSettings(page.state.settings.parameters).model,
             beforeStart: async () => {
                 await page.sessions.voiceSession.stopCallBeforeRecording();
             },
-            onStateChange: (state) => page.sessions.elements.updateMicrophoneButtonState(state),
-            onRecordingSnapshotChange: (snapshot) => page.runtime.composerSurface.requireUi().updateAudioRecordingPreview(snapshot),
+            onStateChange: (state, intent) => page.sessions.elements.updateMicrophoneButtonState(state, intent),
+            onRecordingSnapshotChange: (snapshot) => page.sessions.voiceSession.handleAudioSnapshot(snapshot, (nextSnapshot) => page.runtime.composerSurface.requireUi().updateAudioRecordingPreview(nextSnapshot)),
             onError: (err, title, options) => page.page.feedback.handle(err, title, options),
-            onTranscription: (text) => page.sessions.composer.insertTranscription(text)
+            onTerminalOutcome: (outcome) => page.sessions.voiceSession.handleAudioTerminal(outcome, (text) => page.sessions.composer.insertTranscription(text))
         })
     );
 };

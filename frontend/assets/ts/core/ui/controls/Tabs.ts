@@ -4,20 +4,17 @@
 import { BaseComponent } from '@core/BaseComponent.ts';
 import { dom } from '@core/dom/dom.ts';
 import { clearNotifyBadges, resolveActiveTabAfterRemoval, setRightButtonVisibility, setTabDisabled, updateTabBadge, updateTabNotifyBadge } from '@core/ui/controls/tabs/actions.ts';
-import { cacheTabsDomReferences, renderRightButtons, scrollTabIntoView, setupOverflowNav, updateActiveTabState } from '@core/ui/controls/tabs/effects.ts';
+import { renderRightButtons, resolveTabsNav, scrollTabIntoView, updateActiveTabState } from '@core/ui/controls/tabs/effects.ts';
 import { findRightButtonConfig, normalizeTabsOptions } from '@core/ui/controls/tabs/service.ts';
 import type { RightButtonConfig, TabConfig, TabsOptions } from '@core/ui/controls/tabs/types.ts';
 import { renderContainerMarkup } from '@core/ui/controls/tabs/view.ts';
-import type { OverflowNavController } from '@core/ui/controls/OverflowNav.ts';
 
 const DEFAULT_TABS_OPTIONS: TabsOptions = {
     tabs: [],
     rightButtons: {},
     activeTab: null,
     onTabChange: null,
-    className: 'tabs',
-    enableOverflowNav: true,
-    navScrollAmount: 0.8
+    className: 'tabs'
 };
 
 class TabsComponent extends BaseComponent<TabsOptions> {
@@ -26,12 +23,7 @@ class TabsComponent extends BaseComponent<TabsOptions> {
     rightButtons: Record<string, RightButtonConfig[]>;
     onTabChange: ((activeTab: string, previousTab: string | null) => void) | null;
     nav: HTMLElement | null;
-    leftNavButton: HTMLElement | null;
-    rightNavButton: HTMLElement | null;
     buttonsContainer: HTMLElement | null;
-    enableOverflowNav: boolean;
-    navScrollAmount: number;
-    overflowNav: OverflowNavController | null;
 
     constructor(element: HTMLElement, options: TabsOptions = {}) {
         super(element, options, DEFAULT_TABS_OPTIONS);
@@ -40,12 +32,7 @@ class TabsComponent extends BaseComponent<TabsOptions> {
         this.rightButtons = {};
         this.onTabChange = null;
         this.nav = null;
-        this.leftNavButton = null;
-        this.rightNavButton = null;
         this.buttonsContainer = null;
-        this.enableOverflowNav = true;
-        this.navScrollAmount = 0.8;
-        this.overflowNav = null;
     }
 
     override get options(): TabsOptions {
@@ -62,8 +49,6 @@ class TabsComponent extends BaseComponent<TabsOptions> {
         this.rightButtons = normalizedOptions.rightButtons;
         this.onTabChange = normalizedOptions.onTabChange;
         this.activeTab = normalizedOptions.activeTab;
-        this.enableOverflowNav = normalizedOptions.enableOverflowNav;
-        this.navScrollAmount = normalizedOptions.navScrollAmount;
         this.render();
     }
 
@@ -75,26 +60,16 @@ class TabsComponent extends BaseComponent<TabsOptions> {
         if (!this.element) {
             return;
         }
-        this.overflowNav?.dispose();
-        this.overflowNav = null;
         const className = this.getClassName();
-        dom.setHTML(this.element, renderContainerMarkup(className, this.tabs, this.activeTab, this.rightButtons, this.enableOverflowNav), { escape: false });
+        dom.setHTML(this.element, renderContainerMarkup(className, this.tabs, this.activeTab, this.rightButtons), { escape: false });
 
-        this.cacheDomReferences();
+        this.nav = resolveTabsNav((selector) => this.getUI(selector), className);
+        this.buttonsContainer = null;
         this.updateActiveTab();
         this.updateRightButtons();
-        this.setupOverflowMonitoring();
         if (this.activeTab) {
             this.scrollTabIntoView(this.activeTab);
         }
-    }
-
-    cacheDomReferences(): void {
-        const refs = cacheTabsDomReferences((selector) => this.getUI(selector), this.getClassName());
-        this.nav = refs.nav;
-        this.leftNavButton = refs.leftNavButton;
-        this.rightNavButton = refs.rightNavButton;
-        this.buttonsContainer = refs.buttonsContainer;
     }
 
     override bindEvents(): void {
@@ -111,7 +86,7 @@ class TabsComponent extends BaseComponent<TabsOptions> {
             }
 
             const tabButton = target.closest(`.${className}-tab`);
-            if (tabButton) {
+            if (tabButton && tabButton.getAttribute('aria-disabled') !== 'true') {
                 const tabId = dom.getData(tabButton, 'tab');
                 if (tabId) {
                     this.setActiveTab(tabId);
@@ -136,7 +111,6 @@ class TabsComponent extends BaseComponent<TabsOptions> {
         this.updateActiveTab();
         this.updateRightButtons();
         this.scrollTabIntoView(tabId);
-        this.overflowNav?.update();
 
         this.emit('tabChange', { activeTab: this.activeTab, previousTab });
         this.onTabChange?.(this.activeTab, previousTab);
@@ -161,23 +135,8 @@ class TabsComponent extends BaseComponent<TabsOptions> {
         buttonConfig?.action?.();
     }
 
-    setupOverflowMonitoring(): void {
-        this.overflowNav = setupOverflowNav({
-            enableOverflowNav: this.enableOverflowNav,
-            navScrollAmount: this.navScrollAmount,
-            nav: this.nav,
-            leftNavButton: this.leftNavButton,
-            rightNavButton: this.rightNavButton,
-            addEventListener: (target, event, handler, options) => this.addEventListener(target, event, handler, options)
-        });
-    }
-
     scrollTabIntoView(tabId: string): void {
         scrollTabIntoView(this.nav, tabId, (selector) => this.getUI(selector));
-    }
-
-    updateOverflowState(): void {
-        this.overflowNav?.update();
     }
 
     getActiveTab(): string | null {
@@ -211,10 +170,11 @@ class TabsComponent extends BaseComponent<TabsOptions> {
         });
     }
 
-    updateTabNotifyBadge(tabId: string, count: number): void {
+    updateTabNotifyBadge(tabId: string, count: number, ariaLabel?: string): void {
         updateTabNotifyBadge({
             tabId,
             count,
+            ariaLabel,
             tabs: this.tabs,
             resolveElement: (selector) => this.getUI(selector)
         });
@@ -224,10 +184,10 @@ class TabsComponent extends BaseComponent<TabsOptions> {
         clearNotifyBadges(this.tabs, (selector) => this.getUI(selector));
     }
 
-    private setTabDisabledState(tabId: string, isDisabled: boolean): void {
+    private setTabDisabledState(tabId: string, disabledLabel: string | null): void {
         setTabDisabled({
             tabId,
-            isDisabled,
+            disabledLabel,
             activeTab: this.activeTab,
             tabs: this.tabs,
             resolveElement: (selector) => this.getUI(selector),
@@ -236,11 +196,11 @@ class TabsComponent extends BaseComponent<TabsOptions> {
     }
 
     enableTab(tabId: string): void {
-        this.setTabDisabledState(tabId, false);
+        this.setTabDisabledState(tabId, null);
     }
 
-    disableTab(tabId: string): void {
-        this.setTabDisabledState(tabId, true);
+    disableTab(tabId: string, disabledLabel: string): void {
+        this.setTabDisabledState(tabId, disabledLabel);
     }
 
     showRightButton(buttonId: string): void {
@@ -249,12 +209,6 @@ class TabsComponent extends BaseComponent<TabsOptions> {
 
     hideRightButton(buttonId: string): void {
         setRightButtonVisibility((selector) => this.getUI(selector), buttonId, false);
-    }
-
-    override async onDestroy(): Promise<void> {
-        this.overflowNav?.dispose();
-        this.overflowNav = null;
-        await super.onDestroy();
     }
 }
 

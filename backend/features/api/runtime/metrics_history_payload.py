@@ -35,6 +35,8 @@ async def load_metrics_history_payload(
     metrics_manager: MetricsManagerProtocol,
     metric_key: str,
     history_request: PreparedHistoryRequest,
+    *,
+    include_availability: bool = False,
 ) -> JSONDict:
     raw = await metrics_manager.get_historical_data(
         metric_key,
@@ -43,5 +45,6 @@ async def load_metrics_history_payload(
         points=history_request.requested_points,
         interval_ms=history_request.resolution.interval_ms,
         aggregation=history_request.aggregation,
+        include_availability=include_availability,
     )
     return coerce_metrics_history_payload(raw)

@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
-import type { InlineRefreshActivitySegment } from '@features/chat/message/messageSegmentTypes.ts';
+import type { MessageSegment } from '@features/chat/message/messageSegments.ts';
+import { isInlineRefreshActivitySegment, type InlineRefreshActivitySegment } from '@features/chat/message/messageSegmentTypes.ts';
 import { normalizeToolName } from '@features/chat/message/toolActivityPayloadFormatting.ts';
 
 const resolveInlineActivityName = (segment: InlineRefreshActivitySegment): string => {
@@ -20,4 +21,15 @@ const resolveInlineActivityName = (segment: InlineRefreshActivitySegment): strin
     }
 };
 
-export { resolveInlineActivityName };
+const resolveLatestInlineActivityName = (segments: MessageSegment[]): string | null => {
+    for (let index = segments.length - 1; index >= 0; index -= 1) {
+        const segment = segments[index];
+        if (!segment || !isInlineRefreshActivitySegment(segment)) {
+            continue;
+        }
+        return segment.type === 'inline_loading_activity' ? null : resolveInlineActivityName(segment);
+    }
+    return null;
+};
+
+export { resolveInlineActivityName, resolveLatestInlineActivityName };

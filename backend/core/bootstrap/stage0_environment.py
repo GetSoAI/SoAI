@@ -14,6 +14,7 @@ from core.bootstrap.runtime_directories import ensure_runtime_directory_environm
 from core.bootstrap.venv_paths import get_venv_path, get_venv_python_executable
 from core.config.file_permissions import secure_runtime_config_paths
 from core.errors.exceptions import StateError
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.meta.paths import get_config_yaml_path, join_data_abs
 from core.system.process_launcher import SUBPROCESS_RECOVERABLE_EXCEPTIONS
 from core.system.process_replacement import replace_current_process
@@ -54,8 +55,10 @@ def ensure_stage0_soai_python_version() -> None:
 
 
 def is_running_in_soai_venv(repo_root_path: str) -> bool:
-    expected_python = os.path.realpath(get_venv_python_executable(get_venv_path(repo_root_path)))
-    return os.path.realpath(sys.executable) == expected_python
+    expected_python = os.path.realpath(
+        normalize_filesystem_path(get_venv_python_executable(get_venv_path(repo_root_path)))
+    )
+    return os.path.realpath(normalize_filesystem_path(sys.executable)) == expected_python
 
 
 def relaunch_in_venv(repo_root_path: str, *, entrypoint_path: str) -> int:

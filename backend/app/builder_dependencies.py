@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from app.application_dependencies import ApplicationEnvironment, ApplicationModuleDependencies
 from app.edition_composition import EditionComposition
 from core.di.validation import require_dependencies
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.timing.startup_timings import StartupTimingsRecorder
 
 __all__ = ("ApplicationAssemblyBuilderDependencies",)
@@ -26,6 +27,7 @@ class ApplicationAssemblyBuilderDependencies:
     startup_timings: StartupTimingsRecorder
     module_dependencies: ApplicationModuleDependencies
     edition_composition: EditionComposition
+    process_exit_deadline: ProcessExitDeadline
 
     def __post_init__(self) -> None:
         require_dependencies(
@@ -38,4 +40,5 @@ class ApplicationAssemblyBuilderDependencies:
             edition_composition=self.edition_composition,
             startup_timings=self.startup_timings,
             stop_event=self.stop_event,
+            process_exit_deadline=self.process_exit_deadline,
         )

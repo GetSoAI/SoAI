@@ -6,7 +6,6 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { getOptionalCheckerboardService } from '@core/routing/pages/pageDom.ts';
 import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageResources } from '@core/routing/pages/basepagecore/PageResources.ts';
-import type { PageServices } from '@core/routing/pages/basepagecore/PageServices.ts';
 import type { PageUi } from '@core/routing/pages/basepagecore/PageUi.ts';
 import type { PageCollapsibleCards } from '@core/routing/pages/basepagelayout/PageCollapsibleCards.ts';
 import type { PageLayout } from '@core/routing/pages/basepagelayout/PageLayout.ts';
@@ -14,7 +13,6 @@ import type { PageStreaming } from '@core/routing/pages/basepagestreams/PageStre
 
 interface PageTeardownDependencies {
     pageId: string;
-    services: PageServices;
     layout: PageLayout;
     streaming: PageStreaming;
     resources: PageResources;
@@ -74,7 +72,6 @@ class PageTeardown {
         await this.#attempt('Page stream cleanup failed', () => this.#dependencies.streaming.cleanup());
         await this.#attempt('Page domain cleanup failed', cleanupDomainState);
         await this.#attempt('Page collection cleanup failed', onCollectionStateCleaned);
-        await this.#attempt('Page DOM cache cleanup failed', () => this.#dependencies.services.clearDomCache());
         this.#cleanupPerformed = true;
         return true;
     }

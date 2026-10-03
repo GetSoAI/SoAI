@@ -114,7 +114,7 @@
     :where(.chat-container) .assistant-news-widget__source {
         font-size: var(--font-size-caption-plus);
         letter-spacing: var(--tracking-04em);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         font-weight: 600;
         color: var(--text-secondary);
         padding: calc(var(--space-05) / 2) var(--space-15);

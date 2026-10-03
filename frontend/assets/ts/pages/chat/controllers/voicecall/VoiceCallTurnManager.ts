@@ -42,6 +42,7 @@ interface VoiceCallTurnManagerHost extends PageFeedbackOwnerHost {
     setUserTranscript(text: string): void;
     clearAssistantCaption(): void;
     stopUnboundConversationChange(): void;
+    onFailure(message: string): void;
     conversationBinding: VoiceCallConversationState;
 }
 
@@ -113,8 +114,7 @@ class VoiceCallTurnManager {
                 const runtimeError = ensureError(error);
                 this.#host.feedback.handle(runtimeError, 'Voice transcription failed');
                 const failureMessage = i18n.t('chat.voiceCall.transcriptionFailed');
-                this.#host.setStatus('error', failureMessage);
-                this.#host.feedback.show(failureMessage, 'error');
+                this.#host.onFailure(failureMessage);
             });
     }
 
@@ -134,16 +134,22 @@ class VoiceCallTurnManager {
     }
 
     async #sendVoiceMessage(text: string, token: number, signal: AbortSignal): Promise<void> {
-        const pendingInitialBinding = this.#host.conversationBinding.beginSend();
+        const initialBindingToken = this.#host.conversationBinding.beginSend();
         try {
             this.#host.setStatus('assistantThinking', null);
             const firstOutcome = await this.#sendVoiceMessageOnce(text, token, signal);
+            if (signal.aborted || !this.#host.isActive() || !this.#utteranceToken.isActive(token)) return;
             const outcome = firstOutcome.status === 'blocked' && firstOutcome.reason === 'streaming' ? await this.#retryAfterStreamingIdle(text, token, signal) : firstOutcome;
+            if (signal.aborted || !this.#host.isActive() || !this.#utteranceToken.isActive(token)) return;
             if (outcome.status !== 'sent') {
-                if (outcome.status === 'aborted' || !this.#host.isActive() || !this.#utteranceToken.isActive(token) || signal.aborted) {
+                if (outcome.status === 'aborted') {
                     return;
                 }
-                this.#host.setStatus('listening', null);
+                if (outcome.status === 'blocked' && outcome.reason === 'streaming') {
+                    this.#host.onFailure(i18n.t('chat.voiceCall.messageSendFailed'));
+                } else {
+                    this.#host.setStatus('listening', null);
+                }
                 return;
             }
             this.#host.speaker.flushBufferedSpeech();
@@ -157,12 +163,9 @@ class VoiceCallTurnManager {
             const runtimeError = ensureError(error);
             this.#host.feedback.handle(runtimeError, 'Voice message send failed');
             const failureMessage = i18n.t('chat.voiceCall.messageSendFailed');
-            this.#host.setStatus('error', failureMessage);
-            this.#host.feedback.show(failureMessage, 'error');
+            this.#host.onFailure(failureMessage);
         } finally {
-            if (pendingInitialBinding) {
-                if (this.#host.conversationBinding.finishSend(true, this.#host.controllerHost.getCurrentConversationId())) this.#host.stopUnboundConversationChange();
-            }
+            if (this.#host.conversationBinding.finishSend(initialBindingToken, this.#host.controllerHost.getCurrentConversationId())) this.#host.stopUnboundConversationChange();
         }
     }
 

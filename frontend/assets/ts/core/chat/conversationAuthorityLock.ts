@@ -1,6 +1,7 @@
 /* SoAI - Shared chat conversation authority lock [frontend/assets/ts/core/chat/conversationAuthorityLock.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { syncAttributeValue } from '@core/dom/patching.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import type { ConversationSettingsAuthorityEligibility, ConversationSettingsAuthorityType } from '@core/chat/conversationSettingsAuthority.ts';
@@ -27,6 +28,7 @@ interface AuthorityLockedButtonState {
     unlockedAriaLabel: string;
     unlockedTooltip: string;
     unlockedDisabled: boolean;
+    unlockedToggleDisabled: boolean;
 }
 
 const SETTINGS_AUTHORITY_LOCK_ATTRIBUTE = 'data-settings-authority-lock';
@@ -59,21 +61,13 @@ const resolveAuthorityLockedControlLabels = (lock: ConversationAuthorityLock | n
 const renderAuthorityLockMarkupAttributes = (lock: ConversationAuthorityLock | null): string => (lock === null ? '' : `aria-disabled="true" data-toggle-disabled="true" ${SETTINGS_AUTHORITY_LOCK_ATTRIBUTE}="${lock.authorityType}"`);
 
 const applyAuthorityLockedButtonState = (button: HTMLButtonElement, state: AuthorityLockedButtonState): void => {
-    if (state.lock === null) {
-        delete button.dataset['settingsAuthorityLock'];
-        button.removeAttribute('aria-disabled');
-        delete button.dataset['toggleDisabled'];
-        button.disabled = state.unlockedDisabled;
-        button.setAttribute('aria-label', state.unlockedAriaLabel);
-        setTooltipText(button, state.unlockedTooltip);
-        return;
-    }
-    button.dataset['settingsAuthorityLock'] = state.lock.authorityType;
-    button.setAttribute('aria-disabled', 'true');
-    button.dataset['toggleDisabled'] = 'true';
-    button.disabled = false;
-    button.setAttribute('aria-label', resolveAuthorityLockedControlLabel(state.lock, state.actionLabel));
-    setTooltipText(button, state.lock.reason);
+    const toggleDisabled = state.lock !== null || state.unlockedToggleDisabled;
+    syncAttributeValue(button, SETTINGS_AUTHORITY_LOCK_ATTRIBUTE, state.lock?.authorityType ?? null);
+    syncAttributeValue(button, 'aria-disabled', toggleDisabled ? 'true' : null);
+    syncAttributeValue(button, 'data-toggle-disabled', toggleDisabled ? 'true' : null);
+    button.disabled = state.lock === null && state.unlockedDisabled;
+    syncAttributeValue(button, 'aria-label', state.lock === null ? state.unlockedAriaLabel : resolveAuthorityLockedControlLabel(state.lock, state.actionLabel));
+    setTooltipText(button, state.lock === null ? state.unlockedTooltip : state.lock.reason);
 };
 
 export { applyAuthorityLockedButtonState, isConversationAuthorityLocked, renderAuthorityLockMarkupAttributes, resolveAuthorityLockedControlLabel, resolveAuthorityLockedControlLabels, resolveConversationAuthorityLock, SETTINGS_AUTHORITY_LOCK_ATTRIBUTE };

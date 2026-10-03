@@ -75,7 +75,6 @@ async def _validate_automation_payload_model(
 ) -> None:
     await validate_automation_payload_model_reference(
         payload,
-        now_ms=epoch_ms(),
         disallowed_unqualified_tools=load_automation_disallowed_unqualified_tools(
             utility_tools.config,
         ),
@@ -149,11 +148,10 @@ async def tool_automation_update(
         await _validate_automation_payload_model(utility_tools, validation_payload)
     result = await update_automation_definition(
         utility_tools.database_automations,
-        utility_tools.task_registry,
         automation_id=automation_id,
         user_id=user_id,
         payload=payload,
-        event_bus=utility_tools.event_bus,
+        expected_revision=None,
         database_chat_identity_defaults=utility_tools.database_chat_identity_defaults,
         database_chat_model_defaults=utility_tools.database_chat_model_defaults,
     )

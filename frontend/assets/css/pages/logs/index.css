@@ -21,9 +21,17 @@
 
     body:not(.detached-window) .logs-page:where([data-section='logs'], [data-page-scope='logs']) {
         background-color: var(--recessed-surface-fill-background);
-        background-image: var(--recessed-surface-fill);
-        background-blend-mode: var(--recessed-surface-texture-blend);
-        background-size: var(--recessed-surface-texture-size);
+        background-image: var(--page-scrollbar-gutter-fill), var(--recessed-surface-fill);
+        background-blend-mode: normal, var(--recessed-surface-texture-blend);
+        background-size:
+            var(--ui-scrollbar-inline-size) 100%,
+            var(--recessed-surface-texture-size);
+        background-position:
+            var(--inline-end-edge),
+            0 0,
+            0 0;
+        background-repeat: no-repeat, repeat, repeat;
+        background-origin: border-box, padding-box, padding-box;
         box-shadow: var(--recessed-surface-shadow);
         height: 100%;
         min-height: 0;
@@ -39,8 +47,8 @@
         padding: var(--layout-container-padding);
         position: sticky;
         top: 0;
-        border-right: none;
-        border-left: none;
+        border-inline-end: none;
+        border-inline-start: none;
     }
 
     body.detached-window .logs-page:where([data-section='logs'], [data-page-scope='logs']) .page-header {
@@ -150,7 +158,7 @@
 
     .logs-page:where([data-section='logs'], [data-page-scope='logs']) .log-placeholder {
         color: var(--text-tertiary);
-        font-style: italic;
+        font-style: var(--font-style-emphasis);
         padding: var(--space-4);
         text-align: center;
     }

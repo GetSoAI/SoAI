@@ -2,50 +2,55 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { readTrimmedInputValue, readTrimmedSelectValue } from '@core/dom/formValues.ts';
+import { deepEqual } from '@core/primitives/equality.ts';
 import { setSelectValueAndSyncDefault } from '@core/dom/selectSelection.ts';
-import { i18n } from '@core/i18n/index.ts';
+import { readBoundedPositiveIntegerTextOrNullValue } from '@core/types/payloadNumberReaders.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { ReadOnlyFileBrowserApi } from '@core/fileexplorerbrowser/types.ts';
-import { parseStartLocalToDate } from '@core/time/localCalendar.ts';
-import { resolveBrowserTimezone } from '@core/timezones/timezones.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
-import { DEFAULT_AUTOMATION_CONFIGURATION_LIMITS, HARD_MAX_TURN_CHARS, HARD_MAX_TURNS, normalizeAutomationColorSelection, resolveAutomationRecurrence, type AutomationConfigurationLimits } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationFormModel.ts';
-import { AutomationConfigurationFormUi } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationFormUi.ts';
-import { AutomationConfigurationLimitsController } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationLimitsController.ts';
+import { DEFAULT_AUTOMATION_CONFIGURATION_LIMITS, HARD_MAX_RUN_MINUTES, normalizeAutomationColorSelection } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationFormModel.ts';
+import { AutomationConfigurationFormUi, type AutomationConfigurationFieldErrorTarget } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationFormUi.ts';
 import { AutomationConfigurationModelSettingsController } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationModelSettingsController.ts';
 import { AutomationConfigurationTurnsController } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationTurnsController.ts';
-import { AutomationConfigurationTurnUiController } from '@pages/automation/controllers/configurationmodal/AutomationConfigurationTurnUiController.ts';
+import type { AutomationEditorDraft } from '@pages/automation/controllers/configurationmodal/AutomationEditorDraftDomain.ts';
+import { validateAutomationEditorDraft, type AutomationEditorIssueField, type AutomationEditorValidation } from '@pages/automation/controllers/configurationmodal/AutomationEditorValidationDomain.ts';
+import { AutomationSchedulePreviewController } from '@pages/automation/controllers/configurationmodal/AutomationSchedulePreviewController.ts';
 import type { AutomationCreateDefaults } from '@pages/automation/state/AutomationCreateDefaultsManager.ts';
-import type { AutomationDefinition, AutomationMcpCatalog, AutomationModelOption, CreateAutomationPayload } from '@features/automation/public.ts';
+import type { AutomationDefinitionResponse, AutomationMcpCatalogResponse, AutomationModelOption, AutomationSchedulePreviewResponse, AutomationSchedulePreviewRequest } from '@features/automation/public.ts';
+import type { AutomationCalendarSettings } from '@pages/automation/types.ts';
 
 interface FormControllerDependencies {
     requireHTMLElement: (selector: string, context?: Element | Document | null) => HTMLElement;
     modal: HTMLElement;
     modalPresenter: ModalPresenterApi;
     getIconSync: (icon: IconName, options?: IconOptions) => TrustedHtml;
+    previewSchedule: (input: AutomationSchedulePreviewRequest, signal?: AbortSignal) => Promise<AutomationSchedulePreviewResponse>;
+    getCalendarSettings: () => AutomationCalendarSettings;
+}
+
+interface AutomationCreateValues {
+    startLocal: string;
+    timezone: string;
+    createDefaults: AutomationCreateDefaults;
+    currentWorkspacePath: string;
 }
 
 class AutomationConfigurationFormController {
     readonly #ui: AutomationConfigurationFormUi;
     readonly #turns: AutomationConfigurationTurnsController;
-    readonly #limits: AutomationConfigurationLimitsController;
     readonly #modelSettings: AutomationConfigurationModelSettingsController;
-    readonly #turnUi: AutomationConfigurationTurnUiController;
+    readonly #schedulePreview: AutomationSchedulePreviewController;
+    readonly #abort = new AbortController();
     #readOnly = false;
     #enabled = true;
+    #currentWorkspacePath = '';
+    #turnBaseline: { turns: readonly string[]; maxTurns: number; maxTurnChars: number } | null = null;
 
     constructor(dependencies: FormControllerDependencies) {
         this.#ui = new AutomationConfigurationFormUi(dependencies);
-
-        this.#turns = new AutomationConfigurationTurnsController({
-            turnsList: this.#ui.turnsList,
-            turnsCharCounter: this.#ui.turnsCharCounter
-        });
-        this.#limits = new AutomationConfigurationLimitsController({
-            maxRunMinutesInput: this.#ui.maxRunMinutesInput
-        });
+        this.#turns = new AutomationConfigurationTurnsController({ addTurnButton: this.#ui.addTurnButton, modalId: dependencies.modal.id, turnsList: this.#ui.turnsList, turnsCharCounter: this.#ui.turnsCharCounter });
         this.#modelSettings = new AutomationConfigurationModelSettingsController({
             modalRoot: this.#ui.modalRoot,
             modelSelect: this.#ui.modelSelect,
@@ -54,213 +59,152 @@ class AutomationConfigurationFormController {
             modalPresenter: dependencies.modalPresenter,
             getIconSync: dependencies.getIconSync
         });
-        this.#turnUi = new AutomationConfigurationTurnUiController({
-            addTurnButton: this.#ui.addTurnButton,
-            turnsList: this.#ui.turnsList,
-            turns: this.#turns
+        this.#schedulePreview = new AutomationSchedulePreviewController({
+            summary: this.#ui.scheduleSummary,
+            eventTarget: this.#ui.modalRoot,
+            readSchedule: () => ({ startLocal: readTrimmedInputValue(this.#ui.startInput), timezone: this.#ui.readTimezoneValue(), recurrence: readTrimmedSelectValue(this.#ui.recurrenceSelect) }),
+            isEnabled: () => this.#enabled,
+            previewSchedule: dependencies.previewSchedule,
+            getCalendarSettings: dependencies.getCalendarSettings
         });
+        const refreshSchedule = (): void => this.#schedulePreview.refresh();
+        for (const control of [this.#ui.startInput, this.#ui.timezoneSelect, this.#ui.recurrenceSelect]) {
+            control.addEventListener('input', refreshSchedule, { signal: this.#abort.signal });
+            control.addEventListener('change', refreshSchedule, { signal: this.#abort.signal });
+        }
+    }
+
+    getFormRegion(): HTMLElement {
+        return this.#ui.formRegion;
+    }
+
+    getFieldErrorTargets(): Readonly<Record<AutomationEditorIssueField, AutomationConfigurationFieldErrorTarget>> {
+        return this.#ui.fieldErrors;
+    }
+
+    getValidationSummary(): HTMLElement {
+        return this.#ui.validationSummary;
+    }
+
+    listTurnTextareas(): HTMLTextAreaElement[] {
+        return this.#turns.listTextareas();
     }
 
     setAvailableModels(models: readonly AutomationModelOption[]): void {
         this.#modelSettings.setAvailableModels(models);
     }
 
-    setMcpCatalog(catalog: AutomationMcpCatalog): void {
+    setMcpCatalog(catalog: AutomationMcpCatalogResponse): void {
         this.#modelSettings.setMcpCatalog(catalog);
     }
 
-    setCreateValues(defaults: { startLocal: string; timezone: string; createDefaults: AutomationCreateDefaults; currentWorkspacePath: string }): void {
+    setCreateValues(values: AutomationCreateValues): void {
+        this.#currentWorkspacePath = values.currentWorkspacePath;
+        this.#turnBaseline = null;
         this.#ui.titleInput.value = '';
         this.#ui.setColorValue('');
         this.#enabled = true;
-        this.#ui.interactiveToolApprovalToggle.checked = defaults.createDefaults.interactiveToolApproval;
-        setSelectValueAndSyncDefault(this.#ui.timezoneSelect, defaults.timezone);
-        this.#ui.startInput.value = defaults.startLocal;
+        this.#ui.interactiveToolApprovalToggle.checked = values.createDefaults.interactiveToolApproval;
+        this.#ui.setTimezoneValue(values.timezone);
+        this.#ui.startInput.value = values.startLocal;
         setSelectValueAndSyncDefault(this.#ui.recurrenceSelect, 'none');
-        this.#limits.setValues(DEFAULT_AUTOMATION_CONFIGURATION_LIMITS);
-        this.#modelSettings.setValues(
-            {
-                model: '',
-                agent: { mode: 'execute' },
-                mcp: this.#createDefaultMcpConfig(defaults.createDefaults),
-                workspacePath: defaults.currentWorkspacePath
-            },
-            defaults.currentWorkspacePath
-        );
-        this.#turns.renderTurns([''], { readOnly: false });
-        this.#turnUi.sync();
-        this.#ui.hideError();
+        this.#ui.maxRunMinutesInput.value = String(DEFAULT_AUTOMATION_CONFIGURATION_LIMITS.maxRunMinutes);
+        this.#modelSettings.setValues({ model: '', agent: { mode: 'execute' }, mcp: this.#createDefaultMcpConfig(values.createDefaults), workspacePath: values.currentWorkspacePath }, values.currentWorkspacePath);
+        this.#turns.renderTurns(['']);
+        this.#resetSchedulePreview();
     }
 
-    setEditValues(automation: AutomationDefinition, currentWorkspacePath: string): void {
+    setEditValues(automation: AutomationDefinitionResponse, currentWorkspacePath: string = this.#currentWorkspacePath): void {
+        this.#currentWorkspacePath = currentWorkspacePath;
+        this.applyDraft(automation);
+        this.#enabled = automation.enabled;
+        this.#resetSchedulePreview();
+        this.#schedulePreview.preserveSchedule({ startLocal: automation.startLocal, timezone: automation.timezone, recurrence: automation.recurrence, enabled: automation.enabled }, automation.nextRunAtMs);
+    }
+
+    applyDraft(automation: AutomationEditorDraft): void {
         this.#ui.titleInput.value = automation.title;
         this.#ui.setColorValue(automation.color ?? '');
-        this.#enabled = automation.enabled;
         this.#ui.interactiveToolApprovalToggle.checked = automation.interactiveToolApproval;
-        setSelectValueAndSyncDefault(this.#ui.timezoneSelect, automation.timezone);
+        this.#ui.setTimezoneValue(automation.timezone);
         this.#ui.startInput.value = automation.startLocal;
         setSelectValueAndSyncDefault(this.#ui.recurrenceSelect, automation.recurrence);
-        const limits: AutomationConfigurationLimits = { maxRunMinutes: automation.maxRunMinutes };
-        this.#limits.setValues(limits);
-        this.#modelSettings.setValues(automation.modelSettings, currentWorkspacePath);
-        this.#turns.renderTurns(automation.turns.length ? automation.turns : [''], { readOnly: false });
-        this.#turnUi.sync();
-        this.#ui.hideError();
+        this.#ui.maxRunMinutesInput.value = automation.maxRunMinutes === null ? '' : String(automation.maxRunMinutes);
+        this.#modelSettings.setValues(automation.modelSettings, this.#currentWorkspacePath);
+        this.#turnBaseline = { turns: [...automation.turns], maxTurns: automation.maxTurns, maxTurnChars: automation.maxTurnChars };
+        this.#turns.renderTurns(automation.turns);
+        this.#schedulePreview.refresh();
     }
 
     setReadOnlyMode(readOnly: boolean): void {
         this.#readOnly = readOnly;
         this.#ui.setReadOnly(readOnly);
         this.#modelSettings.setReadOnly(readOnly);
-        this.#turnUi.setReadOnly(readOnly);
-        const turns = this.#turns.readTurns();
-        const limits = this.#limits.readAndValidate();
-        if (!limits) {
-            throw new Error('Automation modal limits are invalid');
-        }
-        this.#turns.renderTurns(turns, { readOnly });
-        this.#turnUi.sync();
+        this.#turns.setReadOnly(readOnly);
+    }
+
+    endSession(): void {
+        this.#schedulePreview.reset();
     }
 
     destroy(): void {
+        this.#abort.abort();
+        this.#schedulePreview.reset();
         this.#modelSettings.destroy();
-        this.#turnUi.destroy();
+        this.#turns.destroy();
     }
 
     addTurn(): void {
-        if (this.#readOnly) {
-            return;
-        }
         this.#turns.addTurn();
     }
 
     removeTurn(indexCandidate: string | null): void {
-        if (this.#readOnly) {
-            return;
-        }
         this.#turns.removeTurn(indexCandidate);
     }
 
-    async openWorkspaceModal(api: ReadOnlyFileBrowserApi, canApply: () => boolean): Promise<boolean> {
-        return await this.#modelSettings.openWorkspaceModal(api, canApply);
+    async openWorkspaceModal(api: ReadOnlyFileBrowserApi, canApply: () => boolean, signal?: AbortSignal): Promise<boolean> {
+        return await this.#modelSettings.openWorkspaceModal(api, canApply, signal);
     }
 
-    async openParametersModal(canApply: () => boolean): Promise<boolean> {
-        return await this.#modelSettings.openParametersModal(canApply);
+    async openParametersModal(canApply: () => boolean, signal?: AbortSignal): Promise<boolean> {
+        return await this.#modelSettings.openParametersModal(canApply, signal);
     }
 
-    getSnapshotKey(): string {
-        const timezoneSelection = readTrimmedSelectValue(this.#ui.timezoneSelect);
-        const timezone = timezoneSelection === 'auto' ? resolveBrowserTimezone() : timezoneSelection;
-        return JSON.stringify({
+    readDraft(): AutomationEditorDraft {
+        const interactiveToolApproval = this.#ui.interactiveToolApprovalToggle.checked;
+        const modelSettings = this.#modelSettings.readModelSettings();
+        modelSettings.mcp = { ...modelSettings.mcp, toolApprovalRequired: interactiveToolApproval };
+        const turns = this.#turns.readNormalizedTurns();
+        const preservedLimits = this.#turnBaseline !== null && deepEqual(turns, this.#turnBaseline.turns) ? this.#turnBaseline : null;
+        return {
             title: readTrimmedInputValue(this.#ui.titleInput),
             color: normalizeAutomationColorSelection(this.#ui.readColorValue()),
-            enabled: this.#enabled,
-            interactiveToolApproval: this.#ui.interactiveToolApprovalToggle.checked,
-            timezone,
+            interactiveToolApproval,
+            timezone: this.#ui.readTimezoneValue(),
             startLocal: readTrimmedInputValue(this.#ui.startInput),
             recurrence: readTrimmedSelectValue(this.#ui.recurrenceSelect),
-            ...this.#limits.getSnapshotKey(),
-            ...this.#modelSettings.getSnapshotKey(),
-            ...this.#turns.getSnapshotKey()
-        });
-    }
-
-    isValid(): boolean {
-        if (this.#readOnly) {
-            return true;
-        }
-        return this.#readValidatedPayload(false) !== null;
-    }
-
-    readAndValidate(): CreateAutomationPayload | null {
-        if (this.#readOnly) {
-            return null;
-        }
-        const payload = this.#readValidatedPayload(true);
-        if (!payload) {
-            return null;
-        }
-        this.#ui.hideError();
-        return payload;
-    }
-
-    #readValidatedPayload(showErrors: boolean): CreateAutomationPayload | null {
-        const title = readTrimmedInputValue(this.#ui.titleInput);
-        if (!title) {
-            if (showErrors) this.#ui.showError(i18n.t('automation.modal.validation.titleRequired'));
-            return null;
-        }
-
-        const startLocal = readTrimmedInputValue(this.#ui.startInput);
-        if (!startLocal) {
-            if (showErrors) this.#ui.showError(i18n.t('automation.modal.validation.startRequired'));
-            return null;
-        }
-        if (!parseStartLocalToDate(startLocal)) {
-            if (showErrors) this.#ui.showError(i18n.t('automation.modal.validation.startInvalid'));
-            return null;
-        }
-
-        const timezoneSelection = readTrimmedSelectValue(this.#ui.timezoneSelect);
-        const timezone = timezoneSelection === 'auto' ? resolveBrowserTimezone() : timezoneSelection;
-        if (!timezone) {
-            if (showErrors) this.#ui.showError(i18n.t('automation.modal.validation.timezoneRequired'));
-            return null;
-        }
-
-        const recurrence = resolveAutomationRecurrence(readTrimmedSelectValue(this.#ui.recurrenceSelect));
-        if (!recurrence) {
-            if (showErrors) this.#ui.showError(i18n.t('automation.modal.validation.recurrenceInvalid'));
-            return null;
-        }
-
-        const limits = this.#limits.readAndValidate();
-        if (!limits) {
-            if (showErrors) this.#ui.showError(this.#limits.getValidationError() ?? i18n.t('automation.modal.validation.maxRunMinutesInvalid'));
-            return null;
-        }
-
-        const modelSettingsError = this.#modelSettings.getValidationError();
-        if (modelSettingsError) {
-            if (showErrors) this.#ui.showError(modelSettingsError);
-            return null;
-        }
-
-        const turns = this.#turns.readNormalizedTurns();
-        if (!turns.length || turns.some((turn) => !turn)) {
-            if (showErrors) this.#ui.showError(i18n.t('automation.modal.validation.turnsRequired'));
-            return null;
-        }
-        if (turns.length > HARD_MAX_TURNS) {
-            if (showErrors) this.#ui.showError(i18n.t('automation.modal.validation.tooManyTurns', { max: HARD_MAX_TURNS }));
-            return null;
-        }
-        if (turns.some((turn) => turn.length > HARD_MAX_TURN_CHARS)) {
-            if (showErrors) this.#ui.showError(i18n.t('automation.modal.validation.turnTooLong', { max: HARD_MAX_TURN_CHARS }));
-            return null;
-        }
-        const maxTurnChars = Math.max(...turns.map((turn) => turn.length));
-
-        const modelSettings = this.#modelSettings.readModelSettings();
-        modelSettings.mcp.toolApprovalRequired = this.#ui.interactiveToolApprovalToggle.checked;
-        return {
-            title,
-            color: normalizeAutomationColorSelection(this.#ui.readColorValue()),
-            enabled: this.#enabled,
-            timezone,
-            startLocal: startLocal,
-            recurrence,
+            maxRunMinutes: readBoundedPositiveIntegerTextOrNullValue(this.#ui.maxRunMinutesInput.value, HARD_MAX_RUN_MINUTES),
+            modelSettings,
             turns,
-            maxTurns: turns.length,
-            maxTurnChars: maxTurnChars,
-            maxRunMinutes: limits.maxRunMinutes,
-            interactiveToolApproval: this.#ui.interactiveToolApprovalToggle.checked,
-            modelSettings: modelSettings
+            maxTurns: preservedLimits !== null ? preservedLimits.maxTurns : turns.length,
+            maxTurnChars: preservedLimits !== null ? preservedLimits.maxTurnChars : Math.max(1, ...turns.map((turn) => turn.length))
         };
     }
 
-    #createDefaultMcpConfig(defaults: AutomationCreateDefaults): AutomationDefinition['modelSettings']['mcp'] {
+    validate(): AutomationEditorValidation {
+        return validateAutomationEditorDraft(this.readDraft(), {
+            modelIssue: this.#modelSettings.getModelIssue(),
+            timezoneIssue: this.#readOnly ? null : this.#schedulePreview.getTimezoneIssue(),
+            scheduleIssue: this.#readOnly ? null : this.#schedulePreview.getScheduleIssue()
+        });
+    }
+
+    #resetSchedulePreview(): void {
+        this.#schedulePreview.reset();
+        this.#schedulePreview.refresh();
+    }
+
+    #createDefaultMcpConfig(defaults: AutomationCreateDefaults): AutomationDefinitionResponse['modelSettings']['mcp'] {
         return {
             defaultTools: [],
             planTools: [],
@@ -273,3 +217,4 @@ class AutomationConfigurationFormController {
 }
 
 export { AutomationConfigurationFormController };
+export type { AutomationCreateValues };

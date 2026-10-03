@@ -6,6 +6,8 @@ import { syncAttributeValue } from '@core/dom/patching.ts';
 import { applyAuthorityLockedButtonState, type ConversationAuthorityLock } from '@core/chat/conversationAuthorityLock.ts';
 import { getBusyDisabledToken } from '@core/ui/controls/busyDisabledState.ts';
 
+const MCP_TOOLS_SETTINGS_AVAILABLE_ATTRIBUTE = 'data-tools-settings-available';
+
 interface McpToolsToggleButtonState {
     toolsEnabled: boolean;
     modeRequiresTools: boolean;
@@ -13,14 +15,14 @@ interface McpToolsToggleButtonState {
     authorityLock: ConversationAuthorityLock | null;
 }
 
-const resolveAriaLabel = (state: McpToolsToggleButtonState): string => {
+const resolveUnlockedHint = (state: McpToolsToggleButtonState, toggleToolsLabel: string): string => {
     if (state.modeRequiresTools) {
-        return i18n.t('chat.agent.tools.requiredForMode');
+        return i18n.t('chat.holdShortcuts.toolsRestrictedHint', { reason: i18n.t('chat.agent.tools.requiredForMode') });
     }
     if (state.conversationExecuting) {
-        return i18n.t('chat.agent.tools.lockedWhileConversationRunning');
+        return i18n.t('chat.holdShortcuts.toolsRestrictedHint', { reason: i18n.t('chat.agent.tools.lockedWhileConversationRunning') });
     }
-    return i18n.t('chat.header.toggleTools');
+    return i18n.t('chat.holdShortcuts.toolsToggleHint', { action: toggleToolsLabel });
 };
 
 const applyMcpToolsToggleButtonState = (button: Element, state: McpToolsToggleButtonState): void => {
@@ -28,22 +30,29 @@ const applyMcpToolsToggleButtonState = (button: Element, state: McpToolsToggleBu
         throw new TypeError('Chat tools toggle control must be a button');
     }
     const active = state.toolsEnabled || state.modeRequiresTools;
-    const unlockedDisabled = state.modeRequiresTools || state.conversationExecuting;
+    const toggleRestricted = state.modeRequiresTools || state.conversationExecuting;
     const toggleToolsLabel = i18n.t('chat.header.toggleTools');
     button.classList.toggle('is-tools-active', active);
     syncAttributeValue(button, 'data-tools-mode-locked', state.modeRequiresTools ? 'true' : 'false');
     syncAttributeValue(button, 'data-tools-execution-locked', state.conversationExecuting ? 'true' : 'false');
     syncAttributeValue(button, 'aria-pressed', active ? 'true' : 'false');
     if (getBusyDisabledToken(button) !== null) {
+        syncAttributeValue(button, MCP_TOOLS_SETTINGS_AVAILABLE_ATTRIBUTE, 'false');
         return;
     }
+    const settingsAvailable = state.authorityLock === null;
+    syncAttributeValue(button, MCP_TOOLS_SETTINGS_AVAILABLE_ATTRIBUTE, settingsAvailable ? 'true' : 'false');
+    const unlockedHint = resolveUnlockedHint(state, toggleToolsLabel);
     applyAuthorityLockedButtonState(button, {
         lock: state.authorityLock,
         actionLabel: toggleToolsLabel,
-        unlockedAriaLabel: resolveAriaLabel(state),
-        unlockedTooltip: unlockedDisabled ? '' : toggleToolsLabel,
-        unlockedDisabled
+        unlockedAriaLabel: unlockedHint,
+        unlockedTooltip: unlockedHint,
+        unlockedDisabled: false,
+        unlockedToggleDisabled: toggleRestricted
     });
 };
 
-export { applyMcpToolsToggleButtonState };
+const isMcpToolsSettingsNavigationAllowed = (button: HTMLElement): boolean => button instanceof HTMLButtonElement && button.getAttribute(MCP_TOOLS_SETTINGS_AVAILABLE_ATTRIBUTE) === 'true' && getBusyDisabledToken(button) === null;
+
+export { applyMcpToolsToggleButtonState, isMcpToolsSettingsNavigationAllowed, MCP_TOOLS_SETTINGS_AVAILABLE_ATTRIBUTE };

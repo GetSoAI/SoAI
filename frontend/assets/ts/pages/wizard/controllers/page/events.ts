@@ -3,8 +3,11 @@
 
 import { bindFormSubmit } from '@core/dom/formSubmit.ts';
 import { readTrimmedSelectValue } from '@core/dom/formValues.ts';
+import { syncFlagSelect } from '@core/ui/dropdown/flagSelect.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import type { WizardState } from '@features/wizard/public.ts';
+import { AI_PROVIDER_FORM_ID } from '@pages/wizard/rendering/aisetup/connect/view.ts';
+import { AI_SEARCH_FORM_ID } from '@pages/wizard/rendering/aisetup/models/view.ts';
 import { WizardPageService } from '@pages/wizard/services/service.ts';
 
 interface WizardLanguageHost {
@@ -32,6 +35,16 @@ const wireWizardRootEvents = (host: WizardRootEventHost): void => {
             handleWizardRootSubmit(host);
         }
     });
+    for (const formId of [AI_PROVIDER_FORM_ID, AI_SEARCH_FORM_ID]) {
+        bindFormSubmit({
+            root: host.root,
+            signal: host.signal,
+            formId,
+            capture: true,
+            preventDefault: true,
+            onSubmit: ({ form }): void => host.service.handleAiSetupSubmit(form)
+        });
+    }
     const handleInput = (event: Event): void => {
         const target = event.target;
         if (target instanceof HTMLInputElement && (target.name === 'wizard-product-access' || target.id === 'wizard-offline-certificate')) return;
@@ -57,6 +70,7 @@ const handleWizardRootChange = (host: WizardRootEventHost, event: Event): void =
     if (!(target instanceof HTMLSelectElement) || target.id !== 'language-select') {
         return;
     }
+    syncFlagSelect(target);
 
     const stepId = host.state.steps[host.state.stepIndex];
     if (stepId !== 'welcome') {

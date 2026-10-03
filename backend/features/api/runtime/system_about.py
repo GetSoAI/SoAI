@@ -31,7 +31,7 @@ OPERATION_FEATURES_API_RUNTIME_SYSTEM_ABOUT_READ_SYSTEM_TEXT_FILE = (
 LOGGER_NAME = "SoAI.features.api.system_about"
 
 
-SYSTEM_DESCRIPTION = "SoAI is a unified backend for running local and remote AI models, providing a standardized API for inference, hardware management, and dynamic model orchestration."
+SYSTEM_DESCRIPTION = "SoAI is a unified platform for running local and remote AI models, providing a standardized API for inference, hardware management, and dynamic model orchestration."
 SYSTEM_LICENSE_NAME = "LicenseRef-SoAI-Source-1.0"
 
 

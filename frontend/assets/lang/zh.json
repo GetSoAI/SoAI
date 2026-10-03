@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "现在"
+                "now": "现在",
+                "occurrenceLabel": "{title}，{date} {time}，{status}",
+                "createAt": "在 {date} {time} 创建自动化。使用方向键更改时间。"
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "开始",
                     "turns": "轮次",
                     "timezone": "时区",
-                    "title": "标题"
+                    "title": "标题",
+                    "modelSettings": "模型、工具和参数"
                 },
                 "workspace": {
                     "button": "选择文件夹",
                     "description": "选择此次自动化运行所使用的文件夹。重复运行会继续使用此自动化文件夹。",
                     "fieldLabel": "工作区文件夹",
-                    "title": "自动化工作区文件夹"
+                    "title": "自动化工作区文件夹",
+                    "viewButton": "浏览工作区"
                 },
                 "parameters": {
                     "button": "编辑参数",
@@ -166,17 +170,17 @@
                     "fieldLabel": "模型参数",
                     "summaryCustom": "自定义自动化参数",
                     "summaryDefault": "默认模型参数",
-                    "title": "自动化模型参数"
+                    "title": "自动化模型参数",
+                    "viewButton": "查看参数"
                 },
                 "timezone": {
-                    "auto": "自动"
+                    "autoWithZone": "自动（{timezone}）"
                 },
                 "placeholders": {
                     "assistantTurn": "模型响应",
                     "endOfAutomation": "自动化结束",
                     "model": "选择模型",
                     "turn": "输入消息",
-                    "turnIndexed": "输入消息 {index}",
                     "title": "输入标题"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "保存",
                 "validation": {
                     "maxRunMinutesInvalid": "最长运行分钟数必须介于 1 到 1440 之间。",
-                    "modelUnavailable": "所选模型不可用。",
+                    "modelUnavailable": "{model} 不可用。请选择其他模型。",
                     "modelRequired": "必须选择模型。",
                     "recurrenceInvalid": "重复周期无效。",
                     "startInvalid": "开始日期和时间无效。",
@@ -195,7 +199,42 @@
                     "turnsRequired": "所有轮次均为必填项。",
                     "tooManyTurns": "轮次过多（最多 {max} 个）。每个轮次都会作为一个智能体轮次执行。",
                     "timezoneRequired": "必须选择时区。",
-                    "titleRequired": "必须填写标题。"
+                    "titleRequired": "必须填写标题。",
+                    "modelDisabled": "{model} 已禁用。请启用它或选择其他模型。",
+                    "modelMissing": "{model} 已不再安装。请选择其他模型。",
+                    "modelUnsupported": "{model} 不支持聊天。请选择其他模型。",
+                    "summary": "保存前请修正 {count} 个字段。",
+                    "toolsRequired": "执行需要启用工具并选择 todo_write。",
+                    "timezoneInvalid": "时区无效。请选择支持的时区。"
+                },
+                "conflict": {
+                    "message": "在你编辑期间，此自动化已在其他位置被更改。你的更改尚未保存。",
+                    "remoteChanges": "其他位置的更改：{fields}",
+                    "localChanges": "你的更改：{fields}",
+                    "keepChanges": "保留我的更改",
+                    "loadLatest": "加载最新版本"
+                },
+                "modelStatus": {
+                    "unavailable": "不可用",
+                    "unsupported": "不支持聊天"
+                },
+                "prerequisites": {
+                    "failed": "编辑器无法加载所需的全部内容。",
+                    "missing": "此自动化已不存在。",
+                    "toolsUnavailable": "无法加载工具。已保留现有的工具选择。",
+                    "childFailed": "无法打开设置。请重试。"
+                },
+                "schedule": {
+                    "ambiguous": "由于时钟调整，{start} 在 {timezone} 中会出现两次。将使用第一次。",
+                    "shiftedForward": "由于时钟调整，{timezone} 中不存在 {start}。将改为在 {effective} 运行。",
+                    "disabled": "已禁用：不会安排任何运行。",
+                    "nextRun": "下次运行：{when}（{timezone}）",
+                    "nextRunLocal": "下次运行：{when}（{timezone}），你的时间为 {localWhen}",
+                    "unavailable": "日程预览不可用。"
+                },
+                "turns": {
+                    "label": "第 {index} 轮",
+                    "remove": "删除第 {index} 轮"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "自动化偏好设置已重置为默认值。",
                 "runOpenFailed": "无法打开请求的自动化运行。",
                 "runUnavailable": "请求的自动化运行在当前视图中已不可用。",
-                "updated": "自动化已更新。"
+                "updated": "自动化已更新。",
+                "changeRefreshFailed": "更改已应用，但无法刷新视图。",
+                "conflict": "此自动化已在其他位置被更改。请在再次保存前查看这些更改。",
+                "defaultsNotRemembered": "已保存，但无法为新的自动化记住这些设置。",
+                "missingOnSave": "此自动化已不存在，可能已在其他位置被删除。"
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "今天",
                         "yesterday": "昨天"
                     },
-                    "turnsCount": "轮次：{count}",
                     "title": "运行",
                     "toolbar": {
                         "batchDelete": "删除所选运行",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "删除 {count} 个运行？正在运行的任务将被停止。",
-                        "deleteTitle": "删除运行？"
+                        "deleteTitle": "删除运行？",
+                        "skipTitle": "跳过此运行实例？",
+                        "skipMessage": "{title} 不会在此时间运行。其他运行实例不受影响。",
+                        "skipConfirm": "跳过",
+                        "stopTitle": "停止运行？",
+                        "stopMessage": "{title} 正在运行。它将被停止并从日历中移除。",
+                        "stopConfirm": "停止",
+                        "removeTitle": "移除此运行实例？",
+                        "removeMessage": "{title} 将从日历中移除。",
+                        "removeConfirm": "移除"
                     },
                     "notifications": {
-                        "deleteSuccess": "已删除 {count} 个运行。"
-                    }
+                        "deleteSuccess": "已删除 {count} 个运行。",
+                        "nothingToDelete": "所选运行实例已不在此视图中。",
+                        "tooManySelected": "一次最多选择 {max} 个运行实例。"
+                    },
+                    "occurrencesCount": "运行实例：{count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "上一个",
                 "showCalendar": "日历",
                 "showRegistry": "面板",
-                "today": "今天"
+                "today": "今天",
+                "staleData": "数据已过时",
+                "staleDataSince": "自动化数据可能已过时。上次更新：{time}。选择以重试。",
+                "resizePanes": "调整日历和侧边栏大小"
             },
             "views": {
                 "day": "日",
@@ -300,6 +357,7 @@
                     "bar": "柱状图",
                     "candlestick": "OHLC",
                     "deviation": "偏差",
+                    "heikin-ashi": "平均K线",
                     "label": "图表类型",
                     "line": "折线图",
                     "precision-line": "折线图"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "最小值： ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "无数据 · SoAI 离线",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "实时 ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "无法加载历史记录。",
             "loadingState": "加载中",
             "manualScaleLabel": "手动"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "附加 SoAI 链接",
                 "tabBrowse": "工作区",
                 "tabCamera": "扫描",
+                "tabDisabledReason": "请在 聊天配置 › {tab} 中开启 {setting}",
                 "tabKnowledge": "知识库",
                 "tabSoaiLink": "SoAI 链接",
                 "tabUpload": "上传",
@@ -559,7 +620,16 @@
                 "recordingStatus": "正在录制 {elapsed}",
                 "recordingTitle": "语音录制",
                 "requestingStatus": "等待浏览器权限",
-                "requestingTitle": "正在请求麦克风"
+                "requestingTitle": "正在请求麦克风",
+                "pushToTalk": {
+                    "cancelled": "录音已取消。",
+                    "queued": "已加入队列。",
+                    "releaseToCancel": "松开以取消",
+                    "releaseToSend": "松开以发送 · 向左滑动以取消",
+                    "sending": "正在发送…",
+                    "transcribing": "正在转写…",
+                    "transcriptReview": "已添加转写文本。请在发送前检查更新后的草稿。"
+                }
             },
             "authorityLock": {
                 "automationReason": "这是自动化对话。请在“自动化 → 编辑自动化”中更改其执行设置。",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "上传",
                 "assistantAvatarUploadLabel": "上传助手头像",
                 "assistantNamePlaceholder": "输入自定义模型名称...",
+                "autoHideChatComposer": "自动隐藏聊天输入框",
+                "autoHideChatComposerHint": "阅读较早的消息时隐藏空的聊天输入框。",
+                "autoHideChatHeader": "自动隐藏聊天标题栏",
+                "autoHideChatHeaderHint": "阅读较早的消息时隐藏对话标题栏。",
                 "identityNameInvalid": "显示名称最多只能包含 50 个 Unicode 字符，且不能含有无效文本。",
                 "promptInvalid": "提示词包含无效的 Unicode 文本。",
                 "close": "关闭",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "此对话运行期间无法更改工具访问权限。",
                     "toolsEnabledHint": "为此对话启用 MCP 工具。新聊天会使用你上次保存的值。",
                     "tool_approval_required": "需要工具审批",
-                    "toolApprovalRequiredHint": "运行破坏性工具前请求确认。"
+                    "toolApprovalRequiredHint": "运行破坏性工具前请求确认。",
+                    "unavailableTools": "不可用的已保存工具：{tools}。已保留选择。",
+                    "unavailableServers": "不可用的已保存服务器：{servers}。已保留设置。"
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "覆盖此功能的上下文长度。留空则使用所选模型的默认值。",
@@ -1035,7 +1111,8 @@
                 "newTitle": "新对话",
                 "renameFailed": "重命名对话失败。",
                 "switchFailed": "切换对话失败。",
-                "untitled": "无标题"
+                "untitled": "无标题",
+                "titleRequired": "请输入对话标题。"
             },
             "detached": {
                 "windowTitle": "聊天（分离窗口）"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "需要 HTTPS"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "长按以打开参数并显示上下文长度。",
+                "presetsHint": "长按以打开预设。",
+                "pushToTalkHint": "长按说话。",
+                "toolsHint": "长按以打开工具设置。",
+                "toolsRestrictedHint": "{reason}。长按以打开工具设置。",
+                "toolsToggleHint": "{action}。长按以打开工具设置。"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "已排队",
@@ -1286,7 +1371,8 @@
                     "running": "运行中",
                     "inputRequired": "需要操作"
                 },
-                "attachmentsCount": "(+{count} 个附件)"
+                "attachmentsCount": "(+{count} 个附件)",
+                "open": "打开提示词：{prompt}"
             },
             "loading": {
                 "errorType": "错误类型",
@@ -1337,7 +1423,9 @@
                     },
                     "save": "保存",
                     "skip": "跳过",
-                    "title": "帮助 SoAI 了解你"
+                    "title": "帮助 SoAI 了解你",
+                    "loadFailed": "无法加载你保存的资料。已暂停保存，以免覆盖任何内容。",
+                    "retry": "重试"
                 },
                 "viewer": {
                     "none": "无",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "昨天",
                 "toolCall": "工具调用",
                 "waiting": "等待中...",
-                "you": "你"
+                "you": "你",
+                "timestampWithTime": "{label}，{time}"
             },
             "modelControl": {
                 "compareModels": "比较模型",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "有多个模型使用名称“{model}”。请在侧边栏中选择一个具体模型。",
                 "available": "（可用）",
-                "loaded": "（已加载）"
+                "loaded": "（已加载）",
+                "unavailable": "（不可用）"
             },
             "news": {
                 "articleCount": "{count} 篇文章",
@@ -1469,6 +1559,48 @@
                 "clearFailed": "清除提示词历史记录失败。",
                 "cleared": "提示词历史记录已清除。",
                 "loadFailed": "加载提示词历史记录失败。"
+            },
+            "sketch": {
+                "open": "打开草图",
+                "mobileOption": "草图",
+                "preference": "草图",
+                "preferenceHint": "在聊天输入框中显示草图板，用于绘制图像并附加到消息中",
+                "title": "草图",
+                "description": "使用鼠标、手写笔或手指绘制，然后将绘图作为图片附加到消息中。",
+                "canvasLabel": "绘图画布",
+                "toolsLabel": "绘图工具",
+                "tools": {
+                    "pen": "钢笔",
+                    "brush": "画笔",
+                    "highlighter": "荧光笔",
+                    "eraser": "橡皮擦",
+                    "line": "直线",
+                    "rectangle": "矩形",
+                    "ellipse": "椭圆"
+                },
+                "colorsLabel": "颜色",
+                "colors": {
+                    "black": "黑色",
+                    "grey": "灰色",
+                    "red": "红色",
+                    "orange": "橙色",
+                    "yellow": "黄色",
+                    "green": "绿色",
+                    "teal": "青色",
+                    "blue": "蓝色",
+                    "purple": "紫色",
+                    "brown": "棕色"
+                },
+                "customColor": "自定义颜色",
+                "size": "大小",
+                "undo": "撤销",
+                "redo": "重做",
+                "clear": "清空",
+                "resize": "调整画布大小",
+                "attach": "附加",
+                "discardConfirm": "放弃此草图？",
+                "discard": "放弃",
+                "exportFailed": "无法导出草图，请重试。"
             },
             "characterMap": {
                 "allEmoji": "所有表情符号",
@@ -2201,7 +2333,8 @@
                 "started": "语音通话已开始。",
                 "transcriptionFailed": "语音转写失败。",
                 "ttsFailed": "文本转语音失败。",
-                "messageSendFailed": "发送语音消息失败。"
+                "messageSendFailed": "发送语音消息失败。",
+                "stoppedAfterFailure": "通话已停止。请解决问题后再开始新的通话。"
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "正在播放助手响应。",
@@ -2319,7 +2452,7 @@
                 "messageInfo": "消息元数据。",
                 "metricsAdvanced": "扩展的运行时指标。",
                 "modelDetailTest": "向此模型发送测试请求。",
-                "modelsDownload": "下载新模型。",
+                "modelsDownload": "下载模型、连接外部提供商或添加本地模型文件",
                 "modelsEdit": "覆盖此模型的能力设置。",
                 "modelsProviders": "外部模型提供商。",
                 "modelsRename": "为此模型设置本地名称。",
@@ -2328,7 +2461,7 @@
                 "pluginsClone": "使用新设置复制此插件。",
                 "pluginsConcurrent": "插件任务的最大并发数。",
                 "pluginsConfig": "插件设置。",
-                "pluginsDownload": "安装内置或本地插件。",
+                "pluginsDownload": "下载、上传插件，或从本地插件文件夹中添加插件",
                 "pluginsInfo": "插件详情和诊断信息。",
                 "pluginsIntro": "插件如何扩展 SoAI。",
                 "pluginsManageBackend": "管理后端版本。",
@@ -2336,7 +2469,8 @@
                 "settingsApiKeyQuota": "此 API 密钥的用量限制。",
                 "settingsExternalAccounts": "邮件和日历账户。",
                 "settingsMcpServer": "MCP 服务器连接。",
-                "toolCallOutput": "工具调用的输出。"
+                "toolCallOutput": "工具调用的输出。",
+                "conversationInput": "查看此提示词及其附件。"
             },
             "loading": "加载中...",
             "confirm": "确认",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count}s"
+                    },
+                    "year": {
+                        "short": "{count}年"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "有未保存的更改。是否不保存并继续？",
             "unsavedChangesTitle": "未保存的更改",
             "view": "查看",
-            "yes": "是"
+            "yes": "是",
+            "retry": "重试"
         },
         "contentPreview": {
             "actions": {
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "网络",
+                    "unavailable": "无法获取适配器列表",
                     "waiting": "检测中..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "基准测试",
                     "soaibenchStop": "停止",
                     "soaibenchStress": "压力测试",
+                    "viewBenchmark": "查看基准测试",
                     "test": "测试",
                     "reset": "重置",
                     "save": "保存"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index} 的 SoAIBench {profile} 已启动",
                     "soaibenchStopRequested": "已请求停止 GPU {index} 的 SoAIBench",
                     "soaibenchUnsupported": "GPU {index} 不支持 SoAIBench：{reason}",
+                    "soaibenchSettingsLocked": "GPU {index} 正在运行基准测试。请先停止测试或等待其完成，然后再保存设置。",
                     "slotApplied": "已应用 GPU {index} 插槽 {slot}",
                     "slotSaved": "已保存 GPU {index} 插槽 {slot}"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "删除本地历史记录",
+                "deleteLocalConfirm": {
+                    "title": "删除 SoAIBench 运行记录？",
+                    "message": "要从本地历史记录中删除此 SoAIBench 运行记录吗？此操作无法撤销。"
+                },
                 "action": "分享",
+                "openRun": "打开结果",
                 "ariaLabel": "分享此 SoAIBench 分数",
                 "unavailable": "没有可发布的 SoAIBench 运行结果",
-                "confirm": { "title": "分享 SoAIBench 分数？", "message": "要将分数 {score} 及其 {passes} 次测量结果发布到公开 SoAIBench 排行榜吗？", "description": "这会发送分数、五次测量结果、公开的 GPU 和运行时信息、基准测试设置，以及可选的传感器证据。不会发送账户身份、文件、配置、分析数据和一般遥测数据。soai.to 可以看到常规连接元数据，例如您的 IP 地址。" },
-                "outcomes": { "published": "已公开分享 SoAIBench 分数。", "alreadyPublished": "此 SoAIBench 分数已分享。", "heldForReview": "SoAIBench 结果因需审核身份或异常情况而暂被保留，尚未计入排行榜。", "offline": "SoAI 离线时无法分享分数。", "unavailable": "SoAIBench 发布服务当前不可用。", "timeout": "分享分数超时。请重试以核对同一次发布。", "rateLimited": "此连接分享的分数过多，请稍后重试。", "capacity": "SoAIBench 排行榜目前已达到容量上限。", "rejected": "SoAIBench 排行榜拒绝了此结果。", "conflict": "此发布与现有排行榜状态冲突。", "invalidResponse": "SoAIBench 排行榜返回了无效响应。", "retryAfter": "请在 {seconds} 秒后重试。" }
+                "confirm": {
+                    "title": "分享 SoAIBench 分数？",
+                    "message": "要将分数 {score} 及其 {passes} 次测量结果发布到公开 SoAIBench 排行榜吗？",
+                    "description": "这会发送分数、五次测量结果、公开的 GPU 和运行时信息、基准测试设置，以及可选的传感器证据。不会发送账户身份、文件、配置、分析数据和一般遥测数据。"
+                },
+                "outcomes": {
+                    "published": "已公开分享 SoAIBench 分数。",
+                    "alreadyPublished": "此 SoAIBench 分数已分享。",
+                    "heldForReview": "SoAIBench 结果因需审核身份或异常情况而暂被保留，尚未计入排行榜。",
+                    "offline": "SoAI 离线时无法分享分数。",
+                    "unavailable": "SoAIBench 发布服务当前不可用。",
+                    "timeout": "分享分数超时。请重试以核对同一次发布。",
+                    "rateLimited": "此连接分享的分数过多，请稍后重试。",
+                    "capacity": "SoAIBench 排行榜目前已达到容量上限。",
+                    "rejected": "SoAIBench 排行榜拒绝了此结果。",
+                    "conflict": "此发布与现有排行榜状态冲突。",
+                    "invalidResponse": "SoAIBench 排行榜返回了无效响应。",
+                    "retryAfter": "请在 {seconds} 秒后重试。"
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3126,6 +3289,8 @@
                     "description": "所选 GPU 的以往 SoAIBench 运行记录。",
                     "empty": "此 GPU 暂无 SoAIBench 运行记录。",
                     "loading": "正在加载运行历史...",
+                    "pageEmpty": "暂无 SoAIBench 运行记录。",
+                    "pageLoadFailed": "无法加载 SoAIBench 运行记录。请重试。",
                     "matchBases": {
                         "device_id": "设备 ID",
                         "gpu_model_key": "GPU 模型键",
@@ -3146,7 +3311,9 @@
                         "standard": "标准",
                         "stress": "压力测试"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "OpenCL 工作负载数值验证失败。" },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "OpenCL 工作负载数值验证失败。"
+                    },
                     "rowCopyUnavailable": "没有可复制的 SoAIBench 运行记录",
                     "staleHardware": "硬件匹配已过期",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "SoAIBench 历史运行记录"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "选择要进行基准测试的 GPU",
+                    "noGpus": "没有可用于基准测试的 GPU。",
                     "ariaLabels": {
                         "close": "关闭 SoAIBench",
                         "copy": "复制 SoAIBench 运行记录",
@@ -3170,6 +3339,9 @@
                         "retry": "重试认证 SoAIBench",
                         "stop": "停止认证 SoAIBench",
                         "stopping": "正在停止认证 SoAIBench",
+                        "newBenchmark": "开始新的认证 SoAIBench 运行",
+                        "runAgain": "在此 GPU 上再次运行认证 SoAIBench",
+                        "recover": "重新检查 SoAIBench 状态",
                         "start": "启动认证 SoAIBench"
                     },
                     "close": "关闭",
@@ -3231,7 +3403,11 @@
                         "stopping": "正在停止 SoAIBench",
                         "warmupDetail": "预热 {pass}/{total}",
                         "warmupPhase": "预热：{phase}",
-                        "warmup": "预热轮次已完成"
+                        "warmup": "预热轮次已完成",
+                        "reconnecting": "正在重新连接... 最后更新：{age}",
+                        "checkingStatus": "正在检查基准测试状态...",
+                        "statusUnavailable": "基准测试状态不可用。请重试以再次检查。",
+                        "startUnconfirmed": "无法确认基准测试已启动，且此 GPU 上没有正在进行的运行。重试前请查看历史记录。"
                     },
                     "retry": "重试",
                     "scoreLabel": "SoAIBench 得分",
@@ -3253,6 +3429,15 @@
                     "standardRun": "标准运行",
                     "stop": "停止",
                     "stopping": "正在停止",
+                    "newBenchmark": "新建基准测试",
+                    "runAgain": "再次运行",
+                    "gpuBusy": "基准测试进行中",
+                    "startedAt": "开始于 {time}",
+                    "states": {
+                        "starting": "正在启动",
+                        "unresolved": "状态未知",
+                        "rejected": "未启动"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "文档",
             "intro": {
                 "aboutButton": "关于 SoAI",
-                "paragraph1": "<strong>SoAI（Smart Orchestrator for Artificial Intelligence）</strong>通过一个 WebUI 管理本地推理引擎和远程 AI 提供商，并用 OpenAI 和 Anthropic 兼容 API 提供全部模型。",
+                "paragraph1": "<strong dir=\"auto\">SoAI（Smart Orchestrator for Artificial Intelligence）</strong>通过一个 WebUI 管理本地推理引擎和远程 AI 提供商，并用 OpenAI 和 Anthropic 兼容 API 提供全部模型。",
                 "paragraph2": "SoAI 支持 Linux、macOS 和 Windows，源码可查看，个人及家庭实验室可免费使用。SoAI 不收集用户数据，也不发送分析、遥测或使用报告。"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "延迟",
                         "queueDepth": "队列深度",
                         "requests": "请求",
+                        "throughput": "Token 生成速率",
                         "tokens": "Token"
                     },
                     "title": "图表"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "显示名称",
                     "source_model_id": "源模型 ID",
-                    "provider": "提供商",
-                    "title": "标识",
                     "type": "类型",
                     "universal_id": "通用 ID",
                     "virtual": "虚拟"
@@ -4064,30 +4248,20 @@
                     "title": "推理默认值"
                 },
                 "metrics": {
-                    "avgLatency": "平均延迟",
                     "avgTokens": "平均 Token 数/请求",
                     "audioIn": "音频输入",
                     "audioOut": "音频输出",
-                    "failedRequests": "失败请求",
                     "imagesIn": "图像输入",
                     "imagesOut": "图像输出",
                     "last_used": "上次使用",
                     "modalityUsage": "用量",
                     "success_rate": "成功率",
                     "textTokens": "文本 Token",
-                    "title": "指标",
                     "tokensGenerated": "生成的 Token",
-                    "totalRequests": "请求总数",
-                    "waitTime": "平均等待时间"
+                    "totalRequests": "请求总数"
                 },
                 "plugin": {
-                    "author": "作者",
-                    "models": "模型",
-                    "plugin_status": "插件状态",
-                    "providers": "提供商",
-                    "title": "插件",
-                    "type": "类型",
-                    "version": "版本"
+                    "title": "插件"
                 },
                 "status": {
                     "available": "可用",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "重命名",
                     "modelStatus": "模型状态",
                     "orphaned": "孤立",
-                    "parameters": "参数",
                     "stopPlugin": "停止插件",
-                    "title": "状态与操作"
+                    "title": "状态"
                 },
                 "technical": {
                     "created": "创建时间",
-                    "description": "描述",
                     "family": "系列",
                     "license": "许可证",
                     "path": "路径",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "所有参数",
-                "category": "类别",
                 "groupInference": "推理",
                 "groupStartup": "启动"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "添加 {itemType} 项目",
                 "aliasesPrefix": "又名：",
                 "arrayOfType": "{itemType} 值数组",
+                "backendDefault": "后端默认值",
                 "backendDocumentationDescription": "这些模型参数包括插件公开的 <strong>后端定义设置</strong>。有关确切行为、可接受的值和默认值，请参阅后端自身的文档。",
-                "backendDocumentationTitle": "信息",
                 "badges": {
                     "custom": "自定义",
-                    "default": "默认",
                     "requiresReload": "需要重新加载"
                 },
-                "countLabel": "{count} 个参数",
+                "count": {
+                    "plural": "{count} 个参数",
+                    "singular": "{count} 个参数"
+                },
                 "invalidJson": "请为此参数输入有效的 JSON。",
                 "jsonObject": "JSON 对象",
                 "noMatchDescription": "请尝试调整搜索或筛选条件。",
                 "noMatchTitle": "没有与筛选条件匹配的参数",
                 "noParameters": "此模型没有可用参数",
+                "railLabel": "参数类别",
                 "range": "范围：{min} - {max}",
-                "removeItem": "移除项目"
+                "removeItem": "移除项目",
+                "revertChange": "撤销更改",
+                "unsavedCount": {
+                    "plural": "{count} 项未保存的更改",
+                    "singular": "{count} 项未保存的更改"
+                },
+                "views": {
+                    "customized": "已自定义",
+                    "unsaved": "未保存的更改"
+                }
             },
             "status": {
                 "loaded": "已加载",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "选择文件",
                     "close": "关闭",
                     "confirmDownload": "下载插件",
                     "confirmUpload": "上传插件",
+                    "fileDropHint": "点击选择 .soaiplugin 文件，或将其拖到此处",
+                    "fileDropTitle": "将插件拖放到此处",
                     "fileHelp": "选择 ZIP 格式的 Python 插件包（.soaiplugin）",
                     "fileLabel": "插件文件",
                     "manualCopySuccess": "插件文件夹路径已复制到剪贴板。",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant}（已安装）",
                     "loadFailed": "无法加载后端变体。",
                     "loading": "正在加载后端变体...",
+                    "loadingBackends": "正在加载后端...",
                     "saveFailed": "无法保存后端变体。"
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "已启用 {plugin} 的兼容性覆盖。",
                 "overrideRequired": "启动 {plugin} 前请启用兼容性覆盖。",
                 "persistentNoStop": "持久插件无法停止",
-                "pluginDisabled": "插件已禁用",
-                "pluginEnabled": "插件已启用",
+                "pluginDisabled": "已禁用插件 {plugin}",
+                "pluginEnabled": "已启用插件 {plugin}",
                 "pluginIncompatibleReason": "插件“{plugin}”不兼容：{reason}",
                 "pluginInfoCopyFailed": "复制插件信息失败",
                 "pluginStopInProgress": "正在停止 {plugin}...",
@@ -5489,16 +5674,21 @@
                 "restarting": "应用正在重启。这通常只需片刻。",
                 "shutdown": "系统正在关机。你可以关闭此浏览器窗口。",
                 "sleep": "系统正在进入睡眠模式。唤醒系统后即可继续使用 SoAI。",
-                "updating": "SoAI 正在下载并安装更新。这可能需要几分钟。"
+                "updateTimeout": "更新后 SoAI 未能恢复在线。请检查 SoAI 日志文件夹中的 application_updater.log，然后重新加载此页面。",
+                "updating": "SoAI 将重新启动以完成更新。SoAI 恢复在线后，此页面将自动重新加载。这可能需要几分钟。",
+                "updatingDesktop": "SoAI 将重新启动以完成更新。更新完成后，此窗口将关闭并自动重新打开。请不要关闭计算机。",
+                "updatingSlow": "更新所需时间比平时长。SoAI 仍在运行，请保持此页面打开。"
             },
             "messages": {
                 "connectionLost": "后端连接已断开",
+                "installingVersion": "正在安装 SoAI {version}...",
                 "pleaseWait": "请稍候...",
                 "rebooting": "系统正在重启...",
                 "rebootTimeout": "重启仍在进行...",
                 "restarting": "SoAI 正在重启...",
                 "shutdown": "系统正在关机",
                 "sleep": "系统正在进入睡眠",
+                "updateTimeout": "SoAI 尚未恢复",
                 "updating": "SoAI 正在更新..."
             },
             "reconnecting": "正在尝试重新连接..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "为所有图表选择自定义颜色",
-                    "label": "静态颜色"
+                    "label": "图表颜色"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "控制 SoAI 中类代码内容的显示方式。",
                 "subgroupTitle": "代码块"
+            },
+            "connect": {
+                "addressCopied": "地址已复制",
+                "browserAddress": "此浏览器的地址",
+                "chooseAddress": "手机使用的地址",
+                "copyAddress": "复制地址",
+                "description": "扫描二维码，将 SoAI Connect Android 应用连接到此服务器。",
+                "documentationHint": "如需手动设置和排查问题，请在 SoAI 文档中打开 \"Connect to a SoAI server\"。",
+                "documentationLink": "SoAI 文档",
+                "loadFailed": "无法加载连接详情",
+                "loopbackWarningMessage": "SoAI 正在环回地址上监听，因此其他设备无法直接访问。二维码仅在通过与 SoAI 使用相同协议和端口的反向代理时可用。要允许直接连接，请设置以下选项并重启 SoAI：",
+                "loopbackWarningTitle": "仅可从此计算机访问",
+                "noAddressesMessage": "请将此服务器连接到网络，或从手机应使用的地址打开此页面。",
+                "noAddressesTitle": "未找到可访问的地址",
+                "qrLabel": "用于将 SoAI Connect 连接到 {address} 的二维码",
+                "refresh": "刷新地址",
+                "scanHint": "使用 SoAI Connect 应用扫描此二维码",
+                "stepInstall": "在 Android 手机上安装并打开 SoAI Connect",
+                "stepScan": "点按服务器地址栏旁的二维码按钮，然后扫描此页面上的二维码",
+                "stepSignIn": "如出现证书提示，请先查看，然后使用您的 SoAI 帐户登录",
+                "stepsTitle": "连接方法",
+                "title": "SoAI Connect",
+                "vpnHint": "您的手机必须能够访问此服务器。请使用同一局域网，或在外出时使用 VPN，而不要将 SoAI 暴露到互联网。",
+                "vpnTitle": "不在家？"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "自动隐藏页面标题"
                     }
                 },
-                "subgroupTitle": "动效",
+                "subgroupTitle": "界面",
                 "subgroupDescription": "调整动效、过渡、毛玻璃表面和滚动行为。"
             },
             "externalAccounts": {
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "备份",
+                "connect": "连接",
                 "externalAccounts": "邮件与日历",
                 "licensing": "许可",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "选择一张即可应用",
+                    "label": "内置壁纸",
+                    "none": "无壁纸",
+                    "option": "壁纸 {number}"
+                },
                 "downloadUrl": {
                     "button": "下载",
                     "help": "提供一个 URL 以下载并设为壁纸",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "部分发行说明无法加载。已显示可用的说明。"
+            },
+            "outcome": {
+                "failureMessage": "更新到 {version} 版本未完成。SoAI {previousVersion} 仍处于安装状态。有关详细信息，请检查 SoAI 日志文件夹中的 application_updater.log。",
+                "failureTitle": "更新未完成",
+                "later": "稍后",
+                "reloadMessage": "SoAI 现在运行的是 {version} 版本。请重新加载此页面以使用更新后的界面。",
+                "reloadTitle": "SoAI 已更新",
+                "successMessage": "SoAI 已成功更新到 {version} 版本。",
+                "successTitle": "更新完成"
+            },
+            "progress": {
+                "downloading": "正在下载更新...",
+                "handoff": "正在准备重启 SoAI...",
+                "staging": "正在准备更新文件...",
+                "unavailable": "实时进度暂时不可用。",
+                "verifying": "正在验证更新..."
+            },
             "actions": {
                 "checkUpdates": "检查更新",
                 "installUpdate": "安装更新"
@@ -7943,6 +8183,184 @@
             "welcome": {
                 "description": "SoAI 通过一个 OpenAI 兼容的编排层统一管理本地和远程 LLM 后端。",
                 "heading": "欢迎使用 SoAI！"
+            },
+            "aiSetup": {
+                "eyebrow": "SoAI 设置",
+                "loadFailed": {
+                    "title": "无法加载 SoAI 设置",
+                    "description": "SoAI 无法读取可用的引擎和提供商。请确认 SoAI 正在运行，然后重试，或稍后再完成设置。",
+                    "retry": "重试"
+                },
+                "nav": {
+                    "finishLater": "跳过",
+                    "skip": "跳过 SoAI 设置",
+                    "continue": "继续",
+                    "installAndContinue": "安装",
+                    "downloadAndContinue": "下载",
+                    "startChatting": "聊天",
+                    "close": "关闭"
+                },
+                "sources": {
+                    "heading": "你希望 AI 在哪里运行？",
+                    "description": "选择其中一项或两项都选。之后可以更改。",
+                    "local": {
+                        "title": "在此设备上",
+                        "description": "私密，设置完成后可离线使用。需要一次性下载。"
+                    },
+                    "cloud": {
+                        "title": "云提供商",
+                        "description": "只要有网络和提供商 API 密钥，即可在任何地方使用。",
+                        "recommended": "推荐"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "获取免费 API 密钥",
+                    "accessibleName": "获取免费 API 密钥（在新窗口中打开）"
+                },
+                "limited": {
+                    "noCompatibleEngine": "没有支持此设备的本地引擎。",
+                    "insufficientMemory": "本地模型需要约 {required} 可用内存；此设备约有 {available}。",
+                    "useCloud": "改用云模型",
+                    "searchManually": "手动搜索模型"
+                },
+                "connect": {
+                    "heading": "准备就绪",
+                    "description": "连接提供商并准备此设备。",
+                    "cloud": {
+                        "heading": "连接云提供商",
+                        "description": "粘贴提供商给你的 API URL 和密钥。",
+                        "moreOptions": "更多选项",
+                        "modelFilter": "模型筛选（可选）",
+                        "connect": "连接",
+                        "connecting": "正在连接 {name}…",
+                        "connected": {
+                            "singular": "已连接 · {count} 个模型可用",
+                            "plural": "已连接 · {count} 个模型可用"
+                        },
+                        "change": "更改"
+                    },
+                    "local": {
+                        "heading": "安装本地引擎",
+                        "description": "这样模型就能在此设备上运行。",
+                        "automatic": "自动（推荐）",
+                        "usesGpu": "通过显卡使用 {engine}",
+                        "usesProcessor": "在处理器上使用 {engine}",
+                        "usesInstalled": "使用已安装的 {engine}",
+                        "chooseManually": "手动选择",
+                        "status": {
+                            "installed": "已安装",
+                            "recommended": "推荐",
+                            "warning": "警告",
+                            "unavailable": "不可用"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "选择模型",
+                    "description": "选择要聊天的模型。之后可以再添加。",
+                    "local": {
+                        "heading": "适合此设备的模型",
+                        "description": "根据你的硬件挑选。"
+                    },
+                    "role": {
+                        "recommended": "推荐",
+                        "faster": "更快",
+                        "smallest": "最小"
+                    },
+                    "useCase": {
+                        "advanced": "写作、编程和推理的最佳质量",
+                        "balanced": "非常适合日常聊天、写作和编程",
+                        "reasoning": "擅长逐步推理",
+                        "light": "在普通硬件上快速回答"
+                    },
+                    "downloadSize": "下载 {size}",
+                    "runsOnGpu": "在你的显卡上运行",
+                    "runsOnCpu": "在你的处理器上运行",
+                    "speed": {
+                        "fast": "回复迅速",
+                        "moderate": "速度适中",
+                        "slow": "回复较慢"
+                    },
+                    "details": {
+                        "label": "详细信息",
+                        "quantization": "量化",
+                        "parameters": "参数",
+                        "parametersDense": "{total}B",
+                        "parametersMoe": "{total}B，激活 {active}B",
+                        "context": "上下文长度",
+                        "contextTokens": "{tokens} 个令牌",
+                        "contextReduced": "{tokens} 个令牌（已为此设备缩减）",
+                        "file": "文件",
+                        "source": "来源"
+                    },
+                    "openChatWith": "使用此模型打开聊天",
+                    "searchAnother": "搜索其他模型",
+                    "cloud": {
+                        "heading": "来自 {provider} 的模型",
+                        "description": "选择一个或多个。",
+                        "filterPlaceholder": "筛选模型…",
+                        "noMatches": "没有与此筛选条件匹配的模型。",
+                        "empty": "此提供商未返回任何模型。请检查模型筛选条件或尝试其他提供商。",
+                        "backToProvider": "返回提供商"
+                    }
+                },
+                "progress": {
+                    "heading": "正在准备一切",
+                    "description": "只要有一个模型就绪，你就可以开始聊天。",
+                    "readyCount": "{ready}/{total} 已就绪",
+                    "installing": "正在安装 {engine}",
+                    "downloading": "正在下载 {model}",
+                    "waitingForEngine": "正在等待 {engine} 完成安装",
+                    "discovering": "正在将 {model} 添加到你的模型",
+                    "configuring": "正在应用初始设置",
+                    "testing": "正在发送一条简短的测试消息",
+                    "ready": "{model} 已就绪",
+                    "blocked": "需要先安装 {engine} 才能开始",
+                    "checkingStatus": "正在检查状态",
+                    "retry": "重试",
+                    "retryInstallation": "重试安装",
+                    "skipItem": "跳过此项",
+                    "testAgain": "再次测试",
+                    "checkAgain": "再次检查",
+                    "sendTest": "发送测试消息",
+                    "error": {
+                        "empty": "模型已加载但没有回复。请重试或选择其他模型。",
+                        "loadError": "模型无法在此设备上启动。请重试或选择更小的模型。",
+                        "timeout": "模型回复时间过长。请重试或选择更小的模型。",
+                        "disconnected": "测试期间连接中断。请重试。",
+                        "downloadFailed": "下载已停止。请重试。",
+                        "installFailed": "安装未完成。请重试。",
+                        "noDiskSpace": "磁盘空间不足，无法容纳此模型。请释放空间或选择更小的模型。"
+                    },
+                    "testPrompt": "请用一句简短友好的话回复。",
+                    "testCancelled": "SoAI 设置测试已取消。"
+                },
+                "completion": {
+                    "modelsTitle": "AI 模型",
+                    "modelsReady": {
+                        "singular": "{count} 个已就绪",
+                        "plural": "{count} 个已就绪"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} 个仍在后台准备",
+                        "plural": "{count} 个仍在后台准备"
+                    }
+                },
+                "resume": {
+                    "link": "完成 SoAI 设置",
+                    "toast": "部分 SoAI 设置步骤需要你处理。"
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "模型下载将在后台继续进行。",
+                        "plural": "{count} 个模型下载将在后台继续进行。"
+                    },
+                    "installations": {
+                        "singular": "后端安装将在后台继续进行。",
+                        "plural": "{count} 个后端安装将在后台继续进行。"
+                    },
+                    "both": "模型下载和后端安装将在后台继续进行。"
+                }
             }
         }
     }

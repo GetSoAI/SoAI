@@ -4,6 +4,7 @@
 import { measureLayoutBox, measureLayoutPoint } from '@core/layout/elementGeometry.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
+import { normalizeWheelDeltaPx } from '@core/ui/controls/wheelDelta.ts';
 import { createContentPreviewImageViewerActivation } from '@core/ui/modals/contentpreview/imageViewerActivation.ts';
 import { createContentPreviewImageViewerMotion } from '@core/ui/modals/contentpreview/imageViewerMotion.ts';
 import { createContentPreviewImageViewerPaging, type ImageViewerGestureActions } from '@core/ui/modals/contentpreview/imageViewerPaging.ts';
@@ -215,7 +216,7 @@ const createContentPreviewImageViewerGestures = ({ refs, state, actions }: Mount
         const geometry = state.getGeometry();
         const now = performance.now();
         const currentScale = wheelTarget !== null && now - lastWheelAt < 160 ? wheelTarget : state.getTransform().scale;
-        const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? geometry.viewportHeight : 1);
+        const delta = normalizeWheelDeltaPx(event.deltaY, event.deltaMode, geometry.viewportHeight);
         const nextScale = clampNumber(currentScale * Math.exp(-delta * 0.0016), geometry.fitScale, CONTENT_PREVIEW_IMAGE_MAX_SCALE);
         lastWheelAt = now;
         wheelTarget = nextScale;

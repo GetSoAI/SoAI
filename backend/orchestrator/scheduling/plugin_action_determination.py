@@ -10,6 +10,7 @@ from core.models.provider_backing import is_provider_backed_model
 from core.state.state_names import (
     ORCH_STATE_READY,
     ORCH_STATE_READY_DIRTY,
+    ORCH_STATE_READY_PENDING_DISPATCH,
     ORCH_STATE_STOPPED,
     PLUGIN_STATE_NOT_DETECTED,
     PLUGIN_STATE_STOPPED,
@@ -203,7 +204,7 @@ async def _determine_action_for_state(
                 ),
             ),
         )
-    if plugin_status == ORCH_STATE_READY:
+    if plugin_status in (ORCH_STATE_READY, ORCH_STATE_READY_PENDING_DISPATCH):
         return await handle_ready_plugin(
             deps,
             evaluation.task,

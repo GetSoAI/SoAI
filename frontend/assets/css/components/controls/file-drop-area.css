@@ -1,0 +1,140 @@
+/* SoAI - Shared file drop area styles [frontend/assets/css/components/controls/file-drop-area.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-file-drop-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+
+    .form-group.ui-file-drop-form > .ui-modal-tab-intro {
+        margin-bottom: 0;
+    }
+
+    .ui-file-drop-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+        width: 100%;
+        min-height: 8.5rem;
+        padding: var(--space-7) var(--space-4);
+        border: var(--border-width-150) dashed var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-light);
+        color: var(--text-primary);
+        text-align: center;
+        cursor: pointer;
+        transition:
+            transform var(--transition-fast),
+            border-color var(--transition-fast),
+            background var(--transition-fast),
+            box-shadow var(--transition-fast);
+    }
+
+    .ui-file-drop-area:is(:hover, :focus-visible),
+    .ui-file-drop-area.is-dragover {
+        border-color: var(--accent-green);
+        background: var(--glass-surface-interactive);
+    }
+
+    .ui-file-drop-area[hidden] {
+        display: none;
+    }
+
+    .ui-file-drop-area.is-drop-accepted {
+        animation: ui-file-drop-area-accepted var(--duration-400) var(--ease-default);
+    }
+
+    .ui-file-drop-area-copy {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-1);
+        min-width: 0;
+    }
+
+    .ui-file-drop-area-title {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+        line-height: 1.25;
+    }
+
+    .ui-file-drop-area-hint {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-xs);
+        line-height: 1.4;
+    }
+
+    .ui-file-drop-area-icons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        align-items: center;
+        justify-content: center;
+        max-width: 14rem;
+    }
+
+    .ui-file-drop-area-icon {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        width: 2rem;
+        height: 2rem;
+        border: var(--border-width-1) solid var(--glass-border-subtle);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+        color: var(--text-secondary);
+    }
+
+    .ui-file-drop-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: var(--space-3);
+    }
+
+    .ui-file-drop-action-button {
+        width: auto;
+        min-width: 10rem;
+    }
+
+    @keyframes ui-file-drop-area-accepted {
+        0% {
+            transform: scale(1);
+            border-color: var(--accent-green);
+            background: var(--glass-surface-interactive);
+            box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-green) 24%, transparent);
+        }
+
+        45% {
+            transform: scale(0.992);
+            border-color: var(--accent-green);
+            background: color-mix(in srgb, var(--glass-surface-interactive) 78%, var(--accent-green));
+            box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent-green) 0%, transparent);
+        }
+
+        100% {
+            transform: scale(1);
+            border-color: var(--glass-border-strong);
+            background: var(--glass-surface-light);
+            box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-green) 0%, transparent);
+        }
+    }
+
+    @container (width <= 480px) {
+        .ui-file-drop-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .ui-file-drop-action-button {
+            width: 100%;
+        }
+    }
+}

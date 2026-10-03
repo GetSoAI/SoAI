@@ -96,6 +96,7 @@ async def validate_model_reference(
         virtual_model_get=virtual_model_map.get,
         unknown_message=f"Unknown model '{model_name}'.",
         disabled_message=f"Model '{model_name}' is disabled.",
+        required_capability=None,
         details={"param": "model"},
     )
     if validated.is_virtual:

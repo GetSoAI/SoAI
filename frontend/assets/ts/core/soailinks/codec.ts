@@ -123,5 +123,5 @@ const stripSoaiPathTokensForDisplay = (value: string): string => {
     return parts.join('');
 };
 
-export { appendedTextIntroducesSoaiPathToken, buildSoaiPathToken, containsSoaiPathToken, extractSoaiPathTokenTexts, replaceSoaiPathTokensWithLabels, stripSoaiPathTokensForDisplay };
+export { appendedTextIntroducesSoaiPathToken, buildSoaiPathToken, containsSoaiPathToken, extractSoaiPathTokenTexts, replaceSoaiPathTokensWithLabels, requireSoaiVirtualPath, stripSoaiPathTokensForDisplay };
 export type { SoaiPathTokenText };

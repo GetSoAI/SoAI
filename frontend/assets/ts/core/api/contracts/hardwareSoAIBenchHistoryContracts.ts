@@ -46,13 +46,13 @@ const decodeOpaqueObject = (value: JsonValue | undefined, label: string): JsonOb
 
 const decodeSettingsSnapshot = (value: JsonValue | undefined, label: string): GpuSoAIBenchSettingsSnapshot => {
     if (value === undefined || value === null) return {};
-    const record = requireRecord(value, label);
+    const record = toJsonCompatibleObject(requireRecord(value, label));
     if (hasOwn(record, 'powerLimitWatts') || hasOwn(record, 'coreClockMhz')) throw new TypeError(`${label} must use canonical V1 wire fields`);
     const settings: GpuSoAIBenchSettingsSnapshot = {};
-    const powerLimitWatts = readSoAIBenchOptionalNumber(record, 'power_limit_watts', label);
-    const fanSpeed = readSoAIBenchOptionalNumber(record, 'fan_speed', label);
-    const coreClockMhz = readSoAIBenchOptionalNumber(record, 'core_clock_mhz', label);
-    const memClockMhz = readSoAIBenchOptionalNumber(record, 'mem_clock_mhz', label);
+    const powerLimitWatts = record['power_limit_watts'];
+    const fanSpeed = record['fan_speed'];
+    const coreClockMhz = record['core_clock_mhz'];
+    const memClockMhz = record['mem_clock_mhz'];
     if (powerLimitWatts !== undefined) settings.powerLimitWatts = powerLimitWatts;
     if (fanSpeed !== undefined) settings.fanSpeed = fanSpeed;
     if (coreClockMhz !== undefined) settings.coreClockMhz = coreClockMhz;

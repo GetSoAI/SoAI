@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isFunction, isObject } from '@core/typeGuards.ts';
-import { normalizeChartTypeToken } from '@features/charts/chartTypeNormalization.ts';
+import { isOhlcChartType, normalizeChartTypeToken } from '@features/charts/chartTypeNormalization.ts';
 import type { HistoryChartControlsContract, HistoryChartInstance } from '@features/charts/historyChartContracts.ts';
 
 type ControlsManager = HistoryChartControlsContract;
@@ -27,7 +27,7 @@ interface ResolveCandlestickIntervalMsOptions extends CandlestickIntervalOptions
 
 const resolveChartType = (explicitType: string | undefined, chartInstance: ChartInstance | undefined): string | null => normalizeChartTypeToken(explicitType ?? chartInstance?.settings.snapshot.chartType ?? null);
 
-export const isCandlestickModeActive = ({ chartType, chart }: IsCandlestickModeActiveOptions = {}): boolean => resolveChartType(chartType, chart) === 'candlestick';
+export const isCandlestickModeActive = ({ chartType, chart }: IsCandlestickModeActiveOptions = {}): boolean => isOhlcChartType(resolveChartType(chartType, chart));
 
 export const resolveCandlestickIntervalMs = ({ controlsManager, metadataIntervalMs, lastResolvedIntervalMs, requestedIntervalMinutes, supportedHistoryIntervalsMs, monitoringIntervalMs }: ResolveCandlestickIntervalMsOptions = {}): number => {
     if (!isObject(controlsManager) || !isFunction(controlsManager.resolveCandlestickIntervalMs)) {

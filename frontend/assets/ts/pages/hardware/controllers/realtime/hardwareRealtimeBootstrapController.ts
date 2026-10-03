@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { throwIfAborted } from '@core/errors/abort.ts';
-import { handleChartHistoricalRequest, startHistoryStream, type HardwareHistoryRuntime, type HardwareHistoryStreamDependencies } from '@pages/hardware/controllers/realtime/effects.ts';
+import { followHardwareHistoryRange, startHistoryStream, type HardwareHistoryRuntime, type HardwareHistoryStreamDependencies } from '@pages/hardware/controllers/realtime/effects.ts';
 import { initializeMainChart } from '@pages/hardware/controllers/render/effects.ts';
 import type { HardwareRenderController } from '@pages/hardware/controllers/renderController.ts';
 import type { HardwarePageState } from '@pages/hardware/state/state.ts';
@@ -28,7 +28,8 @@ const runChartBootstrap = async (input: HardwareChartBootstrapInput): Promise<vo
     if (!input.state.mainChart) {
         await initializeMainChart(input.renderController.chartContext, {
             signal: signalOrUndefined,
-            onRequestHistoricalData: (timestamp: number): Promise<void> => handleChartHistoricalRequest(input.historyStreamDependencies, input.historyRuntime, timestamp)
+            history: input.historyRuntime.pager,
+            onTimeRangeChange: (visibleStartTs: number, visibleEndTs: number): void => followHardwareHistoryRange(input.historyStreamDependencies, input.historyRuntime, visibleStartTs, visibleEndTs)
         });
     }
     throwIfAborted(input.signal);

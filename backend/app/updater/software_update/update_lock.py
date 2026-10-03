@@ -13,10 +13,8 @@ from core.concurrency.deadlines import deadline_after
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from core.filesystem.atomic_writes import (
-    atomic_text_write_temporary_paths,
-    atomic_write_text_content,
-)
+from core.filesystem.atomic_write_names import atomic_text_write_temporary_paths
+from core.filesystem.atomic_writes import atomic_write_text_content
 from core.filesystem.open_files import open_text
 from core.logging.protocols import LoggerProtocol
 from core.meta.paths import join_data_abs

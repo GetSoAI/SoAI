@@ -192,6 +192,15 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
         schedulePreviewFrame();
         scheduleDraw();
     };
+    const scheduleOverlayResize = (): void => {
+        if (isDisposed) {
+            return;
+        }
+        geometryPending = true;
+        thumbPending = true;
+        schedulePreviewFrame();
+        scheduleContentNow();
+    };
     const scheduleThumbUpdate = (): void => {
         thumbPending = true;
         schedulePreviewFrame();
@@ -199,8 +208,12 @@ export const createAdvancedScrollPreviewRuntime = (context: ChatUIManagerContext
 
     const resizeDisposer = coordinator.subscribeResize((entries) => {
         minimap.markDirtyFromResize(entries);
+        if (entries.some((entry) => entry.target === overlay)) {
+            scheduleOverlayResize();
+            return;
+        }
         for (const entry of entries) {
-            if (entry.target === overlay || entry.target === messagesArea || entry.target === inputActions || entry.target === inputWrapper) {
+            if (entry.target === messagesArea || entry.target === inputActions || entry.target === inputWrapper) {
                 scheduleGeometrySync();
                 return;
             }

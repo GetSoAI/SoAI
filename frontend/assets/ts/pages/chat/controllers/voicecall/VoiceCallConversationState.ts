@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { toTrimmedString } from '@core/normalize.ts';
+import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 
 class VoiceCallConversationState {
     #conversationId: string | null = null;
-    #initialBindingPending = false;
+    readonly #sendSequence = new SequenceToken();
+    #pendingInitialSend: number | null = null;
 
     bindInitial(candidate: string | null): void {
         const normalized = toTrimmedString(candidate);
@@ -18,18 +20,20 @@ class VoiceCallConversationState {
 
     clear(): void {
         this.#conversationId = null;
-        this.#initialBindingPending = false;
+        this.#sendSequence.invalidate();
+        this.#pendingInitialSend = null;
     }
 
-    beginSend(): boolean {
-        const pending = this.#conversationId === null;
-        if (pending) this.#initialBindingPending = true;
-        return pending;
+    beginSend(): number | null {
+        if (this.#conversationId !== null) return null;
+        const token = this.#sendSequence.next();
+        this.#pendingInitialSend = token;
+        return token;
     }
 
-    finishSend(pending: boolean, currentConversationId: string | null): boolean {
-        if (!pending) return false;
-        this.#initialBindingPending = false;
+    finishSend(token: number | null, currentConversationId: string | null): boolean {
+        if (token === null || this.#pendingInitialSend !== token) return false;
+        this.#pendingInitialSend = null;
         return this.#conversationId === null && Boolean(toTrimmedString(currentConversationId));
     }
 
@@ -44,7 +48,7 @@ class VoiceCallConversationState {
     }
 
     isInitialPending(): boolean {
-        return this.#initialBindingPending;
+        return this.#pendingInitialSend !== null;
     }
 }
 

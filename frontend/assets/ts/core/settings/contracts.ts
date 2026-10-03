@@ -4,7 +4,7 @@
 import type { ToggleLabelState } from '@core/toggleSwitch.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 
-type NormalTabRendererId = 'preferences' | 'theme' | 'users' | 'security' | 'licensing' | 'acl' | 'apiKeys' | 'mcp' | 'externalAccounts' | 'backup' | 'system' | 'messaging' | 'product';
+type NormalTabRendererId = 'preferences' | 'theme' | 'users' | 'security' | 'licensing' | 'connect' | 'acl' | 'apiKeys' | 'mcp' | 'externalAccounts' | 'backup' | 'system' | 'messaging' | 'product';
 type SettingsCapabilityStatus = 'pending' | 'ready' | 'partial' | 'stale' | 'unavailable';
 interface SettingsCapabilityAvailability {
     status: SettingsCapabilityStatus;
@@ -70,11 +70,12 @@ interface ToggleControlOptions {
 }
 interface SelectControlOptions {
     id: string;
-    options: Array<{ value: string | number | null; label: string; disabled?: boolean }>;
+    options: Array<{ value: string | number | null; label: string; disabled?: boolean; countryCode?: string | null }>;
     selected: string | number | null | undefined;
     disabled?: boolean;
     wide?: boolean;
     compact?: boolean;
+    flagPrefix?: boolean;
 }
 interface SliderControlOptions {
     id: string;

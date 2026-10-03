@@ -12,7 +12,7 @@ import type { ParameterTemplateOptions } from '@pages/modeldetail/contracts/para
 import type { ParameterStateManager } from '@pages/modeldetail/controllers/ParameterStateManager.ts';
 import type { ParameterViewHost } from '@pages/modeldetail/controllers/parameterviewmanager/types.ts';
 import { requireConfiguredIcon } from '@pages/modeldetail/guards/guards.ts';
-import { renderParametersView } from '@pages/modeldetail/widgets/parametertemplates/view.ts';
+import { renderBackendDocumentation, renderParametersView } from '@pages/modeldetail/widgets/parametertemplates/view.ts';
 
 const createTemplateOptions = (state: ParameterStateManager, icons: Record<string, TrustedHtml>): ParameterTemplateOptions => {
     const isCustomized: ParameterTemplateOptions['isCustomized'] = (parameter): boolean => {
@@ -42,23 +42,6 @@ const resolveVirtualModelStrategyLabel = (strategy: string): string => {
         default:
             return i18n.t('common.unknown');
     }
-};
-
-const renderBackendDocumentationLayout = (icon: TrustedHtml): string => {
-    const label = i18n.t('modelDetail.buttons.backend_documentation');
-    return `<div class="model-parameter-layout">
-        <div class="model-parameter-section parameter-category parameter-category--backend-doc glass-surface-full glass-surface-medium">
-            <div class="card-title-bar modeldetail-category-header">
-                <h3 class="card-title category-title">${i18n.t('modelDetail.parameters.backendDocumentationTitle')}</h3>
-            </div>
-            <div class="category-content has-scroll">
-                <div class="model-parameter-doc-callout">
-                    <p class="model-parameter-doc-description">${i18n.t('modelDetail.parameters.backendDocumentationDescription')}</p>
-                    <a class="ui-button ui-button--sm" id="backend-doc-button" data-action="backend-documentation" target="_blank" rel="noopener noreferrer" aria-disabled="true" tabindex="-1">${icon.html}<span>${label}</span></a>
-                </div>
-            </div>
-        </div>
-    </div>`;
 };
 
 const renderVirtualModel = (host: ParameterViewHost, container: Element, model: ModelRecord | null): void => {
@@ -99,21 +82,19 @@ const renderVirtualModel = (host: ParameterViewHost, container: Element, model: 
     host.pageDom.updateHtml(container, viewMarkup);
 };
 
-const renderNoParameters = (host: ParameterViewHost, container: Element, icons: Record<string, TrustedHtml>): void => {
-    const icon = requireConfiguredIcon(icons, 'PARAMETERS', { subject: 'ParameterViewManager', verb: 'requires' });
-    const documentationIcon = requireConfiguredIcon(icons, 'BACKEND_DOCUMENTATION', { subject: 'ParameterViewManager', verb: 'requires' });
-    const emptyParametersMarkup = toTrustedUiHtml(`<div class="parameters-content" id="parameters-scroll">${renderBackendDocumentationLayout(documentationIcon)}<div class="no-parameters u-flex-center-col">${icon.html}<p>${i18n.t('modelDetail.parameters.noParameters')}</p></div></div>`);
+const renderNoParameters = (host: ParameterViewHost, container: Element, templateOptions: ParameterTemplateOptions): void => {
+    const icon = requireConfiguredIcon(templateOptions.icons, 'PARAMETERS', { subject: 'ParameterViewManager', verb: 'requires' });
+    const emptyParametersMarkup = toTrustedUiHtml(`<div class="parameters-content" id="parameters-scroll">${renderBackendDocumentation(templateOptions)}<div class="no-parameters u-flex-center-col">${icon.html}<p>${i18n.t('modelDetail.parameters.noParameters')}</p></div></div>`);
     host.pageDom.updateHtml(container, emptyParametersMarkup);
 };
 
 const renderParameters = (host: ParameterViewHost, state: ParameterStateManager, container: Element, templateOptions: ParameterTemplateOptions): void => {
-    const icon = host.getIconSync('search', { size: 48, strokeWidth: 1.5 });
     const emptyState = renderEmptyState({
-        icon,
+        icon: host.getIconSync('search', { size: 48, strokeWidth: 1.5 }),
         title: i18n.t('modelDetail.parameters.noMatchTitle'),
         message: i18n.t('modelDetail.parameters.noMatchDescription')
     });
-    const parametersMarkup = toTrustedUiHtml(`<div class="parameters-content" id="parameters-scroll"><div id="modeldetail-parameters-empty" class="u-hidden modeldetail-parameters-empty">${emptyState.html}</div>${renderParametersView(state.parameters, templateOptions)}</div>`);
+    const parametersMarkup = toTrustedUiHtml(`<div class="parameters-content" id="parameters-scroll">${renderParametersView(state.parameters, templateOptions, emptyState.html)}</div>`);
     host.pageDom.updateHtml(container, parametersMarkup);
 };
 

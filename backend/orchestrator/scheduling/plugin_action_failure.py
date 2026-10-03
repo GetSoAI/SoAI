@@ -53,7 +53,7 @@ def _resolve_prohibitive_state_user_message(plugin_status: str) -> str:
     if plugin_status == ORCH_STATE_ERROR:
         return "The model backend hit a transient error and is recovering. Please retry in a few seconds."
     if plugin_status == ORCH_STATE_QUARANTINED:
-        return "This model's backend has been temporarily quarantined after repeated failures. It will retry automatically."
+        return "This model's backend is quarantined after repeated failures. Review its diagnostics and clear quarantine before retrying."
     if plugin_status == ORCH_STATE_DISABLED:
         return "This model's backend is disabled."
     if plugin_status in PLUGIN_MANAGER_TRANSIENT_STATES:

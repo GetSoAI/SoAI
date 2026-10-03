@@ -1,6 +1,8 @@
 /* SoAI - Shared page outlet exit animation [frontend/assets/ts/core/pageoutlet/exitAnimation.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { inlineDelta } from '@core/layout/direction.ts';
+
 type PageAnimationType = 'fade' | 'slide' | 'scale' | 'zoom' | 'lateral';
 
 interface ExitAnimationStartState {
@@ -41,7 +43,7 @@ const resolveExitAnimationType = (section: Element): PageAnimationType => {
     throw new Error('Page exit animation requires a valid data-page-animation value');
 };
 
-const resolveTargetTransform = (animationType: PageAnimationType): string => {
+const resolveTargetTransform = (animationType: PageAnimationType, section: Element): string => {
     if (animationType === 'scale') {
         return 'scale(0.98)';
     }
@@ -49,7 +51,7 @@ const resolveTargetTransform = (animationType: PageAnimationType): string => {
         return 'scale(0.96)';
     }
     if (animationType === 'lateral') {
-        return 'translateX(-16px)';
+        return `translateX(${inlineDelta(-16, section)}px)`;
     }
     if (animationType === 'fade') {
         return 'none';
@@ -57,7 +59,7 @@ const resolveTargetTransform = (animationType: PageAnimationType): string => {
     return 'translateY(-8px)';
 };
 
-const buildExitKeyframes = (startState: ExitAnimationStartState, animationType: PageAnimationType): Keyframe[] => {
+const buildExitKeyframes = (startState: ExitAnimationStartState, animationType: PageAnimationType, section: Element): Keyframe[] => {
     return [
         {
             opacity: startState.opacity,
@@ -65,7 +67,7 @@ const buildExitKeyframes = (startState: ExitAnimationStartState, animationType: 
         },
         {
             opacity: '0',
-            transform: resolveTargetTransform(animationType)
+            transform: resolveTargetTransform(animationType, section)
         }
     ];
 };
@@ -87,7 +89,7 @@ const startPageExitAnimation = (section: Element, startState: ExitAnimationStart
     if (!easing) {
         throw new Error('Page exit animation requires CSS token --ease-in');
     }
-    return section.animate(buildExitKeyframes(startState, animationType), {
+    return section.animate(buildExitKeyframes(startState, animationType, section), {
         duration: duration * factor,
         easing,
         fill: 'forwards'

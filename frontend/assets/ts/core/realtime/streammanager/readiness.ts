@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { withTimeout } from '@core/primitives/withTimeout.ts';
+import { withAbortableTimeout } from '@core/primitives/withAbortableTimeout.ts';
+import { raceWithAbortSignal, runWithAbortSignalScope, throwIfAborted } from '@core/errors/abort.ts';
+import { getCoreModuleTimeoutMs } from '@core/api/constants.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -17,8 +20,7 @@ interface EnsureStreamManagerReadyOptions {
     signal?: AbortSignal | undefined;
 }
 
-const DATA_HUB_READY_TIMEOUT_MS = 10000;
-const DATA_HUB_AUTO_RESOURCES_TIMEOUT_MS = 60000;
+const DATA_HUB_AUTO_RESOURCES_TIMEOUT_MS = 120000;
 
 const ensureAutoResourcesReady = (manager: StreamManagerReadinessTarget): Promise<JsonValue | null | undefined> => {
     if (!manager.startAuto) {
@@ -38,8 +40,9 @@ const startAutoResourcesInBackground = (manager: StreamManagerReadinessTarget): 
 
 const ensureStreamManagerReady = async (manager: StreamManagerReadinessTarget, options: EnsureStreamManagerReadyOptions = {}): Promise<void> => {
     const allowDiscovery = options.allowDiscovery !== false;
-    await withTimeout(manager.ensureReady({ allowDiscovery, signal: options.signal }), {
-        timeoutMs: DATA_HUB_READY_TIMEOUT_MS,
+    throwIfAborted(options.signal);
+    await withAbortableTimeout((timeoutSignal) => runWithAbortSignalScope([timeoutSignal, options.signal], (signal) => raceWithAbortSignal(manager.ensureReady({ allowDiscovery, signal }), signal)), {
+        timeoutMs: getCoreModuleTimeoutMs(),
         timeoutMessage: 'Stream manager ensureReady timeout'
     });
     if (options.autoResources === 'background') {

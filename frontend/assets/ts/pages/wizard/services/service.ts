@@ -6,15 +6,17 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { dom, optionalHTMLElement } from '@core/dom/dom.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
+import { awaitAnimationFrame } from '@core/runtime/animationFrames.ts';
 import { beginLoadingButton, clearLoadingButtonIfNeeded } from '@core/ui/loadingbuttons/service.ts';
-import type { WizardActionId } from '@pages/wizard/actions.ts';
-import { requireWizardStepId } from '@pages/wizard/contracts/constants.ts';
+import { isAiSetupActionId, type WizardActionId } from '@pages/wizard/actions.ts';
+import { isAiSetupWizardStepId, requireWizardStepId } from '@pages/wizard/contracts/constants.ts';
 import { isWizardAccountFormEligibleForSubmit } from '@pages/wizard/guards/validation.ts';
-import type { WizardPageServiceHost } from '@pages/wizard/services/contracts.ts';
+import type { WizardCompletionDestination, WizardPageServiceHost } from '@pages/wizard/services/contracts.ts';
 import { handleWizardAccountInput, handleWizardAccountSubmission } from '@pages/wizard/services/effects.ts';
 import { WizardProductAccessController } from '@pages/wizard/services/productAccessController.ts';
 import { WizardWelcomeBackgroundController } from '@pages/wizard/services/welcomeBackground.ts';
 import { WizardLicensingActionController } from '@pages/wizard/services/WizardLicensingActionController.ts';
+import { WizardAiSetupNavigationController } from '@pages/wizard/services/WizardAiSetupNavigationController.ts';
 import type { WizardAccountUi } from '@pages/wizard/types.ts';
 import { renderWizardStepView } from '@pages/wizard/view.ts';
 import type { WizardStatusResponse } from '@core/api/contracts/wizardLicensingContracts.ts';
@@ -26,6 +28,7 @@ class WizardPageService {
     #welcomeBackground: WizardWelcomeBackgroundController;
     #licensingActions: WizardLicensingActionController;
     #productAccess: WizardProductAccessController;
+    readonly #aiNavigator: WizardAiSetupNavigationController;
     readonly #timers = new ResourceTracker();
     #lifecycleRevision = 0;
 
@@ -44,6 +47,17 @@ class WizardPageService {
             clearSensitiveInput: () => this.#licensingActions.clearProductKey(),
             clearInlineError: () => this.#licensingActions.clearInlineError()
         });
+        this.#aiNavigator = new WizardAiSetupNavigationController({
+            state: host.view.state,
+            flow: host.aiSetup,
+            showStep: (index, options) => this.showStep(index, options),
+            completeWizard: (destination) => this.completeWizard(destination),
+            navigate: (destination) => this.#host.completion.navigateAfterCompletion(false, destination),
+            syncNavigation: () => this.#host.view.syncCurrentNavigation()
+        });
+    }
+    get aiNavigator(): WizardAiSetupNavigationController {
+        return this.#aiNavigator;
     }
     destroy(): void {
         this.#lifecycleRevision += 1;
@@ -53,16 +67,14 @@ class WizardPageService {
         this.#timers.cleanup();
         this.#accountUi = null;
         this.#licensingActions.invalidate();
-    }
-    executeAction(action: WizardActionId, source: HTMLElement): void {
-        this.#dispatchAction(action, source);
+        this.#host.aiSetup.destroy();
     }
     readonly showStep = async (index: number, options: { showNextLoading: boolean; focusHeading?: boolean } = { showNextLoading: false }): Promise<void> => {
         if (!this.#host.view.isDomUsable()) {
             return;
         }
-        const stepIndex = clampNumber(index, 0, this.#host.view.state.steps.length - 1);
-        const stepId = requireWizardStepId(this.#host.view.state.steps, stepIndex);
+        const stepId = requireWizardStepId(this.#host.view.state.steps, clampNumber(index, 0, this.#host.view.state.steps.length - 1));
+        const aiStep = isAiSetupWizardStepId(stepId) ? stepId : null;
         const lifecycleRevision = this.#lifecycleRevision + 1;
         this.#lifecycleRevision = lifecycleRevision;
         const ui = this.#host.view.requireUi();
@@ -73,28 +85,39 @@ class WizardPageService {
 
         try {
             if (stepId === 'license') {
-                await this.#ensureLicenseTextLoaded();
+                await this.#licensingActions.ensureLicenseTextLoaded();
             }
 
             if (stepId === 'product_access') {
                 await this.#productAccess.loadDocuments();
             }
 
+            if (aiStep !== null || stepId === 'complete') {
+                await this.#host.aiSetup.prepareStep(aiStep ?? 'complete');
+            }
+
             if (lifecycleRevision !== this.#lifecycleRevision || !this.#host.view.isDomUsable()) return;
+            const stepIndex = this.#host.view.state.steps.indexOf(stepId);
+            if (stepIndex < 0) return this.showStep(index, options);
 
             this.#welcomeBackground.stop();
             this.#productAccess.invalidate();
             this.#clearAccountValidationTimer();
             this.#host.view.state.stepIndex = stepIndex;
-            const html = renderWizardStepView(stepId, this.#host.view.createViewContext());
+            const aiSetup = aiStep !== null || stepId === 'complete' ? this.#host.aiSetup.buildViewModel(aiStep ?? 'complete') : null;
+            const html = renderWizardStepView(stepId, { ...this.#host.view.createViewContext(), aiSetup });
             ui.content.dataset['step'] = stepId;
             const wizardMarkup = toTrustedUiHtml(html);
+            ui.content.scrollTop = 0;
             this.#host.view.updateHTML(ui.content, wizardMarkup);
+            ui.content.scrollTop = 0;
+            if (aiStep === null) this.#host.aiSetup.stepUi.detach();
+            else this.#host.aiSetup.afterRender(aiStep, ui.content);
             if (options.focusHeading === true) {
                 const heading = optionalHTMLElement(dom.resolve('h2', ui.content), 'Wizard step heading');
                 if (heading !== null) {
                     heading.tabIndex = -1;
-                    heading.focus();
+                    heading.focus({ preventScroll: true });
                 }
             }
             this.#host.completion.refreshLogos();
@@ -102,15 +125,17 @@ class WizardPageService {
             if (stepId !== 'product_access') this.#licensingActions.clearProductKey();
 
             if (stepId === 'welcome') {
+                this.#host.view.syncWelcomeLanguageFlag(ui.content);
                 this.#welcomeBackground.start(ui.content);
             }
 
             this.#host.view.updateProgress(ui);
             this.#host.view.syncNavigation(ui, stepId);
+            await awaitAnimationFrame(null, 'Wizard step rendering was interrupted');
+            if (lifecycleRevision !== this.#lifecycleRevision || !this.#host.view.isDomUsable()) return;
+            ui.content.scrollTop = 0;
         } finally {
-            if (options.showNextLoading) {
-                clearLoadingButtonIfNeeded(ui.navNextButton);
-            }
+            if (options.showNextLoading) this.#endNextLoading(ui.navNextButton);
         }
     };
     async handleNext(): Promise<void> {
@@ -150,11 +175,17 @@ class WizardPageService {
                     return;
                 }
                 if (await this.#handleAccountSubmission()) {
-                    await this.showStep(Math.min(this.#host.view.state.stepIndex + 1, this.#host.view.state.steps.length - 1));
+                    await this.showStep(Math.min(this.#host.view.state.stepIndex + 1, this.#host.view.state.steps.length - 1), { showNextLoading: false, focusHeading: true });
                 }
                 return;
+            case 'ai_sources':
+            case 'ai_connect':
+            case 'ai_models':
+            case 'ai_progress':
+                await this.#withNextLoading(() => this.#aiNavigator.next(stepId));
+                return;
             case 'complete':
-                await this.#completeWizardFromButton();
+                await this.#withNextLoading(() => this.#aiNavigator.completeFromSummary());
                 return;
             default:
                 throw new Error(`WizardPage: unknown step "${stepId}"`);
@@ -166,12 +197,12 @@ class WizardPageService {
         }
         await this.showStep(this.#host.view.state.stepIndex - 1);
     }
-    async completeWizard(): Promise<void> {
+    readonly completeWizard = async (destination: WizardCompletionDestination): Promise<void> => {
         await this.#host.data.persistWizardState();
         await this.#host.data.markWizardFirstRunModalsPending();
         this.#host.completion.dispatchWizardCompleted();
-        await this.#host.completion.navigateAfterCompletion(this.#host.view.state.isSessionActivationRequired);
-    }
+        await this.#host.completion.navigateAfterCompletion(this.#host.view.state.isSessionActivationRequired, destination);
+    };
 
     async applyObservedStatus(status: WizardStatusResponse): Promise<void> {
         this.#productAccess.invalidate();
@@ -181,6 +212,10 @@ class WizardPageService {
         const stepId = requireWizardStepId(this.#host.view.state.steps, this.#host.view.state.stepIndex);
         if (stepId === 'use') {
             this.#handleUseInput(source);
+            return;
+        }
+        if (isAiSetupWizardStepId(stepId)) {
+            this.#host.aiSetup.interactions.handleInput(source);
             return;
         }
         if (stepId === 'product_access') {
@@ -208,13 +243,20 @@ class WizardPageService {
             this.#host.view.syncNavigation(ui, 'account');
         }, 500);
     }
+    handleAiSetupSubmit(form: HTMLFormElement): void {
+        if (isAiSetupWizardStepId(requireWizardStepId(this.#host.view.state.steps, this.#host.view.state.stepIndex))) this.#host.aiSetup.interactions.handleSubmit(form);
+    }
     #runAsync(operation: string, task: Promise<void>): void {
         void task.catch((error) => {
             const runtimeError = ensureError(error);
             this.#host.completion.logError(`WizardPage: ${operation}`, runtimeError);
         });
     }
-    #dispatchAction(action: WizardActionId, source: HTMLElement): void {
+    executeAction(action: WizardActionId, source: HTMLElement): void {
+        if (isAiSetupActionId(action)) {
+            this.#host.aiSetup.interactions.execute(action, source);
+            return;
+        }
         switch (action) {
             case 'wizard-back':
                 this.#runAsync('wizard-back', this.handleBack());
@@ -229,6 +271,12 @@ class WizardPageService {
             case 'wizard-import-offline':
             case 'wizard-start-evaluation':
                 this.#licensingActions.execute(action, source);
+                return;
+            case 'wizard-ai-finish-later':
+                this.#runAsync('wizard-ai-finish-later', this.#aiNavigator.finishLater());
+                return;
+            case 'wizard-ai-skip':
+                this.#runAsync('wizard-ai-skip', this.#aiNavigator.skip());
                 return;
             default: {
                 const exhaustive: never = action;
@@ -247,25 +295,24 @@ class WizardPageService {
     #isAccountSubmitEligible(): boolean {
         return isWizardAccountFormEligibleForSubmit(this.#requireAccountUi().form);
     }
-    async #completeWizardFromButton(): Promise<void> {
+    async #withNextLoading(operation: () => Promise<void>): Promise<void> {
         const ui = this.#host.view.requireUi();
         beginLoadingButton(ui.navNextButton);
         try {
-            await this.completeWizard();
+            await operation();
         } finally {
-            clearLoadingButtonIfNeeded(ui.navNextButton);
+            this.#endNextLoading(ui.navNextButton);
         }
+    }
+    #endNextLoading(button: HTMLButtonElement): void {
+        clearLoadingButtonIfNeeded(button);
+        this.#host.view.syncCurrentNavigation();
     }
     #clearAccountValidationTimer(): void {
         if (this.#accountValidationTimerId === null) return;
         this.#timers.clearTimer(this.#accountValidationTimerId);
         this.#accountValidationTimerId = null;
     }
-    async #ensureLicenseTextLoaded(): Promise<void> {
-        if (this.#host.view.state.licenseText.length > 0) return;
-        this.#host.view.state.licenseText = await this.#host.data.fetchLicenseText();
-    }
-
     #handleUseInput(source: EventTarget | null): void {
         if (source instanceof HTMLInputElement && source.name === 'wizard-use') {
             if (source.value === 'personal' || source.value === 'organization_commercial') {

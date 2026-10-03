@@ -3,9 +3,12 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from functools import partial
 from typing import TYPE_CHECKING
+
+from fastapi import status
 
 from core.errors.exceptions import ApiError, ValidationError
 from core.openai.internal_retry_prompt import build_internal_retry_user_message
@@ -37,9 +40,6 @@ from features.api.routes.openai.compaction.streaming import (
 from features.api.routes.openai.compaction.truncation import (
     prepare_messages_for_summary,
 )
-from features.api.routes.openai.hidden_streaming_text import (
-    HiddenStreamingEmptyResponseError,
-)
 from features.api.runtime.context import ApiContext
 from features.api.streaming.types import StreamDependencies
 
@@ -48,10 +48,6 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict
 
 __all__ = ("prepare_agent_compaction_summarizer",)
-
-COMPACTION_NO_REASONING_RETRY_ERROR = (
-    "Context compaction summarizer failed after no-reasoning retry."
-)
 
 
 def _build_visible_output_retry_message() -> JSONDict:
@@ -163,16 +159,18 @@ def prepare_agent_compaction_summarizer(
             return summary_text
 
         try:
-            summary_text = await _run_summary_request(chunk, disable_reasoning=False)
-        except HiddenStreamingEmptyResponseError:
-            retry_chunk = list(chunk)
-            retry_chunk.append(_build_visible_output_retry_message())
-        else:
-            return summary_text
-        try:
-            return await _run_summary_request(retry_chunk, disable_reasoning=True)
+            return await _run_summary_request(chunk, disable_reasoning=True)
         except (ApiError, ValidationError) as exception:
-            raise ValidationError(COMPACTION_NO_REASONING_RETRY_ERROR) from exception
+            if (
+                isinstance(exception, ApiError)
+                and exception.http_status == status.HTTP_504_GATEWAY_TIMEOUT
+            ):
+                raise
+        if await stream_dependencies.cancellation_history.is_cancelled(context.cancellation_id):
+            raise asyncio.CancelledError()
+        retry_chunk = list(chunk)
+        retry_chunk.append(_build_visible_output_retry_message())
+        return await _run_summary_request(retry_chunk, disable_reasoning=False)
 
     async def summarize_messages(messages: list[JSONDict]) -> str:
         normalized_messages = [message for message in messages if isinstance(message, dict)]

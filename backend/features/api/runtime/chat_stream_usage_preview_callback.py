@@ -22,6 +22,7 @@ if TYPE_CHECKING:
         ModelProviderCoordinatorProtocol,
         ModelResolutionServiceProtocol,
     )
+    from core.openai.chat_template_role_policy_resolver import ChatTemplateRolePolicyResolver
     from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
     from core.openai.token_counter import PromptTokenCounter
     from core.orchestrator.protocols_lifecycle import OrchestratorLifecycleProtocol
@@ -56,6 +57,7 @@ def build_chat_stream_usage_preview_refresh_callback(
     plugin_manager: PluginManagerProtocol,
     state_aggregator: StateAggregatorProtocol,
     orchestrator_lifecycle: OrchestratorLifecycleProtocol,
+    chat_template_role_policy_resolver: ChatTemplateRolePolicyResolver,
     request_context: RequestContext,
 ) -> Callable[[JSONDict], Awaitable[None]]:
     async def refresh_usage_preview(payload: JSONDict) -> None:
@@ -73,6 +75,7 @@ def build_chat_stream_usage_preview_refresh_callback(
                 plugin_manager=plugin_manager,
                 state_aggregator=state_aggregator,
                 orchestrator_lifecycle=orchestrator_lifecycle,
+                chat_template_role_policy_resolver=chat_template_role_policy_resolver,
                 request_context=request_context,
                 stream_transcript=stream_transcript,
             )

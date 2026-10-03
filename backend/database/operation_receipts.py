@@ -45,7 +45,7 @@ def sync_apply_acknowledged_database_write_receipts(
         cursor = conn.execute(
             """
             UPDATE database_write_receipts
-            SET acknowledged_at_ms = ?
+            SET acknowledged_at_ms = MAX(?, committed_at_ms)
             WHERE operation_id = ?
               AND acknowledged_at_ms IS NULL
             """,

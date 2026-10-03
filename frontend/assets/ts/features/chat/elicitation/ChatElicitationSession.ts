@@ -72,6 +72,8 @@ class ChatElicitationSession {
     #unsubscribeTaskCreated: (() => void) | null = null;
     #unsubscribeTaskComplete: (() => void) | null = null;
     #requestedFocus: { conversationId: string; interactionType: McpElicitationInteractionType; taskId: string } | null = null;
+    #pendingSyncCount = 0;
+    readonly #completedDuringSync = new Set<string>();
 
     constructor(dependencies: ChatElicitationSessionDependencies) {
         this.#dependencies = dependencies;
@@ -155,18 +157,26 @@ class ChatElicitationSession {
         this.#resetChannel(this.#toolApproval);
         this.#lastRenderedConversationId = null;
         this.#requestedFocus = null;
+        this.#completedDuringSync.clear();
         this.#clearPreviews();
     }
 
     async #sync<TPrompt extends PromptWithAttention, TResolutionRequest>(channel: ElicitationChannel<TPrompt, TResolutionRequest>, conversationId: string): Promise<void> {
         const generation = (channel.generations.get(conversationId) ?? 0) + 1;
         channel.generations.set(conversationId, generation);
-        const response = await channel.api.pending(conversationId);
-        if (this.#disposed || channel.generations.get(conversationId) !== generation) return;
-        const parsed = channel.parse(response);
-        if (!parsed || parsed.conversationId !== conversationId) return;
-        channel.prompts.set(conversationId, parsed.prompt);
-        this.#render(channel, conversationId);
+        this.#pendingSyncCount += 1;
+        try {
+            const response = await channel.api.pending(conversationId);
+            if (this.#disposed || channel.generations.get(conversationId) !== generation) return;
+            const parsed = channel.parse(response);
+            if (!parsed || parsed.conversationId !== conversationId) return;
+            const prompt = parsed.prompt;
+            channel.prompts.set(conversationId, prompt !== null && this.#completedDuringSync.has(prompt.taskId) ? null : prompt);
+            this.#render(channel, conversationId);
+        } finally {
+            this.#pendingSyncCount -= 1;
+            if (this.#pendingSyncCount === 0) this.#completedDuringSync.clear();
+        }
     }
 
     #syncAfterConversationRender<TPrompt extends PromptWithAttention, TResolutionRequest>(channel: ElicitationChannel<TPrompt, TResolutionRequest>, conversationId: string): void {
@@ -208,12 +218,8 @@ class ChatElicitationSession {
         const normalizedConversationId = normalizeConversationId(conversationId);
         const normalizedTaskId = taskId.trim();
         if (!normalizedConversationId || !normalizedTaskId || this.#disposed) return;
-        channel.generations.set(normalizedConversationId, (channel.generations.get(normalizedConversationId) ?? 0) + 1);
         await channel.api.resolve(normalizedConversationId, normalizedTaskId, request);
-        channel.acknowledgedTaskIds.delete(normalizedTaskId);
-        channel.focusedTaskIds.delete(normalizedTaskId);
-        channel.prompts.set(normalizedConversationId, null);
-        this.#render(channel, normalizedConversationId);
+        if (!this.#disposed) this.#completeChannel(channel, normalizedTaskId);
     }
 
     #handleTaskCreated(event: TaskCreatedEvent): void {
@@ -233,19 +239,21 @@ class ChatElicitationSession {
     #handleTaskComplete(event: TaskCompleteEvent): void {
         if (this.#disposed) return;
         const taskId = extractTaskCompleteId(event);
-        const conversationId = normalizeConversationId(this.#dependencies.getCurrentConversationId());
-        if (!taskId || !conversationId) return;
-        this.#completeChannel(this.#askUser, conversationId, taskId);
-        this.#completeChannel(this.#secretPrompt, conversationId, taskId);
-        this.#completeChannel(this.#toolApproval, conversationId, taskId);
+        if (!taskId) return;
+        this.#completeChannel(this.#askUser, taskId);
+        this.#completeChannel(this.#secretPrompt, taskId);
+        this.#completeChannel(this.#toolApproval, taskId);
     }
 
-    #completeChannel<TPrompt extends PromptWithAttention, TResolutionRequest>(channel: ElicitationChannel<TPrompt, TResolutionRequest>, conversationId: string, taskId: string): void {
-        if (channel.prompts.get(conversationId)?.taskId !== taskId) return;
-        channel.acknowledgedTaskIds.delete(taskId);
-        channel.focusedTaskIds.delete(taskId);
-        channel.prompts.set(conversationId, null);
-        this.#render(channel, conversationId);
+    #completeChannel<TPrompt extends PromptWithAttention, TResolutionRequest>(channel: ElicitationChannel<TPrompt, TResolutionRequest>, taskId: string): void {
+        if (this.#pendingSyncCount > 0) this.#completedDuringSync.add(taskId);
+        for (const [conversationId, prompt] of channel.prompts) {
+            if (prompt?.taskId !== taskId) continue;
+            channel.acknowledgedTaskIds.delete(taskId);
+            channel.focusedTaskIds.delete(taskId);
+            channel.prompts.set(conversationId, null);
+            this.#render(channel, conversationId);
+        }
     }
 
     #getPrompt<TPrompt extends PromptWithAttention, TResolutionRequest>(channel: ElicitationChannel<TPrompt, TResolutionRequest>, conversationId: string): TPrompt | null {

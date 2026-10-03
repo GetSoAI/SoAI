@@ -9,11 +9,11 @@
 
     :where([data-section='settings'], [data-page-scope='settings']) .page-actions:not(.page-actions--dropdown) .settings-search-container {
         order: -1;
-        margin-right: auto;
+        margin-inline-end: auto;
     }
 
     :where([data-section='settings'], [data-page-scope='settings']) .page-actions:not(.page-actions--dropdown) .page-actions__menu .advanced-toggle-container {
-        margin-left: auto;
+        margin-inline-start: auto;
         order: 2;
     }
 

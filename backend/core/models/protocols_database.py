@@ -49,6 +49,8 @@ class DatabaseModelsProtocol(Protocol):
         self,
         universal_id: str,
         parameters: dict[str, JSONValue],
+        *,
+        increment_version: bool = False,
     ) -> bool: ...
 
     async def increment_parameter_version(self, universal_id: str) -> int: ...

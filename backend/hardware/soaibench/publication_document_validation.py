@@ -8,6 +8,10 @@ import unicodedata
 
 from core.errors.exceptions import ValidationError
 from core.hardware.soaibench_score_fields import SOAIBENCH_MEASUREMENT_FIELDS
+from core.hardware.soaibench_telemetry import (
+    SOAIBENCH_PUBLIC_TELEMETRY_FIELDS,
+    telemetry_availability_is_consistent,
+)
 from core.types.json import JSONDict, JSONValue
 from core.types.json_value import coerce_json_dict_or_empty
 from core.validation.integers import is_strict_int
@@ -33,17 +37,7 @@ PASS_FIELDS = (
     *SOAIBENCH_MEASUREMENT_FIELDS,
     "workload",
 )
-TELEMETRY_FIELDS = (
-    "telemetry_available",
-    "throttle_detected",
-    "unavailable_sensors",
-    "temperature_celsius",
-    "max_temperature_celsius",
-    "power_draw_watts",
-    "avg_power_watts",
-    "max_power_watts",
-    "core_utilization_percent",
-)
+TELEMETRY_FIELDS = SOAIBENCH_PUBLIC_TELEMETRY_FIELDS
 BENCHMARK_FIELDS = (
     "score_version",
     "profile",
@@ -238,38 +232,7 @@ def _validate_runtime(runtime: JSONDict) -> None:
 
 def _validate_telemetry(telemetry: JSONDict) -> None:
     _exact_fields(telemetry, TELEMETRY_FIELDS, "SoAIBench telemetry")
-    if not isinstance(telemetry.get("telemetry_available"), bool):
-        raise ValidationError("SoAIBench public telemetry availability is invalid.")
-    throttle = telemetry.get("throttle_detected")
-    if throttle is not None and not isinstance(throttle, bool):
-        raise ValidationError("SoAIBench public throttle evidence is invalid.")
-    unavailable = telemetry.get("unavailable_sensors")
-    if not isinstance(unavailable, list) or unavailable != [
-        sensor for sensor in ("temperature", "power") if sensor in unavailable
-    ]:
-        raise ValidationError("SoAIBench public sensor evidence is invalid.")
-    temperature_values = (
-        telemetry.get("temperature_celsius"),
-        telemetry.get("max_temperature_celsius"),
-    )
-    power_values = (
-        telemetry.get("power_draw_watts"),
-        telemetry.get("avg_power_watts"),
-        telemetry.get("max_power_watts"),
-    )
-    expected_unavailable: list[str] = []
-    if all(value is None for value in temperature_values):
-        expected_unavailable.append("temperature")
-    if all(value is None for value in power_values):
-        expected_unavailable.append("power")
-    expected_available = (
-        any(value is not None for value in (*temperature_values, *power_values))
-        or telemetry.get("core_utilization_percent") is not None
-    )
-    if (
-        unavailable != expected_unavailable
-        or telemetry.get("telemetry_available") is not expected_available
-    ):
+    if not telemetry_availability_is_consistent(telemetry):
         raise ValidationError("SoAIBench public sensor availability is inconsistent.")
     for field in ("temperature_celsius", "max_temperature_celsius"):
         require_optional_public_number(telemetry.get(field), minimum=-273.15, maximum=1000.0)

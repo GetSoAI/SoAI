@@ -5,7 +5,7 @@
     :where(.chat-container) .agent-mode-popup {
         position: absolute;
         top: var(--chat-input-wrapper-padding);
-        left: var(--chat-input-wrapper-padding);
+        inset-inline-start: var(--chat-input-wrapper-padding);
         transform: translateY(calc(-100% + var(--space-15)));
         z-index: var(--z-raised);
         padding: var(--space-15) var(--space-3);
@@ -17,8 +17,8 @@
         border-color: var(--chat-input-mode-border-color);
         border-radius: var(--border-radius);
         border-bottom: none;
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0;
+        border-end-start-radius: 0;
+        border-end-end-radius: 0;
         box-shadow: var(--glass-shadow-base);
         color: var(--chat-input-mode-label-color);
         font-size: calc(var(--font-size-sm) * var(--chat-text-scale));

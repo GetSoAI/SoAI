@@ -1,19 +1,20 @@
 /* SoAI - Search page result presenter controller [frontend/assets/ts/pages/search/services/resultPresenterController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { renderReloadFailure, bindReloadFailure } from '@core/ui/reloadFailure.ts';
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { checkerboardService, dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { renderSearchCategoryStateMarkup } from '@core/search/searchCategoryStateMarkup.ts';
 import type { SearchFilter } from '@core/search/searchCategory.ts';
 import type { SearchItem } from '@core/search/searchTypes.ts';
-import { EMPTY_UI_HTML } from '@core/security/uiHtml.ts';
+import { EMPTY_UI_HTML, uiHtml } from '@core/security/uiHtml.ts';
 import type { SearchResultsRenderInput, SearchResultsRenderOutput } from '@pages/search/controllers/renderController.ts';
 import type { SearchPageServiceDependencies } from '@pages/search/services/contracts.ts';
 
 type SearchResultsViewOptions = { clearBadgesWhenEmpty: boolean; updateBadges: boolean };
 type SearchStatusType = 'emptyQuery' | 'notFound' | 'recentEmpty';
-type SearchStatusCopy = { title: string; message: string };
+type SearchStatusCopy = { title: string; message: string; reload?: boolean };
 type FileSearchStatus = 'idle' | 'loading' | 'empty' | 'error';
 
 interface SearchPageResultsState {
@@ -43,9 +44,10 @@ const resolveSearchStatusCopy = (statusType: SearchStatusType, query: string): S
     };
 };
 
-const resolveSearchFailureStatusCopy = (serviceUnavailable: boolean): SearchStatusCopy => ({
+const resolveSearchFailureStatusCopy = (serviceUnavailable: boolean, permissionFailure = false): SearchStatusCopy => ({
     title: i18n.t('search.errors.searchFailed'),
-    message: serviceUnavailable ? i18n.t('search.errors.serviceUnavailable') : i18n.t('search.errors.genericError')
+    message: serviceUnavailable ? i18n.t('search.errors.serviceUnavailable') : i18n.t('search.errors.genericError'),
+    ...(permissionFailure ? { reload: true } : {})
 });
 
 const renderFileStateMarkup = (fileStatus: FileSearchStatus, query: string): TrustedHtml => {
@@ -71,11 +73,12 @@ const renderFileStateMarkup = (fileStatus: FileSearchStatus, query: string): Tru
 };
 
 class SearchPageResultPresenter {
-    readonly #dependencies: SearchPageServiceDependencies;
+    readonly #dependencies: Pick<SearchPageServiceDependencies, 'view' | 'renderController' | 'searchHistory'>;
     readonly #checkerboardContainerIds = new Set<string>();
     #currentStatus: SearchStatusCopy | null = null;
+    #unbindRecovery: (() => void) | null = null;
 
-    constructor(dependencies: SearchPageServiceDependencies) {
+    constructor(dependencies: Pick<SearchPageServiceDependencies, 'view' | 'renderController' | 'searchHistory'>) {
         this.#dependencies = dependencies;
     }
 
@@ -88,7 +91,7 @@ class SearchPageResultPresenter {
     }
 
     dispose(): void {
-        this.#disconnectCheckerboards();
+        this.#releaseResultResources();
         this.#currentStatus = null;
     }
 
@@ -97,14 +100,24 @@ class SearchPageResultPresenter {
     }
 
     showStatusCopy(status: SearchStatusCopy, clearBadges: boolean): void {
-        this.#disconnectCheckerboards();
+        this.#releaseResultResources();
         this.#currentStatus = status;
+        if (status.reload) {
+            const ui = this.#dependencies.view.getUiRefs();
+            this.#dependencies.view.updateHTML(ui.resultsContainer, uiHtml`<h3>${status.title}</h3>${renderReloadFailure(status.message)}`);
+            this.#dependencies.view.toggleResultsVisibility(true);
+            if (clearBadges) this.#dependencies.view.clearTabNotifyBadges();
+            const failure = dom.resolve('.reload-failure', ui.resultsContainer);
+            if (!(failure instanceof HTMLElement)) throw new Error('Search permission failure requires recovery controls');
+            this.#unbindRecovery = bindReloadFailure(failure);
+            return;
+        }
         this.#dependencies.view.showStatusMessage(status.title, status.message, clearBadges);
     }
 
     showSearchingState(): void {
         const ui = this.#dependencies.view.getUiRefs();
-        this.#disconnectCheckerboards();
+        this.#releaseResultResources();
         this.#dependencies.view.updateHTML(ui.resultsContainer, EMPTY_UI_HTML);
         this.#dependencies.view.setLoadingState(ui.resultsContainer, true, i18n.t('search.status.searching'));
         this.#dependencies.view.toggleResultsVisibility(true);
@@ -181,7 +194,7 @@ class SearchPageResultPresenter {
 
     #renderResultsMarkup(markup: TrustedHtml): void {
         const ui = this.#dependencies.view.getUiRefs();
-        this.#disconnectCheckerboards();
+        this.#releaseResultResources();
         this.#dependencies.view.updateHTML(ui.resultsContainer, markup);
         for (const container of dom.resolveAll('.search-category-content', ui.resultsContainer)) {
             checkerboardService.applyCheckerboard(container, '.search-item--card');
@@ -191,7 +204,9 @@ class SearchPageResultPresenter {
         this.#dependencies.view.toggleResultsVisibility(true);
     }
 
-    #disconnectCheckerboards(): void {
+    #releaseResultResources(): void {
+        this.#unbindRecovery?.();
+        this.#unbindRecovery = null;
         for (const containerId of this.#checkerboardContainerIds) checkerboardService.disconnect(containerId);
         this.#checkerboardContainerIds.clear();
     }

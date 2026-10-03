@@ -80,8 +80,8 @@
     }
 
     .folder-picker-table-wrap .folder-picker-table thead th:first-child {
-        border-top-left-radius: var(--border-radius);
-        border-top-right-radius: var(--border-radius);
+        border-start-start-radius: var(--border-radius);
+        border-start-end-radius: var(--border-radius);
     }
 
     .folder-picker-name-cell {
@@ -93,7 +93,7 @@
         background: transparent;
         color: var(--text-primary);
         padding: 0;
-        text-align: left;
+        text-align: start;
         cursor: pointer;
         font: inherit;
         display: inline-flex;
@@ -112,7 +112,7 @@
         flex-shrink: 0;
         width: 16px;
         height: 16px;
-        margin-right: var(--space-05);
+        margin-inline-end: var(--space-05);
     }
 
     .folder-picker-open-btn:is(:hover, :focus-visible) {

@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from core.concurrency.async_iterators import close_async_iterator_if_supported
 from core.config.numeric import coerce_positive_float
 from core.events.types_tasks import TaskProgressEvent
+from core.models.provider_backing import get_model_provider_id
 from core.openai.sse_progress import OpenAISSEProgressDetector
 from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
 from core.orchestrator.protocols_queue import OrchestratorQueueProtocol
@@ -41,6 +42,7 @@ async def buffer_stream_to_result_payload(
     metrics: TokenStreamMetricsProtocol,
     prompt_token_counter: PromptTokenCounter,
     plugin_name: str,
+    model_info: JSONDict,
     model_name: str | None = None,
 ) -> JSONDict:
     context = queue.require_orchestration_context(task)
@@ -61,7 +63,12 @@ async def buffer_stream_to_result_payload(
     if event is not None:
         requested_model = event.payload.get("model")
         model_hint = requested_model if isinstance(requested_model, str) else None
-    transcript = OpenAIStreamTranscript(model_hint=model_hint)
+    transcript = OpenAIStreamTranscript(
+        model_hint=model_hint,
+        provider_id=get_model_provider_id(model_info),
+        task_id=task.task_id,
+        trace_id=event.context.trace_id if event is not None else None,
+    )
     progress_sampler = TokenStreamProgressSampler(
         metrics=metrics,
         prompt_token_counter=prompt_token_counter,

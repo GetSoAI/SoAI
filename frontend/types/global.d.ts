@@ -1,6 +1,8 @@
 /* SoAI - Global browser runtime declarations [frontend/types/global.d.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+declare const __SOAI_FRONTEND_VERSION__: string;
+
 declare var soaiBasePath: string | undefined;
 declare var soaiWindowOpenInstrumented: boolean | undefined;
 declare var soaiWindowOpenRecords: Array<{ url: string | undefined; name: string | undefined }> | undefined;
@@ -173,6 +175,9 @@ declare var getSoaiCspNonce: (() => string | null) | undefined;
 declare var soaiCspNonceSupport: { disconnect: () => void } | undefined;
 
 interface Window {
+    chrome?: { webview?: ChromeWebViewTransport };
+    soaiDesktopLauncher?: Readonly<{ platform: 'windows' | 'linux' | 'macos'; protocolVersion: 1 }>;
+    soaiDesktopLauncherBoot?: Readonly<{ startedAt: number; status: string }>;
     soaiWindowOpenInstrumented?: boolean;
     soaiWindowOpenRecords?: Array<{ url: string | undefined; name: string | undefined }>;
     soaiRuntimeProbe?: Array<{ type: string; time: number }>;
@@ -180,6 +185,15 @@ interface Window {
     chatTestExports?: SoAIChatTestExports | undefined;
     virtualizationHarness?: SoAIVirtualizationHarness | undefined;
     soai?: SoAINamespace;
+}
+
+interface ChromeWebViewMessageEvent extends Event {
+    readonly data: import('../assets/ts/core/types/jsonValues.ts').JsonValue;
+}
+
+interface ChromeWebViewTransport {
+    addEventListener(type: 'message', listener: (event: ChromeWebViewMessageEvent) => void): void;
+    postMessage(message: string): void;
 }
 
 interface HTMLInputElement {

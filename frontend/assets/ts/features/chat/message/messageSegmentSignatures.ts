@@ -7,7 +7,7 @@ import { stableJsonStringify } from '@core/serialization/json.ts';
 import type { InlineLoadingActivitySegment, InlineProcessingActivitySegment, InlineThinkingActivitySegment, InlineToolActivitySegment, InlineWaitForUserActivitySegment, MessageSegment } from '@features/chat/message/messageSegments.ts';
 import { resolveInlineActivityDisplayDurationMs, resolveInlineActivityDurationArguments } from '@features/chat/message/messageview/inlineActivityDuration.ts';
 import { resolveInlineToolHeaderQueryText } from '@features/chat/message/messageview/inlineToolActivityPayloadParsing.ts';
-import { resolveSubagentToolResultModel } from '@features/chat/message/messageview/subagentStreamSegments.ts';
+import { resolveSubagentLatestActivityName, resolveSubagentToolResultModel } from '@features/chat/message/messageview/subagentStreamSegments.ts';
 import { resolvePayloadRecord } from '@features/chat/toolactivity/payloadReaders.ts';
 import { resolveToolImageDescriptor } from '@features/chat/toolactivity/toolImagePayload.ts';
 import { normalizeToolLeafName } from '@features/chat/toolactivity/toolLeafName.ts';
@@ -48,7 +48,9 @@ const resolveStringContentSignature = (value: string): string => {
 };
 
 const resolveInlineToolActivityHeaderPreviewSignature = (segment: InlineToolActivitySegment): string => {
-    return resolveStringContentSignature(resolveInlineToolHeaderQueryText(segment));
+    const querySignature = resolveStringContentSignature(resolveInlineToolHeaderQueryText(segment));
+    const subagentActivityName = resolveSubagentLatestActivityName(segment);
+    return subagentActivityName === null ? querySignature : `${querySignature}:${subagentActivityName}`;
 };
 
 const resolveSubagentSegmentsSignature = (segments: MessageSegment[], nowMs: number): string => {

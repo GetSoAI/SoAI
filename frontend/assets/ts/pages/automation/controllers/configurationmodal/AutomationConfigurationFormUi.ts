@@ -2,16 +2,26 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { narrowButton, narrowInput, narrowSelect } from '@core/dom/narrowElement.ts';
+import { replaceSelectOptions, type SelectOptionDefinition } from '@core/dom/selectOptions.ts';
+import { setSelectValueAndSyncDefault } from '@core/dom/selectSelection.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
-import { listSupportedTimezones } from '@core/timezones/timezones.ts';
-import { clearStatusSurface, setStatusSurface } from '@core/ui/statusSurface.ts';
+import { listSupportedTimezones, resolveBrowserTimezone } from '@core/timezones/timezones.ts';
+import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
+import type { AutomationEditorIssueField } from '@pages/automation/controllers/configurationmodal/AutomationEditorValidationDomain.ts';
 import { queryAutomationColorInputs } from '@pages/automation/dom.ts';
 
 interface AutomationConfigurationFormUiDependencies {
     requireHTMLElement: (selector: string, context?: Element | Document | null) => HTMLElement;
     modal: HTMLElement;
 }
+
+interface AutomationConfigurationFieldErrorTarget {
+    control: HTMLElement;
+    message: HTMLElement;
+}
+
+const AUTOMATION_TIMEZONE_AUTO = 'auto';
 
 const ensureRadioInput = (input: HTMLInputElement, label: string): HTMLInputElement => {
     if (input.type === 'radio') {
@@ -22,12 +32,14 @@ const ensureRadioInput = (input: HTMLInputElement, label: string): HTMLInputElem
 
 class AutomationConfigurationFormUi {
     readonly modalRoot: HTMLElement;
+    readonly formRegion: HTMLElement;
     readonly titleInput: HTMLInputElement;
     readonly colorPicker: HTMLElement;
     readonly colorInputs: HTMLInputElement[];
     readonly timezoneSelect: HTMLSelectElement;
     readonly startInput: HTMLInputElement;
     readonly recurrenceSelect: HTMLSelectElement;
+    readonly scheduleSummary: HTMLElement;
     readonly modelSelect: HTMLSelectElement;
     readonly workspacePathInput: HTMLInputElement;
     readonly workspaceChangeButton: HTMLButtonElement;
@@ -38,59 +50,68 @@ class AutomationConfigurationFormUi {
     readonly turnsCharCounter: HTMLElement;
     readonly turnsList: HTMLElement;
     readonly addTurnButton: HTMLButtonElement;
-    readonly error: HTMLElement;
+    readonly validationSummary: HTMLElement;
+    readonly fieldErrors: Readonly<Record<AutomationEditorIssueField, AutomationConfigurationFieldErrorTarget>>;
 
     constructor(dependencies: AutomationConfigurationFormUiDependencies) {
         const modal = dependencies.modal;
-        this.modalRoot = modal;
         const modalId = modal.id;
-        this.titleInput = narrowInput(dependencies.requireHTMLElement(modalUiSelector(modalId, 'title-input'), modal), 'Automation modal title');
-        this.colorPicker = dependencies.requireHTMLElement(modalUiSelector(modalId, 'color-select'), modal);
+        const requireElement = (token: string): HTMLElement => dependencies.requireHTMLElement(modalUiSelector(modalId, token), modal);
+        this.modalRoot = modal;
+        this.formRegion = requireElement('form');
+        this.titleInput = narrowInput(requireElement('title-input'), 'Automation modal title');
+        this.colorPicker = requireElement('color-select');
         this.colorInputs = queryAutomationColorInputs(modalId, this.colorPicker).map((element) => ensureRadioInput(element, 'color option'));
         if (this.colorInputs.length === 0) {
             throw new Error('Automation modal color picker must contain at least one radio option');
         }
-        this.timezoneSelect = narrowSelect(dependencies.requireHTMLElement(modalUiSelector(modalId, 'timezone-select'), modal), 'Automation modal timezone');
-        this.startInput = narrowInput(dependencies.requireHTMLElement(modalUiSelector(modalId, 'start-input'), modal), 'Automation modal start');
-        this.recurrenceSelect = narrowSelect(dependencies.requireHTMLElement(modalUiSelector(modalId, 'recurrence-select'), modal), 'Automation modal recurrence');
-        this.modelSelect = narrowSelect(dependencies.requireHTMLElement(modalUiSelector(modalId, 'model-input'), modal), 'Automation modal model');
-        this.workspacePathInput = narrowInput(dependencies.requireHTMLElement(modalUiSelector(modalId, 'workspace-path-input'), modal), 'Automation modal workspace path');
-        this.workspaceChangeButton = narrowButton(dependencies.requireHTMLElement(modalUiSelector(modalId, 'workspace-change-button'), modal), 'Automation modal workspace button');
-        this.parametersSummaryInput = narrowInput(dependencies.requireHTMLElement(modalUiSelector(modalId, 'parameters-summary-input'), modal), 'Automation modal parameters summary');
-        this.parametersButton = narrowButton(dependencies.requireHTMLElement(modalUiSelector(modalId, 'parameters-button'), modal), 'Automation modal parameters button');
-        this.interactiveToolApprovalToggle = narrowInput(dependencies.requireHTMLElement(modalUiSelector(modalId, 'interactive-tool-approval-toggle'), modal), 'Automation modal interactive tool approval');
-        this.maxRunMinutesInput = narrowInput(dependencies.requireHTMLElement(modalUiSelector(modalId, 'max-run-minutes-input'), modal), 'Automation modal max run minutes');
-        this.turnsCharCounter = dependencies.requireHTMLElement(modalUiSelector(modalId, 'turns-char-counter'), modal);
-        this.turnsList = dependencies.requireHTMLElement(modalUiSelector(modalId, 'turns-list'), modal);
-        this.addTurnButton = narrowButton(dependencies.requireHTMLElement(modalUiSelector(modalId, 'add-turn-button'), modal), 'Automation modal add turn button');
-        this.error = dependencies.requireHTMLElement(modalUiSelector(modalId, 'modal-error'), modal);
-
-        this.#populateTimezones();
+        this.timezoneSelect = narrowSelect(requireElement('timezone-select'), 'Automation modal timezone');
+        this.startInput = narrowInput(requireElement('start-input'), 'Automation modal start');
+        this.recurrenceSelect = narrowSelect(requireElement('recurrence-select'), 'Automation modal recurrence');
+        this.scheduleSummary = requireElement('schedule-summary');
+        this.modelSelect = narrowSelect(requireElement('model-input'), 'Automation modal model');
+        this.workspacePathInput = narrowInput(requireElement('workspace-path-input'), 'Automation modal workspace path');
+        this.workspaceChangeButton = narrowButton(requireElement('workspace-change-button'), 'Automation modal workspace button');
+        this.parametersSummaryInput = narrowInput(requireElement('parameters-summary-input'), 'Automation modal parameters summary');
+        this.parametersButton = narrowButton(requireElement('parameters-button'), 'Automation modal parameters button');
+        this.interactiveToolApprovalToggle = narrowInput(requireElement('interactive-tool-approval-toggle'), 'Automation modal interactive tool approval');
+        this.maxRunMinutesInput = narrowInput(requireElement('max-run-minutes-input'), 'Automation modal max run minutes');
+        this.turnsCharCounter = requireElement('turns-char-counter');
+        this.turnsList = requireElement('turns-list');
+        this.addTurnButton = narrowButton(requireElement('add-turn-button'), 'Automation modal add turn button');
+        this.validationSummary = requireElement('modal-error');
+        this.fieldErrors = {
+            title: { control: this.titleInput, message: requireElement('title-error') },
+            timezone: { control: this.timezoneSelect, message: requireElement('timezone-error') },
+            start: { control: this.startInput, message: requireElement('start-error') },
+            recurrence: { control: this.recurrenceSelect, message: requireElement('recurrence-error') },
+            model: { control: this.modelSelect, message: requireElement('model-error') },
+            maxRunMinutes: { control: this.maxRunMinutesInput, message: requireElement('max-run-minutes-error') },
+            turns: { control: this.turnsList, message: requireElement('turns-error') },
+            mcp: { control: requireElement('mcp-tools-list'), message: requireElement('mcp-error') }
+        };
+        this.fieldErrors.mcp.control.tabIndex = -1;
+        this.#populateTimezones(AUTOMATION_TIMEZONE_AUTO);
     }
 
-    #populateTimezones(): void {
-        const select = this.timezoneSelect;
-        select.replaceChildren();
-
-        const autoOption = document.createElement('option');
-        autoOption.value = 'auto';
-        autoOption.textContent = i18n.t('automation.modal.timezone.auto');
-        select.append(autoOption);
-
-        const zones = listSupportedTimezones();
-        for (const zone of zones) {
-            const option = document.createElement('option');
-            option.value = zone;
-            option.textContent = zone;
-            select.append(option);
+    #populateTimezones(selectedTimezone: string): void {
+        const autoLabel = i18n.t('automation.modal.timezone.autoWithZone', { timezone: resolveBrowserTimezone() });
+        const supportedTimezones = listSupportedTimezones();
+        const entries: SelectOptionDefinition[] = [{ value: AUTOMATION_TIMEZONE_AUTO, label: autoLabel, selected: selectedTimezone === AUTOMATION_TIMEZONE_AUTO }, ...supportedTimezones.map((timezone) => ({ value: timezone, label: timezone, selected: timezone === selectedTimezone }))];
+        if (selectedTimezone !== AUTOMATION_TIMEZONE_AUTO && !supportedTimezones.includes(selectedTimezone)) {
+            entries.push({ value: selectedTimezone, label: selectedTimezone, selected: true });
         }
+        replaceSelectOptions(this.timezoneSelect, entries);
     }
 
-    showError(message: string): void {
-        setStatusSurface({
-            surface: this.error,
-            message
-        });
+    setTimezoneValue(value: string): void {
+        this.#populateTimezones(value);
+        setSelectValueAndSyncDefault(this.timezoneSelect, value);
+    }
+
+    readTimezoneValue(): string {
+        const selection = this.timezoneSelect.value.trim();
+        return selection === AUTOMATION_TIMEZONE_AUTO ? resolveBrowserTimezone() : selection;
     }
 
     readColorValue(): string {
@@ -109,10 +130,6 @@ class AutomationConfigurationFormUi {
         });
     }
 
-    hideError(): void {
-        clearStatusSurface(this.error);
-    }
-
     setReadOnly(readOnly: boolean): void {
         this.titleInput.readOnly = readOnly;
         this.colorInputs.forEach((input) => {
@@ -123,8 +140,15 @@ class AutomationConfigurationFormUi {
         this.startInput.disabled = readOnly;
         this.recurrenceSelect.disabled = readOnly;
         this.modelSelect.disabled = readOnly;
-        this.workspaceChangeButton.disabled = readOnly;
-        this.parametersButton.disabled = readOnly;
+        this.workspaceChangeButton.disabled = false;
+        const workspaceLabel = readOnly ? i18n.t('automation.modal.workspace.viewButton') : i18n.t('automation.modal.workspace.button');
+        this.workspaceChangeButton.textContent = workspaceLabel;
+        this.workspaceChangeButton.setAttribute('aria-label', workspaceLabel);
+        setTooltipText(this.workspaceChangeButton, workspaceLabel);
+        const parametersLabel = readOnly ? i18n.t('automation.modal.parameters.viewButton') : i18n.t('automation.modal.parameters.button');
+        this.parametersButton.textContent = parametersLabel;
+        this.parametersButton.setAttribute('aria-label', parametersLabel);
+        setTooltipText(this.parametersButton, parametersLabel);
         this.interactiveToolApprovalToggle.disabled = readOnly;
         this.maxRunMinutesInput.readOnly = readOnly;
         this.addTurnButton.classList.toggle('u-hidden', readOnly);
@@ -132,4 +156,5 @@ class AutomationConfigurationFormUi {
     }
 }
 
-export { AutomationConfigurationFormUi };
+export { AUTOMATION_TIMEZONE_AUTO, AutomationConfigurationFormUi };
+export type { AutomationConfigurationFieldErrorTarget };

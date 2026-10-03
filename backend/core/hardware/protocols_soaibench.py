@@ -13,6 +13,7 @@ if TYPE_CHECKING:
         SoAIBenchReconciliationResult,
     )
     from core.hardware.soaibench_publication import SoAIBenchPublicationRecord
+    from core.history.reset_notification import HistoryResetOutcome
     from core.tool_calls.deferred_tool_call_streamer import DeferredToolCallActivity
     from core.types.json import JSONDict
 
@@ -20,7 +21,7 @@ __all__ = ()
 
 
 class DatabaseSoAIBenchProtocol(Protocol):
-    async def clear_hardware_history(self) -> None: ...
+    async def clear_hardware_history(self, reset_genesis_uptime: bool) -> int: ...
 
     async def create_soaibench_run(self, run: JSONDict) -> SoAIBenchMutationResult: ...
 
@@ -114,7 +115,7 @@ class SoAIBenchServiceProtocol(Protocol):
 
     async def shutdown(self) -> None: ...
 
-    async def reset_history(self) -> None: ...
+    async def reset_history(self, *, reset_genesis_uptime: bool) -> HistoryResetOutcome: ...
 
     async def start_run(
         self,

@@ -5,6 +5,22 @@ import { terminateHandledPromise } from '@core/primitives/terminateHandledPromis
 import type { SaveController } from '@core/save/public.ts';
 import { isElementNode } from '@core/typeGuards.ts';
 import type { PromptsPageEventsHost } from '@pages/prompts/controllers/page/contracts.ts';
+import { cancelEditing } from '@pages/prompts/controllers/page/effects.ts';
+import { hasPromptCardEditChanges } from '@pages/prompts/controllers/page/saveDirtyStateManager.ts';
+
+const updatePromptEditDraft = (host: PromptsPageEventsHost, event: Event): void => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return;
+    const field = target.dataset['field'];
+    if (field !== 'name' && field !== 'content') return;
+    const cardCandidate = target.closest('.prompt-card, .prompts-list-row');
+    const card = cardCandidate instanceof HTMLElement ? cardCandidate : null;
+    const promptId = card?.dataset['promptId'] ?? null;
+    const editingDraft = host.state.editingDraft;
+    if (!promptId || promptId !== host.state.editingPromptId || editingDraft?.promptId !== promptId) return;
+    if (field === 'name') editingDraft.name = target.value;
+    else editingDraft.content = target.value;
+};
 
 const handleKeydown = (host: PromptsPageEventsHost, save: SaveController, event: Event): void => {
     if (!(event instanceof KeyboardEvent)) {
@@ -24,7 +40,8 @@ const handleKeydown = (host: PromptsPageEventsHost, save: SaveController, event:
     const promptId = card?.dataset?.['promptId'] ?? null;
     if (promptId && promptId === host.state.editingPromptId && element.matches('[data-field="name"], [data-field="content"]')) {
         event.preventDefault();
-        terminateHandledPromise(save.requestSave());
+        if (hasPromptCardEditChanges(host)) terminateHandledPromise(save.requestSave());
+        else terminateHandledPromise(cancelEditing(host, save, promptId));
     }
 };
 
@@ -32,7 +49,9 @@ const setupPromptsPageNonClickEvents = (host: PromptsPageEventsHost, save: SaveC
     host.owners.collectionLayout.setupEventListeners();
     for (const root of actionRoots) {
         const handlePromptKeydown = (event: Event): void => handleKeydown(host, save, event);
+        const handlePromptInput = (event: Event): void => updatePromptEditDraft(host, event);
         root.addEventListener('keydown', handlePromptKeydown, { signal });
+        root.addEventListener('input', handlePromptInput, { signal, capture: true });
     }
 };
 

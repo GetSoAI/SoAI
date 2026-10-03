@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from core.errors.error_types import ErrorType
 from core.errors.exceptions import StateError
+from core.errors.payload import ErrorPublicPayload
 
 __all__ = ("ModelLoadingResult", "ModelScopedLoadError")
 
@@ -22,6 +23,7 @@ class ModelLoadingResult:
     message: str | None = None
     error_type: ErrorType = ErrorType.SERVER_ERROR
     allow_failover: bool = True
+    public_error: ErrorPublicPayload | None = None
 
     @classmethod
     def success(cls) -> ModelLoadingResult:
@@ -38,6 +40,7 @@ class ModelLoadingResult:
         *,
         error_type: ErrorType = ErrorType.SERVER_ERROR,
         allow_failover: bool = True,
+        public_error: ErrorPublicPayload | None = None,
     ) -> ModelLoadingResult:
         return cls(
             loaded=False,
@@ -45,4 +48,5 @@ class ModelLoadingResult:
             message=message,
             error_type=error_type,
             allow_failover=allow_failover,
+            public_error=public_error,
         )

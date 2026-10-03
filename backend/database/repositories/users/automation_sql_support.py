@@ -70,8 +70,18 @@ LEFT JOIN automations AS a ON a.id = r.automation_id
 """
 
 
+def _latest_run_column_sql(column: str, alias: str) -> str:
+    return f"""(
+            SELECT latest_run.{column}
+            FROM automation_runs AS latest_run
+            WHERE latest_run.automation_id = automations.id
+            ORDER BY latest_run.scheduled_at_ms DESC, latest_run.id DESC
+            LIMIT 1
+        ) AS {alias}"""
+
+
 def automation_select_sql() -> str:
-    return """
+    return f"""
     SELECT
         id,
         user_id,
@@ -88,7 +98,10 @@ def automation_select_sql() -> str:
         turns_json AS turns,
         max_turns,
         max_turn_chars,
-        max_run_minutes
+        max_run_minutes,
+        {_latest_run_column_sql("status", "latest_run_status")},
+        {_latest_run_column_sql("scheduled_at_ms", "latest_run_scheduled_at_ms")},
+        {_latest_run_column_sql("finished_at_ms", "latest_run_finished_at_ms")}
     FROM automations
     """
 

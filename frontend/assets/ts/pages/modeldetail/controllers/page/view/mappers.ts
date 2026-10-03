@@ -79,6 +79,7 @@ const composeModelDetailView = (host: ModelDetailViewDependencies): ModelDetailV
             getModelDisplayName,
             getPluginStatus,
             describePluginStatus: (value: string): string => host.statusManager?.getDescription(value) ?? value,
+            resolvePluginStatusBadgeClass: (value: string): string => host.statusManager?.getCollectionBadgeClass(value) ?? 'status-grey',
             updateHeaderInfo: (): void => {
                 updateModelDetailHeaderInfo(createStateHost());
             }
@@ -134,6 +135,7 @@ const createModelDetailModelInfoHost = (host: ModelDetailViewHost, callbacks: Mo
         isVirtualModel: (): boolean => host.state.isVirtualModel(),
         getPluginStatus: (): string | null => host.presentation.getPluginStatus(),
         describePluginStatus: (value: string): string => host.presentation.describePluginStatus(value),
+        resolvePluginStatusBadgeClass: (value: string): string => host.presentation.resolvePluginStatusBadgeClass(value),
         setInfo: (id: string, value: JsonValue | null | undefined, formatter?: (value: JsonValue | null | undefined) => string | null): void => host.presentation.setInfo(id, value, formatter),
         sanitizeAttribute: (value: string): string => host.presentation.sanitizeAttribute(value),
         sanitizeText: sharedUiHost.sanitizeText,

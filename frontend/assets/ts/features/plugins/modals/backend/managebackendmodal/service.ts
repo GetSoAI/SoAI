@@ -73,6 +73,7 @@ class ManageBackendModalManager {
             return;
         }
 
+        this.#operationToken.invalidate();
         this.state.currentPlugin = plugin;
         this.state.updateInfo = null;
         this.state.backendVariantsReady = false;
@@ -84,12 +85,12 @@ class ManageBackendModalManager {
         const title = this.#host.view.requireHTMLElement(modalUiSelector(this.modalId, 'title'), modalRoot);
         this.#host.view.updateText(title, mode === 'install' ? i18n.t('plugins.modal.installBackend.titleFormat', { plugin: this.#host.operations.formatPluginName(String(plugin.name)) }) : i18n.t('plugins.modal.manageBackend.title'));
 
-        renderManageBackendInfo(this.#dependencies, this.modalId, modalRoot, plugin);
-        renderManageBackendWarning(this.#dependencies, this.modalId, modalRoot, plugin);
         resetManageBackendButtons({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, modalRoot);
-        const canManage = syncManageBackendFooterActions({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, modalRoot, plugin);
+        const hasBackendAction = syncManageBackendFooterActions({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, modalRoot, plugin);
+        renderManageBackendInfo(this.#dependencies, this.modalId, modalRoot, plugin, hasBackendAction);
+        renderManageBackendWarning(this.#dependencies, this.modalId, modalRoot, plugin);
         setManageBackendButtonsDisabled({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, modalRoot, true);
-        if (canManage) {
+        if (hasBackendAction) {
             terminateHandledPromise(loadManageBackendVariants({ ...this.#dependencies, state: this.state, variantLoadToken: this.#variantLoadToken }, this.modalId, modalRoot, plugin, variantToken));
         }
         this.#operationPanel = attachManageBackendOperationPanel(this.#operationPanel, this.modalId, String(plugin.name));
@@ -211,12 +212,17 @@ class ManageBackendModalManager {
         if (!plugin?.name) {
             return;
         }
+        if (!this.state.backendVariantsReady) {
+            this.#host.operations.showNotification(i18n.t('plugins.modal.backendVariants.loadFailed'), 'error');
+            return;
+        }
 
+        const modalSessionToken = this.#operationToken.value;
         const confirmed = await confirmManageBackendUninstall(this.#host.operations, plugin);
         if (!confirmed) {
             return;
         }
-        if (this.state.currentPlugin?.name !== plugin.name) {
+        if (!this.#operationToken.isActive(modalSessionToken) || this.state.currentPlugin?.name !== plugin.name || !this.state.backendVariantsReady) {
             return;
         }
 
@@ -235,12 +241,12 @@ class ManageBackendModalManager {
         this.state.updateInfo = null;
         this.state.backendVariantsReady = false;
         this.#host.status.setCurrentUpdateInfo(null);
-        renderManageBackendInfo(this.#dependencies, this.modalId, modalRoot, plugin);
-        renderManageBackendWarning(this.#dependencies, this.modalId, modalRoot, plugin);
         resetManageBackendButtons({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, modalRoot);
-        const canManage = syncManageBackendFooterActions({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, modalRoot, plugin);
+        const hasBackendAction = syncManageBackendFooterActions({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, modalRoot, plugin);
+        renderManageBackendInfo(this.#dependencies, this.modalId, modalRoot, plugin, hasBackendAction);
+        renderManageBackendWarning(this.#dependencies, this.modalId, modalRoot, plugin);
         setManageBackendButtonsDisabled({ host: this.#host, classNames: this.#dependencies.classNames }, this.modalId, modalRoot, true);
-        if (canManage) {
+        if (hasBackendAction) {
             const variantToken = this.#variantLoadToken.next();
             terminateHandledPromise(loadManageBackendVariants({ ...this.#dependencies, state: this.state, variantLoadToken: this.#variantLoadToken }, this.modalId, modalRoot, plugin, variantToken));
         }
@@ -256,6 +262,7 @@ class ManageBackendModalManager {
     onModalClosed(): void {
         this.#updateCheckToken.invalidate();
         this.#variantLoadToken.invalidate();
+        this.#operationToken.invalidate();
         this.#host.status.unsubscribeModalLedUpdates();
         this.#operationPanel = detachManageBackendOperationPanel(this.#operationPanel);
         this.#clearModalState();

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { toTrustedUiHtml } from '@core/security/public.ts';
+import { renderInlineLoadingStatus } from '@core/ui/loadingStatus.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
 import { getPluginSystemRequirementMessages } from '@core/plugins/systemRequirements.ts';
@@ -38,7 +39,46 @@ interface ManageUpdateViewDependencies extends ManageButtonsViewDependencies {
     security: BackendManagerSecurity;
 }
 
-const renderManageBackendInfo = (dependencies: ManageInfoViewDependencies, modalId: string, modalRoot: HTMLElement, plugin: PluginRecord): void => {
+type ManageBackendBadgeState = 'loading' | 'ready' | 'installing' | 'uninstalling';
+const BACKEND_REMOVING_STATUS = 'REMOVING_BACKEND';
+
+const renderManageBackendBadge = (badge: HTMLElement, pluginStatus: string, state: ManageBackendBadgeState): void => {
+    let badgeState: 'loading' | 'needs-install' | 'installing' | 'uninstalling' | null = state === 'ready' ? null : state;
+    if (state === 'ready') {
+        if (pluginStatus === PLUGIN_STATUS_BACKEND_NOT_INSTALLED || pluginStatus === PLUGIN_STATUS_INSTALL_ERROR) {
+            badgeState = 'needs-install';
+        } else if (pluginStatus === PLUGIN_STATUS_BACKEND_INSTALLING) {
+            badgeState = 'installing';
+        } else if (pluginStatus === BACKEND_REMOVING_STATUS) {
+            badgeState = 'uninstalling';
+        }
+    }
+    let text = '';
+    if (badgeState === 'loading') {
+        text = i18n.t('plugins.modal.backendVariants.loadingBackends');
+    } else if (badgeState === 'installing') {
+        text = `${i18n.t('plugins.loading.installingBackend')}...`;
+    } else if (badgeState === 'uninstalling') {
+        text = `${i18n.t('plugins.loading.uninstallingBackend')}...`;
+    } else if (badgeState === 'needs-install') {
+        text = i18n.t('plugins.modal.installBackend.needsInstall');
+    }
+    const localBackendOperation = state === 'installing' || state === 'uninstalling';
+    const badgeStateMatches = (badge.dataset['state'] ?? null) === badgeState;
+    const operationStateMatches = badge.hasAttribute('data-local-backend-operation') === localBackendOperation;
+    if (state === 'ready' && badgeStateMatches && operationStateMatches) {
+        return;
+    }
+    if (badgeState) {
+        badge.dataset['state'] = badgeState;
+    } else {
+        delete badge.dataset['state'];
+    }
+    badge.toggleAttribute('data-local-backend-operation', localBackendOperation);
+    renderInlineLoadingStatus(badge, { text, loading: badgeState === 'loading' || badgeState === 'installing' || badgeState === 'uninstalling' });
+};
+
+const renderManageBackendInfo = (dependencies: ManageInfoViewDependencies, modalId: string, modalRoot: HTMLElement, plugin: PluginRecord, loadingVariants: boolean): void => {
     const info = dependencies.host.view.requireHTMLElement(modalUiSelector(modalId, 'plugin-info'), modalRoot);
     const unknown = i18n.t('common.unknown');
     const name = String(plugin.displayName ?? '').trim() || dependencies.host.operations.formatPluginName(String(plugin.name)) || unknown;
@@ -51,8 +91,6 @@ const renderManageBackendInfo = (dependencies: ManageInfoViewDependencies, modal
     const esc = (value: string): string => dependencies.security.escapeHtml(value);
     const ledId = modalUiId(modalId, 'info-led');
     const websiteLinkId = modalUiId(modalId, 'website-link');
-    const status = dependencies.host.status.getPluginStatus(plugin);
-    const needsInstallBadge = status === PLUGIN_STATUS_BACKEND_NOT_INSTALLED || status === PLUGIN_STATUS_INSTALL_ERROR ? `<div class="plugin-install-badge" data-state="needs-install">${i18n.t('plugins.modal.installBackend.needsInstall')}</div>` : '';
 
     const infoMarkup = toTrustedUiHtml(`
         <div class="plugin-info-item">
@@ -67,9 +105,11 @@ const renderManageBackendInfo = (dependencies: ManageInfoViewDependencies, modal
         <div id="${modalUiId(modalId, 'installed-variant')}" class="plugin-info-details plugin-backend-variant" hidden></div>
         ${buildBackendWebsiteLink(websiteLinkId, getBackendWebsiteUrl(plugin), dependencies.security)}
         </div>
-        ${needsInstallBadge}
+        <div class="plugin-install-badge inline-loading-status u-hidden" role="status" aria-live="polite"></div>
         </div>`);
     dependencies.host.view.updateHTML(info, infoMarkup, { escape: false });
+    const badge = dependencies.host.view.requireHTMLElement('.plugin-install-badge', modalRoot);
+    renderManageBackendBadge(badge, dependencies.host.status.getPluginStatus(plugin), loadingVariants ? 'loading' : 'ready');
 
     const linkElement = dependencies.host.view.optionalHTMLElement(modalUiSelector(modalId, 'website-link'), info);
     if (linkElement) {
@@ -120,7 +160,7 @@ const resetManageBackendButtons = (dependencies: ManageButtonsViewDependencies, 
 
 const canManageBackend = (dependencies: ManageButtonsViewDependencies, plugin: PluginRecord): boolean => {
     const status = dependencies.host.status.getPluginStatus(plugin);
-    return status !== PLUGIN_STATUS_BACKEND_NOT_INSTALLED && status !== PLUGIN_STATUS_INSTALL_ERROR && status !== PLUGIN_STATUS_BACKEND_INSTALLING && status !== PLUGIN_STATUS_BACKEND_UPDATING;
+    return status !== PLUGIN_STATUS_BACKEND_NOT_INSTALLED && status !== PLUGIN_STATUS_INSTALL_ERROR && status !== PLUGIN_STATUS_BACKEND_INSTALLING && status !== PLUGIN_STATUS_BACKEND_UPDATING && status !== BACKEND_REMOVING_STATUS;
 };
 
 const canInstallBackend = (dependencies: ManageButtonsViewDependencies, plugin: PluginRecord): boolean => {
@@ -243,4 +283,4 @@ const clearManageBackendModalView = (dependencies: ManageButtonsViewDependencies
     }
 };
 
-export { clearManageBackendModalView, hideManageBackendUpdateControls, renderManageBackendInfo, renderManageBackendVariantInfo, renderManageBackendWarning, resetManageBackendButtons, setManageBackendButtonsDisabled, showManageBackendNoUpdateAvailable, showManageBackendUpdateAvailable, syncManageBackendFooterActions };
+export { clearManageBackendModalView, hideManageBackendUpdateControls, renderManageBackendBadge, renderManageBackendInfo, renderManageBackendVariantInfo, renderManageBackendWarning, resetManageBackendButtons, setManageBackendButtonsDisabled, showManageBackendNoUpdateAvailable, showManageBackendUpdateAvailable, syncManageBackendFooterActions };

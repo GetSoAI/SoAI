@@ -3,6 +3,7 @@
 
 import { stableJsonStringify } from '@core/serialization/json.ts';
 import { MAX_CHAT_COMPOSER_TEXT_LENGTH } from '@core/chat/protocols.ts';
+import { unicodeCodePointLength } from '@core/primitives/text.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { ChatAttachment } from '@features/chat/ChatTypes.ts';
 import { buildSoaiFileContentPartFromAttachment, isSoaiFileAttachmentReadyForSend, serializeSoaiFileContentPart } from '@features/chat/attachments/soaiFileContentPart.ts';
@@ -35,7 +36,7 @@ const projectComposerDraft = (inputArguments: { conversationId: string | null; t
         sourceText: inputArguments.sourceText,
         attachmentContent,
         signature: buildProjectionSignature(inputArguments.text, inputArguments.sourceText, attachmentContent),
-        textTooLong: inputArguments.text.length > MAX_CHAT_COMPOSER_TEXT_LENGTH || inputArguments.sourceText.length > MAX_CHAT_COMPOSER_TEXT_LENGTH
+        textTooLong: unicodeCodePointLength(inputArguments.text) > MAX_CHAT_COMPOSER_TEXT_LENGTH || unicodeCodePointLength(inputArguments.sourceText) > MAX_CHAT_COMPOSER_TEXT_LENGTH
     };
 };
 

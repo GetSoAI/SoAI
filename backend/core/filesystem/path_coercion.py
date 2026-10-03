@@ -11,7 +11,7 @@ from core.errors.exceptions import ValidationError
 if TYPE_CHECKING:
     type PathInput = str | os.PathLike[str]
 
-__all__ = ("coerce_path", "normalize_filesystem_path")
+__all__ = ("coerce_path", "normalize_filesystem_path", "remove_windows_path_namespace")
 
 
 def coerce_path(value: PathInput) -> str:
@@ -19,6 +19,8 @@ def coerce_path(value: PathInput) -> str:
         value = os.fspath(value)
     if not isinstance(value, str):
         raise ValidationError("Path must be a string or os.PathLike instance.")
+    if "\0" in value:
+        raise ValidationError("Path cannot contain a NUL character.")
     if not value:
         raise ValidationError("Path cannot be empty.")
     normalized = value.strip()
@@ -36,3 +38,11 @@ def normalize_filesystem_path(path: str) -> str:
     if absolute_path.startswith("\\\\"):
         return f"\\\\?\\UNC\\{absolute_path[2:]}"
     return f"\\\\?\\{absolute_path}"
+
+
+def remove_windows_path_namespace(path: str) -> str:
+    if path.startswith("\\\\?\\UNC\\"):
+        return f"\\\\{path[8:]}"
+    if path.startswith("\\\\?\\"):
+        return path[4:]
+    return path

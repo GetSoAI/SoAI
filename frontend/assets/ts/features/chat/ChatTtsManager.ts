@@ -6,6 +6,7 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { createDeferred } from '@core/runtime/deferred.ts';
+import { decodeBase64Bytes } from '@core/primitives/base64.ts';
 import { optionalTrimmedString } from '@core/types/payloadValueReaders.ts';
 import type { WebuiMediaApiClient } from '@features/chat/api/webuiMediaAudio.ts';
 import { ChatTtsAudioCache, type PreparedChatTtsAudio } from '@features/chat/tts/chatTtsAudioCache.ts';
@@ -14,7 +15,7 @@ import { splitTextForTts } from '@features/chat/tts/chatTtsTextChunker.ts';
 
 const DEFAULT_CACHE_LIMIT = 16;
 const TTS_CHUNK_MAX_CHARS = 4000;
-const SILENT_WAV_DATA_URI = 'data:audio/wav;base64,UklGRsQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const SILENT_WAV_BASE64 = 'UklGRsQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
 class ChatTtsManager {
     readonly #apiClient: WebuiMediaApiClient | null;
@@ -42,12 +43,13 @@ class ChatTtsManager {
         if (this.#playbackPrimed || this.#playbackPrimeInFlight) {
             return;
         }
+        const playbackPrimeUrl = URL.createObjectURL(new Blob([new Uint8Array(decodeBase64Bytes(SILENT_WAV_BASE64))], { type: 'audio/wav' }));
         this.#playbackPrimeInFlight = true;
         const token = this.#speakToken.value;
         const previousMuted = this.#audio.muted;
         this.#playbackPrimeMutedRestore = previousMuted;
         this.#audio.muted = true;
-        this.#audio.src = SILENT_WAV_DATA_URI;
+        this.#audio.src = playbackPrimeUrl;
         this.#audio.currentTime = 0;
         this.#audio
             .play()
@@ -63,6 +65,7 @@ class ChatTtsManager {
                 errorHandler.debug('ChatTtsManager', 'Silent playback prime failed', ensureError(error));
             })
             .finally(() => {
+                URL.revokeObjectURL(playbackPrimeUrl);
                 this.#finishPlaybackPrime(token);
             });
     }

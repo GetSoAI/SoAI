@@ -13,9 +13,9 @@ const ATTACHMENT_THUMBNAIL_IMAGE_SELECTOR = 'img[data-chat-attachment-thumbnail=
 const INLINE_MULTIMEDIA_CARD_CLASS = 'chat-inline-media-card';
 const CHAT_CODE_BLOCK_SELECTOR = 'pre:not([data-code-highlighted="true"])';
 const CHAT_BRANDING_LOGO_SELECTOR = `.${CHAT_BRANDING_LOGO_CLASS}[data-logo-type]`;
-const INLINE_TOOL_IMAGE_SELECTOR = `.${INLINE_TOOL_IMAGE_CLASS} img`;
+const CHAT_CONTENT_IMAGE_SELECTOR = 'img:not([data-chat-attachment-thumbnail], [data-logo-type], .chat-avatar-image, .chat-inline-media-card__image, .assistant-news-widget__image)';
 const ASSISTANT_ARTICLE_IMAGE_SELECTOR = `.assistant-news-widget__media .${ASSISTANT_ARTICLE_IMAGE_CLASS}`;
-const CHAT_IMAGE_LIFECYCLE_SELECTOR = `${INLINE_TOOL_IMAGE_SELECTOR}, ${ASSISTANT_ARTICLE_IMAGE_SELECTOR}, ${ATTACHMENT_THUMBNAIL_IMAGE_SELECTOR}`;
+const CHAT_IMAGE_LIFECYCLE_SELECTOR = `${CHAT_CONTENT_IMAGE_SELECTOR}, ${ASSISTANT_ARTICLE_IMAGE_SELECTOR}, ${ATTACHMENT_THUMBNAIL_IMAGE_SELECTOR}`;
 const ENABLED_INLINE_MULTIMEDIA_SELECTOR = `.${INLINE_MULTIMEDIA_CARD_CLASS}__media, .${INLINE_MULTIMEDIA_CARD_CLASS}[data-inline-media-card="1"], img`;
 const DISABLED_INLINE_MULTIMEDIA_SELECTOR = 'a[href], img';
 const STREAMING_POST_RENDER_MARKER_SELECTOR = `pre, a, img, .${MERMAID_CONTAINER_CLASS}, [data-inline-media-card="1"]`;
@@ -42,7 +42,7 @@ const classifyChatMessagePostRenderCapabilities = (markup: string): ReadonlySet<
     if (containsRenderedElement(markup, 'pre')) capabilities.add('code');
     if (markup.includes(MERMAID_CONTAINER_CLASS)) capabilities.add('mermaid');
     if (markup.includes(CHAT_BRANDING_LOGO_CLASS)) capabilities.add('branding');
-    if (markup.includes(INLINE_TOOL_IMAGE_CLASS) || markup.includes(ASSISTANT_ARTICLE_IMAGE_CLASS) || markup.includes('data-chat-attachment-thumbnail')) capabilities.add('image-lifecycle');
+    if (containsRenderedElement(markup, 'img') || markup.includes(INLINE_TOOL_IMAGE_CLASS) || markup.includes(ASSISTANT_ARTICLE_IMAGE_CLASS) || markup.includes('data-chat-attachment-thumbnail')) capabilities.add('image-lifecycle');
     if (containsRenderedElement(markup, 'img') || containsRenderedElement(markup, 'a') || markup.includes(INLINE_MULTIMEDIA_CARD_CLASS) || markup.includes(PREVIEW_REFERENCE_START)) capabilities.add('inline-multimedia');
     return capabilities;
 };
@@ -81,5 +81,5 @@ const readChatPostRenderCapabilities = (element: HTMLElement): ChatPostRenderCap
 
 const hasChatPostRenderCapability = (capabilities: ChatPostRenderCapabilities | null, capability: ChatPostRenderCapability): boolean => capabilities === null || capabilities.has(capability);
 
-export { ASSISTANT_ARTICLE_IMAGE_SELECTOR, ATTACHMENT_THUMBNAIL_IMAGE_SELECTOR, CHAT_BRANDING_LOGO_SELECTOR, CHAT_CODE_BLOCK_SELECTOR, CHAT_IMAGE_LIFECYCLE_SELECTOR, CHAT_POST_RENDER_CAPABILITIES_ATTRIBUTE, DISABLED_INLINE_MULTIMEDIA_SELECTOR, ENABLED_INLINE_MULTIMEDIA_SELECTOR, INLINE_TOOL_IMAGE_SELECTOR, STREAMING_POST_RENDER_MARKER_SELECTOR, classifyChatMessagePostRenderCapabilities, classifyChatPostRenderCapabilitiesFromDom, hasChatPostRenderCapability, readChatPostRenderCapabilities, renderChatPostRenderCapabilitiesAttribute, serializeChatPostRenderCapabilities };
+export { ASSISTANT_ARTICLE_IMAGE_SELECTOR, ATTACHMENT_THUMBNAIL_IMAGE_SELECTOR, CHAT_BRANDING_LOGO_SELECTOR, CHAT_CODE_BLOCK_SELECTOR, CHAT_CONTENT_IMAGE_SELECTOR, CHAT_IMAGE_LIFECYCLE_SELECTOR, CHAT_POST_RENDER_CAPABILITIES_ATTRIBUTE, DISABLED_INLINE_MULTIMEDIA_SELECTOR, ENABLED_INLINE_MULTIMEDIA_SELECTOR, STREAMING_POST_RENDER_MARKER_SELECTOR, classifyChatMessagePostRenderCapabilities, classifyChatPostRenderCapabilitiesFromDom, hasChatPostRenderCapability, readChatPostRenderCapabilities, renderChatPostRenderCapabilitiesAttribute, serializeChatPostRenderCapabilities };
 export type { ChatPostRenderCapabilities, ChatPostRenderCapability };

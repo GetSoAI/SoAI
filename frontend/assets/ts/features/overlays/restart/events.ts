@@ -7,7 +7,7 @@ import { getLocation, requireDocument } from '@core/environment/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { createDeferred } from '@core/runtime/deferred.ts';
 import { reloadCurrentLocation } from '@features/overlays/restart/actions.ts';
-import { DEFAULT_MAX_RETRIES, RESTART_STATUS_ICON_HIDDEN_CLASS } from '@features/overlays/restart/constants.ts';
+import { DEFAULT_MAX_RETRIES, RESTART_STATUS_ICON_HIDDEN_CLASS, UPDATE_MAX_RETRIES, UPDATE_SLOW_NOTICE_RETRIES } from '@features/overlays/restart/constants.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import type { ApiInterface, OperationType, OverlayElements, RestartSessionRepository } from '@features/overlays/restart/types.ts';
 
@@ -81,6 +81,9 @@ const checkRestartBackendStatus = async (input: RestartBackendStatusInput): Prom
     if (input.currentType === 'connection-lost' && input.description) {
         input.updateText(input.description, i18n.t('restartOverlay.reconnecting'));
     }
+    if (input.currentType === 'update-soai' && currentRetry >= UPDATE_SLOW_NOTICE_RETRIES && input.description) {
+        input.updateText(input.description, i18n.t('restartOverlay.descriptions.updatingSlow'));
+    }
 
     const result = await handleApiResult(input.api.system.health({ timeoutMs: 5000 }), {
         boundaryName: 'RestartOverlay',
@@ -131,7 +134,7 @@ const handleRestartMaxRetriesReached = (input: RestartMaxRetriesInput): number |
     const { message, description } = input.elements;
     input.stopPolling();
     if (input.elements.overlay) {
-        if (input.maxRetries === DEFAULT_MAX_RETRIES && input.currentRetry >= DEFAULT_MAX_RETRIES) {
+        if ((input.maxRetries === DEFAULT_MAX_RETRIES || input.maxRetries === UPDATE_MAX_RETRIES) && input.currentRetry >= input.maxRetries) {
             input.addClassName(input.elements.overlay, RESTART_STATUS_ICON_HIDDEN_CLASS);
         } else {
             input.removeClassName(input.elements.overlay, RESTART_STATUS_ICON_HIDDEN_CLASS);
@@ -150,9 +153,10 @@ const handleRestartMaxRetriesReached = (input: RestartMaxRetriesInput): number |
         return null;
     }
 
-    if (message) input.updateText(message, i18n.t('common.connection.timeout'));
+    const updateTimedOut = input.currentType === 'update-soai';
+    if (message) input.updateText(message, updateTimedOut ? i18n.t('restartOverlay.messages.updateTimeout') : i18n.t('common.connection.timeout'));
     if (description) {
-        const infoText = i18n.t('common.connection.timeoutDescription', { 'max_retries': input.maxRetries });
+        const infoText = updateTimedOut ? i18n.t('restartOverlay.descriptions.updateTimeout') : i18n.t('common.connection.timeoutDescription', { 'max_retries': input.maxRetries });
         const fragment = dom.createFragment();
         const textNode = dom.create('span', { className: 'restart-timeout-message' });
         input.updateText(textNode, infoText);

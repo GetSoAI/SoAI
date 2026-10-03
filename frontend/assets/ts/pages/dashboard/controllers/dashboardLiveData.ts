@@ -98,6 +98,7 @@ const computeDashboardSectionFingerprint = (context: DashboardLiveDataContext, s
                 const networkSpeed = snapshotObject['networkSpeed'];
                 return JSON.stringify({
                     interfaces: isArray(interfaces) ? interfaces : [],
+                    windowsInventoryStatus: network?.['windowsInventoryStatus'] ?? null,
                     speed: isJsonObjectMapValue(networkSpeed) ? networkSpeed : {}
                 });
             }
@@ -117,6 +118,7 @@ const computeDashboardSectionFingerprint = (context: DashboardLiveDataContext, s
                 gpus: isArray(hardwareObject['gpus']) ? hardwareObject['gpus'] : [],
                 memory: isObject(snapshotObject['memory']) ? snapshotObject['memory'] : {},
                 network: isArray(interfaces) ? interfaces : [],
+                windowsNetworkInventoryStatus: networkObject['windowsInventoryStatus'] ?? null,
                 networkSpeed: isJsonObjectMapValue(networkSpeed) ? networkSpeed : {}
             });
         }

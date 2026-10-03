@@ -24,6 +24,7 @@ from core.licensing.protocols import LicensingStatusProtocol
 from core.licensing.types import Edition
 from core.orchestrator.routing_config import RoutingConfig
 from core.plugins.protocols_instance import FilesProtocol
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.protocols import RuntimeFlagsViewProtocol, RuntimeStateStoreProtocol
 
 if TYPE_CHECKING:
@@ -51,6 +52,7 @@ async def build_application_managers(
     startup_timings: StartupTimingsRecorder,
     licensing_status: LicensingStatusProtocol,
     edition: Edition,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> tuple[
     InfrastructureServices,
     PluginServices,
@@ -81,4 +83,5 @@ async def build_application_managers(
         startup_timings=startup_timings,
         licensing_status=licensing_status,
         edition=edition,
+        process_exit_deadline=process_exit_deadline,
     )

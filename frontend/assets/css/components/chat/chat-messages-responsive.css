@@ -78,20 +78,20 @@
         }
 
         :where(.chat-container) .chat-messages-area {
-            padding-left: var(--space-16);
-            padding-right: var(--space-16);
+            padding-inline-start: var(--space-16);
+            padding-inline-end: var(--space-16);
             padding-bottom: var(--chat-messages-padding-bottom);
         }
 
         :where(.chat-container) .chat-messages-area.widescreen-mode {
-            padding-left: var(--space-2);
-            padding-right: var(--space-2);
+            padding-inline-start: var(--space-2);
+            padding-inline-end: var(--space-2);
         }
 
         :where(.chat-container) .chat-previews-container {
             --chat-previews-container-bottom: calc(85px + var(--ui-safe-area-inset-bottom));
-            --chat-previews-container-left: 3rem;
-            --chat-previews-container-right: 2.5rem;
+            --chat-previews-container-inline-start: 3rem;
+            --chat-previews-container-inline-end: 2.5rem;
         }
 
         :where(.chat-container) .message-images {

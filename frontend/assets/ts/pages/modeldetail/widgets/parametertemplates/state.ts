@@ -8,6 +8,8 @@ import type { NamedParameter, ParameterDefinition, ParameterTemplateContext, Par
 
 type SupportedParameterType = 'boolean' | 'integer' | 'float' | 'array' | 'object' | 'string';
 
+const resolveParameterInputId = (key: string): string => `param-input-${key}`;
+
 const resolveParameterDefinition = (definition?: ParameterDefinition | null): ParameterDefinition => definition ?? {};
 
 const resolveParameterValue = (parameter: NamedParameter, definition: ParameterDefinition): ParameterValue | null => {
@@ -68,4 +70,4 @@ const createRenderContext = (options: ParameterTemplateOptions): ParameterTempla
     };
 };
 
-export { createRenderContext, normalizeParameterType, resolveParameterDefinition, resolveParameterValue };
+export { createRenderContext, normalizeParameterType, resolveParameterDefinition, resolveParameterInputId, resolveParameterValue };

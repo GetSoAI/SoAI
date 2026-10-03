@@ -66,7 +66,7 @@ const createEditAttachmentStrip = (messageTextNode: HTMLElement, removeIcon: Tru
     return strip;
 };
 
-const renderEditTextareaMarkup = (): TrustedHtml => uiHtml`<textarea class="message-edit-input"></textarea>`;
+const renderEditTextareaMarkup = (): TrustedHtml => uiHtml`<textarea dir="auto" class="message-edit-input"></textarea>`;
 
 const resolveRemovedEditAttachmentIndexes = (container: HTMLElement): number[] => {
     const removed = new Set<number>();

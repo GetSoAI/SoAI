@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
-import type { ModelSearchResults } from '@features/models/modals/downloadmodal/modelSearchTypes.ts';
+import type { ModelSearchResults } from '@features/models/search/modelSearchTypes.ts';
 
 interface ModelSearchState {
     results: ModelSearchResults;
@@ -24,7 +24,6 @@ interface ManualDiscoveryState {
 }
 
 interface DownloadModalState {
-    activeDownloadSignatures: Set<string>;
     modelSearch: ModelSearchState;
     manualDiscovery: ManualDiscoveryState;
     isCreatingProvider: boolean;
@@ -47,7 +46,6 @@ const createInitialManualDiscoveryState = (): ManualDiscoveryState => {
 
 const createInitialDownloadModalState = (): DownloadModalState => {
     return {
-        activeDownloadSignatures: new Set<string>(),
         modelSearch: {
             results: [],
             loading: false,

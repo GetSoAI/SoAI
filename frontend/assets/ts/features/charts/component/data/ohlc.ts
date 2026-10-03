@@ -152,7 +152,7 @@ const upgradeToOhlc = (chart: OhlcHost): void => {
     const ohlc = ensureOhlcStorage(chart);
     for (let index = 0; index < chart.dataLength; index++) {
         const value = chart.values[index] ?? Number.NaN;
-        ohlc.open[index] = ohlc.high[index] = ohlc.low[index] = ohlc.close[index] = isFin(value) ? value : 0;
+        ohlc.open[index] = ohlc.high[index] = ohlc.low[index] = ohlc.close[index] = isFin(value) ? value : Number.NaN;
     }
     chart.dataStructure = 'ohlc';
     if (chart.sourceSeriesMode !== 'heikin-ashi') chart.sourceSeriesMode = 'ohlc';

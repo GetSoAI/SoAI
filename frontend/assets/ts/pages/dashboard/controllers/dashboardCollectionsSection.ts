@@ -107,6 +107,7 @@ const createCollectionSectionRenderer = (dependencies: DashboardCollectionsRende
 
             const nameNode = host.createElement('span', { className: `${cfg.itemType}-name` }, name);
             const nameElement = narrowHTMLElement(nameNode, 'collection name node');
+            nameElement.dir = 'auto';
             setTooltipText(nameElement, name);
 
             const badgeClass = `ui-status-badge ${cfg.itemType === 'model' ? 'model-plugin' : 'plugin-status'}-badge ${statusManager?.getCollectionBadgeClass(status) || 'status-grey'}`;

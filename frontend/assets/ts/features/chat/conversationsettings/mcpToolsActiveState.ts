@@ -16,8 +16,12 @@ const isToolsEffectivelyEnabled = (modelSettings: ConversationModelSettings | un
     if (!mcpSettings || mcpSettings.toolsEnabled !== true) {
         return false;
     }
-    const selectedTools = resolveActiveToolListForMode(mcpSettings, modelSettings);
-    return selectedTools.length > 0;
+    return hasSelectedToolsForActiveMode(modelSettings);
+};
+
+const hasSelectedToolsForActiveMode = (modelSettings: ConversationModelSettings | undefined): boolean => {
+    if (!modelSettings?.mcp) return false;
+    return resolveActiveToolListForMode(modelSettings.mcp, modelSettings).length > 0;
 };
 
 const isAgentModeRequiringTools = (modelSettings: ConversationModelSettings | undefined): boolean => {
@@ -34,4 +38,4 @@ const isAgentModeRequiringToolsWithToolsDisabled = (modelSettings: ConversationM
     return doesAgentModeRequireMcpTools(mode) && mcpSettings.toolsEnabled !== true;
 };
 
-export { isAgentModeRequiringTools, isAgentModeRequiringToolsWithToolsDisabled, isToolsEffectivelyEnabled };
+export { hasSelectedToolsForActiveMode, isAgentModeRequiringTools, isAgentModeRequiringToolsWithToolsDisabled, isToolsEffectivelyEnabled };

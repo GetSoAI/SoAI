@@ -107,7 +107,7 @@ async def establish_config_baseline(service: ConfigManagerLifecycleService) -> N
             update_baseline=True,
             delete_from_cache=service.delete_from_cache,
         )
-        service.logger.info("Initial configuration baseline established.")
+        service.logger.debug("Initial configuration baseline established.")
         return
     service.logger.info(
         "Initial configuration baseline was already established by another process.",

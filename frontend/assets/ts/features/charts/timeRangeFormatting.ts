@@ -1,6 +1,7 @@
 /* SoAI - Charts feature time range formatting [frontend/assets/ts/features/charts/timeRangeFormatting.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { formatShortDurationUnit } from '@core/primitives/duration.ts';
 import { readCoercedFiniteNumberOrNullValue } from '@core/types/numberCoercionReaders.ts';
 
 type TimeRangeMinuteInput = string | number | boolean | null | undefined;
@@ -12,16 +13,16 @@ const MAX_COMPACT_UNIT_VALUE = 999;
 
 const formatCompactLongRangeMinutes = (minutes: number): string => {
     if (minutes <= MAX_COMPACT_UNIT_VALUE) {
-        return `${minutes}m`;
+        return formatShortDurationUnit('minute', minutes);
     }
     if (minutes < MINUTES_PER_DAY) {
-        return `${Math.floor(minutes / MINUTES_PER_HOUR)}h`;
+        return formatShortDurationUnit('hour', Math.floor(minutes / MINUTES_PER_HOUR));
     }
     const days = Math.floor(minutes / MINUTES_PER_DAY);
     if (days <= MAX_COMPACT_UNIT_VALUE) {
-        return `${days}d`;
+        return formatShortDurationUnit('day', days);
     }
-    return `${Math.max(1, Math.round(minutes / MINUTES_PER_YEAR))}y`;
+    return formatShortDurationUnit('year', Math.max(1, Math.round(minutes / MINUTES_PER_YEAR)));
 };
 
 const formatTimeRangeMinutes = (minutes: TimeRangeMinuteInput): string => {
@@ -29,18 +30,18 @@ const formatTimeRangeMinutes = (minutes: TimeRangeMinuteInput): string => {
     const numeric = Math.max(1, Math.round(numericValue));
     if (numeric % MINUTES_PER_YEAR === 0) {
         const years = numeric / MINUTES_PER_YEAR;
-        return `${years}y`;
+        return formatShortDurationUnit('year', years);
     }
     if (numeric % MINUTES_PER_DAY === 0) {
         const days = numeric / MINUTES_PER_DAY;
         if (days <= MAX_COMPACT_UNIT_VALUE) {
-            return `${days}d`;
+            return formatShortDurationUnit('day', days);
         }
     }
     if (numeric % MINUTES_PER_HOUR === 0) {
         const hours = numeric / MINUTES_PER_HOUR;
         if (hours <= MAX_COMPACT_UNIT_VALUE) {
-            return `${hours}h`;
+            return formatShortDurationUnit('hour', hours);
         }
     }
     return formatCompactLongRangeMinutes(numeric);

@@ -1,7 +1,8 @@
 /* SoAI - Chart render model derivation ownership [frontend/assets/ts/features/charts/session/ChartRenderModelUpdater.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { updateLegendData, updateScale, updateVisibleRange, updateVisibleRangeStats } from '@features/charts/component/data/visibleRange.ts';
+import { updateLegendData, updateVisibleRange, updateVisibleRangeStats } from '@features/charts/component/data/visibleRange.ts';
+import { updateScale } from '@features/charts/component/data/verticalScale.ts';
 import type { ChartConfigurationState, ChartInteractionState, ChartViewportState } from '@features/charts/session/chartState.ts';
 import type { ChartRedrawQueue } from '@features/charts/session/ChartRedrawQueue.ts';
 import type { ChartSeriesStore } from '@features/charts/session/ChartSeriesStore.ts';
@@ -14,7 +15,9 @@ interface ChartRenderModelDependencies {
     interaction: ChartInteractionState;
     series: ChartSeriesStore;
     redraw: ChartRedrawQueue;
+    element: HTMLElement;
     calculations: VisibleRangeCalculations;
+    hover: { refreshCrosshair(): void };
 }
 
 class ChartRenderModelUpdater {
@@ -23,21 +26,26 @@ class ChartRenderModelUpdater {
     readonly #interaction: ChartInteractionState;
     readonly #series: ChartSeriesStore;
     readonly #redraw: ChartRedrawQueue;
+    readonly #element: HTMLElement;
     readonly #calculations: VisibleRangeCalculations;
+    readonly #hover: ChartRenderModelDependencies['hover'];
 
-    constructor({ configuration, viewport, interaction, series, redraw, calculations }: ChartRenderModelDependencies) {
+    constructor({ configuration, viewport, interaction, series, redraw, element, calculations, hover }: ChartRenderModelDependencies) {
         this.#configuration = configuration;
         this.#viewport = viewport;
         this.#interaction = interaction;
         this.#series = series;
         this.#redraw = redraw;
+        this.#element = element;
         this.#calculations = calculations;
+        this.#hover = hover;
     }
 
     update(): void {
         updateVisibleRange(this, this.#calculations);
         updateVisibleRangeStats(this, this.#calculations);
         updateScale(this, this.#calculations);
+        this.#hover.refreshCrosshair();
         updateLegendData(this, this.#calculations);
     }
 
@@ -86,14 +94,14 @@ class ChartRenderModelUpdater {
     set axisCache(value) {
         this.#redraw.axis = value;
     }
-    get baseBarPixelWidth() {
-        return this.#viewport.baseBarPixelWidth;
+    get scaleGlide() {
+        return this.#viewport.scaleGlide;
     }
-    get zoom() {
-        return this.#viewport.zoom;
+    get yAxisMinRange() {
+        return this.#viewport.yAxisMinRange;
     }
-    get pan() {
-        return this.#viewport.pan;
+    get element() {
+        return this.#element;
     }
     get lastEmittedTimeRange() {
         return this.#viewport.lastEmittedTimeRange;

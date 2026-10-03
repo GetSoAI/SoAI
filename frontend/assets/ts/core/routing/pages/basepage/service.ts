@@ -11,7 +11,6 @@ import { isTrustedHtml, type TrustedHtml } from '@core/security/public.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageHost } from '@core/routing/pages/basepagecore/PageHost.ts';
-import type { PageServices } from '@core/routing/pages/basepagecore/PageServices.ts';
 import type { PageLayout } from '@core/routing/pages/basepagelayout/PageLayout.ts';
 import type { PageRuntime } from '@core/runtime/PageRuntime.ts';
 import type { PageRuntimePhases } from '@core/runtime/pageRuntimeContracts.ts';
@@ -22,7 +21,6 @@ interface BasePageInitializeHost {
     phases: PageRuntimePhases;
     pageHost: PageHost;
     pageDom: PageDom;
-    services: PageServices;
     layout: PageLayout;
     isDestroyed: boolean;
     isInitialized: boolean;
@@ -73,7 +71,6 @@ const initializeBasePageLifecycle = async (host: BasePageInitializeHost, paramet
             host.pageDom.updateHtml(container, markup, { escape: false });
         });
         host.pageDom.flush();
-        host.services.clearDomCache();
         host.layout.applyHeaderStats(container);
         host.pageDom.flush();
         const frame = getRequestAnimationFrame();
@@ -96,8 +93,7 @@ const initializeBasePageLifecycle = async (host: BasePageInitializeHost, paramet
     }
 };
 
-const runBasePageStandardSetup = (services: PageServices, layout: PageLayout): void => {
-    services.clearDomCache();
+const runBasePageStandardSetup = (layout: PageLayout): void => {
     layout.setupResponsive();
     layout.setupHeaderStats();
     layout.attachHeaderAnimator();

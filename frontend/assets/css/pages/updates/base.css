@@ -25,6 +25,19 @@
         padding: var(--space-6);
     }
 
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-page-progress {
+        width: 100%;
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .updates-page-progress .ui-operation-progress {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+    }
+
     :where([data-section='updates'], [data-page-scope='updates']) :is(.updates-status, .os-updates-panel) {
         display: flex;
         flex-direction: column;
@@ -91,10 +104,9 @@
     }
 
     :where([data-section='updates'], [data-page-scope='updates']) .updates-status .status-spinner.loading-spinner {
+        --soai-spinner-stroke: var(--border-width-150);
         width: 18px;
         height: 18px;
-        border-width: var(--border-width-150);
-        border-top-width: var(--border-width-150);
     }
 
     :where([data-section='updates'], [data-page-scope='updates']) .updates-status .status-failure-icon-symbol {
@@ -169,7 +181,7 @@
 
     :where([data-section='updates'], [data-page-scope='updates']) .version-label {
         font-size: var(--font-size-xs);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-04em);
         color: var(--text-tertiary);
     }
@@ -202,7 +214,7 @@
 
     :where([data-section='updates'], [data-page-scope='updates']) .metadata-label {
         font-size: var(--font-size-xs);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-04em);
         color: var(--text-tertiary);
     }
@@ -253,5 +265,22 @@
 
     :where([data-section='updates'], [data-page-scope='updates']) .release-notes-body br + br {
         margin-bottom: var(--space-3);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .release-notes-entry + .release-notes-entry {
+        border-top: var(--border-width-1) solid var(--glass-border-strong);
+        margin-top: var(--space-6);
+        padding-top: var(--space-6);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .release-notes-entry h4 {
+        color: var(--text-primary);
+        font-size: var(--font-size-base);
+        margin: 0 0 var(--space-3);
+    }
+
+    :where([data-section='updates'], [data-page-scope='updates']) .release-notes-partial {
+        color: var(--status-orange);
+        margin: var(--space-5) 0 0;
     }
 }

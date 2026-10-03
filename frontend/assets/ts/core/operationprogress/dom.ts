@@ -44,7 +44,7 @@ const createProgressElement = (key: string, message: string, options: { showCanc
               </div>
           </div>
           <div class="ui-operation-progress__info">
-              <div class="ui-operation-progress__details"></div>
+              <div dir="auto" class="ui-operation-progress__details"></div>
               <div class="ui-operation-progress__percentage">0%</div>
           </div>`,
         { escape: false }
@@ -53,7 +53,7 @@ const createProgressElement = (key: string, message: string, options: { showCanc
     return progressElement;
 };
 
-const updateProgressElement = (element: HTMLElement, progress: number | undefined, message: string | undefined, badge: string | undefined, details: string | undefined, state: 'success' | 'error' | 'downloading' | 'pending' | 'info' | undefined, cancelable: boolean | undefined): void => {
+const updateProgressElement = (element: HTMLElement, progress: number | undefined, message: string | undefined, badge: string | undefined, details: string | undefined, state: 'success' | 'error' | 'downloading' | 'pending' | 'info' | undefined, cancelable: boolean | undefined, indeterminate: boolean | undefined): void => {
     const messageElement = dom.resolve('.ui-operation-progress__message', element);
     const badgeElement = dom.resolve('.ui-operation-progress__badge', element);
     const fillElement = dom.resolve('.ui-operation-progress__fill', element);
@@ -91,6 +91,12 @@ const updateProgressElement = (element: HTMLElement, progress: number | undefine
         }
         const extraClassName = dom.getData(element, 'extraClassName');
         dom.addClass(element, extraClassName ? ['ui-operation-progress', extraClassName, `ui-operation-progress--${state}`] : ['ui-operation-progress', `ui-operation-progress--${state}`]);
+    }
+
+    if (indeterminate !== undefined) {
+        dom.toggleClass(element, 'ui-operation-progress--indeterminate', indeterminate);
+        if (indeterminate && fillElement instanceof HTMLElement) fillElement.style.removeProperty('width');
+        if (percentageElement instanceof HTMLElement) percentageElement.hidden = indeterminate;
     }
 
     if (cancelButton instanceof HTMLButtonElement && cancelable !== undefined) {

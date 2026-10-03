@@ -28,6 +28,10 @@ import type { ChatConfigurationAssistantAvatarTooLargeTranslationKey } from '@co
 import type { ChatConfigurationAssistantAvatarUploadTranslationKey } from '@core/i18n/translationkeys/chat/configuration__assistantAvatarUpload.generated.ts';
 import type { ChatConfigurationAssistantAvatarUploadLabelTranslationKey } from '@core/i18n/translationkeys/chat/configuration__assistantAvatarUploadLabel.generated.ts';
 import type { ChatConfigurationAssistantNamePlaceholderTranslationKey } from '@core/i18n/translationkeys/chat/configuration__assistantNamePlaceholder.generated.ts';
+import type { ChatConfigurationAutoHideChatComposerTranslationKey } from '@core/i18n/translationkeys/chat/configuration__autoHideChatComposer.generated.ts';
+import type { ChatConfigurationAutoHideChatComposerHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__autoHideChatComposerHint.generated.ts';
+import type { ChatConfigurationAutoHideChatHeaderTranslationKey } from '@core/i18n/translationkeys/chat/configuration__autoHideChatHeader.generated.ts';
+import type { ChatConfigurationAutoHideChatHeaderHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__autoHideChatHeaderHint.generated.ts';
 import type { ChatConfigurationAutoTitleGenerationTranslationKey } from '@core/i18n/translationkeys/chat/configuration__autoTitleGeneration.generated.ts';
 import type { ChatConfigurationAutoTitleGenerationHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__autoTitleGenerationHint.generated.ts';
 import type { ChatConfigurationCloseTranslationKey } from '@core/i18n/translationkeys/chat/configuration__close.generated.ts';
@@ -57,10 +61,6 @@ import type { ChatConfigurationMcpTranslationKey } from '@core/i18n/translationk
 import type { ChatConfigurationMemoryTranslationKey } from '@core/i18n/translationkeys/chat/configuration__memory.generated.ts';
 import type { ChatConfigurationMicrophoneSoundEffectsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__microphoneSoundEffects.generated.ts';
 import type { ChatConfigurationMicrophoneSoundEffectsHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__microphoneSoundEffectsHint.generated.ts';
-import type { ChatConfigurationModelSettingsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__model_settings.generated.ts';
-import type { ChatConfigurationNewConversationInheritLastSettingsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__itemNewConversationInheritLastSettings.generated.ts';
-import type { ChatConfigurationNewConversationInheritLastSettingsHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__itemNewConversationInheritLastSettingsHint.generated.ts';
-import type { ChatConfigurationNotificationsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__notifications.generated.ts';
 
 export type ChatSection01TranslationKey =
     | ChatActivityWidgetsTranslationKey
@@ -90,6 +90,10 @@ export type ChatSection01TranslationKey =
     | ChatConfigurationAssistantAvatarUploadTranslationKey
     | ChatConfigurationAssistantAvatarUploadLabelTranslationKey
     | ChatConfigurationAssistantNamePlaceholderTranslationKey
+    | ChatConfigurationAutoHideChatComposerTranslationKey
+    | ChatConfigurationAutoHideChatComposerHintTranslationKey
+    | ChatConfigurationAutoHideChatHeaderTranslationKey
+    | ChatConfigurationAutoHideChatHeaderHintTranslationKey
     | ChatConfigurationAutoTitleGenerationTranslationKey
     | ChatConfigurationAutoTitleGenerationHintTranslationKey
     | ChatConfigurationCloseTranslationKey
@@ -118,8 +122,4 @@ export type ChatSection01TranslationKey =
     | ChatConfigurationMcpTranslationKey
     | ChatConfigurationMemoryTranslationKey
     | ChatConfigurationMicrophoneSoundEffectsTranslationKey
-    | ChatConfigurationMicrophoneSoundEffectsHintTranslationKey
-    | ChatConfigurationModelSettingsTranslationKey
-    | ChatConfigurationNewConversationInheritLastSettingsTranslationKey
-    | ChatConfigurationNewConversationInheritLastSettingsHintTranslationKey
-    | ChatConfigurationNotificationsTranslationKey;
+    | ChatConfigurationMicrophoneSoundEffectsHintTranslationKey;

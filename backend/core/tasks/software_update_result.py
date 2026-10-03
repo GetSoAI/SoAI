@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -23,7 +22,10 @@ from core.tasks.creation import create
 from core.tasks.enums import TaskStatus
 from core.tasks.finalization import finalize
 from core.tasks.identifiers import validate_optional_task_id
+from core.tasks.software_update_notice import publish_software_update_notice
+from core.tasks.software_update_versions import require_software_update_version
 from core.tasks.type_catalog import TASK_TYPE_SOFTWARE_UPDATE
+from core.timing.epoch import epoch_ms
 from core.validation.strings import coerce_required_non_empty_str
 
 if TYPE_CHECKING:
@@ -44,7 +46,6 @@ __all__ = (
 SCHEMA_VERSION = 1
 RESULT_FILENAME = "software-update-result-v1.json"
 MAX_RESULT_BYTES = 8192
-VERSION_PATTERN = r"[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?\Z"
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,13 +63,6 @@ def create_software_update_task_id() -> str:
 
 def software_update_result_path(base_path: str) -> str:
     return join_data_abs(base_path, "state", RESULT_FILENAME)
-
-
-def _require_version(value: JSONValue, *, field: str) -> str:
-    version = coerce_required_non_empty_str(value, label=field)
-    if re.fullmatch(VERSION_PATTERN, version) is None:
-        raise ValidationError(f"{field} is invalid.")
-    return version
 
 
 def _validated_record(
@@ -99,11 +93,11 @@ def _validated_record(
         raise ValidationError("Software update result message is too long.")
     return SoftwareUpdateResultRecord(
         task_id=normalized_task_id,
-        from_version=_require_version(
+        from_version=require_software_update_version(
             from_version,
             field="software update result from_version",
         ),
-        to_version=_require_version(
+        to_version=require_software_update_version(
             to_version,
             field="software update result to_version",
         ),
@@ -291,5 +285,14 @@ async def reconcile_software_update_result(
         )
     if terminal_task is None or terminal_task.status != expected_status:
         raise StateError("Software update task terminal state conflicts with its durable result.")
+    if expected_status != TaskStatus.CANCELLED:
+        publish_software_update_notice(
+            base_path,
+            task_id=task_id,
+            status="completed" if expected_status == TaskStatus.COMPLETED else "failed",
+            from_version=record.from_version,
+            to_version=record.to_version,
+            finished_at_ms=epoch_ms(),
+        )
     clear_software_update_result(base_path)
     return True

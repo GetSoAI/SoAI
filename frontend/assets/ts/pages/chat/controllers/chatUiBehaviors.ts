@@ -11,10 +11,11 @@ import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import { applyMcpToolsToggleButtonState, CHAT_SELECTORS, isAgentModeRequiringTools, type Conversation } from '@features/chat/public.ts';
 import { resolveConversationAuthorityLock } from '@core/chat/conversationAuthorityLock.ts';
-import { CHAT_COMPOSER_ACTIONS_COLLAPSE_BREAKPOINT_PX, CHAT_DESKTOP_BREAKPOINT_PX, CHAT_SIDEBAR_TOGGLE_REPOSITION_BREAKPOINT_PX } from '@pages/chat/contracts/constants.ts';
+import { CHAT_COMPOSER_ACTIONS_COLLAPSE_BREAKPOINT_PX, CHAT_DESKTOP_BREAKPOINT_PX } from '@pages/chat/contracts/constants.ts';
 import { setupAutoSave, type ChatAutoSavePersistencePort, type TimerHost } from '@pages/chat/controllers/chatAutoSaveController.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { SidebarListReadiness } from '@pages/chat/controllers/chatpage/conversations/contracts.ts';
+import { CHAT_SIDEBAR_PEEK_CLASS, ChatSidebarPeekController, setSidebarRevealed, syncSidebarHeaderToggle } from '@pages/chat/controllers/chatSidebarPeekController.ts';
 
 const CHAT_INPUT_ACTIONS_COLLAPSED_CLASS = 'is-collapsed-into-header';
 const CHAT_HEADER_OVERFLOW_COMPOSER_ACTIONS_CLASS = 'has-composer-actions';
@@ -56,9 +57,10 @@ interface UiBehaviorHost {
     persistence: UiBehaviorPersistencePort;
     conversations: UiBehaviorConversationPort;
     layout: UiBehaviorLayoutPort;
+    sidebarPeek: ChatSidebarPeekController;
 }
 
-type UiBehaviorSource = Omit<UiBehaviorHost, 'layout'>;
+type UiBehaviorSource = Omit<UiBehaviorHost, 'layout' | 'sidebarPeek'>;
 interface HeaderActionHost {
     presentation: Pick<UiBehaviorPresentationPort, 'pageDom' | 'getCachedIcon'>;
     conversations: Pick<UiBehaviorConversationPort, 'getCurrentConversationId' | 'getConversationById' | 'isConversationExecuting'>;
@@ -67,7 +69,15 @@ interface HeaderActionHost {
 const createChatUiBehaviorsHost = (source: UiBehaviorSource): UiBehaviorHost => {
     const host: UiBehaviorHost = {
         ...source,
-        layout: { applySidebarState: () => applySidebarState(host) }
+        layout: { applySidebarState: () => applySidebarState(host) },
+        sidebarPeek: new ChatSidebarPeekController({
+            pageDom: source.presentation.pageDom,
+            timers: source.persistence.timers,
+            getDocument: () => source.persistence.dom.getDocument(),
+            isSidebarOpen: () => source.conversations.getSidebarOpen(),
+            isMobileSidebarViewport: () => source.presentation.isMobileSidebarViewport(),
+            syncSidebarListVisibility: (visible) => source.conversations.syncSidebarListVisibility(visible)
+        })
     };
     return host;
 };
@@ -84,68 +94,36 @@ const formatChatDate = (timestamp: number): string => {
 };
 
 const commitSidebarState = (host: UiBehaviorHost, sidebar: Element, open: boolean): void => {
-    host.presentation.pageDom.toggleClass(sidebar, 'is-open', open);
-    host.presentation.pageDom.toggleClass(sidebar, 'is-preparing', false);
-    const mobileSidebarViewport = host.presentation.isMobileSidebarViewport();
-    host.presentation.pageDom.toggleClass(sidebar, 'mobile-open', open && mobileSidebarViewport);
-    const toggleBtn = host.presentation.pageDom.optional(CHAT_SELECTORS.SIDEBAR_TOGGLE);
-    if (toggleBtn) {
-        host.presentation.pageDom.updateHtml(toggleBtn, host.presentation.getCachedIcon(open ? 'panel-left-visible' : 'panel-hidden', { size: 16, strokeWidth: 1.5 }));
-        repositionSidebarToggleButton(host, toggleBtn);
-    }
+    const { pageDom } = host.presentation;
+    const mobile = host.presentation.isMobileSidebarViewport();
+    const keepsPeek = !open && !mobile && sidebar.classList.contains(CHAT_SIDEBAR_PEEK_CLASS);
+    if (!keepsPeek) pageDom.toggleClass(sidebar, CHAT_SIDEBAR_PEEK_CLASS, false);
+    setSidebarRevealed(sidebar, open || keepsPeek);
+    pageDom.toggleClass(sidebar, 'is-open', open);
+    if (open) syncSidebarHeaderToggle(pageDom, sidebar, mobile);
+    const icon = host.presentation.getCachedIcon(open ? 'panel-left-visible' : 'panel-hidden', { size: 16, strokeWidth: 1.5 });
+    for (const toggleBtn of pageDom.query(CHAT_SELECTORS.SIDEBAR_TOGGLE)) pageDom.updateHtml(toggleBtn, icon);
     host.presentation.updatePageActionsMenuState();
     syncChatHeaderActionLayout(host);
 };
 
 const applySidebarState = async (host: UiBehaviorHost): Promise<void> => {
-    const sidebar = host.presentation.pageDom.optional(CHAT_SELECTORS.SIDEBAR);
+    const { pageDom } = host.presentation;
+    const sidebar = pageDom.optional(CHAT_SELECTORS.SIDEBAR);
     if (!sidebar) return;
     const open = host.conversations.getSidebarOpen();
-    if (!open) {
-        commitSidebarState(host, sidebar, false);
-        try {
-            await host.conversations.syncSidebarListVisibility(false);
-        } catch (error) {
-            errorHandler.warn('ChatPage', 'Failed to suspend the hidden conversation list', ensureError(error));
-        }
-        return;
-    }
-    if (sidebar.classList.contains('is-open') && !sidebar.classList.contains('is-preparing')) {
-        commitSidebarState(host, sidebar, true);
-        try {
-            await host.conversations.syncSidebarListVisibility(true);
-        } catch (error) {
-            errorHandler.warn('ChatPage', 'Failed to refresh the visible conversation list', ensureError(error));
-        }
-        return;
-    }
-    if (!sidebar.classList.contains('is-open')) {
-        host.presentation.pageDom.toggleClass(sidebar, 'is-preparing', true);
+    const opening = open && !sidebar.classList.contains('is-open');
+    if (opening) {
+        syncSidebarHeaderToggle(pageDom, sidebar, host.presentation.isMobileSidebarViewport());
+    } else {
+        commitSidebarState(host, sidebar, open);
+        if (sidebar.classList.contains(CHAT_SIDEBAR_PEEK_CLASS)) return;
     }
     try {
-        const readiness = await host.conversations.syncSidebarListVisibility(true);
-        if (!readiness.isCurrent() || !host.conversations.getSidebarOpen() || host.presentation.pageDom.optional(CHAT_SELECTORS.SIDEBAR) !== sidebar) return;
-        commitSidebarState(host, sidebar, true);
+        const readiness = await host.conversations.syncSidebarListVisibility(open);
+        if (opening && readiness.isCurrent() && host.conversations.getSidebarOpen() && pageDom.optional(CHAT_SELECTORS.SIDEBAR) === sidebar) commitSidebarState(host, sidebar, true);
     } catch (error) {
-        host.presentation.pageDom.toggleClass(sidebar, 'is-preparing', false);
-        host.presentation.pageDom.toggleClass(sidebar, 'is-open', false);
-        errorHandler.warn('ChatPage', 'Failed to prepare the conversation list before opening the sidebar', ensureError(error));
-    }
-};
-
-const repositionSidebarToggleButton = (host: UiBehaviorHost, toggleBtn: Element): void => {
-    const isNarrowViewport = host.presentation.getViewportWidth() <= CHAT_SIDEBAR_TOGGLE_REPOSITION_BREAKPOINT_PX;
-    const sidebarHeader = host.presentation.pageDom.optional('.chat-sidebar-header');
-    const headerLeft = host.presentation.pageDom.optional('.chat-header-left');
-    if (!sidebarHeader || !headerLeft) {
-        return;
-    }
-    if (isNarrowViewport && host.conversations.getSidebarOpen()) {
-        if (toggleBtn.parentElement !== sidebarHeader) {
-            sidebarHeader.insertBefore(toggleBtn, sidebarHeader.firstChild);
-        }
-    } else if (toggleBtn.parentElement !== headerLeft) {
-        headerLeft.insertBefore(toggleBtn, headerLeft.firstChild);
+        errorHandler.warn('ChatPage', 'Failed to sync the conversation list with the sidebar state', ensureError(error));
     }
 };
 

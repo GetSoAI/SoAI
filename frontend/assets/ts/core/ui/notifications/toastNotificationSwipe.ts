@@ -1,6 +1,7 @@
 /* SoAI - Shared UI toast notification swipe [frontend/assets/ts/core/ui/notifications/toastNotificationSwipe.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { inlineDelta } from '@core/layout/direction.ts';
 import { dom } from '@core/dom/dom.ts';
 import { NOTIFICATION_DISMISS_FADE_MS } from '@core/ui/notifications/constants.ts';
 import { isNotificationPointerEventForGesture, isSupportedNotificationPointerStart } from '@core/ui/notifications/toastNotificationPointerEvents.ts';
@@ -20,7 +21,7 @@ const resolveSwipeOpacity = (notification: HTMLElement, deltaX: number): string 
 };
 
 const setSwipeOffset = (notification: HTMLElement, deltaX: number): void => {
-    notification.style.setProperty('--ui-notification-swipe-x', `${deltaX}px`);
+    notification.style.setProperty('--ui-notification-swipe-x', `${inlineDelta(deltaX, notification)}px`);
     notification.style.setProperty('--ui-notification-swipe-opacity', resolveSwipeOpacity(notification, deltaX));
 };
 
@@ -73,7 +74,7 @@ const bindToastNotificationSwipeDismissal = (options: ToastNotificationSwipeOpti
     const updateGesture = (state: ToastNotificationGestureState, clientX: number, clientY: number): boolean => {
         state.currentX = clientX;
         state.currentY = clientY;
-        const deltaX = Math.max(0, state.currentX - state.startX);
+        const deltaX = Math.max(0, inlineDelta(state.currentX - state.startX, notification));
         const deltaY = Math.abs(state.currentY - state.startY);
         if (!shouldTrackMovement(state, deltaX, deltaY)) {
             return false;
@@ -85,7 +86,7 @@ const bindToastNotificationSwipeDismissal = (options: ToastNotificationSwipeOpti
     };
 
     const completeGesture = (state: ToastNotificationGestureState): void => {
-        const deltaX = Math.max(0, state.currentX - state.startX);
+        const deltaX = Math.max(0, inlineDelta(state.currentX - state.startX, notification));
         const deltaY = Math.abs(state.currentY - state.startY);
         const shouldDismiss = state.dragging && deltaX >= resolveSwipeThreshold(notification) && deltaX >= deltaY;
         gestureState = null;

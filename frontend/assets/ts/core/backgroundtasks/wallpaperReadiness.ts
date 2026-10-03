@@ -23,14 +23,16 @@ const EARLY_WALLPAPER_ATTRIBUTE = 'data-soai-early-wallpaper';
 const EARLY_WALLPAPER_PENDING_ATTRIBUTE = 'data-soai-early-wallpaper-pending';
 const EARLY_WALLPAPER_READY_ATTRIBUTE = 'data-soai-early-wallpaper-ready';
 const WALLPAPER_READINESS_MODULE_ID = 'WallpaperReadiness';
-const WALLPAPER_READINESS_TIMEOUT_MS = 5000;
+const WALLPAPER_READINESS_TIMEOUT_MS = 120_000;
 
 let activeWallpaperUrl: string | null = null;
 let activeWallpaperPromise: Promise<void> | null = null;
 
+const resolveWallpaperUrl = (url: string): URL => new URL(url.trim(), window.location.href);
+
 const normalizeCachedWallpaperUrl = (url: string): string | null => {
     try {
-        const parsed = new URL(url.trim(), window.location.href);
+        const parsed = resolveWallpaperUrl(url);
         if ((parsed.protocol !== 'http:' && parsed.protocol !== 'https:') || parsed.origin !== window.location.origin) {
             return null;
         }
@@ -106,10 +108,10 @@ const clearRootEarlyWallpaperState = (): void => {
 };
 
 const setActiveWallpaperReadiness = (url: string): Promise<void> => {
-    const normalizedUrl = url.trim();
-    if (!normalizedUrl) {
+    if (!url.trim()) {
         throw new Error('Wallpaper readiness requires a non-empty URL');
     }
+    const normalizedUrl = resolveWallpaperUrl(url).href;
     if (activeWallpaperUrl === normalizedUrl && activeWallpaperPromise) {
         return activeWallpaperPromise;
     }
@@ -207,4 +209,4 @@ const startCachedWallpaperReadiness = (): void => {
         });
 };
 
-export { clearActiveWallpaperReadiness, clearWallpaperCache, restartVisibleWallpaperFadeIn, setActiveWallpaperReadiness, startCachedWallpaperReadiness, waitForActiveWallpaperReadiness, writeWallpaperCache };
+export { clearActiveWallpaperReadiness, clearWallpaperCache, restartVisibleWallpaperFadeIn, setActiveWallpaperReadiness, startCachedWallpaperReadiness, waitForActiveWallpaperReadiness, WALLPAPER_READINESS_TIMEOUT_MS, writeWallpaperCache };

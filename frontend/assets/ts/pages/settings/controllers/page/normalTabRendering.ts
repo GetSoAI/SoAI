@@ -32,6 +32,11 @@ const renderNormalTabContent = (state: SettingsPageState, definition: NormalTabD
             if (!manager) throw new Error('LicensingManager not initialized');
             return manager.render().html;
         }
+        case 'connect': {
+            const manager = state.connectManager;
+            if (!manager) throw new Error('ConnectManager not initialized');
+            return manager.render().html;
+        }
         case 'acl': {
             const manager = state.aclManager;
             if (!manager) throw new Error('AclManager not initialized');

@@ -11,6 +11,7 @@ import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.
 interface TabsComponentContract {
     activeTab: string | null;
     initialize: () => Promise<boolean>;
+    setActiveTab(tabId: string): void;
     dispose?: () => void;
 }
 

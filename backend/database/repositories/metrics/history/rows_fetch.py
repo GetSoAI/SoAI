@@ -8,9 +8,6 @@ from typing import TYPE_CHECKING
 import aiosqlite
 
 from database.core.query_execution import query_to_dicts
-from database.repositories.metrics.history.metric_key_validation import (
-    require_metric_key_exists,
-)
 
 if TYPE_CHECKING:
     from database.core.sqlite_values import SQLiteRowDict
@@ -27,13 +24,9 @@ async def fetch_history_rows(
     sql: str,
     *,
     params: tuple[int | float | str | bytes | None, ...],
-    metric_key: str,
 ) -> list[SQLiteRowDict] | None:
     rows = await query_to_dicts(database, sql, params)
-    if rows:
-        return rows
-    await require_metric_key_exists(database, metric_key)
-    return None
+    return rows or None
 
 
 async def fetch_metric_history_rows(
@@ -58,7 +51,6 @@ async def fetch_metric_history_rows(
             end_ts_ms,
             limit,
         ),
-        metric_key=metric_key,
     )
 
 

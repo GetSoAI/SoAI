@@ -10,7 +10,7 @@ import { readRequiredNonNegativeIntegerValue } from '@core/types/payloadNumberRe
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
 import { readNullableTrimmedStringValue, readRequiredBooleanValue } from '@core/types/payloadValueReaders.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
-import type { HardwareCapabilitiesResponse, HardwareCpuSnapshot, HardwareHistoryConfiguration, HardwareMemorySnapshot, HardwareNetworkAddress, HardwareNetworkInterface, HardwareNetworkSpeed, HardwareSnapshotResponse, HardwareSummary, HardwareUptimeSnapshot, HardwareVolumeSnapshot } from '@core/api/contracts/hardwareContractTypes.ts';
+import type { HardwareCapabilitiesResponse, HardwareCpuSnapshot, HardwareHistoryConfiguration, HardwareMemorySnapshot, HardwareNetworkAddress, HardwareNetworkInterface, HardwareNetworkSpeed, HardwareSnapshotResponse, HardwareSummary, HardwareUptimeSnapshot, HardwareVolumeSnapshot, WindowsNetworkInventoryStatus } from '@core/api/contracts/hardwareContractTypes.ts';
 
 const decodeHardwareHistoryConfiguration = (value: JsonValue | undefined): HardwareHistoryConfiguration | undefined => {
     if (value === undefined || value === null) return undefined;
@@ -184,6 +184,13 @@ const decodeNetworkInterface = (record: JsonObject): HardwareNetworkInterface =>
     return decoded;
 };
 
+const decodeWindowsNetworkInventoryStatus = (record: JsonObject): WindowsNetworkInventoryStatus | undefined => {
+    if (record['windows_inventory_status'] === undefined) return undefined;
+    const status = readOptionalHardwareString(record, 'windows_inventory_status', 'Hardware snapshot.network');
+    if (status === 'available' || status === 'unavailable') return status;
+    throw new TypeError('Hardware snapshot.network.windows_inventory_status must be "available" or "unavailable"');
+};
+
 const decodeNetworkSpeed = (record: JsonObject): HardwareNetworkSpeed => {
     const decoded: HardwareNetworkSpeed = {};
     const uploadMbps = readOptionalHardwareNumber(record, 'upload_mbps', 'Hardware network speed');
@@ -242,6 +249,8 @@ const decodeHardwareSnapshot = (value: ApiResponsePayload): HardwareSnapshotResp
         snapshot.network = { interfaces: decodeObjectArray(networkRecord['interfaces'], 'Hardware snapshot.network.interfaces').map(decodeNetworkInterface) };
         const byDeviceId = networkRecord['by_device_id'];
         if (byDeviceId !== undefined && byDeviceId !== null) snapshot.network.byDeviceId = Object.fromEntries(Object.entries(requireRecord(byDeviceId, 'Hardware snapshot.network.by_device_id')).map(([deviceId, entry]) => [deviceId, decodeNetworkInterface(requireRecord(entry, `Hardware snapshot.network.by_device_id.${deviceId}`))]));
+        const windowsInventoryStatus = decodeWindowsNetworkInventoryStatus(networkRecord);
+        if (windowsInventoryStatus !== undefined) snapshot.network.windowsInventoryStatus = windowsInventoryStatus;
     }
     const networkSpeed = record['network_speed'];
     if (networkSpeed !== undefined && networkSpeed !== null) snapshot.networkSpeed = Object.fromEntries(Object.entries(requireRecord(networkSpeed, 'Hardware snapshot.network_speed')).map(([deviceId, entry]) => [deviceId, decodeNetworkSpeed(requireRecord(entry, `Hardware snapshot.network_speed.${deviceId}`))]));

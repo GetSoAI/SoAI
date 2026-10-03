@@ -3,18 +3,15 @@
 
 import type { DomPropertyValue } from '@core/dom/propertyValues.ts';
 import { getWindow } from '@core/environment/public.ts';
-import { ensureError } from '@core/errors/coerce.ts';
-import { toJsonCompatibleValue } from '@core/primitives/clone.ts';
-import type { StreamHandlerCallbacks } from '@core/routing/pages/pagetypes/public.ts';
 import { resolveHttpsWebsiteUrl, securityApi } from '@core/security/public.ts';
 import type { EscapeSanitizerApi } from '@core/security/protocols.ts';
-import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
+import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { BackendVariantsResponse, PluginBackendUpdatesResponse, PluginBackendUpdateStatus } from '@core/api/contracts/pluginManagementContracts.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 import { getCapabilityDescriptors } from '@features/catalog/public.ts';
-import { createPluginsManagerHostCallbacks, createPluginsModalManagers, type BackendTaskActionOptions, type BackendTaskCommandOptions, type ConfigurationManager, type PluginsManagerHostCallbacks, type ProgressReporter } from '@features/plugins/public.ts';
+import { createBackendStreamPorts, createPluginsManagerHostCallbacks, createPluginsModalManagers, type ConfigurationManager, type PluginsManagerHostCallbacks, type ProgressReporter } from '@features/plugins/public.ts';
 import type { PluginsPageControllerSet, PluginsPageModalManagers } from '@pages/plugins/controllers/contracts.ts';
 import { isConfigurationManager, type CreatePluginsPageRuntimeDependencies, type PluginsControllerResolvers } from '@pages/plugins/controllers/page/contracts.ts';
 import type { PluginsProgressController } from '@pages/plugins/controllers/progressController.ts';
@@ -48,36 +45,6 @@ const normalizeJsonRecord = (options: Record<string, JsonValue | null | undefine
         normalized[key] = value === undefined ? null : value;
     }
     return normalized;
-};
-
-const normalizeOperationMeta = (operation: BackendTaskActionOptions['operation'] | BackendTaskCommandOptions['operation'] | null | undefined): JsonObject | null => {
-    if (operation === null || operation === undefined) return null;
-    const value = toJsonCompatibleValue(operation);
-    if (!isJsonObject(value)) {
-        throw new Error('Plugin task operation metadata must be a JSON object');
-    }
-    return value;
-};
-
-const normalizeBackendTaskActionOptions = (options: BackendTaskActionOptions): { method?: string; body?: JsonValue | null | undefined; handlers?: BackendTaskActionOptions['handlers']; operation?: JsonObject | null } => ({
-    ...(options.method === undefined ? {} : { method: options.method }),
-    ...(options.body === undefined ? {} : { body: options.body }),
-    handlers: options.handlers,
-    operation: normalizeOperationMeta(options.operation)
-});
-
-const normalizeBackendTaskCommandOptions = (options: BackendTaskCommandOptions): { handlers?: BackendTaskCommandOptions['handlers']; operation?: JsonObject | null } => ({
-    handlers: options.handlers,
-    operation: normalizeOperationMeta(options.operation)
-});
-
-const normalizeModalStreamCallbacks = (callbacks: { onProgress?: (data: JsonValue | undefined) => void; onComplete?: (data: JsonValue | undefined) => void; onError?: (error: Error) => void } | undefined): StreamHandlerCallbacks | undefined => {
-    if (!callbacks) return undefined;
-    return {
-        ...(callbacks.onProgress ? { onProgress: (data: JsonValue | null): void => callbacks.onProgress?.(data ?? undefined) } : {}),
-        ...(callbacks.onComplete ? { onComplete: (data: JsonValue | null): void => callbacks.onComplete?.(data ?? undefined) } : {}),
-        ...(callbacks.onError ? { onError: (error: Error | JsonValue | null): void => callbacks.onError?.(ensureError(error)) } : {})
-    };
 };
 
 const createPluginsPageModalRuntime = (dependencies: CreatePluginsPageModalRuntimeDependencies): PluginsPageModalRuntime => {
@@ -168,20 +135,7 @@ const createPluginsPageModalRuntime = (dependencies: CreatePluginsPageModalRunti
                 }
                 return lifecycleController.loadCoreConfig(options);
             },
-            createStreamHandlers: (_key, _message, callbacks) => infrastructure.streaming.handlers(normalizeModalStreamCallbacks(callbacks)),
-            trackAcceptedTask: (taskId, options) =>
-                infrastructure.streaming.runtime().tasks.trackAcceptedTask(taskId, {
-                    handlers: options.handlers,
-                    operation: normalizeOperationMeta(options.operation),
-                    ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs })
-                }),
-            startTaskAction: (endpoint, options, runtimeOptions) => infrastructure.streaming.taskAction(endpoint, normalizeBackendTaskActionOptions(options), runtimeOptions),
-            startTaskCommand: (command, options, runtimeOptions) => {
-                if (!isJsonObject(command)) {
-                    throw new Error('Plugin task command must be JSON');
-                }
-                return infrastructure.streaming.taskCommand(command, normalizeBackendTaskCommandOptions(options), runtimeOptions);
-            },
+            ...createBackendStreamPorts(infrastructure.streaming),
             beginOptimisticOperation: (operation): void => session.catalogStore.beginOptimisticOperation(operation),
             cancelDownload: (key: string): void => collection.cancelDownload(key),
             createOperationProgressReporter: (containerId: string, options: { onCancel(key: string): void; backgroundButtonId?: string }): ProgressReporter | null => infrastructure.streaming.progressReporter(containerId, options),

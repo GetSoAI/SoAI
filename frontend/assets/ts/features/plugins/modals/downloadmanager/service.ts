@@ -3,7 +3,7 @@
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
-import { requireButtonElement, requireInputElement } from '@core/dom/typedElements.ts';
+import { requireInputElement } from '@core/dom/typedElements.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -13,8 +13,9 @@ import { toTrimmedString } from '@core/normalize.ts';
 import { copyTextWithHostClipboardFeedback } from '@core/ui/notifications/clipboardCopy.ts';
 import { DOWNLOAD_PLUGIN_MODAL_ID } from '@features/plugins/modals/downloadPluginModal.ts';
 import type { DownloadManagerHost, DownloadManagerOptions, ManualPluginState, ProgressReporter } from '@features/plugins/modals/downloadmanager/contracts.ts';
-import { applyDownloadModalMode, resetDownloadModalUi, resolveConfirmButtonEnabled, setDownloadModalBusyIfPresent, syncDownloadManualInstallVisibility, syncDownloadModalDisclaimerVisibility, syncSelectedPluginFileName, updateManualPluginCopyControl, updateManualPluginPathField } from '@features/plugins/modals/downloadmanager/dom.ts';
+import { applyDownloadModalMode, resetDownloadModalUi, setDownloadModalBusyIfPresent, syncDownloadConfirmButtonState, syncDownloadManualInstallVisibility, syncDownloadModalDisclaimerVisibility, syncSelectedPluginFileName, updateManualPluginCopyControl, updateManualPluginPathField } from '@features/plugins/modals/downloadmanager/dom.ts';
 import { ensureManualPluginDetails, installFromFile, installFromUrl, isProgressReporter, updateManualPluginMessage } from '@features/plugins/modals/downloadmanager/operations.ts';
+import { bindPluginPackageDropArea, canAcceptPluginPackageDrop, isAcceptedPluginPackageDrop, isPluginPackageFile } from '@features/plugins/modals/downloadmanager/pluginPackageDrop.ts';
 import { createManualPluginState } from '@features/plugins/modals/downloadmanager/state.ts';
 
 class PluginDownloadModalManager {
@@ -54,17 +55,17 @@ class PluginDownloadModalManager {
     #setBusy(isBusy: boolean): void {
         const modalRoot = this.#host.view.modals.requireElement(this.#modalId);
         setDownloadModalBusyIfPresent(this.#host, this.#modalId, isBusy, modalRoot);
+        if (!isBusy) {
+            syncDownloadConfirmButtonState(this.#host, this.#modalId, this.#classNames, modalRoot);
+        }
     }
 
     #syncConfirmButtonState(): void {
         const modalRoot = this.#host.view.modals.requireElement(this.#modalId);
-        const resolver = createModalElementResolver(modalRoot, 'Plugin download modal');
-        const button = requireButtonElement(resolver, modalUiSelector(this.#modalId, 'confirm-download'), 'Plugin download modal confirm button', modalRoot);
-        const enabled = resolveConfirmButtonEnabled(this.#host, this.#modalId, this.#classNames, modalRoot);
-        this.#host.view.updateProperty(button, 'disabled', !enabled);
+        syncDownloadConfirmButtonState(this.#host, this.#modalId, this.#classNames, modalRoot);
     }
 
-    openDownloadPluginModal(): void {
+    #openModal(mode: 'file' | 'url'): void {
         const modalRoot = this.#host.view.modals.requireElement(this.#modalId);
         resetDownloadModalUi(this.#host, this.#modalId, modalRoot, {
             preserveActiveDownloads: this.#hasActiveDownloads()
@@ -73,10 +74,24 @@ class PluginDownloadModalManager {
             this.#manualPluginState = createManualPluginState();
         }
         syncDownloadManualInstallVisibility(this.#host, this.#modalId, this.#classNames, this.#host.session.isAdmin(), modalRoot);
-        applyDownloadModalMode(this.#host, this.#modalId, this.#classNames, 'url', modalRoot);
+        applyDownloadModalMode(this.#host, this.#modalId, this.#classNames, mode, modalRoot);
         this.#setBusy(false);
         this.#syncConfirmButtonState();
         this.#host.view.modals.open(this.#modalId);
+    }
+
+    openDownloadPluginModal(): void {
+        this.#openModal('url');
+    }
+
+    openFileUploadModal(): void {
+        if (!this.#host.view.modals.isOpen(this.#modalId)) {
+            this.#openModal('file');
+            return;
+        }
+        const modalRoot = this.#host.view.modals.requireElement(this.#modalId);
+        applyDownloadModalMode(this.#host, this.#modalId, this.#classNames, 'file', modalRoot);
+        this.#syncConfirmButtonState();
     }
 
     handleUrlTabClick(): void {
@@ -117,14 +132,41 @@ class PluginDownloadModalManager {
         this.#syncConfirmButtonState();
     }
 
-    handlePluginFileChange(_event: Event): void {
-        const modalRoot = this.#host.view.modals.requireElement(this.#modalId);
+    #synchronizePluginFileSelection(modalRoot: HTMLElement): File | null | undefined {
         const resolver = createModalElementResolver(modalRoot, 'Plugin download modal');
         const fileInput = requireInputElement(resolver, modalUiSelector(this.#modalId, 'plugin-file'), 'Plugin download modal file input', modalRoot);
-        const name = fileInput.files?.item(0)?.name ?? '';
-        syncSelectedPluginFileName(this.#host, this.#modalId, modalRoot, name);
+        const file = fileInput.files?.item(0) ?? null;
+        const acceptedFile = file === null || isPluginPackageFile(file) ? file : undefined;
+        if (acceptedFile === undefined) {
+            fileInput.value = '';
+            this.#host.session.showNotification(i18n.t('plugins.modal.addPlugin.fileHelp'), 'warning');
+        }
+        syncSelectedPluginFileName(this.#host, this.#modalId, modalRoot, acceptedFile?.name ?? '');
         syncDownloadModalDisclaimerVisibility(this.#host, this.#modalId, modalRoot);
         this.#syncConfirmButtonState();
+        return acceptedFile;
+    }
+
+    handlePluginFileChange(_event: Event): void {
+        const modalRoot = this.#host.view.modals.requireElement(this.#modalId);
+        this.#synchronizePluginFileSelection(modalRoot);
+    }
+
+    canAcceptPluginFileDrag(event: DragEvent): boolean {
+        return canAcceptPluginPackageDrop(this.#host, this.#modalId, event);
+    }
+
+    isAcceptedFileDrop(event: DragEvent): boolean {
+        return isAcceptedPluginPackageDrop(this.#host, this.#modalId, event);
+    }
+
+    bindFileDropArea(signal: AbortSignal): void {
+        bindPluginPackageDropArea({
+            host: this.#host,
+            modalId: this.#modalId,
+            signal,
+            onFileSelected: (event) => this.handlePluginFileChange(event)
+        });
     }
 
     async handleConfirmPluginDownload(): Promise<void> {
@@ -149,9 +191,10 @@ class PluginDownloadModalManager {
             return;
         }
         if (fileTab.classList.contains(this.#classNames.active)) {
-            const resolver = createModalElementResolver(modalRoot, 'Plugin download modal');
-            const fileInput = requireInputElement(resolver, modalUiSelector(this.#modalId, 'plugin-file'), 'Plugin download modal file input', modalRoot);
-            const file = fileInput.files?.item(0) ?? null;
+            const file = this.#synchronizePluginFileSelection(modalRoot);
+            if (file === undefined) {
+                return;
+            }
             await installFromFile({
                 host: this.#host,
                 modalId: this.#modalId,

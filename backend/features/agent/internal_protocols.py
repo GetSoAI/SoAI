@@ -42,6 +42,14 @@ class AgentStreamingInferenceOutcome:
 class AgentStreamingInferenceRunnerProtocol(Protocol):
     def reserve_tool_sequence_indexes(self, count: int) -> None: ...
 
+    def synchronize_chronology_bases(
+        self,
+        *,
+        sequence_index: int,
+        content_index: int,
+        thinking_index: int,
+    ) -> None: ...
+
     def commit_latest_iteration(
         self,
         *,

@@ -21,7 +21,7 @@ from features.api.routes.system.events.websocket_openai_images.result_collection
 from features.api.routes.system.events.websocket_openai_runner_failure_handling import (
     openai_ws_detach_event_is_set,
 )
-from features.api.runtime.event_enqueue import enqueue_correlated_media_event
+from features.api.runtime.event_enqueue import enqueue_correlated_event
 from features.api.streaming.openai_stream_generator.generator import (
     create_stream_generator,
 )
@@ -98,7 +98,7 @@ async def run_openai_images_generation(
                 text = bytes(chunk).decode("utf-8", errors="replace")
                 if not text:
                     continue
-                delivered = await enqueue_correlated_media_event(
+                delivered = await enqueue_correlated_event(
                     enqueue_warning_tracker,
                     connection.queue,
                     build_openai_images_generation_stream_chunk(
@@ -112,7 +112,7 @@ async def run_openai_images_generation(
                 if not delivered:
                     return
                 sequence += 1
-            await enqueue_correlated_media_event(
+            await enqueue_correlated_event(
                 enqueue_warning_tracker,
                 connection.queue,
                 build_openai_images_generation_completed(
@@ -128,7 +128,7 @@ async def run_openai_images_generation(
             reply_queue=reply_queue,
             timeout_seconds=120.0,
         )
-        await enqueue_correlated_media_event(
+        await enqueue_correlated_event(
             enqueue_warning_tracker,
             connection.queue,
             build_openai_images_generation_completed(
@@ -159,7 +159,7 @@ async def run_openai_images_generation(
             trace_id=trace_id,
             level="error",
         )
-        await enqueue_correlated_media_event(
+        await enqueue_correlated_event(
             enqueue_warning_tracker=enqueue_warning_tracker,
             queue=connection.queue,
             event=build_openai_images_generation_error(

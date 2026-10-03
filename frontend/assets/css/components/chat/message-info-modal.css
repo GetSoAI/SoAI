@@ -20,7 +20,7 @@
 
     [data-soai-modal-root='true'].chat-message-info-modal .message-info-nodata {
         color: var(--text-tertiary);
-        font-style: italic;
+        font-style: var(--font-style-emphasis);
         padding: var(--space-3);
         text-align: center;
     }

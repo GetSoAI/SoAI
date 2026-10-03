@@ -5,7 +5,7 @@ import { decodeFileExplorerListingAcceptedResponse, decodeFileExplorerListingLoc
 import type { FileExplorerListingAcceptedResponse, FileExplorerListingLocateOptions, FileExplorerListingLocateResponse, FileExplorerListingPageOptions, FileExplorerListingPageResponse, FileExplorerListingReleasedResponse } from '@core/api/contracts/fileExplorerListingContractTypes.ts';
 import { FILE_EXPLORER_BASE_PATH } from '@core/api/endpoints/fileExplorerPaths.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
-import { buildSignalRequestOptions, requireNonEmptyRequestString } from '@core/api/requestOptions.ts';
+import { buildSignalRequestOptions, requireNonBlankRequestString } from '@core/api/requestOptions.ts';
 
 interface FileExplorerListingEndpoints {
     startListing(listingId: string, path: string, signal?: AbortSignal): Promise<FileExplorerListingAcceptedResponse>;
@@ -22,7 +22,7 @@ const requireListingIdentity = <Response extends { listingId: string }>(response
 };
 
 const createFileExplorerListingEndpoints = (api: ApiClientContext): FileExplorerListingEndpoints => {
-    const requireValue = (value: string, field: string): string => requireNonEmptyRequestString(value, field, 'fileExplorer');
+    const requireValue = (value: string, field: string): string => requireNonBlankRequestString(value, field, 'fileExplorer');
     const requireListingId = (value: string, field: string): string => {
         const listingId = requireValue(value, field);
         if (!LISTING_ID_PATTERN.test(listingId)) throw new TypeError(`fileExplorer ${field} is invalid`);

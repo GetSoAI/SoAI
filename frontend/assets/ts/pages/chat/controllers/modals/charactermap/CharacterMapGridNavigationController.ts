@@ -1,6 +1,7 @@
 /* SoAI - Character map grid navigation [frontend/assets/ts/pages/chat/controllers/modals/charactermap/CharacterMapGridNavigationController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { resolveInlineArrowStep } from '@core/layout/direction.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import type { CharacterMapQueryResult, CharacterMapResultItem } from '@features/chat/public.ts';
 import { resolveCharacterMapCellId } from '@pages/chat/controllers/modals/charactermap/CharacterMapGridWidget.ts';
@@ -112,8 +113,8 @@ class CharacterMapGridNavigationController {
 
     #resolveTargetIndex(key: string, currentIndex: number): number | null {
         const lastIndex = this.#result.ids.length - 1;
-        if (key === 'ArrowLeft') return Math.max(0, currentIndex - 1);
-        if (key === 'ArrowRight') return Math.min(lastIndex, currentIndex + 1);
+        const inlineStep = resolveInlineArrowStep(key, this.#host.grid);
+        if (inlineStep !== 0) return Math.max(0, Math.min(lastIndex, currentIndex + inlineStep));
         if (key === 'ArrowUp') return Math.max(0, currentIndex - this.#columnCount());
         if (key === 'ArrowDown') return Math.min(lastIndex, currentIndex + this.#columnCount());
         if (key === 'Home') return 0;

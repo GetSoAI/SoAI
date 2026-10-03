@@ -83,6 +83,7 @@ const composeChatLifecycle = (composition: ChatLifecycleComposition, logger: Mod
                 prepareInitialContent: (parameters, signal, chatLogger) =>
                     prepareChatPageInitialContent(
                         {
+                            aiSetupStorage: platform.storage,
                             composerSurface: domain.composerSurface,
                             configurationRuntime: domain.configurationRuntime,
                             conversationRuntime: domain.conversationRuntime,
@@ -124,9 +125,12 @@ const composeChatLifecycle = (composition: ChatLifecycleComposition, logger: Mod
                             presentation: sessions.presentation,
                             pageElements: page.pageElements,
                             pageLifecycle: page.pageLifecycle,
+                            pageResources: page.pageResources,
                             feedback: page.feedback,
                             uiBehaviors,
                             messageSending: controllerRuntime.messageSending,
+                            configurationSession: sessions.configuration,
+                            voiceSession: sessions.voiceSession,
                             conversationToolbarSession: sessions.toolbar,
                             getDomContext: () => page.pageHost.getContext(),
                             dom: platform.dom,

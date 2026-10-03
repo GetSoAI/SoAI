@@ -7,14 +7,12 @@ import { createCardPageController } from '@core/routing/pages/collections/cardgr
 import { modelsPageConfig } from '@core/routing/pages/collections/collectionPageConfig.ts';
 import { isObject } from '@core/typeGuards.ts';
 import type { CatalogStore } from '@features/catalog/public.ts';
-import { MODELS_DOWNLOAD_MODAL_ID } from '@features/models/public.ts';
+import { MODELS_DOWNLOAD_MODAL_ID, VariantProbeManager, type VariantProbeHost } from '@features/models/public.ts';
 import { ACTIVE_MODEL_STATUSES } from '@pages/models/contracts/ModelPageSupport.ts';
 import { createModelsModelProperties, resolveModelsItemCardId } from '@pages/models/controllers/modelsModelProperties.ts';
 import type { ModelsManagerRuntimeDependencies } from '@pages/models/controllers/page/contracts.ts';
 import { getPluginByName } from '@pages/models/controllers/page/effects.ts';
 import { createModelsModalManagers } from '@pages/models/controllers/page/modalintegration/service.ts';
-import { VariantProbeManager } from '@pages/models/controllers/variantprobemanager/service.ts';
-import type { VariantProbeHost } from '@pages/models/controllers/variantprobemanager/types.ts';
 import { ModelCardRenderer } from '@pages/models/rendering/CardRenderer.ts';
 import type { ModelCardHost } from '@pages/models/rendering/cardrenderer/types.ts';
 

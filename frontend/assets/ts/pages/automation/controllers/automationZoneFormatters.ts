@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
-import { formatAutomationTime } from '@pages/automation/formatting/service.ts';
-import type { AutomationZone } from '@features/automation/public.ts';
+import { requireIsoDateToUtcMs } from '@core/time/localCalendar.ts';
+import { formatAutomationFullDate, formatAutomationTime } from '@pages/automation/formatting/service.ts';
+import type { AutomationOccurrenceResponse } from '@features/automation/public.ts';
 import type { AutomationCalendarTimeFormat, AutomationZoneStatus } from '@pages/automation/types.ts';
 
 type StatusBadgeClass = 'status-green' | 'status-red' | 'status-orange' | 'status-grey';
@@ -64,7 +65,18 @@ const formatAutomationRunTime = (utcMs: number, timeFormat: AutomationCalendarTi
     return formatAutomationTime(new Date(utcMs), timeFormat);
 };
 
-const resolveAutomationRunExcerpt = (zone: AutomationZone): string | null => {
+const formatAutomationOccurrenceLabel = (occurrence: Pick<AutomationOccurrenceResponse, 'title' | 'scheduledAtMs' | 'status'>, timeFormat: AutomationCalendarTimeFormat): string => {
+    return i18n.t('automation.calendar.occurrenceLabel', { title: occurrence.title, date: formatAutomationFullDate(new Date(occurrence.scheduledAtMs)), time: formatAutomationRunTime(occurrence.scheduledAtMs, timeFormat), status: formatAutomationRunStatusLabel(occurrence.status) });
+};
+
+const formatAutomationCreateAtLabel = (isoDate: string, minutes: number, timeFormat: AutomationCalendarTimeFormat): string => {
+    const date = new Date(requireIsoDateToUtcMs(isoDate, 'Automation create date'));
+    const fullDate = formatAutomationFullDate(date);
+    date.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+    return i18n.t('automation.calendar.createAt', { date: fullDate, time: formatAutomationTime(date, timeFormat) });
+};
+
+const resolveAutomationRunExcerpt = (zone: AutomationOccurrenceResponse): string | null => {
     if (zone.resultExcerpt) {
         return zone.resultExcerpt;
     }
@@ -74,5 +86,5 @@ const resolveAutomationRunExcerpt = (zone: AutomationZone): string | null => {
     return null;
 };
 
-export { formatAutomationRunStatusLabel, formatAutomationRunTime, resolveAutomationRunExcerpt, resolveAutomationRunStatusBadgeClass, resolveAutomationRunStatusContainerClass };
+export { formatAutomationCreateAtLabel, formatAutomationOccurrenceLabel, formatAutomationRunStatusLabel, formatAutomationRunTime, resolveAutomationRunExcerpt, resolveAutomationRunStatusBadgeClass, resolveAutomationRunStatusContainerClass };
 export type { StatusBadgeClass, StatusContainerClass };

@@ -128,6 +128,7 @@ const createPluginsPageRuntime = (dependencies: CreatePluginsPageRuntimeDependen
                 return;
             }
             presentationController.renderItems();
+            collection.collections.view?.markDirty([pluginName]);
         },
         feedback: infrastructure.feedback,
         isHardwareIncompatible: (plugin) => primaryRuntime.coreControllers.dataController.isHardwareIncompatible(plugin),

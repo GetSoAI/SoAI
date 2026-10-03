@@ -13,6 +13,7 @@ interface CopyTextOptions {
 }
 
 interface ConfirmationOptions {
+    signal?: AbortSignal | undefined;
     title?: string;
     message?: string;
     description?: string;
@@ -23,6 +24,15 @@ interface ConfirmationOptions {
     confirmVariant?: string;
     messageAllowHTML?: boolean;
     descriptionAllowHTML?: boolean;
+    onConfirm?: () => Promise<boolean>;
+}
+
+interface NoticeOptions {
+    title: string;
+    message: string;
+    variant: 'success' | 'info' | 'warning' | 'danger';
+    description?: string;
+    closeText?: string;
 }
 
 interface ExternalLinkOptions extends ConfirmationOptions {
@@ -121,4 +131,4 @@ interface UsernameRenameModalOptions {
     onSubmit: (values: UsernameRenameValues) => Promise<IdentityMutationModalFailure | null>;
 }
 
-export type { ClipboardServiceInterface, ConfirmationOptions, CopyTextModalOptions, CopyTextOptions, ExternalLinkOptions, IdentityMutationModalFailure, LocalFolderOpenOptions, PasswordChangeFieldLabels, PasswordChangeModalOptions, PasswordChangeValidationMessages, PasswordChangeValues, PromptAutocomplete, PromptInputType, PromptModalOptions, UsernameRenameModalOptions, UsernameRenameValues };
+export type { ClipboardServiceInterface, ConfirmationOptions, CopyTextModalOptions, CopyTextOptions, ExternalLinkOptions, IdentityMutationModalFailure, LocalFolderOpenOptions, NoticeOptions, PasswordChangeFieldLabels, PasswordChangeModalOptions, PasswordChangeValidationMessages, PasswordChangeValues, PromptAutocomplete, PromptInputType, PromptModalOptions, UsernameRenameModalOptions, UsernameRenameValues };

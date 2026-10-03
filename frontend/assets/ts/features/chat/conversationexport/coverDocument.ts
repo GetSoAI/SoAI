@@ -8,6 +8,8 @@ import { CONVERSATION_EXPORT_COVER_STYLE } from '@features/chat/conversationexpo
 
 type ConversationExportCoverDocumentRequest = {
     title: string;
+    language: string;
+    direction: string;
     exportDate: string;
     logoDataUri: string;
     soaiVersion: string | null;
@@ -18,7 +20,7 @@ const OUTLINE_INDEX_DIGITS = 2;
 
 const renderStat = (item: ConversationExportSummaryItem): string => `<div class="stat"><span class="stat-label">${escapeHtml(item.label)}</span><span class="stat-value">${escapeHtml(item.value)}</span></div>`;
 
-const renderOutlineRow = (entry: ConversationExportOutlineEntry): string => `<li class="outline-row"><span class="outline-index">${escapeHtml(String(entry.index).padStart(OUTLINE_INDEX_DIGITS, '0'))}</span><span class="outline-role outline-role--${entry.kind}">${escapeHtml(entry.role)}</span><span class="outline-text">${escapeHtml(entry.preview)}</span></li>`;
+const renderOutlineRow = (entry: ConversationExportOutlineEntry): string => `<li class="outline-row"><span class="outline-index">${escapeHtml(String(entry.index).padStart(OUTLINE_INDEX_DIGITS, '0'))}</span><span class="outline-role outline-role--${entry.kind}">${escapeHtml(entry.role)}</span><span dir="auto" class="outline-text">${escapeHtml(entry.preview)}</span></li>`;
 
 const renderOutlineSection = (outline: readonly ConversationExportOutlineEntry[]): string => {
     if (outline.length === 0) {
@@ -38,7 +40,7 @@ const renderNote = (exportDate: string, soaiVersion: string | null): string => {
 };
 
 const buildConversationExportCoverDocument = (request: ConversationExportCoverDocumentRequest): string => {
-    return ['<!doctype html><html><head><meta charset="utf-8">', `<title>${escapeHtml(request.title)}</title>`, `<style>${CONVERSATION_EXPORT_COVER_STYLE}</style>`, '</head><body><main class="cover">', '<header class="cover-masthead">', `<div class="cover-brand"><img src="${escapeHtml(request.logoDataUri)}"></div>`, '<div class="cover-head">', `<p class="cover-kicker">${escapeHtml(i18n.t('chat.export.pdf.title'))}</p>`, `<h1 class="cover-title">${escapeHtml(request.title)}</h1>`, renderOriginLine(request.coverData.origin), '</div></header>', renderOutlineSection(request.coverData.outline), `<section class="cover-stats">${request.coverData.summaryItems.map(renderStat).join('')}</section>`, `<footer class="cover-note">${escapeHtml(renderNote(request.exportDate, request.soaiVersion))}</footer>`, '</main></body></html>'].join('');
+    return [`<!doctype html><html lang="${escapeHtml(request.language)}" dir="${escapeHtml(request.direction)}"><head><meta charset="utf-8">`, `<title>${escapeHtml(request.title)}</title>`, `<style>${CONVERSATION_EXPORT_COVER_STYLE}</style>`, '</head><body><main class="cover">', '<header class="cover-masthead">', `<div class="cover-brand"><img src="${escapeHtml(request.logoDataUri)}"></div>`, '<div class="cover-head">', `<p class="cover-kicker">${escapeHtml(i18n.t('chat.export.pdf.title'))}</p>`, `<h1 dir="auto" class="cover-title">${escapeHtml(request.title)}</h1>`, renderOriginLine(request.coverData.origin), '</div></header>', renderOutlineSection(request.coverData.outline), `<section class="cover-stats">${request.coverData.summaryItems.map(renderStat).join('')}</section>`, `<footer class="cover-note">${escapeHtml(renderNote(request.exportDate, request.soaiVersion))}</footer>`, '</main></body></html>'].join('');
 };
 
 export { buildConversationExportCoverDocument };

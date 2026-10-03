@@ -9,6 +9,7 @@ import os
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.filesystem.open_files import open_binary
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.logging.trace import get_logger
 
 __all__ = ("ensure_correct_permissions", "ensure_single_path_permissions")
@@ -18,7 +19,7 @@ OPERATION = "plugin_helper.ensure_correct_permissions"
 
 
 def _apply_single_permission(target_path: str, is_dir: bool) -> None:
-    if os.path.islink(target_path):
+    if os.path.islink(normalize_filesystem_path(target_path)):
         return
     mode = 0o755 if is_dir else 0o644
     if not is_dir:
@@ -30,26 +31,30 @@ def _apply_single_permission(target_path: str, is_dir: bool) -> None:
         except OSError:
             return
     try:
-        os.chmod(target_path, mode)
+        os.chmod(normalize_filesystem_path(target_path), mode)
     except OSError:
         return
 
 
 def _apply_permissions_recursively(root_path: str) -> None:
-    if not os.path.exists(root_path):
+    if not os.path.exists(normalize_filesystem_path(root_path)):
         return
-    is_root_dir = os.path.isdir(root_path)
+    is_root_dir = os.path.isdir(normalize_filesystem_path(root_path))
     _apply_single_permission(root_path, is_root_dir)
     if not is_root_dir:
         return
-    for walked_root, directories, filenames in os.walk(root_path, topdown=True):
-        if "venv" in walked_root.lower() or os.path.islink(walked_root):
+    for walked_root, directories, filenames in os.walk(
+        normalize_filesystem_path(root_path), topdown=True
+    ):
+        if "venv" in walked_root.lower() or os.path.islink(normalize_filesystem_path(walked_root)):
             directories[:] = []
             continue
         allowed_directories: list[str] = []
         for directory_name in list(directories):
             directory_path = os.path.join(walked_root, directory_name)
-            if "venv" in directory_name.lower() or os.path.islink(directory_path):
+            if "venv" in directory_name.lower() or os.path.islink(
+                normalize_filesystem_path(directory_path)
+            ):
                 continue
             allowed_directories.append(directory_name)
             _apply_single_permission(directory_path, True)
@@ -63,7 +68,7 @@ async def ensure_correct_permissions(path: str) -> None:
     if not path:
         return
     try:
-        await asyncio.to_thread(_apply_permissions_recursively, path)
+        await asyncio.to_thread(_apply_permissions_recursively, os.path.abspath(path))
     except RECOVERABLE_EXCEPTIONS as exception:
         log_exception(
             logger,
@@ -80,7 +85,11 @@ async def ensure_single_path_permissions(path: str) -> None:
     if not path:
         return
     try:
-        await asyncio.to_thread(_apply_single_permission, path, os.path.isdir(path))
+        await asyncio.to_thread(
+            _apply_single_permission,
+            os.path.abspath(path),
+            os.path.isdir(normalize_filesystem_path(path)),
+        )
     except RECOVERABLE_EXCEPTIONS as exception:
         log_exception(
             logger,

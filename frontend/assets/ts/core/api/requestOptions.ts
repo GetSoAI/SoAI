@@ -12,7 +12,7 @@ const buildSignalRequestOptions = (options: AuthTransitionSignalOptions = {}): {
     ...(options.authTransitionOwned === true ? { authTransitionOwned: true } : {})
 });
 
-const requireNonEmptyRequestString = (value: string, field: string, prefix: string): string => {
+const requireTrimmedRequestString = (value: string, field: string, prefix: string): string => {
     const normalized = toTrimmedString(value);
     if (!normalized) {
         throw new Error(`${prefix}.${field} is required`);
@@ -20,11 +20,16 @@ const requireNonEmptyRequestString = (value: string, field: string, prefix: stri
     return normalized;
 };
 
-const normalizeNonEmptyRequestStrings = (values: readonly string[], field: string, prefix: string): string[] => {
+const requireNonBlankRequestString = (value: string, field: string, prefix: string): string => {
+    requireTrimmedRequestString(value, field, prefix);
+    return value;
+};
+
+const requireNonBlankRequestStrings = (values: readonly string[], field: string, prefix: string): string[] => {
     if (values.length <= 0) {
         throw new Error(`${prefix}.${field} requires at least one path`);
     }
-    return values.map((value, index) => requireNonEmptyRequestString(value, `${field}[${String(index)}]`, prefix));
+    return values.map((value, index) => requireNonBlankRequestString(value, `${field}[${String(index)}]`, prefix));
 };
 
 const buildQueryRequestOptions = (options: ApiQueryParameters | null | undefined = null, signal: AbortSignal | null | undefined = null): { query: ApiQueryParameters | null; signal?: AbortSignal } => {
@@ -35,5 +40,5 @@ const buildQueryRequestOptions = (options: ApiQueryParameters | null | undefined
     return signal ? { query, signal } : { query };
 };
 
-export { buildQueryRequestOptions, buildSignalRequestOptions, normalizeNonEmptyRequestStrings, requireNonEmptyRequestString };
+export { buildQueryRequestOptions, buildSignalRequestOptions, requireNonBlankRequestString, requireNonBlankRequestStrings, requireTrimmedRequestString };
 export type { AuthTransitionSignalOptions, SignalOptions };

@@ -41,11 +41,11 @@ __all__ = (
 
 _TERMINAL_TASK_PROJECTION = (
     "task_id, status, result, error_code, error_type, error_message, "
-    "status_message, completed_at_ms"
+    "status_message, public_error_message, completed_at_ms"
 )
 _QUALIFIED_TERMINAL_TASK_PROJECTION = (
     "tasks.task_id, tasks.status, tasks.result, tasks.error_code, tasks.error_type, "
-    "tasks.error_message, tasks.status_message, tasks.completed_at_ms"
+    "tasks.error_message, tasks.status_message, tasks.public_error_message, tasks.completed_at_ms"
 )
 
 
@@ -59,6 +59,7 @@ def _sync_finalize_linked_background_responses(
     error_type: str | None,
     error_message: str | None,
     status_message: str | None,
+    public_error_message: str | None,
     completed_at_ms: int,
 ) -> int:
     rows = sync_fetch_all_as_dicts(
@@ -85,6 +86,7 @@ def _sync_finalize_linked_background_responses(
             error_code=error_code,
             error_type=error_type,
             error_message=error_message,
+            public_error_message=public_error_message,
             status_message=status_message,
         )
         target_status = coerce_response_status(
@@ -190,6 +192,7 @@ def _reconcile_task_row(connection: sqlite3.Connection, *, row: SQLiteRowDict) -
         error_type=coerce_optional_str_from_sqlite_row(row, "error_type"),
         error_message=coerce_optional_str_from_sqlite_row(row, "error_message"),
         status_message=coerce_optional_str_from_sqlite_row(row, "status_message"),
+        public_error_message=coerce_optional_str_from_sqlite_row(row, "public_error_message"),
         completed_at_ms=coerce_required_int_from_sqlite_row(row, "completed_at_ms"),
     )
 

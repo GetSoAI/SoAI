@@ -191,5 +191,8 @@ def setup_logging(
         root_logger.info("Welcome to SoAI v%s!", __version__)
         for line in banner_lines:
             root_logger.info(line)
-    root_logger.info(log_message)
+    if was_configured:
+        root_logger.info(log_message)
+    else:
+        root_logger.debug(log_message)
     return root_logger

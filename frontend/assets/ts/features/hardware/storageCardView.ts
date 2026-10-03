@@ -4,6 +4,7 @@
 import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { narrowHTMLElement } from '@core/dom/narrowElement.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { isolateLtrText } from '@core/localization/public.ts';
 import { formatGigabytesAsStorageUnit } from '@core/primitives/byteSize.ts';
 import { clampPercent } from '@core/primitives/clampNumber.ts';
 import { formatPercent } from '@core/primitives/percent.ts';
@@ -48,6 +49,7 @@ const createStorageStatItem = (host: StorageCardViewHost, label: string, value: 
     const item = narrowHTMLElement(host.createElement('div', { className: 'hardware-storage-stat-item hardware-resource-stat-item' }), 'storage stat item');
     const labelElement = narrowHTMLElement(host.createElement('span', { className: 'hardware-storage-stat-label hardware-resource-stat-label' }, label), 'storage stat label');
     const valueElement = narrowHTMLElement(host.createElement('span', { className: 'hardware-storage-stat-value hardware-resource-stat-value' }, value), 'storage stat value');
+    valueElement.dir = 'ltr';
     item.append(labelElement, valueElement);
     return item;
 };
@@ -67,6 +69,7 @@ const createStorageInterfaceRow = ({ host, volume, index, labels }: StorageRowOp
 
     const header = narrowHTMLElement(host.createElement('div', { className: 'hardware-storage-row-header hardware-resource-row-header' }), 'storage row header');
     const nameElement = narrowHTMLElement(host.createElement('span', { className: 'hardware-storage-name hardware-resource-name' }, volume.filesystem), 'storage row name');
+    nameElement.dir = 'ltr';
     setTooltipText(nameElement, volume.filesystem);
     const usageElement = narrowHTMLElement(host.createElement('span', { className: `hardware-storage-usage hardware-resource-value progress-value--inverted ${usageClass}` }, formatPercent(volume.percentUsed)), 'storage row usage');
     header.append(nameElement, usageElement);
@@ -79,7 +82,9 @@ const createStorageInterfaceRow = ({ host, volume, index, labels }: StorageRowOp
     const stats = narrowHTMLElement(host.createElement('div', { className: 'hardware-storage-stats hardware-resource-stats' }), 'storage row stats');
     const primaryRow = narrowHTMLElement(host.createElement('div', { className: 'hardware-storage-stat-row hardware-resource-stat-row' }), 'storage row primary');
     const mount = narrowHTMLElement(host.createElement('span'), 'storage row mount');
-    mount.append(narrowHTMLElement(host.createElement('strong', undefined, `${labels.mount}: `), 'storage row mount label'), narrowHTMLElement(host.createElement('span', undefined, volume.mount), 'storage row mount value'));
+    const mountValue = narrowHTMLElement(host.createElement('bdi', undefined, volume.mount), 'storage row mount value');
+    mountValue.dir = 'ltr';
+    mount.append(narrowHTMLElement(host.createElement('strong', undefined, `${labels.mount}: `), 'storage row mount label'), mountValue);
     const type = narrowHTMLElement(host.createElement('span'), 'storage row type');
     type.append(narrowHTMLElement(host.createElement('strong', undefined, `${labels.type}: `), 'storage row type label'), narrowHTMLElement(host.createElement('span', undefined, volume.fstype), 'storage row type value'));
     primaryRow.append(mount, type);
@@ -100,7 +105,7 @@ const buildStorageSummaryText = (volumes: readonly VolumeModel[]): string => {
     return i18n.t('hardware.cards.storage.summary.withTotal', {
         count: volumes.length,
         label,
-        total: formatGigabytesAsStorageUnit(totalSizeGb, 2)
+        total: isolateLtrText(formatGigabytesAsStorageUnit(totalSizeGb, 2))
     });
 };
 

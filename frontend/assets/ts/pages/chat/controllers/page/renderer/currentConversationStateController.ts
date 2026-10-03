@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
+import { requestPresenceEnter } from '@core/animations/presence/public.ts';
 import { normalizeColor } from '@core/ui/colorToolkitBase.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { CHAT_SELECTORS, normalizeConversationId, normalizeMessageDomId, requireConversationId, resolveConversationDisplayTitleFromConversation, type Conversation } from '@features/chat/public.ts';
@@ -40,11 +41,15 @@ const syncCurrentConversationTitleUi = (host: ChatCurrentConversationRenderDepen
     const saveButton = host.pageDom.optional('.conversation-title-save-btn');
     const cancelButton = host.pageDom.optional('.conversation-title-cancel-btn');
     const pageHeaderActions = host.pageDom.optional('.page-actions__menu');
+    const pageHeaderOverflowTrigger = host.pageDom.optional('.chat-header-overflow > .page-actions__trigger');
     const renameState = host.conversationState.conversationRenameState;
     const isEditing = Boolean(renameState && renameState.scope === 'header' && renameState.conversationId === host.conversationState.currentConversationId);
     const titleValue = conversation ? resolveConversationDisplayTitleFromConversation(conversation, i18n.t('chat.conversation.untitled')) : i18n.t('chat.conversation.newTitle');
 
     if (titleElement instanceof HTMLElement) {
+        if (!isEditing && titleElement.classList.contains('u-hidden')) {
+            requestPresenceEnter(titleElement, false);
+        }
         titleElement.classList.toggle('u-hidden', isEditing);
         if (!isEditing) {
             const titleText = host.pageDom.optional('.conversation-title-text', titleElement);
@@ -70,6 +75,9 @@ const syncCurrentConversationTitleUi = (host: ChatCurrentConversationRenderDepen
     }
     if (pageHeaderActions instanceof HTMLElement) {
         pageHeaderActions.classList.toggle('u-hidden', isEditing);
+    }
+    if (pageHeaderOverflowTrigger instanceof HTMLElement) {
+        pageHeaderOverflowTrigger.classList.toggle('u-hidden', isEditing);
     }
 };
 

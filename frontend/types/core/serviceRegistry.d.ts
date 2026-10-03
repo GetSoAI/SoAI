@@ -51,6 +51,7 @@ interface SoAIServiceRegistry {
     'core.pageHost': typeof import('../../assets/ts/core/pagehost/service.ts').PageHost;
     'core.pageOutlet': typeof import('../../assets/ts/core/pageoutlet/public.ts').PageOutlet;
     'core.pageRegistry': import('../../assets/ts/core/pageRegistry.ts').PageRegistry;
+    'core.presenceMotion': import('../../assets/ts/core/animations/presence/public.ts').PresenceRuntimeService;
     'core.realtime': import('../../assets/ts/core/realtime/public.ts').RealtimeService;
     'core.resourceTracker': typeof import('../../assets/ts/core/resourcetracker/service.ts').ResourceTracker;
     'core.router': import('../../assets/ts/core/routing/router/Router.ts').Router;
@@ -70,8 +71,8 @@ interface SoAIServiceRegistry {
     'core.subscriptionManager': typeof import('../../assets/ts/core/subscriptionmanager/service.ts').subscriptionManager;
     'core.syntaxHighlighter': import('../../assets/ts/core/syntaxhighlighter/public.ts').SyntaxHighlighter;
     'core.systemLimitsService': ReturnType<typeof import('../../assets/ts/core/api/systemLimitsService.ts').createSystemLimitsService>;
+    'core.tabsOverflow': import('../../assets/ts/core/ui/controls/tabs/overflowRuntime.ts').TabsOverflowRuntimeService;
     'core.tooltipService': BootstrapTooltipService;
-    'core.uiElementService': typeof import('../../assets/ts/core/dom/dom.ts').uiElementServiceModule;
     'core.uiPrimitives': typeof import('../../assets/ts/core/uiprimitives/public.ts').primitives;
     'features.automation.runActivity': import('../../assets/ts/features/automation/runactivity/service.ts').AutomationRunActivityService;
     'features.catalog.store': ReturnType<typeof import('../../assets/ts/features/catalog/state.ts').createCatalogStore>;

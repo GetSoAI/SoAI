@@ -16,7 +16,7 @@ soai_managed_runtime__tls_smoke_check() {
 soai_managed_runtime__ensure_posix_cli_dependencies() {
     local env_dir="$1"
     local state_dir="$2"
-    local micromamba_version="${3:-2.5.0}"
+    local micromamba_version="${3:-}"
     local offline_mode="${4:-0}"
     if [ -z "$env_dir" ] || [ ! -d "$env_dir" ]; then
         soai_managed_runtime__die "Managed env dir is missing: ${env_dir}" || return 1
@@ -60,7 +60,7 @@ soai_managed_runtime__ensure_posix_cli_dependencies() {
 soai_managed_runtime__ensure_python_build_dependencies() {
     local env_dir="$1"
     local state_dir="$2"
-    local micromamba_version="${3:-2.5.0}"
+    local micromamba_version="${3:-}"
     local offline_mode="${4:-0}"
     if [ -z "$env_dir" ] || [ ! -x "${env_dir}/bin/python" ]; then
         soai_managed_runtime__die "Managed env python is missing for build dependency validation: ${env_dir}" || return 1
@@ -129,7 +129,7 @@ soai_managed_runtime_ensure_env() {
     local python_version="$2"
     local state_dir="$3"
     local lock_base="$4"
-    local micromamba_version="${5:-2.5.0}"
+    local micromamba_version="${5:-}"
     local offline_mode="${6:-0}"
     if [ -z "$env_dir" ] || [ -z "$python_version" ] || [ -z "$state_dir" ] || [ -z "$lock_base" ]; then
         soai_managed_runtime__die "Invalid managed runtime arguments." || return 1
@@ -200,11 +200,15 @@ soai_managed_runtime_ensure_env() {
             soai_managed_runtime__die "Invalid managed env directory detected at ${env_dir}. Delete it and re-run." || return 1
         fi
     fi
+    local micromamba_bin=""
     if [ "$offline_mode" = "1" ]; then
+        micromamba_bin="$(soai_managed_runtime__ensure_micromamba "$state_dir" "$micromamba_version" "$offline_mode")" || {
+            soai_managed_runtime__release_lock_dir_once
+            return 1
+        }
         soai_managed_runtime__release_lock_dir_once
-        soai_managed_runtime__die "STAY_OFFLINE=true but managed env is missing. Disable STAY_OFFLINE and run once online." || return 1
+        soai_managed_runtime__die "STAY_OFFLINE=true and micromamba is ready, but the managed Python environment is missing. Disable STAY_OFFLINE once to acquire the separately provisioned environment packages." || return 1
     fi
-    local micromamba_bin
     micromamba_bin="$(soai_managed_runtime__ensure_micromamba "$state_dir" "$micromamba_version" "$offline_mode")" || {
         soai_managed_runtime__release_lock_dir_once
         return 1

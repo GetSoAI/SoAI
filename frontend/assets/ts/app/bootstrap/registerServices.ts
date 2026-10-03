@@ -31,8 +31,10 @@ import { Router } from '@core/routing/router/Router.ts';
 import { registerService } from '@core/serviceRegistration.ts';
 import { createSoaiOsCapabilities } from '@core/soaiOsCapabilities.ts';
 import { createStorageService } from '@core/storage/StorageService.ts';
+import { createPresenceRuntime } from '@core/animations/presence/public.ts';
 import { createSecretInputToggleService } from '@core/ui/secretInput.ts';
 import { createSearchFieldActionService } from '@core/ui/searchField.ts';
+import { createTabsOverflowRuntime } from '@core/ui/controls/tabs/overflowRuntime.ts';
 import { createTooltipService } from '@core/ui/tooltips/public.ts';
 import { showNotification } from '@core/ui/notifications/notifications.ts';
 import { initializeSoundEffectsUnlock } from '@core/ui/sound/engine.ts';
@@ -70,6 +72,18 @@ export function registerAllServices(languageService: LanguageService): void {
     searchFieldActionService.initialize();
     registerService('core.searchFieldActions', searchFieldActionService, {
         moduleId: 'core.searchFieldActions',
+        initialized: true
+    });
+    const presenceMotionService = createPresenceRuntime(dom.getDocument());
+    presenceMotionService.initialize();
+    registerService('core.presenceMotion', presenceMotionService, {
+        moduleId: 'core.presenceMotion',
+        initialized: true
+    });
+    const tabsOverflowService = createTabsOverflowRuntime(dom.getDocument());
+    tabsOverflowService.initialize();
+    registerService('core.tabsOverflow', tabsOverflowService, {
+        moduleId: 'core.tabsOverflow',
         initialized: true
     });
 

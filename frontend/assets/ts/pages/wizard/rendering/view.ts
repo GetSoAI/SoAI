@@ -12,6 +12,7 @@ import { renderSecretInputControl, resolveSecretInputType } from '@core/ui/secre
 import type { ProductAccessFlow, WizardViewContext } from '@pages/wizard/types.ts';
 
 const ISO_COUNTRY_CODES_URL = 'https://www.iso.org/obp/ui/#search/code/';
+const FREE_API_KEY_LIST_URL = 'https://github.com/open-free-llm-api/awesome-freellm-apis';
 
 const documentTitle = (documentId: string): string => {
     switch (documentId) {
@@ -95,7 +96,7 @@ const renderEvaluationPanel = (context: WizardViewContext, contribution: Licensi
 const renderOnlinePanel = (context: WizardViewContext, contribution: LicensingEditionContribution, selected: ProductAccessFlow | null): string => {
     const personal = context.state.status?.edition === 'soai-os' && context.state.status.declaration === 'personal';
     const flow: LicensingLegalFlow = personal ? 'personal_os_activation' : 'commercial_activation';
-    const keyInput = `<input id="wizard-product-key" name="license-key" type="${resolveSecretInputType()}" class="form-input secret-input" autocomplete="off" spellcheck="false" maxlength="192" placeholder="${i18n.t('wizard.productAccess.key.placeholder')}" aria-describedby="wizard-key-hint">`;
+    const keyInput = `<input dir="ltr" id="wizard-product-key" name="license-key" type="${resolveSecretInputType()}" class="form-input secret-input" autocomplete="off" spellcheck="false" maxlength="192" placeholder="${i18n.t('wizard.productAccess.key.placeholder')}" aria-describedby="wizard-key-hint">`;
     return `<section class="wizard-access-panel${selected === 'online_activation' ? '' : ' u-hidden'}" data-product-access-panel="online_activation" aria-labelledby="wizard-key-title" tabindex="-1"><div class="wizard-panel-heading"><h3 id="wizard-key-title">${i18n.t('wizard.productAccess.key.title')}</h3><p>${i18n.t('wizard.productAccess.key.description')}</p></div>${personal ? renderPersonalOffer(context, contribution) : renderDeploymentEnvironment('wizard-online-deployment-environment')}<div class="wizard-form-group"><label for="wizard-product-key">${renderRequiredFieldLabelHtml(i18n.t('wizard.productAccess.key.title'))}</label>${renderSecretInputControl({ inputId: 'wizard-product-key', inputMarkup: keyInput })}<small id="wizard-key-hint" class="wizard-field-hint">${i18n.t('wizard.productAccess.key.description')}</small></div>${renderGoverningDocuments(context, flow)}<label class="wizard-attestation"><input id="wizard-activation-acceptance" type="checkbox"><span>${i18n.t('wizard.productAccess.key.acceptance')}</span></label>${renderContact(context, contribution)}<div class="wizard-action-feedback"><p id="wizard-online_activation-action-reason" class="wizard-action-reason" data-wizard-action-reason role="status"></p><div class="wizard-error${context.state.inlineError ? '' : ' u-hidden'}" role="alert" data-wizard-licensing-error>${context.sanitizer.html(context.state.inlineError ?? '')}</div></div></section>`;
 };
 
@@ -120,4 +121,4 @@ const renderProductAccessView = (context: WizardViewContext): string => {
     return `<div class="wizard-step wizard-step--product-access"><div class="wizard-section-heading"><span class="wizard-eyebrow">${i18n.t('wizard.productAccess.eyebrow')}</span><h2>${i18n.t('wizard.productAccess.heading')}</h2><p>${i18n.t('wizard.productAccess.guidance')}</p></div><div class="wizard-operation-banner${status.operation === null ? ' u-hidden' : ''}" role="status"><span data-wizard-operation-status>${context.sanitizer.html(operationText)}</span><small data-wizard-operation-warning${operationInProgress ? '' : ' class="u-hidden"'}>${i18n.t('wizard.productAccess.operation.switchWarning')}</small></div><div class="wizard-choice-grid wizard-choice-grid--access" role="radiogroup" aria-label="${context.sanitizer.attribute(i18n.t('wizard.productAccess.heading'))}">${evaluationChoice}${renderChoice('online_activation', selected)}${renderChoice('offline_activation', selected)}</div>${status.edition === 'soai-core' ? renderEvaluationPanel(context, contribution, selected) : ''}${renderOnlinePanel(context, contribution, selected)}${renderOfflinePanel(context, contribution, selected)}<p id="wizard-path-prompt" class="wizard-path-prompt${selected === null ? '' : ' u-hidden'}" data-wizard-path-prompt>${i18n.t('wizard.productAccess.blocked.choosePath')}</p></div>`;
 };
 
-export { renderProductAccessView };
+export { FREE_API_KEY_LIST_URL, renderProductAccessView };

@@ -18,7 +18,8 @@ type ModalSessionInitializer<TResult> = (context: ModalSessionContext<TResult>) 
 
 type AlreadyOpenPolicy = 'replace' | 'error';
 
-const runModalSession = async <TResult>(options: { presenter: ModalPresenterApi; modalId: string; openOptions?: ModalOpenOptions | undefined; onAlreadyOpen?: AlreadyOpenPolicy | undefined; initialResult: TResult; initialize: ModalSessionInitializer<TResult> }): Promise<TResult> => {
+const runModalSession = async <TResult>(options: { presenter: ModalPresenterApi; modalId: string; signal?: AbortSignal | undefined; openOptions?: ModalOpenOptions | undefined; onAlreadyOpen?: AlreadyOpenPolicy | undefined; initialResult: TResult; initialize: ModalSessionInitializer<TResult> }): Promise<TResult> => {
+    if (options.signal?.aborted) return options.initialResult;
     const presenter = options.presenter;
     const modalId = options.modalId;
     const openOptions = options.openOptions ?? {};
@@ -37,6 +38,7 @@ const runModalSession = async <TResult>(options: { presenter: ModalPresenterApi;
         const { signal } = abortController;
         let settled = false;
         let result = options.initialResult;
+        let terminalError: Error | null = null;
         let disposer: { dispose: () => void } = { dispose: () => {} };
         const close = (reason: string, closeOptions: Omit<ModalCloseOptions, 'reason'> | undefined): void => {
             if (settled || signal.aborted) {
@@ -50,12 +52,33 @@ const runModalSession = async <TResult>(options: { presenter: ModalPresenterApi;
                 return;
             }
             settled = true;
+            options.signal?.removeEventListener('abort', handleParentAbort);
             abortController.abort();
-            disposer.dispose();
-            resolve(result);
+            try {
+                disposer.dispose();
+                if (terminalError !== null) reject(terminalError);
+                else resolve(result);
+            } catch (error) {
+                reject(ensureError(error));
+            }
+        };
+
+        const handleParentAbort = (): void => {
+            if (settled) return;
+            result = options.initialResult;
+            modal.removeEventListener('core.modal.close', finalize);
+            try {
+                presenter.close(modalId, { reason: 'owner-cancelled', force: true, restoreFocus: false });
+            } catch (error) {
+                terminalError = ensureError(error);
+                errorHandler.warn('ModalSession', 'Failed to close owned modal during cancellation', terminalError);
+            } finally {
+                finalize();
+            }
         };
 
         modal.addEventListener('core.modal.close', finalize, { once: true, signal });
+        options.signal?.addEventListener('abort', handleParentAbort, { once: true });
 
         const context: ModalSessionContext<TResult> = {
             modalId,
@@ -73,9 +96,11 @@ const runModalSession = async <TResult>(options: { presenter: ModalPresenterApi;
         };
         try {
             disposer = options.initialize(context);
-            presenter.open(modalId, openOptions);
+            if (settled) disposer.dispose();
+            else presenter.open(modalId, openOptions);
         } catch (error) {
             settled = true;
+            options.signal?.removeEventListener('abort', handleParentAbort);
             abortController.abort();
             try {
                 presenter.close(modalId, {

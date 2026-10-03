@@ -4,11 +4,14 @@
 import { assertNonEmptyString } from '@core/assertions.ts';
 import { hasOwn, isObject } from '@core/typeGuards.ts';
 
+const PAGE_READINESS_TIMEOUT_MS = 180000;
+const INITIAL_MODEL_COLLECTION_TIMEOUT_MS = 90000;
+
 const TIMEOUTS = Object.freeze({
-    CORE_MODULES: 15000,
+    CORE_MODULES: 120000,
     PAGE_LOAD: 60000,
-    API_REQUEST: 30000,
-    STREAM_CONNECT: 5000,
+    API_REQUEST: 90000,
+    STREAM_CONNECT: INITIAL_MODEL_COLLECTION_TIMEOUT_MS,
     NOTIFICATION: 5000,
     DEBOUNCE: 300,
     THROTTLE: 100,
@@ -43,7 +46,7 @@ const WEBSOCKET = Object.freeze({
     RECONNECT_DELAY_MAX_MS: 30000,
     RECONNECT_STABILITY_MS: 10000,
     HEARTBEAT_TIMEOUT_MS: 90000,
-    CONNECTION_TIMEOUT_MS: 30000
+    CONNECTION_TIMEOUT_MS: 90000
 });
 
 const constants = Object.freeze({
@@ -56,20 +59,14 @@ const constants = Object.freeze({
 type StreamsConfig = typeof STREAMS;
 type StreamKey = keyof typeof STREAMS;
 
-let streamsConfigCache: StreamsConfig | null = null;
-const streamIdCache = new Map<string, string>();
-
 const normalizeStreamKey = (key: string): string => assertNonEmptyString(key, 'Stream key');
 
 const getStreamsConfig = (): StreamsConfig => {
-    if (streamsConfigCache === null) {
-        const streams = constants.STREAMS;
-        if (!isObject(streams)) {
-            throw new Error('Runtime constants must include STREAMS');
-        }
-        streamsConfigCache = streams;
+    const streams = constants.STREAMS;
+    if (!isObject(streams)) {
+        throw new Error('Runtime constants must include STREAMS');
     }
-    return streamsConfigCache;
+    return streams;
 };
 
 const isStreamKey = (streams: StreamsConfig, key: string): key is StreamKey => {
@@ -79,13 +76,6 @@ const isStreamKey = (streams: StreamsConfig, key: string): key is StreamKey => {
 function getStreamId<Key extends StreamKey>(key: Key): StreamsConfig[Key];
 function getStreamId(key: string): string {
     const normalizedKey = normalizeStreamKey(key);
-    if (streamIdCache.has(normalizedKey)) {
-        const cached = streamIdCache.get(normalizedKey);
-        if (cached !== undefined) {
-            return cached;
-        }
-        throw new Error(`Stream id cache missing expected entry: ${normalizedKey}`);
-    }
     const streams = getStreamsConfig();
     if (!isStreamKey(streams, normalizedKey)) {
         throw new Error(`Unknown stream key: ${normalizedKey}`);
@@ -93,10 +83,9 @@ function getStreamId(key: string): string {
     const streamId = assertNonEmptyString(streams[normalizedKey], `STREAMS.${normalizedKey}`, {
         message: `STREAMS.${normalizedKey} must be a non-empty string`
     });
-    streamIdCache.set(normalizedKey, streamId);
     return streamId;
 }
 
-export { constants, HTTP, STREAMS, TIMEOUTS, WEBSOCKET, getStreamsConfig, getStreamId };
+export { constants, HTTP, INITIAL_MODEL_COLLECTION_TIMEOUT_MS, PAGE_READINESS_TIMEOUT_MS, STREAMS, TIMEOUTS, WEBSOCKET, getStreamsConfig, getStreamId };
 
 export type { StreamsConfig, StreamKey };

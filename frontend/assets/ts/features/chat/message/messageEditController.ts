@@ -12,7 +12,7 @@ import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { reportChatStreamTerminalizationFailureOnce } from '@features/chat/chatstreamservice/controller/terminalizationError.ts';
 import { runChatExecutionModelPreflightBoundary } from '@features/chat/modelExecutionPreflight.ts';
 import { commitChatMessageEdit, commitChatMessageResend } from '@features/chat/message/messageEditCommit.ts';
-import { beginMessageTextEditing, restoreRenderedMessageText, setMessageTextEditingBusy } from '@features/chat/message/messageEditDom.ts';
+import { beginMessageTextEditing, isMessageTextEditing, restoreRenderedMessageText, setMessageTextEditingBusy } from '@features/chat/message/messageEditDom.ts';
 import { handleEditAttachmentClick, resolveRemovedEditAttachmentIndexes } from '@features/chat/message/messageEditAttachmentDom.ts';
 import type { ChatMessageEditControllerDependencies } from '@features/chat/message/messageMutationControllerContracts.ts';
 import { normalizeMessageDomId } from '@features/chat/message/messageDomIds.ts';
@@ -105,6 +105,10 @@ class ChatMessageEditController {
         this.#baselineHasNonTextContent = userMessageHasNonTextContent(message);
         this.#wireEditInput(textarea, container);
         this.#save.notifyChanged();
+    }
+
+    isEditing(): boolean {
+        return isMessageTextEditing(this.#resolveActiveContainer());
     }
 
     endEditing(message: ChatMessage, messageId: string): void {
@@ -286,6 +290,7 @@ class ChatMessageEditController {
         this.#activeMessageId = null;
         this.#baselineText = '';
         this.#baselineHasNonTextContent = false;
+        this.#dependencies.notifyEditingChanged();
     }
 
     #resolveActiveTextarea(): HTMLTextAreaElement | null {

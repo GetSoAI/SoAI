@@ -19,9 +19,11 @@ from core.ipc.ndjson import IpcStreamClosedError
 from core.ipc.settings import build_ndjson_codec_from_env
 from core.logging.trace import get_logger
 from core.openai.chat_template_role_policy import (
+    extract_chat_template_role_rejection_http_status,
+)
+from core.openai.chat_template_role_rejection import (
     CHAT_TEMPLATE_ROLE_REJECTION_CATEGORY,
     CHAT_TEMPLATE_ROLE_REJECTION_CATEGORY_KEY,
-    extract_chat_template_role_rejection_http_status,
 )
 from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
 from core.types.json import JSONDict

@@ -15,16 +15,16 @@
     }
 
     :where(.chat-container) .conversation-item[data-conversation-color]:not(.is-selected) {
-        --conversation-item-left-rail-color: var(--conversation-item-overlay-accent);
+        --conversation-item-inline-start-rail-color: var(--conversation-item-overlay-accent);
         --conversation-item-before-surface: linear-gradient(135deg, color-mix(in srgb, var(--conversation-item-overlay-accent) var(--conversation-item-overlay-strong), var(--glass-underlay-surface)), color-mix(in srgb, var(--conversation-item-overlay-accent) var(--conversation-item-overlay-soft), var(--glass-underlay-surface)));
     }
 
     :where(.chat-container) .conversation-item[data-is-favorite='true']:not([data-conversation-color], .is-selected) {
-        --conversation-item-left-rail-color: var(--accent-favorite);
+        --conversation-item-inline-start-rail-color: var(--accent-favorite);
     }
 
     :where(.chat-container) .conversation-item[data-is-favorite='true']:not([data-conversation-color], .is-selected).is-active {
-        --conversation-item-left-rail-color: var(--accent-favorite-light);
+        --conversation-item-inline-start-rail-color: var(--accent-favorite-light);
     }
 
     :where(.chat-container) .conversations-list.selection-mode .conversation-item {
@@ -54,7 +54,7 @@
         justify-content: center;
         width: var(--control-icon-size-compact);
         height: var(--control-icon-size-compact);
-        margin-left: var(--space-15);
+        margin-inline-start: var(--space-15);
         flex: 0 0 auto;
         color: var(--text-secondary);
     }
@@ -165,8 +165,22 @@
     }
 
     :where(.chat-container) .conversation-title-wrapper {
-        margin-right: auto;
+        position: relative;
+        margin-inline-end: auto;
         flex: 1 1 auto;
+    }
+
+    :where(.chat-container) .conversation-title-wrapper:has(.conversation-title-input:not(.u-hidden), .conversation-title-cancel-btn[data-presence-state='exiting']) .conversation-title {
+        position: absolute;
+        inset-inline-start: 0;
+        inset-block-start: 0;
+    }
+
+    :where(.chat-container) .conversation-title-wrapper:has(.conversation-title-cancel-btn[data-presence-state='exiting'])::before {
+        content: '';
+        flex: 0 1 auto;
+        width: min(420px, calc(48 * var(--ui-viewport-width-unit)));
+        min-width: 180px;
     }
 
     :where(.chat-container) .conversation-title-save-btn,
@@ -186,7 +200,8 @@
         transition: opacity var(--transition-fast);
         flex-shrink: 0;
         justify-content: center;
-        padding: var(--space-3) var(--space-3) var(--space-3) 0;
+        padding-block: var(--space-3) var(--space-3);
+        padding-inline: 0 var(--space-3);
         position: relative;
     }
 

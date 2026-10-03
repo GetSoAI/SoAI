@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_handled_exception
-from core.errors.exceptions import PayloadTooLargeError
+from core.errors.exceptions import PayloadTooLargeError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.trace import get_logger
 from core.models.model_context import ModelContext
@@ -15,6 +15,11 @@ from core.models.model_info_fields import coerce_plugin_name, is_model_info_acti
 from core.models.parameter_request_overrides import extract_payload_request_overrides
 from core.models.provider_backing import is_provider_backed_model
 from core.models.source_identifier import require_source_model_id
+from core.openai.chat_template_role_policy import SOAI_CHAT_TEMPLATE_MAX_ROLE_PARAMETER
+from core.openai.chat_template_role_policy_resolver import (
+    ChatTemplateRolePolicyChoice,
+    is_chat_template_role_policy_rejection,
+)
 from core.openai.token_accounting import PromptOccupancy
 from core.plugins.prompt_token_counting import parse_plugin_prompt_token_count_result
 from core.types.json import is_json_dict
@@ -22,11 +27,13 @@ from core.types.json_value import copy_json_dict
 
 if TYPE_CHECKING:
     from core.models.protocols import ModelInformationServiceProtocol, ModelParameterServiceProtocol
+    from core.openai.chat_template_role_policy_resolver import ChatTemplateRolePolicyResolver
     from core.orchestrator.protocols_lifecycle import (
         OrchestratorLifecycleProtocol,
         PluginStateProtocol,
     )
     from core.plugins.protocols import PluginManagerProtocol
+    from core.plugins.protocols_instance import PluginInstanceProtocol
     from core.runtime.request_context import RequestContext
     from core.state.protocols import StateAggregatorProtocol
     from core.types.json import JSONDict
@@ -72,6 +79,7 @@ async def count_target_plugin_prompt_occupancy(
     plugin_manager: PluginManagerProtocol,
     state_aggregator: StateAggregatorProtocol,
     orchestrator_lifecycle: OrchestratorLifecycleProtocol,
+    chat_template_role_policy_resolver: ChatTemplateRolePolicyResolver,
     request_context: RequestContext,
 ) -> PromptOccupancy | None:
     plugin = await plugin_manager.get_plugin_instance(target.plugin_name)
@@ -88,22 +96,17 @@ async def count_target_plugin_prompt_occupancy(
         target=target,
         model_parameter_service=model_parameter_service,
     )
-    try:
-        result_payload = await plugin.count_prompt_tokens(
-            plugin_payload,
-            request_context,
-            model_context,
-        )
-    except PLUGIN_COUNT_RECOVERABLE_EXCEPTIONS as exception:
-        log_handled_exception(
-            get_logger(LOGGER_NAME),
-            exception,
-            message="Plugin prompt token counting failed; using conservative estimation.",
-            operation=OPERATION,
-            trace_id=request_context.trace_id,
-            details={"plugin_name": target.plugin_name, "universal_id": target.universal_id},
-        )
+    counted = await _count_with_role_policy_candidates(
+        plugin=plugin,
+        chat_template_role_policy_resolver=chat_template_role_policy_resolver,
+        plugin_payload=plugin_payload,
+        model_context=model_context,
+        request_context=request_context,
+        target=target,
+    )
+    if counted is None:
         return None
+    result_payload, role_policy_choice = counted
     result = parse_plugin_prompt_token_count_result(result_payload)
     if result.precision != "exact" or result.prompt_tokens is None:
         return None
@@ -122,7 +125,71 @@ async def count_target_plugin_prompt_occupancy(
         or not _target_is_countable(target, states_after.get(target.plugin_name))
     ):
         return None
+    if role_policy_choice.cacheable:
+        await chat_template_role_policy_resolver.record_success(
+            model_context,
+            role_policy_choice.policy,
+        )
     return PromptOccupancy(result.prompt_tokens, False, None, "exact")
+
+
+async def _count_with_role_policy_candidates(
+    *,
+    plugin: PluginInstanceProtocol,
+    chat_template_role_policy_resolver: ChatTemplateRolePolicyResolver,
+    plugin_payload: JSONDict,
+    model_context: ModelContext,
+    request_context: RequestContext,
+    target: ModelPromptCountTarget,
+) -> tuple[JSONDict, ChatTemplateRolePolicyChoice] | None:
+    try:
+        choices = await chat_template_role_policy_resolver.resolve_candidate_policies(
+            plugin_payload,
+            model_context,
+        )
+    except ValidationError as exception:
+        _log_plugin_count_failure(exception, target=target, request_context=request_context)
+        return None
+    for index, choice in enumerate(choices):
+        try:
+            result_payload = await plugin.count_prompt_tokens(
+                {**plugin_payload, SOAI_CHAT_TEMPLATE_MAX_ROLE_PARAMETER: choice.policy},
+                request_context,
+                model_context,
+            )
+        except PLUGIN_COUNT_RECOVERABLE_EXCEPTIONS as exception:
+            if index + 1 < len(choices) and is_chat_template_role_policy_rejection(exception):
+                continue
+            _log_plugin_count_failure(
+                exception,
+                target=target,
+                request_context=request_context,
+                role_policy=choice.policy,
+            )
+            return None
+        return (result_payload, choice)
+    return None
+
+
+def _log_plugin_count_failure(
+    exception: Exception,
+    *,
+    target: ModelPromptCountTarget,
+    request_context: RequestContext,
+    role_policy: str | None = None,
+) -> None:
+    details: JSONDict = {"plugin_name": target.plugin_name, "universal_id": target.universal_id}
+    if role_policy is not None:
+        details["chat_template_role_policy"] = role_policy
+    log_handled_exception(
+        get_logger(LOGGER_NAME),
+        exception,
+        message="Plugin prompt token counting failed; using conservative estimation.",
+        operation=OPERATION,
+        trace_id=request_context.trace_id,
+        details=details,
+        level="debug",
+    )
 
 
 def _target_is_countable(

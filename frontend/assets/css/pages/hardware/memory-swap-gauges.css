@@ -145,7 +145,7 @@
         font-size: var(--font-size-compact-sm);
         font-weight: 600;
         line-height: 1;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-gauge-value {
@@ -164,7 +164,7 @@
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-stat-label {
         color: var(--text-tertiary);
         font-size: var(--font-size-compact-sm);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-memory-swap-stat-value {

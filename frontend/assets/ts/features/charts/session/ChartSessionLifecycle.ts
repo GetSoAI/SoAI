@@ -16,7 +16,6 @@ interface ChartLifecycleDependencies {
     redraw: ChartLifecycleStep;
     surface: ChartLifecycleStep;
     theme: ChartLifecycleStep;
-    loading: ChartLifecycleStep;
     viewportResize: ChartLifecycleStep;
     renderer: ChartLifecycleStep;
     interaction: ChartLifecycleStep;
@@ -42,8 +41,8 @@ class ChartSessionLifecycle {
     #initialization: Promise<void> | null = null;
     #destruction: Promise<void> | null = null;
 
-    constructor({ events, redraw, surface, theme, loading, viewportResize, renderer, interaction }: ChartLifecycleDependencies) {
-        this.#steps = [events, redraw, surface, theme, loading, viewportResize, renderer, interaction];
+    constructor({ events, redraw, surface, theme, viewportResize, renderer, interaction }: ChartLifecycleDependencies) {
+        this.#steps = [events, redraw, surface, theme, viewportResize, renderer, interaction];
     }
 
     get state(): ChartLifecycleState {

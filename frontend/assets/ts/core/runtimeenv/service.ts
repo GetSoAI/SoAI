@@ -13,7 +13,8 @@ import { handleDetachedCloseRequestEvent, handleDetachedContextEvent, handleDeta
 import { ensureEventHubAvailable, ensureStateManager } from '@core/runtimeenv/guards.ts';
 import type { DetachedContext, DetachedSubscription, OpenDetachedOptions, OpenDetachedResult, OpenWindowInfo, RuntimeWindowServiceState, WindowMetadata, WindowRecord } from '@core/runtimeenv/internalContracts.ts';
 import { extractCurrentWindowMetadata, isValidRuntimeString } from '@core/runtimeenv/mappers.ts';
-import { LOG_TAG_DETACHED, RuntimeEnvLogger, getCurrentWindowId, getDetachedContext, getHostWindowId } from '@core/runtimeenv/serviceSupport.ts';
+import { LOG_TAG_DETACHED, RuntimeEnvLogger, getHostWindowId } from '@core/runtimeenv/serviceSupport.ts';
+import { windowIdentity } from '@core/runtime/windowIdentity.ts';
 import { warmDetachedBundle, warmLogBundle } from '@core/runtimeenv/warmup.ts';
 import { withTimeout } from '@core/primitives/withTimeout.ts';
 class WindowService implements RuntimeWindowServiceState {
@@ -34,9 +35,9 @@ class WindowService implements RuntimeWindowServiceState {
     constructor() {
         this.openWindows = new Map();
         this.pendingMetadata = new Map();
-        this.windowId = getCurrentWindowId();
+        this.windowId = windowIdentity.current();
         this.hostWindowId = getHostWindowId();
-        this.isPrimaryWindow = !getDetachedContext();
+        this.isPrimaryWindow = !windowIdentity.isDetachedContext();
         this.contextDeferred = null;
         this.contextPromise = null;
         this.pendingContext = null;

@@ -1,11 +1,11 @@
 /* SoAI - Model detail page control layer OpenAI capabilities override actions [frontend/assets/ts/pages/modeldetail/controllers/openaicapabilities/overrideActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
-import { hasOpenAICapabilityOverrideChanges, parseOpenAICapabilityToggleRequest, resetOpenAICapabilityOverrideState, setOpenAICapabilityOverrideEnabled, type OpenAICapabilityOverrideState } from '@features/models/public.ts';
+import { parseOpenAICapabilityToggleRequest, resetOpenAICapabilityOverrideState, setOpenAICapabilityOverrideEnabled, type OpenAICapabilityOverrideState } from '@features/models/public.ts';
+import { syncModelDetailCapabilityButtons } from '@pages/modeldetail/controllers/openaicapabilities/effects.ts';
 import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 
@@ -18,20 +18,6 @@ interface ModelDetailOpenAICapabilityActionsHost extends PageResourcesOwnerHost,
 }
 
 const CAPABILITY_TOGGLE_RENDER_DELAY_MS = 300;
-
-const syncCapabilityButtons = (card: Element, state: OpenAICapabilityOverrideState): void => {
-    const dirty = hasOpenAICapabilityOverrideChanges(state);
-    const saveButton = dom.resolve('#modeldetail-openai-capabilities-save', card);
-    const resetButton = dom.resolve('#modeldetail-openai-capabilities-reset', card);
-    if (saveButton instanceof HTMLButtonElement) {
-        saveButton.disabled = !dirty;
-        saveButton.classList.toggle('u-hidden', !dirty);
-    }
-    if (resetButton instanceof HTMLButtonElement) {
-        resetButton.disabled = state.currentDisabled.size === 0 || dirty;
-        resetButton.classList.toggle('u-hidden', dirty);
-    }
-};
 
 const scheduleCapabilityRender = (host: ModelDetailOpenAICapabilityActionsHost, card: HTMLElement): void => {
     const existingTimerId = Number(card.dataset['capabilityRenderTimerId'] ?? '');
@@ -69,7 +55,7 @@ const toggleModelDetailOpenAICapabilityOverride = (host: ModelDetailOpenAICapabi
     }
     const card = element.closest('#modeldetail-status-capabilities');
     if (card instanceof HTMLElement) {
-        syncCapabilityButtons(card, state);
+        syncModelDetailCapabilityButtons(card, state);
         scheduleCapabilityRender(host, card);
     } else {
         host.populateDetailCards();

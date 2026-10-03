@@ -33,6 +33,7 @@ interface ChatCurrentConversationUiPort extends ChatUiTaskScopeHost, ChatPagePre
 interface ChatCurrentConversationRenderDependencies extends ChatCurrentConversationStatePort, ChatCurrentConversationUiPort, ChatSettingsStateHost {
     pageContext: { sanitizer: SanitizerApi };
     emptyState: ChatPageEmptyState;
+    readAiSetupResumeRoute(): string | null;
 }
 
 interface ChatSearchDependencies extends ChatViewStateHost, PageServicesOwnerHost, PageDomOwnerHost {

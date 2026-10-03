@@ -10,6 +10,7 @@ interface SyncGpuControlActionButtonsInput {
     index: string;
     snapshot: GpuSnapshot;
     pending: boolean;
+    locked: boolean;
     saveMode: boolean;
     canStoreAppliedSettings: boolean;
     canSaveCurrentSettings: boolean;
@@ -46,8 +47,8 @@ const hasMountedGpuControlPanel = (index: string): boolean => {
     return false;
 };
 
-const requiresGpuPrimaryActionRender = (index: string, primaryAction: GpuPrimaryAction): boolean => {
-    if (!hasMountedGpuControlPanel(index)) {
+const requiresGpuPrimaryActionRender = (index: string, primaryAction: GpuPrimaryAction, locked: boolean): boolean => {
+    if (locked || !hasMountedGpuControlPanel(index)) {
         return false;
     }
     const saveButton = resolveIndexedButton('gpu-save-btn', index);
@@ -64,7 +65,7 @@ export const GpuControlActionButtonsController = (input: SyncGpuControlActionBut
     const resetButton = resolveIndexedButton('gpu-reset-round-btn', input.index);
     if (resetButton) {
         resetButton.hidden = !hasManualSnapshotControl(input.snapshot);
-        setButtonDisabledState(resetButton, input.pending);
+        setButtonDisabledState(resetButton, input.pending || input.locked);
     }
     const historyButton = resolveIndexedButton('gpu-history-round-btn', input.index);
     if (historyButton) {

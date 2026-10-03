@@ -27,14 +27,13 @@
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) .file-explorer-entry-open-spinner.loading-spinner {
+        --soai-spinner-stroke: var(--border-width-1);
         position: absolute;
         inset: 0;
         display: none;
         width: 12px;
         height: 12px;
         margin: auto;
-        border-width: var(--border-width-1);
-        border-top-width: var(--border-width-1);
     }
 
     :where([data-section='fileExplorer'], [data-page-scope='fileExplorer']) tr[data-file-preview-loading='true'] .file-explorer-entry-icon > :not(.file-explorer-entry-open-spinner) {

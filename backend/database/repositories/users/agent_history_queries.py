@@ -8,13 +8,13 @@ from typing import TYPE_CHECKING
 from core.database.protocols import DatabaseReaderProtocol
 from core.errors.exceptions import DatabaseError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from database.core.read_transaction import run_read_transaction
 from database.repositories.users.canonical_agent_history_reads import (
     query_canonical_agent_history,
 )
 from database.repositories.users.conversation_query_filters import (
     conversation_exists_for_user,
 )
-from database.repositories.users.read_transactions import run_user_read_transaction
 
 if TYPE_CHECKING:
     import aiosqlite
@@ -48,7 +48,7 @@ async def load_canonical_agent_history_for_conversation(
             )
             return history
 
-        return await run_user_read_transaction(database, _transaction)
+        return await run_read_transaction(database, _transaction)
 
     try:
         return await reader.execute_read(_query)

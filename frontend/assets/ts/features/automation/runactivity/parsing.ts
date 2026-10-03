@@ -2,24 +2,17 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isAutomationRunStatus } from '@core/automation/guards.ts';
+import type { AutomationRunResponse } from '@core/api/contracts/automationContractTypes.ts';
 import { readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
-import type { AutomationRunStatus } from '@features/automation/runactivity/types.ts';
 
-interface AutomationRunRecord {
-    runId: string;
-    automationId: string;
-    status: AutomationRunStatus;
-}
-
-const parseRunStatusFromRecord = (record: { runId: string; automationId: string; status: string }): AutomationRunRecord => {
+const parseRunStatusFromRecord = (record: AutomationRunResponse): AutomationRunResponse => {
     const runId = readRequiredTrimmedStringValue(record.runId, 'Automation run record.runId');
     const automationId = readRequiredTrimmedStringValue(record.automationId, 'Automation run record.automationId');
     const statusValue = record.status;
     if (!isAutomationRunStatus(statusValue)) {
         throw new Error(`Automation run record.status is invalid: ${String(statusValue)}`);
     }
-    return { runId, automationId, status: statusValue };
+    return { ...record, runId, automationId, status: statusValue };
 };
 
 export { parseRunStatusFromRecord };
-export type { AutomationRunRecord };

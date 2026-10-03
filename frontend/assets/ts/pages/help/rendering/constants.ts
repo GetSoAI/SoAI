@@ -5,7 +5,7 @@ import { SOAI_WEBSITE_URL } from '@core/ui/branding/pageBranding.ts';
 
 const EXTERNAL_LINK_CONFIG = Object.freeze({
     className: 'ui-button external-link-confirmation',
-    attributes: Object.freeze({ type: 'button' }),
+    attributes: Object.freeze({ type: 'button', dir: 'auto' }),
     dataset: Object.freeze({
         href: SOAI_WEBSITE_URL,
         externalLinkType: 'help-website'

@@ -1,15 +1,13 @@
 /* SoAI - Metrics page candlestick history effects [frontend/assets/ts/pages/metrics/widgets/candlestickhistory/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
-import { decodeMetricsHistoryPayload } from '@core/realtime/metricsHistoryContracts.ts';
-import type { JsonValue } from '@core/types/jsonValues.ts';
+import type { MetricsHistoryPayload } from '@core/realtime/metricsHistoryContracts.ts';
 import { readRoundedIntegerMinimumValue, readRoundedPositiveIntegerOrNullValue } from '@core/types/numberCoercionReaders.ts';
-import { isArray, isObject } from '@core/typeGuards.ts';
-import { HISTORY_CHART_MIN_POINTS, type HistoryChartOhlcModule } from '@features/charts/public.ts';
+import { isArray } from '@core/typeGuards.ts';
+import { filterCandlestickBucketsForSeries, resolveHistoryChartStorageCapacity, type HistoryChartOhlcModule } from '@features/charts/public.ts';
 import { METRICS_HISTORY_API_POINT_LIMIT } from '@features/metrics/public.ts';
 import { trimCandlestickSeries } from '@pages/metrics/mappers/metricsHistoryMapping.ts';
-import type { CandlestickMetadata } from '@pages/metrics/types.ts';
+import type { CandlestickDataPoint, CandlestickMetadata } from '@pages/metrics/types.ts';
 import { parseBackendOhlcResponse } from '@pages/metrics/widgets/candlestickhistory/mappers.ts';
 import type { CandlestickHistoryContext } from '@pages/metrics/widgets/candlestickhistory/types.ts';
 
@@ -25,9 +23,9 @@ const applyCandlestickMetadata = (context: CandlestickHistoryContext, chartOhlc:
     if (maxPoints) {
         const bounded = Math.min(context.limits.chartHardLimit, METRICS_HISTORY_API_POINT_LIMIT, maxPoints);
         context.limits.historyApiPointCap = bounded;
-        context.limits.maxHistoryPoints = Math.min(context.limits.chartHardLimit, Math.max(HISTORY_CHART_MIN_POINTS, bounded));
+        context.limits.maxHistoryPoints = resolveHistoryChartStorageCapacity(bounded, context.limits.maxRetentionMinutes, context.limits.monitoringIntervalMs, context.limits.chartHardLimit);
         context.chart.mainChart?.settings.update({
-            maxDataPoints: Math.min(context.limits.maxHistoryPoints, context.limits.historyApiPointCap)
+            maxDataPoints: context.limits.maxHistoryPoints
         });
     }
     const limit = context.limits.pointBudget;
@@ -36,14 +34,11 @@ const applyCandlestickMetadata = (context: CandlestickHistoryContext, chartOhlc:
 };
 
 const trimCandlestickData = (context: CandlestickHistoryContext, force = false): boolean => {
-    const intervalMs = context.query.getEffectiveCandlestickIntervalMs();
     const { modified, candles, buckets } = trimCandlestickSeries({
         candles: context.state.candlestickData,
         buckets: context.state.candlestickBuckets,
-        pointBudget: context.limits.pointBudget,
+        capacity: context.limits.maxHistoryPoints,
         historyTrimRatio: context.limits.historyTrimRatio,
-        timeRangeMinutes: context.limits.timeRange,
-        intervalMs,
         force
     });
     if (modified) {
@@ -53,39 +48,57 @@ const trimCandlestickData = (context: CandlestickHistoryContext, force = false):
     return modified;
 };
 
-const applyCandlestickHistory = (context: CandlestickHistoryContext, chartOhlc: HistoryChartOhlcModule, response: JsonValue, { resetView = false }: { resetView?: boolean } = {}): void => {
-    if (!isObject(response)) {
-        throw new TypeError('metrics candlestick history response must be an object');
-    }
+const applyCandlestickHistory = (context: CandlestickHistoryContext, chartOhlc: HistoryChartOhlcModule, response: MetricsHistoryPayload): boolean => {
     if (!chartOhlc) {
         throw new TypeError('metrics candlestick history requires ohlc utilities');
     }
-    context.state.candlestickHistoryExhausted = false;
-    const result = parseBackendOhlcResponse(chartOhlc, decodeMetricsHistoryPayload(response), context.query.getMetricTransform());
+    const result = parseBackendOhlcResponse(chartOhlc, response, context.query.getMetricTransform());
     if (result.intervalMs <= 0) {
         throw new TypeError('metrics candlestick history intervalMs must be a positive number');
     }
-    context.state.candlestickData = result.candles.slice(0, context.limits.chartHardLimit);
-    context.state.candlestickBuckets = result.candlestickBuckets;
+    if (!isArray(context.state.baseCandleIntervals)) {
+        throw new TypeError('baseCandleIntervals must be an array');
+    }
+    context.state.candlestickData = result.candles.slice(-context.limits.maxHistoryPoints);
+    context.state.candlestickBuckets = filterCandlestickBucketsForSeries(context.state.candlestickData, result.candlestickBuckets);
     context.state.candlestickMetadata = result.metadata;
     applyCandlestickMetadata(context, chartOhlc, context.state.candlestickMetadata);
 
     const intervalMinutes = readRoundedIntegerMinimumValue(result.intervalMs / 60000, 1);
     context.state.lastResolvedCandlestickIntervalMs = result.intervalMs;
-    if (!isArray(context.state.baseCandleIntervals)) {
-        throw new TypeError('baseCandleIntervals must be an array');
-    }
     if (!context.state.baseCandleIntervals.includes(intervalMinutes)) {
         context.state.baseCandleIntervals = [...new Set([...context.state.baseCandleIntervals, intervalMinutes])].sort((firstValue, secondValue) => firstValue - secondValue);
     }
-    if (intervalMinutes !== context.state.candlestickIntervalMinutes) {
-        context.state.candlestickIntervalMinutes = intervalMinutes;
-        terminateHandledPromise(context.query.syncChartControls({ range: false, candles: true }));
+    if (intervalMinutes === context.state.candlestickIntervalMinutes) {
+        return false;
     }
-    const trimmed = trimCandlestickData(context, true);
-    if (context.query.isCandlestickActive()) {
-        context.query.updateMainChart({ resetView: resetView || trimmed });
-    }
+    context.state.candlestickIntervalMinutes = intervalMinutes;
+    return true;
 };
 
-export { applyCandlestickHistory, applyCandlestickMetadata, trimCandlestickData };
+const prependCandlestickHistory = (context: CandlestickHistoryContext, chartOhlc: HistoryChartOhlcModule, response: MetricsHistoryPayload): { prepended: CandlestickDataPoint[]; capped: boolean } => {
+    const result = parseBackendOhlcResponse(chartOhlc, response, context.query.getMetricTransform());
+    if (result.intervalMs !== context.state.lastResolvedCandlestickIntervalMs) {
+        throw new TypeError('Metrics older history interval differs from the displayed series');
+    }
+    const earliestTimestamp = context.state.candlestickData[0]?.timestamp;
+    if (earliestTimestamp === undefined) {
+        throw new TypeError('Metrics older history requires an existing series');
+    }
+    const older = result.candles.filter((candle) => candle.timestamp < earliestTimestamp);
+    const room = Math.max(0, context.limits.maxHistoryPoints - context.state.candlestickData.length);
+    const prepended = older.slice(Math.max(0, older.length - room));
+    const capped = prepended.length < older.length;
+    if (!prepended.length) return { prepended, capped };
+    const buckets = new Map(context.state.candlestickBuckets);
+    for (const candle of prepended) {
+        const bucket = result.candlestickBuckets.get(candle.timestamp);
+        if (!bucket) throw new TypeError('Metrics older history candle is missing its bucket');
+        buckets.set(candle.timestamp, bucket);
+    }
+    context.state.candlestickData = [...prepended, ...context.state.candlestickData];
+    context.state.candlestickBuckets = buckets;
+    return { prepended, capped };
+};
+
+export { applyCandlestickHistory, applyCandlestickMetadata, prependCandlestickHistory, trimCandlestickData };

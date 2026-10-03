@@ -29,7 +29,7 @@ const handleGpuApplyClick = async (
     }
     const key = str(index);
     const state = context.ensureUiState(key);
-    if (state.pending || state.saveMode) {
+    if (state.pending || state.saveMode || context.isCertifiedRunLocked(key)) {
         return;
     }
     if (state.canStoreAppliedSettings) {
@@ -64,7 +64,7 @@ const handleGpuSlotClick = async (context: ControlContext, index: string | numbe
     }
     const key = str(index);
     const state = context.ensureUiState(key);
-    if (!state.deviceId || state.pending) {
+    if (!state.deviceId || state.pending || context.isCertifiedRunLocked(key)) {
         return;
     }
     const slotId = str(slot);
@@ -97,7 +97,7 @@ const handleGpuSoAIBenchStartClick = async (context: ControlContext, index: stri
     }
     const key = str(index);
     const state = context.ensureUiState(key);
-    if (state.pending || state.saveMode || hasPendingGpuApplyAction(state)) {
+    if (state.pending || state.saveMode || hasPendingGpuApplyAction(state) || context.isCertifiedRunLocked(key)) {
         return;
     }
     if (!state.deviceId) {

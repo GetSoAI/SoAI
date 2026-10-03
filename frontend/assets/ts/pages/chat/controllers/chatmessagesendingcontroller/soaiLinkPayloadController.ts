@@ -103,7 +103,7 @@ const resolveSoaiLinks = async (host: SoaiLinkPayloadResolveHost, conversationId
     });
 };
 
-const resolveComposerSoaiLinks = (host: SoaiLinkPayloadResolveHost, conversationId: string, payload: ComposerPayload): Promise<ComposerPayload | null> => {
+const resolveComposerSoaiLinks = (host: SoaiLinkPayloadResolveHost, conversationId: string, payload: ComposerPayload, extraSignal: AbortSignal | null = null): Promise<ComposerPayload | null> => {
     const resolutionManager = host.services.getSoaiLinkResolutionManager();
     return resolveSoaiLinks(
         host,
@@ -116,7 +116,7 @@ const resolveComposerSoaiLinks = (host: SoaiLinkPayloadResolveHost, conversation
             workspaceSnapshot: captureSoaiLinkWorkspaceSnapshot(host.conversation.getCurrentConversation())
         },
         'chat:resolveComposerSoaiLinks',
-        null
+        extraSignal
     );
 };
 

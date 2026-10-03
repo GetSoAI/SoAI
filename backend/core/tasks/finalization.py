@@ -28,6 +28,7 @@ from core.tasks.task_state_merge import merge_task_state
 from core.types.json_value import copy_json_value, filter_json_mapping_strict
 
 if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
     from core.logging.protocols import LoggerProtocol
     from core.tasks.interaction_mutations import ConversationInteractionMutation
     from core.types.json import JSONValue
@@ -49,6 +50,7 @@ async def finalize(
     error_code: int | None = None,
     error_type: str | None = None,
     error_message: str | None = None,
+    public_error: ErrorPublicPayload | None = None,
     status_message: str | None = None,
     emit_reply_completion_event: bool = True,
     delivery_version: int | None = None,
@@ -65,6 +67,7 @@ async def finalize(
             error_code=error_code,
             error_type=error_type,
             error_message=error_message,
+            public_error=public_error,
             status_message=status_message,
             emit_reply_completion_event=emit_reply_completion_event,
             delivery_version=delivery_version,
@@ -84,6 +87,7 @@ async def _finalize(
     error_code: int | None,
     error_type: str | None,
     error_message: str | None,
+    public_error: ErrorPublicPayload | None,
     status_message: str | None,
     emit_reply_completion_event: bool,
     delivery_version: int | None,
@@ -93,6 +97,13 @@ async def _finalize(
     logger = get_logger(LOGGER_NAME_TASKS_REGISTRY_LIFECYCLE)
     if not status.is_terminal():
         raise ValidationError("finalize() requires a terminal TaskStatus.")
+    if public_error is not None and (
+        status != TaskStatus.FAILED or not public_error.message.strip()
+    ):
+        raise ValidationError(
+            "Public task error guidance requires a failed task and a nonempty message."
+        )
+    public_error_message = public_error.message if public_error is not None else None
     if prefetched_task is not None:
         if not isinstance(prefetched_task, Task):
             raise ValidationError("prefetched_task must be a Task instance or None.")
@@ -165,6 +176,7 @@ async def _finalize(
             error_code=error_code,
             error_type=error_type,
             error_message=error_message,
+            public_error_message=public_error_message,
             status_message=status_message,
             mutation_fencing_token=mutation_fencing_token,
             interaction_mutation=interaction_mutation,
@@ -214,6 +226,7 @@ async def _finalize(
             error_code=error_code,
             error_type=error_type,
             error_message=error_message,
+            public_error_message=public_error_message,
             status_message=status_message,
             progress_current=(
                 task.progress_total if task.progress_total is not None else task.progress_current

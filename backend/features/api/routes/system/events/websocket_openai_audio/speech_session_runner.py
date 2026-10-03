@@ -20,7 +20,7 @@ from features.api.routes.system.events.websocket_openai_audio.speech_session_pro
 from features.api.routes.system.events.websocket_openai_runner_failure_handling import (
     openai_ws_detach_event_is_set,
 )
-from features.api.runtime.event_enqueue import enqueue_correlated_media_event
+from features.api.runtime.event_enqueue import enqueue_correlated_event
 
 if TYPE_CHECKING:
     from core.runtime.request_context import RequestContext
@@ -95,7 +95,7 @@ async def run_openai_audio_speech_session(
             trace_id=trace_id,
             level="error",
         )
-        await enqueue_correlated_media_event(
+        await enqueue_correlated_event(
             enqueue_warning_tracker=enqueue_warning_tracker,
             queue=connection.queue,
             event=build_openai_audio_speech_session_error(
@@ -138,7 +138,7 @@ async def _emit_completed_if_needed(
         if runtime.detach_event.is_set() or runtime.terminal_emitted:
             return
         runtime.terminal_emitted = True
-    await enqueue_correlated_media_event(
+    await enqueue_correlated_event(
         enqueue_warning_tracker,
         connection.queue,
         build_openai_audio_speech_session_completed(run_id=runtime.run_id),

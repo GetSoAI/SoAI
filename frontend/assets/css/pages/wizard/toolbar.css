@@ -55,6 +55,10 @@
             width: 52px;
             height: 52px;
         }
+
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-nav-button {
+            min-height: 44px;
+        }
     }
 
     @container ui-viewport (width <= 480px) {
@@ -65,21 +69,35 @@
         }
 
         :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-navigation {
-            flex-direction: column;
-            align-items: stretch;
+            flex-direction: row;
+            align-items: center;
             padding: var(--space-4) var(--space-5);
         }
 
-        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-nav-left,
-        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-nav-right {
-            width: 100%;
-            justify-content: space-between;
-            flex-direction: column;
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-navigation > div {
+            flex-direction: row;
             gap: var(--space-2);
         }
 
-        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-nav-button {
-            width: 100%;
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-nav-left {
+            flex: 0 0 auto;
+            justify-content: flex-start;
+        }
+
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-nav-left:not(:has(.wizard-nav-button:not(.u-hidden))) {
+            display: none;
+        }
+
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-nav-right {
+            flex: 1 1 auto;
+            justify-content: flex-end;
+        }
+
+        :where([data-section='wizard'], [data-page-scope='wizard']) :is(.wizard-nav-left, .wizard-nav-right) .wizard-nav-button {
+            flex: 1 1 0;
+            min-width: 0;
+            padding-inline: var(--space-2);
+            font-size: var(--font-size-body-sm);
         }
 
         :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-logo.logo-ui {

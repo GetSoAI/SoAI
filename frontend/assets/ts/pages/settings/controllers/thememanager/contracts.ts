@@ -10,6 +10,7 @@ import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.
 import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 import type { UiPreferenceKey } from '@core/settings/settingsFieldKeys.ts';
+import type { WallpaperPresence } from '@pages/settings/controllers/thememanager/wallpaperPresenceState.ts';
 
 interface ThemeManagerDependencies {
     host: ThemeManagerHost;
@@ -19,24 +20,29 @@ interface ThemeManagerDependencies {
     updatePreferenceToggleLabel: (element: Element, enabled?: boolean) => void;
 }
 
+interface CurrentWallpaper {
+    url: string;
+    metadata: WallpaperMetadata | null;
+}
+
 interface ThemeManagerHost extends PageDomOwnerHost, PageResourcesOwnerHost, PageFeedbackOwnerHost {
     canManageWallpaper: () => boolean;
     uploadWallpaper: (file: File) => Promise<WallpaperUploadResponse>;
     downloadWallpaper: (url: string) => Promise<WallpaperDownloadResponse>;
     deleteWallpaper: () => Promise<void>;
-    getWallpaperStatus: () => Promise<WallpaperInfoResponse>;
+    getWallpaperStatus: (signal?: AbortSignal) => Promise<WallpaperInfoResponse>;
     storage: StorageService;
     getUiPrefValue: (key: UiPreferenceKey) => JsonValue | null | undefined;
     setUiPrefValue: (key: UiPreferenceKey, value: JsonValue | null | undefined) => void;
     runWithBoundary: <T>(name: string, task: () => Promise<T> | T) => Promise<T>;
-    getCurrentWallpaperUrl: () => string | null;
-    setCurrentWallpaperUrl: (url: string | null) => void;
-    getCurrentWallpaperMetadata: () => WallpaperMetadata | null;
-    setCurrentWallpaperMetadata: (metadata: WallpaperMetadata | null) => void;
+    getCurrentWallpaper: () => CurrentWallpaper | null;
+    getWallpaperPresence: () => WallpaperPresence;
+    setCurrentWallpaper: (wallpaper: CurrentWallpaper | null) => void;
     getCurrentSolidBackground: () => string | null;
     setCurrentSolidBackground: (value: string | null) => void;
     applyWallpaperOverlay: (value: string) => void;
     scheduleWallpaperRefresh: () => void;
+    filterSettings: () => void;
 }
 
 type AddThemeManagerCleanup = (cleanup: () => void) => void;
@@ -49,8 +55,9 @@ interface ThemeViewContext {
     host: ThemeManagerHost;
     canManageSolidBackground: boolean;
     canManageWallpaper: boolean;
+    wallpaperPresence: WallpaperPresence;
     grantedActions: ReadonlySet<string>;
     getPreferenceStateLabels: () => ToggleLabelState;
 }
 
-export type { AddThemeManagerCleanup, CustomizationType, RunDetachedWithBoundary, ThemeManagerDependencies, ThemeManagerHost, ThemeViewContext };
+export type { AddThemeManagerCleanup, CurrentWallpaper, CustomizationType, RunDetachedWithBoundary, ThemeManagerDependencies, ThemeManagerHost, ThemeViewContext };

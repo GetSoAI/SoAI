@@ -22,7 +22,10 @@ from mcp.tools.browser.session_access import (
     find_existing_session,
     require_current_page,
 )
-from mcp.tools.browser.session_action_lock import browser_action_lock
+from mcp.tools.browser.session_action_lock import (
+    browser_action_lock,
+    browser_session_driver_is_active,
+)
 from mcp.tools.browser.session_sync import sync_session_state
 
 if TYPE_CHECKING:
@@ -94,7 +97,9 @@ async def tool_browser_status(
     if session is None:
         return _build_disconnected_status()
     _store, state = session
-    async with browser_action_lock(state):
+    async with browser_action_lock(state, allow_disconnected=True):
+        if state.context_closed or not await browser_session_driver_is_active(state):
+            return _build_disconnected_status()
         async with state.lock:
             await sync_session_state(utility_tools.config, state)
             page: Page = require_current_page(state)
@@ -133,6 +138,8 @@ async def tool_browser_status(
             retries=resolve_title_retry_attempts(utility_tools.config),
             delay_ms=resolve_title_retry_delay_ms(utility_tools.config),
         )
+        if state.context_closed or not await browser_session_driver_is_active(state):
+            return _build_disconnected_status()
         return {
             "session_available": True,
             "profile": profile,

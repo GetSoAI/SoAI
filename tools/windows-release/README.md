@@ -4,7 +4,7 @@ This folder contains the first-party code and manifests used to build the SoAI l
 
 ## Layout
 
-- `launcher/` contains the C# WinForms/WebView2 launcher source and build script.
+- `launcher/` contains the C# WinForms/WebView2 launcher source and build script. The script compiles with the .NET Framework C# compiler when present, or otherwise with the Roslyn compiler bundled with PowerShell 7 against pinned .NET Framework 4.8 reference assemblies, which lets the release build run under Wine.
 - `installer/` contains the NSIS script, installer assets, and runtime install/uninstall helper scripts.
 - `tools/` contains payload staging, canonical archive creation, installer asset generation, and verified NSIS bootstrap tooling.
 - `build-release.ps1` builds the launcher, stages and archives the Windows payload, and invokes NSIS.

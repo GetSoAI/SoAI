@@ -1,12 +1,14 @@
 /* SoAI - Shared routing base page layout DOM contracts [frontend/assets/ts/core/routing/pages/basepagelayout/dom.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isRtl } from '@core/layout/direction.ts';
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { type DOMTarget, dom } from '@core/dom/dom.ts';
 import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { getComputedStyleStrict, getRequestAnimationFrame } from '@core/environment/public.ts';
 import { HEADER_ACTION_VISIBILITY_CLASSES } from '@core/routing/pages/pageActions.ts';
 import { normalizeSelectorInput } from '@core/routing/pages/pageDom.ts';
+import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { isArray, isElementNode, isNodeList, isString } from '@core/typeGuards.ts';
 import type { BasePageLayoutState } from '@core/routing/pages/basepagelayout/state.ts';
 
@@ -28,10 +30,11 @@ const clearPageHeaderTightState = (pageHeader: HTMLElement): void => {
 const resolvePageHeaderTitlePressure = (pageHeader: HTMLElement, titleSection: HTMLElement, actionsWrapper: HTMLElement): { pressure: number; recoveryRoom: number } => {
     const titleRect = measureLayoutBox(titleSection);
     const actionsRect = measureLayoutBox(actionsWrapper);
-    const overlap = Math.ceil(titleRect.right - actionsRect.left);
+    const inlineGap = isRtl(pageHeader) ? titleRect.left - actionsRect.right : actionsRect.left - titleRect.right;
+    const overlap = Math.ceil(-inlineGap);
     const overflow = Math.ceil(pageHeader.scrollWidth - pageHeader.clientWidth);
     const pressure = Math.max(overlap, overflow, 0);
-    const horizontalGap = Math.ceil(actionsRect.left - titleRect.right);
+    const horizontalGap = Math.ceil(inlineGap);
     const widthSlack = Math.ceil(pageHeader.clientWidth - pageHeader.scrollWidth);
     const recoveryRoom = Math.max(horizontalGap, widthSlack, 0);
     return { pressure, recoveryRoom };
@@ -55,6 +58,15 @@ const refreshPageHeaderTitleTightStateForElement = (element: Element | null): vo
     const shouldKeepStrong = shouldKeepTight && (hasStrongClass ? pressure >= PAGE_HEADER_TIGHT_STRONG_EXIT_PRESSURE : pressure >= PAGE_HEADER_TIGHT_STRONG_ENTER_PRESSURE);
     pageHeader.classList.toggle(PAGE_HEADER_TIGHT_CLASS, shouldKeepTight);
     pageHeader.classList.toggle(PAGE_HEADER_TIGHT_STRONG_CLASS, shouldKeepStrong);
+};
+
+const refreshPageHeaderTitleTightStateAfterActionMotion = (headerActions: HTMLElement): void => {
+    const animations = headerActions.getAnimations({ subtree: true });
+    if (!animations.length) {
+        refreshPageHeaderTitleTightStateForElement(headerActions);
+        return;
+    }
+    terminateHandledPromise(Promise.allSettled(animations.map((animation) => animation.finished)).then(() => refreshPageHeaderTitleTightStateForElement(headerActions)));
 };
 
 type HeaderActionTarget = DOMTarget | readonly HeaderActionTarget[];
@@ -123,7 +135,7 @@ const refreshHeaderActionsLayout = (getHeaderActionsRoot: HeaderActionsRootResol
         }
     }
     headerActions.classList.toggle('page-actions__menu--split', shouldSplit);
-    refreshPageHeaderTitleTightStateForElement(headerActions);
+    refreshPageHeaderTitleTightStateAfterActionMotion(headerActions);
 };
 
 const queueHeaderActionsLayoutUpdate = (state: BasePageLayoutState, resolveContext: HeaderActionContextResolver, getHeaderActionsRoot: HeaderActionsRootResolver): void => {
@@ -131,6 +143,7 @@ const queueHeaderActionsLayoutUpdate = (state: BasePageLayoutState, resolveConte
         state.pendingHeaderActionsFrame = getRequestAnimationFrame()(() => {
             state.pendingHeaderActionsFrame = null;
             resolveContext(null);
+            state.pageActionsMenu?.updateDropdownState();
             refreshHeaderActionsLayout(getHeaderActionsRoot);
         });
     }

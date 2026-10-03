@@ -100,7 +100,7 @@ const renderBackupList = (backups: BackupEntry[], sanitizeHtml: (value: Sanitize
 
 const renderBackupItemInfo = (backup: BackupEntry, sanitizeHtml: (value: SanitizerInput) => string, statusClass: string, statusLabel: string, createdDate: string, sizeDisplay: string): string => {
     const recoveryWarning = backup.licensingRecoveryState === 'incomplete' ? `<span class="settings-record-warning">${sanitizeHtml(i18n.t('settings.backup.list.licensingIncomplete'))}</span>` : '';
-    return `<div class="settings-record-info backup-info"><div class="settings-record-header backup-header"><span class="settings-record-label backup-id">${sanitizeHtml(backup.backupId)}</span><span class="settings-record-badge ${statusClass}">${statusLabel}</span></div><div class="settings-record-meta backup-meta"><span>${i18n.t('settings.backup.list.created_at')}: ${sanitizeHtml(createdDate)}</span><span>${i18n.t('settings.backup.list.size')}: ${sanitizeHtml(sizeDisplay)}</span>${recoveryWarning}</div></div>`;
+    return `<div class="settings-record-info backup-info"><div class="settings-record-header backup-header"><span class="settings-record-label backup-id">${sanitizeHtml(backup.backupId)}</span><span class="settings-record-badge ${statusClass}">${statusLabel}</span></div><div class="settings-record-meta backup-meta"><span>${i18n.t('settings.backup.list.created_at')}: ${sanitizeHtml(createdDate)}</span><span>${i18n.t('settings.backup.list.size')}: <bdi dir="ltr">${sanitizeHtml(sizeDisplay)}</bdi></span>${recoveryWarning}</div></div>`;
 };
 
 const renderBackupItemActions = (context: BackupItemActionContext): string => {

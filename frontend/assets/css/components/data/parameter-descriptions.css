@@ -3,7 +3,7 @@
 
 @layer components {
     .parameter-description {
-        border-left: 0;
+        border-inline-start: 0;
         background-image: none;
     }
 }

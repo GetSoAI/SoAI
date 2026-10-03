@@ -10,19 +10,18 @@ from typing import Never
 import httpx2
 
 from core.errors.exceptions import ApiError, SoAIError, ValidationError
+from core.network.redirect_headers import REDIRECT_STATUS_CODES
 from core.runtime.network_policy import OfflineModeError
 from core.serialization.json_parsing import parse_json_dict, parse_json_value
 from core.timing.retry_backoff import parse_retry_after_seconds
 from core.types.json import JSONDict
-from core.validation.integers import is_strict_int
-from core.validation.object_fields import require_exact_json_fields
+from hardware.soaibench.publication_receipt_validation import validate_publication_receipt
 
-__all__ = ("publish_to_soaibench", "validate_publication_receipt")
+__all__ = ("PUBLICATION_URL", "exchange_soaibench_json", "publish_to_soaibench")
 
 PUBLICATION_URL = "https://soai.to/api/v1/soaibench/submissions"
 MAX_RESPONSE_BYTES = 16 * 1024
 WHOLE_ATTEMPT_TIMEOUT_SECONDS = 14.0
-_REDIRECTS = frozenset((301, 302, 303, 307, 308))
 
 
 async def publish_to_soaibench(
@@ -47,6 +46,24 @@ async def publish_to_soaibench(
         headers=headers,
         timeout=httpx2.Timeout(connect=5.0, pool=5.0, write=10.0, read=20.0),
     )
+    status_code, raw, details = await exchange_soaibench_json(
+        http_client, request, accepted_statuses=frozenset((200, 201))
+    )
+    try:
+        receipt = _validated_receipt_bytes(raw, expected_score)
+        _validate_success_matrix(status_code, receipt)
+    except ApiError as exception:
+        exception.details = details
+        raise
+    return status_code, receipt
+
+
+async def exchange_soaibench_json(
+    http_client: httpx2.AsyncClient,
+    request: httpx2.Request,
+    *,
+    accepted_statuses: frozenset[int],
+) -> tuple[int, bytes, JSONDict | None]:
     for credential_header in ("authorization", "cookie", "proxy-authorization"):
         request.headers.pop(credential_header, None)
     try:
@@ -58,7 +75,32 @@ async def publish_to_soaibench(
                 follow_redirects=False,
             )
             try:
-                return await _handle_response(response, expected_score)
+                details = _upstream_details(response)
+                if response.status_code in REDIRECT_STATUS_CODES:
+                    _raise(
+                        "soaibench_publication_invalid_response",
+                        "SoAIBench publication service returned a redirect.",
+                        502,
+                        details=details,
+                    )
+                raw = await _read_response(response)
+                if response.status_code not in accepted_statuses:
+                    if 200 <= response.status_code < 300:
+                        _raise(
+                            "soaibench_publication_invalid_response",
+                            "SoAIBench publication service returned an invalid success status.",
+                            502,
+                            details=details,
+                        )
+                    _raise_upstream(response, raw, details)
+                if not _is_json_content_type(response.headers.get("content-type")):
+                    _raise(
+                        "soaibench_publication_invalid_response",
+                        "SoAIBench publication response content type is invalid.",
+                        502,
+                        details=details,
+                    )
+                return response.status_code, raw, details
             finally:
                 await response.aclose()
     except OfflineModeError as exception:
@@ -85,49 +127,6 @@ async def publish_to_soaibench(
             code="soaibench_publication_unavailable",
             http_status=503,
         ) from exception
-    raise ApiError(
-        "SoAIBench publication failed.",
-        code="soaibench_publication_unavailable",
-        http_status=503,
-    )
-
-
-async def _handle_response(
-    response: httpx2.Response,
-    expected_score: int,
-) -> tuple[int, JSONDict]:
-    upstream_details = _upstream_details(response)
-    if response.status_code in _REDIRECTS:
-        _raise(
-            "soaibench_publication_invalid_response",
-            "The publication service returned a redirect.",
-            502,
-            details=upstream_details,
-        )
-    raw = await _read_response(response)
-    if response.status_code in {200, 201}:
-        if not _is_json_content_type(response.headers.get("content-type")):
-            _raise(
-                "soaibench_publication_invalid_response",
-                "SoAIBench publication response content type is invalid.",
-                502,
-                details=upstream_details,
-            )
-        try:
-            receipt = _validated_receipt_bytes(raw, expected_score)
-            _validate_success_matrix(response.status_code, receipt)
-            return response.status_code, receipt
-        except ApiError as exception:
-            exception.details = upstream_details
-            raise
-    if 200 <= response.status_code < 300:
-        _raise(
-            "soaibench_publication_invalid_response",
-            "SoAIBench publication service returned an invalid success status.",
-            502,
-            details=upstream_details,
-        )
-    _raise_upstream(response, raw, upstream_details)
 
 
 async def _read_response(response: httpx2.Response) -> bytes:
@@ -175,52 +174,6 @@ def _validated_receipt_bytes(raw: bytes, expected_score: int) -> JSONDict:
             502,
         )
     return validate_publication_receipt(parsed, expected_score)
-
-
-def validate_publication_receipt(receipt: JSONDict, expected_score: int) -> JSONDict:
-    fields = {
-        "submission_id",
-        "public_url",
-        "score_version",
-        "overall_score",
-        "validation",
-        "duplicate",
-    }
-    try:
-        require_exact_json_fields(
-            receipt,
-            allowed_fields=fields,
-            label="SoAIBench publication response",
-        )
-    except ValidationError as exception:
-        raise ApiError(
-            "SoAIBench publication response is invalid.",
-            code="soaibench_publication_invalid_response",
-            http_status=502,
-        ) from exception
-    submission_id = receipt.get("submission_id")
-    duplicate = receipt.get("duplicate")
-    overall_score = receipt.get("overall_score")
-    has_valid_identity = (
-        isinstance(submission_id, str)
-        and re.fullmatch(r"sb_[A-Za-z0-9_-]{22}", submission_id) is not None
-        and receipt.get("public_url")
-        == f"https://soai.to/soaibench-leaderboard/results/{submission_id}"
-    )
-    has_valid_score = (
-        receipt.get("score_version") == "soaibench-v2"
-        and is_strict_int(overall_score)
-        and overall_score == expected_score
-        and receipt.get("validation") in {"validated", "flagged"}
-    )
-    has_valid_delivery = isinstance(duplicate, bool)
-    if not has_valid_identity or not has_valid_score or not has_valid_delivery:
-        _raise(
-            "soaibench_publication_invalid_response",
-            "SoAIBench publication response is inconsistent.",
-            502,
-        )
-    return receipt
 
 
 def _validate_success_matrix(status_code: int, receipt: JSONDict) -> None:

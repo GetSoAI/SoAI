@@ -62,9 +62,6 @@ const updateDownloadModalUI = (runtime: DownloadModalManagerRuntime, activeTab: 
     setActive('provider-tab', isProvider);
     setActive('manual-tab', isManual);
     setHidden('manual-tab', !canUseManual);
-    setHidden('download-form', !isDownload);
-    setHidden('provider-form', !isProvider);
-    setHidden('manual-add-panel', !isManual);
     const downloadTab = runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'download-tab'), modalRoot);
     const providerTab = runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'provider-tab'), modalRoot);
     const manualTab = runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'manual-tab'), modalRoot);
@@ -90,7 +87,7 @@ const updateDownloadModalUI = (runtime: DownloadModalManagerRuntime, activeTab: 
         runtime.host.view.updateAttribute(element, 'aria-hidden', canUseManual ? 'false' : 'true');
         runtime.host.view.updateProperty(element, 'tabIndex', canUseManual ? 0 : -1);
     }
-    for (const token of ['manual-add-panel', 'manual-discovery-button', 'manual-copy-path', 'manual-open-file-explorer']) {
+    for (const token of ['manual-discovery-button', 'manual-copy-path', 'manual-open-file-explorer']) {
         const element = runtime.host.session.requireHTMLElement(modalUiSelector(modalId, token), modalRoot);
         runtime.host.view.updateAttribute(element, 'aria-hidden', isManual ? 'false' : 'true');
     }

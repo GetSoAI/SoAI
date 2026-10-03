@@ -8,6 +8,12 @@
         initial-value: 0;
     }
 
+    @property --page-header-sticky-offset {
+        syntax: '<length>';
+        inherits: true;
+        initial-value: 0;
+    }
+
     @property --layout-top-offset {
         syntax: '<length>';
         inherits: true;
@@ -65,6 +71,7 @@
         --header-fold-duration: 280ms;
         --header-fold-easing: cubic-bezier(0.32, 0, 0.23, 1);
         --header-measured-height: 0;
+        --page-header-sticky-offset: 0;
         --sidebar-viewing-icon-color: var(--text-primary);
         --sidebar-viewing-border-color: var(--ui-button-border-hover);
         --sidebar-viewing-bg: color-mix(in srgb, var(--accent-primary) 12%, var(--glass-underlay-surface));

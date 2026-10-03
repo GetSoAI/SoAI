@@ -117,10 +117,10 @@ UNAVAILABLE_PLUGIN_STATES: frozenset[PluginRuntimeStateName] = frozenset(
     },
 )
 SCHEDULER_DEFERRED_PLUGIN_STATES: frozenset[PluginRuntimeStateName] = frozenset(
-    (
-        ORCH_STATE_ERROR,
-        ORCH_STATE_QUARANTINED,
-    ),
+    (ORCH_STATE_ERROR,),
+)
+SCHEDULER_MANUAL_INTERVENTION_STATES: frozenset[PluginRuntimeStateName] = frozenset(
+    (ORCH_STATE_DISABLED, ORCH_STATE_QUARANTINED),
 )
 SCHEDULER_UNAVAILABLE_PLUGIN_STATES: frozenset[PluginRuntimeStateName] = (
     UNAVAILABLE_PLUGIN_STATES - SCHEDULER_DEFERRED_PLUGIN_STATES

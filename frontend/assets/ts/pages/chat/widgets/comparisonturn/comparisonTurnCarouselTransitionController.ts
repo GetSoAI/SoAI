@@ -115,7 +115,7 @@ class ComparisonTurnCarouselTransitionController {
     }
 
     #setSettledPosition(track: HTMLElement, activeIndex: number): void {
-        track.style.setProperty('margin-left', `-${String(activeIndex * 100)}%`);
+        track.style.setProperty('margin-inline-start', `-${String(activeIndex * 100)}%`);
         track.style.removeProperty('transform');
     }
 

@@ -5,6 +5,7 @@ import { createHistoryChartPresentation, type HistoryChartPresentation } from '@
 
 type HardwareChartPresentationController = {
     beginLoad: () => number;
+    currentLoad: () => number;
     completeLoad: (sequence: number) => void;
     reset: () => void;
     destroy: () => void;
@@ -24,6 +25,10 @@ const createHardwareChartPresentationController = (resolveHost: () => HTMLElemen
     return {
         beginLoad: (): number => {
             activeSequence = getPresentation().begin();
+            return activeSequence;
+        },
+        currentLoad: (): number => {
+            activeSequence = getPresentation().current();
             return activeSequence;
         },
         completeLoad: (sequence: number): void => {

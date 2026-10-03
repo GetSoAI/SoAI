@@ -36,6 +36,9 @@ const restartRealtimeHistoryWindow = async (runtime: RealtimeHistoryRefreshRunti
         }
         handle.detach();
     }
+    runtime.state.connectionAbort?.abort();
+    runtime.state.connectionAbort = null;
+    runtime.state.recovery.cancel();
     runtime.state.connectionHandle = null;
     runtime.state.isConnected = false;
     runtime.state.connectionStartedAt = 0;

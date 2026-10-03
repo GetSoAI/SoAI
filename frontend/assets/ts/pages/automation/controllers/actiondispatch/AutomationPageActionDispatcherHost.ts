@@ -16,6 +16,7 @@ interface AutomationActionStatePort {
     persistPreferences(): void;
     queueRender(): void;
     refreshData(): Promise<void>;
+    retryPageData(): Promise<void>;
     stageCalendarTransition(direction: 'detail-forward' | 'detail-backward', windowSignature: string, variant?: 'standard' | 'slow'): void;
     setTimeout(callback: () => void, delay: number): number | null;
     showNotification(message: string, type?: NotificationType): void;
@@ -31,6 +32,7 @@ interface AutomationActionControllerPort {
     centerNowLineNow(): void;
     animateVisiblePeriod(direction: -1 | 1): Promise<void>;
     run(operation: string, task: () => Promise<void> | void): void;
+    reportRefreshFailure(error: Error): void;
     isPreferencesCorrupt(): boolean;
     resetPreferences(): void;
 }

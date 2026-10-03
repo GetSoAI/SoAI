@@ -1,7 +1,10 @@
 /* SoAI - API health probing for configured and current origins [frontend/assets/ts/core/api/probeCurrentOriginApiBaseUrl.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { createAbortSignalScope, isAbortError } from '@core/errors/abort.ts';
+import { getApiRequestTimeoutMs } from '@core/api/constants.ts';
+import { TimeoutTimer } from '@core/timers/timeoutTimer.ts';
+import { throwIfAborted, createAbortSignalScope } from '@core/errors/abort.ts';
+import { APIError, isNetworkError } from '@core/apiError.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { getLocation } from '@core/environment/public.ts';
@@ -28,30 +31,40 @@ const normalizeProbeBaseUrl = (baseUrl: string): string | null => {
 };
 
 export const probeApiEndpoint = async (baseUrl: string, options: { timeoutMs?: number | undefined; healthEndpoint?: string | undefined; signal?: AbortSignal | undefined } = {}): Promise<DiscoveredEndpoint | null> => {
-    const { timeoutMs = 1500, healthEndpoint = DEFAULT_HEALTH_ENDPOINT, signal } = options;
+    const { timeoutMs = getApiRequestTimeoutMs(), healthEndpoint = DEFAULT_HEALTH_ENDPOINT, signal } = options;
     const originBaseUrl = normalizeProbeBaseUrl(baseUrl);
     if (originBaseUrl === null) return null;
 
+    throwIfAborted(signal);
     const controller = new AbortController();
-    const signalScope = createAbortSignalScope([controller.signal, signal]);
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const scope = createAbortSignalScope([controller.signal, signal]);
+    let timeoutTriggered = false;
+    const timer = new TimeoutTimer(timeoutMs, () => {
+        timeoutTriggered = true;
+        controller.abort();
+    });
+    timer.start();
     try {
         const response = await fetch(`${originBaseUrl}${healthEndpoint}`, {
             method: 'GET',
             credentials: 'include',
             cache: 'no-store',
-            signal: signalScope.signal
+            signal: scope.signal
         });
         if (!response.ok) {
+            if (response.status === 401 || response.status === 403 || response.status === 408 || response.status === 429 || response.status >= 500) {
+                throw new APIError(response.status, 'Endpoint health probe failed', { endpoint: originBaseUrl });
+            }
             return null;
         }
         const contentType = response.headers.get('content-type') || '';
         if (!contentType.includes('application/json')) {
             return null;
         }
-        const payload = parseRequiredJsonText(await response.text());
-        if (!payload || !isObject(payload)) return null;
+        const body = await response.text();
         try {
+            const payload = parseRequiredJsonText(body);
+            if (!payload || !isObject(payload)) return null;
             const endpoint = decodeRuntimeEndpointHealthPayload(payload);
             assertBackendEdition(endpoint.edition);
             return {
@@ -65,12 +78,14 @@ export const probeApiEndpoint = async (baseUrl: string, options: { timeoutMs?: n
             return null;
         }
     } catch (error) {
+        const runtimeError = ensureError(error);
         if (signal?.aborted) throw ensureError(error);
-        if (isAbortError(error)) return null;
-        throw ensureError(error);
+        if (timeoutTriggered) throw new APIError(0, 'Request timed out', { cause: runtimeError, endpoint: originBaseUrl });
+        if (runtimeError instanceof TypeError || isNetworkError(runtimeError)) throw new APIError(0, runtimeError.message, { cause: runtimeError, endpoint: originBaseUrl });
+        throw runtimeError;
     } finally {
-        clearTimeout(timeoutId);
-        signalScope.cleanup();
+        timer.stop();
+        scope.cleanup();
     }
 };
 

@@ -11,6 +11,7 @@ import { isHTMLElement } from '@core/typeGuards.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { replaceChildrenFromHtml } from '@core/dom/html.ts';
 import { createMermaidPlaceholder } from '@core/mermaid/placeholder.ts';
+import { decodeBase64Utf8 } from '@core/primitives/base64.ts';
 
 function detectCurrentTheme(): 'dark' | 'default' {
     const root = document.documentElement;
@@ -117,20 +118,21 @@ function initializeMermaid(container: HTMLElement): void {
 
 async function renderMermaidDiagram(container: HTMLElement): Promise<void> {
     await enqueueMermaidRender(async () => {
-        const diagramDefinition = container.getAttribute('data-mermaid-definition');
-        if (!diagramDefinition) {
+        const encodedDefinition = container.getAttribute('data-mermaid-definition');
+        if (!encodedDefinition) {
             return;
         }
 
         initializeMermaid(container);
         const diagramId = generateSecureId({ prefix: 'mermaid', format: 'hex', separator: '-' });
         try {
+            const diagramDefinition = decodeBase64Utf8(encodedDefinition);
             const { svg } = await mermaid.render(diagramId, diagramDefinition, container);
-            const svgWithNonce = addNonceToSvgStyles(svg);
             if (!container.isConnected) {
                 return;
             }
-            replaceChildrenFromHtml({ element: container, html: securityApi.sanitizeSvg(svgWithNonce), context: container });
+            const sanitizedSvg = securityApi.sanitizeSvg(addNonceToSvgStyles(svg));
+            replaceChildrenFromHtml({ element: container, html: addNonceToSvgStyles(sanitizedSvg), context: container });
             container.classList.remove('mermaid-loading');
             container.classList.add('mermaid-rendered');
         } catch (error) {

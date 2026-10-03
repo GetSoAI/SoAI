@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isString } from '@core/typeGuards.ts';
+import { isReducedAnimationScope } from '@core/animations/speed.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import type { NavigationDetail, TitleManagerHost } from '@core/layout/header/titlemanager/types.ts';
 
@@ -39,7 +40,11 @@ const setPageTitleDisplay = (header: TitleManagerHost, value: string, brand: str
     if (!logoSlot || !textNode) {
         throw new Error('Header page title requires logo and text elements');
     }
-    header.updateText(textNode, isSoaiBrand ? '' : normalized);
+    if (!isSoaiBrand) {
+        header.updateText(textNode, normalized);
+    } else if (isReducedAnimationScope(titleNode)) {
+        header.updateText(textNode, '');
+    }
     header.updateAttribute(titleNode, 'data-page-title-display', isSoaiBrand ? 'brand' : 'page');
     header.updateAttribute(titleNode, 'aria-label', normalized);
     setTooltipText(titleNode, normalized);

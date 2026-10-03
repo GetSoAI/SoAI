@@ -24,7 +24,7 @@ from features.api.routes.webui.conversation_pdf_export_metadata import (
     parse_conversation_pdf_export_metadata,
     require_expected_conversation_pdf_digest,
 )
-from features.api.routes.webui.conversation_pdf_export_rendering import (
+from features.api.routes.webui.conversation_pdf_export_outcomes import (
     run_conversation_pdf_export_render_task,
 )
 from features.api.routes.webui.conversation_pdf_export_snapshot import (

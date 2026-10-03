@@ -102,7 +102,7 @@ async def execute_initialization(
     await cleanup_stale_parts(context, backups_path=get_backups_path)
     interval_hours, run_on_startup = resolve_backup_schedule_settings(config)
     interval_str = format_interval_hours(interval_hours) if interval_hours else "disabled"
-    log.info(
+    log.debug(
         "ApplicationBackupService initialized. Backups path: %s, interval: %s",
         get_backups_path,
         interval_str,

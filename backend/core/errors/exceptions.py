@@ -18,6 +18,7 @@ __all__ = (
     "ApiError",
     "AcceleratorMemoryExhaustedError",
     "ArchivedConversationLimitError",
+    "AutomationRevisionConflictError",
     "ConcurrencyError",
     "ConfigurationError",
     "ConflictError",
@@ -76,6 +77,8 @@ class SoAIError(Exception):
     code: str | int = "internal_error"
     http_status: int = 500
     is_transient: bool = False
+    public_message: str | None = None
+    public_details: Mapping[str, JSONValue] | None = None
 
     def __init__(
         self,
@@ -186,6 +189,10 @@ class PayloadTooLargeError(SoAIError):
 class PreconditionError(SoAIError):
     code: str | int = "precondition_failed"
     http_status = 412
+
+
+class AutomationRevisionConflictError(PreconditionError):
+    code: str | int = "automation_revision_conflict"
 
 
 class InsufficientDiskSpaceError(SoAIError):

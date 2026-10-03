@@ -10,6 +10,8 @@ from core.errors.exceptions import ValidationError
 from core.timing.timezones import normalize_timezone_name, resolve_zoneinfo_optional
 
 __all__ = (
+    "classify_local_naive_resolution",
+    "format_start_local",
     "last_day_of_month",
     "local_naive_from_utc_ms",
     "parse_start_local",
@@ -23,27 +25,37 @@ _START_LOCAL_FORMAT = "%Y-%m-%dT%H:%M"
 def require_timezone(timezone_name: str) -> ZoneInfo:
     normalized = normalize_timezone_name(timezone_name)
     if not normalized:
-        raise ValidationError("Automation timezone is required.")
+        raise ValidationError("Automation timezone is required.", details={"field": "timezone"})
     try:
         resolved = resolve_zoneinfo_optional(normalized)
     except ZoneInfoNotFoundError as exception:
-        raise ValidationError(f"Unsupported automation timezone '{normalized}'.") from exception
+        raise ValidationError(
+            f"Unsupported automation timezone '{normalized}'.", details={"field": "timezone"}
+        ) from exception
     if resolved is None:
-        raise ValidationError("Automation timezone is required.")
+        raise ValidationError("Automation timezone is required.", details={"field": "timezone"})
     return resolved
 
 
 def parse_start_local(start_local: str) -> datetime:
     normalized = str(start_local or "").strip()
     if not normalized:
-        raise ValidationError("Automation start_local is required.")
+        raise ValidationError("Automation start_local is required.", details={"field": "start"})
     try:
         parsed = datetime.strptime(normalized, _START_LOCAL_FORMAT)
     except ValueError as exception:
-        raise ValidationError("Automation start_local must match YYYY-MM-DDTHH:mm.") from exception
+        raise ValidationError(
+            "Automation start_local must match YYYY-MM-DDTHH:mm.", details={"field": "start"}
+        ) from exception
     if parsed.strftime(_START_LOCAL_FORMAT) != normalized:
-        raise ValidationError("Automation start_local must match YYYY-MM-DDTHH:mm.")
+        raise ValidationError(
+            "Automation start_local must match YYYY-MM-DDTHH:mm.", details={"field": "start"}
+        )
     return parsed
+
+
+def format_start_local(local_naive: datetime) -> str:
+    return local_naive.strftime(_START_LOCAL_FORMAT)
 
 
 def local_naive_from_utc_ms(utc_ms: int, timezone_name: str) -> datetime:
@@ -62,6 +74,16 @@ def resolve_local_naive_to_utc_ms(local_naive: datetime, timezone_name: str) -> 
     if roundtrip.replace(tzinfo=None) != local_naive:
         return int(roundtrip.astimezone(UTC).timestamp() * 1000.0)
     return int(aware_fold_zero.astimezone(UTC).timestamp() * 1000.0)
+
+
+def classify_local_naive_resolution(local_naive: datetime, timezone_name: str) -> str:
+    timezone = require_timezone(timezone_name)
+    aware_fold_zero = local_naive.replace(tzinfo=timezone, fold=0)
+    aware_fold_one = local_naive.replace(tzinfo=timezone, fold=1)
+    if aware_fold_zero.utcoffset() == aware_fold_one.utcoffset():
+        return "exact"
+    roundtrip = aware_fold_zero.astimezone(UTC).astimezone(timezone)
+    return "ambiguous" if roundtrip.replace(tzinfo=None) == local_naive else "nonexistent"
 
 
 def last_day_of_month(year: int, month: int) -> int:

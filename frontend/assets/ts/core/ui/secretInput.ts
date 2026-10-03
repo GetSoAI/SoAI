@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { getUserAgent } from '@core/environment/public.ts';
 import { resolveOptionalKernelService } from '@core/runtime/runtimeContext.ts';
 import { replaceChildrenFromTrustedHtml } from '@core/dom/html.ts';
 import { i18n } from '@core/i18n/index.ts';
@@ -12,11 +13,13 @@ import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 const SECRET_INPUT_VISIBLE_CLASS = 'secret-input--visible';
 const SECRET_INPUT_TEXT_TYPE = 'text';
 const SECRET_INPUT_PASSWORD_TYPE = 'password';
-const SECRET_INPUT_CONTAINER_CLASS = 'ui-inline-action-field secret-input-container';
+const SECRET_INPUT_BASE_CONTAINER_CLASS = 'secret-input-container';
+const SECRET_INPUT_CONTAINER_CLASS = `ui-inline-action-field ${SECRET_INPUT_BASE_CONTAINER_CLASS}`;
 const SECRET_INPUT_TOGGLE_CLASS = 'ui-inline-action-field__button';
 const SECRET_INPUT_TOGGLE_ICON_CLASS = 'ui-inline-action-field__icon';
 const SECRET_INPUT_TOGGLE_ATTRIBUTE = 'data-secret-input-toggle';
 const SECRET_INPUT_TOGGLE_SELECTOR = `[${SECRET_INPUT_TOGGLE_ATTRIBUTE}]`;
+const NATIVE_SECRET_REVEAL_USER_AGENT_PATTERN = /\bEdg\//;
 
 const resolveSecretInputType = (): 'password' => {
     return SECRET_INPUT_PASSWORD_TYPE;
@@ -49,7 +52,12 @@ const renderSecretInputToggle = (inputId: string): string => {
     return `<button type="button" class="${SECRET_INPUT_TOGGLE_CLASS}" ${SECRET_INPUT_TOGGLE_ATTRIBUTE}="${uiAttr(inputId).html}" aria-label="${uiAttr(label).html}" data-tooltip="${uiAttr(label).html}" aria-pressed="false"><span class="${SECRET_INPUT_TOGGLE_ICON_CLASS}" aria-hidden="true">${renderSecretInputToggleIcon(false)}</span></button>`;
 };
 
+const browserProvidesNativeSecretReveal = (): boolean => NATIVE_SECRET_REVEAL_USER_AGENT_PATTERN.test(getUserAgent());
+
 const renderSecretInputControl = (options: { inputId: string; inputMarkup: string }): string => {
+    if (browserProvidesNativeSecretReveal()) {
+        return `<div class="${SECRET_INPUT_BASE_CONTAINER_CLASS}">${options.inputMarkup}</div>`;
+    }
     return `<div class="${SECRET_INPUT_CONTAINER_CLASS}">${options.inputMarkup}${renderSecretInputToggle(options.inputId)}</div>`;
 };
 

@@ -14,6 +14,7 @@ from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import StateError, ValidationError
 from core.filesystem.atomic_writes import atomic_write_text_content
 from core.filesystem.open_files import read_regular_file_no_symlink
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.hardware.reservation_claims import claim_reserved_write
 from core.logging.trace import get_logger
 from core.runtime.process_identity_signals import read_process_create_time_ms
@@ -94,16 +95,18 @@ def create_plugin_package_lease(
         ) from exception
     lease_directory = get_plugin_package_lease_directory(temp_directory, lease.plugin_name)
     leases_root = os.path.dirname(lease_directory)
-    if os.path.islink(leases_root) or (
-        os.path.lexists(leases_root) and not os.path.isdir(leases_root)
+    if os.path.islink(normalize_filesystem_path(leases_root)) or (
+        os.path.lexists(normalize_filesystem_path(leases_root))
+        and not os.path.isdir(normalize_filesystem_path(leases_root))
     ):
         remove_plugin_package_lease(leases_root)
-    os.makedirs(leases_root, exist_ok=True)
-    if os.path.islink(lease_directory) or (
-        os.path.lexists(lease_directory) and not os.path.isdir(lease_directory)
+    os.makedirs(normalize_filesystem_path(leases_root), exist_ok=True)
+    if os.path.islink(normalize_filesystem_path(lease_directory)) or (
+        os.path.lexists(normalize_filesystem_path(lease_directory))
+        and not os.path.isdir(normalize_filesystem_path(lease_directory))
     ):
         remove_plugin_package_lease(lease_directory)
-    os.makedirs(lease_directory, exist_ok=True)
+    os.makedirs(normalize_filesystem_path(lease_directory), exist_ok=True)
     lease_path = os.path.join(lease_directory, _lease_filename(lease))
     content = serialize_json_compact_stable_strict(_lease_payload(lease), ensure_ascii=True)
     required_bytes = len(content.encode("utf-8"))
@@ -131,10 +134,12 @@ def create_plugin_package_lease(
 
 def remove_plugin_package_lease(lease_path: str) -> None:
     try:
-        if os.path.isdir(lease_path) and not os.path.islink(lease_path):
-            shutil.rmtree(lease_path)
+        if os.path.isdir(normalize_filesystem_path(lease_path)) and not os.path.islink(
+            normalize_filesystem_path(lease_path)
+        ):
+            shutil.rmtree(normalize_filesystem_path(lease_path))
         else:
-            os.unlink(lease_path)
+            os.unlink(normalize_filesystem_path(lease_path))
     except FileNotFoundError:
         get_logger(LOGGER_NAME).debug("Plugin package lease was already absent: %s", lease_path)
 
@@ -204,18 +209,20 @@ def list_live_plugin_package_leases(
 ) -> list[PluginPackageLease]:
     lease_directory = get_plugin_package_lease_directory(temp_directory, plugin_name)
     leases_root = os.path.dirname(lease_directory)
-    if os.path.islink(leases_root) or (
-        os.path.lexists(leases_root) and not os.path.isdir(leases_root)
+    if os.path.islink(normalize_filesystem_path(leases_root)) or (
+        os.path.lexists(normalize_filesystem_path(leases_root))
+        and not os.path.isdir(normalize_filesystem_path(leases_root))
     ):
         remove_plugin_package_lease(leases_root)
         return []
-    if os.path.islink(lease_directory) or (
-        os.path.lexists(lease_directory) and not os.path.isdir(lease_directory)
+    if os.path.islink(normalize_filesystem_path(lease_directory)) or (
+        os.path.lexists(normalize_filesystem_path(lease_directory))
+        and not os.path.isdir(normalize_filesystem_path(lease_directory))
     ):
         remove_plugin_package_lease(lease_directory)
         return []
     try:
-        filenames = sorted(os.listdir(lease_directory))
+        filenames = sorted(os.listdir(normalize_filesystem_path(lease_directory)))
     except FileNotFoundError:
         return []
     live_leases: list[PluginPackageLease] = []

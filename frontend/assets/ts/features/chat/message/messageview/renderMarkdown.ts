@@ -80,7 +80,7 @@ const normalizeIndentedPreviewTokenLines = (content: string): string => {
 
 const renderPlainTextContent = (host: ChatMessageRenderHost, content: string): string => {
     const escaped = host.escapeHtml(content);
-    return `<p>${escaped.replace(/\n/g, '<br>')}</p>`;
+    return `<p dir="auto">${escaped.replace(/\n/g, '<br>')}</p>`;
 };
 
 type MarkdownRenderOptions = { tableMode?: RichTextTableMode; sortableTables?: boolean };

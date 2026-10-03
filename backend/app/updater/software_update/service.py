@@ -12,13 +12,20 @@ from app.updater.software_update.install_flow import run_software_update_install
 from app.updater.software_update.install_transaction_recovery import (
     recover_interrupted_update_transactions,
 )
+from app.updater.software_update.preparation_progress import clear_preparation_progress
 from app.updater.software_update.status_query import (
     get_software_update_status_for_dependencies,
 )
 from app.updater.software_update.target_validation import validate_update_target
 from app.updater.software_update.update_lock import guarded_software_update_lock
 from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import ConflictError, SecurityError, StateError, ValidationError
+from core.errors.exceptions import (
+    ConflictError,
+    SecurityError,
+    SoAIError,
+    StateError,
+    ValidationError,
+)
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -27,6 +34,9 @@ __all__ = ("SoftwareUpdateService",)
 
 OPERATION_APPLICATION_UPDATER_RUN_SOFTWARE_UPDATE_LOCK = (
     "application_updater.run_software_update.lock"
+)
+OPERATION_APPLICATION_UPDATER_CLEAR_PREPARATION_PROGRESS = (
+    "application_updater.clear_preparation_progress"
 )
 
 
@@ -106,3 +116,15 @@ class SoftwareUpdateService:
                 level="error",
             )
             return 1
+        finally:
+            if deps.args.task_id is not None:
+                try:
+                    clear_preparation_progress(deps.base_path, deps.args.task_id)
+                except (OSError, SoAIError) as exception:
+                    log_handled_exception(
+                        deps.logger,
+                        exception,
+                        message="Failed to remove update preparation progress.",
+                        operation=OPERATION_APPLICATION_UPDATER_CLEAR_PREPARATION_PROGRESS,
+                        level="warning",
+                    )

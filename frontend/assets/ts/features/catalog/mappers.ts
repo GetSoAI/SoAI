@@ -47,8 +47,7 @@ const toCatalogPlugin = (plugin: StoredPlugin): Plugin => {
 
 const hasUserManagedProviders = (plugin: Plugin | null | undefined): boolean => resolveProviderMode(plugin) === PROVIDER_MODE.USER_MANAGED;
 
-const isProviderPluginOperational = (plugin: PluginRecord | null | undefined): boolean => {
-    if (!hasUserManagedProviders(plugin)) return false;
+const isPluginRecordOperational = (plugin: PluginRecord | null | undefined, isStateUnavailable: (state: string, compatibility: CompatibilityInfo) => boolean): boolean => {
     if (!plugin || !isObject(plugin)) return false;
     const candidateObject = plugin;
     if (candidateObject.isEnabled === false || candidateObject.isAvailable === false || candidateObject.disabledReason) {
@@ -57,8 +56,11 @@ const isProviderPluginOperational = (plugin: PluginRecord | null | undefined): b
     const state = toUpperCase(candidateObject['state']);
     const compatibility = getPluginCompatibility(candidateObject);
     if (compatibility.permanentlyDisabled || (!compatibility.isCompatible && !isHardwareCompatibilityAcknowledged(candidateObject, compatibility))) return false;
-    if (isProviderRuntimeStateUnavailable(state, compatibility)) return false;
-    return true;
+    return !isStateUnavailable(state, compatibility);
 };
 
-export { extractPluginArray, hasUserManagedProviders, isProviderPluginOperational, toCatalogPlugin };
+const isProviderPluginOperational = (plugin: PluginRecord | null | undefined): boolean => hasUserManagedProviders(plugin) && isPluginRecordOperational(plugin, isProviderRuntimeStateUnavailable);
+
+const isModelPluginOperational = (plugin: PluginRecord | null | undefined): boolean => isPluginRecordOperational(plugin, isRuntimeStateUnavailable);
+
+export { extractPluginArray, hasUserManagedProviders, isModelPluginOperational, isProviderPluginOperational, toCatalogPlugin };

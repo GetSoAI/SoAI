@@ -9,6 +9,7 @@ import { createStoragePreferenceMethods } from '@core/storage/service/preference
 import { createLocalizationPreferenceMethods } from '@core/storage/service/localizationpreferences/actions.ts';
 import { createPresentationPreferenceMethods } from '@core/storage/service/presentationpreferences/service.ts';
 import { createStorageStateActions } from '@core/storage/service/actions.ts';
+import { createAiSetupStateMethods } from '@core/storage/service/aiSetupActions.ts';
 import { createStoragePageControlMethods } from '@core/storage/service/pageControls.ts';
 import { createStorageStateReaders } from '@core/storage/service/state.ts';
 import { serializeChatPreferences } from '@core/storage/persistence/chatPreferenceSerialization.ts';
@@ -30,7 +31,8 @@ const createStorageService = (dependencies: StorageRuntimeDependencies) => {
     const storageState = {
         ...createStorageStateReaders(runtime),
         ...createStorageStateActions(runtime),
-        ...createStoragePageControlMethods(runtime)
+        ...createStoragePageControlMethods(runtime),
+        ...createAiSetupStateMethods(runtime)
     };
     const presentationPreferences = createPresentationPreferenceMethods(runtime);
     const localizationPreferences = createLocalizationPreferenceMethods(runtime);
@@ -51,6 +53,7 @@ const createStorageService = (dependencies: StorageRuntimeDependencies) => {
         setLiveStatusOverlayEnabled: presentationPreferences.setLiveStatusOverlayEnabled,
         setWallpaperOverlay: presentationPreferences.setWallpaperOverlay,
         setSolidBackground: presentationPreferences.setSolidBackground,
+        setDefaultWallpaper: presentationPreferences.setDefaultWallpaper,
         setGlassEnabled: presentationPreferences.setGlassEnabled,
         setHiddenSidebarPages: storageState.setHiddenSidebarPages,
         setShowMainStatusIndicator: storageState.setShowMainStatusIndicator,
@@ -181,6 +184,7 @@ const createStorageService = (dependencies: StorageRuntimeDependencies) => {
         presentationPreferences.setGlassEnabled(defaults.ui.glassEnabled);
         presentationPreferences.setWallpaperOverlay(defaults.ui.wallpaperOverlay);
         presentationPreferences.setSolidBackground(defaults.ui.solidBackground);
+        presentationPreferences.setDefaultWallpaper(defaults.ui.defaultWallpaper);
         presentationPreferences.setChartColorMode(defaults.ui.chartColorMode);
         presentationPreferences.setChartStaticColor(defaults.ui.chartStaticColor);
         storageState.setHiddenSidebarPages(defaults.ui.hiddenSidebarPages);
@@ -208,7 +212,7 @@ const createStorageService = (dependencies: StorageRuntimeDependencies) => {
         runtime.state.cache.search = runtime.clone(defaults.search);
         runtime.state.cache.hardware = runtime.clone(defaults.hardware);
         runtime.state.cache.filters = runtime.clone(defaults.filters);
-        runtime.state.cache.wizard = runtime.clone(preservedWizard);
+        runtime.state.cache.wizard = { completed: preservedWizard.completed, aiSetup: null };
         runtime.state.cache.settings = runtime.clone(defaults.settings);
         runtime.state.cache.misc = runtime.clone(preservedMisc);
         const resetGroups: readonly string[] = ['chat', 'logs', 'terminal', 'search', 'hardware', 'filters', 'wizard', 'settings', 'misc'];

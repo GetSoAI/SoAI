@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
+    "read_legacy_string_separator",
     "validate_parameter_definition",
     "validate_parameter_definitions",
     "validate_parameter_value",
@@ -176,12 +177,29 @@ def _value_in_enum(value: JSONValue, enum_values: list[JSONValue] | None) -> boo
     return enum_values is not None and any(_json_values_equal(value, item) for item in enum_values)
 
 
+def read_legacy_string_separator(definition: JSONDict, label: str) -> str | None:
+    if "legacy_string_separator" not in definition:
+        return None
+    separator = definition["legacy_string_separator"]
+    if (
+        definition.get("type") != "array"
+        or definition.get("item_type") != "string"
+        or not isinstance(separator, str)
+        or not separator
+    ):
+        raise ValidationError(
+            f"{label} legacy string metadata requires a string array and a non-empty separator."
+        )
+    return separator
+
+
 def validate_parameter_definition(parameter_name: str, definition: JSONDict) -> None:
     label = f"Parameter '{parameter_name}'"
     parameter_type_value = definition.get("type")
     if not isinstance(parameter_type_value, str) or parameter_type_value not in _PARAMETER_TYPES:
         raise ValidationError(f"{label} has an invalid type.")
     parameter_type = parameter_type_value
+    read_legacy_string_separator(definition, label)
     enum_values = _read_enum(definition, label)
     if parameter_type in {"integer", "float"}:
         _read_bounds(definition, parameter_type, label)

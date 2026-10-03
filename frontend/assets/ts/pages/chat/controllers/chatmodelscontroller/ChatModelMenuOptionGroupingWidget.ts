@@ -38,5 +38,5 @@ export const resolveChatModelStatusSuffix = (model: ModelData): string => {
     if (model.available) {
         return i18n.t('chat.models.available');
     }
-    return '';
+    return i18n.t('chat.models.unavailable');
 };

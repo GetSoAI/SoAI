@@ -1,6 +1,8 @@
 /* SoAI - Shared layout search manager effects [frontend/assets/ts/core/layout/header/searchmanager/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { WebuiPermissionsUnavailableError } from '@core/access/permissionFailure.ts';
+import { renderReloadFailure, bindReloadFailure } from '@core/ui/reloadFailure.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { measureLayoutViewport } from '@core/layout/elementGeometry.ts';
 import { dom } from '@core/dom/dom.ts';
@@ -24,6 +26,7 @@ import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import type { SearchCategoryStateType } from '@core/search/searchCategoryStateMarkup.ts';
 
 type SearchEffectsRuntime = Pick<HeaderSearchManagerContract, 'abortSearchRequest' | 'advanceSearchToken' | 'button' | 'cancelBlurTimer' | 'cancelScheduledSearch' | 'collapse' | 'container' | 'displaySearchError' | 'dropdown' | 'expanded' | 'header' | 'input' | 'panel' | 'requireDom' | 'requireDropdownItems' | 'selectedIndex' | 'statusManager' | 'updateSelectedItems'>;
+type SearchMessageRuntime = Pick<SearchEffectsRuntime, 'requireDom' | 'header' | 'selectedIndex'>;
 
 const getSearchManagerRefs = (manager: SearchEffectsRuntime): SearchManagerRefs | null => {
     const container = manager.container;
@@ -129,15 +132,16 @@ const handleSearchItemNavigation = async (manager: SearchEffectsRuntime, node: H
     }
 };
 
-const showSearchMessage = (manager: SearchEffectsRuntime, markup: TrustedHtml): void => {
+const showSearchMessage = (manager: SearchMessageRuntime, markup: TrustedHtml): boolean => {
     const { button, dropdown } = manager.requireDom();
     const styles = getComputedStyle(button);
     if (styles.display === 'none' || button.classList.contains('u-hidden')) {
-        return;
+        return false;
     }
     manager.header.updateHTML(dropdown, markup, { escape: false });
     manager.header.removeClassName(dropdown, 'u-hidden');
     manager.selectedIndex = -1;
+    return true;
 };
 
 const wireSearchResultItems = (manager: SearchEffectsRuntime): void => {
@@ -189,9 +193,16 @@ const renderSearchInitializing = (manager: SearchEffectsRuntime): void => {
     showSearchMessage(manager, message);
 };
 
-const renderSearchError = (manager: SearchEffectsRuntime): void => {
-    const message = buildSearchErrorMarkup();
-    showSearchMessage(manager, message);
+const renderSearchError = (manager: SearchMessageRuntime, error?: Error): void => {
+    const permissionFailure = error instanceof WebuiPermissionsUnavailableError;
+    const message = permissionFailure ? renderReloadFailure(i18n.t('header.search.failed')) : buildSearchErrorMarkup();
+    const rendered = showSearchMessage(manager, message);
+    if (permissionFailure && rendered) {
+        const root = manager.requireDom().dropdown;
+        const failure = dom.resolve('.reload-failure', root);
+        if (!(failure instanceof HTMLElement)) throw new Error('Search permission failure requires recovery controls');
+        bindReloadFailure(failure);
+    }
 };
 
 const resetSearchDropdown = (manager: SearchEffectsRuntime): void => {

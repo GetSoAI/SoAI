@@ -31,6 +31,7 @@ interface UpdatesControllerSystemSurface extends UpdatesControllerSharedSurface 
     notify: (message: string, type?: UpdatesNotificationType) => void;
     setButtonLoading: (button: HTMLElement, isLoading: boolean, options?: SetButtonLoadingOptions) => void;
     sanitizeUrl: (value: string, options: { allowRelative: boolean; allowDataImage: boolean; allowBlob: boolean }) => string | null;
+    renderMarkdown: (value: string) => TrustedHtml;
     showOverlay: RestartOverlayService['show'];
     resolveInstallButton: () => HTMLButtonElement | null;
     wait: (ms: number) => Promise<void>;

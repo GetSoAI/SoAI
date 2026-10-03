@@ -141,6 +141,8 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
                 page.page.pageElements.setValue(input, value, { attribute: 'value' });
                 page.sessions.composer.noteDraftChanged(value);
             },
+            openConversationInput: (conversationId, inputId) => page.runtime.composerSurface.requireUi().openConversationInput(conversationId, inputId),
+            canRemoveConversationInput: (conversationId, inputId) => page.runtime.composerSurface.optionalUi()?.canRemoveConversationInput(conversationId, inputId) ?? false,
             cancelConversationInput: (conversationId, inputId) => page.sessions.composer.cancelConversationInput(conversationId, inputId),
             retryConversationRegeneration: (conversationId, inputId) => page.sessions.composer.retryConversationRegeneration(conversationId, inputId),
             resolveAskUser: (conversationId, taskId, action) => page.sessions.composer.resolveAskUserPrompt(conversationId, taskId, action),
@@ -157,12 +159,13 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
             },
             updateInputState: () => page.runtime.composerSurface.requireUi().updateInputState(),
             applyInputActionVisibility: () => page.sessions.composer.applyInputActionVisibility(),
-            updateInputQueuePreview: () => page.runtime.composerSurface.requireUi().updateInputQueuePreview(),
+            updateInputQueuePreview: () => page.runtime.composerSurface.optionalUi()?.updateInputQueuePreview(),
             resolvePrimaryActionMode: () => page.runtime.composerSurface.requireUi().resolveComposerActionMode()
         },
         attachments: {
             fileUploadEnabled: () => page.state.settings.parameters.inputActionFileUploadEnabled === true,
             cameraEnabled: () => page.state.settings.parameters.inputActionCameraEnabled === true,
+            sketchEnabled: () => page.state.settings.parameters.inputActionSketchEnabled === true,
             drafts: () => page.runtime.composerSurface.requireAttachments().getAttachments(),
             draftCounts: () => resolveChatAttachDraftCounts(page),
             draftCommitEpoch: () => page.runtime.composerSurface.requireAttachments().getDraftCommitEpoch(),
@@ -180,6 +183,10 @@ const composeChatActionHandlerRuntime = (page: ChatActionHandlerDependencies): C
             captureCamera: (file) => {
                 requireInputActionEnabled('camera', page.state.settings.parameters.inputActionCameraEnabled === true);
                 return page.sessions.messageSending.handleCameraCaptureFile(file);
+            },
+            uploadSketch: (file) => {
+                requireInputActionEnabled('sketch', page.state.settings.parameters.inputActionSketchEnabled === true);
+                return page.sessions.messageSending.handleSelectedUploadFiles([file]);
             },
             addSoaiPaths: (records, source) => page.runtime.composerSurface.requireAttachments().addResolvedSoaiPathRecords(records, source),
             removeFile: (fileId) => page.sessions.messageSending.removeAttachedFile(fileId),

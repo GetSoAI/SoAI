@@ -32,6 +32,7 @@ interface BackendReadyOptions {
 interface EntryModule {
     startPrimaryApp: () => void | Promise<void>;
     startDetachedWindow: () => void | Promise<void>;
+    releaseBootStateAfterPreloaderReveal: (release: () => void) => void;
 }
 
 export type { AppLifecycleInstance, BackendReadyOptions, DetachedContextData, DetachedParameters, EntryModule };

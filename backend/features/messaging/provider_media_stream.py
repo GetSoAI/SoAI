@@ -13,6 +13,7 @@ import httpx2
 from core.errors.exceptions import SecurityError, ServiceUnavailableError, ValidationError
 from core.network.http_download_metadata import read_http_download_response_metadata
 from core.network.http_transport import build_pinned_host_extensions
+from core.network.redirect_headers import REDIRECT_STATUS_CODES
 from core.runtime.network_policy import validate_runtime_url
 from core.runtime.protocols import RuntimeFlagsViewProtocol
 
@@ -102,7 +103,7 @@ async def open_provider_media_stream(
         raise ServiceUnavailableError("Messaging provider media request timed out.") from exception
     except httpx2.RequestError as exception:
         raise ServiceUnavailableError("Messaging provider media request failed.") from exception
-    if response.status_code in (301, 302, 303, 307, 308):
+    if response.status_code in REDIRECT_STATUS_CODES:
         await response.aclose()
         raise SecurityError("Messaging provider media redirects are not allowed.")
     if response.status_code in (429, 500, 502, 503, 504):

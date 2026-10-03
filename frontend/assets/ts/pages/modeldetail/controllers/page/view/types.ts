@@ -39,6 +39,7 @@ interface ModelDetailViewPresentationPort {
     getModelDisplayName: () => string;
     getPluginStatus: () => string | null;
     describePluginStatus: (value: string) => string;
+    resolvePluginStatusBadgeClass: (value: string) => string;
     updateHeaderInfo: () => void;
 }
 
@@ -65,7 +66,7 @@ interface ModelDetailViewDependencies extends PageServicesOwnerHost, PageUiOwner
     ensureUi: ModelDetailViewHost['state']['ensureUi'];
     isVirtualModel: ModelDetailViewHost['state']['isVirtualModel'];
     sanitizeAttribute: ModelDetailViewHost['presentation']['sanitizeAttribute'];
-    statusManager: { getDescription: (value: string) => string | null } | null;
+    statusManager: { getDescription: (value: string) => string | null; getCollectionBadgeClass: (value: string) => string } | null;
     modalPresenter: ModalPresenterApi;
     getOpenAICapabilityState: ModelDetailViewHost['actions']['getOpenAICapabilityState'];
     resolveOpenAICapabilityLabel: ModelDetailViewHost['actions']['resolveOpenAICapabilityLabel'];

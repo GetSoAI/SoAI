@@ -53,11 +53,11 @@ const buildChatRequestParameters = (parameters: ChatParameters, excludedRequestP
     return result;
 };
 
-const buildStoredChatParameters = (parameters: ChatParameters): Record<string, JsonValue> => {
+const buildStoredChatParameters = (parameters: ChatParameters, updateMode: 'replace' | 'merge' = 'replace'): Record<string, JsonValue> => {
     const result: Record<string, JsonValue> = {};
     for (const key of STORED_CHAT_PARAMETER_KEYS) {
         const value = parameters[key];
-        if (value === undefined || value === null) {
+        if (value === undefined || (value === null && updateMode === 'replace')) {
             continue;
         }
         result[key] = cloneParameterValue(value);

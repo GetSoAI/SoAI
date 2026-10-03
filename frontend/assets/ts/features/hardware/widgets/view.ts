@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { formatShortDurationUnit } from '@core/primitives/duration.ts';
 import { detectHardwareBrand, HARDWARE_BRANDS } from '@core/hardwareBrands.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { WidgetElements, DeviceNameParts } from '@features/hardware/widgets/contracts.ts';
@@ -91,15 +92,18 @@ const createMetricRows = (
 
         if (key === parameters.defaultMetric) {
             const timeScale = createElement('div', 'hardware-widget__time-scale');
-            dom.setText(timeScale, '5m');
+            dom.setText(timeScale, formatShortDurationUnit('minute', 5));
             labelWrapper.append(timeScale);
         }
 
-        const value = createElement('div', 'ui-metric-value');
+        const valueContainer = createElement('div', 'hardware-widget__metric-slot');
+        const value = createElement('bdi', 'ui-metric-value');
+        value.dir = 'ltr';
+        valueContainer.append(value);
         value.dataset['metric'] = key;
         metricValues[key] = value;
 
-        row.append(labelWrapper, value);
+        row.append(labelWrapper, valueContainer);
         metricRows[key] = row;
         container.append(row);
     });
@@ -117,6 +121,8 @@ const createWidgetStructure = (parameters: WidgetStructureInput): WidgetElements
 
     const fullName = parameters.nameParts.secondary ? `${parameters.nameParts.primary} ${parameters.nameParts.secondary}` : parameters.nameParts.primary;
     const deviceName = createElement('div', `hardware-widget__device-name${isLongDeviceName(fullName) ? ' hardware-widget__device-name--long' : ''}`);
+
+    deviceName.dir = 'auto';
 
     const chartContainer = createElement('div', 'hardware-widget__chart-container');
     const chartWrapper = createElement('div', 'hardware-widget__chart-wrapper');

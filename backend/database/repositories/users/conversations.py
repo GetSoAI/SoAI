@@ -108,12 +108,22 @@ class DatabaseConversations:
             user_id=user_id,
         )
 
-    async def list_conversations(self, user_id: int) -> list[JSONDict]:
+    async def list_conversations(
+        self,
+        user_id: int,
+        *,
+        limit: int | None = None,
+        before_created_at_ms: int | None = None,
+        before_id: str | None = None,
+    ) -> list[JSONDict]:
         self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)
 
         return await self.core.reader.execute_read(
             read_active_conversations,
             user_id=user_id,
+            limit=limit,
+            before_created_at_ms=before_created_at_ms,
+            before_id=before_id,
         )
 
     async def search_conversation_titles(

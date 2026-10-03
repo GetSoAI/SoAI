@@ -119,7 +119,7 @@
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .request-distribution-chart {
         --request-distribution-chart-size: 240px;
-        flex: 1 1 auto;
+        flex: 3 1 55%;
         min-height: 0;
         min-width: 0;
         display: flex;
@@ -155,12 +155,18 @@
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .request-distribution-legend {
-        flex: 0 1 auto;
+        flex: 2 1 45%;
         width: calc(100% + (var(--space-3) * 2));
-        max-height: 96px;
+        max-height: none;
+        min-height: 0;
         min-width: 0;
         margin-block: 0 calc(var(--space-3) * -1);
         margin-inline: calc(var(--space-3) * -1);
+        padding-block-start: var(--space-2);
+        background-image: var(--ui-separator-gradient-horizontal);
+        background-position: center top;
+        background-repeat: no-repeat;
+        background-size: 100% var(--border-width-1);
         overflow-x: hidden;
         overflow-y: auto;
     }
@@ -173,5 +179,44 @@
         width: 100%;
         min-height: 100%;
         padding-inline: var(--space-1);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .request-distribution-legend .distribution-legend__item {
+        align-items: center;
+        gap: var(--space-15);
+        padding: var(--space-05) var(--space-2);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .request-distribution-legend .distribution-legend__item--others-boundary {
+        margin-top: var(--space-05);
+        padding-top: var(--space-1);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .request-distribution-legend .distribution-legend__swatch {
+        margin-top: 0;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .request-distribution-legend .distribution-legend__text {
+        flex: 1 1 auto;
+        flex-direction: row;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .request-distribution-legend .distribution-legend__label {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        overflow-wrap: normal;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        word-break: normal;
+    }
+
+    :where([data-section='dashboard'], [data-page-scope='dashboard']) .request-distribution-legend .distribution-legend__value {
+        flex: 0 0 auto;
+        overflow-wrap: normal;
+        white-space: nowrap;
+        word-break: normal;
     }
 }

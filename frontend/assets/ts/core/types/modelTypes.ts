@@ -13,6 +13,8 @@ export interface ModelRecord extends ResourceIncomingObject {
     modelId?: string;
     sourceModelId?: string;
     rawUpstreamModelId?: string;
+    repositoryId?: string;
+    requestedRevision?: string;
     alias?: string;
     displayName?: string;
     hasAlias?: boolean;

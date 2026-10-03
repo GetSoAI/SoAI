@@ -14,6 +14,7 @@ from app.updater.software_update.handoff import announce_prepared_updater, clear
 from app.updater.software_update.install_transaction_recovery import (
     recover_interrupted_update_transactions,
 )
+from app.updater.software_update.preparation_progress import write_preparation_progress
 from app.updater.software_update.status_query import (
     get_software_update_status_for_dependencies,
 )
@@ -22,6 +23,7 @@ from app.updater.windows_installer_update import perform_windows_installer_updat
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import StateError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.errors.unexpected_exceptions import UNEXPECTED_RUNTIME_EXCEPTIONS
 from core.tasks.software_update_result import (
     create_software_update_task_id,
     write_software_update_result,
@@ -129,6 +131,7 @@ def run_software_update_install_flow(deps: SoftwareUpdateServiceDependencies) ->
             module_dependencies=deps.module_dependencies,
         )
         if deps.args.task_id is not None:
+            write_preparation_progress(deps.base_path, task_id, "handoff")
             announce_prepared_updater(
                 base_path=deps.base_path, task_id=task_id, edition=deps.updater.edition
             )
@@ -145,6 +148,8 @@ def run_software_update_install_flow(deps: SoftwareUpdateServiceDependencies) ->
         return stop_result.can_continue
 
     try:
+        if deps.args.task_id is not None:
+            write_preparation_progress(deps.base_path, task_id, "fetching")
         deps.logger.info("Fetching latest release information from GitHub...")
         update_info = get_software_update_status_for_dependencies(deps)
         if update_info:
@@ -172,6 +177,8 @@ def run_software_update_install_flow(deps: SoftwareUpdateServiceDependencies) ->
                     return 0
                 _restart_after_successful_update(deps, should_restart=should_restart)
                 return 0
+            if deps.args.task_id is not None:
+                write_preparation_progress(deps.base_path, task_id, "verifying")
             release_bundle = prepare_release_bundle(
                 release_info=latest_release,
                 version=latest_version,
@@ -204,6 +211,7 @@ def run_software_update_install_flow(deps: SoftwareUpdateServiceDependencies) ->
                     before_handoff=quiesce_installation,
                     task_id=task_id,
                     from_version=deps.local_version or "0.0.0",
+                    report_preparation=deps.args.task_id is not None,
                 )
                 installer_handoff_started = update_result is True
             else:
@@ -217,6 +225,7 @@ def run_software_update_install_flow(deps: SoftwareUpdateServiceDependencies) ->
                     before_commit=quiesce_installation,
                     task_id=task_id,
                     from_version=deps.local_version or "0.0.0",
+                    report_preparation=deps.args.task_id is not None,
                     download_timeout=deps.download_timeout,
                     release_bundle=release_bundle,
                     reservation_provider=deps.storage_manager,
@@ -236,6 +245,14 @@ def run_software_update_install_flow(deps: SoftwareUpdateServiceDependencies) ->
             exception,
             message="Software update failed",
             operation=OPERATION,
+        )
+    except UNEXPECTED_RUNTIME_EXCEPTIONS as exception:
+        log_exception(
+            deps.logger,
+            exception,
+            message="Software update failed unexpectedly",
+            operation=OPERATION,
+            level="critical",
         )
     finally:
         if deps.args.task_id is not None:

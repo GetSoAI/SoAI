@@ -15,25 +15,28 @@
         align-items: center;
         gap: var(--space-2);
         width: 100%;
-        padding: var(--space-15) calc(var(--control-round-button-size) + var(--space-1)) var(--space-15) var(--space-2);
+        min-width: 0;
+        padding-block: var(--space-15) var(--space-15);
+        padding-inline: var(--space-2) calc(var(--control-round-button-size) + var(--space-1));
         border: none;
         background: transparent;
         color: inherit;
         font: inherit;
-        text-align: left;
+        text-align: start;
         cursor: pointer;
     }
 
     :where(.chat-container) .chat-attachment-summary-card-delete.ui-round-button {
         position: absolute;
         top: -6px;
-        right: -6px;
+        inset-inline-end: -6px;
         z-index: var(--z-above-sibling);
     }
 
     @container ui-viewport (width <= 900px) {
         :where(.chat-container) .chat-attachment-summary-card-body {
-            padding: var(--space-1) calc(var(--control-round-button-size) + var(--space-1)) var(--space-1) var(--space-2);
+            padding-block: var(--space-1) var(--space-1);
+            padding-inline: var(--space-2) calc(var(--control-round-button-size) + var(--space-1));
         }
     }
 }

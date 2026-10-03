@@ -20,9 +20,10 @@ from core.timing.epoch import epoch_ms
 from core.types.json import JSONDict
 from hardware.soaibench.publication_document_validation import validate_publication_document
 from hardware.soaibench.publication_projection import build_publication_document
+from hardware.soaibench.publication_receipt_validation import validate_publication_receipt
+from hardware.soaibench.publication_status_transport import read_soaibench_publication_status
 from hardware.soaibench.publication_transport import (
     publish_to_soaibench,
-    validate_publication_receipt,
 )
 from hardware.soaibench.publication_validation import validated_measured_passes
 
@@ -119,11 +120,7 @@ class SoAIBenchPublicationService:
                 raise StateError("Published SoAIBench receipt is missing.")
             score = _prepared_score(publication)
             validated_receipt = validate_publication_receipt(receipt, score)
-            state = (
-                "held_for_review"
-                if validated_receipt.get("validation") == "flagged"
-                else "already_published"
-            )
+            state = await self._current_publication_state(validated_receipt)
             return 200, _local_receipt(validated_receipt, state)
         if publication is None:
             publication = await self._prepare(run_id=run_id, user_id=user_id)
@@ -156,13 +153,41 @@ class SoAIBenchPublicationService:
         stored_receipt = stored.receipt
         if not isinstance(stored_receipt, dict):
             raise StateError("SoAIBench publication receipt was not persisted.")
-        if stored_receipt.get("validation") == "flagged":
+        if upstream_status == 200 or duplicate:
+            state = await self._current_publication_state(stored_receipt)
+        elif stored_receipt.get("validation") == "flagged":
             state = "held_for_review"
         else:
-            state = "already_published" if upstream_status == 200 or duplicate else "published"
+            state = "published"
         return (200 if upstream_status == 200 or duplicate else 201), _local_receipt(
             stored_receipt, state
         )
+
+    async def _current_publication_state(self, receipt: JSONDict) -> str:
+        submission_id = receipt.get("submission_id")
+        if not isinstance(submission_id, str):
+            raise StateError("Published SoAIBench submission ID is missing.")
+        try:
+            current_status = await read_soaibench_publication_status(
+                self._deps.http_client, submission_id
+            )
+        except ApiError as exception:
+            log_handled_exception(
+                self._deps.logger,
+                exception,
+                message="SoAIBench publication status request failed.",
+                operation=PUBLICATION_OPERATION,
+                details={"code": str(exception.code)},
+                level="warning",
+            )
+            raise
+        if current_status == "removed":
+            raise ApiError(
+                "SoAIBench publication was removed.",
+                code="soaibench_publication_rejected",
+                http_status=410,
+            )
+        return "held_for_review" if current_status == "flagged" else "already_published"
 
     async def _prepare(self, *, run_id: str, user_id: int) -> SoAIBenchPublicationRecord:
         run = await self._deps.database_hardware.get_soaibench_run_for_user(
@@ -188,7 +213,7 @@ def _local_receipt(receipt: JSONDict, state: str) -> JSONDict:
         "public_url": receipt.get("public_url"),
         "score_version": receipt.get("score_version"),
         "overall_score": receipt.get("overall_score"),
-        "validation": receipt.get("validation"),
+        "validation": "flagged" if state == "held_for_review" else "validated",
         "duplicate": receipt.get("duplicate"),
     }
 

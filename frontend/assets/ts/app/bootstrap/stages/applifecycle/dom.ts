@@ -3,12 +3,16 @@
 
 import { toTrustedUiHtml } from '@core/security/public.ts';
 import { querySelectorStrict } from '@app/bootstrap/stages/appLifecycleSupport.ts';
+import { clearActiveWallpaperReadiness } from '@core/backgroundtasks/wallpaperReadiness.ts';
 import { getDiscoveryService } from '@core/discoveryservice/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { getElementByIdStrict, requireDocument } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
-import { ensureError, extractErrorMessage } from '@core/errors/coerce.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { resolveBootMessages } from '@core/languageservice/bootMessages.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { BackendDiscoveryError } from '@core/discoveryservice/discoveryError.ts';
+import { bindReloadFailure } from '@core/ui/reloadFailure.ts';
 import { isBackendEditionIntegrityError } from '@core/edition/backendEditionIntegrity.ts';
 import type { StateManager } from '@core/state/public.ts';
 import { EMPTY_UI_HTML, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
@@ -34,10 +38,9 @@ export const toggleMainUIVisibility = (show: boolean, stateManager: StateManager
     elements.forEach((element) => {
         if (show) {
             dom.removeClass(element, 'u-hidden');
-            dom.setStyles(element, { display: '', visibility: '' });
+            dom.setStyle(element, 'visibility', '');
         } else {
             dom.addClass(element, 'u-hidden');
-            dom.setStyle(element, 'display', 'none');
         }
     });
 
@@ -50,7 +53,8 @@ export const toggleMainUIVisibility = (show: boolean, stateManager: StateManager
     }
 };
 
-export const renderLifecycleInitializationError = (error: Error, finalizePreloader: () => void | Promise<void>): void => {
+export const renderLifecycleInitializationError = (error: Error, finalizePreloader: () => void | Promise<void>, options: { surface?: 'main' | 'detached'; missingPage?: boolean } = {}): void => {
+    clearActiveWallpaperReadiness();
     try {
         const result = finalizePreloader();
         if (isThenable(result)) {
@@ -64,32 +68,44 @@ export const renderLifecycleInitializationError = (error: Error, finalizePreload
         errorHandler.warn('AppLifecycle', 'Failed to finalize preloader during error rendering', runtimeError);
     }
 
-    const container = getElementByIdStrict('app');
+    const detached = options.surface === 'detached';
+    const container = getElementByIdStrict(detached ? 'main-content' : 'app');
+    const messages = resolveBootMessages();
+    container.lang = messages.language;
+    container.dir = messages.direction;
     const editionIntegrityFailure = isBackendEditionIntegrityError(error);
-    const message = editionIntegrityFailure ? i18n.t('app.errors.editionIntegrity.message') : (extractErrorMessage(error) ?? i18n.t('app.errors.unknown'));
-    const normalized = message.toLowerCase();
-    const discoveryError = normalized.includes('discovery') || normalized.includes('port discovery') || normalized.includes('backend discovery failed');
+    const message = editionIntegrityFailure ? i18n.t('app.errors.editionIntegrity.message', undefined, messages) : options.missingPage ? i18n.t('app.detachedWindow.errors.noPageSpecified', undefined, messages) : detached ? i18n.t('app.detachedWindow.errors.initializationFailed', undefined, messages) : i18n.t('app.errors.unknown', undefined, messages);
+    const discoveryError = error instanceof BackendDiscoveryError;
 
     let detailsMarkup = EMPTY_UI_HTML;
     if (discoveryError) {
-        const ports = getDiscoveryService().getCandidatePorts();
+        let ports: number[] = [];
+        try {
+            ports = getDiscoveryService().getCandidatePorts();
+        } catch (discoveryServiceError) {
+            errorHandler.debug('AppLifecycle', 'Discovery guidance uses default ports before service readiness', ensureError(discoveryServiceError));
+        }
         if (!isArray(ports)) {
             throw new Error('Discovery service must return an array of ports');
         }
         const items = [
-            i18n.t('app.errors.discoveryHelp.items.backendRunning'),
-            i18n.t('app.errors.discoveryHelp.items.discoveryReachable', {
-                ports: ports.length ? ports.join(', ') : i18n.t('app.errors.discoveryHelp.defaultPorts')
-            }),
-            i18n.t('app.errors.discoveryHelp.items.noFirewall')
+            i18n.t('app.errors.discoveryHelp.items.backendRunning', undefined, messages),
+            i18n.t(
+                'app.errors.discoveryHelp.items.discoveryReachable',
+                {
+                    ports: ports.length ? ports.join(', ') : i18n.t('app.errors.discoveryHelp.defaultPorts', undefined, messages)
+                },
+                messages
+            ),
+            i18n.t('app.errors.discoveryHelp.items.noFirewall', undefined, messages)
         ]
             .map((item) => uiHtml`<li>${item}</li>`.html)
             .join('');
-        detailsMarkup = uiHtml`<p><strong>${i18n.t('app.errors.discoveryHelp.heading')}</strong></p><ul>${toTrustedUiHtml(items)}</ul>`;
+        detailsMarkup = uiHtml`<p><strong>${i18n.t('app.errors.discoveryHelp.heading', undefined, messages)}</strong></p><ul>${toTrustedUiHtml(items)}</ul>`;
     }
 
-    const title = editionIntegrityFailure ? i18n.t('app.errors.editionIntegrity.title') : i18n.t('app.errors.initFailed');
-    const reloadLabel = i18n.t('common.actions.reloadPage');
+    const title = editionIntegrityFailure ? i18n.t('app.errors.editionIntegrity.title', undefined, messages) : detached ? i18n.t('detached.errors.initFailed', undefined, messages) : i18n.t('app.errors.initFailed', undefined, messages);
+    const reloadLabel = i18n.t('common.actions.reloadPage', undefined, messages);
     dom.setHTML(
         container,
         uiHtml`
@@ -109,7 +125,7 @@ export const renderLifecycleInitializationError = (error: Error, finalizePreload
                         <button
                             type="button"
                             class="ui-button ui-variant-accent"
-                            data-lifecycle-reload
+                            data-action="reload-page"
                             aria-label="${uiAttr(reloadLabel)}"
                             data-tooltip="${uiAttr(reloadLabel)}"
                         >
@@ -122,11 +138,7 @@ export const renderLifecycleInitializationError = (error: Error, finalizePreload
         { escape: false }
     );
 
-    const reloadButton = dom.resolve('[data-lifecycle-reload]', container);
-    if (reloadButton) {
-        const handleReloadClick = (): void => {
-            window.location.reload();
-        };
-        reloadButton.addEventListener('click', handleReloadClick, { once: true });
-    }
+    const root = dom.resolve('.initialization-error', container);
+    if (!(root instanceof HTMLElement)) throw new Error('Initialization error surface is missing');
+    bindReloadFailure(root);
 };

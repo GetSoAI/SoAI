@@ -38,13 +38,11 @@ const startRestoreFromFullscreen = (state: ModalHostState, id: string, dragState
         left: point.clientX - mappedOffsetX,
         top: point.clientY - mappedOffsetY,
         width: restoredWidth,
-        height: restoredHeight,
-        isMobileViewport: state.isMobileViewportState
+        height: restoredHeight
     });
     const bounded = clampPosition({
         content: dragState.modalContent,
         position: targetPosition,
-        isMobileViewport: state.isMobileViewportState,
         sizeOverride: { width: restoredWidth, height: restoredHeight }
     });
 

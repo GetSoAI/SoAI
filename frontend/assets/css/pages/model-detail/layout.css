@@ -8,7 +8,6 @@
             --status-badge-padding: var(--space-05) var(--space-15);
             --status-badge-font-size: var(--font-size-xs);
         }
-
         .modeldetail-status-badge--ready {
             --status-badge-color: var(--status-green);
         }
@@ -24,144 +23,72 @@
         .modeldetail-status-badge--virtual {
             --status-badge-color: var(--accent-blue);
         }
-
-        .modeldetail-enabled-toggle {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-1);
-            margin-top: 0;
-            border-bottom: none;
-        }
-
-        .modeldetail-enabled-note {
-            font-size: var(--font-size-xs);
-            color: var(--text-tertiary);
-            border-bottom: var(--border-width-1) solid transparent;
-        }
-
-        .modeldetail-status-capabilities .modeldetail-card-header {
-            align-items: center;
-            gap: var(--space-2);
-        }
-
-        .modeldetail-status-capabilities .modeldetail-card-body {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-2);
-        }
-
-        .modeldetail-status-capabilities-heading {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-05);
-            min-width: 0;
-            flex: 1;
-        }
-
-        .modeldetail-status-capabilities :is(.modeldetail-status-capabilities-save, .modeldetail-status-capabilities-reset).ui-button--titlebar {
-            white-space: nowrap;
-            flex-shrink: 0;
-        }
-
-        .modeldetail-status-actions {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: var(--space-2);
-            margin-top: 0;
-            padding-top: var(--space-2);
-            border-top: none;
-        }
-
-        .modeldetail-status-actions .ui-button {
-            flex: 1 1 0;
-            min-width: 0;
-            justify-content: center;
-            white-space: nowrap;
-        }
-
-        .modeldetail-status-actions .ui-button.ui-icon-button {
-            flex: 0 0 var(--icon-button-size);
-        }
-
-        :is(.modeldetail-constituent-list, .modeldetail-inference-defaults) {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .modeldetail-constituent-list {
-            gap: var(--space-2);
-        }
-
-        .modeldetail-constituent-item {
-            padding: var(--space-25) var(--space-3);
-            border-radius: var(--border-radius);
-        }
-
         .modeldetail-constituent-name {
-            font-size: var(--font-size-sm);
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: var(--space-1);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-
-        .modeldetail-constituent-uid {
-            color: var(--text-tertiary);
-        }
-
         :is(.modeldetail-constituent-badge, .param-badge) {
             --status-badge-font-size: var(--font-size-micro);
             --status-badge-padding: var(--space-05) var(--space-1);
             --status-badge-letter-spacing: var(--tracking-03px);
         }
-
         .modeldetail-constituent-badge {
-            margin-top: var(--space-15);
-
             --status-badge-color: var(--accent-green);
         }
-
-        .modeldetail-capabilities {
-            display: block;
-        }
-
-        .form-group .modeldetail-capabilities {
+        .modeldetail-status-capabilities .openai-capabilities-category-title {
             display: flex;
-            flex-wrap: wrap;
-            gap: var(--space-3);
+            align-items: center;
+            gap: var(--space-2);
+            margin: var(--space-3) 0 var(--space-05);
+            color: var(--text-secondary);
+            font-size: var(--font-size-xs);
+            font-weight: 500;
+            letter-spacing: var(--tracking-05px);
+            line-height: var(--line-height-badge);
+            text-transform: var(--text-case-label);
+            &::after {
+                content: '';
+                flex: 1;
+                height: var(--border-width-1);
+                background: var(--surface-card-border);
+            }
         }
-
-        .parameter-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--space-3);
-            margin-top: var(--space-3);
-            width: 100%;
+        .modeldetail-status-capabilities .openai-capabilities-category-rows {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+            column-gap: var(--space-10);
+            row-gap: 0;
         }
-
+        .modeldetail-status-capabilities .openai-capability-row {
+            min-height: calc(var(--space-8) + var(--space-1));
+            padding: var(--space-1) 0;
+            border-radius: 0;
+            background: none;
+            box-shadow: inset 0 calc(var(--border-width-1) * -1) 0 color-mix(in srgb, var(--glass-border-strong) 70%, transparent);
+        }
+        .modeldetail-status-capabilities .openai-capability-reason {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         .modeldetail-empty-state {
             padding: var(--space-4);
             text-align: center;
             color: var(--text-secondary);
             font-size: var(--font-size-sm);
         }
-
         .no-parameters {
             padding: var(--space-12) var(--space-8);
             text-align: center;
             color: var(--text-secondary);
             height: 100%;
-
             svg {
                 color: var(--text-tertiary);
                 margin-bottom: var(--space-4);
             }
         }
-
         .parameters-content {
-            overflow: auto;
             padding: 0;
             min-height: 0;
             flex: 1;

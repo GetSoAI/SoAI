@@ -13,6 +13,7 @@ from app.backup.copy_no_symlinks.tree_hash_format import (
     update_tree_hasher_for_relative_file,
 )
 from core.errors.exceptions import ValidationError
+from core.filesystem.path_coercion import normalize_filesystem_path
 from files.archive import sync_raise_if_symlink
 
 __all__ = ("sync_hash_directory_no_symlinks",)
@@ -26,13 +27,21 @@ def sync_hash_directory_no_symlinks(
     if not source_root.strip():
         raise ValidationError("source_root is required.")
     sync_raise_if_symlink(source_root, context="tree hash source")
-    if not os.path.isdir(source_root):
+    if not os.path.isdir(normalize_filesystem_path(source_root)):
         raise ValidationError(f"Expected a directory at {source_root}.")
 
     dir_hasher = hashlib.sha256()
     total_bytes = 0
 
-    for root, dir_names, file_names in os.walk(source_root, topdown=True, followlinks=False):
+    for filesystem_root, dir_names, file_names in os.walk(
+        normalize_filesystem_path(source_root), topdown=True, followlinks=False
+    ):
+        root = os.path.normpath(
+            os.path.join(
+                source_root,
+                os.path.relpath(filesystem_root, normalize_filesystem_path(source_root)),
+            )
+        )
         check_deadline(deadline_monotonic, context=f"hash_dir:{root}")
         dir_names.sort()
         file_names.sort()

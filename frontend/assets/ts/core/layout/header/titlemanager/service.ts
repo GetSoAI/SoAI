@@ -79,6 +79,8 @@ export class TitleManager {
         const titleNode = this.header.getDom('pageTitle');
         if (titleNode) {
             this.header.on(titleNode, 'animationend', (event: Event) => this.handleTitleAnimationEnd(event));
+            this.header.on(titleNode, 'transitionend', (event: Event) => this.handleTitleTransitionEnd(event));
+            this.header.on(titleNode, 'transitioncancel', (event: Event) => this.handleTitleTransitionEnd(event));
         }
         this.refreshDisplayedTitle();
         this.updateDocumentTitle(this.brand);
@@ -205,6 +207,27 @@ export class TitleManager {
             return;
         }
         titleNode.classList.remove('is-navigation-entering');
+        this.clearHiddenPageTitleText();
+    }
+
+    handleTitleTransitionEnd(event: Event): void {
+        const titleNode = this.header.getDom('pageTitle');
+        const textNode = titleNode ? this.header.optionalHTMLElement('.page-title-text', titleNode) : null;
+        if (!textNode || !(event instanceof TransitionEvent) || event.target !== textNode || event.propertyName !== 'transform') {
+            return;
+        }
+        this.clearHiddenPageTitleText();
+    }
+
+    clearHiddenPageTitleText(): void {
+        const titleNode = this.header.getDom('pageTitle');
+        if (!titleNode || titleNode.getAttribute('data-page-title-display') !== 'brand') {
+            return;
+        }
+        const textNode = this.header.optionalHTMLElement('.page-title-text', titleNode);
+        if (textNode) {
+            this.header.updateText(textNode, '');
+        }
     }
 
     resolveBrandName(): string {

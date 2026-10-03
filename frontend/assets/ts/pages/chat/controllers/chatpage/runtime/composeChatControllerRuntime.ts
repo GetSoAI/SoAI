@@ -116,7 +116,7 @@ interface ChatControllerRuntime {
 const composeChatControllerRuntime = (composition: ChatControllerRuntimeDependencies, logger: ModuleLogger): ChatControllerRuntime => {
     const { actionComposition, agentComposition, domain, managerComposition, page, platform, sessions, state } = composition;
     const modelTransition = { conversationState: state.conversationState, pageDom: page.pageDom, composer: sessions.composer };
-    const conversationTransition = { ...modelTransition, runtimeServices: state.runtimeServices, voiceSession: sessions.voiceSession };
+    const conversationTransition = { ...modelTransition, composerSurface: domain.composerSurface, runtimeServices: state.runtimeServices, voiceSession: sessions.voiceSession };
     const initializeAgent = (): void => {
         const agent = createChatAgentService(agentComposition);
         domain.turnRuntime.initializeAgent(agent);

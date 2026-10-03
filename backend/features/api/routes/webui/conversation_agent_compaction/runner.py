@@ -19,6 +19,9 @@ from core.timing.epoch import epoch_ms
 from features.api.routes.webui.conversation_agent_compaction.execution_identity import (
     ManualCompactionExecutionIdentity,
 )
+from features.api.routes.webui.conversation_agent_compaction.run_state import (
+    ManualCompactionRunState,
+)
 from features.api.routes.webui.conversation_agent_compaction.run_state_factory import (
     build_manual_compaction_run_state,
 )
@@ -38,6 +41,22 @@ __all__ = ("run_manual_compaction",)
 
 LOGGER_NAME = "SoAI.features.api.conversation_agent_compaction_runner"
 OPERATION = "webui.agent_compaction.run_manual"
+EMPTY_CONVERSATION_MESSAGE = "Conversation is empty; nothing to compact."
+NO_REDUCTION_MESSAGE = "A summary would not reduce the conversation context; nothing was compacted."
+
+
+async def _finalize_unchanged_context(
+    run_state: ManualCompactionRunState,
+    output_text: str,
+) -> None:
+    completed_at_ms = int(epoch_ms())
+    tool_result_details = await run_state.resolve_tool_result_details(None)
+    await run_state.finalize_success(
+        completed_at_ms=completed_at_ms,
+        activity_output_text=output_text,
+        activity_prompt_message=None,
+        tool_result_details=tool_result_details,
+    )
 
 
 async def run_manual_compaction(
@@ -132,15 +151,7 @@ async def run_manual_compaction(
             replace_tool_call_id=replace_tool_call_id,
         )
         if not canonical_source_messages:
-            empty_message = "Conversation is empty; nothing to compact."
-            completed_at_ms = int(epoch_ms())
-            tool_result_details = await run_state.resolve_tool_result_details(None)
-            await run_state.finalize_success(
-                completed_at_ms=completed_at_ms,
-                activity_output_text=empty_message,
-                activity_prompt_message=None,
-                tool_result_details=tool_result_details,
-            )
+            await _finalize_unchanged_context(run_state, EMPTY_CONVERSATION_MESSAGE)
             return
         await delta_streamer.raise_if_cancelled()
         summary = await build_manual_compaction_summary_text(
@@ -157,6 +168,9 @@ async def run_manual_compaction(
             on_text_delta=delta_streamer.on_text_delta,
         )
         await delta_streamer.raise_if_cancelled()
+        if summary.summary_prompt_tokens >= summary.source_prompt_tokens:
+            await _finalize_unchanged_context(run_state, NO_REDUCTION_MESSAGE)
+            return
         completed_at_ms = int(epoch_ms())
         tool_result_details = await run_state.resolve_tool_result_details(summary)
         await run_state.finalize_success(

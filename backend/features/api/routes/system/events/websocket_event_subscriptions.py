@@ -28,6 +28,8 @@ from core.events.types_conversation_durable import (
 from core.events.types_system import (
     ChatStreamActivityChangedEvent,
     ChatStreamEvent,
+    HardwareHistoryResetEvent,
+    MetricsHistoryResetEvent,
     ModelTestStreamEvent,
     SoAIBenchRunUpdatedEvent,
 )
@@ -56,14 +58,11 @@ from features.api.routes.system.events.websocket_attachment_visibility import (
     attachment_event_visible_to_connection,
 )
 from features.api.routes.system.events.websocket_permission_refresh import (
-    refresh_websocket_effective_actions,
-)
-from features.api.routes.system.events.websocket_permission_rules import (
-    build_websocket_event_permission_rules,
+    reconcile_websocket_event_subscriptions,
+    refresh_websocket_event_subscriptions,
 )
 from features.api.routes.system.events.websocket_resource_registry import (
     is_websocket_chat_presentation_event_type,
-    is_websocket_resource_interest_event_type,
 )
 from features.api.routes.system.events.websocket_session_validation import (
     validate_websocket_session,
@@ -74,10 +73,7 @@ from features.api.runtime.event_enqueue import enqueue_event_or_warn
 from features.api.streaming.event_payload_mapping import event_to_transport_payload
 from features.api.streaming.websocket import WebsocketConnection
 
-__all__ = (
-    "reconcile_websocket_event_subscriptions",
-    "register_websocket_event_subscriptions",
-)
+__all__ = ("register_websocket_event_subscriptions",)
 
 LOGGER_NAME = "SoAI.features.api.websocket_event_subscriptions"
 
@@ -88,6 +84,8 @@ _CRITICAL_CHRONOLOGY_EVENTS: frozenset[type[Event]] = frozenset(
         ChatStreamActivityChangedEvent,
         ConversationAttentionChangedEvent,
         ConversationInputTerminalEvent,
+        HardwareHistoryResetEvent,
+        MetricsHistoryResetEvent,
         ModelTestStreamEvent,
         SoAIBenchRunUpdatedEvent,
     },
@@ -226,11 +224,11 @@ def register_websocket_event_subscriptions(
     async def event_handler(event: Event) -> None:
         try:
             event_type = type(event)
-            await refresh_websocket_effective_actions(connection)
-            reconcile_websocket_event_subscriptions(
+            await refresh_websocket_event_subscriptions(
                 event_bus=event_bus,
                 connection=connection,
                 event_handler=event_handler,
+                force=False,
             )
             can_receive = connection.can_receive_event(event_type)
             if not can_receive:
@@ -308,22 +306,3 @@ def register_websocket_event_subscriptions(
         connection.user.get("username", "unknown"),
     )
     return event_handler
-
-
-def reconcile_websocket_event_subscriptions(
-    *,
-    event_bus: EventBusProtocol,
-    connection: WebsocketConnection,
-    event_handler: Callable[[Event], Awaitable[None]],
-) -> None:
-    for event_type, required_action in build_websocket_event_permission_rules():
-        if is_websocket_resource_interest_event_type(event_type):
-            continue
-        permitted = required_action in connection.granted_actions
-        subscribed = event_type in connection.subscribed_types
-        if permitted and not subscribed:
-            event_bus.subscribe(event_type, event_handler)
-            connection.subscribed_types.add(event_type)
-        elif not permitted and subscribed:
-            event_bus.unsubscribe(event_type, event_handler)
-            connection.subscribed_types.discard(event_type)

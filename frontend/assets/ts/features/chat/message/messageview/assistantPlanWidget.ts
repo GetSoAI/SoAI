@@ -76,7 +76,7 @@ const renderPlanSubtitle = (host: ChatMessageRenderHost, payload: ToolResultPlan
     if (payload.title === null || isPlanTitleRepeatedInBody(payload.title, payload.markdown)) {
         return renderPlanMetrics(host, payload.markdown);
     }
-    return `<span class="assistant-plan-widget__plan-title">${host.escapeHtml(payload.title)}</span>`;
+    return `<span dir="auto" class="assistant-plan-widget__plan-title">${host.escapeHtml(payload.title)}</span>`;
 };
 
 const renderPlanScope = (host: ChatMessageRenderHost, payload: ToolResultPlanPayload): string => {
@@ -91,7 +91,7 @@ const renderPlanHeader = (host: ChatMessageRenderHost, payload: ToolResultPlanPa
     const headerIcon = host.getIconHtml('plan', PLAN_WIDGET_HEADER_ICON_OPTIONS);
     const label = host.escapeHtml(i18n.t('chat.planWidget.label'));
     const subtitle = renderPlanSubtitle(host, payload);
-    return ['<header class="assistant-plan-widget__header">', '<span class="assistant-plan-widget__title">', `<span class="assistant-plan-widget__title-icon">${headerIcon}</span>`, `<span class="assistant-plan-widget__label">${label}</span>`, subtitle, '</span>', renderPlanScope(host, payload), '</header>'].join('');
+    return ['<header class="assistant-plan-widget__header">', '<span dir="auto" class="assistant-plan-widget__title">', `<span class="assistant-plan-widget__title-icon">${headerIcon}</span>`, `<span class="assistant-plan-widget__label">${label}</span>`, subtitle, '</span>', renderPlanScope(host, payload), '</header>'].join('');
 };
 
 const renderPlanActionButton = (host: ChatMessageRenderHost, actionId: string, className: string, iconHtml: string, label: string): string => {

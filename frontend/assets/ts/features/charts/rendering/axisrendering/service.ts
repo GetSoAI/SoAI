@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isString } from '@core/typeGuards.ts';
-import { getXForVisibleIndex } from '@features/charts/layout/geometry.ts';
+import { timeToX } from '@features/charts/viewport/timeViewport.ts';
 import { DEFAULT_Y_TICK_COUNT, LOG_SAFE_MIN, MIN_LABEL_GAP, X_AXIS_GAP_RATIO, X_AXIS_PADDING, determineXAxisLabelBudget } from '@features/charts/rendering/axisrendering/constants.ts';
 import type { ChartRenderingScene } from '@features/charts/rendering/chartRenderingHost.ts';
 import type { ChartDimensions, RenderGeometry, XAxisTick, YAxisTick } from '@features/charts/rendering/renderingModels.ts';
@@ -146,83 +146,40 @@ const generateYAxisTicks = (scene: ChartRenderingScene, dims: ChartDimensions, v
     return result;
 };
 
+const SECOND_MS = 1000;
+const MINUTE_MS = 60 * SECOND_MS;
+const HOUR_MS = 60 * MINUTE_MS;
+const DAY_MS = 24 * HOUR_MS;
+const TIME_TICK_STEPS_MS: readonly number[] = [SECOND_MS, 2 * SECOND_MS, 5 * SECOND_MS, 10 * SECOND_MS, 15 * SECOND_MS, 30 * SECOND_MS, MINUTE_MS, 2 * MINUTE_MS, 5 * MINUTE_MS, 10 * MINUTE_MS, 15 * MINUTE_MS, 30 * MINUTE_MS, HOUR_MS, 2 * HOUR_MS, 3 * HOUR_MS, 6 * HOUR_MS, 12 * HOUR_MS, DAY_MS, 2 * DAY_MS, 7 * DAY_MS, 14 * DAY_MS, 30 * DAY_MS, 90 * DAY_MS, 180 * DAY_MS, 365 * DAY_MS];
+
+const resolveTimeTickStep = (msPerPx: number, minimumSpacingPx: number): number => TIME_TICK_STEPS_MS.find((step) => step / msPerPx >= minimumSpacingPx) ?? TIME_TICK_STEPS_MS[TIME_TICK_STEPS_MS.length - 1] ?? DAY_MS;
+
+const resolveLocalOffsetMs = (timestamp: number, stepMs: number): number => (stepMs >= HOUR_MS ? new Date(timestamp).getTimezoneOffset() * MINUTE_MS : 0);
+
+const alignTimeTick = (timestamp: number, stepMs: number): number => {
+    const offsetMs = resolveLocalOffsetMs(timestamp, stepMs);
+    return floor((timestamp - offsetMs) / stepMs) * stepMs + offsetMs;
+};
+
 const generateXAxisTicks = (scene: ChartRenderingScene, context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, dims: ChartDimensions, geometry: RenderGeometry): XAxisTick[] => {
     const ticks: XAxisTick[] = [];
-    const { displayCount: displayCountValue, start, offsetFraction } = scene.state.visibleRange;
-    const displayCount = Number(displayCountValue) || 0;
-    if (displayCount <= 0 || scene.state.dataLength === 0) {
+    const maxLabels = determineXAxisLabelBudget(geometry.plotWidth);
+    if (maxLabels <= 0 || scene.state.dataLength === 0) {
         return ticks;
     }
-
-    const availableWidth = isFin(geometry['effectiveWidth']) ? geometry['effectiveWidth'] : Number(dims['chartWidth']) || 0;
-    const maxLabels = determineXAxisLabelBudget(availableWidth);
-    if (maxLabels <= 0) {
-        return ticks;
-    }
-
-    const spanMs = scene.geometry.getVisibleTimeSpan?.() ?? 0;
-    const spacing = geometry['spacing'] || availableWidth / max(1, displayCount - 1);
-    const originX = (geometry['originX'] ?? geometry['baseLeft'] ?? dims['left']) - spacing * offsetFraction;
-    const effectiveVisible = max(1, geometry['visibleCount'] ?? min(displayCount, scene.state.dataLength - start));
-    const endIndex = min(scene.state.dataLength - 1, start + effectiveVisible - 1);
-    if (endIndex < start) {
-        return ticks;
-    }
-
-    const candidateIndices: number[] = [start];
-    const baseStep = max(1, round(effectiveVisible / max(1, maxLabels - 1)));
-    for (let index = start + baseStep; index < endIndex; index += baseStep) {
-        candidateIndices.push(index);
-    }
-    if (candidateIndices[candidateIndices.length - 1] !== endIndex) {
-        candidateIndices.push(endIndex);
-    }
-
-    let lastLabelRight = -Infinity;
-    const rightLimit = geometry['rightBoundary'] ?? (Number(dims['left']) || 0) + availableWidth;
+    const stepMs = resolveTimeTickStep(geometry.msPerPx, geometry.plotWidth / maxLabels);
     const minimalGap = max(MIN_LABEL_GAP, 12 * X_AXIS_GAP_RATIO);
-    const timestamps = scene.state.timestamps;
-
-    for (const index of candidateIndices) {
-        const xCoordinate = getXForVisibleIndex(scene.state, index - start, displayCount, originX, spacing, geometry, dims);
-        const timestamp = timestamps[index];
-        if (timestamp === undefined || !isFin(timestamp)) {
-            continue;
-        }
-
-        const labelResult = scene.format.formatAxisTimestamp?.(timestamp, spanMs) ?? scene.format.formatTimestamp(timestamp);
-        if (!labelResult || !isString(labelResult)) {
-            continue;
-        }
-
-        const halfWidth = context.measureText(labelResult).width / 2;
-        const minX = (Number(dims['left']) || 0) + halfWidth + X_AXIS_PADDING;
-        const clampedX = max(minX, min(xCoordinate, max(minX, rightLimit - halfWidth - X_AXIS_PADDING)));
-
-        if (clampedX - halfWidth <= lastLabelRight + minimalGap) {
-            continue;
-        }
-
-        ticks.push({ x: clampedX, timestamp, label: labelResult, textWidth: halfWidth * 2 });
-        lastLabelRight = clampedX + halfWidth;
-        if (ticks.length >= maxLabels) {
-            break;
-        }
+    const rightLimit = dims.left + geometry.plotWidth;
+    let lastLabelRight = -Infinity;
+    for (let timestamp = alignTimeTick(geometry.startTs, stepMs); timestamp <= geometry.endTs; timestamp = alignTimeTick(timestamp + stepMs * 1.5, stepMs)) {
+        const xCoordinate = timeToX(geometry, timestamp);
+        const label = scene.format.formatAxisTimestamp?.(timestamp, geometry.span) ?? scene.format.formatTimestamp(timestamp);
+        if (!label || !isString(label)) continue;
+        const halfWidth = context.measureText(label).width / 2;
+        if (xCoordinate - halfWidth < dims.left + X_AXIS_PADDING || xCoordinate + halfWidth > rightLimit - X_AXIS_PADDING || xCoordinate - halfWidth <= lastLabelRight + minimalGap) continue;
+        ticks.push({ x: xCoordinate, timestamp, label, textWidth: halfWidth * 2 });
+        lastLabelRight = xCoordinate + halfWidth;
     }
-
-    const endTimestamp = timestamps[endIndex];
-    if (!ticks.length && endTimestamp !== undefined && isFin(endTimestamp)) {
-        const labelResult = scene.format.formatAxisTimestamp?.(endTimestamp, spanMs) ?? scene.format.formatTimestamp(endTimestamp);
-        if (labelResult && isString(labelResult)) {
-            ticks.push({
-                x: geometry['rightBoundary'] ?? (Number(dims['left']) || 0) + availableWidth,
-                timestamp: endTimestamp,
-                label: labelResult,
-                textWidth: context.measureText(labelResult).width
-            });
-        }
-    }
-
     return ticks;
 };
 

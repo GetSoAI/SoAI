@@ -3,7 +3,7 @@
 
 import type { AutomationCalendarFirstDay, AutomationCalendarRangeTitleFormat, AutomationCalendarTimeFormat, AutomationCalendarWeekNumbering, AutomationRecurrence, AutomationRunStatus, AutomationViewMode, AutomationZoneStatus } from '@core/automation/protocols.ts';
 import type { StorageService } from '@core/storage/StorageService.ts';
-import type { AutomationDataService, AutomationDefinition, AutomationZone } from '@features/automation/public.ts';
+import type { AutomationDataService, AutomationDefinitionResponse, AutomationOccurrenceResponse } from '@features/automation/public.ts';
 
 interface AutomationCalendarSettings {
     firstDayOfWeek: AutomationCalendarFirstDay;
@@ -34,6 +34,8 @@ interface AutomationUiRefs {
     splitter: HTMLElement;
     viewToggle: HTMLElement;
     registryOverlayToggle: HTMLButtonElement;
+    dataRecovery: HTMLElement;
+    dataRecoveryMessage: HTMLElement;
 }
 
 interface AutomationPreferences {
@@ -50,11 +52,11 @@ interface AutomationPageState {
     selectedDateUtcMs: number;
     selectedZoneKey: string | null;
     splitLeftPercent: number;
-    automations: readonly AutomationDefinition[];
+    automations: readonly AutomationDefinitionResponse[];
     automationRegistryLimit: number;
     automationRegistryOffset: number;
     automationRegistryHasMore: boolean;
-    zones: readonly AutomationZone[];
+    zones: readonly AutomationOccurrenceResponse[];
 }
 
 interface AutomationPageServices {

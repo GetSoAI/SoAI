@@ -8,7 +8,8 @@ import { getMaintenanceCoordinator } from '@core/maintenanceCoordinator.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { createKernelResolver } from '@core/runtime/runtimeContext.ts';
 import { resolveRestartApi, resolveRestartDom } from '@features/overlays/restart/adapters.ts';
-import { DEFAULT_MAX_RETRIES, REBOOT_MAX_RETRIES, shouldPersistRestartOperation, shouldPollForRestartOperation } from '@features/overlays/restart/constants.ts';
+import { announceDesktopLauncherUpdateHandoff } from '@core/desktophost/desktopLauncher.ts';
+import { DEFAULT_MAX_RETRIES, resolveRestartMaxRetries, shouldPersistRestartOperation, shouldPollForRestartOperation } from '@features/overlays/restart/constants.ts';
 import { restoreRestartOverlaySession } from '@features/overlays/restart/effects.ts';
 import { awaitRestartDomReady, checkRestartBackendStatus, handleRestartBackendOnline, handleRestartMaxRetriesReached } from '@features/overlays/restart/events.ts';
 import { hideRestartPresentation, showRestartPresentation } from '@features/overlays/restart/presentation.ts';
@@ -124,19 +125,23 @@ class RestartOverlay extends LifecycleModel {
         this.currentType = type;
         this.isVisible = true;
         this.currentRetry = 0;
-        this.maxRetries = type === 'system-reboot' ? REBOOT_MAX_RETRIES : DEFAULT_MAX_RETRIES;
+        this.maxRetries = resolveRestartMaxRetries(type);
         this.transitionTracker.begin(observeTransition);
         if (!shouldPersist) {
             this.sessionRepository.clear();
         }
 
-        const presented = showRestartPresentation(this.elements, type, {
+        const targetVersion = type === 'update-soai' ? (options.targetVersion ?? null) : null;
+        const presented = showRestartPresentation(this.elements, type, targetVersion, {
             addClassName: (element, className) => this.lifecycleDom.addClass(element, className),
             removeClassName: (element, className) => this.lifecycleDom.removeClass(element, className),
             updateHtml: (element, value) => this.lifecycleDom.updateHtml(element, value),
             updateText: (element, value) => this.lifecycleDom.updateText(element, value)
         });
         if (presented) {
+            if (targetVersion !== null) {
+                announceDesktopLauncherUpdateHandoff(targetVersion);
+            }
             if (shouldPollForRestartOperation(type)) {
                 this.startPolling();
             }

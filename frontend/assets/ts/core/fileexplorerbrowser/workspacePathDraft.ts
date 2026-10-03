@@ -17,8 +17,7 @@ interface WorkspacePathPickerStrings {
 
 const resolveWorkspaceSelection = (result: FolderPickerResult): string | null | undefined => {
     if (result.resultType !== 'selected') return undefined;
-    const absolutePath = toTrimmedString(result.absolutePath);
-    if (absolutePath) return absolutePath;
+    if (result.absolutePath !== null && toTrimmedString(result.absolutePath)) return result.absolutePath;
     const override = resolveFolderPickerPathOverride(result);
     if (override !== null) return override;
     const virtualPath = toTrimmedString(result.virtualPath);
@@ -58,8 +57,8 @@ class WorkspacePathDraft {
         return this.#currentWorkspacePath;
     }
 
-    async open(options: { access: WorkspaceBrowserAccess; readOnly: boolean; canApply: () => boolean; strings: WorkspacePathPickerStrings }): Promise<boolean> {
-        if (options.readOnly) return false;
+    async open(options: { access: WorkspaceBrowserAccess; readOnly: boolean; canApply: () => boolean; signal?: AbortSignal | undefined; strings: WorkspacePathPickerStrings }): Promise<boolean> {
+        if (options.signal?.aborted) return false;
         const currentPath = this.#displayPath;
         const pathIsAbsolute = currentPath ? isAbsoluteFilesystemPath(currentPath) : false;
         const result = await showFolderPickerModal({
@@ -69,9 +68,11 @@ class WorkspacePathDraft {
             labels: buildFolderPickerLabels({ chooseCurrent: options.strings.chooseCurrent }),
             ...(currentPath && pathIsAbsolute ? { initialAbsolutePathToBrowse: currentPath } : {}),
             ...(currentPath && !pathIsAbsolute ? { initialVirtualPath: currentPath } : {}),
-            allowManualPathEntry: true
+            allowManualPathEntry: true,
+            browseOnly: options.readOnly,
+            signal: options.signal
         });
-        if (!result || !options.canApply()) return false;
+        if (options.readOnly || options.signal?.aborted || !result || !options.canApply()) return false;
         if (result.resultType === 'reset') {
             this.#workspacePath = null;
             this.#displayPath = this.getCurrentWorkspacePath();

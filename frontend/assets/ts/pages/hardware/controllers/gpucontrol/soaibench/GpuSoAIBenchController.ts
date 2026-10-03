@@ -12,7 +12,6 @@ import type { GpuUiState } from '@pages/hardware/controllers/gpucontrol/gpuContr
 interface GpuSoAiBenchControllerDependencies {
     buildActionContext: () => ControlContext;
     ensureUiState: (index: string | number) => GpuUiState;
-    handleRunsUpdate: (value: JsonValue) => void;
     syncSoAIBenchUi: (options?: { only?: string[] | null }) => void;
 }
 
@@ -40,12 +39,15 @@ class GpuSoAIBenchController {
     setRuns(value: JsonValue): void {
         const signature = formatHashSignature(value);
         this.#runs = value;
-        this.#dependencies.handleRunsUpdate(value);
         if (signature === this.#runsRenderSignature) {
             return;
         }
         this.#runsRenderSignature = signature;
         this.#renderQueue.schedule(value);
+    }
+
+    scheduleSync(): void {
+        this.#renderQueue.schedule(this.#runs);
     }
 
     dispose(): void {

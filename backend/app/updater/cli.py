@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import faulthandler
 
 from app.cli.offline_mode import resolve_config_path
 from app.core_edition import build_core_edition_composition
@@ -17,6 +18,7 @@ __all__ = ("main",)
 
 
 def main(edition_composition: EditionComposition) -> None:
+    faulthandler.enable()
     parser = argparse.ArgumentParser(
         description="SoAI Updater: A tool to check for and apply updates to the SoAI application and its plugins.",
         formatter_class=argparse.RawTextHelpFormatter,

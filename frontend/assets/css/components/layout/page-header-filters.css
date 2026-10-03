@@ -8,6 +8,10 @@
         padding: 0 var(--layout-container-padding);
     }
 
+    .ui-page-header-stats + .page-header-tabs-container {
+        margin-top: var(--space-5);
+    }
+
     @container ui-viewport (width <= 1024px) {
         .page-header-tabs-container {
             margin: 0 calc(-1 * var(--layout-container-padding)) calc(-1 * var(--space-4));
@@ -26,6 +30,10 @@
         .page-header-tabs-container {
             margin: 0 calc(-1 * var(--space-3)) calc(-1 * var(--space-3) - 1px);
             padding: 0 var(--space-3) 0;
+        }
+
+        .ui-page-header-stats + .page-header-tabs-container {
+            margin-top: 0;
         }
     }
 

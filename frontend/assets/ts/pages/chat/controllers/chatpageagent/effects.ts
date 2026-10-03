@@ -119,7 +119,8 @@ const syncAgentModeCycleButton = (host: ChatPageAgentHost, button: HTMLButtonEle
         actionLabel: cycleTooltip,
         unlockedAriaLabel: cycleTooltip,
         unlockedTooltip: cycleTooltip,
-        unlockedDisabled: false
+        unlockedDisabled: false,
+        unlockedToggleDisabled: false
     });
 };
 
@@ -251,7 +252,8 @@ const updateAgentCompactButton = (host: ChatPageAgentHost, state: ChatPageAgentS
             actionLabel: compactTooltip,
             unlockedAriaLabel: compactTooltip,
             unlockedTooltip: compactTooltip,
-            unlockedDisabled
+            unlockedDisabled,
+            unlockedToggleDisabled: false
         });
     }
 };

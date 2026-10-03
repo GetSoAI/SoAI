@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
-import type { ActiveAudioState, AudioRecordingSnapshot, AudioState } from '@features/chat/audio/audioRecordingTypes.ts';
+import type { ActiveAudioState, AudioRecordingIntent, AudioRecordingSnapshot, AudioState } from '@features/chat/audio/audioRecordingTypes.ts';
 
 interface AudioRecordingSnapshotControllerOptions {
     onSnapshotChange(snapshot: AudioRecordingSnapshot): void;
@@ -14,16 +14,20 @@ class AudioRecordingSnapshotController {
     #state: AudioState = 'idle';
     #startedAtMs: number | null = null;
     #elapsedTimer: number | null = null;
+    #sessionId: number | null = null;
+    #intent: AudioRecordingIntent | null = null;
 
     constructor(options: AudioRecordingSnapshotControllerOptions) {
         this.#onSnapshotChange = options.onSnapshotChange;
         this.#emit(null);
     }
 
-    begin(state: ActiveAudioState): void {
+    begin(state: ActiveAudioState, sessionId: number, intent: AudioRecordingIntent): void {
         this.#clearElapsedTimer();
         this.#startedAtMs = performance.now();
         this.#state = state;
+        this.#sessionId = sessionId;
+        this.#intent = intent;
         this.#syncElapsedTimer();
         this.emit(null);
     }
@@ -42,6 +46,8 @@ class AudioRecordingSnapshotController {
         this.#clearElapsedTimer();
         this.#startedAtMs = null;
         this.#state = 'idle';
+        this.#sessionId = null;
+        this.#intent = null;
         this.emit(null);
     }
 
@@ -61,6 +67,9 @@ class AudioRecordingSnapshotController {
         const elapsedMs = startedAtMs === null ? 0 : Math.max(0, Math.round(performance.now() - startedAtMs));
         this.#onSnapshotChange({
             state: this.#state,
+            sessionId: this.#sessionId,
+            intent: this.#intent,
+            presentation: 'default',
             elapsedMs,
             canCancel: this.#state === 'requesting' || this.#state === 'recording' || this.#state === 'processing',
             errorText

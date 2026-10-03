@@ -231,6 +231,10 @@ class ChatMessageManager {
         });
     }
 
+    isMessageEditing(): boolean {
+        return this.#actions.isMessageEditing();
+    }
+
     isMessagePendingDeletion(conversation: ConversationContract | null, messageDomId: string): boolean {
         return this.#deleteUndoController.isPendingForConversation(conversation, messageDomId);
     }

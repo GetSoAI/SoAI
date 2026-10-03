@@ -5,12 +5,15 @@ from __future__ import annotations
 
 import dataclasses
 
-from core.config.default_schema.database_manager import DEFAULT_VACUUM_INTERVAL_HOURS
+from core.config.default_schema.database_manager import (
+    DEFAULT_VACUUM_INTERVAL_HOURS,
+)
 from core.config.numeric import coerce_positive_float, coerce_positive_int
 from core.config.protocols import ConfigProtocol
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.logging.protocols import LoggerProtocol
+from core.timing.constants import EXTENDED_TIMEOUT_SEC
 
 __all__ = (
     "DatabaseManagerSettings",
@@ -89,7 +92,9 @@ def resolve_database_manager_settings(
             return int(default)
 
     sqlite_connect_timeout = _resolve_manager_float("SQLITE.CONNECT_TIMEOUT_SEC", 10.0, 0.1)
-    writer_init_timeout = _resolve_manager_float("WRITER.INIT_TIMEOUT_SEC", 30.0, 0.1)
+    writer_init_timeout = _resolve_manager_float(
+        "WRITER.INIT_TIMEOUT_SEC", float(EXTENDED_TIMEOUT_SEC), 0.1
+    )
     writer_shutdown_timeout = _resolve_manager_float("WRITER.SHUTDOWN_TIMEOUT_SEC", 5.0, 0.1)
     writer_sample_interval = _resolve_manager_float("METRICS.IO_SAMPLE_INTERVAL_SEC", 1.0, 0.1)
     writer_operation_timeout = _resolve_manager_float("WRITER.OPERATION_TIMEOUT_SEC", 120.0, 1.0)

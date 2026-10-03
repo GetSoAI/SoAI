@@ -35,7 +35,7 @@ const renderConfigField = ({ key, value, security }: RenderConfigFieldOptions): 
     if (Array.isArray(value) || isJsonObject(value)) {
         fullWidth = true;
         const structuredType = Array.isArray(value) ? 'array' : 'object';
-        inputHtml = `<textarea id="${configIdAttr}" class="form-input config-field setting-json" data-key="${keyAttr}" data-type="json" data-structured-type="${structuredType}" rows="8">${security.escapeHtml(renderStructuredConfigValue(value))}</textarea><div class="form-help">${i18n.t('plugins.modal.config.jsonHelp')}</div><div class="plugin-config-validation" id="${configIdAttr}-validation" aria-live="polite"></div>`;
+        inputHtml = `<textarea dir="ltr" id="${configIdAttr}" class="form-input config-field setting-json" data-key="${keyAttr}" data-type="json" data-structured-type="${structuredType}" rows="8">${security.escapeHtml(renderStructuredConfigValue(value))}</textarea><div class="form-help">${i18n.t('plugins.modal.config.jsonHelp')}</div><div class="plugin-config-validation" id="${configIdAttr}-validation" aria-live="polite"></div>`;
     } else if (isBoolean(value)) {
         inputHtml = `<input type="checkbox" id="${configIdAttr}" class="config-field" data-key="${keyAttr}" data-type="boolean" ${value ? 'checked' : ''}>`;
     } else if (isNumber(value)) {

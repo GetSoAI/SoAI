@@ -28,4 +28,6 @@ export type ChatConfigurationMcpTranslationKey =
     | 'chat.configuration.mcp.toolSearch.placeholder'
     | 'chat.configuration.mcp.toolsEnabledHint'
     | 'chat.configuration.mcp.toolsEnabledLockedForAgentModeHint'
-    | 'chat.configuration.mcp.toolsEnabledLockedWhileConversationRunningHint';
+    | 'chat.configuration.mcp.toolsEnabledLockedWhileConversationRunningHint'
+    | 'chat.configuration.mcp.unavailableServers'
+    | 'chat.configuration.mcp.unavailableTools';

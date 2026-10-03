@@ -5,9 +5,6 @@ from __future__ import annotations
 
 import io
 import os
-import re
-import shutil
-import uuid
 from collections.abc import Callable
 from contextlib import ExitStack
 from typing import TYPE_CHECKING
@@ -15,14 +12,15 @@ from typing import TYPE_CHECKING
 from core.errors.exceptions import ValidationError
 from core.filesystem.atomic_write_primitives import (
     AtomicWriteTarget,
+    allocate_atomic_temporary_file,
     cleanup_temp_file_on_failure,
+    copy_existing_file_to_descriptor,
     ensure_parent_directory,
     finalize_atomic_write_create_and_clear_callbacks,
     finalize_atomic_write_replace_and_clear_callbacks,
-    open_temp_file_descriptor,
 )
 from core.filesystem.file_sync import flush_and_fsync_file
-from core.filesystem.path_coercion import coerce_path
+from core.filesystem.path_coercion import coerce_path, normalize_filesystem_path
 from core.serialization.json import serialize_json_compact_stable_strict
 
 if TYPE_CHECKING:
@@ -34,18 +32,7 @@ __all__ = (
     "atomic_write_json_content",
     "atomic_write_text",
     "atomic_write_text_content",
-    "atomic_text_write_temporary_paths",
 )
-
-
-def atomic_text_write_temporary_paths(path: PathInput) -> tuple[str, ...]:
-    resolved = coerce_path(path)
-    parent = os.path.dirname(resolved) or os.curdir
-    pattern = re.compile(
-        rf"{re.escape(os.path.basename(resolved))}\.tmp\.[1-9][0-9]*\.[0-9a-f]{{32}}"
-    )
-    with os.scandir(parent) as entries:
-        return tuple(entry.path for entry in entries if pattern.fullmatch(entry.name))
 
 
 def atomic_create_text_content_exclusive(
@@ -64,23 +51,21 @@ def atomic_create_text_content_exclusive(
     parent = os.path.dirname(resolved)
     if ensure_parent:
         ensure_parent_directory(resolved, mode=parent_mode)
-    temp_path = f"{resolved}.partial.{uuid.uuid4().hex}"
+    file_descriptor, temp_path = allocate_atomic_temporary_file(
+        resolved, file_mode=file_mode, partial=True
+    )
     target = AtomicWriteTarget(resolved, temp_path, parent)
     with ExitStack() as stack:
         stack.callback(cleanup_temp_file_on_failure, temp_path)
-        file_descriptor = open_temp_file_descriptor(
-            temp_path,
-            append=False,
-            exclusive=True,
-            file_mode=file_mode,
-        )
-        text_handle = os.fdopen(
-            file_descriptor,
-            "w",
-            encoding=encoding or "utf-8",
-            errors=errors or "strict",
-        )
+        try:
+            text_handle = os.fdopen(
+                file_descriptor, "w", encoding=encoding or "utf-8", errors=errors or "strict"
+            )
+        except (OSError, ValueError):
+            os.close(file_descriptor)
+            raise
         if not isinstance(text_handle, io.TextIOBase):
+            text_handle.close()
             raise ValidationError("Exclusive text writer failed to open a text stream.")
         with text_handle:
             text_handle.write(content)
@@ -108,34 +93,31 @@ def atomic_write_text(
     file_mode: int | None = None,
     fsync_parent_directory: bool = False,
 ) -> None:
+    if mode not in {"w", "a"}:
+        raise ValidationError("Text atomic writes only support mode 'w' or 'a'.")
     resolved = coerce_path(path)
     parent = os.path.dirname(resolved)
     if ensure_parent:
         ensure_parent_directory(resolved, mode=parent_mode)
-    temp_path = f"{resolved}.tmp.{os.getpid()}.{uuid.uuid4().hex}"
+    file_descriptor, temp_path = allocate_atomic_temporary_file(resolved, file_mode=file_mode)
     target = AtomicWriteTarget(resolved, temp_path, parent)
     with ExitStack() as stack:
         stack.callback(cleanup_temp_file_on_failure, temp_path)
-        if mode not in {"w", "a"}:
-            raise ValidationError("Text atomic writes only support mode 'w' or 'a'.")
         resolved_encoding = encoding or "utf-8"
         resolved_errors = errors or "strict"
-        append_existing_file = mode == "a" and os.path.exists(resolved)
-        if append_existing_file:
-            shutil.copy2(resolved, temp_path)
-        file_descriptor = open_temp_file_descriptor(
-            temp_path,
-            append=mode == "a",
-            exclusive=not append_existing_file,
-            file_mode=file_mode,
-        )
-        text_handle = os.fdopen(
-            file_descriptor,
-            mode,
-            encoding=resolved_encoding,
-            errors=resolved_errors,
-        )
+        try:
+            if mode == "a" and os.path.exists(normalize_filesystem_path(resolved)):
+                copy_existing_file_to_descriptor(
+                    resolved, file_descriptor, preserve_permissions=file_mode is None
+                )
+            text_handle = os.fdopen(
+                file_descriptor, mode, encoding=resolved_encoding, errors=resolved_errors
+            )
+        except (OSError, ValueError):
+            os.close(file_descriptor)
+            raise
         if not isinstance(text_handle, io.TextIOBase):
+            text_handle.close()
             raise ValidationError("Atomic text writer failed to open a text stream.")
         with text_handle:
             writer(text_handle)

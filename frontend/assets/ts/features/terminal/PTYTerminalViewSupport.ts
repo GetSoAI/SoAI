@@ -5,7 +5,7 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 
 const MODULE_ID = 'features.terminal.PTYTerminalView';
-const PTY_CONNECT_HANDSHAKE_TIMEOUT_MS = 8000;
+const PTY_CONNECT_HANDSHAKE_TIMEOUT_MS = 30000;
 const TERMINAL_FONT_SIZE = { MIN: 8, MAX: 32, DEFAULT: 14 };
 const debugTerminalError = <T>(message: string, error: T): void => {
     errorHandler.debug(MODULE_ID, message, ensureError(error));

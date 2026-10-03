@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { ConversationExecutionRunResult } from '@core/chat/protocols.ts';
+import { throwIfAborted } from '@core/errors/abort.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { normalizeFolderUploadFiles, resolveUploadFilesFromEvent, type ChatContentSegment, type SoaiPathDraftRecord } from '@features/chat/public.ts';
 import { exportConversation } from '@pages/chat/controllers/chatmessagesendingcontroller/conversationExportController.ts';
@@ -12,7 +13,7 @@ import { refreshComposerState, resolveCurrentConversationSelection } from '@page
 import { resolveEffectiveModelsForChatModelControl } from '@pages/chat/controllers/chatmodelcontrol/chatModelControlStateManager.ts';
 import { ChatRagAttachmentSession } from '@pages/chat/controllers/chatmessagesendingcontroller/ChatRagAttachmentSession.ts';
 import { resolveComposerSoaiLinksFromInput } from '@pages/chat/controllers/chatmessagesendingcontroller/soaiLinkInputController.ts';
-import type { AttachmentManager, ChatMessageSendingPort, ChatStreamingController, ConversationManager, MessageSendingHost, ConversationInputComposerOutcome, QueuedSendGuardContext, QueuedSendGuardResult, QueuedSendOutcome, SendMessageOptions, StorageManager } from '@pages/chat/controllers/chatmessagesendingcontroller/types.ts';
+import type { AttachmentManager, ChatMessageSendingPort, ChatStreamingController, ConversationManager, MessageSendingHost, ConversationInputComposerOutcome, QueueConversationInputOptions, QueuedSendGuardContext, QueuedSendGuardResult, QueuedSendOutcome, SendMessageOptions, StorageManager } from '@pages/chat/controllers/chatmessagesendingcontroller/types.ts';
 
 class ChatMessageSendingController implements ChatMessageSendingPort {
     #host: MessageSendingHost;
@@ -103,13 +104,19 @@ class ChatMessageSendingController implements ChatMessageSendingPort {
         return !this.#host.services.getChatStreamingController().isStreamingConversation(conversation.id);
     }
 
-    async queueConversationInputFromComposer(intent: 'queued' | 'steer'): Promise<ConversationInputComposerOutcome> {
+    async queueConversationInputFromComposer(intent: 'queued' | 'steer', options: QueueConversationInputOptions = {}): Promise<ConversationInputComposerOutcome> {
         this.#requireActive();
+        throwIfAborted(options.signal, 'Queued composer input was aborted.');
         await this.#ensureInitialized();
+        throwIfAborted(options.signal, 'Queued composer input was aborted.');
         return await sendConversationInputFromComposer({
             host: this.#host,
             manager: this.#sendLocks,
             intent: intent === 'steer' ? 'steer' : 'prompt',
+            signal: options.signal,
+            beforeSend: options.beforeSend,
+            onAdmissionStarted: options.onAdmissionStarted,
+            onEffectiveSendCommitted: options.onEffectiveSendCommitted,
             afterAdmission: (conversationId) => this.rag.clearKnowledgeDraftsAndRender(conversationId)
         });
     }

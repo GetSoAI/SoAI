@@ -5,8 +5,12 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+from urllib import request
+
+import httpx2
 
 from app.edition_composition import UpdaterComposition
 from app.updater.networking import open_url
@@ -32,6 +36,10 @@ from core.errors.exceptions import ValidationError
 from core.errors.external_service_exception import ExternalServiceError
 from core.errors.http_recoverable import HTTP_RECOVERABLE_EXCEPTIONS
 from core.meta.software_update_platforms import MACOS_UPDATE_PLATFORMS
+from core.network.http_download_metadata import HTTPDownloadResponseMetadata
+from core.network.resumable_downloads import DownloadStreamState
+from core.network.resumable_http_stream_sync import ResumableHTTPStreamSync
+from core.network.transfer_retry import build_http_transfer_retry_policy
 
 if TYPE_CHECKING:
     from app.updater.release_manifest_types import ReleaseArtifact
@@ -69,40 +77,47 @@ def _download_bounded_asset(
     maximum_bytes: int,
     label: str,
 ) -> bytes:
-    try:
-        with open_url(
-            url,
-            timeout=timeout,
+    def read_metadata(headers: Mapping[str, str]) -> HTTPDownloadResponseMetadata:
+        content_length = headers.get("Content-Length")
+        declared_bytes: int | None = None
+        if content_length is not None:
+            try:
+                declared_bytes = int(content_length)
+            except ValueError as exception:
+                raise ExternalServiceError(f"{label} Content-Length is invalid.") from exception
+            if declared_bytes < 0 or declared_bytes > maximum_bytes:
+                raise ValidationError(f"{label} exceeds its maximum allowed size.")
+        return HTTPDownloadResponseMetadata(declared_bytes, headers.get("Content-Type"))
+
+    def open_response(
+        headers: Mapping[str, str], io_timeout: float
+    ) -> AbstractContextManager[httpx2.Response]:
+        return open_url(
+            request.Request(url, headers=dict(headers)),
+            timeout=io_timeout,
             offline_mode=False,
             artifact_download=True,
-        ) as response:
-            if response.status_code != 200:
-                raise ExternalServiceError(
-                    f"{label} download returned HTTP {response.status_code}."
-                )
-            content_length = response.headers.get("Content-Length")
-            declared_bytes: int | None = None
-            if content_length is not None:
-                try:
-                    declared_bytes = int(content_length)
-                except ValueError as exception:
-                    raise ExternalServiceError(f"{label} Content-Length is invalid.") from exception
-                if declared_bytes < 0 or declared_bytes > maximum_bytes:
-                    raise ValidationError(f"{label} exceeds its maximum allowed size.")
-            chunks: list[bytes] = []
-            received_bytes = 0
-            for chunk in response.iter_bytes():
-                if not chunk:
-                    continue
-                received_bytes += len(chunk)
-                if received_bytes > maximum_bytes:
-                    raise ValidationError(f"{label} exceeds its maximum allowed size.")
-                chunks.append(chunk)
-            if received_bytes == 0:
-                raise ValidationError(f"{label} is empty.")
-            if declared_bytes is not None and received_bytes != declared_bytes:
-                raise ExternalServiceError(f"{label} download was truncated.")
-            return b"".join(chunks)
+        )
+
+    state = DownloadStreamState(
+        url=url,
+        headers=None,
+        policy=build_http_transfer_retry_policy("artifact"),
+        timeout=timeout,
+        max_bytes=maximum_bytes,
+        metadata_reader=read_metadata,
+    )
+    try:
+        with ResumableHTTPStreamSync(open_response, state=state) as stream:
+            payload = b"".join(stream)
+        if not payload:
+            raise ValidationError(f"{label} is empty.")
+        return payload
+    except httpx2.HTTPStatusError as exception:
+        raise ExternalServiceError(
+            f"{label} download returned HTTP {exception.response.status_code}.",
+            cause=exception,
+        ) from exception
     except HTTP_RECOVERABLE_EXCEPTIONS as exception:
         raise ExternalServiceError(f"{label} download failed.", cause=exception) from exception
 

@@ -5,7 +5,7 @@ import type { ReconciliationPolicy } from '@core/realtime/streammanager/resource
 
 const DEFAULT_RECONCILIATION_POLICY: Readonly<ReconciliationPolicy> = Object.freeze({
     maximumAttempts: 3,
-    deadlineMs: 30_000,
+    deadlineMs: 90_000,
     abortCleanupDeadlineMs: 5_000,
     recoveryInitialDelayMs: 500,
     recoveryMaximumDelayMs: 30_000,

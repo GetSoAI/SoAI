@@ -7,7 +7,7 @@
         min-height: 0;
     }
 
-    :where([data-section='settings'], [data-page-scope='settings']) :is(.settings-section, .setting-item, .settings-record-item, .settings-card-surface) {
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.settings-section, .settings-record-item, .settings-card-surface) {
         background: var(--surface-card);
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
@@ -20,7 +20,7 @@
         background: var(--glass-surface-light);
     }
 
-    :where([data-section='settings'], [data-page-scope='settings']) :is(.setting-change-surface.setting-item, .settings-record-item, .settings-os-driver-card):not(.modified, .is-invalid) {
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.settings-record-item, .settings-os-driver-card):not(.modified, .is-invalid) {
         background-color: var(--surface-card);
         background-image: var(--title-bar-background);
     }
@@ -84,7 +84,7 @@
 
         :where([data-section='settings'], [data-page-scope='settings']) .settings-section > .section-header > .section-header-end {
             justify-content: flex-start;
-            margin-left: 0;
+            margin-inline-start: 0;
         }
     }
 
@@ -155,47 +155,14 @@
         max-width: 44rem;
     }
 
-    :where([data-section='settings'], [data-page-scope='settings']) .setting-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: var(--space-4);
-        padding: var(--space-3);
-        transition:
-            background var(--transition-fast),
-            border var(--transition-fast);
-    }
-
-    :where([data-section='settings'], [data-page-scope='settings']) :is(.setting-info, .api-key-info) {
-        flex: 1;
-    }
-
-    :where([data-section='settings'], [data-page-scope='settings']) .setting-item > .setting-info {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: var(--space-1);
-    }
-
     :where([data-section='settings'], [data-page-scope='settings']) .api-key-info {
+        flex: 1;
         min-width: 0;
     }
 
-    :where([data-section='settings'], [data-page-scope='settings']) .setting-label {
-        font-size: var(--font-size-body-xs);
-        font-weight: 600;
-        margin: 0;
-    }
-
-    :where([data-section='settings'], [data-page-scope='settings']) :is(.setting-help, .action-description, .initial-admin-form-note-text, .api-key-meta, .api-key-prefix code) {
+    :where([data-section='settings'], [data-page-scope='settings']) :is(.action-description, .initial-admin-form-note-text, .api-key-meta, .api-key-prefix code) {
         font-size: var(--font-size-caption-plus);
         color: var(--text-secondary);
-    }
-
-    :where([data-section='settings'], [data-page-scope='settings']) .setting-help {
-        line-height: 1.3;
-        max-width: 720px;
-        margin: 0;
     }
 
     :where([data-section='settings'], [data-page-scope='settings']) :is(.section-content, .settings-subgroup, .settings-group, .setting-item, .setting-info, .setting-control, .settings-record-item, .settings-record-info, .settings-record-actions, .settings-card-surface) > :last-child {
@@ -210,13 +177,6 @@
         padding: var(--space-05) var(--space-15);
         border-radius: var(--border-radius);
         font-family: var(--font-family-mono);
-    }
-
-    :where([data-section='settings'], [data-page-scope='settings']) .setting-control {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        flex-shrink: 0;
     }
 
     :where([data-section='settings'], [data-page-scope='settings']) .setting-control .ui-button:not(.ui-button--sm, .ui-button-xs, .ui-button--titlebar) {

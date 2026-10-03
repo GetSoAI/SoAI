@@ -10,15 +10,15 @@
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-hour {
         position: absolute;
-        left: 0;
-        right: 0;
+        inset-inline-start: 0;
+        inset-inline-end: 0;
         height: var(--automation-hour-height);
         transform: translateY(-0.5em);
         display: flex;
         align-items: flex-start;
         justify-content: flex-end;
         gap: var(--space-1);
-        padding-right: var(--space-3);
+        padding-inline-end: var(--space-3);
         color: var(--text-muted);
         font-size: var(--font-size-body-xs);
         font-variant-numeric: tabular-nums;
@@ -35,7 +35,7 @@
         font-size: calc(var(--font-size-body-xs) / 2);
         line-height: 1;
         letter-spacing: var(--tracking-08em);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-canvas {
@@ -53,7 +53,10 @@
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-canvas.automation-time-grid-canvas--day {
         padding-block: 0;
-        border-radius: 0 var(--border-radius) var(--border-radius) 0;
+        border-start-start-radius: 0;
+        border-start-end-radius: var(--border-radius);
+        border-end-end-radius: var(--border-radius);
+        border-end-start-radius: 0;
         border: var(--border-width-1) solid var(--glass-border-strong);
         background: transparent;
         -webkit-backdrop-filter: var(--glass-blur-base);
@@ -90,8 +93,8 @@
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-slot {
         position: absolute;
-        left: 0;
-        right: 0;
+        inset-inline-start: 0;
+        inset-inline-end: 0;
         background: color-mix(in srgb, var(--alternating-grey-light) 42%, transparent);
         transition: background-color var(--transition-fast);
     }
@@ -103,8 +106,8 @@
     :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-canvas-inner::before {
         content: '';
         position: absolute;
-        left: 0;
-        right: 0;
+        inset-inline-start: 0;
+        inset-inline-end: 0;
         top: var(--automation-hover-top);
         height: var(--automation-hour-height);
         z-index: var(--z-above-sibling);
@@ -119,24 +122,29 @@
         opacity: 1;
     }
 
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-canvas-inner.is-keyboard-slot::before {
+        height: calc(var(--automation-hour-height) / 4);
+        box-shadow: inset 0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring);
+    }
+
     :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-canvas-inner.is-hovering-start::before {
-        border-top-left-radius: var(--border-radius);
-        border-top-right-radius: var(--border-radius);
+        border-start-start-radius: var(--border-radius);
+        border-start-end-radius: var(--border-radius);
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-canvas-inner.is-hovering-end::before {
-        border-bottom-left-radius: var(--border-radius);
-        border-bottom-right-radius: var(--border-radius);
+        border-end-start-radius: var(--border-radius);
+        border-end-end-radius: var(--border-radius);
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-canvas--day .automation-time-grid-canvas-inner.is-hovering-start::before {
-        border-top-left-radius: 0;
-        border-top-right-radius: var(--border-radius);
+        border-start-start-radius: 0;
+        border-start-end-radius: var(--border-radius);
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-canvas--day .automation-time-grid-canvas-inner.is-hovering-end::before {
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: var(--border-radius);
+        border-end-start-radius: 0;
+        border-end-end-radius: var(--border-radius);
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-week {
@@ -191,7 +199,7 @@
 
         :where([data-section='automation'], [data-page-scope='automation']) :is(.automation-week-header-gutter, .automation-time-grid-gutter) {
             position: sticky;
-            left: 0;
+            inset-inline-start: 0;
             z-index: var(--z-above-sibling);
         }
     }

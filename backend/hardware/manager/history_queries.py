@@ -10,10 +10,12 @@ from core.config.clamped_numeric import read_config_nonnegative_int
 from core.errors.exceptions import ValidationError
 from core.hardware.protocols import DatabaseHardwareProtocol
 from core.hardware.snapshot_lookup import resolve_component_device_id
+from core.history.request.availability import HistoryAvailabilityQuery
 from core.history.request.metadata import build_history_metadata_for_request
 from core.history.request.preparation import (
     prepare_history_request_from_config,
 )
+from core.history.request.resolution import resolve_aligned_history_query_start
 from core.logging.protocols import TraceLogger
 from hardware.manager.ohlc_post_processing import post_process_ohlc_data
 
@@ -42,6 +44,7 @@ async def get_historical_data(
     identifier: str | None,
     interval_ms: int | None,
     aggregation: str,
+    availability_metric: str | None = None,
 ) -> JSONDict:
     if not (history_enabled and database_hardware):
         logger.warning(
@@ -88,12 +91,22 @@ async def get_historical_data(
         )
     history_data = await database_hardware.get_historical_hardware_data(
         component=component_normalized,
-        start_ts_ms=history_request.resolution.start_ts_ms,
+        start_ts_ms=resolve_aligned_history_query_start(
+            history_request.resolution, history_request.retention_hours
+        ),
         end_ts_ms=history_request.resolution.end_ts_ms,
         interval_ms=resolved_interval_ms,
         aggregation=history_request.aggregation,
         max_points=history_request.resolution.bucket_count,
         identifier=resolved_identifier,
+        availability=(
+            HistoryAvailabilityQuery(
+                retention_hours=history_request.retention_hours,
+                metric=availability_metric,
+            )
+            if availability_metric is not None
+            else None
+        ),
     )
     history_data["aggregation"], history_data["interval_ms"] = (
         history_request.aggregation,
@@ -101,7 +114,6 @@ async def get_historical_data(
     )
     metadata_value = history_data.get("metadata")
     metadata = metadata_value if isinstance(metadata_value, dict) else {}
-    gap_count = 0
     raw_timestamps_value = history_data.get("timestamps_ms")
     timestamps_raw = raw_timestamps_value if isinstance(raw_timestamps_value, list) else []
     raw_timestamps: list[int] = []
@@ -118,9 +130,12 @@ async def get_historical_data(
         history_data = post_process_ohlc_data(history_data, expected_timestamps)
         metadata_value = history_data.get("metadata")
         metadata = metadata_value if isinstance(metadata_value, dict) else {}
-        gap_count_value = metadata.get("bucket_gap_count")
-        if isinstance(gap_count_value, bool | int | float):
-            gap_count = int(gap_count_value)
+    gap_count_value = metadata.get("bucket_gap_count")
+    gap_count = (
+        int(gap_count_value)
+        if isinstance(gap_count_value, int | float) and not isinstance(gap_count_value, bool)
+        else 0
+    )
     timestamps_value = history_data.get("timestamps_ms")
     resolved_points = len(timestamps_value) if isinstance(timestamps_value, list) else 0
     metadata = build_history_metadata_for_request(

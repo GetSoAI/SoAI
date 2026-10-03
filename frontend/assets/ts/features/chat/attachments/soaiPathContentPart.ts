@@ -1,7 +1,7 @@
 /* SoAI - Canonical soai_path attachment content part contracts [frontend/assets/ts/features/chat/attachments/soaiPathContentPart.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { isEpochMsValue } from '@core/time/epochMs.ts';
+import { isEpochMsValue, isSignedEpochMsValue } from '@core/time/epochMs.ts';
 import type { SoaiPathContentPart } from '@core/api/contracts/webuiChatOperationContracts.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isPlainObject, isString } from '@core/typeGuards.ts';
@@ -55,7 +55,7 @@ const normalizeSoaiPathStoragePart = (part: BackendMessageRecord): SoaiPathStora
     }
     const expectedFingerprintType = entryType === 'file' ? 'file_sha256' : 'folder_listing_sha256';
     const targetFingerprintValue = isPlainObject(targetFingerprint) && hasOnlyFields(targetFingerprint, SOAI_PATH_TARGET_FINGERPRINT_FIELDS) && targetFingerprint['type'] === expectedFingerprintType ? normalizeSha256Fingerprint(targetFingerprint['value']) : null;
-    if (title === null || part['size_bytes'] === undefined || sizeBytes === undefined || (entryType === 'file' && sizeBytes === null) || sourceReferenceValue === null || toolReferenceValue === null || rootFingerprint === null || targetFingerprintValue === null || !isEpochMsValue(modifiedAtMs) || !isEpochMsValue(resolvedAtMs)) {
+    if (title === null || part['size_bytes'] === undefined || sizeBytes === undefined || (entryType === 'file' && sizeBytes === null) || sourceReferenceValue === null || toolReferenceValue === null || rootFingerprint === null || targetFingerprintValue === null || !isSignedEpochMsValue(modifiedAtMs) || !isEpochMsValue(resolvedAtMs)) {
         return null;
     }
     const mimeType = part['mime_type'];
@@ -103,7 +103,7 @@ const normalizeSoaiPathContentPart = (part: BackendMessageRecord): SoaiPathStora
     const expectedFingerprintType = entryType === 'file' ? 'file_sha256' : 'folder_listing_sha256';
     const targetFingerprintValue = isPlainObject(targetFingerprint) && hasOnlyFields(targetFingerprint, SOAI_PATH_TARGET_FINGERPRINT_FIELDS) && targetFingerprint['type'] === expectedFingerprintType ? normalizeSha256Fingerprint(targetFingerprint['value']) : null;
     const mimeType = part['mimeType'];
-    if (title === null || part['sizeBytes'] === undefined || sizeBytes === undefined || (entryType === 'file' && sizeBytes === null) || sourceReferenceValue === null || toolReferenceValue === null || rootFingerprint === null || targetFingerprintValue === null || !isEpochMsValue(modifiedAtMs) || !isEpochMsValue(resolvedAtMs) || mimeType === undefined || (mimeType !== null && (!isString(mimeType) || !mimeType.trim()))) {
+    if (title === null || part['sizeBytes'] === undefined || sizeBytes === undefined || (entryType === 'file' && sizeBytes === null) || sourceReferenceValue === null || toolReferenceValue === null || rootFingerprint === null || targetFingerprintValue === null || !isSignedEpochMsValue(modifiedAtMs) || !isEpochMsValue(resolvedAtMs) || mimeType === undefined || (mimeType !== null && (!isString(mimeType) || !mimeType.trim()))) {
         return null;
     }
     return {

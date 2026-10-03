@@ -4,9 +4,10 @@
 import { settleSettingsCapability } from '@features/settings/capabilityAvailability.ts';
 import type { McpManagerDataHost, McpManagerDataRefresh } from '@features/settings/mcp/contracts.ts';
 
-const fetchMcpManagerData = async (page: McpManagerDataHost): Promise<McpManagerDataRefresh> => {
+const fetchMcpManagerData = async (page: McpManagerDataHost, signal?: AbortSignal): Promise<McpManagerDataRefresh> => {
     const api = page.services.api.mcp;
-    const [status, servers, connections, search, rootsResponse, interactions, tools, resources, prompts] = await Promise.all([settleSettingsCapability(() => api.status()), settleSettingsCapability(() => api.servers.list()), settleSettingsCapability(() => api.connections.list()), settleSettingsCapability(() => api.searchApiKeys.list()), settleSettingsCapability(() => api.roots.get()), settleSettingsCapability(() => api.interactions.list()), settleSettingsCapability(() => api.tools.list()), settleSettingsCapability(() => api.resources.list()), settleSettingsCapability(() => api.prompts.list())]);
+    const requestOptions = { signal };
+    const [status, servers, connections, search, rootsResponse, interactions, tools, resources, prompts] = await Promise.all([settleSettingsCapability(() => api.status(requestOptions)), settleSettingsCapability(() => api.servers.list(requestOptions)), settleSettingsCapability(() => api.connections.list(requestOptions)), settleSettingsCapability(() => api.searchApiKeys.list(requestOptions)), settleSettingsCapability(() => api.roots.get(requestOptions)), settleSettingsCapability(() => api.interactions.list(requestOptions)), settleSettingsCapability(() => api.tools.list(requestOptions)), settleSettingsCapability(() => api.resources.list(requestOptions)), settleSettingsCapability(() => api.prompts.list(requestOptions))]);
     return {
         status,
         servers,

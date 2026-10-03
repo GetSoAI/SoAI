@@ -5,7 +5,7 @@ import { LOGO_TRANSITION_DURATION_MS, LOGO_TYPES } from '@core/branding/constant
 import { buildBrandPreloadedKey, detectCurrentBrandTheme, preloadBrandLogos, resolveBrandLogoPath, resolveBrandLogoType, resolveBrandTheme, resolveBrandVariant, resolveBrandVariantLogoConfig, resolveBrandVariantOverride, waitForBrandImageLoaded } from '@core/branding/service.ts';
 import type { BrandingDescriptor, BrandingInfo, BrandVariant, LogoInfo, Theme } from '@core/branding/types.ts';
 import { resolveAssetPath } from '@core/assetPaths.ts';
-import { dom, domCache } from '@core/dom/dom.ts';
+import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { isFunction, isRecordLike, isString } from '@core/typeGuards.ts';
@@ -23,7 +23,6 @@ class Branding {
     }
 
     queryUI(selector: string, context: HTMLElement | null = null): Element[] {
-        domCache.invalidate(selector);
         return dom.resolveAll(selector, context);
     }
 

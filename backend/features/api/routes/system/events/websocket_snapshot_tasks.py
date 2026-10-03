@@ -40,6 +40,7 @@ def schedule_snapshot_request(
             data,
             runtime_context.connection,
             runtime_context.websocket,
+            runtime_context.shutdown_event,
         )
 
     task = create_managed_task(

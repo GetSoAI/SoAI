@@ -1,8 +1,25 @@
 /* SoAI - Shared layout link indicator [frontend/assets/ts/core/layout/sidebar/linkIndicator.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { insertWithPresence, removeWithPresence } from '@core/animations/presence/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { ARIA_HIDDEN_ATTR, resolveHTMLElement } from '@core/layout/sidebar/dom.ts';
+
+const syncSidebarLinkIndicator = (link: HTMLElement | null, className: string, visible: boolean): HTMLElement | null => {
+    const existing = link ? resolveHTMLElement(`.${className}`, link) : null;
+    if (!visible || !link) {
+        if (existing) removeWithPresence(existing);
+        return null;
+    }
+    const target = resolveHTMLElement('.sidebar-icon-button', link) ?? link;
+    if (existing && existing.parentElement !== target) {
+        dom.appendChild(target, existing);
+    }
+    const indicator = existing ?? dom.create('span', { className, [ARIA_HIDDEN_ATTR]: 'true' });
+    insertWithPresence(target, indicator);
+    indicator.removeAttribute('hidden');
+    return indicator;
+};
 
 interface SidebarLinkIndicatorHost {
     getLink: () => HTMLElement | null;
@@ -24,26 +41,10 @@ class SidebarLinkIndicatorController {
     }
 
     updateIndicator(): void {
-        const link = this.#host.getLink();
-        const existing = link ? resolveHTMLElement(`.${this.#indicatorClassName}`, link) : null;
-        if (!this.#visible) {
-            if (existing) dom.remove(existing);
-            return;
+        const indicator = syncSidebarLinkIndicator(this.#host.getLink(), this.#indicatorClassName, this.#visible);
+        if (indicator) {
+            this.#applyVariantClassName(indicator);
         }
-        if (!link) return;
-        const iconButton = resolveHTMLElement('.sidebar-icon-button', link);
-        const target = iconButton ?? link;
-        if (existing) {
-            if (existing.parentElement !== target) {
-                dom.appendChild(target, existing);
-            }
-            this.#applyVariantClassName(existing);
-            existing.removeAttribute('hidden');
-            return;
-        }
-        const indicator = dom.create('span', { className: this.#indicatorClassName, [ARIA_HIDDEN_ATTR]: 'true' });
-        this.#applyVariantClassName(indicator);
-        dom.appendChild(target, indicator);
     }
 
     setVisible(visible: boolean): void {
@@ -74,5 +75,5 @@ class SidebarLinkIndicatorController {
     }
 }
 
-export { SidebarLinkIndicatorController };
+export { SidebarLinkIndicatorController, syncSidebarLinkIndicator };
 export type { SidebarLinkIndicatorHost };

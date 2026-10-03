@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { requireModalPresenter, type ModalPresenterApi } from '@core/modals/modalPresenter.ts';
+import { closeConversationInputModal, openConversationInputModal, syncConversationInputModal } from '@features/chat/chatuimanager/conversationInputModal.ts';
 import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
 import { toggleToolActivityItem } from '@features/chat/chatuimanager/actions.ts';
 import { clearAttachedFiles, forceScrollToBottom, getElement, isAutoScrollEnabled, requestOlderMessagesIfAtTop, revealElementFromUserAction, scheduleScrollToBottom, scrollIntoView, scrollToBottom, setAutoScrollEnabled, setElementVisibility, setupScrollListener, shouldAutoScrollAfterContentUpdate, updateMicrophoneAvailability } from '@features/chat/chatuimanager/dom.ts';
-import { beginConversationScrollRestore, captureCurrentConversationScrollSnapshot, forgetConversationScrollSnapshot, prepareConversationScrollRestore, resolveConversationScrollRestoreCursor } from '@features/chat/chatuimanager/conversationScrollRestoration.ts';
+import { beginConversationScrollRestore, captureCurrentConversationScrollSnapshot, forgetConversationScrollSnapshot, prepareConversationScrollRestore, resolveConversationScrollRestoreCursor, setupConversationScrollSnapshotPersistence } from '@features/chat/chatuimanager/conversationScrollRestoration.ts';
 import { isMainTimelineMeasurementAtBottom } from '@features/chat/mainTimelineScroll.ts';
 import type { MessageCursor } from '@features/chat/storage/storageModels.ts';
 import { beginConversationTransition, completeConversationTransition, isConversationTransitionActive } from '@features/chat/chatuimanager/conversationTransition.ts';
@@ -16,11 +17,12 @@ import { hideSyncSpinner, showSyncSpinner } from '@features/chat/chatuimanager/s
 import { clearTimer, createChatUIManagerContext, disposeScrollRuntime } from '@features/chat/chatuimanager/state.ts';
 import type { ChatComposerActionMode, ChatUIManagerContext, ChatUiManagerDependencies, ElementSelectorKey } from '@features/chat/chatuimanager/types.ts';
 import { updateAudioRecordingPreview } from '@features/chat/chatuimanager/audioRecordingPreview.ts';
-import { updateInputQueuePreview } from '@features/chat/chatuimanager/inputQueuePreview.ts';
+import { isConversationInputRemovable, resolveQueuedConversationInputs, updateInputQueuePreview } from '@features/chat/chatuimanager/inputQueuePreview.ts';
 import type { AudioRecordingSnapshot } from '@features/chat/ChatAudioManager.ts';
 import { resolveComposerControlState } from '@features/chat/chatuimanager/composerControlState.ts';
 import { applyExecutionControls, updateAttachmentsPreview, updateInputState } from '@features/chat/chatuimanager/view.ts';
 import { CHAT_CONFIGURATION_MODAL_ID } from '@features/chat/modals/constants.ts';
+import { setupChatChromeVisibilityRuntime } from '@features/chat/chatuimanager/chatChromeVisibilityRuntime.ts';
 
 class ChatUIManager {
     #context: ChatUIManagerContext;
@@ -41,6 +43,8 @@ class ChatUIManager {
         this.updateInputState();
         this.#context.dependencies.composition.applyTextZoom();
         this.setupScrollListener();
+        this.#context.state.chatChromeVisibilityRuntime ??= setupChatChromeVisibilityRuntime(this.#context);
+        this.#context.state.conversationScrollSnapshotPersistenceDisposer ??= setupConversationScrollSnapshotPersistence(this.#context);
         if (!this.#context.state.messagesAreaInsetsDisposer) {
             this.#context.state.messagesAreaInsetsDisposer = setupMessagesAreaInsets(this.#context);
         }
@@ -54,6 +58,10 @@ class ChatUIManager {
     }
 
     dispose(): void {
+        closeConversationInputModal(this.#context, 'page-dispose', false);
+        this.#context.state.chatChromeVisibilityRuntime?.dispose();
+        this.#context.state.chatChromeVisibilityRuntime = null;
+        this.#clearDisposer('conversationScrollSnapshotPersistenceDisposer');
         disposeScrollRuntime(this.#context);
         this.#clearDisposer('messagesAreaInsetsDisposer');
         this.#clearDisposer('attachedFilesPreviewLayoutDisposer');
@@ -65,12 +73,12 @@ class ChatUIManager {
         const nextOpen = !this.#context.dependencies.sidebar.getSidebarOpen();
         this.#context.dependencies.sidebar.setSidebarOpen(nextOpen);
         this.#context.dependencies.composition.applySidebarState();
-        this.#context.dependencies.sidebar.persistSidebarOpen(nextOpen);
         this.#context.dependencies.drafts.saveChatState();
     }
 
     applyExecutionControls(): void {
         applyExecutionControls(this.#context);
+        this.syncChatChromeVisibility();
     }
 
     resolveComposerActionMode(): ChatComposerActionMode {
@@ -79,14 +87,35 @@ class ChatUIManager {
 
     updateInputState(): void {
         updateInputState(this.#context);
+        this.syncChatChromeVisibility();
     }
 
     updateAttachmentsPreview(): void {
         updateAttachmentsPreview(this.#context);
     }
 
+    syncChatChromeVisibility(): void {
+        this.#context.state.chatChromeVisibilityRuntime?.sync();
+    }
+
     updateInputQueuePreview(): void {
-        updateInputQueuePreview(this.#context);
+        const entries = resolveQueuedConversationInputs(this.#context);
+        updateInputQueuePreview(this.#context, entries);
+        syncConversationInputModal(this.#context, entries);
+    }
+
+    openConversationInput(conversationId: string, inputId: string): Promise<void> {
+        return openConversationInputModal(this.#context, () => this.resolveModals(), conversationId, inputId);
+    }
+
+    canRemoveConversationInput(conversationId: string, inputId: string): boolean {
+        if (conversationId !== this.#context.dependencies.session.getCurrentConversationId()) return false;
+        return resolveQueuedConversationInputs(this.#context).some((entry) => entry.inputId === inputId && isConversationInputRemovable(entry.state));
+    }
+
+    handleConversationChanged(conversationId: string | null): void {
+        const session = this.#context.state.conversationInputModal;
+        if (session !== null && session.conversationId !== conversationId) closeConversationInputModal(this.#context, 'conversation-changed', true);
     }
 
     updateAudioRecordingPreview(snapshot: AudioRecordingSnapshot): void {
@@ -95,10 +124,12 @@ class ChatUIManager {
 
     beginConversationTransition(transitionId: number): void {
         beginConversationTransition(this.#context, transitionId);
+        this.#context.state.chatChromeVisibilityRuntime?.reset();
     }
 
     completeConversationTransition(transitionId: number): void {
         completeConversationTransition(this.#context, transitionId);
+        this.#context.state.chatChromeVisibilityRuntime?.reset();
     }
 
     isConversationTransitionActive(): boolean {
@@ -207,7 +238,7 @@ class ChatUIManager {
         hideSyncSpinner(this.#context);
     }
 
-    #clearDisposer(disposerKey: 'messagesAreaInsetsDisposer' | 'attachedFilesPreviewLayoutDisposer' | 'advancedScrollPreviewDisposer'): void {
+    #clearDisposer(disposerKey: 'conversationScrollSnapshotPersistenceDisposer' | 'messagesAreaInsetsDisposer' | 'attachedFilesPreviewLayoutDisposer' | 'advancedScrollPreviewDisposer'): void {
         this.#context.state[disposerKey]?.();
         this.#context.state[disposerKey] = null;
     }

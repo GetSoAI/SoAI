@@ -163,6 +163,10 @@
         box-shadow: var(--glass-shadow-base);
     }
 
+    .tabs-tab[aria-disabled='true']:not([aria-busy='true']) {
+        pointer-events: auto;
+    }
+
     .tabs-tab:hover:not(:disabled, [aria-disabled='true']) {
         color: var(--tabs-tab-hover-color);
         background: var(--tabs-tab-hover-bg);

@@ -1,0 +1,33 @@
+/* SoAI - Inline layout direction tokens [frontend/assets/css/foundations/direction.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer foundations {
+    :root {
+        --dir-sign: 1;
+        --inline-start-percent: 0%;
+        --inline-end-edge: right;
+        --layout-label-alignment: left;
+        --ui-safe-area-inset-inline-start: var(--ui-safe-area-inset-left);
+        --ui-safe-area-inset-inline-end: var(--ui-safe-area-inset-right);
+    }
+
+    [dir='ltr'] {
+        --dir-sign: 1;
+        --inline-start-percent: 0%;
+        --inline-end-edge: right;
+    }
+
+    [dir='rtl'] {
+        --dir-sign: -1;
+        --inline-start-percent: 100%;
+        --inline-end-edge: left;
+    }
+    :root[dir='rtl'] {
+        --dir-sign: -1;
+        --inline-start-percent: 100%;
+        --inline-end-edge: left;
+        --layout-label-alignment: right;
+        --ui-safe-area-inset-inline-start: var(--ui-safe-area-inset-right);
+        --ui-safe-area-inset-inline-end: var(--ui-safe-area-inset-left);
+    }
+}

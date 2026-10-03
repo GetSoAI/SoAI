@@ -8,7 +8,7 @@ import { toString } from '@core/normalize.ts';
 import { readCoercedFiniteNumberOrNullValue } from '@core/types/numberCoercionReaders.ts';
 import { isFiniteNumber, isNullOrUndefined } from '@core/typeGuards.ts';
 import { isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
-import { HISTORY_CHART_MIN_POINTS, scaleHistoryChartPointCount } from '@features/charts/public.ts';
+import { HISTORY_CHART_MIN_POINTS, resolveHistoryChartStorageCapacity } from '@features/charts/public.ts';
 import { METRIC_CONFIG, normalizeHistoryComponent, normalizeIdentifier } from '@features/hardware/public.ts';
 import type { ChartOhlcContract } from '@pages/hardware/contracts/contracts.ts';
 import { STR_GPU } from '@pages/hardware/contracts/hardwarePageSupport.ts';
@@ -158,13 +158,10 @@ class HardwareDataController {
 
         const maxPoints = readCoercedFiniteNumberOrNullValue(historyConfig.maxPoints);
         if (maxPoints !== null && maxPoints > 0) {
-            const bounded = Math.min(this.state.chartHardLimit, scaleHistoryChartPointCount(maxPoints));
-            this.state.maxHistoryPoints = this.state.historyApiPointCap = Math.max(HISTORY_CHART_MIN_POINTS, bounded);
+            const apiLimit = Math.min(this.state.chartHardLimit, Math.max(1, Math.floor(maxPoints)));
+            this.state.historyApiPointCap = apiLimit;
         }
-
-        const estimated = this.state.maxRetentionMinutes ? Math.ceil((this.state.maxRetentionMinutes * 60_000) / Math.max(1, this.state.monitoringIntervalMs)) : this.state.maxHistoryPoints;
-        const scaledEstimated = scaleHistoryChartPointCount(estimated || this.state.maxHistoryPoints);
-        this.state.maxHistoryPoints = Math.max(HISTORY_CHART_MIN_POINTS, Math.min(this.state.chartHardLimit, scaledEstimated));
+        this.state.maxHistoryPoints = resolveHistoryChartStorageCapacity(maxPoints !== null && maxPoints > 0 ? this.state.historyApiPointCap : HISTORY_CHART_MIN_POINTS, this.state.maxRetentionMinutes, this.state.monitoringIntervalMs, this.state.chartHardLimit);
     }
 }
 

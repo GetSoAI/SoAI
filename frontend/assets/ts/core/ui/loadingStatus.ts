@@ -1,6 +1,9 @@
 /* SoAI - Shared frontend UI loading status [frontend/assets/ts/core/ui/loadingStatus.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { TrustedHtml } from '@core/security/public.ts';
+import { EMPTY_UI_HTML, staticUiHtml, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
+
 type InlineLoadingStatusOptions = {
     text: string;
     loading: boolean;
@@ -47,4 +50,12 @@ const renderInlineLoadingStatus = (element: HTMLElement, options: InlineLoadingS
     }
 };
 
-export { renderInlineLoadingStatus };
+const renderInlineLoadingStatusMarkup = (options: InlineLoadingStatusOptions): TrustedHtml => {
+    const text = options.text.trim();
+    const loading = options.loading && text.length > 0;
+    const className = `inline-loading-status${text.length === 0 ? ' u-hidden' : ''}${loading ? ' is-loading' : ''}`;
+    const spinner = loading ? staticUiHtml`<span class="loading-spinner inline-loading-status-spinner" aria-hidden="true"></span>` : EMPTY_UI_HTML;
+    return uiHtml`<span class="${uiAttr(className)}">${spinner}<span class="inline-loading-status-text">${text}</span></span>`;
+};
+
+export { renderInlineLoadingStatus, renderInlineLoadingStatusMarkup };

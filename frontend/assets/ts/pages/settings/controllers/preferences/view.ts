@@ -13,9 +13,9 @@ import type { PreferenceSliderDefinition } from '@pages/settings/controllers/pre
 
 interface PreferencesSectionViewModel {
     identityContent: string;
-    languageOptions: Array<{ value: string; label: string }>;
+    languageOptions: Array<{ value: string; label: string; countryCode: string | null }>;
     currentLanguage: string;
-    ocrOptions: Array<{ value: string; label: string; disabled: boolean }>;
+    ocrOptions: Array<{ value: string; label: string; countryCode: string | null; disabled: boolean }>;
     ocrLanguage: string;
     ocrReady: boolean;
     ocrAvailable: boolean;
@@ -29,7 +29,7 @@ interface PreferencesSectionViewModel {
 }
 
 const renderOcrLanguageControl = (options: PreferencesSectionViewModel['ocrOptions'], language: string, ready: boolean): string => {
-    const select = renderSelectControl({ id: 'ocr-language-select', options, selected: language, disabled: !ready });
+    const select = renderSelectControl({ id: 'ocr-language-select', options, selected: language, disabled: !ready, flagPrefix: true });
     return ready ? select : `${select}${renderSettingsTitlebarRefreshButton({ action: SETTINGS_ACTION_REFRESH_OCR, label: i18n.t('common.refresh') })}`;
 };
 
@@ -42,7 +42,8 @@ const renderPreferencesSection = ({ identityContent, languageOptions, currentLan
             control: renderSelectControl({
                 id: 'language-select',
                 options: languageOptions,
-                selected: currentLanguage
+                selected: currentLanguage,
+                flagPrefix: true
             })
         }),
         renderSettingItem({

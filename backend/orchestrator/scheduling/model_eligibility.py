@@ -12,9 +12,13 @@ from core.models.provider_backing import is_provider_backed_model
 from core.state.provider_backed_availability import (
     PROVIDER_BACKED_IGNORED_PLUGIN_STATES,
 )
-from core.state.state_transition_sets import ELIGIBILITY_PROHIBITIVE_STATES
+from core.state.state_transition_sets import (
+    ELIGIBILITY_PROHIBITIVE_STATES,
+    SCHEDULER_MANUAL_INTERVENTION_STATES,
+)
 from core.validation.boolean_coercion import coerce_bool_with_default
 from orchestrator.scheduling.dependencies import SchedulerPlanningDependencies
+from orchestrator.scheduling.plugin_action_failure import build_prohibitive_state_failure
 from orchestrator.scheduling.plugin_requirements import (
     RequirementEvaluation,
     evaluate_model_requirements,
@@ -88,12 +92,6 @@ class ModelEligibilityEvaluator:
             )
             if not evaluation.meets:
                 return ("unsupported", model_info, evaluation)
-        if self._deps.transient_failures.is_on_cooldown(universal_id):
-            await self._deps.queue.tracking.set_deferral_reason(
-                universal_id,
-                f"Model '{universal_id}' is on cooldown after repeated failures.",
-            )
-            return ("on_cooldown", model_info, evaluation)
         provider_backed = is_provider_backed_model(model_info)
         prohibitive_states = (
             ELIGIBILITY_PROHIBITIVE_STATES - PROVIDER_BACKED_IGNORED_PLUGIN_STATES
@@ -108,9 +106,17 @@ class ModelEligibilityEvaluator:
                 plugin_name,
                 plugin_state,
             )
+            failure = build_prohibitive_state_failure(plugin_name, plugin_state)
+            await self._deps.queue.tracking.set_deferral_reason(
+                universal_id, failure.operator_reason
+            )
+            if plugin_state in SCHEDULER_MANUAL_INTERVENTION_STATES:
+                return ("unavailable", model_info, evaluation)
+            return ("on_cooldown", model_info, evaluation)
+        if self._deps.transient_failures.is_on_cooldown(universal_id):
             await self._deps.queue.tracking.set_deferral_reason(
                 universal_id,
-                f"Plugin '{plugin_name}' is temporarily unavailable (state: {plugin_state}).",
+                f"Model '{universal_id}' is on cooldown after repeated failures.",
             )
             return ("on_cooldown", model_info, evaluation)
         if (

@@ -137,4 +137,5 @@ def build_openai_error_json_response_for_soai_payload(
         param=param,
         trace_id=trace_id,
         headers=headers,
+        message_is_public=True,
     )

@@ -8,9 +8,14 @@ from typing import TYPE_CHECKING
 import aiosqlite
 
 from core.errors.exceptions import ValidationError
+from core.history.request.availability import HistoryAvailabilityQuery
+from database.core.history_availability import read_history_with_availability
 from database.core.history_queries import normalize_historical_query
 from database.repositories.metrics.history.aggregated_query import (
     get_aggregated_historical_data,
+)
+from database.repositories.metrics.history.metric_key_validation import (
+    require_metric_key_exists,
 )
 from database.repositories.metrics.history.ohlc_query import get_ohlc_historical_data
 
@@ -28,6 +33,8 @@ async def get_historical_metrics_data_aggregated(
     interval_ms: int,
     aggregation: str,
     max_points: int,
+    metric_key_known: bool = False,
+    availability: HistoryAvailabilityQuery | None = None,
 ) -> JSONDict:
     if not metric_key:
         raise ValidationError("metric_key must be a non-empty string")
@@ -41,9 +48,15 @@ async def get_historical_metrics_data_aggregated(
         max_points,
         valid_aggregations,
     )
-    if agg_lower in ("ohlc", "delta_ohlc"):
-        return await get_ohlc_historical_data(
-            database,
+    query_payload = (
+        get_ohlc_historical_data
+        if agg_lower in ("ohlc", "delta_ohlc")
+        else get_aggregated_historical_data
+    )
+
+    async def _query(connection: aiosqlite.Connection) -> JSONDict:
+        history = await query_payload(
+            connection,
             metric_key,
             start_ts_ms,
             end_ts_ms,
@@ -52,13 +65,17 @@ async def get_historical_metrics_data_aggregated(
             anchor_ts,
             agg_lower,
         )
-    return await get_aggregated_historical_data(
+        if not metric_key_known and not history.get("timestamps_ms"):
+            await require_metric_key_exists(connection, metric_key)
+        return history
+
+    if availability is None:
+        return await _query(database)
+    return await read_history_with_availability(
         database,
-        metric_key,
-        start_ts_ms,
-        end_ts_ms,
-        sanitized_interval,
-        limit,
-        anchor_ts,
-        agg_lower,
+        _query,
+        availability,
+        table="metrics_history",
+        value_column="value",
+        filters=(("metric_key", metric_key),),
     )

@@ -1,7 +1,7 @@
 /* SoAI - Mermaid placeholder markup generator used by rich-text rendering [frontend/assets/ts/core/mermaid/placeholder.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { escapeHtml } from '@core/security/textSanitizer.ts';
+import { encodeBase64Bytes } from '@core/primitives/base64.ts';
 
 const MASK_64 = (1n << 64n) - 1n;
 
@@ -22,9 +22,9 @@ const createMermaidKey = (diagramDefinition: string): string => {
 };
 
 const createMermaidPlaceholder = (diagramDefinition: string): string => {
-    const escapedDefinition = escapeHtml(diagramDefinition).replace(/\n/g, '&#10;');
+    const encodedDefinition = encodeBase64Bytes(new TextEncoder().encode(diagramDefinition));
     const mermaidKey = createMermaidKey(diagramDefinition);
-    return `<div class="mermaid-container mermaid-loading" data-mermaid-key="${mermaidKey}" data-mermaid-definition="${escapedDefinition}"><div class="mermaid-spinner"></div></div>`;
+    return `<div class="mermaid-container mermaid-loading" data-mermaid-key="${mermaidKey}" data-mermaid-definition="${encodedDefinition}"><div class="mermaid-spinner"></div></div>`;
 };
 
 export { createMermaidPlaceholder };

@@ -25,9 +25,10 @@ interface ConnectionMonitorOptions {
     mainStateIndicator: MainStateIndicatorApi;
     maintenanceCoordinator: MaintenanceCoordinatorApi;
     recoverFreshInstallSession: () => Promise<boolean>;
+    verifyServerVersion: () => Promise<void>;
 }
 
-const monitorLifecycleConnectionStatus = ({ connectionStatus, restartOverlay, mainStateIndicator, maintenanceCoordinator, recoverFreshInstallSession }: ConnectionMonitorOptions): (() => void) => {
+const monitorLifecycleConnectionStatus = ({ connectionStatus, restartOverlay, mainStateIndicator, maintenanceCoordinator, recoverFreshInstallSession, verifyServerVersion }: ConnectionMonitorOptions): (() => void) => {
     const tracker = new ResourceTracker();
     let lastConnected = Boolean(connectionStatus.isConnected());
     let hasConnectedOnce = lastConnected;
@@ -70,6 +71,7 @@ const monitorLifecycleConnectionStatus = ({ connectionStatus, restartOverlay, ma
         hasConnectedOnce = true;
         mainStateIndicator.setConnectionInterrupted(false);
         hideConnectionLostOverlay();
+        void verifyServerVersion().catch((error) => errorHandler.warn('AppLifecycle', 'Server version check during connection restore failed', ensureError(error)));
         void recoverFreshInstallSession()
             .then(() => {
                 if (activeRecoveryEpoch !== epoch || epoch !== disconnectEpoch) return;

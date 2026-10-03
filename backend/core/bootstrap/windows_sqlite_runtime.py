@@ -20,6 +20,7 @@ from core.bootstrap.runtime_directories import RuntimeDirectoryEnvironment
 from core.bootstrap.stage0_download import download_https_file_atomic
 from core.errors.exceptions import StateError
 from core.filesystem.open_files import open_binary
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.system.commands import run_argv_capture
 from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 
@@ -123,8 +124,8 @@ def _download_archive(cache_path: str) -> None:
 
 
 def _is_same_directory(left_path: str, right_path: str) -> bool:
-    normalized_left = os.path.normcase(os.path.realpath(left_path))
-    normalized_right = os.path.normcase(os.path.realpath(right_path))
+    normalized_left = os.path.normcase(os.path.realpath(normalize_filesystem_path(left_path)))
+    normalized_right = os.path.normcase(os.path.realpath(normalize_filesystem_path(right_path)))
     return normalized_left == normalized_right
 
 

@@ -32,6 +32,7 @@ const createStorageDefaults = (): StorageCache => {
             modalStates: {},
             wallpaperOverlay: 0,
             solidBackground: null,
+            defaultWallpaper: null,
             glassEnabled: false,
             hiddenSidebarPages: ['settings', 'about', 'logs'],
             showMainStatusIndicator: true,
@@ -105,7 +106,7 @@ const createStorageDefaults = (): StorageCache => {
                 updates: { column: 'name', direction: 'asc' }
             }
         },
-        wizard: { completed: false },
+        wizard: { completed: false, aiSetup: null },
         settings: { advancedMode: false },
         misc: {}
     };

@@ -63,7 +63,7 @@ export class RichTextRenderer {
         }
         const normalized = normalizeMultilineInput(content);
         if (!normalized) {
-            return '<p></p>';
+            return '<p dir="auto"></p>';
         }
         const footnoteResult = extractFootnoteDefinitions(normalized);
         const blocks = buildRenderBlocks(footnoteResult.processedText, (rawLanguageHint) => this.#normalizeLanguageHint(rawLanguageHint));
@@ -84,7 +84,7 @@ export class RichTextRenderer {
     #renderTextBlock(value: string, footnotes: Map<string, FootnoteDefinition> = new Map(), options: RenderOptions = {}): string {
         const normalized = normalizeMultilineInput(value);
         if (!normalized) {
-            return '<p></p>';
+            return '<p dir="auto"></p>';
         }
         const placeholderState: PlaceholderState = createPlaceholderState();
         const mathResult = this.#mathRenderer.processMathInText(normalized, (renderedMath: string) => {

@@ -30,6 +30,16 @@ interface WebuiConversationResponse {
     settingsAuthority: ConversationSettingsAuthority;
 }
 
+interface ConversationCatalogCursor {
+    createdAtMs: number;
+    id: string;
+}
+
+interface ConversationCatalogPageResponse {
+    conversations: WebuiConversationResponse[];
+    nextCursor: ConversationCatalogCursor | null;
+}
+
 interface ArchivedConversationResponse {
     id: string;
     title: string;
@@ -150,6 +160,21 @@ const decodeConversationListResponse = (value: ApiResponsePayload): WebuiConvers
     return value.map((entry, index) => decodeConversationRecord(entry, `Conversation list response[${String(index)}]`));
 };
 
+const decodeConversationCatalogPageResponse = (value: ApiResponsePayload): ConversationCatalogPageResponse => {
+    const record = requireRecord(value, 'Conversation catalog page');
+    const conversations = decodeConversationListResponse(record['conversations']);
+    const cursor = record['next_cursor'];
+    if (cursor === null) return { conversations, nextCursor: null };
+    const cursorRecord = requireRecord(cursor, 'Conversation catalog page.next_cursor');
+    return {
+        conversations,
+        nextCursor: {
+            createdAtMs: readEpochMs(cursorRecord, 'created_at_ms', 'Conversation catalog page.next_cursor'),
+            id: readRequiredTrimmedString(cursorRecord, 'id', 'Conversation catalog page.next_cursor.id')
+        }
+    };
+};
+
 const decodeArchivedConversationRecord = (value: JsonValue, label: string): ArchivedConversationResponse => {
     const record = requireRecord(value, label);
     const source = decodeConversationSource(record, label);
@@ -210,5 +235,5 @@ const decodeConversationDeleteAllResponse = (value: ApiResponsePayload): Convers
 
 const decodeConversationRecordResponse = decodeConversationResponse;
 
-export { decodeArchivedPageResponse, decodeArchivedSearchResponse, decodeConversationBatchDeleteResponse, decodeConversationDeleteAllResponse, decodeConversationListResponse, decodeConversationRecord, decodeConversationRecordResponse, decodeConversationResponse };
-export type { ArchivedConversationResponse, ArchivedConversationsPageResponse, ConversationBatchDeleteResponse, ConversationDeleteAllResponse, ConversationMessageSyncCursorResponse, ConversationMessageWindowResponse, ConversationMessageWriteResponse, ConversationRunningActivityResponse, ConversationStreamStatusResponse, MessageCursorResponse, WebuiConversationResponse };
+export { decodeArchivedPageResponse, decodeArchivedSearchResponse, decodeConversationBatchDeleteResponse, decodeConversationCatalogPageResponse, decodeConversationDeleteAllResponse, decodeConversationListResponse, decodeConversationRecord, decodeConversationRecordResponse, decodeConversationResponse };
+export type { ArchivedConversationResponse, ArchivedConversationsPageResponse, ConversationBatchDeleteResponse, ConversationCatalogCursor, ConversationCatalogPageResponse, ConversationDeleteAllResponse, ConversationMessageSyncCursorResponse, ConversationMessageWindowResponse, ConversationMessageWriteResponse, ConversationRunningActivityResponse, ConversationStreamStatusResponse, MessageCursorResponse, WebuiConversationResponse };

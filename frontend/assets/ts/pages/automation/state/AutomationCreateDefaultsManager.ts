@@ -1,10 +1,12 @@
 /* SoAI - Automation page create defaults manager [frontend/assets/ts/pages/automation/state/AutomationCreateDefaultsManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { errorHandler } from '@core/errorHandler.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isMcpToolServerEnabled, normalizeMcpServerId } from '@core/mcp/serverSettings.ts';
 import { isArray, isBoolean, isObject, isString } from '@core/typeGuards.ts';
-import type { AutomationDefinition, AutomationMcpCatalog } from '@features/automation/public.ts';
+import type { AutomationDefinitionResponse, AutomationMcpCatalogResponse } from '@features/automation/public.ts';
 
 const STORAGE_KEY = 'automation_create_defaults';
 const REQUIRED_AUTOMATION_EXECUTE_TOOL = 'todo_write';
@@ -86,7 +88,7 @@ const loadStoredAutomationCreateDefaults = (storage: AutomationCreateDefaultsSto
     };
 };
 
-const filterDefaultsForCatalog = (defaults: AutomationCreateDefaults, catalog: AutomationMcpCatalog): AutomationCreateDefaults => {
+const filterDefaultsForCatalog = (defaults: AutomationCreateDefaults, catalog: AutomationMcpCatalogResponse): AutomationCreateDefaults => {
     const toolsByName = new Map(catalog.tools.filter((tool) => tool.allowed).map((tool) => [tool.name, tool]));
     const catalogServerIds = new Set(catalog.tools.map((tool) => normalizeMcpServerId(tool.serverId)));
     const serverConfigs: Record<string, boolean> = {};
@@ -123,13 +125,13 @@ const filterDefaultsForCatalog = (defaults: AutomationCreateDefaults, catalog: A
     };
 };
 
-const buildCatalogAutomationCreateDefaults = (catalog: AutomationMcpCatalog): AutomationCreateDefaults => ({
+const buildCatalogAutomationCreateDefaults = (catalog: AutomationMcpCatalogResponse): AutomationCreateDefaults => ({
     executeTools: [...catalog.executeTools],
     serverConfigs: {},
     interactiveToolApproval: false
 });
 
-const resolveAutomationCreateDefaults = (storage: AutomationCreateDefaultsStorage, catalog: AutomationMcpCatalog | null): AutomationCreateDefaults => {
+const resolveAutomationCreateDefaults = (storage: AutomationCreateDefaultsStorage, catalog: AutomationMcpCatalogResponse | null): AutomationCreateDefaults => {
     if (catalog === null) {
         return {
             executeTools: [],
@@ -137,14 +139,24 @@ const resolveAutomationCreateDefaults = (storage: AutomationCreateDefaultsStorag
             interactiveToolApproval: false
         };
     }
-    const stored = loadStoredAutomationCreateDefaults(storage);
+    let stored: AutomationCreateDefaults | null;
+    try {
+        stored = loadStoredAutomationCreateDefaults(storage);
+    } catch (error) {
+        const runtimeError = ensureError(error);
+        if (!(runtimeError instanceof AutomationCreateDefaultsCorruptError)) {
+            throw runtimeError;
+        }
+        errorHandler.warn('AutomationCreateDefaultsManager', 'Ignoring invalid stored automation create defaults', runtimeError);
+        stored = null;
+    }
     if (stored !== null) {
         return filterDefaultsForCatalog(stored, catalog);
     }
     return buildCatalogAutomationCreateDefaults(catalog);
 };
 
-const saveAutomationCreateDefaults = (storage: AutomationCreateDefaultsStorage, automation: AutomationDefinition): void => {
+const saveAutomationCreateDefaults = (storage: AutomationCreateDefaultsStorage, automation: AutomationDefinitionResponse): void => {
     if (!automation.modelSettings.mcp.executeTools.includes(REQUIRED_AUTOMATION_EXECUTE_TOOL)) {
         throw new Error('Automation create defaults require todo_write in execute_tools');
     }

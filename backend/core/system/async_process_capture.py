@@ -37,8 +37,12 @@ async def run_argv_capture_async(
             cwd=cwd,
             creationflags=windows_no_window_creationflags(),
         )
-    except OSError as exception:
+    except FileNotFoundError as exception:
         return CommandResult(stdout="", return_code=127, stderr=f"Command not found: {exception}")
+    except OSError as exception:
+        return CommandResult(
+            stdout="", return_code=127, stderr=f"Command could not start: {exception}"
+        )
     try:
         if timeout is None:
             stdout_bytes, stderr_bytes = await process.communicate()

@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { resolveAssetPath } from '@core/assetPaths.ts';
+import { resolveDesktopLauncherBootHandoff } from '@core/desktophost/desktopLauncher.ts';
+import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { sleepMs } from '@core/primitives/sleepMs.ts';
 import { createDeferred } from '@core/runtime/deferred.ts';
@@ -16,6 +18,9 @@ const STATUS_AFTER_LOGO_MS = 6000;
 const LOGO_READY_CLASS = 'preloader-logo-ready';
 const STATUS_READY_CLASS = 'preloader-status-ready';
 const PRELOADER_LOGO_SELECTOR = '.page-preloader-logo';
+const PRELOADER_CONTENT_SELECTOR = '.page-preloader-content';
+const PRELOADER_STATUS_SELECTOR = '.page-preloader-status';
+const PRELOADER_SPINNER_SELECTOR = '.page-preloader-spinner';
 const MODULE_ID = 'critical.preloaderLogo';
 
 type ThemeKey = keyof typeof LOGO_PATHS;
@@ -64,7 +69,26 @@ const preloadLogo = (src: string): Promise<HTMLImageElement> => {
 
 const getLogoElement = (): HTMLImageElement | null => document.querySelector<HTMLImageElement>(PRELOADER_LOGO_SELECTOR);
 
-const applyLogo = (target: HTMLImageElement, source: HTMLImageElement): void => {
+const alignAnimationsToTimeline = (selectors: readonly string[], origin: number | null): void => {
+    if (origin === null) {
+        return;
+    }
+    const elapsed = Date.now() - origin;
+    if (elapsed <= 0) {
+        return;
+    }
+    for (const selector of selectors) {
+        const element = dom.resolve(selector);
+        if (!element || typeof element.getAnimations !== 'function') {
+            continue;
+        }
+        for (const animation of element.getAnimations()) {
+            animation.currentTime = elapsed;
+        }
+    }
+};
+
+const applyLogo = (target: HTMLImageElement, source: HTMLImageElement, timelineOrigin: number | null): void => {
     const root = getDocumentElement();
     if (target.src !== source.src) {
         target.src = source.src;
@@ -76,15 +100,17 @@ const applyLogo = (target: HTMLImageElement, source: HTMLImageElement): void => 
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             root.classList.add(LOGO_READY_CLASS);
+            alignAnimationsToTimeline([PRELOADER_CONTENT_SELECTOR, PRELOADER_LOGO_SELECTOR], timelineOrigin);
         });
     });
 };
 
-const revealAmbientStage = (logoElement: HTMLImageElement, readyClass: string): boolean => {
+const revealAmbientStage = (logoElement: HTMLImageElement, readyClass: string, timelineOrigin: number | null): boolean => {
     if (!logoElement.isConnected) {
         return false;
     }
     getDocumentElement().classList.add(readyClass);
+    alignAnimationsToTimeline([PRELOADER_STATUS_SELECTOR], timelineOrigin);
     return true;
 };
 
@@ -98,16 +124,20 @@ const initializePreloaderLogo = async (): Promise<void> => {
     if (!logoPath) {
         throw new Error('Preloader logo path resolution failed');
     }
+    const handoff = resolveDesktopLauncherBootHandoff();
+    const logoAt = handoff ? handoff.startedAt + REVEAL_DELAY_MS : null;
+    alignAnimationsToTimeline([PRELOADER_SPINNER_SELECTOR], handoff ? handoff.startedAt : null);
 
     const imagePromise = preloadLogo(logoPath);
-    const [loadedImage] = await Promise.all([imagePromise, waitForDelay(REVEAL_DELAY_MS)]);
+    const [loadedImage] = await Promise.all([imagePromise, waitForDelay(logoAt === null ? REVEAL_DELAY_MS : Math.max(0, logoAt - Date.now()))]);
     if (!logoElement.isConnected) {
         return;
     }
-    applyLogo(logoElement, loadedImage);
+    applyLogo(logoElement, loadedImage, logoAt);
 
-    await waitForDelay(STATUS_AFTER_LOGO_MS);
-    revealAmbientStage(logoElement, STATUS_READY_CLASS);
+    const statusAt = logoAt === null ? null : logoAt + STATUS_AFTER_LOGO_MS;
+    await waitForDelay(statusAt === null ? STATUS_AFTER_LOGO_MS : Math.max(0, statusAt - Date.now()));
+    revealAmbientStage(logoElement, STATUS_READY_CLASS, statusAt);
 };
 
 const startPreloaderLogo = (): void => {

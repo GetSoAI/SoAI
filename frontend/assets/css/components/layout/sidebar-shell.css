@@ -2,19 +2,9 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
-    :where(.chat-container) .chat-sidebar {
-        display: flex;
-        flex-direction: column;
-        width: 0;
-        height: 100%;
-        flex: 0 0 auto;
-        transition:
-            width var(--transition-normal),
-            opacity var(--transition-normal);
-        position: relative;
-        overflow: hidden;
-        opacity: 0;
-        pointer-events: none;
+    :where(.chat-container) :is(.chat-sidebar-header, .chat-conversation-header) {
+        height: var(--chat-conversation-header-height);
+        min-height: var(--chat-conversation-header-height);
     }
 
     :where(.chat-container) .chat-sidebar-header {
@@ -23,7 +13,6 @@
         align-items: center;
         gap: var(--space-3);
         padding: 0 var(--space-4);
-        min-height: calc(1rem + var(--control-height) + 0.75rem);
         flex-shrink: 0;
         position: relative;
         z-index: var(--z-raised);
@@ -38,26 +27,8 @@
         height: var(--control-height);
     }
 
-    :where(.chat-container) .chat-sidebar-header .new-conversation-btn {
+    :where(.chat-container) .chat-sidebar-header :is(.chat-sidebar-toggle-btn, .new-conversation-btn) {
         flex-shrink: 0;
-    }
-
-    .theme-dark :where(.chat-container) .chat-sidebar:not(.glass-surface, .glass-surface-strong, .glass-surface-medium, .glass-surface-light, .glass-surface-darker, .glass-surface-weak, .glass-surface-interactive, .glass-surface-interactive-strong, .glass-surface-full) {
-        background: var(--glass-surface-strong);
-        -webkit-backdrop-filter: var(--glass-blur-base);
-
-        backdrop-filter: var(--glass-blur-base);
-        box-shadow: var(--glass-shadow-base);
-    }
-
-    :where(.chat-container) .chat-sidebar.glass-surface-strong {
-        --glass-surface-bg: transparent;
-        box-shadow: none;
-    }
-
-    :where(.chat-container) .chat-sidebar.glass-surface-strong::before {
-        -webkit-backdrop-filter: none;
-        backdrop-filter: none;
     }
 
     :where(.chat-container) .chat-main-container.glass-surface-strong {
@@ -76,7 +47,6 @@
         padding-block: 0;
         padding-inline-start: var(--space-4);
         padding-inline-end: var(--space-4);
-        min-height: calc(1rem + var(--control-height) + 0.75rem);
         border: none;
         border-bottom: var(--border-width-1) solid var(--glass-border-strong);
         border-radius: 0;
@@ -94,10 +64,10 @@
     }
 
     :where(.chat-container) .chat-main-container > .chat-conversation-header.glass-surface--no-shadow {
-        border-top-left-radius: var(--border-radius);
-        border-top-right-radius: 0;
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0;
+        border-start-start-radius: var(--border-radius);
+        border-start-end-radius: 0;
+        border-end-start-radius: 0;
+        border-end-end-radius: 0;
         background: var(--glass-surface-strong);
     }
 
@@ -133,7 +103,7 @@
         }
 
         :where(.chat-container) .chat-conversation-header .chat-header-actions > .chat-header-overflow.page-actions {
-            margin-left: 0;
+            margin-inline-start: 0;
         }
     }
 
@@ -165,10 +135,10 @@
         --conversation-item-overlay-soft: 16%;
         --conversation-item-overlay-accent: var(--glass-border-strong);
         --conversation-item-hover-overlay-opacity: 0;
-        --conversation-item-overlay-inset-left: 0;
-        --conversation-item-overlay-inset-right: 0;
-        --conversation-item-left-rail-color: transparent;
-        --conversation-item-right-rail-color: transparent;
+        --conversation-item-overlay-inset-inline-start: 0;
+        --conversation-item-overlay-inset-inline-end: 0;
+        --conversation-item-inline-start-rail-color: transparent;
+        --conversation-item-inline-end-rail-color: transparent;
         --conversation-item-before-surface: none;
         display: flex;
         height: var(--chat-conversation-item-height);
@@ -177,7 +147,7 @@
         margin-bottom: 0;
         border-radius: 0;
         border-top: 0 solid transparent;
-        border-left: 0 solid transparent;
+        border-inline-start: 0 solid transparent;
         position: relative;
         isolation: isolate;
     }
@@ -185,7 +155,8 @@
     :where(.chat-container) .conversation-item::after {
         content: '';
         position: absolute;
-        inset: 0 var(--conversation-item-overlay-inset-right) 0 var(--conversation-item-overlay-inset-left);
+        inset-block: 0 0;
+        inset-inline: var(--conversation-item-overlay-inset-inline-start) var(--conversation-item-overlay-inset-inline-end);
         border-radius: inherit;
         pointer-events: none;
         z-index: var(--z-base);
@@ -201,7 +172,7 @@
         border-radius: inherit;
         pointer-events: none;
         z-index: var(--z-base);
-        background: linear-gradient(to right, var(--conversation-item-left-rail-color) 0, var(--conversation-item-left-rail-color) var(--border-width-3), transparent var(--border-width-3)), linear-gradient(to left, var(--conversation-item-right-rail-color) 0, var(--conversation-item-right-rail-color) var(--border-width-3), transparent var(--border-width-3)), var(--conversation-item-before-surface);
+        background: linear-gradient(calc(90deg * var(--dir-sign)), var(--conversation-item-inline-start-rail-color) 0, var(--conversation-item-inline-start-rail-color) var(--border-width-3), transparent var(--border-width-3)), linear-gradient(calc(-90deg * var(--dir-sign)), var(--conversation-item-inline-end-rail-color) 0, var(--conversation-item-inline-end-rail-color) var(--border-width-3), transparent var(--border-width-3)), var(--conversation-item-before-surface);
     }
 
     :where(.chat-container) .conversation-item + .conversation-item {
@@ -234,16 +205,16 @@
     }
 
     :where(.chat-container) .conversation-item.is-selected {
-        --conversation-item-overlay-inset-left: var(--border-width-3);
-        --conversation-item-left-rail-color: var(--ui-tone-green);
+        --conversation-item-overlay-inset-inline-start: var(--border-width-3);
+        --conversation-item-inline-start-rail-color: var(--ui-tone-green);
         --conversation-item-before-surface: var(--ui-tone-green-surface-selected);
         background: var(--ui-tone-green-surface-selected);
     }
 
     :where(.chat-container) .conversation-item:not(.is-selected):hover {
         --conversation-item-hover-overlay-opacity: 1;
-        --conversation-item-overlay-inset-left: var(--border-width-3);
-        --conversation-item-left-rail-color: var(--conversation-item-overlay-accent);
+        --conversation-item-overlay-inset-inline-start: var(--border-width-3);
+        --conversation-item-inline-start-rail-color: var(--conversation-item-overlay-accent);
         border-top-color: color-mix(in srgb, var(--glass-border-strong) var(--hover-layer-subtle-base), var(--hover-layer-mix-base) var(--hover-layer-subtle));
     }
 
@@ -252,10 +223,10 @@
     }
 
     :where(.chat-container) .conversation-item.is-active:not(.is-selected) {
-        --conversation-item-overlay-inset-left: var(--border-width-3);
-        --conversation-item-overlay-inset-right: var(--border-width-3);
-        --conversation-item-left-rail-color: var(--conversation-item-overlay-accent);
-        --conversation-item-right-rail-color: var(--chat-conversation-item-active-right-rail-color);
+        --conversation-item-overlay-inset-inline-start: var(--border-width-3);
+        --conversation-item-overlay-inset-inline-end: var(--border-width-3);
+        --conversation-item-inline-start-rail-color: var(--conversation-item-overlay-accent);
+        --conversation-item-inline-end-rail-color: var(--chat-conversation-item-active-inline-end-rail-color);
     }
 
     :where(.chat-container) .conversation-item.is-active:not(.is-selected, :hover) {
@@ -264,12 +235,12 @@
 
     :where(.chat-container) .conversation-item.is-active:not(.is-selected):hover {
         border-top-color: transparent;
-        border-left-color: transparent;
+        border-inline-start-color: transparent;
     }
 
     :where(.chat-container) .conversation-item.is-selected.is-active {
-        --conversation-item-overlay-inset-left: var(--border-width-3);
-        --conversation-item-left-rail-color: var(--ui-tone-green);
+        --conversation-item-overlay-inset-inline-start: var(--border-width-3);
+        --conversation-item-inline-start-rail-color: var(--ui-tone-green);
         background: var(--ui-tone-green-surface-selected);
     }
 

@@ -4,9 +4,16 @@
 from __future__ import annotations
 
 import os
+from contextlib import ExitStack
 
 from core.bootstrap.install_locks import lock_dir_has_live_owner
 from core.errors.exceptions import SoAIError, StateError, ValidationError
+from core.files.temp_files import create_secure_temp_binary_handle
+from core.files.windows_managed_path_handles import open_windows_managed_path_handles
+from core.files.windows_reparse_points import is_windows_reparse_point
+from core.files.windows_reserved_names import WINDOWS_RESERVED_DEVICE_NAMES
+from core.filesystem.open_files import read_regular_file_no_symlink
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.meta.paths import join_data_abs
 from core.runtime.instance_record import read_verified_runtime_instance_record
 from core.runtime.process_identity import SOAI_BACKEND_MAIN_SUBPATH
@@ -25,33 +32,72 @@ def normalize_windows_install_target(target: str) -> str:
         raise ValueError("--target requires a non-empty value.")
     if "\n" in clean_target or "\r" in clean_target or "\t" in clean_target:
         raise ValueError("--target must not contain control characters.")
+    if os.name == "nt":
+        if clean_target.startswith(("\\\\?\\", "\\\\.\\")):
+            raise ValueError(
+                "--target requires a logical drive or UNC path, not a device namespace."
+            )
+        normalized = os.path.abspath(clean_target)
+        volume, relative = os.path.splitdrive(normalized)
+        if not volume or ":" in relative:
+            raise ValueError(
+                "--target requires a drive or UNC path without alternate data streams."
+            )
+        for component in relative.strip("\\").split("\\"):
+            if (
+                not component
+                or component.endswith((".", " "))
+                or any(ord(character) < 32 or character in '<>"|?*' for character in component)
+                or component.split(".", 1)[0].upper() in WINDOWS_RESERVED_DEVICE_NAMES
+            ):
+                raise ValueError("--target contains an unsupported Windows path component.")
     target_name = os.path.basename(os.path.normpath(clean_target))
     if target_name in {"", ".", ".."}:
         raise ValueError(f"Install target must name a concrete SoAI directory: {target}")
     return os.path.abspath(clean_target)
 
 
-def validate_windows_install_target(target_root: str) -> None:
-    if os.path.islink(target_root):
+def validate_windows_install_target(target_root: str, *, create: bool = True) -> None:
+    current = os.path.abspath(target_root)
+    while True:
+        filesystem_path = normalize_filesystem_path(current)
+        if os.path.lexists(filesystem_path):
+            identity = os.stat(filesystem_path, follow_symlinks=False)
+            if os.path.islink(filesystem_path) or is_windows_reparse_point(identity):
+                raise ValidationError(
+                    "Install target ancestors must not be links or reparse points."
+                )
+            if not os.path.isdir(filesystem_path):
+                raise ValidationError("Install target and its ancestors must be directories.")
+        parent = os.path.dirname(current)
+        if parent == current:
+            break
+        current = parent
+    if os.path.islink(normalize_filesystem_path(target_root)):
         raise ValidationError(
             f"Install target must not be a symlink: {target_root}",
             details={"target_root": target_root},
             operation="bootstrap.install.validate_target",
         )
+    if not create:
+        return
     parent_dir = os.path.dirname(target_root)
-    os.makedirs(parent_dir, exist_ok=True)
-    if os.path.exists(target_root) and not os.path.isdir(target_root):
+    os.makedirs(normalize_filesystem_path(parent_dir), exist_ok=True)
+    if os.path.exists(normalize_filesystem_path(target_root)) and not os.path.isdir(
+        normalize_filesystem_path(target_root)
+    ):
         raise ValidationError(
             f"Install target exists but is not a directory: {target_root}",
             details={"target_root": target_root},
             operation="bootstrap.install.validate_target",
         )
-    if not os.path.exists(target_root):
-        os.makedirs(target_root, exist_ok=False)
+    if not os.path.exists(normalize_filesystem_path(target_root)):
+        os.makedirs(normalize_filesystem_path(target_root), exist_ok=False)
     _require_writable_directory(target_root)
 
 
 def recognizable_windows_install_target(target_root: str) -> bool:
+    target_root = normalize_filesystem_path(target_root)
     if not os.path.exists(target_root):
         return True
     if not os.path.isdir(target_root):
@@ -144,7 +190,77 @@ def _target_config_path_value(config_path: str, key: str) -> str:
 
 
 def _require_writable_directory(directory: str) -> None:
-    probe_path = os.path.join(directory, f".soai_write_probe.{os.getpid()}")
-    with open(probe_path, "w", encoding="utf-8", errors="strict") as handle:
-        handle.write("ok\n")
-    os.unlink(probe_path)
+    handle, probe_path = create_secure_temp_binary_handle(
+        directory=directory, prefix=".soai_write_probe."
+    )
+    try:
+        with handle:
+            handle.write(b"ok\n")
+    finally:
+        os.unlink(normalize_filesystem_path(probe_path))
+
+
+def validate_windows_launcher_configuration(source_root: str, target_root: str) -> None:
+    candidate = read_regular_file_no_symlink(
+        os.path.join(source_root, "soai.exe.config"), max_bytes=32768
+    )
+    candidate_template = read_regular_file_no_symlink(
+        os.path.join(source_root, "installer-support", "soai.exe.config"), max_bytes=32768
+    )
+    if candidate != candidate_template:
+        raise ValidationError(
+            "The source launcher configuration does not match its installer template."
+        )
+    target_configuration = os.path.join(target_root, "soai.exe.config")
+    if not os.path.lexists(normalize_filesystem_path(target_configuration)):
+        return
+    attributes = os.stat(normalize_filesystem_path(target_configuration), follow_symlinks=False)
+    if os.path.islink(normalize_filesystem_path(target_configuration)) or is_windows_reparse_point(
+        attributes
+    ):
+        raise ValidationError("Launcher configuration must not be a link or reparse point.")
+    actual = read_regular_file_no_symlink(target_configuration, max_bytes=32768)
+    if actual == candidate:
+        return
+    installed_template = os.path.join(target_root, "installer-support", "soai.exe.config")
+    if os.path.isfile(normalize_filesystem_path(installed_template)):
+        installed_manifest = os.path.join(target_root, "installer-support", "installed-files.txt")
+        if os.path.isfile(normalize_filesystem_path(installed_manifest)):
+            inventory = read_regular_file_no_symlink(installed_manifest, max_bytes=8 * 1024 * 1024)
+            if (
+                b"soai.exe.config" in inventory.splitlines()
+                and actual == read_regular_file_no_symlink(installed_template, max_bytes=32768)
+            ):
+                return
+    raise ValidationError(
+        "A custom launcher configuration conflicts with this installation; existing bytes have been retained."
+    )
+
+
+def retain_windows_install_ancestors(directory: str, resources: ExitStack) -> None:
+    if os.name != "nt":
+        return
+    ancestor = os.path.abspath(directory)
+    while not os.path.lexists(normalize_filesystem_path(ancestor)):
+        parent = os.path.dirname(ancestor)
+        if parent == ancestor:
+            raise ValidationError("Install target volume is unavailable.")
+        ancestor = parent
+    volume_root = os.path.splitdrive(ancestor)[0] + os.sep
+    resources.enter_context(
+        open_windows_managed_path_handles(volume_root, ancestor, require_directory=True)
+    )
+
+
+def create_windows_install_directories(directory: str, resources: ExitStack) -> None:
+    if os.name != "nt":
+        return
+    missing: list[str] = []
+    ancestor = os.path.abspath(directory)
+    while not os.path.lexists(normalize_filesystem_path(ancestor)):
+        missing.append(ancestor)
+        ancestor = os.path.dirname(ancestor)
+    retain_windows_install_ancestors(ancestor, resources)
+    for segment_path in reversed(missing):
+        os.mkdir(normalize_filesystem_path(segment_path))
+        retain_windows_install_ancestors(segment_path, resources)

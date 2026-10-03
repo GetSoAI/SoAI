@@ -60,11 +60,11 @@ from orchestrator.scheduling.plugin_warning_throttles import (
 
 if TYPE_CHECKING:
     from core.logging.rate_limited_logger import RateLimitedLogger
-    from core.orchestrator.protocols_lifecycle import OrchestratorLifecyclePublisherProtocol
-    from core.types.json import JSONDict, JSONValue
-    from orchestrator.execution.chat_template_role_policy import (
+    from core.openai.chat_template_role_policy_resolver import (
         ChatTemplateRolePolicyResolver,
     )
+    from core.orchestrator.protocols_lifecycle import OrchestratorLifecyclePublisherProtocol
+    from core.types.json import JSONDict, JSONValue
     from orchestrator.lifecycle.service_interfaces.internal_protocols import (
         OrchestratorLifecycleCoordinatorProtocol,
     )

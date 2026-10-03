@@ -26,5 +26,5 @@ const normalizeBackendVariantOptions = (payload: BackendVariantsResponse): { sel
     return { selected: payload.selectedVariantId, installed: installedOption?.id ?? null, installedLabel: installedOption?.label ?? null, options };
 };
 
-export { normalizeBackendVariantOptions };
+export { AUTO_BACKEND_VARIANT_ID, normalizeBackendVariantOptions };
 export type { BackendVariantOption };

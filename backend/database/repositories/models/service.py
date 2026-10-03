@@ -134,11 +134,18 @@ class DatabaseModels:
             universal_ids,
         )
 
-    async def update_model_parameters(self, universal_id: str, parameters: JSONDict) -> bool:
+    async def update_model_parameters(
+        self,
+        universal_id: str,
+        parameters: JSONDict,
+        *,
+        increment_version: bool = False,
+    ) -> bool:
         return await self._core.writer.queue_write_operation(
             sync_update_model_parameters,
             universal_id,
             parameters,
+            increment_version,
         )
 
     async def increment_parameter_version(self, universal_id: str) -> int:

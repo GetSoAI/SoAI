@@ -13,7 +13,7 @@
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .tasks-stat-label {
         font-size: var(--font-size-xs);
         color: var(--text-secondary);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-05px);
     }
 

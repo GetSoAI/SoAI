@@ -7,12 +7,13 @@ import { decodeRawResponse } from '@core/api/contracts/systemContracts.ts';
 import { decodeHardwareCapabilities, decodeHardwareSnapshot } from '@core/api/contracts/hardwareSnapshotContracts.ts';
 import { decodeGpuSoAIBenchHistoryRun } from '@core/api/contracts/hardwareSoAIBenchHistoryContracts.ts';
 import { decodeGpuSoAIBenchRun, serializeGpuSoAIBenchRun } from '@core/api/contracts/hardwareSoAIBenchRunContracts.ts';
+import { decodeOptionalHistoryAvailability } from '@core/realtime/historyAvailabilityContracts.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
-import { readNullableFiniteNumberValue, readRequiredFiniteNumberValue } from '@core/types/payloadNumberReaders.ts';
+import { readNullableFiniteNumberValue, readRequiredFiniteIntegerValue, readRequiredFiniteNumberValue } from '@core/types/payloadNumberReaders.ts';
 import { readNullableTrimmedStringValue, readRequiredBooleanValue, readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
 import { hasOwn } from '@core/typeGuards.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
-import type { GpuIdentity, GpuOperationResponse, GpuSettingValue, GpuSettingsUpdateRequest, GpuSlotStoreRequest, GpuSoAIBenchHistoryRun, GpuSoAIBenchRun, GpuSoAIBenchStartRequest, HardwareCapabilitiesResponse, HardwareGpuSnapshot, HardwareHistoryConfiguration, HardwareHistoryMetadata, HardwareHistoryResponse, HardwareMemorySnapshot, HardwareNetworkInterface, HardwareNetworkSpeed, HardwareSnapshotResponse, HardwareSummary, HardwareVolumeSnapshot, KillProcessResponse } from '@core/api/contracts/hardwareContractTypes.ts';
+import type { GpuIdentity, GpuOperationResponse, GpuSettingValue, GpuSettingsUpdateRequest, GpuSlotStoreRequest, GpuSoAIBenchHistoryRun, GpuSoAIBenchRun, GpuSoAIBenchStartRequest, HardwareCapabilitiesResponse, HardwareGpuSnapshot, HardwareHistoryConfiguration, HardwareHistoryMetadata, HardwareHistoryResponse, HardwareMemorySnapshot, HardwareNetworkInterface, HardwareNetworkSpeed, HardwareSnapshotResponse, HardwareSummary, HardwareVolumeSnapshot, KillProcessResponse, WindowsNetworkInventoryStatus } from '@core/api/contracts/hardwareContractTypes.ts';
 
 type GpuTextField = 'code' | 'status' | 'failure_reason' | 'unsupported_reason' | 'run_id' | 'profile';
 
@@ -123,12 +124,30 @@ const decodeHardwareHistory = (value: ApiResponsePayload): HardwareHistoryRespon
     if (hasOwn(record, 'intervalMs') || hasOwn(record, 'timestampsMs') || hasOwn(metadataRecord, 'intervalMs')) throw new TypeError('Hardware history must use canonical V1 wire fields');
     const aggregation = readRequiredTrimmedStringValue(record['aggregation'], 'Hardware history.aggregation');
     const intervalMs = readRequiredFiniteNumberValue(record['interval_ms'], 'Hardware history.interval_ms');
+    const timestampsMs = decodeHardwareNumberArray(record['timestamps_ms'], 'Hardware history.timestamps_ms') ?? [];
+    const metrics = decodeHardwareStringArray(record['metrics'], 'Hardware history.metrics') ?? [];
+    const data = decodeObjectArray(record['data'], 'Hardware history.data');
+    if (aggregation !== 'ohlc' && record['sample_counts'] === undefined) throw new TypeError('Hardware value history.sample_counts is required');
+    const sampleCounts =
+        record['sample_counts'] === undefined
+            ? undefined
+            : decodeObjectArray(record['sample_counts'], 'Hardware history.sample_counts').map((row, index) => {
+                  const counts: JsonObject = {};
+                  for (const metric of metrics) {
+                      const count = readRequiredFiniteIntegerValue(row[metric], `Hardware history.sample_counts[${String(index)}].${metric}`);
+                      if (count < 0) throw new TypeError('Hardware history.sample_counts must contain nonnegative counts');
+                      counts[metric] = count;
+                  }
+                  return counts;
+              });
+    if (timestampsMs.length !== data.length || (sampleCounts && sampleCounts.length !== timestampsMs.length)) throw new TypeError('Hardware history arrays must have matching lengths');
     return {
         aggregation,
         intervalMs: intervalMs,
-        timestampsMs: decodeHardwareNumberArray(record['timestamps_ms'], 'Hardware history.timestamps_ms') ?? [],
-        metrics: decodeHardwareStringArray(record['metrics'], 'Hardware history.metrics') ?? [],
-        data: decodeObjectArray(record['data'], 'Hardware history.data'),
+        timestampsMs,
+        metrics,
+        data,
+        sampleCounts,
         metadata: {
             aggregation: readRequiredTrimmedStringValue(metadataRecord['aggregation'], 'Hardware history.metadata.aggregation'),
             intervalMs: readRequiredFiniteNumberValue(metadataRecord['interval_ms'], 'Hardware history.metadata.interval_ms'),
@@ -156,7 +175,8 @@ const decodeHardwareHistory = (value: ApiResponsePayload): HardwareHistoryRespon
             supportedIntervalsMs: decodeHardwareNumberArray(metadataRecord['supported_intervals_ms'], 'Hardware history.metadata.supported_intervals_ms') ?? [],
             component: readRequiredTrimmedStringValue(metadataRecord['component'], 'Hardware history.metadata.component'),
             deviceId: readNullableTrimmedStringValue(metadataRecord['device_id'], 'Hardware history.metadata.device_id'),
-            identifier: readNullableTrimmedStringValue(metadataRecord['identifier'], 'Hardware history.metadata.identifier')
+            identifier: readNullableTrimmedStringValue(metadataRecord['identifier'], 'Hardware history.metadata.identifier'),
+            availability: decodeOptionalHistoryAvailability(metadataRecord, 'Hardware history.metadata')
         }
     };
 };
@@ -175,4 +195,4 @@ const decodeKillProcessResponse = (value: ApiResponsePayload): KillProcessRespon
 const decodeHardwareExportResponse = (value: ApiResponsePayload): Response => decodeRawResponse(value, 'Hardware history export response');
 
 export { decodeGpuOperationResponse, decodeGpuSoAIBenchRun, decodeHardwareCapabilities, decodeHardwareExportResponse, decodeHardwareHistory, decodeHardwareSnapshot, decodeKillProcessResponse, decodeOptionalHardwareHistory, serializeGpuSoAIBenchRun };
-export type { GpuIdentity, GpuOperationResponse, GpuSettingsUpdateRequest, GpuSlotStoreRequest, GpuSoAIBenchHistoryRun, GpuSoAIBenchRun, GpuSoAIBenchStartRequest, HardwareCapabilitiesResponse, HardwareGpuSnapshot, HardwareHistoryConfiguration, HardwareHistoryMetadata, HardwareHistoryResponse, HardwareMemorySnapshot, HardwareNetworkInterface, HardwareNetworkSpeed, HardwareSnapshotResponse, HardwareSummary, HardwareVolumeSnapshot, KillProcessResponse };
+export type { GpuIdentity, GpuOperationResponse, GpuSettingsUpdateRequest, GpuSlotStoreRequest, GpuSoAIBenchHistoryRun, GpuSoAIBenchRun, GpuSoAIBenchStartRequest, HardwareCapabilitiesResponse, HardwareGpuSnapshot, HardwareHistoryConfiguration, HardwareHistoryMetadata, HardwareHistoryResponse, HardwareMemorySnapshot, HardwareNetworkInterface, HardwareNetworkSpeed, HardwareSnapshotResponse, HardwareSummary, HardwareVolumeSnapshot, KillProcessResponse, WindowsNetworkInventoryStatus };

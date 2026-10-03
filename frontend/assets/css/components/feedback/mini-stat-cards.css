@@ -4,9 +4,7 @@
 @layer components {
     .ui-mini-stat-strip {
         --ui-mini-stat-strip-columns: 2;
-        --ui-mini-stat-strip-divider: color-mix(in srgb, var(--surface-card-border) 72%, transparent);
         --ui-mini-stat-strip-padding: var(--space-25);
-        --ui-mini-stat-strip-reflection: var(--surface-reflection-soft);
         --ui-mini-stat-strip-label-size: var(--font-size-xs);
         --ui-mini-stat-strip-value-size: var(--font-size-lg);
         display: grid;
@@ -15,12 +13,10 @@
         align-items: stretch;
         overflow: hidden;
         background-color: var(--glass-surface-strong);
-        background-image: var(--ui-mini-stat-strip-reflection), linear-gradient(to bottom, color-mix(in srgb, var(--text-primary) 5%, transparent), transparent 62%);
+        background-image: linear-gradient(to bottom, color-mix(in srgb, var(--text-primary) 5%, transparent), transparent 62%);
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
         box-shadow:
-            inset 2px 2px 4px var(--surface-inner-highlight-soft),
-            inset -2px -2px 4px var(--surface-inner-shadow-soft),
             var(--glass-shadow-base),
             0 0 0 1px var(--surface-outline-highlight-soft);
         border: var(--border-width-1) solid var(--surface-card-border);
@@ -28,6 +24,7 @@
     }
 
     .ui-mini-stat-strip__card {
+        position: relative;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -40,8 +37,13 @@
         box-shadow: none;
     }
 
-    .ui-mini-stat-strip__card + .ui-mini-stat-strip__card {
-        border-left: var(--border-width-1) solid var(--ui-mini-stat-strip-divider);
+    .ui-mini-stat-strip__card + .ui-mini-stat-strip__card::before {
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        width: var(--border-width-1);
+        background: var(--surface-card-border);
+        content: '';
     }
 
     .ui-mini-stat-strip__value {

@@ -5,7 +5,8 @@
     .searchbar-input {
         width: 100%;
         height: var(--searchbar-height);
-        padding: var(--searchbar-padding-block) var(--searchbar-padding-inline-end) var(--searchbar-padding-block) var(--searchbar-padding-inline);
+        padding-block: var(--searchbar-padding-block) var(--searchbar-padding-block);
+        padding-inline: var(--searchbar-padding-inline) var(--searchbar-padding-inline-end);
         font-size: var(--searchbar-font-size);
         border: var(--border-width-1) solid var(--searchbar-border);
         border-radius: var(--border-radius);
@@ -78,7 +79,7 @@
 
         .searchbar-container.header-search .header-search__bar {
             position: absolute;
-            right: 0;
+            inset-inline-end: 0;
             top: 0;
             bottom: 0;
             transform: none;
@@ -95,7 +96,7 @@
 
         .searchbar-container.header-search .header-search__button {
             position: absolute;
-            right: 0;
+            inset-inline-end: 0;
             top: 0;
             transform: none;
             z-index: var(--z-raised);
@@ -113,7 +114,7 @@
         }
 
         .searchbar-container.header-search.header-search--expanded .searchbar-input {
-            padding-right: calc(var(--icon-button-size) + var(--searchbar-padding-inline));
+            padding-inline-end: calc(var(--icon-button-size) + var(--searchbar-padding-inline));
         }
     }
 
@@ -131,7 +132,7 @@
 
     .searchbar-icon {
         position: absolute;
-        right: 1rem;
+        inset-inline-end: 1rem;
         top: 50%;
         transform: translateY(-50%);
         width: var(--control-icon-size);
@@ -151,13 +152,13 @@
     }
 
     .searchbar-container:not(.header-search) > .searchbar-icon {
-        right: var(--control-padding-inline);
+        inset-inline-end: var(--control-padding-inline);
         transition: none;
     }
 
     .searchbar-clear {
         position: absolute;
-        right: var(--control-padding-inline);
+        inset-inline-end: var(--control-padding-inline);
         top: 50%;
         transform: translateY(-50%);
         width: var(--control-icon-size);
@@ -184,13 +185,13 @@
     }
 
     .searchbar-container.compact .searchbar-icon {
-        right: 0.75rem;
+        inset-inline-end: 0.75rem;
         width: var(--control-icon-size-compact);
         height: var(--control-icon-size-compact);
     }
 
     .searchbar-container.compact .searchbar-clear {
-        right: 0.75rem;
+        inset-inline-end: 0.75rem;
         width: var(--control-icon-size-compact);
         height: var(--control-icon-size-compact);
     }

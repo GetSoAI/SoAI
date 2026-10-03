@@ -5,7 +5,7 @@ import { readRoundedIntegerAtLeastValue, readRoundedPositiveIntegerOrFallbackVal
 import { isFiniteNumber } from '@core/typeGuards.ts';
 import { minutesToMs } from '@core/time/durations.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
-import { filterCandlestickBucketsForSeries, trimCandlestickSeriesToTimeRange } from '@features/charts/public.ts';
+import { filterCandlestickBucketsForSeries } from '@features/charts/public.ts';
 import { METRICS_HISTORY_API_POINT_LIMIT } from '@features/metrics/public.ts';
 import type { CandlestickDataPoint, MetricsHistoryPoint } from '@pages/metrics/types.ts';
 
@@ -50,11 +50,10 @@ export const resolveHistoryIntervalMs = ({ startTsMs, endTsMs, requestedInterval
     return resolveSupportedInterval(minimumSafeInterval, requested, supportedIntervalsMs);
 };
 
-export const buildHistoryWindow = ({ beforeTimestampMs = null, intervalMs = null, expand = 1, timeRangeMinutes, maxRetentionMinutes }: { beforeTimestampMs?: number | null; intervalMs?: number | null; expand?: number; timeRangeMinutes: number; maxRetentionMinutes: number | null }): HistoryWindow | null => {
+export const buildHistoryWindow = ({ beforeTimestampMs = null, expand = 1, timeRangeMinutes, maxRetentionMinutes }: { beforeTimestampMs?: number | null; expand?: number; timeRangeMinutes: number; maxRetentionMinutes: number | null }): HistoryWindow | null => {
     const nowMs = Math.floor(serverEpochMs());
     const beforeProvided = isFiniteNumber(beforeTimestampMs);
     const baseReferenceMs = beforeProvided ? Math.floor(Number(beforeTimestampMs)) : nowMs;
-    const interval = isFiniteNumber(intervalMs) && Number(intervalMs) > 0 ? Math.round(Number(intervalMs)) : null;
     const normalizedRangeMinutes = Number(timeRangeMinutes);
     if (!Number.isFinite(normalizedRangeMinutes) || normalizedRangeMinutes <= 0) {
         throw new TypeError('timeRangeMinutes must be a positive number');
@@ -66,8 +65,7 @@ export const buildHistoryWindow = ({ beforeTimestampMs = null, intervalMs = null
         throw new TypeError('expand must be a positive number');
     }
     const rangeMs = Math.max(minutesToMs(1), Math.round(minutesToMs(retentionMins) * (expansion > 1 ? expansion : 1)));
-    const intervalOffset = beforeProvided && interval ? interval : 0;
-    const endTsMs = Math.max(0, baseReferenceMs - intervalOffset);
+    const endTsMs = Math.max(0, baseReferenceMs);
     const startTsMs = Math.max(0, endTsMs - rangeMs);
     if (startTsMs >= endTsMs) {
         const adjustedEnd = Math.max(0, baseReferenceMs);
@@ -88,48 +86,24 @@ export const computeCandlestickPointBudget = ({ rangeMs, intervalMs, pointBudget
 export const trimCandlestickSeries = ({
     candles,
     buckets,
-    pointBudget,
+    capacity,
     historyTrimRatio,
-    timeRangeMinutes,
-    intervalMs,
     force = false
 }: {
     candles: CandlestickDataPoint[];
     buckets: Map<number, CandlestickDataPoint & { count: number }>;
-    pointBudget: number;
+    capacity: number;
     historyTrimRatio: number;
-    timeRangeMinutes: number;
-    intervalMs: number;
     force?: boolean;
 }): {
     modified: boolean;
     candles: CandlestickDataPoint[];
     buckets: Map<number, CandlestickDataPoint & { count: number }>;
 } => {
-    let modified = false;
-    const threshold = force ? pointBudget : Math.floor(pointBudget * historyTrimRatio);
-    let currentCandles = candles;
-    let currentBuckets = buckets;
-    if (currentCandles.length > threshold) {
-        currentCandles = currentCandles.slice(currentCandles.length - pointBudget);
-        modified = true;
-    }
-    if (currentCandles.length === 0) {
-        return { modified, candles: currentCandles, buckets: currentBuckets };
-    }
-    const trimmed = trimCandlestickSeriesToTimeRange({
-        candles: currentCandles,
-        pointBudget,
-        timeRangeMs: minutesToMs(timeRangeMinutes),
-        intervalMs: intervalMs,
-        errorContext: 'candlestick series'
-    });
-    if (trimmed.modified) {
-        currentCandles = trimmed.candles;
-        modified = true;
-        currentBuckets = filterCandlestickBucketsForSeries(currentCandles, currentBuckets);
-    }
-    return { modified, candles: currentCandles, buckets: currentBuckets };
+    const threshold = force ? capacity : Math.floor(capacity * historyTrimRatio);
+    if (candles.length <= threshold) return { modified: false, candles, buckets };
+    const retained = candles.slice(candles.length - capacity);
+    return { modified: true, candles: retained, buckets: filterCandlestickBucketsForSeries(retained, buckets) };
 };
 
 export const trimMetricsHistory = ({ points, maxHistoryPoints, historyTrimRatio, force = false }: { points: MetricsHistoryPoint[]; maxHistoryPoints: number; historyTrimRatio: number; force?: boolean }): MetricsHistoryPoint[] => {

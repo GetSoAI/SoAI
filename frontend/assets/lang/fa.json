@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "اکنون"
+                "now": "اکنون",
+                "occurrenceLabel": "{title}، {date} {time}، {status}",
+                "createAt": "ایجاد اتوماسیون در {date} ساعت {time}. برای تغییر زمان از کلیدهای جهت‌نما استفاده کنید."
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "شروع",
                     "turns": "نوبت‌ها",
                     "timezone": "منطقهٔ زمانی",
-                    "title": "عنوان"
+                    "title": "عنوان",
+                    "modelSettings": "مدل، ابزارها و پارامترها"
                 },
                 "workspace": {
                     "button": "انتخاب پوشه",
                     "description": "پوشهٔ مورد استفادهٔ این اجرای اتوماسیون را انتخاب کنید. اجراهای تکرارشونده همین پوشهٔ اتوماسیون را نگه می‌دارند.",
                     "fieldLabel": "پوشهٔ فضای کاری",
-                    "title": "پوشهٔ فضای کاری اتوماسیون"
+                    "title": "پوشهٔ فضای کاری اتوماسیون",
+                    "viewButton": "بررسی فضای کاری"
                 },
                 "parameters": {
                     "button": "ویرایش پارامترها",
@@ -166,17 +170,17 @@
                     "fieldLabel": "پارامترهای مدل",
                     "summaryCustom": "پارامترهای سفارشی اتوماسیون",
                     "summaryDefault": "پارامترهای پیش‌فرض مدل",
-                    "title": "پارامترهای مدل اتوماسیون"
+                    "title": "پارامترهای مدل اتوماسیون",
+                    "viewButton": "مشاهدهٔ پارامترها"
                 },
                 "timezone": {
-                    "auto": "خودکار"
+                    "autoWithZone": "خودکار ({timezone})"
                 },
                 "placeholders": {
                     "assistantTurn": "پاسخ مدل",
                     "endOfAutomation": "پایان اتوماسیون",
                     "model": "یک مدل انتخاب کنید",
                     "turn": "پیام را وارد کنید",
-                    "turnIndexed": "پیام {index} را وارد کنید",
                     "title": "عنوان را وارد کنید"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "ذخیره",
                 "validation": {
                     "maxRunMinutesInvalid": "حداکثر زمان اجرا باید بین 1 و 1440 دقیقه باشد.",
-                    "modelUnavailable": "مدل انتخاب‌شده در دسترس نیست.",
+                    "modelUnavailable": "{model} در دسترس نیست. مدل دیگری انتخاب کنید.",
                     "modelRequired": "انتخاب مدل الزامی است.",
                     "recurrenceInvalid": "تکرار نامعتبر است.",
                     "startInvalid": "تاریخ و زمان شروع نامعتبر است.",
@@ -195,7 +199,42 @@
                     "turnsRequired": "همهٔ نوبت‌ها الزامی‌اند.",
                     "tooManyTurns": "تعداد نوبت‌ها بیش از حد است (حداکثر {max}). هر نوبت به‌صورت یک نوبت عامل اجرا می‌شود.",
                     "timezoneRequired": "منطقهٔ زمانی الزامی است.",
-                    "titleRequired": "عنوان الزامی است."
+                    "titleRequired": "عنوان الزامی است.",
+                    "modelDisabled": "{model} غیرفعال است. آن را فعال کنید یا مدل دیگری انتخاب کنید.",
+                    "modelMissing": "{model} دیگر نصب نیست. مدل دیگری انتخاب کنید.",
+                    "modelUnsupported": "{model} از گفتگو پشتیبانی نمی‌کند. مدل دیگری انتخاب کنید.",
+                    "summary": "پیش از ذخیره، {count} فیلد را اصلاح کنید.",
+                    "toolsRequired": "برای اجرا باید ابزارها فعال و todo_write انتخاب شده باشد.",
+                    "timezoneInvalid": "منطقهٔ زمانی نامعتبر است. یک منطقهٔ زمانی پشتیبانی‌شده انتخاب کنید."
+                },
+                "conflict": {
+                    "message": "این اتوماسیون هنگام ویرایش شما در جای دیگری تغییر کرد. تغییرات شما ذخیره نشده است.",
+                    "remoteChanges": "در جای دیگر تغییر کرده: {fields}",
+                    "localChanges": "تغییرات شما: {fields}",
+                    "keepChanges": "حفظ تغییرات من",
+                    "loadLatest": "بارگیری آخرین نسخه"
+                },
+                "modelStatus": {
+                    "unavailable": "در دسترس نیست",
+                    "unsupported": "بدون پشتیبانی از گفتگو"
+                },
+                "prerequisites": {
+                    "failed": "ویرایشگر نتوانست همهٔ موارد لازم را بارگیری کند.",
+                    "missing": "این اتوماسیون دیگر وجود ندارد.",
+                    "toolsUnavailable": "ابزارها بارگیری نشدند. ابزارهای انتخاب‌شدهٔ فعلی حفظ می‌شوند.",
+                    "childFailed": "تنظیمات باز نشد. دوباره تلاش کنید."
+                },
+                "schedule": {
+                    "ambiguous": "زمان {start} به دلیل تغییر ساعت در {timezone} دو بار رخ می‌دهد. نخستین مورد استفاده می‌شود.",
+                    "shiftedForward": "زمان {start} به دلیل تغییر ساعت در {timezone} وجود ندارد. به‌جای آن در {effective} اجرا می‌شود.",
+                    "disabled": "غیرفعال: هیچ اجرایی زمان‌بندی نمی‌شود.",
+                    "nextRun": "اجرای بعدی: {when} ({timezone})",
+                    "nextRunLocal": "اجرای بعدی: {when} ({timezone})، {localWhen} به وقت شما",
+                    "unavailable": "پیش‌نمایش زمان‌بندی در دسترس نیست."
+                },
+                "turns": {
+                    "label": "نوبت {index}",
+                    "remove": "حذف نوبت {index}"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "ترجیحات اتوماسیون به مقادیر پیش‌فرض بازنشانی شد.",
                 "runOpenFailed": "باز کردن اجرای درخواستی اتوماسیون ناموفق بود.",
                 "runUnavailable": "اجرای درخواستی اتوماسیون دیگر در این نما در دسترس نیست.",
-                "updated": "اتوماسیون به‌روزرسانی شد."
+                "updated": "اتوماسیون به‌روزرسانی شد.",
+                "changeRefreshFailed": "تغییر اعمال شد، اما نما تازه‌سازی نشد.",
+                "conflict": "این اتوماسیون در جای دیگری تغییر کرده است. پیش از ذخیرهٔ دوباره، تغییرات را بررسی کنید.",
+                "defaultsNotRemembered": "ذخیره شد، اما این تنظیمات برای اتوماسیون‌های جدید به خاطر سپرده نشد.",
+                "missingOnSave": "این اتوماسیون دیگر وجود ندارد. ممکن است در جای دیگری حذف شده باشد."
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "امروز",
                         "yesterday": "دیروز"
                     },
-                    "turnsCount": "نوبت‌ها: {count}",
                     "title": "اجراها",
                     "toolbar": {
                         "batchDelete": "حذف اجراهای انتخاب‌شده",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "{count} اجرا حذف شود؟ اجراهای در حال اجرا متوقف خواهند شد.",
-                        "deleteTitle": "اجراها حذف شوند؟"
+                        "deleteTitle": "اجراها حذف شوند؟",
+                        "skipTitle": "از این رخداد صرف‌نظر شود؟",
+                        "skipMessage": "{title} در این زمان اجرا نمی‌شود. رخدادهای دیگر تحت تأثیر قرار نمی‌گیرند.",
+                        "skipConfirm": "صرف‌نظر",
+                        "stopTitle": "اجرا متوقف شود؟",
+                        "stopMessage": "{title} در حال اجرا است. متوقف و از تقویم حذف می‌شود.",
+                        "stopConfirm": "توقف",
+                        "removeTitle": "رخداد حذف شود؟",
+                        "removeMessage": "{title} از تقویم حذف می‌شود.",
+                        "removeConfirm": "حذف"
                     },
                     "notifications": {
-                        "deleteSuccess": "{count} اجرا حذف شد."
-                    }
+                        "deleteSuccess": "{count} اجرا حذف شد.",
+                        "nothingToDelete": "رخدادهای انتخاب‌شده دیگر در این نما نیستند.",
+                        "tooManySelected": "هر بار حداکثر {max} رخداد انتخاب کنید."
+                    },
+                    "occurrencesCount": "رخدادها: {count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "قبلی",
                 "showCalendar": "تقویم",
                 "showRegistry": "پنل",
-                "today": "امروز"
+                "today": "امروز",
+                "staleData": "قدیمی",
+                "staleDataSince": "ممکن است داده‌های اتوماسیون قدیمی باشند. آخرین به‌روزرسانی: {time}. برای تلاش دوباره انتخاب کنید.",
+                "resizePanes": "تغییر اندازهٔ تقویم و پنل کناری"
             },
             "views": {
                 "day": "روز",
@@ -300,6 +357,7 @@
                     "bar": "میله‌ای",
                     "candlestick": "OHLC",
                     "deviation": "انحراف",
+                    "heikin-ashi": "هایکین آشی",
                     "label": "نوع نمودار",
                     "line": "خطی",
                     "precision-line": "خطی"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "کمینه: ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "داده‌ای نیست · SoAI آفلاین",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "بلادرنگ ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "بارگذاری تاریخچه انجام نشد.",
             "loadingState": "در حال بارگذاری",
             "manualScaleLabel": "دستی"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "پیوست کردن پیوندهای SoAI",
                 "tabBrowse": "فضای کاری",
                 "tabCamera": "اسکن",
+                "tabDisabledReason": "{setting} را در پیکربندی گفتگو › {tab} روشن کنید",
                 "tabKnowledge": "دانش",
                 "tabSoaiLink": "پیوند SoAI",
                 "tabUpload": "بارگذاری",
@@ -559,7 +620,16 @@
                 "recordingStatus": "در حال ضبط {elapsed}",
                 "recordingTitle": "ضبط صدا",
                 "requestingStatus": "در انتظار مجوز مرورگر",
-                "requestingTitle": "در حال درخواست دسترسی میکروفون"
+                "requestingTitle": "در حال درخواست دسترسی میکروفون",
+                "pushToTalk": {
+                    "cancelled": "ضبط لغو شد.",
+                    "queued": "در صف قرار گرفت.",
+                    "releaseToCancel": "برای لغو رها کنید",
+                    "releaseToSend": "برای ارسال رها کنید · برای لغو به چپ بکشید",
+                    "sending": "در حال ارسال…",
+                    "transcribing": "در حال رونویسی…",
+                    "transcriptReview": "رونویسی اضافه شد. پیش‌نویس به‌روزشده را پیش از ارسال بررسی کنید."
+                }
             },
             "authorityLock": {
                 "automationReason": "این یک گفتگوی اتوماسیون است. تنظیمات اجرای آن را در اتوماسیون‌ها → ویرایش اتوماسیون تغییر دهید.",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "بارگذاری",
                 "assistantAvatarUploadLabel": "بارگذاری آواتار دستیار",
                 "assistantNamePlaceholder": "نام سفارشی مدل را وارد کنید...",
+                "autoHideChatComposer": "پنهان‌سازی خودکار کادر نگارش گفتگو",
+                "autoHideChatComposerHint": "کادر نگارش خالی گفتگو را هنگام خواندن پیام‌های قبلی پنهان کنید",
+                "autoHideChatHeader": "پنهان‌سازی خودکار سربرگ گفتگو",
+                "autoHideChatHeaderHint": "سربرگ گفتگو را هنگام خواندن پیام‌های قبلی پنهان کنید",
                 "identityNameInvalid": "نام‌های نمایشی باید حداکثر 50 نویسهٔ Unicode داشته باشند و فاقد متن نامعتبر باشند.",
                 "promptInvalid": "پرامپت حاوی متن Unicode نامعتبر است.",
                 "close": "بستن",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "در حین اجرای این گفتگو نمی‌توان دسترسی ابزارها را تغییر داد",
                     "toolsEnabledHint": "ابزارهای MCP را برای این گفتگو فعال کنید. گفتگوهای جدید با آخرین مقدار ذخیره‌شدهٔ شما شروع می‌شوند",
                     "tool_approval_required": "نیاز به تأیید ابزار",
-                    "toolApprovalRequiredHint": "پیش از اجرای ابزارهای مخرب، تأیید بخواهید"
+                    "toolApprovalRequiredHint": "پیش از اجرای ابزارهای مخرب، تأیید بخواهید",
+                    "unavailableTools": "ابزارهای ذخیره‌شدهٔ در دسترس نبودنی: {tools}. انتخاب‌ها حفظ می‌شوند.",
+                    "unavailableServers": "سرورهای ذخیره‌شدهٔ در دسترس نبودنی: {servers}. تنظیمات حفظ می‌شوند."
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "طول زمینه را برای این قابلیت بازنویسی می‌کند. برای استفاده از پیش‌فرض مدل انتخاب‌شده، خالی بگذارید",
@@ -1035,7 +1111,8 @@
                 "newTitle": "گفتگوی جدید",
                 "renameFailed": "تغییر نام گفتگو ناموفق بود.",
                 "switchFailed": "تغییر گفتگو ناموفق بود.",
-                "untitled": "بدون عنوان"
+                "untitled": "بدون عنوان",
+                "titleRequired": "عنوان گفتگو الزامی است."
             },
             "detached": {
                 "windowTitle": "گفتگو (جداشده)"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "به HTTPS نیاز دارد"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "برای باز کردن پارامترها و نمایش طول زمینه نگه دارید",
+                "presetsHint": "برای باز کردن پیش‌تنظیم‌ها نگه دارید",
+                "pushToTalkHint": "برای صحبت کردن نگه دارید",
+                "toolsHint": "برای باز کردن تنظیمات ابزارها نگه دارید",
+                "toolsRestrictedHint": "{reason}. برای باز کردن تنظیمات ابزارها نگه دارید",
+                "toolsToggleHint": "{action}. برای باز کردن تنظیمات ابزارها نگه دارید"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "در صف",
@@ -1286,7 +1371,8 @@
                     "running": "در حال اجرا",
                     "inputRequired": "نیازمند اقدام"
                 },
-                "attachmentsCount": "(+{count} پیوست)"
+                "attachmentsCount": "(+{count} پیوست)",
+                "open": "باز کردن درخواست: {prompt}"
             },
             "loading": {
                 "errorType": "نوع خطا",
@@ -1336,8 +1422,10 @@
                         }
                     },
                     "save": "ذخیره",
-                    "skip": "رد کردن",
-                    "title": "به SoAI کمک کنید شما را بشناسد"
+                    "skip": "رد کردن راه‌اندازی SoAI",
+                    "title": "به SoAI کمک کنید شما را بشناسد",
+                    "loadFailed": "نمایهٔ ذخیره‌شدهٔ شما بارگیری نشد. ذخیره‌سازی موقتاً متوقف شده تا چیزی بازنویسی نشود.",
+                    "retry": "تلاش دوباره"
                 },
                 "viewer": {
                     "none": "هیچ‌کدام",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "دیروز",
                 "toolCall": "فراخوانی ابزار",
                 "waiting": "در حال انتظار...",
-                "you": "شما"
+                "you": "شما",
+                "timestampWithTime": "{label}، {time}"
             },
             "modelControl": {
                 "compareModels": "مقایسهٔ مدل‌ها",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "چند مدل نام \"{model}\" را دارند. لطفاً یک مدل مشخص را از نوار کناری انتخاب کنید.",
                 "available": "(در دسترس)",
-                "loaded": "(بارگذاری‌شده)"
+                "loaded": "(بارگذاری‌شده)",
+                "unavailable": "(در دسترس نیست)"
             },
             "news": {
                 "articleCount": "{count} مقاله",
@@ -1470,10 +1560,52 @@
                 "cleared": "تاریخچهٔ پرامپت پاک شد.",
                 "loadFailed": "بارگیری تاریخچهٔ پرامپت ناموفق بود."
             },
+            "sketch": {
+                "open": "باز کردن طرح",
+                "mobileOption": "طرح",
+                "preference": "طرح",
+                "preferenceHint": "نمایش دفترچه طراحی در ویرایشگر گفتگو برای کشیدن تصویر و پیوست آن به پیام",
+                "title": "طرح",
+                "description": "با ماوس، قلم یا انگشت بکشید، سپس طرح را به‌صورت تصویر به پیام خود پیوست کنید",
+                "canvasLabel": "بوم طراحی",
+                "toolsLabel": "ابزارهای طراحی",
+                "tools": {
+                    "pen": "قلم",
+                    "brush": "قلم‌مو",
+                    "highlighter": "ماژیک علامت‌گذار",
+                    "eraser": "پاک‌کن",
+                    "line": "خط",
+                    "rectangle": "مستطیل",
+                    "ellipse": "بیضی"
+                },
+                "colorsLabel": "رنگ‌ها",
+                "colors": {
+                    "black": "سیاه",
+                    "grey": "خاکستری",
+                    "red": "قرمز",
+                    "orange": "نارنجی",
+                    "yellow": "زرد",
+                    "green": "سبز",
+                    "teal": "سبزآبی",
+                    "blue": "آبی",
+                    "purple": "بنفش",
+                    "brown": "قهوه‌ای"
+                },
+                "customColor": "رنگ سفارشی",
+                "size": "اندازه",
+                "undo": "واگرد",
+                "redo": "ازنو",
+                "clear": "پاک کردن",
+                "resize": "تغییر اندازه بوم",
+                "attach": "پیوست",
+                "discardConfirm": "این طرح دور انداخته شود؟",
+                "discard": "دور انداختن",
+                "exportFailed": "صدور طرح ممکن نشد. لطفاً دوباره تلاش کنید."
+            },
             "characterMap": {
                 "allEmoji": "همهٔ ایموجی‌ها",
                 "allUnicode": "همهٔ Unicode",
-                "description": "نویسه‌های Unicode و ایموجی‌ها را مرور کنید، یک دنباله بسازید و سپس آن را کپی یا در پیام درج کنید.",
+                "description": "نویسه‌های Unicode و ایموجی‌ها را مرور کنید، یک دنباله بسازید و سپس آن را کپی یا در پیام درج کنید",
                 "font": "قلم",
                 "fontHint": "قلم‌ها فقط بر نمایش اثر می‌گذارند؛ همهٔ نویسه‌های فهرست‌شده همچنان قابل انتخاب‌اند",
                 "fonts": {
@@ -2201,7 +2333,8 @@
                 "started": "تماس صوتی شروع شد.",
                 "transcriptionFailed": "رونویسی صدا ناموفق بود.",
                 "ttsFailed": "تبدیل متن به گفتار ناموفق بود.",
-                "messageSendFailed": "ارسال پیام صوتی ناموفق بود."
+                "messageSendFailed": "ارسال پیام صوتی ناموفق بود.",
+                "stoppedAfterFailure": "تماس متوقف شد. پیش از شروع تماس جدید، مشکل را برطرف کنید."
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "در حال پخش پاسخ دستیار.",
@@ -2299,44 +2432,45 @@
                 "toggle": "تغییر حالت تمام‌صفحه"
             },
             "modalDescriptions": {
-                "agentPlan": "گام‌های برنامهٔ فعال عامل.",
-                "automationCalendar": "زبان‌محلی تقویم و قالب‌بندی تاریخ.",
-                "automationConfiguration": "زمان‌بندی، مدل و محدودیت‌های اجرا.",
-                "automationOccurrence": "یک اجرای زمان‌بندی‌شده.",
-                "chatConfiguration": "مدل، ابزارها، حافظه و رابط این گفتگو.",
-                "chatAttach": "فایل‌ها را آپلود کنید یا دانش پیوندشده را به این گفتگو پیوست کنید.",
-                "chatAttachments": "پیوست‌هایی که این پیام به آن‌ها ارجاع داده است.",
-                "chatMcpDefaultTools": "ابزارهای MCP پیش‌فرض برای گفتگوهای جدید.",
-                "chatMemoryProfile": "جزئیات شخصی که SoAI در گفتگوهای مختلف به خاطر می‌سپارد.",
-                "chatPromptsPicker": "پرامپت‌های ذخیره‌شدهٔ آماده برای درج در این گفتگو.",
-                "voiceCall": "گفتگوی بدون نیاز به دست با میکروفون، رونویسی، پاسخ‌های جریانی و پخش گفتار.",
-                "credits": "اعتبارات وابستگی‌های شخص ثالث.",
-                "fileExplorerMetadata": "فرادادهٔ فایل.",
-                "folderPicker": "یک پوشه انتخاب کنید.",
-                "exportPreview": "محتوای خروجی.",
-                "hardwareSystemInfo": "گزارش تفصیلی سیستم.",
-                "license": "متن مجوز SoAI.",
-                "messageInfo": "فرادادهٔ پیام.",
-                "metricsAdvanced": "معیارهای گستردهٔ زمان اجرا.",
-                "modelDetailTest": "یک درخواست آزمایشی به این مدل ارسال کنید.",
-                "modelsDownload": "یک مدل جدید دانلود کنید.",
-                "modelsEdit": "قابلیت‌های این مدل را بازتعریف کنید.",
-                "modelsProviders": "ارائه‌دهندگان خارجی مدل.",
-                "modelsRename": "برای این مدل یک نام محلی تعیین کنید.",
-                "modelsVirtual": "گروه‌های مسیریابی مدل مجازی.",
-                "modelsVirtualEdit": "مسیریابی این مدل مجازی.",
-                "pluginsClone": "این افزونه را با تنظیمات جدید تکثیر کنید.",
-                "pluginsConcurrent": "حداکثر کارهای هم‌زمان افزونه.",
-                "pluginsConfig": "تنظیمات افزونه.",
-                "pluginsDownload": "یک افزونهٔ همراه یا محلی نصب کنید.",
-                "pluginsInfo": "جزئیات و عیب‌یابی افزونه.",
-                "pluginsIntro": "نحوهٔ گسترش قابلیت‌های SoAI با افزونه‌ها.",
-                "pluginsManageBackend": "مدیریت نسخه‌های بک‌اند.",
-                "promptEnhancer": "یک پرامپت ذخیره‌شده را با مدل بازنویسی کنید.",
-                "settingsApiKeyQuota": "محدودیت‌های استفاده از این کلید API.",
-                "settingsExternalAccounts": "حساب‌های ایمیل و تقویم.",
-                "settingsMcpServer": "اتصال سرور MCP.",
-                "toolCallOutput": "خروجی یک فراخوانی ابزار."
+                "agentPlan": "گام‌های برنامهٔ فعال عامل",
+                "automationCalendar": "زبان‌محلی تقویم و قالب‌بندی تاریخ",
+                "automationConfiguration": "زمان‌بندی، مدل و محدودیت‌های اجرا",
+                "automationOccurrence": "یک اجرای زمان‌بندی‌شده",
+                "chatConfiguration": "مدل، ابزارها، حافظه و رابط این گفتگو",
+                "chatAttach": "فایل‌ها را آپلود کنید یا دانش پیوندشده را به این گفتگو پیوست کنید",
+                "chatAttachments": "پیوست‌هایی که این پیام به آن‌ها ارجاع داده است",
+                "chatMcpDefaultTools": "ابزارهای MCP پیش‌فرض برای گفتگوهای جدید",
+                "chatMemoryProfile": "جزئیات شخصی که SoAI در گفتگوهای مختلف به خاطر می‌سپارد",
+                "chatPromptsPicker": "پرامپت‌های ذخیره‌شدهٔ آماده برای درج در این گفتگو",
+                "voiceCall": "گفتگوی بدون نیاز به دست با میکروفون، رونویسی، پاسخ‌های جریانی و پخش گفتار",
+                "credits": "اعتبارات وابستگی‌های شخص ثالث",
+                "fileExplorerMetadata": "فرادادهٔ فایل",
+                "folderPicker": "یک پوشه انتخاب کنید",
+                "exportPreview": "محتوای خروجی",
+                "hardwareSystemInfo": "گزارش تفصیلی سیستم",
+                "license": "متن مجوز SoAI",
+                "messageInfo": "فرادادهٔ پیام",
+                "metricsAdvanced": "معیارهای گستردهٔ زمان اجرا",
+                "modelDetailTest": "یک درخواست آزمایشی به این مدل ارسال کنید",
+                "modelsDownload": "مدل‌ها را بارگیری کنید، ارائه‌دهندگان خارجی را متصل کنید یا فایل‌های مدل محلی را بیفزایید",
+                "modelsEdit": "قابلیت‌های این مدل را بازتعریف کنید",
+                "modelsProviders": "ارائه‌دهندگان خارجی مدل",
+                "modelsRename": "برای این مدل یک نام محلی تعیین کنید",
+                "modelsVirtual": "گروه‌های مسیریابی مدل مجازی",
+                "modelsVirtualEdit": "مسیریابی این مدل مجازی",
+                "pluginsClone": "این افزونه را با تنظیمات جدید تکثیر کنید",
+                "pluginsConcurrent": "حداکثر کارهای هم‌زمان افزونه",
+                "pluginsConfig": "تنظیمات افزونه",
+                "pluginsDownload": "افزونه‌ها را بارگیری یا بارگذاری کنید، یا از پوشهٔ محلی افزونه‌ها بیفزایید",
+                "pluginsInfo": "جزئیات و عیب‌یابی افزونه",
+                "pluginsIntro": "نحوهٔ گسترش قابلیت‌های SoAI با افزونه‌ها",
+                "pluginsManageBackend": "مدیریت نسخه‌های بک‌اند",
+                "promptEnhancer": "یک پرامپت ذخیره‌شده را با مدل بازنویسی کنید",
+                "settingsApiKeyQuota": "محدودیت‌های استفاده از این کلید API",
+                "settingsExternalAccounts": "حساب‌های ایمیل و تقویم",
+                "settingsMcpServer": "اتصال سرور MCP",
+                "toolCallOutput": "خروجی یک فراخوانی ابزار",
+                "conversationInput": "این درخواست و پیوست‌های آن را مشاهده کنید"
             },
             "loading": "در حال بارگذاری...",
             "confirm": "تأیید",
@@ -2434,27 +2568,30 @@
                             "plural": "{count} روز",
                             "singular": "{count} روز"
                         },
-                        "short": "{count}d"
+                        "short": "{count} روز"
                     },
                     "hour": {
                         "long": {
                             "plural": "{count} ساعت",
                             "singular": "{count} ساعت"
                         },
-                        "short": "{count}h"
+                        "short": "{count} ساعت"
                     },
                     "millisecond": {
-                        "short": "{count}میلی‌ثانیه"
+                        "short": "{count} میلی‌ثانیه"
                     },
                     "minute": {
                         "long": {
                             "plural": "{count} دقیقه",
                             "singular": "{count} دقیقه"
                         },
-                        "short": "{count}m"
+                        "short": "{count} دقیقه"
                     },
                     "second": {
-                        "short": "{count}ثانیه"
+                        "short": "{count} ثانیه"
+                    },
+                    "year": {
+                        "short": "{count} سال"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "تغییرات ذخیره‌نشده دارید. بدون ذخیره ادامه می‌دهید؟",
             "unsavedChangesTitle": "تغییرات ذخیره‌نشده",
             "view": "مشاهده",
-            "yes": "بله"
+            "yes": "بله",
+            "retry": "تلاش دوباره"
         },
         "contentPreview": {
             "actions": {
@@ -2620,7 +2758,7 @@
                 }
             },
             "firstRun": {
-                "description": "یک مسیر راه‌اندازی کوتاه برای بک‌اندهای محلی، ارائه‌دهندگان راه‌دور، مدل‌ها و به‌روزرسانی‌ها.",
+                "description": "یک مسیر راه‌اندازی کوتاه برای بک‌اندهای محلی، ارائه‌دهندگان راه‌دور، مدل‌ها و به‌روزرسانی‌ها",
                 "sections": {
                     "models": {
                         "heading": "وقتی بک‌اند آماده شد، یک مدل اضافه یا دانلود کنید",
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "شبکه",
+                    "unavailable": "فهرست آداپتورها در دسترس نیست",
                     "waiting": "در حال شناسایی..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "بنچمارک",
                     "soaibenchStop": "توقف",
                     "soaibenchStress": "استرس",
+                    "viewBenchmark": "مشاهده بنچمارک",
                     "test": "آزمایش",
                     "reset": "بازنشانی",
                     "save": "ذخیره"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index}: SoAIBench {profile} آغاز شد",
                     "soaibenchStopRequested": "درخواست توقف SoAIBench برای GPU {index} ارسال شد",
                     "soaibenchUnsupported": "SoAIBench برای GPU {index} پشتیبانی نمی‌شود: {reason}",
+                    "soaibenchSettingsLocked": "GPU {index} در حال اجرای بنچمارک است. پیش از ذخیره تنظیمات آن، بنچمارک را متوقف کنید یا صبر کنید تا تمام شود.",
                     "slotApplied": "برای GPU {index}، اسلات {slot} اعمال شد",
                     "slotSaved": "برای GPU {index}، اسلات {slot} ذخیره شد"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "حذف تاریخچه محلی",
+                "deleteLocalConfirm": {
+                    "title": "اجرای SoAIBench حذف شود؟",
+                    "message": "این اجرای SoAIBench از تاریخچه محلی حذف شود؟ این کار قابل بازگشت نیست."
+                },
                 "action": "اشتراک‌گذاری",
+                "openRun": "باز کردن نتیجه",
                 "ariaLabel": "اشتراک‌گذاری این امتیاز SoAIBench",
                 "unavailable": "هیچ اجرای قابل انتشار SoAIBench در دسترس نیست",
-                "confirm": { "title": "امتیاز SoAIBench به اشتراک گذاشته شود؟", "message": "امتیاز {score} و {passes} گذر اندازه‌گیری‌شدهٔ آن در جدول امتیازات عمومی SoAIBench منتشر شود؟", "description": "این کار امتیاز، پنج گذر اندازه‌گیری‌شده، اطلاعات عمومی GPU و محیط اجرا، تنظیمات آزمون و شواهد اختیاری حسگر را می‌فرستد. هویت حساب، فایل‌ها، پیکربندی، تحلیل‌ها و داده‌های سنجشی عمومی ارسال نمی‌شوند. soai.to می‌تواند فرادادهٔ عادی اتصال مانند نشانی IP شما را ببیند." },
-                "outcomes": { "published": "امتیاز SoAIBench به‌صورت عمومی به اشتراک گذاشته شد.", "alreadyPublished": "این امتیاز SoAIBench قبلاً به اشتراک گذاشته شده است.", "heldForReview": "نتیجهٔ SoAIBench برای بررسی هویت یا ناهنجاری نگه داشته شده و هنوز در رتبه‌بندی محاسبه نمی‌شود.", "offline": "هنگام آفلاین بودن SoAI امکان اشتراک‌گذاری امتیاز نبود.", "unavailable": "خدمت انتشار SoAIBench در دسترس نیست.", "timeout": "مهلت اشتراک‌گذاری امتیاز پایان یافت. برای تطبیق همان انتشار دوباره تلاش کنید.", "rateLimited": "امتیازهای زیادی از این اتصال به اشتراک گذاشته شده‌اند. بعداً دوباره تلاش کنید.", "capacity": "جدول امتیازات SoAIBench در حال حاضر ظرفیت ندارد.", "rejected": "جدول امتیازات SoAIBench این نتیجه را رد کرد.", "conflict": "این انتشار با وضعیت موجود جدول امتیازات تعارض دارد.", "invalidResponse": "جدول امتیازات SoAIBench پاسخ نامعتبری برگرداند.", "retryAfter": "پس از {seconds} ثانیه دوباره تلاش کنید." }
+                "confirm": {
+                    "title": "امتیاز SoAIBench به اشتراک گذاشته شود؟",
+                    "message": "امتیاز {score} و {passes} گذر اندازه‌گیری‌شدهٔ آن در جدول امتیازات عمومی SoAIBench منتشر شود؟",
+                    "description": "این کار امتیاز، پنج گذر اندازه‌گیری‌شده، اطلاعات عمومی GPU و محیط اجرا، تنظیمات آزمون و شواهد اختیاری حسگر را می‌فرستد. هویت حساب، فایل‌ها، پیکربندی، تحلیل‌ها و داده‌های سنجشی عمومی ارسال نمی‌شوند."
+                },
+                "outcomes": {
+                    "published": "امتیاز SoAIBench به‌صورت عمومی به اشتراک گذاشته شد.",
+                    "alreadyPublished": "این امتیاز SoAIBench قبلاً به اشتراک گذاشته شده است.",
+                    "heldForReview": "نتیجهٔ SoAIBench برای بررسی هویت یا ناهنجاری نگه داشته شده و هنوز در رتبه‌بندی محاسبه نمی‌شود.",
+                    "offline": "هنگام آفلاین بودن SoAI امکان اشتراک‌گذاری امتیاز نبود.",
+                    "unavailable": "خدمت انتشار SoAIBench در دسترس نیست.",
+                    "timeout": "مهلت اشتراک‌گذاری امتیاز پایان یافت. برای تطبیق همان انتشار دوباره تلاش کنید.",
+                    "rateLimited": "امتیازهای زیادی از این اتصال به اشتراک گذاشته شده‌اند. بعداً دوباره تلاش کنید.",
+                    "capacity": "جدول امتیازات SoAIBench در حال حاضر ظرفیت ندارد.",
+                    "rejected": "جدول امتیازات SoAIBench این نتیجه را رد کرد.",
+                    "conflict": "این انتشار با وضعیت موجود جدول امتیازات تعارض دارد.",
+                    "invalidResponse": "جدول امتیازات SoAIBench پاسخ نامعتبری برگرداند.",
+                    "retryAfter": "پس از {seconds} ثانیه دوباره تلاش کنید."
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3123,9 +3286,11 @@
                         "quick": "سریع",
                         "varianceSuffix": "{variance}% واریانس"
                     },
-                    "description": "اجراهای قبلی SoAIBench برای GPU انتخاب‌شده.",
+                    "description": "اجراهای قبلی SoAIBench برای GPU انتخاب‌شده",
                     "empty": "هنوز هیچ اجرای SoAIBench برای این GPU وجود ندارد.",
                     "loading": "در حال بارگذاری تاریخچهٔ اجرا...",
+                    "pageEmpty": "هنوز اجرای SoAIBench وجود ندارد.",
+                    "pageLoadFailed": "بارگیری اجراهای SoAIBench ممکن نشد. دوباره تلاش کنید.",
                     "matchBases": {
                         "device_id": "شناسهٔ دستگاه",
                         "gpu_model_key": "کلید مدل GPU",
@@ -3146,7 +3311,9 @@
                         "standard": "استاندارد",
                         "stress": "استرس"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "اعتبارسنجی عددی بار کاری OpenCL ناموفق بود." },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "اعتبارسنجی عددی بار کاری OpenCL ناموفق بود."
+                    },
                     "rowCopyUnavailable": "هیچ اجرای SoAIBench برای کپی در دسترس نیست",
                     "staleHardware": "تطبیق سخت‌افزاری قدیمی",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "اجراهای قبلی SoAIBench"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "یک پردازندهٔ گرافیکی برای سنجش انتخاب کنید",
+                    "noGpus": "هیچ پردازندهٔ گرافیکی برای سنجش در دسترس نیست.",
                     "ariaLabels": {
                         "close": "بستن SoAIBench",
                         "copy": "کپی اجرای SoAIBench",
@@ -3170,13 +3339,16 @@
                         "retry": "تلاش مجدد SoAIBench تأییدشده",
                         "stop": "توقف SoAIBench تأییدشده",
                         "stopping": "در حال توقف SoAIBench تأییدشده",
+                        "newBenchmark": "شروع یک اجرای جدید SoAIBench تأییدشده",
+                        "runAgain": "اجرای دوباره SoAIBench تأییدشده روی این GPU",
+                        "recover": "بررسی دوباره وضعیت SoAIBench",
                         "start": "شروع SoAIBench تأییدشده"
                     },
                     "close": "بستن",
                     "copy": "کپی",
                     "copySuccess": "اجرای SoAIBench در کلیپ‌بورد کپی شد",
                     "copyUnavailable": "هیچ اجرای SoAIBench برای کپی در دسترس نیست",
-                    "description": "بنچمارک تأییدشدهٔ GPU برای سنجش آمادگی استنتاج SoAI.",
+                    "description": "بنچمارک تأییدشدهٔ GPU برای سنجش آمادگی استنتاج SoAI",
                     "download": "دانلود",
                     "export": {
                         "deviceId": "شناسهٔ دستگاه",
@@ -3231,7 +3403,11 @@
                         "stopping": "در حال توقف SoAIBench",
                         "warmupDetail": "گرم‌سازی {pass}/{total}",
                         "warmupPhase": "گرم‌سازی: {phase}",
-                        "warmup": "گذر گرم‌سازی تکمیل شد"
+                        "warmup": "گذر گرم‌سازی تکمیل شد",
+                        "reconnecting": "در حال اتصال مجدد... آخرین به‌روزرسانی: {age}",
+                        "checkingStatus": "در حال بررسی وضعیت بنچمارک...",
+                        "statusUnavailable": "وضعیت بنچمارک در دسترس نیست. برای بررسی دوباره، تلاش مجدد کنید.",
+                        "startUnconfirmed": "شروع بنچمارک تأیید نشد و هیچ اجرای فعالی روی این GPU وجود ندارد. پیش از تلاش مجدد، تاریخچه را بررسی کنید."
                     },
                     "retry": "تلاش مجدد",
                     "scoreLabel": "امتیاز SoAIBench",
@@ -3253,6 +3429,15 @@
                     "standardRun": "اجرای استاندارد",
                     "stop": "توقف",
                     "stopping": "در حال توقف",
+                    "newBenchmark": "بنچمارک جدید",
+                    "runAgain": "اجرای دوباره",
+                    "gpuBusy": "بنچمارک در حال اجرا",
+                    "startedAt": "شروع در {time}",
+                    "states": {
+                        "starting": "در حال شروع",
+                        "unresolved": "وضعیت نامشخص",
+                        "rejected": "شروع نشد"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "مستندات",
             "intro": {
                 "aboutButton": "دربارهٔ SoAI",
-                "paragraph1": "<strong>SoAI (Smart Orchestrator for Artificial Intelligence)</strong> موتورهای استنتاج محلی و ارائه‌دهندگان هوش مصنوعی راه‌دور را از یک WebUI مدیریت می‌کند. مدل‌های آن‌ها را از طریق APIهای سازگار با OpenAI و Anthropic ارائه می‌دهد",
+                "paragraph1": "<strong dir=\"auto\">SoAI (Smart Orchestrator for Artificial Intelligence)</strong> موتورهای استنتاج محلی و ارائه‌دهندگان هوش مصنوعی راه‌دور را از یک WebUI مدیریت می‌کند. مدل‌های آن‌ها را از طریق APIهای سازگار با OpenAI و Anthropic ارائه می‌دهد",
                 "paragraph2": "SoAI روی Linux، macOS و Windows اجرا می‌شود. کد منبع آن در دسترس است و برای استفادهٔ شخصی و homelab رایگان است. SoAI داده‌های شما را جمع‌آوری نمی‌کند و گزارش‌های تحلیل، تله‌متری یا میزان استفاده ارسال نمی‌کند"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "تأخیر",
                         "queueDepth": "عمق صف",
                         "requests": "درخواست‌ها",
+                        "throughput": "نرخ تولید توکن",
                         "tokens": "توکن‌ها"
                     },
                     "title": "نمودار"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "نام نمایشی",
                     "source_model_id": "شناسهٔ مدل مبدأ",
-                    "provider": "ارائه‌دهنده",
-                    "title": "هویت",
                     "type": "نوع",
                     "universal_id": "شناسهٔ سراسری",
                     "virtual": "مجازی"
@@ -4064,30 +4248,20 @@
                     "title": "پیش‌فرض‌های استنتاج"
                 },
                 "metrics": {
-                    "avgLatency": "میانگین تأخیر",
                     "avgTokens": "میانگین توکن/درخواست",
                     "audioIn": "ورودی صوت",
                     "audioOut": "خروجی صوت",
-                    "failedRequests": "درخواست‌های ناموفق",
                     "imagesIn": "ورودی تصویر",
                     "imagesOut": "خروجی تصویر",
                     "last_used": "آخرین استفاده",
                     "modalityUsage": "مصرف",
                     "success_rate": "نرخ موفقیت",
                     "textTokens": "توکن‌های متن",
-                    "title": "سنجه‌ها",
                     "tokensGenerated": "توکن‌های تولیدشده",
-                    "totalRequests": "مجموع درخواست‌ها",
-                    "waitTime": "میانگین زمان انتظار"
+                    "totalRequests": "مجموع درخواست‌ها"
                 },
                 "plugin": {
-                    "author": "نویسنده",
-                    "models": "مدل‌ها",
-                    "plugin_status": "وضعیت افزونه",
-                    "providers": "ارائه‌دهندگان",
-                    "title": "افزونه",
-                    "type": "نوع",
-                    "version": "نسخه"
+                    "title": "افزونه"
                 },
                 "status": {
                     "available": "در دسترس",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "تغییر نام",
                     "modelStatus": "وضعیت مدل",
                     "orphaned": "یتیم",
-                    "parameters": "پارامترها",
                     "stopPlugin": "توقف افزونه",
-                    "title": "وضعیت و اقدام‌ها"
+                    "title": "وضعیت"
                 },
                 "technical": {
                     "created": "ایجادشده",
-                    "description": "توضیحات",
                     "family": "خانواده",
                     "license": "مجوز",
                     "path": "مسیر",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "همهٔ پارامترها",
-                "category": "دسته‌بندی",
                 "groupInference": "استنتاج",
                 "groupStartup": "راه‌اندازی"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "افزودن مورد {itemType}",
                 "aliasesPrefix": "همچنین شناخته می‌شود به‌عنوان:",
                 "arrayOfType": "آرایه‌ای از مقادیر {itemType}",
+                "backendDefault": "پیش‌فرض بک‌اند",
                 "backendDocumentationDescription": "این پارامترهای مدل شامل <strong>تنظیمات تعریف‌شده توسط بک‌اند</strong> هستند که افزونه ارائه می‌کند. برای رفتار دقیق، مقادیر پذیرفته‌شده و پیش‌فرض‌ها از مستندات خود بک‌اند استفاده کنید.",
-                "backendDocumentationTitle": "اطلاعات",
                 "badges": {
                     "custom": "سفارشی",
-                    "default": "پیش‌فرض",
                     "requiresReload": "نیازمند بارگذاری مجدد"
                 },
-                "countLabel": "{count} پارامتر",
+                "count": {
+                    "plural": "{count} پارامتر",
+                    "singular": "{count} پارامتر"
+                },
                 "invalidJson": "برای این پارامتر JSON معتبر وارد کنید.",
                 "jsonObject": "شیء JSON",
                 "noMatchDescription": "معیارهای جست‌وجو یا فیلتر را تغییر دهید.",
                 "noMatchTitle": "هیچ پارامتری با فیلترهای شما مطابقت ندارد",
                 "noParameters": "هیچ پارامتری برای این مدل در دسترس نیست",
+                "railLabel": "دسته‌های پارامتر",
                 "range": "بازه: {min} - {max}",
-                "removeItem": "حذف مورد"
+                "removeItem": "حذف مورد",
+                "revertChange": "بازگرداندن تغییر",
+                "unsavedCount": {
+                    "plural": "{count} تغییر ذخیره‌نشده",
+                    "singular": "{count} تغییر ذخیره‌نشده"
+                },
+                "views": {
+                    "customized": "سفارشی‌شده",
+                    "unsaved": "تغییرات ذخیره‌نشده"
+                }
             },
             "status": {
                 "loaded": "بارگذاری‌شده",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "انتخاب فایل",
                     "close": "بستن",
                     "confirmDownload": "دانلود افزونه",
                     "confirmUpload": "بارگذاری افزونه",
+                    "fileDropHint": "برای انتخاب فایل .soaiplugin کلیک کنید یا آن را اینجا بکشید",
+                    "fileDropTitle": "یک افزونه را اینجا رها کنید",
                     "fileHelp": "یک بستهٔ افزونهٔ Python با قالب ZIP انتخاب کنید (.soaiplugin)",
                     "fileLabel": "فایل افزونه",
                     "manualCopySuccess": "مسیر پوشهٔ افزونه‌ها در کلیپ‌بورد کپی شد.",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant} (نصب‌شده)",
                     "loadFailed": "گونه‌های بک‌اند بارگذاری نشدند.",
                     "loading": "در حال بارگذاری گونه‌های بک‌اند...",
+                    "loadingBackends": "در حال بارگذاری بک‌اندها...",
                     "saveFailed": "ذخیرهٔ گونهٔ بک‌اند ناموفق بود."
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "بازنویسی سازگاری برای {plugin} فعال شد.",
                 "overrideRequired": "پیش از شروع {plugin}، بازنویسی سازگاری را فعال کنید.",
                 "persistentNoStop": "افزونه‌های دائمی قابل توقف نیستند",
-                "pluginDisabled": "افزونه غیرفعال شد",
-                "pluginEnabled": "افزونه فعال شد",
+                "pluginDisabled": "افزونهٔ {plugin} غیرفعال شد",
+                "pluginEnabled": "افزونهٔ {plugin} فعال شد",
                 "pluginIncompatibleReason": "افزونهٔ \"{plugin}\" ناسازگار است: {reason}",
                 "pluginInfoCopyFailed": "کپی اطلاعات افزونه ناموفق بود",
                 "pluginStopInProgress": "در حال توقف {plugin}...",
@@ -5469,9 +5654,9 @@
                 "totalPrompts": "مجموع پرامپت‌ها"
             },
             "time": {
-                "daysAgoWithTime": "{count}d قبل، {time}",
-                "hoursAgo": "{count}h قبل",
-                "minutesAgo": "{count}m قبل",
+                "daysAgoWithTime": "{count} روز قبل، {time}",
+                "hoursAgo": "{count} ساعت قبل",
+                "minutesAgo": "{count} دقیقه قبل",
                 "todayWithTime": "امروز، {time}",
                 "yesterdayWithTime": "دیروز، {time}"
             },
@@ -5489,16 +5674,21 @@
                 "restarting": "برنامه در حال راه‌اندازی مجدد است. این کار فقط باید چند لحظه طول بکشد.",
                 "shutdown": "سیستم در حال خاموش‌شدن است. می‌توانید این پنجرهٔ مرورگر را ببندید.",
                 "sleep": "سیستم در حال ورود به حالت خواب است. برای ادامهٔ استفاده از SoAI آن را بیدار کنید.",
-                "updating": "SoAI در حال دانلود و نصب به‌روزرسانی‌هاست. این کار ممکن است چند دقیقه طول بکشد."
+                "updateTimeout": "SoAI پس از به‌روزرسانی دوباره آنلاین نشد. فایل application_updater.log را در پوشهٔ گزارش‌های SoAI بررسی کنید و سپس این صفحه را دوباره بارگذاری کنید.",
+                "updating": "SoAI برای تکمیل به‌روزرسانی دوباره راه‌اندازی می‌شود. وقتی SoAI دوباره آنلاین شود، این صفحه به‌طور خودکار بارگذاری مجدد می‌شود. این کار ممکن است چند دقیقه طول بکشد.",
+                "updatingDesktop": "SoAI برای تکمیل به‌روزرسانی دوباره راه‌اندازی می‌شود. پس از پایان به‌روزرسانی، این پنجره بسته و به‌طور خودکار دوباره باز می‌شود. لطفاً رایانه را خاموش نکنید.",
+                "updatingSlow": "به‌روزرسانی بیشتر از حد معمول طول می‌کشد. SoAI هنوز در حال کار است، پس لطفاً این صفحه را باز نگه دارید."
             },
             "messages": {
                 "connectionLost": "اتصال بک‌اند قطع شد",
+                "installingVersion": "در حال نصب SoAI {version}...",
                 "pleaseWait": "لطفاً صبر کنید...",
                 "rebooting": "سیستم در حال راه‌اندازی مجدد است...",
                 "rebootTimeout": "راه‌اندازی مجدد هنوز در حال انجام است...",
                 "restarting": "SoAI در حال راه‌اندازی مجدد است...",
                 "shutdown": "سیستم در حال خاموش‌شدن است",
                 "sleep": "سیستم در حال رفتن به حالت خواب است",
+                "updateTimeout": "SoAI هنوز برنگشته است",
                 "updating": "SoAI در حال به‌روزرسانی است..."
             },
             "reconnecting": "در حال تلاش برای اتصال مجدد..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "یک رنگ سفارشی برای همهٔ نمودارها انتخاب کنید",
-                    "label": "رنگ ثابت"
+                    "label": "رنگ نمودار"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "نحوهٔ نمایش محتوای شبیه کد در سراسر SoAI را کنترل کنید.",
                 "subgroupTitle": "بلوک‌های کد"
+            },
+            "connect": {
+                "addressCopied": "نشانی کپی شد",
+                "browserAddress": "نشانی این مرورگر",
+                "chooseAddress": "نشانی برای گوشی شما",
+                "copyAddress": "کپی نشانی",
+                "description": "با اسکن یک کد QR، برنامهٔ اندرویدی SoAI Connect را به این سرور متصل کنید.",
+                "documentationHint": "برای راه‌اندازی دستی و عیب‌یابی، صفحهٔ \"Connect to a SoAI server\" را در مستندات SoAI باز کنید",
+                "documentationLink": "مستندات SoAI",
+                "loadFailed": "بارگیری جزئیات اتصال ممکن نشد",
+                "loopbackWarningMessage": "SoAI روی یک نشانی loopback گوش می‌دهد، بنابراین دستگاه‌های دیگر نمی‌توانند مستقیماً به آن دسترسی داشته باشند. کد QR فقط از طریق یک پراکسی معکوس کار می‌کند که از همان طرح و درگاه SoAI استفاده کند. برای اجازه دادن به اتصال مستقیم، گزینهٔ زیر را تنظیم کنید و SoAI را دوباره راه‌اندازی کنید:",
+                "loopbackWarningTitle": "فقط از همین رایانه در دسترس است",
+                "noAddressesMessage": "این سرور را به یک شبکه متصل کنید، یا این صفحه را از نشانی‌ای باز کنید که گوشی شما باید از آن استفاده کند.",
+                "noAddressesTitle": "هیچ نشانی در دسترسی یافت نشد",
+                "qrLabel": "کد QR برای اتصال SoAI Connect به {address}",
+                "refresh": "به‌روزرسانی نشانی‌ها",
+                "scanHint": "این کد QR را با برنامهٔ SoAI Connect اسکن کنید",
+                "stepInstall": "SoAI Connect را روی گوشی اندرویدی خود نصب و باز کنید",
+                "stepScan": "روی دکمهٔ کد QR کنار فیلد نشانی سرور بزنید و سپس کد این صفحه را اسکن کنید",
+                "stepSignIn": "هر درخواست مربوط به گواهی را بررسی کنید و سپس با حساب SoAI خود وارد شوید",
+                "stepsTitle": "نحوهٔ اتصال",
+                "title": "SoAI Connect",
+                "vpnHint": "گوشی شما باید بتواند به این سرور دسترسی داشته باشد. به‌جای در معرض اینترنت قرار دادن SoAI، از همان شبکهٔ محلی یا هنگام دوری از یک VPN استفاده کنید",
+                "vpnTitle": "بیرون از خانه هستید؟"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "پنهان‌سازی خودکار سربرگ صفحه"
                     }
                 },
-                "subgroupTitle": "حرکت",
+                "subgroupTitle": "رابط کاربری",
                 "subgroupDescription": "حرکت، گذارها، سطوح شیشه‌ای و رفتار پیمایش را تنظیم کنید."
             },
             "externalAccounts": {
@@ -6975,7 +7189,7 @@
                     "authorizedSendersPlaceholder": "sender-id | برچسب اختیاری",
                     "credentialsDescription": "اعتبارنامه‌های مورد نیاز ارائه‌دهندهٔ انتخاب‌شده را وارد کنید.",
                     "credentialsTitle": "اعتبارنامه‌های ارائه‌دهنده",
-                    "description": "یک حساب واقعی ارائه‌دهنده و تنظیمات مرجع اجرای گفتگوی متعلق به آن را پیکربندی کنید.",
+                    "description": "یک حساب واقعی ارائه‌دهنده و تنظیمات مرجع اجرای گفتگوی متعلق به آن را پیکربندی کنید",
                     "executionDescription": "مدل گفتگو، هویت، پرامپت‌ها، فضای کاری و پارامترهای اجرا را انتخاب کنید.",
                     "executionTitle": "اجرای گفتگو",
                     "identityDescription": "حساب را نام‌گذاری کنید و ارائه‌دهنده و زبان پاسخ آن را انتخاب کنید.",
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "پشتیبان‌گیری",
+                "connect": "اتصال",
                 "externalAccounts": "ایمیل و تقویم",
                 "licensing": "مجوزدهی",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "یکی را برای اعمال انتخاب کنید",
+                    "label": "تصاویر پس‌زمینه داخلی",
+                    "none": "بدون تصویر پس‌زمینه",
+                    "option": "تصویر پس‌زمینه {number}"
+                },
                 "downloadUrl": {
                     "button": "دانلود",
                     "help": "یک URL برای دانلود و تنظیم به‌عنوان پس‌زمینه وارد کنید",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "برخی یادداشت‌های انتشار بارگیری نشدند. یادداشت‌های موجود نمایش داده می‌شوند."
+            },
+            "outcome": {
+                "failureMessage": "به‌روزرسانی به نسخهٔ {version} کامل نشد. SoAI {previousVersion} همچنان نصب است. برای جزئیات، فایل application_updater.log را در پوشهٔ گزارش‌های SoAI بررسی کنید.",
+                "failureTitle": "به‌روزرسانی کامل نشد",
+                "later": "بعداً",
+                "reloadMessage": "SoAI اکنون نسخهٔ {version} را اجرا می‌کند. برای استفاده از رابط به‌روزشده، این صفحه را دوباره بارگذاری کنید.",
+                "reloadTitle": "SoAI به‌روزرسانی شد",
+                "successMessage": "SoAI با موفقیت به نسخهٔ {version} به‌روزرسانی شد.",
+                "successTitle": "به‌روزرسانی کامل شد"
+            },
+            "progress": {
+                "downloading": "در حال دریافت به‌روزرسانی...",
+                "handoff": "در حال آماده‌سازی برای راه‌اندازی دوباره SoAI...",
+                "staging": "در حال آماده‌سازی فایل‌های به‌روزرسانی...",
+                "unavailable": "نمایش پیشرفت زنده موقتاً در دسترس نیست.",
+                "verifying": "در حال بررسی به‌روزرسانی..."
+            },
             "actions": {
                 "checkUpdates": "بررسی به‌روزرسانی‌ها",
                 "installUpdate": "نصب به‌روزرسانی"
@@ -7943,6 +8183,184 @@
             "welcome": {
                 "description": "SoAI بک‌اندهای محلی و راه دور LLM را پشت یک لایهٔ ارکستراسیون سازگار با OpenAI یکپارچه می‌کند.",
                 "heading": "به SoAI خوش آمدید!"
+            },
+            "aiSetup": {
+                "eyebrow": "راه‌اندازی SoAI",
+                "loadFailed": {
+                    "title": "راه‌اندازی SoAI بارگیری نشد",
+                    "description": "SoAI نتوانست موتورها و ارائه‌دهندگان موجود را بخواند. بررسی کنید SoAI در حال اجرا باشد و دوباره تلاش کنید، یا راه‌اندازی را بعداً تکمیل کنید.",
+                    "retry": "تلاش دوباره"
+                },
+                "nav": {
+                    "finishLater": "رد کردن",
+                    "skip": "رد کردن",
+                    "continue": "ادامه",
+                    "installAndContinue": "نصب",
+                    "downloadAndContinue": "دانلود",
+                    "startChatting": "گفتگو",
+                    "close": "بستن"
+                },
+                "sources": {
+                    "heading": "هوش مصنوعی شما کجا اجرا شود؟",
+                    "description": "یکی یا هر دو را انتخاب کنید. بعداً می‌توانید آن را تغییر دهید.",
+                    "local": {
+                        "title": "روی این دستگاه",
+                        "description": "خصوصی است و پس از راه‌اندازی آفلاین کار می‌کند. به یک دانلود یک‌باره نیاز دارد."
+                    },
+                    "cloud": {
+                        "title": "ارائه‌دهندگان ابری",
+                        "description": "در هرجا با اینترنت و کلید API ارائه‌دهنده کار می‌کند.",
+                        "recommended": "توصیه‌شده"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "دریافت کلید API رایگان",
+                    "accessibleName": "دریافت کلید API رایگان (در پنجرهٔ جدید باز می‌شود)"
+                },
+                "limited": {
+                    "noCompatibleEngine": "هیچ موتور محلی از این دستگاه پشتیبانی نمی‌کند.",
+                    "insufficientMemory": "مدل‌های محلی به حدود {required} حافظهٔ آزاد نیاز دارند؛ این دستگاه حدود {available} دارد.",
+                    "useCloud": "به‌جای آن از مدل ابری استفاده کنید",
+                    "searchManually": "جستجوی دستی مدل‌ها"
+                },
+                "connect": {
+                    "heading": "آماده شوید",
+                    "description": "یک ارائه‌دهنده را متصل کنید و این دستگاه را آماده کنید.",
+                    "cloud": {
+                        "heading": "اتصال ارائه‌دهندهٔ ابری",
+                        "description": "نشانی API و کلید ارائه‌دهندهٔ خود را جای‌گذاری کنید.",
+                        "moreOptions": "گزینه‌های بیشتر",
+                        "modelFilter": "فیلتر مدل (اختیاری)",
+                        "connect": "اتصال",
+                        "connecting": "در حال اتصال به {name}…",
+                        "connected": {
+                            "singular": "متصل شد · {count} مدل در دسترس",
+                            "plural": "متصل شد · {count} مدل در دسترس"
+                        },
+                        "change": "تغییر"
+                    },
+                    "local": {
+                        "heading": "نصب موتور محلی",
+                        "description": "با این کار مدل‌ها روی این دستگاه اجرا می‌شوند.",
+                        "automatic": "خودکار (توصیه‌شده)",
+                        "usesGpu": "از {engine} با کارت گرافیک شما استفاده می‌کند",
+                        "usesProcessor": "از {engine} روی پردازنده استفاده می‌کند",
+                        "usesInstalled": "از {engine} نصب‌شده استفاده می‌کند",
+                        "chooseManually": "انتخاب دستی",
+                        "status": {
+                            "installed": "نصب‌شده",
+                            "recommended": "توصیه‌شده",
+                            "warning": "هشدار",
+                            "unavailable": "در دسترس نیست"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "یک مدل انتخاب کنید",
+                    "description": "انتخاب کنید با چه چیزی گفتگو کنید. بعداً می‌توانید موارد بیشتری اضافه کنید.",
+                    "local": {
+                        "heading": "مدل‌های مناسب این دستگاه",
+                        "description": "متناسب با سخت‌افزار شما انتخاب شده‌اند."
+                    },
+                    "role": {
+                        "recommended": "توصیه‌شده",
+                        "faster": "سریع‌تر",
+                        "smallest": "کوچک‌ترین"
+                    },
+                    "useCase": {
+                        "advanced": "بهترین کیفیت برای نوشتن، برنامه‌نویسی و استدلال",
+                        "balanced": "عالی برای گفتگو، نوشتن و برنامه‌نویسی روزمره",
+                        "reasoning": "استدلال گام‌به‌گام قوی",
+                        "light": "پاسخ‌های سریع روی سخت‌افزار معمولی"
+                    },
+                    "downloadSize": "دانلود {size}",
+                    "runsOnGpu": "روی کارت گرافیک شما اجرا می‌شود",
+                    "runsOnCpu": "روی پردازندهٔ شما اجرا می‌شود",
+                    "speed": {
+                        "fast": "پاسخ‌های سریع",
+                        "moderate": "سرعت متوسط",
+                        "slow": "پاسخ‌های کندتر"
+                    },
+                    "details": {
+                        "label": "جزئیات",
+                        "quantization": "کوانتیزه‌سازی",
+                        "parameters": "پارامترها",
+                        "parametersDense": "{total} میلیارد",
+                        "parametersMoe": "{total} میلیارد، {active} میلیارد فعال",
+                        "context": "طول زمینه",
+                        "contextTokens": "{tokens} توکن",
+                        "contextReduced": "{tokens} توکن (برای این دستگاه کاهش یافته)",
+                        "file": "فایل",
+                        "source": "منبع"
+                    },
+                    "openChatWith": "باز کردن گفتگو با این مدل",
+                    "searchAnother": "جستجوی مدل دیگر",
+                    "cloud": {
+                        "heading": "مدل‌های {provider}",
+                        "description": "یک یا چند مورد را انتخاب کنید.",
+                        "filterPlaceholder": "فیلتر مدل‌ها…",
+                        "noMatches": "هیچ مدلی با این فیلتر مطابقت ندارد.",
+                        "empty": "این ارائه‌دهنده هیچ مدلی برنگرداند. فیلتر مدل را بررسی کنید یا ارائه‌دهندهٔ دیگری را امتحان کنید.",
+                        "backToProvider": "بازگشت به ارائه‌دهنده"
+                    }
+                },
+                "progress": {
+                    "heading": "در حال آماده‌سازی همه‌چیز",
+                    "description": "به‌محض آماده شدن یک مدل می‌توانید گفتگو را شروع کنید.",
+                    "readyCount": "{ready} از {total} آماده",
+                    "installing": "در حال نصب {engine}",
+                    "downloading": "در حال دانلود {model}",
+                    "waitingForEngine": "در انتظار پایان نصب {engine}",
+                    "discovering": "در حال افزودن {model} به مدل‌های شما",
+                    "configuring": "در حال اعمال تنظیمات اولیه",
+                    "testing": "در حال ارسال یک پیام آزمایشی کوتاه",
+                    "ready": "{model} آماده است",
+                    "blocked": "تا زمانی که {engine} نصب نشود، شروع ممکن نیست",
+                    "checkingStatus": "در حال بررسی وضعیت",
+                    "retry": "تلاش دوباره",
+                    "retryInstallation": "تلاش دوباره برای نصب",
+                    "skipItem": "رد شدن از این مورد",
+                    "testAgain": "آزمایش دوباره",
+                    "checkAgain": "بررسی دوباره",
+                    "sendTest": "ارسال پیام آزمایشی",
+                    "error": {
+                        "empty": "مدل بارگیری شد اما پاسخی نداد. دوباره تلاش کنید یا مدل دیگری انتخاب کنید.",
+                        "loadError": "مدل روی این دستگاه اجرا نشد. دوباره تلاش کنید یا مدل کوچک‌تری انتخاب کنید.",
+                        "timeout": "پاسخ مدل بیش از حد طول کشید. دوباره تلاش کنید یا مدل کوچک‌تری انتخاب کنید.",
+                        "disconnected": "اتصال در حین آزمایش قطع شد. دوباره تلاش کنید.",
+                        "downloadFailed": "دانلود متوقف شد. دوباره تلاش کنید.",
+                        "installFailed": "نصب کامل نشد. دوباره تلاش کنید.",
+                        "noDiskSpace": "فضای دیسک برای این مدل کافی نیست. فضا آزاد کنید یا مدل کوچک‌تری انتخاب کنید."
+                    },
+                    "testPrompt": "با یک جملهٔ کوتاه و دوستانه پاسخ بده.",
+                    "testCancelled": "آزمایش راه‌اندازی SoAI لغو شد."
+                },
+                "completion": {
+                    "modelsTitle": "مدل‌های هوش مصنوعی",
+                    "modelsReady": {
+                        "singular": "{count} آماده",
+                        "plural": "{count} آماده"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} هنوز در پس‌زمینه در حال آماده‌سازی است",
+                        "plural": "{count} هنوز در پس‌زمینه در حال آماده‌سازی هستند"
+                    }
+                },
+                "resume": {
+                    "link": "تکمیل راه‌اندازی SoAI",
+                    "toast": "برخی مراحل راه‌اندازی SoAI به توجه شما نیاز دارند."
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "دانلود مدل در پس‌زمینه ادامه می‌یابد.",
+                        "plural": "{count} دانلود مدل در پس‌زمینه ادامه می‌یابد."
+                    },
+                    "installations": {
+                        "singular": "نصب بک‌اند در پس‌زمینه ادامه می‌یابد.",
+                        "plural": "{count} نصب بک‌اند در پس‌زمینه ادامه می‌یابد."
+                    },
+                    "both": "دانلود مدل‌ها و نصب بک‌اندها در پس‌زمینه ادامه می‌یابد."
+                }
             }
         }
     }

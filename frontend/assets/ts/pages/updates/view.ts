@@ -52,13 +52,14 @@ const renderUpdatesPageView = (dependencies: UpdatesPageViewDependencies): Trust
     const content = `
         <div class="updates-layout">
             <section class="updates-page-notice" id="updatesPageNotice" aria-live="polite">
-                <div class="status-body">
+                <div class="status-body" id="updatesPageNoticeBody">
                     <span class="status-indicator grey" id="updatesPageNoticeIndicator"></span>
                     <div class="status-copy">
                         <div class="status-heading-row"><div class="status-heading" id="updatesPageNoticeHeading">${i18n.t('updates.status.idle')}</div></div>
                         <div class="status-detail u-hidden" id="updatesPageNoticeDetail"></div>
                     </div>
                 </div>
+                <div class="updates-page-progress u-hidden" id="updatesPageProgress"></div>
             </section>
             <section class="updates-status" id="updatesStatus" aria-live="polite">
                 <div class="updates-application-header">

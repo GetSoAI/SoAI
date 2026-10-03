@@ -12,7 +12,7 @@
         appearance: none;
         font: inherit;
         color: inherit;
-        text-align: left;
+        text-align: start;
         position: absolute;
         z-index: var(--z-above-sibling);
         padding: var(--space-2) var(--space-2);
@@ -64,7 +64,7 @@
         font-weight: var(--font-weight-semibold);
         font-size: var(--font-size-body-xs);
         line-height: var(--line-height-compact);
-        text-align: left;
+        text-align: start;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -106,8 +106,8 @@
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-now-line {
         position: absolute;
-        left: 0;
-        right: 0;
+        inset-inline-start: 0;
+        inset-inline-end: 0;
         transform: translateY(-50%);
         height: 2px;
         background: color-mix(in srgb, var(--accent-red) 80%, transparent);
@@ -120,20 +120,20 @@
         position: absolute;
         top: var(--space-3);
         bottom: var(--space-3);
-        left: 0;
-        right: 0;
+        inset-inline-start: 0;
+        inset-inline-end: 0;
         pointer-events: none;
         z-index: var(--z-overlay);
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-now-indicator .automation-now-line {
-        left: var(--automation-time-grid-gutter-width);
+        inset-inline-start: var(--automation-time-grid-gutter-width);
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-now-tag {
         position: absolute;
-        left: calc(var(--automation-time-grid-gutter-width) - var(--space-2));
-        transform: translate(-100%, -50%);
+        inset-inline-start: calc(var(--automation-time-grid-gutter-width) - var(--space-2));
+        transform: translate(calc(-100% * var(--dir-sign)), -50%);
         display: inline-flex;
         align-items: center;
         height: var(--space-4);
@@ -210,7 +210,7 @@
         -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
         backdrop-filter: var(--recessed-surface-backdrop-filter);
         box-shadow: var(--recessed-surface-shadow);
-        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        border-radius: 0 0 var(--border-radius-inset) var(--border-radius-inset);
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-window-runs-toolbar {

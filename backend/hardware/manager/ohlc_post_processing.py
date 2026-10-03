@@ -34,9 +34,9 @@ def post_process_ohlc_data(
         high_val = coerce_float_or_none(entry.get("high"))
         low_val = coerce_float_or_none(entry.get("low"))
         close_val = coerce_float_or_none(entry.get("close"))
-        avg_val = coerce_float_or_none(entry.get("avg")) or (
-            close_val if close_val is not None else open_val
-        )
+        avg_val = coerce_float_or_none(entry.get("avg"))
+        if avg_val is None:
+            avg_val = close_val if close_val is not None else open_val
         if all(value is None for value in (open_val, high_val, low_val, close_val)):
             return None
         count_val = coerce_non_negative_int_from_numberish(entry.get("count"))
@@ -118,8 +118,9 @@ def post_process_ohlc_data(
     history_data["data"] = normalised_rows
     gap_count = 0
     for row in normalised_rows:
-        if any(
-            coerce_bool_flag(
+        has_measured_entry = any(
+            isinstance(entry, dict)
+            and not coerce_bool_flag(
                 entry.get("gap_fill"),
                 logger=logger,
                 operation="hardware.manager.ohlc_post_processing.coerce_bool_flag",
@@ -127,8 +128,8 @@ def post_process_ohlc_data(
                 recover_message="Failed to parse boolean flag (non-critical).",
             )
             for entry in row.values()
-            if isinstance(entry, dict)
-        ):
+        )
+        if not has_measured_entry:
             gap_count += 1
     metadata_value = history_data.get("metadata")
     metadata: JSONDict = {}

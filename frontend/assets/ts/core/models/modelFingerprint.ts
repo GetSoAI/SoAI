@@ -19,6 +19,8 @@ const stableModelFingerprint = (candidate: JsonValue): string => {
         modelId: toTrimmedString(candidate['modelId']),
         sourceModelId: toTrimmedString(candidate['sourceModelId']),
         rawUpstreamModelId: toTrimmedString(candidate['rawUpstreamModelId']),
+        repositoryId: toTrimmedString(candidate['repositoryId']),
+        requestedRevision: toTrimmedString(candidate['requestedRevision']),
         name: toTrimmedString(candidate['name']),
         displayName: toTrimmedString(candidate['displayName']),
         alias: toTrimmedString(candidate['alias']),

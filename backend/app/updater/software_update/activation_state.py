@@ -4,10 +4,16 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
 
 from app.installation_transaction_admission import (
     TRANSACTION_PREFIX,
+)
+from app.updater.config_timeout_default_upgrade_state import (
+    complete_pending_timeout_default_upgrade,
+)
+from app.updater.software_update.activation_identity import (
+    UpdateActivationIdentity,
+    parse_update_activation_identity,
 )
 from app.updater.software_update.install_transaction_inventory import require_rollback_inventory
 from app.updater.software_update.install_transaction_state import (
@@ -27,9 +33,7 @@ from core.bootstrap.lock import acquire_interprocess_lock
 from core.errors.exceptions import StateError
 from core.filesystem.atomic_writes import atomic_create_text_content_exclusive
 from core.filesystem.open_files import read_regular_file_no_symlink
-from core.licensing.edition import require_licensing_edition
 from core.meta.paths import join_data_abs
-from core.meta.versioning import parse_semantic_version
 from core.runtime.instance_record import (
     RuntimeInstanceRecord,
     canonicalize_runtime_base_dir,
@@ -39,15 +43,11 @@ from core.runtime.instance_record import (
 )
 from core.serialization.json import serialize_json_compact_stable_strict
 from core.serialization.json_parsing import parse_json_dict
-from core.tasks.identifiers import validate_optional_task_id
 from core.tasks.software_update_result import write_software_update_result
 from core.timing.constants import CONTROL_TIMEOUT_SEC
-from core.types.json import JSONDict
-from core.validation.strings import coerce_required_non_empty_str
 
 __all__ = (
     "ACTIVATION_PENDING_MARKER",
-    "UpdateActivationIdentity",
     "activation_process_path",
     "activation_commit_lock_path",
     "activation_receipt_path",
@@ -66,25 +66,6 @@ __all__ = (
 ACTIVATION_PENDING_MARKER = "activation_pending"
 ACTIVATION_IDENTITY_FILENAME = "activation.json"
 ACTIVATION_PROCESS_FILENAME = "activation_process.json"
-
-
-@dataclass(frozen=True, slots=True)
-class UpdateActivationIdentity:
-    paths: UpdateTransactionPaths
-    task_id: str
-    edition: str
-    from_version: str
-    to_version: str
-    config_path: str
-
-    def to_mapping(self) -> JSONDict:
-        return {
-            "task_id": self.task_id,
-            "edition": self.edition,
-            "from_version": self.from_version,
-            "to_version": self.to_version,
-            "config_path": self.config_path,
-        }
 
 
 def activation_commit_lock_path(base_path: str) -> str:
@@ -123,7 +104,7 @@ def read_update_activation_identity(paths: UpdateTransactionPaths) -> UpdateActi
         field="update activation identity",
         reject_duplicate_keys=True,
     )
-    return _parse_activation_identity(paths, payload)
+    return parse_update_activation_identity(paths, payload)
 
 
 def require_update_candidate_stopped(paths: UpdateTransactionPaths) -> None:
@@ -138,31 +119,6 @@ def require_update_candidate_stopped(paths: UpdateTransactionPaths) -> None:
         raise StateError("Candidate process is still running; recovery cannot replace its state.")
 
 
-def _parse_activation_identity(
-    paths: UpdateTransactionPaths, payload: JSONDict
-) -> UpdateActivationIdentity:
-    if set(payload) != {"task_id", "edition", "from_version", "to_version", "config_path"}:
-        raise StateError("Update activation identity fields are invalid.")
-    task_id = validate_optional_task_id(payload.get("task_id"))
-    if task_id is None or task_id != payload.get("task_id"):
-        raise StateError("Update activation task identity is not canonical.")
-    edition = require_licensing_edition(
-        coerce_required_non_empty_str(payload.get("edition"), label="activation edition")
-    )
-    from_version = coerce_required_non_empty_str(
-        payload.get("from_version"), label="activation baseline"
-    )
-    to_version = coerce_required_non_empty_str(payload.get("to_version"), label="activation target")
-    parse_semantic_version(from_version)
-    parse_semantic_version(to_version)
-    config_path = coerce_required_non_empty_str(
-        payload.get("config_path"), label="activation configuration"
-    )
-    if config_path != os.path.abspath(config_path):
-        raise StateError("Update activation configuration path must be absolute.")
-    return UpdateActivationIdentity(paths, task_id, edition, from_version, to_version, config_path)
-
-
 def record_update_activation_identity(
     paths: UpdateTransactionPaths,
     *,
@@ -172,7 +128,7 @@ def record_update_activation_identity(
     to_version: str,
     config_path: str,
 ) -> None:
-    identity = _parse_activation_identity(
+    identity = parse_update_activation_identity(
         paths,
         {
             "task_id": task_id,
@@ -216,7 +172,9 @@ def prepare_update_activation(transaction: AppliedUpdateTransaction) -> None:
     write_marker(paths.transaction_path, ACTIVATION_PENDING_MARKER)
 
 
-def find_pending_update_activation(base_path: str) -> UpdateActivationIdentity | None:
+def find_pending_update_activation(
+    base_path: str, *, include_preparation: bool = False
+) -> UpdateActivationIdentity | None:
     found: UpdateActivationIdentity | None = None
     for name in os.listdir(base_path):
         if not name.startswith(TRANSACTION_PREFIX):
@@ -224,7 +182,16 @@ def find_pending_update_activation(base_path: str) -> UpdateActivationIdentity |
         path = os.path.join(base_path, name)
         if os.path.islink(path) or not os.path.isdir(path):
             raise StateError("Update transaction storage is invalid; preserve it for repair.")
-        pending = read_pending_update_activation(paths_from_transaction_directory(base_path, path))
+        paths = paths_from_transaction_directory(base_path, path)
+        pending = read_pending_update_activation(paths)
+        if (
+            include_preparation
+            and pending is None
+            and os.path.lexists(os.path.join(path, ACTIVATION_IDENTITY_FILENAME))
+        ):
+            validate_transaction_markers(path)
+            if os.path.isfile(marker_path(path, ROLLBACK_REQUIRED_MARKER)):
+                pending = read_update_activation_identity(paths)
         if pending is None:
             continue
         if found is not None:
@@ -248,7 +215,10 @@ def claim_pending_update_activation(base_path: str, record: RuntimeInstanceRecor
         validate_transaction_markers(pending.paths.transaction_path)
         if os.path.exists(marker_path(pending.paths.transaction_path, ACTIVATION_FAILED_MARKER)):
             raise StateError("Candidate activation failed; restore the update before startup.")
-        if require_rollback_inventory(pending.paths, old_complete=True) is None:
+        if (
+            require_rollback_inventory(pending.paths, old_complete=True, verify_content=False)
+            is None
+        ):
             raise StateError("Pending activation is missing its required rollback inventory.")
         path = activation_process_path(pending.paths)
         if os.path.lexists(path):
@@ -299,6 +269,7 @@ def persist_committed_activation_result(paths: UpdateTransactionPaths) -> None:
         return
     if not os.path.isfile(marker_path(paths.transaction_path, SUCCESS_COMPLETE_MARKER)):
         raise StateError("An update cannot publish completion before durable activation commit.")
+    complete_pending_timeout_default_upgrade(pending.config_path)
     record = read_runtime_instance_record(activation_process_path(paths))
     write_software_update_result(
         paths.base_path,

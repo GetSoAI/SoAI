@@ -2,7 +2,7 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
-    :where(.chat-container) .message-attachment-strip {
+    :where(.chat-container, .chat-conversation-input-modal-body) .message-attachment-strip {
         display: flex;
         flex-wrap: wrap;
         gap: var(--space-2);
@@ -10,52 +10,47 @@
         max-width: 100%;
     }
 
-    :where(.chat-container) .chat-attachment-summary-card {
+    :where(.chat-container, .chat-conversation-input-modal-body) .chat-attachment-summary-card {
         color: var(--text-primary);
         text-decoration: none;
         border: var(--border-width-1) solid var(--glass-border-subtle);
         cursor: pointer;
     }
 
-    :where(.chat-container) button.chat-attachment-summary-card {
+    :where(.chat-container, .chat-conversation-input-modal-body) button.chat-attachment-summary-card {
         font: inherit;
-        text-align: left;
+        text-align: start;
     }
 
-    :where(.chat-container) .chat-attachment-summary-card.document {
+    :where(.chat-container, .chat-conversation-input-modal-body) .chat-attachment-summary-card.document {
         width: min(260px, 100%);
     }
 
-    :where(.chat-container) .chat-attachment-summary-card .file-info {
+    :where(.chat-container, .chat-conversation-input-modal-body) .chat-attachment-summary-card .file-info {
         flex: 1 1 auto;
     }
 
-    :where(.chat-container) .chat-attachment-summary-card .file-name {
+    :where(.chat-container, .chat-conversation-input-modal-body) .chat-attachment-summary-card .file-name {
         max-width: none;
     }
 
-    :where(.chat-container) .chat-attachment-summary-card .file-status {
-        min-width: 0;
-        flex-wrap: wrap;
-    }
-
-    :where(.chat-container) .chat-attachment-summary-card .file-status > span:not(.chat-attachment-badge) {
+    :where(.chat-container, .chat-conversation-input-modal-body) .chat-attachment-summary-card .file-status > span:not(.chat-attachment-badge) {
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    :where(.chat-container) .chat-attachment-summary-card:is(:hover, :focus-visible) {
+    :where(.chat-container, .chat-conversation-input-modal-body) .chat-attachment-summary-card:is(:hover, :focus-visible) {
         border-color: var(--ui-button-border-hover);
     }
 
-    :where(.chat-container) button.file-preview-item.chat-attachment-summary-card--soai-link:focus:not(:focus-visible, :hover) {
+    :where(.chat-container, .chat-conversation-input-modal-body) button.file-preview-item.chat-attachment-summary-card--soai-link:focus:not(:focus-visible, :hover) {
         border-color: var(--glass-border-subtle);
         color: var(--text-primary);
     }
 
-    :where(.chat-container) button.file-preview-item.chat-attachment-summary-card--soai-link.glass-surface-light:focus:not(:focus-visible, :hover) {
+    :where(.chat-container, .chat-conversation-input-modal-body) button.file-preview-item.chat-attachment-summary-card--soai-link.glass-surface-light:focus:not(:focus-visible, :hover) {
         --glass-surface-bg: var(--chat-preview-neutral-base);
     }
 
@@ -73,6 +68,15 @@
 
     :where(.chat-container) .chat-message.user .chat-attachment-summary-card {
         margin-bottom: var(--space-2);
+    }
+
+    .chat-conversation-input-modal-body .chat-attachment-summary-card.document {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .chat-conversation-input-modal-body div.chat-attachment-summary-card {
+        cursor: default;
     }
 
     .chat-attachment-overflow-modal-body {
@@ -114,9 +118,6 @@
         background-color: var(--search-control-bg);
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
-        box-shadow:
-            inset 2px 2px 4px var(--surface-inner-highlight-soft),
-            inset -2px -2px 4px var(--surface-inner-shadow-soft);
         color: var(--text-primary);
         transition:
             background-color var(--transition-fast),
@@ -198,7 +199,7 @@
         padding: var(--space-2) var(--space-25);
         color: var(--text-primary);
         font: inherit;
-        text-align: left;
+        text-align: start;
         text-decoration: none;
     }
 

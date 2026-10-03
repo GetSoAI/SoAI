@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from core.errors.exception_logging import log_handled_exception
 from core.errors.exceptions import PayloadTooLargeError, StateError, ValidationError
+from core.files.generated_names import normalize_upload_suffix
 from core.files.operations import secure_filename
 from core.files.temp_files import create_secure_temp_file_descriptor
 from core.files.upload_size_validation import UPLOAD_MAX_SIZE_EXCEEDED_MESSAGE
@@ -93,7 +94,7 @@ class StreamingMultipartTempFileWriter:
                 raise ValidationError("Missing required metadata fields before file upload.")
         parts.file_count += 1
 
-        suffix = f"_{secure_filename(self._original_filename)}"
+        suffix = normalize_upload_suffix(secure_filename(self._original_filename))
         file_descriptor, self._temp_path = create_secure_temp_file_descriptor(
             directory=spec.temp_dir,
             prefix="tmpupload_multipart_",

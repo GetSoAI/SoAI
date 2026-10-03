@@ -47,7 +47,8 @@
 
     .prompt-view-modal .prompt-modal-title-input {
         border-radius: var(--border-radius);
-        padding: var(--space-15) var(--space-25) var(--space-15) var(--space-4);
+        padding-block: var(--space-15) var(--space-15);
+        padding-inline: var(--space-4) var(--space-25);
         font-size: var(--font-size-heading-xs);
         font-weight: 500;
     }

@@ -1,6 +1,7 @@
 /* SoAI - Index component styles [frontend/assets/css/components/index.css] */
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
+@import url('./feedback/spinner.css') layer(components);
 @import url('./controls/button-base.css') layer(components);
 @import url('./controls/label-base.css') layer(components);
 @import url('./data/parameter-descriptions.css') layer(components);
@@ -9,6 +10,7 @@
 @import url('./controls/button-variants.css') layer(components);
 @import url('./controls/button-content.css') layer(components);
 @import url('./controls/button-utility.css') layer(components);
+@import url('./controls/file-drop-area.css') layer(components);
 @import url('./controls/disabled-controls.css') layer(components);
 @import url('./controls/busy-controls.css') layer(components);
 @import url('./controls/range-controls.css') layer(components);
@@ -24,6 +26,7 @@
 @import url('./collections/collection-card-content.css') layer(components);
 @import url('./collections/collection-status.css') layer(components);
 @import url('./feedback/text-badges.css') layer(components);
+@import url('./feedback/attention-pulse.css') layer(components);
 @import url('./feedback/model-type-badges.css') layer(components);
 @import url('./integrations/openai-capabilities.css') layer(components);
 @import url('./feedback/metric-badges.css') layer(components);
@@ -60,6 +63,7 @@
 @import url('./hardware/hardware-widget-metrics.css') layer(components);
 @import url('./layout/shared-layout.css') layer(components);
 @import url('./layout/shared-forms.css') layer(components);
+@import url('./layout/setting-rows.css') layer(components);
 @import url('./controls/select-controls.css') layer(components);
 @import url('./layout/shared-status.css') layer(components);
 @import url('./layout/shared-page-areas.css') layer(components);
@@ -92,6 +96,7 @@
 @import url('./controls/tabs-buttons.css') layer(components);
 @import url('./controls/tabs-content.css') layer(components);
 @import url('./modals/modal-tabs.css') layer(components);
+@import url('./modals/modal-tab-panels.css') layer(components);
 @import url('./charts/chart-canvas.css') layer(components);
 @import url('./charts/chart-states.css') layer(components);
 @import url('./charts/chart-filters.css') layer(components);
@@ -110,6 +115,7 @@
 @import url('./chat/chat-attach-modal-knowledge.css') layer(components);
 @import url('./chat/chat-prompts-picker-modal.css') layer(components);
 @import url('./chat/chat-character-map-modal.css') layer(components);
+@import url('./chat/chat-sketch-modal.css') layer(components);
 @import url('./chat/chat-composer-buttons.css') layer(components);
 @import url('./chat/chat-configuration-avatar.css') layer(components);
 @import url('./chat/chat-configuration-modal.css') layer(components);
@@ -140,6 +146,8 @@
 @import url('./controls/color-picker-options.css') layer(components);
 @import url('./chat/composer-and-input-actions.css') layer(components);
 @import url('./chat/chat-composer-layout.css') layer(components);
+@import url('./chat/chat-composer-auto-hide.css') layer(components);
+@import url('./chat/chat-conversation-header-auto-hide.css') layer(components);
 @import url('./chat/conversation-color-picker.css') layer(components);
 @import url('./chat/conversation-item-actions-and-empty-state.css') layer(components);
 @import url('./chat/conversation-item-colors.css') layer(components);
@@ -156,6 +164,7 @@
 @import url('./chat/inline-tool-code-diffs.css') layer(components);
 @import url('./chat/inline-tool-status-values.css') layer(components);
 @import url('./chat/inline-tool-media.css') layer(components);
+@import url('./chat/chat-image-processing.css') layer(components);
 @import url('./chat/chat-custom-endpoint-fields.css') layer(components);
 @import url('./chat/input-queue-preview.css') layer(components);
 @import url('./chat/message-actions.css') layer(components);

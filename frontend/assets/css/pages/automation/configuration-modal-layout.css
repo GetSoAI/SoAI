@@ -8,14 +8,14 @@
         gap: var(--space-3);
     }
 
-    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .modal-body > .modal-body-section {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-editor-form > .modal-body-section {
         margin-top: var(--space-4);
         display: flex;
         flex-direction: column;
         gap: var(--space-3);
     }
 
-    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .modal-body > .modal-body-section:first-child {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-editor-form > .modal-body-section:first-child {
         margin-top: 0;
     }
 
@@ -59,5 +59,40 @@
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-modal-settings-action > .ui-button {
         width: 100%;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-editor-notice {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        margin-top: 0;
+        margin-bottom: var(--space-4);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-editor-notice.u-hidden {
+        display: var(--hidden-display);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-editor-notice-message {
+        margin: 0;
+        white-space: pre-line;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-editor-notice-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-editor-form[inert] {
+        opacity: 0.55;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-schedule-summary {
+        white-space: pre-line;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-configuration-modal .automation-schedule-summary:empty {
+        display: none;
     }
 }

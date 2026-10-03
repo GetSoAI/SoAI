@@ -99,7 +99,7 @@
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-day-heading {
-        padding: 0 var(--space-1) var(--space-3) var(--space-1);
+        padding: 0 var(--space-3) var(--space-3);
         font-size: var(--font-size-body-lg);
         font-weight: var(--font-weight-semibold);
         letter-spacing: var(--tracking-snug);
@@ -154,7 +154,7 @@
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-month-weekday {
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         font-size: var(--font-size-body-xs);
         letter-spacing: var(--tracking-08em);
         color: var(--text-muted);
@@ -207,19 +207,19 @@
         transition: opacity var(--transition-fast);
     }
 
-    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day:focus-visible {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day:hover {
+        border-color: var(--glass-border-strong);
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day:has(.automation-month-day-number:focus-visible) {
         border-color: var(--glass-border-strong);
         box-shadow:
             0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring),
             var(--shadow-lift-soft);
     }
 
-    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day:hover {
-        border-color: var(--glass-border-strong);
-    }
-
-    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day:focus-visible::before,
-    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day:hover::before {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day:hover::before,
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day:has(.automation-month-day-number:focus-visible)::before {
         opacity: 1;
     }
 

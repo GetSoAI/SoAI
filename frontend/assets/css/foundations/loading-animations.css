@@ -4,21 +4,15 @@
 @layer foundations {
     @keyframes task-progress-indeterminate {
         0% {
-            transform: translateX(-60%) scaleX(0.4);
+            transform: translateX(calc(-60% * var(--dir-sign))) scaleX(0.4);
         }
 
         50% {
-            transform: translateX(-10%) scaleX(0.9);
+            transform: translateX(calc(-10% * var(--dir-sign))) scaleX(0.9);
         }
 
         100% {
-            transform: translateX(80%) scaleX(0.4);
-        }
-    }
-
-    @keyframes spin {
-        to {
-            transform: rotate(360deg);
+            transform: translateX(calc(80% * var(--dir-sign))) scaleX(0.4);
         }
     }
 
@@ -69,9 +63,11 @@
 
     @keyframes delete-pulse {
         0% {
+            /* direction: physical — pulse remains centered on the physical overlay anchor */
             transform: translate(-50%, -50%) scale(1);
         }
         100% {
+            /* direction: physical — pulse remains centered on the physical overlay anchor */
             transform: translate(-50%, -50%) scale(1.05);
         }
     }
@@ -95,6 +91,7 @@
             transform: translate(0, 0);
         }
         100% {
+            /* direction: physical — ambient background texture preserves the physical light direction */
             transform: translate(60px, -60px);
         }
     }
@@ -114,11 +111,15 @@
     @keyframes prompts-multi-select-slide-up {
         from {
             opacity: 0;
+
+            /* direction: physical — toolbar remains centered on the physical viewport anchor */
             transform: translateX(-50%) translateY(20px);
         }
 
         to {
             opacity: 1;
+
+            /* direction: physical — toolbar remains centered on the physical viewport anchor */
             transform: translateX(-50%) translateY(0);
         }
     }
@@ -191,7 +192,7 @@
     @keyframes effect-lateral-enter {
         from {
             opacity: 0;
-            transform: translateX(24px);
+            transform: translateX(calc(24px * var(--dir-sign)));
         }
 
         to {

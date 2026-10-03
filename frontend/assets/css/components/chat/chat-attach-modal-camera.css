@@ -35,7 +35,7 @@
         flex: 1 1 auto;
     }
 
-    .chat-attach-modal-camera > .chat-attach-modal-tab-header {
+    .chat-attach-modal-camera > .ui-modal-tab-intro {
         margin-bottom: var(--space-3);
     }
 
@@ -87,6 +87,8 @@
     .chat-attach-modal-camera-status {
         position: absolute;
         top: 50%;
+
+        /* direction: physical — centering uses physical negative half-width translation */
         left: 50%;
         max-width: calc(100% - var(--space-8));
         padding: var(--space-1) var(--space-2);
@@ -228,13 +230,14 @@
             overflow-y: auto;
         }
 
-        .chat-attach-modal-camera > .chat-attach-modal-tab-header {
+        .chat-attach-modal-camera > .ui-modal-tab-intro {
             display: none;
         }
 
         .chat-attach-modal-camera-controls {
             height: 100%;
-            padding: 0 0 0 var(--space-3);
+            padding-block: 0 0;
+            padding-inline: var(--space-3) 0;
         }
 
         .chat-attach-modal-camera-drafts {

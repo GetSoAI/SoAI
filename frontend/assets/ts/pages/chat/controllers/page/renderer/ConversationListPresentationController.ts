@@ -86,7 +86,9 @@ class ConversationListPresentationController {
         const criteriaSignature = `${this.#host.viewState.searchQueryLower}|${parseConversationId(this.#host.viewState.searchQuery) ?? ''}|${this.#host.viewState.showFavoritesAtTop ? '1' : '0'}|${this.#host.settings.parameters.hideAutomationRuns === true ? '1' : '0'}|${this.#host.settings.parameters.hideMessagingConversations === true ? '1' : '0'}`;
         const resetScroll = criteriaSignature !== this.#criteriaSignature;
         const orderChanged = !arraysEqual(ids, this.#committedIds);
-        const surfaceChanged = this.#resolveContainer() !== this.#committedContainer;
+        const container = this.#resolveContainer();
+        const surfaceChanged = container !== this.#committedContainer;
+        if (container !== null) this.#syncActiveRows(container);
         this.#pendingWhileHidden = false;
         this.#updateEmptyState(ids.length === 0 && this.#host.viewState.searchQueryLower.length > 0);
         if (!this.#invalidated && !this.#surfaceSuspended && !resetScroll && !orderChanged && !surfaceChanged && dirtyIds.size === 0) return;
@@ -185,6 +187,7 @@ class ConversationListPresentationController {
 
     #commitPresentation(context: BoundedCollectionCommitContext): void {
         const container = context.container;
+        this.#syncActiveRows(container);
         this.#committedContainer = container;
         this.#surfaceSuspended = false;
         this.#host.pageDom.toggleClass(container, CONVERSATION_LIST_STRIPE_OFFSET_CLASS, Math.max(0, context.totalCount - context.rangeEnd) % 2 === 1);
@@ -197,6 +200,14 @@ class ConversationListPresentationController {
         }
         this.#attachScrollListener(container);
         this.#settlePending();
+    }
+
+    #syncActiveRows(container: HTMLElement): void {
+        for (const row of container.children) {
+            if (row instanceof HTMLElement && row.classList.contains('conversation-item')) {
+                row.classList.toggle('is-active', row.dataset['id'] === this.#host.conversationState.currentConversationId);
+            }
+        }
     }
 
     #attachScrollListener(container: HTMLElement): void {

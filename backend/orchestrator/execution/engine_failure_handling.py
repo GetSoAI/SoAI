@@ -10,10 +10,12 @@ import httpx2
 
 from core.errors.error_types import ErrorType
 from core.errors.exception_coercion import coerce_to_soai_error
-from core.errors.exception_logging import log_exception
+from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import SoAIError
 from core.errors.http_recoverable import HTTP_RECOVERABLE_EXCEPTIONS
+from core.errors.public_projection import project_public_error
 from core.logging.trace import get_logger
+from core.openai.openai_sse_error_escalation import OpenAIStreamError
 from core.openai.request_features import request_includes_tool_calling
 from core.runtime.request_sources import REQUEST_SOURCE_MODEL_TEST
 from core.state.state_names import (
@@ -172,6 +174,14 @@ async def handle_execution_failure(
             message=f"Error executing task {task.task_id}: {user_message}",
             operation=OPERATION_ORCHESTRATOR_HANDLE_EXECUTION_FAILURE,
         )
+    elif isinstance(exception, OpenAIStreamError):
+        log_handled_exception(
+            logger,
+            exception,
+            message=f"Error executing task {task.task_id}: {user_message}",
+            operation=OPERATION_ORCHESTRATOR_HANDLE_EXECUTION_FAILURE,
+            level="warning",
+        )
     else:
         logger.warning("Error executing task %s: %s", task.task_id, user_message)
     if details.affects_plugin_health and (not is_model_test_request):
@@ -196,5 +206,10 @@ async def handle_execution_failure(
         allow_failover=allow_failover,
         error_type=error_type,
         reason_is_public=True,
+        public_error=(
+            project_public_error(root_exception)
+            if isinstance(root_exception, SoAIError) and root_exception.public_message is not None
+            else None
+        ),
     )
     return False

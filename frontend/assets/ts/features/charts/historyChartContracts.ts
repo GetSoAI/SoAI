@@ -6,6 +6,9 @@ import type { ChartOptions } from '@features/charts/chartTypes.ts';
 import type { FilterOptionsInput } from '@features/charts/chartfilters/filterOptionTypes.ts';
 import type { CandlestickSelection, TimeRangeSelection } from '@features/charts/controlsTypes.ts';
 import type { ChartPointInput } from '@features/charts/data/chartPointTypes.ts';
+import type { HistoryRangeAvailability } from '@features/charts/historyRangeAvailability.ts';
+import type { ChartDimensions } from '@features/charts/rendering/renderingModels.ts';
+import type { ChartPrependResult } from '@features/charts/session/ChartDataCommands.ts';
 
 type HistoryChartDataTransformsModule = ChartModules['data'];
 type HistoryChartOhlcModule = ChartModules['ohlc'];
@@ -21,16 +24,17 @@ interface HistoryChartInstance {
         setValueFormatter(formatter: (value: number) => string): void;
     };
     data: {
-        replace(data: ReadonlyArray<ChartPointInput>, options?: { preserveView?: boolean; assumeSorted?: boolean }): void;
-        prepend(points: ReadonlyArray<ChartPointInput>): void;
+        replace(data: ReadonlyArray<ChartPointInput>, options?: { preserveView?: boolean; assumeSorted?: boolean; morph?: boolean }): void;
+        prepend(points: ReadonlyArray<ChartPointInput>): ChartPrependResult;
         appendPoint(point: ChartPointInput): void;
         updateCurrentBar(point: ChartPointInput): void;
     };
     view: {
         readonly status: Readonly<{ isAnimating: boolean; isDragging: boolean; isAtTail: boolean }>;
-        fitTimeRange(minutes: number, options?: { align?: string | undefined }): boolean;
-        alignToLatest(): void;
+        fitTimeRange(minutes: number): boolean;
+        syncToSeries(): void;
         resize(): boolean;
+        getChartDimensions(): ChartDimensions;
     };
     lifecycle: {
         initialize(options?: { signal?: AbortSignal }): Promise<void>;
@@ -54,7 +58,6 @@ interface InitializeChartOptions {
     container?: HTMLElement;
     chartType?: string;
     options?: Partial<ChartOptions>;
-    onRequestHistoricalData?: ((timestamp: number) => void | Promise<void>) | null;
     signal?: AbortSignal | undefined;
 }
 
@@ -107,6 +110,8 @@ interface ApplyHistoryChartDefaultsOptions {
 interface SyncHistoryTimeRangeOptions {
     chartFilters: HistoryChartFiltersContract | null;
     historyControlsManager: HistoryChartControlsContract;
+    rangeAvailability: HistoryRangeAvailability;
+    seriesKey: string;
     retentionMinutes?: number | null | undefined;
     baseOptions?: readonly number[] | null | undefined;
     selectedMinutes: number;

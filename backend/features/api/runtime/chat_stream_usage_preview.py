@@ -23,6 +23,7 @@ if TYPE_CHECKING:
         ModelProviderCoordinatorProtocol,
         ModelResolutionServiceProtocol,
     )
+    from core.openai.chat_template_role_policy_resolver import ChatTemplateRolePolicyResolver
     from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
     from core.openai.token_counter import PromptTokenCounter
     from core.openai.token_estimation_profile import TokenEstimationProfile
@@ -119,6 +120,7 @@ async def refresh_chat_stream_usage_preview_from_inference_payload(
     plugin_manager: PluginManagerProtocol,
     state_aggregator: StateAggregatorProtocol,
     orchestrator_lifecycle: OrchestratorLifecycleProtocol,
+    chat_template_role_policy_resolver: ChatTemplateRolePolicyResolver,
     request_context: RequestContext,
     stream_transcript: OpenAIStreamTranscript | None = None,
 ) -> None:
@@ -134,6 +136,7 @@ async def refresh_chat_stream_usage_preview_from_inference_payload(
         virtual_model_get=virtual_model_get,
         state_aggregator=state_aggregator,
         orchestrator_lifecycle=orchestrator_lifecycle,
+        chat_template_role_policy_resolver=chat_template_role_policy_resolver,
         request_context=request_context,
     )
     _apply_prompt_usage_preview_snapshot(

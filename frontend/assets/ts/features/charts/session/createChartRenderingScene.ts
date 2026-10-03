@@ -3,7 +3,8 @@
 
 import type { ChartRenderingScene } from '@features/charts/rendering/chartRenderingHost.ts';
 import type { ChartFormatting } from '@features/charts/session/ChartFormatting.ts';
-import type { ChartLoadingIndicator } from '@features/charts/session/ChartLoadingIndicator.ts';
+import type { ChartHistoryPreview } from '@features/charts/session/ChartHistoryPreview.ts';
+import type { ChartSeriesMorph } from '@features/charts/session/ChartSeriesMorph.ts';
 import type { ChartRedrawQueue } from '@features/charts/session/ChartRedrawQueue.ts';
 import type { ChartSeriesStore } from '@features/charts/session/ChartSeriesStore.ts';
 import type { ChartSurface } from '@features/charts/session/ChartSurface.ts';
@@ -14,15 +15,16 @@ import type { ChartState } from '@features/charts/session/chartState.ts';
 interface ChartRenderingOwners {
     state: ChartState;
     surface: Pick<ChartSurface, 'element' | 'contexts' | 'offscreenCanvas' | 'offscreenContext' | 'canvasBaseBackground' | 'getCanvasSize' | 'resolveBackground'>;
-    store: Pick<ChartSeriesStore, 'dataLength' | 'datasets' | 'values' | 'timestamps' | 'effectiveLength' | 'ensureRenderCapacity' | 'isOhlcType' | 'renderableOhlc' | 'renderableValues'>;
-    viewport: Pick<ChartViewport, 'getChartDimensions' | 'getPixelsPerBar' | 'getSlotMetrics' | 'getMaxOffsetForMetrics'>;
-    formatting: Pick<ChartFormatting, 'getVisibleTimeSpan' | 'getVisibleTimeWindow' | 'valueToPixel' | 'formatValue' | 'formatTimestamp' | 'formatAxisTimestamp' | 'formatDetailedTimestamp'>;
+    store: Pick<ChartSeriesStore, 'dataLength' | 'datasets' | 'values' | 'timestamps' | 'ensureRenderCapacity' | 'isOhlcType' | 'renderableOhlc'>;
+    viewport: Pick<ChartViewport, 'getChartDimensions' | 'getRenderGeometry'>;
+    formatting: Pick<ChartFormatting, 'getVisibleTimeSpan' | 'valueToPixel' | 'formatValue' | 'formatTimestamp' | 'formatAxisTimestamp' | 'formatDetailedTimestamp'>;
     theme: Pick<ChartTheme, 'getStyles' | 'applyAlpha' | 'resolveDynamicPrimaryColor'>;
     redraw: Pick<ChartRedrawQueue, 'visiblePoints' | 'axis' | 'legend' | 'request'>;
-    loading: Pick<ChartLoadingIndicator, 'active' | 'scheduleRedraw'>;
+    preview: Pick<ChartHistoryPreview, 'frame'>;
+    morph: Pick<ChartSeriesMorph, 'values'>;
 }
 
-const createChartRenderingScene = ({ state, surface, store, viewport, formatting, theme, redraw, loading }: ChartRenderingOwners): ChartRenderingScene => ({
+const createChartRenderingScene = ({ state, surface, store, viewport, formatting, theme, redraw, preview, morph }: ChartRenderingOwners): ChartRenderingScene => ({
     state: {
         element: surface.element,
         get options() {
@@ -57,9 +59,6 @@ const createChartRenderingScene = ({ state, surface, store, viewport, formatting
         },
         set visibleRangeStats(value) {
             state.viewport.visibleRangeStats = value;
-        },
-        get pan() {
-            return state.viewport.pan;
         },
         get visiblePointsCache() {
             return redraw.visiblePoints;
@@ -98,23 +97,15 @@ const createChartRenderingScene = ({ state, surface, store, viewport, formatting
         },
         get canvasBaseBackground() {
             return surface.canvasBaseBackground;
-        },
-        get isHistoricalDataLoading() {
-            return loading.active;
-        },
-        scheduleLoadingRedraw: () => loading.scheduleRedraw()
+        }
     },
     geometry: {
         getChartDimensions: () => viewport.getChartDimensions(),
         getCanvasSize: () => surface.getCanvasSize(),
         getThemeStyles: () => theme.getStyles(),
         applyAlphaToColor: (color, alpha) => theme.applyAlpha(color, alpha),
-        getPixelsPerBar: () => viewport.getPixelsPerBar(),
-        getEffectiveDataLength: () => store.effectiveLength(),
-        getSlotMetrics: () => viewport.getSlotMetrics(),
-        getMaxOffsetForMetrics: (metrics) => viewport.getMaxOffsetForMetrics(metrics),
-        getVisibleTimeSpan: () => formatting.getVisibleTimeSpan(),
-        getVisibleTimeWindow: () => formatting.getVisibleTimeWindow()
+        getRenderGeometry: (dims) => viewport.getRenderGeometry(dims),
+        getVisibleTimeSpan: () => formatting.getVisibleTimeSpan()
     },
     format: {
         valueToPixel: (value, height, top) => formatting.valueToPixel(value, height, top),
@@ -134,7 +125,10 @@ const createChartRenderingScene = ({ state, surface, store, viewport, formatting
         resolveCanvasBaseBackground: () => surface.resolveBackground(),
         isOhlcRenderingType: (type) => store.isOhlcType(type),
         getRenderableOhlcBuffers: () => store.renderableOhlc(),
-        getValueBufferForRendering: () => store.renderableValues()
+        getValueBufferForRendering: () => morph.values()
+    },
+    preview: {
+        frame: (now) => preview.frame(now)
     }
 });
 

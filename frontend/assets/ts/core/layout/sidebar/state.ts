@@ -3,18 +3,22 @@
 
 interface SidebarState {
     collapsed: boolean;
+    peeking: boolean;
     mobile: boolean;
     open: boolean;
     lastDesktopCollapsed: boolean;
     grantedActions: ReadonlySet<string>;
+    permissionsUnavailable: boolean;
 }
 
 const createInitialSidebarState = (): SidebarState => ({
     collapsed: true,
+    peeking: false,
     mobile: false,
     open: false,
     lastDesktopCollapsed: true,
-    grantedActions: new Set()
+    grantedActions: new Set(),
+    permissionsUnavailable: false
 });
 
 export { createInitialSidebarState };

@@ -137,7 +137,11 @@ class SettingsPage extends StaticBasePage {
                 }
 
                 this.#state.advancedMode = !this.#state.advancedMode;
-                applyAdvancedModeChange(this.#runtime, this.#state);
+                terminateHandledPromise(
+                    this.pageLifecycle.run('settings:toggleAdvancedMode', async () => {
+                        await applyAdvancedModeChange(this.#runtime, this.#state, this.#operations.rebindConfigForm);
+                    })
+                );
             }
         });
 
@@ -181,10 +185,9 @@ class SettingsPage extends StaticBasePage {
     override async afterPageReveal(context: { signal?: AbortSignal } = {}): Promise<void> {
         await super.afterPageReveal(context);
         applyConfigPathDeepLink(this.#runtime, this.#state);
-        const timerId = this.pageResources.setTimer(() => InitialReloadsController(this.#runtime, this.#state, context.signal ?? null), 0);
-        if (timerId === null) {
-            throw new Error('Settings initial reload timer allocation failed');
-        }
+        this.pageLifecycle.runDetached('settings:initialReloads', async (signal) => {
+            await InitialReloadsController(this.#runtime, this.#state, signal);
+        });
     }
 
     protected override beforePageRefreshCleanup(): void {

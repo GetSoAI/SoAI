@@ -1,7 +1,6 @@
 /* SoAI - Charts feature contracts [frontend/assets/ts/features/charts/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { PointerState } from '@features/charts/chartTypes.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 
 interface WheelPayload {
@@ -39,29 +38,6 @@ interface PointerRecord {
     [key: string]: JsonValue | null | undefined;
 }
 
-interface PinchGestureState {
-    initialDistance?: number;
-    initialZoom?: number;
-    centerX?: number;
-    centerY?: number;
-    anchorRatio?: number;
-    startDistance?: number;
-    startLevel?: number;
-    lastCenterX?: number;
-    lastCenterY?: number;
-    [key: string]: JsonValue | null | undefined;
-}
-
-interface PointerStateLastTap {
-    time: number;
-    x: number;
-    y: number;
-}
-
-type ExtendedPointerState = PointerState & {
-    lastTap?: PointerStateLastTap | null;
-};
-
 interface CrosshairUpdatePayload {
     x: number;
     dataIndex: number;
@@ -76,4 +52,4 @@ interface CrosshairUpdatePayload {
     [key: string]: JsonValue | null | undefined;
 }
 
-export type { CrosshairUpdatePayload, ExtendedPointerState, PinchGestureState, PinchMetrics, PointerEventInput, PointerRecord, WheelPayload };
+export type { CrosshairUpdatePayload, PinchMetrics, PointerEventInput, PointerRecord, WheelPayload };

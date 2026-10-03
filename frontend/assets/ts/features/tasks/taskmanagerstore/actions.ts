@@ -11,10 +11,10 @@ const getPlugins = (state: TaskManagerStoreState): PluginEntry[] => state.plugin
 
 const getActivePlugins = (state: TaskManagerStoreState): PluginEntry[] => state.activePlugins;
 
-const getStoppablePlugins = (state: TaskManagerStoreState, isPersistentPlugin: (plugin: PluginEntry) => boolean): PluginEntry[] => {
+const getStoppablePlugins = (state: TaskManagerStoreState, isExcludedPlugin: (plugin: PluginEntry) => boolean): PluginEntry[] => {
     const stoppable: PluginEntry[] = [];
-    for (const plugin of state.activePlugins) {
-        if (!isPersistentPlugin(plugin)) {
+    for (const plugin of state.plugins) {
+        if (!isExcludedPlugin(plugin)) {
             stoppable.push(plugin);
         }
     }

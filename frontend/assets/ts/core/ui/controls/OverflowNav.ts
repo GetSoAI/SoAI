@@ -2,13 +2,18 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { getMutationObserverCtor } from '@core/environment/public.ts';
+import { isRtl, readScrollInlineStart, scrollByInline } from '@core/layout/direction.ts';
+import { i18n } from '@core/i18n/index.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
-import { securityApi } from '@core/security/public.ts';
+import { EVENT_CHANGE } from '@core/languageservice/constants.ts';
+import { securityApi, type TrustedHtml } from '@core/security/public.ts';
 import { isFiniteNumber, isFunction } from '@core/typeGuards.ts';
 import { applyTabsWheelScroll } from '@core/ui/controls/tabs/wheelScroll.ts';
 import { getIconSync, type IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
-import { renderIconSlot } from '@core/ui/icons/view.ts';
+import { createIconSlot, renderIconSlot } from '@core/ui/icons/view.ts';
+import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 
 type OverflowNavDirection = 'left' | 'right';
 
@@ -25,25 +30,39 @@ interface OverflowNavControllerOptions {
     onUpdate?: ((state: { canScrollLeft: boolean; canScrollRight: boolean }) => void) | undefined;
 }
 
-const createOverflowNavButtonMarkup = (options: { direction: OverflowNavDirection; className: string; label: string; iconName: IconName; iconOptions?: IconOptions | undefined }): string => {
-    const safeLabel = securityApi.escapeAttribute(options.label);
-    const iconOptions = options.iconOptions;
-    const iconRequest: IconOptions = iconOptions
-        ? {
-              ...iconOptions,
-              attributes: { 'aria-hidden': 'true', focusable: 'false' }
-          }
-        : {
-              attributes: { 'aria-hidden': 'true', focusable: 'false' }
-          };
-    const iconMarkup = renderIconSlot(getIconSync(options.iconName, iconRequest));
+const resolvePhysicalScrollLabel = (direction: OverflowNavDirection): string => (direction === 'left' ? i18n.t('tabs.scrollLeft') : i18n.t('tabs.scrollRight'));
+
+interface OverflowNavButtonOptions {
+    direction: OverflowNavDirection;
+    className: string;
+    iconName: IconName;
+    iconOptions?: IconOptions | undefined;
+}
+
+const resolveOverflowNavIcon = (options: OverflowNavButtonOptions): TrustedHtml => getIconSync(options.iconName, { ...options.iconOptions, attributes: { 'aria-hidden': 'true', focusable: 'false' } });
+
+const createOverflowNavButtonMarkup = (options: OverflowNavButtonOptions): string => {
+    const safeLabel = securityApi.escapeAttribute(resolvePhysicalScrollLabel(options.direction));
+    const iconMarkup = renderIconSlot(resolveOverflowNavIcon(options));
     return `<button type="button" class="${options.className}" aria-label="${safeLabel}" data-tooltip="${safeLabel}">
         ${iconMarkup}
     </button>`;
 };
 
+const createOverflowNavButton = (documentRef: Document, options: OverflowNavButtonOptions): HTMLButtonElement => {
+    const label = resolvePhysicalScrollLabel(options.direction);
+    const button = documentRef.createElement('button');
+    button.type = 'button';
+    button.className = options.className;
+    dom.setAttribute(button, 'aria-label', label);
+    setTooltipText(button, label);
+    dom.appendChild(button, createIconSlot(documentRef, resolveOverflowNavIcon(options)));
+    return button;
+};
+
 class OverflowNavController {
     #observer: ResizeObserver | null;
+    #contentObserver: MutationObserver | null;
     #scrollAmount: number;
     #epsilon: number;
     #onUpdate: OverflowNavControllerOptions['onUpdate'];
@@ -58,6 +77,7 @@ class OverflowNavController {
         this.leftButton = leftButton;
         this.rightButton = rightButton;
         this.#observer = null;
+        this.#contentObserver = null;
         this.#disposers = [];
 
         const scrollAmount = options.scrollAmount;
@@ -103,10 +123,19 @@ class OverflowNavController {
         );
 
         this.#observer = new ResizeObserver(() => this.update());
-        this.#observer.observe(this.scroller);
+        this.#observeLayout(this.#observer);
+        const MutationObserverCtor = getMutationObserverCtor();
+        this.#contentObserver = new MutationObserverCtor(() => {
+            if (this.#observer) {
+                this.#observeLayout(this.#observer);
+            }
+            this.update();
+        });
+        this.#contentObserver.observe(this.scroller, { childList: true });
 
         this.#disposers.push(addEventListener(window, 'resize', () => this.update()));
         this.#disposers.push(addEventListener(window, INTERFACE_SCALE_CHANGED_EVENT, () => this.update()));
+        this.#disposers.push(addEventListener(window, EVENT_CHANGE, () => this.update()));
 
         this.update();
     }
@@ -123,11 +152,18 @@ class OverflowNavController {
             value = state.maxScrollLeft - state.currentScroll;
         }
 
-        this.scroller.scrollBy({ left: value, behavior: 'smooth' });
+        scrollByInline(this.scroller, value, 'smooth');
     }
 
     update(): void {
         const state = this.#getScrollState();
+        const rtl = isRtl(this.scroller);
+        const previousLabel = resolvePhysicalScrollLabel(rtl ? 'right' : 'left');
+        const nextLabel = resolvePhysicalScrollLabel(rtl ? 'left' : 'right');
+        dom.setAttribute(this.leftButton, 'aria-label', previousLabel);
+        dom.setAttribute(this.rightButton, 'aria-label', nextLabel);
+        setTooltipText(this.leftButton, previousLabel);
+        setTooltipText(this.rightButton, nextLabel);
         dom.toggleClass(this.leftButton, 'is-active', state.canScrollLeft);
         dom.setProperty(this.leftButton, 'disabled', !state.canScrollLeft);
         dom.toggleClass(this.rightButton, 'is-active', state.canScrollRight);
@@ -138,9 +174,17 @@ class OverflowNavController {
         }
     }
 
+    #observeLayout(observer: ResizeObserver): void {
+        observer.disconnect();
+        observer.observe(this.scroller);
+        for (const item of Array.from(this.scroller.children)) {
+            observer.observe(item);
+        }
+    }
+
     #getScrollState(): OverflowNavScrollState {
         const maxScrollLeft = Math.max(this.scroller.scrollWidth - this.scroller.clientWidth, 0);
-        const currentScroll = this.scroller.scrollLeft;
+        const currentScroll = readScrollInlineStart(this.scroller);
         return {
             maxScrollLeft,
             currentScroll,
@@ -154,6 +198,8 @@ class OverflowNavController {
             this.#observer.disconnect();
             this.#observer = null;
         }
+        this.#contentObserver?.disconnect();
+        this.#contentObserver = null;
 
         for (const disposer of this.#disposers.splice(0)) {
             disposer();
@@ -161,5 +207,5 @@ class OverflowNavController {
     }
 }
 
-export { OverflowNavController, createOverflowNavButtonMarkup };
-export type { OverflowNavDirection, OverflowNavControllerOptions };
+export { OverflowNavController, createOverflowNavButton, createOverflowNavButtonMarkup };
+export type { OverflowNavButtonOptions, OverflowNavDirection, OverflowNavControllerOptions };

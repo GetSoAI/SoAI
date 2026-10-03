@@ -7,11 +7,6 @@ import asyncio
 from collections.abc import Awaitable, Callable, Coroutine
 from functools import partial
 
-from core.errors.exception_coercion import coerce_to_soai_error
-from core.errors.exception_logging import log_exception, log_handled_exception
-from core.errors.exceptions import SoAIError
-from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
-from core.errors.unexpected_exceptions import UNEXPECTED_RUNTIME_EXCEPTIONS
 from core.logging.protocols import LoggerProtocol
 from core.tasks.awaitable_cleanup import (
     close_awaitable_if_cancelled,
@@ -24,8 +19,6 @@ __all__ = (
     "attach_tracked_task_lifecycle",
     "create_tracked_task_lifecycle",
 )
-
-OPERATION = "core.tasks.asyncio_task_finalizers"
 
 
 def create_tracked_task_lifecycle[TaskResult](
@@ -76,63 +69,20 @@ def attach_tracked_task_lifecycle[TaskResult](
         task.add_done_callback(done_callback)
     if finalizer_tracker is None:
         return
-    CancelledError = asyncio.CancelledError
     create_task = asyncio.create_task
 
     async def _await_original_task() -> None:
-        try:
-            await task
-        except CancelledError:
+        outcomes = await asyncio.gather(task, return_exceptions=True)
+        exception = outcomes[0]
+        if isinstance(exception, asyncio.CancelledError):
             if owner_observes_result:
                 return
-            raise
-        except RECOVERABLE_EXCEPTIONS as exception:
-            if owner_observes_result:
-                return
-            if logger is not None:
-                log_handled_exception(
-                    logger,
-                    exception,
-                    message="Tracked task finalizer observed recoverable task failure.",
-                    operation=OPERATION,
-                    level="debug",
-                )
-                return
-            raise
-        except SoAIError:
-            if owner_observes_result:
-                return
-            if logger is not None:
-                return
-            raise
-        except UNEXPECTED_RUNTIME_EXCEPTIONS as exception:
-            if owner_observes_result:
-                return
-            if logger is not None:
-                coerced = coerce_to_soai_error(exception, operation=OPERATION)
-                log_handled_exception(
-                    logger,
-                    coerced,
-                    message="Tracked task finalizer observed unexpected task failure.",
-                    operation=OPERATION,
-                    level="debug",
-                )
-                return
-            raise
-        except Exception as exception:
-            if owner_observes_result:
-                return
-            if logger is not None:
-                coerced = coerce_to_soai_error(exception, operation=OPERATION)
-                log_exception(
-                    logger,
-                    coerced,
-                    message="Tracked task finalizer observed unclassified exception (non-critical).",
-                    operation=OPERATION,
-                    level="debug",
-                )
-                return
-            raise
+            raise exception
+        if not isinstance(exception, BaseException):
+            return
+        if owner_observes_result or logger is not None:
+            return
+        raise exception
 
     finalizer_task = create_task(
         _await_original_task(),

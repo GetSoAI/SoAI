@@ -14,12 +14,12 @@ const setModelDetailDeleteBusy = (host: ModelDetailOperationsHost, isBusy: boole
 
 const updateModelDetailDeleteProgress = (host: ModelDetailOperationsHost, options: { show?: boolean; progress?: number | null; message?: string; state?: 'success' | 'error' | 'downloading' | 'pending' | 'info' } = {}): void => {
     const { show = true, progress = null, message = '', state = 'info' } = options;
-    const parent = host.pageDom.optionalHTMLElement('.modeldetail-overview-grid');
+    const parent = host.pageDom.optionalHTMLElement('.modeldetail-overview-side');
     if (!parent) {
         if (!show) {
             return;
         }
-        throw new Error('ModelDetailPage requires .modeldetail-overview-grid to display delete progress');
+        throw new Error('ModelDetailPage requires .modeldetail-overview-side to display delete progress');
     }
     let container = host.pageDom.optionalHTMLElement('[data-operation-progress-key="model-delete-progress"]');
     if (!show) {
@@ -32,7 +32,7 @@ const updateModelDetailDeleteProgress = (host: ModelDetailOperationsHost, option
         container = createProgressElement('model-delete-progress', message, { showCancel: false });
         host.pageDom.append(parent, container);
     }
-    updateProgressElement(container, progress ?? undefined, message, undefined, undefined, state, false);
+    updateProgressElement(container, progress ?? undefined, message, undefined, undefined, state, false, progress === null);
 };
 
 const clearModelDetailDeleteProgressState = (host: ModelDetailOperationsHost): void => {

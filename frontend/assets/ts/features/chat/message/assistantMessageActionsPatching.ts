@@ -1,12 +1,13 @@
 /* SoAI - Assistant message action DOM patching [frontend/assets/ts/features/chat/message/assistantMessageActionsPatching.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { insertWithPresence, isPresenceExiting, removeWithPresence } from '@core/animations/presence/public.ts';
 import { syncElementShell } from '@core/dom/patching.ts';
 import { patchMessageActionButtons } from '@features/chat/message/assistantMessageActionButtonPatching.ts';
 import { patchAssistantActionButtons, requireAssistantActionButtonGroups, resolveAssistantActionFlowChildren } from '@features/chat/message/assistantMessageActionLayoutPatching.ts';
 import { resolveAssistantMessageParts } from '@features/chat/message/assistantMessageMarkupParts.ts';
 import { hasStreamingAssistantDom } from '@features/chat/message/assistantStreamingDomState.ts';
-import { applyChatMessageActionButtonsEnterAnimation, type ChatMessageInsertAnimationOptions } from '@features/chat/message/messageMotion.ts';
+import type { ChatMessageInsertAnimationOptions } from '@features/chat/message/messageMotion.ts';
 import { STREAM_SPINNER_VISIBLE_ATTRIBUTE } from '@features/chat/stream/streamMessageSpinnerStatusAttributes.ts';
 import { requireStatusTextBodyElement, requireStatusTextElement } from '@features/chat/stream/streamMessageSpinnerStatusDomPolicy.ts';
 import { FIRST_REVEAL_ATTRIBUTE } from '@features/chat/stream/streamMessageSpinnerStatusFirstReveal.ts';
@@ -19,12 +20,12 @@ type AssistantMessageActionsChildren = {
     buttons: HTMLElement | null;
 };
 
-const resolveAssistantMessageActionsChildren = (actions: HTMLElement): AssistantMessageActionsChildren => {
+const resolveAssistantMessageActionsChildren = (actions: HTMLElement, includeExiting = false): AssistantMessageActionsChildren => {
     const resolved: AssistantMessageActionsChildren = {
         buttons: null
     };
     for (const child of Array.from(actions.children)) {
-        if (!(child instanceof HTMLElement)) {
+        if (!(child instanceof HTMLElement) || (!includeExiting && isPresenceExiting(child))) {
             continue;
         }
         if (resolved.buttons === null && child.classList.contains(MESSAGE_ACTION_BUTTONS_CLASS)) {
@@ -107,22 +108,27 @@ const patchAssistantMessageActionsInPlace = (existingActions: HTMLElement, creat
     const preservedAttributeNames = resolveActionRuntimeAttributePreservation(existingActions, createdActions);
     const preserveRuntimeStatusText = preservedAttributeNames !== undefined;
     let changed = preservedAttributeNames ? syncElementShell({ target: existingActions, source: createdActions, preservedAttributeNames }) : syncElementShell({ target: existingActions, source: createdActions });
-    const existingChildren = resolveAssistantMessageActionsChildren(existingActions);
+    const existingChildren = resolveAssistantMessageActionsChildren(existingActions, true);
     const createdChildren = resolveAssistantMessageActionsChildren(createdActions);
     const existingButtons = existingChildren.buttons;
     const createdButtons = createdChildren.buttons;
+    if (existingButtons && createdButtons && isPresenceExiting(existingButtons)) {
+        insertWithPresence(existingActions, existingButtons);
+        changed = true;
+    }
     if (existingButtons && createdButtons && (requiresAssistantActionLayoutPatching(existingButtons, createdButtons) ? patchAssistantActionButtons(existingButtons, createdButtons, options, preserveRuntimeStatusText) : patchMessageActionButtons(existingButtons, createdButtons, options))) {
         changed = true;
     } else if (existingButtons && !createdButtons) {
-        existingButtons.remove();
-        changed = true;
+        if (!isPresenceExiting(existingButtons)) {
+            removeWithPresence(existingButtons);
+            changed = true;
+        }
     } else if (!existingButtons && createdButtons) {
         const inserted = createdButtons.cloneNode(true);
         if (!(inserted instanceof HTMLElement)) {
             throw new Error('Assistant message action patch failed to clone action buttons.');
         }
-        existingActions.appendChild(inserted);
-        applyChatMessageActionButtonsEnterAnimation(inserted, options);
+        insertWithPresence(existingActions, inserted, null, options.suppressInsertAnimations !== true);
         changed = true;
     }
     return changed;

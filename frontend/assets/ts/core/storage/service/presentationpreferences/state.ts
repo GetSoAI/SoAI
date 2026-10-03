@@ -6,6 +6,7 @@ import type { StorageRuntime } from '@core/storage/service/types.ts';
 import type { AnimationSpeed, AnimationType, ChartColorModeType, ModalState, TerminalCache } from '@core/storage/types.ts';
 import { isString } from '@core/typeGuards.ts';
 import type { InterfaceScalePercent } from '@core/layout/interfaceScale.ts';
+import type { DefaultWallpaperId } from '@core/theme/defaultWallpapers.ts';
 
 const createPresentationPreferenceState = (
     core: StorageRuntime
@@ -30,6 +31,7 @@ const createPresentationPreferenceState = (
     getModalState: (modalId: string) => ModalState | null;
     getWallpaperOverlay: () => number;
     getSolidBackground: () => string | null;
+    getDefaultWallpaper: () => DefaultWallpaperId | null;
     getChartColorMode: () => ChartColorModeType;
     getChartStaticColor: () => string;
     getAdvancedMode: () => boolean;
@@ -91,6 +93,8 @@ const createPresentationPreferenceState = (
 
     const getSolidBackground = (): string | null => state.cache.ui.solidBackground;
 
+    const getDefaultWallpaper = (): DefaultWallpaperId | null => state.cache.ui.defaultWallpaper;
+
     const getChartColorMode = (): ChartColorModeType => state.cache.ui.chartColorMode || 'auto';
 
     const getChartStaticColor = (): string => state.cache.ui.chartStaticColor || '#4ade80';
@@ -130,6 +134,7 @@ const createPresentationPreferenceState = (
         getModalState,
         getWallpaperOverlay,
         getSolidBackground,
+        getDefaultWallpaper,
         getChartColorMode,
         getChartStaticColor,
         getAdvancedMode,

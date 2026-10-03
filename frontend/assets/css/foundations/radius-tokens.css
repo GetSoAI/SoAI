@@ -5,8 +5,10 @@
     :root {
         --border-radius: 12px;
         --border-radius-small-button: 8px;
+        --border-radius-flag: 2px;
         --border-round: 50%;
         --border-width-1: 1px;
+        --border-radius-inset: calc(var(--border-radius) - var(--border-width-1));
         --border-width-150: 1.5px;
         --border-width-2: 2px;
         --border-width-3: 3px;

@@ -28,8 +28,8 @@ class SnapshotProtocolError extends Error {
     }
 }
 
-const createSnapshotId = (tabId: string): string => generateSecureId({ prefix: `snap_${tabId}`, format: 'hex', separator: '_' });
-const MAX_RETIRED_SNAPSHOTS = 512;
+const createSnapshotIdNamespace = (): string => generateSecureId({ prefix: 'snap', format: 'hex', separator: '_' });
+const createSnapshotId = (namespace: string, tabId: string): string => generateSecureId({ prefix: `${namespace}_${tabId}`, format: 'hex', separator: '_' });
 
 const isFiniteTimestamp = <T>(value: T): value is T & number => typeof value === 'number' && Number.isFinite(value);
 
@@ -42,7 +42,7 @@ const resolveSnapshotTimeout = (options: SnapshotRequestOptions | undefined): nu
 
 class WebSocketSnapshotManager {
     #pendingSnapshots: Map<string, PendingSnapshot> = new Map();
-    #retiredSnapshots: Map<string, number> = new Map();
+    readonly #snapshotIdNamespace = createSnapshotIdNamespace();
     #logger: SnapshotLogger;
 
     constructor(logger: SnapshotLogger) {
@@ -53,7 +53,7 @@ class WebSocketSnapshotManager {
         if (options.signal?.aborted) {
             return Promise.reject(createAbortError());
         }
-        const snapshotId = createSnapshotId(tabId);
+        const snapshotId = createSnapshotId(this.#snapshotIdNamespace, tabId);
         const timeoutMs = resolveSnapshotTimeout(options);
 
         return new Promise<SnapshotResponseEnvelope>((resolve, reject) => {
@@ -68,19 +68,18 @@ class WebSocketSnapshotManager {
                 resource: resourceName,
                 settled: false
             };
-            const cleanupPending = (retire: boolean): void => {
+            const cleanupPending = (): void => {
                 clearTimeout(pendingEntry.timeout);
                 if (pendingEntry.removeAbortListener !== null) {
                     pendingEntry.removeAbortListener();
                     pendingEntry.removeAbortListener = null;
                 }
                 this.#pendingSnapshots.delete(snapshotId);
-                if (retire) this.#retireSnapshot(snapshotId, Math.max(timeoutMs, SNAPSHOT_TIMEOUT_MS * 2));
             };
             const rejectPending = (error: Error): void => {
                 if (pendingEntry.settled) return;
                 pendingEntry.settled = true;
-                cleanupPending(true);
+                cleanupPending();
                 reject(error);
             };
 
@@ -104,7 +103,6 @@ class WebSocketSnapshotManager {
     }
 
     resolveSnapshot(data: WebSocketMessageData, isError: boolean): void {
-        this.#pruneRetiredSnapshots();
         const snapshotId = resolveSnapshotId(data);
         if (!snapshotId) {
             throw new SnapshotProtocolError('Snapshot response missing snapshot_id');
@@ -112,8 +110,8 @@ class WebSocketSnapshotManager {
 
         const pending = this.#pendingSnapshots.get(snapshotId);
         if (!pending) {
-            if (this.#retiredSnapshots.has(snapshotId)) {
-                this.#logger('debug', `Ignored retired snapshot response: ${snapshotId}`);
+            if (snapshotId.startsWith(`${this.#snapshotIdNamespace}_`)) {
+                this.#logger('debug', `Ignored settled snapshot response: ${snapshotId}`);
                 return;
             }
             throw new SnapshotProtocolError(`Received snapshot response for unknown request: ${snapshotId}`);
@@ -154,39 +152,19 @@ class WebSocketSnapshotManager {
             pending.removeAbortListener();
             pending.removeAbortListener = null;
         }
-        this.#retireSnapshot(snapshotId, SNAPSHOT_TIMEOUT_MS * 2);
     }
 
     rejectPendingSnapshots(error: Error): void {
-        this.#pruneRetiredSnapshots();
-        for (const [snapshotId, pending] of this.#pendingSnapshots.entries()) {
+        for (const pending of this.#pendingSnapshots.values()) {
             pending.settled = true;
             clearTimeout(pending.timeout);
             if (pending.removeAbortListener !== null) {
                 pending.removeAbortListener();
                 pending.removeAbortListener = null;
             }
-            this.#retireSnapshot(snapshotId, SNAPSHOT_TIMEOUT_MS);
             pending.reject(error);
         }
         this.#pendingSnapshots.clear();
-    }
-
-    #pruneRetiredSnapshots(): void {
-        const now = Date.now();
-        for (const [snapshotId, retirementDeadline] of this.#retiredSnapshots.entries()) {
-            if (retirementDeadline <= now) this.#retiredSnapshots.delete(snapshotId);
-        }
-    }
-
-    #retireSnapshot(snapshotId: string, retentionMs: number): void {
-        this.#pruneRetiredSnapshots();
-        while (this.#retiredSnapshots.size >= MAX_RETIRED_SNAPSHOTS) {
-            const oldestSnapshotId = this.#retiredSnapshots.keys().next().value;
-            if (typeof oldestSnapshotId !== 'string') break;
-            this.#retiredSnapshots.delete(oldestSnapshotId);
-        }
-        this.#retiredSnapshots.set(snapshotId, Date.now() + Math.max(SNAPSHOT_TIMEOUT_MS, retentionMs));
     }
 }
 

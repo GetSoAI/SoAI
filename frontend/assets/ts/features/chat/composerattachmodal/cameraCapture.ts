@@ -4,9 +4,9 @@
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { encodeCanvasImage } from '@core/media/canvasImageEncoding.ts';
 import { classifyMediaCaptureError } from '@core/media/mediaCaptureErrors.ts';
 import { stopMediaStreamTracks } from '@core/media/mediaCleanup.ts';
-import { createDeferred } from '@core/runtime/deferred.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import { listCameraDeviceIds, openCameraStream, selectNextCameraDeviceId } from '@features/chat/composerattachmodal/cameraStreamAcquisition.ts';
 
@@ -56,26 +56,6 @@ const setCameraState = (elements: ChatAttachCameraElements, state: string): void
 
 const syncStageAspectRatio = (elements: ChatAttachCameraElements, width: number, height: number): void => {
     elements.pane.style.setProperty('--chat-attach-camera-aspect-ratio', `${width} / ${height}`);
-};
-
-const createJpegBlob = (canvas: HTMLCanvasElement): Promise<Blob> => {
-    const deferred = createDeferred<Blob>();
-    if (typeof canvas.toBlob !== 'function') {
-        deferred.reject(new Error('Camera capture canvas blob encoding is unavailable'));
-        return deferred.promise;
-    }
-    canvas.toBlob(
-        (blob) => {
-            if (blob === null) {
-                deferred.reject(new Error('Camera capture produced an empty image'));
-                return;
-            }
-            deferred.resolve(blob);
-        },
-        'image/jpeg',
-        0.92
-    );
-    return deferred.promise;
 };
 
 const requireVideoFrame = (video: HTMLVideoElement): { width: number; height: number } => {
@@ -237,7 +217,7 @@ const createCameraCaptureRuntime = (elements: ChatAttachCameraElements, signal: 
                 throw new Error(i18n.t('chat.attachModal.cameraCaptureUnavailable'));
             }
             context.drawImage(elements.video, 0, 0, frame.width, frame.height);
-            const blob = await createJpegBlob(elements.canvas);
+            const blob = await encodeCanvasImage(elements.canvas, 'image/jpeg', 0.92);
             if (!isCurrentOperation(sequence)) {
                 return;
             }

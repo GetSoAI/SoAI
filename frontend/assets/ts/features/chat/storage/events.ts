@@ -6,7 +6,7 @@ import { WEBSOCKET_EVENT_CONTRACTS } from '@core/realtime/eventcontracts/registr
 import type { ConversationCreatedEvent, ConversationDeletedEvent, ConversationUpdatedEvent } from '@core/realtime/eventcontracts/conversationContracts.ts';
 import { createWebSocketContractBinding, subscribeManagedWebSocketContracts } from '@core/realtime/websocketBatchSubscription.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
-import { refreshConversationList } from '@features/chat/storage/conversationListRefresh.ts';
+import { invalidateConversationListRefresh, refreshConversationList } from '@features/chat/storage/conversationListRefresh.ts';
 import { resolveMessageTitle } from '@features/chat/messageBuilding.ts';
 import { parseBackendConversationUpdateEvent } from '@features/chat/storage/conversationPayloadParsing.ts';
 import type { ChatStorageManagerContract } from '@features/chat/storage/managerContracts.ts';
@@ -159,6 +159,7 @@ const handleConversationUpdated = async (manager: ChatStorageEventsRuntime, even
     }
     const updatedConversation = manager.state.getConversations().get(conversationId);
     if (shouldRemoveArchivedConversationFromList(manager, event, conversationId, updatedConversation)) {
+        invalidateConversationListRefresh(manager);
         manager.state.getConversations().delete(conversationId);
         manager.invalidateChatMarkup('list');
         await manager.refreshConversationListUI();
@@ -176,6 +177,7 @@ const handleConversationDeleted = async (manager: ChatStorageEventsRuntime, even
         return;
     }
     const conversationId = event.convId;
+    invalidateConversationListRefresh(manager);
     const currentConversationId = manager.state.getCurrentConversationId();
     const shouldStopStreaming = currentConversationId === conversationId || manager.chatStreamService.isStreaming(conversationId);
     if (shouldStopStreaming) {

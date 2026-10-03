@@ -95,6 +95,7 @@ class DatabaseTasksProtocol(DatabaseMutationTasksProtocol, Protocol):
         status_message: str | None = None,
         mutation_fencing_token: int | None = None,
         interaction_mutation: ConversationInteractionMutation | None = None,
+        public_error_message: str | None = None,
     ) -> UnifiedTaskFinalizationWriteResult: ...
 
     async def reconcile_terminal_background_responses(self) -> int: ...

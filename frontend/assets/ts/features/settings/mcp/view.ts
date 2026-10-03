@@ -74,7 +74,7 @@ const renderMcpTextInputControl = (modalId: string, inputId: string, placeholder
 
 const renderMcpSecretInputControl = (modalId: string, inputId: string, placeholder: string, secretInputType: string): string => {
     const resolvedInputId = modalUiId(modalId, inputId);
-    const input = `<input type="${uiAttr(secretInputType).html}" id="${uiAttr(resolvedInputId).html}"` + ` class="setting-input setting-input--wide secret-input" value=""` + ` placeholder="${uiAttr(placeholder).html}">`;
+    const input = `<input dir="ltr" type="${uiAttr(secretInputType).html}" id="${uiAttr(resolvedInputId).html}"` + ` class="setting-input setting-input--wide secret-input" value=""` + ` placeholder="${uiAttr(placeholder).html}">`;
     return renderSecretInputControl({ inputId: resolvedInputId, inputMarkup: input });
 };
 

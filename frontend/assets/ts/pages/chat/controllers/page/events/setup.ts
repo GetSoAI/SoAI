@@ -7,10 +7,23 @@ import { isChatActionId } from '@features/chat/public.ts';
 import type { ChatRootEventsHost } from '@pages/chat/controllers/page/events/contracts.ts';
 import { handleRootActionClick, handleRootBlur, handleRootChange, handleRootInput, handleRootPointerDown, handleRootPointerOut, handleRootPointerOver } from '@pages/chat/controllers/page/events/handlers.ts';
 import { handleRootKeydown } from '@pages/chat/controllers/page/events/keyboardController.ts';
+import { bindChatHoldShortcuts } from '@pages/chat/controllers/page/events/ChatHoldShortcutDomain.ts';
+
+const bindChatActionClicks = (host: ChatRootEventsHost, root: HTMLElement, signal: AbortSignal): void => {
+    bindDataActionListener({
+        root,
+        eventType: 'click',
+        signal,
+        isAction: isChatActionId,
+        preventDefault: 'never',
+        onAction: ({ event, action, actionElement }): void => handleRootActionClick(host, event, action, actionElement)
+    });
+};
 
 const setupChatRootEvents = (host: ChatRootEventsHost, signal: AbortSignal, options: { includeClick?: boolean } = {}): void => {
     const root = host.shell.ensureRootElement();
     const includeClick = options.includeClick !== false;
+    bindChatHoldShortcuts(host, root, signal);
     const handlePointerOver = (event: Event): void => handleRootPointerOver(host, event);
     const handlePointerOut = (event: Event): void => handleRootPointerOut(host, event);
     const handlePointerDown = (event: Event): void => handleRootPointerDown(host, event);
@@ -18,6 +31,7 @@ const setupChatRootEvents = (host: ChatRootEventsHost, signal: AbortSignal, opti
     const handleChange = (event: Event): void => handleRootChange(host, event);
     const handleKeydown = (event: Event): void => handleRootKeydown(host, event);
     const handleBlur = (event: Event): void => handleRootBlur(host, event);
+    const handleDocumentKeydown = (event: Event): void => host.shell.sidebarPeek.handleKeydown(event);
     bindEventGroup(
         [
             { target: root, type: 'pointerover', listener: handlePointerOver },
@@ -26,20 +40,14 @@ const setupChatRootEvents = (host: ChatRootEventsHost, signal: AbortSignal, opti
             { target: root, type: 'input', listener: handleInput },
             { target: root, type: 'change', listener: handleChange },
             { target: root, type: 'keydown', listener: handleKeydown },
-            { target: root, type: 'blur', listener: handleBlur, options: { capture: true } }
+            { target: root, type: 'blur', listener: handleBlur, options: { capture: true } },
+            { target: root.ownerDocument, type: 'keydown', listener: handleDocumentKeydown }
         ],
         signal
     );
     if (includeClick) {
-        bindDataActionListener({
-            root,
-            eventType: 'click',
-            signal,
-            isAction: isChatActionId,
-            preventDefault: 'never',
-            onAction: ({ event, action, actionElement }): void => handleRootActionClick(host, event, action, actionElement)
-        });
+        bindChatActionClicks(host, root, signal);
     }
 };
 
-export { setupChatRootEvents };
+export { bindChatActionClicks, setupChatRootEvents };

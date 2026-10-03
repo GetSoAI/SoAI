@@ -25,7 +25,7 @@
         font-size: var(--font-size-base);
         font-weight: 600;
         line-height: 1.25;
-        text-align: left;
+        text-align: start;
         cursor: pointer;
         transition:
             background var(--transition-fast),
@@ -40,7 +40,7 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        text-align: left;
+        text-align: start;
     }
 
     .ui-inline-text-edit__trigger:hover {

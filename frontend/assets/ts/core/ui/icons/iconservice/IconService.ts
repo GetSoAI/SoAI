@@ -3,6 +3,7 @@
 
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import { hasFunctionProperties, isArray, isObject, isPlainObject, isString } from '@core/typeGuards.ts';
 import { STATIC_ICON_REGISTRY, type IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { DEFAULT_ICON_SIZE, DEFAULT_ICON_STROKE } from '@core/ui/icons/iconservice/constants.ts';
@@ -11,18 +12,12 @@ import type { IconAttributes, IconOptions, NormalizedIconOptions } from '@core/u
 import { resolveKernelService } from '@core/runtime/runtimeContext.ts';
 
 class IconService {
-    readonly #raw: Map<IconName, string>;
     readonly #variants: Map<string, string>;
+    readonly #trustedVariants: Map<string, TrustedHtml>;
 
     constructor() {
         this.#variants = new Map();
-        this.#raw = new Map();
-        for (const name of listAllIconNames()) {
-            const svg = STATIC_ICON_REGISTRY[name];
-            if (isString(svg) && svg.trim()) {
-                this.#raw.set(name, svg);
-            }
-        }
+        this.#trustedVariants = new Map();
     }
 
     #renderCore(name: IconName, options: NormalizedIconOptions): string {
@@ -32,15 +27,27 @@ class IconService {
             return cached;
         }
 
-        const raw = this.#raw.get(name) ?? '';
-        const rendered = raw ? applySvgOptions(raw, options) : '';
+        const registryValue = STATIC_ICON_REGISTRY[name];
+        const raw = isString(registryValue) && registryValue.trim() ? registryValue : '';
+        let rendered = '';
+        let renderError: Error | null = null;
+        if (raw) {
+            try {
+                rendered = applySvgOptions(raw, options, name);
+            } catch (error) {
+                renderError = ensureError(error);
+                if (isDevBuild()) {
+                    throw renderError;
+                }
+            }
+        }
 
         if (!rendered) {
             const message = `Icon "${name}" is missing from the registry or rendered empty markup`;
             if (isDevBuild()) {
                 throw new Error(message);
             }
-            errorHandler.warn('IconService', message);
+            errorHandler.warn('IconService', message, renderError);
             const missing = renderMissingIcon(name, options);
             this.#variants.set(cacheKey, missing);
             return missing;
@@ -58,7 +65,17 @@ class IconService {
     }
 
     getIconSync(name: IconName, options: IconOptions | undefined = undefined): TrustedHtml {
-        return toTrustedUiHtml(this.getIconMarkupSync(name, options));
+        if (isPlainObject(options?.attributes) && Object.keys(options.attributes).length > 0) {
+            return toTrustedUiHtml(this.getIconMarkupSync(name, options));
+        }
+        const cacheKey = variantKey(name, mergeDefaultIconOptions(name, options));
+        const cached = this.#trustedVariants.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
+        const trusted = toTrustedUiHtml(this.getIconMarkupSync(name, options));
+        this.#trustedVariants.set(cacheKey, trusted);
+        return trusted;
     }
 
     async getIcon(name: IconName, options: IconOptions | undefined = undefined): Promise<TrustedHtml> {

@@ -148,7 +148,7 @@
     :where(.chat-container) .assistant-weather-widget__metric span {
         font-size: var(--font-size-caption-plus);
         letter-spacing: var(--tracking-04em);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         color: var(--text-tertiary);
         white-space: nowrap;
         overflow: hidden;

@@ -16,10 +16,10 @@ interface DashboardQuickActionsRendererDependencies {
 
 const QUICK_ACTION_COUNT = 20;
 
+const QUICK_ACTION_THEME: DashboardQuickActionContribution = { pageId: 'settings?tab=theme', icon: 'sparkle', getLabel: (): string => i18n.t('settings.tabs.theme') };
 const QUICK_ACTION_SETTINGS: DashboardQuickActionContribution = { pageId: 'settings', icon: 'settings', getLabel: (): string => i18n.t('nav.settings') };
 
 const QUICK_ACTION_SHARED_DEFINITIONS: readonly DashboardQuickActionContribution[] = [
-    { pageId: 'settings?tab=theme', icon: 'sparkle', getLabel: (): string => i18n.t('settings.tabs.theme') },
     { pageId: 'chat', icon: 'chat', getLabel: (): string => i18n.t('nav.chat') },
     { pageId: 'automation', icon: 'automation', getLabel: (): string => i18n.t('nav.automation') },
     { pageId: 'models', icon: 'model-default', getLabel: (): string => i18n.t('nav.models') },
@@ -38,7 +38,7 @@ const QUICK_ACTION_SHARED_DEFINITIONS: readonly DashboardQuickActionContribution
     { pageId: 'settings?tab=users', icon: 'user', getLabel: (): string => i18n.t('settings.tabs.users') }
 ];
 
-const QUICK_ACTION_BASE_DEFINITIONS: readonly DashboardQuickActionContribution[] = [...QUICK_ACTION_SHARED_DEFINITIONS, { pageId: 'settings?tab=api-keys', icon: 'key', getLabel: (): string => i18n.t('settings.tabs.apiKeys') }, { pageId: 'settings?tab=backup', icon: 'file-database', getLabel: (): string => i18n.t('settings.tabs.backup') }, QUICK_ACTION_SETTINGS];
+const QUICK_ACTION_BASE_DEFINITIONS: readonly DashboardQuickActionContribution[] = [...QUICK_ACTION_SHARED_DEFINITIONS, { pageId: 'settings?tab=api-keys', icon: 'key', getLabel: (): string => i18n.t('settings.tabs.apiKeys') }, { pageId: 'settings?tab=backup', icon: 'file-database', getLabel: (): string => i18n.t('settings.tabs.backup') }, QUICK_ACTION_THEME, QUICK_ACTION_SETTINGS];
 
 const assertQuickActionDefinitions = (definitions: readonly DashboardQuickActionContribution[]): void => {
     if (definitions.length !== QUICK_ACTION_COUNT) {
@@ -47,6 +47,10 @@ const assertQuickActionDefinitions = (definitions: readonly DashboardQuickAction
     const finalAction = definitions[definitions.length - 1];
     if (!finalAction || finalAction.pageId !== QUICK_ACTION_SETTINGS.pageId) {
         throw new Error('Dashboard quick actions require Settings as the final action');
+    }
+    const penultimateAction = definitions[definitions.length - 2];
+    if (!penultimateAction || penultimateAction.pageId !== QUICK_ACTION_THEME.pageId) {
+        throw new Error('Dashboard quick actions require Theme immediately before Settings');
     }
     if (definitions.some((definition): boolean => definition.pageId === 'dashboard')) {
         throw new Error('Dashboard quick actions cannot include a dashboard self-navigation action');
@@ -60,7 +64,7 @@ const resolveQuickActionDefinitions = (productActions: readonly DashboardQuickAc
     if (productActions.length !== 2) {
         throw new Error('Dashboard product contribution must define exactly two quick actions');
     }
-    return [...QUICK_ACTION_SHARED_DEFINITIONS, ...productActions, QUICK_ACTION_SETTINGS];
+    return [...QUICK_ACTION_SHARED_DEFINITIONS, ...productActions, QUICK_ACTION_THEME, QUICK_ACTION_SETTINGS];
 };
 
 const buildQuickActionButton = (definition: DashboardQuickActionContribution): TrustedHtml => {

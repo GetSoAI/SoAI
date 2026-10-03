@@ -21,12 +21,11 @@ interface ConfigurationManager {
     initialize(config: JsonObject): void;
     onChange(callback: () => void): () => void;
     getValue(key: string): JsonValue;
-    getValueByPath(data: JsonValue, key: string): JsonValue;
+    getOriginalValue(key: string): JsonValue;
     areValuesEqual(current: JsonValue | undefined, original: JsonValue | undefined): boolean;
     updateValue(key: string, value: JsonValue): void;
     hasChanges: boolean;
     currentData: JsonObject;
-    originalData: JsonObject;
     commitChanges(): void;
 }
 

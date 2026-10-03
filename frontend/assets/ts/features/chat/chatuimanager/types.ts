@@ -15,7 +15,7 @@ import type { InlineActivityDetailsCancelRequest, InlineActivityDetailsRenderReq
 import type { MessageReferenceResolver } from '@features/chat/message/messageReferenceResolution.ts';
 import type { RagIngestionStatus } from '@features/chat/ingestion/types.ts';
 import type { ChatTurnAdmissionSnapshot } from '@features/chat/chatstreamservice/types.ts';
-import type { MessageCursor } from '@features/chat/storage/storageModels.ts';
+import type { ChatNavigationMemory } from '@features/chat/storage/chatNavigationMemory.ts';
 import type { MessageWindowScrollAnchor } from '@features/chat/chatuimanager/messageWindowScrollAnchor.ts';
 
 type DebouncedHandler = {
@@ -30,6 +30,17 @@ export type ConversationInputPreview = {
     text: string;
     attachmentContent: readonly ChatContentSegment[];
 };
+
+export interface ConversationInputModalSession {
+    conversationId: string;
+    inputId: string;
+    modal: HTMLElement;
+    body: HTMLElement;
+    textElement: HTMLElement;
+    attachmentStrip: HTMLElement;
+    deleteButton: HTMLButtonElement;
+    presenter: ModalPresenterApi;
+}
 
 type MessageWindowRequestDirection = 'before' | 'after';
 
@@ -51,6 +62,13 @@ export type AdvancedScrollPreviewVisibilityController = {
     dispose: () => void;
 };
 
+export type ChatChromeVisibilityRuntime = {
+    observeScroll: () => void;
+    sync: () => void;
+    reset: () => void;
+    dispose: () => void;
+};
+
 export type ChatComposerActionMode = 'send' | 'stop' | 'steer' | 'queue';
 
 export type ElementSelectorKey = 'input' | 'actionBtn' | 'attachBtn' | 'messagesArea' | 'preview' | 'inputQueuePreview' | 'toolApprovalPreview' | 'askUserPreview' | 'secretPromptPreview' | 'voiceRecordingPreview';
@@ -62,11 +80,17 @@ interface ChatUiCompositionPort {
     applySidebarState: () => void;
 }
 
+interface ChatUiSettingsPort {
+    isAutoHideChatComposerEnabled: () => boolean;
+    isAutoHideChatHeaderEnabled: () => boolean;
+}
+
 interface ChatUiSidebarPort {
     getSidebarOpen: () => boolean;
     setSidebarOpen: (open: boolean) => void;
-    persistSidebarOpen: (open: boolean) => void;
 }
+
+type ChatUiNavigationPort = Pick<ChatNavigationMemory, 'getConversationScrollSnapshot' | 'rememberConversationScrollSnapshot' | 'forgetConversationScrollSnapshot' | 'persistConversationScrollSnapshots'>;
 
 interface ChatUiSessionPort {
     getCurrentConversationId: () => string | null;
@@ -113,6 +137,7 @@ interface ChatUiMessagePort {
     postRender: (container: Element | null) => void;
     invalidateMessageCache: (message: ChatMessage) => void;
     invalidateMessageProjectionCache: (message: ChatMessage) => void;
+    isMessageEditing: () => boolean;
 }
 
 export interface ChatUiManagerDependencies {
@@ -126,8 +151,10 @@ export interface ChatUiManagerDependencies {
     getCachedIcon: (name: IconName, options?: IconOptions) => TrustedHtml;
     dom: ChatUiDomPort;
     composition: ChatUiCompositionPort;
+    settings: ChatUiSettingsPort;
     sidebar: ChatUiSidebarPort;
     session: ChatUiSessionPort;
+    navigation: ChatUiNavigationPort;
     drafts: ChatUiDraftPort;
     runtime: ChatUiRuntimePort;
 
@@ -136,6 +163,7 @@ export interface ChatUiManagerDependencies {
 }
 
 export interface ChatUIManagerState {
+    conversationInputModal: ConversationInputModalSession | null;
     autoScrollEnabled: boolean;
     autoScrollUserIntentActive: boolean;
     autoScrollIntentDisposers: Array<() => void>;
@@ -147,7 +175,8 @@ export interface ChatUIManagerState {
     scrollListenerMessagesArea: HTMLElement | null;
     messagesAutoScrollLockDisposer: (() => void) | null;
     messagesAutoScrollLockArea: HTMLElement | null;
-    conversationScrollSnapshotByConversationId: Map<string, { cursor: MessageCursor; renderAnchor: MessageWindowScrollAnchor }>;
+    conversationScrollSnapshotPersistTimer: number | null;
+    conversationScrollSnapshotPersistenceDisposer: (() => void) | null;
     pendingConversationScrollRestoreConversationId: string | null;
     activeConversationScrollRestore: { conversationId: string; generation: number; messagesArea: HTMLElement; renderAnchor: MessageWindowScrollAnchor; disposers: Array<() => void>; settleTimer: number | null; completion: (cancelled: boolean) => void } | null;
     conversationScrollRestoreGeneration: number;
@@ -157,6 +186,7 @@ export interface ChatUIManagerState {
     advancedScrollPreviewVisibilityController: AdvancedScrollPreviewVisibilityController | null;
     activeConversationTransitionId: number | null;
     messagesAreaInsetsDisposer: (() => void) | null;
+    chatChromeVisibilityRuntime: ChatChromeVisibilityRuntime | null;
     modalPresenter: ModalPresenterApi | null;
 }
 

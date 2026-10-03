@@ -271,7 +271,9 @@ def paths_from_transaction_directory(
     )
 
 
-def cleanup_update_transaction(paths: UpdateTransactionPaths, logger: LoggerProtocol) -> bool:
+def cleanup_update_transaction(
+    paths: UpdateTransactionPaths, logger: LoggerProtocol, *, deferrable: bool = False
+) -> bool:
     try:
         cleanup_path = os.path.join(
             paths.base_path,
@@ -288,9 +290,13 @@ def cleanup_update_transaction(paths: UpdateTransactionPaths, logger: LoggerProt
         log_exception(
             logger,
             exception,
-            message="Failed to clean up update transaction storage.",
+            message=(
+                "Update transaction storage is still in use; the next recovery removes it."
+                if deferrable
+                else "Failed to clean up update transaction storage."
+            ),
             operation=OPERATION_CLEANUP_UPDATE_TRANSACTION,
             details={"transaction_path": paths.transaction_path},
-            level="warning",
+            level="info" if deferrable else "warning",
         )
         return False

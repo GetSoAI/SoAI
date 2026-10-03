@@ -31,6 +31,7 @@ from core.bootstrap.tiktoken_cache import (
     ensure_tiktoken_cache_installed,
     find_invalid_tiktoken_cache_assets,
 )
+from core.browser.playwright_driver_commands import build_playwright_install_command
 from core.errors.exceptions import StateError
 
 __all__ = (
@@ -109,11 +110,13 @@ def ensure_playwright_chromium_installed(
         raise StateError(
             "SYSTEM.RUNTIME.STAY_OFFLINE is enabled. Playwright Chromium installation is disabled.",
         )
-    argv = [python_executable, "-m", "playwright", "install", "chromium"]
+    install_command = build_playwright_install_command(python_executable=python_executable)
+    argv = install_command.argv
     if _should_use_with_deps():
         argv = [*argv[:4], "--with-deps", *argv[4:]]
     runtime_directories = ensure_runtime_directory_environment(repo_root_path)
     env = dict(os.environ)
+    env.update(install_command.environment)
     env[PLAYWRIGHT_BROWSERS_PATH_ENV] = browsers_path
     env[TMPDIR_ENV] = runtime_directories.temp_path
     env[PIP_CACHE_DIR_ENV] = runtime_directories.pip_cache_path

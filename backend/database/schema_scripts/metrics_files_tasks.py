@@ -168,7 +168,8 @@ def apply_metrics_files_tasks_schema(
             error_message TEXT,
             orchestration_state TEXT CHECK(orchestration_state IS NULL OR json_valid(orchestration_state)),
             cancellation_requested_at_ms INTEGER,
-            error_type TEXT
+            error_type TEXT,
+            public_error_message TEXT CHECK(public_error_message IS NULL OR (status = 'failed' AND length(trim(public_error_message)) > 0))
         ) STRICT;
         CREATE INDEX IF NOT EXISTS idx_unified_tasks_user_status ON unified_tasks(user_id, status);
         CREATE INDEX IF NOT EXISTS idx_unified_tasks_owner ON unified_tasks(owner_type, owner_id, status);

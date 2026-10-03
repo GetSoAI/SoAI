@@ -7,13 +7,17 @@ import { assertNonNull } from '@core/assertions.ts';
 import { getConnectionState, type ConnectionState } from '@core/connectionstate/service.ts';
 import { dispatchCustomEvent, getLocation } from '@core/environment/public.ts';
 import { errorHandler } from '@core/errorHandler.ts';
-import { coerceErrorMessage } from '@core/errors/coerce.ts';
+import { coerceErrorMessage, ensureError } from '@core/errors/coerce.ts';
 import { isFunction, isNullOrUndefined } from '@core/typeGuards.ts';
 import { resolveDiscoveryService } from '@core/api/guards.ts';
 import { normalizeRuntimeErrorValue } from '@core/api/mappers.ts';
 import { raceWithAbortSignal, throwIfAborted } from '@core/errors/abort.ts';
 import type { ConnectionEndpoint } from '@core/connectionstate/connectionEndpoint.ts';
 import { isBackendEditionIntegrityError } from '@core/edition/backendEditionIntegrity.ts';
+import { APIError, isNetworkError } from '@core/apiError.ts';
+import { BackendDiscoveryError } from '@core/discoveryservice/discoveryError.ts';
+
+type EndpointRevalidation = 'verified' | 'unavailable' | 'invalid';
 
 class ApiBaseUrlCoordinator {
     #connectionStateRef: ConnectionState | null = null;
@@ -81,19 +85,21 @@ class ApiBaseUrlCoordinator {
         return this.ensureBaseUrl(readyOptions);
     }
 
-    async revalidateBaseUrl(baseUrl: string): Promise<boolean> {
+    async revalidateBaseUrl(baseUrl: string, signal?: AbortSignal): Promise<EndpointRevalidation> {
         try {
-            const resolved = await probeApiBaseUrl(baseUrl);
-            return resolved !== null;
+            const resolved = await probeApiBaseUrl(baseUrl, { signal });
+            return resolved !== null ? 'verified' : 'invalid';
         } catch (error) {
             const runtimeError = normalizeRuntimeErrorValue(error);
             errorHandler.debug('ApiClient', `Base URL revalidation failed: ${coerceErrorMessage(runtimeError)}`, runtimeError);
-            return false;
+            if (signal?.aborted) throw runtimeError;
+            if (isNetworkError(runtimeError) || (runtimeError instanceof APIError && (runtimeError.status === 408 || runtimeError.status === 429 || runtimeError.status >= 500))) return 'unavailable';
+            throw runtimeError;
         }
     }
 
-    async recoverBaseUrl(options: { allowDiscovery?: boolean; shouldContinue: () => boolean }): Promise<string | null> {
-        const { allowDiscovery = true, shouldContinue } = options;
+    async recoverBaseUrl(options: { allowDiscovery?: boolean; signal?: AbortSignal; shouldContinue: () => boolean }): Promise<string | null> {
+        const { allowDiscovery = true, shouldContinue, signal } = options;
         if (!shouldContinue()) {
             return null;
         }
@@ -103,9 +109,10 @@ class ApiBaseUrlCoordinator {
         }
         let originEndpoint: ConnectionEndpoint | null = null;
         try {
-            originEndpoint = await probeCurrentOriginApiEndpoint();
+            originEndpoint = await probeCurrentOriginApiEndpoint({ signal });
         } catch (error) {
             const runtimeError = normalizeRuntimeErrorValue(error);
+            if (signal?.aborted || isBackendEditionIntegrityError(runtimeError) || (runtimeError instanceof APIError && (runtimeError.status === 401 || runtimeError.status === 403))) throw runtimeError;
             errorHandler.debug('ApiClient', `Recovery current-origin probe failed: ${coerceErrorMessage(runtimeError)}`, runtimeError);
         }
         if (!shouldContinue()) {
@@ -181,7 +188,7 @@ class ApiBaseUrlCoordinator {
             this.initialized = false;
             const discoveryError = normalizeRuntimeErrorValue(error);
             if (isBackendEditionIntegrityError(discoveryError)) throw discoveryError;
-            throw new Error(`Port discovery failed: ${coerceErrorMessage(discoveryError)}`);
+            throw new BackendDiscoveryError(ensureError(discoveryError));
         }
     }
 

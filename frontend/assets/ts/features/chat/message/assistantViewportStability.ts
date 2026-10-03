@@ -3,7 +3,7 @@
 
 import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
 import { captureFirstVisibleMessageAnchor, restoreMessageScrollAnchor, type MessageWindowScrollAnchor } from '@features/chat/chatuimanager/messageWindowScrollAnchor.ts';
-import { isMainTimelineAtBottom, isMainTimelineAutoScrollLocked } from '@features/chat/mainTimelineScroll.ts';
+import { isMainTimelineAtBottom, isMainTimelineAutoScrollLocked, writeMainTimelineScrollTop } from '@features/chat/mainTimelineScroll.ts';
 
 type AssistantViewportStability = {
     element: HTMLElement;
@@ -41,12 +41,12 @@ const captureAssistantViewportStability = (container: Element): AssistantViewpor
 const applyAssistantViewportStability = (state: AssistantViewportStability): void => {
     const maxScrollTop = Math.max(0, state.element.scrollHeight - state.element.clientHeight);
     if (state.stickToBottom) {
-        if (state.element.scrollTop !== maxScrollTop) state.element.scrollTop = maxScrollTop;
+        writeMainTimelineScrollTop(state.element, maxScrollTop);
         return;
     }
     if (restoreMessageScrollAnchor(state.element, state.messageAnchor)) return;
     const fallbackScrollTop = Math.min(state.scrollTop, maxScrollTop);
-    if (state.element.scrollTop !== fallbackScrollTop) state.element.scrollTop = fallbackScrollTop;
+    writeMainTimelineScrollTop(state.element, fallbackScrollTop);
 };
 
 const restoreAssistantViewportStability = (state: AssistantViewportStability | null): void => {

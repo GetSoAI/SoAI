@@ -32,7 +32,7 @@ const renderInlineToolStatusSummary = (host: ChatMessageRenderHost, segment: Inl
 const omitSubagentOutputFields = (record: JsonObject): JsonObject => {
     const filtered: JsonObject = {};
     for (const [key, value] of Object.entries(record)) {
-        if (key === 'result_text' || key === 'output') {
+        if (key === 'result_text' || key === 'resultText' || key === 'output') {
             continue;
         }
         filtered[key] = value;

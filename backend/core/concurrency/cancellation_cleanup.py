@@ -28,6 +28,8 @@ def current_task_has_pending_cancellation() -> bool:
 
 async def run_idempotent_current_task_operation[Result](
     operation_factory: Callable[[], Awaitable[Result]],
+    *,
+    restore_cancellation_requests: bool = True,
 ) -> Result:
     current_task = asyncio.current_task()
     if current_task is None:
@@ -45,8 +47,9 @@ async def run_idempotent_current_task_operation[Result](
                 if current_task.cancelling() == 0:
                     raise
     finally:
-        for _ in range(cancelled_count):
-            current_task.cancel()
+        if restore_cancellation_requests:
+            for _ in range(cancelled_count):
+                current_task.cancel()
 
 
 def _coerce_cleanup_future[T](cleanup: Awaitable[T], *, name: str) -> asyncio.Future[T]:
@@ -135,12 +138,20 @@ uncancel_and_wait = cancellation_cleanup
 uncancel_then_cleanup = cancellation_cleanup
 
 
-async def wait_for_task_completion[T](task: asyncio.Task[T]) -> None:
+async def wait_for_task_completion[T](
+    task: asyncio.Task[T], *, retain_resources_until_complete: bool = False
+) -> None:
     if task.done():
         return
     completed = asyncio.Event()
     task.add_done_callback(lambda _task: completed.set())
-    await cancellation_cleanup(completed.wait())
+    if retain_resources_until_complete:
+        await run_idempotent_current_task_operation(
+            completed.wait,
+            restore_cancellation_requests=False,
+        )
+    else:
+        await cancellation_cleanup(completed.wait())
 
 
 async def shielded_cleanup[T](cleanup: Awaitable[T]) -> T:

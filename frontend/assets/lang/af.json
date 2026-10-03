@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "Nou"
+                "now": "Nou",
+                "occurrenceLabel": "{title}, {date} {time}, {status}",
+                "createAt": "Skep outomatisering op {date} om {time}. Gebruik die pyltjiesleutels om die tyd te verander."
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "Begin",
                     "turns": "Beurte",
                     "timezone": "Tydsone",
-                    "title": "Titel"
+                    "title": "Titel",
+                    "modelSettings": "Model, gereedskap en parameters"
                 },
                 "workspace": {
                     "button": "Kies gids",
                     "description": "Kies die gids wat deur hierdie outomatiseringsuitvoering gebruik word. Herhalende uitvoerings behou hierdie outomatiseringsgids.",
                     "fieldLabel": "Werkruimtegids",
-                    "title": "Werkruimtegids vir outomatisering"
+                    "title": "Werkruimtegids vir outomatisering",
+                    "viewButton": "Bekyk werkruimte"
                 },
                 "parameters": {
                     "button": "Wysig parameters",
@@ -166,17 +170,17 @@
                     "fieldLabel": "Modelparameters",
                     "summaryCustom": "Pasgemaakte outomatiseringsparameters",
                     "summaryDefault": "Verstekmodelparameters",
-                    "title": "Modelparameters vir outomatisering"
+                    "title": "Modelparameters vir outomatisering",
+                    "viewButton": "Bekyk parameters"
                 },
                 "timezone": {
-                    "auto": "Outomaties"
+                    "autoWithZone": "Outomaties ({timezone})"
                 },
                 "placeholders": {
                     "assistantTurn": "Modelreaksie",
                     "endOfAutomation": "Einde van outomatisering",
                     "model": "Kies 'n model",
                     "turn": "Voer boodskap in",
-                    "turnIndexed": "Voer boodskap {index} in",
                     "title": "Voer titel in"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "Stoor",
                 "validation": {
                     "maxRunMinutesInvalid": "Maks. uitvoeringsminute moet tussen 1 en 1440 wees.",
-                    "modelUnavailable": "Geselekteerde model is nie beskikbaar nie.",
+                    "modelUnavailable": "{model} is nie beskikbaar nie. Kies ’n ander model.",
                     "modelRequired": "Model word vereis.",
                     "recurrenceInvalid": "Herhaling is ongeldig.",
                     "startInvalid": "Begindatum en -tyd is ongeldig.",
@@ -195,7 +199,42 @@
                     "turnsRequired": "Alle beurte word vereis.",
                     "tooManyTurns": "Te veel beurte (maksimum {max}). Elke beurt word as een agentbeurt uitgevoer.",
                     "timezoneRequired": "Tydsone word vereis.",
-                    "titleRequired": "Titel word vereis."
+                    "titleRequired": "Titel word vereis.",
+                    "modelDisabled": "{model} is gedeaktiveer. Aktiveer dit of kies ’n ander model.",
+                    "modelMissing": "{model} is nie meer geïnstalleer nie. Kies ’n ander model.",
+                    "modelUnsupported": "{model} ondersteun nie klets nie. Kies ’n ander model.",
+                    "summary": "Maak {count} veld(e) reg voordat jy stoor.",
+                    "toolsRequired": "Uitvoering vereis dat gereedskap geaktiveer is en todo_write gekies is.",
+                    "timezoneInvalid": "Die tydsone is ongeldig. Kies ’n ondersteunde tydsone."
+                },
+                "conflict": {
+                    "message": "Hierdie outomatisering is elders verander terwyl jy dit gewysig het. Jou veranderinge is nie gestoor nie.",
+                    "remoteChanges": "Elders verander: {fields}",
+                    "localChanges": "Jou veranderinge: {fields}",
+                    "keepChanges": "Behou my veranderinge",
+                    "loadLatest": "Laai nuutste weergawe"
+                },
+                "modelStatus": {
+                    "unavailable": "Nie beskikbaar nie",
+                    "unsupported": "Geen kletsondersteuning nie"
+                },
+                "prerequisites": {
+                    "failed": "Die redigeerder kon nie alles laai wat dit nodig het nie.",
+                    "missing": "Hierdie outomatisering bestaan nie meer nie.",
+                    "toolsUnavailable": "Gereedskap kon nie gelaai word nie. Bestaande gereedskapkeuses word behou.",
+                    "childFailed": "Instellings kon nie oopgemaak word nie. Probeer weer."
+                },
+                "schedule": {
+                    "ambiguous": "{start} kom twee keer voor in {timezone} weens ’n klokverandering. Die eerste voorkoms word gebruik.",
+                    "shiftedForward": "{start} bestaan nie in {timezone} nie weens ’n klokverandering. Dit loop eerder om {effective}.",
+                    "disabled": "Gedeaktiveer: geen uitvoerings sal geskeduleer word nie.",
+                    "nextRun": "Volgende uitvoering: {when} ({timezone})",
+                    "nextRunLocal": "Volgende uitvoering: {when} ({timezone}), {localWhen} jou tyd",
+                    "unavailable": "Die skedulevoorskou is nie beskikbaar nie."
+                },
+                "turns": {
+                    "label": "Beurt {index}",
+                    "remove": "Verwyder beurt {index}"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "Outomatiseringsvoorkeure na verstekwaardes teruggestel.",
                 "runOpenFailed": "Kon nie die versoekte outomatiseringsuitvoering oopmaak nie.",
                 "runUnavailable": "Die versoekte outomatiseringsuitvoering is nie meer in hierdie aansig beskikbaar nie.",
-                "updated": "Outomatisering opgedateer."
+                "updated": "Outomatisering opgedateer.",
+                "changeRefreshFailed": "Die verandering is toegepas, maar die aansig kon nie verfris word nie.",
+                "conflict": "Hierdie outomatisering is elders verander. Gaan die veranderinge na voordat jy weer stoor.",
+                "defaultsNotRemembered": "Gestoor, maar hierdie instellings kon nie vir nuwe outomatiserings onthou word nie.",
+                "missingOnSave": "Hierdie outomatisering bestaan nie meer nie. Dit is dalk elders uitgevee."
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "Vandag",
                         "yesterday": "Gister"
                     },
-                    "turnsCount": "Beurte: {count}",
                     "title": "Uitvoerings",
                     "toolbar": {
                         "batchDelete": "Vee geselekteerde uitvoerings uit",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "Vee {count} uitvoering(s) uit? Uitvoerings wat tans loop, sal gestop word.",
-                        "deleteTitle": "Vee uitvoerings uit?"
+                        "deleteTitle": "Vee uitvoerings uit?",
+                        "skipTitle": "Slaan voorkoms oor?",
+                        "skipMessage": "{title} sal nie op hierdie tyd loop nie. Ander voorkomste word nie geraak nie.",
+                        "skipConfirm": "Slaan oor",
+                        "stopTitle": "Stop uitvoering?",
+                        "stopMessage": "{title} loop tans. Dit sal gestop en uit die kalender verwyder word.",
+                        "stopConfirm": "Stop",
+                        "removeTitle": "Verwyder voorkoms?",
+                        "removeMessage": "{title} sal uit die kalender verwyder word.",
+                        "removeConfirm": "Verwyder"
                     },
                     "notifications": {
-                        "deleteSuccess": "{count} uitvoering(s) uitgevee."
-                    }
+                        "deleteSuccess": "{count} uitvoering(s) uitgevee.",
+                        "nothingToDelete": "Die gekose voorkomste is nie meer in hierdie aansig nie.",
+                        "tooManySelected": "Kies hoogstens {max} voorkomste op ’n slag."
+                    },
+                    "occurrencesCount": "Voorkomste: {count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "Vorige",
                 "showCalendar": "Kalender",
                 "showRegistry": "Paneel",
-                "today": "Vandag"
+                "today": "Vandag",
+                "staleData": "Verouderd",
+                "staleDataSince": "Outomatiseringsdata is dalk verouderd. Laas bygewerk {time}. Kies om weer te probeer.",
+                "resizePanes": "Verander grootte van kalender en sypaneel"
             },
             "views": {
                 "day": "Dag",
@@ -300,6 +357,7 @@
                     "bar": "Staaf",
                     "candlestick": "OHLC",
                     "deviation": "Afwyking",
+                    "heikin-ashi": "Heikin-Ashi",
                     "label": "Grafiektipe",
                     "line": "Lyn",
                     "precision-line": "Lyn"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "Min: ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "Geen data · SoAI vanlyn",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "Intyds ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "Kon nie geskiedenis laai nie.",
             "loadingState": "Laai tans",
             "manualScaleLabel": "HANDMATIG"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "Heg SoAI-skakels aan",
                 "tabBrowse": "Werkruimte",
                 "tabCamera": "Skandeer",
+                "tabDisabledReason": "Skakel {setting} aan in Kletskonfigurasie › {tab}",
                 "tabKnowledge": "Kennis",
                 "tabSoaiLink": "SoAI-skakel",
                 "tabUpload": "Laai op",
@@ -559,7 +620,16 @@
                 "recordingStatus": "Neem op {elapsed}",
                 "recordingTitle": "Stemopname",
                 "requestingStatus": "Wag vir blaaiertoestemming",
-                "requestingTitle": "Versoek mikrofoon"
+                "requestingTitle": "Versoek mikrofoon",
+                "pushToTalk": {
+                    "cancelled": "Opname gekanselleer.",
+                    "queued": "In tou geplaas.",
+                    "releaseToCancel": "Laat los om te kanselleer",
+                    "releaseToSend": "Laat los om te stuur · Skuif links om te kanselleer",
+                    "sending": "Stuur tans…",
+                    "transcribing": "Transkribeer tans…",
+                    "transcriptReview": "Transkripsie bygevoeg. Hersien jou bygewerkte konsep voordat jy stuur."
+                }
             },
             "authorityLock": {
                 "automationReason": "Dit is 'n outomatiseringsgesprek. Verander die uitvoeringsinstellings daarvan in Outomatiserings → Wysig outomatisering.",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "Laai op",
                 "assistantAvatarUploadLabel": "Laai assistent-avatar op",
                 "assistantNamePlaceholder": "Voer pasgemaakte modelnaam in...",
+                "autoHideChatComposer": "Versteek kletsopsteller outomaties",
+                "autoHideChatComposerHint": "Versteek die leë kletsopsteller terwyl vorige boodskappe gelees word",
+                "autoHideChatHeader": "Versteek kletsopskrif outomaties",
+                "autoHideChatHeaderHint": "Versteek die gesprekopskrif terwyl vorige boodskappe gelees word",
                 "identityNameInvalid": "Vertoonname mag hoogstens 50 Unicode-karakters bevat en geen ongeldige teks nie.",
                 "promptInvalid": "Die prompt bevat ongeldige Unicode-teks.",
                 "close": "Sluit",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "Hulpmiddeltoegang kan nie verander word terwyl hierdie gesprek loop nie",
                     "toolsEnabledHint": "Aktiveer MCP-hulpmiddels vir hierdie gesprek. Nuwe kletse begin met jou laaste gestoorde waarde",
                     "tool_approval_required": "Vereis hulpmiddelgoedkeuring",
-                    "toolApprovalRequiredHint": "Vra vir bevestiging voordat vernietigende hulpmiddels uitgevoer word"
+                    "toolApprovalRequiredHint": "Vra vir bevestiging voordat vernietigende hulpmiddels uitgevoer word",
+                    "unavailableTools": "Onbeskikbare gestoorde gereedskap: {tools}. Keuses word behou.",
+                    "unavailableServers": "Onbeskikbare gestoorde bedieners: {servers}. Instellings word behou."
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "Oorskryf die kontekslengte vir hierdie funksie. Laat leeg om die gekose model se verstek te gebruik",
@@ -1035,7 +1111,8 @@
                 "newTitle": "Nuwe gesprek",
                 "renameFailed": "Kon nie gesprek hernoem nie.",
                 "switchFailed": "Kon nie tussen gesprekke wissel nie.",
-                "untitled": "Naamloos"
+                "untitled": "Naamloos",
+                "titleRequired": "’n Gesprekstitel is nodig."
             },
             "detached": {
                 "windowTitle": "Klets (Losstaand)"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "Vereis HTTPS"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "Hou in om Parameters oop te maak en kontekslengte te wys",
+                "presetsHint": "Hou in om Voorinstellings oop te maak",
+                "pushToTalkHint": "Hou in om te praat",
+                "toolsHint": "Hou in om Gereedskap-instellings oop te maak",
+                "toolsRestrictedHint": "{reason}. Hou in om Gereedskap-instellings oop te maak",
+                "toolsToggleHint": "{action}. Hou in om Gereedskap-instellings oop te maak"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "In tou",
@@ -1286,7 +1371,8 @@
                     "running": "Loop tans",
                     "inputRequired": "Aksie vereis"
                 },
-                "attachmentsCount": "(+{count} aanhegsels)"
+                "attachmentsCount": "(+{count} aanhegsels)",
+                "open": "Maak boodskap oop: {prompt}"
             },
             "loading": {
                 "errorType": "Fouttipe",
@@ -1337,7 +1423,9 @@
                     },
                     "save": "Stoor",
                     "skip": "Slaan oor",
-                    "title": "Help SoAI om jou te leer ken"
+                    "title": "Help SoAI om jou te leer ken",
+                    "loadFailed": "Jou gestoorde profiel kon nie gelaai word nie. Stoor is onderbreek sodat niks oorskryf word nie.",
+                    "retry": "Probeer weer"
                 },
                 "viewer": {
                     "none": "Geen",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "gister",
                 "toolCall": "Hulpmiddelaanroep",
                 "waiting": "Wag tans...",
-                "you": "Jy"
+                "you": "Jy",
+                "timestampWithTime": "{label}, {time}"
             },
             "modelControl": {
                 "compareModels": "Vergelyk modelle",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "Verskeie modelle het die naam \"{model}\". Kies asseblief 'n spesifieke model in die sybalk.",
                 "available": "(Beskikbaar)",
-                "loaded": "(Gelaai)"
+                "loaded": "(Gelaai)",
+                "unavailable": "(Nie beskikbaar nie)"
             },
             "news": {
                 "articleCount": "{count} artikels",
@@ -1470,10 +1560,52 @@
                 "cleared": "Promptgeskiedenis uitgevee.",
                 "loadFailed": "Kon nie promptgeskiedenis laai nie."
             },
+            "sketch": {
+                "open": "Maak skets oop",
+                "mobileOption": "Skets",
+                "preference": "Skets",
+                "preferenceHint": "Wys die sketsblok in die kletsinvoer om ’n prent te teken en by jou boodskap aan te heg",
+                "title": "Skets",
+                "description": "Teken met jou muis, pen of vinger en heg die tekening dan as ’n prent by jou boodskap aan",
+                "canvasLabel": "Tekenvlak",
+                "toolsLabel": "Tekengereedskap",
+                "tools": {
+                    "pen": "Pen",
+                    "brush": "Kwas",
+                    "highlighter": "Merkpen",
+                    "eraser": "Uitveër",
+                    "line": "Lyn",
+                    "rectangle": "Reghoek",
+                    "ellipse": "Ellips"
+                },
+                "colorsLabel": "Kleure",
+                "colors": {
+                    "black": "Swart",
+                    "grey": "Grys",
+                    "red": "Rooi",
+                    "orange": "Oranje",
+                    "yellow": "Geel",
+                    "green": "Groen",
+                    "teal": "Blougroen",
+                    "blue": "Blou",
+                    "purple": "Pers",
+                    "brown": "Bruin"
+                },
+                "customColor": "Pasgemaakte kleur",
+                "size": "Grootte",
+                "undo": "Ontdoen",
+                "redo": "Herdoen",
+                "clear": "Maak skoon",
+                "resize": "Verander doekgrootte",
+                "attach": "Heg aan",
+                "discardConfirm": "Gooi hierdie skets weg?",
+                "discard": "Gooi weg",
+                "exportFailed": "Die skets kon nie uitgevoer word nie. Probeer asseblief weer."
+            },
             "characterMap": {
                 "allEmoji": "Alle emoji",
                 "allUnicode": "Alle Unicode",
-                "description": "Blaai deur Unicode-karakters en emoji, stel 'n reeks saam en kopieer dit of voeg dit by jou boodskap in.",
+                "description": "Blaai deur Unicode-karakters en emoji, stel 'n reeks saam en kopieer dit of voeg dit by jou boodskap in",
                 "font": "Lettertipe",
                 "fontHint": "Lettertipes beïnvloed net die vertoning; elke gelyste karakter bly kiesbaar",
                 "fonts": {
@@ -2201,7 +2333,8 @@
                 "started": "Stemoproep begin.",
                 "transcriptionFailed": "Stemtranskripsie het misluk.",
                 "ttsFailed": "Teks-na-spraak het misluk.",
-                "messageSendFailed": "Stuur van stemboodskap het misluk."
+                "messageSendFailed": "Stuur van stemboodskap het misluk.",
+                "stoppedAfterFailure": "Die oproep het gestop. Los die probleem op voordat jy ’n nuwe oproep begin."
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "Speel die assistent se antwoord.",
@@ -2299,44 +2432,45 @@
                 "toggle": "Wissel volskerm"
             },
             "modalDescriptions": {
-                "agentPlan": "Stappe van die aktiewe agentplan.",
-                "automationCalendar": "Kalenderlokalisering en datumformatering.",
-                "automationConfiguration": "Skedule-, model- en uitvoeringslimiete.",
-                "automationOccurrence": "'n Enkele geskeduleerde uitvoering.",
-                "chatConfiguration": "Model, hulpmiddels, geheue en koppelvlak vir hierdie klets.",
-                "chatAttach": "Laai lêers op of heg gekoppelde kennis aan hierdie klets.",
-                "chatAttachments": "Aanhegsels waarna hierdie boodskap verwys.",
-                "chatMcpDefaultTools": "Verstek-MCP-hulpmiddels vir nuwe kletse.",
-                "chatMemoryProfile": "Persoonlike besonderhede wat SoAI oor kletse heen onthou.",
-                "chatPromptsPicker": "Gestoorde prompts gereed om in hierdie klets in te voeg.",
-                "voiceCall": "Handvrye klets met mikrofoon, transkripsie, stromende antwoorde en spraakweergawe.",
-                "credits": "Erkennings vir derdeparty-afhanklikhede.",
-                "fileExplorerMetadata": "Lêermetadata.",
-                "folderPicker": "Kies 'n gids.",
-                "exportPreview": "Inhoud van die uitvoer.",
-                "hardwareSystemInfo": "Gedetailleerde stelselverslag.",
-                "license": "SoAI-lisensieteks.",
-                "messageInfo": "Boodskapmetadata.",
-                "metricsAdvanced": "Uitgebreide looptydmetrieke.",
-                "modelDetailTest": "Stuur 'n toetsversoek na hierdie model.",
-                "modelsDownload": "Laai 'n nuwe model af.",
-                "modelsEdit": "Oorskryf wat hierdie model kan doen.",
-                "modelsProviders": "Eksterne modelverskaffers.",
-                "modelsRename": "Gee hierdie model 'n plaaslike naam.",
-                "modelsVirtual": "Roeteringsgroepe vir virtuele modelle.",
-                "modelsVirtualEdit": "Roetering vir hierdie virtuele model.",
-                "pluginsClone": "Dupliseer hierdie plugin met nuwe instellings.",
-                "pluginsConcurrent": "Maksimum gelyktydige plugintake.",
-                "pluginsConfig": "Plugininstellings.",
-                "pluginsDownload": "Installeer 'n gebundelde of plaaslike plugin.",
-                "pluginsInfo": "Pluginbesonderhede en diagnostiek.",
-                "pluginsIntro": "Hoe plugins SoAI uitbrei.",
-                "pluginsManageBackend": "Bestuur backend-weergawes.",
-                "promptEnhancer": "Herskryf 'n gestoorde prompt met 'n model.",
-                "settingsApiKeyQuota": "Gebruikslimiete vir hierdie API-sleutel.",
-                "settingsExternalAccounts": "Pos- en kalenderrekeninge.",
-                "settingsMcpServer": "MCP-bedienerverbinding.",
-                "toolCallOutput": "Uitvoer van 'n hulpmiddelaanroep."
+                "agentPlan": "Stappe van die aktiewe agentplan",
+                "automationCalendar": "Kalenderlokalisering en datumformatering",
+                "automationConfiguration": "Skedule-, model- en uitvoeringslimiete",
+                "automationOccurrence": "'n Enkele geskeduleerde uitvoering",
+                "chatConfiguration": "Model, hulpmiddels, geheue en koppelvlak vir hierdie klets",
+                "chatAttach": "Laai lêers op of heg gekoppelde kennis aan hierdie klets",
+                "chatAttachments": "Aanhegsels waarna hierdie boodskap verwys",
+                "chatMcpDefaultTools": "Verstek-MCP-hulpmiddels vir nuwe kletse",
+                "chatMemoryProfile": "Persoonlike besonderhede wat SoAI oor kletse heen onthou",
+                "chatPromptsPicker": "Gestoorde prompts gereed om in hierdie klets in te voeg",
+                "voiceCall": "Handvrye klets met mikrofoon, transkripsie, stromende antwoorde en spraakweergawe",
+                "credits": "Erkennings vir derdeparty-afhanklikhede",
+                "fileExplorerMetadata": "Lêermetadata",
+                "folderPicker": "Kies 'n gids",
+                "exportPreview": "Inhoud van die uitvoer",
+                "hardwareSystemInfo": "Gedetailleerde stelselverslag",
+                "license": "SoAI-lisensieteks",
+                "messageInfo": "Boodskapmetadata",
+                "metricsAdvanced": "Uitgebreide looptydmetrieke",
+                "modelDetailTest": "Stuur 'n toetsversoek na hierdie model",
+                "modelsDownload": "Laai modelle af, koppel eksterne verskaffers, of voeg plaaslike modellêers by",
+                "modelsEdit": "Oorskryf wat hierdie model kan doen",
+                "modelsProviders": "Eksterne modelverskaffers",
+                "modelsRename": "Gee hierdie model 'n plaaslike naam",
+                "modelsVirtual": "Roeteringsgroepe vir virtuele modelle",
+                "modelsVirtualEdit": "Roetering vir hierdie virtuele model",
+                "pluginsClone": "Dupliseer hierdie plugin met nuwe instellings",
+                "pluginsConcurrent": "Maksimum gelyktydige plugintake",
+                "pluginsConfig": "Plugininstellings",
+                "pluginsDownload": "Laai plugins af of op, of voeg plugins uit die plaaslike plugin-lêergids by",
+                "pluginsInfo": "Pluginbesonderhede en diagnostiek",
+                "pluginsIntro": "Hoe plugins SoAI uitbrei",
+                "pluginsManageBackend": "Bestuur backend-weergawes",
+                "promptEnhancer": "Herskryf 'n gestoorde prompt met 'n model",
+                "settingsApiKeyQuota": "Gebruikslimiete vir hierdie API-sleutel",
+                "settingsExternalAccounts": "Pos- en kalenderrekeninge",
+                "settingsMcpServer": "MCP-bedienerverbinding",
+                "toolCallOutput": "Uitvoer van 'n hulpmiddelaanroep",
+                "conversationInput": "Bekyk hierdie boodskap en sy aanhegsels"
             },
             "loading": "Laai tans...",
             "confirm": "Bevestig",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count}s"
+                    },
+                    "year": {
+                        "short": "{count}j"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "Jy het ongestoorde veranderings. Gaan voort sonder om te stoor?",
             "unsavedChangesTitle": "Ongestoorde veranderings",
             "view": "Bekyk",
-            "yes": "Ja"
+            "yes": "Ja",
+            "retry": "Probeer weer"
         },
         "contentPreview": {
             "actions": {
@@ -2620,7 +2758,7 @@
                 }
             },
             "firstRun": {
-                "description": "'n Kort opstellingsroete vir plaaslike backends, afgeleë verskaffers, modelle en opdaterings.",
+                "description": "'n Kort opstellingsroete vir plaaslike backends, afgeleë verskaffers, modelle en opdaterings",
                 "sections": {
                     "models": {
                         "heading": "Voeg 'n model by of laai dit af wanneer die backend gereed is",
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "Netwerk",
+                    "unavailable": "Adapterlys nie beskikbaar nie",
                     "waiting": "Bespeur tans..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "Toetslopie",
                     "soaibenchStop": "Stop",
                     "soaibenchStress": "Stres",
+                    "viewBenchmark": "Bekyk toetslopie",
                     "test": "Toets",
                     "reset": "Stel terug",
                     "save": "Stoor"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index} SoAIBench {profile} begin",
                     "soaibenchStopRequested": "Stop van GPU {index} SoAIBench versoek",
                     "soaibenchUnsupported": "GPU {index} SoAIBench word nie ondersteun nie: {reason}",
+                    "soaibenchSettingsLocked": "GPU {index} voer 'n toetslopie uit. Stop dit of wag totdat dit klaar is voordat jy sy instellings stoor.",
                     "slotApplied": "GPU {index}-gleuf {slot} toegepas",
                     "slotSaved": "GPU {index}-gleuf {slot} gestoor"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "Vee plaaslike geskiedenis uit",
+                "deleteLocalConfirm": {
+                    "title": "SoAIBench-uitvoering uitvee?",
+                    "message": "Vee hierdie SoAIBench-uitvoering uit die plaaslike geskiedenis uit? Dit kan nie ontdoen word nie."
+                },
                 "action": "Deel",
+                "openRun": "Open lopie",
                 "ariaLabel": "Deel hierdie SoAIBench-telling",
                 "unavailable": "Geen publiseerbare SoAIBench-lopie is beskikbaar nie",
-                "confirm": { "title": "Deel SoAIBench-telling?", "message": "Publiseer telling {score} en sy {passes} gemete lopies op die openbare SoAIBench-ranglys?", "description": "Dit stuur die telling, vyf gemete lopies, openbare GPU- en looptydinligting, maatstaftoetsinstellings en opsionele sensorbewyse. Rekeningidentiteit, lêers, konfigurasie, ontleding en algemene telemetrie word uitgesluit. soai.to kan normale verbindingsmetadata soos jou IP-adres sien." },
-                "outcomes": { "published": "SoAIBench-telling is openbaar gedeel.", "alreadyPublished": "Hierdie SoAIBench-telling is reeds gedeel.", "heldForReview": "Die SoAIBench-resultaat is vir identiteits- of afwykingshersiening gehou en is nog nie in die ranglys ingesluit nie.", "offline": "Die telling kon nie gedeel word terwyl SoAI vanlyn is nie.", "unavailable": "Die SoAIBench-publikasiediens is nie beskikbaar nie.", "timeout": "Die deel van die telling het uitgetel. Probeer weer om dieselfde publikasie te versoen.", "rateLimited": "Te veel tellings is vanaf hierdie verbinding gedeel. Probeer later weer.", "capacity": "Die SoAIBench-ranglys is tans vol.", "rejected": "Die SoAIBench-ranglys het hierdie resultaat verwerp.", "conflict": "Hierdie publikasie bots met die bestaande ranglystoestand.", "invalidResponse": "Die SoAIBench-ranglys het ’n ongeldige antwoord teruggestuur.", "retryAfter": "Probeer weer oor {seconds} sekondes." }
+                "confirm": {
+                    "title": "Deel SoAIBench-telling?",
+                    "message": "Publiseer telling {score} en sy {passes} gemete lopies op die openbare SoAIBench-ranglys?",
+                    "description": "Dit stuur die telling, vyf gemete lopies, openbare GPU- en looptydinligting, maatstaftoetsinstellings en opsionele sensorbewyse. Rekeningidentiteit, lêers, konfigurasie, ontleding en algemene telemetrie word uitgesluit."
+                },
+                "outcomes": {
+                    "published": "SoAIBench-telling is openbaar gedeel.",
+                    "alreadyPublished": "Hierdie SoAIBench-telling is reeds gedeel.",
+                    "heldForReview": "Die SoAIBench-resultaat is vir identiteits- of afwykingshersiening gehou en is nog nie in die ranglys ingesluit nie.",
+                    "offline": "Die telling kon nie gedeel word terwyl SoAI vanlyn is nie.",
+                    "unavailable": "Die SoAIBench-publikasiediens is nie beskikbaar nie.",
+                    "timeout": "Die deel van die telling het uitgetel. Probeer weer om dieselfde publikasie te versoen.",
+                    "rateLimited": "Te veel tellings is vanaf hierdie verbinding gedeel. Probeer later weer.",
+                    "capacity": "Die SoAIBench-ranglys is tans vol.",
+                    "rejected": "Die SoAIBench-ranglys het hierdie resultaat verwerp.",
+                    "conflict": "Hierdie publikasie bots met die bestaande ranglystoestand.",
+                    "invalidResponse": "Die SoAIBench-ranglys het ’n ongeldige antwoord teruggestuur.",
+                    "retryAfter": "Probeer weer oor {seconds} sekondes."
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3123,9 +3286,11 @@
                         "quick": "Vinnig",
                         "varianceSuffix": "{variance}% variansie"
                     },
-                    "description": "Vorige SoAIBench-uitvoerings vir die gekose GPU.",
+                    "description": "Vorige SoAIBench-uitvoerings vir die gekose GPU",
                     "empty": "Nog geen SoAIBench-uitvoerings vir hierdie GPU nie.",
                     "loading": "Laai uitvoeringsgeskiedenis...",
+                    "pageEmpty": "Nog geen SoAIBench-lopies nie.",
+                    "pageLoadFailed": "Kon nie SoAIBench-lopies laai nie. Probeer weer.",
                     "matchBases": {
                         "device_id": "Toestel-ID",
                         "gpu_model_key": "GPU-modelsleutel",
@@ -3146,7 +3311,9 @@
                         "standard": "Standaard",
                         "stress": "Stres"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "Die numeriese validering van die OpenCL-werklas het misluk." },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "Die numeriese validering van die OpenCL-werklas het misluk."
+                    },
                     "rowCopyUnavailable": "Geen SoAIBench-uitvoering beskikbaar om te kopieer nie",
                     "staleHardware": "Verouderde hardeware-ooreenstemming",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "Vorige SoAIBench-uitvoerings"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "Kies ’n GPU om te toets",
+                    "noGpus": "Geen GPU’s beskikbaar vir toetsing nie.",
                     "ariaLabels": {
                         "close": "Sluit SoAIBench",
                         "copy": "Kopieer SoAIBench-uitvoering",
@@ -3170,13 +3339,16 @@
                         "retry": "Probeer gesertifiseerde SoAIBench weer",
                         "stop": "Stop gesertifiseerde SoAIBench",
                         "stopping": "Stop gesertifiseerde SoAIBench",
+                        "newBenchmark": "Begin 'n nuwe gesertifiseerde SoAIBench-uitvoering",
+                        "runAgain": "Voer gesertifiseerde SoAIBench weer op hierdie GPU uit",
+                        "recover": "Kontroleer die SoAIBench-status weer",
                         "start": "Begin gesertifiseerde SoAIBench"
                     },
                     "close": "Sluit",
                     "copy": "Kopieer",
                     "copySuccess": "SoAIBench-uitvoering na knipbord gekopieer",
                     "copyUnavailable": "Geen SoAIBench-uitvoering beskikbaar om te kopieer nie",
-                    "description": "Gesertifiseerde GPU-vergelykingstoets vir SoAI-inferensiegereedheid.",
+                    "description": "Gesertifiseerde GPU-vergelykingstoets vir SoAI-inferensiegereedheid",
                     "download": "Laai af",
                     "export": {
                         "deviceId": "Toestel-ID",
@@ -3231,7 +3403,11 @@
                         "stopping": "Stop SoAIBench",
                         "warmupDetail": "Opwarming {pass}/{total}",
                         "warmupPhase": "Opwarming: {phase}",
-                        "warmup": "Opwarmingsdeurloop voltooi"
+                        "warmup": "Opwarmingsdeurloop voltooi",
+                        "reconnecting": "Herkoppel tans... Laaste opdatering: {age}",
+                        "checkingStatus": "Kontroleer tans die toetslopiestatus...",
+                        "statusUnavailable": "Die toetslopiestatus is nie beskikbaar nie. Probeer weer om dit weer te kontroleer.",
+                        "startUnconfirmed": "Die begin van die toetslopie kon nie bevestig word nie en geen uitvoering is aktief op hierdie GPU nie. Gaan die geskiedenis na voordat jy weer probeer."
                     },
                     "retry": "Probeer weer",
                     "scoreLabel": "SoAIBench-telling",
@@ -3253,6 +3429,15 @@
                     "standardRun": "Standaarduitvoering",
                     "stop": "Stop",
                     "stopping": "Stop tans",
+                    "newBenchmark": "Nuwe toetslopie",
+                    "runAgain": "Voer weer uit",
+                    "gpuBusy": "Toetslopie aan die gang",
+                    "startedAt": "Begin om {time}",
+                    "states": {
+                        "starting": "Begin tans",
+                        "unresolved": "Status onbekend",
+                        "rejected": "Nie begin nie"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "Dokumentasie",
             "intro": {
                 "aboutButton": "Oor SoAI",
-                "paragraph1": "<strong>SoAI (Slim orkestreerder vir kunsmatige intelligensie)</strong> bestuur plaaslike inferensie-enjins en afgeleë KI-verskaffers vanuit een WebUI. Dit stel hul modelle deur OpenAI-versoenbare en Anthropic-versoenbare API's beskikbaar",
+                "paragraph1": "<strong dir=\"auto\">SoAI (Slim orkestreerder vir kunsmatige intelligensie)</strong> bestuur plaaslike inferensie-enjins en afgeleë KI-verskaffers vanuit een WebUI. Dit stel hul modelle deur OpenAI-versoenbare en Anthropic-versoenbare API's beskikbaar",
                 "paragraph2": "SoAI werk op Linux, macOS en Windows. Dit is bronbeskikbaar en gratis vir persoonlike en homelab-gebruik. SoAI versamel nie jou data of stuur analitika, telemetrie of gebruiksverslae nie"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "Latensie",
                         "queueDepth": "Toudiepte",
                         "requests": "Versoeke",
+                        "throughput": "Tokenverwerkingstempo",
                         "tokens": "Tokens"
                     },
                     "title": "Grafiek"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "Vertoonnaam",
                     "source_model_id": "Bronmodel-ID",
-                    "provider": "Verskaffer",
-                    "title": "Identiteit",
                     "type": "Tipe",
                     "universal_id": "Universele ID",
                     "virtual": "Virtueel"
@@ -4064,30 +4248,20 @@
                     "title": "Inferensieverstekwaardes"
                 },
                 "metrics": {
-                    "avgLatency": "Gem. latensie",
                     "avgTokens": "Gem. tokens/versoek",
                     "audioIn": "Oudio in",
                     "audioOut": "Oudio uit",
-                    "failedRequests": "Mislukte versoeke",
                     "imagesIn": "Beelde in",
                     "imagesOut": "Beelde uit",
                     "last_used": "Laas gebruik",
                     "modalityUsage": "Gebruik",
                     "success_rate": "Sukseskoers",
                     "textTokens": "Tekstokens",
-                    "title": "Metrieke",
                     "tokensGenerated": "Gegenereerde tokens",
-                    "totalRequests": "Totale versoeke",
-                    "waitTime": "Gem. wagtyd"
+                    "totalRequests": "Totale versoeke"
                 },
                 "plugin": {
-                    "author": "Outeur",
-                    "models": "Modelle",
-                    "plugin_status": "Pluginstatus",
-                    "providers": "Verskaffers",
-                    "title": "Plugin",
-                    "type": "Tipe",
-                    "version": "Weergawe"
+                    "title": "Plugin"
                 },
                 "status": {
                     "available": "Beskikbaar",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "Hernoem",
                     "modelStatus": "Modelstatus",
                     "orphaned": "Verweesd",
-                    "parameters": "Parameters",
                     "stopPlugin": "Stop plugin",
-                    "title": "Status en aksies"
+                    "title": "Status"
                 },
                 "technical": {
                     "created": "Geskep",
-                    "description": "Beskrywing",
                     "family": "Familie",
                     "license": "Lisensie",
                     "path": "Pad",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "Alle parameters",
-                "category": "Kategorie",
                 "groupInference": "Inferensie",
                 "groupStartup": "Opstart"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "Voeg {itemType}-item by",
                 "aliasesPrefix": "Ook bekend as:",
                 "arrayOfType": "Skikking van {itemType}-waardes",
+                "backendDefault": "Backend-verstek",
                 "backendDocumentationDescription": "Hierdie modelparameters sluit <strong>backend-gedefinieerde instellings</strong> in wat deur die plugin blootgestel word. Gebruik die backend se eie dokumentasie vir presiese gedrag, aanvaarde waardes en verstekwaardes.",
-                "backendDocumentationTitle": "Inligting",
                 "badges": {
                     "custom": "PASGEMAAK",
-                    "default": "VERSTEK",
                     "requiresReload": "HERLAAI VEREIS"
                 },
-                "countLabel": "{count} parameters",
+                "count": {
+                    "plural": "{count} parameters",
+                    "singular": "{count} parameter"
+                },
                 "invalidJson": "Voer geldige JSON vir hierdie parameter in.",
                 "jsonObject": "JSON-objek",
                 "noMatchDescription": "Probeer jou soek- of filterkriteria aanpas.",
                 "noMatchTitle": "Geen parameters pas by jou filters nie",
                 "noParameters": "Geen parameters vir hierdie model beskikbaar nie",
+                "railLabel": "Parameterkategorieë",
                 "range": "Reeks: {min} - {max}",
-                "removeItem": "Verwyder item"
+                "removeItem": "Verwyder item",
+                "revertChange": "Herstel verandering",
+                "unsavedCount": {
+                    "plural": "{count} ongestoorde veranderinge",
+                    "singular": "{count} ongestoorde verandering"
+                },
+                "views": {
+                    "customized": "Aangepas",
+                    "unsaved": "Ongestoorde veranderinge"
+                }
             },
             "status": {
                 "loaded": "Gelaai",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "Kies lêer",
                     "close": "Sluit",
                     "confirmDownload": "Laai plugin af",
                     "confirmUpload": "Laai plugin op",
+                    "fileDropHint": "Klik om 'n .soaiplugin-lêer te kies, of sleep dit hierheen",
+                    "fileDropTitle": "Laat val 'n plugin hier",
                     "fileHelp": "Kies 'n Python-pluginpakket in ZIP-formaat (.soaiplugin)",
                     "fileLabel": "Pluginlêer",
                     "manualCopySuccess": "Pad na pluginsgids na knipbord gekopieer.",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant} (geïnstalleer)",
                     "loadFailed": "Backend-variante kon nie gelaai word nie.",
                     "loading": "Laai tans backend-variante...",
+                    "loadingBackends": "Laai tans backends...",
                     "saveFailed": "Backend-variant kon nie gestoor word nie."
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "Versoenbaarheidsoorskrywing vir {plugin} geaktiveer.",
                 "overrideRequired": "Aktiveer die versoenbaarheidsoorskrywing voordat {plugin} begin word.",
                 "persistentNoStop": "Aanhoudende plugins kan nie gestop word nie",
-                "pluginDisabled": "Plugin gedeaktiveer",
-                "pluginEnabled": "Plugin geaktiveer",
+                "pluginDisabled": "Plugin {plugin} gedeaktiveer",
+                "pluginEnabled": "Plugin {plugin} geaktiveer",
                 "pluginIncompatibleReason": "Plugin \"{plugin}\" is onversoenbaar: {reason}",
                 "pluginInfoCopyFailed": "Kon nie plugininligting kopieer nie",
                 "pluginStopInProgress": "Stop tans {plugin}...",
@@ -5489,16 +5674,21 @@
                 "restarting": "Die toepassing herbegin tans. Dit behoort net 'n paar oomblikke te neem.",
                 "shutdown": "Die stelsel skakel tans af. Jy kan hierdie blaaiervenster sluit.",
                 "sleep": "Die stelsel gaan slaapmodus binne. Maak dit wakker om voort te gaan om SoAI te gebruik.",
-                "updating": "SoAI laai opdaterings af en installeer dit. Dit kan etlike minute neem."
+                "updateTimeout": "SoAI het nie ná die opdatering weer aanlyn gekom nie. Kyk na application_updater.log in die SoAI-loglêergids en herlaai dan hierdie bladsy.",
+                "updating": "SoAI sal herbegin om die opdatering te voltooi. Hierdie bladsy herlaai outomaties wanneer SoAI weer aanlyn is. Dit kan 'n paar minute neem.",
+                "updatingDesktop": "SoAI sal herbegin om die opdatering te voltooi. Hierdie venster sluit en maak outomaties weer oop wanneer die opdatering voltooi is. Moet asseblief nie jou rekenaar afskakel nie.",
+                "updatingSlow": "Die opdatering neem langer as gewoonlik. SoAI werk nog, hou dus asseblief hierdie bladsy oop."
             },
             "messages": {
                 "connectionLost": "Backend-verbinding verloor",
+                "installingVersion": "SoAI {version} word geïnstalleer...",
                 "pleaseWait": "Wag asseblief...",
                 "rebooting": "Stelsel herbegin tans...",
                 "rebootTimeout": "Stelselherbegin is steeds aan die gang...",
                 "restarting": "SoAI herbegin tans...",
                 "shutdown": "Stelsel skakel tans af",
                 "sleep": "Stelsel gaan slaap",
+                "updateTimeout": "SoAI is nog nie terug nie",
                 "updating": "SoAI dateer tans op..."
             },
             "reconnecting": "Probeer tans weer koppel..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "Kies 'n pasgemaakte kleur vir alle grafieke",
-                    "label": "Statiese kleur"
+                    "label": "Grafiekkleur"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "Beheer hoe kodeagtige inhoud regdeur SoAI aangebied word.",
                 "subgroupTitle": "Kodeblokke"
+            },
+            "connect": {
+                "addressCopied": "Adres gekopieer",
+                "browserAddress": "Hierdie blaaier se adres",
+                "chooseAddress": "Adres vir jou foon",
+                "copyAddress": "Kopieer adres",
+                "description": "Koppel die SoAI Connect Android-toep aan hierdie bediener deur 'n QR-kode te skandeer.",
+                "documentationHint": "Vir handmatige opstelling en probleemoplossing, maak \"Connect to a SoAI server\" in die SoAI-dokumentasie oop",
+                "documentationLink": "SoAI-dokumentasie",
+                "loadFailed": "Kon nie die verbindingsbesonderhede laai nie",
+                "loopbackWarningMessage": "SoAI luister op 'n loopback-adres, dus kan ander toestelle dit nie direk bereik nie. Die QR-kode werk slegs deur 'n omgekeerde instaanbediener wat dieselfde skema en poort as SoAI gebruik. Om direkte verbindings toe te laat, stel die volgende opsie en herbegin SoAI:",
+                "loopbackWarningTitle": "Slegs vanaf hierdie rekenaar bereikbaar",
+                "noAddressesMessage": "Koppel hierdie bediener aan 'n netwerk, of maak hierdie bladsy oop vanaf die adres wat jou foon moet gebruik.",
+                "noAddressesTitle": "Geen bereikbare adres gevind nie",
+                "qrLabel": "QR-kode om SoAI Connect aan {address} te koppel",
+                "refresh": "Verfris adresse",
+                "scanHint": "Skandeer hierdie QR-kode met die SoAI Connect-toep",
+                "stepInstall": "Installeer SoAI Connect op jou Android-foon en maak dit oop",
+                "stepScan": "Tik op die QR-kode-knoppie langs die bedieneradresveld en skandeer dan die kode op hierdie bladsy",
+                "stepSignIn": "Hersien enige sertifikaatversoek en meld dan aan met jou SoAI-rekening",
+                "stepsTitle": "Hoe om te koppel",
+                "title": "SoAI Connect",
+                "vpnHint": "Jou foon moet hierdie bediener kan bereik. Gebruik dieselfde plaaslike netwerk, of 'n VPN wanneer jy weg is, eerder as om SoAI aan die internet bloot te stel",
+                "vpnTitle": "Weg van die huis af?"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "Versteek bladsykop outomaties"
                     }
                 },
-                "subgroupTitle": "Beweging",
+                "subgroupTitle": "Koppelvlak",
                 "subgroupDescription": "Verfyn beweging, oorgange, glasoppervlakke en rolgedrag."
             },
             "externalAccounts": {
@@ -6975,7 +7189,7 @@
                     "authorizedSendersPlaceholder": "sender-id | Opsionele etiket",
                     "credentialsDescription": "Voer die aanmeldbesonderhede in wat deur die gekose verskaffer vereis word.",
                     "credentialsTitle": "Verskaffer-aanmeldbesonderhede",
-                    "description": "Konfigureer een werklike verskafferrekening en die kanonieke Klets-uitvoerinstellings wat dit besit.",
+                    "description": "Konfigureer een werklike verskafferrekening en die kanonieke Klets-uitvoerinstellings wat dit besit",
                     "executionDescription": "Kies die Klets-model, identiteit, prompts, werkruimte en uitvoerparameters.",
                     "executionTitle": "Klets-uitvoer",
                     "identityDescription": "Gee die rekening 'n naam en kies die verskaffer en antwoordtaal daarvan.",
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "Rugsteun",
+                "connect": "Koppel",
                 "externalAccounts": "Pos & kalender",
                 "licensing": "Lisensiëring",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "Kies een om dit toe te pas",
+                    "label": "Ingeboude agtergronde",
+                    "none": "Geen agtergrond",
+                    "option": "Agtergrond {number}"
+                },
                 "downloadUrl": {
                     "button": "Laai af",
                     "help": "Verskaf 'n URL om af te laai en as agtergrond te stel",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "Sommige vrystellingsnotas kon nie gelaai word nie. Beskikbare notas word gewys."
+            },
+            "outcome": {
+                "failureMessage": "Die opdatering na weergawe {version} is nie voltooi nie. SoAI {previousVersion} is steeds geïnstalleer. Kyk na application_updater.log in die SoAI-loglêergids vir besonderhede.",
+                "failureTitle": "Opdatering nie voltooi nie",
+                "later": "Later",
+                "reloadMessage": "SoAI loop nou weergawe {version}. Herlaai hierdie bladsy om die opgedateerde koppelvlak te gebruik.",
+                "reloadTitle": "SoAI is opgedateer",
+                "successMessage": "SoAI is suksesvol opgedateer na weergawe {version}.",
+                "successTitle": "Opdatering voltooi"
+            },
+            "progress": {
+                "downloading": "Laai opdatering af...",
+                "handoff": "Berei voor om SoAI te herbegin...",
+                "staging": "Berei opdateringslêers voor...",
+                "unavailable": "Regstreekse vordering is tydelik nie beskikbaar nie.",
+                "verifying": "Verifieer opdatering..."
+            },
             "actions": {
                 "checkUpdates": "Kyk vir opdaterings",
                 "installUpdate": "Installeer opdatering"
@@ -7943,6 +8183,184 @@
             "welcome": {
                 "description": "SoAI verenig plaaslike en afgeleë LLM-backends agter een OpenAI-versoenbare orkestreringslaag.",
                 "heading": "Welkom by SoAI!"
+            },
+            "aiSetup": {
+                "eyebrow": "SoAI-opstelling",
+                "loadFailed": {
+                    "title": "SoAI-opstelling kon nie laai nie",
+                    "description": "SoAI kon nie die beskikbare enjins en verskaffers lees nie. Maak seker SoAI loop en probeer dan weer, of voltooi die opstelling later.",
+                    "retry": "Probeer weer"
+                },
+                "nav": {
+                    "finishLater": "Slaan oor",
+                    "skip": "Slaan SoAI-opstelling oor",
+                    "continue": "Gaan voort",
+                    "installAndContinue": "Installeer",
+                    "downloadAndContinue": "Laai af",
+                    "startChatting": "Klets",
+                    "close": "Sluit"
+                },
+                "sources": {
+                    "heading": "Waar moet jou KI loop?",
+                    "description": "Kies een of albei. Jy kan dit later verander.",
+                    "local": {
+                        "title": "Op hierdie toestel",
+                        "description": "Privaat en werk vanlyn ná opstelling. Benodig 'n eenmalige aflaai."
+                    },
+                    "cloud": {
+                        "title": "Wolkverskaffers",
+                        "description": "Werk oral met internet en 'n verskaffer-API-sleutel.",
+                        "recommended": "Aanbeveel"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "Kry 'n gratis API-sleutel",
+                    "accessibleName": "Kry 'n gratis API-sleutel (maak in 'n nuwe venster oop)"
+                },
+                "limited": {
+                    "noCompatibleEngine": "Geen plaaslike enjin ondersteun hierdie toestel nie.",
+                    "insufficientMemory": "Plaaslike modelle benodig ongeveer {required} vrye geheue; hierdie toestel het ongeveer {available}.",
+                    "useCloud": "Gebruik eerder 'n wolkmodel",
+                    "searchManually": "Soek modelle handmatig"
+                },
+                "connect": {
+                    "heading": "Maak gereed",
+                    "description": "Koppel 'n verskaffer en berei hierdie toestel voor.",
+                    "cloud": {
+                        "heading": "Koppel 'n wolkverskaffer",
+                        "description": "Plak die API-URL en sleutel van jou verskaffer.",
+                        "moreOptions": "Meer opsies",
+                        "modelFilter": "Modelfilter (opsioneel)",
+                        "connect": "Koppel",
+                        "connecting": "Koppel tans aan {name}…",
+                        "connected": {
+                            "singular": "Gekoppel · {count} model beskikbaar",
+                            "plural": "Gekoppel · {count} modelle beskikbaar"
+                        },
+                        "change": "Verander"
+                    },
+                    "local": {
+                        "heading": "Installeer 'n plaaslike enjin",
+                        "description": "Dit laat modelle op hierdie toestel loop.",
+                        "automatic": "Outomaties (aanbeveel)",
+                        "usesGpu": "Gebruik {engine} met jou grafiese kaart",
+                        "usesProcessor": "Gebruik {engine} op die verwerker",
+                        "usesInstalled": "Gebruik {engine}, reeds geïnstalleer",
+                        "chooseManually": "Kies handmatig",
+                        "status": {
+                            "installed": "Geïnstalleer",
+                            "recommended": "Aanbeveel",
+                            "warning": "Waarskuwing",
+                            "unavailable": "Onbeskikbaar"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "Kies 'n model",
+                    "description": "Kies waarmee jy wil klets. Jy kan later meer byvoeg.",
+                    "local": {
+                        "heading": "Modelle vir hierdie toestel",
+                        "description": "Gekies vir jou hardeware."
+                    },
+                    "role": {
+                        "recommended": "Aanbeveel",
+                        "faster": "Vinniger",
+                        "smallest": "Kleinste"
+                    },
+                    "useCase": {
+                        "advanced": "Beste gehalte vir skryf, kodering en redenering",
+                        "balanced": "Uitstekend vir alledaagse klets, skryf en kodering",
+                        "reasoning": "Sterk stap-vir-stap-redenering",
+                        "light": "Vinnige antwoorde op beskeie hardeware"
+                    },
+                    "downloadSize": "{size} aflaai",
+                    "runsOnGpu": "Loop op jou grafiese kaart",
+                    "runsOnCpu": "Loop op jou verwerker",
+                    "speed": {
+                        "fast": "Vinnige antwoorde",
+                        "moderate": "Matige spoed",
+                        "slow": "Stadiger antwoorde"
+                    },
+                    "details": {
+                        "label": "Besonderhede",
+                        "quantization": "Kwantisering",
+                        "parameters": "Parameters",
+                        "parametersDense": "{total} mjd.",
+                        "parametersMoe": "{total} mjd., {active} mjd. aktief",
+                        "context": "Konteksgrootte",
+                        "contextTokens": "{tokens} tokens",
+                        "contextReduced": "{tokens} tokens (verminder vir hierdie toestel)",
+                        "file": "Lêer",
+                        "source": "Bron"
+                    },
+                    "openChatWith": "Maak klets met hierdie model oop",
+                    "searchAnother": "Soek 'n ander model",
+                    "cloud": {
+                        "heading": "Modelle van {provider}",
+                        "description": "Kies een of meer.",
+                        "filterPlaceholder": "Filter modelle…",
+                        "noMatches": "Geen modelle pas by hierdie filter nie.",
+                        "empty": "Hierdie verskaffer het geen modelle teruggestuur nie. Gaan die modelfilter na of probeer 'n ander verskaffer.",
+                        "backToProvider": "Terug na verskaffer"
+                    }
+                },
+                "progress": {
+                    "heading": "Alles word gereed gemaak",
+                    "description": "Jy kan begin klets sodra een model gereed is.",
+                    "readyCount": "{ready} van {total} gereed",
+                    "installing": "Installeer tans {engine}",
+                    "downloading": "Laai tans {model} af",
+                    "waitingForEngine": "Wag vir {engine} om klaar te installeer",
+                    "discovering": "Voeg tans {model} by jou modelle",
+                    "configuring": "Pas begininstellings toe",
+                    "testing": "Stuur tans 'n kort toetsboodskap",
+                    "ready": "{model} is gereed",
+                    "blocked": "Kan nie begin voordat {engine} geïnstalleer is nie",
+                    "checkingStatus": "Gaan status na",
+                    "retry": "Probeer weer",
+                    "retryInstallation": "Probeer installasie weer",
+                    "skipItem": "Slaan hierdie item oor",
+                    "testAgain": "Toets weer",
+                    "checkAgain": "Gaan weer na",
+                    "sendTest": "Stuur 'n toetsboodskap",
+                    "error": {
+                        "empty": "Die model is gelaai maar het nie geantwoord nie. Probeer weer of kies 'n ander model.",
+                        "loadError": "Die model kon nie op hierdie toestel begin nie. Probeer weer of kies 'n kleiner model.",
+                        "timeout": "Die model het te lank geneem om te antwoord. Probeer weer of kies 'n kleiner model.",
+                        "disconnected": "Die verbinding is tydens die toets verloor. Probeer weer.",
+                        "downloadFailed": "Die aflaai het gestop. Probeer weer.",
+                        "installFailed": "Die installasie is nie voltooi nie. Probeer weer.",
+                        "noDiskSpace": "Nie genoeg skyfspasie vir hierdie model nie. Maak spasie vry of kies 'n kleiner model."
+                    },
+                    "testPrompt": "Antwoord met een kort, vriendelike sin.",
+                    "testCancelled": "Die SoAI-opstellingstoets is gekanselleer."
+                },
+                "completion": {
+                    "modelsTitle": "KI-modelle",
+                    "modelsReady": {
+                        "singular": "{count} gereed",
+                        "plural": "{count} gereed"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} word nog in die agtergrond voorberei",
+                        "plural": "{count} word nog in die agtergrond voorberei"
+                    }
+                },
+                "resume": {
+                    "link": "Voltooi SoAI-opstelling",
+                    "toast": "Sommige stappe van die SoAI-opstelling het jou aandag nodig."
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "Die modelaflaai sal in die agtergrond voortgaan.",
+                        "plural": "{count} modelaflaaie sal in die agtergrond voortgaan."
+                    },
+                    "installations": {
+                        "singular": "Die backend-installasie sal in die agtergrond voortgaan.",
+                        "plural": "{count} backend-installasies sal in die agtergrond voortgaan."
+                    },
+                    "both": "Modelaflaaie en backend-installasies sal in die agtergrond voortgaan."
+                }
             }
         }
     }

@@ -2,17 +2,21 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
+import { isEpochMsNumber } from '@core/time/epochMs.ts';
 import { CHAT_ACTIONS } from '@features/chat/chatActionIds.ts';
 import { renderInlineStatusIcon } from '@features/chat/message/messageview/inlineActivityStatusRendering.ts';
 import { resolveInlineActivityName } from '@features/chat/message/messageview/inlineActivityName.ts';
 import { resolveInlineToolHeaderQueryText } from '@features/chat/message/messageview/inlineToolActivityPayloadParsing.ts';
 import { isInlineToolActivityExplicitlyNonExpandable, type InlineToolActivityPresentation } from '@features/chat/message/messageview/inlineToolActivityPresentation.ts';
 import { renderInlineActivityChrome } from '@features/chat/message/messageview/inlineActivityChrome.ts';
-import { renderInlineActivityHeaderRow, renderInlineActivityIcon, renderInlineActivityLeadingIcon, type InlineActivityStopButtonArguments } from '@features/chat/message/messageview/inlineActivityHeaderRow.ts';
+import { renderInlineActivityHeaderRow, renderInlineActivityIcon, renderInlineActivityLeadingIcon, renderInlineActivityStreamedPreview, type InlineActivityStopButtonArguments } from '@features/chat/message/messageview/inlineActivityHeaderRow.ts';
+import { resolveSubagentLatestActivityName } from '@features/chat/message/messageview/subagentStreamSegments.ts';
 import type { ChatMessageRenderHost, InlineToolActivitySegment } from '@features/chat/message/messageview/types.ts';
 import { INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE, INLINE_ACTIVITY_DETAILS_SIGNATURE_ATTRIBUTE } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
 import { CONTEXT_COMPACTION_TOOL_LEAF } from '@features/chat/message/contextcompaction/detection.ts';
 import { resolveAssistantVariantIdentity } from '@core/chat/assistantIdentity.ts';
+
+const SUBAGENT_ACTIVITY_PREVIEW_DELAY_MS = 15_000;
 
 const renderToolIcon = (host: ChatMessageRenderHost, segment: InlineToolActivitySegment, toolLeafName: string): string => {
     if (segment.status === 'error') {
@@ -32,6 +36,21 @@ const renderToolIcon = (host: ChatMessageRenderHost, segment: InlineToolActivity
         return renderInlineStatusIcon(host, segment.status, 'model-default');
     }
     return renderInlineStatusIcon(host, segment.status, 'plugin');
+};
+
+const renderSubagentHeaderPreview = (host: ChatMessageRenderHost, segment: InlineToolActivitySegment, toolLeafName: string, previewText: string): string | undefined => {
+    const startedAtMs = segment.startedAtMs;
+    if (toolLeafName !== 'subagent_spawn' || segment.status !== 'running' || typeof startedAtMs !== 'number' || !isEpochMsNumber(startedAtMs)) {
+        return undefined;
+    }
+    const activityName = resolveSubagentLatestActivityName(segment);
+    const latest = activityName ?? previewText;
+    if (!latest) {
+        return undefined;
+    }
+    const revealAtMs = startedAtMs + SUBAGENT_ACTIVITY_PREVIEW_DELAY_MS;
+    const visible = activityName !== null && host.nowMs() >= revealAtMs ? activityName : previewText;
+    return renderInlineActivityStreamedPreview(host, { status: 'running', visible, latest, revealAtMs });
 };
 
 const resolveInlineToolStopButton = (segment: InlineToolActivitySegment, toolLeafName: string): InlineActivityStopButtonArguments | null => {
@@ -66,10 +85,12 @@ const renderInlineToolActivityMarkup = (host: ChatMessageRenderHost, segment: In
     const toggleEnabled = segment.status !== 'pending' && hasExpandableDetails && (!isContextCompaction || isTerminalContextCompaction);
     const leadingIconHtml = toggleEnabled ? renderInlineActivityLeadingIcon(host, { variant: 'expander', iconName: 'chevron-right', options: { size: 10, strokeWidth: 4 } }) : renderInlineActivityLeadingIcon(host, { variant: 'hourglass', iconName: 'hourglass', options: { size: 8, strokeWidth: 1.5 } });
     const openRequested = toggleEnabled && !isCollapsed;
+    const previewText = resolveInlineToolHeaderQueryText(segment);
     const chrome = renderInlineActivityChrome(host, {
         segment,
         mainIconHtml: renderToolIcon(host, segment, toolLeafName),
-        previewText: resolveInlineToolHeaderQueryText(segment),
+        previewHtml: renderSubagentHeaderPreview(host, segment, toolLeafName, previewText),
+        previewText,
         expansionState: openRequested ? 'expanded' : 'collapsed'
     });
     const activityTypeClass = isContextCompaction ? ' inline-activity-context-compaction' : '';

@@ -26,16 +26,6 @@ const toParameterValue = (value: JsonValue): ParameterValue => {
     return String(value);
 };
 
-const isParameterUsingDefault = (state: ParameterStateManager, parameterKey: string): boolean => {
-    const parameter = state.getParameter(parameterKey);
-    const hasDefault = parameter?.hasDefault ?? parameter?.definition?.hasDefault ?? (parameter?.definition ? 'default' in parameter.definition : false);
-    if (!hasDefault) {
-        return false;
-    }
-    const definitionDefault = parameter?.definition?.default;
-    return isNullOrUndefined(parameter?.currentValue) || parameter?.currentValue === definitionDefault;
-};
-
 const normalizeParameterValue = (state: ParameterStateManager, parameterKey: string, rawValue: ParameterValue): ParameterValue => {
     if (rawValue === '' || isNullOrUndefined(rawValue) || (isNumber(rawValue) && Number.isNaN(rawValue))) {
         return null;
@@ -111,4 +101,4 @@ const setArrayItemValue = (state: ParameterStateManager, parameterKey: string, i
     return { next, isModified: result.isModified };
 };
 
-export { getArrayValueWithAppend, getArrayValueWithRemoval, isParameterUsingDefault, normalizeParameterValue, parseJsonParameterValue, setArrayItemValue };
+export { getArrayValueWithAppend, getArrayValueWithRemoval, normalizeParameterValue, parseJsonParameterValue, setArrayItemValue };

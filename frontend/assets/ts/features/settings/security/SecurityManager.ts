@@ -37,7 +37,7 @@ class SecurityManager {
         this.#bindContainerHandlers();
     }
 
-    async reload(): Promise<boolean> {
+    async reload(options: { showFailureNotification?: boolean } = {}): Promise<boolean> {
         const reloadRun = this.#lifecycle.beginReload('security-reload');
         if (reloadRun === null) {
             return false;
@@ -59,7 +59,9 @@ class SecurityManager {
             this.#host.setSecurityAvailability(markSettingsCapabilityFailed(this.#host.getSecurityAvailability()));
             this.#renderIntoContainer();
             errorHandler.warn('SecurityManager', 'Security audit reload failed', runtimeError);
-            this.#host.feedback.show(i18n.t('settings.security.errors.reloadFailed'), 'error');
+            if (options.showFailureNotification !== false) {
+                this.#host.feedback.show(i18n.t('settings.security.errors.reloadFailed'), 'error');
+            }
             return false;
         }
     }

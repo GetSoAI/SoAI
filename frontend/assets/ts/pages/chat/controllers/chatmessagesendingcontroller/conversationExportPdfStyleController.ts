@@ -21,21 +21,24 @@ html {
   line-height: 1.52;
   ${PDF_COLOR_EXACT_RULES}
 }
+:root:lang(ar), :root:lang(fa) { line-height: 1.6; }
+:root:lang(ar) *, :root:lang(fa) * { letter-spacing: 0; text-transform: none; font-style: normal; }
+[dir="auto"] { text-align: start; unicode-bidi: isolate; }
 body { margin: 0; background: #eef1f4; }
 a { color: ${PDF_COLOR_ACCENT}; overflow-wrap: anywhere; text-decoration: none; }
 a[href]::after { content: " (" attr(href) ")"; color: #687382; font-size: 10px; }
 svg { max-width: 100%; height: auto; }
 img, video { max-width: 100%; }
 table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0; break-inside: avoid; border: ${BORDER}; border-radius: ${RADIUS_BLOCK}; }
-th, td { border: 0; border-right: ${BORDER}; border-bottom: ${BORDER}; padding: 6px 8px; vertical-align: top; }
-tr > :last-child { border-right: 0; }
+th, td { border: 0; border-inline-end: ${BORDER}; border-bottom: ${BORDER}; padding: 6px 8px; vertical-align: top; }
+tr > :last-child { border-inline-end: 0; }
 table > :last-child > tr:last-child > * { border-bottom: 0; }
-table > :first-child > tr:first-child > :first-child { border-top-left-radius: ${RADIUS_BLOCK_INNER}; }
-table > :first-child > tr:first-child > :last-child { border-top-right-radius: ${RADIUS_BLOCK_INNER}; }
-table > :last-child > tr:last-child > :first-child { border-bottom-left-radius: ${RADIUS_BLOCK_INNER}; }
-table > :last-child > tr:last-child > :last-child { border-bottom-right-radius: ${RADIUS_BLOCK_INNER}; }
+table > :first-child > tr:first-child > :first-child { border-start-start-radius: ${RADIUS_BLOCK_INNER}; }
+table > :first-child > tr:first-child > :last-child { border-start-end-radius: ${RADIUS_BLOCK_INNER}; }
+table > :last-child > tr:last-child > :first-child { border-end-start-radius: ${RADIUS_BLOCK_INNER}; }
+table > :last-child > tr:last-child > :last-child { border-end-end-radius: ${RADIUS_BLOCK_INNER}; }
 th { background: #f3f6f8; color: #26313d; font-weight: 750; }
-pre, code { font-family: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Consolas, "Liberation Mono", "DejaVu Sans Mono", monospace; }
+pre, code { direction: ltr; unicode-bidi: isolate; text-align: start; font-family: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Consolas, "Liberation Mono", "DejaVu Sans Mono", monospace; }
 pre { margin: 10px 0; padding: 10px 12px; border: ${BORDER}; border-radius: ${RADIUS_BLOCK}; background: #f7f9fb; color: #20262d; overflow-wrap: anywhere; white-space: pre-wrap; break-inside: auto; }
 code { padding: 1px 4px; border-radius: ${RADIUS_INLINE}; background: #eef2f6; }
 pre code { padding: 0; background: transparent; }
@@ -100,7 +103,7 @@ blockquote { margin: 10px 0; padding: 8px 12px; border: 1px solid #c6d2e0; borde
 .chat-export-message-body > :first-child { margin-top: 0; }
 .chat-export-message-body > :last-child { margin-bottom: 0; }
 .chat-export-message-body p { margin: 0 0 9px; }
-.chat-export-message-body ul, .chat-export-message-body ol { margin: 8px 0 10px; padding-left: 22px; }
+.chat-export-message-body ul, .chat-export-message-body ol { margin: 8px 0 10px; padding-inline-start: 22px; }
 .chat-export-message-body li { margin: 3px 0; }
 .chat-export-message-body h1, .chat-export-message-body h2, .chat-export-message-body h3, .chat-export-message-body h4 { margin: 14px 0 8px; color: ${PDF_COLOR_HEADING}; line-height: 1.24; break-after: avoid; }
 .chat-export-message-body h1 { font-size: 22px; }

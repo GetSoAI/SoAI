@@ -26,20 +26,21 @@ class SoAIBenchHistoryModal {
     readonly modalId = HARDWARE_SOAIBENCH_HISTORY_MODAL_ID;
     readonly host: SoAIBenchHistoryModalHost;
     readonly #openToken = new SequenceToken();
+    readonly #confirmDeleteLocalRun: SoAIBenchHistoryModalDependencies['confirmDeleteLocalRun'];
     readonly #deleteLocalRun: SoAIBenchHistoryModalDependencies['deleteLocalRun'];
     readonly #publishRun: SoAIBenchHistoryModalDependencies['publishRun'];
-    readonly #publishingRunIds = new Set<string>();
-    readonly #deletingRunIds = new Set<string>();
+    readonly #busyRunIds = new Set<string>();
     #request: SoAIBenchHistoryOpenRequest | null = null;
     #runs: readonly SoAIBenchHistoryRun[] = [];
     #sortState: SoAIBenchHistorySortState = HISTORY_SORT_DEFAULT_STATE;
 
-    constructor({ host, publishRun, deleteLocalRun }: SoAIBenchHistoryModalDependencies) {
+    constructor({ host, publishRun, confirmDeleteLocalRun, deleteLocalRun }: SoAIBenchHistoryModalDependencies) {
         if (!host) {
             throw new Error('SoAIBenchHistoryModal requires a host');
         }
         this.host = host;
         this.#publishRun = publishRun;
+        this.#confirmDeleteLocalRun = confirmDeleteLocalRun;
         this.#deleteLocalRun = deleteLocalRun;
     }
 
@@ -94,20 +95,19 @@ class SoAIBenchHistoryModal {
 
     async deleteLocalRun(runId: string): Promise<void> {
         return this.host.runWithBoundary('hardware:deleteLocalSoAIBenchHistory', async () => {
-            if (this.#deletingRunIds.has(runId)) return;
+            if (this.#busyRunIds.has(runId)) return;
             this.#requireRun(runId);
             const request = this.#requireRequest();
             const modalRoot = this.host.modals.requireElement(this.modalId);
-            this.#deletingRunIds.add(runId);
-            setRunActionsDisabled(modalRoot, runId, true);
+            this.#setRunBusy(modalRoot, runId, true);
             try {
+                if (!(await this.#confirmDeleteLocalRun())) return;
                 await this.#deleteLocalRun(runId);
                 if (this.#request !== request) return;
                 this.#runs = this.#runs.filter((run) => run.runId !== runId);
                 this.#renderRows(modalRoot);
             } finally {
-                this.#deletingRunIds.delete(runId);
-                if (this.#request === request) setRunActionsDisabled(modalRoot, runId, false);
+                this.#setRunBusy(modalRoot, runId, false);
             }
         });
     }
@@ -166,13 +166,10 @@ class SoAIBenchHistoryModal {
 
     async publishRun(runId: string): Promise<void> {
         return this.host.runWithBoundary('hardware:publishSoAIBenchHistoryRun', async () => {
+            if (this.#busyRunIds.has(runId)) return;
             const run = this.#requireRun(runId);
             const modalRoot = this.host.modals.requireElement(this.modalId);
-            await this.#publishRun(run, (disabled) => {
-                if (disabled) this.#publishingRunIds.add(runId);
-                else this.#publishingRunIds.delete(runId);
-                setRunActionsDisabled(modalRoot, runId, disabled);
-            });
+            await this.#publishRun(run, (disabled) => this.#setRunBusy(modalRoot, runId, disabled));
         });
     }
 
@@ -185,10 +182,14 @@ class SoAIBenchHistoryModal {
         });
     }
 
+    #setRunBusy(modalRoot: HTMLElement, runId: string, busy: boolean): void {
+        if (busy) this.#busyRunIds.add(runId);
+        else this.#busyRunIds.delete(runId);
+        setRunActionsDisabled(modalRoot, runId, busy);
+    }
+
     #renderRows(modalRoot: HTMLElement): void {
-        renderHistoryRows(this.host, modalRoot, formatHistoryRows(this.#getSortedRuns()), this.#sortState);
-        for (const runId of this.#publishingRunIds) setRunActionsDisabled(modalRoot, runId, true);
-        for (const runId of this.#deletingRunIds) setRunActionsDisabled(modalRoot, runId, true);
+        renderHistoryRows(this.host, modalRoot, formatHistoryRows(this.#getSortedRuns()), this.#sortState, this.#busyRunIds);
     }
 
     #getSortedRuns(): SoAIBenchHistoryRun[] {

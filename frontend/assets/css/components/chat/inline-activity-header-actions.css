@@ -6,7 +6,7 @@
         --ui-round-button-surface: var(--control-round-button-activity-close-bg);
         --ui-round-button-surface-hover: var(--control-round-button-activity-close-bg-hover);
         display: none;
-        margin-left: auto;
+        margin-inline-start: auto;
         position: relative;
         inset: auto;
         z-index: var(--z-base);
@@ -18,7 +18,7 @@
     }
 
     :where(.chat-container) .inline-activity-stop-button.ui-round-button + .inline-activity-close-button.ui-round-button {
-        margin-left: 0;
+        margin-inline-start: 0;
     }
 
     :where(.chat-container) :is(.inline-activity-close-button, .inline-activity-stop-button).ui-round-button > :is(.ui-icon, .sidebar-icon, svg):not(.status-indicator, .status-led) {

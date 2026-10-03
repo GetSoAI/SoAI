@@ -46,6 +46,7 @@ class ChatStorageManager {
     #handleConversationSettingsAuthorityChanged: ChatStorageManagerDependencies['handleConversationSettingsAuthorityChanged'];
     #stopStreaming: ChatStorageManagerDependencies['stopStreaming'];
     #showNotification: ChatStorageManagerDependencies['showNotification'];
+    readonly #navigationMemory: ChatStorageManagerDependencies['navigationMemory'];
     readonly #localMessageWrites = new LocalMessageWriteEchoRegistry();
     readonly messageWindowRequests = new MessageWindowRequestRuntime();
     #conversationSyncTails: Map<string, Promise<void>> = new Map();
@@ -67,6 +68,7 @@ class ChatStorageManager {
         this.#handleConversationSettingsAuthorityChanged = dependencies.handleConversationSettingsAuthorityChanged;
         this.#stopStreaming = dependencies.stopStreaming;
         this.#showNotification = dependencies.showNotification;
+        this.#navigationMemory = dependencies.navigationMemory;
         this.errorHandler = options.errorHandler === undefined ? null : options.errorHandler;
     }
 
@@ -108,6 +110,14 @@ class ChatStorageManager {
 
     saveChatState(force = false): void {
         return saveChatState(this, force);
+    }
+
+    readLastConversationId(): string | null {
+        return this.#navigationMemory.readLastConversationId();
+    }
+
+    rememberLastConversationId(conversationId: string | null): void {
+        this.#navigationMemory.rememberLastConversationId(conversationId);
     }
 
     savePreferences(force = false): void {

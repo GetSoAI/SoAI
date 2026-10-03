@@ -2,11 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { throwIfAborted } from '@core/errors/abort.ts';
-import { isArray } from '@core/typeGuards.ts';
-import { serverEpochMs } from '@core/time/clock.ts';
-import { HistoryChartRuntime, markChartViewportFitted, resetChartViewportState, resolveChartViewportReset, type CandlestickPoint, type ChartValuePointInput } from '@features/charts/public.ts';
-import { applyHardwareCandlestickIntervalMetadata, resolveHardwareStateCandlestickIntervalMs } from '@pages/hardware/state/history/hardwareCandlestickIntervalManager.ts';
-import { buildHardwareCandlestickSeries, buildHardwareValueSeries } from '@pages/hardware/state/history/hardwareSeriesBuilders.ts';
+import { buildHistoryDisplaySeries, HistoryChartRuntime, markChartViewportFitted, resetChartViewportState, resolveChartViewportReset, type ChartPointInput, type HistoryPager } from '@features/charts/public.ts';
+import { resolveHardwareHistoryIntervalMs } from '@pages/hardware/controllers/data/effects.ts';
+import { applyHardwareCandlestickIntervalMetadata } from '@pages/hardware/state/history/hardwareCandlestickIntervalManager.ts';
 import type { HardwarePageState } from '@pages/hardware/state/state.ts';
 import type { ChartColorContext, HistoryDataPoint } from '@pages/hardware/types.ts';
 
@@ -15,6 +13,7 @@ type HardwareChartContext = {
     chartRuntime: HistoryChartRuntime;
     requireHTMLElement: (id: string) => HTMLElement;
     beginChartPresentationLoad: () => number;
+    currentChartPresentationLoad: () => number;
     completeChartPresentationLoad: (sequence: number) => void;
     resetChartPresentation: () => void;
     destroyChartPresentation: () => void;
@@ -29,8 +28,8 @@ type HardwareChartContext = {
 
 type HardwareChartLoadToken = number;
 
-const beginMainChartLoad = (context: HardwareChartContext): HardwareChartLoadToken => {
-    const loadToken = context.beginChartPresentationLoad();
+const beginMainChartLoad = (context: HardwareChartContext, { presentation }: { presentation: boolean }): HardwareChartLoadToken => {
+    const loadToken = presentation ? context.beginChartPresentationLoad() : context.currentChartPresentationLoad();
     context.resetHistoryState({ clearLine: true, clearCandle: true });
     context.state.historyMetadata = null;
     context.state.candlestickMetadata = null;
@@ -50,7 +49,7 @@ const getPointBudget = (context: HardwareChartContext): number => {
     });
 };
 
-const initializeMainChart = async (context: HardwareChartContext, options: { signal?: AbortSignal | undefined; onRequestHistoricalData: (timestamp: number) => void | Promise<void> }): Promise<void> => {
+const initializeMainChart = async (context: HardwareChartContext, options: { signal?: AbortSignal | undefined; history: HistoryPager; onTimeRangeChange: (visibleStartTs: number, visibleEndTs: number) => void }): Promise<void> => {
     throwIfAborted(options.signal);
     const host = context.requireHTMLElement('hardwareHistoryChart');
     context.resetChartPresentation();
@@ -61,9 +60,10 @@ const initializeMainChart = async (context: HardwareChartContext, options: { sig
         options: {
             scaleBounds: context.getMetricScaleBounds(),
             maxDataPoints: context.state.maxHistoryPoints,
-            chartColorContext: context.buildChartColorContext()
+            chartColorContext: context.buildChartColorContext(),
+            history: options.history,
+            onTimeRangeChange: (visibleStartTs: number, visibleEndTs: number): void => options.onTimeRangeChange(visibleStartTs, visibleEndTs)
         },
-        onRequestHistoricalData: (timestamp: number): void | Promise<void> => options.onRequestHistoricalData(timestamp),
         signal: options.signal
     });
     if (!chart) {
@@ -79,39 +79,29 @@ const initializeMainChart = async (context: HardwareChartContext, options: { sig
     chart.settings.setValueFormatter((value: number) => context.formatMetricValue(value));
 };
 
-const updateMainChart = (context: HardwareChartContext, { resetView = false }: { resetView?: boolean } = {}): void => {
+const buildHardwareDisplaySeries = (context: Pick<HardwareChartContext, 'state' | 'chartRuntime'>, source: readonly HistoryDataPoint[], candlestick: boolean): ChartPointInput[] => {
+    if (source.length === 0) return [];
+    return buildHistoryDisplaySeries(context.chartRuntime, source, { candlestick, intervalMs: resolveHardwareHistoryIntervalMs(context.state, candlestick), capacity: context.state.maxHistoryPoints });
+};
+
+const updateMainChart = (context: HardwareChartContext, { resetView = false, morph = false }: { resetView?: boolean; morph?: boolean } = {}): void => {
     const chart = context.state.mainChart;
     if (!chart) return;
     const shouldResetView = resolveChartViewportReset(context.state, resetView);
-    const candlestickActive = context.isCandlestickActive();
-    chart.settings.setChartType(candlestickActive ? 'candlestick' : context.state.chartType);
+    const candlestick = context.isCandlestickActive();
+    const intervalMs = resolveHardwareHistoryIntervalMs(context.state, candlestick);
+    if (candlestick) applyHardwareCandlestickIntervalMetadata(context.state, intervalMs);
     chart.settings.update({
         scaleBounds: context.getMetricScaleBounds(),
-        chartColorContext: context.buildChartColorContext()
+        chartColorContext: context.buildChartColorContext(),
+        expectedSampleIntervalMs: intervalMs
     });
-    const source = candlestickActive ? context.state.candlestickData : context.state.historyData;
-    if (!isArray(source)) throw new TypeError('sourceData must be an array');
-    const rangeMs = Math.max(60000, Math.round(context.state.timeRange * 60000));
-    const last = source[source.length - 1];
-    const reference = last ? last.timestamp : serverEpochMs();
-    if (candlestickActive) {
-        const intervalMs = resolveHardwareStateCandlestickIntervalMs(context.state);
-        applyHardwareCandlestickIntervalMetadata(context.state, intervalMs);
-        const cutoff = reference - rangeMs - intervalMs;
-        const filtered = source.filter((point: HistoryDataPoint) => point?.timestamp >= cutoff);
-        const series = buildCandlestickSeries(context, filtered);
-        const anchorTail = chart.view.status.isAtTail;
-        chart.data.replace(series, { preserveView: !shouldResetView || !anchorTail, assumeSorted: true });
-    } else {
-        const cutoff = reference - rangeMs;
-        const filtered = source.filter((point: HistoryDataPoint) => point?.timestamp >= cutoff);
-        const series = buildValueSeries(context, filtered);
-        chart.data.replace(series, { preserveView: !shouldResetView, assumeSorted: true });
-    }
+    chart.settings.setChartType(context.state.chartType);
+    chart.data.replace(buildHardwareDisplaySeries(context, candlestick ? context.state.candlestickData : context.state.historyData, candlestick), { preserveView: !shouldResetView, assumeSorted: true, morph });
     if (shouldResetView) {
-        chart.view.fitTimeRange(context.state.timeRange, { align: 'tail' });
+        chart.view.fitTimeRange(context.state.timeRange);
         markChartViewportFitted(context.state);
-    } else if (chart.view.status.isAtTail) chart.view.alignToLatest();
+    }
     chart.settings.setMetricName(context.getMetricLabel());
     chart.settings.setValueFormatter((value: number) => context.formatMetricValue(value));
 };
@@ -129,33 +119,5 @@ const destroyChart = async (context: HardwareChartContext): Promise<void> => {
     }
 };
 
-const buildValueSeries = (context: HardwareChartContext, data: HistoryDataPoint[], max: number | undefined = context.state.mainChart?.settings.snapshot.maxDataPoints): ChartValuePointInput[] => {
-    return buildHardwareValueSeries(
-        {
-            maxHistoryPoints: context.state.maxHistoryPoints,
-            monitoringIntervalMs: context.state.monitoringIntervalMs,
-            timeRange: context.state.timeRange,
-            chartType: context.state.chartType,
-            chartDataTransforms: context.chartRuntime.getDataTransforms(),
-            chartOhlc: context.chartRuntime.getOhlc()
-        },
-        data,
-        max
-    );
-};
-
-const buildCandlestickSeries = (context: HardwareChartContext, data: HistoryDataPoint[], max: number | undefined = context.state.mainChart?.settings.snapshot.maxDataPoints): CandlestickPoint[] => {
-    return buildHardwareCandlestickSeries(
-        {
-            candlestickMetadata: context.state.candlestickMetadata,
-            lastResolvedCandlestickIntervalMs: context.state.lastResolvedCandlestickIntervalMs,
-            monitoringIntervalMs: context.state.monitoringIntervalMs,
-            chartOhlc: context.chartRuntime.getOhlc()
-        },
-        data,
-        max
-    );
-};
-
-export { applyChartDataLimits, beginMainChartLoad, completeMainChartLoad, destroyChart, getPointBudget, initializeMainChart, updateMainChart };
+export { applyChartDataLimits, beginMainChartLoad, buildHardwareDisplaySeries, completeMainChartLoad, destroyChart, getPointBudget, initializeMainChart, updateMainChart };
 export type { HardwareChartContext, HardwareChartLoadToken };

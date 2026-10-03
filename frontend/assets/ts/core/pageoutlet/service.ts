@@ -1,7 +1,6 @@
 /* SoAI - Shared page outlet service [frontend/assets/ts/core/pageoutlet/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { JsonValue } from '@core/types/jsonValues.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { isPageRegistry } from '@core/pagehost/guards.ts';
@@ -9,23 +8,24 @@ import type { PageInstance, PageRegistry } from '@core/pagehost/types.ts';
 import { PageHost } from '@core/pagehost/service.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { isFunction, isString } from '@core/typeGuards.ts';
-import { awaitCommitWindow, awaitStageWithTimeout, runPreNavigationCleanup } from '@core/pageoutlet/actions.ts';
+import { awaitCommitWindow, awaitStageWithTimeout, runPageOutletRenderHook, runPreNavigationCleanup } from '@core/pageoutlet/actions.ts';
 import { PAGE_OUTLET_RENDER_STAGES, READY_TIMEOUT_MS } from '@core/pageoutlet/constants.ts';
-import { resolveContainer } from '@core/pageoutlet/dom.ts';
+import { requirePageOutletContainer, resolveContainer } from '@core/pageoutlet/dom.ts';
 import { completePageOutletRender } from '@core/pageoutlet/renderCompletion.ts';
 import { reportPageOutletRenderFailure } from '@core/pageoutlet/renderFailure.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { type PageHostInstance, type PageOutletConstructorOptions, type PageOutletDestroyOptions, type PageOutletEventEmitter, type PageOutletRenderOptions } from '@core/pageoutlet/types.ts';
 import { PageOutletOverlayController } from '@core/pageoutlet/overlayController.ts';
 import { PageOutletVisualTransaction } from '@core/pageoutlet/visualTransaction.ts';
-import { isAbortError, raceWithAbortSignal } from '@core/errors/abort.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { createDeferred } from '@core/runtime/deferred.ts';
+import { PageOutletRenderOwnership } from '@core/pageoutlet/renderOwnership.ts';
 
 class PageOutlet {
     #resources = new ResourceTracker();
     #container: HTMLElement | null;
     #pageHost: PageHostInstance | null;
-    #activeToken: symbol | null;
+    #renderOwnership = new PageOutletRenderOwnership();
     #emitEvent: PageOutletEventEmitter | null;
     #pageRegistry: PageRegistry | null;
     #onPreservedPageFailure: (() => void) | null;
@@ -39,7 +39,6 @@ class PageOutlet {
     constructor({ emitEvent = null, onPreservedPageFailure = null, onRetry = null, pageRegistry = null }: PageOutletConstructorOptions = {}) {
         this.#container = null;
         this.#pageHost = null;
-        this.#activeToken = null;
         this.#emitEvent = isFunction(emitEvent) ? emitEvent : null;
         this.#onPreservedPageFailure = isFunction(onPreservedPageFailure) ? onPreservedPageFailure : null;
         if (pageRegistry !== null && !isPageRegistry(pageRegistry)) {
@@ -60,7 +59,7 @@ class PageOutlet {
         this.#overlayController.setRetryHandler(isFunction(onRetry) ? onRetry : null);
         this.#readyTimeout = READY_TIMEOUT_MS;
     }
-    #isActiveRender = (token: symbol): boolean => this.#activeToken === token;
+    #isActiveRender = (token: symbol): boolean => this.#renderOwnership.isActive(token);
     setContainer(target: HTMLElement | string): this {
         const resolved = resolveContainer(target);
         if (this.#container === resolved) {
@@ -75,13 +74,14 @@ class PageOutlet {
         this.#overlayController.setContainer(this.#container);
         this.#visualTransaction.setContainer(this.#container);
         if (previousContainer !== resolved && this.#pageHost) {
+            this.#renderOwnership.cancelActive('container-changed');
             this.#pageHost.cancelPrepared('container-changed');
             this.#pageHost = null;
         }
         return this;
     }
     getContainer(): HTMLElement {
-        return this.#requireContainer();
+        return requirePageOutletContainer(this.#container);
     }
     getPageHost(): PageHostInstance {
         if (!this.#container) {
@@ -99,14 +99,14 @@ class PageOutlet {
         if (!isString(route) || !route.trim()) {
             throw new Error('PageOutlet skeleton requires a route identifier');
         }
-        const container = this.#requireContainer();
+        const container = requirePageOutletContainer(this.#container);
         container.dataset['routeSkeleton'] = route.trim();
         this.#overlayController.setState('loading', {
             label: i18n.t('pageOutlet.loading')
         });
     }
     private clearSkeleton(): void {
-        delete this.#requireContainer().dataset['routeSkeleton'];
+        delete requirePageOutletContainer(this.#container).dataset['routeSkeleton'];
     }
     getState(): string {
         return this.#overlayController.getState();
@@ -127,10 +127,10 @@ class PageOutlet {
         if (signal?.aborted) return null;
         runPreNavigationCleanup();
         const host = this.getPageHost();
-        this.#activeToken = null;
-        host.cancelPrepared('superseded');
         const token = Symbol(component);
-        this.#activeToken = token;
+        const renderScope = this.#renderOwnership.begin(token, signal);
+        const renderSignal = renderScope.signal;
+        host.cancelPrepared('superseded');
         const visualToken = this.#visualTransaction.begin();
         const trimmedComponent = component.trim();
         const startedAt = performance.now();
@@ -139,15 +139,15 @@ class PageOutlet {
         const cancelRender = (): void => {
             if (!this.#isActiveRender(token)) return;
             if (this.#commitToken === token) return;
-            this.#activeToken = null;
+            this.#renderOwnership.cancel(token, 'navigation-superseded');
             this.#visualTransaction.supersede(visualToken);
             host.cancelPrepared('navigation-superseded');
         };
-        signal?.addEventListener('abort', cancelRender, { once: true });
-        this.#emitEventInternal('component:load:start', { component: trimmedComponent, refresh });
+        renderSignal.addEventListener('abort', cancelRender, { once: true });
+        this.#emitEvent?.('component:load:start', { component: trimmedComponent, refresh }, 'info');
         errorHandler.info('PageOutlet', 'Component load start', { component: trimmedComponent, refresh });
         try {
-            await this.#runRenderHook(beforePrepare, signal);
+            await runPageOutletRenderHook(beforePrepare, renderSignal);
             if (!this.#isActiveRender(token)) return null;
             await this.#visualTransaction.preparePageExit(visualToken);
             if (!this.#isActiveRender(token)) return null;
@@ -160,16 +160,17 @@ class PageOutlet {
                 token,
                 trimmedComponent,
                 PAGE_OUTLET_RENDER_STAGES.PREPARED,
-                (activeToken: symbol): boolean => this.#activeToken === activeToken,
-                () => host.cancelPrepared(`page-timeout:${trimmedComponent}`)
+                (activeToken: symbol): boolean => this.#isActiveRender(activeToken),
+                () => host.cancelPrepared(`page-timeout:${trimmedComponent}`),
+                renderSignal
             );
-            await (signal ? raceWithAbortSignal(preparation, signal) : preparation);
+            await preparation;
             if (!this.#isActiveRender(token)) return null;
             const commit = createDeferred<void>();
             this.#commitToken = token;
             this.#commitCompletion = commit.promise;
             try {
-                await this.#runRenderHook(beforeCommit, undefined);
+                await runPageOutletRenderHook(beforeCommit);
                 if (this.#supersededPage && host.getCurrent()?.instance === this.#supersededPage) {
                     host.cancelCurrent(this.#supersededPage, 'navigation-superseded');
                 }
@@ -178,13 +179,13 @@ class PageOutlet {
                 const committedPage = await host.commitPrepared();
                 if (!committedPage || committedPage !== preparedPage) throw new Error(`Prepared page ${trimmedComponent} lost commit ownership`);
                 pageCommitted = true;
-                if (signal?.aborted || !this.#isActiveRender(token)) {
+                if (renderSignal.aborted || !this.#isActiveRender(token)) {
                     this.#supersededPage = committedPage;
                     this.#settleSupersededNavigation = commitNavigation ?? null;
                     this.#visualTransaction.supersede(visualToken);
                 } else {
                     commitNavigation?.();
-                    if (signal?.aborted || !this.#isActiveRender(token)) {
+                    if (renderSignal.aborted || !this.#isActiveRender(token)) {
                         this.#supersededPage = committedPage;
                         this.#visualTransaction.supersede(visualToken);
                     }
@@ -194,17 +195,27 @@ class PageOutlet {
                 this.#commitCompletion = null;
                 commit.resolve(undefined);
             }
-            if (signal?.aborted || !this.#isActiveRender(token)) return null;
+            if (renderSignal.aborted || !this.#isActiveRender(token)) return null;
             const readiness = awaitStageWithTimeout(
                 async () => host.whenReady({ waitForReveal: false }),
                 readyTimeoutMs,
                 token,
                 trimmedComponent,
                 PAGE_OUTLET_RENDER_STAGES.PREPARED,
-                (activeToken: symbol): boolean => this.#activeToken === activeToken,
-                () => host.destroyCurrent({ force: true, reason: `page-timeout:${trimmedComponent}` })
+                (activeToken: symbol): boolean => this.#isActiveRender(activeToken),
+                () => {
+                    if (preparedPage) {
+                        return host.destroyCurrent({
+                            expectedInstance: preparedPage,
+                            force: true,
+                            reason: `page-timeout:${trimmedComponent}`
+                        });
+                    }
+                    return undefined;
+                },
+                renderSignal
             );
-            await (signal ? raceWithAbortSignal(readiness, signal) : readiness);
+            await readiness;
             if (!this.#isActiveRender(token)) return null;
             try {
                 await this.#visualTransaction.revealEnteredPage(visualToken);
@@ -215,7 +226,7 @@ class PageOutlet {
             if (!this.#isActiveRender(token)) return null;
             this.#visualTransaction.commit(visualToken);
             host.allowReveal();
-            if (this.#activeToken !== token) {
+            if (!this.#isActiveRender(token)) {
                 return null;
             }
             completePageOutletRender(
@@ -225,7 +236,7 @@ class PageOutlet {
                     startedAt
                 },
                 {
-                    emitEvent: this.#emitEventInternal
+                    emitEvent: this.#emitEvent ?? undefined
                 }
             );
             return host.getCurrent();
@@ -234,7 +245,7 @@ class PageOutlet {
                 pageCommitted = true;
             }
             const ownsCommittedPage = pageCommitted && preparedPage !== null && host.getCurrent()?.instance === preparedPage;
-            if ((isAbortError(error) || signal?.aborted) && ownsCommittedPage) {
+            if ((isAbortError(error) || renderSignal.aborted) && ownsCommittedPage) {
                 this.#supersededPage = preparedPage;
                 this.#visualTransaction.supersede(visualToken);
                 return null;
@@ -244,7 +255,7 @@ class PageOutlet {
             this.#visualTransaction.fail(visualToken);
             if (settledSupersededPage) host.allowReveal();
             host.cancelPrepared('render-failed');
-            if (isAbortError(error) || signal?.aborted || !this.#isActiveRender(token)) return null;
+            if (isAbortError(error) || renderSignal.aborted || !this.#isActiveRender(token)) return null;
             if (pageCommitted && preparedPage !== null && host.getCurrent()?.instance === preparedPage) {
                 try {
                     await host.destroyCurrent({ force: true, reason: 'render-failed' });
@@ -264,21 +275,19 @@ class PageOutlet {
                         }
                         this.#overlayController.applyErrorState(runtimeError);
                     },
-                    emitEvent: this.#emitEventInternal
+                    emitEvent: this.#emitEvent ?? undefined
                 }
             );
             throw runtimeError;
         } finally {
-            signal?.removeEventListener('abort', cancelRender);
-            if (this.#activeToken === token) {
-                this.#activeToken = null;
-            }
+            renderSignal.removeEventListener('abort', cancelRender);
+            renderScope.finish();
         }
     }
     async destroyCurrent({ force = true }: PageOutletDestroyOptions = {}): Promise<void> {
         if (this.#commitCompletion) await this.#commitCompletion;
         const host = this.#pageHost;
-        this.#activeToken = null;
+        this.#renderOwnership.cancelActive('destroy-current');
         if (this.#container) this.#visualTransaction.cancel();
         if (host) {
             await host.destroyCurrent({ force });
@@ -287,7 +296,7 @@ class PageOutlet {
     }
     cancelActive(reason: string = 'cancelled'): void {
         if (this.#commitToken !== null) return;
-        this.#activeToken = null;
+        this.#renderOwnership.cancelActive(reason);
         const host = this.#pageHost;
         const settledSupersededPage = host ? this.#settleSupersededPage(host) : false;
         this.#supersededPage = null;
@@ -300,7 +309,7 @@ class PageOutlet {
         await this.destroyCurrent({ force: true });
         this.#resources.cleanup();
         this.#pageHost = null;
-        this.#activeToken = null;
+        this.#renderOwnership.cancelActive('destroy');
         this.#supersededPage = null;
         this.#settleSupersededNavigation = null;
     }
@@ -313,21 +322,5 @@ class PageOutlet {
         settleNavigation?.();
         return true;
     }
-    async #runRenderHook(hook: (() => void | Promise<void>) | Promise<void> | null, signal: AbortSignal | undefined): Promise<void> {
-        if (!hook) return;
-        const task = typeof hook === 'function' ? Promise.resolve(hook()) : Promise.resolve(hook);
-        await (signal ? raceWithAbortSignal(task, signal) : task);
-    }
-    #emitEventInternal = (stage: string, payload: Record<string, JsonValue> = {}, severity: string = 'info'): void => {
-        if (this.#emitEvent) {
-            this.#emitEvent(stage, payload, severity);
-        }
-    };
-    #requireContainer = (): HTMLElement => {
-        if (!this.#container) {
-            throw new Error('PageOutlet requires a container before performing this action');
-        }
-        return this.#container;
-    };
 }
 export { PageOutlet };

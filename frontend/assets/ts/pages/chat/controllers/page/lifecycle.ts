@@ -28,12 +28,15 @@ import type { PageServicesOwnerHost } from '@core/routing/pages/basepagecore/Pag
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 import type { ConversationInteractionFocusResponse } from '@core/api/contracts/webuiChatOperationContracts.ts';
 import { applyInteractionFocus, interactionFocusUnavailableText } from '@pages/chat/controllers/page/interactionFocusController.ts';
+import { applyChatAiSetupHandoff, type ChatAiSetupHandoffHost } from '@pages/chat/controllers/page/aisetuphandoff/effects.ts';
+import { isChatSelectableModel } from '@core/models/chatModelAvailability.ts';
 
 interface ChatLiveUpdatesStatePort extends ChatComposerSurfaceRuntimeOwner, ChatConfigurationRuntimeOwner, ChatConversationRuntimeOwner, ChatPreferencesHost, ChatConversationViewHost, ChatConversationStateHost, ChatRuntimeServicesHost, ChatLifecycleResourcesHost {}
 
 interface ChatLiveUpdatesUiPort extends ChatComposerHost, ChatModelSessionHost, ChatPagePresentationHost, ChatUiBehaviorsOwner, PageServicesOwnerHost, PageFeedbackOwnerHost {}
 
 interface ChatLiveUpdatesHost extends ChatLiveUpdatesStatePort, ChatLiveUpdatesUiPort {
+    aiSetupStorage: ChatAiSetupHandoffHost['storage'];
     conversationToolbarSession: ChatConversationToolbarManager;
     detachedWindowHost: DetachedWindowHost;
     initializeTokenCounterController(): void;
@@ -48,6 +51,16 @@ const activateMostRecentOrCreate = async (host: ChatLiveUpdatesHost): Promise<vo
     } else {
         await host.conversationView.requireActions().createConversation({ refreshUi: false, syncRoute: false });
     }
+};
+
+const resolveResumableConversationId = (host: ChatLiveUpdatesHost): string | null => {
+    for (const candidate of [host.conversationState.currentConversationId, host.conversationRuntime.requireStorage().readLastConversationId()]) {
+        const conversationId = normalizeConversationId(candidate);
+        if (conversationId && host.conversationState.conversations.has(conversationId)) {
+            return conversationId;
+        }
+    }
+    return null;
 };
 
 const prepareChatPageInitialContent = async (host: ChatLiveUpdatesHost, parameters: JsonObject, signal: AbortSignal, chatLogger: (level: 'warn', message: string, error?: Error) => void): Promise<void> => {
@@ -103,9 +116,9 @@ const prepareChatPageInitialContent = async (host: ChatLiveUpdatesHost, paramete
             }
         }
     } else {
-        const currentConversationId = normalizeConversationId(host.conversationState.currentConversationId);
-        if (currentConversationId && host.conversationState.conversations.has(currentConversationId)) {
-            if (!(await runStep(() => host.conversationView.requireActions().activateConversationById(currentConversationId, { refreshUi: false, syncRoute: false })))) {
+        const resumableConversationId = resolveResumableConversationId(host);
+        if (resumableConversationId) {
+            if (!(await runStep(() => host.conversationView.requireActions().activateConversationById(resumableConversationId, { refreshUi: false, syncRoute: false })))) {
                 return;
             }
         } else {
@@ -174,6 +187,25 @@ const prepareChatPageInitialContent = async (host: ChatLiveUpdatesHost, paramete
     host.composer.applyInputActionVisibility();
     host.modelSession.updateUi();
     host.conversationView.initializeSearch();
+    await runStep(async () => {
+        await applyChatAiSetupHandoff(
+            {
+                storage: host.aiSetupStorage,
+                isDetached: () => host.services.isDetached(),
+                isCancelled: shouldAbort,
+                currentConversation: () => host.conversationView.current(),
+                createConversation: async () => {
+                    await host.conversationView.requireActions().createConversation();
+                },
+                selectPrimaryModel: (modelId) => host.modelSession.selectPrimaryModel(modelId),
+                isSelectableModel: (modelId) => {
+                    const model = host.conversationState.modelIndex.get(modelId);
+                    return model !== undefined && isChatSelectableModel(model);
+                }
+            },
+            parameters
+        );
+    });
 };
 
 export { prepareChatPageInitialContent };

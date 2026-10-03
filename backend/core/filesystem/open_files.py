@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Literal, overload
 
 from core.errors.exceptions import ValidationError
 from core.files.secure_open_flags import secure_read_only_open_flags
-from core.filesystem.path_coercion import coerce_path
+from core.filesystem.path_coercion import coerce_path, normalize_filesystem_path
 
 if TYPE_CHECKING:
     from core.filesystem.path_coercion import PathInput
@@ -34,19 +34,24 @@ def open_text(
     errors: str | None = "strict",
     newline: str | None = None,
 ) -> io.TextIOBase:
-    resolved = coerce_path(path)
+    resolved = normalize_filesystem_path(coerce_path(path))
     resolved_encoding = encoding or "utf-8"
     resolved_errors = errors or "strict"
     flags = _text_open_flags(mode)
     file_descriptor = os.open(resolved, flags, 0o666)
-    file_handle = os.fdopen(
-        file_descriptor,
-        mode,
-        encoding=resolved_encoding,
-        errors=resolved_errors,
-        newline=newline,
-    )
+    try:
+        file_handle = os.fdopen(
+            file_descriptor,
+            mode,
+            encoding=resolved_encoding,
+            errors=resolved_errors,
+            newline=newline,
+        )
+    except (OSError, ValueError):
+        os.close(file_descriptor)
+        raise
     if not isinstance(file_handle, io.TextIOBase):
+        file_handle.close()
         raise TypeError("open_text() must return a text file handle.")
     return file_handle
 
@@ -84,23 +89,28 @@ def open_binary(
     mode: str = "rb",
     buffering: int = -1,
 ) -> io.BufferedIOBase | io.RawIOBase:
-    resolved = coerce_path(path)
+    resolved = normalize_filesystem_path(coerce_path(path))
     flags = _binary_open_flags(mode)
     file_descriptor = os.open(resolved, flags, 0o666)
-    file_handle = os.fdopen(file_descriptor, mode, buffering=buffering)
+    try:
+        file_handle = os.fdopen(file_descriptor, mode, buffering=buffering)
+    except (OSError, ValueError):
+        os.close(file_descriptor)
+        raise
     if not isinstance(file_handle, io.BufferedIOBase | io.RawIOBase):
+        file_handle.close()
         raise TypeError("open_binary() must return a binary file handle.")
     return file_handle
 
 
 def create_binary_owner_only(path: PathInput) -> io.BufferedWriter:
-    resolved = coerce_path(path)
+    resolved = normalize_filesystem_path(coerce_path(path))
     file_descriptor = os.open(resolved, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
         if os.name == "posix":
             os.fchmod(file_descriptor, 0o600)
         file_handle = os.fdopen(file_descriptor, "wb")
-    except OSError:
+    except (OSError, ValueError):
         os.close(file_descriptor)
         raise
     if not isinstance(file_handle, io.BufferedWriter):
@@ -119,7 +129,7 @@ def open_regular_file_descriptor_no_symlink(
     inspect_message: str = "File source could not be inspected.",
     regular_file_message: str = "File source must be a regular file.",
 ) -> int:
-    resolved = coerce_path(path)
+    resolved = normalize_filesystem_path(coerce_path(path))
     if os.path.islink(resolved):
         raise ValidationError(symlink_message)
     open_flags = secure_read_only_open_flags(directory=False) if os.name == "posix" else os.O_RDONLY

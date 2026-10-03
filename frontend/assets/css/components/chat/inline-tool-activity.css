@@ -70,7 +70,7 @@
 
     :where(.chat-container) .inline-tool-field-value-null {
         color: var(--text-tertiary);
-        font-style: italic;
+        font-style: var(--font-style-emphasis);
     }
 
     :where(.chat-container) .inline-tool-field-value-bool,
@@ -110,7 +110,7 @@
     }
 
     :where(.chat-container) .inline-tool-field-block > .inline-tool-fields {
-        padding-left: var(--space-3);
+        padding-inline-start: var(--space-3);
     }
 
     :where(.chat-container) .inline-tool-result-compaction {
@@ -202,7 +202,7 @@
     }
 
     :where(.chat-container) .inline-activity.inline-activity-type-thinking > .inline-activity-details {
-        font-style: italic;
+        font-style: var(--font-style-emphasis);
     }
 
     :where(.chat-container) .tool-approval-preview {
@@ -248,7 +248,7 @@
         font-size: var(--font-size-body-sm);
         font-weight: 700;
         letter-spacing: var(--tracking-04em);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         color: var(--text-secondary);
         white-space: nowrap;
     }

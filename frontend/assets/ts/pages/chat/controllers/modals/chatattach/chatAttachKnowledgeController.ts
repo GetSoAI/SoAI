@@ -5,10 +5,10 @@ import { isAbortError } from '@core/errors/abort.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { bindFileDropArea } from '@core/ui/fileDropArea.ts';
 import type { RagConfig, RagDocumentsPage } from '@features/chat/public.ts';
 import type { ChatAttachKnowledgeHost } from '@pages/chat/controllers/modals/chatattach/contracts.ts';
 import { acceptsKnowledgeDrop } from '@pages/chat/controllers/modals/chatattach/chatAttachDropAcceptanceController.ts';
-import { bindChatAttachDropTarget } from '@pages/chat/controllers/modals/chatattach/chatAttachDropTargetController.ts';
 import { resolveChatAttachDroppedPayloadType } from '@pages/chat/controllers/modals/chatattach/chatAttachDroppedPayloadController.ts';
 import { readChatAttachKnowledgeCapabilities } from '@pages/chat/controllers/modals/chatattach/chatAttachKnowledgeCapabilitiesController.ts';
 import { openKnowledgeDocumentsPicker, openKnowledgeFolderPicker, openKnowledgePrimaryPicker } from '@pages/chat/controllers/modals/chatattach/chatAttachKnowledgePickerController.ts';
@@ -140,7 +140,7 @@ class ChatAttachKnowledgeController {
         this.#elements.documentInput.addEventListener('change', this.#handleDocumentInputChange, { signal: this.#signal });
         this.#elements.folderInput.addEventListener('change', this.#handleFolderInputChange, { signal: this.#signal });
         this.#elements.list.addEventListener('click', this.#handleListElementClick, { signal: this.#signal });
-        bindChatAttachDropTarget({
+        bindFileDropArea({
             element: this.#elements.dropzoneButton,
             signal: this.#signal,
             setTimer: (functionValue, delayMs) => this.#host.shared.pageResources.setTimer(functionValue, delayMs),

@@ -150,6 +150,7 @@ class CollectionView implements CollectionRuntimeHost {
     }
 
     async revealItem(id: string): Promise<boolean> {
+        this.flushPendingRefresh();
         return await this.renderer.reveal(id);
     }
 

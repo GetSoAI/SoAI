@@ -40,7 +40,7 @@ class ChatConversationActionsController implements ChatConversationActionsContra
                     id: 'chat-conversation-rename',
                     hasChanges: () => this.#hasConversationRenameChanges(),
                     save: async () => {
-                        await persistConversationRename(this.#runtime.host, this.#runtime.state, this.#runtime.conversationManager, this.#runtime.storageManager);
+                        return await persistConversationRename(this.#runtime.host, this.#runtime.state, this.#runtime.conversationManager, this.#runtime.storageManager);
                     }
                 }
             ]
@@ -145,13 +145,19 @@ class ChatConversationActionsController implements ChatConversationActionsContra
     }
 
     async handleConversationTitleSave(): Promise<void> {
-        await this.#renameSave.requestSave();
-        this.#runtime.host.view.getConversationTitleInputElement()?.blur();
+        await this.#saveConversationRename(this.#runtime.host.view.getConversationTitleInputElement());
     }
 
     async handleConversationListTitleSave(): Promise<void> {
+        await this.#saveConversationRename(this.#runtime.host.view.getConversationListTitleInputElement());
+    }
+
+    async #saveConversationRename(input: HTMLInputElement | null): Promise<void> {
+        const renameState = this.#runtime.state.getConversationRenameState();
+        const hadChanges = this.#hasConversationRenameChanges();
         await this.#renameSave.requestSave();
-        this.#runtime.host.view.getConversationListTitleInputElement()?.blur();
+        const currentRenameState = this.#runtime.state.getConversationRenameState();
+        if (currentRenameState === null || (!hadChanges && currentRenameState === renameState)) input?.blur();
     }
 
     handleConversationTitleCancel(): void {

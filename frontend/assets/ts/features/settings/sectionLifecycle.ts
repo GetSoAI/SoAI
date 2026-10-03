@@ -81,6 +81,10 @@ class SettingsSectionLifecycle {
         return this.#reloadScope.begin(reason);
     }
 
+    abortReload(reason: string): void {
+        this.#reloadScope.abort(reason);
+    }
+
     isReloadCurrent(run: LifecycleRun): boolean {
         return this.#isMounted && this.#reloadScope.isCurrent(run);
     }

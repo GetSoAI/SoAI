@@ -37,15 +37,16 @@ const buildRelationMarkup = (relation: ChatMemoryEntry['relations'][number]): st
     return `<li class="chat-memory-list-item"><span class="chat-memory-content">${escapeHtml(relationType)}: ${escapeHtml(target)}</span></li>`;
 };
 
+const buildEntrySectionMarkup = (label: string, itemsMarkup: string): string => `<div class="chat-memory-entry-section"><h4>${escapeHtml(label)}</h4><ul class="chat-memory-list">${itemsMarkup}</ul></div>`;
+
 const buildEntryMarkup = (entry: ChatMemoryEntry): string => {
     const { name, entityType } = entry.entity;
     const { observations, relations } = entry;
     const observationMarkup = observations.map((observation) => buildObservationMarkup(observation)).join('');
     const relationMarkup = relations.map((relation) => buildRelationMarkup(relation)).join('');
-    const observationsLabel = escapeHtml(i18n.t('chat.memory.viewer.observations'));
-    const relationsLabel = escapeHtml(i18n.t('chat.memory.viewer.relations'));
-    const noneLabel = escapeHtml(i18n.t('chat.memory.viewer.none'));
-    return `<section class="chat-memory-entry"><header class="chat-memory-entry-header"><h3>${escapeHtml(name)}</h3><span class="chat-memory-entry-type">${escapeHtml(entityType)}</span></header><div class="chat-memory-entry-section"><h4>${observationsLabel}</h4><ul class="chat-memory-list">${observationMarkup || `<li class="chat-memory-list-item">${noneLabel}</li>`}</ul></div><div class="chat-memory-entry-section"><h4>${relationsLabel}</h4><ul class="chat-memory-list">${relationMarkup || `<li class="chat-memory-list-item">${noneLabel}</li>`}</ul></div></section>`;
+    const noneMarkup = `<li class="chat-memory-list-item">${escapeHtml(i18n.t('chat.memory.viewer.none'))}</li>`;
+    const relationsMarkup = relationMarkup ? buildEntrySectionMarkup(i18n.t('chat.memory.viewer.relations'), relationMarkup) : '';
+    return `<section class="chat-memory-entry"><header class="chat-memory-entry-header"><h3>${escapeHtml(name)}</h3><span class="chat-memory-entry-type">${escapeHtml(entityType)}</span></header>${buildEntrySectionMarkup(i18n.t('chat.memory.viewer.observations'), observationMarkup || noneMarkup)}${relationsMarkup}</section>`;
 };
 
 const sortMemoryEntries = (entries: ChatMemoryEntry[]): ChatMemoryEntry[] => {

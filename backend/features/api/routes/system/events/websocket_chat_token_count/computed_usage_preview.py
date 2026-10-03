@@ -47,6 +47,7 @@ async def enqueue_counted_usage_preview(
         virtual_model_get=api_context.dependencies.model_virtual_model_service.virtual_model_get,
         state_aggregator=api_context.dependencies.state_aggregator,
         orchestrator_lifecycle=api_context.dependencies.orchestrator_lifecycle,
+        chat_template_role_policy_resolver=api_context.dependencies.chat_template_role_policy_resolver,
         request_context=require_request_context_instance(connection.request),
     )
     delivery = token_count_result_delivery(connection, enqueue_warning_tracker, conv_id, request_id)

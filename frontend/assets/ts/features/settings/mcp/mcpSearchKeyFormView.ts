@@ -13,7 +13,7 @@ import { MCP_ACTION_SEARCH_PROVIDER_CHANGE } from '@features/settings/mcp/action
 const renderMcpSearchKeyForm = (sanitizer: PageSanitizer, providers: string[]): string => {
     const apiKeyInputType = resolveSecretInputType();
     const apiKeyPlaceholder = i18n.t('settings.mcp.searchKeys.form.api_key.placeholder');
-    const apiKeyInput = `<input type="${apiKeyInputType}" id="mcp-search-api-key-input" class="setting-input setting-input--wide secret-input" placeholder="${sanitizer.attribute(apiKeyPlaceholder)}">`;
+    const apiKeyInput = `<input dir="ltr" type="${apiKeyInputType}" id="mcp-search-api-key-input" class="setting-input setting-input--wide secret-input" placeholder="${sanitizer.attribute(apiKeyPlaceholder)}">`;
 
     const options = [`<option value="">${i18n.t('settings.mcp.searchKeys.form.provider.selectPlaceholder')}</option>`, ...providers.map((provider) => `<option value="${sanitizer.attribute(provider)}">${sanitizer.html(provider)}</option>`), `<option value="${MCP_SEARCH_PROVIDER_CUSTOM}">${i18n.t('settings.mcp.searchKeys.form.provider.custom')}</option>`].join('');
 

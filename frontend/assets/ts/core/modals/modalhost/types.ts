@@ -97,13 +97,11 @@ interface ClientPoint {
 interface ModalPositionDependencies {
     content: Element;
     position: Position;
-    isMobileViewport: boolean;
     sizeOverride?: Size | null;
 }
 
 interface ModalBoundsDependencies {
     content: Element;
-    isMobileViewport: boolean;
     sizeOverride?: Size | null;
 }
 
@@ -113,6 +111,7 @@ interface ModalSizeDependencies {
     isMobileViewport: boolean;
     savedState?: SavedModalState | null | undefined;
     layoutOverride?: ModalConfig['size'] | undefined;
+    desktopOpenHeight?: number | undefined;
 }
 
 export type { Boundaries, ClientPoint, DragState, FullscreenState, ModalBoundsDependencies, ModalPageLockSnapshot, ModalPositionDependencies, ModalSizeDependencies, ModalStorageApi, ResizeState, SizeConstraintResult, SizeLimits };

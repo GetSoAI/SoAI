@@ -107,7 +107,7 @@
     }
 
     :where(.chat-container) .thinking-phase-tool-label {
-        margin-left: auto;
+        margin-inline-start: auto;
         flex-shrink: 0;
         font-size: calc(var(--font-size-xs) * var(--chat-text-scale));
         color: var(--text-tertiary);
@@ -185,7 +185,7 @@
         font-size: var(--font-size-body-sm);
         font-weight: 700;
         letter-spacing: var(--tracking-04em);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         color: var(--text-secondary);
     }
 

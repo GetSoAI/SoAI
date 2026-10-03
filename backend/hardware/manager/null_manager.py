@@ -124,6 +124,7 @@ class NullHardwareManager:
         component: str = "cpu",
         gpu_index: int | None = None,
         identifier: str | None = None,
+        availability_metric: str | None = None,
     ) -> JSONDict:
         _ = (
             start_ts_ms,
@@ -134,6 +135,7 @@ class NullHardwareManager:
             component,
             gpu_index,
             identifier,
+            availability_metric,
         )
         return {}
 

@@ -2,22 +2,20 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
-import { ASSISTANT_ARTICLE_IMAGE_SELECTOR, ATTACHMENT_THUMBNAIL_IMAGE_SELECTOR, CHAT_IMAGE_LIFECYCLE_SELECTOR, INLINE_TOOL_IMAGE_SELECTOR } from '@features/chat/message/chatMessagePostRenderCapabilities.ts';
+import { ASSISTANT_ARTICLE_IMAGE_SELECTOR, ATTACHMENT_THUMBNAIL_IMAGE_SELECTOR, CHAT_IMAGE_LIFECYCLE_SELECTOR, CHAT_CONTENT_IMAGE_SELECTOR } from '@features/chat/message/chatMessagePostRenderCapabilities.ts';
 
 type ChatImageLoadState = 'error' | 'loaded' | 'loading';
 
 type ChatImageLoadLifecycleArguments = {
-    wiredAttribute: string;
     stateAttribute: string;
     resolveStateTarget: (image: HTMLImageElement) => HTMLElement;
     notifyDomChanged: (() => void) | null;
 };
 
-const INLINE_TOOL_LIFECYCLE_WIRED_ATTRIBUTE = 'data-inline-tool-image-lifecycle-wired';
-const INLINE_TOOL_MEDIA_LOAD_STATE_ATTRIBUTE = 'data-media-load-state';
-const ASSISTANT_ARTICLE_LIFECYCLE_WIRED_ATTRIBUTE = 'data-news-image-lifecycle-wired';
+const pendingImageLoads = new WeakSet<HTMLImageElement>();
+
+const CONTENT_IMAGE_LOAD_STATE_ATTRIBUTE = 'data-media-load-state';
 const ASSISTANT_ARTICLE_MEDIA_LOAD_STATE_ATTRIBUTE = 'data-image-state';
-const ATTACHMENT_LIFECYCLE_WIRED_ATTRIBUTE = 'data-attachment-image-lifecycle-wired';
 const ATTACHMENT_MEDIA_LOAD_STATE_ATTRIBUTE = 'data-attachment-image-state';
 
 const resolveImageLoadState = (image: HTMLImageElement): ChatImageLoadState => {
@@ -40,28 +38,29 @@ const prepareChatImageLoadLifecycle = (images: readonly HTMLImageElement[], inpu
         const stateTarget = inputArguments.resolveStateTarget(image);
         const initialState = resolveImageLoadState(image);
         syncImageLoadState(stateTarget, initialState, inputArguments);
-        if (initialState !== 'loading' || image.getAttribute(inputArguments.wiredAttribute) === 'true') {
+        if (initialState !== 'loading' || pendingImageLoads.has(image)) {
             continue;
         }
-        image.setAttribute(inputArguments.wiredAttribute, 'true');
+        pendingImageLoads.add(image);
         const removeListeners = (): void => {
             image.removeEventListener('load', handleLoad);
             image.removeEventListener('error', handleError);
+            pendingImageLoads.delete(image);
         };
         const handleLoad = (): void => {
-            syncImageLoadState(stateTarget, image.naturalWidth > 0 ? 'loaded' : 'error', inputArguments);
             removeListeners();
+            syncImageLoadState(stateTarget, image.naturalWidth > 0 ? 'loaded' : 'error', inputArguments);
         };
         const handleError = (): void => {
-            syncImageLoadState(stateTarget, 'error', inputArguments);
             removeListeners();
+            syncImageLoadState(stateTarget, 'error', inputArguments);
         };
         image.addEventListener('load', handleLoad);
         image.addEventListener('error', handleError);
         const wiredState = resolveImageLoadState(image);
         if (wiredState !== 'loading') {
-            syncImageLoadState(stateTarget, wiredState, inputArguments);
             removeListeners();
+            syncImageLoadState(stateTarget, wiredState, inputArguments);
         }
     }
 };
@@ -85,7 +84,6 @@ const resolveAttachmentVisualElement = (image: HTMLImageElement): HTMLElement =>
 const prepareAttachmentThumbnailLifecycles = (container: HTMLElement): void => {
     const images = dom.resolveAll(ATTACHMENT_THUMBNAIL_IMAGE_SELECTOR, container).filter((node): node is HTMLImageElement => node instanceof HTMLImageElement);
     prepareChatImageLoadLifecycle(images, {
-        wiredAttribute: ATTACHMENT_LIFECYCLE_WIRED_ATTRIBUTE,
         stateAttribute: ATTACHMENT_MEDIA_LOAD_STATE_ATTRIBUTE,
         resolveStateTarget: resolveAttachmentVisualElement,
         notifyDomChanged: null
@@ -93,29 +91,26 @@ const prepareAttachmentThumbnailLifecycles = (container: HTMLElement): void => {
 };
 
 const prepareChatMessageImageLifecycles = (container: HTMLElement, notifyDomChanged: () => void): void => {
-    const inlineToolImages: HTMLImageElement[] = [];
+    const contentImages: HTMLImageElement[] = [];
     const assistantArticleImages: HTMLImageElement[] = [];
     const attachmentImages: HTMLImageElement[] = [];
     const images = dom.resolveAll(CHAT_IMAGE_LIFECYCLE_SELECTOR, container).filter((node): node is HTMLImageElement => node instanceof HTMLImageElement);
     for (const image of images) {
-        if (image.matches(INLINE_TOOL_IMAGE_SELECTOR)) inlineToolImages.push(image);
+        if (image.matches(CHAT_CONTENT_IMAGE_SELECTOR)) contentImages.push(image);
         if (image.matches(ASSISTANT_ARTICLE_IMAGE_SELECTOR)) assistantArticleImages.push(image);
         if (image.matches(ATTACHMENT_THUMBNAIL_IMAGE_SELECTOR)) attachmentImages.push(image);
     }
-    prepareChatImageLoadLifecycle(inlineToolImages, {
-        wiredAttribute: INLINE_TOOL_LIFECYCLE_WIRED_ATTRIBUTE,
-        stateAttribute: INLINE_TOOL_MEDIA_LOAD_STATE_ATTRIBUTE,
+    prepareChatImageLoadLifecycle(contentImages, {
+        stateAttribute: CONTENT_IMAGE_LOAD_STATE_ATTRIBUTE,
         resolveStateTarget: (image) => image,
         notifyDomChanged
     });
     prepareChatImageLoadLifecycle(assistantArticleImages, {
-        wiredAttribute: ASSISTANT_ARTICLE_LIFECYCLE_WIRED_ATTRIBUTE,
         stateAttribute: ASSISTANT_ARTICLE_MEDIA_LOAD_STATE_ATTRIBUTE,
         resolveStateTarget: resolveAssistantArticleMediaElement,
         notifyDomChanged
     });
     prepareChatImageLoadLifecycle(attachmentImages, {
-        wiredAttribute: ATTACHMENT_LIFECYCLE_WIRED_ATTRIBUTE,
         stateAttribute: ATTACHMENT_MEDIA_LOAD_STATE_ATTRIBUTE,
         resolveStateTarget: resolveAttachmentVisualElement,
         notifyDomChanged: null

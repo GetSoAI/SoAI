@@ -2,42 +2,44 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { getCancelAnimationFrame, getRequestAnimationFrame } from '@core/environment/public.ts';
-import { LifecycleResources } from '@core/lifecyclemodel/LifecycleResources.ts';
-import type { RedrawRequest, PanState, ZoomState } from '@features/charts/component/chartComponentTypes.ts';
+import { monotonicMs } from '@core/time/clock.ts';
+import type { RedrawRequest } from '@features/charts/component/chartComponentTypes.ts';
 import type { ChartRedrawQueue } from '@features/charts/session/ChartRedrawQueue.ts';
 
 interface ChartRendererDependencies {
-    configuration: { readonly options: { enableInertialPanning: boolean; enableSmoothZoom: boolean } };
     redraw: ChartRedrawQueue;
     viewport: ChartAnimationPort;
     painter: { paint(): void };
+    preview: { isAnimating(now: number): boolean };
+    morph: { advance(now: number): boolean };
 }
 
 interface ChartAnimationPort {
-    readonly pan: PanState;
-    readonly zoom: ZoomState;
-    advanceInertialPanning(): void;
-    advanceSmoothZoom(): void;
+    readonly status: Readonly<{ isAnimating: boolean }>;
+    advanceAnimation(now: number): boolean;
 }
 
+const ANIMATION_REDRAW: RedrawRequest = { static: true, data: true, interaction: true };
+const PREVIEW_REDRAW: RedrawRequest = { data: true };
+
 class ChartRenderer {
-    readonly #configuration: ChartRendererDependencies['configuration'];
     readonly #redraw: ChartRedrawQueue;
     readonly #viewport: ChartAnimationPort;
     readonly #painter: ChartRendererDependencies['painter'];
-    readonly #resources = new LifecycleResources();
+    readonly #preview: ChartRendererDependencies['preview'];
+    readonly #morph: ChartRendererDependencies['morph'];
     #animationFrame: number | null = null;
     #animationCallback: (() => void) | null = null;
     #themeFrame: number | null = null;
-    #loadingRedrawTimer: number | null = null;
     #unsubscribeRedraw: (() => void) | null = null;
     #active = false;
 
-    constructor({ configuration, redraw, viewport, painter }: ChartRendererDependencies) {
-        this.#configuration = configuration;
+    constructor({ redraw, viewport, painter, preview, morph }: ChartRendererDependencies) {
         this.#redraw = redraw;
         this.#viewport = viewport;
         this.#painter = painter;
+        this.#preview = preview;
+        this.#morph = morph;
     }
 
     initialize(signal: AbortSignal): void {
@@ -66,14 +68,6 @@ class ChartRenderer {
         });
     }
 
-    scheduleLoadingRedraw(callback: () => void, delay: number): void {
-        if (this.#loadingRedrawTimer !== null) this.#resources.clearTimer(this.#loadingRedrawTimer);
-        this.#loadingRedrawTimer = this.#resources.setTimer(() => {
-            this.#loadingRedrawTimer = null;
-            if (this.#active) callback();
-        }, delay);
-    }
-
     async destroy(): Promise<void> {
         this.#active = false;
         this.#unsubscribeRedraw?.();
@@ -84,27 +78,17 @@ class ChartRenderer {
         this.#animationFrame = null;
         this.#themeFrame = null;
         this.#animationCallback = null;
-        this.#loadingRedrawTimer = null;
-        await this.#resources.cleanup();
     }
 
     #runFrame(): void {
         this.#animationFrame = null;
         if (!this.#active) return;
-        let continueRendering = false;
-        if (this.#configuration.options.enableInertialPanning && this.#viewport.pan.velocity !== 0) {
-            this.#viewport.advanceInertialPanning();
-            continueRendering = true;
-        }
-        if (this.#configuration.options.enableSmoothZoom && this.#viewport.zoom.isAnimating) {
-            this.#viewport.advanceSmoothZoom();
-            continueRendering = true;
-        }
-        if (this.#redraw.hasPending) {
-            this.#painter.paint();
-            continueRendering = true;
-        }
-        if (continueRendering) this.schedule();
+        const now = monotonicMs();
+        this.#viewport.advanceAnimation(now);
+        if (this.#morph.advance(now)) this.#redraw.request(PREVIEW_REDRAW);
+        if (this.#redraw.hasPending) this.#painter.paint();
+        if (this.#viewport.status.isAnimating) this.#redraw.request(ANIMATION_REDRAW);
+        else if (this.#preview.isAnimating(now)) this.#redraw.request(PREVIEW_REDRAW);
     }
 }
 

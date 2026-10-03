@@ -175,6 +175,7 @@ const replacePlayableMedia = (container: HTMLElement): void => {
         mediaFrame.textContent = typeLabel;
         footer.className = 'chat-inline-media-card__footer';
         title.className = 'chat-inline-media-card__title';
+        title.dir = 'auto';
         title.textContent = typeLabel;
         footer.appendChild(title);
         if (source) {
@@ -212,8 +213,8 @@ const removeInteractiveExportUi = (container: HTMLElement): void => {
     dom.resolveAll(INTERACTIVE_EXPORT_UI_SELECTOR, container).forEach((element) => element.remove());
 };
 
-const buildMessageDocumentHtml = (bodyHtml: string, title: string): string => {
-    return ['<!doctype html><html><head><meta charset="utf-8">', `<title>${escapeHtml(title)}</title>`, `<style>${CONVERSATION_EXPORT_PDF_STYLE}</style>`, '</head><body><main class="chat-export-pdf-shell">', `<section class="chat-export-pdf-content">${bodyHtml}</section>`, '</main></body></html>'].join('');
+const buildMessageDocumentHtml = (bodyHtml: string, title: string, language: string, direction: string): string => {
+    return [`<!doctype html><html lang="${escapeHtml(language)}" dir="${escapeHtml(direction)}"><head><meta charset="utf-8">`, `<title>${escapeHtml(title)}</title>`, `<style>${CONVERSATION_EXPORT_PDF_STYLE}</style>`, '</head><body><main class="chat-export-pdf-shell">', `<section class="chat-export-pdf-content">${bodyHtml}</section>`, '</main></body></html>'].join('');
 };
 
 const buildConversationPdfExportDocument = async (host: ConversationPdfExportDocumentHost, request: ConversationPdfExportBuildRequest): Promise<ConversationPdfExportDocument> => {
@@ -236,13 +237,17 @@ const buildConversationPdfExportDocument = async (host: ConversationPdfExportDoc
         await inlineImages(host, container, signal);
         await waitForConversationExportAssets(container);
         const bodyHtml = serializeElementChildrenToHtml(container);
-        const html = buildMessageDocumentHtml(bodyHtml, request.title);
+        const language = documentRef.documentElement.lang;
+        const direction = documentRef.documentElement.dir;
+        const html = buildMessageDocumentHtml(bodyHtml, request.title, language, direction);
         const logoDataUri = await fetchDataUri(host, STANDARD_LOGO_TYPES.ui.dark, signal);
         const smallLogoDataUri = await fetchDataUri(host, STANDARD_LOGO_TYPES.small.light, signal);
         const exportDate = i18n.formatDate(request.exportedAt, { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
         const coverHtml = normalizeMultipartText(
             buildConversationExportCoverDocument({
                 title: request.title,
+                language,
+                direction,
                 exportDate,
                 logoDataUri,
                 soaiVersion: request.soaiVersion,

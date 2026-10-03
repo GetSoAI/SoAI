@@ -135,12 +135,12 @@ const requireAutomationToggleLabel = (toggleSwitch: Element): HTMLElement => {
     throw new Error('Automation toggle label element missing');
 };
 
-const resolveAutomationWeekColumnCanvas = (weekColumn: HTMLElement): HTMLElement => {
-    const canvas = resolve('.automation-time-grid-canvas', weekColumn);
+const resolveAutomationTimeGridCanvas = (container: Element): HTMLElement => {
+    const canvas = resolve('.automation-time-grid-canvas', container);
     if (canvas instanceof HTMLElement) {
         return canvas;
     }
-    throw new Error('Automation week column canvas missing');
+    throw new Error('Automation time grid canvas missing');
 };
 
 const optionalAutomationRoot = (host: AutomationDomHost): HTMLElement | null => host.optionalHTMLElement('#automation-root');
@@ -159,6 +159,8 @@ const requireAutomationUi = (host: AutomationDomHost): AutomationUiRefs => {
     const splitter = host.requireHTMLElement('#automation-splitter', root);
     const viewToggle = host.requireHTMLElement('#automation-view-toggle', root);
     const registryOverlayToggle = narrowButton(host.requireHTMLElement('#automation-registry-overlay-toggle', root), 'registry overlay toggle');
+    const dataRecovery = host.requireHTMLElement('#automation-data-recovery', root);
+    const dataRecoveryMessage = host.requireHTMLElement('#automation-data-recovery-message', dataRecovery);
 
     return {
         root,
@@ -173,11 +175,13 @@ const requireAutomationUi = (host: AutomationDomHost): AutomationUiRefs => {
         windowRunsRoot,
         splitter,
         viewToggle,
-        registryOverlayToggle
+        registryOverlayToggle,
+        dataRecovery,
+        dataRecoveryMessage
     };
 };
 
-export { optionalAutomationRoot, queryAutomationColorInputs, queryAutomationTurnTextareas, queryAutomationViewToggleButtons, requireAutomationUi, requireAutomationViewCycleButton, resolveAutomationWeekColumnCanvas };
+export { optionalAutomationRoot, queryAutomationColorInputs, queryAutomationTurnTextareas, queryAutomationViewToggleButtons, requireAutomationUi, requireAutomationViewCycleButton, resolveAutomationTimeGridCanvas };
 export { optionalAutomationCalendarScroll, optionalAutomationCalendarTrack, queryAutomationCalendarPeriods, requireActionButton, requireAutomationCalendarScroll, requireAutomationCalendarTrack, requireAutomationTimeGridCanvasInner };
 export { optionalAutomationMonthDay, optionalAutomationMonthDayHeader, optionalAutomationMonthZones, optionalAutomationZoneChip };
 export { queryAutomationNowLines, queryAutomationNowTags };

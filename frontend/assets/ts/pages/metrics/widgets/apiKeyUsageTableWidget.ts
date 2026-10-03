@@ -5,6 +5,7 @@ import { toTrustedTableBodyHtml, type TrustedHtml } from '@core/security/public.
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { getCurrentLocale } from '@core/languageservice/service.ts';
+import { getCollator } from '@core/localization/intlCache.ts';
 import { formatPositiveEpochMsWithFallback } from '@core/primitives/dateTime.ts';
 import { formatCompactNumber } from '@core/primitives/compactNumber.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
@@ -40,7 +41,8 @@ const resolveApiKeyUsageStatusLabel = (row: ApiKeyUsageRow): string => {
 const compareApiKeyUsageRows = (host: MetricsPageWidgetHost, left: ApiKeyUsageRow, right: ApiKeyUsageRow): number => {
     const column = host.state.apiKeyUsageSortColumn || 'requests';
     const direction = host.state.apiKeyUsageSortDirection === 'asc' ? 1 : -1;
-    const compareText = (firstValue: string, secondValue: string): number => firstValue.localeCompare(secondValue, getCurrentLocale(), { sensitivity: 'base', numeric: true });
+    const collator = getCollator(getCurrentLocale(), { sensitivity: 'base', numeric: true });
+    const compareText = (firstValue: string, secondValue: string): number => collator.compare(firstValue, secondValue);
     const tieBreak = compareText(left.label || left.prefix || left.keyId, right.label || right.prefix || right.keyId);
     if (column === 'requests' && left.requestCount !== right.requestCount) {
         return direction * (left.requestCount - right.requestCount);
@@ -95,7 +97,7 @@ const renderApiKeyUsageRows = (host: MetricsPageWidgetHost, bodyElement: HTMLEle
                 const requestsLabel = host.metricsServices.metricsFormatter.number(row.requestCount);
                 const rateLimitedLabel = host.metricsServices.metricsFormatter.number(row.rateLimitedCount);
                 const lastUsedLabel = formatPositiveEpochMsWithFallback(row.lastUsedAtMs, i18n.t('metrics.cards.apiKeyUsage.neverUsed'));
-                return `<tr><td>${label}</td><td><code>${prefix}</code></td><td>${statusLabel}</td><td>${renderAdaptiveNumber(requestsLabel, formatCompactNumber(row.requestCount), 'ui-adaptive-number metrics-adaptive-number')}</td><td>${renderAdaptiveNumber(rateLimitedLabel, formatCompactNumber(row.rateLimitedCount), 'ui-adaptive-number metrics-adaptive-number')}</td><td>${lastUsedLabel}</td></tr>`;
+                return `<tr><td dir="auto">${label}</td><td><code>${prefix}</code></td><td>${statusLabel}</td><td>${renderAdaptiveNumber(requestsLabel, formatCompactNumber(row.requestCount), 'ui-adaptive-number metrics-adaptive-number')}</td><td>${renderAdaptiveNumber(rateLimitedLabel, formatCompactNumber(row.rateLimitedCount), 'ui-adaptive-number metrics-adaptive-number')}</td><td>${lastUsedLabel}</td></tr>`;
             })
             .join('')
     );
@@ -114,6 +116,9 @@ const updateApiKeyUsageTable = (host: MetricsPageWidgetHost): void => {
 
 const updateApiKeyUsageFromSnapshot = (host: MetricsPageWidgetHost, value: JsonValue): void => {
     host.state.currentApiKeyUsageRows = normalizeApiKeyUsageSnapshot(value);
+    if (!host.presentation.requestRefresh()) {
+        return;
+    }
     updateApiKeyUsageTable(host);
     updateDistributionChart(host);
 };

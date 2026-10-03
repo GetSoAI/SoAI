@@ -77,8 +77,10 @@ class DownloadProgressReporter:
     def _calculate_eta(self, speed: float) -> float:
         return calculate_eta(speed, self.downloaded_bytes, self.total_size)
 
-    def _build_payload(self) -> ProgressPayload | None:
+    def _build_payload(self, *, maximum_percent: int | None = None) -> ProgressPayload | None:
         percent = self._calculate_percent()
+        if maximum_percent is not None:
+            percent = min(percent, maximum_percent)
         speed = self._speed_calc.update(self.downloaded_bytes)
         eta_seconds = self._calculate_eta(speed)
         elapsed_seconds = time.monotonic() - self._start_time
@@ -99,12 +101,14 @@ class DownloadProgressReporter:
             self._last_reported_at = time.monotonic()
         return payload
 
-    def report_sync(self, chunk_size: int) -> ProgressPayload | None:
+    def report_sync(
+        self, chunk_size: int, *, maximum_percent: int | None = None
+    ) -> ProgressPayload | None:
         self.downloaded_bytes += chunk_size
-        return self._build_payload()
+        return self._build_payload(maximum_percent=maximum_percent)
 
-    async def report_async(self, chunk_size: int) -> None:
-        payload = self.report_sync(chunk_size)
+    async def report_async(self, chunk_size: int, *, maximum_percent: int | None = None) -> None:
+        payload = self.report_sync(chunk_size, maximum_percent=maximum_percent)
         if payload and self.output_callback:
             result = self.output_callback(payload)
             if inspect.isawaitable(result):

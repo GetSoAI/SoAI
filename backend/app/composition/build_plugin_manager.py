@@ -12,6 +12,7 @@ from app.application_dependencies import ApplicationUpdaterModuleDependencies
 from app.composition.plugin_worker_support import build_plugin_worker_support
 from app.internal_protocols import LifecycleCoordinatorProtocol
 from app.updater.release_fetch import fetch_latest_release_async
+from app.updater.release_history import fetch_release_history_async
 from core.concurrency.bounded_blocking import (
     BoundedThreadPoolConfig,
     create_bounded_thread_pool,
@@ -201,6 +202,7 @@ async def build_plugin_manager(
         edition=edition,
         module_dependencies_type=ApplicationUpdaterModuleDependencies,
         fetch_latest_release_async=fetch_latest_release_async,
+        fetch_release_history_async=fetch_release_history_async,
     )
     updater = updater_factory(config, http_client, updater_module_dependencies)
     plugin_worker_support = build_plugin_worker_support(

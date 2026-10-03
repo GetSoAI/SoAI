@@ -96,7 +96,7 @@ const createChatConversationActionsController = (page: ChatConversationActionsDe
             getConversations: () => state.conversationState.conversations,
             getCurrentConversationId: () => state.conversationState.currentConversationId,
             setCurrentConversationId: (conversationId) => {
-                setCurrentConversationIdForChatPage({ conversationState: state.conversationState, runtimeServices: state.runtimeServices, pageDom: page.page.pageDom, composer: ui.composer, voiceSession: ui.voiceSession }, conversationId);
+                setCurrentConversationIdForChatPage({ composerSurface: page.runtime.composerSurface, conversationState: state.conversationState, runtimeServices: state.runtimeServices, pageDom: page.page.pageDom, composer: ui.composer, voiceSession: ui.voiceSession }, conversationId);
             },
             getSelectedConversationHydrationState: () => state.conversationState.selectedConversationHydrationState,
             setSelectedConversationHydrationState: (state) => {

@@ -151,7 +151,8 @@ const togglePluginEnabledState = async (host: PluginsStateActionHost, plugin: Pl
         const action: 'disable' | 'enable' = isEnabled ? 'disable' : 'enable';
         const pendingToggleTarget = !isEnabled;
         const isDisable = action === 'disable';
-        const taskDisplayName = isDisable ? i18n.t('plugins.notifications.pluginDisabled') : i18n.t('plugins.notifications.pluginEnabled');
+        const displayName = currentPlugin.displayName ?? currentPlugin.name ?? pluginName;
+        const taskDisplayName = isDisable ? i18n.t('plugins.notifications.pluginDisabled', { plugin: displayName }) : i18n.t('plugins.notifications.pluginEnabled', { plugin: displayName });
         host.pendingToggleTargets.set(pluginName, pendingToggleTarget);
         host.rerenderPlugin(pluginName);
         try {
@@ -161,7 +162,7 @@ const togglePluginEnabledState = async (host: PluginsStateActionHost, plugin: Pl
                 });
                 const overrideResponse = applyCompatibilityOverrideResponse(host, pluginName, currentPlugin, result);
                 if (overrideResponse.state === PLUGIN_STATUS_STOPPED) {
-                    host.feedback.show(i18n.t('plugins.notifications.pluginEnabled'), 'success');
+                    host.feedback.show(i18n.t('plugins.notifications.pluginEnabled', { plugin: displayName }), 'success');
                     return;
                 }
             }
@@ -189,7 +190,7 @@ const togglePluginEnabledState = async (host: PluginsStateActionHost, plugin: Pl
             if (!taskResult) {
                 return;
             }
-            host.feedback.show(isDisable ? i18n.t('plugins.notifications.pluginDisabled') : i18n.t('plugins.notifications.pluginEnabled'), isDisable ? 'warning' : 'success');
+            host.feedback.show(taskDisplayName, isDisable ? 'warning' : 'success');
         } finally {
             releaseLocalToggleAdmission(host, pluginName);
         }

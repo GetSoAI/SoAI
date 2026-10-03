@@ -12,11 +12,11 @@
         <link rel="manifest" href="./manifest.webmanifest" />
         <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
         <title>SoAI</title>
-        <script src="./assets/js/theme-preinit.js"></script>
-        <script src="./assets/js/wallpaper-preinit.js"></script>
-        <link rel="stylesheet" href="./assets/css/boot.css" />
-        <link rel="stylesheet" href="./assets/build/css/main-DujRJ-u_.css" />
-        <script type="module" src="./assets/build/js/critical-DYHjG1-e.js"></script>
+        <script src="./assets/js/theme-preinit.js?v=f9a282461394b012"></script>
+        <script src="./assets/js/wallpaper-preinit.js?v=dcd5691c191ad421"></script>
+        <link rel="stylesheet" href="./assets/css/boot.css?v=9f407f45840573d7" />
+        <link rel="stylesheet" href="./assets/build/css/main-DsxO_dej.css" />
+        <script type="module" src="./assets/build/js/critical-8PzrycCX.js"></script>
     </head>
     <body class="ui-ready ui-animated sidebar-collapsed">
         <div id="restart-overlay" class="restart-overlay u-hidden" hidden>
@@ -35,7 +35,7 @@
             </div>
         </div>
 
-        <div id="page-preloader" class="page-preloader is-visible" aria-hidden="false">
+        <div id="page-preloader" class="page-preloader" aria-hidden="false">
             <div class="page-preloader-content">
                 <img class="page-preloader-logo" alt="" data-logo-type="ui" />
                 <div class="page-preloader-status" role="status" aria-live="polite"></div>
@@ -74,7 +74,7 @@
                     <div class="notification-wrapper">
                         <button type="button" id="notification-button" class="ui-icon-button notification-button" aria-label="" data-tooltip="">
                             <span class="ui-icon"></span>
-                            <span id="notification-count" class="header-badge u-hidden">0</span>
+                            <span id="notification-count" class="header-badge u-hidden" data-presence>0</span>
                         </button>
                         <div id="header-notification-center" class="header-notification-center soai-dropdown-menu u-hidden" role="dialog" aria-modal="false">
                             <div id="header-notification-tasks" class="header-notification-tasks">
@@ -120,7 +120,7 @@
                         </div>
                     </div>
 
-                    <div id="header-action-zone" class="header-action-zone u-hidden" aria-hidden="true"></div>
+                    <div id="header-action-zone" class="header-action-zone u-hidden" aria-hidden="true" data-presence></div>
 
                     <div class="settings-wrapper">
                         <button type="button" id="settings-button" class="ui-icon-button settings-button" aria-label="" data-tooltip="">
@@ -135,7 +135,7 @@
                         </div>
                     </div>
 
-                    <div class="user-wrapper u-hidden">
+                    <div class="user-wrapper u-hidden" data-presence>
                         <button type="button" id="user-button" class="ui-icon-button user-button" aria-label="" data-tooltip="">
                             <span class="ui-icon"></span>
                         </button>
@@ -148,7 +148,7 @@
                         </div>
                     </div>
 
-                    <button type="button" id="clock-button" class="ui-icon-button clock-button" aria-label="" data-tooltip="">
+                    <button type="button" id="clock-button" class="ui-icon-button clock-button" aria-label="" data-tooltip="" data-presence-morph>
                         <div id="header-clock" class="header-clock">
                             <div class="clock-time">--:--:--</div>
                             <div class="clock-date">---</div>
@@ -181,6 +181,6 @@
 
             <main id="main-content" class="main-content content-container"></main>
         </div>
-        <script type="module" src="./assets/build/js/main-BVkRY5J0.js" data-soai-entry="main"></script>
+        <script type="module" src="./assets/build/js/main-DD_T2t2B.js" data-soai-entry="main"></script>
     </body>
 </html>

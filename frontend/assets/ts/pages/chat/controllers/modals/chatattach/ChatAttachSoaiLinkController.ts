@@ -5,7 +5,8 @@ import { runWithAbortSignalScope } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { toTrimmedStringOrNull } from '@core/normalize.ts';
-import { containsSoaiPathToken } from '@core/soailinks/codec.ts';
+import { containsSoaiPathToken, extractSoaiPathTokenTexts, requireSoaiVirtualPath, stripSoaiPathTokensForDisplay } from '@core/soailinks/codec.ts';
+import { setFieldErrorMessage } from '@core/ui/forms/fieldError.ts';
 import { captureSoaiLinkWorkspaceSnapshot, matchesSoaiLinkWorkspaceSnapshot, requireMatchingResolveRecords } from '@features/chat/public.ts';
 import type { ChatAttachSoaiLinkHost } from '@pages/chat/controllers/modals/chatattach/contracts.ts';
 import { ChatAttachDraftAttachmentListController } from '@pages/chat/controllers/modals/chatattach/ChatAttachDraftAttachmentListController.ts';
@@ -65,49 +66,53 @@ class ChatAttachSoaiLinkController {
         const input = this.#elements.input;
         const nextValue = this.#resolvePastedValue(input, pastedText);
         input.value = nextValue;
-        this.#scheduleResolve(nextValue);
+        this.#handleInput();
     }
 
     #handleInput(): void {
+        this.#generation += 1;
+        this.#abortResolve();
         const value = this.#elements.input.value;
-        if (!containsSoaiPathToken(value)) {
-            return;
+        let hasCompleteToken = false;
+        try {
+            const tokens = extractSoaiPathTokenTexts(value);
+            for (const token of tokens) requireSoaiVirtualPath(token.virtualPath);
+            hasCompleteToken = tokens.length > 0 && !containsSoaiPathToken(stripSoaiPathTokensForDisplay(value));
+        } catch {
+            hasCompleteToken = false;
         }
-        this.#scheduleResolve(value);
+        setFieldErrorMessage(this.#elements.input, this.#elements.error, value.trim() && !hasCompleteToken ? i18n.t('chat.attachModal.soaiLinkSubtitle') : null);
+        if (hasCompleteToken) {
+            this.#scheduleResolve(value, this.#generation);
+        }
     }
 
-    #scheduleResolve(value: string): void {
+    #scheduleResolve(value: string, generation: number): void {
         if (!this.#active) {
             return;
         }
-        this.#generation += 1;
-        this.#abortResolve();
         this.#host.execution.run('chat:attachModalSoaiLinkResolve', async () => {
-            await this.#resolveCurrentValue(value);
+            await this.#resolveCurrentValue(value, generation);
         });
     }
 
-    async #resolveCurrentValue(inputValue: string): Promise<void> {
-        if (!this.#active || !containsSoaiPathToken(inputValue) || this.#elements.input.value !== inputValue) {
+    async #resolveCurrentValue(inputValue: string, generation: number): Promise<void> {
+        if (!this.#isCurrentField(generation, this.#signal, inputValue)) {
             return;
         }
         this.#abortResolve();
-        this.#generation += 1;
-        const generation = this.#generation;
         const controller = new AbortController();
         this.#resolveController = controller;
-        const conversationId = await this.#resolveConversationId();
-        if (conversationId === null || !this.#isCurrentField(generation, controller.signal, inputValue)) {
-            this.#releaseController(controller);
-            return;
-        }
-        const workspaceSnapshot = captureSoaiLinkWorkspaceSnapshot(this.#host.conversation.current());
-        if (workspaceSnapshot === null || workspaceSnapshot.conversationId !== conversationId || !this.#isCurrent(generation, controller.signal, inputValue, workspaceSnapshot, null)) {
-            this.#releaseController(controller);
-            return;
-        }
-        const draftCommitEpoch = this.#host.attachments.draftCommitEpoch();
         try {
+            const conversationId = await this.#resolveConversationId();
+            if (conversationId === null || !this.#isCurrentField(generation, controller.signal, inputValue)) {
+                return;
+            }
+            const workspaceSnapshot = captureSoaiLinkWorkspaceSnapshot(this.#host.conversation.current());
+            if (workspaceSnapshot === null || workspaceSnapshot.conversationId !== conversationId || !this.#isCurrent(generation, controller.signal, inputValue, workspaceSnapshot, null)) {
+                return;
+            }
+            const draftCommitEpoch = this.#host.attachments.draftCommitEpoch();
             await runWithAbortSignalScope([this.#signal, controller.signal], async (signal) => {
                 const response = await resolveSoaiLinkDraftRecordsWithNotification({
                     api: this.#host.shared.api,
@@ -128,6 +133,7 @@ class ChatAttachSoaiLinkController {
                     return;
                 }
                 this.#elements.input.value = '';
+                setFieldErrorMessage(this.#elements.input, this.#elements.error, null);
                 if (addedCount > 0) {
                     this.#host.shared.feedback.show(i18n.plural('chat.attachments.soaiPathLinkAdded', addedCount, { count: addedCount }), 'success');
                 }

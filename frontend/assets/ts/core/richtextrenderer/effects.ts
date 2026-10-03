@@ -93,7 +93,7 @@ const replaceAngleBracketAutolinks = (text: string, createPlaceholderFunctionVal
             return `<${dependencies.escapeHtml(url)}>`;
         }
         const escapedUrl = dependencies.escapeHtml(sanitizedUrl);
-        return createPlaceholderFunctionValue(`<a href="${escapedUrl}" class="external-link-confirmation" data-href="${escapedUrl}">${escapedUrl}</a>`);
+        return createPlaceholderFunctionValue(`<a dir="auto" href="${escapedUrl}" class="external-link-confirmation" data-href="${escapedUrl}">${escapedUrl}</a>`);
     });
 
 const trimBareUrlTrailingPunctuation = (candidateUrl: string): string => {
@@ -129,7 +129,7 @@ const replaceBareUrls = (text: string, createPlaceholderFunctionValue: (html: st
             return dependencies.escapeHtml(candidateUrl);
         }
         const escapedUrl = dependencies.escapeHtml(sanitizedUrl);
-        return `${createPlaceholderFunctionValue(`<a href="${escapedUrl}" class="external-link-confirmation" data-href="${escapedUrl}">${escapedUrl}</a>`)}${trailingText}`;
+        return `${createPlaceholderFunctionValue(`<a dir="auto" href="${escapedUrl}" class="external-link-confirmation" data-href="${escapedUrl}">${escapedUrl}</a>`)}${trailingText}`;
     });
 
 export const renderInlineFormatting = (value: string, createPlaceholderFunctionValue: (html: string) => string, dependencies: InlineRenderDependencies): string => {
@@ -144,9 +144,9 @@ export const renderInlineFormatting = (value: string, createPlaceholderFunctionV
         const escapedUrl = dependencies.escapeHtml(sanitizedUrl);
         const isExternalHttpUrl = /^https?:\/\//i.test(sanitizedUrl);
         if (isExternalHttpUrl) {
-            return createPlaceholderFunctionValue(`<a href="${escapedUrl}" class="external-link-confirmation" data-href="${escapedUrl}">${escapedText}</a>`);
+            return createPlaceholderFunctionValue(`<a dir="auto" href="${escapedUrl}" class="external-link-confirmation" data-href="${escapedUrl}">${escapedText}</a>`);
         }
-        return createPlaceholderFunctionValue(`<a href="${escapedUrl}">${escapedText}</a>`);
+        return createPlaceholderFunctionValue(`<a dir="auto" href="${escapedUrl}">${escapedText}</a>`);
     });
 
     text = replaceAngleBracketAutolinks(text, createPlaceholderFunctionValue, dependencies);
@@ -191,9 +191,9 @@ export const renderInlineText = (value: string, footnotes: Map<string, FootnoteD
         const escapedUrl = dependencies.escapeHtml(sanitizedUrl);
         const isExternalHttpUrl = /^https?:\/\//i.test(sanitizedUrl);
         if (isExternalHttpUrl) {
-            return createPlaceholderFunctionValue(`<a href="${escapedUrl}" class="external-link-confirmation" data-href="${escapedUrl}">${escapedText}</a>`);
+            return createPlaceholderFunctionValue(`<a dir="auto" href="${escapedUrl}" class="external-link-confirmation" data-href="${escapedUrl}">${escapedText}</a>`);
         }
-        return createPlaceholderFunctionValue(`<a href="${escapedUrl}">${escapedText}</a>`);
+        return createPlaceholderFunctionValue(`<a dir="auto" href="${escapedUrl}">${escapedText}</a>`);
     });
 
     text = text.replace(/<br\s*\/?>/gi, () => createPlaceholderFunctionValue('<br>'));
@@ -201,16 +201,16 @@ export const renderInlineText = (value: string, footnotes: Map<string, FootnoteD
 
     text = text.replace(/\*\*([^*]+)\*\*/g, (_match, content: string) => {
         const rendered = renderInlineFormatting(content, createPlaceholderFunctionValue, dependencies);
-        return createPlaceholderFunctionValue(`<strong>${rendered}</strong>`);
+        return createPlaceholderFunctionValue(`<strong dir="auto">${rendered}</strong>`);
     });
 
     text = text.replace(/(?<!\*)\*([^*\s][^*\n]*)\*(?!\*)/g, (_match, content: string) => {
         const rendered = renderInlineFormatting(content, createPlaceholderFunctionValue, dependencies);
-        return createPlaceholderFunctionValue(`<em>${rendered}</em>`);
+        return createPlaceholderFunctionValue(`<em dir="auto">${rendered}</em>`);
     });
 
     text = text.replace(/~~([^~]+)~~/g, (_match, content: string) => {
-        return createPlaceholderFunctionValue(`<del>${dependencies.escapeHtml(content)}</del>`);
+        return createPlaceholderFunctionValue(`<del dir="auto">${dependencies.escapeHtml(content)}</del>`);
     });
 
     text = replaceBareUrls(text, createPlaceholderFunctionValue, dependencies);

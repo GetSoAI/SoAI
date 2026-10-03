@@ -1,6 +1,7 @@
 /* SoAI - Frontend core Translation declarations for the `wizard` namespace [frontend/assets/ts/core/i18n/translationkeys/wizard.generated.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { WizardAiSetupTranslationKey } from '@core/i18n/translationkeys/wizard/aiSetup.generated.ts';
 import type { WizardCompletionTranslationKey } from '@core/i18n/translationkeys/wizard/completion.generated.ts';
 import type { WizardLicenseTranslationKey } from '@core/i18n/translationkeys/wizard/license.generated.ts';
 import type { WizardLogoAltTranslationKey } from '@core/i18n/translationkeys/wizard/logoAlt.generated.ts';
@@ -14,4 +15,4 @@ import type { WizardUseTranslationKey } from '@core/i18n/translationkeys/wizard/
 import type { WizardUserCreationTranslationKey } from '@core/i18n/translationkeys/wizard/userCreation.generated.ts';
 import type { WizardWelcomeTranslationKey } from '@core/i18n/translationkeys/wizard/welcome.generated.ts';
 
-export type WizardTranslationKey = WizardCompletionTranslationKey | WizardLicenseTranslationKey | WizardLogoAltTranslationKey | WizardNavigationTranslationKey | WizardNotificationsTranslationKey | WizardProductAccessTranslationKey | WizardProgressTranslationKey | WizardSuppressedTranslationKey | WizardTitleTranslationKey | WizardUseTranslationKey | WizardUserCreationTranslationKey | WizardWelcomeTranslationKey;
+export type WizardTranslationKey = WizardAiSetupTranslationKey | WizardCompletionTranslationKey | WizardLicenseTranslationKey | WizardLogoAltTranslationKey | WizardNavigationTranslationKey | WizardNotificationsTranslationKey | WizardProductAccessTranslationKey | WizardProgressTranslationKey | WizardSuppressedTranslationKey | WizardTitleTranslationKey | WizardUseTranslationKey | WizardUserCreationTranslationKey | WizardWelcomeTranslationKey;

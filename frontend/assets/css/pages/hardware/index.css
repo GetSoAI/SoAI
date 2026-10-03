@@ -15,4 +15,5 @@
 @import url('./recessed-surfaces.css') layer(pages);
 @import url('./io-cards.css') layer(pages);
 @import url('./modals.css') layer(pages);
+@import url('./soaibench-history-table.css') layer(pages);
 @import url('./soaibench-run-modal.css') layer(pages);

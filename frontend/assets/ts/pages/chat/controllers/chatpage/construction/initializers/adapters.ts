@@ -24,7 +24,7 @@ const initializeConversationManager = (page: ChatControllerInitializationContext
                 conversations: page.state.conversationState.conversations,
                 getCurrentConversationId: () => page.state.conversationState.currentConversationId,
                 setCurrentConversationId: (conversationId) => {
-                    setCurrentConversationIdForChatPage({ conversationState: page.state.conversationState, runtimeServices: page.state.runtimeServices, pageDom: page.page.pageDom, composer: page.sessions.composer, voiceSession: page.sessions.voiceSession }, conversationId);
+                    setCurrentConversationIdForChatPage({ composerSurface: page.runtime.composerSurface, conversationState: page.state.conversationState, runtimeServices: page.state.runtimeServices, pageDom: page.page.pageDom, composer: page.sessions.composer, voiceSession: page.sessions.voiceSession }, conversationId);
                 }
             }
         )

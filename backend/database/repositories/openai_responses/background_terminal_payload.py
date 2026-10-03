@@ -17,7 +17,7 @@ from core.openai.responses_events import (
     build_response_status_json,
 )
 from core.tasks.enums import TaskStatus
-from core.tasks.task_public_fields import resolve_public_task_terminal_fields
+from core.tasks.task_public_fields import TaskTerminalFields, resolve_public_task_terminal_fields
 from database.core.json_codec import safe_json_deserialize_required_object
 
 if TYPE_CHECKING:
@@ -37,6 +37,7 @@ def build_background_response_terminal_payload(
     error_type: str | None = None,
     error_message: str | None,
     status_message: str | None,
+    public_error_message: str | None = None,
 ) -> JSONDict:
     if task_status == TaskStatus.COMPLETED.value:
         decoded_result = safe_json_deserialize_required_object(
@@ -59,11 +60,14 @@ def build_background_response_terminal_payload(
         )
     if task_status == TaskStatus.FAILED.value:
         public_fields = resolve_public_task_terminal_fields(
-            status=TaskStatus.FAILED,
-            error_code=error_code,
-            error_type=error_type,
-            status_message=status_message,
-            error_message=error_message,
+            TaskTerminalFields(
+                status=TaskStatus.FAILED,
+                error_code=error_code,
+                error_type=error_type,
+                status_message=status_message,
+                error_message=error_message,
+                public_error_message=public_error_message,
+            )
         )
         resolved_error_code = error_code if error_code is not None else 500
         message = public_fields.error_message or public_fields.status_message or "Task failed."

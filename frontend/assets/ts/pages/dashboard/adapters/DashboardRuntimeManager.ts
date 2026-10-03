@@ -5,7 +5,7 @@ import { terminateHandledPromise } from '@core/primitives/terminateHandledPromis
 import { hasWebuiAction } from '@core/access/webuiPermissions.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { getLogValidation } from '@core/logvalidation/public.ts';
-import { RequestDistributionChartSizeWatcher } from '@core/models/requestDistributionChartSizing.ts';
+import { ElementResizeRedrawWatcher } from '@core/layout/elementResizeRedraw.ts';
 import { DASHBOARD_REQUEST_DISTRIBUTION_SOURCE_STORAGE_KEY, createRequestDistributionViewState } from '@core/models/requestDistributionRendering.ts';
 import { MovableLayoutEditController } from '@core/routing/pages/movablesections/layoutEditController.ts';
 import { MovableSectionLayout } from '@core/routing/pages/movablesections/service.ts';
@@ -75,7 +75,7 @@ const createDashboardRuntime = (dependencies: DashboardRuntimeDependencies): Das
             }
         }
     });
-    const requestDistributionChartSizeWatcher = new RequestDistributionChartSizeWatcher();
+    const requestDistributionChartSizeWatcher = new ElementResizeRedrawWatcher();
     let apiKeyUsagePermissionRequest: Promise<boolean> | null = null;
     const requestApiKeyUsagePermission = (): Promise<boolean> => {
         apiKeyUsagePermissionRequest ??= dependencies.isAdmin() ? hasWebuiAction('OPENAI_API_ADMIN') : Promise.resolve(false);

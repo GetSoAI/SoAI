@@ -6,6 +6,7 @@ import { dom } from '@core/dom/dom.ts';
 import { optionalNonNegativeIntegerAttribute } from '@core/dom/attributes.ts';
 import { CHAT_SELECTORS } from '@features/chat/chatConstants.ts';
 import { resolveConversationEntryElements } from '@features/chat/message/conversationEntryElements.ts';
+import { writeMainTimelineScrollTop } from '@features/chat/mainTimelineScroll.ts';
 
 interface MessageWindowScrollAnchor {
     assistantTurnTimestamp: number | null;
@@ -59,7 +60,7 @@ const resolveMessageScrollAnchorScrollTop = (messagesArea: HTMLElement, anchor: 
 const restoreMessageScrollAnchor = (messagesArea: HTMLElement, anchor: MessageWindowScrollAnchor | null): boolean => {
     const targetScrollTop = resolveMessageScrollAnchorScrollTop(messagesArea, anchor);
     if (targetScrollTop === null) return false;
-    if (targetScrollTop !== messagesArea.scrollTop) messagesArea.scrollTop = targetScrollTop;
+    writeMainTimelineScrollTop(messagesArea, targetScrollTop);
     return true;
 };
 

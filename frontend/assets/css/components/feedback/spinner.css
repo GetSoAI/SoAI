@@ -1,0 +1,37 @@
+/* SoAI - Central comet trail spinner styles [frontend/assets/css/components/feedback/spinner.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    :where(.loading-spinner),
+    :where(.spinner),
+    :where(.mermaid-spinner),
+    :where(.page-outlet-overlay-spinner),
+    :where(.chat-sync-spinner),
+    :where(.chart-loading)::after,
+    :where(button[aria-busy='true'][data-busy-spinner='overlay'])::after,
+    :where(.toggle-switch[data-pending] > .slider)::after {
+        --soai-spinner-active-color: var(--accent-primary);
+        --soai-spinner-duration: var(--spinner-duration-1000);
+        --soai-spinner-easing: var(--ease-linear);
+        --soai-spinner-stroke: var(--border-width-2);
+        --soai-spinner-track-color: var(--border-color);
+        --motion-essential-duration: var(--spinner-duration-1000);
+        display: inline-block;
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        border: none;
+        border-radius: var(--border-round);
+        color: var(--soai-spinner-active-color);
+        background-color: var(--soai-spinner-track-color);
+        background-image: conic-gradient(from 0deg, transparent 0deg 28deg, color-mix(in srgb, currentcolor 1%, transparent) 54deg, color-mix(in srgb, currentcolor 2%, transparent) 78deg, color-mix(in srgb, currentcolor 4%, transparent) 102deg, color-mix(in srgb, currentcolor 7%, transparent) 126deg, color-mix(in srgb, currentcolor 11%, transparent) 150deg, color-mix(in srgb, currentcolor 17%, transparent) 174deg, color-mix(in srgb, currentcolor 24%, transparent) 198deg, color-mix(in srgb, currentcolor 33%, transparent) 222deg, color-mix(in srgb, currentcolor 44%, transparent) 246deg, color-mix(in srgb, currentcolor 57%, transparent) 270deg, color-mix(in srgb, currentcolor 70%, transparent) 292deg, color-mix(in srgb, currentcolor 82%, transparent) 312deg, color-mix(in srgb, currentcolor 91%, transparent) 330deg, color-mix(in srgb, currentcolor 97%, transparent) 346deg, currentcolor 360deg);
+        mask: radial-gradient(farthest-side, transparent calc(100% - var(--soai-spinner-stroke)), var(--color-black) calc(100% - var(--soai-spinner-stroke) + 0.5px));
+        animation: spin var(--soai-spinner-duration) var(--soai-spinner-easing) infinite;
+    }
+}

@@ -11,7 +11,10 @@ from core.attachments.direct_upload_metadata import (
     normalize_direct_upload_mime_type,
     resolve_direct_upload_preview_type,
 )
-from core.files.move_with_cancellation import move_file_with_cancellation
+from core.files.move_with_cancellation import (
+    MoveFileCommittedAfterCancellationError,
+    move_file_with_cancellation,
+)
 from core.hardware.reservation_claims import claim_reserved_write
 from core.tasks.cancellation_token_scope import cancellation_token_scope
 from core.timing.epoch import epoch_ms
@@ -70,8 +73,16 @@ async def move_direct_attachment_to_storage(
             details={"purpose": "chat_direct_attachment_storage", "path": permanent_path},
         ) as reservation:
             with claim_reserved_write(reservation, size_bytes=size_bytes):
-                await move_file_with_cancellation(temp_path, permanent_path, token)
-        token.raise_if_cancelled()
+                await move_file_with_cancellation(
+                    temp_path, permanent_path, token, allow_overwrite=False
+                )
+        if token.thread_event.is_set():
+            raise MoveFileCommittedAfterCancellationError(
+                cancellation_id=token.cancellation_id,
+                source_path=temp_path,
+                destination_path=permanent_path,
+                reason=token.cancellation_reason,
+            )
 
 
 def build_stored_direct_attachment_upload(

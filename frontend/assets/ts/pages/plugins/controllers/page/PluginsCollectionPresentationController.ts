@@ -103,6 +103,7 @@ class PluginsCollectionPresentationController {
             renderListRow: (item) => renderer.renderListRow(item)
         });
         if (!(element instanceof HTMLElement)) throw new Error('Plugins rendered element must be an HTMLElement');
+        element.setAttribute('data-presence-suspended', '');
         if (this.#dependencies.session.viewMode === 'list') return element;
         const pluginId = this.#dependencies.dataController.getItemCardId(record);
         return renderCollectionGroupEntry({ card: element, heading: pluginId ? this.#dependencies.session.grouping.headingFor(pluginId) : null, identityAttribute: PLUGINS_CARD_IDENTITY_ATTRIBUTE });

@@ -32,6 +32,11 @@ class WizardLicensingActionController {
         this.clearProductKey();
     }
 
+    async ensureLicenseTextLoaded(): Promise<void> {
+        if (this.#host.view.state.licenseText.length > 0) return;
+        this.#host.view.state.licenseText = await this.#host.data.fetchLicenseText();
+    }
+
     execute(action: LicensingAction, source: HTMLElement): void {
         const operations: Record<LicensingAction, () => Promise<void> | void> = {
             'wizard-activate': () => this.#activate(source),
@@ -54,7 +59,7 @@ class WizardLicensingActionController {
         }
         if (source instanceof HTMLInputElement && source.id === 'wizard-evaluation-acknowledgement') this.#host.view.state.evaluationAcknowledged = source.checked;
         this.#syncControls();
-        this.#syncNavigation();
+        this.#host.view.syncCurrentNavigation();
     }
 
     async mutate(operation: (status: WizardStatusResponse) => Promise<WizardStatusResponse>, afterCommit?: (status: WizardStatusResponse) => Promise<void>): Promise<boolean> {
@@ -65,7 +70,7 @@ class WizardLicensingActionController {
         this.#host.view.state.inlineError = null;
         this.#syncControls();
         this.#syncInlineError();
-        this.#syncNavigation();
+        this.#host.view.syncCurrentNavigation();
         try {
             let status: WizardStatusResponse;
             try {
@@ -93,7 +98,7 @@ class WizardLicensingActionController {
             if (revision === this.#revision) {
                 this.#host.view.state.isBusy = false;
                 this.#syncControls();
-                this.#syncNavigation();
+                this.#host.view.syncCurrentNavigation();
             }
         }
     }
@@ -231,10 +236,6 @@ class WizardLicensingActionController {
         const status = this.#host.view.state.status;
         if (status === null) throw new Error('WizardPage: authoritative licensing status is unavailable');
         return status;
-    }
-
-    #syncNavigation(): void {
-        this.#host.view.syncNavigation(this.#host.view.requireUi(), requireWizardStepId(this.#host.view.state.steps, this.#host.view.state.stepIndex));
     }
 
     #syncInlineError(): void {

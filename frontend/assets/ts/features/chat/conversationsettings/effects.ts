@@ -43,10 +43,7 @@ const applyConversationSectionApplyState = <T>(options: ApplyConversationSection
         section: options.section,
         sectionState: options.sectionState
     });
-    if (!transition.changed) {
-        return;
-    }
-    options.setSectionState(transition.state);
+    if (transition.changed) options.setSectionState(transition.state);
     options.syncConfigurationActionState();
 };
 

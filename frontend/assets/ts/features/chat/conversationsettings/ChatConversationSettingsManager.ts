@@ -18,9 +18,10 @@ import { createDefaultSectionState } from '@features/chat/conversationsettings/s
 import type { ChatConversationSettingsManagerDependencies, ConversationSettingsSection, ConversationSettingsSectionState } from '@features/chat/conversationsettings/types.ts';
 import { CHAT_CONFIGURATION_MODAL_ID, CHAT_MCP_DEFAULT_TOOLS_MODAL_ID } from '@features/chat/modals/constants.ts';
 import type { ConversationModelSettingsUpdate } from '@core/chat/executionSettingsTypes.ts';
-import { reconcileMcpIntentAfterKnowledge } from '@features/chat/conversationsettings/mcpconversationsettingscontroller/mcpPresetStaging.ts';
+import { reconcileMcpIntentAfterKnowledge, resolveMcpParameterDefaults } from '@features/chat/conversationsettings/mcpconversationsettingscontroller/mcpPresetStaging.ts';
 import type { ChatPresetSections } from '@core/api/contracts/webuiChatPresetContractTypes.ts';
 import type { ChatParameters } from '@core/chat/parameters/types.ts';
+import { resolveInitialToolTab } from '@features/chat/conversationsettings/mcpconversationsettingscontroller/actions.ts';
 
 class ChatConversationSettingsManager {
     readonly host: ConversationSettingsHost;
@@ -145,11 +146,11 @@ class ChatConversationSettingsManager {
         if (!controller || !workingValues || !controller.isHydrated() || !controller.isEditable()) {
             return false;
         }
-        controller.commitWorkingValues({
-            ...workingValues,
-            toolsEnabled: parameters.toolsEnabled === true,
-            toolApprovalRequired: parameters.toolApprovalRequired === true
-        });
+        const defaults = resolveMcpParameterDefaults(workingValues, parameters, resolveInitialToolTab(this.host.data.getCurrentConversation()));
+        if (defaults === null) {
+            return false;
+        }
+        controller.commitWorkingValues(defaults);
         controller.refreshWorkingPresentation();
         return true;
     }
@@ -319,10 +320,7 @@ class ChatConversationSettingsManager {
 
     #setSectionDirtyState(section: ConversationSettingsSection, hasChanges: boolean, isValid = true): void {
         const transition = resolveConversationSectionStateTransition(this.#sectionState, section, hasChanges, isValid);
-        if (!transition.changed) {
-            return;
-        }
-        this.#sectionState = transition.state;
+        if (transition.changed) this.#sectionState = transition.state;
         this.#syncConfigurationActionState();
     }
 }

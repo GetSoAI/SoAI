@@ -1,7 +1,6 @@
 /* SoAI - Shared DOM actions contracts [frontend/assets/ts/core/dom/actions/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { createDomCache } from '@core/dom/domCache.ts';
 import type { DomPropertyMap, DomPropertyValue } from '@core/dom/propertyValues.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 
@@ -10,7 +9,6 @@ import type { DOMChildContent, DOMContext, DOMQueryRoot, DOMRuntimeCandidate, DO
 
 interface DomResolverDependencies {
     getDomDocument: () => Document;
-    domCache: ReturnType<typeof createDomCache>;
 }
 
 interface DomResolverApi {
@@ -29,7 +27,6 @@ interface DomResolverApi {
 }
 
 interface DomResolver {
-    domCache: ReturnType<typeof createDomCache>;
     normalizeContext: (context: DOMContext) => DOMQueryRoot;
     querySafe: (selector: string, context?: DOMContext) => Element | null;
     safeQueryAll: (selector: string, context?: DOMContext) => Element[];

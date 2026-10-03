@@ -11,14 +11,10 @@ interface RuntimeEnvLogger {
     logDetachedWarning: (message: string, details?: TelemetryValue) => void;
 }
 const LOG_TAG_DETACHED = 'DetachedCoordinator';
-let currentWindowIdCache: string | null = null;
-let detachedContextCache: boolean | null = null;
 let hostWindowIdCache: string | null = null;
-const getCurrentWindowId = (): string => (currentWindowIdCache ??= windowIdentity.current());
-const getDetachedContext = (): boolean => (detachedContextCache ??= windowIdentity.isDetachedContext());
 const resolveHostWindowId = (): string => {
-    if (!getDetachedContext()) {
-        return getCurrentWindowId();
+    if (!windowIdentity.isDetachedContext()) {
+        return windowIdentity.current();
     }
     const search = getLocation().search;
     if (!isString(search)) {
@@ -39,5 +35,5 @@ const resolveHostWindowId = (): string => {
 };
 const getHostWindowId = (): string => (hostWindowIdCache ??= resolveHostWindowId());
 
-export { LOG_TAG_DETACHED, getCurrentWindowId, getDetachedContext, getHostWindowId, SYSTEM_LOGS_CORE_STREAM };
+export { LOG_TAG_DETACHED, getHostWindowId, SYSTEM_LOGS_CORE_STREAM };
 export type { RuntimeEnvLogger };

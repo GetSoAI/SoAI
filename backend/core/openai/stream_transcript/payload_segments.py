@@ -6,8 +6,11 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
-from core.openai.reasoning_text import normalize_reasoning_text
-from core.openai.stream_transcript.types import StreamTextSegment
+from core.openai.reasoning_text import REASONING_FIELD_NAMES, normalize_reasoning_text
+from core.openai.stream_transcript.types import (
+    StreamTextSegment,
+    StreamTextSegmentLocation,
+)
 from core.openai.tool_call_stream_matching import (
     source_has_content,
     source_has_reasoning,
@@ -20,16 +23,15 @@ __all__ = (
     "build_choice_text_source",
     "extract_reasoning_text_from_source",
     "iter_choice_tool_call_sources",
+    "iter_text_segment_locations_from_payload",
     "iter_text_segments_from_payload",
 )
-
-_REASONING_KEYS: tuple[str, ...] = ("reasoning_content", "reasoning", "thinking")
 
 
 def extract_reasoning_text_from_source(source: JSONDict | None) -> str:
     if not isinstance(source, dict):
         return ""
-    for key in _REASONING_KEYS:
+    for key in REASONING_FIELD_NAMES:
         if key in source:
             return normalize_reasoning_text(source.get(key))
     return ""
@@ -47,7 +49,7 @@ def build_choice_text_source(choice: JSONDict) -> JSONDict | None:
     elif isinstance(message, dict) and source_has_reasoning(message):
         reasoning_source = message
     if reasoning_source is not None:
-        for key in _REASONING_KEYS:
+        for key in REASONING_FIELD_NAMES:
             if key in reasoning_source:
                 source[key] = reasoning_source.get(key)
                 break
@@ -76,15 +78,33 @@ def iter_choice_tool_call_sources(choice: JSONDict) -> Iterator[JSONDict]:
 
 
 def iter_text_segments_from_payload(payload: JSONValue | None) -> Iterator[StreamTextSegment]:
+    for location in iter_text_segment_locations_from_payload(payload):
+        yield location.segment
+
+
+def iter_text_segment_locations_from_payload(
+    payload: JSONValue | None,
+    *,
+    container: JSONDict | list[JSONValue] | None = None,
+    key: str | int | None = None,
+) -> Iterator[StreamTextSegmentLocation]:
     if payload is None:
         return
     if isinstance(payload, str):
         if payload:
-            yield StreamTextSegment(channel="visible", text=payload)
+            yield StreamTextSegmentLocation(
+                segment=StreamTextSegment(channel="visible", text=payload),
+                container=container,
+                key=key,
+            )
         return
     if isinstance(payload, list):
-        for item in payload:
-            yield from iter_text_segments_from_payload(item)
+        for index, item in enumerate(payload):
+            yield from iter_text_segment_locations_from_payload(
+                item,
+                container=payload,
+                key=index,
+            )
         return
     if not isinstance(payload, dict):
         return
@@ -93,20 +113,40 @@ def iter_text_segments_from_payload(payload: JSONValue | None) -> Iterator[Strea
     if type_key in {"thinking", "reasoning", "reasoning_text"}:
         reasoning_text = normalize_reasoning_text(payload)
         if reasoning_text:
-            yield StreamTextSegment(channel="thinking", text=reasoning_text)
+            yield StreamTextSegmentLocation(
+                segment=StreamTextSegment(channel="thinking", text=reasoning_text),
+                container=None,
+                key=None,
+            )
         return
     if type_key and type_key not in {"text", "output_text", "input_text", "summary_text"}:
         return
     text_value = payload.get("text")
     if isinstance(text_value, str) and text_value:
-        yield StreamTextSegment(channel="visible", text=text_value)
+        yield StreamTextSegmentLocation(
+            segment=StreamTextSegment(channel="visible", text=text_value),
+            container=payload,
+            key="text",
+        )
         return
     value_value = payload.get("value")
     if isinstance(value_value, str) and value_value:
-        yield StreamTextSegment(channel="visible", text=value_value)
+        yield StreamTextSegmentLocation(
+            segment=StreamTextSegment(channel="visible", text=value_value),
+            container=payload,
+            key="value",
+        )
         return
     if "content" in payload:
-        yield from iter_text_segments_from_payload(payload.get("content"))
+        yield from iter_text_segment_locations_from_payload(
+            payload.get("content"),
+            container=payload,
+            key="content",
+        )
         return
     if "parts" in payload:
-        yield from iter_text_segments_from_payload(payload.get("parts"))
+        yield from iter_text_segment_locations_from_payload(
+            payload.get("parts"),
+            container=payload,
+            key="parts",
+        )

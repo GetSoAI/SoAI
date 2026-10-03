@@ -14,6 +14,10 @@ const isEpochMsNumber = (value: number): boolean => {
     return Number.isSafeInteger(value) && value >= EPOCH_MS_MIN && value <= EPOCH_MS_MAX;
 };
 
+const isSignedEpochMsNumber = (value: number): boolean => {
+    return Number.isSafeInteger(value) && value >= -EPOCH_MS_MAX && value <= EPOCH_MS_MAX;
+};
+
 const isEpochMsAtLeast = (value: number, minimum: number): boolean => {
     return Number.isSafeInteger(value) && value >= minimum && value <= EPOCH_MS_MAX;
 };
@@ -25,6 +29,10 @@ const isEpochMsValue = (value: EpochMsInput): value is number => {
         return false;
     }
     return isEpochMsNumber(value);
+};
+
+const isSignedEpochMsValue = (value: EpochMsInput): value is number => {
+    return isNumber(value) && isSignedEpochMsNumber(value);
 };
 
 const parseEpochMsOrNull = (value: EpochMsInput, minimum: number = EPOCH_MS_MIN): number | null => {
@@ -81,4 +89,4 @@ const coerceEpochMsOrFallback = (value: EpochMsInput, fallback: number, options:
     throw new Error(errorMessage);
 };
 
-export { EPOCH_MS_DETECTION_FLOOR, EPOCH_MS_MAX, EPOCH_MS_MIN, coerceEpochMsOrFallback, isEpochMsNumber, isEpochMsValue, parseEpochMsOrNull };
+export { EPOCH_MS_DETECTION_FLOOR, EPOCH_MS_MAX, EPOCH_MS_MIN, coerceEpochMsOrFallback, isEpochMsNumber, isEpochMsValue, isSignedEpochMsNumber, isSignedEpochMsValue, parseEpochMsOrNull };

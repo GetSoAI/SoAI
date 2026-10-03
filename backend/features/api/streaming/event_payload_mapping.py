@@ -19,7 +19,9 @@ from core.events.types_models_model_events import (
 )
 from core.events.types_models_streaming import StreamChunkEvent
 from core.events.types_system import (
+    HardwareHistoryResetEvent,
     HardwareSnapshotUpdatedEvent,
+    MetricsHistoryResetEvent,
     MetricsUpdatedEvent,
     ProcessListUpdatedEvent,
     SoAIBenchRunUpdatedEvent,
@@ -83,8 +85,12 @@ def event_to_transport_payload(event: Event | JSONDict) -> JSONDict:
     if isinstance(event, SoAIMainStateChangedEvent):
         data["new_state"] = event.new_state.value
         data["previous_state"] = event.previous_state.value
-    if isinstance(event, SoAIBenchRunUpdatedEvent):
+    if isinstance(
+        event,
+        SoAIBenchRunUpdatedEvent | MetricsHistoryResetEvent | HardwareHistoryResetEvent,
+    ):
         data.pop("delivery", None)
+    if isinstance(event, SoAIBenchRunUpdatedEvent):
         data["update_type"] = event.update_type
         data["update_seq"] = event.update_seq
         data["run"] = event.run

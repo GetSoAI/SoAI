@@ -14,6 +14,7 @@ from core.filesystem.open_files import (
     open_regular_binary_no_symlink,
     read_regular_file_no_symlink,
 )
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.serialization.json import serialize_json_compact_stable_strict
 from core.serialization.json_parsing import parse_json_dict
 from core.serialization.sha256_hexdigest import require_canonical_sha256_hexdigest
@@ -90,9 +91,13 @@ def read_plugin_package_completion_record(
 ) -> PluginPackageCompletionRecord | None:
     entrypoint_path = os.path.join(package_root, "__init__.py")
     completion_path = os.path.join(package_root, COMPLETION_RECORD_NAME)
-    if os.path.islink(entrypoint_path) or not os.path.isfile(entrypoint_path):
+    if os.path.islink(normalize_filesystem_path(entrypoint_path)) or not os.path.isfile(
+        normalize_filesystem_path(entrypoint_path)
+    ):
         return None
-    if os.path.islink(completion_path) or not os.path.isfile(completion_path):
+    if os.path.islink(normalize_filesystem_path(completion_path)) or not os.path.isfile(
+        normalize_filesystem_path(completion_path)
+    ):
         return None
     try:
         completion_bytes = read_regular_file_no_symlink(completion_path, max_bytes=4096)
@@ -162,7 +167,9 @@ def _expected_tree_paths(
 def _inspect_published_tree(
     package_root: str,
 ) -> tuple[set[str], dict[str, tuple[int, str]]] | None:
-    if os.path.islink(package_root) or not os.path.isdir(package_root):
+    if os.path.islink(normalize_filesystem_path(package_root)) or not os.path.isdir(
+        normalize_filesystem_path(package_root)
+    ):
         return None
     actual_directories: set[str] = set()
     actual_files: dict[str, tuple[int, str]] = {}
@@ -170,21 +177,23 @@ def _inspect_published_tree(
     try:
         while pending_directories:
             relative_root, absolute_root = pending_directories.pop()
-            with os.scandir(absolute_root) as entries:
+            with os.scandir(normalize_filesystem_path(absolute_root)) as entries:
                 for entry in entries:
                     relative_path = os.path.join(relative_root, entry.name)
                     if entry.is_symlink():
                         return None
                     if entry.is_dir(follow_symlinks=False):
                         actual_directories.add(relative_path)
-                        pending_directories.append((relative_path, entry.path))
+                        pending_directories.append(
+                            (relative_path, os.path.join(absolute_root, entry.name))
+                        )
                         continue
                     if not entry.is_file(follow_symlinks=False):
                         return None
                     if relative_path == COMPLETION_RECORD_NAME:
                         continue
                     with open_regular_binary_no_symlink(
-                        entry.path,
+                        os.path.join(absolute_root, entry.name),
                         not_found_message="Cached plugin package member was not found.",
                         symlink_message="Cached plugin package member is a symbolic link.",
                         open_message="Cached plugin package member could not be opened.",

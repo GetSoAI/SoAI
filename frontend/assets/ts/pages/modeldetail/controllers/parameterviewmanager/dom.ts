@@ -1,20 +1,17 @@
 /* SoAI - Model detail page control layer parameter view manager DOM contracts [frontend/assets/ts/pages/modeldetail/controllers/parameterviewmanager/dom.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { replaceSelectOptions } from '@core/dom/selectOptions.ts';
+import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { drainCleanupStack } from '@core/lifecycle/cleanup.ts';
-import { syncPageControlSelectValue } from '@core/pagecontrols/selectController.ts';
 import { matchesSearchFilterQuery, normalizeSearchMatchQuery } from '@core/search/searchQuery.ts';
+import { updateToggleLabel } from '@core/toggleSwitch.ts';
 import { isArray, isInstanceOf, isObject, isString } from '@core/typeGuards.ts';
-import { resolveParameterCategoryLabel } from '@pages/modeldetail/contracts/parameterCategoryMetadata.ts';
 import type { ParameterValue } from '@pages/modeldetail/contracts/parameterTypes.ts';
 import type { ParameterStateManager } from '@pages/modeldetail/controllers/ParameterStateManager.ts';
-import { CATEGORY_COUNT_SELECTOR, CATEGORY_PARAMETER_ITEM_SELECTOR, PARAMETER_CATEGORY_SELECTOR, PARAMETER_ITEM_SELECTOR, PARAMETERS_EMPTY_STATE_ID, PARAMETERS_FILTER_ID, PARAMETERS_INTERFACE_ID, PARAMETERS_LAYOUT_SELECTOR } from '@pages/modeldetail/controllers/parameterviewmanager/constants.ts';
-import { persistModelDetailParameterFilter, readModelDetailParameterFilter } from '@pages/modeldetail/controllers/parameterviewmanager/parameterViewControlsManager.ts';
-import type { ParameterElementCache, ParameterViewFilters, ParameterViewHost } from '@pages/modeldetail/controllers/parameterviewmanager/types.ts';
-import { PARAMETER_COUNT_BADGE_TONE_CLASSES, resolveParameterCountBadgeTone } from '@pages/modeldetail/rendering/parameterCountBadgeTone.ts';
+import { CATEGORY_COUNT_SELECTOR, PARAMETER_CATEGORY_SELECTOR, PARAMETER_ITEM_SELECTOR, PARAMETERS_EMPTY_STATE_ID, PARAMETERS_INTERFACE_ID } from '@pages/modeldetail/controllers/parameterviewmanager/constants.ts';
+import type { BoundParameterEvents, ParameterElementCache, ParameterViewFilters, ParameterViewHost } from '@pages/modeldetail/controllers/parameterviewmanager/types.ts';
 
 const requireElement = (host: ParameterViewHost, selector: string): Element => {
     const element = host.pageDom.optional(selector);
@@ -54,15 +51,17 @@ const resolveElement = (host: ParameterViewHost, elementCache: ParameterElementC
     return resolved;
 };
 
-const registerHandlers = (host: ParameterViewHost, container: Element, selector: string, eventName: string, boundElements: Set<Element>, eventDisposers: Array<() => void>, handler: (event: Event, target: HTMLElement) => void): void => {
+const registerHandlers = (host: ParameterViewHost, container: Element, selector: string, eventName: string, boundEvents: BoundParameterEvents, eventDisposers: Array<() => void>, handler: (event: Event, target: HTMLElement) => void): void => {
     host.dom.resolveAll(selector, container).forEach((element) => {
         if (!isInstanceOf(element, HTMLElement)) {
             throw new TypeError('Parameter control element must be an HTMLElement');
         }
-        if (boundElements.has(element)) {
+        const events = boundEvents.get(element) ?? new Set<string>();
+        if (events.has(eventName)) {
             return;
         }
-        boundElements.add(element);
+        events.add(eventName);
+        boundEvents.set(element, events);
         const disposer = host.pageResources.on(element, eventName, (event: Event) => handler(event, element));
         if (typeof disposer === 'function') {
             eventDisposers.push(disposer);
@@ -70,19 +69,38 @@ const registerHandlers = (host: ParameterViewHost, container: Element, selector:
     });
 };
 
-const disposeEventHandlers = (eventDisposers: Array<() => void>, boundElements: Set<Element>): void => {
+const disposeEventHandlers = (eventDisposers: Array<() => void>, boundEvents: BoundParameterEvents): void => {
     drainCleanupStack(eventDisposers, (runtimeError) => {
         errorHandler.warn('ParameterViewManager', 'Parameter event cleanup failed', runtimeError);
     });
-    boundElements.clear();
+    boundEvents.clear();
 };
 
-const isBackendDocumentationSection = (element: Element): boolean => {
-    return element.classList.contains('parameter-category--backend-doc');
+const resolveParameterKeywords = (state: ParameterStateManager, key: string): string[] => {
+    const keywords = state.getMetadata(key)?.keywords;
+    if (keywords?.length) {
+        return keywords;
+    }
+    const definition = state.getParameter(key)?.definition;
+    const aliases = isArray(definition?.aliases) ? definition.aliases : [];
+    return [key, definition?.displayName, definition?.description, ...aliases].map((token) => (isString(token) ? normalizeSearchMatchQuery(token) : '')).filter(Boolean);
 };
 
-const applyFilters = (host: ParameterViewHost, state: ParameterStateManager, filters: ParameterViewFilters, elementCache: ParameterElementCache): void => {
-    const { search, category, group } = filters;
+const matchesParameterFilters = (host: ParameterViewHost, state: ParameterStateManager, filters: ParameterViewFilters, key: string, element: Element, isModified: (key: string) => boolean): boolean => {
+    const { search, group, view } = filters;
+    if (search && !resolveParameterKeywords(state, key).some((token) => matchesSearchFilterQuery(token, search))) {
+        return false;
+    }
+    if (group !== null && (state.getMetadata(key)?.group ?? getDomData(host, element, 'group')) !== group) {
+        return false;
+    }
+    if (view === 'customized') {
+        return state.isParameterCustomized(key);
+    }
+    return view === 'unsaved' ? isModified(key) : true;
+};
+
+const applyFilters = (host: ParameterViewHost, state: ParameterStateManager, filters: ParameterViewFilters, elementCache: ParameterElementCache, isModified: (key: string) => boolean): Map<string, number> => {
     if (!elementCache.size) {
         refreshElementCache(host, elementCache);
     }
@@ -93,99 +111,33 @@ const applyFilters = (host: ParameterViewHost, state: ParameterStateManager, fil
             elementCache.delete(key);
             continue;
         }
-
-        const parameter = state.getParameter(key);
-        const meta = state.getMetadata(key);
-        let keywords = meta?.keywords;
-        if (!keywords?.length) {
-            const definition = parameter?.definition;
-            const aliases = isArray(definition?.aliases) ? definition.aliases : [];
-            keywords = [key, definition?.displayName, definition?.description, ...aliases].map((token) => (isString(token) ? normalizeSearchMatchQuery(token) : '')).filter(Boolean);
-        }
-
-        const matchesSearch = !search || keywords.some((token) => matchesSearchFilterQuery(token, search));
-        const metaCategory = meta?.category ?? getDomData(host, element, 'category');
-        const metaGroup = meta?.group ?? getDomData(host, element, 'group');
-        const matchesCategory = category === 'all' || metaCategory === category;
-        const matchesGroup = group === 'all' || metaGroup === group;
-        const visible = matchesSearch && matchesCategory && matchesGroup;
-        host.pageDom.toggleClass(element, 'u-hidden', !visible);
+        const visible = matchesParameterFilters(host, state, filters, key, element, isModified);
+        host.pageDom.toggleClass(element, CSS_CLASSES.HIDDEN, !visible);
         if (visible) {
             visibleParameterCount += 1;
         }
     }
 
+    const categoryCounts = new Map<string, number>();
     host.$$(PARAMETER_CATEGORY_SELECTOR).forEach((categoryElement) => {
-        if (isBackendDocumentationSection(categoryElement)) {
-            host.pageDom.toggleClass(categoryElement, 'u-hidden', false);
-            return;
-        }
-        const items = host.$$(CATEGORY_PARAMETER_ITEM_SELECTOR, categoryElement).filter((item): item is HTMLElement => isInstanceOf(item, HTMLElement));
-        const count = items.reduce((total, item) => total + (item.classList.contains('u-hidden') ? 0 : 1), 0);
+        const category = getDomData(host, categoryElement, 'category');
+        const count = host.$$(PARAMETER_ITEM_SELECTOR, categoryElement).reduce((total, item) => total + (item.classList.contains(CSS_CLASSES.HIDDEN) ? 0 : 1), 0);
         const badge = host.pageDom.optional(CATEGORY_COUNT_SELECTOR, categoryElement);
         if (badge) {
-            const badgeText = i18n.t('modelDetail.parameters.countLabel', { count });
-            const toneClass = resolveParameterCountBadgeTone(count);
-            host.pageDom.updateText(badge, badgeText);
-            PARAMETER_COUNT_BADGE_TONE_CLASSES.forEach((className) => {
-                host.pageDom.toggleClass(badge, className, className === toneClass);
-            });
+            host.pageDom.updateText(badge, i18n.plural('modelDetail.parameters.count', count, { count: i18n.formatNumber(count) }));
         }
-        host.pageDom.toggleClass(categoryElement, 'u-hidden', count === 0);
+        host.pageDom.toggleClass(categoryElement, CSS_CLASSES.HIDDEN, count === 0);
+        if (category) {
+            categoryCounts.set(category, count);
+        }
     });
 
-    const filterActive = Boolean(search || category !== 'all' || group !== 'all');
     const container = requireElement(host, PARAMETERS_INTERFACE_ID);
-    const layout = host.pageDom.optional(PARAMETERS_LAYOUT_SELECTOR, container);
     const emptyState = host.pageDom.optional(PARAMETERS_EMPTY_STATE_ID, container);
-    const showEmpty = filterActive && visibleParameterCount === 0;
-    if (layout) {
-        host.pageDom.toggleClass(layout, 'u-hidden', false);
-    }
     if (emptyState) {
-        host.pageDom.toggleClass(emptyState, 'u-hidden', !showEmpty);
+        host.pageDom.toggleClass(emptyState, CSS_CLASSES.HIDDEN, visibleParameterCount > 0);
     }
-};
-
-const populateFilterOptions = (host: ParameterViewHost, state: ParameterStateManager): string => {
-    const selectResolved = host.pageDom.optional(PARAMETERS_FILTER_ID);
-    if (!selectResolved) {
-        throw new Error('ModelDetailPage required filter element is missing: #param-unified-filter');
-    }
-    if (!(selectResolved instanceof HTMLSelectElement)) {
-        throw new TypeError('ModelDetailPage filter element #param-unified-filter must be an HTMLSelectElement');
-    }
-    const select = selectResolved;
-    const categories = state.categories;
-    if (!isObject(categories) || !Object.keys(categories).length) {
-        if (readModelDetailParameterFilter(host.storage) !== 'all') persistModelDetailParameterFilter(host.storage, 'all');
-        return 'all';
-    }
-    const options = [
-        { value: 'all', label: i18n.t('modelDetail.filters.allParameters') },
-        { value: 'group:startup', label: i18n.t('modelDetail.filters.groupStartup') },
-        { value: 'group:inference', label: i18n.t('modelDetail.filters.groupInference') },
-        ...Object.entries(categories).map(([key, value]) => ({
-            value: `category:${key}`,
-            label: `${i18n.t('modelDetail.filters.category')} ${resolveParameterCategoryLabel(value, key)}`
-        }))
-    ];
-    replaceSelectOptions(
-        select,
-        options.map((option) => ({
-            value: option.value,
-            label: option.label,
-            selected: option.value === select.value
-        }))
-    );
-    const selection = syncPageControlSelectValue(
-        select,
-        readModelDetailParameterFilter(host.storage),
-        options.map((option) => option.value),
-        'all'
-    );
-    if (selection.requestedValue !== selection.visibleValue) persistModelDetailParameterFilter(host.storage, selection.visibleValue);
-    return selection.visibleValue;
+    return categoryCounts;
 };
 
 const updateParameterUi = (host: ParameterViewHost, state: ParameterStateManager, parameterKey: string, value: ParameterValue, rerenderArrayInput: (key: string) => void): void => {
@@ -194,19 +146,16 @@ const updateParameterUi = (host: ParameterViewHost, state: ParameterStateManager
         rerenderArrayInput(parameterKey);
         return;
     }
-    host.$$(`${PARAMETER_ITEM_SELECTOR}[data-param="${CSS.escape(parameterKey)}"] [data-param]`).forEach((input) => {
+    host.$$(`${PARAMETER_ITEM_SELECTOR}[data-param="${CSS.escape(parameterKey)}"] :is(input, textarea, select)[data-param]`).forEach((input) => {
         if (input instanceof HTMLInputElement && input.type === 'checkbox') {
             const checked = displayValue === true || displayValue === 'true';
             host.pageDom.updateProperty(input, 'checked', checked);
-            const label = host.pageDom.optional('.toggle-label', input.closest('.toggle-switch') ?? undefined);
-            if (label) {
-                host.pageDom.updateText(label, checked ? i18n.t('common.boolean.true') : i18n.t('common.boolean.false'));
-            }
+            updateToggleLabel(input, { checked });
             return;
         }
 
-        if (!(input instanceof HTMLInputElement) && !(input instanceof HTMLTextAreaElement)) {
-            throw new TypeError('Parameter control must be an HTMLInputElement or HTMLTextAreaElement');
+        if (!(input instanceof HTMLInputElement) && !(input instanceof HTMLTextAreaElement) && !(input instanceof HTMLSelectElement)) {
+            throw new TypeError('Parameter control must be an HTMLInputElement, HTMLTextAreaElement, or HTMLSelectElement');
         }
 
         const normalized = displayValue !== null && displayValue !== undefined && isObject(displayValue) ? JSON.stringify(displayValue, null, 2) : String(displayValue ?? '');
@@ -214,4 +163,4 @@ const updateParameterUi = (host: ParameterViewHost, state: ParameterStateManager
     });
 };
 
-export { applyFilters, disposeEventHandlers, getDomData, populateFilterOptions, refreshElementCache, registerHandlers, requireElement, resolveElement, updateParameterUi };
+export { applyFilters, disposeEventHandlers, getDomData, refreshElementCache, registerHandlers, requireElement, resolveElement, updateParameterUi };

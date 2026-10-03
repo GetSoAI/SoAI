@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "Bây giờ"
+                "now": "Bây giờ",
+                "occurrenceLabel": "{title}, {date} {time}, {status}",
+                "createAt": "Tạo tác vụ tự động vào {date} lúc {time}. Dùng các phím mũi tên để đổi giờ."
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "Bắt đầu",
                     "turns": "Lượt",
                     "timezone": "Múi giờ",
-                    "title": "Tiêu đề"
+                    "title": "Tiêu đề",
+                    "modelSettings": "Mô hình, công cụ và tham số"
                 },
                 "workspace": {
                     "button": "Chọn thư mục",
                     "description": "Chọn thư mục dùng cho lượt chạy tự động này. Các lượt chạy lặp lại sẽ tiếp tục dùng thư mục tự động hóa này.",
                     "fieldLabel": "Thư mục không gian làm việc",
-                    "title": "Thư mục không gian làm việc của tác vụ tự động"
+                    "title": "Thư mục không gian làm việc của tác vụ tự động",
+                    "viewButton": "Duyệt không gian làm việc"
                 },
                 "parameters": {
                     "button": "Chỉnh sửa tham số",
@@ -166,17 +170,17 @@
                     "fieldLabel": "Tham số mô hình",
                     "summaryCustom": "Tham số tự động hóa tùy chỉnh",
                     "summaryDefault": "Tham số mô hình mặc định",
-                    "title": "Tham số mô hình của tác vụ tự động"
+                    "title": "Tham số mô hình của tác vụ tự động",
+                    "viewButton": "Xem tham số"
                 },
                 "timezone": {
-                    "auto": "Tự động"
+                    "autoWithZone": "Tự động ({timezone})"
                 },
                 "placeholders": {
                     "assistantTurn": "Phản hồi của mô hình",
                     "endOfAutomation": "Kết thúc tác vụ tự động",
                     "model": "Chọn mô hình",
                     "turn": "Nhập tin nhắn",
-                    "turnIndexed": "Nhập tin nhắn {index}",
                     "title": "Nhập tiêu đề"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "Lưu",
                 "validation": {
                     "maxRunMinutesInvalid": "Thời gian chạy tối đa phải từ 1 đến 1440 phút.",
-                    "modelUnavailable": "Mô hình đã chọn không khả dụng.",
+                    "modelUnavailable": "{model} không khả dụng. Hãy chọn mô hình khác.",
                     "modelRequired": "Bắt buộc chọn mô hình.",
                     "recurrenceInvalid": "Thiết lập lặp lại không hợp lệ.",
                     "startInvalid": "Ngày giờ bắt đầu không hợp lệ.",
@@ -195,7 +199,42 @@
                     "turnsRequired": "Bắt buộc nhập tất cả các lượt.",
                     "tooManyTurns": "Quá nhiều lượt (tối đa {max}). Mỗi lượt được thực thi như một lượt của agent.",
                     "timezoneRequired": "Bắt buộc chọn múi giờ.",
-                    "titleRequired": "Bắt buộc nhập tiêu đề."
+                    "titleRequired": "Bắt buộc nhập tiêu đề.",
+                    "modelDisabled": "{model} đang bị tắt. Hãy bật hoặc chọn mô hình khác.",
+                    "modelMissing": "{model} không còn được cài đặt. Hãy chọn mô hình khác.",
+                    "modelUnsupported": "{model} không hỗ trợ trò chuyện. Hãy chọn mô hình khác.",
+                    "summary": "Sửa {count} trường trước khi lưu.",
+                    "toolsRequired": "Để thực thi, cần bật công cụ và chọn todo_write.",
+                    "timezoneInvalid": "Múi giờ không hợp lệ. Hãy chọn múi giờ được hỗ trợ."
+                },
+                "conflict": {
+                    "message": "Tác vụ tự động này đã được thay đổi ở nơi khác trong khi bạn đang chỉnh sửa. Các thay đổi của bạn chưa được lưu.",
+                    "remoteChanges": "Đã thay đổi ở nơi khác: {fields}",
+                    "localChanges": "Thay đổi của bạn: {fields}",
+                    "keepChanges": "Giữ thay đổi của tôi",
+                    "loadLatest": "Tải phiên bản mới nhất"
+                },
+                "modelStatus": {
+                    "unavailable": "Không khả dụng",
+                    "unsupported": "Không hỗ trợ trò chuyện"
+                },
+                "prerequisites": {
+                    "failed": "Trình chỉnh sửa không thể tải mọi thứ cần thiết.",
+                    "missing": "Tác vụ tự động này không còn tồn tại.",
+                    "toolsUnavailable": "Không thể tải công cụ. Các công cụ đã chọn vẫn được giữ nguyên.",
+                    "childFailed": "Không thể mở cài đặt. Hãy thử lại."
+                },
+                "schedule": {
+                    "ambiguous": "{start} xuất hiện hai lần tại {timezone} do thay đổi giờ. Lần đầu tiên sẽ được sử dụng.",
+                    "shiftedForward": "{start} không tồn tại tại {timezone} do thay đổi giờ. Tác vụ sẽ chạy lúc {effective} thay vào đó.",
+                    "disabled": "Đã tắt: sẽ không có lượt chạy nào được lên lịch.",
+                    "nextRun": "Lượt chạy tiếp theo: {when} ({timezone})",
+                    "nextRunLocal": "Lượt chạy tiếp theo: {when} ({timezone}), {localWhen} theo giờ của bạn",
+                    "unavailable": "Không có bản xem trước lịch chạy."
+                },
+                "turns": {
+                    "label": "Lượt {index}",
+                    "remove": "Xóa lượt {index}"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "Đã đặt lại tùy chọn tự động hóa về mặc định.",
                 "runOpenFailed": "Không thể mở lượt chạy tự động được yêu cầu.",
                 "runUnavailable": "Lượt chạy tự động được yêu cầu không còn khả dụng trong chế độ xem này.",
-                "updated": "Đã cập nhật tác vụ tự động."
+                "updated": "Đã cập nhật tác vụ tự động.",
+                "changeRefreshFailed": "Thay đổi đã được áp dụng nhưng không thể làm mới chế độ xem.",
+                "conflict": "Tác vụ tự động này đã được thay đổi ở nơi khác. Hãy xem lại các thay đổi trước khi lưu lại.",
+                "defaultsNotRemembered": "Đã lưu nhưng không thể ghi nhớ các cài đặt này cho tác vụ tự động mới.",
+                "missingOnSave": "Tác vụ tự động này không còn tồn tại. Có thể nó đã bị xóa ở nơi khác."
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "Hôm nay",
                         "yesterday": "Hôm qua"
                     },
-                    "turnsCount": "Lượt: {count}",
                     "title": "Lượt chạy",
                     "toolbar": {
                         "batchDelete": "Xóa các lượt chạy đã chọn",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "Xóa {count} lượt chạy? Các lượt đang chạy sẽ bị dừng.",
-                        "deleteTitle": "Xóa các lượt chạy?"
+                        "deleteTitle": "Xóa các lượt chạy?",
+                        "skipTitle": "Bỏ qua lần chạy?",
+                        "skipMessage": "{title} sẽ không chạy vào thời điểm này. Các lần chạy khác không bị ảnh hưởng.",
+                        "skipConfirm": "Bỏ qua",
+                        "stopTitle": "Dừng lượt chạy?",
+                        "stopMessage": "{title} đang chạy. Lượt chạy sẽ bị dừng và xóa khỏi lịch.",
+                        "stopConfirm": "Dừng",
+                        "removeTitle": "Xóa lần chạy?",
+                        "removeMessage": "{title} sẽ bị xóa khỏi lịch.",
+                        "removeConfirm": "Xóa"
                     },
                     "notifications": {
-                        "deleteSuccess": "Đã xóa {count} lượt chạy."
-                    }
+                        "deleteSuccess": "Đã xóa {count} lượt chạy.",
+                        "nothingToDelete": "Các lần chạy đã chọn không còn trong chế độ xem này.",
+                        "tooManySelected": "Chọn tối đa {max} lần chạy mỗi lần."
+                    },
+                    "occurrencesCount": "Lần chạy: {count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "Trước",
                 "showCalendar": "Lịch",
                 "showRegistry": "Khung",
-                "today": "Hôm nay"
+                "today": "Hôm nay",
+                "staleData": "Chưa cập nhật",
+                "staleDataSince": "Dữ liệu tác vụ tự động có thể chưa được cập nhật. Cập nhật lần cuối {time}. Chọn để thử lại.",
+                "resizePanes": "Đổi kích thước lịch và ngăn bên"
             },
             "views": {
                 "day": "Ngày",
@@ -300,6 +357,7 @@
                     "bar": "Cột",
                     "candlestick": "OHLC",
                     "deviation": "Độ lệch",
+                    "heikin-ashi": "Heikin Ashi",
                     "label": "Loại biểu đồ",
                     "line": "Đường",
                     "precision-line": "Đường"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "Tối thiểu: ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "Không có dữ liệu · SoAI ngoại tuyến",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "Thời gian thực ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "Không thể tải lịch sử.",
             "loadingState": "Đang tải",
             "manualScaleLabel": "THỦ CÔNG"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "Đính kèm liên kết SoAI",
                 "tabBrowse": "Không gian làm việc",
                 "tabCamera": "Quét",
+                "tabDisabledReason": "Bật {setting} trong Cấu hình trò chuyện › {tab}",
                 "tabKnowledge": "Kiến thức",
                 "tabSoaiLink": "Liên kết SoAI",
                 "tabUpload": "Tải lên",
@@ -559,7 +620,16 @@
                 "recordingStatus": "Đang ghi âm {elapsed}",
                 "recordingTitle": "Ghi âm giọng nói",
                 "requestingStatus": "Đang chờ quyền từ trình duyệt",
-                "requestingTitle": "Đang yêu cầu quyền micrô"
+                "requestingTitle": "Đang yêu cầu quyền micrô",
+                "pushToTalk": {
+                    "cancelled": "Đã hủy ghi âm.",
+                    "queued": "Đã thêm vào hàng đợi.",
+                    "releaseToCancel": "Thả để hủy",
+                    "releaseToSend": "Thả để gửi · Trượt sang trái để hủy",
+                    "sending": "Đang gửi…",
+                    "transcribing": "Đang chuyển thành văn bản…",
+                    "transcriptReview": "Đã thêm bản chép lời. Hãy xem lại bản nháp đã cập nhật trước khi gửi."
+                }
             },
             "authorityLock": {
                 "automationReason": "Đây là cuộc trò chuyện tự động hóa. Hãy thay đổi cài đặt thực thi tại Tự động hóa → Chỉnh sửa tác vụ tự động.",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "Tải lên",
                 "assistantAvatarUploadLabel": "Tải ảnh đại diện của trợ lý lên",
                 "assistantNamePlaceholder": "Nhập tên mô hình tùy chỉnh...",
+                "autoHideChatComposer": "Tự động ẩn ô soạn trò chuyện",
+                "autoHideChatComposerHint": "Ẩn ô soạn trò chuyện trống khi đọc các tin nhắn trước",
+                "autoHideChatHeader": "Tự động ẩn thanh tiêu đề trò chuyện",
+                "autoHideChatHeaderHint": "Ẩn thanh tiêu đề cuộc trò chuyện khi đọc các tin nhắn trước",
                 "identityNameInvalid": "Tên hiển thị được chứa tối đa 50 ký tự Unicode và không được có văn bản không hợp lệ.",
                 "promptInvalid": "Prompt chứa văn bản Unicode không hợp lệ.",
                 "close": "Đóng",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "Không thể thay đổi quyền truy cập công cụ khi cuộc trò chuyện này đang chạy",
                     "toolsEnabledHint": "Bật công cụ MCP cho cuộc trò chuyện này. Cuộc trò chuyện mới sẽ dùng giá trị bạn lưu gần nhất",
                     "tool_approval_required": "Yêu cầu phê duyệt công cụ",
-                    "toolApprovalRequiredHint": "Yêu cầu xác nhận trước khi chạy các công cụ có tính phá hủy"
+                    "toolApprovalRequiredHint": "Yêu cầu xác nhận trước khi chạy các công cụ có tính phá hủy",
+                    "unavailableTools": "Các công cụ đã lưu không khả dụng: {tools}. Lựa chọn được giữ nguyên.",
+                    "unavailableServers": "Các máy chủ đã lưu không khả dụng: {servers}. Cài đặt được giữ nguyên."
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "Ghi đè độ dài ngữ cảnh cho tính năng này. Để trống để dùng mặc định của mô hình đã chọn",
@@ -1035,7 +1111,8 @@
                 "newTitle": "Cuộc trò chuyện mới",
                 "renameFailed": "Không thể đổi tên cuộc trò chuyện.",
                 "switchFailed": "Không thể chuyển cuộc trò chuyện.",
-                "untitled": "Chưa có tiêu đề"
+                "untitled": "Chưa có tiêu đề",
+                "titleRequired": "Cần có tiêu đề cuộc trò chuyện."
             },
             "detached": {
                 "windowTitle": "Trò chuyện (Tách rời)"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "Yêu cầu HTTPS"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "Nhấn giữ để mở Tham số và hiển thị độ dài ngữ cảnh",
+                "presetsHint": "Nhấn giữ để mở Cài đặt sẵn",
+                "pushToTalkHint": "Nhấn giữ để nói",
+                "toolsHint": "Nhấn giữ để mở cài đặt Công cụ",
+                "toolsRestrictedHint": "{reason}. Nhấn giữ để mở cài đặt Công cụ",
+                "toolsToggleHint": "{action}. Nhấn giữ để mở cài đặt Công cụ"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "Đang xếp hàng",
@@ -1286,7 +1371,8 @@
                     "running": "Đang chạy",
                     "inputRequired": "Cần thao tác"
                 },
-                "attachmentsCount": "(+{count} tệp đính kèm)"
+                "attachmentsCount": "(+{count} tệp đính kèm)",
+                "open": "Mở lời nhắc: {prompt}"
             },
             "loading": {
                 "errorType": "Loại lỗi",
@@ -1337,7 +1423,9 @@
                     },
                     "save": "Lưu",
                     "skip": "Bỏ qua",
-                    "title": "Giúp SoAI hiểu bạn hơn"
+                    "title": "Giúp SoAI hiểu bạn hơn",
+                    "loadFailed": "Không thể tải hồ sơ đã lưu của bạn. Việc lưu đã tạm dừng để không ghi đè dữ liệu nào.",
+                    "retry": "Thử lại"
                 },
                 "viewer": {
                     "none": "Không có",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "hôm qua",
                 "toolCall": "Lời gọi công cụ",
                 "waiting": "Đang chờ...",
-                "you": "Bạn"
+                "you": "Bạn",
+                "timestampWithTime": "{label}, {time}"
             },
             "modelControl": {
                 "compareModels": "So sánh mô hình",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "Có nhiều mô hình cùng tên \"{model}\". Vui lòng chọn một mô hình cụ thể trong thanh bên.",
                 "available": "(Khả dụng)",
-                "loaded": "(Đã tải)"
+                "loaded": "(Đã tải)",
+                "unavailable": "(Không khả dụng)"
             },
             "news": {
                 "articleCount": "{count} bài viết",
@@ -1470,10 +1560,52 @@
                 "cleared": "Đã xóa lịch sử prompt.",
                 "loadFailed": "Không thể tải lịch sử prompt."
             },
+            "sketch": {
+                "open": "Mở bản phác thảo",
+                "mobileOption": "Phác thảo",
+                "preference": "Phác thảo",
+                "preferenceHint": "Hiển thị sổ phác thảo trong ô soạn tin nhắn để vẽ hình và đính kèm vào tin nhắn của bạn",
+                "title": "Phác thảo",
+                "description": "Vẽ bằng chuột, bút hoặc ngón tay, sau đó đính kèm bản vẽ vào tin nhắn dưới dạng hình ảnh",
+                "canvasLabel": "Khung vẽ",
+                "toolsLabel": "Công cụ vẽ",
+                "tools": {
+                    "pen": "Bút",
+                    "brush": "Cọ",
+                    "highlighter": "Bút đánh dấu",
+                    "eraser": "Tẩy",
+                    "line": "Đường thẳng",
+                    "rectangle": "Hình chữ nhật",
+                    "ellipse": "Hình elip"
+                },
+                "colorsLabel": "Màu sắc",
+                "colors": {
+                    "black": "Đen",
+                    "grey": "Xám",
+                    "red": "Đỏ",
+                    "orange": "Cam",
+                    "yellow": "Vàng",
+                    "green": "Xanh lá",
+                    "teal": "Xanh mòng két",
+                    "blue": "Xanh dương",
+                    "purple": "Tím",
+                    "brown": "Nâu"
+                },
+                "customColor": "Màu tùy chỉnh",
+                "size": "Kích thước",
+                "undo": "Hoàn tác",
+                "redo": "Làm lại",
+                "clear": "Xóa hết",
+                "resize": "Đổi kích thước khung vẽ",
+                "attach": "Đính kèm",
+                "discardConfirm": "Hủy bản phác thảo này?",
+                "discard": "Hủy",
+                "exportFailed": "Không thể xuất bản phác thảo. Vui lòng thử lại."
+            },
             "characterMap": {
                 "allEmoji": "Tất cả emoji",
                 "allUnicode": "Toàn bộ Unicode",
-                "description": "Duyệt ký tự Unicode và emoji, tạo một chuỗi rồi sao chép hoặc chèn vào tin nhắn.",
+                "description": "Duyệt ký tự Unicode và emoji, tạo một chuỗi rồi sao chép hoặc chèn vào tin nhắn",
                 "font": "Phông chữ",
                 "fontHint": "Phông chữ chỉ ảnh hưởng đến hiển thị; mọi ký tự trong danh sách vẫn có thể chọn",
                 "fonts": {
@@ -2201,7 +2333,8 @@
                 "started": "Cuộc gọi thoại đã bắt đầu.",
                 "transcriptionFailed": "Chuyển giọng nói thành văn bản thất bại.",
                 "ttsFailed": "Chuyển văn bản thành giọng nói thất bại.",
-                "messageSendFailed": "Gửi tin nhắn thoại thất bại."
+                "messageSendFailed": "Gửi tin nhắn thoại thất bại.",
+                "stoppedAfterFailure": "Cuộc gọi đã dừng. Hãy khắc phục sự cố trước khi bắt đầu cuộc gọi mới."
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "Đang phát phản hồi của trợ lý.",
@@ -2299,44 +2432,45 @@
                 "toggle": "Bật/tắt toàn màn hình"
             },
             "modalDescriptions": {
-                "agentPlan": "Các bước trong kế hoạch agent đang hoạt động.",
-                "automationCalendar": "Ngôn ngữ khu vực và định dạng ngày của lịch.",
-                "automationConfiguration": "Lịch chạy, mô hình và giới hạn lượt chạy.",
-                "automationOccurrence": "Một lượt chạy đã lên lịch.",
-                "chatConfiguration": "Mô hình, công cụ, bộ nhớ và giao diện cho cuộc trò chuyện này.",
-                "chatAttach": "Tải tệp lên hoặc đính kèm kiến thức được liên kết vào cuộc trò chuyện này.",
-                "chatAttachments": "Các tệp đính kèm được tin nhắn này tham chiếu.",
-                "chatMcpDefaultTools": "Công cụ MCP mặc định cho cuộc trò chuyện mới.",
-                "chatMemoryProfile": "Thông tin cá nhân mà SoAI ghi nhớ qua các cuộc trò chuyện.",
-                "chatPromptsPicker": "Các prompt đã lưu, sẵn sàng chèn vào cuộc trò chuyện này.",
-                "voiceCall": "Trò chuyện rảnh tay với micrô, chuyển giọng nói thành văn bản, phản hồi dạng stream và phát giọng nói.",
-                "credits": "Thông tin ghi công cho các dependency bên thứ ba.",
-                "fileExplorerMetadata": "Siêu dữ liệu tệp.",
-                "folderPicker": "Chọn một thư mục.",
-                "exportPreview": "Nội dung bản xuất.",
-                "hardwareSystemInfo": "Báo cáo hệ thống chi tiết.",
-                "license": "Nội dung giấy phép SoAI.",
-                "messageInfo": "Siêu dữ liệu tin nhắn.",
-                "metricsAdvanced": "Chỉ số runtime mở rộng.",
-                "modelDetailTest": "Gửi yêu cầu kiểm thử tới mô hình này.",
-                "modelsDownload": "Tải xuống mô hình mới.",
-                "modelsEdit": "Ghi đè các khả năng của mô hình này.",
-                "modelsProviders": "Nhà cung cấp mô hình bên ngoài.",
-                "modelsRename": "Đặt tên cục bộ cho mô hình này.",
-                "modelsVirtual": "Các nhóm định tuyến mô hình ảo.",
-                "modelsVirtualEdit": "Định tuyến cho mô hình ảo này.",
-                "pluginsClone": "Nhân bản plugin này với cài đặt mới.",
-                "pluginsConcurrent": "Số tác vụ plugin đồng thời tối đa.",
-                "pluginsConfig": "Cài đặt plugin.",
-                "pluginsDownload": "Cài đặt plugin đi kèm hoặc plugin cục bộ.",
-                "pluginsInfo": "Chi tiết và chẩn đoán plugin.",
-                "pluginsIntro": "Cách plugin mở rộng SoAI.",
-                "pluginsManageBackend": "Quản lý phiên bản backend.",
-                "promptEnhancer": "Viết lại prompt đã lưu bằng một mô hình.",
-                "settingsApiKeyQuota": "Giới hạn sử dụng cho API key này.",
-                "settingsExternalAccounts": "Tài khoản thư và lịch.",
-                "settingsMcpServer": "Kết nối máy chủ MCP.",
-                "toolCallOutput": "Đầu ra của một lời gọi công cụ."
+                "agentPlan": "Các bước trong kế hoạch agent đang hoạt động",
+                "automationCalendar": "Ngôn ngữ khu vực và định dạng ngày của lịch",
+                "automationConfiguration": "Lịch chạy, mô hình và giới hạn lượt chạy",
+                "automationOccurrence": "Một lượt chạy đã lên lịch",
+                "chatConfiguration": "Mô hình, công cụ, bộ nhớ và giao diện cho cuộc trò chuyện này",
+                "chatAttach": "Tải tệp lên hoặc đính kèm kiến thức được liên kết vào cuộc trò chuyện này",
+                "chatAttachments": "Các tệp đính kèm được tin nhắn này tham chiếu",
+                "chatMcpDefaultTools": "Công cụ MCP mặc định cho cuộc trò chuyện mới",
+                "chatMemoryProfile": "Thông tin cá nhân mà SoAI ghi nhớ qua các cuộc trò chuyện",
+                "chatPromptsPicker": "Các prompt đã lưu, sẵn sàng chèn vào cuộc trò chuyện này",
+                "voiceCall": "Trò chuyện rảnh tay với micrô, chuyển giọng nói thành văn bản, phản hồi dạng stream và phát giọng nói",
+                "credits": "Thông tin ghi công cho các dependency bên thứ ba",
+                "fileExplorerMetadata": "Siêu dữ liệu tệp",
+                "folderPicker": "Chọn một thư mục",
+                "exportPreview": "Nội dung bản xuất",
+                "hardwareSystemInfo": "Báo cáo hệ thống chi tiết",
+                "license": "Nội dung giấy phép SoAI",
+                "messageInfo": "Siêu dữ liệu tin nhắn",
+                "metricsAdvanced": "Chỉ số runtime mở rộng",
+                "modelDetailTest": "Gửi yêu cầu kiểm thử tới mô hình này",
+                "modelsDownload": "Tải mô hình xuống, kết nối nhà cung cấp bên ngoài hoặc thêm tệp mô hình cục bộ",
+                "modelsEdit": "Ghi đè các khả năng của mô hình này",
+                "modelsProviders": "Nhà cung cấp mô hình bên ngoài",
+                "modelsRename": "Đặt tên cục bộ cho mô hình này",
+                "modelsVirtual": "Các nhóm định tuyến mô hình ảo",
+                "modelsVirtualEdit": "Định tuyến cho mô hình ảo này",
+                "pluginsClone": "Nhân bản plugin này với cài đặt mới",
+                "pluginsConcurrent": "Số tác vụ plugin đồng thời tối đa",
+                "pluginsConfig": "Cài đặt plugin",
+                "pluginsDownload": "Tải plugin xuống, tải lên hoặc thêm từ thư mục plugin cục bộ",
+                "pluginsInfo": "Chi tiết và chẩn đoán plugin",
+                "pluginsIntro": "Cách plugin mở rộng SoAI",
+                "pluginsManageBackend": "Quản lý phiên bản backend",
+                "promptEnhancer": "Viết lại prompt đã lưu bằng một mô hình",
+                "settingsApiKeyQuota": "Giới hạn sử dụng cho API key này",
+                "settingsExternalAccounts": "Tài khoản thư và lịch",
+                "settingsMcpServer": "Kết nối máy chủ MCP",
+                "toolCallOutput": "Đầu ra của một lời gọi công cụ",
+                "conversationInput": "Xem lời nhắc này và các tệp đính kèm"
             },
             "loading": "Đang tải...",
             "confirm": "Xác nhận",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count}s"
+                    },
+                    "year": {
+                        "short": "{count} năm"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "Bạn có thay đổi chưa lưu. Tiếp tục mà không lưu?",
             "unsavedChangesTitle": "Thay đổi chưa lưu",
             "view": "Xem",
-            "yes": "Có"
+            "yes": "Có",
+            "retry": "Thử lại"
         },
         "contentPreview": {
             "actions": {
@@ -2620,7 +2758,7 @@
                 }
             },
             "firstRun": {
-                "description": "Quy trình thiết lập ngắn cho backend cục bộ, nhà cung cấp từ xa, mô hình và bản cập nhật.",
+                "description": "Quy trình thiết lập ngắn cho backend cục bộ, nhà cung cấp từ xa, mô hình và bản cập nhật",
                 "sections": {
                     "models": {
                         "heading": "Thêm hoặc tải xuống mô hình khi backend đã sẵn sàng",
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "Mạng",
+                    "unavailable": "Không có danh sách bộ điều hợp",
                     "waiting": "Đang phát hiện..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "Benchmark",
                     "soaibenchStop": "Dừng",
                     "soaibenchStress": "Kiểm tra tải",
+                    "viewBenchmark": "Xem benchmark",
                     "test": "Kiểm thử",
                     "reset": "Đặt lại",
                     "save": "Lưu"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index} đã bắt đầu SoAIBench {profile}",
                     "soaibenchStopRequested": "Đã yêu cầu dừng SoAIBench trên GPU {index}",
                     "soaibenchUnsupported": "GPU {index} không hỗ trợ SoAIBench: {reason}",
+                    "soaibenchSettingsLocked": "GPU {index} đang chạy benchmark. Hãy dừng hoặc đợi benchmark hoàn tất trước khi lưu cài đặt.",
                     "slotApplied": "GPU {index}: đã áp dụng slot {slot}",
                     "slotSaved": "GPU {index}: đã lưu slot {slot}"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "Xóa lịch sử cục bộ",
+                "deleteLocalConfirm": {
+                    "title": "Xóa lượt chạy SoAIBench?",
+                    "message": "Xóa lượt chạy SoAIBench này khỏi lịch sử cục bộ? Không thể hoàn tác thao tác này."
+                },
                 "action": "Chia sẻ",
+                "openRun": "Mở kết quả",
                 "ariaLabel": "Chia sẻ điểm SoAIBench này",
                 "unavailable": "Không có lượt chạy SoAIBench nào đủ điều kiện công bố",
-                "confirm": { "title": "Chia sẻ điểm SoAIBench?", "message": "Công bố điểm {score} và {passes} lượt đo của điểm này trên bảng xếp hạng SoAIBench công khai?", "description": "Thao tác này gửi điểm, năm lượt đo, thông tin GPU và môi trường chạy công khai, cài đặt phép thử và bằng chứng cảm biến tùy chọn. Danh tính tài khoản, tệp, cấu hình, dữ liệu phân tích và dữ liệu đo từ xa chung đều bị loại trừ. soai.to có thể thấy siêu dữ liệu kết nối thông thường như địa chỉ IP của bạn." },
-                "outcomes": { "published": "Đã chia sẻ công khai điểm SoAIBench.", "alreadyPublished": "Điểm SoAIBench này đã được chia sẻ.", "heldForReview": "Kết quả SoAIBench đang được giữ lại để xem xét danh tính hoặc điểm bất thường và chưa được tính vào bảng xếp hạng.", "offline": "Không thể chia sẻ điểm khi SoAI ngoại tuyến.", "unavailable": "Dịch vụ công bố SoAIBench hiện không khả dụng.", "timeout": "Quá thời gian chia sẻ điểm. Hãy thử lại để đối soát cùng một lần công bố.", "rateLimited": "Đã chia sẻ quá nhiều điểm từ kết nối này. Hãy thử lại sau.", "capacity": "Bảng xếp hạng SoAIBench hiện đã hết dung lượng.", "rejected": "Bảng xếp hạng SoAIBench đã từ chối kết quả này.", "conflict": "Lần công bố này xung đột với trạng thái bảng xếp hạng hiện có.", "invalidResponse": "Bảng xếp hạng SoAIBench trả về phản hồi không hợp lệ.", "retryAfter": "Hãy thử lại sau {seconds} giây." }
+                "confirm": {
+                    "title": "Chia sẻ điểm SoAIBench?",
+                    "message": "Công bố điểm {score} và {passes} lượt đo của điểm này trên bảng xếp hạng SoAIBench công khai?",
+                    "description": "Thao tác này gửi điểm, năm lượt đo, thông tin GPU và môi trường chạy công khai, cài đặt phép thử và bằng chứng cảm biến tùy chọn. Danh tính tài khoản, tệp, cấu hình, dữ liệu phân tích và dữ liệu đo từ xa chung đều bị loại trừ."
+                },
+                "outcomes": {
+                    "published": "Đã chia sẻ công khai điểm SoAIBench.",
+                    "alreadyPublished": "Điểm SoAIBench này đã được chia sẻ.",
+                    "heldForReview": "Kết quả SoAIBench đang được giữ lại để xem xét danh tính hoặc điểm bất thường và chưa được tính vào bảng xếp hạng.",
+                    "offline": "Không thể chia sẻ điểm khi SoAI ngoại tuyến.",
+                    "unavailable": "Dịch vụ công bố SoAIBench hiện không khả dụng.",
+                    "timeout": "Quá thời gian chia sẻ điểm. Hãy thử lại để đối soát cùng một lần công bố.",
+                    "rateLimited": "Đã chia sẻ quá nhiều điểm từ kết nối này. Hãy thử lại sau.",
+                    "capacity": "Bảng xếp hạng SoAIBench hiện đã hết dung lượng.",
+                    "rejected": "Bảng xếp hạng SoAIBench đã từ chối kết quả này.",
+                    "conflict": "Lần công bố này xung đột với trạng thái bảng xếp hạng hiện có.",
+                    "invalidResponse": "Bảng xếp hạng SoAIBench trả về phản hồi không hợp lệ.",
+                    "retryAfter": "Hãy thử lại sau {seconds} giây."
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3123,9 +3286,11 @@
                         "quick": "Nhanh",
                         "varianceSuffix": "độ biến thiên {variance}%"
                     },
-                    "description": "Các lượt chạy SoAIBench trước đây của GPU đã chọn.",
+                    "description": "Các lượt chạy SoAIBench trước đây của GPU đã chọn",
                     "empty": "GPU này chưa có lượt chạy SoAIBench nào.",
                     "loading": "Đang tải lịch sử lượt chạy...",
+                    "pageEmpty": "Chưa có lượt chạy SoAIBench nào.",
+                    "pageLoadFailed": "Không thể tải các lượt chạy SoAIBench. Hãy thử lại.",
                     "matchBases": {
                         "device_id": "ID thiết bị",
                         "gpu_model_key": "Khóa mô hình GPU",
@@ -3146,7 +3311,9 @@
                         "standard": "Tiêu chuẩn",
                         "stress": "Tải nặng"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "Xác thực số của khối lượng công việc OpenCL không thành công." },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "Xác thực số của khối lượng công việc OpenCL không thành công."
+                    },
                     "rowCopyUnavailable": "Không có lượt chạy SoAIBench để sao chép",
                     "staleHardware": "Kết quả khớp phần cứng đã cũ",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "Các lượt chạy SoAIBench trước đây"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "Chọn GPU để đo hiệu năng",
+                    "noGpus": "Không có GPU nào để đo hiệu năng.",
                     "ariaLabels": {
                         "close": "Đóng SoAIBench",
                         "copy": "Sao chép lượt chạy SoAIBench",
@@ -3170,13 +3339,16 @@
                         "retry": "Thử lại SoAIBench được chứng nhận",
                         "stop": "Dừng SoAIBench được chứng nhận",
                         "stopping": "Đang dừng SoAIBench được chứng nhận",
+                        "newBenchmark": "Bắt đầu lượt chạy SoAIBench được chứng nhận mới",
+                        "runAgain": "Chạy lại SoAIBench được chứng nhận trên GPU này",
+                        "recover": "Kiểm tra lại trạng thái SoAIBench",
                         "start": "Bắt đầu SoAIBench được chứng nhận"
                     },
                     "close": "Đóng",
                     "copy": "Sao chép",
                     "copySuccess": "Đã sao chép lượt chạy SoAIBench vào bảng tạm",
                     "copyUnavailable": "Không có lượt chạy SoAIBench để sao chép",
-                    "description": "Benchmark GPU được chứng nhận để kiểm tra mức sẵn sàng cho suy luận SoAI.",
+                    "description": "Benchmark GPU được chứng nhận để kiểm tra mức sẵn sàng cho suy luận SoAI",
                     "download": "Tải xuống",
                     "export": {
                         "deviceId": "ID thiết bị",
@@ -3231,7 +3403,11 @@
                         "stopping": "Đang dừng SoAIBench",
                         "warmupDetail": "Làm nóng {pass}/{total}",
                         "warmupPhase": "Làm nóng: {phase}",
-                        "warmup": "Đã hoàn tất lượt làm nóng"
+                        "warmup": "Đã hoàn tất lượt làm nóng",
+                        "reconnecting": "Đang kết nối lại... Cập nhật lần cuối: {age}",
+                        "checkingStatus": "Đang kiểm tra trạng thái benchmark...",
+                        "statusUnavailable": "Không có trạng thái benchmark. Hãy thử lại để kiểm tra lần nữa.",
+                        "startUnconfirmed": "Không thể xác nhận benchmark đã bắt đầu và không có lượt chạy nào đang hoạt động trên GPU này. Hãy kiểm tra lịch sử trước khi thử lại."
                     },
                     "retry": "Thử lại",
                     "scoreLabel": "Điểm SoAIBench",
@@ -3253,6 +3429,15 @@
                     "standardRun": "Lượt chạy tiêu chuẩn",
                     "stop": "Dừng",
                     "stopping": "Đang dừng",
+                    "newBenchmark": "Benchmark mới",
+                    "runAgain": "Chạy lại",
+                    "gpuBusy": "Đang chạy benchmark",
+                    "startedAt": "Bắt đầu lúc {time}",
+                    "states": {
+                        "starting": "Đang bắt đầu",
+                        "unresolved": "Không rõ trạng thái",
+                        "rejected": "Chưa bắt đầu"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "Tài liệu",
             "intro": {
                 "aboutButton": "Giới thiệu SoAI",
-                "paragraph1": "<strong>SoAI (Bộ điều phối thông minh cho Trí tuệ Nhân tạo)</strong> quản lý các engine suy luận cục bộ và nhà cung cấp AI từ xa trong một WebUI duy nhất. Các mô hình của chúng được cung cấp thông qua API tương thích với OpenAI và Anthropic",
+                "paragraph1": "<strong dir=\"auto\">SoAI (Bộ điều phối thông minh cho Trí tuệ Nhân tạo)</strong> quản lý các engine suy luận cục bộ và nhà cung cấp AI từ xa trong một WebUI duy nhất. Các mô hình của chúng được cung cấp thông qua API tương thích với OpenAI và Anthropic",
                 "paragraph2": "SoAI chạy trên Linux, macOS và Windows. Phần mềm có mã nguồn khả dụng và miễn phí cho mục đích cá nhân cũng như homelab. SoAI không thu thập dữ liệu của bạn hay gửi dữ liệu phân tích, telemetry hoặc báo cáo sử dụng"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "Độ trễ",
                         "queueDepth": "Độ sâu hàng đợi",
                         "requests": "Yêu cầu",
+                        "throughput": "Tốc độ tạo token",
                         "tokens": "Token"
                     },
                     "title": "Biểu đồ"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "Tên hiển thị",
                     "source_model_id": "ID mô hình nguồn",
-                    "provider": "Nhà cung cấp",
-                    "title": "Danh tính",
                     "type": "Loại",
                     "universal_id": "ID toàn cục",
                     "virtual": "Ảo"
@@ -4064,30 +4248,20 @@
                     "title": "Mặc định suy luận"
                 },
                 "metrics": {
-                    "avgLatency": "Độ trễ TB",
                     "avgTokens": "Token TB/yêu cầu",
                     "audioIn": "Audio đầu vào",
                     "audioOut": "Audio đầu ra",
-                    "failedRequests": "Yêu cầu thất bại",
                     "imagesIn": "Hình ảnh đầu vào",
                     "imagesOut": "Hình ảnh đầu ra",
                     "last_used": "Dùng gần nhất",
                     "modalityUsage": "Mức sử dụng",
                     "success_rate": "Tỷ lệ thành công",
                     "textTokens": "Token văn bản",
-                    "title": "Chỉ số",
                     "tokensGenerated": "Token đã tạo",
-                    "totalRequests": "Tổng yêu cầu",
-                    "waitTime": "Thời gian chờ TB"
+                    "totalRequests": "Tổng yêu cầu"
                 },
                 "plugin": {
-                    "author": "Tác giả",
-                    "models": "Mô hình",
-                    "plugin_status": "Trạng thái plugin",
-                    "providers": "Nhà cung cấp",
-                    "title": "Plugin",
-                    "type": "Loại",
-                    "version": "Phiên bản"
+                    "title": "Plugin"
                 },
                 "status": {
                     "available": "Khả dụng",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "Đổi tên",
                     "modelStatus": "Trạng thái mô hình",
                     "orphaned": "Mất liên kết",
-                    "parameters": "Tham số",
                     "stopPlugin": "Dừng plugin",
-                    "title": "Trạng thái & thao tác"
+                    "title": "Trạng thái"
                 },
                 "technical": {
                     "created": "Đã tạo",
-                    "description": "Mô tả",
                     "family": "Họ",
                     "license": "Giấy phép",
                     "path": "Đường dẫn",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "Tất cả tham số",
-                "category": "Danh mục",
                 "groupInference": "Suy luận",
                 "groupStartup": "Khởi động"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "Thêm mục {itemType}",
                 "aliasesPrefix": "Còn được gọi là:",
                 "arrayOfType": "Mảng các giá trị {itemType}",
+                "backendDefault": "Mặc định của backend",
                 "backendDocumentationDescription": "Các tham số mô hình này bao gồm <strong>cài đặt do backend định nghĩa</strong> được plugin cung cấp. Hãy dùng tài liệu của chính backend để biết chính xác hành vi, giá trị được chấp nhận và giá trị mặc định.",
-                "backendDocumentationTitle": "Thông tin",
                 "badges": {
                     "custom": "TÙY CHỈNH",
-                    "default": "MẶC ĐỊNH",
                     "requiresReload": "CẦN TẢI LẠI"
                 },
-                "countLabel": "{count} tham số",
+                "count": {
+                    "plural": "{count} tham số",
+                    "singular": "{count} tham số"
+                },
                 "invalidJson": "Hãy nhập JSON hợp lệ cho tham số này.",
                 "jsonObject": "Đối tượng JSON",
                 "noMatchDescription": "Hãy thử điều chỉnh tiêu chí tìm kiếm hoặc bộ lọc.",
                 "noMatchTitle": "Không có tham số nào khớp với bộ lọc",
                 "noParameters": "Không có tham số khả dụng cho mô hình này",
+                "railLabel": "Danh mục tham số",
                 "range": "Phạm vi: {min} - {max}",
-                "removeItem": "Xóa mục"
+                "removeItem": "Xóa mục",
+                "revertChange": "Hoàn tác thay đổi",
+                "unsavedCount": {
+                    "plural": "{count} thay đổi chưa lưu",
+                    "singular": "{count} thay đổi chưa lưu"
+                },
+                "views": {
+                    "customized": "Đã tùy chỉnh",
+                    "unsaved": "Thay đổi chưa lưu"
+                }
             },
             "status": {
                 "loaded": "Đã tải",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "Chọn tệp",
                     "close": "Đóng",
                     "confirmDownload": "Tải plugin xuống",
                     "confirmUpload": "Tải plugin lên",
+                    "fileDropHint": "Nhấp để chọn tệp .soaiplugin hoặc kéo tệp vào đây",
+                    "fileDropTitle": "Thả plugin vào đây",
                     "fileHelp": "Chọn gói plugin Python định dạng ZIP (.soaiplugin)",
                     "fileLabel": "Tệp plugin",
                     "manualCopySuccess": "Đã sao chép đường dẫn thư mục plugins vào bảng nhớ tạm.",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant} (đã cài đặt)",
                     "loadFailed": "Không thể tải các biến thể backend.",
                     "loading": "Đang tải biến thể backend...",
+                    "loadingBackends": "Đang tải các backend...",
                     "saveFailed": "Không thể lưu biến thể backend."
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "Đã bật ghi đè tương thích cho {plugin}.",
                 "overrideRequired": "Hãy bật ghi đè tương thích trước khi khởi động {plugin}.",
                 "persistentNoStop": "Plugin thường trực không thể dừng",
-                "pluginDisabled": "Đã tắt plugin",
-                "pluginEnabled": "Đã bật plugin",
+                "pluginDisabled": "Đã tắt plugin {plugin}",
+                "pluginEnabled": "Đã bật plugin {plugin}",
                 "pluginIncompatibleReason": "Plugin \"{plugin}\" không tương thích: {reason}",
                 "pluginInfoCopyFailed": "Không thể sao chép thông tin plugin",
                 "pluginStopInProgress": "Đang dừng {plugin}...",
@@ -5489,16 +5674,21 @@
                 "restarting": "Ứng dụng đang khởi động lại. Quá trình này chỉ mất ít phút.",
                 "shutdown": "Hệ thống đang tắt. Bạn có thể đóng cửa sổ trình duyệt này.",
                 "sleep": "Hệ thống đang vào chế độ ngủ. Hãy đánh thức hệ thống để tiếp tục dùng SoAI.",
-                "updating": "SoAI đang tải xuống và cài đặt bản cập nhật. Quá trình này có thể mất vài phút."
+                "updateTimeout": "SoAI không trực tuyến trở lại sau khi cập nhật. Hãy kiểm tra application_updater.log trong thư mục nhật ký của SoAI, sau đó tải lại trang này.",
+                "updating": "SoAI sẽ khởi động lại để hoàn tất bản cập nhật. Trang này sẽ tự động tải lại khi SoAI trực tuyến trở lại. Quá trình này có thể mất vài phút.",
+                "updatingDesktop": "SoAI sẽ khởi động lại để hoàn tất bản cập nhật. Cửa sổ này sẽ đóng và tự động mở lại khi cập nhật hoàn tất. Vui lòng không tắt máy tính.",
+                "updatingSlow": "Bản cập nhật đang mất nhiều thời gian hơn bình thường. SoAI vẫn đang xử lý, vì vậy vui lòng giữ trang này mở."
             },
             "messages": {
                 "connectionLost": "Mất kết nối backend",
+                "installingVersion": "Đang cài đặt SoAI {version}...",
                 "pleaseWait": "Vui lòng chờ...",
                 "rebooting": "Hệ thống đang khởi động lại...",
                 "rebootTimeout": "Hệ thống vẫn đang khởi động lại...",
                 "restarting": "SoAI đang khởi động lại...",
                 "shutdown": "Hệ thống đang tắt",
                 "sleep": "Hệ thống đang vào chế độ ngủ",
+                "updateTimeout": "SoAI vẫn chưa hoạt động trở lại",
                 "updating": "SoAI đang cập nhật..."
             },
             "reconnecting": "Đang thử kết nối lại..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "Chọn màu tùy chỉnh cho tất cả biểu đồ",
-                    "label": "Màu cố định"
+                    "label": "Màu biểu đồ"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "Kiểm soát cách nội dung dạng mã được hiển thị trên SoAI.",
                 "subgroupTitle": "Khối mã"
+            },
+            "connect": {
+                "addressCopied": "Đã sao chép địa chỉ",
+                "browserAddress": "Địa chỉ của trình duyệt này",
+                "chooseAddress": "Địa chỉ cho điện thoại của bạn",
+                "copyAddress": "Sao chép địa chỉ",
+                "description": "Kết nối ứng dụng Android SoAI Connect với máy chủ này bằng cách quét mã QR.",
+                "documentationHint": "Để thiết lập thủ công và khắc phục sự cố, hãy mở \"Connect to a SoAI server\" trong tài liệu SoAI",
+                "documentationLink": "Tài liệu SoAI",
+                "loadFailed": "Không thể tải thông tin kết nối",
+                "loopbackWarningMessage": "SoAI đang lắng nghe trên địa chỉ loopback nên các thiết bị khác không thể truy cập trực tiếp. Mã QR chỉ hoạt động qua reverse proxy dùng cùng scheme và cổng với SoAI. Để cho phép kết nối trực tiếp, hãy đặt tùy chọn sau và khởi động lại SoAI:",
+                "loopbackWarningTitle": "Chỉ truy cập được từ máy tính này",
+                "noAddressesMessage": "Hãy kết nối máy chủ này với một mạng, hoặc mở trang này từ địa chỉ mà điện thoại của bạn sẽ dùng.",
+                "noAddressesTitle": "Không tìm thấy địa chỉ truy cập được",
+                "qrLabel": "Mã QR để kết nối SoAI Connect với {address}",
+                "refresh": "Làm mới địa chỉ",
+                "scanHint": "Quét mã QR này bằng ứng dụng SoAI Connect",
+                "stepInstall": "Cài đặt SoAI Connect trên điện thoại Android và mở ứng dụng",
+                "stepScan": "Chạm vào nút mã QR bên cạnh trường địa chỉ máy chủ, sau đó quét mã trên trang này",
+                "stepSignIn": "Xem lại mọi lời nhắc về chứng chỉ, sau đó đăng nhập bằng tài khoản SoAI của bạn",
+                "stepsTitle": "Cách kết nối",
+                "title": "SoAI Connect",
+                "vpnHint": "Điện thoại của bạn phải truy cập được máy chủ này. Hãy dùng cùng mạng cục bộ, hoặc VPN khi ở xa, thay vì đưa SoAI ra internet",
+                "vpnTitle": "Đang ở xa nhà?"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "Tự động ẩn tiêu đề trang"
                     }
                 },
-                "subgroupTitle": "Chuyển động",
+                "subgroupTitle": "Giao diện",
                 "subgroupDescription": "Tinh chỉnh chuyển động, chuyển cảnh, bề mặt kính và hành vi cuộn."
             },
             "externalAccounts": {
@@ -6975,7 +7189,7 @@
                     "authorizedSendersPlaceholder": "sender-id | Nhãn tùy chọn",
                     "credentialsDescription": "Nhập thông tin xác thực mà nhà cung cấp đã chọn yêu cầu.",
                     "credentialsTitle": "Thông tin xác thực của nhà cung cấp",
-                    "description": "Cấu hình một tài khoản nhà cung cấp thực và các cài đặt thực thi Chat chuẩn do tài khoản đó quản lý.",
+                    "description": "Cấu hình một tài khoản nhà cung cấp thực và các cài đặt thực thi Chat chuẩn do tài khoản đó quản lý",
                     "executionDescription": "Chọn mô hình Chat, danh tính, prompt, không gian làm việc và các tham số thực thi.",
                     "executionTitle": "Thực thi Chat",
                     "identityDescription": "Đặt tên tài khoản và chọn nhà cung cấp cùng ngôn ngữ phản hồi.",
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "Sao lưu",
+                "connect": "Kết nối",
                 "externalAccounts": "Thư & lịch",
                 "licensing": "Cấp phép",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "Chọn một hình để áp dụng",
+                    "label": "Hình nền tích hợp",
+                    "none": "Không có hình nền",
+                    "option": "Hình nền {number}"
+                },
                 "downloadUrl": {
                     "button": "Tải xuống",
                     "help": "Cung cấp URL để tải xuống và đặt làm hình nền",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "Không thể tải một số ghi chú phát hành. Các ghi chú hiện có được hiển thị."
+            },
+            "outcome": {
+                "failureMessage": "Bản cập nhật lên phiên bản {version} chưa hoàn tất. SoAI {previousVersion} vẫn đang được cài đặt. Hãy kiểm tra application_updater.log trong thư mục nhật ký của SoAI để biết chi tiết.",
+                "failureTitle": "Cập nhật chưa hoàn tất",
+                "later": "Để sau",
+                "reloadMessage": "SoAI hiện đang chạy phiên bản {version}. Hãy tải lại trang này để sử dụng giao diện đã cập nhật.",
+                "reloadTitle": "SoAI đã được cập nhật",
+                "successMessage": "SoAI đã được cập nhật thành công lên phiên bản {version}.",
+                "successTitle": "Cập nhật hoàn tất"
+            },
+            "progress": {
+                "downloading": "Đang tải bản cập nhật...",
+                "handoff": "Đang chuẩn bị khởi động lại SoAI...",
+                "staging": "Đang chuẩn bị tệp cập nhật...",
+                "unavailable": "Tiến độ trực tiếp tạm thời không khả dụng.",
+                "verifying": "Đang xác minh bản cập nhật..."
+            },
             "actions": {
                 "checkUpdates": "Kiểm tra bản cập nhật",
                 "installUpdate": "Cài đặt bản cập nhật"
@@ -7943,6 +8183,184 @@
             "welcome": {
                 "description": "SoAI hợp nhất các backend LLM cục bộ và từ xa phía sau một lớp điều phối tương thích OpenAI duy nhất.",
                 "heading": "Chào mừng đến với SoAI!"
+            },
+            "aiSetup": {
+                "eyebrow": "Thiết lập SoAI",
+                "loadFailed": {
+                    "title": "Không thể tải thiết lập SoAI",
+                    "description": "SoAI không thể đọc các công cụ và nhà cung cấp hiện có. Hãy kiểm tra SoAI đang chạy rồi thử lại, hoặc hoàn tất thiết lập sau.",
+                    "retry": "Thử lại"
+                },
+                "nav": {
+                    "finishLater": "Bỏ qua",
+                    "skip": "Bỏ qua thiết lập SoAI",
+                    "continue": "Tiếp tục",
+                    "installAndContinue": "Cài đặt",
+                    "downloadAndContinue": "Tải xuống",
+                    "startChatting": "Trò chuyện",
+                    "close": "Đóng"
+                },
+                "sources": {
+                    "heading": "AI của bạn nên chạy ở đâu?",
+                    "description": "Chọn một hoặc cả hai. Bạn có thể thay đổi sau.",
+                    "local": {
+                        "title": "Trên thiết bị này",
+                        "description": "Riêng tư và hoạt động ngoại tuyến sau khi thiết lập. Cần tải xuống một lần."
+                    },
+                    "cloud": {
+                        "title": "Nhà cung cấp đám mây",
+                        "description": "Hoạt động ở mọi nơi khi có Internet và khóa API của nhà cung cấp.",
+                        "recommended": "Khuyến nghị"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "Lấy khóa API miễn phí",
+                    "accessibleName": "Lấy khóa API miễn phí (mở trong cửa sổ mới)"
+                },
+                "limited": {
+                    "noCompatibleEngine": "Không có công cụ cục bộ nào hỗ trợ thiết bị này.",
+                    "insufficientMemory": "Mô hình cục bộ cần khoảng {required} bộ nhớ trống; thiết bị này có khoảng {available}.",
+                    "useCloud": "Dùng mô hình đám mây thay thế",
+                    "searchManually": "Tìm mô hình thủ công"
+                },
+                "connect": {
+                    "heading": "Chuẩn bị",
+                    "description": "Kết nối nhà cung cấp và chuẩn bị thiết bị này.",
+                    "cloud": {
+                        "heading": "Kết nối nhà cung cấp đám mây",
+                        "description": "Dán URL API và khóa từ nhà cung cấp của bạn.",
+                        "moreOptions": "Tùy chọn khác",
+                        "modelFilter": "Bộ lọc mô hình (không bắt buộc)",
+                        "connect": "Kết nối",
+                        "connecting": "Đang kết nối với {name}…",
+                        "connected": {
+                            "singular": "Đã kết nối · {count} mô hình khả dụng",
+                            "plural": "Đã kết nối · {count} mô hình khả dụng"
+                        },
+                        "change": "Thay đổi"
+                    },
+                    "local": {
+                        "heading": "Cài đặt công cụ cục bộ",
+                        "description": "Công cụ này cho phép chạy mô hình trên thiết bị này.",
+                        "automatic": "Tự động (khuyến nghị)",
+                        "usesGpu": "Dùng {engine} với card đồ họa của bạn",
+                        "usesProcessor": "Dùng {engine} trên bộ xử lý",
+                        "usesInstalled": "Dùng {engine}, đã được cài đặt",
+                        "chooseManually": "Chọn thủ công",
+                        "status": {
+                            "installed": "Đã cài đặt",
+                            "recommended": "Khuyến nghị",
+                            "warning": "Cảnh báo",
+                            "unavailable": "Không khả dụng"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "Chọn mô hình",
+                    "description": "Chọn mô hình để trò chuyện. Bạn có thể thêm sau.",
+                    "local": {
+                        "heading": "Mô hình cho thiết bị này",
+                        "description": "Được chọn phù hợp với phần cứng của bạn."
+                    },
+                    "role": {
+                        "recommended": "Khuyến nghị",
+                        "faster": "Nhanh hơn",
+                        "smallest": "Nhỏ nhất"
+                    },
+                    "useCase": {
+                        "advanced": "Chất lượng tốt nhất cho viết, lập trình và suy luận",
+                        "balanced": "Rất phù hợp cho trò chuyện, viết và lập trình hằng ngày",
+                        "reasoning": "Suy luận từng bước mạnh mẽ",
+                        "light": "Trả lời nhanh trên phần cứng khiêm tốn"
+                    },
+                    "downloadSize": "Tải xuống {size}",
+                    "runsOnGpu": "Chạy trên card đồ họa của bạn",
+                    "runsOnCpu": "Chạy trên bộ xử lý của bạn",
+                    "speed": {
+                        "fast": "Trả lời nhanh",
+                        "moderate": "Tốc độ vừa phải",
+                        "slow": "Trả lời chậm hơn"
+                    },
+                    "details": {
+                        "label": "Chi tiết",
+                        "quantization": "Lượng tử hóa",
+                        "parameters": "Tham số",
+                        "parametersDense": "{total} tỷ",
+                        "parametersMoe": "{total} tỷ, {active} tỷ hoạt động",
+                        "context": "Độ dài ngữ cảnh",
+                        "contextTokens": "{tokens} token",
+                        "contextReduced": "{tokens} token (đã giảm cho phù hợp với thiết bị này)",
+                        "file": "Tệp",
+                        "source": "Nguồn"
+                    },
+                    "openChatWith": "Mở trò chuyện với mô hình này",
+                    "searchAnother": "Tìm mô hình khác",
+                    "cloud": {
+                        "heading": "Mô hình từ {provider}",
+                        "description": "Chọn một hoặc nhiều.",
+                        "filterPlaceholder": "Lọc mô hình…",
+                        "noMatches": "Không có mô hình nào khớp với bộ lọc này.",
+                        "empty": "Nhà cung cấp này không trả về mô hình nào. Hãy kiểm tra bộ lọc mô hình hoặc thử nhà cung cấp khác.",
+                        "backToProvider": "Quay lại nhà cung cấp"
+                    }
+                },
+                "progress": {
+                    "heading": "Đang chuẩn bị mọi thứ",
+                    "description": "Bạn có thể bắt đầu trò chuyện ngay khi một mô hình sẵn sàng.",
+                    "readyCount": "{ready}/{total} sẵn sàng",
+                    "installing": "Đang cài đặt {engine}",
+                    "downloading": "Đang tải xuống {model}",
+                    "waitingForEngine": "Đang chờ {engine} cài đặt xong",
+                    "discovering": "Đang thêm {model} vào các mô hình của bạn",
+                    "configuring": "Đang áp dụng cài đặt ban đầu",
+                    "testing": "Đang gửi một tin nhắn thử ngắn",
+                    "ready": "{model} đã sẵn sàng",
+                    "blocked": "Không thể bắt đầu cho đến khi {engine} được cài đặt",
+                    "checkingStatus": "Đang kiểm tra trạng thái",
+                    "retry": "Thử lại",
+                    "retryInstallation": "Thử cài đặt lại",
+                    "skipItem": "Bỏ qua mục này",
+                    "testAgain": "Kiểm tra lại",
+                    "checkAgain": "Kiểm tra lại trạng thái",
+                    "sendTest": "Gửi tin nhắn thử",
+                    "error": {
+                        "empty": "Mô hình đã tải nhưng không trả lời. Hãy thử lại hoặc chọn mô hình khác.",
+                        "loadError": "Không thể khởi động mô hình trên thiết bị này. Hãy thử lại hoặc chọn mô hình nhỏ hơn.",
+                        "timeout": "Mô hình trả lời quá lâu. Hãy thử lại hoặc chọn mô hình nhỏ hơn.",
+                        "disconnected": "Mất kết nối trong khi kiểm tra. Hãy thử lại.",
+                        "downloadFailed": "Quá trình tải xuống đã dừng. Hãy thử lại.",
+                        "installFailed": "Quá trình cài đặt chưa hoàn tất. Hãy thử lại.",
+                        "noDiskSpace": "Không đủ dung lượng đĩa cho mô hình này. Hãy giải phóng dung lượng hoặc chọn mô hình nhỏ hơn."
+                    },
+                    "testPrompt": "Hãy trả lời bằng một câu ngắn và thân thiện.",
+                    "testCancelled": "Bài kiểm tra thiết lập SoAI đã bị hủy."
+                },
+                "completion": {
+                    "modelsTitle": "Mô hình AI",
+                    "modelsReady": {
+                        "singular": "{count} sẵn sàng",
+                        "plural": "{count} sẵn sàng"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} vẫn đang được chuẩn bị ở chế độ nền",
+                        "plural": "{count} vẫn đang được chuẩn bị ở chế độ nền"
+                    }
+                },
+                "resume": {
+                    "link": "Hoàn tất thiết lập SoAI",
+                    "toast": "Một số bước thiết lập SoAI cần bạn chú ý."
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "Quá trình tải mô hình sẽ tiếp tục ở chế độ nền.",
+                        "plural": "{count} lượt tải mô hình sẽ tiếp tục ở chế độ nền."
+                    },
+                    "installations": {
+                        "singular": "Quá trình cài đặt backend sẽ tiếp tục ở chế độ nền.",
+                        "plural": "{count} lượt cài đặt backend sẽ tiếp tục ở chế độ nền."
+                    },
+                    "both": "Các lượt tải mô hình và cài đặt backend sẽ tiếp tục ở chế độ nền."
+                }
             }
         }
     }

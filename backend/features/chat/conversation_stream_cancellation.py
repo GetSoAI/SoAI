@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from asyncio import Event, current_task
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from core.errors.exception_logging import log_handled_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
@@ -20,16 +20,45 @@ from features.assistant_timeline.publish import ensure_chat_stream_publish_lock
 if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
     from core.runtime.request_context import RequestContext
+    from core.types.json import JSONDict
     from features.api.runtime.container.types import ApiDependencies
 
 __all__ = (
     "cancel_conversation_stream_runtime",
     "claim_conversation_stream_runtime_cancellation",
     "mark_conversation_stream_runtime_cancellation_requested",
+    "publish_and_verify_chat_cancellation_scope",
 )
 
 LOGGER_NAME = "SoAI.features.chat.conversation_stream_cancellation"
 OPERATION_CANCEL_TASK = "chat.conversation_stream.cancel.task"
+
+
+async def publish_and_verify_chat_cancellation_scope(
+    api_dependencies: ApiDependencies,
+    *,
+    context: RequestContext,
+    reason: str,
+    cancellation_id: str,
+    logger: LoggerProtocol,
+    publish_message: str,
+    verify_message: str,
+    level: Literal["debug", "info", "warning", "error", "critical"],
+    details: JSONDict,
+) -> bool:
+    return await publish_and_verify_cancellation_scope_noncritical(
+        event_bus=api_dependencies.event_bus,
+        cancellation_coordinator=api_dependencies.cancellation_coordinator,
+        cancellation_history=api_dependencies.cancellation_history,
+        context=context,
+        reason=reason,
+        cancellation_id=cancellation_id,
+        logger=logger,
+        publish_message=publish_message,
+        verify_message=verify_message,
+        level=level,
+        details=details,
+    )
 
 
 def _runtime_is_agentic(runtime: AssistantTimelineRuntime) -> bool:
@@ -122,15 +151,12 @@ async def _publish_and_verify_scope_cancel_noncritical(
     reason: str,
     cancellation_id: str,
 ) -> bool:
-    logger = get_logger(LOGGER_NAME)
-    return await publish_and_verify_cancellation_scope_noncritical(
-        event_bus=api_dependencies.event_bus,
-        cancellation_coordinator=api_dependencies.cancellation_coordinator,
-        cancellation_history=api_dependencies.cancellation_history,
+    return await publish_and_verify_chat_cancellation_scope(
+        api_dependencies,
         context=context,
         reason=reason,
         cancellation_id=cancellation_id,
-        logger=logger,
+        logger=get_logger(LOGGER_NAME),
         publish_message="Failed to publish conversation stream cancellation (non-critical).",
         verify_message="Failed to verify conversation stream cancellation (non-critical).",
         level="debug",

@@ -19,7 +19,7 @@ import { setIconSlot } from '@core/ui/icons/view.ts';
 import { syncDeterminateProgress } from '@core/ui/progressWidths.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import type { PluginEntry } from '@features/tasks/taskmanager/taskManagerModels.ts';
-import { buildOperationSignature, renderOperationRow, resolveOperationContext } from '@features/tasks/taskmanager/service.ts';
+import { buildOperationSignature, renderOperationRow, resolveOperationContext, resolveStopAllTargets } from '@features/tasks/taskmanager/service.ts';
 import type { TaskManagerElements, TaskManagerStoreApi } from '@features/tasks/taskmanager/taskManagerTypes.ts';
 
 interface StatusManagerContract {
@@ -89,7 +89,8 @@ class TaskManagerView {
         const headerLabel = dom.resolve('.header-task-manager-label', elements.toggle);
         syncTrackedTaskCounter(taskCount, elements.manager.ownerDocument, headerLabel);
         const hasTasks = taskCount > 0;
-        const hasStopActions = this.#store.getStoppableCount() > 0 || this.#store.getCancelableOperations().length > 0;
+        const targets = resolveStopAllTargets(this.#store);
+        const hasStopActions = targets.plugins.length > 0 || targets.operations.length > 0;
         elements.stopAllButton.toggleAttribute('hidden', !hasStopActions);
 
         if (hasTasks) {

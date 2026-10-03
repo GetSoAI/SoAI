@@ -1,6 +1,7 @@
 /* SoAI - Shared routing drag [frontend/assets/ts/core/routing/pages/movablesections/drag.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { inlineDelta, isRtl } from '@core/layout/direction.ts';
 import { measureLayoutBox, measureLayoutPoint, type GeometryPoint } from '@core/layout/elementGeometry.ts';
 import { getWindow } from '@core/environment/public.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -47,7 +48,7 @@ const updateDragPreview = <TSectionId extends MovableSectionId>(context: Movable
     if (!animator) return;
     const previewLayout = animator.computePreviewLayout(context.positions, state.id, nextPosition, state.span, context.getActiveColumns());
     const previewPosition = previewLayout.get(state.id) ?? { x: nextPosition.x, y: nextPosition.y, width: state.span.width, height: state.span.height };
-    const deltaX = (previewPosition.x - state.origin.x) * (metrics.cellWidth + metrics.columnGap);
+    const deltaX = inlineDelta((previewPosition.x - state.origin.x) * (metrics.cellWidth + metrics.columnGap), gridElement);
     const deltaY = (previewPosition.y - state.origin.y) * (metrics.cellHeight + metrics.rowGap);
     context.host.updateStyle(state.section, 'transform', `translate(${deltaX}px, ${deltaY}px) scale(${context.config.settings.dragScale})`);
     animator.animateToPreview(previewLayout, metrics);
@@ -55,11 +56,11 @@ const updateDragPreview = <TSectionId extends MovableSectionId>(context: Movable
     state.pending = { x: previewPosition.x, y: previewPosition.y, width: state.span.width, height: state.span.height };
 };
 
-const resolveDisplayGridPosition = (clientX: number, clientY: number, spanWidth: number, grabOffsetX: number, grabOffsetY: number, activeColumns: number, gridElement: HTMLElement, metrics: { paddingLeft: number; paddingTop: number; columnGap: number; rowGap: number; cellWidth: number; cellHeight: number }): { x: number; y: number } => {
+const resolveDisplayGridPosition = (clientX: number, clientY: number, spanWidth: number, grabOffsetX: number, grabOffsetY: number, activeColumns: number, gridElement: HTMLElement, metrics: { paddingLeft: number; paddingRight: number; paddingTop: number; columnGap: number; rowGap: number; cellWidth: number; cellHeight: number }): { x: number; y: number } => {
     const gridRect = measureLayoutBox(gridElement);
-    const sectionLeft = clientX - grabOffsetX;
+    const sectionInlineStart = isRtl(gridElement) ? clientX + grabOffsetX : clientX - grabOffsetX;
     const sectionTop = clientY - grabOffsetY;
-    const offsetX = sectionLeft - gridRect.left - metrics.paddingLeft;
+    const offsetX = isRtl(gridElement) ? gridRect.right - sectionInlineStart - metrics.paddingRight : sectionInlineStart - gridRect.left - metrics.paddingLeft;
     const offsetY = sectionTop - gridRect.top - metrics.paddingTop;
     const effectiveCellWidth = metrics.cellWidth + metrics.columnGap;
     const effectiveCellHeight = metrics.cellHeight + metrics.rowGap;
@@ -143,7 +144,7 @@ const registerMovableSectionDrag = <TSectionId extends MovableSectionId>(context
             startX: point.x,
             startY: point.y,
             dragStarted: false,
-            grabOffsetX: point.x - sectionBounds.left,
+            grabOffsetX: isRtl(section) ? sectionBounds.right - point.x : point.x - sectionBounds.left,
             grabOffsetY: point.y - sectionBounds.top,
             span: { width: Math.max(1, storedPosition.width), height: Math.max(1, storedPosition.height) },
             previewLayout: null,

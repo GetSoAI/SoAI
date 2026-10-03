@@ -5,9 +5,10 @@ import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import { decodeNoContentResponse } from '@core/api/contracts/noContentContract.ts';
 import type { OpaqueJsonObject } from '@core/api/contracts/opaquePayload.ts';
 import { CONVERSATION_HISTORY_REQUEST_TIMEOUT_MS } from '@core/api/conversationHistoryTimeout.ts';
+import { loadConversationCatalog } from '@core/api/endpoints/conversationCatalog.ts';
 import { buildQueryRequestOptions } from '@core/api/requestOptions.ts';
 import type { ApiQueryParameters, RequestOptions } from '@core/api/types/request.ts';
-import { decodeArchivedPageResponse, decodeArchivedSearchResponse, decodeConversationBatchDeleteResponse, decodeConversationDeleteAllResponse, decodeConversationListResponse, decodeConversationResponse, type ArchivedConversationsPageResponse, type ArchivedConversationResponse, type ConversationBatchDeleteResponse, type ConversationDeleteAllResponse, type ConversationMessageSyncCursorResponse, type ConversationMessageWindowResponse, type ConversationMessageWriteResponse, type ConversationRunningActivityResponse, type WebuiConversationResponse } from '@core/api/contracts/webuiConversationContracts.ts';
+import { decodeArchivedPageResponse, decodeArchivedSearchResponse, decodeConversationBatchDeleteResponse, decodeConversationDeleteAllResponse, decodeConversationResponse, type ArchivedConversationsPageResponse, type ArchivedConversationResponse, type ConversationBatchDeleteResponse, type ConversationDeleteAllResponse, type ConversationMessageSyncCursorResponse, type ConversationMessageWindowResponse, type ConversationMessageWriteResponse, type ConversationRunningActivityResponse, type WebuiConversationResponse } from '@core/api/contracts/webuiConversationContracts.ts';
 import { createWebuiChatAttachmentEndpoints, type WebuiChatAttachmentEndpoints } from '@core/api/endpoints/webuiChatAttachmentEndpoints.ts';
 import { createWebuiConversationPaths } from '@core/api/endpoints/webuiConversationPaths.ts';
 import { createWebuiChatInteractionEndpoints, type WebuiChatInteractionEndpoints } from '@core/api/endpoints/webuiChatInteractionEndpoints.ts';
@@ -66,7 +67,7 @@ import { serializeSoaiLinkResolveRequest, serializeSoaiPathBrowseRequest, serial
 import { serializeComparisonTurnPreflight, serializeConversationJsonExport, serializeConversationPdfExportStart } from '@core/api/contracts/webuiChatOperationSerialization.ts';
 import { serializeConversationArchivedRequest, serializeConversationBatchDeleteRequest, serializeConversationCloneRequest, serializeConversationColorRequest, serializeConversationCreateRequest, serializeConversationFavoriteRequest, serializeConversationSettingsRequest, serializeConversationTitleRequest, type ConversationCloneRequest, type ConversationCreateRequest } from '@core/api/contracts/webuiConversationRequestContracts.ts';
 import { serializeMessageResubmitRequest, serializeMessageTargetMutationRequest, serializeMessageWriteRequest, type MessageResubmitRequest, type MessageTargetMutationRequest } from '@core/api/contracts/webuiMessageMutationContracts.ts';
-import { decodeConversationRegenerationReceipt, serializeConversationRegenerationRequest, type ConversationRegenerationReceipt, type ConversationRegenerationRequest } from '@core/api/contracts/webuiMessageRegenerationContracts.ts';
+import { decodeConversationLatestRegenerationStatus, decodeConversationRegenerationReceipt, serializeConversationRegenerationRequest, type ConversationLatestRegenerationStatus, type ConversationRegenerationReceipt, type ConversationRegenerationRequest } from '@core/api/contracts/webuiMessageRegenerationContracts.ts';
 
 interface WebuiChatEndpoints {
     chat: {
@@ -132,6 +133,7 @@ interface WebuiChatMessageEndpoints {
     syncCursor(id: string): Promise<ConversationMessageSyncCursorResponse>;
     regenerate(id: string, payload: ConversationRegenerationRequest): Promise<ConversationRegenerationReceipt>;
     regenerationStatus(id: string, clientId?: string, clientRequestId?: string): Promise<ConversationRegenerationReceipt>;
+    latestRegenerationStatus(id: string, requestOptions?: RequestOptions): Promise<ConversationLatestRegenerationStatus>;
 }
 
 interface WebuiAssistantMessageEndpoints {
@@ -197,7 +199,7 @@ const createWebuiChatEndpoints = (api: ApiClientContext): WebuiChatEndpoints => 
     const paths = createWebuiConversationPaths(api);
     return {
         chat: {
-            list: async (): Promise<WebuiConversationResponse[]> => decodeConversationListResponse(await api.get('/api/v1/webui/conversations')),
+            list: (): Promise<WebuiConversationResponse[]> => loadConversationCatalog(api),
             create: async (payload, options = {}): Promise<WebuiConversationResponse> => decodeConversationResponse(await api.post('/api/v1/webui/conversations', serializeConversationCreateRequest(payload), options)),
             clone: async (id, payload): Promise<WebuiConversationResponse> => decodeConversationResponse(await api.post(paths.clone(id), serializeConversationCloneRequest(payload))),
             get: async (id): Promise<WebuiConversationResponse> => decodeConversationResponse(await api.get(paths.base(id))),
@@ -216,7 +218,8 @@ const createWebuiChatEndpoints = (api: ApiClientContext): WebuiChatEndpoints => 
                 deleteMessage: async (id, payload): Promise<ConversationMessageWriteResponse> => decodeMessageWriteResponse(await api.post(paths.messageDelete(id), serializeMessageTargetMutationRequest(payload))),
                 syncCursor: async (id): Promise<ConversationMessageSyncCursorResponse> => decodeMessageSyncCursorResponse(await api.get(paths.messageSyncCursor(id))),
                 regenerate: async (id, payload): Promise<ConversationRegenerationReceipt> => decodeConversationRegenerationReceipt(await api.post(paths.messageRegenerate(id), serializeConversationRegenerationRequest(payload))),
-                regenerationStatus: async (id, clientId, clientRequestId): Promise<ConversationRegenerationReceipt> => decodeConversationRegenerationReceipt(await api.get(paths.messageRegenerationStatus(id, clientId, clientRequestId)))
+                regenerationStatus: async (id, clientId, clientRequestId): Promise<ConversationRegenerationReceipt> => decodeConversationRegenerationReceipt(await api.get(paths.messageRegenerationStatus(id, clientId, clientRequestId))),
+                latestRegenerationStatus: async (id, requestOptions = {}): Promise<ConversationLatestRegenerationStatus> => decodeConversationLatestRegenerationStatus(await api.get(paths.messageRegenerationLatestStatus(id), requestOptions))
             },
             attachments: createWebuiChatAttachmentEndpoints(api, paths),
             assistantMessages: {

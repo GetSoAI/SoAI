@@ -1,6 +1,7 @@
 /* SoAI - Frontend storage group persistence serialization [frontend/assets/ts/core/storage/persistence/storageGroupSerialization.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { serializeAiSetupState } from '@core/storage/aisetup/aiSetupCodec.ts';
 import { serializeChatCache } from '@core/storage/persistence/chatPreferenceSerialization.ts';
 import { serializeFiltersCache, serializeHardwareCache } from '@core/storage/persistence/operationalPreferenceSerialization.ts';
 import { serializeUiPreferences } from '@core/storage/persistence/uiPreferenceSerialization.ts';
@@ -15,7 +16,7 @@ const serializeStorageGroup = (cache: StorageCache, group: SyncGroup): JsonObjec
     if (group === 'search') return { recent: cache.search.recent };
     if (group === 'hardware') return serializeHardwareCache(cache.hardware);
     if (group === 'filters') return serializeFiltersCache(cache.filters);
-    if (group === 'wizard') return { completed: cache.wizard.completed };
+    if (group === 'wizard') return { completed: cache.wizard.completed, 'ai_setup': serializeAiSetupState(cache.wizard.aiSetup) };
     return { 'advanced_mode': cache.settings.advancedMode };
 };
 

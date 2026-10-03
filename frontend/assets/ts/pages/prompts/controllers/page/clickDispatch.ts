@@ -10,10 +10,11 @@ import { requireContentPreviewModalService } from '@core/ui/modals/contentprevie
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import type { SaveController } from '@core/save/public.ts';
 import { CONFIRMATION_MODAL_ID } from '@core/ui/modals/dialogs/ids.ts';
-import { openNewPromptContentPreview, openPromptContentPreview, type OpenPromptPreviewOptions } from '@features/prompts/public.ts';
+import { openPromptContentPreview, type OpenPromptPreviewOptions } from '@features/prompts/public.ts';
 import { PROMPTS_ACTION_CARD_CANCEL_EDIT, PROMPTS_ACTION_CARD_COPY, PROMPTS_ACTION_CARD_DELETE, PROMPTS_ACTION_CARD_EDIT, PROMPTS_ACTION_CARD_OPEN, PROMPTS_ACTION_CARD_SAVE_EDIT, PROMPTS_ACTION_COLOR_SELECT, PROMPTS_ACTION_CREATE_PROMPT, PROMPTS_ACTION_DELETE_SELECTED, PROMPTS_ACTION_DESELECT_ALL, PROMPTS_ACTION_DOWNLOAD_SELECTED, PROMPTS_ACTION_DUPLICATE_SELECTED, PROMPTS_ACTION_SELECT_ALL, PROMPTS_ACTION_SORT_LIST, PROMPTS_ACTION_TOGGLE_SELECTION_MODE, PROMPTS_ACTION_TOGGLE_VIEW_MODE, type PromptsActionId } from '@pages/prompts/actions.ts';
 import { createPromptsPromptPreviewHost } from '@pages/prompts/controllers/page/adapters.ts';
 import { cancelEditing, createDraftPromptCard, downloadSelectedPrompts, duplicateSelected, handleCardColorSelection, startEditing } from '@pages/prompts/controllers/page/effects.ts';
+import { hasPromptCardEditChanges } from '@pages/prompts/controllers/page/saveDirtyStateManager.ts';
 import { copyPromptContent, deletePrompt, deleteSelectedPrompts } from '@pages/prompts/controllers/page/service.ts';
 import type { PromptsRuntimeContext } from '@pages/prompts/controllers/page/contracts.ts';
 
@@ -25,12 +26,7 @@ const dispatchPromptsClickAction = (host: PromptsClickDispatchHost, save: SaveCo
     void event;
     switch (actionId) {
         case PROMPTS_ACTION_CREATE_PROMPT:
-            if (host.state.viewMode === 'list') {
-                openNewPromptContentPreview(createPromptsPromptPreviewHost(host, host.components.promptEnhancer, save));
-                save.notifyChanged();
-                return;
-            }
-            createDraftPromptCard(host, save);
+            terminateHandledPromise(createDraftPromptCard(host, save));
             return;
         case PROMPTS_ACTION_TOGGLE_VIEW_MODE:
             host.operations.toggleViewMode();
@@ -39,6 +35,14 @@ const dispatchPromptsClickAction = (host: PromptsClickDispatchHost, save: SaveCo
             host.operations.sortList(actionElement);
             return;
         case PROMPTS_ACTION_TOGGLE_SELECTION_MODE:
+            if (!host.components.selectionController.isActive() && host.state.editingPromptId) {
+                const promptId = host.state.editingPromptId;
+                if (hasPromptCardEditChanges(host)) {
+                    host.owners.feedback.show(i18n.t('prompts.unsavedChanges'), 'warning');
+                    return;
+                }
+                terminateHandledPromise(cancelEditing(host, save, promptId));
+            }
             host.components.selectionController.toggleMode();
             return;
         case PROMPTS_ACTION_SELECT_ALL:
@@ -170,11 +174,6 @@ const dispatchPromptsClickAction = (host: PromptsClickDispatchHost, save: SaveCo
                     if (!card) {
                         throw new Error('Prompt card element is missing');
                     }
-                    if (card.classList.contains('prompts-list-row')) {
-                        terminateHandledPromise(openPromptPreview(host, save, promptId, { edit: true }));
-                        save.notifyChanged();
-                        return;
-                    }
                     terminateHandledPromise(startEditing(host, save, promptId));
                     return;
                 case PROMPTS_ACTION_CARD_COPY: {
@@ -189,7 +188,8 @@ const dispatchPromptsClickAction = (host: PromptsClickDispatchHost, save: SaveCo
                     terminateHandledPromise(cancelEditing(host, save, promptId));
                     return;
                 case PROMPTS_ACTION_CARD_SAVE_EDIT:
-                    terminateHandledPromise(save.requestSave());
+                    if (hasPromptCardEditChanges(host)) terminateHandledPromise(save.requestSave());
+                    else terminateHandledPromise(cancelEditing(host, save, promptId));
                     return;
             }
         }

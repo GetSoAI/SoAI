@@ -7,6 +7,8 @@ import os
 from dataclasses import dataclass
 
 from core.meta.paths import join_data_abs
+from core.platform.os import is_windows
+from core.system.subprocess_platform import resolve_windows_process_path
 
 __all__ = (
     "LOCKS_PATH_ENV",
@@ -76,9 +78,16 @@ def ensure_runtime_directory_environment(repo_root_path: str) -> RuntimeDirector
         TIKTOKEN_CACHE_DIR_ENV,
         os.path.join(state_path, "tiktoken-cache"),
     )
-    os.environ[TMPDIR_ENV] = temp_path
-    os.environ[TEMP_ENV] = temp_path
-    os.environ[TMP_ENV] = temp_path
+    if "PIP_RETRIES" not in os.environ:
+        os.environ["PIP_RETRIES"] = "10"
+    if "PIP_RESUME_RETRIES" not in os.environ:
+        os.environ["PIP_RESUME_RETRIES"] = "10"
+    process_temp_path = (
+        resolve_windows_process_path(temp_path, directory=True) if is_windows() else temp_path
+    )
+    os.environ[TMPDIR_ENV] = process_temp_path
+    os.environ[TEMP_ENV] = process_temp_path
+    os.environ[TMP_ENV] = process_temp_path
     return RuntimeDirectoryEnvironment(
         state_path=state_path,
         locks_path=locks_path,

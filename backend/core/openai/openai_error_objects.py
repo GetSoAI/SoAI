@@ -93,11 +93,15 @@ def parse_openai_sse_error_frame(
     frame: bytes | str,
 ) -> tuple[str, str | None, str | None, str | None] | None:
     for payload in parse_openai_sse_frame_payloads(frame):
+        if "error" not in payload:
+            continue
         error_obj = payload.get("error")
         message, error_type, code = extract_openai_error_fields_from_payload(error_obj)
         if message is None:
-            continue
-        return (message, error_type, None, code)
+            message = "Upstream provider request failed."
+        param_value = error_obj.get("param") if isinstance(error_obj, dict) else None
+        param = param_value if isinstance(param_value, str) and param_value else None
+        return (message, error_type, param, code)
     return None
 
 

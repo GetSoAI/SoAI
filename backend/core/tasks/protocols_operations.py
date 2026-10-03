@@ -17,6 +17,7 @@ from core.tasks.protocols import TaskRegistryLifecycleView, TaskRegistryProtocol
 from core.tasks.type_catalog import TaskTypeId
 
 if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
     from core.events.types_tasks import TaskCompleteEvent, TaskProgressEvent
     from core.tasks.task import Task
     from core.tasks.ttl import TTLMillis
@@ -60,6 +61,7 @@ class SendTaskCompleteEventCallable(Protocol):
         error_code: int | None = None,
         error_type: str | None = None,
         error_message: str | None = None,
+        public_error: ErrorPublicPayload | None = None,
         mutation_fencing_token: int | None = None,
     ) -> TaskCompleteEvent | None: ...
 
@@ -123,6 +125,7 @@ class TaskRegistryFinalizeCallable(Protocol):
         result: Mapping[str, JSONValue] | None = None,
         error_code: int | None = None,
         error_message: str | None = None,
+        public_error: ErrorPublicPayload | None = None,
         status_message: str | None = None,
         emit_reply_completion_event: bool = True,
         mutation_fencing_token: int | None = None,

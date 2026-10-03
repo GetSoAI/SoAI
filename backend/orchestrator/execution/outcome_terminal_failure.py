@@ -10,6 +10,7 @@ from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.errors.error_types import ErrorType
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.payload import ErrorPublicPayload
 from core.errors.status_mapping import error_type_to_status_code
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.logging.trace import get_logger
@@ -69,6 +70,7 @@ async def execute_terminal_failure_outcome(
     status: TaskStatus,
     error_type: ErrorType,
     reason_is_public: bool = False,
+    public_error: ErrorPublicPayload | None = None,
 ) -> None:
     context, task, delivery_version, dedup_hash, dedup_exception = await prepare_failure_delivery(
         queue, delivery, task, reason=reason
@@ -78,6 +80,8 @@ async def execute_terminal_failure_outcome(
     normalized_reason = str(reason or "").strip() or (
         "Cancelled by user" if status == TaskStatus.CANCELLED else "Inference failed"
     )
+    if status != TaskStatus.CANCELLED and public_error is not None:
+        normalized_reason = public_error.message
     outcome_finalizer = PersistedOutcomeFinalizer(
         dependencies=finalization_dependencies,
         delivery=delivery,
@@ -104,10 +108,21 @@ async def execute_terminal_failure_outcome(
             task.task_id,
             status,
             error_code=(
-                None if status == TaskStatus.CANCELLED else error_type_to_status_code(error_type)
+                None
+                if status == TaskStatus.CANCELLED
+                else (
+                    public_error.http_status
+                    if public_error is not None and public_error.http_status is not None
+                    else error_type_to_status_code(error_type)
+                )
             ),
-            error_type=(None if status == TaskStatus.CANCELLED else error_type.value),
+            error_type=(
+                None
+                if status == TaskStatus.CANCELLED
+                else str(public_error.code) if public_error is not None else error_type.value
+            ),
             error_message=normalized_reason,
+            public_error=(public_error if status == TaskStatus.FAILED else None),
             status_message=(normalized_reason if status == TaskStatus.CANCELLED else None),
             emit_reply_completion_event=False,
             delivery_version=delivery_version,
@@ -131,6 +146,7 @@ async def execute_terminal_failure_outcome(
                 else "orchestrator.fail_task"
             ),
             reason_is_public=reason_is_public,
+            public_error=public_error,
             details={"task_id": task.task_id},
             level="debug" if status == TaskStatus.CANCELLED else "warning",
         )

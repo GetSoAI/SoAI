@@ -18,7 +18,7 @@ type ChatFilePreviewItemDocumentMarkupArguments = {
 const buildChatFilePreviewItemDocumentMarkup = (inputArguments: ChatFilePreviewItemDocumentMarkupArguments): TrustedHtml => {
     const { leadingVisualMarkup = uiHtml``, interactiveBodyAttributesMarkup, interactiveBodyLabel, nameHtml, statusHtml, showSpinner, actionButtonMarkup, soaiPathLink } = inputArguments;
     const spinner = showSpinner ? uiHtml`<span class="loading-spinner file-status-spinner" aria-hidden="true"></span>` : uiHtml``;
-    const content = uiHtml`${leadingVisualMarkup}<span class="file-info"><span class="file-name">${nameHtml}</span><span class="file-status">${spinner}${statusHtml}</span></span>`;
+    const content = uiHtml`${leadingVisualMarkup}<span class="file-info"><span dir="auto" class="file-name">${nameHtml}</span><span class="file-status">${spinner}<span class="u-truncate">${statusHtml}</span></span></span>`;
     if (interactiveBodyAttributesMarkup !== undefined) {
         if (interactiveBodyLabel === undefined || !interactiveBodyLabel.trim()) throw new Error('Interactive attachment preview rows require a label');
         const linkClass = soaiPathLink === true ? ' soai-path-link' : '';

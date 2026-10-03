@@ -7,13 +7,13 @@
         min-height: fit-content;
     }
 
+    .modal-header .tabs-nav-wrapper.is-overflowing {
+        padding-inline: var(--modal-header-padding);
+    }
+
     .modal-header .tabs-nav {
         overflow: auto visible;
         flex-wrap: nowrap;
         min-height: fit-content;
-    }
-
-    .modal-header .tabs-nav-button {
-        display: none;
     }
 }

@@ -94,7 +94,10 @@ def sync_update_model_parameters(
     conn: sqlite3.Connection,
     universal_id: str,
     parameters: JSONDict,
+    increment_version: bool = False,
 ) -> bool:
+    if increment_version and sync_increment_parameter_version(conn, universal_id) < 0:
+        return False
     conn.execute("DELETE FROM models_parameters WHERE universal_id = ?", (universal_id,))
     if parameters:
         conn.executemany(

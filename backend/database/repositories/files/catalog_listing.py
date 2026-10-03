@@ -13,11 +13,11 @@ from core.openai.file_list_limits import (
     OPENAI_FILE_LIST_DEFAULT_LIMIT,
     OPENAI_FILE_LIST_MAX_LIMIT,
 )
-from core.sqlite.aiosqlite_cleanup import wait_for_aiosqlite_cleanup
 from core.validation.integers import is_strict_int
 from core.validation.strict_numbers import require_positive_int_strict
 from core.validation.strings import coerce_optional_trimmed_str
 from database.core.query_execution import query_one_to_dict, query_to_dicts
+from database.core.read_transaction import run_read_transaction
 from database.core.sqlite_values import SQLiteValue
 from database.repositories.files.record_parsing import parse_file_catalog_record
 from database.repositories.owner_scope import normalize_owner_scope
@@ -58,22 +58,15 @@ async def list_files_query(
         api_key_id=scope.api_key_id,
         purpose=normalized_purpose,
     )
-    began = False
-    committed = False
-    rows: list[dict[str, SQLiteValue]] = []
-    if normalized_after is not None:
-        await database.execute("BEGIN")
-        began = True
-    try:
+
+    async def _list_page(connection: aiosqlite.Connection) -> FileCatalogListPage:
         if normalized_after is not None:
             cursor = await _fetch_file_list_cursor(
-                database,
+                connection,
                 file_id=normalized_after,
                 filters=filters,
             )
             if cursor is None:
-                await database.execute("COMMIT")
-                committed = True
                 return FileCatalogListPage(records=[], has_more=False, invalid_after=True)
             _append_file_list_cursor_clause(
                 filters,
@@ -82,19 +75,17 @@ async def list_files_query(
                 cursor_created_at=_read_cursor_created_at(cursor),
             )
         rows = await _query_file_list_rows(
-            database,
+            connection,
             filters=filters,
             order=normalized_order,
             fetch_limit=resolved_limit + 1,
         )
-        if began:
-            await database.execute("COMMIT")
-            committed = True
-    finally:
-        if began and not committed:
-            await wait_for_aiosqlite_cleanup(database.execute("ROLLBACK"))
-    records = [parse_file_catalog_record(row) for row in rows[:resolved_limit]]
-    return FileCatalogListPage(records=records, has_more=len(rows) > resolved_limit)
+        records = [parse_file_catalog_record(row) for row in rows[:resolved_limit]]
+        return FileCatalogListPage(records=records, has_more=len(rows) > resolved_limit)
+
+    if normalized_after is None:
+        return await _list_page(database)
+    return await run_read_transaction(database, _list_page)
 
 
 async def _query_file_list_rows(

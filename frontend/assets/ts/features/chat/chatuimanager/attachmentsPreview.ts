@@ -6,7 +6,6 @@ import { serializeSoaiPathContentPart } from '@core/api/contracts/webuiSoaiPathS
 import { isArray, isNonNegativeInteger, isString } from '@core/typeGuards.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { toTrimmedStringOrNull } from '@core/normalize.ts';
-import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { classifyFileBrowserMimeType } from '@core/fileexplorerbrowser/mediaClassification.ts';
 import { stableJsonStringify } from '@core/serialization/json.ts';
 import { EMPTY_UI_HTML, uiAttr, uiHtml, uiText } from '@core/security/uiHtml.ts';
@@ -100,13 +99,13 @@ const renderImageAttachmentMedia = (context: ChatUIManagerContext, attachment: C
         if (srcValue) {
             const openAction = resolveImageAttachmentOpenAction(context, attachment, srcValue);
             return {
-                markup: uiHtml`<span class="chat-attachment-visual" data-attachment-image-state="loading"><span class="file-preview-leading-icon" aria-hidden="true">${icon}</span><img src="${uiAttr(srcValue)}" alt="${uiAttr(attachment.name)}" loading="lazy" decoding="async" data-chat-attachment-thumbnail="true"/>${loadingOverlay}</span>`,
+                markup: uiHtml`<span class="chat-attachment-visual" data-attachment-image-state="loading" data-attachment-processing-state="${uiAttr(statusKey)}"><span class="file-preview-leading-icon" aria-hidden="true">${icon}</span><img src="${uiAttr(srcValue)}" alt="${uiAttr(attachment.name)}" loading="lazy" decoding="async" data-chat-attachment-thumbnail="true"/>${loadingOverlay}</span>`,
                 actionAttributes: renderChatMultimediaPreviewOpenActionAttributes(openAction)
             };
         }
     }
     return {
-        markup: uiHtml`<span class="chat-attachment-visual" data-attachment-image-state="error"><span class="file-preview-leading-icon" aria-hidden="true">${icon}</span>${loadingOverlay}</span>`,
+        markup: uiHtml`<span class="chat-attachment-visual" data-attachment-image-state="error" data-attachment-processing-state="${uiAttr(statusKey)}"><span class="file-preview-leading-icon" aria-hidden="true">${icon}</span>${loadingOverlay}</span>`,
         actionAttributes: EMPTY_UI_HTML
     };
 };
@@ -117,7 +116,7 @@ const renderOverflowRow = (context: ChatUIManagerContext, hiddenCount: number): 
     const icon = context.dependencies.getCachedIcon('ellipsis', CHAT_ICON_SIZE_SM);
     return {
         id: 'attachment-overflow',
-        html: uiHtml`<button type="button" class="file-preview-item document chat-attachment-summary-card--overflow glass-surface-light glass-surface--bordered glass-surface--rounded" data-action="${uiAttr(CHAT_ACTIONS.OPEN_ATTACH_MODAL)}" data-hidden-attachment-count="${uiAttr(hiddenCount)}" aria-label="${uiAttr(labelText)}" data-tooltip="${uiAttr(labelText)}"><span class="file-preview-leading-icon" aria-hidden="true">${icon}</span><span class="file-info"><span class="file-name">${uiText(labelText)}</span><span class="file-status">${uiText(showMoreLabel)}</span></span></button>`
+        html: uiHtml`<button type="button" class="file-preview-item document chat-attachment-summary-card--overflow glass-surface-light glass-surface--bordered glass-surface--rounded" data-action="${uiAttr(CHAT_ACTIONS.OPEN_ATTACH_MODAL)}" data-hidden-attachment-count="${uiAttr(hiddenCount)}" aria-label="${uiAttr(labelText)}" data-tooltip="${uiAttr(labelText)}"><span class="file-preview-leading-icon" aria-hidden="true">${icon}</span><span class="file-info"><span dir="auto" class="file-name">${uiText(labelText)}</span><span class="file-status"><span class="u-truncate">${uiText(showMoreLabel)}</span></span></span></button>`
     };
 };
 
@@ -127,18 +126,19 @@ const previewEntriesFitOneRow = (preview: HTMLElement): boolean => {
     if (first === undefined) {
         return true;
     }
-    const firstTop = measureLayoutBox(first).top;
-    return elements.every((element) => Math.abs(measureLayoutBox(element).top - firstTop) <= 1);
+    const firstTop = first.offsetTop;
+    return elements.every((element) => Math.abs(element.offsetTop - firstTop) <= 1);
 };
 
 const reconcileResponsiveAttachmentPreview = (context: ChatUIManagerContext, preview: HTMLElement, allEntries: readonly AttachmentPreviewEntry[]): void => {
     let visibleCount = allEntries.length;
     let thumbnailsChanged = false;
+    const detached = new Map<string, HTMLElement>();
     while (visibleCount >= 0) {
         const hiddenCount = allEntries.length - visibleCount;
         const visibleEntries = allEntries.slice(0, visibleCount);
         const entries = hiddenCount > 0 ? [...visibleEntries, renderOverflowRow(context, hiddenCount)] : visibleEntries;
-        thumbnailsChanged = reconcileAttachmentPreview(context, preview, entries).thumbnailsChanged || thumbnailsChanged;
+        thumbnailsChanged = reconcileAttachmentPreview(context, preview, entries, detached).thumbnailsChanged || thumbnailsChanged;
         if (previewEntriesFitOneRow(preview) || visibleCount === 0) {
             break;
         }

@@ -51,7 +51,9 @@ const insertIcons = (host: ChatPageDomHost, sidebarOpen: boolean, showFavoritesA
     });
 
     if (!host.services.isDetached()) {
-        host.pageDom.updateHtml(CHAT_SELECTORS.SIDEBAR_TOGGLE, getIcon(sidebarOpen ? 'panel-left-visible' : 'panel-hidden', { size: 16, strokeWidth: 1.5 }), { escape: false });
+        for (const sidebarToggle of host.pageDom.query(CHAT_SELECTORS.SIDEBAR_TOGGLE)) {
+            host.pageDom.updateHtml(sidebarToggle, getIcon(sidebarOpen ? 'panel-left-visible' : 'panel-hidden', { size: 16, strokeWidth: 1.5 }), { escape: false });
+        }
     }
 
     const favoriteButton = host.pageDom.optionalHTMLElement('.favorite-toggle-btn');

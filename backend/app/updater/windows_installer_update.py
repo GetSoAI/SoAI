@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import tempfile
 from collections.abc import Callable
+from functools import partial
 from typing import TYPE_CHECKING
 
 from app.updater.download import download_update_file
@@ -18,6 +19,10 @@ from app.updater.software_update.install_transaction_recovery import (
     recover_interrupted_update_transactions,
 )
 from app.updater.software_update.install_transaction_state import allocate_update_transaction
+from app.updater.software_update.preparation_progress import (
+    report_download_progress,
+    write_preparation_progress,
+)
 from app.updater.software_update.update_lock import (
     resolve_software_update_lock_dir,
     transfer_software_update_lock,
@@ -38,7 +43,7 @@ from core.system.process_launcher import (
     SUBPROCESS_RECOVERABLE_EXCEPTIONS,
     spawn_handoff_process,
 )
-from core.system.subprocess_platform import windows_isolated_process_creationflags
+from core.system.windows_job_breakaway import windows_handoff_process_creationflags
 from core.timing.constants import (
     BACKGROUND_TIMEOUT_SEC,
     CONTROL_TIMEOUT_SEC,
@@ -108,6 +113,7 @@ def perform_windows_installer_update(
     before_handoff: Callable[[], bool],
     task_id: str,
     from_version: str,
+    report_preparation: bool = False,
 ) -> bool:
     installer_record = release_bundle.artifact_record
     if not isinstance(installer_record, ReleaseInstaller):
@@ -127,9 +133,12 @@ def perform_windows_installer_update(
             max_download_bytes=installer_record.size_bytes,
             reservation_provider=reservation_provider,
             suffix=".exe",
+            on_progress=partial(report_download_progress, base_path, task_id, report_preparation),
         )
         if downloaded_installer is None:
             return False
+        if report_preparation:
+            write_preparation_progress(base_path, task_id, "verifying")
         if (
             downloaded_installer.size_bytes != installer_record.size_bytes
             or downloaded_installer.sha256_hex != release_bundle.expected_artifact_sha256
@@ -192,6 +201,8 @@ def perform_windows_installer_update(
             release_bundle=release_bundle,
             logger=logger,
         ) as prepared_installer:
+            if report_preparation:
+                write_preparation_progress(base_path, task_id, "staging")
             if not prepare_windows_update_transaction(
                 paths=transaction_paths,
                 prepared=prepared_installer,
@@ -213,7 +224,7 @@ def perform_windows_installer_update(
             command,
             cwd=temp_path,
             env=environment,
-            creationflags=windows_isolated_process_creationflags(),
+            creationflags=windows_handoff_process_creationflags(),
             stdin=DEVNULL_STREAM,
             stdout=DEVNULL_STREAM,
             stderr=DEVNULL_STREAM,

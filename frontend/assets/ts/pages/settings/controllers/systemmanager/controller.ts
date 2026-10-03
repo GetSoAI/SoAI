@@ -20,6 +20,11 @@ const runWithOneShotTimer = (host: ResetActionExecutionContext['host'], state: M
     }, delayMs);
 };
 
+const refreshAfterAppearanceStateReset = async (host: ResetActionExecutionContext['host']): Promise<void> => {
+    await host.workflow.refreshSettingsAfterPreferencesReset();
+    host.workflow.refreshWallpaperPreview();
+};
+
 const executeResetPreferences = async ({ host, button }: ResetActionExecutionContext): Promise<void> => {
     const release = host.workflow.acquirePreferencesMutation();
     if (!release) return;
@@ -41,7 +46,7 @@ const executeResetPreferences = async ({ host, button }: ResetActionExecutionCon
             },
             i18n.t('settings.notifications.preferencesResetSuccess'),
             () => i18n.t('settings.notifications.preferencesResetFailed'),
-            async () => await host.workflow.refreshSettingsAfterPreferencesReset()
+            async () => await refreshAfterAppearanceStateReset(host)
         );
     } finally {
         release();
@@ -85,7 +90,7 @@ const executeResetAppearance = async ({ host, button }: ResetActionExecutionCont
         },
         i18n.t('settings.notifications.appearanceResetSuccess'),
         () => i18n.t('settings.notifications.appearanceResetFailed'),
-        async () => await host.workflow.refreshSettingsAfterPreferencesReset()
+        async () => await refreshAfterAppearanceStateReset(host)
     );
 };
 

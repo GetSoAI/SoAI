@@ -13,6 +13,10 @@ from core.errors.memory_exhaustion import resolve_memory_exhaustion_message
 from core.errors.payload import ErrorPublicPayload
 from core.errors.status_mapping import error_type_to_status_code
 from core.openai.context_overflow_validation import extract_context_overflow_validation
+from core.openai.model_output_contract_errors import (
+    INVALID_TOOL_CALL_JSON_FAILURE_TYPE,
+    is_invalid_tool_call_json_contract_error,
+)
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
@@ -54,12 +58,57 @@ def project_public_error(
 ) -> ErrorPublicPayload:
     resolved_trace_id = trace_id or error.trace_id
     status_code = int(error.http_status)
+    if isinstance(error.public_message, str) and error.public_message.strip():
+        return ErrorPublicPayload(
+            code=error.code,
+            message=error.public_message,
+            details=error.public_details,
+            http_status=status_code,
+            trace_id=resolved_trace_id,
+        )
+    if error.code == "database_acceptance_unresolved":
+        source = error.details or {}
+        details = {
+            name: source[name]
+            for name in ("operation_id", "status_url", "status", "retry_guidance")
+            if isinstance(source.get(name), str)
+        }
+        return ErrorPublicPayload(
+            code=error.code,
+            message="Upload acceptance could not be confirmed. Check its status before retrying.",
+            details=details or None,
+            trace_id=resolved_trace_id,
+        )
     if error.code == "database_timeout":
         return _project_database_timeout(error, trace_id=resolved_trace_id)
     if error.code == ErrorType.PLUGIN_UNAVAILABLE.value:
         return ErrorPublicPayload(
             code=error.code,
             message="Plugin backend became unavailable. Retry after recovery completes.",
+            trace_id=resolved_trace_id,
+        )
+    if error.code == ErrorType.MODEL_OUTPUT_CONTRACT.value:
+        source = error.details or {}
+        contract_details: JSONDict | None = None
+        invalid_tool_json = source.get(
+            "failure_type"
+        ) == INVALID_TOOL_CALL_JSON_FAILURE_TYPE or is_invalid_tool_call_json_contract_error(
+            message=error.message
+        )
+        if invalid_tool_json:
+            message = "The model emitted malformed tool-call JSON."
+            contract_details = {
+                "failure_type": INVALID_TOOL_CALL_JSON_FAILURE_TYPE,
+                "provider_detail": message,
+            }
+        else:
+            message = (
+                "The model returned invalid output. Retry the request or select a different model."
+            )
+        return ErrorPublicPayload(
+            code=error.code,
+            message=message,
+            details=contract_details,
             trace_id=resolved_trace_id,
         )
     memory_message = resolve_memory_exhaustion_message(error.code)

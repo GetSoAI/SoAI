@@ -1,8 +1,8 @@
 /* SoAI - Automation feature run activity state [frontend/assets/ts/features/automation/runactivity/state.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { AutomationRunResponse } from '@core/api/contracts/automationContractTypes.ts';
 import type { AutomationRunActivitySnapshot, AutomationRunStatus } from '@features/automation/runactivity/types.ts';
-import type { AutomationRunRecord } from '@features/automation/runactivity/parsing.ts';
 
 const ACTIVE_AUTOMATION_RUN_STATUSES: ReadonlySet<AutomationRunStatus> = new Set(['queued', 'running']);
 
@@ -11,10 +11,14 @@ class AutomationRunActivityState {
     readonly #activeRunIds = new Set<string>();
     readonly #activeAutomationCounts = new Map<string, number>();
     #initialized = false;
+    #stale = true;
+    #lastSyncedAtMs: number | null = null;
 
     getSnapshot(): AutomationRunActivitySnapshot {
         return {
             initialized: this.#initialized,
+            stale: this.#stale,
+            lastSyncedAtMs: this.#lastSyncedAtMs,
             hasRunning: this.#activeRunIds.size > 0,
             runningAutomationIds: new Set(this.#activeAutomationCounts.keys())
         };
@@ -22,6 +26,12 @@ class AutomationRunActivityState {
 
     markInitialized(): void {
         this.#initialized = true;
+        this.#stale = false;
+        this.#lastSyncedAtMs = Date.now();
+    }
+
+    markStale(): void {
+        this.#stale = true;
     }
 
     reset(): void {
@@ -29,9 +39,11 @@ class AutomationRunActivityState {
         this.#activeRunIds.clear();
         this.#activeAutomationCounts.clear();
         this.#initialized = false;
+        this.#stale = true;
+        this.#lastSyncedAtMs = null;
     }
 
-    applyRunUpdate(update: AutomationRunRecord): void {
+    applyRunUpdate(update: AutomationRunResponse): void {
         const { runId, automationId, status } = update;
         this.#runIdToAutomationId.set(runId, automationId);
         const isActive = ACTIVE_AUTOMATION_RUN_STATUSES.has(status);

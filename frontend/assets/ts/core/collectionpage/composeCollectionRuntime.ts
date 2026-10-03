@@ -55,6 +55,7 @@ interface CollectionCompositionBehavior extends CollectionDataBehavior {
     getItemSearchFields(item: ResourceItem): (string | undefined)[];
     applyCustomFilters(item: ResourceItem, filters: { filterProvider: string; filterStatus: string }): boolean;
     getSortValue(item: ResourceItem, field: string): string | number | null;
+    isPriorityItem?(item: ResourceItem): boolean;
     updateStats(): void;
     updateFilters(): void;
     onFilterChange?(property: string, value: string): void;
@@ -103,6 +104,7 @@ const composeCollectionRuntime = (dependencies: CollectionCompositionDependencie
             getItemSearchFields: behavior.getItemSearchFields,
             applyCustomFilters: behavior.applyCustomFilters,
             getSortValue: behavior.getSortValue,
+            isPriorityItem: behavior.isPriorityItem,
             renderItems: behavior.renderItems,
             updateStats: behavior.updateStats,
             updateFilters: behavior.updateFilters

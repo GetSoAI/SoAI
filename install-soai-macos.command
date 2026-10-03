@@ -11,7 +11,11 @@ soai_macos_install__die() {
 
 soai_macos_install__cleanup() {
     if [ -n "${SOAI_MACOS_INSTALL_TEMP_DIR:-}" ] && [ -d "$SOAI_MACOS_INSTALL_TEMP_DIR" ]; then
-        rm -rf -- "$SOAI_MACOS_INSTALL_TEMP_DIR"
+        if [ "$SOAI_MACOS_INSTALL_USE_SUDO" = "1" ]; then
+            sudo rm -rf -- "$SOAI_MACOS_INSTALL_TEMP_DIR"
+        else
+            rm -rf -- "$SOAI_MACOS_INSTALL_TEMP_DIR"
+        fi
     fi
 }
 
@@ -46,7 +50,7 @@ soai_macos_install__ask_autostart() {
 }
 
 soai_macos_install__prepare_elevation() {
-    SOAI_MACOS_INSTALL_ELEVATE=()
+    SOAI_MACOS_INSTALL_USE_SUDO=0
     if [ "${EUID:-$(id -u)}" -eq 0 ]; then
         return
     fi
@@ -55,7 +59,17 @@ soai_macos_install__prepare_elevation() {
     fi
     soai_macos_install__status "Administrator privileges are required to install SoAI in /Applications/SoAI."
     sudo -v || soai_macos_install__die "Unable to obtain administrator privileges through sudo."
-    SOAI_MACOS_INSTALL_ELEVATE=(sudo)
+    SOAI_MACOS_INSTALL_USE_SUDO=1
+}
+
+soai_macos_install__run_installer() {
+    local installer_path="$1"
+    shift
+    if [ "$SOAI_MACOS_INSTALL_USE_SUDO" = "1" ]; then
+        sudo bash "$installer_path" "$@"
+    else
+        bash "$installer_path" "$@"
+    fi
 }
 
 soai_macos_install__require_commands() {
@@ -109,22 +123,67 @@ soai_macos_install__download() {
     local destination="$2"
     local maximum_bytes="$3"
     local timeout_seconds="$4"
-    curl \
-        --fail \
-        --show-error \
-        --location \
-        --proto '=https' \
-        --tlsv1.2 \
-        --connect-timeout 15 \
-        --max-time "$timeout_seconds" \
-        --max-filesize "$maximum_bytes" \
-        --retry 3 \
-        --retry-delay 2 \
-        --output "$destination" \
-        "$url"
-    if [ ! -s "$destination" ]; then
-        soai_macos_install__die "Downloaded asset is empty: ${url}"
+    shift 4
+    local resume_archive="${1:-0}"
+    if [ "$#" -gt 0 ]; then
+        shift
     fi
+    local attempt=1
+    local delay=2
+    local status=0
+    local http_status=""
+    local range_restarted=0
+    local resume_attempt=0
+    local curl_arguments=()
+    while [ "$attempt" -le 6 ]; do
+        resume_attempt=0
+        curl_arguments=(
+            --fail --show-error --location --proto '=https' --proto-redir '=https'
+            --tlsv1.2 --connect-timeout 15 --max-time "$timeout_seconds"
+            --max-filesize "$maximum_bytes" --retry 3 --retry-delay 2
+            --speed-limit 1024 --speed-time 60 --write-out '%{http_code}'
+            --output "$destination"
+        )
+        if [ "$resume_archive" = "1" ] && [ -s "$destination" ]; then
+            curl_arguments+=(--continue-at -)
+            resume_attempt=1
+        else
+            rm -f "$destination" || return $?
+        fi
+        if http_status="$(curl "${curl_arguments[@]}" "$@" "$url")"; then
+            if [ ! -s "$destination" ]; then
+                soai_macos_install__die "Downloaded asset is empty: ${url}"
+            fi
+            return 0
+        else
+            status=$?
+        fi
+        soai_macos_install__status "Download attempt ${attempt}/6 failed (curl ${status}, HTTP ${http_status})."
+        case "$status" in
+            5|6|7|18|28|52|55|56|92) ;;
+            22|33|36)
+                if [ "$resume_attempt" != "1" ] || [ "$range_restarted" = "1" ]; then
+                    return "$status"
+                fi
+                if [ "$status" = "22" ] && [ "$http_status" != "416" ]; then
+                    return "$status"
+                fi
+                range_restarted=1
+                rm -f "$destination" || return $?
+                ;;
+            *) return "$status" ;;
+        esac
+        if [ "$attempt" -eq 6 ]; then
+            return "$status"
+        fi
+        soai_macos_install__status "Retrying download in ${delay} seconds..."
+        sleep "$delay" || return $?
+        attempt=$((attempt + 1))
+        delay=$((delay * 2))
+        if [ "$delay" -gt 30 ]; then
+            delay=30
+        fi
+    done
 }
 
 soai_macos_install__resolve_release() {
@@ -132,22 +191,12 @@ soai_macos_install__resolve_release() {
     local metadata_path="$SOAI_MACOS_INSTALL_TEMP_DIR/release-metadata.tsv"
     local resolver_path="$SOAI_MACOS_INSTALL_TEMP_DIR/resolve-release.js"
     soai_macos_install__status "Resolving the latest published SoAI release from GitHub..."
-    curl \
-        --fail \
-        --show-error \
-        --location \
-        --proto '=https' \
-        --tlsv1.2 \
-        --connect-timeout 15 \
-        --max-time 120 \
-        --max-filesize 8388608 \
-        --retry 3 \
-        --retry-delay 2 \
+    soai_macos_install__download \
+        'https://api.github.com/repos/GetSoAI/SoAI/releases/latest' \
+        "$release_json" 8388608 120 0 \
         --header 'Accept: application/vnd.github+json' \
         --header 'X-GitHub-Api-Version: 2022-11-28' \
-        --user-agent 'SoAI-Installer/1' \
-        --output "$release_json" \
-        'https://api.github.com/repos/GetSoAI/SoAI/releases/latest'
+        --user-agent 'SoAI-Installer/1'
     cat > "$resolver_path" <<'JAVASCRIPT'
 ObjC.import('Foundation');
 
@@ -196,7 +245,7 @@ soai_macos_install__download_release() {
     SOAI_MACOS_INSTALL_CHECKSUM_PATH="$SOAI_MACOS_INSTALL_TEMP_DIR/SoAI.zip.sha256"
     soai_macos_install__status "Downloading SoAI ${SOAI_MACOS_INSTALL_VERSION} for macOS..."
     soai_macos_install__download "$SOAI_MACOS_INSTALL_CHECKSUM_URL" "$SOAI_MACOS_INSTALL_CHECKSUM_PATH" 1024 120
-    soai_macos_install__download "$SOAI_MACOS_INSTALL_ARCHIVE_URL" "$SOAI_MACOS_INSTALL_ARCHIVE_PATH" 2147483648 7200
+    soai_macos_install__download "$SOAI_MACOS_INSTALL_ARCHIVE_URL" "$SOAI_MACOS_INSTALL_ARCHIVE_PATH" 2147483648 7200 1
 }
 
 soai_macos_install__validate_release() {
@@ -236,11 +285,11 @@ soai_macos_install__install() {
     fi
     if [ "$SOAI_MACOS_INSTALL_AUTOSTART" = "1" ]; then
         soai_macos_install__status "Installing SoAI with launchd automatic startup enabled..."
-        "${SOAI_MACOS_INSTALL_ELEVATE[@]}" bash "$installer_path" --fast
+        soai_macos_install__run_installer "$installer_path" --fast
         return
     fi
     soai_macos_install__status "Installing SoAI without a launchd service..."
-    "${SOAI_MACOS_INSTALL_ELEVATE[@]}" bash "$installer_path" --target /Applications/SoAI
+    soai_macos_install__run_installer "$installer_path" --target /Applications/SoAI
     soai_macos_install__status "Start SoAI manually with: sudo /Applications/SoAI/soai.command"
 }
 

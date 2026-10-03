@@ -48,7 +48,7 @@
         font-weight: 600;
         letter-spacing: var(--tracking-05px);
         margin: 0;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     .content-preview-modal .content-preview-text-info-label {

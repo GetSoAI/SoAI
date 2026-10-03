@@ -6,7 +6,8 @@ import { createModuleLogger, type ModuleLogger } from '@core/runtime/runtimeCont
 import { getMaintenanceCoordinator } from '@core/maintenanceCoordinator.ts';
 import { LifecycleModel } from '@core/LifecycleModel.ts';
 import { isFunction, isNumber, isObject, isString } from '@core/typeGuards.ts';
-import { getStatusStream, readTimer, requireAuthManager } from '@core/connectionstatus/deps.ts';
+import { readTimer, requireAuthManager } from '@core/connectionstatus/deps.ts';
+import { STATUS } from '@core/realtime/streammanager/resources/ids.ts';
 import { clearDisconnectTimer, clearRestartTimer, hasActiveConsumers, scheduleDisconnectEvaluation, scheduleStreamRestart, retainConnection, releaseConnection, resetRestartInfoState } from '@core/connectionstatus/actions.ts';
 import { emitConnectionStatus, getStatusSnapshot, notifyRestartSubscribers, rejectWaiters, subscribeConnectionStatus, subscribeRestartUpdates } from '@core/connectionstatus/events.ts';
 import { emitConnectionStatusTelemetry } from '@core/connectionstatus/effects.ts';
@@ -46,7 +47,7 @@ class ConnectionStatus extends LifecycleModel {
         });
     }
     override getRequiredResources(): string[] {
-        return [getStatusStream()];
+        return [STATUS];
     }
     private emitTelemetry(stage: string, message: string, severity: 'debug' | 'info' | 'warn' | 'error', data: JsonValue = null, queueDepth?: number | null): void {
         const safeQueueDepth = isNumber(queueDepth) ? queueDepth : null;

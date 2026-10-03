@@ -1,61 +1,46 @@
 /* SoAI - Metrics page adapters [frontend/assets/ts/pages/metrics/controllers/page/adapters.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { JsonValue } from '@core/types/jsonValues.ts';
-import { isFiniteNumber } from '@core/typeGuards.ts';
+import type { SystemMetricsHistoryRequest } from '@core/api/contracts/systemMetricsRequestContracts.ts';
+import type { MetricsHistoryPayload } from '@core/realtime/metricsHistoryContracts.ts';
+import type { HistoryPageWindow, HistoryResolutionWindow } from '@features/charts/public.ts';
 import { getMetricsCatalogEntry } from '@pages/metrics/controllers/page/capabilities.ts';
 import type { MetricsPageAdaptersHost } from '@pages/metrics/controllers/page/contracts.ts';
-import { trimMetricsHistoryPoints, updateMetricsMainChart } from '@pages/metrics/controllers/page/metricsUpdateProcessing.ts';
-import { getEffectiveMetricsCandlestickIntervalMs, getMetricsHistoryAggregation, getMetricsHistoryKey, getMetricsHistoryOhlcAggregation, getMetricsMetricTransform, isMetricsCandlestickActive } from '@pages/metrics/controllers/page/state.ts';
-import { applyValueHistory, fetchValueHistory, integrateValueHistoryPoints, parseValueHistoryResponse, type ValueHistoryContext } from '@pages/metrics/state/valueHistory.ts';
-import type { CandlestickMetadata, HistoryResponse, MetricsHistoryPoint, ParsedHistoryResponse, ValueHistoryResult } from '@pages/metrics/types.ts';
-import { applyCandlestickHistory, applyCandlestickMetadata, fetchCandlestickHistory, trimCandlestickData, type CandlestickHistoryContext } from '@pages/metrics/widgets/candlestickhistory/service.ts';
+import { trimMetricsHistoryPoints } from '@pages/metrics/controllers/page/metricsUpdateProcessing.ts';
+import { getEffectiveMetricsCandlestickIntervalMs, getMetricsHistoryAggregation, getMetricsHistoryKey, getMetricsHistoryOhlcAggregation, getMetricsMetricTransform } from '@pages/metrics/controllers/page/state.ts';
+import { applyValueHistory, resolveValueHistoryRequest, type ValueHistoryContext } from '@pages/metrics/state/valueHistory.ts';
+import type { CandlestickDataPoint, ValueHistoryResult } from '@pages/metrics/types.ts';
+import { applyCandlestickHistory, prependCandlestickHistory, trimCandlestickData } from '@pages/metrics/widgets/candlestickhistory/effects.ts';
+import { resolveCandlestickHistoryRequest } from '@pages/metrics/widgets/candlestickhistory/service.ts';
+import type { CandlestickHistoryContext } from '@pages/metrics/widgets/candlestickhistory/types.ts';
 
 const buildValueHistoryContext = (host: MetricsPageAdaptersHost): ValueHistoryContext => ({
     chartRuntime: host.state.chartRuntime,
     getMetricHistoryKey: () => getMetricsHistoryKey(host),
     getMetricHistoryAggregation: () => getMetricsHistoryAggregation(host),
     getCatalogEntry: (metricKey: string) => getMetricsCatalogEntry(host, metricKey),
-    isCandlestickActive: () => isMetricsCandlestickActive(host),
-    updateMainChart: (options) => updateMetricsMainChart(host, options),
     trimMetricsHistory: (force?: boolean) => trimMetricsHistoryPoints(host, force),
-    getRequestToken: () => host.state.valueHistoryRequestToken,
-    setRequestToken: (token: number | null) => {
-        host.state.valueHistoryRequestToken = token;
-    },
     timeRange: host.state.timeRange,
     pointBudget: host.operations.pointBudget(),
     monitoringIntervalMs: host.state.monitoringIntervalMs,
+    historyIntervalMs: host.state.historyIntervalMs,
     supportedHistoryIntervalsMs: host.state.supportedHistoryIntervalsMs,
     maxHistoryPoints: host.state.maxHistoryPoints,
-    metricsHistory: host.state.metricsHistory,
-    metricsHistoryExhausted: host.state.metricsHistoryExhausted,
-    valueHistoryRequestState: host.state.valueHistoryRequestState
+    metricsHistory: host.state.metricsHistory
 });
 
 const buildCandlestickContext = (host: MetricsPageAdaptersHost): CandlestickHistoryContext => ({
     query: {
-        runWithBoundary: <T>(name: string, functionValue: () => Promise<T>) => host.owners.pageLifecycle.run(name, functionValue),
         getMetricHistoryKey: () => getMetricsHistoryKey(host),
         getMetricHistoryOhlcAggregation: () => getMetricsHistoryOhlcAggregation(host),
         getCatalogEntry: (metricKey: string) => getMetricsCatalogEntry(host, metricKey),
         getMetricTransform: () => getMetricsMetricTransform(host, host.state.currentMetricType),
-        getEffectiveCandlestickIntervalMs: () => getEffectiveMetricsCandlestickIntervalMs(host),
-        syncChartControls: (options: { range?: boolean; candles?: boolean }) => host.operations.syncChartControls(options),
-        isCandlestickActive: () => isMetricsCandlestickActive(host),
-        updateMainChart: (options: { resetView?: boolean }) => updateMetricsMainChart(host, options),
-        getRequestSignature: () => host.state.lastCandlestickRequest,
-        setRequestSignature: (signature: string | null) => {
-            host.state.lastCandlestickRequest = signature;
-        },
-        isRequestActive: () => host.state.isFetchingCandles,
-        setRequestActive: (active: boolean) => {
-            host.state.isFetchingCandles = active;
-        }
+        getEffectiveCandlestickIntervalMs: () => getEffectiveMetricsCandlestickIntervalMs(host)
     },
     limits: {
         supportsOhlc: host.state.supportsOhlc,
         timeRange: host.state.timeRange,
+        availableTimeRanges: host.state.availableTimeRanges,
         maxRetentionMinutes: host.state.maxRetentionMinutes,
         supportedHistoryIntervalsMs: host.state.supportedHistoryIntervalsMs,
         pointBudget: host.operations.pointBudget(),
@@ -67,7 +52,6 @@ const buildCandlestickContext = (host: MetricsPageAdaptersHost): CandlestickHist
         currentHistoryPointBudget: host.state.currentHistoryPointBudget
     },
     state: {
-        candlestickHistoryExhausted: host.state.candlestickHistoryExhausted,
         candlestickIntervalMinutes: host.state.candlestickIntervalMinutes,
         lastResolvedCandlestickIntervalMs: host.state.lastResolvedCandlestickIntervalMs,
         baseCandleIntervals: host.state.baseCandleIntervals,
@@ -80,11 +64,10 @@ const buildCandlestickContext = (host: MetricsPageAdaptersHost): CandlestickHist
 
 const syncValueContext = (host: MetricsPageAdaptersHost, context: ValueHistoryContext): void => {
     host.state.metricsHistory = context.metricsHistory;
-    host.state.metricsHistoryExhausted = context.metricsHistoryExhausted;
+    host.state.historyIntervalMs = context.historyIntervalMs;
 };
 
 const syncCandlestickContext = (host: MetricsPageAdaptersHost, context: CandlestickHistoryContext): void => {
-    host.state.candlestickHistoryExhausted = context.state.candlestickHistoryExhausted;
     host.state.candlestickIntervalMinutes = context.state.candlestickIntervalMinutes;
     host.state.lastResolvedCandlestickIntervalMs = context.state.lastResolvedCandlestickIntervalMs;
     host.state.baseCandleIntervals = context.state.baseCandleIntervals;
@@ -97,71 +80,31 @@ const syncCandlestickContext = (host: MetricsPageAdaptersHost, context: Candlest
     host.state.currentHistoryPointBudget = context.limits.currentHistoryPointBudget;
 };
 
-const fetchMetricsValueHistory = async (host: MetricsPageAdaptersHost, options: { resetView?: boolean; beforeTimestamp?: number | null } = {}): Promise<void> => {
-    const hasCachedChartData = Boolean(host.state.chartRuntime.getCachedModules()?.data);
+const withValueHistoryContext = <T>(host: MetricsPageAdaptersHost, task: (context: ValueHistoryContext) => T): T => {
     const context = buildValueHistoryContext(host);
-    const changed = await fetchValueHistory(context, options, hasCachedChartData);
-    if (changed) {
-        syncValueContext(host, context);
-    }
-};
-
-const parseMetricsValueHistoryResponse = (host: MetricsPageAdaptersHost, response: HistoryResponse): ParsedHistoryResponse => parseValueHistoryResponse(buildValueHistoryContext(host), response);
-
-const integrateMetricsValueHistoryPoints = (host: MetricsPageAdaptersHost, points: MetricsHistoryPoint[], options: { mode?: string } = {}): ValueHistoryResult => {
-    const context = buildValueHistoryContext(host);
-    const result = integrateValueHistoryPoints(context, points, options);
+    const result = task(context);
     syncValueContext(host, context);
     return result;
 };
 
-const applyMetricsValueHistory = (host: MetricsPageAdaptersHost, response: HistoryResponse, options: { mode?: string } = {}): ValueHistoryResult & { intervalMs: number | null } => {
-    const context = buildValueHistoryContext(host);
-    const result = applyValueHistory(context, response, options);
-    syncValueContext(host, context);
+const withCandlestickContext = <T>(host: MetricsPageAdaptersHost, task: (context: CandlestickHistoryContext) => T): T => {
+    const context = buildCandlestickContext(host);
+    const result = task(context);
+    syncCandlestickContext(host, context);
     return result;
 };
 
-const fetchMetricsCandlestickHistory = async (host: MetricsPageAdaptersHost, options: { resetView?: boolean; beforeTimestampMs?: number | null } = {}): Promise<void> => {
-    const context = buildCandlestickContext(host);
-    const changed = await fetchCandlestickHistory(context, host.state.chartRuntime.getOhlc(), options);
-    if (changed) {
-        syncCandlestickContext(host, context);
-    }
-};
+const resolveMetricsValueHistoryRequest = (host: MetricsPageAdaptersHost, page: HistoryPageWindow | HistoryResolutionWindow | null): SystemMetricsHistoryRequest | null => withValueHistoryContext(host, (context) => resolveValueHistoryRequest(context, page));
 
-const applyMetricsCandlestickHistory = (host: MetricsPageAdaptersHost, response: HistoryResponse, options: { resetView?: boolean } = {}): void => {
-    const context = buildCandlestickContext(host);
-    applyCandlestickHistory(context, host.state.chartRuntime.getOhlc(), response, options);
-    syncCandlestickContext(host, context);
-};
+const applyMetricsValueHistory = (host: MetricsPageAdaptersHost, payload: MetricsHistoryPayload, mode: 'refresh' | 'prepend'): ValueHistoryResult => withValueHistoryContext(host, (context) => applyValueHistory(context, payload, { mode }));
 
-const applyMetricsCandlestickMetadata = (host: MetricsPageAdaptersHost, metadata: CandlestickMetadata): void => {
-    const context = buildCandlestickContext(host);
-    applyCandlestickMetadata(context, host.state.chartRuntime.getOhlc(), metadata);
-    syncCandlestickContext(host, context);
-};
+const resolveMetricsCandlestickHistoryRequest = (host: MetricsPageAdaptersHost, page: HistoryPageWindow | null): SystemMetricsHistoryRequest | null => withCandlestickContext(host, (context) => resolveCandlestickHistoryRequest(context, page));
 
-const trimMetricsCandlestickData = (host: MetricsPageAdaptersHost, force = false): boolean => {
-    const context = buildCandlestickContext(host);
-    const modified = trimCandlestickData(context, force);
-    syncCandlestickContext(host, context);
-    return modified;
-};
+const applyMetricsCandlestickHistory = (host: MetricsPageAdaptersHost, payload: MetricsHistoryPayload): boolean => withCandlestickContext(host, (context) => applyCandlestickHistory(context, host.state.chartRuntime.getOhlc(), payload));
 
-const handleMetricsChartHistoricalRequest = async (host: MetricsPageAdaptersHost, timestamp: JsonValue): Promise<void> => {
-    if (!isFiniteNumber(timestamp)) {
-        return;
-    }
-    if (!host.state.metricsHistoryEnabled) {
-        return;
-    }
-    if (isMetricsCandlestickActive(host)) {
-        await fetchMetricsCandlestickHistory(host, { beforeTimestampMs: timestamp });
-        return;
-    }
-    await fetchMetricsValueHistory(host, { beforeTimestamp: timestamp });
-};
+const prependMetricsCandlestickHistory = (host: MetricsPageAdaptersHost, payload: MetricsHistoryPayload): { prepended: CandlestickDataPoint[]; capped: boolean } => withCandlestickContext(host, (context) => prependCandlestickHistory(context, host.state.chartRuntime.getOhlc(), payload));
+
+const trimMetricsCandlestickData = (host: MetricsPageAdaptersHost, force = false): boolean => withCandlestickContext(host, (context) => trimCandlestickData(context, force));
 
 const openMetricsExportPreview = async (host: MetricsPageAdaptersHost): Promise<void> =>
     host.metricsServices.exportPreviewModal.open({
@@ -172,4 +115,4 @@ const openMetricsExportPreview = async (host: MetricsPageAdaptersHost): Promise<
         downloadBoundaryName: 'metrics:downloadExportPreview'
     });
 
-export { applyMetricsCandlestickHistory, applyMetricsCandlestickMetadata, applyMetricsValueHistory, fetchMetricsCandlestickHistory, fetchMetricsValueHistory, handleMetricsChartHistoricalRequest, integrateMetricsValueHistoryPoints, openMetricsExportPreview, parseMetricsValueHistoryResponse, trimMetricsCandlestickData };
+export { applyMetricsCandlestickHistory, applyMetricsValueHistory, openMetricsExportPreview, prependMetricsCandlestickHistory, resolveMetricsCandlestickHistoryRequest, resolveMetricsValueHistoryRequest, trimMetricsCandlestickData };

@@ -207,7 +207,7 @@ def shape_tool_result_json_for_prompt(
             reduced_json = safe_json_dumps(reduced)
             if len(reduced_json) <= resolved_max_chars:
                 stats.shaped_chars = len(reduced_json)
-                logger.warning(
+                logger.debug(
                     "Shaped tool result for prompt after field drops (tool=%s, original_chars=%s, shaped_chars=%s, emergency_drops=%s).",
                     stats.tool_name,
                     stats.original_chars,

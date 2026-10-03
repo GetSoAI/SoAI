@@ -21,7 +21,7 @@
 
     :is(.card-title-bar, .section-header, .modeldetail-card-header, .gpu-control-header) {
         margin: 0;
-        border-radius: var(--border-radius) var(--border-radius) 0 0;
+        border-radius: var(--border-radius-inset) var(--border-radius-inset) 0 0;
     }
 
     .card-title-bar:is(.card-title-bar--clickable, [data-card-toggle]) {
@@ -50,7 +50,7 @@
         align-items: center;
         gap: var(--space-2);
         flex-shrink: 0;
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     @container ui-viewport (width <= 900px) {

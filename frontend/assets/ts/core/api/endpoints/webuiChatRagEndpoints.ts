@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { createRagBatchUploadPayload, createRagSingleUploadPayload, type RagBatchUploadOptions } from '@core/api/endpoints/webuiRagUploads.ts';
+import { decodeNoContentResponse } from '@core/api/contracts/noContentContract.ts';
 import { getJsonResponse, patchJsonResponse, requireJsonResponse } from '@core/api/jsonResponse.ts';
 import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
-import { decodeRagBatch, decodeRagConfig, decodeRagDelete, decodeRagDocuments, decodeRagIngest, decodeRagReindex, decodeRagUpload, serializeRagConfigUpdateRequest, type RagBatchUploadResponse, type RagConfigResponse, type RagConfigUpdateRequest, type RagDeleteResponse, type RagDocumentsResponse, type RagIngestResponse, type RagReindexResponse, type RagUploadResponse } from '@core/api/contracts/webuiRagContracts.ts';
+import { decodeRagBatch, decodeRagConfig, decodeRagDocuments, decodeRagIngest, decodeRagReindex, decodeRagUpload, serializeRagConfigUpdateRequest, type RagBatchUploadResponse, type RagConfigResponse, type RagConfigUpdateRequest, type RagDocumentsResponse, type RagIngestResponse, type RagReindexResponse, type RagUploadResponse } from '@core/api/contracts/webuiRagContracts.ts';
 import type { RequestOptions } from '@core/api/types/request.ts';
 import type { WebuiConversationPaths } from '@core/api/endpoints/webuiConversationPaths.ts';
 
@@ -15,7 +16,7 @@ interface WebuiRagEndpoints {
     uploadDocument(id: string, file: File): Promise<RagUploadResponse>;
     uploadDocumentsBatch(id: string, files: readonly File[], options?: RagBatchUploadOptions): Promise<RagBatchUploadResponse>;
     ingestFileExplorer(id: string, payload: { path: string; recursive?: boolean }, options?: RequestOptions): Promise<RagIngestResponse>;
-    deleteDocument(id: string, documentId: string, options?: RequestOptions): Promise<RagDeleteResponse>;
+    deleteDocument(id: string, documentId: string, options?: RequestOptions): Promise<void>;
     reindex(id: string, embeddingModel: string, options?: RequestOptions): Promise<RagReindexResponse>;
 }
 
@@ -33,7 +34,7 @@ const createRagEndpoints = (api: ApiClientContext, paths: WebuiConversationPaths
             return decodeRagBatch(await requireJsonResponse(api.post(paths.ragDocumentsBatch(id), payload.formData, payload.options), 'POST', paths.ragDocumentsBatch(id)));
         },
         ingestFileExplorer: async (id, payload, options = {}): Promise<RagIngestResponse> => decodeRagIngest(await api.post(paths.ragIngestFileExplorer(id), payload, options)),
-        deleteDocument: async (id, documentId, options = {}): Promise<RagDeleteResponse> => decodeRagDelete(await api.delete(paths.ragDocument(id, documentId), options)),
+        deleteDocument: async (id, documentId, options = {}): Promise<void> => decodeNoContentResponse(await api.delete(paths.ragDocument(id, documentId), options), 'RAG document delete response'),
         reindex: async (id, embeddingModel, options = {}): Promise<RagReindexResponse> => decodeRagReindex(await api.post(paths.ragReindex(id), undefined, { ...options, query: { 'embedding_model': embeddingModel } }))
     };
 };

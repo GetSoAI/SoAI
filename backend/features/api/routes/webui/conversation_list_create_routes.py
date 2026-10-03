@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from fastapi import Depends, Request
+from fastapi import Depends, Query, Request
 from fastapi.responses import JSONResponse
 from starlette.responses import Response
 
@@ -59,16 +59,30 @@ def register_routes(routers: ApiRouters) -> None:
     @routers.webui.get("/conversations")
     async def list_my_conversations(
         request: Request,
+        limit: int | None = Query(default=None, ge=1, le=100),
+        before_created_at_ms: int | None = Query(default=None, ge=0),
+        before_id: str | None = Query(default=None, min_length=1),
         current_user: CurrentUser = Depends(get_current_user),
         api_context: ApiContext = Depends(resolve_api_context),
     ) -> Response:
-        conversations = (
-            await api_context.dependencies.webui_manager.database_conversations.list_conversations(
+        if (before_created_at_ms is None) != (before_id is None):
+            raise ValidationError("Conversation cursor requires both creation time and id.")
+        if limit is None and before_id is not None:
+            raise ValidationError("Conversation cursor requires a page limit.")
+        database_conversations = api_context.dependencies.webui_manager.database_conversations
+        if limit is None:
+            conversations = await database_conversations.list_conversations(current_user["id"])
+        else:
+            conversations = await database_conversations.list_conversations(
                 current_user["id"],
+                limit=limit + 1,
+                before_created_at_ms=before_created_at_ms,
+                before_id=before_id,
             )
-        )
+        has_more = limit is not None and len(conversations) > limit
+        visible_conversations = conversations if limit is None else conversations[:limit]
         normalized_conversations: list[JSONDict] = []
-        for conversation in conversations:
+        for conversation in visible_conversations:
             if not isinstance(conversation, dict):
                 raise ValidationError("Conversation record must be an object.")
             normalized = project_effective_conversation_settings(
@@ -77,7 +91,25 @@ def register_routes(routers: ApiRouters) -> None:
                 conversation_record=conversation,
             )
             normalized_conversations.append(normalized)
-        return JSONResponse(content=normalized_conversations)
+        if limit is None:
+            return JSONResponse(content=normalized_conversations)
+        next_cursor: JSONDict | None = None
+        if has_more:
+            last_conversation = normalized_conversations[-1]
+            next_cursor = {
+                "created_at_ms": require_unix_timestamp_ms(
+                    request, last_conversation.get("created_at_ms"), field="created_at_ms"
+                ),
+                "id": require_str_value(
+                    request,
+                    last_conversation.get("id"),
+                    message="Conversation cursor id must be a non-empty string.",
+                    allow_empty=False,
+                ),
+            }
+        return JSONResponse(
+            content={"conversations": normalized_conversations, "next_cursor": next_cursor}
+        )
 
     @routers.webui.post("/conversations", status_code=201)
     async def create_new_conversation(

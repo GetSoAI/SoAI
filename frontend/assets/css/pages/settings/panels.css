@@ -240,7 +240,7 @@
     }
 
     :where([data-section='settings'], [data-page-scope='settings']) .section-count-badge {
-        margin-left: var(--space-2);
+        margin-inline-start: var(--space-2);
         vertical-align: middle;
     }
 }

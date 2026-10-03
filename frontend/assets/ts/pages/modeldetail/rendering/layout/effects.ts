@@ -2,136 +2,104 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
-import { renderLabelAttributes } from '@core/security/public.ts';
+import { renderLabelAttributes, securityApi } from '@core/security/public.ts';
+import { renderSettingItem } from '@core/settings/settingsMarkup.ts';
+import { renderToggleSwitch } from '@core/toggleSwitch.ts';
+import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
 import { renderIconSlot } from '@core/ui/icons/view.ts';
-import { EXTERNAL_PROVIDER_ROWS, IDENTITY_ROWS, METRICS_ROWS, PLUGIN_ROWS, STATUS_ROWS, TECHNICAL_ROWS } from '@pages/modeldetail/rendering/layout/constants.ts';
-import { renderCard, renderRows } from '@pages/modeldetail/rendering/layout/rendering.ts';
+import { ACTION_DELETE_MODEL, ACTION_MANAGE_ALIAS, ACTION_RESET_OPENAI_CAPABILITIES, ACTION_STOP_PLUGIN, ACTION_TOGGLE_MODEL_ENABLED } from '@features/modeldetail/public.ts';
+import { DETAIL_ROWS, EXTERNAL_PROVIDER_ROWS, STATUS_ROWS } from '@pages/modeldetail/rendering/layout/constants.ts';
+import { MODEL_DETAIL_FACT_CLASS, renderCard, renderSpecRow, renderSpecRows } from '@pages/modeldetail/rendering/layout/rendering.ts';
 
-const renderIdentityCard = (): string => {
-    return renderCard({
-        id: 'modeldetail-identity-card',
-        title: i18n.t('modelDetail.cards.identity.title'),
-        content: renderRows('info', IDENTITY_ROWS)
-    });
+const renderActionButton = (options: { id: string; action: string; label: string; variant: string; icon?: IconName; size: 'sm' | 'titlebar'; hidden?: boolean; dataset?: Record<string, string> }): string => {
+    const icon = options.icon ? renderIconSlot(getIconSync(options.icon, { size: 14, strokeWidth: 1.6 })).html : '';
+    const className = ['ui-button', `ui-button--${options.size}`, options.variant, options.hidden ? 'u-hidden' : ''].filter(Boolean).join(' ');
+    const dataset = Object.entries(options.dataset ?? {})
+        .map(([key, value]) => ` data-${key}="${securityApi.escapeAttribute(value)}"`)
+        .join('');
+    return `<button type="button" class="${className}" id="${options.id}" data-action="${options.action}"${dataset} ${renderLabelAttributes(options.label).html}>${icon}<span>${options.label}</span></button>`;
 };
 
-const renderTechnicalCard = (): string => {
-    const rows = renderRows('info', TECHNICAL_ROWS);
-    const descriptionRow = `<div class="modeldetail-info-row modeldetail-info-row--fullwidth u-hidden" id="modeldetail-description-row">
-    <span class="modeldetail-info-label">${i18n.t('modelDetail.cards.technical.description')}</span>
-    <span class="modeldetail-info-value" id="modeldetail-description"></span>
-    </div>`;
+const renderStatusRow = (options: { nameId: string; label: string; statusId: string; statusLabel: string; copyable?: boolean }): string =>
+    renderSpecRow({
+        id: options.nameId,
+        label: options.label,
+        copyable: options.copyable,
+        hidden: true,
+        trailing: `<span class="ui-status-badge ${MODEL_DETAIL_FACT_CLASS} u-hidden" id="${options.statusId}-row" data-tooltip="${securityApi.escapeAttribute(options.statusLabel)}"><span id="${options.statusId}"></span></span>`
+    });
+
+const renderDetailsCard = (): string => {
+    const description = `<p class="modeldetail-description ${MODEL_DETAIL_FACT_CLASS} u-hidden" id="modeldetail-description-row"><span id="modeldetail-description"></span></p>`;
     return renderCard({
-        id: 'modeldetail-technical-card',
+        id: 'modeldetail-details-card',
         title: i18n.t('modelDetail.cards.technical.title'),
-        content: rows + descriptionRow
+        content: `${description}<dl class="modeldetail-spec">${renderSpecRows(DETAIL_ROWS)}</dl>`,
+        className: 'modeldetail-details-card'
     });
 };
 
 const renderStatusCard = (): string => {
-    const renderStatusButton = (label: string, id: string, action: string, variant = '', extraClass = ''): string => {
-        const standardClass = variant ? '' : '';
-        return `<button type="button" class="ui-button ui-button--sm${standardClass}${variant} ${extraClass}" id="${id}" data-action="${action}" ${renderLabelAttributes(label)}>${label}</button>`;
-    };
-    const renderStopPluginButton = (): string => {
-        const label = i18n.t('modelDetail.cards.status.stopPlugin');
-        const icon = renderIconSlot(getIconSync('stop', { size: 16, strokeWidth: 1.5 }));
-        return `<button type="button" class="ui-button ui-button--sm ui-icon-button ui-variant-danger u-hidden" id="stop-plugin" data-action="stop-plugin" ${renderLabelAttributes(label)}>${icon}</button>`;
-    };
-
-    const rows = renderRows('info', STATUS_ROWS);
-    const enabledToggle = `<div class="modeldetail-enabled-toggle u-hidden" id="modeldetail-enabled-toggle">
-    <label class="toggle-switch toggle-switch--inline modeldetail-enabled-toggle-switch" id="modeldetail-enabled-toggle-switch" data-action="toggle-model-enabled">
-    <input type="checkbox" id="modeldetail-enabled-checkbox">
-    <span class="slider"></span>
-    <span class="toggle-label">${i18n.t('modelDetail.cards.status.enabledToggleLabel')}</span>
-    </label>
-    <div class="modeldetail-enabled-note">${i18n.t('modelDetail.cards.status.enabledNote')}</div>
-    </div>`;
-    const actions = `<div class="modeldetail-status-actions">
-    ${renderStatusButton(i18n.t('modelDetail.cards.status.manageAlias'), 'manage-alias', 'manage-alias')}
-    ${renderStatusButton(i18n.t('modelDetail.cards.status.parameters'), 'switch-to-parameters', 'switch-to-parameters')}
-    ${renderStatusButton(i18n.t('modelDetail.cards.status.delete'), 'delete-model', 'delete-model', ' ui-variant-danger')}
-    ${renderStopPluginButton()}
-    </div>`;
+    const enabledLabel = i18n.t('modelDetail.cards.status.enabledToggleLabel');
+    const enabledToggle = renderSettingItem({
+        label: enabledLabel,
+        help: i18n.t('modelDetail.cards.status.enabledNote'),
+        control: renderToggleSwitch({
+            id: 'modeldetail-enabled-checkbox',
+            checked: false,
+            labels: { trueLabel: i18n.t('common.enabled'), falseLabel: i18n.t('common.disabled') },
+            showLabel: false,
+            ariaLabel: enabledLabel,
+            wrapperDataset: { action: ACTION_TOGGLE_MODEL_ENABLED }
+        }),
+        className: 'modeldetail-enabled-toggle u-hidden',
+        attributes: { id: 'modeldetail-enabled-toggle' }
+    });
+    const actions = [renderActionButton({ id: ACTION_MANAGE_ALIAS, action: ACTION_MANAGE_ALIAS, label: i18n.t('modelDetail.cards.status.manageAlias'), variant: 'ui-variant-neutral', size: 'sm' }), renderActionButton({ id: ACTION_STOP_PLUGIN, action: ACTION_STOP_PLUGIN, label: i18n.t('modelDetail.cards.status.stopPlugin'), variant: 'ui-variant-warning', icon: 'stop', size: 'sm', hidden: true }), renderActionButton({ id: ACTION_DELETE_MODEL, action: ACTION_DELETE_MODEL, label: i18n.t('modelDetail.cards.status.delete'), variant: 'ui-variant-danger', icon: 'delete', size: 'sm' })].join('');
+    const pluginRow = renderStatusRow({ nameId: 'modeldetail-plugin', label: i18n.t('modelDetail.cards.plugin.title'), statusId: 'modeldetail-plugin-status', statusLabel: i18n.t('modelDetail.cards.status.title') });
     return renderCard({
         id: 'modeldetail-status-card',
         title: i18n.t('modelDetail.cards.status.title'),
-        content: rows + enabledToggle + actions
+        content: `<dl class="modeldetail-spec">${pluginRow}${renderSpecRows(STATUS_ROWS)}</dl>${enabledToggle}<div class="modeldetail-card-actions">${actions}</div>`,
+        className: 'modeldetail-status-card',
+        bodyClassName: 'modeldetail-card-body--stack'
     });
 };
 
-const renderCapabilitiesCard = (): string => {
-    const title = i18n.t('modelDetail.cards.capabilities.title');
-    const resetLabel = i18n.t('modelDetail.cards.capabilities.reset');
-    const saveLabel = i18n.t('common.save');
-    const resetIcon = renderIconSlot(getIconSync('close', { size: 14, strokeWidth: 1.6 }));
-    const saveIcon = renderIconSlot(getIconSync('save', { size: 14, strokeWidth: 1.6 }));
-    return `
-    <div class="modeldetail-card glass-surface-full modeldetail-status-capabilities u-hidden" id="modeldetail-status-capabilities">
-    <div class="modeldetail-card-header">
-    <div class="modeldetail-status-capabilities-heading">
-    <h3 class="modeldetail-card-title">${title}</h3>
-    </div>
-    <button type="button" class="ui-button ui-button--titlebar ui-variant-accent modeldetail-status-capabilities-save u-hidden" id="modeldetail-openai-capabilities-save" data-action="save-parameters" ${renderLabelAttributes(saveLabel)}>${saveIcon}<span>${saveLabel}</span></button>
-    <button type="button" class="ui-button ui-button--titlebar ui-variant-neutral modeldetail-status-capabilities-reset" id="modeldetail-openai-capabilities-reset" data-openai-capability-reset="true" data-action="reset-openai-capabilities" ${renderLabelAttributes(resetLabel)}>${resetIcon}<span>${resetLabel}</span></button>
-    </div>
-    <div class="modeldetail-card-body">
-    <div class="modeldetail-capabilities" id="modeldetail-status-capabilities-list"></div>
-    </div>
-    </div>`;
-};
-
-const renderPluginCard = (): string => {
-    const rows = renderRows('info', PLUGIN_ROWS);
-    const pluginSummary = `<div class="modeldetail-plugin-summary">
-        <img class="plugin-logo-small modeldetail-plugin-logo" id="modeldetail-plugin-logo" alt="">
-        <div class="modeldetail-plugin-meta">
-        <div class="modeldetail-plugin-name" id="modeldetail-plugin-name"></div>
-        <div class="modeldetail-plugin-subtitle u-hidden" id="modeldetail-plugin-subtitle"></div>
-        </div>
-        </div>`;
-    return renderCard({
-        id: 'modeldetail-plugin-card',
-        title: i18n.t('modelDetail.cards.plugin.title'),
-        content: `${pluginSummary}${rows}`
-    });
-};
-
-const renderMetricsCard = (): string => {
-    return renderCard({
-        id: 'modeldetail-metrics-card',
-        title: i18n.t('modelDetail.cards.metrics.title'),
-        content: renderRows('metrics', METRICS_ROWS)
-    });
-};
-
-const renderExternalProviderCard = (): string => {
-    return renderCard({
+const renderExternalProviderCard = (): string =>
+    renderCard({
         id: 'modeldetail-external-provider-card',
         title: i18n.t('modelDetail.cards.externalProvider.title'),
-        content: renderRows('info', EXTERNAL_PROVIDER_ROWS),
+        content: `<dl class="modeldetail-spec">${renderStatusRow({ nameId: 'modeldetail-provider-name', label: i18n.t('modelDetail.cards.externalProvider.name'), statusId: 'modeldetail-provider-status', statusLabel: i18n.t('modelDetail.cards.externalProvider.status'), copyable: true })}${renderSpecRows(EXTERNAL_PROVIDER_ROWS)}</dl>`,
+        bodyClassName: 'modeldetail-card-body--stack',
         hidden: true
     });
-};
 
-const renderInferenceDefaultsCard = (): string => {
-    return renderCard({
+const renderInferenceDefaultsCard = (): string =>
+    renderCard({
         id: 'modeldetail-inference-defaults-card',
         title: i18n.t('modelDetail.cards.inferenceDefaults.title'),
-        content: '<div class="modeldetail-inference-defaults" id="modeldetail-inference-defaults"></div>',
+        content: '<dl class="modeldetail-spec modeldetail-spec--columns modeldetail-inference-defaults" id="modeldetail-inference-defaults"></dl>',
         hidden: true
     });
-};
 
-const renderConstituentsCard = (): string => {
-    return renderCard({
+const renderConstituentsCard = (): string =>
+    renderCard({
         id: 'modeldetail-constituents-card',
         title: i18n.t('modelDetail.cards.constituents.title'),
-        content: '<div class="modeldetail-constituent-list" id="modeldetail-constituent-list"></div>',
+        content: '<dl class="modeldetail-spec modeldetail-constituent-list" id="modeldetail-constituent-list"></dl>',
         hidden: true
     });
-};
 
-export { renderCapabilitiesCard, renderConstituentsCard, renderExternalProviderCard, renderIdentityCard, renderInferenceDefaultsCard, renderMetricsCard, renderPluginCard, renderStatusCard, renderTechnicalCard };
+const renderCapabilitiesCard = (): string =>
+    renderCard({
+        id: 'modeldetail-status-capabilities',
+        title: i18n.t('modelDetail.cards.capabilities.title'),
+        content: '<div class="modeldetail-capabilities" id="modeldetail-status-capabilities-list"></div>',
+        className: 'modeldetail-status-capabilities',
+        headerActions: renderActionButton({ id: 'modeldetail-openai-capabilities-reset', action: ACTION_RESET_OPENAI_CAPABILITIES, label: i18n.t('modelDetail.cards.capabilities.reset'), variant: 'ui-variant-neutral', icon: 'undo', size: 'titlebar', hidden: true, dataset: { 'openai-capability-reset': 'true' } }),
+        hidden: true
+    });
+
+export { renderCapabilitiesCard, renderConstituentsCard, renderDetailsCard, renderExternalProviderCard, renderInferenceDefaultsCard, renderStatusCard };

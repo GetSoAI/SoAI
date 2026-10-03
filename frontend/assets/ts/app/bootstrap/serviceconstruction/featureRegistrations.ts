@@ -5,6 +5,7 @@ import { createBootstrapDisplayServices } from '@app/bootstrap/serviceconstructi
 import { createBootstrapInteractiveFeatures } from '@app/bootstrap/serviceconstruction/interactiveFeatures.ts';
 import { registerPages } from '@app/bootstrap/pages.ts';
 import { CHAT_CONVERSATION_ATTENTION_SERVICE_ID, CHAT_PAGE_PRESENCE_SERVICE_ID, CHAT_RAG_INGESTION_SERVICE_ID, CHAT_STREAM_SERVICE_ID, CHAT_TOOL_ICON_SERVICE_ID } from '@core/chat/protocols.ts';
+import { AI_SETUP_ATTENTION_SERVICE_ID } from '@core/aisetup/protocols.ts';
 import { AUTOMATION_RUN_ACTIVITY_SERVICE_ID } from '@core/automation/protocols.ts';
 import { registerService } from '@core/serviceRegistration.ts';
 import { NOTIFICATIONS_CENTER_SERVICE_ID } from '@core/notifications/protocols.ts';
@@ -50,6 +51,9 @@ const registerFeatureBootstrapServices = (dependencies: FeatureRegistrationsDepe
     });
     registerService(AUTOMATION_RUN_ACTIVITY_SERVICE_ID, dependencies.interactiveFeatures.automationRunActivity, {
         moduleId: AUTOMATION_RUN_ACTIVITY_SERVICE_ID
+    });
+    registerService(AI_SETUP_ATTENTION_SERVICE_ID, dependencies.interactiveFeatures.aiSetupAttention, {
+        moduleId: AI_SETUP_ATTENTION_SERVICE_ID
     });
     registerService(LOG_STREAM_SERVICE_ID, dependencies.interactiveFeatures.logStream, {
         moduleId: LOG_STREAM_SERVICE_ID

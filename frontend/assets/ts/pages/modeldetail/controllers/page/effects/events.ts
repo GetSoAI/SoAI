@@ -50,7 +50,6 @@ const handleModelDetailMetricsUpdate = (host: ModelDetailEffectsHost, payload: J
             },
             getModel: () => host.state.model,
             setInfo: (id: string, value: JsonValue | null | undefined): void => host.rendering.setInfo(id, value),
-            getPluginKey: (): string => host.rendering.getModelPluginName(),
             updateTestPluginStatusDisplay: (): void => host.rendering.updateTestPluginStatusDisplay()
         },
         payload

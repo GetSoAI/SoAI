@@ -23,10 +23,10 @@
         backdrop-filter: var(--glass-blur-base);
         box-shadow: var(--glass-shadow-base);
         isolation: isolate;
-        border-right: var(--border-width-1) solid var(--glass-border-strong);
+        border-inline-end: var(--border-width-1) solid var(--glass-border-strong);
         border-bottom: var(--border-width-1) solid var(--glass-border-strong);
         border-top: none;
-        border-left: none;
+        border-inline-start: none;
         overflow: visible;
         user-select: none;
     }

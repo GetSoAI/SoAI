@@ -10,11 +10,10 @@ import { clampNumber } from '@core/primitives/clampNumber.ts';
 
 const MIN_MODAL_SIZE = 1;
 
-const normalizeDragPosition = (content: HTMLElement, position: { x: number; y: number }, isMobileViewport: boolean, width: number, height: number): { x: number; y: number } => {
+const normalizeDragPosition = (content: HTMLElement, position: { x: number; y: number }, width: number, height: number): { x: number; y: number } => {
     const bounded = clampPosition({
         content,
         position,
-        isMobileViewport,
         sizeOverride: { width, height }
     });
     const current = getTransformTranslate(content);
@@ -76,7 +75,7 @@ const startDrag = (state: ModalHostState, event: Event, modalId: string, point: 
     const width = Math.max(rect.width, MIN_MODAL_SIZE);
     const height = Math.max(rect.height, MIN_MODAL_SIZE);
     const currentPosition = getTransformTranslate(content);
-    const bounded = normalizeDragPosition(content, currentPosition ?? { x: 0, y: 0 }, state.isMobileViewportState, width, height);
+    const bounded = normalizeDragPosition(content, currentPosition ?? { x: 0, y: 0 }, width, height);
     const pointerOffsetX = clampNumber(point.clientX - rect.left, 0, width);
     const pointerOffsetY = clampNumber(point.clientY - rect.top, 0, height);
     state.dragState.set(modalId, {

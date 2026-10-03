@@ -22,6 +22,10 @@ from app.background.automation_worker_runtime import (
     wait_for_automation_tick,
 )
 from app.background.runtime_api_dependencies import resolve_api_dependencies_from_runtime
+from core.automation.automation_run_task_lifecycle import (
+    finalize_automation_run_owner_task,
+    read_automation_run_owner_task_id,
+)
 from core.concurrency.task_groups import cancel_and_await
 from core.config.protocols import ConfigProtocol
 from core.di.validation import require_dependencies
@@ -32,6 +36,7 @@ from core.events.types_webui import (
     AutomationCreatedEvent,
     AutomationDeletedEvent,
     AutomationRunCreatedEvent,
+    AutomationRunUpdatedEvent,
     AutomationUpdatedEvent,
 )
 from core.logging.trace import get_logger
@@ -52,7 +57,7 @@ if TYPE_CHECKING:
         DatabaseAutomationRunsProtocol,
         DatabaseAutomationsProtocol,
     )
-    from core.events.protocols import EventBusProtocol
+    from core.events.protocols import DurableEventDeliveryProtocol, EventBusProtocol
     from core.runtime.protocols import RuntimeStateStoreProtocol
 
     type CoroutineFactory = Callable[[], Awaitable[None]]
@@ -74,6 +79,7 @@ class AutomationServiceDependencies:
     database_automation_runs: DatabaseAutomationRunsProtocol
     database_automation_run_scheduler: DatabaseAutomationRunSchedulerProtocol
     event_bus: EventBusProtocol
+    durable_event_delivery: DurableEventDeliveryProtocol
     cancellation_binder: TaskCancellationBinderProtocol
     finalizer_tracker: TaskFinalizerTrackerProtocol
     runtime_state: RuntimeStateStoreProtocol
@@ -87,6 +93,7 @@ class AutomationServiceDependencies:
             database_automation_runs=self.database_automation_runs,
             database_automations=self.database_automations,
             event_bus=self.event_bus,
+            durable_event_delivery=self.durable_event_delivery,
             finalizer_tracker=self.finalizer_tracker,
             runtime_state=self.runtime_state,
         )
@@ -116,6 +123,20 @@ class AutomationService:
         if run_record.get("status") != "queued":
             return
         self._queue.enqueue_run_id(event.run_id)
+
+    async def _handle_terminal_run_event(self, event: Event) -> None:
+        if not isinstance(event, AutomationRunUpdatedEvent):
+            return
+        record = await self._deps.database_automation_runs.get_run_for_execution(event.run_id)
+        if record is None or record.get("status") != "abandoned":
+            return
+        api_dependencies = await resolve_api_dependencies_from_runtime(self._deps.runtime_state)
+        await finalize_automation_run_owner_task(
+            api_dependencies.task_registry,
+            owner_task_id=read_automation_run_owner_task_id(record),
+            final_status="abandoned",
+            error_message="Automation run abandoned.",
+        )
 
     def _build_scheduler_task_factory(
         self,
@@ -148,6 +169,9 @@ class AutomationService:
         self._queue.reset(settings.queue_size)
         self._worker_tasks = []
         if not self._subscribed:
+            self._deps.durable_event_delivery.subscribe(
+                AutomationRunUpdatedEvent, self._handle_terminal_run_event
+            )
             for event_type in (
                 AutomationCreatedEvent,
                 AutomationUpdatedEvent,
@@ -275,6 +299,9 @@ class AutomationService:
             return
         self._subscribed = False
         try:
+            self._deps.durable_event_delivery.unsubscribe(
+                AutomationRunUpdatedEvent, self._handle_terminal_run_event
+            )
             for event_type in (
                 AutomationCreatedEvent,
                 AutomationUpdatedEvent,

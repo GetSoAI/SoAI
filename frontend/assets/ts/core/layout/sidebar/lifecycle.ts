@@ -6,6 +6,7 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { getLayoutRuntimeManager } from '@core/runtime/LayoutManager.ts';
 import { SIDEBAR_DESTROYED_EVENT, SIDEBAR_READY_EVENT } from '@core/layout/sidebar/actions.ts';
 import { bindSidebarLogoNavigation, bindSidebarNavigation, bindSidebarToggleHandlers, type SidebarInteractionsHost } from '@core/layout/sidebar/interactions.ts';
+import { bindSidebarHoverPeek } from '@core/layout/sidebar/hoverPeek.ts';
 import type { SidebarDisposerCandidate } from '@core/layout/sidebar/disposers.ts';
 import { resetSidebarBodyState } from '@core/layout/sidebar/stateUi.ts';
 import type { SidebarConfigEntry } from '@core/layout/sidebar/view.ts';
@@ -21,6 +22,8 @@ interface SidebarLifecycleSessionPort {
     flushSessionDisposers: () => void;
     captureAuthSnapshot: () => Promise<void>;
     on: (target: EventTarget | Element, eventName: string, handler: (event: Event) => void) => () => void;
+    setTimer: (handler: () => void, delay: number) => number | null;
+    clearTimer: (timerId: number) => void;
     addSessionDisposer: (functionValue: SidebarDisposerCandidate) => () => void;
 }
 
@@ -30,6 +33,9 @@ interface SidebarLifecyclePresentationPort {
     updateStateUI: () => void;
     compactSidebar: () => void;
     isExpanded: () => boolean;
+    canHoverPeek: () => boolean;
+    isHoverPeeking: () => boolean;
+    setHoverPeek: (peeking: boolean) => void;
     navigateTo: (pageId: string) => void;
     refreshSidebar: (options?: { syncRoute?: boolean }) => Promise<void>;
     updatePluginIndicator: () => void;
@@ -121,14 +127,20 @@ const bootstrapSidebarLifecycle = async (dependencies: SidebarLifecycleDependenc
     const interactionsHost: SidebarInteractionsHost = {
         addSessionDisposer: (functionValue: SidebarDisposerCandidate) => dependencies.session.addSessionDisposer(functionValue),
         on: (target: EventTarget, eventName: string, handler: (event: Event) => void) => dependencies.session.on(target, eventName, handler),
+        setTimer: (handler: () => void, delay: number) => dependencies.session.setTimer(handler, delay),
+        clearTimer: (timerId: number) => dependencies.session.clearTimer(timerId),
         compactSidebar: () => dependencies.presentation.compactSidebar(),
         getDomRef: (key: string) => dependencies.dom.getDomRef(key),
         getMenuElement: () => dependencies.dom.getMenuElement(),
         isExpanded: () => dependencies.presentation.isExpanded(),
+        canHoverPeek: () => dependencies.presentation.canHoverPeek(),
+        isHoverPeeking: () => dependencies.presentation.isHoverPeeking(),
+        setHoverPeek: (peeking: boolean) => dependencies.presentation.setHoverPeek(peeking),
         navigateTo: (pageId: string) => dependencies.presentation.navigateTo(pageId)
     };
 
     bindSidebarToggleHandlers(interactionsHost);
+    bindSidebarHoverPeek(interactionsHost);
     bindSidebarLogoNavigation(interactionsHost);
     await dependencies.presentation.refreshSidebar();
     bindSidebarNavigation(interactionsHost);

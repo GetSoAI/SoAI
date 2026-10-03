@@ -100,6 +100,8 @@ export type PluralBaseKey =
     | 'common.time.units.minute.long'
     | 'metrics.modelTable.count'
     | 'metrics.plugin_health.count'
+    | 'modelDetail.parameters.count'
+    | 'modelDetail.parameters.unsavedCount'
     | 'models.metrics.constituentModelsShortCount'
     | 'models.stats.externalProviders'
     | 'models.stats.loaded'
@@ -117,6 +119,11 @@ export type PluralBaseKey =
     | 'taskManager.header.taskCounter'
     | 'taskManager.notifications.cancelOperationsFailed'
     | 'taskManager.notifications.cancelOperationsSuccess'
+    | 'wizard.aiSetup.background.downloads'
+    | 'wizard.aiSetup.background.installations'
+    | 'wizard.aiSetup.completion.modelsReady'
+    | 'wizard.aiSetup.completion.stillPreparing'
+    | 'wizard.aiSetup.connect.cloud.connected'
     | 'wizard.completion.summary.plugins.installed';
 
 export type BaseTranslationKey = TranslationKey;

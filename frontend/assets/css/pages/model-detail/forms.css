@@ -32,11 +32,11 @@
         }
 
         .model-test-elapsed-spinner {
+            --soai-spinner-stroke: var(--border-width-150);
             width: 14px;
             height: 14px;
             min-width: 14px;
             min-height: 14px;
-            border-width: var(--border-width-150);
         }
 
         .model-test-elapsed-spinner.u-hidden {
@@ -63,7 +63,7 @@
         }
 
         .model-test-result-row .plugin-status-badge .status-indicator {
-            margin-right: var(--space-15);
+            margin-inline-end: var(--space-15);
         }
 
         .model-test-status-block .stat-value {
@@ -86,7 +86,7 @@
             color: var(--text-primary);
             font-variant-numeric: tabular-nums;
             line-height: 1;
-            text-align: right;
+            text-align: end;
             justify-self: end;
         }
 
@@ -101,7 +101,7 @@
 
         .model-test-plugin-status-row .plugin-status-badge .status-indicator,
         .model-test-model-status-row .plugin-status-badge .status-indicator {
-            margin-right: var(--space-15);
+            margin-inline-end: var(--space-15);
         }
 
         .model-test-request-details {
@@ -210,12 +210,12 @@
 
         .model-test-logs-header .model-test-logs-title {
             margin: 0;
-            margin-right: auto;
+            margin-inline-end: auto;
         }
 
         .model-test-logs-toggle {
             border-radius: var(--border-round);
-            transform: rotate(-90deg);
+            transform: rotate(calc(-90deg * var(--dir-sign)));
             transition: transform var(--transition-fast);
         }
 

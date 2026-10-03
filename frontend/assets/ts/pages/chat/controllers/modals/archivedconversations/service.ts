@@ -38,9 +38,10 @@ const unarchiveConversation = async (host: ArchivedConversationsModalHost, state
 };
 
 const deleteArchivedConversation = async (host: ArchivedConversationsModalHost, state: ArchivedConversationsModalState, conversationId: string): Promise<void> => {
-    requireArchivedConversation(state, conversationId);
+    const conversation = requireArchivedConversation(state, conversationId);
     const confirmed = await requireDialogsService().showConfirmation({
         ...resolveArchivedConversationDeleteConfirmation('archive:delete', 1),
+        description: conversation.title,
         confirmText: i18n.t('common.delete'),
         variant: 'danger'
     });

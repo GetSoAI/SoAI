@@ -6,7 +6,7 @@ import { i18n } from '@core/i18n/index.ts';
 import { formatInvariantNumber } from '@core/localization/public.ts';
 import { readCoercedFiniteNumberOrNullValue } from '@core/types/numberCoercionReaders.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
-import { METRIC_CONFIG, buildNetworkInterfaceModels, buildVolumeModels, DEFAULT_IGNORED_NETWORK_PREFIXES, getCpuDevices, getGpuDevices, getGpuOptionId, normalizeHistoryComponent, resolveHardwareDeviceDisplayName, type NetworkInterfaceModel, type VolumeModel } from '@features/hardware/public.ts';
+import { METRIC_CONFIG, buildNetworkInterfaceModels, buildVolumeModels, DEFAULT_IGNORED_NETWORK_PREFIXES, getCpuDevices, getGpuDevices, getGpuOptionId, normalizeHistoryComponent, resolveHardwareDeviceDisplayName, type NetworkInterfaceModel, type SoAIBenchRunOpenRequest, type VolumeModel } from '@features/hardware/public.ts';
 import { STR_CPU, STR_DISK, STR_GPU, STR_NETWORK } from '@pages/hardware/contracts/hardwarePageSupport.ts';
 import { buildDeviceSelectionValue, isHistoryComponentSupported, metricSupportsDevice } from '@pages/hardware/state/hardwareSelection.ts';
 import type { HardwarePageState } from '@pages/hardware/state/state.ts';
@@ -54,6 +54,22 @@ const buildDeviceCategoryOptions = (state: HardwarePageState): CategoryOption[] 
     }
     if (!list.length) add(STR_CPU, i18n.t('hardware.devices.cpu'));
     return list;
+};
+
+const buildSoAIBenchGpuOptions = (state: HardwarePageState): SoAIBenchRunOpenRequest[] => {
+    return getGpuDevices(state.lastSnapshot).flatMap((gpu, position) => {
+        const deviceId = gpu.deviceId?.trim();
+        if (!deviceId) {
+            return [];
+        }
+        return [
+            {
+                deviceId,
+                gpuIndex: String(getGpuOptionId(gpu, position)),
+                gpuName: resolveHardwareDeviceDisplayName(gpu) ?? i18n.t('hardware.components.gpu')
+            }
+        ];
+    });
 };
 
 const buildMetricOptions = (state: HardwarePageState, type: string | null | undefined, selected: string = state.selectedMetric): MetricOption[] => {
@@ -120,4 +136,4 @@ const formatHistoryErrorMessage = (error: Error): string => {
     return candidate && candidate !== base && !base.includes(candidate) ? `${base}: ${candidate}` : candidate || base;
 };
 
-export { buildDeviceCategoryOptions, buildMetricOptions, formatHistoryErrorMessage, formatMetricValue, getHistoryMetricKey, getMetricKey, getMetricLabel, getMetricScaleBounds };
+export { buildDeviceCategoryOptions, buildMetricOptions, buildSoAIBenchGpuOptions, formatHistoryErrorMessage, formatMetricValue, getHistoryMetricKey, getMetricKey, getMetricLabel, getMetricScaleBounds };

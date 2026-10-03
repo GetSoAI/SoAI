@@ -5,13 +5,10 @@ import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { isString } from '@core/typeGuards.ts';
 import { LOGO_LARGE_CLASS, LOGO_SMALL_CLASS } from '@core/layout/sidebar/dom.ts';
-import type { SidebarDisposerCandidate } from '@core/layout/sidebar/disposers.ts';
+import type { SidebarHoverPeekHost } from '@core/layout/sidebar/hoverPeek.ts';
 
-interface SidebarInteractionsHost {
-    addSessionDisposer: (functionValue: SidebarDisposerCandidate) => void;
-    on: (target: EventTarget, eventName: string, handler: (event: Event) => void) => SidebarDisposerCandidate;
+interface SidebarInteractionsHost extends SidebarHoverPeekHost {
     compactSidebar: () => void;
-    getDomRef: (key: string) => HTMLElement | null;
     getMenuElement: () => HTMLElement | null;
     isExpanded: () => boolean;
     navigateTo: (pageId: string) => void;

@@ -31,7 +31,7 @@
     }
 
     .page-actions__menu--split > .ui-variant-accent.ui-button {
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     .page-actions__menu :is(.u-hidden, .u-invisible) {
@@ -112,7 +112,7 @@
 
     .page-actions--dropdown {
         flex: 0 0 auto;
-        margin-left: auto;
+        margin-inline-start: auto;
         z-index: var(--z-dropdown);
     }
 
@@ -137,7 +137,11 @@
 
         position: fixed;
         top: var(--page-actions-menu-top);
+
+        /* direction: physical — menu position is computed in physical viewport coordinates */
         left: var(--page-actions-menu-left);
+
+        /* direction: physical — menu position is computed in physical viewport coordinates */
         right: auto;
         display: none;
         flex-direction: column;
@@ -153,20 +157,20 @@
     }
 
     .page-actions--dropdown .page-actions__menu--open .page-header-search .searchbar-icon {
-        right: 1rem;
+        inset-inline-end: 1rem;
         width: var(--control-icon-size);
         height: var(--control-icon-size);
     }
 
     .page-actions--dropdown .page-actions__menu > * {
         width: 100%;
-        margin-left: 0;
+        margin-inline-start: 0;
     }
 
     .page-actions--dropdown .page-actions__menu > .ui-button,
     .page-actions--dropdown .page-actions__menu > .ui-icon-button {
         justify-content: flex-start;
-        text-align: left;
+        text-align: start;
         width: 100%;
         min-width: 0;
         height: auto;
@@ -181,7 +185,7 @@
     .page-actions--dropdown .page-actions__menu .advanced-toggle-container {
         padding: 0;
         background: none;
-        margin-left: 0;
+        margin-inline-start: 0;
         order: 0;
     }
 

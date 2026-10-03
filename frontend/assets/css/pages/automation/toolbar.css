@@ -16,6 +16,15 @@
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day-number {
+        appearance: none;
+        padding: 0;
+        border: none;
+        background: none;
+        color: inherit;
+        font-family: inherit;
+        line-height: inherit;
+        cursor: pointer;
+        outline: none;
         font-weight: var(--font-weight-semibold);
         font-size: clamp(var(--font-size-body-xs), 28cqi, var(--font-size-body));
         margin-inline-start: var(--space-2);
@@ -34,7 +43,7 @@
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day-count {
         flex: 0 0 auto;
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-month-day-count-badge {
@@ -44,14 +53,14 @@
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-month.has-sparklines .automation-month-day-header,
     :where([data-section='automation'], [data-page-scope='automation']) .automation-month.has-sparklines .automation-month-zones {
-        padding-left: clamp(var(--space-15), 10cqi, var(--space-2));
+        padding-inline-start: clamp(var(--space-15), 10cqi, var(--space-2));
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-month-sparkline {
         position: absolute;
         top: 0;
         bottom: 0;
-        left: clamp(var(--space-15), 6cqi, var(--space-2));
+        inset-inline-start: clamp(var(--space-15), 6cqi, var(--space-2));
         width: clamp(var(--space-1), 10cqi, var(--space-3));
         pointer-events: none;
         z-index: var(--z-base);
@@ -62,6 +71,8 @@
         position: absolute;
         top: 0;
         bottom: 0;
+
+        /* direction: physical — centering uses physical negative half-width translation */
         left: 50%;
         width: var(--border-width-2);
         border-radius: var(--border-radius);
@@ -79,8 +90,8 @@
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-month-sparkline-marker {
         position: absolute;
-        left: 1px;
-        right: 1px;
+        inset-inline-start: 1px;
+        inset-inline-end: 1px;
         top: calc(var(--spark-pos) * 100%);
         height: calc(var(--spark-size) * var(--automation-month-sparkline-marker-thickness-scale));
         transform: translateY(-50%);
@@ -102,7 +113,7 @@
         appearance: none;
         font: inherit;
         color: inherit;
-        text-align: left;
+        text-align: start;
 
         --automation-zone-chip-padding-y: var(--space-1);
         --automation-zone-chip-padding-x: var(--space-15);
@@ -239,7 +250,7 @@
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-time-grid-gutter {
-        border-right: var(--border-width-1) solid var(--glass-border-strong);
+        border-inline-end: var(--border-width-1) solid var(--glass-border-strong);
         background: color-mix(in srgb, var(--glass-surface-light) 80%, transparent);
         position: relative;
         padding-block: var(--space-3);

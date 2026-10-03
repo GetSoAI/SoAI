@@ -6,36 +6,33 @@ import { hideCrosshair, isOverChartArea, isOverXAxis, isOverYAxis, updateCrossha
 import { getMousePosition } from '@features/charts/mappers.ts';
 import type { PointerEventInput } from '@features/charts/types.ts';
 import { resetDragState, setInteractionMode } from '@features/charts/interaction/state.ts';
-import { resetViewport } from '@features/charts/interaction/viewportCommands.ts';
 import type { ChartInteractionScene } from '@features/charts/interaction/chartInteractionScene.ts';
+import { timeToX } from '@features/charts/viewport/timeViewport.ts';
+
+const X_AXIS_DRAG_ZOOM_RESPONSE = 2;
+const CLICK_SLOP_PX = 4;
 
 const handleMouseDown = (chart: ChartInteractionScene, event: PointerEventInput): void => {
     if (event.button !== undefined && event.button !== 0 && event.pointerType !== 'touch') {
         return;
     }
     const { x: xCoordinate, y: yCoordinate } = getMousePosition(chart, event);
-    const { zoom, pan, scale } = chart.viewportState;
+    const { pan, scale, time } = chart.viewportState;
     const { options } = chart.configuration;
-    if (isOverXAxis(chart, xCoordinate, yCoordinate)) {
-        return;
-    }
     if (isFunction(event.preventDefault)) {
         event.preventDefault();
     }
-    zoom.isAnimating = pan.isZooming = false;
-    pan.targetOffset = pan.startOffset = pan.offset;
-    pan.velocity = 0;
 
-    if (isOverYAxis(chart, xCoordinate, yCoordinate) && Number.isFinite(scale.min) && Number.isFinite(scale.max)) {
-        if (scale.auto || options['autoScale']) {
-            chart.viewport.setAutoScale(false);
-        }
-        chart.viewport.markManual('y-axis-drag');
-        const startMin = Number.isFinite(scale.min) ? scale.min : scale.min;
-        const startMax = Number.isFinite(scale.max) ? scale.max : scale.max;
-        if (startMin === null || startMax === null) {
-            return;
-        }
+    if (isOverXAxis(chart, xCoordinate, yCoordinate)) {
+        if (!options.enableXAxisZoom || !Number.isFinite(time.msPerPx)) return;
+        chart.interaction.xAxisDrag = { active: true, startX: xCoordinate, startMsPerPx: time.msPerPx, anchorX: xCoordinate };
+        setInteractionMode(chart, 'xAxis');
+        return;
+    }
+
+    const startMin = scale.min;
+    const startMax = scale.max;
+    if (isOverYAxis(chart, xCoordinate, yCoordinate) && startMin !== null && startMax !== null && Number.isFinite(startMin) && Number.isFinite(startMax)) {
         chart.interaction.yAxisDrag = {
             active: true,
             startY: yCoordinate,
@@ -49,19 +46,24 @@ const handleMouseDown = (chart: ChartInteractionScene, event: PointerEventInput)
         return;
     }
 
-    chart.viewport.markManual('pan-drag');
     pan.isDragging = true;
     pan.lastX = xCoordinate;
     pan.lastY = yCoordinate;
+    pan.travelPx = 0;
     setInteractionMode(chart, 'pan');
 };
 
 const handleMouseMove = (chart: ChartInteractionScene, event: PointerEventInput): void => {
     const { x: xCoordinate, y: yCoordinate } = getMousePosition(chart, event);
-    const { yAxisDrag } = chart.interaction;
+    const { xAxisDrag, yAxisDrag } = chart.interaction;
     const { pan, scale } = chart.viewportState;
 
-    if (yAxisDrag.active) {
+    if (xAxisDrag.active) {
+        const { chartWidth } = chart.viewport.getChartDimensions();
+        chart.viewport.zoomTo(xAxisDrag.anchorX, xAxisDrag.startMsPerPx / Math.exp(((xCoordinate - xAxisDrag.startX) * X_AXIS_DRAG_ZOOM_RESPONSE) / Math.max(1, chartWidth)));
+    } else if (yAxisDrag.active) {
+        if (Math.abs(yCoordinate - yAxisDrag.startY) < 3) return;
+        if (scale.auto) chart.viewport.setAutoScale(false);
         const { chartHeight } = chart.viewport.getChartDimensions();
         const deltaY = (yAxisDrag.startY - yCoordinate) / Math.max(1, chartHeight);
         const scaleFactor = Math.exp(deltaY * 1.5);
@@ -74,27 +76,12 @@ const handleMouseMove = (chart: ChartInteractionScene, event: PointerEventInput)
     } else if (pan.isDragging) {
         const deltaX = xCoordinate - pan.lastX;
         const deltaY = yCoordinate - pan.lastY;
-        const ppb = chart.viewport.getPixelsPerBar();
-        let hasHorizontalMovement = false;
-
-        if (Number.isFinite(deltaX) && ppb > 0) {
-            const offsetDelta = deltaX / ppb;
-            if (offsetDelta !== 0) {
-                pan.offset -= offsetDelta;
-                pan.velocity = -offsetDelta;
-                chart.viewport.clampPanOffset();
-                hasHorizontalMovement = true;
-            }
-        } else {
-            pan.velocity = 0;
-        }
-
-        const hasVerticalMovement = Math.abs(deltaY) > 0.25 ? chart.viewport.panVertical(deltaY) : false;
+        chart.interaction.pointer.hoverX = xCoordinate;
+        chart.viewport.panByPixels(deltaX);
+        if (Math.abs(deltaY) > 0.25) chart.viewport.panVertical(deltaY);
+        pan.travelPx += Math.abs(deltaX) + Math.abs(deltaY);
         pan.lastX = xCoordinate;
         pan.lastY = yCoordinate;
-        if (hasHorizontalMovement || (!hasVerticalMovement && (Math.abs(deltaX) > 0 || Math.abs(deltaY) > 0))) {
-            chart.effects.requestRedraw();
-        }
     } else if (isOverChartArea(chart, xCoordinate, yCoordinate)) {
         updateCrosshair(chart, xCoordinate);
     } else {
@@ -109,8 +96,18 @@ const handleMouseUp = (chart: ChartInteractionScene, event: PointerEventInput): 
         }
         event.preventDefault();
     }
+    const { pan } = chart.viewportState;
+    if (pan.isDragging && pan.travelPx < CLICK_SLOP_PX) retryFailedHistoryAt(chart, getMousePosition(chart, event).x);
     resetDragState(chart);
     chart.effects.requestRedraw();
+};
+
+const retryFailedHistoryAt = (chart: ChartInteractionScene, xCoordinate: number): void => {
+    const history = chart.configuration.options.history;
+    const oldestTs = chart.data.timestamps[0];
+    const geometry = chart.geometry.renderGeometry();
+    if (history?.status !== 'failed' || chart.data.dataLength === 0 || oldestTs === undefined || !geometry) return;
+    if (xCoordinate >= geometry.plotLeft && xCoordinate < timeToX(geometry, oldestTs)) history.retry();
 };
 
 const handleMouseLeave = (chart: ChartInteractionScene): void => {
@@ -123,7 +120,7 @@ const handleDoubleClickFromCoordinates = (chart: ChartInteractionScene, clientX:
     if (isOverYAxis(chart, xCoordinate, yCoordinate)) {
         chart.viewport.setAutoScale(true);
     } else if (isOverXAxis(chart, xCoordinate, yCoordinate)) {
-        resetViewport(chart, false);
+        chart.viewport.resetZoom();
     }
     if (pointerType === 'touch') {
         const canvas = chart.surface.canvasLayers.interaction;

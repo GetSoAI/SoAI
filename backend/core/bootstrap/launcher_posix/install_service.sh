@@ -159,45 +159,45 @@ soai_install__install_launchd_service() {
     if ! soai_install__launchd_is_supported; then
         soai_managed_runtime__die "--fast requires launchd on macOS so SoAI can auto-start and be verified." || return 1
     fi
-    local elevate=()
+    local command_prefix="/usr/bin/env"
     if [ "${EUID:-$(id -u)}" -ne 0 ]; then
         if ! command -v sudo >/dev/null 2>&1; then
             soai_managed_runtime__die "launchd requires administrator privileges and sudo is unavailable." || return 1
         fi
-        elevate=(sudo)
+        command_prefix="sudo"
     fi
     local plist_path="/Library/LaunchDaemons/com.getsoai.soai.plist"
     local temporary_path="${plist_path}.$$"
     soai_launcher__info "Installing launchd service: ${plist_path}"
-    "${elevate[@]}" mkdir -p "${target}/data/logs" || return 1
-    soai_install__write_launchd_plist "$target" | "${elevate[@]}" tee "$temporary_path" >/dev/null || {
-        "${elevate[@]}" rm -f "$temporary_path"
+    "$command_prefix" mkdir -p "${target}/data/logs" || return 1
+    soai_install__write_launchd_plist "$target" | "$command_prefix" tee "$temporary_path" >/dev/null || {
+        "$command_prefix" rm -f "$temporary_path"
         return 1
     }
-    "${elevate[@]}" plutil -lint "$temporary_path" >/dev/null || {
-        "${elevate[@]}" rm -f "$temporary_path"
+    "$command_prefix" plutil -lint "$temporary_path" >/dev/null || {
+        "$command_prefix" rm -f "$temporary_path"
         return 1
     }
-    "${elevate[@]}" chown root:wheel "$temporary_path" || {
-        "${elevate[@]}" rm -f "$temporary_path"
+    "$command_prefix" chown root:wheel "$temporary_path" || {
+        "$command_prefix" rm -f "$temporary_path"
         return 1
     }
-    "${elevate[@]}" chmod 0644 "$temporary_path" || {
-        "${elevate[@]}" rm -f "$temporary_path"
+    "$command_prefix" chmod 0644 "$temporary_path" || {
+        "$command_prefix" rm -f "$temporary_path"
         return 1
     }
-    "${elevate[@]}" mv -f "$temporary_path" "$plist_path" || {
-        "${elevate[@]}" rm -f "$temporary_path"
+    "$command_prefix" mv -f "$temporary_path" "$plist_path" || {
+        "$command_prefix" rm -f "$temporary_path"
         return 1
     }
     if [ "${SOAI_INSTALL_DEFER_SERVICE_START:-0}" = "1" ]; then
         return 0
     fi
-    if "${elevate[@]}" launchctl print system/com.getsoai.soai >/dev/null 2>&1; then
-        "${elevate[@]}" launchctl bootout system/com.getsoai.soai || return 1
+    if "$command_prefix" launchctl print system/com.getsoai.soai >/dev/null 2>&1; then
+        "$command_prefix" launchctl bootout system/com.getsoai.soai || return 1
     fi
-    "${elevate[@]}" launchctl bootstrap system "$plist_path" || return 1
-    "${elevate[@]}" launchctl kickstart -k system/com.getsoai.soai || return 1
+    "$command_prefix" launchctl bootstrap system "$plist_path" || return 1
+    "$command_prefix" launchctl kickstart -k system/com.getsoai.soai || return 1
 }
 
 soai_install__install_system_service() {

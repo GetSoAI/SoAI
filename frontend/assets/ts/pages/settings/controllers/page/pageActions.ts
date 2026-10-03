@@ -35,12 +35,6 @@ const scheduleWallpaperRefresh = (page: SettingsRuntimeContext, state: SettingsP
     }, 100);
 };
 
-const refreshBackgroundAfterPreferencesSave = (page: SettingsRuntimeContext): void => {
-    runDetachedWithBoundary({ runWithBoundary: (name, task) => page.owners.pageLifecycle.run(name, task) }, 'settings:refreshBackgroundAfterSave', async () => {
-        await getBackgroundTasks().refresh();
-    });
-};
-
 const hasUnsavedChanges = (state: SettingsPageState): boolean => {
     return Boolean(state.configManager?.hasChanges || state.uiPrefsManager?.hasChanges);
 };
@@ -208,11 +202,8 @@ const saveSettings = async (page: SettingsRuntimeContext, state: SettingsPageSta
             state.coreConfig = state.configManager.currentData;
         }
 
-        const solidBackgroundChanged = await commitUiPreferences(page, state);
+        await commitUiPreferences(page, state);
         clearAllModifiedStates(state);
-        if (solidBackgroundChanged) {
-            refreshBackgroundAfterPreferencesSave(page);
-        }
         if (hadConfigChanges) {
             await reloadSecurityAuditAfterConfigSave(page, state);
         }

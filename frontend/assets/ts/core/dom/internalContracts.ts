@@ -23,6 +23,7 @@ interface DomUpdateServiceDependencies {
     getCancelAnimationFrame: () => (handle: number) => void;
     captureScrollState: (element: HTMLElement) => Array<{ element: HTMLElement; top: number; left: number }>;
     restoreScrollState: (state: Array<{ element: HTMLElement; top: number; left: number }>) => void;
+    cancelScrollRestore: (element: Element, axis: 'top' | 'left') => void;
     applyDynamicStyle: (element: HTMLElement | SVGElement, property: string, value: string | null) => void;
     resolve: (target: DOMTarget, context?: DOMContext) => Element | null;
 }

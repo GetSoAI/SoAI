@@ -13,9 +13,9 @@ import psutil
 
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.runtime.process_descendants import list_process_descendants
 from core.runtime.process_identity_signals import (
     process_identity_matches,
-    read_process_create_time_ms,
     send_signal_to_process_matching_identity_blocking,
 )
 
@@ -63,11 +63,16 @@ def force_kill_process_tree_matching_identity_blocking(
             process_not_found=False,
             identity_mismatched=False,
         )
+    logger.debug(
+        "Attempting process cleanup for '%s' (PID: %s).",
+        name_for_logging,
+        pid,
+    )
     try:
         parent = psutil.Process(pid)
         if not process_identity_matches(parent, expected_create_time_ms):
             return _identity_mismatch_result(pid, name_for_logging, logger)
-        children = _resolve_child_identities(parent)
+        children = list_process_descendants(parent)
         parent_identity_mismatched = not process_identity_matches(
             parent,
             expected_create_time_ms,
@@ -91,7 +96,7 @@ def force_kill_process_tree_matching_identity_blocking(
         if parent_identity_mismatched and not killed_processes:
             return _identity_mismatch_result(pid, name_for_logging, logger)
         if parent_not_found and not killed_processes:
-            logger.warning(
+            logger.debug(
                 "Process with PID %s for '%s' not found via psutil. It may have already terminated.",
                 pid,
                 name_for_logging,
@@ -114,7 +119,7 @@ def force_kill_process_tree_matching_identity_blocking(
                 identity_mismatched=False,
             )
         logger.info(
-            "Successfully killed identity-verified process tree for '%s' (PID: %s).",
+            "Identity-verified process cleanup completed for '%s' (PID: %s).",
             name_for_logging,
             pid,
         )
@@ -136,7 +141,7 @@ def force_kill_process_tree_matching_identity_blocking(
             identity_mismatched=False,
         )
     except psutil.NoSuchProcess:
-        logger.warning(
+        logger.debug(
             "Process with PID %s for '%s' not found via psutil. It may have already terminated.",
             pid,
             name_for_logging,
@@ -158,16 +163,6 @@ def force_kill_process_tree_matching_identity_blocking(
             process_not_found=False,
             identity_mismatched=False,
         )
-
-
-def _resolve_child_identities(parent: psutil.Process) -> list[tuple[psutil.Process, int]]:
-    children: list[tuple[psutil.Process, int]] = []
-    for child in parent.children(recursive=True):
-        try:
-            children.append((child, read_process_create_time_ms(child)))
-        except psutil.NoSuchProcess:
-            continue
-    return children
 
 
 def _identity_mismatch_result(
@@ -200,11 +195,6 @@ async def force_kill_process_tree_matching_identity(
             process_not_found=False,
             identity_mismatched=False,
         )
-    logger.critical(
-        "Force-killing identity-verified process '%s' with PID: %s.",
-        name_for_logging,
-        pid,
-    )
     return await asyncio.to_thread(
         force_kill_process_tree_matching_identity_blocking,
         pid,

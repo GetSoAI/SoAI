@@ -235,5 +235,5 @@ const assertElementDataAction = (element: Element, action: string, label: string
     }
 };
 
-export { assertElementDataAction, assertRootDataActionsAreKnown, handleDelegatedActionEvent, resolveDelegatedActionElement, resolveDelegatedActionElementResult, shouldPreventDefaultExceptFileActionElement, shouldPreventDefaultForDelegatedActionElement };
+export { assertElementDataAction, assertRootDataActionsAreKnown, handleDelegatedActionEvent, resolveDataActionElement, resolveDelegatedActionElement, resolveDelegatedActionElementResult, shouldPreventDefaultExceptFileActionElement, shouldPreventDefaultForDelegatedActionElement };
 export type { DelegatedActionMouseButtonMode, DelegatedActionPreventDefaultMode, DelegatedActionResolveResult, ElementWithActionDataset };

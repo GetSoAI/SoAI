@@ -3,6 +3,7 @@
 
 import { CollectionDataRuntime } from '@core/collectionpage/CollectionDataRuntime.ts';
 import { CollectionPageState } from '@core/collectionpage/CollectionPageState.ts';
+import { toTrimmedString } from '@core/normalize.ts';
 import { consumeRepeatableDropdownSelection } from '@core/ui/dropdown/selectControl.ts';
 import { armCollectionCardRevealTargetsForCommit } from '@core/collectionpage/cardReveal.ts';
 import { composeCollectionRuntime, type CollectionCompositionBehavior } from '@core/collectionpage/composeCollectionRuntime.ts';
@@ -48,6 +49,7 @@ class PluginsPageDomain {
     readonly #storage: StorageService;
     readonly #behavior: CollectionCompositionBehavior;
     readonly #groupingController: ReturnType<typeof createPluginsGroupingController>;
+    #pendingOptimisticPluginNames = new Set<string>();
     #controlsHydrated = false;
 
     constructor({ pageDependencies, infrastructure, storage, pageHost, pageLifecycle, collectionOwners }: PluginsPageDomainOptions) {
@@ -114,6 +116,7 @@ class PluginsPageDomain {
                 this.#hydrateControls();
                 const builder = this.layout.getLayoutBuilder();
                 return buildPluginsLayout({
+                    viewMode: this.session.viewMode,
                     getIconSync: (iconName, options) => this.#infrastructure.services.getIconSync(iconName, options),
                     buildLayout: (config) => builder.build(config),
                     sortBy: this.state.getSortBy() ?? 'none',
@@ -123,6 +126,7 @@ class PluginsPageDomain {
             },
             onSnapshot: (snapshot: ResourceSnapshot) => {
                 this.runtime.presentationController.consumeSnapshot(snapshot);
+                this.#synchronizePendingTogglePresentation(snapshot);
                 return null;
             },
             preparePresentation: (context) => {
@@ -161,6 +165,27 @@ class PluginsPageDomain {
                 persistPluginsFilter(this.#storage, property, value);
             }
         };
+    }
+
+    #synchronizePendingTogglePresentation(snapshot: ResourceSnapshot): void {
+        const pluginNames = new Set<string>();
+        const pendingNames = new Set<string>();
+        for (const item of snapshot.items) {
+            const pluginName = toTrimmedString(item['name']);
+            if (!pluginName) continue;
+            pluginNames.add(pluginName);
+            if (this.session.catalogStore.hasPendingOptimisticOperation(pluginName)) pendingNames.add(pluginName);
+        }
+        const changedNames: string[] = [];
+        const candidateNames = new Set([...this.#pendingOptimisticPluginNames, ...pendingNames]);
+        for (const pluginName of candidateNames) {
+            if (!pluginNames.has(pluginName)) continue;
+            const wasPending = this.#pendingOptimisticPluginNames.has(pluginName);
+            const isPending = pendingNames.has(pluginName);
+            if (wasPending !== isPending) changedNames.push(pluginName);
+        }
+        this.#pendingOptimisticPluginNames = pendingNames;
+        if (changedNames.length > 0) this.collections.view?.markDirty(changedNames);
     }
 
     #hydrateControls(): void {
@@ -243,6 +268,7 @@ class PluginsPageDomain {
     }
 
     dispose(): void {
+        this.#pendingOptimisticPluginNames.clear();
         this.lifecycle.dispose();
         this.data.destroy();
     }

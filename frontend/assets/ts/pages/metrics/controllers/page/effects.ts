@@ -3,11 +3,10 @@
 
 import { readRoundedPositiveIntegerOrNullValue } from '@core/types/numberCoercionReaders.ts';
 import { isString } from '@core/typeGuards.ts';
-import { applyHistoryChartDefaults, FILTER_TYPES, createHistoryChartPresentation, invalidateChartControlSync, isCurrentChartControlSync, nextChartControlSyncSequence, syncHistoryCandlestickFilter, syncHistoryTimeRangeFilter, type HistoryChartPresentation } from '@features/charts/public.ts';
+import { applyHistoryChartDefaults, FILTER_TYPES, createHistoryChartPresentation, invalidateChartControlSync, isCurrentChartControlSync, isOhlcChartType, nextChartControlSyncSequence, syncHistoryCandlestickFilter, syncHistoryTimeRangeFilter, type HistoryChartPresentation } from '@features/charts/public.ts';
 import { METRIC_TYPE_OPTIONS } from '@pages/metrics/contracts/metricsPageConstants.ts';
 import type { MetricsPageActionsHost, MetricsPageEffectsHost } from '@pages/metrics/controllers/page/contracts.ts';
 import { resetMetricsData, updateMetricsMainChart } from '@pages/metrics/controllers/page/metricsUpdateProcessing.ts';
-import { fetchMetricsValueHistory } from '@pages/metrics/controllers/page/metricsValueHistoryEffects.ts';
 import { persistMetricsPageControls } from '@pages/metrics/controllers/page/metricsPageControlsController.ts';
 import { getMetricsMetricScaleBounds, isMetricsCandlestickActive, recalculateMetricsHistoryPointBudget, updateMetricsChartConfiguration } from '@pages/metrics/controllers/page/state.ts';
 import { requireMetricsUi } from '@pages/metrics/dom.ts';
@@ -60,11 +59,19 @@ const setupMetricsPage = async (host: MetricsPageEffectsHost): Promise<void> => 
                 if (!next || next === host.state.currentChartType) {
                     return;
                 }
+                const kindChanged = isOhlcChartType(next) !== isOhlcChartType(host.state.currentChartType);
+                if (kindChanged) host.history.dispose();
                 host.state.currentChartType = next;
                 persistMetricsPageControls(host.state);
+                if (!kindChanged) {
+                    updateMetricsMainChart(host);
+                    return;
+                }
+                resetMetricsData(host);
+                recalculateMetricsHistoryPointBudget(host);
                 host.owners.pageLifecycle.runDetached('metrics:chartTypeChanged', async () => {
                     await syncMetricsChartControls(host, { candles: true, range: false });
-                    await reloadMetricsChartData(host, true);
+                    await reloadMetricsChartData(host);
                 });
             },
             onMetricTypeChange: (value: string | number) => {
@@ -72,12 +79,14 @@ const setupMetricsPage = async (host: MetricsPageEffectsHost): Promise<void> => 
                 if (!next || next === host.state.currentMetricType) {
                     return;
                 }
+                getMetricsChartPresentation(host).begin();
+                host.history.dispose();
                 host.state.currentMetricType = next;
                 persistMetricsPageControls(host.state);
                 updateMetricsChartConfiguration(host);
                 resetMetricsData(host, true);
                 host.owners.pageLifecycle.runDetached('metrics:metricTypeChanged', async () => {
-                    await reloadMetricsChartData(host, true);
+                    await reloadMetricsChartData(host);
                 });
             },
             onTimeRangeChange: (value: string | number) => {
@@ -85,12 +94,14 @@ const setupMetricsPage = async (host: MetricsPageEffectsHost): Promise<void> => 
                 if (next === null || next === host.state.timeRange) {
                     return;
                 }
+                host.history.dispose();
                 host.state.timeRange = next;
+                resetMetricsData(host);
                 persistMetricsPageControls(host.state);
                 recalculateMetricsHistoryPointBudget(host);
                 host.owners.pageLifecycle.runDetached('metrics:timeRangeChanged', async () => {
                     await syncMetricsChartControls(host, { candles: true, range: false });
-                    await reloadMetricsChartData(host, true);
+                    await reloadMetricsChartData(host);
                     updateDistributionChart(host);
                 });
             },
@@ -100,13 +111,15 @@ const setupMetricsPage = async (host: MetricsPageEffectsHost): Promise<void> => 
                     return;
                 }
                 host.state.candlestickIntervalMinutes = next;
-                host.state.lastResolvedCandlestickIntervalMs = null;
+                resetMetricsData(host);
                 persistMetricsPageControls(host.state);
                 if (!isMetricsCandlestickActive(host)) {
                     return;
                 }
+                host.history.dispose();
+                recalculateMetricsHistoryPointBudget(host);
                 host.owners.pageLifecycle.runDetached('metrics:candleIntervalChanged', async () => {
-                    await reloadMetricsChartData(host, true);
+                    await reloadMetricsChartData(host);
                 });
             }
         }
@@ -126,6 +139,7 @@ const getMetricsChartPresentation = (host: MetricsPageEffectsHost): HistoryChart
 
 const teardownMetricsChartUi = async (host: MetricsPageEffectsHost): Promise<void> => {
     invalidateChartControlSync(host);
+    host.history.dispose();
     if (host.state.chartFilters) {
         host.state.chartFilters.dispose();
         host.state.chartFilters = null;
@@ -168,6 +182,8 @@ const syncMetricsChartControls = async (host: MetricsPageEffectsHost, { range = 
         await syncHistoryTimeRangeFilter({
             chartFilters,
             historyControlsManager: host.state.historyControlsManager,
+            rangeAvailability: host.history.rangeAvailability,
+            seriesKey: host.history.seriesKey(),
             retentionMinutes: host.state.maxRetentionMinutes,
             baseOptions: host.state.baseTimeRangeOptions,
             selectedMinutes: host.state.timeRange,
@@ -214,20 +230,14 @@ const initializeMetricsMainChart = async (host: MetricsPageEffectsHost, signal: 
     }
     const container = host.operations.getCachedUI('mainChartContainer') ?? host.owners.pageDom.requireHTMLElement('#mainChartContainer');
     getMetricsChartPresentation(host).reset();
-    const maxDataPoints = Math.min(host.state.maxHistoryPoints, host.state.historyApiPointCap);
+    const maxDataPoints = host.state.maxHistoryPoints;
     const chart = await host.state.chartRuntime.initializeChart({
         container,
         chartType: host.state.currentChartType,
-        options: { maxDataPoints },
-        onRequestHistoricalData: async (timestamp: number) => {
-            if (!host.state.metricsHistoryEnabled) {
-                return;
-            }
-            if (isMetricsCandlestickActive(host)) {
-                await host.operations.fetchCandlestickHistory({ beforeTimestampMs: timestamp });
-                return;
-            }
-            await fetchMetricsValueHistory(host, { beforeTimestamp: timestamp });
+        options: {
+            maxDataPoints,
+            history: host.history.pager,
+            onTimeRangeChange: (visibleStartTs: number, visibleEndTs: number) => host.history.followRange(visibleStartTs, visibleEndTs)
         },
         signal
     });
@@ -251,35 +261,9 @@ const initializeMetricsFrontendTelemetryCard = async (host: MetricsPageActionsHo
     applyFrontendTelemetrySort(host);
 };
 
-const reloadMetricsChartData = async (host: MetricsPageEffectsHost, resetView = false): Promise<void> => {
-    const presentation = getMetricsChartPresentation(host);
-    const presentationSequence = presentation.begin();
-    try {
-        resetMetricsData(host, true);
-        host.state.pendingChartSync = false;
-        if (!host.state.mainChart) {
-            presentation.complete(presentationSequence);
-            return;
-        }
-        host.state.mainChart.settings.update({ maxDataPoints: Math.min(host.state.maxHistoryPoints, host.state.historyApiPointCap) });
-        if (!host.state.metricsHistoryEnabled) {
-            updateMetricsMainChart(host, { resetView: true });
-            presentation.complete(presentationSequence);
-            return;
-        }
-        if (isMetricsCandlestickActive(host)) {
-            await host.operations.fetchCandlestickHistory({ resetView });
-            updateMetricsMainChart(host, { resetView });
-            presentation.complete(presentationSequence);
-            return;
-        }
-        await fetchMetricsValueHistory(host, { resetView });
-        presentation.complete(presentationSequence);
-    } catch (error) {
-        updateMetricsMainChart(host, { resetView: true });
-        presentation.complete(presentationSequence);
-        throw error;
-    }
+const reloadMetricsChartData = async (host: MetricsPageEffectsHost): Promise<void> => {
+    host.state.mainChart?.settings.update({ maxDataPoints: host.state.maxHistoryPoints });
+    await host.history.load();
 };
 
-export { initializeMetricsFrontendTelemetryCard, initializeMetricsMainChart, reloadMetricsChartData, setupMetricsPage, syncMetricsChartControls, teardownMetricsChartUi };
+export { getMetricsChartPresentation, initializeMetricsFrontendTelemetryCard, initializeMetricsMainChart, reloadMetricsChartData, setupMetricsPage, syncMetricsChartControls, teardownMetricsChartUi };

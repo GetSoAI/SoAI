@@ -9,6 +9,8 @@ from core.config.protocols import ConfigProtocol
 from core.database.protocols import DatabaseCoreProtocol
 
 if TYPE_CHECKING:
+    from core.history.request.availability import HistoryAvailabilityQuery
+    from core.history.reset_notification import HistoryResetOutcome
     from core.metrics.usage import ModalityUsageRecord
     from core.types.json import JSONDict, JSONValue
 
@@ -87,7 +89,7 @@ class MetricsManagerProtocol(MetricsRecorderProtocol, TokenStreamMetricsProtocol
 
     async def shutdown(self) -> None: ...
 
-    async def reset_metrics(self) -> None: ...
+    async def reset_metrics(self) -> HistoryResetOutcome: ...
 
     async def get_capabilities(self) -> JSONDict: ...
 
@@ -103,6 +105,7 @@ class MetricsManagerProtocol(MetricsRecorderProtocol, TokenStreamMetricsProtocol
         points: int = 300,
         interval_ms: int | None = None,
         aggregation: str = "avg",
+        include_availability: bool = False,
     ) -> JSONDict: ...
 
 
@@ -113,7 +116,7 @@ class DatabaseMetricsProtocol(Protocol):
 
     async def get_all_live_metrics(self) -> list[JSONDict]: ...
 
-    async def clear_all_live_metrics(self) -> None: ...
+    async def reset_metrics_storage(self, reset_genesis_counters: bool) -> int: ...
 
     async def get_context_compaction_metric_totals(self) -> JSONDict: ...
 
@@ -134,10 +137,6 @@ class DatabaseMetricsProtocol(Protocol):
 
     async def increment_genesis_counters(self, requests_delta: int, tokens_delta: int) -> None: ...
 
-    async def reset_genesis_counters(self) -> None: ...
-
-    async def reset_genesis_uptime(self) -> None: ...
-
     async def initialize_genesis(self, now_ts_ms: int) -> None: ...
 
     async def get_historical_metrics_data_aggregated(
@@ -148,4 +147,6 @@ class DatabaseMetricsProtocol(Protocol):
         interval_ms: int,
         aggregation: str,
         max_points: int,
+        metric_key_known: bool = False,
+        availability: HistoryAvailabilityQuery | None = None,
     ) -> JSONDict: ...

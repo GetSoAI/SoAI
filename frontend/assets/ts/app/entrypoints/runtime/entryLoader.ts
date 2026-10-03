@@ -69,5 +69,5 @@ export const bootstrapEntry = async ({ entry }: BootstrapOptions): Promise<void>
     }
     errorHandler.debug('EntryLoader', '>>> entryLoader: after await start');
     errorHandler.debug('EntryLoader', '>>> entryLoader: clearing boot state');
-    setBootState(null);
+    entryModule.releaseBootStateAfterPreloaderReveal(() => setBootState(null));
 };

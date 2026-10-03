@@ -3,7 +3,7 @@
 
 import { decodeMetricsCapabilitiesSnapshot, type MetricsCatalogEntry } from '@core/realtime/streammanager/resources/systemMetricsMetadataContracts.ts';
 import { requestWebSocketSnapshotRecord } from '@core/websocketclient/snapshotPayload.ts';
-import { HISTORY_CHART_MIN_POINTS } from '@features/charts/public.ts';
+import { resolveHistoryChartStorageCapacity } from '@features/charts/public.ts';
 import { METRICS_HISTORY_API_POINT_LIMIT } from '@features/metrics/public.ts';
 import type { MetricsPageServiceHost } from '@pages/metrics/controllers/page/contracts.ts';
 import { recalculateMetricsHistoryPointBudget } from '@pages/metrics/controllers/page/state.ts';
@@ -52,12 +52,12 @@ const applyMetricsCapabilities = (host: MetricsPageServiceHost, data: Capabiliti
         if (maxPoints > 0) {
             const sanitized = host.operations.normalizeMetricsInt(maxPoints, 1);
             host.state.historyApiPointCap = Math.min(METRICS_HISTORY_API_POINT_LIMIT, sanitized);
-            host.state.maxHistoryPoints = Math.min(host.state.chartHardLimit, Math.max(HISTORY_CHART_MIN_POINTS, sanitized));
         }
+        host.state.maxHistoryPoints = resolveHistoryChartStorageCapacity(host.state.historyApiPointCap, host.state.maxRetentionMinutes, host.state.monitoringIntervalMs, host.state.chartHardLimit);
     }
 
     recalculateMetricsHistoryPointBudget(host);
-    host.state.mainChart?.settings.update({ maxDataPoints: Math.min(host.state.maxHistoryPoints, host.state.historyApiPointCap) });
+    host.state.mainChart?.settings.update({ maxDataPoints: host.state.maxHistoryPoints });
 };
 
 const loadMetricsCapabilities = async (host: MetricsPageServiceHost, signal: AbortSignal): Promise<void> => {

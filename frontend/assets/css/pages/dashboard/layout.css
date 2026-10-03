@@ -23,8 +23,8 @@
         flex-direction: row;
         align-items: center;
         justify-content: flex-start;
-        padding: var(--space-25) var(--space-3);
-        min-height: 3.75rem;
+        padding: var(--space-2) var(--space-3);
+        min-height: 3.25rem;
         gap: var(--space-2);
         border-radius: var(--border-radius);
         border: var(--border-width-1) solid var(--status-color);
@@ -56,10 +56,10 @@
         font-size: var(--font-size-micro);
         font-weight: 700;
         color: var(--text-secondary);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-03px);
         opacity: 0.9;
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) .dashboard-main-state .status-label:empty {
@@ -191,15 +191,15 @@
         min-height: 0;
         overflow-y: auto;
         margin-bottom: calc(-1 * var(--space-3));
-        margin-right: calc(-1 * var(--space-3));
+        margin-inline-end: calc(-1 * var(--space-3));
     }
 
     :where([data-section='dashboard'], [data-page-scope='dashboard']) :is(.plugins-list, .models-list) {
         gap: var(--space-2);
         min-height: var(--dashboard-collection-list-height);
-        padding-right: var(--space-3);
+        padding-inline-end: var(--space-3);
         padding-bottom: var(--space-3);
-        margin-right: calc(-1 * var(--space-3));
+        margin-inline-end: calc(-1 * var(--space-3));
         scroll-padding-bottom: var(--space-3);
         scrollbar-gutter: auto;
     }

@@ -24,6 +24,7 @@ interface RestartOperationState {
 
 interface RestartOverlayShowOptions {
     observeTransition?: boolean;
+    targetVersion?: string;
 }
 
 interface RestartSessionRepository {

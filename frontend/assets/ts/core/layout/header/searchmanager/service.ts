@@ -177,8 +177,8 @@ export class HeaderSearchManager {
         renderSearchInitializing(this);
     }
 
-    displaySearchError(): void {
-        renderSearchError(this);
+    displaySearchError(error?: Error): void {
+        renderSearchError(this, error);
     }
 
     async performSearch(query: string, token: number = this.searchToken): Promise<void> {

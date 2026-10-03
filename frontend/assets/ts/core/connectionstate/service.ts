@@ -82,6 +82,10 @@ class ConnectionState {
         return this.#state.baseUrl;
     }
 
+    get revision(): number {
+        return this.#state.revision;
+    }
+
     hasBaseUrl(): boolean {
         return isString(this.#state.baseUrl) && this.#state.baseUrl.length > 0;
     }

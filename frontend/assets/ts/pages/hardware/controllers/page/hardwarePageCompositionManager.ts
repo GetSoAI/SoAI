@@ -14,9 +14,9 @@ import type { PageLayout } from '@core/routing/pages/basepagelayout/PageLayout.t
 import type { PageStreaming } from '@core/routing/pages/basepagestreams/PageStreaming.ts';
 import type { ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
-import { HistoryChartControlsManager, HistoryChartRuntime } from '@features/charts/public.ts';
+import { HistoryChartControlsManager, HistoryChartRuntime, HistoryRangeAvailability } from '@features/charts/public.ts';
 import type { ExportPreviewModal } from '@features/exportpreview/public.ts';
-import { HistoryStateManager, type SoAIBenchHistoryModal, type SoAIBenchRunModal, type SystemInfoModal } from '@features/hardware/public.ts';
+import { HistoryStateManager, type SoAIBenchHistoryModal, type SoAIBenchHistoryPagePanel, type SoAIBenchRunModal, type SystemInfoModal } from '@features/hardware/public.ts';
 import type { HardwarePageDependencies } from '@pages/hardware/contracts/hardwarePageSupport.ts';
 import { buildHistoryRequestParameters, type HardwareHistoryContext } from '@pages/hardware/controllers/data/effects.ts';
 import { HardwareDataController } from '@pages/hardware/controllers/dataController.ts';
@@ -69,6 +69,7 @@ interface HardwarePageRuntime {
     systemInfoModal: SystemInfoModal;
     exportPreviewModal: ExportPreviewModal;
     soaibenchHistoryModal: SoAIBenchHistoryModal;
+    soaibenchHistoryPagePanel: SoAIBenchHistoryPagePanel;
     soaibenchRunModal: SoAIBenchRunModal;
     dataController: HardwareDataController;
     renderController: HardwareRenderController;
@@ -86,21 +87,16 @@ const composeHardwarePageRuntime = (owners: HardwareCompositionOwners, dependenc
     const historyStateManager = new HistoryStateManager();
     const overflowNavController = new HardwareOverflowNavController();
     const dataController = new HardwareDataController({ state, chartOhlc: chartRuntime.getOhlc(), logger });
-    let gpuController: GpuControlManager | null = null;
     let historyModal: SoAIBenchHistoryModal | null = null;
     const ui = initializeHardwareUi({
         owners,
-        renderGpuControls: (options) => {
-            if (!gpuController) throw new Error('Hardware GPU controller is not initialized');
-            gpuController.renderGpuControls(options);
-        },
         showSoAIBenchHistory: async (request) => {
             if (!historyModal) throw new Error('Hardware benchmark history modal is not initialized');
             await historyModal.open(request);
         }
     });
     historyModal = ui.soaibenchHistoryModal;
-    gpuController = createHardwareGpuController({ owners, state, chartRuntime, historyModal: ui.soaibenchHistoryModal, runModal: ui.soaibenchRunModal }, dependencies.security);
+    const gpuController = createHardwareGpuController({ owners, state, chartRuntime, historyModal: ui.soaibenchHistoryModal, runModal: ui.soaibenchRunModal }, dependencies.security);
     const processController = composeHardwareProcessController({ owners, state });
     const memorySwapController = new MemorySwapPanelController({
         optionalHTMLElement: (selector: string, parent?: Element | null) => owners.pageDom.optionalHTMLElement(selector, parent ?? undefined),
@@ -109,21 +105,29 @@ const composeHardwarePageRuntime = (owners: HardwareCompositionOwners, dependenc
         setStyle: (element: Element, property: string, value: string) => owners.dom.setStyle(element, property, value)
     });
     const layoutController = new HardwareLayoutController(createHardwareLayoutDependencies(owners, state, logger));
+    const persistPageControls = (): void => persistHardwarePageControls(owners.storage, state, { column: processController.sortColumn, direction: processController.sortDirection });
+    const rangeAvailability = new HistoryRangeAvailability();
     const renderController = new HardwareRenderController({
         state,
         dataController,
         chartRuntime,
         historyControlsManager,
+        rangeAvailability,
         requireHTMLElement: (id: string) => owners.pageDom.requireHTMLElement(id),
         requireUI: (selector: string, context?: Element | null) => owners.pageDom.require(selector, context ?? undefined),
         optionalUI: (selector: string, context?: Element | null) => owners.pageDom.optional(selector, context ?? undefined),
-        createElement: (tag: string, attrs?: ElementOptions) => owners.pageElements.createElement(tag, attrs),
         updateText: (element: Element, text: string) => owners.pageDom.updateText(element, text),
-        flushDOMUpdates: () => owners.pageDom.flush(),
         networkCardRenderer: ui.networkCardRenderer,
         storageCardRenderer: ui.storageCardRenderer,
         processController,
-        gpuController
+        gpuController,
+        soaibenchHistoryPagePanel: ui.soaibenchHistoryPagePanel,
+        soaibenchRunModal: ui.soaibenchRunModal,
+        persistPageControls
+    });
+    ui.soaibenchRunModal.subscribeActivity(() => {
+        gpuController.syncSoAIBenchActivity();
+        renderController.syncSoAIBenchButton();
     });
     const realtimeController = new HardwareRealtimeController({
         state,
@@ -131,7 +135,6 @@ const composeHardwarePageRuntime = (owners: HardwareCompositionOwners, dependenc
         renderController,
         historyStateManager,
         historyControlsManager,
-        chartDataTransforms: chartRuntime.getDataTransforms(),
         chartOhlc: chartRuntime.getOhlc(),
         logger,
         runWithBoundary: <T>(boundaryKey: string, functionValue: () => Promise<T>) => owners.pageLifecycle.run(boundaryKey, functionValue),
@@ -140,32 +143,36 @@ const composeHardwarePageRuntime = (owners: HardwareCompositionOwners, dependenc
             throwIfAborted(options.signal);
             return owners.streaming.runtime();
         },
-        peekStreamManager: () => owners.streaming.runtime(),
         ensureDataSubscriptions: (options) => owners.streaming.ensureSubscriptions(options),
         subscribeToResourceState: (resource: string, listener: (snapshot: ResourceReconciliationSnapshot) => void) => owners.streaming.subscribeResourceState(resource, listener),
         trackDisposable: (resource, onDispose) => owners.pageResources.track(resource, onDispose),
         hasProcessPanel: () => layoutController.hasPanel('processes'),
         resources: owners.pageResources,
         gpuController,
+        soaibenchRunModal: ui.soaibenchRunModal,
         processController,
-        memorySwapController
+        memorySwapController,
+        persistPageControls
     });
+    rangeAvailability.bindRecheck(() => realtimeController.history.recheckAvailability());
     const interactionController = new HardwareInteractionController({
         processController,
         memorySwapController,
         gpuController,
         systemInfoModal: ui.systemInfoModal,
+        soaibenchRunModal: ui.soaibenchRunModal,
+        soaibenchHistoryPagePanel: ui.soaibenchHistoryPagePanel,
         dataController,
         renderController,
         realtimeController,
         exportHistoryCsv: () => openHardwareExportPreview(state, chartRuntime, historyControlsManager, dataController, ui.exportPreviewModal),
-        persistPageControls: () => persistHardwarePageControls(owners.storage, state, { column: processController.sortColumn, direction: processController.sortDirection }),
+        persistPageControls,
         navigateToLogs: () => {
             terminateHandledPromise(owners.router.navigate('logs'));
         },
         logger
     });
-    return { state, chartRuntime, historyControlsManager, historyStateManager, gpuController, processController, memorySwapController, networkCardRenderer: ui.networkCardRenderer, storageCardRenderer: ui.storageCardRenderer, systemInfoModal: ui.systemInfoModal, exportPreviewModal: ui.exportPreviewModal, soaibenchHistoryModal: ui.soaibenchHistoryModal, soaibenchRunModal: ui.soaibenchRunModal, dataController, renderController, realtimeController, interactionController, overflowNavController, layoutController };
+    return { state, chartRuntime, historyControlsManager, historyStateManager, gpuController, processController, memorySwapController, networkCardRenderer: ui.networkCardRenderer, storageCardRenderer: ui.storageCardRenderer, systemInfoModal: ui.systemInfoModal, exportPreviewModal: ui.exportPreviewModal, soaibenchHistoryModal: ui.soaibenchHistoryModal, soaibenchHistoryPagePanel: ui.soaibenchHistoryPagePanel, soaibenchRunModal: ui.soaibenchRunModal, dataController, renderController, realtimeController, interactionController, overflowNavController, layoutController };
 };
 
 const createHardwareLayoutDependencies = (owners: HardwareCompositionOwners, state: HardwarePageState, logger: ModuleLoggerFunctionValue): HardwareLayoutPageHost => ({

@@ -5,9 +5,10 @@ import type { CollectionLayout } from '@core/collectionpage/publicContracts.ts';
 import { buildModelsLayoutDom } from '@pages/models/dom.ts';
 import type { BuildLayoutFunctionValue, ModelsLayoutBuildDependencies } from '@pages/models/types.ts';
 
-const buildModelsLayout = ({ getIconSync, buildLayout, sortBy, sortOrder, onSortChange }: ModelsLayoutBuildDependencies): CollectionLayout => {
+const buildModelsLayout = ({ getIconSync, buildLayout, viewMode, sortBy, sortOrder, onSortChange }: ModelsLayoutBuildDependencies): CollectionLayout => {
     const viewHost = {
         getIconSync,
+        viewMode,
         sortBy,
         sortOrder
     };

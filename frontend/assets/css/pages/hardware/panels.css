@@ -30,7 +30,7 @@
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-primary-action-group:not(.gpu-primary-actions, .gpu-soaibench-actions) {
         flex: 0 1 auto;
         justify-content: flex-end;
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-soaibench-actions:not(.gpu-primary-actions, .gpu-primary-action-group) {
@@ -62,7 +62,7 @@
         padding: var(--space-1) var(--space-2);
         font-size: var(--font-size-062);
         font-weight: 600;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-045px);
         line-height: 1;
         isolation: isolate;
@@ -159,16 +159,6 @@
         display: none;
     }
 
-    :where([data-section='hardware'], [data-page-scope='hardware']) button.gpu-soaibench-state {
-        appearance: none;
-        cursor: pointer;
-        font-family: inherit;
-    }
-
-    :where([data-section='hardware'], [data-page-scope='hardware']) button.gpu-soaibench-state:hover {
-        --status-badge-color: var(--accent-green);
-    }
-
     @media (prefers-reduced-motion: reduce) {
         :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slot-button.is-flashing {
             animation: none;
@@ -231,7 +221,7 @@
         font-size: var(--font-size-compact);
         color: var(--text-secondary);
         letter-spacing: var(--tracking-015px);
-        text-align: right;
+        text-align: end;
     }
 
     @container ui-viewport (width <= 1200px) {

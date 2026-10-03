@@ -50,13 +50,7 @@ async def notify_status_changed(
     except AttributeError:
         return
     if old_status is not None and old_status != current_status:
-        public_terminal_fields = resolve_public_task_terminal_fields(
-            status=task.status,
-            error_code=task.error_code,
-            error_type=task.error_type,
-            status_message=task.status_message,
-            error_message=task.error_message,
-        )
+        public_terminal_fields = resolve_public_task_terminal_fields(task)
         await publish_event(
             event_bus,
             TaskStatusChangedEvent(

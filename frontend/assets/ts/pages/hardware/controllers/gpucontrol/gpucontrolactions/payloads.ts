@@ -88,13 +88,13 @@ const applySlotToControls = (context: Pick<ControlContext, 'setSliderToAuto' | '
     });
 };
 
-const handleGpuBootToggle = (context: Pick<ControlContext, 'ensureUiState' | 'renderGpuControls' | 'refreshApplyState'>, index: string | number, enabled: boolean): void => {
+const handleGpuBootToggle = (context: Pick<ControlContext, 'ensureUiState' | 'renderGpuControls' | 'refreshApplyState' | 'isCertifiedRunLocked'>, index: string | number, enabled: boolean): void => {
     if (isNullOrUndefined(index)) {
         return;
     }
     const key = str(index);
     const state = context.ensureUiState(key);
-    if (!state.previewSlot) {
+    if (!state.previewSlot || context.isCertifiedRunLocked(key)) {
         context.renderGpuControls({ only: [key] });
         return;
     }

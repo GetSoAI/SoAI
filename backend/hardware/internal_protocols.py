@@ -169,4 +169,5 @@ class SystemInfoSnapshotManagerProtocol(
     DiskSpeedManagerProtocol,
     NetworkSpeedManagerProtocol,
     Protocol,
-): ...
+):
+    def get_network_info(self) -> JSONDict: ...

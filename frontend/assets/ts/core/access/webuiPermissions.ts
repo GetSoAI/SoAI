@@ -1,6 +1,10 @@
 /* SoAI - WebUI permission snapshot loading [frontend/assets/ts/core/access/webuiPermissions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { WebuiPermissionsUnavailableError } from '@core/access/permissionFailure.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { isLifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
 import { uniqueSortedStrings } from '@core/normalize.ts';
 import { isBoolean } from '@core/typeGuards.ts';
 import { readRequiredTrimmedStringArrayValue } from '@core/types/payloadArrayReaders.ts';
@@ -14,7 +18,11 @@ interface WebuiPermissionsSnapshot {
 }
 
 const loadWebuiPermissionsSnapshot = async (options: SnapshotRequestOptions = {}): Promise<WebuiPermissionsSnapshot> => {
-    const payload = await requestWebSocketSnapshotRecord('webui.permissions', null, options);
+    const payload = await requestWebSocketSnapshotRecord('webui.permissions', null, { retryOnReconnect: true, ...options }).catch((error) => {
+        const runtimeError = ensureError(error);
+        if (isAbortError(runtimeError) || isLifecycleCancellationError(runtimeError)) throw runtimeError;
+        throw new WebuiPermissionsUnavailableError(runtimeError);
+    });
     if (!isBoolean(payload['is_admin'])) {
         throw new Error('webui.permissions.is_admin must be a boolean');
     }

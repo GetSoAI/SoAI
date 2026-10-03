@@ -2,11 +2,19 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
-import { formatInvariantNumber } from '@core/localization/public.ts';
+import { countUnisolatedTextCharacters, formatInvariantNumber, getListFormat, getResolvedLocalizationLocale } from '@core/localization/public.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
 
-const formatNumberLocalized = (value: number, options: Intl.NumberFormatOptions = {}): string => i18n.formatNumber(value, options);
 const formatNumberInvariant = (value: number, options: Intl.NumberFormatOptions = {}): string => formatInvariantNumber(value, options);
+
+const formatShortDurationUnit = (unit: 'year' | 'day' | 'hour' | 'minute' | 'second', count: number | string): string => {
+    const formattedCount = typeof count === 'number' ? formatNumberInvariant(count) : count;
+    if (unit === 'year') return i18n.t('common.time.units.year.short', { count: formattedCount });
+    if (unit === 'day') return i18n.t('common.time.units.day.short', { count: formattedCount });
+    if (unit === 'hour') return i18n.t('common.time.units.hour.short', { count: formattedCount });
+    if (unit === 'minute') return i18n.t('common.time.units.minute.short', { count: formattedCount });
+    return i18n.t('common.time.units.second.short', { count: formattedCount });
+};
 
 const normalizeDurationMs = (durationMs: number): number => {
     if (!Number.isFinite(durationMs)) {
@@ -57,26 +65,26 @@ const formatHumanDurationFromMs = (durationMs: number): string => {
     const hours = totalHours % 24;
     const days = Math.floor(totalHours / 24);
     if (days > 0) {
-        const parts = [`${days}d`];
-        if (hours > 0) parts.push(`${hours}h`);
-        if (minutes > 0) parts.push(`${minutes}m`);
+        const parts = [formatShortDurationUnit('day', String(days))];
+        if (hours > 0) parts.push(formatShortDurationUnit('hour', String(hours)));
+        if (minutes > 0) parts.push(formatShortDurationUnit('minute', String(minutes)));
         return parts.join(' ');
     }
     if (totalHours > 0) {
-        const parts = [`${totalHours}h`];
-        if (minutes > 0) parts.push(`${minutes}m`);
-        if (seconds > 0) parts.push(`${seconds}s`);
+        const parts = [formatShortDurationUnit('hour', String(totalHours))];
+        if (minutes > 0) parts.push(formatShortDurationUnit('minute', String(minutes)));
+        if (seconds > 0) parts.push(formatShortDurationUnit('second', String(seconds)));
         return parts.join(' ');
     }
-    const parts = [`${totalMinutes}m`];
-    if (seconds > 0) parts.push(`${seconds}s`);
+    const parts = [formatShortDurationUnit('minute', String(totalMinutes))];
+    if (seconds > 0) parts.push(formatShortDurationUnit('second', String(seconds)));
     return parts.join(' ');
 };
 
 const formatCompactDurationFromMs = (durationMs: number): string => {
     const safeMs = normalizeDurationMs(durationMs);
     if (safeMs < 60_000) {
-        return `${formatDurationSeconds(safeMs)}s`;
+        return formatShortDurationUnit('second', formatDurationSeconds(safeMs));
     }
     return formatHumanDurationFromMs(safeMs);
 };
@@ -89,10 +97,10 @@ const truncateDurationSeconds = (durationSeconds: number, decimals: number): num
 const formatStableElapsedDurationFromMs = (durationMs: number): string => {
     const safeMs = normalizeDurationMs(durationMs);
     if (safeMs < 10_000) {
-        return `${formatNumberInvariant(truncateDurationSeconds(safeMs / 1000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}s`;
+        return formatShortDurationUnit('second', formatNumberInvariant(truncateDurationSeconds(safeMs / 1000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     }
     if (safeMs < 60_000) {
-        return `${formatNumberInvariant(truncateDurationSeconds(safeMs / 1000, 1), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}s`;
+        return formatShortDurationUnit('second', formatNumberInvariant(truncateDurationSeconds(safeMs / 1000, 1), { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
     }
     const totalSeconds = Math.floor(safeMs / 1000);
     const seconds = totalSeconds % 60;
@@ -102,12 +110,12 @@ const formatStableElapsedDurationFromMs = (durationMs: number): string => {
     const hours = totalHours % 24;
     const days = Math.floor(totalHours / 24);
     if (days > 0) {
-        return `${days}d ${hours}h ${minutes}m`;
+        return [formatShortDurationUnit('day', String(days)), formatShortDurationUnit('hour', String(hours)), formatShortDurationUnit('minute', String(minutes))].join(' ');
     }
     if (totalHours > 0) {
-        return `${totalHours}h ${minutes}m ${seconds}s`;
+        return [formatShortDurationUnit('hour', String(totalHours)), formatShortDurationUnit('minute', String(minutes)), formatShortDurationUnit('second', String(seconds))].join(' ');
     }
-    return `${totalMinutes}m ${seconds}s`;
+    return [formatShortDurationUnit('minute', String(totalMinutes)), formatShortDurationUnit('second', String(seconds))].join(' ');
 };
 
 const resolveWidestStableElapsedSiblingMs = (durationMs: number): number => {
@@ -122,22 +130,22 @@ const resolveWidestStableElapsedSiblingMs = (durationMs: number): number => {
 
 const resolveStableElapsedDurationReserveCharacters = (durationMs: number): number => {
     const safeMs = normalizeDurationMs(durationMs);
-    return formatStableElapsedDurationFromMs(resolveWidestStableElapsedSiblingMs(safeMs)).length;
+    return countUnisolatedTextCharacters(formatStableElapsedDurationFromMs(resolveWidestStableElapsedSiblingMs(safeMs)));
 };
 
 const formatWholeDurationFromMs = (durationMs: number): string => {
     const durationSeconds = Math.floor(normalizeDurationMs(durationMs) / 1000);
     if (durationSeconds < 60) {
-        return `${String(durationSeconds)}s`;
+        return formatShortDurationUnit('second', String(durationSeconds));
     }
     const durationMinutes = Math.floor(durationSeconds / 60);
     const secondsRemainder = durationSeconds % 60;
     if (durationMinutes < 60) {
-        return `${String(durationMinutes)}m ${String(secondsRemainder)}s`;
+        return [formatShortDurationUnit('minute', String(durationMinutes)), formatShortDurationUnit('second', String(secondsRemainder))].join(' ');
     }
     const durationHours = Math.floor(durationMinutes / 60);
     const minutesRemainder = durationMinutes % 60;
-    return `${String(durationHours)}h ${String(minutesRemainder)}m ${String(secondsRemainder)}s`;
+    return [formatShortDurationUnit('hour', String(durationHours)), formatShortDurationUnit('minute', String(minutesRemainder)), formatShortDurationUnit('second', String(secondsRemainder))].join(' ');
 };
 
 const formatDuration = (seconds: number, style: 'short' | 'uptime' = 'short'): string => {
@@ -146,28 +154,22 @@ const formatDuration = (seconds: number, style: 'short' | 'uptime' = 'short'): s
     const hours = Math.floor((total % 86400) / 3600);
     const minutes = Math.floor((total % 3600) / 60);
     const remainingSeconds = Math.floor(total % 60);
-    const formatShortUnit = (unit: 'day' | 'hour' | 'minute' | 'second', count: number): string => {
-        const formattedCount = formatNumberLocalized(count);
-        if (unit === 'day') return i18n.t('common.time.units.day.short', { count: formattedCount });
-        if (unit === 'hour') return i18n.t('common.time.units.hour.short', { count: formattedCount });
-        if (unit === 'minute') return i18n.t('common.time.units.minute.short', { count: formattedCount });
-        return i18n.t('common.time.units.second.short', { count: formattedCount });
-    };
     const formatLongUnit = (unit: 'day' | 'hour' | 'minute', count: number): string => {
-        const formattedCount = formatNumberLocalized(count);
+        const formattedCount = formatNumberInvariant(count);
         if (unit === 'day') return i18n.plural('common.time.units.day.long', count, { count: formattedCount });
         if (unit === 'hour') return i18n.plural('common.time.units.hour.long', count, { count: formattedCount });
         return i18n.plural('common.time.units.minute.long', count, { count: formattedCount });
     };
     if (style === 'uptime') {
-        if (days > 0) return `${formatShortUnit('day', days)}, ${formatShortUnit('hour', hours)} ${formatShortUnit('minute', minutes)}`;
-        return hours > 0 ? `${formatShortUnit('hour', hours)} ${formatShortUnit('minute', minutes)}` : formatLongUnit('minute', minutes);
+        const uptimeParts = days > 0 ? [formatShortDurationUnit('day', days), formatShortDurationUnit('hour', hours), formatShortDurationUnit('minute', minutes)] : hours > 0 ? [formatShortDurationUnit('hour', hours), formatShortDurationUnit('minute', minutes)] : [];
+        if (uptimeParts.length === 0) return formatLongUnit('minute', minutes);
+        return getListFormat(getResolvedLocalizationLocale(), { style: 'narrow', type: 'unit' }).format(uptimeParts.map((part) => part.replaceAll(' ', '\u00a0')));
     }
     const parts: string[] = [];
-    if (days > 0) parts.push(formatShortUnit('day', days));
-    if (hours > 0) parts.push(formatShortUnit('hour', hours));
-    if (minutes > 0) parts.push(formatShortUnit('minute', minutes));
-    if (remainingSeconds > 0 || !parts.length) parts.push(formatShortUnit('second', remainingSeconds));
+    if (days > 0) parts.push(formatShortDurationUnit('day', days));
+    if (hours > 0) parts.push(formatShortDurationUnit('hour', hours));
+    if (minutes > 0) parts.push(formatShortDurationUnit('minute', minutes));
+    if (remainingSeconds > 0 || !parts.length) parts.push(formatShortDurationUnit('second', remainingSeconds));
     return parts.join(' ');
 };
 
@@ -181,12 +183,12 @@ const formatElapsedRuntimeFromStartMs = (startTimeMs: number, nowMs: number): st
     const minutes = Math.floor((elapsed % 3600) / 60);
     const seconds = Math.floor(elapsed % 60);
     if (hours > 0) {
-        return `${hours}h ${minutes}m`;
+        return [formatShortDurationUnit('hour', String(hours)), formatShortDurationUnit('minute', String(minutes))].join(' ');
     }
     if (minutes > 0) {
-        return `${minutes}m ${seconds}s`;
+        return [formatShortDurationUnit('minute', String(minutes)), formatShortDurationUnit('second', String(seconds))].join(' ');
     }
-    return `${seconds}s`;
+    return formatShortDurationUnit('second', String(seconds));
 };
 
 const formatSystemInfoDurationFromSeconds = (seconds: number | null): string | null => {
@@ -197,10 +199,10 @@ const formatSystemInfoDurationFromSeconds = (seconds: number | null): string | n
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const remainingSeconds = totalSeconds % 60;
     const parts: string[] = [];
-    if (days) parts.push(`${days}d`);
-    if (days || hours) parts.push(`${hours}h`);
-    if (days || hours || minutes) parts.push(`${minutes}m`);
-    if (!parts.length || remainingSeconds) parts.push(`${remainingSeconds}s`);
+    if (days) parts.push(formatShortDurationUnit('day', String(days)));
+    if (days || hours) parts.push(formatShortDurationUnit('hour', String(hours)));
+    if (days || hours || minutes) parts.push(formatShortDurationUnit('minute', String(minutes)));
+    if (!parts.length || remainingSeconds) parts.push(formatShortDurationUnit('second', String(remainingSeconds)));
     return parts.join(' ');
 };
 
@@ -209,4 +211,4 @@ const formatSystemInfoDurationFromMilliseconds = (milliseconds: number | null): 
     return formatSystemInfoDurationFromSeconds(milliseconds / 1000);
 };
 
-export { formatCompactDurationFromMs, formatCompactMillisecondsAsSecondsUnit, formatDuration, formatDurationSeconds, formatElapsedRuntimeFromStartMs, formatHumanDurationFromMs, formatMillisecondsAsSecondsUnit, formatStableElapsedDurationFromMs, formatSystemInfoDurationFromMilliseconds, formatSystemInfoDurationFromSeconds, formatWholeDurationFromMs, normalizeDurationMs, resolveStableElapsedDurationReserveCharacters };
+export { formatShortDurationUnit, formatCompactDurationFromMs, formatCompactMillisecondsAsSecondsUnit, formatDuration, formatDurationSeconds, formatElapsedRuntimeFromStartMs, formatHumanDurationFromMs, formatMillisecondsAsSecondsUnit, formatStableElapsedDurationFromMs, formatSystemInfoDurationFromMilliseconds, formatSystemInfoDurationFromSeconds, formatWholeDurationFromMs, normalizeDurationMs, resolveStableElapsedDurationReserveCharacters };

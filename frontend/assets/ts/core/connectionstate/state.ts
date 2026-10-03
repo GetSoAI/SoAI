@@ -14,6 +14,7 @@ interface ConnectionStateState {
     storageKey: string;
     snapshotStorageKey: string;
     baseUrl: string | null;
+    revision: number;
     instanceId: string | null;
     persistedBaseUrl: string | null;
     allowConfiguredFallback: boolean;
@@ -43,6 +44,7 @@ const createConnectionStateState = ({ errorHandler, storage, storageKey, runtime
         storageKey,
         snapshotStorageKey: trimmedStorageKey.startsWith('soai_') ? trimmedStorageKey : `soai_${trimmedStorageKey}`,
         baseUrl: runtimeConfiguredBaseUrl,
+        revision: 0,
         instanceId: null,
         persistedBaseUrl: null,
         allowConfiguredFallback: true,

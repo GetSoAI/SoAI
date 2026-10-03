@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 import httpx2
 
@@ -26,7 +26,7 @@ from core.network.outbound_http_profiles import (
     DEFAULT_BROWSER_DOCUMENT_USER_AGENTS,
     build_browser_document_headers,
 )
-from core.network.urls import normalize_http_url
+from core.network.redirect_headers import resolve_redirect_url
 from webui.manager.media_preview_remote_policy import RemoteMediaPolicy
 
 if TYPE_CHECKING:
@@ -132,11 +132,9 @@ class BoundedMediaFetcher:
                 timeout=timeout,
                 extensions=request_extensions,
             ) as response:
-                if response.status_code in (301, 302, 303, 307, 308):
-                    redirect_location = response.headers.get("Location")
-                    if not redirect_location:
-                        raise ValidationError("Redirect response missing Location header.")
-                    current = normalize_http_url(urljoin(current, redirect_location))
+                next_url = resolve_redirect_url(response, current)
+                if next_url is not None:
+                    current = next_url
                     redirected = True
                     continue
                 content_type = str(response.headers.get("Content-Type") or "").strip()

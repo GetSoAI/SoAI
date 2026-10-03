@@ -21,6 +21,8 @@ import type { UsersManager } from '@pages/settings/controllers/UsersManager.ts';
 import type { InstanceIdentityManager } from '@pages/settings/controllers/instanceidentity/InstanceIdentityManager.ts';
 import type { SettingsUi } from '@pages/settings/types.ts';
 import type { LicensingManager } from '@pages/settings/controllers/LicensingManager.ts';
+import type { ConnectManager } from '@pages/settings/controllers/ConnectManager.ts';
+import type { WallpaperPresence } from '@pages/settings/controllers/thememanager/wallpaperPresenceState.ts';
 
 interface RestartOverlayService {
     show(value: string): void;
@@ -54,6 +56,7 @@ interface SettingsPageState {
     advancedTabs: TabDefinition[];
     advancedStructure: AnalyzeStructure | null;
     advancedRenderer: AdvancedSettingsRenderer | null;
+    wallpaperPresence: WallpaperPresence;
     currentWallpaperUrl: string | null;
     currentWallpaperMetadata: WallpaperMetadata | null;
     currentSolidBackground: string | null;
@@ -94,6 +97,7 @@ interface SettingsPageState {
     apiKeysManager: ApiKeysManager | null;
     securityManager: SecurityManager | null;
     licensingManager: LicensingManager | null;
+    connectManager: ConnectManager | null;
     mcpManager: McpManager | null;
     externalAccountsManager: ExternalAccountsManager | null;
     messagingManager: MessagingManager | null;
@@ -123,6 +127,7 @@ const createInitialSettingsPageState = (restartOverlay: RestartOverlayService): 
         advancedTabs: [],
         advancedStructure: null,
         advancedRenderer: null,
+        wallpaperPresence: 'unknown',
         currentWallpaperUrl: null,
         currentWallpaperMetadata: null,
         currentSolidBackground: null,
@@ -163,6 +168,7 @@ const createInitialSettingsPageState = (restartOverlay: RestartOverlayService): 
         apiKeysManager: null,
         securityManager: null,
         licensingManager: null,
+        connectManager: null,
         mcpManager: null,
         externalAccountsManager: null,
         messagingManager: null,

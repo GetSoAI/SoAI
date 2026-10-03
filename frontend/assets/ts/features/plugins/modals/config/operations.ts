@@ -73,7 +73,7 @@ const initializePluginConfigChangeTracker = (context: InitializePluginConfigChan
         getElement: resolveFieldElement,
         getElements: resolveFieldElements,
         getCurrentValue: (key: string) => context.manager.getValue(key),
-        getOriginalValue: (key: string) => context.manager.getValueByPath(context.manager.originalData, key),
+        getOriginalValue: (key: string) => context.manager.getOriginalValue(key),
         comparator: (current: JsonValue | null | undefined, original: JsonValue | null | undefined) => {
             if (!isJsonValue(current) || !isJsonValue(original)) {
                 return current === original;

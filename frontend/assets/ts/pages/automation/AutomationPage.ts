@@ -89,7 +89,6 @@ class AutomationPage extends StaticBasePage {
             this.#controller = new AutomationPageController({
                 ui: this.#ui,
                 storage: this.dependencies.storage,
-                api: this.dependencies.api,
                 dataService,
                 initialSelection,
                 runActivity: this.#dependencies.runActivity,

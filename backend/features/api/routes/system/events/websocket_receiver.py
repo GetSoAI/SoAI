@@ -16,15 +16,13 @@ from features.api.routes.system.events.websocket_errors import (
 from features.api.routes.system.events.websocket_event_context import (
     WebsocketEventRuntimeContext,
 )
-from features.api.routes.system.events.websocket_event_subscriptions import (
-    reconcile_websocket_event_subscriptions,
-)
 from features.api.routes.system.events.websocket_message_dispatch import (
     handle_websocket_message,
 )
 from features.api.routes.system.events.websocket_permission_refresh import (
-    refresh_websocket_effective_actions,
+    refresh_websocket_event_subscriptions,
 )
+from features.api.routes.system.events.websocket_run_payloads import resolve_run_id
 from features.api.routes.system.events.websocket_session_validation import (
     validate_websocket_session,
 )
@@ -43,6 +41,7 @@ async def run_websocket_receiver(
     runtime_context: WebsocketEventRuntimeContext,
 ) -> None:
     while not runtime_context.shutdown_event.is_set():
+        run_id: str | None = None
         try:
             data = await runtime_context.websocket.receive_json()
             session_valid = await validate_websocket_session(
@@ -54,14 +53,12 @@ async def run_websocket_receiver(
                 return
             if runtime_context.shutdown_event.is_set():
                 return
-            await refresh_websocket_effective_actions(runtime_context.connection)
-            event_handler = runtime_context.connection.event_handler
-            if event_handler is not None:
-                reconcile_websocket_event_subscriptions(
-                    event_bus=runtime_context.api_context.dependencies.event_bus,
-                    connection=runtime_context.connection,
-                    event_handler=event_handler,
-                )
+            await refresh_websocket_event_subscriptions(
+                event_bus=runtime_context.api_context.dependencies.event_bus,
+                connection=runtime_context.connection,
+                event_handler=runtime_context.connection.event_handler,
+                force=True,
+            )
             if not is_json_dict(data):
                 await enqueue_websocket_error(
                     runtime_context.enqueue_warning_tracker,
@@ -73,6 +70,7 @@ async def run_websocket_receiver(
                     details={"received_type": type(data).__name__},
                 )
                 continue
+            run_id = resolve_run_id(data)
             await handle_websocket_message(
                 data,
                 runtime_context=runtime_context,
@@ -96,6 +94,8 @@ async def run_websocket_receiver(
                 runtime_context.connection.queue,
                 runtime_context.trace_id,
                 exception,
+                run_id=run_id,
+                shutdown_event=runtime_context.shutdown_event,
             )
         except RECOVERABLE_EXCEPTIONS as exception:
             log_exception(

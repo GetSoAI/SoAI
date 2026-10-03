@@ -6,6 +6,7 @@ import type { ModelControlScope } from '@pages/chat/controllers/chatmodelcontrol
 
 export const CHAT_MODEL_CONTROL_ROOT_SELECTOR = '[data-chat-model-control="true"]';
 export const CHAT_MODEL_CONTROL_SELECTOR = '.chat-model-control';
+export const CHAT_MODEL_SLOTS_SELECTOR = '.chat-model-slots';
 export const CHAT_MODEL_MENU_SELECTOR = '.chat-model-menu';
 export const CHAT_MODEL_OPEN_MENU_SELECTOR = '.chat-model-menu.is-open';
 export const CHAT_MODEL_OPEN_TRIGGER_SELECTOR = '.chat-model-control-primary.is-open, .chat-model-slot.is-open';

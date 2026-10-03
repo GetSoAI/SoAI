@@ -92,7 +92,7 @@ const renderChatParameterControlsMarkup = (inputArguments: { modalId: string; st
     </div>
   </div>
 
-  <div id="${uiIdAttr('chat-model-context-window-tokens-group')}" class="form-group setting-change-surface">
+  <div id="${uiIdAttr('chat-model-context-window-tokens-group')}" class="form-group setting-change-surface" tabindex="-1">
     <label for="${uiIdAttr('chat-model-context-window-tokens-input')}">${strings.modelContextWindowTokensLabel}</label>
     <input
       type="number"

@@ -62,22 +62,34 @@ const replaceSeries = (runtime: ChartSeriesStorageRuntime, points: ReadonlyArray
 };
 
 const prependSeries = (runtime: ChartSeriesStorageRuntime, inputs: ReadonlyArray<ChartPointCandidate> | null): SeriesPrependResult => {
-    if (!isArray(inputs) || inputs.length === 0) return { changed: false, addedToHead: 0 };
+    if (!isArray(inputs) || inputs.length === 0) return { changed: false, addedToHead: 0, truncated: false };
     const normalized = inputs
         .map((input) => runtime.data.normalize(input))
         .filter((point): point is NormalizedDataPoint => point !== null)
         .sort((left, right) => left.timestamp - right.timestamp);
-    if (normalized.length === 0) return { changed: false, addedToHead: 0 };
+    if (normalized.length === 0) return { changed: false, addedToHead: 0, truncated: false };
     if (runtime.series.dataLength === 0) {
         const result = replaceSeries(runtime, inputs);
-        return { changed: result.nextLength > 0, addedToHead: 0 };
+        return { changed: result.nextLength > 0, addedToHead: result.nextLength, truncated: result.nextLength < normalized.length };
     }
     const firstTimestamp = runtime.series.timestamps[0];
     if (firstTimestamp === undefined) throw new Error('Non-empty chart series is missing its first timestamp.');
     const filtered = normalized.filter((point) => point.timestamp < firstTimestamp - 1e-3);
     const addedToHead = Math.min(filtered.length, runtime.maxDataPoints - runtime.series.dataLength);
-    if (addedToHead <= 0) return { changed: false, addedToHead: 0 };
+    if (addedToHead <= 0) return { changed: false, addedToHead: 0, truncated: filtered.length > 0 };
     const startIndex = filtered.length - addedToHead;
+    const nextLength = runtime.series.dataLength + addedToHead;
+    for (const dataset of runtime.series.datasets) {
+        const values = dataset.values;
+        if (values instanceof Float64Array) {
+            const shifted = new Float64Array(nextLength);
+            shifted.fill(Number.NaN);
+            shifted.set(values.subarray(0, Math.min(values.length, runtime.series.dataLength)), addedToHead);
+            dataset.values = shifted;
+        } else if (isArray(values)) {
+            dataset.values = [...Array<number>(addedToHead).fill(Number.NaN), ...values.slice(0, runtime.series.dataLength)];
+        }
+    }
     runtime.series.timestamps.copyWithin(addedToHead, 0, runtime.series.dataLength);
     runtime.series.values.copyWithin(addedToHead, 0, runtime.series.dataLength);
     if (runtime.data.hasOhlc() || filtered.some((point) => point.mode === 'ohlc')) {
@@ -91,7 +103,7 @@ const prependSeries = (runtime: ChartSeriesStorageRuntime, inputs: ReadonlyArray
     }
     runtime.series.dataLength += addedToHead;
     runtime.data.invalidateHeikin(0);
-    return { changed: true, addedToHead };
+    return { changed: true, addedToHead, truncated: addedToHead < filtered.length };
 };
 
 const normalizeDatasetValues = (candidate: DatasetValue): Float64Array | number[] | undefined => {

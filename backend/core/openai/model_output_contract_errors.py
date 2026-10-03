@@ -19,6 +19,7 @@ MODEL_OUTPUT_CONTRACT_ERROR_CODE = ErrorType.MODEL_OUTPUT_CONTRACT.value
 INVALID_TOOL_CALL_JSON_FAILURE_TYPE = "invalid_tool_call_json"
 _DETAIL_MAX_CHARS = 4096
 _INVALID_TOOL_CALL_JSON_MARKERS: tuple[str, ...] = (
+    "malformed tool-call json",
     "invalid tool-call json",
     "invalid tool call json",
     "error parsing tool call",

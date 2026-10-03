@@ -1,46 +1,24 @@
 /* SoAI - Metrics page update processing [frontend/assets/ts/pages/metrics/controllers/page/metricsUpdateProcessing.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { readRuntimeFiniteNumberOrFallbackValue } from '@core/types/numberCoercionReaders.ts';
-import { isArray, isFiniteNumber, isObject } from '@core/typeGuards.ts';
+import { isFiniteNumber, isObject } from '@core/typeGuards.ts';
 import { formatCompactNumber } from '@core/primitives/compactNumber.ts';
 import { updateAdaptiveNumber } from '@core/ui/adaptiveNumber.ts';
-import type { JsonObject } from '@core/types/jsonValues.ts';
-import { markChartViewportFitted, resolveChartViewportReset, type ChartPointInput } from '@features/charts/public.ts';
+import { appendHistoryValue, buildHistoryDisplaySeries, markChartViewportFitted, resolveChartViewportReset, type ChartPointInput } from '@features/charts/public.ts';
 import { KPI_CONFIG, refreshMetricsAdvancedModalIfOpen, resolveMetricsTotalTokens } from '@features/metrics/public.ts';
 import type { MetricsPageActionsHost } from '@pages/metrics/controllers/page/contracts.ts';
-import { extractMetricsTimestamp, extractMetricsValue, getEffectiveMetricsCandlestickIntervalMs, getMetricsHistoryAggregation, getMetricsHistoryKey, getMetricsMetricScaleBounds, isMetricsCandlestickActive } from '@pages/metrics/controllers/page/state.ts';
+import { extractMetricsTimestamp, extractMetricsValue, getEffectiveMetricsCandlestickIntervalMs, getMetricsHistoryAggregation, getMetricsHistoryKey, getMetricsMetricScaleBounds, isMetricsCandlestickActive, resolveMetricsValueIntervalMs } from '@pages/metrics/controllers/page/state.ts';
 import { trimMetricsHistory } from '@pages/metrics/mappers/metricsHistoryMapping.ts';
 import type { CandlestickDataPoint, MetricsData, MetricsHistoryPoint, RealtimeCandlestickUpdate } from '@pages/metrics/types.ts';
 import { updateDistributionChart, updateSystemStats } from '@pages/metrics/widgets/effects.ts';
+import { updateApiKeyUsageTable } from '@pages/metrics/widgets/apiKeyUsageTableWidget.ts';
 import { updateModelTable, updatePluginHealth } from '@pages/metrics/widgets/service.ts';
 
-interface MetricsChartRenderOptions {
-    resetView?: boolean;
-    prepended?: MetricsHistoryPoint[] | null;
-}
-
-const toJsonValuePoint = (point: MetricsHistoryPoint): JsonObject => ({
-    timestamp: point.timestamp,
-    value: point.value
-});
-
-const toCandlestickJsonPoint = (point: CandlestickDataPoint): JsonObject => ({
-    timestamp: point.timestamp,
-    open: point.open,
-    high: point.high,
-    low: point.low,
-    close: point.close,
-    value: point.value
-});
-
 const resetMetricsValueHistory = (host: MetricsPageActionsHost, { clear = false }: { clear?: boolean } = {}): void => {
-    host.state.valueHistoryRequestToken = null;
-    host.state.valueHistoryRequestState.clear();
     host.state.lastRealtimeMetricValues.clear();
-    host.state.metricsHistoryExhausted = false;
     if (clear) {
         host.state.metricsHistory = [];
+        host.state.historyIntervalMs = null;
     }
 };
 
@@ -48,12 +26,8 @@ const resetMetricsData = (host: MetricsPageActionsHost, fullReset = false): void
     host.state.candlestickData = [];
     host.state.candlestickBuckets.clear();
     host.state.candlestickMetadata = null;
-    host.state.lastCandlestickRequest = null;
-    host.state.candlestickHistoryExhausted = false;
+    host.state.lastResolvedCandlestickIntervalMs = null;
     resetMetricsValueHistory(host, { clear: fullReset });
-    if (fullReset) {
-        host.state.metricsHistory = [];
-    }
 };
 
 const trimMetricsHistoryPoints = (host: MetricsPageActionsHost, force = false): boolean => {
@@ -67,43 +41,19 @@ const trimMetricsHistoryPoints = (host: MetricsPageActionsHost, force = false): 
     return host.state.metricsHistory.length !== beforeLength;
 };
 
-const appendMetricsHistoryPoint = (host: MetricsPageActionsHost, timestamp: number, value: number): void => {
+const appendMetricsHistoryPoint = (host: MetricsPageActionsHost, timestamp: number, value: number): 'ignored' | 'updated' | 'appended' | 'trimmed' => {
     if (!isFiniteNumber(timestamp) || !isFiniteNumber(value)) {
-        return;
+        return 'ignored';
     }
-    const intervalMs = host.operations.normalizeMetricsInt(host.state.monitoringIntervalMs, 1);
-    const bucketTimestamp = Math.floor(timestamp / intervalMs) * intervalMs;
-    const lastPoint = host.state.metricsHistory[host.state.metricsHistory.length - 1];
-    if (lastPoint && lastPoint.timestamp === bucketTimestamp) {
-        lastPoint.value = getMetricsHistoryAggregation(host, host.state.currentMetricType) === 'delta' ? lastPoint.value + value : value;
-        return;
-    }
-    const dataModule = host.state.chartRuntime.getCachedModules()?.data ?? null;
-    if (lastPoint && dataModule) {
-        const fillers = dataModule.buildLineGapFillers(toJsonValuePoint(lastPoint), bucketTimestamp, intervalMs, {
-            maxFill: Math.min(host.operations.pointBudget(), 20000)
-        });
-        if (fillers.length) {
-            host.state.metricsHistory.push(
-                ...fillers.map((point) => ({
-                    timestamp: point.timestamp,
-                    value: point.value
-                }))
-            );
-        }
-    }
-    host.state.metricsHistory.push({ timestamp: bucketTimestamp, value });
-    trimMetricsHistoryPoints(host);
+    const result = appendHistoryValue(host.state.metricsHistory, timestamp, value, resolveMetricsValueIntervalMs(host), getMetricsHistoryAggregation(host, host.state.currentMetricType));
+    return result === 'appended' && trimMetricsHistoryPoints(host) ? 'trimmed' : result;
 };
 
 const canApplyRealtimeMetricsHistory = (host: MetricsPageActionsHost): boolean => {
     if (!host.state.metricsHistoryEnabled) {
         return true;
     }
-    if (isMetricsCandlestickActive(host)) {
-        return host.state.candlestickData.length > 0 || host.state.candlestickBuckets.size > 0;
-    }
-    return host.state.metricsHistory.length > 0;
+    return host.history.isInitialized();
 };
 
 const updateMetricsKpiCards = (host: MetricsPageActionsHost): void => {
@@ -119,72 +69,26 @@ const updateMetricsKpiCards = (host: MetricsPageActionsHost): void => {
     }
 };
 
-const updateMetricsMainChart = (host: MetricsPageActionsHost, options: MetricsChartRenderOptions = {}): void => {
-    const { resetView = false, prepended = null } = options;
+const buildMetricsDisplaySeries = (host: MetricsPageActionsHost, source: readonly (MetricsHistoryPoint | CandlestickDataPoint)[], candlestick: boolean): ChartPointInput[] => {
+    if (source.length === 0) return [];
+    const intervalMs = candlestick ? getEffectiveMetricsCandlestickIntervalMs(host) : host.operations.normalizeMetricsInt(resolveMetricsValueIntervalMs(host), 1);
+    return buildHistoryDisplaySeries(host.state.chartRuntime, source, { candlestick, intervalMs, capacity: host.state.maxHistoryPoints });
+};
+
+const updateMetricsMainChart = (host: MetricsPageActionsHost, { resetView = false, morph = false }: { resetView?: boolean; morph?: boolean } = {}): void => {
     const chart = host.state.mainChart;
     if (!chart) {
         return;
     }
     const shouldResetView = resolveChartViewportReset(host.state, resetView);
-    chart.settings.update({ scaleBounds: getMetricsMetricScaleBounds(host.state.currentMetricType) });
-    const candlestickMode = isMetricsCandlestickActive(host);
-    chart.settings.setChartType(candlestickMode ? 'candlestick' : host.state.currentChartType);
-    if (isArray(prepended) && prepended.length && !shouldResetView && !candlestickMode) {
-        const normalized: ChartPointInput[] = [];
-        for (const point of prepended) {
-            const timestamp = readRuntimeFiniteNumberOrFallbackValue(point.timestamp, Number.NaN);
-            const value = readRuntimeFiniteNumberOrFallbackValue(point.value, Number.NaN);
-            if (!Number.isFinite(timestamp) || !Number.isFinite(value)) {
-                continue;
-            }
-            normalized.push({ timestamp, value });
-        }
-        if (normalized.length) {
-            chart.data.prepend(normalized);
-        }
-        host.state.pendingChartSync = false;
-        return;
-    }
-    if (candlestickMode) {
-        const intervalMs = getEffectiveMetricsCandlestickIntervalMs(host);
-        const series = host.state.chartRuntime.getOhlc().buildCandlestickSeries(host.state.candlestickData.map(toCandlestickJsonPoint), {
-            maxPoints: host.operations.pointBudget(),
-            timeRangeMs: host.state.timeRange * 60000,
-            intervalMs
-        });
-        chart.data.replace(series, { preserveView: !shouldResetView, assumeSorted: true });
-    } else {
-        if (host.state.metricsHistory.length === 0) {
-            chart.data.replace([], { preserveView: !shouldResetView, assumeSorted: true });
-            host.state.pendingChartSync = false;
-            return;
-        }
-        const latestTimestamp = host.state.metricsHistory[host.state.metricsHistory.length - 1]?.timestamp;
-        if (!isFiniteNumber(latestTimestamp)) {
-            throw new TypeError('metricsHistory must include finite timestamps');
-        }
-        const cutoff = latestTimestamp - host.state.timeRange * 60000;
-        let source = host.state.metricsHistory.filter((point) => point.timestamp >= cutoff);
-        if (!source.length && host.state.metricsHistory.length) {
-            source = host.state.metricsHistory.slice(-Math.min(host.operations.pointBudget(), host.state.metricsHistory.length));
-        }
-        const series = host.state.chartRuntime.getDataTransforms().toLineSeries(source.map(toJsonValuePoint), host.operations.pointBudget(), {
-            assumeSorted: true,
-            fillGaps: true,
-            intervalMs: host.operations.normalizeMetricsInt(host.state.monitoringIntervalMs, 1),
-            rangeMs: Math.max(60000, Math.round(host.state.timeRange * 60000)),
-            densityMode: host.state.currentChartType === 'bar' ? 'average' : 'shape',
-            targetPoints: host.operations.pointBudget()
-        });
-        chart.data.replace(series, { preserveView: !shouldResetView, assumeSorted: true });
-    }
+    const candlestick = isMetricsCandlestickActive(host);
+    chart.settings.update({ scaleBounds: getMetricsMetricScaleBounds(host.state.currentMetricType), expectedSampleIntervalMs: candlestick ? getEffectiveMetricsCandlestickIntervalMs(host) : resolveMetricsValueIntervalMs(host) });
+    chart.settings.setChartType(host.state.currentChartType);
+    chart.data.replace(buildMetricsDisplaySeries(host, candlestick ? host.state.candlestickData : host.state.metricsHistory, candlestick), { preserveView: !shouldResetView, assumeSorted: true, morph });
     if (shouldResetView) {
-        chart.view.fitTimeRange(host.state.timeRange, { align: 'tail' });
+        chart.view.fitTimeRange(host.state.timeRange);
         markChartViewportFitted(host.state);
-    } else {
-        chart.view.alignToLatest();
     }
-    host.state.pendingChartSync = false;
 };
 
 const updateMetricsDisplays = (host: MetricsPageActionsHost, { skipChart = false }: { skipChart?: boolean } = {}): void => {
@@ -236,45 +140,73 @@ const resolveRealtimeChartValue = (host: MetricsPageActionsHost, metrics: Metric
     return rawValue - previousValue;
 };
 
+const applyRealtimeMetricsChartValue = (host: MetricsPageActionsHost, timestamp: number, chartValue: number, { renderChart = true }: { renderChart?: boolean } = {}): void => {
+    if (host.state.metricsHistoryEnabled && !host.history.acceptRealtimeTimestamp(timestamp)) {
+        return;
+    }
+    const chart = host.state.mainChart;
+    if (isMetricsCandlestickActive(host)) {
+        const realtimeUpdate = updateRealtimeCandlestick(host, timestamp, chartValue);
+        if (host.operations.trimCandlestickData(realtimeUpdate.appended)) {
+            if (!renderChart) {
+                return;
+            }
+            updateMetricsMainChart(host);
+        } else if (renderChart && realtimeUpdate.point) {
+            if (realtimeUpdate.appended) {
+                chart?.data.appendPoint(realtimeUpdate.point);
+            } else if (realtimeUpdate.updated) {
+                chart?.data.updateCurrentBar(realtimeUpdate.point);
+            }
+        }
+        return;
+    }
+    const update = appendMetricsHistoryPoint(host, timestamp, chartValue);
+    if (update === 'trimmed' && renderChart) updateMetricsMainChart(host);
+    else if (renderChart && (update === 'appended' || update === 'updated')) {
+        const latest = host.state.metricsHistory[host.state.metricsHistory.length - 1];
+        if (!latest) throw new Error('Metrics realtime update did not retain its sample');
+        if (update === 'appended') chart?.data.appendPoint(latest);
+        else chart?.data.updateCurrentBar(latest);
+    }
+};
+
+const refreshMetricsPresentation = (host: MetricsPageActionsHost): void => {
+    if (canApplyRealtimeMetricsHistory(host)) {
+        updateMetricsMainChart(host);
+    }
+    updateMetricsDisplays(host, { skipChart: true });
+    updateApiKeyUsageTable(host);
+    if (!host.state.currentMetrics) {
+        updateDistributionChart(host);
+    }
+};
+
 const processMetricsUpdate = (host: MetricsPageActionsHost, data: MetricsData): void => {
     if (!isObject(data)) {
         return;
     }
     host.state.currentMetrics = data;
+    const renderNow = host.presentation.requestRefresh();
     const timestamp = extractMetricsTimestamp(host, data);
     const chartValue = resolveRealtimeChartValue(host, data, host.state.currentMetricType);
     if (!isFiniteNumber(chartValue)) {
-        updateMetricsDisplays(host);
-        return;
-    }
-    if (!canApplyRealtimeMetricsHistory(host)) {
-        updateMetricsDisplays(host, { skipChart: true });
-        return;
-    }
-    appendMetricsHistoryPoint(host, timestamp, chartValue);
-    const chart = host.state.mainChart;
-    const isAnimating = chart?.view.status.isAnimating === true;
-    const isDragging = chart?.view.status.isDragging === true;
-    if (isMetricsCandlestickActive(host) && (host.state.candlestickBuckets.size > 0 || host.state.candlestickData.length > 0)) {
-        const realtimeUpdate = updateRealtimeCandlestick(host, timestamp, chartValue);
-        if (!isAnimating && !isDragging) {
-            if (host.operations.trimCandlestickData(realtimeUpdate.appended)) {
-                updateMetricsMainChart(host, { resetView: true });
-            } else if (realtimeUpdate.point) {
-                if (realtimeUpdate.appended) {
-                    chart?.data.appendPoint(realtimeUpdate.point);
-                } else if (realtimeUpdate.updated) {
-                    chart?.data.updateCurrentBar(realtimeUpdate.point);
-                }
-            }
-        } else {
-            host.state.pendingChartSync = true;
+        if (renderNow) {
+            updateMetricsDisplays(host);
         }
-        updateMetricsDisplays(host, { skipChart: true });
         return;
     }
-    updateMetricsDisplays(host);
+    host.history.captureRealtimeSample(timestamp, chartValue);
+    if (!canApplyRealtimeMetricsHistory(host)) {
+        if (renderNow) {
+            updateMetricsDisplays(host, { skipChart: true });
+        }
+        return;
+    }
+    applyRealtimeMetricsChartValue(host, timestamp, chartValue, { renderChart: renderNow });
+    if (renderNow) {
+        updateMetricsDisplays(host, { skipChart: true });
+    }
 };
 
-export { appendMetricsHistoryPoint, processMetricsUpdate, resetMetricsData, resetMetricsValueHistory, trimMetricsHistoryPoints, updateMetricsMainChart };
-export type { MetricsChartRenderOptions };
+export { appendMetricsHistoryPoint, applyRealtimeMetricsChartValue, buildMetricsDisplaySeries, processMetricsUpdate, refreshMetricsPresentation, resetMetricsData, resetMetricsValueHistory, trimMetricsHistoryPoints, updateMetricsMainChart };

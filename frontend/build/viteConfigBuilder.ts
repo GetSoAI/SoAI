@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import path from 'path';
+import { readFileSync } from 'node:fs';
 import type { Plugin, UserConfig } from 'vite';
+import { buildBootMessages } from './bootMessages.ts';
 
 interface FrontendBuildDescriptor {
     readonly edition: 'soai-core' | 'soai-os';
@@ -47,10 +49,9 @@ const normalizeModuleId = (moduleId: string, workspaceRoot: string): string => {
     return isVirtual ? `virtual:${relativeId}` : relativeId;
 };
 
-const buildInputManifestPlugin = (descriptor: FrontendBuildDescriptor): Plugin => ({
+const buildInputManifestPlugin = (descriptor: FrontendBuildDescriptor, workspaceRoot: string): Plugin => ({
     name: 'soai-build-input-manifest-v1',
     generateBundle(_outputOptions, bundle): void {
-        const workspaceRoot = path.resolve(descriptor.root, descriptor.edition === 'soai-os' ? '../..' : '..');
         const moduleIds = new Set<string>();
         for (const output of Object.values(bundle)) {
             if (output.type !== 'chunk') continue;
@@ -73,13 +74,17 @@ const buildInputManifestPlugin = (descriptor: FrontendBuildDescriptor): Plugin =
 
 const buildViteConfig = (descriptor: FrontendBuildDescriptor, mode: string): UserConfig => {
     const isProduction = mode === 'production';
+    const workspaceRoot = path.resolve(descriptor.root, descriptor.edition === 'soai-os' ? '../..' : '..');
+    const frontendVersion = readFileSync(path.join(workspaceRoot, 'VERSION'), 'utf8').trim();
+    if (!frontendVersion || /\s/.test(frontendVersion)) throw new Error('Frontend VERSION is invalid.');
     return {
         root: descriptor.root,
         logLevel: isProduction ? 'warn' : 'info',
         resolve: { alias: descriptor.aliases },
         base: './',
         publicDir: false,
-        plugins: [buildInputManifestPlugin(descriptor)],
+        plugins: [buildInputManifestPlugin(descriptor, workspaceRoot)],
+        define: { __SOAI_FRONTEND_VERSION__: JSON.stringify(frontendVersion), __SOAI_BOOT_MESSAGES__: JSON.stringify(buildBootMessages(path.join(workspaceRoot, 'frontend'))) },
         build: {
             target: supportedBrowserTargets,
             manifest: 'manifest.json',

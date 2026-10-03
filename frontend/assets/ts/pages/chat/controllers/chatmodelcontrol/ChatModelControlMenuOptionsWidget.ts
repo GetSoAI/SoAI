@@ -3,7 +3,7 @@
 
 import { createSearchTextIndex } from '@core/search/searchQuery.ts';
 import { getCurrentLocale } from '@core/languageservice/service.ts';
-import { isChatSelectableModel } from '@core/models/chatModelAvailability.ts';
+import { isChatCapableModel, isChatSelectableModel } from '@core/models/chatModelAvailability.ts';
 import type { ModelData } from '@core/types/modelTypes.ts';
 import { groupChatModelsByProvider, resolveChatModelStatusSuffix } from '@pages/chat/controllers/chatmodelscontroller/ChatModelMenuOptionGroupingWidget.ts';
 
@@ -39,13 +39,14 @@ const createModelOption = (model: ModelData, selectedModelId: string | null, pro
 };
 
 const buildChatModelMenuOptionGroups = (inputArguments: { models: ModelData[]; selectedModelId: string | null }): ChatModelMenuOptionGroup[] => {
-    const groupsByProvider = groupChatModelsByProvider(inputArguments.models);
+    const chatModels = inputArguments.models.filter(isChatCapableModel);
+    const groupsByProvider = groupChatModelsByProvider(chatModels);
     const providers = Array.from(groupsByProvider.values());
     const shouldGroup = providers.length > 1;
 
     if (!shouldGroup) {
         const singleProvider = providers[0] ?? null;
-        const models = singleProvider?.models ?? inputArguments.models;
+        const models = singleProvider?.models ?? chatModels;
         const providerLabel = singleProvider?.label ?? '';
         return [{ label: '', options: models.map((model) => createModelOption(model, inputArguments.selectedModelId, providerLabel)) }];
     }

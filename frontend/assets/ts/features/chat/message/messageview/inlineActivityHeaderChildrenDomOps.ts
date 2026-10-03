@@ -1,6 +1,7 @@
 /* SoAI - Chat feature inline activity header children DOM ops [frontend/assets/ts/features/chat/message/messageview/inlineActivityHeaderChildrenDomOps.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { isPresenceExiting } from '@core/animations/presence/public.ts';
 import { resolveHTMLElement } from '@core/dom/patching.ts';
 
 const LEADING_ICON_CLASS = 'inline-activity-leading-icon';
@@ -61,7 +62,7 @@ const removeUnownedHeaderDurationNodes = (header: HTMLElement, primaryDuration: 
     return changed;
 };
 
-const resolveHeaderChildren = (header: HTMLElement): InlineActivityHeaderChildren => {
+const resolveHeaderChildren = (header: HTMLElement, includeExiting = false): InlineActivityHeaderChildren => {
     const resolved: InlineActivityHeaderChildren = {
         stopButton: null,
         closeButton: null,
@@ -74,7 +75,7 @@ const resolveHeaderChildren = (header: HTMLElement): InlineActivityHeaderChildre
         duration: null
     };
     for (const child of Array.from(header.children)) {
-        if (!(child instanceof HTMLElement)) {
+        if (!(child instanceof HTMLElement) || (!includeExiting && isPresenceExiting(child))) {
             continue;
         }
         if (resolved.stopButton === null && child.classList.contains(STOP_BUTTON_CLASS)) {

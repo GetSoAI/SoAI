@@ -36,7 +36,6 @@ const applyFullscreenLayout = (state: ModalHostState, modalId: string, content: 
     const bounded = clampPosition({
         content,
         position: { x: 0, y: 0 },
-        isMobileViewport: state.isMobileViewportState,
         sizeOverride: { width: limits.maxWidth, height: limits.maxHeight }
     });
 
@@ -153,6 +152,7 @@ const exitFullscreen = (state: ModalHostState, modalId: string, content: HTMLEle
     dom.setHTML(toggleButton, icon, { escape: false });
 
     state.fullscreenState.delete(modalId);
+    state.desktopOpenHeights.set(modalId, savedState.previousSize.height);
     state.storage.setModalState(modalId, { size: { width: savedState.previousSize.width, height: savedState.previousSize.height } });
 };
 

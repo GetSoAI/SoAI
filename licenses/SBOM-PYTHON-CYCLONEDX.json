@@ -1583,7 +1583,7 @@
       "version": "2.9.0.post0"
     },
     {
-      "bom-ref": "pkg:pypi/python-dotenv@1.2.2",
+      "bom-ref": "pkg:pypi/python-dotenv@1.2.3",
       "licenses": [
         {
           "license": {
@@ -1592,10 +1592,10 @@
         }
       ],
       "name": "python-dotenv",
-      "purl": "pkg:pypi/python-dotenv@1.2.2",
+      "purl": "pkg:pypi/python-dotenv@1.2.3",
       "scope": "required",
       "type": "library",
-      "version": "1.2.2"
+      "version": "1.2.3"
     },
     {
       "bom-ref": "pkg:pypi/python-multipart@0.0.32",
@@ -1971,7 +1971,7 @@
       "version": "0.13.0"
     },
     {
-      "bom-ref": "pkg:pypi/tinytag@2.3.0",
+      "bom-ref": "pkg:pypi/tinytag@2.3.2",
       "licenses": [
         {
           "license": {
@@ -1980,10 +1980,10 @@
         }
       ],
       "name": "tinytag",
-      "purl": "pkg:pypi/tinytag@2.3.0",
+      "purl": "pkg:pypi/tinytag@2.3.2",
       "scope": "required",
       "type": "library",
-      "version": "2.3.0"
+      "version": "2.3.2"
     },
     {
       "bom-ref": "pkg:pypi/tokenizers@0.23.1",
@@ -2014,17 +2014,17 @@
       "version": "2.13.0+cpu"
     },
     {
-      "bom-ref": "pkg:pypi/tqdm@4.70.0",
+      "bom-ref": "pkg:pypi/tqdm@4.70.1",
       "licenses": [
         {
           "expression": "MPL-2.0 AND MIT"
         }
       ],
       "name": "tqdm",
-      "purl": "pkg:pypi/tqdm@4.70.0",
+      "purl": "pkg:pypi/tqdm@4.70.1",
       "scope": "required",
       "type": "library",
-      "version": "4.70.0"
+      "version": "4.70.1"
     },
     {
       "bom-ref": "pkg:pypi/triton@3.7.1",
@@ -2366,7 +2366,7 @@
         "pkg:pypi/pyproject-hooks@1.2.0",
         "pkg:pypi/pytesseract@0.3.13",
         "pkg:pypi/python-dateutil@2.9.0.post0",
-        "pkg:pypi/python-dotenv@1.2.2",
+        "pkg:pypi/python-dotenv@1.2.3",
         "pkg:pypi/python-multipart@0.0.32",
         "pkg:pypi/pyyaml@6.0.3",
         "pkg:pypi/rapidocr-onnxruntime@1.2.3",
@@ -2392,10 +2392,10 @@
         "pkg:pypi/tenacity@9.1.4",
         "pkg:pypi/tika@3.3.2",
         "pkg:pypi/tiktoken@0.13.0",
-        "pkg:pypi/tinytag@2.3.0",
+        "pkg:pypi/tinytag@2.3.2",
         "pkg:pypi/tokenizers@0.23.1",
         "pkg:pypi/torch@2.13.0+cpu",
-        "pkg:pypi/tqdm@4.70.0",
+        "pkg:pypi/tqdm@4.70.1",
         "pkg:pypi/triton@3.7.1",
         "pkg:pypi/truststore@0.10.4",
         "pkg:pypi/typer@0.27.1",
@@ -2412,7 +2412,7 @@
         "pkg:pypi/zipp@4.1.0",
         "pkg:pypi/zstandard@0.25.0"
       ],
-      "ref": "pkg:generic/soai@1.2.1"
+      "ref": "pkg:generic/soai@1.3.0"
     },
     {
       "dependsOn": [],
@@ -2840,7 +2840,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/python-dotenv@1.2.2"
+      "ref": "pkg:pypi/python-dotenv@1.2.3"
     },
     {
       "dependsOn": [],
@@ -2944,7 +2944,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/tinytag@2.3.0"
+      "ref": "pkg:pypi/tinytag@2.3.2"
     },
     {
       "dependsOn": [],
@@ -2956,7 +2956,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/tqdm@4.70.0"
+      "ref": "pkg:pypi/tqdm@4.70.1"
     },
     {
       "dependsOn": [],
@@ -3021,7 +3021,7 @@
   ],
   "metadata": {
     "component": {
-      "bom-ref": "pkg:generic/soai@1.2.1",
+      "bom-ref": "pkg:generic/soai@1.3.0",
       "description": "Smart Orchestrator for Artificial Intelligence",
       "licenses": [
         {
@@ -3031,9 +3031,9 @@
         }
       ],
       "name": "SoAI",
-      "purl": "pkg:generic/soai@1.2.1",
+      "purl": "pkg:generic/soai@1.3.0",
       "type": "application",
-      "version": "1.2.1"
+      "version": "1.3.0"
     },
     "properties": [
       {
@@ -3056,7 +3056,7 @@
       ]
     }
   },
-  "serialNumber": "urn:uuid:0d1c4f8a-74cf-5b80-bca6-034d49367deb",
+  "serialNumber": "urn:uuid:c5c77414-6fcc-5343-9da4-e1cd941bb605",
   "specVersion": "1.6",
   "version": 1
 }

@@ -1,6 +1,7 @@
 /* SoAI - Model detail page control layer DOM contracts [frontend/assets/ts/pages/modeldetail/controllers/page/dom.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { CSS_CLASSES } from '@core/cssConstants.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import { uiHtml } from '@core/security/uiHtml.ts';
@@ -35,15 +36,9 @@ interface ModelDetailLanguageChangedDependencies extends PageLayoutOwnerHost, Pa
     renderParametersInterface: () => void;
 }
 
-const setModelDetailElementVisibility = (host: ModelDetailTabDependencies, element: Element, visible: boolean): void => {
-    host.pageDom.toggleClass(element, 'u-hidden', !visible);
-    host.pageDom.updateStyle(element, 'display', visible ? '' : 'none');
-    const filterShell = element.closest('.page-header-filter-select-shell');
-    if (filterShell instanceof HTMLElement) {
-        host.pageDom.toggleClass(filterShell, 'u-hidden', !visible);
-        host.pageDom.updateStyle(filterShell, 'display', visible ? '' : 'none');
-    }
-};
+const PRESENCE_ATTRIBUTE = 'data-presence';
+
+const resolveModelDetailParameterActions = (ui: ModelDetailUi): Element[] => [ui.resetAllParametersHeaderButton, ui.searchContainer];
 
 const setupModelDetailHeaderButtons = (host: ModelDetailHeaderButtonsHost): void => {
     const ui = host.ensureUi();
@@ -53,6 +48,7 @@ const setupModelDetailHeaderButtons = (host: ModelDetailHeaderButtonsHost): void
     host.pageDom.updateHtml(ui.resetAllParametersHeaderButton, resetParametersMarkup);
     const testModelMarkup = uiHtml`${host.requireIconMarkup('TEST')}<span>${i18n.t('modelDetail.buttons.test')}</span>`;
     host.pageDom.updateHtml(ui.testModelHeaderButton, testModelMarkup);
+    resolveModelDetailParameterActions(ui).forEach((element) => host.pageDom.updateAttribute(element, PRESENCE_ATTRIBUTE, ''));
 };
 
 const applyModelDetailTabChange = (session: ModelDetailSession, host: ModelDetailTabDependencies, newTab: string): void => {
@@ -62,7 +58,7 @@ const applyModelDetailTabChange = (session: ModelDetailSession, host: ModelDetai
         host.pageDom.toggleClass(content, 'is-active', content.id === `${newTab}-content`);
     });
     const isParametersTab = newTab === 'parameters';
-    [ui.saveParametersHeaderButton, ui.resetAllParametersHeaderButton, ui.searchContainer, ui.parameterUnifiedFilter].forEach((element) => setModelDetailElementVisibility(host, element, isParametersTab));
+    resolveModelDetailParameterActions(ui).forEach((element) => host.pageDom.toggleClass(element, CSS_CLASSES.HIDDEN, !isParametersTab));
     if (isParametersTab) {
         if (!ui.parametersInterface.hasChildNodes()) {
             host.renderParametersInterface();

@@ -8,6 +8,7 @@ import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import type { BuildConfig } from '@core/uiprimitives/types.ts';
 import type { CatalogStore } from '@features/catalog/public.ts';
 import type { SortDirection } from '@core/ui/tables/sortableTable.ts';
+import type { CollectionDisplayMode } from '@core/uiprimitives/viewmode/collection.ts';
 
 interface ModelsUiRefs {
     root: HTMLElement;
@@ -21,6 +22,7 @@ type GetIconSyncFunctionValue = (iconName: IconName, options?: IconOptions) => T
 type BuildLayoutFunctionValue = (config: BuildConfig) => CollectionLayout;
 
 interface ModelsLayoutBuildDependencies {
+    viewMode: CollectionDisplayMode;
     getIconSync: GetIconSyncFunctionValue;
     buildLayout: BuildLayoutFunctionValue;
     sortBy: string;
@@ -29,6 +31,7 @@ interface ModelsLayoutBuildDependencies {
 }
 
 interface ModelsLayoutViewHost {
+    viewMode: CollectionDisplayMode;
     getIconSync: GetIconSyncFunctionValue;
     sortBy: string;
     sortOrder: SortDirection;

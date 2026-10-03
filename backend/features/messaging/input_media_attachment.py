@@ -114,6 +114,7 @@ async def ingest_messaging_media_attachment(
                 files=api_dependencies.files,
                 database_attachments=api_dependencies.database_conversation_attachments,
                 storage_manager=api_dependencies.storage_manager,
+                database_operation_status=api_dependencies.database_operation_status,
                 token_collection=api_dependencies.token_collection,
                 cancellation_history=api_dependencies.cancellation_history,
                 cancellation_event_bus=api_dependencies.cancellation_event_bus,

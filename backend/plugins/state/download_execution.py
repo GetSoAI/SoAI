@@ -35,6 +35,7 @@ from core.network.errors import (
 )
 from core.network.http_download import download_http_stream_to_file
 from core.network.policy import enforce_url_network_policy
+from core.network.transfer_retry import build_http_transfer_retry_policy
 from core.plugins.errors import PluginIncompatibleError
 from core.plugins.file_suffixes import PLUGIN_FILE_SUFFIX
 from core.runtime.network_policy import OfflineModeError, require_online_mode
@@ -154,6 +155,7 @@ async def execute_plugin_download(
                     http_client=http_client,
                     url=prep.url,
                     destination_path=temp_file_path,
+                    retry_policy=build_http_transfer_retry_policy("artifact"),
                     cancellation_token=token,
                     max_bytes=None,
                     max_redirects=10,

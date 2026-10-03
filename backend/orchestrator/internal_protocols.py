@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Protocol
 
 from core.errors.error_types import ErrorType
+from core.errors.payload import ErrorPublicPayload
 from core.events.types_base import Event
 from core.events.types_models_requests import (
     AudioTranscriptionRequestReceived,
@@ -71,6 +72,7 @@ class OrchestratorTaskOutcomesProtocol(Protocol):
         allow_failover: bool = True,
         error_type: ErrorType = ErrorType.SERVER_ERROR,
         reason_is_public: bool = False,
+        public_error: ErrorPublicPayload | None = None,
     ) -> None: ...
 
     async def succeed_task(
@@ -97,6 +99,7 @@ class OrchestratorTaskOutcomesProtocol(Protocol):
         *,
         allow_failover: bool = True,
         error_type: ErrorType = ErrorType.SERVER_ERROR,
+        public_error: ErrorPublicPayload | None = None,
     ) -> None: ...
 
     async def cancel_waiters(
@@ -116,6 +119,7 @@ class FailWaitersCallable(Protocol):
         *,
         allow_failover: bool = True,
         error_type: ErrorType = ErrorType.SERVER_ERROR,
+        public_error: ErrorPublicPayload | None = None,
     ) -> None: ...
 
 

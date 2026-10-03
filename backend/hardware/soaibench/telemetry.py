@@ -153,10 +153,10 @@ def settings_snapshot_from_gpu(gpu: JSONDict) -> JSONDict:
     clock = coerce_json_dict_or_empty(gpu.get("clock"))
     return _compact_snapshot(
         {
-            "power_limit_watts": gpu.get("power_limit_watts"),
-            "fan_speed": gpu.get("fan_speed"),
-            "core_clock_mhz": gpu.get("core_clock_mhz") or clock.get("core_mhz"),
-            "mem_clock_mhz": gpu.get("mem_clock_mhz") or clock.get("memory_mhz"),
+            "power_limit_watts": _numeric(gpu.get("power_limit_watts")),
+            "fan_speed": _numeric(gpu.get("fan_speed")),
+            "core_clock_mhz": _snapshot_clock(gpu.get("core_clock_mhz"), clock.get("core_mhz")),
+            "mem_clock_mhz": _snapshot_clock(gpu.get("mem_clock_mhz"), clock.get("memory_mhz")),
         },
     )
 
@@ -185,6 +185,11 @@ def _compact_snapshot(values: JSONDict) -> JSONDict:
         if _is_present(value):
             snapshot[key] = value
     return snapshot
+
+
+def _snapshot_clock(primary: JSONValue, fallback: JSONValue) -> float | None:
+    primary_clock = _numeric(primary)
+    return primary_clock if primary_clock is not None else _numeric(fallback)
 
 
 def _is_present(value: JSONValue) -> bool:

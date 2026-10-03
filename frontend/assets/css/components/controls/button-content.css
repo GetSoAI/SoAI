@@ -10,19 +10,13 @@
         --ui-button-focus-ring: var(--ui-button-neutral-focus-ring);
         --ui-button-bg: var(--ui-button-neutral-bg);
         --ui-button-bg-hover: var(--ui-button-neutral-bg-hover);
-        --ui-button-reflection: var(--surface-reflection-soft);
         position: relative;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         background-color: var(--ui-button-bg);
-        background-image: var(--ui-button-reflection);
-        background-repeat: no-repeat;
-        background-size: 100% 100%;
         border: var(--border-width-1) solid var(--ui-button-border);
         box-shadow:
-            inset 2px 2px 4px var(--surface-inner-highlight-soft),
-            inset -2px -2px 4px var(--surface-inner-shadow-soft),
             0 2px 4px var(--surface-drop-shadow-soft),
             0 0 0 1px var(--surface-outline-highlight-soft);
         color: var(--ui-button-color);
@@ -66,8 +60,7 @@
     }
 
     .ui-button:hover:not(:disabled, [aria-disabled='true']),
-    .ui-icon-button:is(:hover, :focus-visible):not(:disabled, [aria-disabled='true']) {
-        --ui-button-reflection: var(--surface-reflection-soft-hover);
+    .ui-icon-button:is(:hover, :focus-visible, [data-hover-carried]):not(:disabled, [aria-disabled='true']) {
         background-color: var(--ui-button-bg-hover);
         border-color: var(--ui-button-border-hover);
         color: var(--ui-button-color-hover);
@@ -138,7 +131,7 @@
     .logo-ui-help {
         max-width: 320px;
         max-height: 136px;
-        margin-right: var(--space-4);
+        margin-inline-end: var(--space-4);
     }
 
     .logo[src=''],

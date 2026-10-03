@@ -21,7 +21,7 @@
         gap: var(--space-3);
     }
 
-    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid--access:has(> :nth-child(3)) {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid--access:has(> .wizard-choice-card:nth-child(3)) {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
@@ -212,7 +212,7 @@
 
     @container ui-viewport (width <= 760px) {
         :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid--access,
-        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid--access:has(> :nth-child(3)) {
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-grid--access:has(> .wizard-choice-card:nth-child(3)) {
             grid-template-columns: minmax(0, 1fr);
         }
 

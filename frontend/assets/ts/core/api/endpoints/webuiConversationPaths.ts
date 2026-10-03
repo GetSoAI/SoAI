@@ -40,6 +40,7 @@ interface WebuiConversationPaths {
     messageDelete(id: string): string;
     messageRegenerate(id: string): string;
     messageRegenerationStatus(id: string, clientId?: string, clientRequestId?: string): string;
+    messageRegenerationLatestStatus(id: string): string;
     jsonExport(id: string): string;
     streamStatus(id: string): string;
     streamCancel(id: string): string;
@@ -118,6 +119,7 @@ const createWebuiConversationPaths = (api: ApiClientContext): WebuiConversationP
             if (!clientId || !clientRequestId) return path;
             return `${path}?client_id=${encodeURIComponent(clientId)}&client_request_id=${encodeURIComponent(clientRequestId)}`;
         },
+        messageRegenerationLatestStatus: (id): string => `${base(id)}/messages/regenerate/latest-status`,
         jsonExport: (id): string => `${base(id)}/export/json`,
         streamStatus: (id): string => `${base(id)}/stream-status`,
         streamCancel: (id): string => `${base(id)}/stream/cancel`,

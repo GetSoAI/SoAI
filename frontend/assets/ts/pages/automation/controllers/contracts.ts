@@ -1,7 +1,6 @@
 /* SoAI - Automation page controllers contracts [frontend/assets/ts/pages/automation/controllers/contracts.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { ApiClient } from '@core/api/service.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { PageLifecycle } from '@core/routing/pages/basepage/PageLifecycle.ts';
 import type { PageDom } from '@core/routing/pages/basepagecore/PageDom.ts';
@@ -20,7 +19,6 @@ import type { AutomationInitialSelection, AutomationUiRefs } from '@pages/automa
 interface ControllerRuntimeDependencies {
     ui: AutomationUiRefs;
     storage: StorageService;
-    api: ApiClient;
     dataService: AutomationDataService;
     initialSelection: AutomationInitialSelection | null;
     runActivity: AutomationRunActivityServiceContract;
@@ -38,7 +36,7 @@ interface ControllerRuntimeDependencies {
     runWithBoundary: <T>(operation: string, task: () => Promise<T> | T) => Promise<T>;
 }
 
-interface ControllerDependencies extends Pick<ControllerRuntimeDependencies, 'api' | 'dataService' | 'initialSelection' | 'modalPresenter' | 'runActivity' | 'storage' | 'ui'> {
+interface ControllerDependencies extends Pick<ControllerRuntimeDependencies, 'dataService' | 'initialSelection' | 'modalPresenter' | 'runActivity' | 'storage' | 'ui'> {
     feedback: PageFeedback;
     pageDom: PageDom;
     pageLifecycle: PageLifecycle;

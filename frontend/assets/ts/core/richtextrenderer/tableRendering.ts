@@ -88,9 +88,9 @@ const parseGfmTable = (headerRow: string, separatorRow: string, bodyRows: readon
         if (escapedSortAction !== null) {
             const classAttribute = formatTableCellClass(alignment, 'markdown-table-sortable-header');
             const escapedLabel = options.escapeAttribute(headerCells[columnIndex] ?? '');
-            tableHtml += `<th${classAttribute} scope="col" tabindex="0" aria-sort="none" aria-label="${escapedLabel}" data-tooltip="${escapedLabel}" data-action="${escapedSortAction}" data-sort="${String(columnIndex)}">${cellContent}<span class="sort-indicator" aria-hidden="true"></span></th>`;
+            tableHtml += `<th dir="auto"${classAttribute} scope="col" tabindex="0" aria-sort="none" aria-label="${escapedLabel}" data-tooltip="${escapedLabel}" data-action="${escapedSortAction}" data-sort="${String(columnIndex)}">${cellContent}<span class="sort-indicator" aria-hidden="true"></span></th>`;
         } else {
-            tableHtml += `<th${formatTableCellClass(alignment)}>${cellContent}</th>`;
+            tableHtml += `<th dir="auto"${formatTableCellClass(alignment)}>${cellContent}</th>`;
         }
     }
     tableHtml += '</tr></thead><tbody>';
@@ -100,7 +100,7 @@ const parseGfmTable = (headerRow: string, separatorRow: string, bodyRows: readon
         for (let columnIndex = 0; columnIndex < headerCells.length; columnIndex += 1) {
             const alignment = alignments[columnIndex] ?? null;
             const cellContent = renderInlineText(rowCells[columnIndex] ?? '');
-            tableHtml += `<td${formatTableCellClass(alignment)}>${cellContent}</td>`;
+            tableHtml += `<td dir="auto"${formatTableCellClass(alignment)}>${cellContent}</td>`;
         }
         tableHtml += '</tr>';
     }

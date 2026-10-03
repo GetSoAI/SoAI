@@ -50,6 +50,10 @@ const createPluginsModalManagers = (dependencies: PluginsModalManagersDependenci
             sanitizeHtml: (value: string): string => foundation.security.escapeHtml(value),
             isAdmin: operations.isAdmin,
             setLocationHash: operations.setLocationHash
+        },
+        timing: {
+            setTimer: callbacks.setTimeout,
+            clearTimer: callbacks.clearTimer
         }
     };
 

@@ -43,8 +43,14 @@ const resolveRecordingStatus = (snapshot: AudioRecordingSnapshot): string => {
     if (snapshot.errorText) {
         return snapshot.errorText;
     }
+    if (snapshot.presentation === 'ptt-release-to-send') return i18n.t('chat.audioPreview.pushToTalk.releaseToSend');
+    if (snapshot.presentation === 'ptt-release-to-cancel') return i18n.t('chat.audioPreview.pushToTalk.releaseToCancel');
+    if (snapshot.presentation === 'ptt-review') return i18n.t('chat.audioPreview.pushToTalk.transcriptReview');
+    if (snapshot.presentation === 'ptt-sending') return i18n.t('chat.audioPreview.pushToTalk.sending');
+    if (snapshot.presentation === 'ptt-queued') return i18n.t('chat.audioPreview.pushToTalk.queued');
+    if (snapshot.presentation === 'ptt-cancelled') return i18n.t('chat.audioPreview.pushToTalk.cancelled');
     if (snapshot.state === 'processing') {
-        return i18n.t('chat.audioPreview.processingStatus');
+        return snapshot.intent === 'push-to-talk' ? i18n.t('chat.audioPreview.pushToTalk.transcribing') : i18n.t('chat.audioPreview.processingStatus');
     }
     if (snapshot.state === 'requesting') {
         return i18n.t('chat.audioPreview.requestingStatus');
@@ -59,7 +65,7 @@ const renderAudioRecordingPreviewShell = (context: ChatUIManagerContext): Truste
     return uiHtml`<div class="file-preview-item document voice-recording-preview-item glass-surface-light glass-surface--bordered glass-surface--rounded">
         <span class="file-preview-leading-icon voice-recording-preview-icon" aria-hidden="true">${icon}</span>
         <div class="file-info voice-recording-preview-copy">
-            <span class="file-name voice-recording-preview-title"></span>
+            <span dir="auto" class="file-name voice-recording-preview-title"></span>
             <span class="file-status voice-recording-preview-status"><span class="loading-spinner voice-recording-preview-spinner u-hidden" aria-hidden="true"></span><span class="voice-recording-preview-status-text"></span></span>
         </div>
         <button type="button" class="remove-file-btn voice-recording-preview-cancel" data-action="${uiAttr(CHAT_ACTIONS.CANCEL_RECORDING)}" aria-label="${uiAttr(actionLabel)}" data-tooltip="${uiAttr(actionLabel)}">${actionIcon}</button>
@@ -78,7 +84,7 @@ const updateAudioRecordingPreview = (context: ChatUIManagerContext, snapshot: Au
     if (!preview) {
         return;
     }
-    if (snapshot.state === 'idle' && !snapshot.errorText) {
+    if (snapshot.state === 'idle' && !snapshot.errorText && snapshot.presentation === 'default') {
         context.dependencies.updateHTML(preview, '');
         setElementVisibility(context, 'voiceRecordingPreview', false);
         return;
@@ -89,7 +95,7 @@ const updateAudioRecordingPreview = (context: ChatUIManagerContext, snapshot: Au
     syncTextContent(requireRootHTMLElement(preview, PREVIEW_TITLE_SELECTOR, 'voice recording preview title'), resolveRecordingTitle(snapshot));
     syncTextContent(requireRootHTMLElement(preview, PREVIEW_STATUS_SELECTOR, 'voice recording preview status'), resolveRecordingStatus(snapshot));
     const spinner = requireRootHTMLElement(preview, PREVIEW_SPINNER_SELECTOR, 'voice recording preview spinner');
-    const spinnerVisible = snapshot.state === 'processing' || snapshot.state === 'requesting';
+    const spinnerVisible = snapshot.state === 'processing' || snapshot.state === 'requesting' || snapshot.presentation === 'ptt-sending';
     const shouldHideSpinner = !spinnerVisible;
     if (spinner.classList.contains(CSS_CLASSES.HIDDEN) !== shouldHideSpinner) {
         context.dependencies.toggleClassName(spinner, CSS_CLASSES.HIDDEN, shouldHideSpinner);
@@ -98,6 +104,7 @@ const updateAudioRecordingPreview = (context: ChatUIManagerContext, snapshot: Au
     const cancelButton = requireRootHTMLElement(preview, PREVIEW_CANCEL_SELECTOR, 'voice recording preview cancel button');
     syncAttributeValue(cancelButton, 'aria-label', actionLabelAttr);
     syncAttributeValue(cancelButton, 'data-tooltip', actionLabelAttr);
+    cancelButton.toggleAttribute('disabled', !snapshot.canCancel && !snapshot.errorText);
     if (preview.classList.contains(CSS_CLASSES.HIDDEN) || preview.getAttribute('aria-hidden') !== 'false') {
         setElementVisibility(context, 'voiceRecordingPreview', true);
     }

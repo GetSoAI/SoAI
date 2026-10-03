@@ -59,6 +59,7 @@ const initializeAuthManager = async (state: AuthManagerStateHandle, resolveApi: 
             await clearSession(state, resolveStorage);
             return false;
         }
+        if (!state.isAuthenticated) throw err;
         errorHandler.warn(AUTH_TAG, 'Initialization failed', err);
     }
     return undefined;

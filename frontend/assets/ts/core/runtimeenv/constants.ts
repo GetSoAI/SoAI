@@ -4,6 +4,7 @@
 import { LOGS_CORE } from '@core/realtime/streammanager/resources/ids.ts';
 
 export const LOG_TAG_DETACHED = 'DetachedCoordinator';
+export const DETACHED_CONTEXT_TIMEOUT_MS = 30000;
 export const SYSTEM_LOGS_CORE_STREAM: string = LOGS_CORE;
 
 export const VALID_HOST_ID_PATTERN = /^[\w\-.:/]+$/;

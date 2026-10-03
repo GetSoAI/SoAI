@@ -3,11 +3,15 @@
 
 from __future__ import annotations
 
+import html
+from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
+from ipaddress import ip_address
 from typing import override
 
 from app.lifecycle.discovery_validation import resolve_discovery_cors_origin
 from core.licensing.types import Edition
+from core.logging.trace import get_logger
 from core.meta.instance_identity import InstanceIdentity, build_instance_identity_payload
 from core.runtime.api_endpoint import RuntimeApiEndpoint
 from core.serialization.json import serialize_json_compact_stable_strict
@@ -19,6 +23,17 @@ __all__ = (
     "build_port_discovery_handler",
 )
 
+LOGGER_NAME = "SoAI.app.lifecycle.port_discovery_handler"
+
+
+def _is_tls_client_hello(request_line: bytes) -> bool:
+    if len(request_line) < 6 or request_line[0] != 0x16 or request_line[1] != 0x03:
+        return False
+    record_length = int.from_bytes(request_line[3:5], "big")
+    return (
+        0x01 <= request_line[2] <= 0x04 and 0 < record_length <= 16384 and request_line[5] == 0x01
+    )
+
 
 class PortDiscoveryHandler(BaseHTTPRequestHandler):
     main_api_port: int = 5090
@@ -27,6 +42,7 @@ class PortDiscoveryHandler(BaseHTTPRequestHandler):
     edition: Edition = "soai-core"
     instance_identity: InstanceIdentity = InstanceIdentity(instance_id="", instance_name=None)
     close_connection: bool = False
+    raw_requestline: bytes = b""
 
     @override
     def version_string(self) -> str:
@@ -74,6 +90,44 @@ class PortDiscoveryHandler(BaseHTTPRequestHandler):
     @override
     def log_request(self, code: int | str = "-", size: int | str = "-") -> None:
         return
+
+    @override
+    def send_error(
+        self,
+        code: int,
+        message: str | None = None,
+        explain: str | None = None,
+    ) -> None:
+        if code != HTTPStatus.BAD_REQUEST or not self._is_loopback_tls_client_hello():
+            super().send_error(code, message, explain)
+            return
+        get_logger(LOGGER_NAME).debug(
+            "Probable TLS ClientHello sent to plaintext discovery listener from loopback peer."
+        )
+        short_message, long_message = self.responses[code]
+        reason = short_message if message is None else message
+        body = (
+            self.error_message_format
+            % {
+                "code": code,
+                "message": html.escape(reason, quote=False),
+                "explain": html.escape(long_message if explain is None else explain, quote=False),
+            }
+        ).encode("UTF-8", "replace")
+        self.send_response(code, reason)
+        self.send_header("Connection", "close")
+        self.send_header("Content-Type", self.error_content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    def _is_loopback_tls_client_hello(self) -> bool:
+        try:
+            loopback_peer = ip_address(self.client_address[0]).is_loopback
+        except ValueError:
+            loopback_peer = False
+        return loopback_peer and _is_tls_client_hello(self.raw_requestline)
 
 
 def build_port_discovery_handler(

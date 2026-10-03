@@ -63,7 +63,8 @@ const buildPluginSnapshotSignature = (plugins: PluginEntry[], context: PluginUpd
             const name = toTrimmedStringOrNull(plugin.name) || '';
             const displayName = toTrimmedStringOrNull(plugin.displayName) || '';
             const identifier = toTrimmedStringOrNull(plugin.identifier) || '';
-            return `${key}|${state}|${name}|${displayName}|${identifier}`;
+            const pluginName = toTrimmedStringOrNull(plugin.plugin) || '';
+            return `${key}|${state}|${name}|${displayName}|${identifier}|${pluginName}|${plugin.isPersistent === true ? '1' : '0'}`;
         })
         .filter((signature) => signature)
         .sort((left, right) => left.localeCompare(right, 'en'))

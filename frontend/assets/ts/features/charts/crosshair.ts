@@ -4,7 +4,10 @@
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import type { CrosshairUpdatePayload } from '@features/charts/types.ts';
 import { isOhlcChartType } from '@features/charts/chartTypeNormalization.ts';
+import { resolveVisibleSegmentIndexRange } from '@features/charts/component/data/visibleRange.ts';
 import type { ChartInteractionScene } from '@features/charts/interaction/chartInteractionScene.ts';
+import { isMissingSampleInterval } from '@features/charts/rendering/series/sampleGaps.ts';
+import { timeToX, xToTime } from '@features/charts/viewport/timeViewport.ts';
 
 const isOverYAxis = (chart: ChartInteractionScene, xCoordinate: number, yCoordinate: number): boolean => {
     const { top, right, chartHeight } = chart.viewport.getChartDimensions();
@@ -32,62 +35,50 @@ const findNearestValidIndex = (chart: ChartInteractionScene, startIndex: number,
     return -1;
 };
 
-const updateCrosshair = (chart: ChartInteractionScene, mouseX: number): void => {
+const resolveRawIndex = (chart: ChartInteractionScene, targetTs: number): number => {
+    const rightIndex = chart.data.findFirstTimestamp(targetTs);
+    const leftIndex = chart.data.findLastTimestamp(targetTs);
+    if (rightIndex === -1 || leftIndex === -1 || rightIndex === leftIndex) return rightIndex !== -1 ? rightIndex : leftIndex;
+    const leftTs = chart.data.timestamps[leftIndex] ?? Number.NaN;
+    const rightTs = chart.data.timestamps[rightIndex] ?? Number.NaN;
+    return Number.isFinite(leftTs) && Number.isFinite(rightTs) && rightTs !== leftTs ? leftIndex + clampNumber((targetTs - leftTs) / (rightTs - leftTs), 0, 1) : rightIndex;
+};
+
+const applyCrosshairAt = (chart: ChartInteractionScene, mouseX: number): boolean => {
     const dims = chart.viewport.getChartDimensions();
-    const { chartWidth, left } = dims;
     const viewport = chart.geometry.valueViewport();
     const ch = viewport ? viewport.height : dims.chartHeight;
     const top = viewport ? viewport.top : dims.top;
-    const { displayCount: dc, offsetFraction: of, start } = chart.viewportState.visibleRange;
-
-    if (chartWidth <= 0 || dc <= 0 || chart.data.dataLength === 0) return;
-
-    const geo = chart.geometry.renderGeometry(dims);
-    const span = Math.max(0, dc - 1);
-    const rightBoundary = Number.isFinite(geo.rightBoundary) ? geo.rightBoundary : left + chartWidth;
-    const clampedX = clampNumber(mouseX, left, rightBoundary);
-    const spacing = Number.isFinite(geo.spacing) && geo.spacing > 0 ? geo.spacing : span > 0 ? chartWidth / Math.max(1, span) : chartWidth;
-    const baseLeft = Number.isFinite(geo.baseLeft) ? geo.baseLeft : left;
-    const originX = baseLeft - spacing * of;
-
-    let rawIndex;
-    const tw = geo.timeWindow ?? null;
-    const effectiveWidth = Number.isFinite(geo.effectiveWidth) && geo.effectiveWidth > 0 ? geo.effectiveWidth : chartWidth;
-    if (tw && Number.isFinite(tw.startTs) && Number.isFinite(tw.span) && tw.span > 0 && effectiveWidth > 0) {
-        const rel = clampNumber((clampedX - baseLeft) / effectiveWidth, 0, 1);
-        const targetTs = tw.startTs + rel * tw.span;
-        const rIndex = chart.data.findFirstTimestamp(targetTs);
-        const lIndex = chart.data.findLastTimestamp(targetTs);
-
-        if (rIndex === -1 && lIndex === -1) return;
-        if (rIndex !== -1 && lIndex !== -1 && rIndex !== lIndex) {
-            const lt = chart.data.timestamps[lIndex];
-            const rt = chart.data.timestamps[rIndex];
-            if (lt !== undefined && rt !== undefined && Number.isFinite(lt) && Number.isFinite(rt) && rt !== lt) {
-                rawIndex = lIndex + clampNumber((targetTs - lt) / (rt - lt), 0, 1);
-            } else rawIndex = rIndex;
-        } else rawIndex = rIndex !== -1 ? rIndex : lIndex;
-    } else {
-        rawIndex = span > 0 && spacing > 0 ? start + (clampedX - originX) / spacing : start;
+    const visibleRange = chart.viewportState.visibleRange;
+    const geometry = chart.geometry.renderGeometry(dims);
+    if (!geometry || chart.data.dataLength === 0) {
+        hideCrosshair(chart);
+        return false;
     }
-
-    const rangeEnd = Math.min(chart.data.dataLength, start + dc);
-    if (!Number.isFinite(rawIndex) || rangeEnd <= start) return;
-
-    const clampedRaw = clampNumber(rawIndex, start, rangeEnd - 1);
     const rawChartType = chart.configuration.options.chartType;
     const chartType = typeof rawChartType === 'string' ? rawChartType : '';
     const wantsOhlc = chart.data.isOhlcType(chartType || undefined) || isOhlcChartType(chartType);
     const useDiscrete = chart.configuration.options.enableMagnetMode || !!(wantsOhlc ? chart.data.renderableOhlc() : null);
+    const indexRange = useDiscrete ? { from: visibleRange.start, to: visibleRange.end } : resolveVisibleSegmentIndexRange(visibleRange, chart.data.dataLength);
+    const { from: start, to: rangeEnd } = indexRange;
+    if (rangeEnd <= start) {
+        hideCrosshair(chart);
+        return false;
+    }
+    const rawIndex = resolveRawIndex(chart, xToTime(geometry, clampNumber(mouseX, dims.left, dims.right)));
+    if (!Number.isFinite(rawIndex) || rawIndex < 0) return false;
+
+    const clampedRaw = clampNumber(rawIndex, start, rangeEnd - 1);
 
     let update: CrosshairUpdatePayload;
+    let gap = false;
     if (useDiscrete) {
         const nearest = findNearestValidIndex(chart, Math.round(clampedRaw), start, rangeEnd);
-        if (nearest === -1) return;
+        if (nearest === -1) return false;
         const nearestValue = chart.data.closeValue(nearest);
         const nearestTimestamp = chart.data.timestamps[nearest];
         update = {
-            x: chart.geometry.xForVisibleIndex(nearest - start),
+            x: timeToX(geometry, nearestTimestamp ?? Number.NaN),
             dataIndex: nearest,
             rawIndex: nearest,
             value: nearestValue !== undefined ? nearestValue : null,
@@ -99,9 +90,11 @@ const updateCrosshair = (chart: ChartInteractionScene, mouseX: number): void => 
         };
     } else {
         const { value, timestamp } = chart.data.interpolate(clampedRaw, start, rangeEnd);
-        if (!Number.isFinite(value)) return;
+        if (!Number.isFinite(value) || timestamp === null) return false;
+        const leftIndex = Math.floor(clampedRaw);
+        gap = clampedRaw > leftIndex && isMissingSampleInterval(chart.data.timestamps[leftIndex] ?? Number.NaN, chart.data.timestamps[leftIndex + 1] ?? Number.NaN, chart.configuration.options.expectedSampleIntervalMs);
         update = {
-            x: clampedX,
+            x: timeToX(geometry, timestamp),
             dataIndex: Math.round(clampedRaw),
             rawIndex: clampedRaw,
             value,
@@ -114,14 +107,14 @@ const updateCrosshair = (chart: ChartInteractionScene, mouseX: number): void => 
     }
 
     if (chart.configuration.options.scaleType === 'logarithmic') {
-        if (!update.value || !(update.value > 0)) return;
+        if (!update.value || !(update.value > 0)) return false;
         if (chart.data.hasOhlc() && update.dataIndex !== null) {
             const ohlc = chart.data.ohlcAt(clampNumber(update.dataIndex, 0, chart.data.dataLength - 1), chart.data.ohlcScratch);
             const ohlcOpen = ohlc.open;
             const ohlcHigh = ohlc.high;
             const ohlcLow = ohlc.low;
             const ohlcClose = ohlc.close;
-            if (!(ohlcOpen && ohlcOpen > 0 && ohlcHigh && ohlcHigh > 0 && ohlcLow && ohlcLow > 0 && ohlcClose && ohlcClose > 0)) return;
+            if (!(ohlcOpen && ohlcOpen > 0 && ohlcHigh && ohlcHigh > 0 && ohlcLow && ohlcLow > 0 && ohlcClose && ohlcClose > 0)) return false;
         }
     }
 
@@ -158,16 +151,29 @@ const updateCrosshair = (chart: ChartInteractionScene, mouseX: number): void => 
         high: ohlcHigh,
         low: ohlcLow,
         close: ohlcClose,
-        datasetValues: update.datasetValues ?? null
+        datasetValues: update.datasetValues ?? null,
+        gap
     };
     chart.effects.emit('datapointHover', { ...chart.interaction.crosshair });
-    chart.effects.requestRedraw();
+    return true;
+};
+
+const updateCrosshair = (chart: ChartInteractionScene, mouseX: number): void => {
+    chart.interaction.pointer.hoverX = mouseX;
+    if (applyCrosshairAt(chart, mouseX)) chart.effects.requestRedraw();
+};
+
+const refreshCrosshair = (chart: ChartInteractionScene): void => {
+    const hoverX = chart.interaction.pointer.hoverX;
+    if (hoverX === null || !chart.interaction.crosshair.visible) return;
+    if (applyCrosshairAt(chart, hoverX)) chart.effects.requestRedraw({ interaction: true });
 };
 
 const hideCrosshair = (chart: ChartInteractionScene): void => {
+    chart.interaction.pointer.hoverX = null;
     if (!chart.interaction.crosshair.visible) return;
-    Object.assign(chart.interaction.crosshair, { visible: false, open: null, high: null, low: null, close: null });
+    Object.assign(chart.interaction.crosshair, { visible: false, open: null, high: null, low: null, close: null, gap: false });
     chart.effects.requestRedraw();
 };
 
-export { hideCrosshair, isOverChartArea, isOverXAxis, isOverYAxis, updateCrosshair };
+export { hideCrosshair, isOverChartArea, isOverXAxis, isOverYAxis, refreshCrosshair, updateCrosshair };

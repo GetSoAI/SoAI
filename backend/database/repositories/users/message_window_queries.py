@@ -16,6 +16,7 @@ from core.validation.epoch import require_unix_epoch_ms
 from core.validation.integers import is_strict_int
 from core.validation.requirements import require_non_negative_int
 from database.core.query_execution import query_one_to_dict
+from database.core.read_transaction import run_read_transaction
 from database.core.sqlite_values import SQLiteValue
 from database.repositories.users.message_row_mapping import (
     build_message_payload_from_row,
@@ -26,7 +27,6 @@ from database.repositories.users.message_window_assistant_details import (
 from database.repositories.users.message_window_row_selection import (
     load_window_message_rows,
 )
-from database.repositories.users.read_transactions import run_user_read_transaction
 
 if TYPE_CHECKING:
     from core.conversations.conversation_message_window import (
@@ -185,4 +185,4 @@ async def load_conversation_message_window(
             anchor_id=anchor_id,
         )
 
-    return await run_user_read_transaction(database, _transaction)
+    return await run_read_transaction(database, _transaction)

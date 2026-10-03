@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "Jetzt"
+                "now": "Jetzt",
+                "occurrenceLabel": "{title}, {date} {time}, {status}",
+                "createAt": "Automation am {date} um {time} erstellen. Mit den Pfeiltasten ändern Sie die Uhrzeit."
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "Start",
                     "turns": "Schritte",
                     "timezone": "Zeitzone",
-                    "title": "Titel"
+                    "title": "Titel",
+                    "modelSettings": "Modell, Werkzeuge und Parameter"
                 },
                 "workspace": {
                     "button": "Ordner auswählen",
                     "description": "Wählen Sie den Ordner aus, der für diese Automationsausführung verwendet wird. Wiederkehrende Ausführungen behalten diesen Automationsordner bei.",
                     "fieldLabel": "Workspace-Ordner",
-                    "title": "Workspace-Ordner der Automation"
+                    "title": "Workspace-Ordner der Automation",
+                    "viewButton": "Arbeitsbereich ansehen"
                 },
                 "parameters": {
                     "button": "Parameter bearbeiten",
@@ -166,17 +170,17 @@
                     "fieldLabel": "Modellparameter",
                     "summaryCustom": "Benutzerdefinierte Automationsparameter",
                     "summaryDefault": "Standard-Modellparameter",
-                    "title": "Modellparameter der Automation"
+                    "title": "Modellparameter der Automation",
+                    "viewButton": "Parameter anzeigen"
                 },
                 "timezone": {
-                    "auto": "Automatisch"
+                    "autoWithZone": "Automatisch ({timezone})"
                 },
                 "placeholders": {
                     "assistantTurn": "Modellantwort",
                     "endOfAutomation": "Ende der Automation",
                     "model": "Modell auswählen",
                     "turn": "Nachricht eingeben",
-                    "turnIndexed": "Nachricht {index} eingeben",
                     "title": "Titel eingeben"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "Speichern",
                 "validation": {
                     "maxRunMinutesInvalid": "Die maximale Ausführungsdauer muss zwischen 1 und 1440 Minuten liegen.",
-                    "modelUnavailable": "Das ausgewählte Modell ist nicht verfügbar.",
+                    "modelUnavailable": "{model} ist nicht verfügbar. Wählen Sie ein anderes Modell.",
                     "modelRequired": "Ein Modell ist erforderlich.",
                     "recurrenceInvalid": "Die Wiederholung ist ungültig.",
                     "startInvalid": "Startdatum und -zeit sind ungültig.",
@@ -195,7 +199,42 @@
                     "turnsRequired": "Alle Schritte sind erforderlich.",
                     "tooManyTurns": "Zu viele Schritte (maximal {max}). Jeder Schritt wird als ein Agent-Schritt ausgeführt.",
                     "timezoneRequired": "Eine Zeitzone ist erforderlich.",
-                    "titleRequired": "Ein Titel ist erforderlich."
+                    "titleRequired": "Ein Titel ist erforderlich.",
+                    "modelDisabled": "{model} ist deaktiviert. Aktivieren Sie es oder wählen Sie ein anderes Modell.",
+                    "modelMissing": "{model} ist nicht mehr installiert. Wählen Sie ein anderes Modell.",
+                    "modelUnsupported": "{model} unterstützt keinen Chat. Wählen Sie ein anderes Modell.",
+                    "summary": "Korrigieren Sie vor dem Speichern {count} Feld(er).",
+                    "toolsRequired": "Für die Ausführung müssen Werkzeuge aktiviert und todo_write ausgewählt sein.",
+                    "timezoneInvalid": "Die Zeitzone ist ungültig. Wählen Sie eine unterstützte Zeitzone."
+                },
+                "conflict": {
+                    "message": "Diese Automation wurde an anderer Stelle geändert, während Sie sie bearbeitet haben. Ihre Änderungen wurden nicht gespeichert.",
+                    "remoteChanges": "An anderer Stelle geändert: {fields}",
+                    "localChanges": "Ihre Änderungen: {fields}",
+                    "keepChanges": "Meine Änderungen behalten",
+                    "loadLatest": "Neueste Version laden"
+                },
+                "modelStatus": {
+                    "unavailable": "Nicht verfügbar",
+                    "unsupported": "Keine Chat-Unterstützung"
+                },
+                "prerequisites": {
+                    "failed": "Der Editor konnte nicht alle benötigten Daten laden.",
+                    "missing": "Diese Automation existiert nicht mehr.",
+                    "toolsUnavailable": "Werkzeuge konnten nicht geladen werden. Bestehende Werkzeugauswahlen bleiben erhalten.",
+                    "childFailed": "Die Einstellungen konnten nicht geöffnet werden. Versuchen Sie es erneut."
+                },
+                "schedule": {
+                    "ambiguous": "{start} kommt in {timezone} wegen einer Zeitumstellung zweimal vor. Das erste Vorkommen wird verwendet.",
+                    "shiftedForward": "{start} existiert in {timezone} wegen einer Zeitumstellung nicht. Die Ausführung erfolgt stattdessen um {effective}.",
+                    "disabled": "Deaktiviert: Es werden keine Ausführungen geplant.",
+                    "nextRun": "Nächste Ausführung: {when} ({timezone})",
+                    "nextRunLocal": "Nächste Ausführung: {when} ({timezone}), {localWhen} Ihre Zeit",
+                    "unavailable": "Die Zeitplanvorschau ist nicht verfügbar."
+                },
+                "turns": {
+                    "label": "Schritt {index}",
+                    "remove": "Schritt {index} entfernen"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "Automationseinstellungen auf Standardwerte zurückgesetzt.",
                 "runOpenFailed": "Die angeforderte Automationsausführung konnte nicht geöffnet werden.",
                 "runUnavailable": "Die angeforderte Automationsausführung ist in dieser Ansicht nicht mehr verfügbar.",
-                "updated": "Automation aktualisiert."
+                "updated": "Automation aktualisiert.",
+                "changeRefreshFailed": "Die Änderung wurde übernommen, aber die Ansicht konnte nicht aktualisiert werden.",
+                "conflict": "Diese Automation wurde an anderer Stelle geändert. Prüfen Sie die Änderungen, bevor Sie erneut speichern.",
+                "defaultsNotRemembered": "Gespeichert, aber diese Einstellungen konnten für neue Automationen nicht gemerkt werden.",
+                "missingOnSave": "Diese Automation existiert nicht mehr. Sie wurde möglicherweise an anderer Stelle gelöscht."
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "Heute",
                         "yesterday": "Gestern"
                     },
-                    "turnsCount": "Schritte: {count}",
                     "title": "Ausführungen",
                     "toolbar": {
                         "batchDelete": "Ausgewählte Ausführungen löschen",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "{count} Ausführung(en) löschen? Laufende Ausführungen werden gestoppt.",
-                        "deleteTitle": "Ausführungen löschen?"
+                        "deleteTitle": "Ausführungen löschen?",
+                        "skipTitle": "Vorkommen überspringen?",
+                        "skipMessage": "{title} wird zu diesem Zeitpunkt nicht ausgeführt. Andere Vorkommen sind nicht betroffen.",
+                        "skipConfirm": "Überspringen",
+                        "stopTitle": "Ausführung stoppen?",
+                        "stopMessage": "{title} wird gerade ausgeführt. Die Ausführung wird gestoppt und aus dem Kalender entfernt.",
+                        "stopConfirm": "Stoppen",
+                        "removeTitle": "Vorkommen entfernen?",
+                        "removeMessage": "{title} wird aus dem Kalender entfernt.",
+                        "removeConfirm": "Entfernen"
                     },
                     "notifications": {
-                        "deleteSuccess": "{count} Ausführung(en) gelöscht."
-                    }
+                        "deleteSuccess": "{count} Ausführung(en) gelöscht.",
+                        "nothingToDelete": "Die ausgewählten Vorkommen sind nicht mehr in dieser Ansicht.",
+                        "tooManySelected": "Wählen Sie höchstens {max} Vorkommen gleichzeitig aus."
+                    },
+                    "occurrencesCount": "Vorkommen: {count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "Zurück",
                 "showCalendar": "Kalender",
                 "showRegistry": "Bereich",
-                "today": "Heute"
+                "today": "Heute",
+                "staleData": "Veraltet",
+                "staleDataSince": "Die Automationsdaten sind möglicherweise veraltet. Zuletzt aktualisiert: {time}. Zum erneuten Versuch auswählen.",
+                "resizePanes": "Größe von Kalender und Seitenbereich ändern"
             },
             "views": {
                 "day": "Tag",
@@ -300,6 +357,7 @@
                     "bar": "Balken",
                     "candlestick": "OHLC",
                     "deviation": "Abweichung",
+                    "heikin-ashi": "Heikin-Ashi",
                     "label": "Diagrammtyp",
                     "line": "Linie",
                     "precision-line": "Linie"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "Min.: ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "Keine Daten · SoAI offline",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "Echtzeit ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "Der Verlauf konnte nicht geladen werden.",
             "loadingState": "Wird geladen",
             "manualScaleLabel": "MANUELL"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "SoAI-Links anhängen",
                 "tabBrowse": "Arbeitsbereich",
                 "tabCamera": "Scannen",
+                "tabDisabledReason": "{setting} unter Chat-Konfiguration › {tab} aktivieren",
                 "tabKnowledge": "Wissen",
                 "tabSoaiLink": "SoAI-Link",
                 "tabUpload": "Hochladen",
@@ -559,7 +620,16 @@
                 "recordingStatus": "Aufnahme {elapsed}",
                 "recordingTitle": "Sprachaufnahme",
                 "requestingStatus": "Warten auf Browserberechtigung",
-                "requestingTitle": "Mikrofon wird angefordert"
+                "requestingTitle": "Mikrofon wird angefordert",
+                "pushToTalk": {
+                    "cancelled": "Aufnahme abgebrochen.",
+                    "queued": "In die Warteschlange gestellt.",
+                    "releaseToCancel": "Zum Abbrechen loslassen",
+                    "releaseToSend": "Zum Senden loslassen · Zum Abbrechen nach links schieben",
+                    "sending": "Wird gesendet…",
+                    "transcribing": "Wird transkribiert…",
+                    "transcriptReview": "Transkript hinzugefügt. Prüfe den aktualisierten Entwurf vor dem Senden."
+                }
             },
             "authorityLock": {
                 "automationReason": "Dies ist eine Automationsunterhaltung. Ändern Sie ihre Ausführungseinstellungen unter Automationen → Automation bearbeiten.",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "Hochladen",
                 "assistantAvatarUploadLabel": "Assistenten-Avatar hochladen",
                 "assistantNamePlaceholder": "Benutzerdefinierten Modellnamen eingeben...",
+                "autoHideChatComposer": "Chat-Eingabefeld automatisch ausblenden",
+                "autoHideChatComposerHint": "Blendet das leere Chat-Eingabefeld beim Lesen früherer Nachrichten aus",
+                "autoHideChatHeader": "Chat-Kopfzeile automatisch ausblenden",
+                "autoHideChatHeaderHint": "Blendet die Kopfzeile der Unterhaltung beim Lesen früherer Nachrichten aus",
                 "identityNameInvalid": "Anzeigenamen dürfen höchstens 50 Unicode-Zeichen und keinen ungültigen Text enthalten.",
                 "promptInvalid": "Der Prompt enthält ungültigen Unicode-Text.",
                 "close": "Schließen",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "Der Tool-Zugriff kann während der laufenden Unterhaltung nicht geändert werden",
                     "toolsEnabledHint": "MCP-Tools für diese Unterhaltung aktivieren. Neue Chats starten mit dem zuletzt gespeicherten Wert",
                     "tool_approval_required": "Tool-Genehmigung erforderlich",
-                    "toolApprovalRequiredHint": "Vor der Ausführung destruktiver Tools um Bestätigung bitten"
+                    "toolApprovalRequiredHint": "Vor der Ausführung destruktiver Tools um Bestätigung bitten",
+                    "unavailableTools": "Nicht verfügbare gespeicherte Werkzeuge: {tools}. Die Auswahl bleibt erhalten.",
+                    "unavailableServers": "Nicht verfügbare gespeicherte Server: {servers}. Die Einstellungen bleiben erhalten."
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "Überschreibt die Kontextlänge für diese Funktion. Leer lassen, um den Standard des ausgewählten Modells zu verwenden",
@@ -1035,7 +1111,8 @@
                 "newTitle": "Neue Unterhaltung",
                 "renameFailed": "Unterhaltung konnte nicht umbenannt werden.",
                 "switchFailed": "Unterhaltung konnte nicht gewechselt werden.",
-                "untitled": "Ohne Titel"
+                "untitled": "Ohne Titel",
+                "titleRequired": "Ein Gesprächstitel ist erforderlich."
             },
             "detached": {
                 "windowTitle": "Chat (separat)"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "Erfordert HTTPS"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "Gedrückt halten, um Parameter zu öffnen und die Kontextlänge anzuzeigen",
+                "presetsHint": "Gedrückt halten, um Voreinstellungen zu öffnen",
+                "pushToTalkHint": "Zum Sprechen gedrückt halten",
+                "toolsHint": "Gedrückt halten, um die Tool-Einstellungen zu öffnen",
+                "toolsRestrictedHint": "{reason}. Gedrückt halten, um die Tool-Einstellungen zu öffnen",
+                "toolsToggleHint": "{action}. Gedrückt halten, um die Tool-Einstellungen zu öffnen"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "In Warteschlange",
@@ -1286,7 +1371,8 @@
                     "running": "Wird ausgeführt",
                     "inputRequired": "Aktion erforderlich"
                 },
-                "attachmentsCount": "(+{count} Anhänge)"
+                "attachmentsCount": "(+{count} Anhänge)",
+                "open": "Prompt öffnen: {prompt}"
             },
             "loading": {
                 "errorType": "Fehlertyp",
@@ -1337,7 +1423,9 @@
                     },
                     "save": "Speichern",
                     "skip": "Überspringen",
-                    "title": "Helfen Sie SoAI, Sie kennenzulernen"
+                    "title": "Helfen Sie SoAI, Sie kennenzulernen",
+                    "loadFailed": "Ihr gespeichertes Profil konnte nicht geladen werden. Das Speichern ist pausiert, damit nichts überschrieben wird.",
+                    "retry": "Erneut versuchen"
                 },
                 "viewer": {
                     "none": "Keine",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "gestern",
                 "toolCall": "Tool-Aufruf",
                 "waiting": "Warten...",
-                "you": "Sie"
+                "you": "Sie",
+                "timestampWithTime": "{label}, {time}"
             },
             "modelControl": {
                 "compareModels": "Modelle vergleichen",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "Mehrere Modelle tragen den Namen \"{model}\". Wählen Sie in der Seitenleiste ein bestimmtes Modell aus.",
                 "available": "(Verfügbar)",
-                "loaded": "(Geladen)"
+                "loaded": "(Geladen)",
+                "unavailable": "(Nicht verfügbar)"
             },
             "news": {
                 "articleCount": "{count} Artikel",
@@ -1470,10 +1560,52 @@
                 "cleared": "Prompt-Verlauf gelöscht.",
                 "loadFailed": "Prompt-Verlauf konnte nicht geladen werden."
             },
+            "sketch": {
+                "open": "Skizze öffnen",
+                "mobileOption": "Skizze",
+                "preference": "Skizze",
+                "preferenceHint": "Skizzenblock im Chat-Eingabefeld anzeigen, um ein Bild zu zeichnen und an deine Nachricht anzuhängen",
+                "title": "Skizze",
+                "description": "Zeichne mit Maus, Stift oder Finger und hänge die Zeichnung dann als Bild an deine Nachricht an",
+                "canvasLabel": "Zeichenfläche",
+                "toolsLabel": "Zeichenwerkzeuge",
+                "tools": {
+                    "pen": "Stift",
+                    "brush": "Pinsel",
+                    "highlighter": "Textmarker",
+                    "eraser": "Radierer",
+                    "line": "Linie",
+                    "rectangle": "Rechteck",
+                    "ellipse": "Ellipse"
+                },
+                "colorsLabel": "Farben",
+                "colors": {
+                    "black": "Schwarz",
+                    "grey": "Grau",
+                    "red": "Rot",
+                    "orange": "Orange",
+                    "yellow": "Gelb",
+                    "green": "Grün",
+                    "teal": "Türkis",
+                    "blue": "Blau",
+                    "purple": "Lila",
+                    "brown": "Braun"
+                },
+                "customColor": "Eigene Farbe",
+                "size": "Größe",
+                "undo": "Rückgängig",
+                "redo": "Wiederholen",
+                "clear": "Leeren",
+                "resize": "Zeichenfläche skalieren",
+                "attach": "Anhängen",
+                "discardConfirm": "Diese Skizze verwerfen?",
+                "discard": "Verwerfen",
+                "exportFailed": "Die Skizze konnte nicht exportiert werden. Bitte versuche es erneut."
+            },
             "characterMap": {
                 "allEmoji": "Alle Emojis",
                 "allUnicode": "Gesamtes Unicode",
-                "description": "Unicode-Zeichen und Emojis durchsuchen, eine Folge zusammenstellen und anschließend kopieren oder in die Nachricht einfügen.",
+                "description": "Unicode-Zeichen und Emojis durchsuchen, eine Folge zusammenstellen und anschließend kopieren oder in die Nachricht einfügen",
                 "font": "Schriftart",
                 "fontHint": "Schriftarten wirken sich nur auf die Darstellung aus; jedes aufgeführte Zeichen bleibt auswählbar",
                 "fonts": {
@@ -2201,7 +2333,8 @@
                 "started": "Sprachanruf gestartet.",
                 "transcriptionFailed": "Sprachtranskription fehlgeschlagen.",
                 "ttsFailed": "Text-to-Speech fehlgeschlagen.",
-                "messageSendFailed": "Sprachnachricht konnte nicht gesendet werden."
+                "messageSendFailed": "Sprachnachricht konnte nicht gesendet werden.",
+                "stoppedAfterFailure": "Der Anruf wurde beendet. Behebe das Problem, bevor du einen neuen Anruf startest."
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "Die Antwort des Assistenten wird wiedergegeben.",
@@ -2299,44 +2432,45 @@
                 "toggle": "Vollbild umschalten"
             },
             "modalDescriptions": {
-                "agentPlan": "Schritte des aktiven Agentenplans.",
-                "automationCalendar": "Gebietsschema und Datumsformatierung des Kalenders.",
-                "automationConfiguration": "Zeitplan, Modell und Laufzeitlimits.",
-                "automationOccurrence": "Ein einzelner geplanter Lauf.",
-                "chatConfiguration": "Modell, Tools, Erinnerung und Oberfläche für diesen Chat.",
-                "chatAttach": "Dateien hochladen oder verknüpftes Wissen an diesen Chat anhängen.",
-                "chatAttachments": "Anhänge, auf die diese Nachricht verweist.",
-                "chatMcpDefaultTools": "Standard-MCP-Tools für neue Chats.",
-                "chatMemoryProfile": "Persönliche Angaben, die sich SoAI chatübergreifend merkt.",
-                "chatPromptsPicker": "Gespeicherte Prompts zum Einfügen in diesen Chat.",
-                "voiceCall": "Freihändiger Chat mit Mikrofon, Transkription, Streaming-Antworten und Sprachausgabe.",
-                "credits": "Danksagungen zu Abhängigkeiten von Drittanbietern.",
-                "fileExplorerMetadata": "Dateimetadaten.",
-                "folderPicker": "Ordner auswählen.",
-                "exportPreview": "Inhalt des Exports.",
-                "hardwareSystemInfo": "Detaillierter Systembericht.",
-                "license": "SoAI-Lizenztext.",
-                "messageInfo": "Nachrichtenmetadaten.",
-                "metricsAdvanced": "Erweiterte Laufzeitmetriken.",
-                "modelDetailTest": "Eine Testanfrage an dieses Modell senden.",
-                "modelsDownload": "Ein neues Modell herunterladen.",
-                "modelsEdit": "Funktionen dieses Modells überschreiben.",
-                "modelsProviders": "Externe Modellanbieter.",
-                "modelsRename": "Diesem Modell einen lokalen Namen geben.",
-                "modelsVirtual": "Routing-Gruppen für virtuelle Modelle.",
-                "modelsVirtualEdit": "Routing für dieses virtuelle Modell.",
-                "pluginsClone": "Dieses Plugin mit neuen Einstellungen duplizieren.",
-                "pluginsConcurrent": "Maximale Anzahl gleichzeitig ausgeführter Plugin-Aufgaben.",
-                "pluginsConfig": "Plugin-Einstellungen.",
-                "pluginsDownload": "Ein gebündeltes oder lokales Plugin installieren.",
-                "pluginsInfo": "Plugin-Details und Diagnoseinformationen.",
-                "pluginsIntro": "Wie Plugins SoAI erweitern.",
-                "pluginsManageBackend": "Backend-Versionen verwalten.",
-                "promptEnhancer": "Einen gespeicherten Prompt mit einem Modell umformulieren.",
-                "settingsApiKeyQuota": "Nutzungslimits für diesen API-Schlüssel.",
-                "settingsExternalAccounts": "E-Mail- und Kalenderkonten.",
-                "settingsMcpServer": "MCP-Serververbindung.",
-                "toolCallOutput": "Ausgabe eines Tool-Aufrufs."
+                "agentPlan": "Schritte des aktiven Agentenplans",
+                "automationCalendar": "Gebietsschema und Datumsformatierung des Kalenders",
+                "automationConfiguration": "Zeitplan, Modell und Laufzeitlimits",
+                "automationOccurrence": "Ein einzelner geplanter Lauf",
+                "chatConfiguration": "Modell, Tools, Erinnerung und Oberfläche für diesen Chat",
+                "chatAttach": "Dateien hochladen oder verknüpftes Wissen an diesen Chat anhängen",
+                "chatAttachments": "Anhänge, auf die diese Nachricht verweist",
+                "chatMcpDefaultTools": "Standard-MCP-Tools für neue Chats",
+                "chatMemoryProfile": "Persönliche Angaben, die sich SoAI chatübergreifend merkt",
+                "chatPromptsPicker": "Gespeicherte Prompts zum Einfügen in diesen Chat",
+                "voiceCall": "Freihändiger Chat mit Mikrofon, Transkription, Streaming-Antworten und Sprachausgabe",
+                "credits": "Danksagungen zu Abhängigkeiten von Drittanbietern",
+                "fileExplorerMetadata": "Dateimetadaten",
+                "folderPicker": "Ordner auswählen",
+                "exportPreview": "Inhalt des Exports",
+                "hardwareSystemInfo": "Detaillierter Systembericht",
+                "license": "SoAI-Lizenztext",
+                "messageInfo": "Nachrichtenmetadaten",
+                "metricsAdvanced": "Erweiterte Laufzeitmetriken",
+                "modelDetailTest": "Eine Testanfrage an dieses Modell senden",
+                "modelsDownload": "Modelle herunterladen, externe Anbieter verbinden oder lokale Modelldateien hinzufügen",
+                "modelsEdit": "Funktionen dieses Modells überschreiben",
+                "modelsProviders": "Externe Modellanbieter",
+                "modelsRename": "Diesem Modell einen lokalen Namen geben",
+                "modelsVirtual": "Routing-Gruppen für virtuelle Modelle",
+                "modelsVirtualEdit": "Routing für dieses virtuelle Modell",
+                "pluginsClone": "Dieses Plugin mit neuen Einstellungen duplizieren",
+                "pluginsConcurrent": "Maximale Anzahl gleichzeitig ausgeführter Plugin-Aufgaben",
+                "pluginsConfig": "Plugin-Einstellungen",
+                "pluginsDownload": "Plugins herunterladen, hochladen oder aus dem lokalen Plugin-Ordner hinzufügen",
+                "pluginsInfo": "Plugin-Details und Diagnoseinformationen",
+                "pluginsIntro": "Wie Plugins SoAI erweitern",
+                "pluginsManageBackend": "Backend-Versionen verwalten",
+                "promptEnhancer": "Einen gespeicherten Prompt mit einem Modell umformulieren",
+                "settingsApiKeyQuota": "Nutzungslimits für diesen API-Schlüssel",
+                "settingsExternalAccounts": "E-Mail- und Kalenderkonten",
+                "settingsMcpServer": "MCP-Serververbindung",
+                "toolCallOutput": "Ausgabe eines Tool-Aufrufs",
+                "conversationInput": "Diesen Prompt und seine Anhänge ansehen"
             },
             "loading": "Wird geladen...",
             "confirm": "Bestätigen",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count} s"
+                    },
+                    "year": {
+                        "short": "{count}J"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "Sie haben nicht gespeicherte Änderungen. Ohne Speichern fortfahren?",
             "unsavedChangesTitle": "Nicht gespeicherte Änderungen",
             "view": "Anzeigen",
-            "yes": "Ja"
+            "yes": "Ja",
+            "retry": "Erneut versuchen"
         },
         "contentPreview": {
             "actions": {
@@ -2620,7 +2758,7 @@
                 }
             },
             "firstRun": {
-                "description": "Ein kurzer Einrichtungsweg für lokale Backends, Remote-Anbieter, Modelle und Updates.",
+                "description": "Ein kurzer Einrichtungsweg für lokale Backends, Remote-Anbieter, Modelle und Updates",
                 "sections": {
                     "models": {
                         "heading": "Modell hinzufügen oder herunterladen, sobald das Backend bereit ist",
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "Netzwerk",
+                    "unavailable": "Adapterliste nicht verfügbar",
                     "waiting": "Wird erkannt..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "Benchmark",
                     "soaibenchStop": "Stoppen",
                     "soaibenchStress": "Stresstest",
+                    "viewBenchmark": "Benchmark anzeigen",
                     "test": "Testen",
                     "reset": "Zurücksetzen",
                     "save": "Speichern"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index}: SoAIBench {profile} gestartet",
                     "soaibenchStopRequested": "Stopp von SoAIBench auf GPU {index} angefordert",
                     "soaibenchUnsupported": "SoAIBench wird auf GPU {index} nicht unterstützt: {reason}",
+                    "soaibenchSettingsLocked": "Auf GPU {index} läuft ein Benchmark. Stoppen Sie ihn oder warten Sie, bis er abgeschlossen ist, bevor Sie die Einstellungen speichern.",
                     "slotApplied": "GPU {index}: Slot {slot} angewendet",
                     "slotSaved": "GPU {index}: Slot {slot} gespeichert"
                 },
@@ -3074,10 +3215,19 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "Lokalen Verlauf löschen",
+                "deleteLocalConfirm": {
+                    "title": "SoAIBench-Lauf löschen?",
+                    "message": "Diesen SoAIBench-Lauf aus dem lokalen Verlauf löschen? Dies kann nicht rückgängig gemacht werden."
+                },
                 "action": "Teilen",
+                "openRun": "Ergebnis öffnen",
                 "ariaLabel": "Dieses SoAIBench-Ergebnis teilen",
                 "unavailable": "Kein veröffentlichungsfähiger SoAIBench-Lauf ist verfügbar",
-                "confirm": { "title": "SoAIBench-Ergebnis teilen?", "message": "Ergebnis {score} und die {passes} gemessenen Durchläufe in der öffentlichen SoAIBench-Bestenliste veröffentlichen?", "description": "Gesendet werden das Ergebnis, fünf gemessene Durchläufe, öffentliche GPU- und Laufzeitinformationen, Benchmark-Einstellungen und optionale Sensordaten. Kontoidentität, Dateien, Konfiguration, Analysen und allgemeine Telemetrie sind ausgeschlossen. soai.to kann normale Verbindungsmetadaten wie Ihre IP-Adresse sehen." },
+                "confirm": {
+                    "title": "SoAIBench-Ergebnis teilen?",
+                    "message": "Ergebnis {score} und die {passes} gemessenen Durchläufe in der öffentlichen SoAIBench-Bestenliste veröffentlichen?",
+                    "description": "Gesendet werden das Ergebnis, fünf gemessene Durchläufe, öffentliche GPU- und Laufzeitinformationen, Benchmark-Einstellungen und optionale Sensordaten. Kontoidentität, Dateien, Konfiguration, Analysen und allgemeine Telemetrie sind ausgeschlossen."
+                },
                 "outcomes": {
                     "published": "SoAIBench-Ergebnis wurde öffentlich geteilt.",
                     "alreadyPublished": "Dieses SoAIBench-Ergebnis wurde bereits geteilt.",
@@ -3136,9 +3286,11 @@
                         "quick": "Schnell",
                         "varianceSuffix": "{variance}% Abweichung"
                     },
-                    "description": "Frühere SoAIBench-Läufe für die ausgewählte GPU.",
+                    "description": "Frühere SoAIBench-Läufe für die ausgewählte GPU",
                     "empty": "Für diese GPU gibt es noch keine SoAIBench-Läufe.",
                     "loading": "Laufverlauf wird geladen...",
+                    "pageEmpty": "Noch keine SoAIBench-Durchläufe.",
+                    "pageLoadFailed": "SoAIBench-Durchläufe konnten nicht geladen werden. Bitte erneut versuchen.",
                     "matchBases": {
                         "device_id": "Geräte-ID",
                         "gpu_model_key": "GPU-Modellschlüssel",
@@ -3159,7 +3311,9 @@
                         "standard": "Standard",
                         "stress": "Stresstest"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "Die numerische Validierung der OpenCL-Arbeitslast ist fehlgeschlagen." },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "Die numerische Validierung der OpenCL-Arbeitslast ist fehlgeschlagen."
+                    },
                     "rowCopyUnavailable": "Kein SoAIBench-Lauf zum Kopieren verfügbar",
                     "staleHardware": "Veraltete Hardwareübereinstimmung",
                     "statuses": {
@@ -3175,6 +3329,8 @@
                     "title": "Frühere SoAIBench-Läufe"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "GPU für den Benchmark auswählen",
+                    "noGpus": "Keine GPUs für den Benchmark verfügbar.",
                     "ariaLabels": {
                         "close": "SoAIBench schließen",
                         "copy": "SoAIBench-Lauf kopieren",
@@ -3183,13 +3339,16 @@
                         "retry": "Zertifizierten SoAIBench wiederholen",
                         "stop": "Zertifizierten SoAIBench stoppen",
                         "stopping": "Zertifizierter SoAIBench wird gestoppt",
+                        "newBenchmark": "Neuen zertifizierten SoAIBench-Lauf starten",
+                        "runAgain": "Zertifizierten SoAIBench auf dieser GPU erneut ausführen",
+                        "recover": "SoAIBench-Status erneut prüfen",
                         "start": "Zertifizierten SoAIBench starten"
                     },
                     "close": "Schließen",
                     "copy": "Kopieren",
                     "copySuccess": "SoAIBench-Lauf in die Zwischenablage kopiert",
                     "copyUnavailable": "Kein SoAIBench-Lauf zum Kopieren verfügbar",
-                    "description": "Zertifizierter GPU-Benchmark zur Prüfung der Eignung für SoAI-Inferenz.",
+                    "description": "Zertifizierter GPU-Benchmark zur Prüfung der Eignung für SoAI-Inferenz",
                     "download": "Herunterladen",
                     "export": {
                         "deviceId": "Geräte-ID",
@@ -3244,7 +3403,11 @@
                         "stopping": "SoAIBench wird gestoppt",
                         "warmupDetail": "Aufwärmdurchlauf {pass}/{total}",
                         "warmupPhase": "Aufwärmen: {phase}",
-                        "warmup": "Aufwärmdurchlauf abgeschlossen"
+                        "warmup": "Aufwärmdurchlauf abgeschlossen",
+                        "reconnecting": "Verbindung wird wiederhergestellt... Letzte Aktualisierung: {age}",
+                        "checkingStatus": "Benchmark-Status wird geprüft...",
+                        "statusUnavailable": "Der Benchmark-Status ist nicht verfügbar. Wiederholen Sie die Prüfung.",
+                        "startUnconfirmed": "Der Start des Benchmarks konnte nicht bestätigt werden, und auf dieser GPU ist kein Lauf aktiv. Prüfen Sie den Verlauf, bevor Sie es erneut versuchen."
                     },
                     "retry": "Wiederholen",
                     "scoreLabel": "SoAIBench-Punktzahl",
@@ -3266,6 +3429,15 @@
                     "standardRun": "Standardlauf",
                     "stop": "Stoppen",
                     "stopping": "Wird gestoppt",
+                    "newBenchmark": "Neuer Benchmark",
+                    "runAgain": "Erneut ausführen",
+                    "gpuBusy": "Benchmark läuft",
+                    "startedAt": "Gestartet {time}",
+                    "states": {
+                        "starting": "Wird gestartet",
+                        "unresolved": "Status unbekannt",
+                        "rejected": "Nicht gestartet"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3472,7 +3644,7 @@
             "documentationUrl": "Dokumentation",
             "intro": {
                 "aboutButton": "Über SoAI",
-                "paragraph1": "<strong>SoAI (Smart Orchestrator for Artificial Intelligence)</strong> verwaltet lokale Inferenz-Engines und entfernte KI-Anbieter über eine Weboberfläche. Ihre Modelle stehen über OpenAI- und Anthropic-kompatible APIs bereit",
+                "paragraph1": "<strong dir=\"auto\">SoAI (Smart Orchestrator for Artificial Intelligence)</strong> verwaltet lokale Inferenz-Engines und entfernte KI-Anbieter über eine Weboberfläche. Ihre Modelle stehen über OpenAI- und Anthropic-kompatible APIs bereit",
                 "paragraph2": "SoAI läuft unter Linux, macOS und Windows. Der Quellcode ist einsehbar, und die persönliche Nutzung sowie der Einsatz im Homelab sind kostenlos. SoAI erfasst keine Benutzerdaten und sendet weder Analysen noch Telemetrie oder Nutzungsberichte"
             },
             "logoAlt": "SoAI",
@@ -3933,6 +4105,7 @@
                         "latency": "Latenz",
                         "queueDepth": "Warteschlangentiefe",
                         "requests": "Anfragen",
+                        "throughput": "Token-Durchsatz",
                         "tokens": "Tokens"
                     },
                     "title": "Diagramm"
@@ -4066,8 +4239,6 @@
                 "identity": {
                     "display_name": "Anzeigename",
                     "source_model_id": "Quellmodell-ID",
-                    "provider": "Anbieter",
-                    "title": "Identität",
                     "type": "Typ",
                     "universal_id": "Universelle ID",
                     "virtual": "Virtuell"
@@ -4077,30 +4248,20 @@
                     "title": "Inferenz-Standardwerte"
                 },
                 "metrics": {
-                    "avgLatency": "Ø Latenz",
                     "avgTokens": "Durchschn. Tokens/Anfrage",
                     "audioIn": "Audio eingehend",
                     "audioOut": "Audio ausgehend",
-                    "failedRequests": "Fehlgeschlagene Anfragen",
                     "imagesIn": "Bilder eingehend",
                     "imagesOut": "Bilder ausgehend",
                     "last_used": "Zuletzt verwendet",
                     "modalityUsage": "Nutzung",
                     "success_rate": "Erfolgsrate",
                     "textTokens": "Text-Tokens",
-                    "title": "Metriken",
                     "tokensGenerated": "Generierte Tokens",
-                    "totalRequests": "Anfragen gesamt",
-                    "waitTime": "Durchschn. Wartezeit"
+                    "totalRequests": "Anfragen gesamt"
                 },
                 "plugin": {
-                    "author": "Autor",
-                    "models": "Modelle",
-                    "plugin_status": "Plugin-Status",
-                    "providers": "Anbieter",
-                    "title": "Plugin",
-                    "type": "Typ",
-                    "version": "Version"
+                    "title": "Plugin"
                 },
                 "status": {
                     "available": "Verfügbar",
@@ -4110,13 +4271,11 @@
                     "manageAlias": "Umbenennen",
                     "modelStatus": "Modellstatus",
                     "orphaned": "Verwaist",
-                    "parameters": "Parameter",
                     "stopPlugin": "Plugin stoppen",
-                    "title": "Status und Aktionen"
+                    "title": "Status"
                 },
                 "technical": {
                     "created": "Erstellt",
-                    "description": "Beschreibung",
                     "family": "Familie",
                     "license": "Lizenz",
                     "path": "Pfad",
@@ -4161,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "Alle Parameter",
-                "category": "Kategorie",
                 "groupInference": "Inferenz",
                 "groupStartup": "Start"
             },
@@ -4227,21 +4385,33 @@
                 "addItemWithType": "{itemType}-Element hinzufügen",
                 "aliasesPrefix": "Auch bekannt als:",
                 "arrayOfType": "Array aus {itemType}-Werten",
+                "backendDefault": "Backend-Standard",
                 "backendDocumentationDescription": "Diese Modellparameter enthalten vom Plugin bereitgestellte <strong>backenddefinierte Einstellungen</strong>. Informationen zum genauen Verhalten sowie zu zulässigen Werten und Standardwerten finden Sie in der Dokumentation des Backends.",
-                "backendDocumentationTitle": "Informationen",
                 "badges": {
                     "custom": "BENUTZERDEFINIERT",
-                    "default": "STANDARD",
                     "requiresReload": "NEULADEN ERFORDERLICH"
                 },
-                "countLabel": "{count} Parameter",
+                "count": {
+                    "plural": "{count} Parameter",
+                    "singular": "{count} Parameter"
+                },
                 "invalidJson": "Geben Sie für diesen Parameter gültiges JSON ein.",
                 "jsonObject": "JSON-Objekt",
                 "noMatchDescription": "Passen Sie Ihre Such- oder Filterkriterien an.",
                 "noMatchTitle": "Keine Parameter entsprechen Ihren Filtern",
                 "noParameters": "Für dieses Modell sind keine Parameter verfügbar",
+                "railLabel": "Parameterkategorien",
                 "range": "Bereich: {min} - {max}",
-                "removeItem": "Element entfernen"
+                "removeItem": "Element entfernen",
+                "revertChange": "Änderung rückgängig machen",
+                "unsavedCount": {
+                    "plural": "{count} ungespeicherte Änderungen",
+                    "singular": "{count} ungespeicherte Änderung"
+                },
+                "views": {
+                    "customized": "Angepasst",
+                    "unsaved": "Ungespeicherte Änderungen"
+                }
             },
             "status": {
                 "loaded": "Geladen",
@@ -4974,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "Datei auswählen",
                     "close": "Schließen",
                     "confirmDownload": "Plugin herunterladen",
                     "confirmUpload": "Plugin hochladen",
+                    "fileDropHint": "Zum Auswählen einer .soaiplugin-Datei klicken oder hierher ziehen",
+                    "fileDropTitle": "Plugin hier ablegen",
                     "fileHelp": "Wählen Sie ein Python-Plugin-Paket im ZIP-Format (.soaiplugin) aus",
                     "fileLabel": "Plugin-Datei",
                     "manualCopySuccess": "Pfad zum Plugin-Ordner in die Zwischenablage kopiert.",
@@ -5093,6 +5264,7 @@
                     "installedOption": "{variant} (installiert)",
                     "loadFailed": "Backend-Varianten konnten nicht geladen werden.",
                     "loading": "Backend-Varianten werden geladen...",
+                    "loadingBackends": "Backends werden geladen...",
                     "saveFailed": "Backend-Variante konnte nicht gespeichert werden."
                 },
                 "manageBackend": {
@@ -5146,8 +5318,8 @@
                 "overrideEnabled": "Kompatibilitätsüberschreibung für {plugin} aktiviert.",
                 "overrideRequired": "Aktivieren Sie die Kompatibilitätsüberschreibung, bevor Sie {plugin} starten.",
                 "persistentNoStop": "Persistente Plugins können nicht gestoppt werden",
-                "pluginDisabled": "Plugin deaktiviert",
-                "pluginEnabled": "Plugin aktiviert",
+                "pluginDisabled": "Plugin {plugin} deaktiviert",
+                "pluginEnabled": "Plugin {plugin} aktiviert",
                 "pluginIncompatibleReason": "Plugin \"{plugin}\" ist inkompatibel: {reason}",
                 "pluginInfoCopyFailed": "Plugin-Informationen konnten nicht kopiert werden",
                 "pluginStopInProgress": "{plugin} wird gestoppt...",
@@ -5502,16 +5674,21 @@
                 "restarting": "Die Anwendung wird neu gestartet. Dies sollte nur wenige Augenblicke dauern.",
                 "shutdown": "Das System wird heruntergefahren. Sie können dieses Browserfenster schließen.",
                 "sleep": "Das System wechselt in den Energiesparmodus. Reaktivieren Sie es, um SoAI weiterzuverwenden.",
-                "updating": "SoAI lädt Updates herunter und installiert sie. Dies kann mehrere Minuten dauern."
+                "updateTimeout": "SoAI ist nach dem Update nicht wieder online gekommen. Prüfen Sie application_updater.log im SoAI-Protokollordner und laden Sie diese Seite dann neu.",
+                "updating": "SoAI wird neu gestartet, um das Update abzuschließen. Diese Seite wird automatisch neu geladen, sobald SoAI wieder online ist. Das kann einige Minuten dauern.",
+                "updatingDesktop": "SoAI wird neu gestartet, um das Update abzuschließen. Dieses Fenster wird geschlossen und nach Abschluss des Updates automatisch wieder geöffnet. Bitte schalten Sie Ihren Computer nicht aus.",
+                "updatingSlow": "Das Update dauert länger als üblich. SoAI arbeitet noch, bitte lassen Sie diese Seite geöffnet."
             },
             "messages": {
                 "connectionLost": "Backend-Verbindung unterbrochen",
+                "installingVersion": "SoAI {version} wird installiert...",
                 "pleaseWait": "Bitte warten...",
                 "rebooting": "System wird neu gestartet...",
                 "rebootTimeout": "Neustart läuft noch...",
                 "restarting": "SoAI wird neu gestartet...",
                 "shutdown": "System wird heruntergefahren",
                 "sleep": "System wechselt in den Energiesparmodus",
+                "updateTimeout": "SoAI ist noch nicht zurück",
                 "updating": "SoAI wird aktualisiert..."
             },
             "reconnecting": "Verbindung wird wiederhergestellt..."
@@ -5990,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "Benutzerdefinierte Farbe für alle Diagramme auswählen",
-                    "label": "Statische Farbe"
+                    "label": "Diagrammfarbe"
                 }
             },
             "codeBlocks": {
@@ -6000,6 +6177,30 @@
                 },
                 "subgroupDescription": "Steuern Sie, wie codeartige Inhalte in SoAI dargestellt werden.",
                 "subgroupTitle": "Codeblöcke"
+            },
+            "connect": {
+                "addressCopied": "Adresse kopiert",
+                "browserAddress": "Adresse dieses Browsers",
+                "chooseAddress": "Adresse für Ihr Smartphone",
+                "copyAddress": "Adresse kopieren",
+                "description": "Verbinden Sie die Android-App SoAI Connect mit diesem Server, indem Sie einen QR-Code scannen.",
+                "documentationHint": "Für die manuelle Einrichtung und Fehlerbehebung öffnen Sie \"Connect to a SoAI server\" in der SoAI-Dokumentation",
+                "documentationLink": "SoAI-Dokumentation",
+                "loadFailed": "Verbindungsdetails konnten nicht geladen werden",
+                "loopbackWarningMessage": "SoAI lauscht auf einer Loopback-Adresse, daher können andere Geräte es nicht direkt erreichen. Der QR-Code funktioniert nur über einen Reverse-Proxy, der dasselbe Schema und denselben Port wie SoAI verwendet. Um direkte Verbindungen zu erlauben, setzen Sie die folgende Option und starten Sie SoAI neu:",
+                "loopbackWarningTitle": "Nur von diesem Computer erreichbar",
+                "noAddressesMessage": "Verbinden Sie diesen Server mit einem Netzwerk oder öffnen Sie diese Seite über die Adresse, die Ihr Smartphone verwenden soll.",
+                "noAddressesTitle": "Keine erreichbare Adresse gefunden",
+                "qrLabel": "QR-Code zum Verbinden von SoAI Connect mit {address}",
+                "refresh": "Adressen aktualisieren",
+                "scanHint": "Scannen Sie diesen QR-Code mit der App SoAI Connect",
+                "stepInstall": "Installieren Sie SoAI Connect auf Ihrem Android-Smartphone und öffnen Sie die App",
+                "stepScan": "Tippen Sie auf die QR-Code-Schaltfläche neben dem Feld für die Serveradresse und scannen Sie dann den Code auf dieser Seite",
+                "stepSignIn": "Prüfen Sie eine eventuelle Zertifikatsabfrage und melden Sie sich dann mit Ihrem SoAI-Konto an",
+                "stepsTitle": "So verbinden Sie sich",
+                "title": "SoAI Connect",
+                "vpnHint": "Ihr Smartphone muss diesen Server erreichen können. Nutzen Sie dasselbe lokale Netzwerk oder unterwegs ein VPN, statt SoAI im Internet freizugeben",
+                "vpnTitle": "Unterwegs?"
             },
             "dashboard": {
                 "customization": {
@@ -6063,7 +6264,7 @@
                         "label": "Seitenkopf automatisch ausblenden"
                     }
                 },
-                "subgroupTitle": "Bewegung",
+                "subgroupTitle": "Oberfläche",
                 "subgroupDescription": "Bewegung, Übergänge, Glasoberflächen und Scrollverhalten anpassen."
             },
             "externalAccounts": {
@@ -6988,7 +7189,7 @@
                     "authorizedSendersPlaceholder": "sender-id | Optionale Bezeichnung",
                     "credentialsDescription": "Geben Sie die vom ausgewählten Anbieter benötigten Anmeldedaten ein.",
                     "credentialsTitle": "Anbieter-Anmeldedaten",
-                    "description": "Konfigurieren Sie ein reales Anbieterkonto und die zugehörigen kanonischen Chat-Ausführungseinstellungen.",
+                    "description": "Konfigurieren Sie ein reales Anbieterkonto und die zugehörigen kanonischen Chat-Ausführungseinstellungen",
                     "executionDescription": "Wählen Sie Chat-Modell, Identität, Prompts, Arbeitsbereich und Ausführungsparameter.",
                     "executionTitle": "Chat-Ausführung",
                     "identityDescription": "Benennen Sie das Konto und wählen Sie seinen Anbieter sowie die Antwortsprache.",
@@ -7336,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "Backup",
+                "connect": "Verbinden",
                 "externalAccounts": "E-Mail & Kalender",
                 "licensing": "Lizenzierung",
                 "mcp": "MCP",
@@ -7476,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "Wählen Sie eines zum Anwenden",
+                    "label": "Integrierte Hintergrundbilder",
+                    "none": "Kein Hintergrundbild",
+                    "option": "Hintergrundbild {number}"
+                },
                 "downloadUrl": {
                     "button": "Herunterladen",
                     "help": "Geben Sie eine URL an, um ein Bild herunterzuladen und als Hintergrundbild festzulegen",
@@ -7721,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "Einige Versionshinweise konnten nicht geladen werden. Verfügbare Hinweise werden angezeigt."
+            },
+            "outcome": {
+                "failureMessage": "Das Update auf Version {version} wurde nicht abgeschlossen. SoAI {previousVersion} ist weiterhin installiert. Details finden Sie in application_updater.log im SoAI-Protokollordner.",
+                "failureTitle": "Update nicht abgeschlossen",
+                "later": "Später",
+                "reloadMessage": "SoAI läuft jetzt mit Version {version}. Laden Sie diese Seite neu, um die aktualisierte Oberfläche zu verwenden.",
+                "reloadTitle": "SoAI wurde aktualisiert",
+                "successMessage": "SoAI wurde erfolgreich auf Version {version} aktualisiert.",
+                "successTitle": "Update abgeschlossen"
+            },
+            "progress": {
+                "downloading": "Update wird heruntergeladen...",
+                "handoff": "Neustart von SoAI wird vorbereitet...",
+                "staging": "Update-Dateien werden vorbereitet...",
+                "unavailable": "Der aktuelle Fortschritt ist vorübergehend nicht verfügbar.",
+                "verifying": "Update wird überprüft..."
+            },
             "actions": {
                 "checkUpdates": "Nach Updates suchen",
                 "installUpdate": "Update installieren"
@@ -7956,6 +8183,184 @@
             "welcome": {
                 "description": "SoAI bündelt lokale und Remote-LLM-Backends hinter einer einzigen OpenAI-kompatiblen Orchestrierungsschicht.",
                 "heading": "Willkommen bei SoAI!"
+            },
+            "aiSetup": {
+                "eyebrow": "SoAI-Einrichtung",
+                "loadFailed": {
+                    "title": "SoAI-Einrichtung konnte nicht geladen werden",
+                    "description": "SoAI konnte die verfügbaren Engines und Anbieter nicht lesen. Prüfen Sie, ob SoAI läuft, und versuchen Sie es erneut, oder schließen Sie die Einrichtung später ab.",
+                    "retry": "Erneut versuchen"
+                },
+                "nav": {
+                    "finishLater": "Überspringen",
+                    "skip": "SoAI-Einrichtung überspringen",
+                    "continue": "Weiter",
+                    "installAndContinue": "Installieren",
+                    "downloadAndContinue": "Herunterladen",
+                    "startChatting": "Chatten",
+                    "close": "Schließen"
+                },
+                "sources": {
+                    "heading": "Wo soll Ihre KI laufen?",
+                    "description": "Wählen Sie eine oder beide Optionen. Sie können das später ändern.",
+                    "local": {
+                        "title": "Auf diesem Gerät",
+                        "description": "Privat und nach der Einrichtung offline nutzbar. Erfordert einen einmaligen Download."
+                    },
+                    "cloud": {
+                        "title": "Cloud-Anbieter",
+                        "description": "Funktioniert überall mit Internet und einem API-Schlüssel des Anbieters.",
+                        "recommended": "Empfohlen"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "Kostenlosen API-Schlüssel erhalten",
+                    "accessibleName": "Kostenlosen API-Schlüssel erhalten (öffnet sich in einem neuen Fenster)"
+                },
+                "limited": {
+                    "noCompatibleEngine": "Keine lokale Engine unterstützt dieses Gerät.",
+                    "insufficientMemory": "Lokale Modelle benötigen etwa {required} freien Arbeitsspeicher; dieses Gerät hat etwa {available}.",
+                    "useCloud": "Stattdessen ein Cloud-Modell verwenden",
+                    "searchManually": "Modelle manuell suchen"
+                },
+                "connect": {
+                    "heading": "Vorbereitung",
+                    "description": "Verbinden Sie einen Anbieter und bereiten Sie dieses Gerät vor.",
+                    "cloud": {
+                        "heading": "Cloud-Anbieter verbinden",
+                        "description": "Fügen Sie die API-URL und den Schlüssel Ihres Anbieters ein.",
+                        "moreOptions": "Weitere Optionen",
+                        "modelFilter": "Modellfilter (optional)",
+                        "connect": "Verbinden",
+                        "connecting": "Verbindung mit {name} wird hergestellt…",
+                        "connected": {
+                            "singular": "Verbunden · {count} Modell verfügbar",
+                            "plural": "Verbunden · {count} Modelle verfügbar"
+                        },
+                        "change": "Ändern"
+                    },
+                    "local": {
+                        "heading": "Lokale Engine installieren",
+                        "description": "Damit laufen Modelle auf diesem Gerät.",
+                        "automatic": "Automatisch (empfohlen)",
+                        "usesGpu": "Verwendet {engine} mit Ihrer Grafikkarte",
+                        "usesProcessor": "Verwendet {engine} auf dem Prozessor",
+                        "usesInstalled": "Verwendet {engine}, bereits installiert",
+                        "chooseManually": "Manuell auswählen",
+                        "status": {
+                            "installed": "Installiert",
+                            "recommended": "Empfohlen",
+                            "warning": "Warnung",
+                            "unavailable": "Nicht verfügbar"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "Modell auswählen",
+                    "description": "Wählen Sie, womit Sie chatten möchten. Sie können später weitere hinzufügen.",
+                    "local": {
+                        "heading": "Modelle für dieses Gerät",
+                        "description": "Passend zu Ihrer Hardware ausgewählt."
+                    },
+                    "role": {
+                        "recommended": "Empfohlen",
+                        "faster": "Schneller",
+                        "smallest": "Am kleinsten"
+                    },
+                    "useCase": {
+                        "advanced": "Beste Qualität zum Schreiben, Programmieren und logischen Denken",
+                        "balanced": "Ideal für alltägliche Chats, Texte und Programmierung",
+                        "reasoning": "Starkes schrittweises Denken",
+                        "light": "Schnelle Antworten auf einfacher Hardware"
+                    },
+                    "downloadSize": "{size} Download",
+                    "runsOnGpu": "Läuft auf Ihrer Grafikkarte",
+                    "runsOnCpu": "Läuft auf Ihrem Prozessor",
+                    "speed": {
+                        "fast": "Schnelle Antworten",
+                        "moderate": "Mittlere Geschwindigkeit",
+                        "slow": "Langsamere Antworten"
+                    },
+                    "details": {
+                        "label": "Details",
+                        "quantization": "Quantisierung",
+                        "parameters": "Parameter",
+                        "parametersDense": "{total} Mrd.",
+                        "parametersMoe": "{total} Mrd., {active} Mrd. aktiv",
+                        "context": "Kontextlänge",
+                        "contextTokens": "{tokens} Token",
+                        "contextReduced": "{tokens} Token (für dieses Gerät reduziert)",
+                        "file": "Datei",
+                        "source": "Quelle"
+                    },
+                    "openChatWith": "Chat mit diesem Modell öffnen",
+                    "searchAnother": "Nach einem anderen Modell suchen",
+                    "cloud": {
+                        "heading": "Modelle von {provider}",
+                        "description": "Wählen Sie eines oder mehrere.",
+                        "filterPlaceholder": "Modelle filtern…",
+                        "noMatches": "Keine Modelle entsprechen diesem Filter.",
+                        "empty": "Dieser Anbieter hat keine Modelle geliefert. Prüfen Sie den Modellfilter oder versuchen Sie einen anderen Anbieter.",
+                        "backToProvider": "Zurück zum Anbieter"
+                    }
+                },
+                "progress": {
+                    "heading": "Alles wird vorbereitet",
+                    "description": "Sie können chatten, sobald ein Modell bereit ist.",
+                    "readyCount": "{ready} von {total} bereit",
+                    "installing": "{engine} wird installiert",
+                    "downloading": "{model} wird heruntergeladen",
+                    "waitingForEngine": "Warten, bis {engine} installiert ist",
+                    "discovering": "{model} wird zu Ihren Modellen hinzugefügt",
+                    "configuring": "Starteinstellungen werden angewendet",
+                    "testing": "Kurze Testnachricht wird gesendet",
+                    "ready": "{model} ist bereit",
+                    "blocked": "Kann erst starten, wenn {engine} installiert ist",
+                    "checkingStatus": "Status wird geprüft",
+                    "retry": "Erneut versuchen",
+                    "retryInstallation": "Installation wiederholen",
+                    "skipItem": "Diesen Eintrag überspringen",
+                    "testAgain": "Erneut testen",
+                    "checkAgain": "Erneut prüfen",
+                    "sendTest": "Testnachricht senden",
+                    "error": {
+                        "empty": "Das Modell wurde geladen, hat aber nicht geantwortet. Versuchen Sie es erneut oder wählen Sie ein anderes Modell.",
+                        "loadError": "Das Modell konnte auf diesem Gerät nicht starten. Versuchen Sie es erneut oder wählen Sie ein kleineres Modell.",
+                        "timeout": "Das Modell hat zu lange für die Antwort gebraucht. Versuchen Sie es erneut oder wählen Sie ein kleineres Modell.",
+                        "disconnected": "Die Verbindung ist während des Tests abgebrochen. Versuchen Sie es erneut.",
+                        "downloadFailed": "Der Download wurde unterbrochen. Versuchen Sie es erneut.",
+                        "installFailed": "Die Installation wurde nicht abgeschlossen. Versuchen Sie es erneut.",
+                        "noDiskSpace": "Nicht genug Speicherplatz für dieses Modell. Geben Sie Speicher frei oder wählen Sie ein kleineres Modell."
+                    },
+                    "testPrompt": "Antworte mit einem kurzen, freundlichen Satz.",
+                    "testCancelled": "Der Test der SoAI-Einrichtung wurde abgebrochen."
+                },
+                "completion": {
+                    "modelsTitle": "KI-Modelle",
+                    "modelsReady": {
+                        "singular": "{count} bereit",
+                        "plural": "{count} bereit"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} wird noch im Hintergrund vorbereitet",
+                        "plural": "{count} werden noch im Hintergrund vorbereitet"
+                    }
+                },
+                "resume": {
+                    "link": "SoAI-Einrichtung abschließen",
+                    "toast": "Einige Schritte der SoAI-Einrichtung erfordern Ihre Aufmerksamkeit."
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "Der Modell-Download wird im Hintergrund fortgesetzt.",
+                        "plural": "{count} Modell-Downloads werden im Hintergrund fortgesetzt."
+                    },
+                    "installations": {
+                        "singular": "Die Backend-Installation wird im Hintergrund fortgesetzt.",
+                        "plural": "{count} Backend-Installationen werden im Hintergrund fortgesetzt."
+                    },
+                    "both": "Modell-Downloads und Backend-Installationen werden im Hintergrund fortgesetzt."
+                }
             }
         }
     }

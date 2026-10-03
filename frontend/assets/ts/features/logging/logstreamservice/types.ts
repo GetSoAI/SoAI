@@ -84,7 +84,7 @@ interface StreamLogHandlers {
 
 interface StreamManagerWithLogs {
     resources: {
-        ensureReady(options?: { allowDiscovery?: boolean }): Promise<void>;
+        ensureReady(options?: { allowDiscovery?: boolean; signal?: AbortSignal | undefined }): Promise<void>;
     };
     subscriptions: {
         subscribeBundle(bundleName: string, handlers: LogBundleHandlers, options?: { signal?: AbortSignal | null }): LogBundleSubscription | null;
@@ -96,6 +96,7 @@ interface StreamManagerWithLogs {
 }
 
 interface LogApiOptions {
+    signal?: AbortSignal;
     query: { limit: number };
     throwOnError?: boolean;
     notifyOnError?: boolean;
@@ -103,7 +104,7 @@ interface LogApiOptions {
 }
 
 interface LogApi {
-    whenReady?: (options?: { allowDiscovery?: boolean }) => Promise<string>;
+    whenReady?: (options?: { allowDiscovery?: boolean; signal?: AbortSignal }) => Promise<string>;
     system?: {
         logs?: (source: string, options: LogApiOptions) => Promise<SystemLogSnapshot>;
     };

@@ -3,7 +3,6 @@
 
 import { ensureError } from '@core/errors/coerce.ts';
 import { formatLocalizedDate } from '@core/localization/public.ts';
-import { clampNumber } from '@core/primitives/clampNumber.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import { isFunction, isObject, isString } from '@core/typeGuards.ts';
 import type { ChartTimestampFormatInput, ChartTimestampFormatter, TimestampFormatConfig } from '@features/charts/chartTypes.ts';
@@ -16,8 +15,6 @@ const isTimestampFormatter = (value: ChartTimestampFormatInput): value is ChartT
 interface TimeFormattingHost {
     timestampFormatConfig: TimestampFormatConfig;
     visibleRange: VisibleRange;
-    timestamps: Float64Array;
-    dataLength: number;
 }
 
 const normalizeTimestampFormat = (option: ChartTimestampFormatInput): TimestampFormatConfig => {
@@ -101,34 +98,9 @@ const resolveAxisFormat = (ms: number): { options: Intl.DateTimeFormatOptions } 
     return { options: objectValue };
 };
 
-const getVisibleTimeWindow = (chart: TimeFormattingHost): { startTs: number; endTs: number; span: number } | null => {
-    if (!chart.timestamps || chart.dataLength === 0) return null;
-    const { start, displayCount, offsetFraction } = chart.visibleRange;
-    const startIndex = clampNumber(start, 0, chart.dataLength - 1);
-    const baseStart = chart.timestamps[startIndex] ?? Number.NaN;
-    if (!isFin(baseStart)) return null;
-    const baseStartNumber: number = baseStart;
-    const nextIndex = Math.min(chart.dataLength - 1, startIndex + 1);
-    const nextTimestamp = chart.timestamps[nextIndex] ?? Number.NaN;
-    const startTs = offsetFraction > 0 && nextIndex !== startIndex && isFin(nextTimestamp) ? baseStartNumber + (nextTimestamp - baseStartNumber) * offsetFraction : baseStartNumber;
-
-    const endIndex = Math.min(chart.dataLength - 1, start + Math.max(1, displayCount) - 1);
-    const endTimestamp = chart.timestamps[endIndex] ?? Number.NaN;
-    if (!isFin(endTimestamp)) return null;
-    return { startTs, endTs: endTimestamp, span: Math.max(1, endTimestamp - startTs || 0) };
-};
-
 const getVisibleTimeSpan = (chart: TimeFormattingHost): number => {
-    const width = getVisibleTimeWindow(chart);
-    if (width?.span) return width.span;
-    if (!chart.timestamps || chart.dataLength === 0) return 0;
-    const { start: stringValue, end: error } = chart.visibleRange;
-    const first = clampNumber(stringValue, 0, chart.dataLength - 1);
-    const last = clampNumber((error || 0) - 1, first, chart.dataLength - 1);
-    if (last <= first) return 0;
-    const st = chart.timestamps[first] ?? Number.NaN;
-    const et = chart.timestamps[last] ?? Number.NaN;
-    return isFin(st) && isFin(et) ? Math.max(0, et - st) : 0;
+    const span = chart.visibleRange.endTs - chart.visibleRange.startTs;
+    return isFin(span) && span > 0 ? span : 0;
 };
 
 interface TimestampHost extends TimeFormattingHost {
@@ -197,11 +169,7 @@ const formatAxisTimestamp = (chart: TimestampHost, ts: number, ms: number = getV
     return mode === 'iso' ? new Date(ts).toISOString() : chart.formatDateTime(ts, chart.resolveAxisFormat(ms).options);
 };
 
-interface DetailedHost extends TimestampHost {
-    visibleRange: VisibleRange;
-}
-
-const formatDetailedTimestamp = (chart: DetailedHost, timestamp: number, options: JsonObject | null | undefined = null): string => {
+const formatDetailedTimestamp = (chart: TimestampHost, timestamp: number, options: JsonObject | null | undefined = null): string => {
     if (!isFin(timestamp)) return '';
     const includeSecondsRaw = isObject(options) ? options['includeSeconds'] : undefined;
     const includeMillisecondsRaw = isObject(options) ? options['includeMilliseconds'] : undefined;
@@ -239,14 +207,8 @@ const formatDetailedTimestamp = (chart: DetailedHost, timestamp: number, options
     }
     const dataValue: Record<string, string | undefined> = { month: 'short', day: '2-digit' };
     if (ms >= YEAR_MS) dataValue['year'] = 'numeric';
-    else {
-        const { start, end } = chart.visibleRange;
-        if (end - 1 > start) {
-            const redChannel = chart.timestamps[clampNumber(start, 0, chart.dataLength - 1)] ?? Number.NaN;
-            if (isFin(redChannel) && new Date(redChannel).getFullYear() !== new Date(timestamp).getFullYear()) dataValue['year'] = 'numeric';
-        }
-    }
+    else if (isFin(chart.visibleRange.startTs) && new Date(chart.visibleRange.startTs).getFullYear() !== new Date(timestamp).getFullYear()) dataValue['year'] = 'numeric';
     return `${chart.formatDateTime(timestamp, objectValue)} • ${chart.formatDateTime(timestamp, dataValue)}`;
 };
 
-export { finalizeDateTimeOptions, formatAxisTimestamp, formatDateTime, formatDetailedTimestamp, formatTimestamp, getVisibleTimeSpan, getVisibleTimeWindow, normalizeTimestampFormat, resolveAxisFormat };
+export { finalizeDateTimeOptions, formatAxisTimestamp, formatDateTime, formatDetailedTimestamp, formatTimestamp, getVisibleTimeSpan, normalizeTimestampFormat, resolveAxisFormat };

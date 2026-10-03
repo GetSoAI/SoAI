@@ -97,7 +97,7 @@ type ChatMessageTranslationKey =
     | 'contentPreview.actions.openSource'
     | 'richText.footnotes.backToReference';
 
-type ChatMessageWorkerTranslationKey = ChatMessageTranslationKey | SyntaxHighlighterLanguagesTranslationKey;
+type ChatMessageWorkerTranslationKey = ChatMessageTranslationKey | SyntaxHighlighterLanguagesTranslationKey | 'common.time.units.hour.short' | 'common.time.units.minute.short' | 'common.time.units.second.short';
 
 interface ChatMessageRenderHost {
     nowMs: () => number;
@@ -134,3 +134,5 @@ type RenderedMessageTextContent = {
 };
 
 export type { ChatMessageRenderHost, ChatMessageTranslationKey, ChatMessageWorkerTranslationKey, ImageSegment, InlineActionUpdateSegment, InlineLoadingActivitySegment, InlineProcessingActivitySegment, InlineThinkingActivitySegment, InlineToolActivitySegment, InlineWaitForUserActivitySegment, MessageRenderOptions, MessageSegment, RenderedMessageTextContent, SegmentTextResolution, SoaiFileSegment, SoaiFileUnavailableSegment, SoaiKnowledgeSegment, SoaiKnowledgeUnavailableSegment, SoaiPathSegment, ToolCallSegment };
+
+export type ChatAttachmentCardRenderHost = Pick<ChatMessageRenderHost, 'escapeHtml' | 'escapeAttribute' | 'sanitizeImage' | 'getIconHtml'>;

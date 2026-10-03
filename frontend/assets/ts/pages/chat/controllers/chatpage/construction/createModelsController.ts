@@ -4,7 +4,7 @@
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { MODELS } from '@core/realtime/streammanager/resources/ids.ts';
-import { getModelStreamPayloadTimeoutMs } from '@pages/chat/contracts/chatPageSupport.ts';
+import { getCoreTimeout } from '@core/runtime/runtimeContext.ts';
 import { ChatModelsController } from '@pages/chat/controllers/chatmodelscontroller/ChatModelsController.ts';
 import { setCurrentModelForChatPage } from '@pages/chat/controllers/chatpage/construction/stateTransitions.ts';
 import type { ChatConfigurationRuntime } from '@pages/chat/controllers/chatpage/runtime/ChatConfigurationRuntime.ts';
@@ -31,7 +31,7 @@ const createChatModelsController = (page: ChatModelsControllerDependencies, logW
             trackDisposable: (disposer) => page.pageResources.track(disposer),
             logWarn: (message, error): void => logWarning(message, error)
         },
-        streamConfig: { streamId: MODELS, payloadTimeoutMs: getModelStreamPayloadTimeoutMs() },
+        streamConfig: { streamId: MODELS, payloadTimeoutMs: getCoreTimeout('STREAM_CONNECT') },
         state: {
             getModels: () => page.conversationState.models,
             setModels: (models) => {

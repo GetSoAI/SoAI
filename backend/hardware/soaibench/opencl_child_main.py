@@ -115,7 +115,7 @@ def _execute(command: JSONDict, session: OpenCLExecutionSession) -> JSONDict:
     if operation == "preflight":
         if set(command) != {"operation", "identity"}:
             raise ValueError("SoAIBench child preflight fields are invalid.")
-        return {"ok": True, "preflight": preflight_blocking(identity)}
+        return {"ok": True, "preflight": preflight_blocking(session, identity)}
     if operation != "phase":
         raise ValueError("SoAIBench child operation is invalid.")
     if set(command) != {"operation", "phase", "stress", "identity"}:

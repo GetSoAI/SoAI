@@ -10,6 +10,7 @@ import type { GpuControlManagerDependencies, GpuSlotEntry, GpuUiState, SecurityS
 
 interface BuildGpuControlManagerViewContextDependencies {
     dependencies: GpuControlManagerDependencies;
+    renderGpuControls: (options: { only: string[] }) => void;
     security: SecurityService;
     capabilitiesByIndex: GpuCapabilitiesByIndex | null;
     telemetryByDeviceId: Map<string, GpuControlTelemetry>;
@@ -38,11 +39,13 @@ interface BuildGpuControlActionContextDependencies {
     setSliderToAuto: (index: string | number, controlType: string) => void;
     setSliderToManual: (index: string | number, controlType: string, manualValue: string | number | null) => void;
     refreshApplyState: (index: string | number) => void;
+    isCertifiedRunLocked: (index: string | number) => boolean;
 }
 
 const buildGpuControlManagerViewContext = (dependencies: BuildGpuControlManagerViewContextDependencies): GpuControlManagerViewContext => {
     return {
         dependencies: dependencies.dependencies,
+        renderGpuControls: dependencies.renderGpuControls,
         security: dependencies.security,
         capabilitiesByIndex: dependencies.capabilitiesByIndex,
         telemetryByDeviceId: dependencies.telemetryByDeviceId,
@@ -74,7 +77,8 @@ const buildGpuControlActionContext = (dependencies: BuildGpuControlActionContext
         getSlotEntryByIndex: dependencies.getSlotEntryByIndex,
         setSliderToAuto: dependencies.setSliderToAuto,
         setSliderToManual: dependencies.setSliderToManual,
-        refreshApplyState: dependencies.refreshApplyState
+        refreshApplyState: dependencies.refreshApplyState,
+        isCertifiedRunLocked: dependencies.isCertifiedRunLocked
     };
 };
 

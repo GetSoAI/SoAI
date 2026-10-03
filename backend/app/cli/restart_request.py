@@ -12,18 +12,22 @@ from typing import Literal, TypedDict
 import psutil
 
 from app.cli.instance_control_pid import resolve_pid_file_path
+from app.lifecycle.budgets import arm_lifecycle_shutdown_deadline
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
+from core.config.protocols import ConfigProtocol
 from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.filesystem.atomic_writes import atomic_write_text_content
 from core.filesystem.open_files import open_text
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.serialization.json import serialize_json_compact_stable_strict
 from core.serialization.json_parsing import parse_json_dict
 from core.tasks.task_cancellation_ops import cancel_task
 from core.types.json import JSONValue
 from core.types.json_value import filter_json_mapping_strict
 from core.validation.integers import is_strict_int
+from core.validation.strict_numbers import require_finite_float_strict
 
 __all__ = (
     "cancel_lifecycle_request_watch",
@@ -35,10 +39,13 @@ __all__ = (
 
 OPERATION_LIFECYCLE_REQUEST_READ = "app.cli.lifecycle_request.read"
 OPERATION_LIFECYCLE_REQUEST_REMOVE = "app.cli.lifecycle_request.remove"
-OPERATION_LIFECYCLE_REQUEST_WRITE = "app.cli.lifecycle_request.write"
 LIFECYCLE_REQUEST_FILENAME = "soai.lifecycle.json"
 LIFECYCLE_REQUEST_POLL_INTERVAL_SECONDS: float = 0.25
 PROCESS_CREATE_TIME_TOLERANCE_SECONDS: float = 0.001
+LIFECYCLE_REQUEST_IO_EXCEPTIONS: tuple[type[Exception], ...] = (
+    OSError,
+    *RECOVERABLE_EXCEPTIONS,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,55 +63,34 @@ class _LifecycleRequestFields(TypedDict):
 
 def write_lifecycle_request(
     base_dir: str,
-    pid: int,
+    process: psutil.Process,
     action: Literal["restart", "stop"],
     logger: logging.Logger,
 ) -> str:
     if _coerce_lifecycle_action(action) is None:
         raise ValidationError("Lifecycle request action is invalid.")
     request_path = _resolve_lifecycle_request_path(base_dir, logger)
-    try:
-        process = psutil.Process(pid)
-        payload: _LifecycleRequestFields = {
-            "action": action,
-            "pid": int(pid),
-            "create_time": float(process.create_time()),
-        }
-        lifecycle_payload = filter_json_mapping_strict(
-            payload,
-            error_message="Lifecycle request must be JSON-compatible.",
-        )
-        os.makedirs(os.path.dirname(request_path), exist_ok=True)
-        atomic_write_text_content(
-            request_path,
-            f"{serialize_json_compact_stable_strict(lifecycle_payload)}\n",
-            encoding="utf-8",
-            errors="strict",
-            ensure_parent=False,
-            fsync=True,
-        )
-    except psutil.NoSuchProcess:
-        raise
-    except psutil.Error as exception:
-        log_exception(
-            logger,
-            exception,
-            message=f"Failed to write {action} lifecycle request.",
-            operation=OPERATION_LIFECYCLE_REQUEST_WRITE,
-            details={"action": action, "pid": pid, "request_path": request_path},
-            level="error",
-        )
-        raise
-    except RECOVERABLE_EXCEPTIONS as exception:
-        log_exception(
-            logger,
-            exception,
-            message=f"Failed to write {action} lifecycle request.",
-            operation=OPERATION_LIFECYCLE_REQUEST_WRITE,
-            details={"action": action, "pid": pid, "request_path": request_path},
-            level="error",
-        )
-        raise
+    pid = process.pid
+    if not process.is_running():
+        raise psutil.NoSuchProcess(pid)
+    payload: _LifecycleRequestFields = {
+        "action": action,
+        "pid": int(pid),
+        "create_time": float(process.create_time()),
+    }
+    lifecycle_payload = filter_json_mapping_strict(
+        payload,
+        error_message="Lifecycle request must be JSON-compatible.",
+    )
+    os.makedirs(os.path.dirname(request_path), exist_ok=True)
+    atomic_write_text_content(
+        request_path,
+        f"{serialize_json_compact_stable_strict(lifecycle_payload)}\n",
+        encoding="utf-8",
+        errors="strict",
+        ensure_parent=False,
+        fsync=True,
+    )
     return request_path
 
 
@@ -113,9 +99,13 @@ async def wait_for_lifecycle_request(
     base_dir: str,
     stop_event: asyncio.Event,
     logger: logging.Logger,
+    config: ConfigProtocol,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> Literal["restart", "stop"] | None:
     while not stop_event.is_set():
-        action = _consume_matching_lifecycle_request(base_dir, logger)
+        action = _consume_matching_lifecycle_request(
+            base_dir, logger, config=config, process_exit_deadline=process_exit_deadline
+        )
         if action is not None:
             stop_event.set()
             return action
@@ -134,12 +124,16 @@ def start_lifecycle_request_watch(
     base_dir: str,
     stop_event: asyncio.Event,
     logger: logging.Logger,
+    config: ConfigProtocol,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> asyncio.Task[Literal["restart", "stop"] | None]:
     return create_ephemeral_task(
         wait_for_lifecycle_request(
             base_dir=base_dir,
             stop_event=stop_event,
             logger=logger,
+            config=config,
+            process_exit_deadline=process_exit_deadline,
         ),
         name="windows-lifecycle-request-watch",
     )
@@ -181,6 +175,9 @@ def _coerce_lifecycle_action(value: JSONValue) -> Literal["restart", "stop"] | N
 def _consume_matching_lifecycle_request(
     base_dir: str,
     logger: logging.Logger,
+    *,
+    config: ConfigProtocol,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> Literal["restart", "stop"] | None:
     request_path = _resolve_lifecycle_request_path(base_dir, logger)
     request = _read_lifecycle_request(request_path, logger)
@@ -206,6 +203,7 @@ def _consume_matching_lifecycle_request(
     if abs(current_create_time - request.create_time) > PROCESS_CREATE_TIME_TOLERANCE_SECONDS:
         _remove_lifecycle_request(request_path, logger)
         return None
+    arm_lifecycle_shutdown_deadline(config, process_exit_deadline)
     _remove_lifecycle_request(request_path, logger)
     logger.info("Lifecycle request file accepted for PID %s: %s.", current_pid, request.action)
     return request.action
@@ -217,7 +215,7 @@ def _read_lifecycle_request(request_path: str, logger: logging.Logger) -> Lifecy
             payload = parse_json_dict(handle.read(), field="lifecycle request file")
     except FileNotFoundError:
         return None
-    except ValidationError as exception:
+    except (ValidationError, UnicodeError, RecursionError) as exception:
         log_exception(
             logger,
             exception,
@@ -228,7 +226,7 @@ def _read_lifecycle_request(request_path: str, logger: logging.Logger) -> Lifecy
         )
         _remove_lifecycle_request(request_path, logger)
         return None
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except LIFECYCLE_REQUEST_IO_EXCEPTIONS as exception:
         log_exception(
             logger,
             exception,
@@ -247,7 +245,12 @@ def _read_lifecycle_request(request_path: str, logger: logging.Logger) -> Lifecy
     if not is_strict_int(pid_value):
         _remove_lifecycle_request(request_path, logger)
         return None
-    if not isinstance(create_time_value, int | float) or isinstance(create_time_value, bool):
+    try:
+        create_time = require_finite_float_strict(
+            create_time_value,
+            error_message="Lifecycle request creation time must be a finite number.",
+        )
+    except ValidationError:
         _remove_lifecycle_request(request_path, logger)
         return None
     if pid_value <= 0:
@@ -256,7 +259,7 @@ def _read_lifecycle_request(request_path: str, logger: logging.Logger) -> Lifecy
     return LifecycleRequest(
         action=action,
         pid=pid_value,
-        create_time=float(create_time_value),
+        create_time=create_time,
     )
 
 
@@ -265,7 +268,7 @@ def _remove_lifecycle_request(request_path: str, logger: logging.Logger) -> None
         os.unlink(request_path)
     except FileNotFoundError:
         return
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except LIFECYCLE_REQUEST_IO_EXCEPTIONS as exception:
         log_exception(
             logger,
             exception,

@@ -2,20 +2,24 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { createHtmlFragment } from '@core/dom/html.ts';
-import { replaceChildrenIfChanged, syncElementShell } from '@core/dom/patching.ts';
+import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
+import { dom } from '@core/dom/dom.ts';
+import { syncElementShell } from '@core/dom/patching.ts';
+import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { uiAttr } from '@core/security/uiHtml.ts';
 import { getWeekNumberForWindow, isSameDay, startOfDay, toIsoDate } from '@core/time/localCalendar.ts';
-import { buildHourLabels, resolveNowLineTopPx } from '@pages/automation/formatting/service.ts';
+import { buildHourLabels, formatAutomationFullDate, resolveNowLineTopPx } from '@pages/automation/formatting/service.ts';
 import { resolveBufferedAutomationWindow, type BufferedAutomationWindowEntry } from '@pages/automation/controllers/automationWindow.ts';
-import { formatAutomationRunTime } from '@pages/automation/controllers/automationZoneFormatters.ts';
+import { formatAutomationCreateAtLabel, formatAutomationOccurrenceLabel, formatAutomationRunTime } from '@pages/automation/controllers/automationZoneFormatters.ts';
 import { optionalAutomationCalendarLoading, optionalAutomationCalendarScroll, optionalAutomationCalendarTrack, requireAutomationCalendarStage } from '@pages/automation/dom.ts';
 import { renderMonthView } from '@pages/automation/rendering/monthView.ts';
-import { renderDayTimeGrid, renderWeekTimeGrid } from '@pages/automation/rendering/timeGridView.ts';
-import type { AutomationZone } from '@features/automation/public.ts';
-import type { AutomationPageState, AutomationUiRefs } from '@pages/automation/types.ts';
+import { AUTOMATION_KEYBOARD_CREATE_DEFAULT_MINUTES, renderDayTimeGrid, renderWeekTimeGrid } from '@pages/automation/rendering/timeGridView.ts';
+import type { AutomationOccurrenceResponse } from '@features/automation/public.ts';
+import type { AutomationCalendarTimeFormat, AutomationPageState, AutomationUiRefs } from '@pages/automation/types.ts';
 import { AUTOMATION_DEFAULT_DISPLAY_DURATION_MS } from '@pages/automation/widgets/calendar/constants.ts';
 import { layoutZonesForTimeGrid } from '@pages/automation/widgets/calendar/timeGridLayout.ts';
+import type { TimeGridZoneLayout } from '@pages/automation/widgets/calendar/timeGridTypes.ts';
 
 interface AutomationCalendarRenderHost {
     ui: AutomationUiRefs;
@@ -26,8 +30,8 @@ interface AutomationCalendarRenderCache {
     presentationSignature: string;
 }
 
-const groupZonesByIsoDay = (zones: readonly AutomationZone[]): Map<string, AutomationZone[]> => {
-    const map = new Map<string, AutomationZone[]>();
+const groupZonesByIsoDay = (zones: readonly AutomationOccurrenceResponse[]): Map<string, AutomationOccurrenceResponse[]> => {
+    const map = new Map<string, AutomationOccurrenceResponse[]>();
     for (const zone of zones) {
         const iso = toIsoDate(startOfDay(new Date(zone.scheduledAtMs)));
         const list = map.get(iso);
@@ -55,7 +59,7 @@ const renderBufferedPeriod = (entry: BufferedAutomationWindowEntry, content: str
     return `<section class="automation-calendar-period automation-calendar-period--${uiAttr(entry.window.viewMode).html}" data-automation-period-offset="${uiAttr(String(offset)).html}" data-automation-period-signature="${uiAttr(entry.signature).html}" data-automation-center-period="${uiAttr(center).html}">${content}</section>`;
 };
 
-const buildMonthMarkup = (state: AutomationPageState, zonesByDay: Map<string, AutomationZone[]>, periods: readonly BufferedAutomationWindowEntry[], maxChipsPerDay: number): string => {
+const buildMonthMarkup = (state: AutomationPageState, zonesByDay: Map<string, AutomationOccurrenceResponse[]>, periods: readonly BufferedAutomationWindowEntry[], maxChipsPerDay: number): string => {
     const now = new Date();
     const renderedPeriods = periods.map((entry) => {
         const window = entry.window;
@@ -84,6 +88,7 @@ const buildMonthMarkup = (state: AutomationPageState, zonesByDay: Map<string, Au
             zones.sort((left, right) => left.scheduledAtMs - right.scheduledAtMs);
             return {
                 iso,
+                label: formatAutomationFullDate(date),
                 day: date.getDate(),
                 isOutside: date.getMonth() !== window.focusDate.getMonth(),
                 isToday: isSameDay(date, now),
@@ -92,16 +97,17 @@ const buildMonthMarkup = (state: AutomationPageState, zonesByDay: Map<string, Au
                 selectedZoneKey: entry.offset === 0 ? state.selectedZoneKey : null
             };
         });
-        return renderBufferedPeriod(entry, renderMonthView({ monthLabel, weekDayLabels, days, showWeekNumbers: state.calendarSettings.showWeekNumbers, weekNumbers, maxChipsPerDay }));
+        return renderBufferedPeriod(entry, renderMonthView({ monthLabel, weekDayLabels, days, showWeekNumbers: state.calendarSettings.showWeekNumbers, weekNumbers, maxChipsPerDay, formatZoneLabel: (zone) => formatAutomationOccurrenceLabel(zone, state.calendarSettings.timeFormat) }));
     });
     return renderedPeriods.join('');
 };
 
-const buildWeekMarkup = (state: AutomationPageState, zonesByDay: Map<string, AutomationZone[]>, periods: readonly BufferedAutomationWindowEntry[], hourHeightPx: number): string => {
+const buildWeekMarkup = (state: AutomationPageState, zonesByDay: Map<string, AutomationOccurrenceResponse[]>, periods: readonly BufferedAutomationWindowEntry[], hourHeightPx: number): string => {
     const now = new Date();
     const todayIsoDate = toIsoDate(now);
     const hourLabels = buildHourLabels(state.calendarSettings.timeFormat);
     const formatZoneTime = (utcMs: number): string => formatAutomationRunTime(utcMs, state.calendarSettings.timeFormat);
+    const formatZoneLabel = (zone: TimeGridZoneLayout): string => formatAutomationOccurrenceLabel({ title: zone.title, scheduledAtMs: zone.startUtcMs, status: zone.status }, state.calendarSettings.timeFormat);
     const constants = { hourHeightPx, displayDurationMs: AUTOMATION_DEFAULT_DISPLAY_DURATION_MS };
     return periods
         .map((entry) => {
@@ -110,6 +116,8 @@ const buildWeekMarkup = (state: AutomationPageState, zonesByDay: Map<string, Aut
             }
             const dayIsoDates = entry.window.weekDays.map((date) => toIsoDate(date));
             const dayLabels = entry.window.weekDays.map((date) => i18n.formatDate(date, { weekday: 'short', day: '2-digit' }));
+            const dayFullLabels = entry.window.weekDays.map((date) => formatAutomationFullDate(date));
+            const createLabels = dayIsoDates.map((iso) => formatAutomationCreateAtLabel(iso, AUTOMATION_KEYBOARD_CREATE_DEFAULT_MINUTES, state.calendarSettings.timeFormat));
             const selectedIsoDate = toIsoDate(entry.window.selectedDate);
             const dayZones = entry.window.weekDays.map((date) => {
                 const iso = toIsoDate(date);
@@ -124,15 +132,16 @@ const buildWeekMarkup = (state: AutomationPageState, zonesByDay: Map<string, Aut
                 }
                 return null;
             }, null);
-            return renderBufferedPeriod(entry, renderWeekTimeGrid({ dayLabels, dayIsoDates, dayZones, todayIsoDate, selectedIsoDate, nowLine, hourHeightPx, hourLabels, formatZoneTime }));
+            return renderBufferedPeriod(entry, renderWeekTimeGrid({ dayLabels, dayFullLabels, createLabels, formatZoneLabel, dayIsoDates, dayZones, todayIsoDate, selectedIsoDate, nowLine, hourHeightPx, hourLabels, formatZoneTime }));
         })
         .join('');
 };
 
-const buildDayMarkup = (state: AutomationPageState, zonesByDay: Map<string, AutomationZone[]>, periods: readonly BufferedAutomationWindowEntry[], hourHeightPx: number): string => {
+const buildDayMarkup = (state: AutomationPageState, zonesByDay: Map<string, AutomationOccurrenceResponse[]>, periods: readonly BufferedAutomationWindowEntry[], hourHeightPx: number): string => {
     const now = new Date();
     const hourLabels = buildHourLabels(state.calendarSettings.timeFormat);
     const formatZoneTime = (utcMs: number): string => formatAutomationRunTime(utcMs, state.calendarSettings.timeFormat);
+    const formatZoneLabel = (zone: TimeGridZoneLayout): string => formatAutomationOccurrenceLabel({ title: zone.title, scheduledAtMs: zone.startUtcMs, status: zone.status }, state.calendarSettings.timeFormat);
     const constants = { hourHeightPx, displayDurationMs: AUTOMATION_DEFAULT_DISPLAY_DURATION_MS };
     return periods
         .map((entry) => {
@@ -140,11 +149,11 @@ const buildDayMarkup = (state: AutomationPageState, zonesByDay: Map<string, Auto
                 throw new Error('Expected day window for buffered day rendering');
             }
             const iso = toIsoDate(entry.window.day);
-            const label = i18n.formatDate(entry.window.day, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            const label = formatAutomationFullDate(entry.window.day);
             const zones = zonesByDay.get(iso) ?? [];
             const layouts = layoutZonesForTimeGrid(zones, entry.offset === 0 ? state.selectedZoneKey : null, constants);
             const nowLineTopPx = isSameDay(entry.window.day, now) ? resolveNowLineTopPx(hourHeightPx, now) : null;
-            return renderBufferedPeriod(entry, renderDayTimeGrid({ label, isoDate: iso, zones: layouts, nowLineTopPx, hourHeightPx, hourLabels, formatZoneTime }));
+            return renderBufferedPeriod(entry, renderDayTimeGrid({ label, createLabel: formatAutomationCreateAtLabel(iso, AUTOMATION_KEYBOARD_CREATE_DEFAULT_MINUTES, state.calendarSettings.timeFormat), isoDate: iso, zones: layouts, nowLineTopPx, hourHeightPx, hourLabels, formatZoneTime, formatZoneLabel }));
         })
         .join('');
 };
@@ -176,7 +185,7 @@ const parseCalendarTrack = (stage: HTMLElement, markup: string): HTMLElement => 
     return track;
 };
 
-const reconcileCalendarTrack = (stage: HTMLElement, markup: string): void => {
+const reconcileCalendarTrack = (stage: HTMLElement, markup: string, timeFormat: AutomationCalendarTimeFormat): void => {
     const existingTrack = optionalAutomationCalendarTrack(stage);
     if (!existingTrack) {
         stage.replaceChildren(parseCalendarTrack(stage, markup));
@@ -199,11 +208,23 @@ const reconcileCalendarTrack = (stage: HTMLElement, markup: string): void => {
         if (!existingPeriod) {
             return nextPeriod;
         }
+        const nextCreateControls = dom.resolveAll('[data-automation-keyboard-create="true"]', nextPeriod);
+        for (const control of dom.resolveAll('[data-automation-keyboard-create="true"]', existingPeriod)) {
+            if (!(control instanceof HTMLButtonElement)) continue;
+            const replacement = nextCreateControls.find((candidate) => candidate instanceof HTMLButtonElement && candidate.dataset['date'] === control.dataset['date']);
+            if (!(replacement instanceof HTMLButtonElement)) continue;
+            const minutes = control.dataset['keyboardMinutes'];
+            if (minutes === undefined) continue;
+            replacement.dataset['keyboardMinutes'] = minutes;
+            const label = formatAutomationCreateAtLabel(replacement.dataset['date'] ?? '', Number(minutes), timeFormat);
+            replacement.setAttribute('aria-label', label);
+            setTooltipText(replacement, label);
+        }
         syncElementShell({ target: existingPeriod, source: nextPeriod });
-        replaceChildrenIfChanged(existingPeriod, nextPeriod);
+        reconcileChildNodes(existingPeriod, Array.from(nextPeriod.childNodes));
         return existingPeriod;
     });
-    existingTrack.replaceChildren(...ordered);
+    if (ordered.length !== existingTrack.children.length || ordered.some((period, index) => existingTrack.children[index] !== period)) existingTrack.replaceChildren(...ordered);
 };
 
 const renderAutomationCalendar = (state: AutomationPageState, host: AutomationCalendarRenderHost, cache: AutomationCalendarRenderCache, monthMaxChipsPerDay: number): string => {
@@ -218,7 +239,7 @@ const renderAutomationCalendar = (state: AutomationPageState, host: AutomationCa
         return presentation.renderedWindowSignature;
     }
     const stage = requireAutomationCalendarStage(host.ui.calendarRoot);
-    reconcileCalendarTrack(stage, wrapInPagerTrack(presentation.markup));
+    reconcileCalendarTrack(stage, wrapInPagerTrack(presentation.markup), state.calendarSettings.timeFormat);
     cache.presentationSignature = presentationSignature;
     return presentation.renderedWindowSignature;
 };

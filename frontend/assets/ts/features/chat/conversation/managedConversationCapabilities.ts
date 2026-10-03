@@ -3,7 +3,7 @@
 
 import type { ChatConfigurationTabId } from '@features/chat/conversationsettings/chatConfigurationTabs.ts';
 
-type ChatInputActionName = 'voice' | 'call' | 'fileUpload' | 'camera';
+type ChatInputActionName = 'voice' | 'call' | 'fileUpload' | 'camera' | 'sketch';
 
 const MANAGED_HIDDEN_CONFIGURATION_TAB_IDS: ReadonlySet<ChatConfigurationTabId> = new Set(['completion', 'mcp', 'voice', 'files', 'knowledge']);
 

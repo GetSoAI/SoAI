@@ -1,42 +1,21 @@
 /* SoAI - Parses CSS transition/animation duration strings and returns the max duration in milliseconds [frontend/assets/ts/core/animations/parseMaxCssDurationMs.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+const CSS_TIME_PATTERN = /^(\d*\.?\d+)(ms|s)$/u;
+
 const parseMaxCssDurationMs = (raw: string): number => {
-    const normalized = raw.trim();
-    if (!normalized) {
-        return 0;
-    }
     let maxMs = 0;
-    for (const part of normalized.split(',')) {
-        const token = part.trim();
-        if (!token) {
+    for (const part of raw.split(',')) {
+        const match = CSS_TIME_PATTERN.exec(part.trim());
+        if (!match?.[1]) {
             continue;
         }
-        const msMatch = /^(\d+(?:\.\d+)?)ms$/.exec(token);
-        if (msMatch) {
-            const matchValue = msMatch[1];
-            if (!matchValue) {
-                continue;
-            }
-            const value = Number.parseFloat(matchValue);
-            if (Number.isFinite(value)) {
-                maxMs = Math.max(maxMs, Math.round(value));
-            }
-            continue;
-        }
-        const secMatch = /^(\d+(?:\.\d+)?)s$/.exec(token);
-        if (secMatch) {
-            const matchValue = secMatch[1];
-            if (!matchValue) {
-                continue;
-            }
-            const value = Number.parseFloat(matchValue);
-            if (Number.isFinite(value)) {
-                maxMs = Math.max(maxMs, Math.round(value * 1000));
-            }
+        const ms = Number.parseFloat(match[1]) * (match[2] === 's' ? 1000 : 1);
+        if (Number.isFinite(ms)) {
+            maxMs = Math.max(maxMs, Math.round(ms));
         }
     }
-    return Math.max(0, maxMs);
+    return maxMs;
 };
 
 const resolveMaxCssTransitionDurationMs = (element: HTMLElement): number => {

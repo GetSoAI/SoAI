@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { errorHandler } from '@core/errorHandler.ts';
-import { getLanguageRuntime } from '@core/languageservice/runtime.ts';
+import { getLanguageRuntime, type LanguageRuntime } from '@core/languageservice/runtime.ts';
 import { isFiniteNumber, isFunction, isString } from '@core/typeGuards.ts';
 import type { JsonRecord } from '@core/types/jsonValues.ts';
 import type { PluralBaseKey, TranslationKey } from '@core/i18n/translationKeyContract.ts';
@@ -13,11 +13,11 @@ interface SanitizerContract {
     attribute: (value: string) => string;
 }
 
-const translate = (key: TranslationKey, parameters?: JsonRecord): string => {
+const translate = (key: TranslationKey, parameters?: JsonRecord, source?: Pick<LanguageRuntime, 't'>): string => {
     if (!key) {
         throw new Error('Translation key is required');
     }
-    const service = getLanguageRuntime();
+    const service = source ?? getLanguageRuntime();
     try {
         const result = service.t(key, parameters);
         if (!isString(result) || !result) {

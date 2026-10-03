@@ -17,9 +17,9 @@ type StreamSnapshot = ResourceSnapshot<SystemStatusResource>;
 
 interface StreamManagerInterface {
     resources: {
-        ensureReady: (options: { allowDiscovery: boolean }) => Promise<void>;
+        ensureReady: (options: { allowDiscovery: boolean; signal?: AbortSignal | undefined }) => Promise<void>;
         getResource: (streamId: StatusStreamId, options: { state: true }) => StreamSnapshot | null;
-        ensureResourceStarted: (streamId: StatusStreamId, options?: { throwOnError?: boolean }) => Promise<SystemStatusResource | null>;
+        ensureResourceStarted: (streamId: StatusStreamId, options?: { throwOnError?: boolean; signal?: AbortSignal | undefined }) => Promise<SystemStatusResource | null>;
     };
     subscriptions: {
         subscribeResourceState: (streamId: StatusStreamId, callback: (snapshot: StreamSnapshot) => void) => (() => void) | void;

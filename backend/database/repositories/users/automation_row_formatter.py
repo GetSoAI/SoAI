@@ -12,8 +12,10 @@ from core.automation.automation_record_validation import (
     require_automation_int_field,
     require_automation_optional_color_field,
     require_automation_optional_epoch_field,
+    require_automation_run_status_field,
     require_automation_str_field,
 )
+from core.automation.automation_revision import compute_automation_revision
 from core.errors.exceptions import StateError
 from core.openai.model_settings_validation import validate_model_settings
 from core.types.json import JSONDict
@@ -30,6 +32,31 @@ __all__ = (
 )
 
 _LABEL_PREFIX = "Automation field"
+
+
+def _format_latest_run(row: SQLiteRowDict) -> JSONDict | None:
+    if row.get("latest_run_status") is None:
+        return None
+    return {
+        "status": require_automation_run_status_field(
+            row,
+            "latest_run_status",
+            build_error=StateError,
+            label_prefix=_LABEL_PREFIX,
+        ),
+        "scheduled_at_ms": require_automation_epoch_field(
+            row,
+            "latest_run_scheduled_at_ms",
+            build_error=StateError,
+            label_prefix=_LABEL_PREFIX,
+        ),
+        "finished_at_ms": require_automation_optional_epoch_field(
+            row,
+            "latest_run_finished_at_ms",
+            build_error=StateError,
+            label_prefix=_LABEL_PREFIX,
+        ),
+    }
 
 
 def format_automation_row(row: SQLiteRowDict | None) -> JSONDict | None:
@@ -87,7 +114,7 @@ def format_automation_row(row: SQLiteRowDict | None) -> JSONDict | None:
     )
     interactive_tool_approval = extract_interactive_tool_approval(model_settings)
     public_model_settings = strip_interactive_tool_approval(model_settings)
-    return {
+    formatted: JSONDict = {
         "id": automation_id,
         "user_id": require_automation_int_field(
             row,
@@ -149,7 +176,10 @@ def format_automation_row(row: SQLiteRowDict | None) -> JSONDict | None:
             build_error=StateError,
             label_prefix=_LABEL_PREFIX,
         ),
+        "latest_run": _format_latest_run(row),
     }
+    formatted["revision"] = compute_automation_revision(formatted)
+    return formatted
 
 
 def format_automation_window_source_row(row: SQLiteRowDict | None) -> JSONDict | None:

@@ -46,11 +46,13 @@ const writeConversationListScrollState = (container: HTMLElement, conversationId
         if (!(child instanceof HTMLElement)) continue;
         const conversationId = normalizeConversationId(child.dataset['collectionId'] ?? null);
         if (conversationId === null) continue;
+        const box = measureLayoutBox(child);
+        if (box.bottom <= viewportTop) continue;
         const index = conversationIds.indexOf(conversationId);
-        if (index < 0 || measureLayoutBox(child).bottom <= viewportTop) continue;
+        if (index < 0) continue;
         const followingConversationId = normalizeConversationId(conversationIds[index + 1] ?? null);
         const precedingConversationId = normalizeConversationId(conversationIds[index - 1] ?? null);
-        const state: ConversationListScrollState = { conversationId, followingConversationId, precedingConversationId, offset: measureLayoutBox(child).top - viewportTop, atStart };
+        const state: ConversationListScrollState = { conversationId, followingConversationId, precedingConversationId, offset: box.top - viewportTop, atStart };
         try {
             writeStorageJson('sessionStorage', CONVERSATION_LIST_SCROLL_STORAGE_KEY, state);
         } catch (error) {

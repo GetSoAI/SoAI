@@ -74,6 +74,7 @@ async def process_streaming_sse_flow(
     prompt_token_counter: PromptTokenCounter,
     plugin_name: str,
     model_name: str | None = None,
+    provider_id: str | None = None,
 ) -> StreamingSSEFlowResult:
     responses_transcript = (
         ResponsesStreamTranscript(
@@ -115,6 +116,9 @@ async def process_streaming_sse_flow(
         detect_progress=OpenAISSEProgressDetector().consume,
     )
     stream_iterator = build_stream_iterator(iteration_request)
+    orchestration_context = queue.require_orchestration_context(task)
+    request_event = orchestration_context.event
+    trace_id = request_event.context.trace_id if request_event is not None else None
     frame_accumulator = OpenAISSEFrameAccumulator()
     deferred_terminal_chunks: list[bytes] = []
     terminal_observed = False
@@ -136,7 +140,13 @@ async def process_streaming_sse_flow(
                     )
                 parsed_error = parse_openai_sse_error_frame(frame_text)
                 if parsed_error is not None:
-                    raise_openai_streaming_error(parsed_error, operation=operation)
+                    raise_openai_streaming_error(
+                        parsed_error,
+                        operation=operation,
+                        provider_id=provider_id,
+                        task_id=task.task_id,
+                        trace_id=trace_id,
+                    )
                 frame_bytes = frame_text.encode("utf-8")
                 if usage_collector is not None:
                     usage_collector.consume_frame(frame_text)

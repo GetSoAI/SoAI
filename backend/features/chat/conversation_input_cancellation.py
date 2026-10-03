@@ -9,9 +9,6 @@ from core.logging.trace import get_logger
 from core.runtime.cancellation_ids import build_chat_stream_task_cancellation_id
 from core.runtime.request_context import RequestContext
 from core.runtime.soai_identifiers import create_system_id
-from core.tasks.cancellation_scope import (
-    publish_and_verify_cancellation_scope_noncritical,
-)
 from core.tasks.task_cancellation import cancel
 from core.validation.strings import coerce_optional_trimmed_str
 from features.api.routes.webui.conversation_input_queue_events import (
@@ -20,6 +17,7 @@ from features.api.routes.webui.conversation_input_queue_events import (
 from features.chat.conversation_stream_cancellation import (
     cancel_conversation_stream_runtime,
     mark_conversation_stream_runtime_cancellation_requested,
+    publish_and_verify_chat_cancellation_scope,
 )
 
 if TYPE_CHECKING:
@@ -84,10 +82,8 @@ async def _publish_persisted_input_cancellation(
         ),
         request_id=request_id,
     )
-    cancellation_published = await publish_and_verify_cancellation_scope_noncritical(
-        event_bus=api_dependencies.event_bus,
-        cancellation_coordinator=api_dependencies.cancellation_coordinator,
-        cancellation_history=api_dependencies.cancellation_history,
+    cancellation_published = await publish_and_verify_chat_cancellation_scope(
+        api_dependencies,
         context=context,
         reason=reason,
         cancellation_id=cancellation_id,

@@ -17,8 +17,6 @@ from database.repositories.metrics.genesis import (
     get_genesis_data_query,
     sync_increment_genesis_counters,
     sync_initialize_genesis,
-    sync_reset_genesis_counters,
-    sync_reset_genesis_uptime,
     sync_update_genesis_uptime,
 )
 from database.repositories.metrics.history.repository import (
@@ -30,14 +28,15 @@ from database.repositories.metrics.history.sync_logging import (
 )
 from database.repositories.metrics.live import (
     get_all_live_metrics_query,
-    sync_clear_all_live_metrics,
     sync_upsert_live_metrics,
 )
+from database.repositories.metrics.storage_reset import sync_reset_metrics_storage
 from database.repositories.users.context_compaction_metric_events import (
     get_context_compaction_metric_totals_query,
 )
 
 if TYPE_CHECKING:
+    from core.history.request.availability import HistoryAvailabilityQuery
     from core.types.json import JSONDict
     from database.repositories.dependencies import DatabaseRepositoryDependencies
 
@@ -62,9 +61,12 @@ class DatabaseMetrics:
         self.core.features.ensure_feature_enabled(FEATURE_METRICS)
         return await self.core.reader.execute_read(get_all_live_metrics_query)
 
-    async def clear_all_live_metrics(self) -> None:
+    async def reset_metrics_storage(self, reset_genesis_counters: bool) -> int:
         self.core.features.ensure_feature_enabled(FEATURE_METRICS)
-        await self.core.writer.queue_write_operation(sync_clear_all_live_metrics)
+        return await self.core.writer.queue_write_operation(
+            sync_reset_metrics_storage,
+            reset_genesis_counters,
+        )
 
     async def get_context_compaction_metric_totals(self) -> JSONDict:
         self.core.features.ensure_feature_enabled(FEATURE_METRICS)
@@ -117,18 +119,6 @@ class DatabaseMetrics:
             tokens_delta,
         )
 
-    async def reset_genesis_counters(self) -> None:
-        self.core.features.ensure_feature_enabled(FEATURE_METRICS)
-        await self.core.writer.queue_write_operation(
-            sync_reset_genesis_counters,
-        )
-
-    async def reset_genesis_uptime(self) -> None:
-        self.core.features.ensure_feature_enabled(FEATURE_METRICS)
-        await self.core.writer.queue_write_operation(
-            sync_reset_genesis_uptime,
-        )
-
     async def initialize_genesis(self, now_ts_ms: int) -> None:
         self.core.features.ensure_feature_enabled(FEATURE_METRICS)
         await self.core.writer.queue_write_operation(
@@ -144,6 +134,8 @@ class DatabaseMetrics:
         interval_ms: int,
         aggregation: str,
         max_points: int,
+        metric_key_known: bool = False,
+        availability: HistoryAvailabilityQuery | None = None,
     ) -> JSONDict:
         self.core.features.ensure_feature_enabled(FEATURE_METRICS)
         return await self.core.reader.execute_read(
@@ -154,4 +146,6 @@ class DatabaseMetrics:
             interval_ms,
             aggregation,
             max_points,
+            metric_key_known,
+            availability,
         )

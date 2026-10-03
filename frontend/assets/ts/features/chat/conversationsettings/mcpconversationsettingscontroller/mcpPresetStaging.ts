@@ -3,10 +3,24 @@
 
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { normalizeMcpConfigValues } from '@core/mcp/toolChangeSurfaces.ts';
+import type { ChatParameters } from '@core/chat/parameters/types.ts';
+import { resolveMcpToolsForMode } from '@core/mcp/toolModeSelection.ts';
+import type { McpToolMode } from '@core/mcp/configTypes.ts';
 import { isKnowledgeToolsForceEnabled, isKnowledgeToolsLocked, isRequiredKnowledgeTool } from '@features/chat/conversationsettings/mcpKnowledgeState.ts';
 import type { McpConfig, McpFormValues, McpTool } from '@features/chat/conversationsettings/settingsModels.ts';
 
 type McpPresetMergeResult = Readonly<{ values: McpFormValues; skippedValues: readonly string[] }>;
+
+const resolveMcpParameterDefaults = (current: McpFormValues, parameters: Pick<ChatParameters, 'toolsEnabled' | 'toolApprovalRequired'>, mode: McpToolMode): McpFormValues | null => {
+    if (parameters.toolsEnabled === true && resolveMcpToolsForMode(current, mode).length === 0) {
+        return null;
+    }
+    return {
+        ...current,
+        toolsEnabled: parameters.toolsEnabled === true,
+        toolApprovalRequired: parameters.toolApprovalRequired === true
+    };
+};
 
 const cloneValues = (values: McpFormValues): McpFormValues => ({ ...values, defaultTools: [...values.defaultTools], planTools: [...values.planTools], executeTools: [...values.executeTools], serverConfigs: { ...values.serverConfigs } });
 
@@ -135,5 +149,5 @@ const deriveHypotheticalKnowledgeMcpConfig = (baseline: McpConfig, ragEnabled: b
     };
 };
 
-export { deriveHypotheticalKnowledgeMcpConfig, mergeMcpPreset, reconcileMcpIntentAfterKnowledge, snapshotMcpPreset };
+export { deriveHypotheticalKnowledgeMcpConfig, mergeMcpPreset, reconcileMcpIntentAfterKnowledge, resolveMcpParameterDefaults, snapshotMcpPreset };
 export type { McpPresetMergeResult };

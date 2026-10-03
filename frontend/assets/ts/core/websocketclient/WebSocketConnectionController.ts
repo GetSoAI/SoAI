@@ -9,7 +9,7 @@ import type { JsonObject } from '@core/types/jsonValues.ts';
 import { configureConnectionHandlers, emitWebSocketTelemetryEvent, resolveBaseUrlChange } from '@core/websocketclient/actions.ts';
 import { WebSocketConnectionWaitRegistry } from '@core/websocketclient/connectionWaitRegistry.ts';
 import { waitForWebSocketConnection } from '@core/websocketclient/connectionWait.ts';
-import { CONNECTION_STATES, CONNECTION_TIMEOUT_MS, RECONNECT_STABILITY_MS, WEBSOCKET_PROTOCOL_VERSION, type ConnectionState } from '@core/websocketclient/constants.ts';
+import { CONNECTION_STATES, CONNECTION_TIMEOUT_MS, CONNECTION_WAIT_TIMEOUT_MS, RECONNECT_STABILITY_MS, WEBSOCKET_PROTOCOL_VERSION, type ConnectionState } from '@core/websocketclient/constants.ts';
 import type { ConnectionControllerEvents } from '@core/websocketclient/contracts.ts';
 import { buildWebSocketUrl, clearTimers, startHeartbeatTimer } from '@core/websocketclient/effects.ts';
 import { resolveWebSocketMaintenanceTransition } from '@core/websocketclient/maintenance.ts';
@@ -102,7 +102,7 @@ class WebSocketConnectionController {
         log('debug', 'WebSocket client destroyed');
     }
 
-    waitForConnection(timeoutMs: number = 15000, options: WaitForConnectionOptions = {}): Promise<void> {
+    waitForConnection(timeoutMs: number = CONNECTION_WAIT_TIMEOUT_MS, options: WaitForConnectionOptions = {}): Promise<void> {
         return waitForWebSocketConnection({
             timeoutMs,
             signal: options.signal,

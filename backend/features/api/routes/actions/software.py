@@ -20,8 +20,10 @@ from features.api.runtime.access_dependencies import (
 from features.api.runtime.audit import log_audit_event
 from features.api.runtime.container.api_routers import ApiRouters
 from features.api.runtime.context import ApiContext, resolve_api_context
+from features.api.runtime.current_user import CurrentUser, get_current_user
 from features.api.runtime.errors import (
     raise_conflict,
+    raise_not_found,
     raise_offline_mode,
     raise_server_error,
     raise_service_unavailable,
@@ -34,6 +36,49 @@ OPERATION = "api_actions.check_for_software_updates"
 
 
 def register_routes(routers: ApiRouters) -> None:
+    @routers.software.get(
+        "/update-preparation",
+        dependencies=require_action_dependencies(AccessAction.SOFTWARE_UPDATE),
+    )
+    async def get_update_preparation(
+        api_context: ApiContext = Depends(resolve_api_context),
+    ) -> Response:
+        progress = (
+            await api_context.dependencies.application_control.get_update_preparation_status()
+        )
+        return JSONResponse(status_code=status.HTTP_200_OK, content=progress)
+
+    @routers.webui.get(
+        "/software-update-notice",
+        dependencies=require_action_dependencies(AccessAction.AUTH_COOKIE),
+    )
+    async def get_update_notice(
+        current_user: CurrentUser = Depends(get_current_user),
+        api_context: ApiContext = Depends(resolve_api_context),
+    ) -> Response:
+        notice = await api_context.dependencies.application_control.get_update_notice(
+            current_user["id"]
+        )
+        return JSONResponse(status_code=status.HTTP_200_OK, content={"notice": notice})
+
+    @routers.webui.post(
+        "/software-update-notice/{task_id}/acknowledge",
+        status_code=status.HTTP_204_NO_CONTENT,
+        dependencies=require_action_dependencies(AccessAction.AUTH_COOKIE),
+    )
+    async def acknowledge_update_notice(
+        request: Request,
+        task_id: str,
+        current_user: CurrentUser = Depends(get_current_user),
+        api_context: ApiContext = Depends(resolve_api_context),
+    ) -> Response:
+        acknowledged = await api_context.dependencies.application_control.acknowledge_update_notice(
+            user_id=current_user["id"], task_id=task_id
+        )
+        if not acknowledged:
+            raise_not_found(request, "Software update notice was not found.")
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
     @routers.actions.post(
         "/software/check-for-updates",
         dependencies=require_action_dependencies(AccessAction.SOFTWARE_UPDATE),

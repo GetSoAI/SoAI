@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ntpath
 import os
 import time
 
@@ -26,7 +27,9 @@ from core.bootstrap.venv_markers import (
 )
 from core.bootstrap.venv_paths import get_venv_path, get_venv_python_executable
 from core.errors.exceptions import StateError
+from core.filesystem.path_coercion import remove_windows_path_namespace
 from core.meta.paths import join_data_abs
+from core.platform.os import is_windows
 from core.system.commands import CommandResult, run_argv_capture
 from core.timing.constants import LONG_REQUEST_TIMEOUT_SEC
 
@@ -214,17 +217,9 @@ def _install_python_dependencies(
     python_executable: str,
     requirements_path: str,
 ) -> None:
+    install_command = _dependency_install_command(repo_root_path, python_executable)
     run_bootstrap_command(
-        [
-            python_executable,
-            "-m",
-            "pip",
-            "install",
-            "--root-user-action=ignore",
-            "--upgrade",
-            "pip",
-            "wheel",
-        ],
+        [*install_command, "pip", "wheel"],
         log_prefix="pip: ",
         cwd=repo_root_path,
     )
@@ -235,12 +230,7 @@ def _install_python_dependencies(
     )
     run_bootstrap_command(
         [
-            python_executable,
-            "-m",
-            "pip",
-            "install",
-            "--root-user-action=ignore",
-            "--upgrade",
+            *install_command,
             "--upgrade-strategy",
             "eager",
             "-r",
@@ -249,6 +239,17 @@ def _install_python_dependencies(
         log_prefix="pip: ",
         cwd=repo_root_path,
     )
+
+
+def _dependency_install_command(repo_root_path: str, python_executable: str) -> list[str]:
+    command = [python_executable, "-m", "pip", "install", "--root-user-action=ignore", "--upgrade"]
+    if is_windows():
+        prefix = remove_windows_path_namespace(get_venv_path(repo_root_path))
+        volume, _relative = ntpath.splitdrive(prefix)
+        if not volume or not ntpath.isabs(prefix) or prefix.startswith("\\\\.\\"):
+            raise StateError("The managed Python install prefix must be a drive or UNC path.")
+        command.extend(("--prefix", prefix))
+    return command
 
 
 def _install_pytorch_hosted_wheels_if_required(
@@ -262,12 +263,7 @@ def _install_pytorch_hosted_wheels_if_required(
         return
     run_bootstrap_command(
         [
-            python_executable,
-            "-m",
-            "pip",
-            "install",
-            "--root-user-action=ignore",
-            "--upgrade",
+            *_dependency_install_command(repo_root_path, python_executable),
             "--no-deps",
             *wheel_urls,
         ],

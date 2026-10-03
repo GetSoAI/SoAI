@@ -12,6 +12,10 @@ from typing import TYPE_CHECKING
 
 from playwright.async_api import Error
 
+from core.browser.playwright_driver_errors import (
+    PlaywrightDriverConnectionClosedError,
+    classify_playwright_driver_connection_closed_exception,
+)
 from core.errors.cancellation import raise_cancelled_error
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
@@ -19,6 +23,7 @@ from core.errors.exceptions import SoAITimeoutError, ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.files.locking import async_guarded_file_lock
 from core.filesystem.atomic_writes import atomic_write_text
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.hardware.reservation_claims import claim_reserved_write
 from core.logging.trace import get_logger
 from core.serialization.json import (
@@ -26,10 +31,6 @@ from core.serialization.json import (
     serialize_json_compact_stable_strict,
 )
 from mcp.tools.browser.config_values import browser_min_float
-from mcp.tools.browser.playwright_driver_errors import (
-    PlaywrightDriverConnectionClosedError,
-    classify_playwright_driver_connection_closed_exception,
-)
 from mcp.tools.browser.session_state import (
     browser_session_can_use_context,
     mark_browser_session_driver_disconnected,
@@ -127,7 +128,9 @@ async def _write_storage_state(
     parent_dir = os.path.dirname(path)
     try:
         if parent_dir:
-            await asyncio.to_thread(os.makedirs, parent_dir, exist_ok=True)
+            await asyncio.to_thread(
+                os.makedirs, normalize_filesystem_path(parent_dir), exist_ok=True
+            )
         async with async_guarded_file_lock(
             lock_path,
             timeout=save_timeout_sec,

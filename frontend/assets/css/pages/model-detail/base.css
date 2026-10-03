@@ -8,41 +8,16 @@
         &.page-scrollable {
             padding-bottom: 0;
         }
-
-        :is(.page-content-area--floating, .page-content-area--sections, .tab-content.is-active, .modeldetail-overview-grid) {
+        :is(.page-content-area--floating, .page-content-area--sections, .tab-content.is-active) {
             padding-bottom: var(--model-detail-overview-padding);
             scroll-padding-bottom: var(--model-detail-overview-padding);
         }
-
         .parameters-interface {
             display: flex;
             flex-direction: column;
             flex: 1;
             min-height: 0;
         }
-
-        .card {
-            padding: 0;
-            overflow: hidden;
-            margin-bottom: var(--space-6);
-        }
-
-        .model-overview-card {
-            align-self: start;
-        }
-
-        .card:last-child {
-            margin-bottom: 0;
-        }
-
-        .card-body,
-        .modeldetail-card-body {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-2);
-            padding: var(--space-3);
-        }
-
         .model-detail-error {
             display: none;
             flex-direction: column;
@@ -51,159 +26,167 @@
             min-height: 400px;
             text-align: center;
         }
-
         .model-detail-error:not(.u-hidden) {
             display: flex;
         }
-
         .error-state {
             text-align: center;
             max-width: 400px;
         }
-
         .error-icon {
             color: var(--status-red);
             margin-bottom: var(--space-4);
         }
-
         .error-state h3 {
             color: var(--text-primary);
             margin-bottom: var(--space-2);
         }
-
         .error-state p {
             color: var(--text-secondary);
             margin-bottom: var(--space-8);
         }
-
-        .modeldetail-overview-grid {
-            column-width: 320px;
-            column-gap: var(--space-6);
-            width: 100%;
-        }
-
         .modeldetail-card {
             overflow: hidden;
-            break-inside: avoid;
-            display: inline-block;
-            width: 100%;
-        }
-
-        .modeldetail-plugin-summary {
-            display: flex;
-            align-items: center;
-            gap: var(--space-3);
-            min-height: 32px;
-        }
-
-        .modeldetail-plugin-logo {
-            width: var(--icon-button-size-dense);
-            height: var(--icon-button-size-dense);
-            margin-right: 0;
-        }
-
-        .modeldetail-plugin-meta {
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-05);
             min-width: 0;
         }
-
-        .modeldetail-plugin-name {
-            font-size: var(--font-size-sm);
-            font-weight: 600;
-            color: var(--text-primary);
+        .modeldetail-overview-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.7fr) minmax(18rem, 1fr);
+            align-items: start;
+            gap: var(--space-5);
+            width: 100%;
+            padding-bottom: var(--space-8);
+        }
+        :is(.modeldetail-overview-main, .modeldetail-overview-side) {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-5);
+            min-width: 0;
+        }
+        .modeldetail-overview-side {
+            position: sticky;
+            top: var(--space-4);
+        }
+        .modeldetail-card-body {
             overflow: hidden;
+            padding: var(--space-2) var(--space-35) var(--space-3);
+        }
+        .modeldetail-overview-grid .modeldetail-card > .modeldetail-card-body {
+            background-color: var(--surface-card);
+        }
+        .modeldetail-card-body--stack {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+            padding-top: var(--space-35);
+        }
+        .modeldetail-description {
+            margin: 0;
+            padding: var(--space-2) 0 var(--space-3);
+            border-bottom: var(--border-width-1) solid var(--glass-border-strong);
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+        .modeldetail-spec {
+            --modeldetail-spec-divider: color-mix(in srgb, var(--glass-border-strong) 70%, transparent);
+            display: block;
+            min-width: 0;
+            margin: 0 0 calc(var(--border-width-1) * -1);
+            column-gap: var(--space-10);
+            column-rule: var(--border-width-1) solid var(--modeldetail-spec-divider);
+        }
+        .modeldetail-details-card .modeldetail-spec {
+            columns: 2 28rem;
+        }
+        .modeldetail-spec--columns {
+            columns: 4 17rem;
+        }
+        .modeldetail-spec-row {
+            display: grid;
+            grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
+            align-items: center;
+            gap: var(--space-4);
+            min-height: calc(var(--space-8) + var(--space-1));
+            min-width: 0;
+            padding: var(--space-1) 0;
+            box-shadow: inset 0 calc(var(--border-width-1) * -1) 0 var(--modeldetail-spec-divider);
+            break-inside: avoid;
+        }
+        .modeldetail-spec--columns .modeldetail-spec-row {
+            grid-template-columns: minmax(0, 1fr) auto;
+        }
+        .modeldetail-spec-label {
+            min-width: 0;
+            overflow: hidden;
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-
-        .modeldetail-plugin-subtitle {
-            font-size: var(--font-size-xs);
-            color: var(--text-secondary);
-        }
-
-        .modeldetail-card.u-hidden,
-        .modeldetail-info-row.u-hidden,
-        .modeldetail-metrics-row.u-hidden {
-            display: none;
-        }
-
-        :is(.modeldetail-info-row, .modeldetail-metrics-row, .modeldetail-default-row) {
-            display: grid;
-            grid-template-columns: minmax(96px, max-content) minmax(0, 1fr);
-            align-items: start;
-            column-gap: var(--space-4);
-            min-height: 22px;
-        }
-
-        .modeldetail-info-row {
-            align-items: flex-start;
-        }
-
-        :is(.modeldetail-info-label, .modeldetail-metrics-label, .modeldetail-default-label) {
-            font-size: var(--font-size-xs);
-            color: var(--text-secondary);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: var(--tracking-05px);
-            flex-shrink: 0;
-            line-height: 1.5;
-        }
-
-        .modeldetail-default-label {
-            text-transform: none;
-            letter-spacing: normal;
-        }
-
-        :is(.modeldetail-info-value, .modeldetail-metrics-value, .modeldetail-default-value) {
-            font-size: var(--font-size-sm);
-            font-weight: 600;
-            color: var(--text-primary);
-            line-height: 1.5;
+        .modeldetail-spec-data {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
             min-width: 0;
-            text-align: right;
+            margin: 0;
         }
-
-        .modeldetail-info-value {
-            word-break: break-word;
+        .modeldetail-spec-value {
+            flex: 0 1 auto;
+            min-width: 0;
+            overflow: hidden;
+            color: var(--text-primary);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-
-        .modeldetail-metrics-value,
-        .modeldetail-default-value {
+        .modeldetail-spec-value--numeric {
             font-variant-numeric: tabular-nums;
+            text-align: end;
         }
-
-        .modeldetail-metrics-row--total-requests {
-            gap: var(--space-3);
+        .modeldetail-copy-button {
+            flex-shrink: 0;
+            opacity: 0.25;
+            transition: opacity var(--transition-fast);
         }
-
-        :is(.modeldetail-info-value--mono, .modeldetail-info-value--path, .modeldetail-constituent-uid) {
-            font-family: var(--font-family-mono);
+        .modeldetail-spec-row:is(:hover, :focus-within) .modeldetail-copy-button {
+            opacity: 1;
+        }
+        .modeldetail-spec-data > :is(.ui-status-badge, .modeldetail-constituent-badge) {
+            flex-shrink: 0;
+            margin-inline-start: auto;
+        }
+        .modeldetail-enabled-toggle.setting-item {
+            padding: var(--space-1) 0;
+            border: none;
+            border-radius: 0;
+            background: none;
+            box-shadow: none;
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+        }
+        :is(.modeldetail-enabled-toggle .setting-label, .modeldetail-status-capabilities .openai-capability-name) {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            font-weight: 400;
+        }
+        :is(.modeldetail-enabled-toggle .setting-help, .modeldetail-status-capabilities .openai-capability-reason) {
+            color: var(--text-tertiary);
             font-size: var(--font-size-xs);
+            line-height: 1.3;
         }
-
-        .modeldetail-info-value--mono {
-            color: var(--text-secondary);
+        .modeldetail-card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: var(--space-2);
+            padding-top: var(--space-3);
+            box-shadow: inset 0 var(--border-width-1) 0 color-mix(in srgb, var(--glass-border-strong) 70%, transparent);
         }
-
-        .modeldetail-info-value--path {
-            color: var(--text-secondary);
-            word-break: break-all;
-            text-align: left;
-            max-width: 100%;
-        }
-
-        .modeldetail-info-row--fullwidth {
-            grid-template-columns: minmax(0, 1fr);
-            align-items: flex-start;
-            row-gap: var(--space-15);
-
-            & .modeldetail-info-value {
-                width: 100%;
-                text-align: left;
-                line-height: 1.5;
-            }
+        .modeldetail-overview-side > [data-operation-progress-key] {
+            margin: 0;
         }
     }
 }

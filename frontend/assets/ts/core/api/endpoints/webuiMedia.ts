@@ -7,6 +7,7 @@ import { OpenAiAudioSpeechSessionClient, type OpenAiAudioSpeechSessionCallbacks,
 import { transcribeAudioOverWebSocket } from '@core/api/endpoints/openaiWsAudioTranscription.ts';
 import { generateImagesOverWebSocket } from '@core/api/endpoints/openaiWsImages.ts';
 import type { RequestOptions } from '@core/api/types/request.ts';
+import { minutesToMs } from '@core/time/durations.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 
 interface WebuiMediaTransportOptions {
@@ -14,9 +15,11 @@ interface WebuiMediaTransportOptions {
     timeoutMs?: number | undefined;
 }
 
+const WEBUI_MEDIA_REQUEST_TIMEOUT_MS = minutesToMs(5);
+
 const buildWebuiMediaRequestOptions = (options: WebuiMediaTransportOptions): RequestOptions => ({
     ...(options.signal === undefined ? {} : { signal: options.signal }),
-    ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs })
+    timeoutMs: options.timeoutMs ?? WEBUI_MEDIA_REQUEST_TIMEOUT_MS
 });
 
 const createWebuiMediaEndpoints = () => ({

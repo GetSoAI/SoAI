@@ -80,6 +80,11 @@ const ROOT_CHANGE_ROUTES: RootChangeRoute[] = [
 ];
 
 const handleRootPointerHoverChange = (host: ChatRootEventsHost, event: Event, hovering: boolean): void => {
+    if (hovering) {
+        host.shell.sidebarPeek.handlePointerOver(event);
+    } else {
+        host.shell.sidebarPeek.handlePointerOut(event);
+    }
     const transition = resolveChatMessageHoverTransition(event, hovering);
     if (!transition) {
         return;
@@ -95,10 +100,6 @@ const handleRootBackgroundClick = (host: ChatRootEventsHost, target: Element): v
     if (!target.closest('.chat-conversation-color-picker') && !target.closest('.color-picker-trigger')) {
         host.shell.hideConversationColorPicker();
     }
-    if (target.closest('.chat-input')) {
-        host.shell.collapseSidebarIfNarrowViewport();
-        return;
-    }
     host.shell.handleMobileSidebarClickAway(target);
 };
 
@@ -110,6 +111,7 @@ const handleRootBackgroundPointerDown = (host: ChatRootEventsHost, event: Event)
     if (!target.closest(CHAT_MODEL_CONTROL_ROOT_SELECTOR)) {
         host.shell.closeChatModelControlMenu();
     }
+    host.shell.sidebarPeek.handlePointerDown(target);
     handleRootBackgroundClick(host, target);
 };
 
@@ -123,7 +125,11 @@ const handleRootActionClick = (host: ChatRootEventsHost, event: Event, action: C
     if (actionElement instanceof HTMLInputElement || actionElement instanceof HTMLSelectElement || actionElement instanceof HTMLTextAreaElement) {
         return;
     }
+    const dismissesSidebarPeek = (action === CHAT_ACTIONS.SWITCH_CONVERSATION || action === CHAT_ACTIONS.NEW_CONVERSATION) && !host.conversations.isConversationSelectionActive();
     dispatchResolvedActionCandidate(host, event, { actionElement, action });
+    if (dismissesSidebarPeek) {
+        host.shell.sidebarPeek.dismiss();
+    }
 };
 
 const createRootPointerHoverHandler = (hovering: boolean): ((host: ChatRootEventsHost, event: Event) => void) => {

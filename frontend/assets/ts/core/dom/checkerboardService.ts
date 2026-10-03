@@ -6,6 +6,8 @@ import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
 import { CHECKERBOARD_CLASS_PAIR, resolveCheckerboardClass, type CheckerboardClassName } from '@core/dom/checkerboardAssignment.ts';
 import type { ResourceTracker } from '@core/resourcetracker/service.ts';
 
+const SUPPRESSED_ITEM_CLASS = 'ui-page-header-stats__card--suppressed';
+
 interface CheckerboardServiceDependencies {
     createResourceTracker: () => ResourceTracker;
     getDomWindow: () => Window;
@@ -103,7 +105,7 @@ class CheckerboardService {
     }
 
     updateCheckerboard(container: Element, itemSelector: string, absoluteIndexOffset?: number): void {
-        const items = Array.from(container.querySelectorAll(itemSelector));
+        const items = Array.from(container.querySelectorAll(itemSelector)).filter((item) => !item.classList.contains(SUPPRESSED_ITEM_CLASS));
 
         const containerId = this.getContainerId(container);
         const entry = this.observers.get(containerId);

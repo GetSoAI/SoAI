@@ -1,14 +1,16 @@
 /* SoAI - Frontend main status monitor ownership [frontend/assets/ts/core/mainstatusmonitor/MainStatusMonitor.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { ensureError } from '@core/errors/coerce.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { LifecycleModel } from '@core/LifecycleModel.ts';
 import { requireMainStatusAuthManager } from '@core/mainstatusmonitor/auth.ts';
-import { resolveMainStatusUpdate } from '@core/mainstatusmonitor/status.ts';
+import { resolveMainStatusUpdate, resolveMainSnapshotState } from '@core/mainstatusmonitor/status.ts';
 import { getStatusStream } from '@core/mainstatusmonitor/stream.ts';
 import { MainStatusStreamBridge } from '@core/mainstatusmonitor/streamBridge.ts';
 import { StatusSubscribers } from '@core/mainstatusmonitor/subscribers.ts';
-import type { StatusCallback } from '@core/mainstatusmonitor/types.ts';
+import type { StatusCallback, StreamSnapshot } from '@core/mainstatusmonitor/types.ts';
 import { createModuleLogger } from '@core/moduleContext.ts';
 import type { SystemStatusResource } from '@core/realtime/streammanager/resourceRegistry.ts';
 import { resolveKernelService } from '@core/runtime/runtimeContext.ts';
@@ -49,9 +51,9 @@ class MainStatusMonitor extends LifecycleModel {
         return generation === this.#generation && !this.#activityAbort.signal.aborted;
     }
 
-    #markUnknown(): void {
-        if (this.currentState === 'unknown') return;
-        this.currentState = 'unknown';
+    #publishState(state: string): void {
+        if (this.currentState === state) return;
+        this.currentState = state;
         this.#subscribers.notify(this.currentState);
     }
 
@@ -84,30 +86,28 @@ class MainStatusMonitor extends LifecycleModel {
             return null;
         }
         const fetchInitialState = async (): Promise<void> => {
-            const manager = await this.#streamBridge.getReadyStreamManager();
+            const manager = await this.#streamBridge.getReadyStreamManager(this.#activityAbort.signal);
             if (!this.#isGenerationActive(generation)) {
                 return;
             }
             const statusStream = getStatusStream();
             const state = manager.resources.getResource(statusStream, { state: true });
-            if (state && typeof state === 'object' && 'value' in state && state.value) {
-                this.handleStatusUpdate(state.value, generation);
-                return;
-            }
-            await manager.resources.ensureResourceStarted(statusStream, { throwOnError: false });
-            if (!this.#isGenerationActive(generation)) {
-                return;
-            }
-            const updatedState = manager.resources.getResource(statusStream, { state: true });
-            if (updatedState && typeof updatedState === 'object' && 'value' in updatedState && updatedState.value) {
-                this.handleStatusUpdate(updatedState.value, generation);
-            }
+            this.#handleSnapshot(state, generation);
+            if (!this.#isGenerationActive(generation) || state?.status === 'ready') return;
+            await manager.resources.ensureResourceStarted(statusStream, { throwOnError: false, signal: this.#activityAbort.signal });
+            this.#handleSnapshot(manager.resources.getResource(statusStream, { state: true }), generation);
         };
-        this.initialFetchInFlight = fetchInitialState().finally(() => {
-            if (generation === this.#generation) {
-                this.initialFetchInFlight = null;
-            }
-        });
+        this.initialFetchInFlight = fetchInitialState()
+            .catch((error) => {
+                const runtimeError = ensureError(error);
+                if (!this.#isGenerationActive(generation) || isAbortError(runtimeError)) return;
+                throw runtimeError;
+            })
+            .finally(() => {
+                if (generation === this.#generation) {
+                    this.initialFetchInFlight = null;
+                }
+            });
         return this.initialFetchInFlight;
     }
 
@@ -117,17 +117,17 @@ class MainStatusMonitor extends LifecycleModel {
         const bound = await this.#streamBridge.connect({
             generation,
             isGenerationActive: (generationValue) => this.#isGenerationActive(generationValue),
-            onValue: (value: SystemStatusResource): void => {
-                this.handleStatusUpdate(value, generation);
-            },
-            onError: (): void => {
-                this.#markUnknown();
-            }
+            signal: this.#activityAbort.signal,
+            onSnapshot: (snapshot): void => this.#handleSnapshot(snapshot, generation)
         });
         if (!this.#isGenerationActive(generation)) {
             return;
         }
         this.#dataHubBound = bound;
+    }
+
+    #handleSnapshot(snapshot: StreamSnapshot | null, generation: number): void {
+        if (this.#isGenerationActive(generation)) this.#publishState(resolveMainSnapshotState(snapshot));
     }
 
     handleStatusUpdate(value: SystemStatusResource, generation: number = this.#generation): void {
@@ -138,8 +138,7 @@ class MainStatusMonitor extends LifecycleModel {
         if (nextState === null) {
             return;
         }
-        this.currentState = nextState;
-        this.#subscribers.notify(nextState);
+        this.#publishState(nextState);
     }
 
     subscribe(callback: StatusCallback): () => void {
@@ -169,9 +168,9 @@ class MainStatusMonitor extends LifecycleModel {
         this.disconnect();
         this.initialFetchInFlight = null;
         this.#streamBridge.reset();
-        this.#markUnknown();
         this.#bindDataHubPromise = null;
         this.#dataHubBound = false;
+        this.#publishState('unknown');
     }
 
     bindDataHub(): Promise<boolean> {
@@ -186,8 +185,7 @@ class MainStatusMonitor extends LifecycleModel {
         }
         const generation = this.#generation;
         const bindTask = async (): Promise<boolean> => {
-            const initialState = await this.fetchInitialState();
-            if (initialState === null) {
+            if (!requireMainStatusAuthManager().isAuthenticated) {
                 return false;
             }
             if (!this.#isGenerationActive(generation)) {
@@ -200,9 +198,12 @@ class MainStatusMonitor extends LifecycleModel {
             this.#dataHubBound = true;
             return true;
         };
-        this.#bindDataHubPromise = bindTask().finally(() => {
-            this.#bindDataHubPromise = null;
-        });
+        const promise = Promise.resolve()
+            .then(bindTask)
+            .finally(() => {
+                if (this.#bindDataHubPromise === promise) this.#bindDataHubPromise = null;
+            });
+        this.#bindDataHubPromise = promise;
         return this.#bindDataHubPromise;
     }
 }

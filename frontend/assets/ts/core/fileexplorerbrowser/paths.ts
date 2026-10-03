@@ -4,8 +4,7 @@
 import { isAbsoluteFilesystemPath } from '@core/filePathResolution.ts';
 
 const toVirtualPath = (value: string): string => {
-    const trimmed = value.trim();
-    const withRoot = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    const withRoot = value.startsWith('/') ? value : `/${value}`;
     const collapsed = withRoot.replace(/\/{2,}/g, '/');
     if (collapsed === '') {
         return '/';
@@ -52,11 +51,10 @@ const isWindowsLikePath = (value: string): boolean => {
 };
 
 const normalizeOsPathForComparison = (value: string): string => {
-    const trimmed = value.trim();
-    if (!trimmed) {
+    if (!value) {
         return '';
     }
-    const replaced = trimmed.replace(/\\/g, '/');
+    const replaced = value.replace(/\\/g, '/');
     if (replaced.startsWith('//')) {
         const rest = replaced.slice(2).replace(/\/{2,}/g, '/');
         return `//${rest}`;
@@ -81,44 +79,38 @@ const stripTrailingSeparator = (value: string, separator: '\\' | '/'): string =>
     if (separator === '/') {
         return stripTrailingForwardSlashes(value);
     }
-    const trimmed = value.trimEnd();
-    if (trimmed === '\\\\') {
-        return trimmed;
+    if (value === '\\\\') {
+        return value;
     }
-    if (/^[A-Za-z]:\\\\$/.test(trimmed)) {
-        return trimmed.slice(0, 2);
+    if (/^[A-Za-z]:\\\\$/.test(value)) {
+        return value.slice(0, 2);
     }
-    return trimmed.replace(/\\+$/g, '');
+    return value.replace(/\\+$/g, '');
 };
 
 const resolveAbsolutePath = (rootPathResolved: string | null, virtualPath: string): string | null => {
     if (!rootPathResolved) {
         return null;
     }
-    const rootTrimmed = rootPathResolved.trim();
-    if (!rootTrimmed) {
-        return null;
-    }
     const normalizedVirtual = toVirtualPath(virtualPath);
-    if (rootTrimmed === '/' && normalizedVirtual.startsWith('/')) {
+    if (rootPathResolved === '/' && normalizedVirtual.startsWith('/')) {
         return normalizedVirtual;
     }
     if (normalizedVirtual === '/') {
-        return rootTrimmed;
+        return rootPathResolved;
     }
-    const separator: '\\' | '/' = isWindowsLikePath(rootTrimmed) ? '\\' : '/';
-    const rootBase = stripTrailingSeparator(rootTrimmed, separator);
+    const separator: '\\' | '/' = isWindowsLikePath(rootPathResolved) ? '\\' : '/';
+    const rootBase = stripTrailingSeparator(rootPathResolved, separator);
     const remainder = normalizedVirtual.slice(1).replace(/\//g, separator);
     return `${rootBase}${separator}${remainder}`;
 };
 
 const resolveVirtualPathFromAbsolute = (rootPathResolved: string, absolutePath: string): string | null => {
-    const trimmedAbsolute = absolutePath.trim();
-    if (!trimmedAbsolute || !isAbsoluteFilesystemPath(trimmedAbsolute)) {
+    if (!absolutePath || !isAbsoluteFilesystemPath(absolutePath)) {
         return null;
     }
     const rootComparable = normalizeOsPathForComparison(rootPathResolved);
-    const absoluteComparable = normalizeOsPathForComparison(trimmedAbsolute);
+    const absoluteComparable = normalizeOsPathForComparison(absolutePath);
     if (!rootComparable) {
         return null;
     }

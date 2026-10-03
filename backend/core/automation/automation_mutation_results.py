@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "AutomationConversationVersion",
+    "AutomationPreparedUpdate",
     "AutomationUpdateResult",
 )
 
@@ -19,6 +20,15 @@ __all__ = (
 class AutomationConversationVersion:
     conv_id: str
     last_modified_at_ms: int
+
+
+@dataclass(frozen=True, slots=True)
+class AutomationPreparedUpdate:
+    automation_id: str
+    user_id: int
+    payload: JSONDict
+    expected_revision: str
+    model_settings: JSONDict | None
 
 
 @dataclass(frozen=True, slots=True)

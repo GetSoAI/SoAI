@@ -13,7 +13,8 @@ from app.updater.software_update.install_transaction_recovery import (
     recover_interrupted_update_transactions,
 )
 from core.concurrency.deadlines import deadline_after
-from core.errors.exceptions import StateError, ValidationError
+from core.errors.exceptions import SoAIError, StateError, ValidationError
+from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.filesystem.atomic_write_primitives import fsync_directory
 from core.filesystem.atomic_writes import atomic_write_text_content
 from core.filesystem.open_files import read_regular_file_no_symlink
@@ -26,6 +27,7 @@ from core.runtime.instance_record import (
 )
 from core.runtime.process_identity_kill import force_kill_process_tree_matching_identity_blocking
 from core.runtime.process_identity_signals import read_process_create_time_ms
+from core.system.process_launcher import SUBPROCESS_RECOVERABLE_EXCEPTIONS
 from core.tasks.identifiers import validate_optional_task_id
 from core.tasks.software_update_result import read_software_update_result
 from core.timing.constants import (
@@ -47,6 +49,15 @@ __all__ = (
     "clear_updater_handoff",
     "updater_handoff_record_path",
     "wait_for_prepared_updater",
+    "UPDATE_HANDOFF_EXCEPTIONS",
+)
+
+UPDATE_LAUNCH_EXCEPTIONS: tuple[type[Exception], ...] = (
+    RECOVERABLE_EXCEPTIONS + SUBPROCESS_RECOVERABLE_EXCEPTIONS + (SoAIError,)
+)
+UPDATE_HANDOFF_EXCEPTIONS: tuple[type[BaseException], ...] = (
+    *UPDATE_LAUNCH_EXCEPTIONS,
+    asyncio.CancelledError,
 )
 
 

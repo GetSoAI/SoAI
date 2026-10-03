@@ -5,7 +5,7 @@ import { openChatParameterEditorModal } from '@core/chat/parameters/parameterEdi
 import { createChatParameterEditorProjection } from '@core/chat/parameters/parameterEditorState.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
-import { AUTOMATION_PARAMETERS_MODAL_ID, type AutomationDefinition } from '@features/automation/public.ts';
+import { AUTOMATION_PARAMETERS_MODAL_ID, type AutomationDefinitionResponse } from '@features/automation/public.ts';
 import { applyAutomationParametersStateToModelSettings, createDefaultAutomationParametersState, resolveAutomationParametersState, type AutomationParametersState } from '@pages/automation/controllers/configurationmodal/state.ts';
 
 const AUTOMATION_CONFIGURATION_PARAMETERS_UPDATED_EVENT = 'automation:configuration:parameters-updated';
@@ -18,17 +18,19 @@ type ParametersControllerDependencies = {
 class AutomationConfigurationParametersController {
     readonly #dependencies: ParametersControllerDependencies;
     #state: AutomationParametersState = createDefaultAutomationParametersState();
+    #edited = false;
 
     constructor(dependencies: ParametersControllerDependencies) {
         this.#dependencies = dependencies;
     }
 
-    setValues(modelSettings: AutomationDefinition['modelSettings']): void {
+    setValues(modelSettings: AutomationDefinitionResponse['modelSettings']): void {
         this.#state = resolveAutomationParametersState(modelSettings);
+        this.#edited = false;
     }
 
-    applyTo(settings: AutomationDefinition['modelSettings']): void {
-        applyAutomationParametersStateToModelSettings(this.#state, settings);
+    applyTo(settings: AutomationDefinitionResponse['modelSettings']): void {
+        if (this.#edited) applyAutomationParametersStateToModelSettings(this.#state, settings);
     }
 
     getSummary(): string {
@@ -39,18 +41,20 @@ class AutomationConfigurationParametersController {
         return createChatParameterEditorProjection(this.#state);
     }
 
-    async openModal(readOnly: boolean, canApply: () => boolean): Promise<boolean> {
-        if (readOnly) return false;
+    async openModal(readOnly: boolean, canApply: () => boolean, signal?: AbortSignal): Promise<boolean> {
         const result = await openChatParameterEditorModal({
             presenter: this.#dependencies.modalPresenter,
             modalId: AUTOMATION_PARAMETERS_MODAL_ID,
             initialState: this.#state,
             includeSystemPromptLock: true,
+            readOnly,
             canApply,
+            signal,
             resolveModelDetailId: this.#dependencies.resolveModelDetailId,
             supportedReasoningLevels: null
         });
-        if (!result || !canApply()) return false;
+        if (readOnly || !result || !canApply()) return false;
+        this.#edited = true;
         this.#state = {
             parameters: result.parameters,
             prompts: {

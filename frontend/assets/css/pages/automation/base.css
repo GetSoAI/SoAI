@@ -12,7 +12,7 @@
         --automation-toolbar-height: calc(var(--control-height) + var(--space-3) * 2);
         --automation-splitter-width: var(--layout-container-padding);
         --automation-splitter-handle-width: var(--space-3);
-        --automation-left-width: 80%;
+        --automation-primary-width: 80%;
         --automation-hour-height: 64px;
         --automation-calendar-viewport-height: 100%;
         --automation-time-grid-gutter-width: 64px;
@@ -45,16 +45,16 @@
         gap: var(--layout-container-padding);
         position: absolute;
         top: calc(var(--layout-top-offset) + var(--layout-container-padding));
-        right: var(--layout-container-padding);
+        inset-inline-end: var(--layout-container-padding);
         bottom: var(--layout-bottom-safe-padding);
-        left: var(--layout-container-padding);
+        inset-inline-start: var(--layout-container-padding);
         overflow: hidden;
         min-height: 0;
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-split {
         display: grid;
-        grid-template-columns: minmax(0, var(--automation-left-width)) var(--automation-splitter-width) minmax(min(320px, 100%), 1fr);
+        grid-template-columns: minmax(0, var(--automation-primary-width)) var(--automation-splitter-width) minmax(min(320px, 100%), 1fr);
         gap: 0;
         flex: 1 1 auto;
         min-height: 0;
@@ -85,9 +85,18 @@
         transition: opacity var(--transition-fast);
     }
 
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-splitter:focus-visible {
+        outline: none;
+    }
+
     :where([data-section='automation'], [data-page-scope='automation']) .automation-splitter:hover::before,
     :where([data-section='automation'], [data-page-scope='automation']) .automation-splitter.is-dragging::before {
         opacity: 1;
+    }
+
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-splitter:focus-visible::before {
+        opacity: 1;
+        box-shadow: 0 0 0 var(--control-focus-ring-width) var(--ui-button-focus-ring);
     }
 
     :where([data-section='automation'], [data-page-scope='automation']) .automation-surface {

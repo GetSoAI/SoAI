@@ -11,6 +11,7 @@ from core.hardware.export import (
     iter_hardware_history_csv_bytes,
 )
 from core.hardware.history_selection import (
+    parse_hardware_history_availability_metric,
     parse_optional_hardware_history_export_selection,
     parse_required_hardware_history_selection,
 )
@@ -53,6 +54,8 @@ async def snapshot_hardware_history(
         "points",
         "interval_ms",
         "aggregation",
+        "include_availability",
+        "metric",
     }
     require_supported_snapshot_payload_keys(data, allowed_keys=allowed_keys)
     selection = parse_required_hardware_history_selection(
@@ -66,6 +69,12 @@ async def snapshot_hardware_history(
         invalid_component_message=(
             "Invalid component: {component}. Must be one of: cpu, gpu, disk, network"
         ),
+    )
+    component = selection.component or ""
+    availability_metric = parse_hardware_history_availability_metric(
+        component,
+        include_availability=data.get("include_availability"),
+        metric=data.get("metric"),
     )
     api_context = connection.api_context
     history_config = api_context.dependencies.hw_manager.history_config
@@ -85,9 +94,10 @@ async def snapshot_hardware_history(
     return await load_hardware_history_data(
         hardware_manager=api_context.dependencies.hw_manager,
         history_request=history_request,
-        component=selection.component or "",
+        component=component,
         gpu_index=selection.gpu_index,
         identifier=selection.identifier,
+        availability_metric=availability_metric,
     )
 
 

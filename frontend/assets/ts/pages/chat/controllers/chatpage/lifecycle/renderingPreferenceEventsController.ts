@@ -16,13 +16,16 @@ const bindChatPageRenderingPreferenceEvents = (host: ChatPageRenderingPreference
     }
     const handleLanguageChanged = (): void => {
         host.taskScope.run('chat:languageChanged', async () => {
+            if (signal.aborted) return;
             host.conversationView.refreshWorkerRendering();
             await host.conversationView.refresh();
+            if (signal.aborted) return;
             host.conversationView.initializeSearch();
         });
     };
     const handleLocalizationChanged = (): void => {
         host.taskScope.run('chat:localizationChanged', async () => {
+            if (signal.aborted) return;
             host.conversationView.refreshWorkerRendering();
             await host.conversationView.refresh();
         });
@@ -30,6 +33,7 @@ const bindChatPageRenderingPreferenceEvents = (host: ChatPageRenderingPreference
     const handleCodeRecognitionChanged = (): void => {
         host.conversationView.invalidateMessagePresentation();
         host.taskScope.run('chat:renderCurrentConversation', async () => {
+            if (signal.aborted) return;
             await host.conversationView.renderCurrent();
         });
     };

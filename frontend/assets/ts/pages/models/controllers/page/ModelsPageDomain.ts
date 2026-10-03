@@ -179,6 +179,7 @@ class ModelsPageDomain {
             defineLayout: () => {
                 this.#hydrateControls();
                 return createModelsPageCollectionLayout({
+                    viewMode: this.session.viewMode,
                     sortBy: this.state.sortBy ?? STR_NONE,
                     sortOrder: this.state.sortOrder ?? 'asc',
                     onSortChange: (event) => this.#handleSortChange(event),

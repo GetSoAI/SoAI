@@ -29,6 +29,7 @@ __all__ = (
     "metric_value_from_json",
     "should_refresh_capabilities_cache",
     "snapshot_metrics_locked",
+    "snapshot_metrics_with_token_rates",
 )
 
 LOGGER_NAME = "SoAI.metrics.manager.query"
@@ -77,6 +78,18 @@ async def snapshot_metrics_locked(
         return _recursive_copy_metrics(metrics_ref)
 
 
+async def snapshot_metrics_with_token_rates(
+    snapshot_fn: Callable[[], Awaitable[MetricsTree]],
+    token_rate_calculator: TokenRateCalculatorProtocol,
+) -> MetricsTree:
+    metrics_copy = await snapshot_fn()
+    token_rates = token_rate_calculator.get_rates(monotonic_ms())
+    converted_token_rates = metric_value_from_json(token_rates)
+    if converted_token_rates is not None:
+        metrics_copy["token_rates"] = converted_token_rates
+    return metrics_copy
+
+
 def should_refresh_capabilities_cache(
     cache: JSONDict | None,
     cache_timestamp: float,
@@ -105,11 +118,10 @@ async def aggregate_all_metrics(
     session_start_time_monotonic_ms: int,
 ) -> JSONDict:
     logger = get_logger(LOGGER_NAME)
-    metrics_copy = await snapshot_fn()
-    token_rates = token_rate_calculator.get_rates(monotonic_ms())
-    converted_token_rates = metric_value_from_json(token_rates)
-    if converted_token_rates is not None:
-        metrics_copy["token_rates"] = converted_token_rates
+    metrics_copy = await snapshot_metrics_with_token_rates(
+        snapshot_fn,
+        token_rate_calculator,
+    )
     calculate_stats_recursive(metrics_copy)
     capabilities = await get_capabilities_fn()
     converted_capabilities = metric_value_from_json(capabilities)

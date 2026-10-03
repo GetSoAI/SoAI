@@ -3,7 +3,7 @@
 
 import { resolveAll } from '@core/dom/dom.ts';
 import { isInstanceOf } from '@core/typeGuards.ts';
-import { CHAT_SELECTORS, type AudioState, type ChatParameters } from '@features/chat/public.ts';
+import { CHAT_SELECTORS, type AudioRecordingIntent, type AudioState, type ChatParameters } from '@features/chat/public.ts';
 import { updateMicrophoneButtonState } from '@pages/chat/controllers/page/dom/audio.ts';
 import { updateCallButtonState } from '@pages/chat/controllers/page/dom/call.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
@@ -23,11 +23,12 @@ class ChatPageElementsManager {
         this.#dependencies = dependencies;
     }
 
-    updateMicrophoneButtonState(state: AudioState): void {
+    updateMicrophoneButtonState(state: AudioState, intent: AudioRecordingIntent | null = null): void {
         const previousState = this.#dependencies.getMicrophoneAudioState();
         this.#dependencies.setMicrophoneAudioState(state);
         updateMicrophoneButtonState(this.#dependencies, state, {
             previousState,
+            intent,
             soundEffectsEnabled: this.#dependencies.getParameters().microphoneSoundEffectsEnabled !== false
         });
     }

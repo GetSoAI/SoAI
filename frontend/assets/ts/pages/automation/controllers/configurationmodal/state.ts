@@ -6,7 +6,7 @@ import { buildAgentSettingsWithMaxIterations, readAgentMaxIterationsFromAgentSet
 import { STORED_CHAT_PARAMETER_KEYS } from '@core/chat/parameters/chatParameterKeySets.ts';
 import { cloneChatParameters, type ChatParameters } from '@core/chat/parameters/chatParameterDefaults.ts';
 import { buildStoredChatParameters } from '@core/chat/parameters/chatRequestParameters.ts';
-import type { AutomationDefinition } from '@features/automation/public.ts';
+import type { AutomationDefinitionResponse } from '@features/automation/public.ts';
 
 type AutomationPromptSettings = {
     userSystemPrompt: string | null;
@@ -36,7 +36,7 @@ const createDefaultAutomationParametersState = (): AutomationParametersState => 
     };
 };
 
-const resolveAutomationPromptSettings = (prompts: AutomationDefinition['modelSettings']['prompts'] | null): AutomationPromptSettings => {
+const resolveAutomationPromptSettings = (prompts: AutomationDefinitionResponse['modelSettings']['prompts'] | null): AutomationPromptSettings => {
     const promptSettings: AutomationPromptSettings = {
         userSystemPrompt: prompts?.userSystemPrompt ?? null,
         userSystemPromptLockEnabled: prompts?.userSystemPromptLockEnabled === true,
@@ -46,7 +46,7 @@ const resolveAutomationPromptSettings = (prompts: AutomationDefinition['modelSet
     return promptSettings;
 };
 
-const resolveAutomationParametersState = (modelSettings: AutomationDefinition['modelSettings']): AutomationParametersState => {
+const resolveAutomationParametersState = (modelSettings: AutomationDefinitionResponse['modelSettings']): AutomationParametersState => {
     const prompts = modelSettings.prompts ?? null;
     const parameters = cloneChatParameters(modelSettings);
     parameters.agentMaxIterations = readAgentMaxIterationsFromAgentSettings(modelSettings.agent);
@@ -58,7 +58,7 @@ const resolveAutomationParametersState = (modelSettings: AutomationDefinition['m
     };
 };
 
-const applyAutomationParametersStateToModelSettings = (state: AutomationParametersState, settings: AutomationDefinition['modelSettings']): void => {
+const applyAutomationParametersStateToModelSettings = (state: AutomationParametersState, settings: AutomationDefinitionResponse['modelSettings']): void => {
     if (state.hasExplicitParameters) {
         const requestParameters = buildStoredChatParameters(state.parameters);
         for (const key of STORED_CHAT_PARAMETER_KEYS) {

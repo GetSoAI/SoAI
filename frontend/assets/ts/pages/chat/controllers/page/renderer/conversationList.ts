@@ -14,7 +14,7 @@ const buildConversationTitleEditorHtml = (host: ChatConversationListRenderDepend
     }
     const value = host.pageContext.sanitizer.attribute(renameState.draft);
     const label = host.pageContext.sanitizer.attribute(i18n.t('common.edit'));
-    return `<div class="conversation-item-title-editor"><input type="text" class="conversation-item-title-input" data-collection-focus-key="conversation-title-rename" value="${value}" aria-label="${label}" maxlength="${CONVERSATION_TITLE_MAX_LENGTH}"></div>`;
+    return `<div class="conversation-item-title-editor"><input dir="auto" type="text" class="conversation-item-title-input" data-collection-focus-key="conversation-title-rename" value="${value}" aria-label="${label}" maxlength="${CONVERSATION_TITLE_MAX_LENGTH}"></div>`;
 };
 
 interface ConversationListRowPresentation {
@@ -45,7 +45,7 @@ const resolveConversationListRow = (host: ChatConversationListRenderDependencies
     const isRenaming = host.conversationState.conversationRenameState?.scope === 'sidebar' && host.conversationState.conversationRenameState.conversationId === conversation.id;
     const titleLabel = resolveConversationDisplayTitleFromConversation(conversation, i18n.t('chat.conversation.untitled'));
     const deleteDisabled = isProtectedEmptyConversation(host.conversationState.conversations, conversation.id, i18n.t('chat.conversation.newTitle'));
-    const signature = `u:${conversation.updatedAt}|fav:${conversation.isFavorite ? '1' : '0'}|act:${conversation.id === host.conversationState.currentConversationId ? '1' : '0'}|sel:${isSelected ? '1' : '0'}|exec:${sidebarStatus.executionStatus}|attn:${sidebarStatus.attentionStatus}|chatStream:${isChatStreaming ? '1' : '0'}|term:${terminalIndicator ?? ''}|auto:${conversation.isAutomation === true ? '1' : '0'}|msg:${conversation.isMessaging === true ? '1' : '0'}|color:${color ?? ''}|cnt:${logicalCount}|rename:${isRenaming ? '1' : '0'}|deleteDisabled:${deleteDisabled ? '1' : '0'}|title:${titleLabel}`;
+    const signature = `u:${conversation.updatedAt}|fav:${conversation.isFavorite ? '1' : '0'}|sel:${isSelected ? '1' : '0'}|exec:${sidebarStatus.executionStatus}|attn:${sidebarStatus.attentionStatus}|chatStream:${isChatStreaming ? '1' : '0'}|term:${terminalIndicator ?? ''}|auto:${conversation.isAutomation === true ? '1' : '0'}|msg:${conversation.isMessaging === true ? '1' : '0'}|color:${color ?? ''}|cnt:${logicalCount}|rename:${isRenaming ? '1' : '0'}|deleteDisabled:${deleteDisabled ? '1' : '0'}|title:${titleLabel}`;
     const colorLabel = host.presentation.conversationColorLabel(color);
     const baseItem: ConversationListItem = {
         deleteDisabled,

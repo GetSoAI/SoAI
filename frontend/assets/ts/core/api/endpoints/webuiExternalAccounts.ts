@@ -7,9 +7,10 @@ import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { serializeCalendarAccountWriteRequest, serializeMailAccountWriteRequest } from '@core/api/contracts/externalAccountRequestSerialization.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
+import { buildSignalRequestOptions, type SignalOptions } from '@core/api/requestOptions.ts';
 
 interface ExternalAccountsEndpoints<Account, WriteRequest> {
-    list(): Promise<Account[]>;
+    list(options?: SignalOptions): Promise<Account[]>;
     create(payload: WriteRequest): Promise<Account>;
     update(accountId: string, payload: WriteRequest): Promise<Account>;
     delete(accountId: string): Promise<ExternalAccountActionResponse>;
@@ -28,7 +29,7 @@ interface WebuiExternalAccountsEndpoints {
 }
 
 const createAccountsEndpoints = <Account, WriteRequest>(api: ApiClientContext, basePath: string, type: ExternalAccountType, decodeAccount: (value: ApiResponsePayload) => Account, serializeRequest: (request: WriteRequest) => JsonObject): ExternalAccountsEndpoints<Account, WriteRequest> => ({
-    list: async (): Promise<Account[]> => decodeAccountList(await api.get(basePath), type, decodeAccount),
+    list: async (options: SignalOptions = {}): Promise<Account[]> => decodeAccountList(await api.get(basePath, buildSignalRequestOptions(options)), type, decodeAccount),
     create: async (payload): Promise<Account> => decodeAccount(await api.post(basePath, serializeRequest(payload))),
     update: async (accountId, payload): Promise<Account> => decodeAccount(await api.patch(`${basePath}/${api.encodePathSegment(accountId)}`, serializeRequest(payload))),
     delete: async (accountId): Promise<ExternalAccountActionResponse> => decodeExternalAccountAction(await api.delete(`${basePath}/${api.encodePathSegment(accountId)}`), type),

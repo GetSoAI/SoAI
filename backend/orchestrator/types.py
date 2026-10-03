@@ -33,6 +33,7 @@ if TYPE_CHECKING:
         ParameterManagerProtocol,
         VirtualModelServiceProtocol,
     )
+    from core.openai.chat_template_role_policy_resolver import ChatTemplateRolePolicyResolver
     from core.openai.token_counter import PromptTokenCounter
     from core.plugins.protocols import PluginManagerProtocol
     from core.state.protocols import (
@@ -69,6 +70,7 @@ class OrchestratorDependencies:
     task_cancellation_binder: TaskCancellationBinderProtocol
     task_finalizer_tracker: TaskFinalizerTrackerProtocol
     prompt_token_counter: PromptTokenCounter
+    chat_template_role_policy_resolver: ChatTemplateRolePolicyResolver
     licensing_status: LicensingStatusProtocol
 
     def __post_init__(self) -> None:
@@ -92,6 +94,7 @@ class OrchestratorDependencies:
             param_manager=self.param_manager,
             plugin_manager=self.plugin_manager,
             prompt_token_counter=self.prompt_token_counter,
+            chat_template_role_policy_resolver=self.chat_template_role_policy_resolver,
             routing_config=self.routing_config,
             routing_config_holder=self.routing_config_holder,
             scheduler_start_task_tracker=self.scheduler_start_task_tracker,

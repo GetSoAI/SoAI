@@ -7,7 +7,10 @@ from collections import defaultdict, deque
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from metrics.manager.configuration import build_metrics_history_view
+from metrics.manager.configuration import (
+    TOTAL_EFFECTIVE_TOKEN_RATE_HISTORY_KEY,
+    build_metrics_history_view,
+)
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -16,6 +19,7 @@ if TYPE_CHECKING:
 __all__ = (
     "build_capabilities_response",
     "generate_metrics_catalog",
+    "is_catalog_history_metric_key",
     "infer_scalar_unit",
     "infer_timing_unit",
 )
@@ -162,6 +166,13 @@ def generate_metrics_catalog(
     return catalog
 
 
+def is_catalog_history_metric_key(metrics_tree: MetricsTree, metric_key: str) -> bool:
+    if metric_key == TOTAL_EFFECTIVE_TOKEN_RATE_HISTORY_KEY:
+        return True
+    entry = generate_metrics_catalog(metrics_tree, ("avg",)).get(metric_key)
+    return isinstance(entry, dict) and bool(entry.get("aggregations"))
+
+
 def build_capabilities_response(
     metrics_snapshot: MetricsTree,
     history_config: JSONDict,
@@ -192,7 +203,13 @@ def build_capabilities_response(
         "supported_aggregations": [str(item) for item in aggs_payload],
         "supports_ohlc": history_enabled and "ohlc" in history_view.supported_aggregations,
     }
+    catalog = generate_metrics_catalog(metrics_snapshot, history_aggs)
+    catalog[TOTAL_EFFECTIVE_TOKEN_RATE_HISTORY_KEY] = {
+        "type": "gauge_or_counter",
+        "unit": "tokens/s",
+        "aggregations": list(history_aggs),
+    }
     return {
-        "metrics_catalog": generate_metrics_catalog(metrics_snapshot, history_aggs),
+        "metrics_catalog": catalog,
         "history_config": history_meta,
     }

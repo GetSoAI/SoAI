@@ -49,7 +49,7 @@
         font-size: var(--font-size-compact);
         font-weight: 500;
         letter-spacing: var(--tracking-05px);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         color: var(--text-tertiary);
     }
     .section-controls.card-title-controls .chart-type-label {
@@ -61,7 +61,7 @@
         color: var(--text-secondary);
         margin: 0;
         font-size: var(--font-size-micro-extended);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-05px);
     }
     .box-subtitle {
@@ -90,7 +90,7 @@
         font-size: var(--font-size-xs);
         font-weight: 500;
         color: var(--text-secondary);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-05px);
     }
 
@@ -98,14 +98,14 @@
         font-size: var(--font-size-caption-plus);
         font-weight: 600;
         letter-spacing: var(--tracking-05px);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     :where(.ui-caption-label--weather, .assistant-weather-widget__strip-title, .assistant-weather-widget__hour-label, .assistant-weather-widget__day-label, .assistant-weather-widget__location) {
         font-size: var(--font-size-caption-plus);
         font-weight: 600;
         letter-spacing: var(--tracking-05em);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     .assistant-weather-widget__location {
@@ -183,13 +183,13 @@
     }
     @container ui-viewport (width <= 900px) {
         .section-controls.card-title-controls {
-            margin-left: 0;
+            margin-inline-start: 0;
             width: 100%;
             justify-content: flex-start;
         }
 
         .section-controls.card-title-controls:has(> .ui-icon-button--titlebar:only-child) {
-            margin-left: auto;
+            margin-inline-start: auto;
             width: auto;
             flex-wrap: nowrap;
             justify-content: flex-end;

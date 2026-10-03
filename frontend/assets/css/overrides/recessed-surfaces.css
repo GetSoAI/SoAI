@@ -42,8 +42,7 @@
     }
 
     :where(.mcp-tools-scope) .mcp-tool-group-body-inner,
-    :where(.prompt-enhancer-modal) .prompt-enhancer-pane > .prompt-enhancer-pane-body,
-    :where(.model-details-modal) :is(.modeldetail-card > .modeldetail-card-body, .category-content.has-scroll) {
+    :where(.prompt-enhancer-modal) .prompt-enhancer-pane > .prompt-enhancer-pane-body {
         background-color: var(--recessed-surface-fill-background);
         background-image: var(--recessed-surface-fill);
         background-blend-mode: var(--recessed-surface-texture-blend);
@@ -51,7 +50,7 @@
         -webkit-backdrop-filter: var(--recessed-surface-backdrop-filter);
         backdrop-filter: var(--recessed-surface-backdrop-filter);
         box-shadow: var(--recessed-surface-shadow);
-        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        border-radius: 0 0 var(--border-radius-inset) var(--border-radius-inset);
     }
 
     :where(.history-chart-card > .history-chart-shell, .history-chart-card > .section-content > .history-chart-shell) {
@@ -69,15 +68,12 @@
         box-shadow: var(--recessed-surface-shadow);
     }
 
-    :where(.header-search__dropdown .search-category),
-    :where(.model-details-modal) :is(.modeldetail-card, .parameter-category) {
+    :where(.header-search__dropdown .search-category) {
         --glass-surface-bg: transparent;
         background: transparent;
     }
 
-    :where(.header-search__dropdown .search-category)::before,
-    :where(.model-details-modal) :is(.modeldetail-card, .parameter-category)::after,
-    :where(.model-details-modal) .parameter-category::before {
+    :where(.header-search__dropdown .search-category)::before {
         background-color: transparent;
         -webkit-backdrop-filter: none;
         backdrop-filter: none;

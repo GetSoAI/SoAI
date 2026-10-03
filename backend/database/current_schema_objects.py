@@ -54,6 +54,7 @@ from database.schema_scripts.openai_chat_completions import (
 from database.schema_scripts.openai_conversations import apply_openai_conversations_schema
 from database.schema_scripts.openai_responses import apply_openai_responses_schema
 from database.schema_scripts.password_vault import apply_password_vault_schema
+from database.schema_scripts.plugin_backend_updates import PLUGIN_BACKEND_UPDATES_SCHEMA_V3
 from database.schema_scripts.plugin_catalog_schema import apply_plugin_catalog_schema
 from database.schema_scripts.plugin_clone_transactions import apply_plugin_clone_schema
 from database.schema_scripts.rag_storage import apply_rag_storage_schema
@@ -73,6 +74,7 @@ from database.schema_scripts.webui_sessions_schema import apply_webui_sessions_s
 from database.schema_scripts.webui_title_search_schema import (
     apply_webui_title_search_schema,
 )
+from database.sql.script import execute_sql_script
 
 __all__ = ("apply_current_schema_objects",)
 
@@ -89,6 +91,7 @@ def apply_current_schema_objects(
     task_status_check = _build_sql_check_clause(TASK_STATUS_SQL_VALUES)
     active_task_status_check = _build_sql_check_clause(ACTIVE_TASK_STATUS_VALUES)
     apply_plugin_catalog_schema(conn)
+    execute_sql_script(conn, PLUGIN_BACKEND_UPDATES_SCHEMA_V3)
     apply_webui_accounts_schema(conn)
     apply_api_access_credentials_schema(conn)
     apply_webui_chat_storage_schema(conn)

@@ -39,13 +39,13 @@
     :where([data-section='power'], [data-page-scope='power']) .power-action-card::after {
         content: '';
         position: absolute;
-        left: 0;
-        right: 0;
+        inset-inline-start: 0;
+        inset-inline-end: 0;
         bottom: 0;
         height: 5px;
         background: var(--power-action-accent);
-        border-bottom-left-radius: var(--border-radius);
-        border-bottom-right-radius: var(--border-radius);
+        border-end-start-radius: var(--border-radius);
+        border-end-end-radius: var(--border-radius);
         pointer-events: none;
     }
 
@@ -161,8 +161,8 @@
 
     :where([data-section='power'], [data-page-scope='power']) .power-action[data-action-key='restartApplication'] .power-action-body {
         position: absolute;
-        left: 0;
-        right: 0;
+        inset-inline-start: 0;
+        inset-inline-end: 0;
         bottom: 5px;
     }
 

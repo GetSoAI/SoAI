@@ -30,6 +30,7 @@ interface ChatStreamingController {
 
 interface StorageManager {
     saveChatState: (force?: boolean) => void;
+    rememberLastConversationId: (conversationId: string | null) => void;
     loadConversationMessages: (conversationId: string, options?: LoadConversationMessagesOptions) => Promise<void>;
     evictConversationMessages: (conversationId: string) => void;
 }

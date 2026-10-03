@@ -10,14 +10,22 @@ from html import escape
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 
-from playwright.async_api import Error, Route, async_playwright
+from playwright.async_api import Error, Route
 
 from core.bootstrap.playwright_browser_state import is_expected_chromium_installed
 from core.bootstrap.runtime_directories import ensure_runtime_directory_environment
+from core.browser.playwright_driver_errors import (
+    classify_playwright_driver_connection_closed_exception,
+)
+from core.browser.playwright_lifecycle import managed_playwright
+from core.errors.cancellation import raise_cancelled_error
+from core.errors.exception_coercion import coerce_to_soai_error
+from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ServiceUnavailableError, SoAITimeoutError, ValidationError
 from core.errors.external_service_exception import ExternalServiceError
 from core.files.path_policy import is_path_inside_directory
 from core.filesystem.open_files import open_binary, open_text
+from core.logging.trace import get_logger
 from core.meta.paths import get_repo_root
 from core.serialization.base64_values import encode_base64_ascii
 
@@ -27,6 +35,9 @@ __all__ = (
     "require_pdf_browser_ready",
     "render_html_file_to_pdf",
 )
+
+LOGGER_NAME = "SoAI.core.browser.html_pdf_renderer"
+OPERATION_RENDER = "core.browser.html_pdf_renderer.render"
 
 
 class PdfBrowserUnavailableError(ServiceUnavailableError):
@@ -147,7 +158,7 @@ async def _render_once(request: HtmlPdfRenderRequest) -> bytes:
             stylesheet_path,
         )
     display_header_footer = bool(request.header_template) or bool(request.footer_template)
-    async with async_playwright() as playwright:
+    async with managed_playwright() as playwright:
         await require_pdf_browser_ready()
         browser = await playwright.chromium.launch(
             headless=True,
@@ -205,4 +216,33 @@ async def render_html_file_to_pdf(request: HtmlPdfRenderRequest) -> bytes:
         raise SoAITimeoutError("Chromium PDF rendering timed out.") from exception
     except Error as exception:
         await require_pdf_browser_ready()
+        log_exception(
+            get_logger(LOGGER_NAME),
+            coerce_to_soai_error(
+                exception,
+                operation=OPERATION_RENDER,
+            ),
+            message="Chromium PDF rendering failed.",
+            operation=OPERATION_RENDER,
+        )
         raise ExternalServiceError("Chromium PDF rendering failed.") from exception
+    except asyncio.CancelledError as exception:
+        raise_cancelled_error(exception)
+    except Exception as exception:
+        driver_error = classify_playwright_driver_connection_closed_exception(
+            exception,
+            operation=OPERATION_RENDER,
+            details={},
+        )
+        if driver_error is None:
+            raise
+        log_exception(
+            get_logger(LOGGER_NAME),
+            coerce_to_soai_error(
+                driver_error,
+                operation=OPERATION_RENDER,
+            ),
+            message="Chromium PDF rendering failed after Playwright driver disconnect.",
+            operation=OPERATION_RENDER,
+        )
+        raise ExternalServiceError("Chromium PDF rendering failed.") from driver_error

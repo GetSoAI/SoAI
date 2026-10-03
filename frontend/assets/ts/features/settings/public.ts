@@ -5,7 +5,7 @@ export { AdvancedSettingsRenderer, createAdvancedSettingsRenderer } from '@featu
 export { formatConfigPathLabel } from '@features/settings/actions.ts';
 export { getPreferenceStateLabels, resolvePreferenceStateLabel } from '@features/settings/preferenceStateLabels.ts';
 export { SettingsSectionLifecycle } from '@features/settings/sectionLifecycle.ts';
-export { createSettingsCapabilityAvailability, markSettingsCapabilityFailed, markSettingsCapabilityReady, renderSettingsCapabilityNotice, resolveSettingsCapabilityMessage, settleSettingsCapability } from '@features/settings/capabilityAvailability.ts';
+export { createSettingsCapabilityAvailability, markSettingsCapabilityFailed, markSettingsCapabilityReady, markSettingsCapabilityRefreshing, renderSettingsCapabilityNotice, resolveSettingsCapabilityMessage, settleSettingsCapability } from '@features/settings/capabilityAvailability.ts';
 export type { SettingsCapabilityAvailability, SettledSettingsCapability } from '@features/settings/capabilityAvailability.ts';
 export type { AnalyzeStructure, TabDefinition } from '@features/settings/types.ts';
 export { ApiKeysManager } from '@features/settings/apikeys/ApiKeysManager.ts';

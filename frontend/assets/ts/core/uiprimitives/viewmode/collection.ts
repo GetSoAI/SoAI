@@ -5,7 +5,7 @@ import { i18n } from '@core/i18n/index.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { ViewModeController } from '@core/uiprimitives/viewmode/controller.ts';
 import { resolveInitialViewMode } from '@core/uiprimitives/viewmode/storage.ts';
-import type { ViewMode } from '@core/uiprimitives/viewmode/types.ts';
+import type { ViewMode, ViewModeOption } from '@core/uiprimitives/viewmode/types.ts';
 import type { PageServicesOwnerHost } from '@core/routing/pages/basepagecore/PageServices.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 
@@ -84,6 +84,13 @@ const getCollectionDisplayModeLabels = (): Record<ViewMode, string> => ({
     icons: i18n.t('common.actions.cardView')
 });
 
+const getCollectionDisplayModeOption = (mode: CollectionDisplayMode): ViewModeOption => ({
+    mode,
+    icon: COLLECTION_DISPLAY_MODE_ICONS[mode],
+    label: getCollectionDisplayModeLabels()[mode],
+    pressed: mode === 'list'
+});
+
 const initializeCollectionDisplayModeController = (host: CollectionDisplayModeHost, ui: CollectionDisplayModeUi, options: CollectionDisplayModeControllerOptions): void => {
     host.viewModeController = new ViewModeController({
         root: ui.root,
@@ -136,5 +143,5 @@ const toggleCollectionDisplayMode = (host: CollectionDisplayModeHost, context: s
     host.viewModeController.toggle();
 };
 
-export { COLLECTION_DISPLAY_MODE_ICONS, COLLECTION_DISPLAY_MODES, createCollectionDisplayModeOverrides, getCollectionDisplayModeLabels, initializeCollectionDisplayModeController, initializeCollectionDisplayModeControllerWithList, renderCollectionDisplayModeElement, requireCollectionDisplayModeTable, resolveInitialCollectionDisplayMode, toggleCollectionDisplayMode };
+export { COLLECTION_DISPLAY_MODE_ICONS, COLLECTION_DISPLAY_MODES, createCollectionDisplayModeOverrides, getCollectionDisplayModeLabels, getCollectionDisplayModeOption, initializeCollectionDisplayModeController, initializeCollectionDisplayModeControllerWithList, renderCollectionDisplayModeElement, requireCollectionDisplayModeTable, resolveInitialCollectionDisplayMode, toggleCollectionDisplayMode };
 export type { CollectionDisplayMode, CollectionDisplayModeControllerOptions, CollectionDisplayModeElementRenderOptions, CollectionDisplayModeHost, CollectionDisplayModeListControllerOptions, CollectionDisplayModeOverrideHost, CollectionDisplayModeOverrideOptions, CollectionDisplayModeOverrides, CollectionDisplayModeUi };

@@ -24,8 +24,8 @@ const renderHelpIntro = (): string => {
     const aboutLabel = i18n.t('help.intro.aboutButton');
     return `
         <div class="help-intro">
-            <p>${i18n.t('help.intro.paragraph1')}</p>
-            <p>${i18n.t('help.intro.paragraph2')}</p>
+            <p dir="auto">${i18n.t('help.intro.paragraph1')}</p>
+            <p dir="auto">${i18n.t('help.intro.paragraph2')}</p>
             <div class="help-actions">
                 <button id="goto-about-page" data-action="${HELP_ACTION_NAVIGATE_ABOUT}" class="ui-button ui-variant-accent" type="button" ${renderLabelAttributes(aboutLabel)}>${aboutLabel}</button>
             </div>

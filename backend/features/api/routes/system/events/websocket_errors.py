@@ -17,7 +17,7 @@ from features.api.routes.system.events.websocket_error_payloads import (
     resolve_websocket_error_type_for_soai_code,
 )
 from features.api.runtime.container.enqueue_warning_tracker import EnqueueWarningTracker
-from features.api.runtime.event_enqueue import enqueue_event_or_warn
+from features.api.runtime.event_enqueue import enqueue_correlated_event, enqueue_event_or_warn
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -48,6 +48,7 @@ async def enqueue_websocket_error(
     task_id: str | None = None,
     details: JSONDict | None = None,
     run_id: str | None = None,
+    shutdown_event: asyncio.Event | None = None,
 ) -> None:
     payload = build_websocket_error_event(
         trace_id=trace_id,
@@ -58,7 +59,16 @@ async def enqueue_websocket_error(
         details=details,
         run_id=run_id,
     )
-    enqueue_event_or_warn(enqueue_warning_tracker, queue, payload, "WebSocket error")
+    if shutdown_event is None:
+        enqueue_event_or_warn(enqueue_warning_tracker, queue, payload, "WebSocket error")
+        return
+    await enqueue_correlated_event(
+        enqueue_warning_tracker,
+        queue,
+        payload,
+        shutdown_event,
+        "WebSocket error",
+    )
 
 
 async def enqueue_pty_websocket_error(
@@ -117,6 +127,7 @@ async def enqueue_websocket_soai_error(
     *,
     task_id: str | None = None,
     run_id: str | None = None,
+    shutdown_event: asyncio.Event | None = None,
 ) -> None:
     public_payload = project_public_error(exception, trace_id=trace_id)
     error_code = resolve_soai_error_code_for_http_status(exception.http_status)
@@ -130,6 +141,7 @@ async def enqueue_websocket_soai_error(
         details=(dict(public_payload.details) if public_payload.details is not None else None),
         task_id=task_id,
         run_id=run_id,
+        shutdown_event=shutdown_event,
     )
 
 

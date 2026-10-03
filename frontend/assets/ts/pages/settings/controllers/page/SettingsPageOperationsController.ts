@@ -7,7 +7,8 @@ import type { SettingsManagerCallbacks, SettingsRuntimeContext } from '@pages/se
 import { applyWallpaperOverlay, confirmAndExecute, refreshWallpaperPreview, scheduleWallpaperRefresh, updatePreferenceToggleLabel, warnAndFocus, withButtonDisabled } from '@pages/settings/controllers/page/pageActions.ts';
 import { PreferencesResetRefreshController } from '@pages/settings/controllers/page/PreferencesResetRefreshController.ts';
 import type { SettingsPageState } from '@pages/settings/controllers/page/state.ts';
-import { createAllTabs, filterSettings, renderAllContent, setupFormIntegration } from '@pages/settings/controllers/page/view.ts';
+import { createAllTabs, renderAllContent } from '@pages/settings/controllers/page/settingsTabsController.ts';
+import { filterSettings, setupFormIntegration } from '@pages/settings/controllers/page/view.ts';
 
 class SettingsPageOperationsController implements SettingsManagerCallbacks {
     readonly #runtime: SettingsRuntimeContext;

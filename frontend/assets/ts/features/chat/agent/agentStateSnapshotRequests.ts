@@ -10,8 +10,8 @@ const AGENT_CHECKPOINT_RESOURCE = 'webui.chat.agent.checkpoint';
 const AGENT_PLAN_RESOURCE = 'webui.chat.agent.plan';
 const AGENT_TODO_RESOURCE = 'webui.chat.agent.todo';
 
-const readSnapshotData = async (resource: string, conversationId: string): Promise<JsonValue> => {
-    return requestWebSocketSnapshotPayload(resource, serializeConversationSnapshotRequest(conversationId));
+const readSnapshotData = async (resource: string, conversationId: string, signal?: AbortSignal): Promise<JsonValue> => {
+    return requestWebSocketSnapshotPayload(resource, serializeConversationSnapshotRequest(conversationId), { signal });
 };
 
 const requestAgentCheckpointSnapshot = async (conversationId: string): Promise<AgentCheckpointResponse | null> => {
@@ -26,14 +26,14 @@ const requestAgentCheckpointSnapshot = async (conversationId: string): Promise<A
     return parsed;
 };
 
-const requestAgentPlanSnapshot = async (conversationId: string): Promise<AgentPlanStateResponse> => {
-    const parsed = decodeAgentPlanState(await readSnapshotData(AGENT_PLAN_RESOURCE, conversationId));
+const requestAgentPlanSnapshot = async (conversationId: string, signal?: AbortSignal): Promise<AgentPlanStateResponse> => {
+    const parsed = decodeAgentPlanState(await readSnapshotData(AGENT_PLAN_RESOURCE, conversationId, signal));
     if (parsed.convId !== conversationId) throw new Error('Agent plan snapshot payload is invalid');
     return parsed;
 };
 
-const requestAgentTodoSnapshot = async (conversationId: string): Promise<AgentTodoStateResponse> => {
-    const parsed = decodeAgentTodoState(await readSnapshotData(AGENT_TODO_RESOURCE, conversationId));
+const requestAgentTodoSnapshot = async (conversationId: string, signal?: AbortSignal): Promise<AgentTodoStateResponse> => {
+    const parsed = decodeAgentTodoState(await readSnapshotData(AGENT_TODO_RESOURCE, conversationId, signal));
     if (parsed.convId !== conversationId) throw new Error('Agent todo snapshot payload is invalid');
     return parsed;
 };

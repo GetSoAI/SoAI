@@ -1,6 +1,10 @@
 /* SoAI - Frontend core Translation declarations for `chat` namespace section 02 [frontend/assets/ts/core/i18n/translationkeys/chat__section02.generated.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { ChatConfigurationModelSettingsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__model_settings.generated.ts';
+import type { ChatConfigurationNewConversationInheritLastSettingsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__itemNewConversationInheritLastSettings.generated.ts';
+import type { ChatConfigurationNewConversationInheritLastSettingsHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__itemNewConversationInheritLastSettingsHint.generated.ts';
+import type { ChatConfigurationNotificationsTranslationKey } from '@core/i18n/translationkeys/chat/configuration__notifications.generated.ts';
 import type { ChatConfigurationNotifyOnCompletionTranslationKey } from '@core/i18n/translationkeys/chat/configuration__notify_on_completion.generated.ts';
 import type { ChatConfigurationNotifyOnErrorTranslationKey } from '@core/i18n/translationkeys/chat/configuration__notify_on_error.generated.ts';
 import type { ChatConfigurationNotifyOnCompletionHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__notifyOnCompletionHint.generated.ts';
@@ -57,12 +61,12 @@ import type { ChatConfigurationTemperatureFocusedTranslationKey } from '@core/i1
 import type { ChatConfigurationTemperatureHintTranslationKey } from '@core/i18n/translationkeys/chat/configuration__temperatureHint.generated.ts';
 import type { ChatConfigurationTextZoomTranslationKey } from '@core/i18n/translationkeys/chat/configuration__text_zoom.generated.ts';
 import type { ChatConfigurationTextZoomLargeTranslationKey } from '@core/i18n/translationkeys/chat/configuration__textZoomLarge.generated.ts';
-import type { ChatConfigurationTextZoomNormalTranslationKey } from '@core/i18n/translationkeys/chat/configuration__textZoomNormal.generated.ts';
-import type { ChatConfigurationTextZoomSmallTranslationKey } from '@core/i18n/translationkeys/chat/configuration__textZoomSmall.generated.ts';
-import type { ChatConfigurationTitleTranslationKey } from '@core/i18n/translationkeys/chat/configuration__title.generated.ts';
-import type { ChatConfigurationToolApprovalRequiredTranslationKey } from '@core/i18n/translationkeys/chat/configuration__toolApprovalRequired.generated.ts';
 
 export type ChatSection02TranslationKey =
+    | ChatConfigurationModelSettingsTranslationKey
+    | ChatConfigurationNewConversationInheritLastSettingsTranslationKey
+    | ChatConfigurationNewConversationInheritLastSettingsHintTranslationKey
+    | ChatConfigurationNotificationsTranslationKey
     | ChatConfigurationNotifyOnCompletionTranslationKey
     | ChatConfigurationNotifyOnErrorTranslationKey
     | ChatConfigurationNotifyOnCompletionHintTranslationKey
@@ -118,8 +122,4 @@ export type ChatSection02TranslationKey =
     | ChatConfigurationTemperatureFocusedTranslationKey
     | ChatConfigurationTemperatureHintTranslationKey
     | ChatConfigurationTextZoomTranslationKey
-    | ChatConfigurationTextZoomLargeTranslationKey
-    | ChatConfigurationTextZoomNormalTranslationKey
-    | ChatConfigurationTextZoomSmallTranslationKey
-    | ChatConfigurationTitleTranslationKey
-    | ChatConfigurationToolApprovalRequiredTranslationKey;
+    | ChatConfigurationTextZoomLargeTranslationKey;

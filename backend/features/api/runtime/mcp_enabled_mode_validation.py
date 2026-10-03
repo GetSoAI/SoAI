@@ -3,10 +3,7 @@
 
 from __future__ import annotations
 
-from core.agent_tool_policy import (
-    agent_mode_requires_mcp_tools,
-    resolve_mode_default_tools,
-)
+from core.agent_tool_policy import resolve_mode_default_tools
 from core.errors.exceptions import ValidationError
 from core.mcp.agent_config_normalization import AGENT_MCP_TOOL_SELECTION_FIELDS
 from core.model_settings.normalization import extract_agent_mode
@@ -61,8 +58,6 @@ def validate_enabled_tools_for_agent_mode(
         )
         for field_name in AGENT_MCP_TOOL_SELECTION_FIELDS
     }
-    if not agent_mode_requires_mcp_tools(agent_mode):
-        return
     selected = resolve_mode_default_tools(
         agent_mode=agent_mode,
         default_tools=tuple(tool_selections["default_tools"]),

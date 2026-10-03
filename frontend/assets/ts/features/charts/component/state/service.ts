@@ -222,22 +222,18 @@ const getThemeStyles = (element: HTMLElement, colors: ColorPalette): ThemeStyles
     const resolvedTextSecondary = resolveThemeStyle(styles, '--text-secondary', colors.textSecondary || resolvedTextPrimary || colors.text || colors.background);
     const bg = resolveThemeStyle(styles, ['--surface-chart', '--bg-primary', '--surface-card', '--glass-surface-strong', '--bg-secondary'], normalizeBackgroundColor(colors.background, isDark, parseColorComponents));
     const plotBackground = resolveThemeStyle(styles, '--chart-plot-background', bg);
-    const tbg = resolveThemeStyle(styles, ['--glass-surface-overlay-strong', '--surface-card', '--surface-chart'], bg);
     const lbg = resolveThemeStyle(styles, ['--glass-surface-overlay', '--surface-card', '--surface-chart'], bg);
     const axisGuide = resolveThemeStyle(styles, ['--border-color', '--glass-border-strong', '--surface-card-border'], colors.textSecondary || colors.text || colors.background || bg);
     const crosshairBg = requireThemeStyle(styles, '--chart-coordinate-label-bg');
     const crosshairText = requireThemeStyle(styles, '--chart-coordinate-label-color');
     const candlestickUpColor = resolveThemeStyle(styles, '--chart-candlestick-up', '');
     const candlestickDownColor = resolveThemeStyle(styles, '--chart-candlestick-down', '');
-    const tooltipTextColor = getReadableTextColor(colors, tbg, isDark, resolvedTextPrimary, resolvedTextSecondary);
     const legendTextColor = getReadableTextColor(colors, lbg, isDark, resolvedTextPrimary, resolvedTextSecondary);
 
     return {
         isDark,
         background: bg,
         plotBackground,
-        tooltipBackground: tbg,
-        tooltipTextColor,
         legendBackground: lbg,
         legendTextColor,
         legendBorderColor: applyAlphaToColor(axisGuide, isDark ? 0.42 : 0.22),

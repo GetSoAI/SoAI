@@ -13,7 +13,7 @@ from core.files.content_hashing import hash_descriptor_content
 from core.files.managed_file_opening import open_managed_file_descriptor
 from core.files.managed_storage_errors import FileStorageSecurityError
 from core.serialization.sha256_hexdigest import is_canonical_sha256_hexdigest
-from core.validation.integers import is_strict_int
+from core.validation.integers import is_non_negative_strict_int, is_strict_int
 
 if TYPE_CHECKING:
     from core.attachments.protocols_database import DatabaseConversationAttachmentsProtocol
@@ -50,8 +50,7 @@ def _require_catalog_record_authority(
     if "api_key_id" not in record or record.get("api_key_id") is not None:
         raise ValidationError("Attachment file ownership is invalid.")
     if (
-        not is_strict_int(record.get("size_bytes"))
-        or record["size_bytes"] < 0
+        not is_non_negative_strict_int(record.get("size_bytes"))
         or not isinstance(record.get("content_sha256"), str)
         or not is_canonical_sha256_hexdigest(record["content_sha256"])
         or not isinstance(record.get("file_path"), str)

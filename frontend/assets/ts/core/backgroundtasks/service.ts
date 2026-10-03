@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { EXCLUDED_ROUTES } from '@core/backgroundtasks/constants.ts';
-import { applyBackgroundRoute, clearAllTimers, disableBackground, initializeBackgroundTasks, refreshBackgroundTasks } from '@core/backgroundtasks/actions.ts';
-import { clearBackgroundClasses, removeWallpaperStyles, requireBody } from '@core/backgroundtasks/effects.ts';
+import { applyBackgroundRoute, initializeBackgroundTasks, refreshBackgroundTasks, resetBackgroundState } from '@core/backgroundtasks/actions.ts';
 import type { BackgroundTasksInitializationOptions, BackgroundTasksRuntime } from '@core/backgroundtasks/internalContracts.ts';
 import type { BackgroundRoute } from '@core/backgroundtasks/types.ts';
 
@@ -99,10 +98,7 @@ class BackgroundTasks implements BackgroundTasksService {
         this.#runtime.initialized = false;
         this.#runtime.animationShown = false;
         this.#runtime.excludedRoutes = new Set(EXCLUDED_ROUTES);
-        clearAllTimers(this.#runtime);
-        clearBackgroundClasses(requireBody());
-        removeWallpaperStyles();
-        disableBackground(this.#runtime);
+        resetBackgroundState(this.#runtime);
     }
 }
 

@@ -16,15 +16,29 @@ interface SoAIBenchPublicationRun {
     measuredPasses: number | null;
 }
 
+interface SoAIBenchPublicationConfirmation {
+    title: string;
+    message: string;
+    description: string;
+    descriptionAllowHTML: boolean;
+    confirmText: string;
+    cancelText: string;
+    variant: string;
+    icon: string;
+    confirmVariant: string;
+    onConfirm: () => Promise<boolean>;
+}
+
 interface SoAIBenchPublicationFlowDependencies {
     preview(runId: string): Promise<string>;
     showResult(receipt: GpuSoAIBenchPublicationReceipt, message: string): Promise<void>;
     publish(runId: string): Promise<GpuSoAIBenchPublicationReceipt>;
-    confirm(options: { title: string; message: string; description: string; descriptionAllowHTML: boolean; confirmText: string; cancelText: string; variant: string; icon: string }): Promise<boolean>;
+    confirm(options: SoAIBenchPublicationConfirmation): Promise<boolean>;
     showNotification(message: string, type: NotificationType): void;
 }
 
 type PublicationControl = (disabled: boolean) => void;
+type PublicationAttemptResult = { status: 'published'; receipt: GpuSoAIBenchPublicationReceipt } | { status: 'failed' };
 
 class SoAIBenchPublicationFlow {
     readonly #dependencies: SoAIBenchPublicationFlowDependencies;
@@ -56,26 +70,44 @@ class SoAIBenchPublicationFlow {
         const passes = run.measuredPasses;
         if (score === null || passes !== 5) throw new Error('Publishable SoAIBench run evidence is incomplete');
         for (const setDisabled of controls) setDisabled(true);
+        let receipt: GpuSoAIBenchPublicationReceipt | null = null;
         try {
             const preview = await this.#dependencies.preview(run.runId);
-            const confirmed = await this.#dependencies.confirm({
+            const submission: { attempt: Promise<PublicationAttemptResult> | null } = { attempt: null };
+            await this.#dependencies.confirm({
                 title: i18n.t('hardware.soaibenchPublication.confirm.title'),
                 message: i18n.t('hardware.soaibenchPublication.confirm.message', { score, passes }),
-                description: `<p>${securityApi.escapeHtml(i18n.t('hardware.soaibenchPublication.confirm.description'))}</p><pre>${securityApi.escapeHtml(preview)}</pre>`,
+                description: `<p>${securityApi.escapeHtml(i18n.t('hardware.soaibenchPublication.confirm.description'))}</p><pre class="soaibench-publication-preview">${securityApi.escapeHtml(preview)}</pre>`,
                 descriptionAllowHTML: true,
                 confirmText: i18n.t('hardware.soaibenchPublication.action'),
                 cancelText: i18n.t('common.cancel'),
                 variant: 'info',
-                icon: 'send'
+                icon: 'soaibench-gauge',
+                confirmVariant: 'ui-variant-violet',
+                onConfirm: async () => {
+                    submission.attempt = (async (): Promise<PublicationAttemptResult> => {
+                        let outcome: PublicationAttemptResult;
+                        try {
+                            const publishedReceipt = await this.#dependencies.publish(run.runId);
+                            outcome = { status: 'published', receipt: publishedReceipt };
+                        } catch (error) {
+                            this.#dependencies.showNotification(this.#failureMessage(ensureError(error)), 'error');
+                            outcome = { status: 'failed' };
+                        }
+                        return outcome;
+                    })();
+                    return (await submission.attempt).status === 'published';
+                }
             });
-            if (!confirmed) return;
-            for (const setDisabled of controls) setDisabled(true);
-            const receipt = await this.#dependencies.publish(run.runId);
-            await this.#dependencies.showResult(receipt, this.#successMessage(receipt));
+            const attempt = submission.attempt;
+            if (attempt === null) return;
+            const outcome = await attempt;
+            if (outcome.status === 'published') receipt = outcome.receipt;
         } catch (error) {
             const runtimeError = ensureError(error);
             this.#dependencies.showNotification(this.#failureMessage(runtimeError), 'error');
         }
+        if (receipt !== null) await this.#dependencies.showResult(receipt, this.#successMessage(receipt));
     }
 
     #successMessage(receipt: GpuSoAIBenchPublicationReceipt): string {

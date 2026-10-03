@@ -48,6 +48,8 @@ CHAT_PRESET_APPEARANCE_FIELDS = frozenset(
     {
         "text_zoom",
         "widescreen_mode",
+        "auto_hide_chat_composer",
+        "auto_hide_chat_header",
         "rich_text_enabled",
         "inline_multimedia_previews_enabled",
         "auto_title_generation",
@@ -66,6 +68,7 @@ CHAT_PRESET_APPEARANCE_FIELDS = frozenset(
         "input_action_token_counter_enabled",
         "input_action_new_conversation_enabled",
         "input_action_character_map_enabled",
+        "input_action_sketch_enabled",
         "input_action_mobile_auxiliary_action",
     },
 )
@@ -130,6 +133,7 @@ CHAT_PRESET_MOBILE_AUXILIARY_ACTIONS = frozenset(
         "attach",
         "prompts",
         "character_map",
+        "sketch",
         "new_conversation",
     },
 )

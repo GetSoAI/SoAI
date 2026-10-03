@@ -196,7 +196,11 @@ def prepare_update_rollback(
 
 
 def require_rollback_inventory(
-    paths: UpdateTransactionPaths, *, old_complete: bool, originals_at_installation: bool = False
+    paths: UpdateTransactionPaths,
+    *,
+    old_complete: bool,
+    originals_at_installation: bool = False,
+    verify_content: bool = True,
 ) -> UpdateRollbackInventory | None:
     inventory_path = os.path.join(paths.transaction_path, ROLLBACK_INVENTORY_FILENAME)
     if not os.path.lexists(inventory_path):
@@ -291,7 +295,7 @@ def require_rollback_inventory(
                 raise StateError(
                     "Update persisted original does not match its recorded entry type."
                 )
-        if _original_fingerprint(source) != original_hashes[entry]:
+        if verify_content and _original_fingerprint(source) != original_hashes[entry]:
             raise StateError(
                 "Update rollback original content is damaged; preserve the transaction for repair."
             )

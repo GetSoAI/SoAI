@@ -5,12 +5,12 @@
     .hardware-widget .hardware-widget__label {
         position: absolute;
         top: 3cqw;
-        left: 3cqw;
+        inset-inline-start: 3cqw;
         color: var(--hardware-widget-text-muted);
         font-size: clamp(var(--font-size-micro), 3cqw, var(--font-size-xs));
         font-weight: 400;
         opacity: 0.5;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-05px);
         z-index: var(--hardware-widget-z-label);
     }
@@ -18,6 +18,8 @@
     .hardware-widget .hardware-widget__device-name {
         position: absolute;
         top: 9%;
+
+        /* direction: physical — centering uses physical negative half-width translation */
         left: 50%;
         transform: translateX(-50%);
         text-align: center;
@@ -42,6 +44,6 @@
         color: var(--hardware-widget-text-muted);
         font-weight: 400;
         font-size: var(--font-size-em-080);
-        margin-left: 0.3em;
+        margin-inline-start: 0.3em;
     }
 }

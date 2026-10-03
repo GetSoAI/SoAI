@@ -1,0 +1,44 @@
+/* SoAI - Shared attention pulse component [frontend/assets/css/components/feedback/attention-pulse.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .ui-attention-pulse {
+        position: relative;
+        isolation: isolate;
+    }
+
+    .ui-attention-pulse::after {
+        position: absolute;
+        z-index: var(--z-base);
+        inset: -6px;
+        border: var(--border-width-1) solid transparent;
+        border-radius: var(--border-radius);
+        background: transparent;
+        box-shadow: 0 0 0 transparent;
+        content: '';
+        pointer-events: none;
+        animation: ui-attention-pulse var(--attention-pulse-duration) var(--ease-in-out) both;
+    }
+
+    .ui-attention-pulse.ui-attention-pulse--reduced::after {
+        border-color: color-mix(in srgb, var(--accent-yellow) 74%, transparent);
+        background: color-mix(in srgb, var(--accent-yellow) 12%, transparent);
+        box-shadow: 0 0 12px color-mix(in srgb, var(--accent-yellow) 22%, transparent);
+        animation: none;
+    }
+
+    @keyframes ui-attention-pulse {
+        0%,
+        100% {
+            border-color: transparent;
+            background: transparent;
+            box-shadow: 0 0 0 transparent;
+        }
+
+        30% {
+            border-color: color-mix(in srgb, var(--accent-yellow) 82%, transparent);
+            background: color-mix(in srgb, var(--accent-yellow) 15%, transparent);
+            box-shadow: 0 0 14px color-mix(in srgb, var(--accent-yellow) 26%, transparent);
+        }
+    }
+}

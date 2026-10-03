@@ -52,7 +52,7 @@ const renderNewsArticlePanel = (host: ChatMessageRenderHost, article: NewsArticl
     const checked = isSelected ? ' checked' : '';
     const radio = `<input class="assistant-news-widget__item-selector visually-hidden" type="radio" id="${host.escapeAttribute(radioId)}" name="${host.escapeAttribute(radioGroupName)}"${checked}>`;
     const media = renderArticleMedia(host, article);
-    const title = `<h3 class="assistant-news-widget__detail-title">${host.escapeHtml(article.title)}</h3>`;
+    const title = `<h3 dir="auto" class="assistant-news-widget__detail-title">${host.escapeHtml(article.title)}</h3>`;
     const meta = renderArticleDetailMeta(host, article);
     const link = renderArticleLink(host, article);
     return [radio, '<div class="assistant-news-widget__detail-panel">', media, title, meta, link, '</div>'].join('');

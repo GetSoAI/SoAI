@@ -3,8 +3,7 @@
 
 import type { ResourceListenerContext, ResourceSnapshot, TaskTerminalEvent } from '@core/realtime/streammanager/types.ts';
 import type { TaskOperationEntry } from '@core/tasks/protocols.ts';
-import type { ApiResponsePayload } from '@core/api/types/payload.ts';
-import type { ApiRequestBody, RequestOptions } from '@core/api/types/request.ts';
+import type { ApiRequestBody } from '@core/api/types/request.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { TaskCancellationResponse } from '@core/api/contracts/systemContracts.ts';
 import type { OperationDefinition, OperationEntry, OperationEvent, OperationMeta, PluginEntry } from '@features/tasks/taskmanager/taskManagerModels.ts';
@@ -16,10 +15,6 @@ interface TaskManagerElements {
     list: HTMLElement;
     stopAllButton: HTMLButtonElement;
     title: HTMLElement;
-}
-
-interface TaskManagerApi {
-    post: (path: string, data?: ApiRequestBody, options?: RequestOptions) => Promise<ApiResponsePayload>;
 }
 
 interface TaskManagerStreamManager {
@@ -47,7 +42,6 @@ interface TaskManagerStoreApi {
 
     getActivePlugins: () => PluginEntry[];
     getStoppablePlugins: () => PluginEntry[];
-    getStoppableCount: () => number;
     getActivePluginCount: () => number;
     getBlockingPluginCount: () => number;
     hasBlockingActivity: () => boolean;
@@ -81,10 +75,9 @@ interface TaskOperationCancellationOwner {
 interface TaskManagerDependencies {
     dom: { getDocument: () => Document };
     statusManager: { createIndicator: (status: string) => HTMLElement };
-    apiClient: TaskManagerApi;
     stream: TaskManagerStreamManager;
     createStore: () => TaskManagerStoreApi;
     storage: { get: (key: string, defaultValue?: JsonValue | null) => JsonValue | null; set: (key: string, value: JsonValue | null) => void };
 }
 
-export type { CancellationBatchSummary, TaskManagerStoreApi, TaskOperationCancellationOwner, OperationEntry, OperationMeta, PluginEntry, TaskManagerApi, TaskManagerDependencies, TaskManagerElements, TaskManagerStreamManager };
+export type { CancellationBatchSummary, TaskManagerStoreApi, TaskOperationCancellationOwner, OperationEntry, OperationMeta, PluginEntry, TaskManagerDependencies, TaskManagerElements, TaskManagerStreamManager };

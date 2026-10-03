@@ -51,6 +51,8 @@ const resolveChartTypeLabel = (value: FilterValue): string => {
             return i18n.t('charts.filters.chartType.bar');
         case 'candlestick':
             return i18n.t('charts.filters.chartType.candlestick');
+        case 'heikin-ashi':
+            return i18n.t('charts.filters.chartType.heikin-ashi');
         default:
             return normalized;
     }

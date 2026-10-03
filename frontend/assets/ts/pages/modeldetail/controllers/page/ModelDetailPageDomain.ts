@@ -26,7 +26,7 @@ import { MODELS_RENAME_MODEL_MODAL_ID } from '@features/models/public.ts';
 import { applyModelDetailTabChange, setupModelDetailHeaderButtons } from '@pages/modeldetail/controllers/page/dom.ts';
 import { loadModelDetailData } from '@pages/modeldetail/controllers/page/effects/service.ts';
 import { ModelDetailEventController } from '@pages/modeldetail/controllers/page/ModelDetailEventController.ts';
-import { cleanupModelDetailPage, ensureModelDetailUi, handleModelDetailSwitchToParametersAction, loadModelDetailDataAndPendingAction, setupModelDetailPage } from '@pages/modeldetail/controllers/page/guards.ts';
+import { cleanupModelDetailPage, ensureModelDetailUi, loadModelDetailDataAndPendingAction, setupModelDetailPage } from '@pages/modeldetail/controllers/page/guards.ts';
 import { composeModelDetailDomains } from '@pages/modeldetail/controllers/page/modelDetailDomainComposition.ts';
 import { composeModelDetailRuntime } from '@pages/modeldetail/controllers/page/modelDetailRuntimeComposition.ts';
 import { resetModelDetailPageBeforeInitialize } from '@pages/modeldetail/controllers/page/runtime.ts';
@@ -85,7 +85,6 @@ class ModelDetailPageDomain {
             dom: owners.dom,
             layout: owners.layout,
             modalPresenter: owners.modalPresenter,
-            router: owners.router,
             saveRequests: this.saveRequests,
             session: this.session,
             statusManager: owners.statusManager
@@ -129,7 +128,7 @@ class ModelDetailPageDomain {
             parameterView: this.parameterView,
             storage: owners.storage,
             testModalManager: this.testModalManager,
-            handleSwitchToParametersAction: () => this.#handleSwitchToParameters(),
+            copyText: runtime.copyText,
             modalPresenter: owners.modalPresenter,
             ensureUi: () => this.#ensureUi(),
             requireModelId: () => this.#requireModelId(),
@@ -215,10 +214,6 @@ class ModelDetailPageDomain {
         return ensureModelDetailUi(this.session, this.#owners.pageDom, requireModelDetailUi);
     }
 
-    #isVirtualModel(): boolean {
-        return this.session.model?.type === 'virtual';
-    }
-
     #requireModelId(): string {
         const candidate = this.session.model?.universalId;
         if (isString(candidate) && candidate.trim()) return candidate.trim();
@@ -263,10 +258,6 @@ class ModelDetailPageDomain {
             },
             newTab
         );
-    }
-
-    #handleSwitchToParameters(): void {
-        handleModelDetailSwitchToParametersAction(this.session, { layout: this.#owners.layout, isVirtualModel: () => this.#isVirtualModel(), router: this.#owners.router });
     }
 }
 

@@ -4,6 +4,7 @@
 import { i18n } from '@core/i18n/index.ts';
 import { buildCardGridHeader, buildCollectionSection, buildCollectionSections, buildEmptyState } from '@core/routing/pages/collections/collectionViewBuilders.ts';
 import { uiHtml } from '@core/security/uiHtml.ts';
+import { getCollectionDisplayModeOption } from '@core/uiprimitives/viewmode/collection.ts';
 import { renderListTable, type ListTableColumn } from '@core/uiprimitives/listTable.ts';
 import { renderSortControl } from '@core/uiprimitives/sortableList.ts';
 import { MODELS_ACTION_DOWNLOAD_MODEL, MODELS_ACTION_MANAGE_PROVIDERS, MODELS_ACTION_MANAGE_VIRTUAL_MODELS, MODELS_ACTION_OPEN_METRICS, MODELS_ACTION_OPEN_PROVIDER_TAB } from '@core/models/pageActions.ts';
@@ -13,6 +14,7 @@ import type { ModelsLayoutViewHost } from '@pages/models/types.ts';
 import { createModelsSortControlDefinition, normalizeModelsSortState } from '@pages/models/controllers/page/listSortingController.ts';
 
 const buildModelsHeader = (page: ModelsLayoutViewHost) => {
+    const viewModeOption = getCollectionDisplayModeOption(page.viewMode);
     return buildCardGridHeader({
         title: i18n.t('models.title'),
         description: i18n.t('models.description'),
@@ -43,11 +45,11 @@ const buildModelsHeader = (page: ModelsLayoutViewHost) => {
             },
             {
                 type: 'button',
-                content: uiHtml`${page.getIconSync('dashboard', { size: 24, strokeWidth: 1.5 })}<span>${i18n.t('common.actions.cardView')}</span>`,
+                content: uiHtml`${page.getIconSync(viewModeOption.icon, { size: 24, strokeWidth: 1.5 })}<span>${viewModeOption.label}</span>`,
                 variant: 'ui-variant-neutral',
                 id: 'models-view-mode-toggle',
-                attributes: { 'data-action': MODELS_ACTION_TOGGLE_VIEW_MODE, 'aria-pressed': 'false' },
-                ariaLabel: i18n.t('common.actions.cardView')
+                attributes: { 'data-action': MODELS_ACTION_TOGGLE_VIEW_MODE, 'aria-pressed': String(viewModeOption.pressed) },
+                ariaLabel: viewModeOption.label
             },
             {
                 type: 'button',

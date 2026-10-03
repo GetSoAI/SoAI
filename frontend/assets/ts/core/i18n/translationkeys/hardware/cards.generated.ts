@@ -44,6 +44,7 @@ export type HardwareCardsTranslationKey =
     | 'hardware.cards.network.summary.withPeak'
     | 'hardware.cards.network.summary.withPeakDirection'
     | 'hardware.cards.network.title'
+    | 'hardware.cards.network.unavailable'
     | 'hardware.cards.network.waiting'
     | 'hardware.cards.processes.tableHeaders.cpu'
     | 'hardware.cards.processes.tableHeaders.memory'

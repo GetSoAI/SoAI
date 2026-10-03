@@ -3,6 +3,7 @@
 
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { MAX_CHAT_COMPOSER_TEXT_LENGTH } from '@core/chat/protocols.ts';
+import { unicodeCodePointLength } from '@core/primitives/text.ts';
 import { decodeWebuiMessageContentPart, type WebuiMessageContentPart } from '@core/api/contracts/webuiMessageContentPartContract.ts';
 import { readRequiredNonNegativeIntegerValue, readRequiredPositiveIntegerValue } from '@core/types/payloadNumberReaders.ts';
 import { readNullableJsonObjectValue, readRequiredJsonObjectArrayValue, requireRecord } from '@core/types/payloadRecordReaders.ts';
@@ -109,7 +110,7 @@ const decodeConversationDraft = (value: JsonValue): ConversationDraft => {
     if (!Array.isArray(attachmentContent)) throw new TypeError(`${label}.attachment_content must be an array.`);
     const text = readRequiredStringValue(record['text'], `${label}.text`);
     const sourceText = readRequiredStringValue(record['source_text'], `${label}.source_text`);
-    if (text.length > MAX_CHAT_COMPOSER_TEXT_LENGTH || sourceText.length > MAX_CHAT_COMPOSER_TEXT_LENGTH) throw new TypeError(`${label} text exceeds the maximum length.`);
+    if (unicodeCodePointLength(text) > MAX_CHAT_COMPOSER_TEXT_LENGTH || unicodeCodePointLength(sourceText) > MAX_CHAT_COMPOSER_TEXT_LENGTH) throw new TypeError(`${label} text exceeds the maximum length.`);
     return {
         convId: readRequiredNonEmptyStringValue(record['conv_id'], `${label}.conv_id`),
         userId: readRequiredPositiveIntegerValue(record['user_id'], `${label}.user_id`),

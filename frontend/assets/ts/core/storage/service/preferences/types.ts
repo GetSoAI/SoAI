@@ -6,6 +6,7 @@ import type { DateFormatPreference, MeasurementUnitsPreference, RegionalLocalePr
 import type { ChatPreferencesManager, ImageFitType, ThemeType, UiPreferences } from '@core/storage/types.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { InterfaceScalePercent } from '@core/layout/interfaceScale.ts';
+import type { DefaultWallpaperId } from '@core/theme/defaultWallpapers.ts';
 
 interface PreferenceDelegates {
     setLanguage(language: string): void;
@@ -23,6 +24,7 @@ interface PreferenceDelegates {
     setLiveStatusOverlayEnabled(enabled: boolean): void;
     setWallpaperOverlay(value: number): void;
     setSolidBackground(color: string | null): void;
+    setDefaultWallpaper(id: DefaultWallpaperId | null): void;
     setGlassEnabled(enabled: boolean): void;
     setHiddenSidebarPages(pages: string[]): void;
     setShowMainStatusIndicator(enabled: boolean): void;

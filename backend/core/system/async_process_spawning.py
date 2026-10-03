@@ -7,8 +7,13 @@ import asyncio
 import io
 from collections.abc import Mapping, Sequence
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exceptions import ValidationError
-from core.system.subprocess_platform import resolve_subprocess_creationflags
+from core.system.subprocess_platform import (
+    resolve_subprocess_creationflags,
+    resolve_subprocess_environment,
+    resolve_subprocess_paths,
+)
 from core.timing.constants import EXTENDED_TIMEOUT_SEC, LOCAL_IO_TIMEOUT_SEC
 
 __all__ = (
@@ -47,13 +52,27 @@ async def spawn_async_process(
     limit: int = 65_536,
 ) -> asyncio.subprocess.Process:
     argv_list = normalize_async_process_argv(argv)
+    process_paths = await run_joined_thread_call(
+        resolve_subprocess_paths,
+        argv_list,
+        cwd,
+        task_name="core.system.async_process_spawning.paths",
+        retain_resources_until_complete=True,
+    )
+    process_environment = await run_joined_thread_call(
+        resolve_subprocess_environment,
+        env,
+        task_name="core.system.async_process_spawning.environment",
+        retain_resources_until_complete=True,
+    )
     return await asyncio.create_subprocess_exec(
         *argv_list,
+        executable=process_paths.executable,
         stdin=stdin,
         stdout=_resolve_subprocess_stream_target(stdout),
         stderr=_resolve_subprocess_stream_target(stderr),
-        env=dict(env) if env is not None else None,
-        cwd=cwd,
+        env=process_environment,
+        cwd=process_paths.working_directory,
         start_new_session=start_new_session,
         creationflags=resolve_subprocess_creationflags(creationflags),
         limit=limit,

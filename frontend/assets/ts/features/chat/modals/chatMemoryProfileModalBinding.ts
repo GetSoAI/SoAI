@@ -18,7 +18,7 @@ import { setAriaBusy } from '@core/ui/controls/ariaBusy.ts';
 import { createBusyDisabledToken, setBusyDisabledState, type BusyDisabledToken } from '@core/ui/controls/busyDisabledState.ts';
 import { wallClockMs } from '@core/time/clock.ts';
 import { CHAT_MEMORY_PROFILE_MODAL_ID } from '@features/chat/modals/constants.ts';
-import { isChatMemoryProfileFieldName, readChatMemoryProfileFieldValue, writeChatMemoryProfileFieldValue } from '@features/chat/modals/chatMemoryProfileFields.ts';
+import { createChatMemoryProfileUpdate, isChatMemoryProfileFieldName, readChatMemoryProfileFieldValue, writeChatMemoryProfileFieldValue, type ChatMemoryProfileFieldName } from '@features/chat/modals/chatMemoryProfileFields.ts';
 
 const CHAT_MEMORY_UPDATED_EVENT = 'soai:chat-memory-updated';
 const MODULE_ID = 'ChatMemoryProfileModal';
@@ -32,8 +32,6 @@ const resolveMemoryApi = (apiClient: ChatMemoryProfileModalDependencies['apiClie
     return apiClient.webui?.memory ?? null;
 };
 
-const createEmptyProfileUpdate = (): ChatMemoryProfileUpdateRequest => ({ preferredName: '', assistantName: '', roleBackground: '', currentGoals: '', preferences: '', dislikesToAvoid: '', communicationStyle: '', recurringToolsProjects: '', extraNotes: '' });
-
 const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemoryProfileModalDependencies): ModalBinder => {
     const abortController = new AbortController();
     const { signal } = abortController;
@@ -41,6 +39,7 @@ const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemory
     let loadVersion = 0;
     let hasLocalEdits = false;
     let baselinePayloadKey = '';
+    let profileSnapshot: ChatMemoryProfile | null = null;
     let saveController: ReturnType<typeof createSaveController> | null = null;
     const requireActionButton = (token: string): HTMLButtonElement => {
         const selector = `#${modalUiId(CHAT_MEMORY_PROFILE_MODAL_ID, token)}`;
@@ -52,7 +51,11 @@ const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemory
     };
     const skipButton = requireActionButton('skip');
     const saveButton = requireActionButton('save');
-    const setFieldValues = (profile: ChatMemoryProfile): void => {
+    const loadError = dom.resolve(`#${modalUiId(CHAT_MEMORY_PROFILE_MODAL_ID, 'load-error')}`, modal);
+    if (!(loadError instanceof HTMLElement)) {
+        throw new Error('Chat memory profile modal load error region is missing');
+    }
+    const forEachFieldInput = (visit: (element: HTMLInputElement | HTMLTextAreaElement, fieldName: ChatMemoryProfileFieldName) => void): void => {
         dom.resolveAll('.chat-memory-profile-input', modal).forEach((element) => {
             if (!(element instanceof HTMLTextAreaElement) && !(element instanceof HTMLInputElement)) {
                 return;
@@ -61,37 +64,43 @@ const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemory
             if (!isChatMemoryProfileFieldName(fieldName)) {
                 throw new Error(`Unsupported chat memory profile field: ${fieldName}`);
             }
+            visit(element, fieldName);
+        });
+    };
+    const setFieldValues = (profile: ChatMemoryProfile): void => {
+        forEachFieldInput((element, fieldName) => {
             element.value = readChatMemoryProfileFieldValue(profile, fieldName);
         });
     };
-    const collectPayload = (): ChatMemoryProfileUpdateRequest => {
-        const payload = createEmptyProfileUpdate();
-        dom.resolveAll('.chat-memory-profile-input', modal).forEach((element) => {
-            if (!(element instanceof HTMLTextAreaElement) && !(element instanceof HTMLInputElement)) {
-                return;
-            }
-            const fieldName = element.dataset['field'] ?? '';
-            if (!isChatMemoryProfileFieldName(fieldName)) {
-                throw new Error(`Unsupported chat memory profile field: ${fieldName}`);
-            }
-            writeChatMemoryProfileFieldValue(payload, fieldName, element.value);
-        });
+    const serializeVisibleValues = (): string => {
+        const values: string[] = [];
+        forEachFieldInput((element) => values.push(element.value));
+        return JSON.stringify(values);
+    };
+    const buildPayload = (snapshot: ChatMemoryProfile): ChatMemoryProfileUpdateRequest => {
+        const payload = createChatMemoryProfileUpdate(snapshot);
+        forEachFieldInput((element, fieldName) => writeChatMemoryProfileFieldValue(payload, fieldName, element.value));
         return payload;
     };
-    const serializePayload = (payload: ChatMemoryProfileUpdateRequest): string => JSON.stringify(payload);
-    const hasChanges = (): boolean => serializePayload(collectPayload()) !== baselinePayloadKey;
+    const setLoadFailed = (failed: boolean): void => {
+        loadError.classList.toggle('u-hidden', !failed);
+    };
+    const hasChanges = (): boolean => serializeVisibleValues() !== baselinePayloadKey;
     const loadExistingProfile = async (requestVersion: number): Promise<void> => {
         const memoryApi = resolveMemoryApi(dependencies.apiClient);
         if (!memoryApi?.get) {
             throw new Error('Chat memory profile modal requires apiClient.webui.memory.get');
         }
         const snapshot = await memoryApi.get();
-        if (signal.aborted || requestVersion !== loadVersion || hasLocalEdits) {
+        if (signal.aborted || requestVersion !== loadVersion) {
             return;
         }
-        setFieldValues(snapshot.profileForm);
-        hasLocalEdits = false;
-        baselinePayloadKey = serializePayload(collectPayload());
+        profileSnapshot = snapshot.profileForm;
+        setLoadFailed(false);
+        if (!hasLocalEdits) {
+            setFieldValues(snapshot.profileForm);
+            baselinePayloadKey = serializeVisibleValues();
+        }
         saveController?.notifyChanged();
     };
     const runLoadExistingProfile = async (requestVersion: number): Promise<void> => {
@@ -99,19 +108,24 @@ const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemory
             await loadExistingProfile(requestVersion);
         } catch (error) {
             errorHandler.error(MODULE_ID, 'Failed to load chat memory profile snapshot', ensureError(error));
+            if (!signal.aborted && requestVersion === loadVersion) {
+                setLoadFailed(true);
+                saveController?.notifyChanged();
+            }
         }
     };
     const saveProfile = async (): Promise<void> => {
-        if (!hasChanges()) {
+        if (!hasChanges() || profileSnapshot === null) {
             return;
         }
         const memoryApi = resolveMemoryApi(dependencies.apiClient);
         if (!memoryApi?.saveChatProfile) {
             throw new Error('Chat memory profile modal requires apiClient.webui.memory.saveChatProfile');
         }
-        const payload = collectPayload();
+        const payload = buildPayload(profileSnapshot);
         await memoryApi.saveChatProfile(payload);
-        baselinePayloadKey = serializePayload(payload);
+        profileSnapshot = payload;
+        baselinePayloadKey = serializeVisibleValues();
         hasLocalEdits = false;
         setFirstRunModalCompleted(dependencies.storage, 'chatMemoryProfile', wallClockMs());
         dispatchCustomEvent(CHAT_MEMORY_UPDATED_EVENT, {});
@@ -145,7 +159,7 @@ const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemory
                 {
                     id: 'chatMemoryProfile',
                     hasChanges: () => hasChanges(),
-                    isValid: () => true,
+                    isValid: () => profileSnapshot !== null,
                     save: async () => {
                         try {
                             await saveProfile();
@@ -179,7 +193,9 @@ const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemory
         () => {
             loadVersion += 1;
             hasLocalEdits = false;
-            baselinePayloadKey = serializePayload(collectPayload());
+            profileSnapshot = null;
+            setLoadFailed(false);
+            baselinePayloadKey = serializeVisibleValues();
             activateModalSaveController();
             saveController?.notifyChanged();
             terminateHandledPromise(runLoadExistingProfile(loadVersion));
@@ -223,6 +239,14 @@ const bindChatMemoryProfileModal = (modal: HTMLElement, dependencies: ChatMemory
                 }
                 event.preventDefault();
                 presenter.close(CHAT_MEMORY_PROFILE_MODAL_ID, { reason: 'skip' });
+                return;
+            }
+            const retryTarget = target.closest(`#${modalUiId(CHAT_MEMORY_PROFILE_MODAL_ID, 'retry')}`);
+            if (retryTarget instanceof HTMLButtonElement) {
+                event.preventDefault();
+                loadVersion += 1;
+                setLoadFailed(false);
+                terminateHandledPromise(runLoadExistingProfile(loadVersion));
                 return;
             }
             const saveTarget = target.closest(`#${modalUiId(CHAT_MEMORY_PROFILE_MODAL_ID, 'save')}`);

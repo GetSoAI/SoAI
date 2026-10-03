@@ -4,22 +4,20 @@
 from __future__ import annotations
 
 import logging
-import math
 import os
-import threading
 from typing import TYPE_CHECKING
 
 from app.cli.application_pid_cleanup import cleanup_pid_files
-from app.cli.process_control import force_exit_after_timeout
 from app.cli.restart_launcher import relaunch_application
 from app.cli.unexpected_shutdown_reporting import (
     coerce_and_log_unexpected_shutdown_exception_and_return_one,
 )
-from app.lifecycle.budgets import resolve_lifecycle_shutdown_budgets
+from app.lifecycle.budgets import arm_lifecycle_shutdown_deadline
 from app.lifecycle.process_cleanup import cleanup_lingering_processes
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.errors.unexpected_exceptions import UNEXPECTED_RUNTIME_EXCEPTIONS
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 
 if TYPE_CHECKING:
     from app.application_controller import ApplicationController
@@ -37,49 +35,38 @@ async def shutdown_application(
     lifecycle_logger: logging.Logger,
     restart_cli_module: str,
     exit_code: int,
+    process_exit_deadline: ProcessExitDeadline,
 ) -> int:
-    lifecycle_logger.info("Initiating final shutdown sequence.")
     application_context = application_controller.context
     pid = os.getpid()
-    shutdown_budgets = resolve_lifecycle_shutdown_budgets(
+    shutdown_budgets = arm_lifecycle_shutdown_deadline(
         application_context.services.configuration.config,
+        process_exit_deadline,
     )
-    shutdown_timeout_int = math.ceil(shutdown_budgets.watchdog_timeout_sec)
-    shutdown_watchdog = threading.Timer(
-        shutdown_timeout_int,
-        force_exit_after_timeout,
-        args=[pid, shutdown_timeout_int, lifecycle_logger],
+    lifecycle_logger.info("Initiating final shutdown sequence.")
+    lifecycle_logger.debug(
+        "Shutdown initiated. A %.3fs watchdog has been armed to prevent hangs.",
+        shutdown_budgets.watchdog_timeout_sec,
     )
-    watchdog_started = False
-    try:
-        shutdown_watchdog.start()
-        watchdog_started = True
-        lifecycle_logger.debug(
-            "Shutdown initiated. A %.3fs watchdog has been armed to prevent hangs.",
-            shutdown_timeout_int,
-        )
-        exit_code = await _run_controller_shutdown(
-            application_controller=application_controller,
-            lifecycle_logger=lifecycle_logger,
-            exit_code=exit_code,
-        )
-        exit_code = _cleanup_lingering_children(
-            pid=pid,
-            base_dir=base_dir,
-            lifecycle_logger=lifecycle_logger,
-            timeout_sec=shutdown_budgets.force_cleanup_timeout_sec,
-            exit_code=exit_code,
-            transferred_processes=application_context.runtime.transferred_processes,
-        )
-        exit_code = cleanup_pid_files(
-            application_controller=application_controller,
-            lifecycle_logger=lifecycle_logger,
-            exit_code=exit_code,
-        )
-    finally:
-        shutdown_watchdog.cancel()
-        if watchdog_started:
-            shutdown_watchdog.join()
+    exit_code = await _run_controller_shutdown(
+        application_controller=application_controller,
+        lifecycle_logger=lifecycle_logger,
+        exit_code=exit_code,
+    )
+    exit_code = _cleanup_lingering_children(
+        pid=pid,
+        base_dir=base_dir,
+        lifecycle_logger=lifecycle_logger,
+        timeout_sec=shutdown_budgets.force_cleanup_timeout_sec,
+        exit_code=exit_code,
+        transferred_processes=application_context.runtime.transferred_processes,
+    )
+    exit_code = cleanup_pid_files(
+        application_controller=application_controller,
+        lifecycle_logger=lifecycle_logger,
+        exit_code=exit_code,
+    )
+    process_exit_deadline.begin_finalization()
     if application_context.runtime.restart_requested:
         lifecycle_logger.debug(
             "Graceful shutdown complete. Re-executing the application process for restart.",
@@ -133,7 +120,7 @@ def _cleanup_lingering_children(
 ) -> int:
     try:
         lifecycle_logger.debug(
-            "Graceful shutdown completed within the time limit. Watchdog disarmed.",
+            "Controller shutdown completed. Cleaning up remaining owned child processes.",
         )
         cleanup_ok = cleanup_lingering_processes(
             pid=pid,

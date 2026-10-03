@@ -90,7 +90,7 @@ def prepare_history_request(
     if interval_ms is not None:
         explicit_interval = require_positive_int(interval_ms, name="interval_ms")
     try:
-        retention_hours_value = int(retention_hours)
+        retention_hours_value = max(0, int(retention_hours))
     except (TypeError, ValueError) as exception:
         raise ValidationError("DB_RETENTION_HOURS must be a non-negative integer") from exception
     resolution = resolve_history_request(
@@ -109,6 +109,7 @@ def prepare_history_request(
         requested_points=requested_points,
         aggregation=normalized_aggregation,
         logging_interval_ms=logging_interval_int,
+        retention_hours=retention_hours_value,
         resolution=resolution,
     )
 

@@ -6,14 +6,24 @@ from __future__ import annotations
 import sqlite3
 from typing import TYPE_CHECKING
 
+from core.automation.automation_interactive_tool_approval import strip_interactive_tool_approval
+from core.automation.automation_mutation_results import (
+    AutomationPreparedUpdate,
+    AutomationUpdateResult,
+)
+from core.automation.automation_revision import (
+    compute_automation_revision,
+    require_automation_revision_match,
+)
 from core.automation.automation_tool_blocklist import (
     load_automation_disallowed_unqualified_tools,
 )
+from core.automation.automation_update_validation import resolve_automation_update
+from core.errors.exceptions import StateError
+from core.timing.epoch import epoch_ms
 from database.core.flags import FEATURE_PROMPTS
 from database.repositories.users.automation_claim_operations import sync_claim_due_runs
-from database.repositories.users.automation_conversation_settings_propagation import (
-    sync_propagate_automation_conversation_model_settings,
-)
+from database.repositories.users.automation_definition_commit import sync_commit_automation_update
 from database.repositories.users.automation_read_queries import (
     get_automation,
     has_active_runs,
@@ -21,10 +31,6 @@ from database.repositories.users.automation_read_queries import (
     list_due_automations,
     list_enabled_automation_window_sources,
     list_enabled_automations,
-)
-from database.repositories.users.automation_update_operations import (
-    sync_update_automation,
-    sync_update_automation_and_abandon_disabled_runs,
 )
 from database.repositories.users.automation_write_operations import (
     sync_create_automation,
@@ -35,7 +41,6 @@ from database.repositories.users.domain_event_outbox_dispatch_signal import (
 )
 
 if TYPE_CHECKING:
-    from core.automation.automation_mutation_results import AutomationConversationVersion
     from core.types.json import JSONDict
     from database.repositories.dependencies import DatabaseRepositoryDependencies
 
@@ -58,30 +63,62 @@ def _sync_claim_due_runs_with_params(
     )
 
 
-def _sync_update_automation_and_abandon_disabled_runs_with_params(
-    conn: sqlite3.Connection,
-    automation_id: str,
-    user_id: int,
-    payload: JSONDict,
-    disallowed_unqualified_tools: tuple[str, ...],
-    finished_at_ms: int,
-    status_message: str,
-) -> tuple[JSONDict | None, list[str], list[str]]:
-    return sync_update_automation_and_abandon_disabled_runs(
-        conn,
-        automation_id,
-        user_id,
-        payload,
-        disallowed_unqualified_tools,
-        status_message=status_message,
-        finished_at_ms=finished_at_ms,
-    )
-
-
 class DatabaseAutomations:
     def __init__(self, deps: DatabaseRepositoryDependencies) -> None:
         self._deps = deps
         self.core = deps.core
+
+    async def prepare_automation_update(
+        self,
+        automation_id: str,
+        user_id: int,
+        payload: JSONDict,
+        *,
+        expected_revision: str | None,
+    ) -> AutomationPreparedUpdate | None:
+        current = await self.get_automation(automation_id, user_id)
+        if current is None:
+            return None
+        require_automation_revision_match(current, expected_revision)
+        validated, _changed = resolve_automation_update(
+            current,
+            payload,
+            now_ms=epoch_ms(),
+            disallowed_unqualified_tools=load_automation_disallowed_unqualified_tools(
+                self._deps.config
+            ),
+        )
+        settings = validated["model_settings"]
+        if not isinstance(settings, dict):
+            raise StateError("Validated automation model settings are invalid.")
+        return AutomationPreparedUpdate(
+            automation_id=automation_id,
+            user_id=user_id,
+            payload=dict(payload),
+            expected_revision=compute_automation_revision(current),
+            model_settings=(
+                settings
+                if strip_interactive_tool_approval(settings) != current["model_settings"]
+                or validated["interactive_tool_approval"] != current["interactive_tool_approval"]
+                else None
+            ),
+        )
+
+    async def commit_automation_update(
+        self,
+        prepared: AutomationPreparedUpdate,
+        conversation_model_settings: JSONDict | None,
+    ) -> AutomationUpdateResult:
+        self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)
+        result = await self.core.writer.queue_write_operation(
+            sync_commit_automation_update,
+            prepared,
+            conversation_model_settings,
+            load_automation_disallowed_unqualified_tools(self._deps.config),
+        )
+        if result.automation is not None:
+            notify_domain_event_outbox_dispatch_requested(self._deps.event_bus)
+        return result
 
     async def create_automation(self, user_id: int, payload: JSONDict) -> JSONDict:
         self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)
@@ -110,67 +147,6 @@ class DatabaseAutomations:
     ) -> tuple[list[JSONDict], bool]:
         self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)
         return await list_automations(self.core, user_id=user_id, limit=limit, offset=offset)
-
-    async def update_automation(
-        self,
-        automation_id: str,
-        user_id: int,
-        payload: JSONDict,
-    ) -> JSONDict | None:
-        self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)
-        disallowed_unqualified_tools = load_automation_disallowed_unqualified_tools(
-            self._deps.config,
-        )
-        result = await self.core.writer.queue_write_operation(
-            sync_update_automation,
-            automation_id,
-            user_id,
-            payload,
-            disallowed_unqualified_tools,
-        )
-        if isinstance(result, dict):
-            notify_domain_event_outbox_dispatch_requested(self._deps.event_bus)
-        return result
-
-    async def propagate_automation_conversation_model_settings(
-        self,
-        automation_id: str,
-        user_id: int,
-        model_settings: JSONDict,
-    ) -> tuple[AutomationConversationVersion, ...]:
-        self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)
-        return await self.core.writer.queue_write_operation(
-            sync_propagate_automation_conversation_model_settings,
-            automation_id,
-            user_id,
-            model_settings,
-        )
-
-    async def update_automation_and_abandon_disabled_runs(
-        self,
-        automation_id: str,
-        user_id: int,
-        payload: JSONDict,
-        *,
-        finished_at_ms: int,
-        status_message: str,
-    ) -> tuple[JSONDict | None, list[str], list[str]]:
-        self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)
-        disallowed_unqualified_tools = load_automation_disallowed_unqualified_tools(
-            self._deps.config,
-        )
-        result = await self.core.writer.queue_write_operation(
-            _sync_update_automation_and_abandon_disabled_runs_with_params,
-            automation_id,
-            user_id,
-            payload,
-            disallowed_unqualified_tools,
-            finished_at_ms,
-            status_message,
-        )
-        if isinstance(result[0], dict) or result[1] or result[2]:
-            notify_domain_event_outbox_dispatch_requested(self._deps.event_bus)
-        return result
 
     async def delete_automation(self, automation_id: str, user_id: int) -> bool:
         self.core.features.ensure_feature_enabled(FEATURE_PROMPTS)

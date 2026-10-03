@@ -14,10 +14,10 @@ interface RestartPresentationOperations {
     updateText: (element: HTMLElement, value: string) => void;
 }
 
-const showRestartPresentation = (elements: OverlayElements, type: OperationType, operations: RestartPresentationOperations): boolean => {
+const showRestartPresentation = (elements: OverlayElements, type: OperationType, targetVersion: string | null, operations: RestartPresentationOperations): boolean => {
     const { overlay, message, description, statusIcon } = elements;
     if (!overlay) return false;
-    const content = getRestartContent(type);
+    const content = getRestartContent(type, targetVersion);
     if (message) operations.updateText(message, content.message);
     if (description) operations.updateText(description, content.description);
     if (statusIcon) operations.updateHtml(statusIcon, getIconSync(content.statusIcon, { size: 68, strokeWidth: 1.5 }));

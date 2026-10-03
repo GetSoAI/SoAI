@@ -12,6 +12,7 @@ import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { HARDWARE_SOAIBENCH_HISTORY_MODAL_ID } from '@features/hardware/modals/constants.ts';
 import { SOAIBENCH_HISTORY_COLUMNS, resolveSoAIBenchHistoryColumnLabel, type SoAIBenchHistoryColumnDefinition } from '@features/hardware/modals/soaibenchhistory/columns.ts';
 import { HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION, HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION, HARDWARE_SOAIBENCH_HISTORY_SORT_ACTION } from '@features/hardware/modals/soaibenchhistory/constants.ts';
+import { createHistoryStateRow, patchHistoryTableRows } from '@features/hardware/modals/soaibenchhistory/rowPatching.ts';
 import type { SoAIBenchHistorySortState } from '@features/hardware/modals/soaibenchhistory/sorting.ts';
 import type { SoAIBenchHistoryDisplayRow, SoAIBenchHistoryModalHost } from '@features/hardware/modals/soaibenchhistory/types.ts';
 
@@ -150,27 +151,33 @@ const setFooterActionsDisabled = (host: SoAIBenchHistoryModalHost, modalRoot: HT
     }
 };
 
-const createActionButton = (documentRef: Document, host: SoAIBenchHistoryModalHost, action: string, runId: string, iconName: 'copy' | 'download' | 'share' | 'close', className: string, label: string): HTMLButtonElement => {
+const setActionButtonDisabled = (button: HTMLButtonElement, disabled: boolean): void => {
+    button.disabled = disabled;
+    button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+};
+
+const createActionButton = (documentRef: Document, host: SoAIBenchHistoryModalHost, action: string, runId: string, disabled: boolean, iconName: 'copy' | 'download' | 'share' | 'close', className: string, label: string): HTMLButtonElement => {
     const button = documentRef.createElement('button');
     button.type = 'button';
     button.className = className;
     button.dataset['action'] = action;
     button.dataset['runId'] = runId;
+    setActionButtonDisabled(button, disabled);
     button.setAttribute('aria-label', label);
     setTooltipText(button, label);
     host.setHTML(button, host.getIconSync(iconName, { strokeWidth: iconName === 'copy' ? 1 : 1.5 }));
     return button;
 };
 
-const createActionsCell = (documentRef: Document, host: SoAIBenchHistoryModalHost, row: SoAIBenchHistoryDisplayRow): HTMLTableCellElement => {
+const createActionsCell = (documentRef: Document, host: SoAIBenchHistoryModalHost, row: SoAIBenchHistoryDisplayRow, disabled: boolean): HTMLTableCellElement => {
     const cell = documentRef.createElement('td');
     cell.className = 'hardware-soaibench-history-actions-cell';
     const group = documentRef.createElement('div');
     group.className = 'hardware-soaibench-history-row-actions';
-    group.appendChild(createActionButton(documentRef, host, HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION, row.runId, 'copy', 'ui-round-button ui-round-button--inline ui-round-button--copy', i18n.t('hardware.modals.soaibenchHistory.ariaLabels.copyRun')));
-    group.appendChild(createActionButton(documentRef, host, HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION, row.runId, 'download', 'ui-round-button ui-round-button--inline hardware-soaibench-history-download-round-btn', i18n.t('hardware.modals.soaibenchHistory.ariaLabels.downloadRun')));
-    if (row.publicationEligible) group.appendChild(createActionButton(documentRef, host, HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION, row.runId, 'share', 'ui-round-button ui-round-button--inline ui-round-button--violet', i18n.t('hardware.soaibenchPublication.ariaLabel')));
-    if (row.localDeletionEligible) group.appendChild(createActionButton(documentRef, host, HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION, row.runId, 'close', 'ui-round-button ui-round-button--inline ui-round-button--delete', i18n.t('hardware.soaibenchPublication.deleteLocalHistory')));
+    group.appendChild(createActionButton(documentRef, host, HARDWARE_SOAIBENCH_HISTORY_ROW_COPY_ACTION, row.runId, disabled, 'copy', 'ui-round-button ui-round-button--inline ui-round-button--copy', i18n.t('hardware.modals.soaibenchHistory.ariaLabels.copyRun')));
+    group.appendChild(createActionButton(documentRef, host, HARDWARE_SOAIBENCH_HISTORY_ROW_DOWNLOAD_ACTION, row.runId, disabled, 'download', 'ui-round-button ui-round-button--inline hardware-soaibench-history-download-round-btn', i18n.t('hardware.modals.soaibenchHistory.ariaLabels.downloadRun')));
+    if (row.publicationEligible) group.appendChild(createActionButton(documentRef, host, HARDWARE_SOAIBENCH_HISTORY_ROW_PUBLISH_ACTION, row.runId, disabled, 'share', 'ui-round-button ui-round-button--inline ui-round-button--violet', i18n.t('hardware.soaibenchPublication.ariaLabel')));
+    if (row.localDeletionEligible) group.appendChild(createActionButton(documentRef, host, HARDWARE_SOAIBENCH_HISTORY_ROW_DELETE_LOCAL_ACTION, row.runId, disabled, 'close', 'ui-round-button ui-round-button--inline ui-round-button--delete', i18n.t('hardware.soaibenchPublication.deleteLocalHistory')));
     cell.appendChild(group);
     return cell;
 };
@@ -178,9 +185,7 @@ const createActionsCell = (documentRef: Document, host: SoAIBenchHistoryModalHos
 const setRunActionsDisabled = (modalRoot: HTMLElement, runId: string, disabled: boolean): void => {
     const actionButtons = dom.resolveAll('button[data-run-id]', modalRoot).filter((element): element is HTMLButtonElement => element instanceof HTMLButtonElement);
     for (const element of actionButtons) {
-        if (element.dataset['runId'] !== runId) continue;
-        element.disabled = disabled;
-        element.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+        if (element.dataset['runId'] === runId) setActionButtonDisabled(element, disabled);
     }
 };
 
@@ -190,36 +195,32 @@ const resetHistoryState = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLEleme
     setLoadingVisible(host, modalRoot, true);
 };
 
-const renderHistoryRows = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLElement, rows: readonly SoAIBenchHistoryDisplayRow[], sortState: SoAIBenchHistorySortState): void => {
+const createHistoryRunRow = (documentRef: Document, runId: string, index: number): HTMLTableRowElement => {
+    const row = documentRef.createElement('tr');
+    row.className = resolveCheckerboardClass(index);
+    row.dataset['runId'] = runId;
+    return row;
+};
+
+const renderHistoryRows = (host: SoAIBenchHistoryModalHost, modalRoot: HTMLElement, rows: readonly SoAIBenchHistoryDisplayRow[], sortState: SoAIBenchHistorySortState, busyRunIds: ReadonlySet<string>): void => {
     const content = requireContentElement(host, modalRoot);
     const tableElements = resolveHistoryTableElements(modalRoot) ?? createHistoryTableElements();
-    const rowsElement = tableElements.rowsElement;
     const documentRef = getDocument();
-    rowsElement.replaceChildren();
-    if (rows.length <= 0) {
-        const rowElement = documentRef.createElement('tr');
-        const cell = documentRef.createElement('td');
-        cell.colSpan = SOAIBENCH_HISTORY_COLUMNS.length + 1;
-        cell.className = 'u-text-center u-text-muted';
-        cell.textContent = i18n.t('hardware.modals.soaibenchHistory.empty');
-        rowElement.appendChild(cell);
-        rowsElement.appendChild(rowElement);
-    }
-    rows.forEach((row, index) => {
-        const rowElement = documentRef.createElement('tr');
-        rowElement.className = resolveCheckerboardClass(index);
+    const rowElements = rows.map((row, index) => {
+        const rowElement = createHistoryRunRow(documentRef, row.runId, index);
         for (const column of row.columns) {
             const cell = documentRef.createElement('td');
             cell.textContent = column;
             rowElement.appendChild(cell);
         }
-        rowElement.appendChild(createActionsCell(documentRef, host, row));
-        rowsElement.appendChild(rowElement);
+        rowElement.appendChild(createActionsCell(documentRef, host, row, busyRunIds.has(row.runId)));
+        return rowElement;
     });
+    patchHistoryTableRows(tableElements.rowsElement, rowElements.length ? rowElements : [createHistoryStateRow(documentRef, SOAIBENCH_HISTORY_COLUMNS.length + 1, 'u-text-center u-text-muted', i18n.t('hardware.modals.soaibenchHistory.empty'))]);
     if (!content.contains(tableElements.wrapper)) {
         content.appendChild(tableElements.wrapper);
     }
     syncSortIndicators(host, modalRoot, sortState);
 };
 
-export { renderHistoryRows, resetHistoryState, setFooterActionsDisabled, setLoadingVisible, setRunActionsDisabled, syncSortIndicators };
+export { createActionsCell, createHistoryHeaderCell, createHistoryRunRow, renderHistoryRows, resetHistoryState, setFooterActionsDisabled, setLoadingVisible, setRunActionsDisabled, syncSortIndicators };

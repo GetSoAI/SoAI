@@ -8,6 +8,7 @@ import httpx2
 from core.errors.exceptions import SoAIError, ValidationError
 from core.errors.http_error_responses import extract_http_response_message
 from core.openai.chat_role_sets import OPENAI_PINNED_ROLES
+from core.openai.chat_template_role_rejection import is_chat_template_role_error_message
 from core.openai.message_sequence_normalization import (
     coerce_openai_message_content_to_text,
     merge_adjacent_dialogue_turns_for_strict_templates,
@@ -22,12 +23,9 @@ from core.types.json_value import require_json_dict
 
 __all__ = (
     "CHAT_TEMPLATE_ROLE_POLICY_AUTO",
-    "CHAT_TEMPLATE_ROLE_REJECTION_CATEGORY",
-    "CHAT_TEMPLATE_ROLE_REJECTION_CATEGORY_KEY",
     "CHAT_TEMPLATE_ROLE_POLICY_SEQUENCE",
     "SOAI_CHAT_TEMPLATE_MAX_ROLE_PARAMETER",
     "extract_chat_template_role_rejection_http_status",
-    "is_chat_template_role_error_message",
     "normalize_chat_template_role_policy",
     "normalize_chat_template_role_policy_value",
     "normalize_openai_messages_for_chat_template_role_policy",
@@ -39,8 +37,6 @@ __all__ = (
 
 SOAI_CHAT_TEMPLATE_MAX_ROLE_PARAMETER = "soai_chat_template_max_role"
 CHAT_TEMPLATE_ROLE_POLICY_AUTO = "auto"
-CHAT_TEMPLATE_ROLE_REJECTION_CATEGORY_KEY = "upstream_error_category"
-CHAT_TEMPLATE_ROLE_REJECTION_CATEGORY = "chat_template_role_rejection"
 CHAT_TEMPLATE_ROLE_POLICY_SEQUENCE: tuple[str, ...] = (
     "system",
     "system_strict",
@@ -52,26 +48,6 @@ _ALLOWED_MODES: frozenset[str] = frozenset(
 )
 _PINNED_ROLES: frozenset[str] = OPENAI_PINNED_ROLES
 _STRICT_ALLOWED_ROLES: frozenset[str] = frozenset(("user", "assistant", "tool"))
-_ROLE_ERROR_MARKERS: tuple[str, ...] = (
-    "conversation roles must alternate user/assistant/user/assistant",
-    "only user, assistant and tool roles are supported",
-    "unsupported role",
-    "role must be",
-    "got system",
-)
-_ROLE_PLACEMENT_SUBJECTS: tuple[str, ...] = (
-    "developer message",
-    "developer role",
-    "system message",
-    "system role",
-)
-_ROLE_PLACEMENT_REQUIREMENTS: tuple[str, ...] = (
-    "must be at the beginning",
-    "must be at the start",
-    "must be first",
-    "only allowed at the beginning",
-    "only allowed at the start",
-)
 
 
 def read_message_compatibility_mode(config_value: JSONValue | None) -> str:
@@ -244,25 +220,6 @@ def normalize_openai_responses_input_for_chat_template_role_policy(
     return [dict(message) for message in normalized_messages]
 
 
-def is_chat_template_role_error_message(message: str) -> bool:
-    normalized = str(message or "").strip().lower()
-    if not normalized:
-        return False
-    has_role_placement_subject = any(subject in normalized for subject in _ROLE_PLACEMENT_SUBJECTS)
-    has_role_placement_requirement = any(
-        requirement in normalized for requirement in _ROLE_PLACEMENT_REQUIREMENTS
-    )
-    if has_role_placement_subject and has_role_placement_requirement:
-        return True
-    has_role_context = "role" in normalized or "jinja exception" in normalized
-    if not has_role_context:
-        return False
-    for marker in _ROLE_ERROR_MARKERS:
-        if marker in normalized:
-            return True
-    return False
-
-
 def extract_chat_template_role_rejection_http_status(
     exception: BaseException,
 ) -> int | None:
@@ -275,7 +232,7 @@ def extract_chat_template_role_rejection_http_status(
         visited_exception_ids.add(exception_id)
         if isinstance(current_exception, httpx2.HTTPStatusError):
             response = current_exception.response
-            if response is None or response.status_code < 400:
+            if response is None or response.status_code not in (400, 422, 500):
                 return None
             upstream_message = extract_http_response_message(
                 response,

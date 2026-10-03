@@ -6,13 +6,9 @@ import type { TrustedHtml } from '@core/security/public.ts';
 
 type RowDefinition = {
     id: string;
-    className?: string;
     rowClassName?: string;
-    getLabel: () => string;
-};
-
-type FilterOptionDefinition = {
-    value: string;
+    copyable?: boolean;
+    suppressWhenEmpty?: boolean;
     getLabel: () => string;
 };
 
@@ -27,4 +23,4 @@ type RenderModelDetailPageViewDependencies = {
     generateStandardHeader: (options: GenerateStandardHeaderOptions) => TrustedHtml;
 };
 
-export type { FilterOptionDefinition, HeaderActionDefinition, HeaderConfig, ModelDetailLayout, RenderModelDetailPageViewDependencies, RowDefinition };
+export type { HeaderActionDefinition, HeaderConfig, ModelDetailLayout, RenderModelDetailPageViewDependencies, RowDefinition };

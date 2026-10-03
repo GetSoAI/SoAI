@@ -3,34 +3,33 @@
 
 import { hideCrosshair } from '@features/charts/crosshair.ts';
 import type { ChartInteractionScene } from '@features/charts/interaction/chartInteractionScene.ts';
-import { panBySlots, resetViewport, snapshotViewportToLatest, applyZoomAtRatio } from '@features/charts/interaction/viewportCommands.ts';
 
 const KEYBOARD_ZOOM_FACTOR = 1.18;
+const KEYBOARD_PAN_RATIO = 0.12;
 
 const handleKeyboardNavigation = (chart: ChartInteractionScene, event: KeyboardEvent): void => {
     let handled = true;
-    const dataSlots = chart.viewport.getSlotMetrics().dataSlots;
+    const { left, chartWidth } = chart.viewport.getChartDimensions();
+    const centerX = left + chartWidth / 2;
     switch (event.key) {
         case 'ArrowLeft':
-            panBySlots(chart, -Math.max(1, Math.ceil(dataSlots * 0.12)));
+            chart.viewport.panByPixels(chartWidth * KEYBOARD_PAN_RATIO);
             break;
         case 'ArrowRight':
-            panBySlots(chart, Math.max(1, Math.ceil(dataSlots * 0.12)));
+            chart.viewport.panByPixels(-chartWidth * KEYBOARD_PAN_RATIO);
             break;
         case '+':
         case '=':
-            chart.viewport.markManual('keyboard');
-            applyZoomAtRatio(chart, { level: chart.viewportState.zoom.level * KEYBOARD_ZOOM_FACTOR, anchorRatio: 0.5, source: 'keyboard', animate: true });
+            chart.viewport.zoomBy(centerX, 1 / KEYBOARD_ZOOM_FACTOR, true);
             break;
         case '-':
-            chart.viewport.markManual('keyboard');
-            applyZoomAtRatio(chart, { level: chart.viewportState.zoom.level / KEYBOARD_ZOOM_FACTOR, anchorRatio: 0.5, source: 'keyboard', animate: true });
+            chart.viewport.zoomBy(centerX, KEYBOARD_ZOOM_FACTOR, true);
             break;
         case '0':
-            resetViewport(chart, false);
+            chart.viewport.resetZoom();
             break;
         case 'End':
-            snapshotViewportToLatest(chart);
+            chart.viewport.alignToLatest();
             break;
         case 'Escape':
             hideCrosshair(chart);

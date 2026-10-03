@@ -3,6 +3,7 @@
 
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { minutesToMs, msToMinutes } from '@core/time/durations.ts';
+import type { HistoryChartInstance } from '@features/charts/historyChartContracts.ts';
 
 interface HistoryChartPointBudgetConfig {
     monitoringIntervalMs: number;
@@ -12,6 +13,7 @@ interface HistoryChartPointBudgetConfig {
     maxRetentionMinutes: number | null;
     candlestickActive: boolean;
     candlestickIntervalMinutes: number;
+    plotWidthPx: number;
 }
 
 const HISTORY_CHART_BASE_MIN_POINTS = 300;
@@ -19,6 +21,7 @@ const HISTORY_CHART_BASE_DEFAULT_CAP = 25000;
 const HISTORY_CHART_RESOLUTION_SCALE = 4.8;
 const HISTORY_CHART_MIN_POINTS = Math.round(HISTORY_CHART_BASE_MIN_POINTS * HISTORY_CHART_RESOLUTION_SCALE);
 const HISTORY_CHART_DEFAULT_CAP = Math.round(HISTORY_CHART_BASE_DEFAULT_CAP * HISTORY_CHART_RESOLUTION_SCALE);
+const HISTORY_CHART_LINE_POINTS_PER_PLOT_PIXEL = 2;
 
 const scaleHistoryChartPointCount = (points: number): number => {
     const normalized = Number(points);
@@ -26,6 +29,13 @@ const scaleHistoryChartPointCount = (points: number): number => {
         throw new TypeError('points must be a positive number');
     }
     return Math.ceil(normalized * HISTORY_CHART_RESOLUTION_SCALE);
+};
+
+const resolveHistoryChartStorageCapacity = (apiPointCap: number, retentionMinutes: number | null, intervalMs: number, hardLimit: number): number => {
+    if (!Number.isFinite(hardLimit) || hardLimit < 1) throw new TypeError('hardLimit must be a positive number');
+    const retentionPoints = retentionMinutes !== null && Number.isFinite(retentionMinutes) && retentionMinutes > 0 && Number.isFinite(intervalMs) && intervalMs > 0 ? Math.ceil(minutesToMs(retentionMinutes) / intervalMs) : 0;
+    const basePoints = Math.max(apiPointCap, retentionPoints, HISTORY_CHART_MIN_POINTS);
+    return Math.min(Math.floor(hardLimit), scaleHistoryChartPointCount(basePoints));
 };
 
 const normalizeMonitoringIntervalMs = (monitoringIntervalMs: number): number => {
@@ -51,12 +61,23 @@ const clampHistoryChartPointCount = (config: HistoryChartPointBudgetConfig, valu
     return clampNumber(Math.round(value), minimum, limit);
 };
 
-const resolveHistoryChartSamplePointCount = (config: HistoryChartPointBudgetConfig, rangeMs: number): number => {
+const resolveHistoryChartAlignedSampleBucketCount = (config: HistoryChartPointBudgetConfig, rangeMs: number): number => {
     const durationMs = Number(rangeMs);
     if (!Number.isFinite(durationMs) || durationMs <= 0) {
         throw new TypeError('rangeMs must be a positive number');
     }
-    return Math.max(1, Math.ceil(durationMs / normalizeMonitoringIntervalMs(config.monitoringIntervalMs)));
+    return Math.ceil(durationMs / normalizeMonitoringIntervalMs(config.monitoringIntervalMs)) + 1;
+};
+
+const resolveHistoryChartPlotWidthPx = (chart: Pick<HistoryChartInstance, 'view'> | null): number => (chart ? chart.view.getChartDimensions().chartWidth : 0);
+
+const resolveHistoryChartDisplayPointFloor = (config: HistoryChartPointBudgetConfig): number => {
+    const plotWidthPx = Number(config.plotWidthPx);
+    if (!Number.isFinite(plotWidthPx) || plotWidthPx < 0) {
+        throw new TypeError('plotWidthPx must be a non-negative number');
+    }
+    if (config.candlestickActive) return HISTORY_CHART_MIN_POINTS;
+    return Math.max(HISTORY_CHART_MIN_POINTS, Math.ceil(plotWidthPx * HISTORY_CHART_LINE_POINTS_PER_PLOT_PIXEL));
 };
 
 const estimateHistoryChartIdealSpacing = (config: HistoryChartPointBudgetConfig, retentionMinutes: number): number => {
@@ -70,14 +91,6 @@ const estimateHistoryChartIdealSpacing = (config: HistoryChartPointBudgetConfig,
     const baseMs = Math.round(minutesToMs((cappedMinutes * weight) / Math.log10(cappedMinutes + 10)));
     const capMs = Math.max(intervalMs * 3, Math.round(minutesToMs(cappedMinutes ** 0.85)));
     return clampNumber(baseMs, Math.max(intervalMs * 2, intervalMs * Math.cbrt(cappedMinutes), intervalMs), capMs);
-};
-
-const deriveHistoryChartPreferredPointCount = (config: HistoryChartPointBudgetConfig, retentionMinutes: number): number => {
-    const rangeMs = Math.max(minutesToMs(1), Math.round(minutesToMs(retentionMinutes)));
-    const spacingMs = Math.max(normalizeMonitoringIntervalMs(config.monitoringIntervalMs), estimateHistoryChartIdealSpacing(config, retentionMinutes));
-    const spacedPoints = Math.ceil(rangeMs / spacingMs);
-    const samplePointCount = resolveHistoryChartSamplePointCount(config, rangeMs);
-    return clampHistoryChartPointCount(config, scaleHistoryChartPointCount(spacedPoints), Math.min(HISTORY_CHART_MIN_POINTS, samplePointCount), samplePointCount);
 };
 
 const computeHistoryChartPointBudget = (config: HistoryChartPointBudgetConfig, rangeMs: number): number => {
@@ -97,9 +110,9 @@ const computeHistoryChartPointBudget = (config: HistoryChartPointBudgetConfig, r
         }
         pointBudget = Math.max(pointBudget, Math.ceil(retentionMinutes / intervalMinutes) * 4);
     }
-    const samplePointCount = resolveHistoryChartSamplePointCount(config, durationMs);
-    return clampHistoryChartPointCount(config, scaleHistoryChartPointCount(pointBudget), Math.min(HISTORY_CHART_MIN_POINTS, samplePointCount), samplePointCount);
+    const sampleBucketCount = resolveHistoryChartAlignedSampleBucketCount(config, durationMs);
+    return clampHistoryChartPointCount(config, scaleHistoryChartPointCount(pointBudget), Math.min(resolveHistoryChartDisplayPointFloor(config), sampleBucketCount), sampleBucketCount);
 };
 
-export { HISTORY_CHART_DEFAULT_CAP, HISTORY_CHART_MIN_POINTS, HISTORY_CHART_RESOLUTION_SCALE, clampHistoryChartPointCount, computeHistoryChartPointBudget, deriveHistoryChartPreferredPointCount, estimateHistoryChartIdealSpacing, resolveHistoryChartPointLimit, resolveHistoryChartSamplePointCount, scaleHistoryChartPointCount };
+export { HISTORY_CHART_DEFAULT_CAP, HISTORY_CHART_MIN_POINTS, clampHistoryChartPointCount, computeHistoryChartPointBudget, resolveHistoryChartPlotWidthPx, resolveHistoryChartPointLimit, resolveHistoryChartStorageCapacity, scaleHistoryChartPointCount };
 export type { HistoryChartPointBudgetConfig };

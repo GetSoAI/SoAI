@@ -36,13 +36,18 @@ const buildUpdatesSummaryMarkup = (dependencies: { update: NormalizedUpdatePaylo
     return toTrustedUiHtml(`<div class="update-summary-card"><div class="update-summary-header"><h2 class="update-summary-title">${dependencies.sectionTitle}</h2>${badge}</div><div class="update-summary-grid"><div class="version-block"><span class="version-label">${dependencies.currentVersionLabel}</span><span class="version-value">${dependencies.sanitizeHtml(currentVersion)}</span></div><div class="version-block"><span class="version-label">${dependencies.latestVersionLabel}</span><span class="version-value">${dependencies.sanitizeHtml(latestVersion)}</span></div></div>${actionHtml}${metadata.length ? `<div class="update-metadata">${metadata.join('')}</div>` : ''}</div>`);
 };
 
-const buildUpdatesReleaseNotesMarkup = (notes: string, sanitizeHtml: (value: string) => string): { html: TrustedHtml; hasNotes: boolean } => {
-    const normalized = notes.trim();
-    if (!normalized) {
+const buildUpdatesReleaseNotesMarkup = (dependencies: { update: NormalizedUpdatePayload; sanitizeHtml: (value: string) => string; renderMarkdown: (value: string) => TrustedHtml; partialLabel: string }): { html: TrustedHtml; hasNotes: boolean } => {
+    const update = dependencies.update;
+    const entries = update.releaseHistory.length > 0 ? update.releaseHistory : update.releaseNotes.trim() ? [{ version: update.latestVersion, body: update.releaseNotes, publishedAt: update.publishedAt }] : [];
+    if (entries.length === 0 && update.releaseHistoryComplete) {
         return { html: EMPTY_UI_HTML, hasNotes: false };
     }
+    const sections = entries.map((entry) => `<section class="release-notes-entry"><h4>${dependencies.sanitizeHtml(entry.version)}</h4><div class="release-notes-entry-body">${dependencies.renderMarkdown(entry.body).html}</div></section>`);
+    if (!update.releaseHistoryComplete) {
+        sections.push(`<p class="release-notes-partial">${dependencies.sanitizeHtml(dependencies.partialLabel)}</p>`);
+    }
     return {
-        html: toTrustedHtml(sanitizeHtml(normalized).replaceAll('\n', '<br />')),
+        html: toTrustedHtml(sections.join('')),
         hasNotes: true
     };
 };

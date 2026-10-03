@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from core.errors.exceptions import StateError
 from core.files.locking import async_guarded_file_lock
 from core.files.managed_file_deletion import delete_managed_path
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.serialization.sha256_hexdigest import is_canonical_sha256_hexdigest
 from core.validation.identifiers import is_identifier_strictly_alnum
 from plugins.package_completion import read_plugin_package_completion_record
@@ -55,16 +56,18 @@ async def collect_plugin_package_cache(
             plugin_name,
         )
     )
-    os.makedirs(os.path.dirname(cache_lock_path), exist_ok=True)
+    os.makedirs(normalize_filesystem_path(os.path.dirname(cache_lock_path)), exist_ok=True)
     async with async_guarded_file_lock(cache_lock_path, timeout=120):
         packages_root = os.path.dirname(cache_directory)
-        if os.path.islink(packages_root) or (
-            os.path.lexists(packages_root) and not os.path.isdir(packages_root)
+        if os.path.islink(normalize_filesystem_path(packages_root)) or (
+            os.path.lexists(normalize_filesystem_path(packages_root))
+            and not os.path.isdir(normalize_filesystem_path(packages_root))
         ):
             await delete_managed_path(manager.paths.temp_directory, packages_root)
             return
-        if os.path.islink(cache_directory) or (
-            os.path.lexists(cache_directory) and not os.path.isdir(cache_directory)
+        if os.path.islink(normalize_filesystem_path(cache_directory)) or (
+            os.path.lexists(normalize_filesystem_path(cache_directory))
+            and not os.path.isdir(normalize_filesystem_path(cache_directory))
         ):
             await delete_managed_path(manager.paths.temp_directory, cache_directory)
             return
@@ -77,7 +80,7 @@ async def collect_plugin_package_cache(
             )
         }
         try:
-            entries = sorted(os.listdir(cache_directory))
+            entries = sorted(os.listdir(normalize_filesystem_path(cache_directory)))
         except FileNotFoundError:
             return
         for entry in entries:
@@ -116,7 +119,7 @@ async def collect_plugin_package_cache(
 
 def _list_cached_plugin_directories(packages_root: str) -> set[str]:
     try:
-        with os.scandir(packages_root) as entries:
+        with os.scandir(normalize_filesystem_path(packages_root)) as entries:
             return {
                 entry.name
                 for entry in entries
@@ -164,11 +167,12 @@ async def remove_plugin_package_cache(
             plugin_name,
         )
     )
-    os.makedirs(os.path.dirname(lock_path), exist_ok=True)
+    os.makedirs(normalize_filesystem_path(os.path.dirname(lock_path)), exist_ok=True)
     async with async_guarded_file_lock(lock_path, timeout=120):
         packages_root = os.path.dirname(cache_directory)
-        if os.path.islink(packages_root) or (
-            os.path.lexists(packages_root) and not os.path.isdir(packages_root)
+        if os.path.islink(normalize_filesystem_path(packages_root)) or (
+            os.path.lexists(normalize_filesystem_path(packages_root))
+            and not os.path.isdir(normalize_filesystem_path(packages_root))
         ):
             await delete_managed_path(manager.paths.temp_directory, packages_root)
         live_leases = await asyncio.to_thread(

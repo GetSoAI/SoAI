@@ -1,0 +1,45 @@
+/* SoAI - Chat conversation header auto hide states [frontend/assets/css/components/chat/chat-conversation-header-auto-hide.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    @property --chat-conversation-header-offset {
+        syntax: '<length>';
+        inherits: true;
+        initial-value: 0;
+    }
+
+    :where(.chat-container) .chat-main-container {
+        --chat-conversation-header-fold-clip-overflow: calc(-100 * max(var(--ui-viewport-width-unit), var(--ui-viewport-height-unit)));
+        --chat-conversation-header-fold-clip-right: var(--chat-conversation-header-fold-clip-overflow);
+        --chat-conversation-header-fold-clip-left: 0;
+        --chat-conversation-header-fold-corner-radii: var(--border-radius) 0 0 0;
+    }
+
+    :root[dir='rtl'] :where(.chat-container) .chat-main-container {
+        --chat-conversation-header-fold-clip-right: 0;
+        --chat-conversation-header-fold-clip-left: var(--chat-conversation-header-fold-clip-overflow);
+        --chat-conversation-header-fold-corner-radii: 0 var(--border-radius) 0 0;
+    }
+
+    :where(.chat-container) .chat-main-container > .chat-conversation-header {
+        top: calc(var(--chat-conversation-header-offset) - var(--chat-conversation-header-height));
+        overflow: visible;
+        clip-path: inset(calc(var(--chat-conversation-header-height) - var(--chat-conversation-header-offset)) var(--chat-conversation-header-fold-clip-right) var(--chat-conversation-header-fold-clip-overflow) var(--chat-conversation-header-fold-clip-left) round var(--chat-conversation-header-fold-corner-radii));
+        transition: visibility 0s var(--ease-linear);
+    }
+
+    :where(.chat-container) .chat-main-container > .chat-conversation-header .chat-header-left > .chat-sidebar-toggle-btn {
+        translate: 0 calc(var(--chat-conversation-header-height) - var(--chat-conversation-header-offset));
+    }
+
+    :where(.chat-container) .chat-main-container--conversation-header-auto-hidden > .chat-conversation-header {
+        pointer-events: none;
+        visibility: hidden;
+        transition: visibility 0s var(--ease-linear) var(--header-fold-duration);
+    }
+
+    :where(.chat-container) .chat-main-container--conversation-header-auto-hidden > .chat-conversation-header .chat-header-left > .chat-sidebar-toggle-btn {
+        pointer-events: auto;
+        visibility: visible;
+    }
+}

@@ -4,6 +4,7 @@
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import type { SaveUnitResult } from '@core/save/public.ts';
 import { limitConversationTitleLength, sanitizeTitle } from '@features/chat/public.ts';
 import type { ConversationActionsHost, ConversationActionsStateAccess, ConversationManager, StorageManager } from '@pages/chat/controllers/chatconversationactionscontroller/types.ts';
 import type { ChatConversationRenameScope } from '@pages/chat/state/chatConversationRenameState.ts';
@@ -68,15 +69,21 @@ const cancelConversationRenameState = (host: ConversationActionsHost, state: Con
     host.workflow.notifySaveChanged();
 };
 
-const persistConversationRename = async (host: ConversationActionsHost, state: ConversationActionsStateAccess, conversationManager: ConversationManager, storageManager: StorageManager): Promise<void> => {
+const persistConversationRename = async (host: ConversationActionsHost, state: ConversationActionsStateAccess, conversationManager: ConversationManager, storageManager: StorageManager): Promise<SaveUnitResult> => {
     const renameState = state.getConversationRenameState();
     if (!renameState) {
         return;
     }
     const sanitized = sanitizeTitle(limitConversationTitleLength(renameState.draft));
+    if (!sanitized) {
+        host.workflow.feedback.show(i18n.t('chat.conversation.titleRequired'), 'warning');
+        return { type: 'stop' };
+    }
     await conversationManager.updateConversationTitle(renameState.conversationId, sanitized);
-    state.setConversationRenameState(null);
-    host.workflow.notifySaveChanged();
+    if (state.getConversationRenameState() === renameState) {
+        state.setConversationRenameState(null);
+        host.workflow.notifySaveChanged();
+    }
     storageManager.saveChatState();
     await host.view.refreshConversationsUI();
 };

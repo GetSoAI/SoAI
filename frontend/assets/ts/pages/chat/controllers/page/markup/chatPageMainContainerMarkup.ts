@@ -13,6 +13,8 @@ const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string =>
     const agentCompactTooltip = i18n.t('chat.agent.compact.tooltip');
     const planBarToggleTooltip = i18n.t('chat.header.togglePlanBar');
     const newTitleAttr = i18n.attr(sanitizer, 'chat.conversation.newTitle');
+    const presetsHoldHint = i18n.attr(sanitizer, 'chat.holdShortcuts.presetsHint');
+    const toolsHoldHint = i18n.attr(sanitizer, 'chat.holdShortcuts.toolsHint');
     const inputActionsInlineHtml = renderChatInputActionButtonsInline(context);
     const headerOverflowComposerButtonsHtml = renderChatHeaderOverflowComposerButtons(context);
 
@@ -21,27 +23,27 @@ const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string =>
         <div class="chat-header-left">
 	        ${sidebarToggleButton}
 	        <div class="conversation-title-wrapper ui-inline-text-edit">
-	        <button type="button" class="conversation-title ui-inline-text-edit__trigger" data-action="chat:start-conversation-title-edit" ${renderLabelAttributes(i18n.t('common.edit'))}><span class="conversation-title-text ui-inline-text-edit__text">${strings.newTitle}</span><span class="conversation-title-automation-indicator u-hidden" aria-hidden="true"></span><span class="conversation-title-messaging-indicator u-hidden" aria-hidden="true"></span><span class="conversation-title-archive-indicator u-hidden" aria-hidden="true"></span></button>
-	        <input type="text" class="conversation-title-input ui-inline-text-edit__input u-hidden" aria-label="${editLabel}" value="${newTitleAttr}" maxlength="${CONVERSATION_TITLE_MAX_LENGTH}">
-	        <button type="button" class="conversation-title-save-btn ui-inline-text-edit__save ui-button ui-variant-accent u-hidden" data-action="chat:conversation-title-save" ${renderLabelAttributes(strings.titleSave)}>${strings.saveCommon}</button>
-	        <button type="button" class="conversation-title-cancel-btn ui-inline-text-edit__cancel ui-button ui-variant-neutral u-hidden" data-action="chat:conversation-title-cancel" ${renderLabelAttributes(strings.titleCancel)}>${strings.cancelCommon}</button>
+	        <button type="button" class="conversation-title ui-inline-text-edit__trigger" data-action="chat:start-conversation-title-edit" ${renderLabelAttributes(i18n.t('common.edit'))}><span dir="auto" class="conversation-title-text ui-inline-text-edit__text">${strings.newTitle}</span><span class="conversation-title-automation-indicator u-hidden" aria-hidden="true"></span><span class="conversation-title-messaging-indicator u-hidden" aria-hidden="true"></span><span class="conversation-title-archive-indicator u-hidden" aria-hidden="true"></span></button>
+	        <input dir="auto" type="text" class="conversation-title-input ui-inline-text-edit__input u-hidden" aria-label="${editLabel}" value="${newTitleAttr}" maxlength="${CONVERSATION_TITLE_MAX_LENGTH}">
+	        <button type="button" class="conversation-title-save-btn ui-inline-text-edit__save ui-button ui-variant-accent u-hidden" data-action="chat:conversation-title-save" data-presence-visual-only ${renderLabelAttributes(strings.titleSave)}>${strings.saveCommon}</button>
+	        <button type="button" class="conversation-title-cancel-btn ui-inline-text-edit__cancel ui-button ui-variant-neutral u-hidden" data-action="chat:conversation-title-cancel" data-presence-visual-only ${renderLabelAttributes(strings.titleCancel)}>${strings.cancelCommon}</button>
 	        </div>
         </div>
         <div class="chat-header-actions">
         <div class="chat-header-overflow page-actions">
         <button type="button" class="chat-overflow-trigger ui-icon-button page-actions__trigger" ${renderLabelAttributes(strings.moreActions)} aria-haspopup="true" aria-expanded="false"><span class="chat-action-icon" aria-hidden="true"></span></button>
-        <div class="page-actions__menu page-actions__menu--split" role="toolbar">
+        <div class="page-actions__menu page-actions__menu--split" role="toolbar" data-presence>
         <button type="button" class="agent-mode-cycle-btn ui-button" data-action="chat:cycle-agent-mode" data-agent-mode="chat" data-page-actions-menu-keep-open="true" ${renderLabelAttributes(strings.agentModeCycleTooltip)}><span class="agent-mode-cycle-icon ui-icon" aria-hidden="true"></span><span class="agent-mode-cycle-label">${strings.agentModeChat}</span></button>
         <button type="button" class="agent-compact-btn chat-header-action ui-button u-hidden" data-action="chat:compact-agent" ${renderLabelAttributes(agentCompactTooltip)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.agentCompact}</span></button>
         <button type="button" class="export-btn chat-header-action ui-button u-hidden" data-action="chat:export-conversation" ${renderLabelAttributes(strings.exportAction)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.exportAction}</span></button>
-        <button type="button" class="configuration-toggle-btn configuration-toggle-btn--dropdown chat-header-action ui-button" data-action="chat:toggle-configuration" ${renderLabelAttributes(strings.configuration)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.configuration}</span></button>
+        <button type="button" class="configuration-toggle-btn configuration-toggle-btn--dropdown chat-header-action ui-button" data-action="chat:toggle-configuration" aria-description="${presetsHoldHint}" ${renderLabelAttributes(strings.configuration)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.configuration}</span></button>
         ${headerOverflowComposerButtonsHtml}
         </div>
         </div>
         <button type="button" class="header-favorite-btn chat-header-action ui-button" data-action="chat:toggle-current-favorite" data-page-actions-menu-keep-open="true" ${renderLabelAttributes(strings.toggleFavorite)} aria-pressed="false"><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.toggleFavorite}</span></button>
-        <button type="button" class="tools-toggle-btn chat-header-action ui-button" data-action="chat:toggle-tools" data-page-actions-menu-keep-open="true" ${renderLabelAttributes(strings.toggleTools)} aria-pressed="false"><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.toggleTools}</span></button>
+        <button type="button" class="tools-toggle-btn chat-header-action ui-button" data-action="chat:toggle-tools" data-page-actions-menu-keep-open="true" aria-description="${toolsHoldHint}" ${renderLabelAttributes(strings.toggleTools)} aria-pressed="false"><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label">${strings.toggleTools}</span></button>
         <button type="button" class="plan-bar-toggle-btn chat-header-action ui-button ui-variant-violet u-hidden" data-action="chat:toggle-plan-bar" data-page-actions-menu-keep-open="true" aria-controls="agent-todo-panel-container" aria-expanded="true" ${renderLabelAttributes(planBarToggleTooltip)}><span class="ui-icon chat-action-icon" aria-hidden="true"></span><span class="chat-action-label"></span></button>
-        <button type="button" class="configuration-toggle-btn ui-icon-button" data-action="chat:toggle-configuration" ${renderLabelAttributes(strings.configuration)}></button>
+        <button type="button" class="configuration-toggle-btn ui-icon-button" data-action="chat:toggle-configuration" aria-description="${presetsHoldHint}" ${renderLabelAttributes(strings.configuration)}></button>
         </div>
         </div>
         <div class="chat-plan-messages-region">
@@ -70,8 +72,8 @@ const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string =>
         <input type="file" class="folder-upload-input u-hidden" webkitdirectory directory multiple>
         <input type="file" class="u-hidden user-avatar-file-input" accept="image/*">
         <input type="file" class="u-hidden assistant-avatar-file-input" accept="image/*">
-	        <div class="chat-input-wrapper glass-surface-strong">
-			        <textarea class="chat-input" aria-label="${strings.inputPlaceholder}" placeholder="${strings.inputPlaceholder}" rows="1"></textarea>
+	        <div class="chat-input-wrapper glass-surface-strong" data-presence-atomic>
+			        <textarea dir="auto" class="chat-input" aria-label="${strings.inputPlaceholder}" placeholder="${strings.inputPlaceholder}" rows="1"></textarea>
 			        <div class="chat-input-actions chat-input-actions--hydrating">
                 ${inputActionsInlineHtml.leading}
                 <div class="model-selector model-selector--composer page-header-filter-select" data-chat-model-control="true" data-scope="composer" aria-label="${strings.selectModel}"></div>
@@ -82,7 +84,7 @@ const buildChatMainContainerMarkup = (context: ChatPageMarkupContext): string =>
 			        <div class="chat-input-actions-inline">
 			        ${inputActionsInlineHtml.auxiliary}
 			        </div>
-			        <div class="chat-mobile-auxiliary-action-slot u-hidden" data-mobile-auxiliary-action="none"></div>
+			        <div class="chat-mobile-auxiliary-action-slot u-hidden" data-presence data-mobile-auxiliary-action="none"></div>
 		        <button type="button" class="chat-action-btn square-btn" data-action="chat:send-or-stop" ${renderLabelAttributes(strings.send)} disabled></button>
 		        </div>
 	        </div>

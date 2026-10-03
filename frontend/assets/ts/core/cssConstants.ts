@@ -10,6 +10,7 @@ const CSS_CLASSES = Object.freeze({
     ACTIVE: 'is-active',
     INACTIVE: 'inactive',
     LOADING: 'is-loading',
+    BUSY_CONTROL: 'ui-busy-control',
     ERROR: 'is-error',
     SUCCESS: 'is-success',
     WARNING: 'is-warning',

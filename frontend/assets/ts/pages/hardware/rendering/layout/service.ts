@@ -52,15 +52,6 @@ const resolveHardwareSectionTitle = (sectionId: HardwarePanelId): string => {
     return unhandledSectionId;
 };
 
-const resolveOverflowNavLabel = (direction: 'left' | 'right'): string => {
-    switch (direction) {
-        case 'left':
-            return i18n.t('tabs.scrollLeft');
-        case 'right':
-            return i18n.t('tabs.scrollRight');
-    }
-};
-
 const createHardwareMovableLayoutConfig = (): MovableSectionLayoutConfig<HardwarePanelId> => ({
     logLabel: 'HardwareLayout',
     gridSelector: '#hardware-grid',
@@ -79,7 +70,6 @@ const renderOverflowButton = (direction: 'left' | 'right', modifier: string): st
     createOverflowNavButtonMarkup({
         direction,
         className: `hardware-overflow-nav hardware-overflow-nav--${direction} ui-icon-button ${modifier}`,
-        label: resolveOverflowNavLabel(direction),
         iconName: direction === 'left' ? 'chevron-left' : 'chevron-right',
         iconOptions: { size: 20, strokeWidth: 1.5 }
     });
@@ -102,13 +92,13 @@ const renderHardwareProcessesContent = (): TrustedHtml => {
     const processCpuLabel = i18n.t('hardware.cards.processes.tableHeaders.cpu');
     const processMemoryLabel = i18n.t('hardware.cards.processes.tableHeaders.memory');
     const processRuntimeLabel = i18n.t('hardware.cards.processes.tableHeaders.runtime');
-    return uiHtml`<div class="metrics-card-content metrics-card-content--table data-table-wrapper hardware-process-table-wrapper has-scroll" data-card-content><table class="table table-hover table-compact" id="hardwareProcessTable"><thead><tr><th class="sortable" data-action="hardware.process.sort" data-sort="name" tabindex="0" role="columnheader" aria-sort="none" aria-label="${uiAttr(processNameLabel)}" data-tooltip="${uiAttr(processNameLabel)}">${processNameLabel} <span class="sort-indicator"></span></th><th class="sortable" data-action="hardware.process.sort" data-sort="pid" tabindex="0" role="columnheader" aria-sort="none" aria-label="${uiAttr(processPidLabel)}" data-tooltip="${uiAttr(processPidLabel)}">${processPidLabel} <span class="sort-indicator"></span></th><th class="sortable" data-action="hardware.process.sort" data-sort="cpu" tabindex="0" role="columnheader" aria-sort="none" aria-label="${uiAttr(processCpuLabel)}" data-tooltip="${uiAttr(processCpuLabel)}">${processCpuLabel} <span class="sort-indicator"></span></th><th class="sortable" data-action="hardware.process.sort" data-sort="memory" tabindex="0" role="columnheader" aria-sort="none" aria-label="${uiAttr(processMemoryLabel)}" data-tooltip="${uiAttr(processMemoryLabel)}">${processMemoryLabel} <span class="sort-indicator"></span></th><th class="sortable" data-action="hardware.process.sort" data-sort="runtime" tabindex="0" role="columnheader" aria-sort="none" aria-label="${uiAttr(processRuntimeLabel)}" data-tooltip="${uiAttr(processRuntimeLabel)}">${processRuntimeLabel} <span class="sort-indicator"></span></th></tr></thead><tbody id="hardwareProcessTableBody"><tr><td colspan="5" class="u-text-center u-text-muted">${i18n.t('hardware.processes.awaiting')}</td></tr></tbody></table></div>`;
+    return uiHtml`<div class="metrics-card-content metrics-card-content--table data-table-wrapper hardware-process-table-wrapper has-scroll" data-card-content><table class="table table-hover table-compact" id="hardwareProcessTable"><thead class="hardware-process-table-head"><tr><th class="sortable" data-action="hardware.process.sort" data-sort="name" tabindex="0" role="columnheader" aria-sort="none" aria-label="${uiAttr(processNameLabel)}" data-tooltip="${uiAttr(processNameLabel)}">${processNameLabel} <span class="sort-indicator"></span></th><th class="sortable" data-action="hardware.process.sort" data-sort="pid" tabindex="0" role="columnheader" aria-sort="none" aria-label="${uiAttr(processPidLabel)}" data-tooltip="${uiAttr(processPidLabel)}">${processPidLabel} <span class="sort-indicator"></span></th><th class="sortable" data-action="hardware.process.sort" data-sort="cpu" tabindex="0" role="columnheader" aria-sort="none" aria-label="${uiAttr(processCpuLabel)}" data-tooltip="${uiAttr(processCpuLabel)}">${processCpuLabel} <span class="sort-indicator"></span></th><th class="sortable" data-action="hardware.process.sort" data-sort="memory" tabindex="0" role="columnheader" aria-sort="none" aria-label="${uiAttr(processMemoryLabel)}" data-tooltip="${uiAttr(processMemoryLabel)}">${processMemoryLabel} <span class="sort-indicator"></span></th><th class="sortable" data-action="hardware.process.sort" data-sort="runtime" tabindex="0" role="columnheader" aria-sort="none" aria-label="${uiAttr(processRuntimeLabel)}" data-tooltip="${uiAttr(processRuntimeLabel)}">${processRuntimeLabel} <span class="sort-indicator"></span></th></tr></thead><tbody id="hardwareProcessTableBody"><tr><td colspan="5" class="u-text-center u-text-muted">${i18n.t('hardware.processes.awaiting')}</td></tr></tbody></table></div>`;
 };
 
 const renderHardwareMemorySwapControls = (): TrustedHtml => {
     const label = i18n.t('hardware.cards.memorySwap.actions.showSwap');
     const icon = renderIconSlot(getIconSync('request-distribution-source', { size: 14, strokeWidth: 1.8 }));
-    return uiHtml`<span class="u-text-muted" id="hardwareMemorySwapSummary">${i18n.t('hardware.common.detecting')}</span><button type="button" id="hardwareMemorySwapToggle" class="ui-icon-button ui-icon-button--titlebar ui-variant-neutral" data-action="${HARDWARE_ACTION_MEMORY_SWAP_TOGGLE}" aria-label="${uiAttr(label)}" data-tooltip="${uiAttr(label)}" aria-pressed="false">${icon}</button>`;
+    return uiHtml`<span dir="auto" class="u-text-muted" id="hardwareMemorySwapSummary">${i18n.t('hardware.common.detecting')}</span><button type="button" id="hardwareMemorySwapToggle" class="ui-icon-button ui-icon-button--titlebar ui-variant-neutral" data-action="${HARDWARE_ACTION_MEMORY_SWAP_TOGGLE}" aria-label="${uiAttr(label)}" data-tooltip="${uiAttr(label)}" aria-pressed="false">${icon}</button>`;
 };
 
 const renderHardwareMemorySwapContent = (): TrustedHtml => {

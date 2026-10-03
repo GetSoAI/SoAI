@@ -13,6 +13,7 @@ interface HistoryValueParsers {
 interface SeriesPoint {
     timestamp: number;
     value: number;
+    sampleCount?: number | undefined;
 }
 
 interface HistorySeriesResult {
@@ -29,7 +30,7 @@ interface BuildOptions {
     parsers?: HistoryValueParsers;
 }
 
-const buildHardwareValueSeriesFromHistoryPayload = (payload: HardwareHistoryResponse, { metricKey, parsers }: BuildOptions = {}): HistorySeriesResult | null => {
+const buildHardwareValueSeriesFromHistoryPayload = (payload: HardwareHistoryResponse, { metricKey, parsers }: BuildOptions = {}): HistorySeriesResult => {
     if (!metricKey) throw new Error('Hardware history metricKey is required');
     if (!parsers) throw new Error('Hardware history chart parsers are required');
 
@@ -49,10 +50,11 @@ const buildHardwareValueSeriesFromHistoryPayload = (payload: HardwareHistoryResp
         if (!valueSource) continue;
         const value = primaryKey ? parsers.resolveNumeric(valueSource[primaryKey] ?? null) : null;
         if (isNullOrUndefined(value)) continue;
-        series.push({ timestamp: ts, value: value });
+        const rawCount = payload.sampleCounts?.[index]?.[metricKey];
+        if (typeof rawCount !== 'number' || !Number.isSafeInteger(rawCount) || rawCount < 1) throw new TypeError('Hardware value history sample count is missing or invalid');
+        const sampleCount = rawCount;
+        series.push({ timestamp: ts, value, sampleCount });
     }
-
-    if (!series.length) return null;
 
     series.sort((firstValue, secondValue) => firstValue.timestamp - secondValue.timestamp);
 

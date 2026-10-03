@@ -1,6 +1,10 @@
 /* SoAI - Shared layout sidebar effects [frontend/assets/ts/core/layout/sidebar/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { errorHandler } from '@core/errorHandler.ts';
+import { ensureError } from '@core/errors/coerce.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { LatestRequestController } from '@core/concurrency/latestRequest.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import type { Router } from '@core/routing/router/Router.ts';
 import { INTERFACE_SCALE_CHANGED_EVENT } from '@core/layout/interfaceScale.ts';
@@ -18,7 +22,7 @@ import type { SidebarPluginIndicatorController } from '@core/layout/sidebar/plug
 import { captureSidebarAuthSnapshot, getVisibleSidebarConfig, loadSidebarGrantedActions, syncSidebarExpandedWidth, updateSidebarMainStateIndicator } from '@core/layout/sidebar/service.ts';
 import { setupSidebarAuthListener, setupSidebarCustomizationListener, setupSidebarFirstRunListener, setupSidebarLanguageListener, type SidebarSessionListenerDependencies } from '@core/layout/sidebar/sessionListeners.ts';
 import type { SidebarState } from '@core/layout/sidebar/state.ts';
-import { compactSidebarState, handleSidebarResize, isSidebarExpanded, updateSidebarStateUI } from '@core/layout/sidebar/stateUi.ts';
+import { canSidebarHoverPeek, compactSidebarState, handleSidebarResize, isSidebarExpanded, setSidebarHoverPeekState, updateSidebarStateUI } from '@core/layout/sidebar/stateUi.ts';
 import { subscribeSidebarTaskBusyWatcher } from '@core/layout/sidebar/taskBusyWatcher.ts';
 import type { SidebarVersionController } from '@core/layout/sidebar/version.ts';
 import type { SidebarConfigEntry } from '@core/layout/sidebar/view.ts';
@@ -61,6 +65,8 @@ interface SidebarServiceAccess {
     addSessionDisposer: (functionValue: SidebarDisposerCandidate) => () => void;
     flushSessionDisposers: () => void;
     on: (target: EventTarget | Element, eventName: string, handler: (event: Event) => void) => () => void;
+    setTimer: (handler: () => void, delay: number) => number | null;
+    clearTimer: (timerId: number) => void;
     refreshSidebar: (options?: { syncRoute?: boolean }) => Promise<void>;
     filterModelDependentNavigation: (entries: SidebarConfigEntry[]) => SidebarConfigEntry[];
     closeMobile: () => Promise<void>;
@@ -81,15 +87,22 @@ interface SidebarDependencyContext {
 }
 
 const createSidebarDependencyBundle = (context: SidebarDependencyContext): SidebarDependencyBundle => {
-    let grantedActionsLoadSequence = 0;
+    const grantedActionsRequests = new LatestRequestController();
 
     const refreshGrantedActionsForUser = async (user: UserInfo | null): Promise<void> => {
-        const sequence = grantedActionsLoadSequence + 1;
-        grantedActionsLoadSequence = sequence;
-        const grantedActions = await loadSidebarGrantedActions(user);
-        if (sequence === grantedActionsLoadSequence) {
-            context.stateOwner.state.grantedActions = grantedActions;
-        }
+        await grantedActionsRequests.runLatest(async (request) => {
+            context.stateOwner.state.grantedActions = new Set();
+            context.stateOwner.state.permissionsUnavailable = false;
+            try {
+                const grantedActions = await loadSidebarGrantedActions(user, request.signal);
+                if (request.isCurrent()) context.stateOwner.state.grantedActions = grantedActions;
+            } catch (error) {
+                const runtimeError = ensureError(error);
+                if (request.isStale() || isAbortError(runtimeError)) return;
+                context.stateOwner.state.permissionsUnavailable = true;
+                errorHandler.warn('Sidebar', 'Permissions unavailable', runtimeError);
+            }
+        });
     };
 
     const updateExpandedWidth = (): void => {
@@ -114,7 +127,11 @@ const createSidebarDependencyBundle = (context: SidebarDependencyContext): Sideb
     };
 
     const refreshDependencies: SidebarRefreshDependencies = {
-        getVisibleConfig: () => context.services.filterModelDependentNavigation(getVisibleSidebarConfig(context.rendering.getSidebarConfig(), context.stateOwner.adminOnlyItems, context.stateOwner.getCurrentUser(), context.stateOwner.state.grantedActions)),
+        getVisibleConfig: () => {
+            const entries = context.services.filterModelDependentNavigation(getVisibleSidebarConfig(context.rendering.getSidebarConfig(), context.stateOwner.adminOnlyItems, context.stateOwner.getCurrentUser(), context.stateOwner.state.grantedActions));
+            if (context.stateOwner.state.permissionsUnavailable) entries.push({ type: 'unavailable', id: 'permissions-unavailable' });
+            return entries;
+        },
         resetSidebarConfig: () => {
             context.rendering.setSidebarConfig(context.rendering.cloneDefaultConfig());
         },
@@ -136,13 +153,18 @@ const createSidebarDependencyBundle = (context: SidebarDependencyContext): Sideb
             cleanupMenu: () => clearSidebarMenu(context.stateOwner.domRefs)
         },
         session: {
-            flushSessionDisposers: () => context.services.flushSessionDisposers(),
+            flushSessionDisposers: () => {
+                grantedActionsRequests.invalidate();
+                context.services.flushSessionDisposers();
+            },
             captureAuthSnapshot: async () => {
                 const currentUser = captureSidebarAuthSnapshot(context.services.getAuthManager()?.user);
                 context.stateOwner.setCurrentUser(currentUser);
                 await refreshGrantedActionsForUser(currentUser);
             },
             on: (target: EventTarget | Element, eventName: string, handler: (event: Event) => void) => context.services.on(target, eventName, handler),
+            setTimer: (handler: () => void, delay: number) => context.services.setTimer(handler, delay),
+            clearTimer: (timerId: number) => context.services.clearTimer(timerId),
             addSessionDisposer: (functionValue: SidebarDisposerCandidate) => context.services.addSessionDisposer(functionValue)
         },
         presentation: {
@@ -161,6 +183,11 @@ const createSidebarDependencyBundle = (context: SidebarDependencyContext): Sideb
                 if (compactSidebarState(context.stateOwner.state)) updateStateUi();
             },
             isExpanded: () => isSidebarExpanded(context.stateOwner.state),
+            canHoverPeek: () => canSidebarHoverPeek(context.stateOwner.state),
+            isHoverPeeking: () => context.stateOwner.state.peeking,
+            setHoverPeek: (peeking: boolean) => {
+                if (setSidebarHoverPeekState(context.stateOwner.state, peeking)) updateStateUi();
+            },
             navigateTo: (pageId: string) => navigateSidebarTo(context.services.getRouter(), pageId, getSidebarMenuElement(context.stateOwner.domRefs), context.stateOwner.state.mobile, () => context.services.closeMobile()),
             refreshSidebar: (options?: { syncRoute?: boolean }) => context.services.refreshSidebar(options),
             updatePluginIndicator: () => context.indicators.pluginIndicator.updateIndicator(),

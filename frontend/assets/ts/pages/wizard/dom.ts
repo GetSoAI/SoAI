@@ -12,8 +12,10 @@ export const requireWizardUi = (dependencies: { requireHTMLElement: (selector: s
     const progressText = dependencies.requireHTMLElement('.wizard-progress .wizard-progress-text', root);
     const navBackButton = narrowButton(dependencies.requireHTMLElement('#wizard-back', root), 'Wizard back button');
     const navNextButton = narrowButton(dependencies.requireHTMLElement('#wizard-next', root), 'Wizard next button');
+    const navFinishLaterButton = narrowButton(dependencies.requireHTMLElement('#wizard-finish-later', root), 'Wizard finish later button');
+    const navSkipButton = narrowButton(dependencies.requireHTMLElement('#wizard-skip', root), 'Wizard skip button');
 
-    return { root, logo, content, progressFill, progressText, navBackButton, navNextButton };
+    return { root, logo, content, progressFill, progressText, navBackButton, navNextButton, navFinishLaterButton, navSkipButton };
 };
 
 export const requireWizardAccountUi = (dependencies: { requireHTMLElement: (selector: string, context?: ParentNode) => HTMLElement }): WizardAccountUi => {

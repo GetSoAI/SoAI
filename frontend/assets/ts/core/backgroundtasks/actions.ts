@@ -13,11 +13,12 @@ import { isAbortError } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { CONTENT_CHECK_DELAY_MS, CONTENT_CHECK_INITIAL_DELAY_MS, MAX_CONTENT_ATTEMPTS } from '@core/backgroundtasks/constants.ts';
 import { resolveAuthManager, resolveStorage } from '@core/backgroundtasks/adapters.ts';
-import { applySolidBackgroundCSS, applyWallpaperCSS, applyWallpaperOverlay, clearBackgroundClasses, getMainContainer, removeWallpaperStyles, requireBody } from '@core/backgroundtasks/effects.ts';
+import { applySolidBackgroundCSS, applyWallpaperImage, applyWallpaperOverlay, clearBackgroundClasses, getMainContainer, removeWallpaperStyles, requireBody } from '@core/backgroundtasks/effects.ts';
 import { hasLoadableContent, isValidCssColor, normalizeOverlayValue, normalizeRoute } from '@core/backgroundtasks/state.ts';
 import { clearActiveWallpaperReadiness, clearWallpaperCache, setActiveWallpaperReadiness, writeWallpaperCache } from '@core/backgroundtasks/wallpaperReadiness.ts';
 import type { BackgroundTasksInitializationOptions, BackgroundTasksRuntime } from '@core/backgroundtasks/internalContracts.ts';
 import type { BackgroundRoute } from '@core/backgroundtasks/types.ts';
+import { resolveDefaultWallpaperUrl } from '@core/theme/defaultWallpapers.ts';
 const clearWallpaperTimers = (service: BackgroundTasksRuntime): void => {
     if (service.wallpaperContentCheckTimerId !== null) {
         clearTimeout(service.wallpaperContentCheckTimerId);
@@ -66,6 +67,14 @@ const initializeBackgroundTasks = async (service: BackgroundTasksRuntime, { forc
         service.navigationUnsubscribe = onNavigationComplete(createNavigationHandler(service));
     }
 };
+const activateWallpaper = (service: BackgroundTasksRuntime, url: string): void => {
+    service.wallpaperUrl = url;
+    service.wallpaperAvailable = true;
+    service.solidBackgroundColor = null;
+    service.solidBackgroundAvailable = false;
+    terminateHandledPromise(setActiveWallpaperReadiness(url));
+    clearAllTimers(service);
+};
 const detectWallpaper = async (service: BackgroundTasksRuntime, signal?: AbortSignal): Promise<void> => {
     const auth = resolveAuthManager();
     if (!auth.isAuthenticated) {
@@ -98,16 +107,16 @@ const detectWallpaper = async (service: BackgroundTasksRuntime, signal?: AbortSi
         if (!isString(url) || !url.trim()) {
             throw new Error('Wallpaper status must include url');
         }
-        service.wallpaperUrl = url.trim();
-        service.wallpaperAvailable = true;
-        service.solidBackgroundColor = null;
-        service.solidBackgroundAvailable = false;
-        terminateHandledPromise(setActiveWallpaperReadiness(service.wallpaperUrl));
-        clearAllTimers(service);
+        activateWallpaper(service, url.trim());
+        return;
+    }
+    const storage = resolveStorage();
+    const defaultWallpaper = storage.getDefaultWallpaper();
+    if (defaultWallpaper !== null) {
+        activateWallpaper(service, resolveDefaultWallpaperUrl(defaultWallpaper));
         return;
     }
     clearWallpaperCache();
-    const storage = resolveStorage();
     const solidColor = storage.getSolidBackground();
     if (isString(solidColor) && solidColor.trim()) {
         service.solidBackgroundColor = solidColor.trim();
@@ -135,6 +144,7 @@ const applyBackgroundRoute = (service: BackgroundTasksRuntime, route: Background
         return;
     }
     if (service.excludedRoutes.has(normalized)) {
+        clearActiveWallpaperReadiness();
         clearBackgroundClasses(body);
         return;
     }
@@ -235,7 +245,7 @@ const applyWallpaperStyles = (service: BackgroundTasksRuntime): void => {
         throw new Error('Wallpaper URL is not set');
     }
     const url = service.wallpaperUrl.trim();
-    applyWallpaperCSS(url);
+    applyWallpaperImage(url);
     const storage = resolveStorage();
     const overlay = normalizeOverlayValue(storage.getWallpaperOverlay());
     applyWallpaperOverlay(overlay);
@@ -260,9 +270,8 @@ const applySolidBackgroundStyles = (service: BackgroundTasksRuntime): void => {
     }
     applySolidBackgroundCSS(color);
 };
-const disableBackground = (service: BackgroundTasksRuntime): void => {
+const resetBackgroundState = (service: BackgroundTasksRuntime): void => {
     clearAllTimers(service);
-    clearActiveWallpaperReadiness();
     service.wallpaperAvailable = false;
     service.wallpaperUrl = null;
     service.solidBackgroundAvailable = false;
@@ -270,6 +279,10 @@ const disableBackground = (service: BackgroundTasksRuntime): void => {
     const body = requireBody();
     clearBackgroundClasses(body);
     removeWallpaperStyles();
+};
+const disableBackground = (service: BackgroundTasksRuntime): void => {
+    resetBackgroundState(service);
+    clearActiveWallpaperReadiness();
 };
 const updateBodyRouteClass = (body: HTMLElement, route: string): void => {
     const toRemove: string[] = [];
@@ -287,4 +300,4 @@ const updateBodyRouteClass = (body: HTMLElement, route: string): void => {
 const disableWallpaper = (service: BackgroundTasksRuntime): void => {
     disableBackground(service);
 };
-export { applyBackgroundRoute, applySolidBackgroundStyles, applyWallpaperOverlayStyle, applyWallpaperStyles, clearAllTimers, disableBackground, disableWallpaper, detectWallpaper, initializeBackgroundTasks, refreshBackgroundTasks, waitForContentAndApplySolidBackground, waitForContentAndApplyWallpaper };
+export { applyBackgroundRoute, applySolidBackgroundStyles, applyWallpaperOverlayStyle, applyWallpaperStyles, clearAllTimers, disableBackground, disableWallpaper, detectWallpaper, initializeBackgroundTasks, refreshBackgroundTasks, resetBackgroundState, waitForContentAndApplySolidBackground, waitForContentAndApplyWallpaper };

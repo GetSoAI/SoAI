@@ -12,12 +12,14 @@ const resolveBrowserTimezone = (): string => {
     return tz.trim();
 };
 
+const UTC_TIMEZONE = 'UTC';
+
 const listSupportedTimezones = (): string[] => {
     const zones = Intl.supportedValuesOf('timeZone');
     if (!isArray(zones) || !zones.every((zone) => isString(zone) && Boolean(zone.trim()))) {
         throw new Error('Browser did not return a valid time zone list');
     }
-    const normalized = zones.map((zone) => zone.trim());
+    const normalized = Array.from(new Set([...zones.map((zone) => zone.trim()), UTC_TIMEZONE]));
     normalized.sort((firstValue, secondValue) => firstValue.localeCompare(secondValue, getLanguageService().getLocale()));
     return normalized;
 };

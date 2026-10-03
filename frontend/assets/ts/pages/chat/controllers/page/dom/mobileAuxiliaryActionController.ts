@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { normalizeChatMobileAuxiliaryAction } from '@core/chat/parameters/mobileAuxiliaryAction.ts';
-import { EMPTY_UI_HTML } from '@core/security/uiHtml.ts';
+import { insertWithPresence, isPresenceExiting, removeWithPresence } from '@core/animations/presence/public.ts';
+import { parseSingleRootElement } from '@core/dom/parseSingleRootElement.ts';
 import { renderChatMobileAuxiliaryActionButton, resolveChatMobileAuxiliaryActionDescriptor } from '@features/chat/public.ts';
 import type { ChatIconResolver, ChatPageDomHost, ChatParameters } from '@pages/chat/controllers/page/dom/contracts.ts';
 
@@ -31,14 +32,15 @@ const renderMobileAuxiliaryAction = (host: ChatPageDomHost, parameters: ChatPara
         if (slot.nextElementSibling !== anchor) anchor.before(slot);
     }
     if (action === 'none') {
-        if (slot.dataset['mobileAuxiliaryAction'] !== 'none' || slot.childElementCount > 0) {
-            host.pageDom.updateHtml(slot, EMPTY_UI_HTML, { escape: false });
+        for (const child of Array.from(slot.children)) {
+            if (child instanceof HTMLElement) removeWithPresence(child);
         }
         slot.dataset['mobileAuxiliaryAction'] = 'none';
         host.pageDom.toggleClass(slot, 'u-hidden', true);
         return;
     }
-    if (slot.dataset['mobileAuxiliaryAction'] === action && slot.childElementCount === 1) {
+    const visibleChildren = Array.from(slot.children).filter((child) => !isPresenceExiting(child));
+    if (slot.dataset['mobileAuxiliaryAction'] === action && visibleChildren.length === 1) {
         host.pageDom.toggleClass(slot, 'u-hidden', false);
         return;
     }
@@ -47,11 +49,18 @@ const renderMobileAuxiliaryAction = (host: ChatPageDomHost, parameters: ChatPara
         descriptor,
         getIcon: (iconName, options) => getIcon(iconName, options)
     });
-    host.pageDom.updateHtml(slot, markup, { escape: false });
+    const created = parseSingleRootElement({ documentRef: slot.ownerDocument, html: markup, context: slot });
+    if (!created) throw new Error('Chat mobile auxiliary action requires one control');
+    const existing = Array.from(slot.children).find((child) => child instanceof HTMLElement && child.getAttribute('data-action') === created.getAttribute('data-action'));
+    const control = existing instanceof HTMLElement ? existing : created;
+    for (const child of Array.from(slot.children)) {
+        if (child instanceof HTMLElement && child !== control) removeWithPresence(child);
+    }
+    insertWithPresence(slot, control);
     slot.dataset['mobileAuxiliaryAction'] = action;
     host.pageDom.toggleClass(slot, 'u-hidden', false);
-    if (action === 'configuration' && slot.firstElementChild instanceof HTMLElement) {
-        host.pageDom.toggleClass(slot.firstElementChild, 'is-active', isConfigurationToggleActive(host));
+    if (action === 'configuration') {
+        host.pageDom.toggleClass(control, 'is-active', isConfigurationToggleActive(host));
     }
 };
 

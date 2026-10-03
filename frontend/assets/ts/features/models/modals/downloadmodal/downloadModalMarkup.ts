@@ -4,6 +4,7 @@
 import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
+import { renderModalTabIntro, renderModalTabPanel } from '@core/modals/scaffold.ts';
 import { uiAttr, uiHtml, uiText } from '@core/security/uiHtml.ts';
 import { renderDropdownSelectControl } from '@core/ui/dropdown/selectControl.ts';
 import { renderRequiredFieldMarker } from '@core/ui/forms/requiredMarker.ts';
@@ -42,7 +43,7 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
     const apiKeyPlaceholder = uiAttr(i18n.t('models.modal.addProvider.apiKeyPlaceholder'));
     const modalId = MODELS_DOWNLOAD_MODAL_ID;
     const providerApiKeyId = modalUiId(modalId, 'provider-api-key');
-    const providerApiKeyInput = `<input type="${uiAttr(resolveSecretInputType()).html}" id="${uiAttr(providerApiKeyId).html}" class="form-input secret-input" placeholder="${apiKeyPlaceholder.html}">`;
+    const providerApiKeyInput = `<input dir="ltr" type="${uiAttr(resolveSecretInputType()).html}" id="${uiAttr(providerApiKeyId).html}" class="form-input secret-input" placeholder="${apiKeyPlaceholder.html}">`;
     const downloadPluginSelectMarkup = renderDropdownSelectControl({
         selectMarkup: `<select id="${modalUiId(modalId, 'download-plugin-select')}" class="form-input"><option value="">${uiText(i18n.t('models.modal.addModel.pluginPlaceholder')).html}</option></select>`
     });
@@ -53,11 +54,16 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
     return uiHtml`
         <div class="download-model-modal-scroll">
             <div id="${modalUiId(modalId, 'operation-progress-list')}" class="ui-operation-progress-list"></div>
-            <div id="${modalUiId(modalId, 'download-form')}" class="modal-form-section" role="tabpanel" aria-labelledby="${modalUiId(modalId, 'download-tab')}">
+            ${renderModalTabPanel({
+                id: modalUiId(modalId, 'download-form'),
+                labelledBy: modalUiId(modalId, 'download-tab'),
+                active: true,
+                className: 'modal-form-section',
+                content: uiHtml`
                 <div class="form-group">
+                    ${renderModalTabIntro({ title: i18n.t('models.modal.addModel.tabDownload'), description: i18n.t('models.modal.addModel.pluginHelp') })}
                     <label for="${modalUiId(modalId, 'download-plugin-select')}">${i18n.t('models.modal.addModel.pluginLabel')} ${renderRequiredFieldMarker({ id: modalUiId(modalId, 'download-plugin-required-marker'), hidden: true })}</label>
                     ${toTrustedUiHtml(downloadPluginSelectMarkup)}
-                    <div class="form-help">${i18n.t('models.modal.addModel.pluginHelp')}</div>
                 </div>
                 <div class="form-group u-hidden model-search-group" id="${modalUiId(modalId, 'model-search-group')}">
                     <label for="${modalUiId(modalId, 'model-search-input')}">${i18n.t('models.modal.addModel.searchLabel')}</label>
@@ -122,12 +128,17 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
                     </div>
                     <div id="${modalUiId(modalId, 'repository-badges-container')}" class="repository-badges-container"></div>
                 </div>
-            </div>
-            <div id="${modalUiId(modalId, 'provider-form')}" class="modal-form-section u-hidden" role="tabpanel" aria-labelledby="${modalUiId(modalId, 'provider-tab')}" aria-hidden="true" hidden>
+                `
+            })}
+            ${renderModalTabPanel({
+                id: modalUiId(modalId, 'provider-form'),
+                labelledBy: modalUiId(modalId, 'provider-tab'),
+                className: 'modal-form-section',
+                content: uiHtml`
                 <div class="form-group">
+                    ${renderModalTabIntro({ title: i18n.t('models.modal.addModel.tabProvider'), description: i18n.t('models.modal.addProvider.pluginHelp') })}
                     <label for="${modalUiId(modalId, 'provider-plugin-select')}">${i18n.t('models.modal.addProvider.pluginLabel')} ${renderRequiredFieldMarker({ id: modalUiId(modalId, 'provider-plugin-required-marker'), hidden: true })}</label>
                     ${toTrustedUiHtml(providerPluginSelectMarkup)}
-                    <div class="form-help">${i18n.t('models.modal.addProvider.pluginHelp')}</div>
                 </div>
                 <div class="form-group u-hidden" id="${modalUiId(modalId, 'provider-details-group')}">
                     <label for="${modalUiId(modalId, 'provider-name')}">${i18n.t('models.modal.addProvider.nameLabel')} ${renderRequiredFieldMarker()}</label>
@@ -136,7 +147,7 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
                 </div>
                 <div class="form-group u-hidden" id="${modalUiId(modalId, 'provider-api-url-group')}">
                     <label for="${modalUiId(modalId, 'provider-api-url')}">${i18n.t('models.modal.addProvider.apiUrlLabel')}</label>
-                    <input type="text" id="${modalUiId(modalId, 'provider-api-url')}" class="form-input" placeholder="${uiAttr(i18n.t('models.modal.addProvider.apiUrlPlaceholder'))}">
+                    <input dir="ltr" type="text" id="${modalUiId(modalId, 'provider-api-url')}" class="form-input" placeholder="${uiAttr(i18n.t('models.modal.addProvider.apiUrlPlaceholder'))}">
                     <div class="form-help">${i18n.t('models.modal.addProvider.apiUrlHelp')}</div>
                 </div>
                 <div class="form-group u-hidden" id="${modalUiId(modalId, 'provider-api-key-group')}">
@@ -149,24 +160,34 @@ const buildDownloadModalBody = (page: DownloadModalViewHost): TrustedHtml => {
                     <input type="text" id="${modalUiId(modalId, 'provider-models-filter')}" class="form-input" placeholder="${uiAttr(i18n.t('models.modal.addProvider.modelsFilterPlaceholder'))}">
                     <div class="form-help">${i18n.t('models.modal.addProvider.modelsFilterHelp')}</div>
                 </div>
-            </div>
-            <div id="${modalUiId(modalId, 'manual-add-panel')}" class="modal-form-section u-hidden" role="tabpanel" aria-labelledby="${modalUiId(modalId, 'manual-tab')}" aria-hidden="true" hidden>
+                `
+            })}
+            ${renderModalTabPanel({
+                id: modalUiId(modalId, 'manual-add-panel'),
+                labelledBy: modalUiId(modalId, 'manual-tab'),
+                className: 'modal-form-section',
+                content: uiHtml`
                 <div class="form-group">
-                    <label for="${modalUiId(modalId, 'manual-models-path')}">${i18n.t('models.modal.manualAdd.title')}</label>
-                    <div id="${modalUiId(modalId, 'manual-discovery-text')}" class="manual-discovery-text">${i18n.t('models.modal.manualAdd.loading')}</div>
-                    <div class="form-row-split manual-path-row">
+                    ${renderModalTabIntro({
+                        title: i18n.t('models.modal.manualAdd.title'),
+                        description: i18n.t('models.modal.manualAdd.loading'),
+                        descriptionId: modalUiId(modalId, 'manual-discovery-text')
+                    })}
+                    <label class="visually-hidden" for="${modalUiId(modalId, 'manual-models-path')}">${i18n.t('models.modal.manualAdd.title')}</label>
+                    <div class="form-row-split">
                         <div class="form-col-main">
-                            <input
+                            <input dir="ltr"
                                 type="text"
                                 id="${modalUiId(modalId, 'manual-models-path')}"
-                                class="form-input manual-models-path"
+                                class="form-input ui-modal-manual-path-input"
                                 readonly
                                 placeholder="${uiAttr(i18n.t('models.modal.manualAdd.pathPlaceholder'))}"
                             >
                         </div>
                     </div>
                 </div>
-            </div>
+                `
+            })}
         </div>
         <div
             id="${modalUiId(modalId, 'selected-model-display')}"

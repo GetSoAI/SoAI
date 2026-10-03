@@ -26,6 +26,9 @@ type ChatSoaiPathContentPreviewOpenArguments = {
     title: string;
     contentPart: SoaiPathStoragePart;
     isCurrent: () => boolean;
+    shouldOpen?: () => boolean;
+    headerDescription?: string;
+    onRequestAttach?: () => Promise<void>;
 };
 
 const isUnavailableDownloadResponse = (response: Response): boolean => {
@@ -70,18 +73,18 @@ class ChatSoaiPathContentPreview {
         try {
             const contentPart = requireSoaiPathContentPart(inputArguments.contentPart);
             const openSourceUrl = await this.#resolveOpenSourceUrl(inputArguments.conversationId, contentPart, signal);
-            if (!this.#isCurrent(inputArguments, generation, signal)) {
+            if (!this.#isCurrent(inputArguments, generation, signal) || inputArguments.shouldOpen?.() === false) {
                 return;
             }
             const request = await this.#buildRequest(inputArguments, contentPart, openSourceUrl, generation, signal);
-            if (!this.#isCurrent(inputArguments, generation, signal)) {
-                this.#releaseActiveObjectUrl();
+            if (!this.#isCurrent(inputArguments, generation, signal) || inputArguments.shouldOpen?.() === false) {
+                if (this.#generation === generation) this.#releaseActiveObjectUrl();
                 return;
             }
             requireContentPreviewModalService().open(request);
         } catch (error) {
-            this.#releaseActiveObjectUrl();
-            if (isAbortError(error)) {
+            if (this.#generation === generation) this.#releaseActiveObjectUrl();
+            if (isAbortError(error) || !this.#isCurrent(inputArguments, generation, signal) || inputArguments.shouldOpen?.() === false) {
                 return;
             }
             throw ensureError(error);
@@ -97,21 +100,36 @@ class ChatSoaiPathContentPreview {
     async #buildRequest(inputArguments: ChatSoaiPathContentPreviewOpenArguments, contentPart: SoaiPathStoragePart, openSourceUrl: string | null, generation: number, signal: AbortSignal): Promise<ContentPreviewOpenRequest> {
         const sourceReference = buildSourceReference(inputArguments.conversationId, contentPart);
         const previewType = resolvePreviewType(contentPart);
+        const headerDescription = inputArguments.headerDescription ?? i18n.t('chat.attachments.badge.soaiLink');
+        const onRequestAttach = async (): Promise<void> => {
+            if (!this.#isCurrent(inputArguments, generation, signal) || inputArguments.shouldOpen?.() === false) {
+                throw createAbortError('Operation aborted');
+            }
+            if (inputArguments.onRequestAttach !== undefined) {
+                await inputArguments.onRequestAttach();
+            } else {
+                await this.#copyToken(inputArguments, contentPart, generation, signal);
+            }
+        };
+        const onRequestDownload = contentPart.entryType === 'folder' ? null : () => this.#download(inputArguments, contentPart, generation, signal);
         if (previewType === 'text' || contentPart.entryType === 'folder') {
             const content = contentPart.entryType === 'folder' ? await this.#readFolderPreview(inputArguments.conversationId, contentPart, signal) : await this.#readTextPreview(inputArguments.conversationId, contentPart, signal);
-            return createTextContentPreviewRequest({ scope: 'chat', headerDescription: i18n.t('chat.attachments.badge.soaiLink'), sourceReference, openSourceUrl, externalOpenBehavior: 'neverConfirm', type: 'text', baseline: { title: inputArguments.title, content, promptColor: null }, editable: false, languageMode: 'default', disableCopyWhenEmpty: true, disableDownloadWhenEmpty: true, colorToolkit: null, onRequestSave: null, onRequestDownload: () => this.#download(inputArguments, contentPart, generation, signal), onRequestCopy: async (text) => await copyChatMessageTextWithFeedback(this.#copyFeedback, text), onRequestAttach: () => this.#copyToken(inputArguments, contentPart, generation, signal), enhance: null, onStatePotentiallyChanged: null });
+            return createTextContentPreviewRequest({ scope: 'chat', headerDescription, sourceReference, openSourceUrl, externalOpenBehavior: 'neverConfirm', type: 'text', baseline: { title: inputArguments.title, content, promptColor: null }, editable: false, languageMode: 'default', disableCopyWhenEmpty: true, disableDownloadWhenEmpty: true, colorToolkit: null, onRequestSave: null, onRequestDownload, onRequestCopy: async (text) => await copyChatMessageTextWithFeedback(this.#copyFeedback, text), onRequestAttach, enhance: null, onStatePotentiallyChanged: null });
         }
         if (previewType === 'image' || previewType === 'audio' || previewType === 'video') {
             const sourceUrl = await this.#createObjectUrl(inputArguments, contentPart, generation, signal);
-            return createMediaContentPreviewRequest({ scope: 'chat', headerDescription: i18n.t('chat.attachments.badge.soaiLink'), sourceReference, openSourceUrl, externalOpenBehavior: 'neverConfirm', type: previewType, title: inputArguments.title, sourceUrl, imageMetadata: { contentType: resolveContentType(contentPart), contentLength: resolveContentLength(contentPart) }, onRequestDownload: () => this.#download(inputArguments, contentPart, generation, signal), onRequestAttach: () => this.#copyToken(inputArguments, contentPart, generation, signal), onSourceUrlRelease: () => this.#releaseObjectUrl(sourceUrl) });
+            return createMediaContentPreviewRequest({ scope: 'chat', headerDescription, sourceReference, openSourceUrl, externalOpenBehavior: 'neverConfirm', type: previewType, title: inputArguments.title, sourceUrl, imageMetadata: { contentType: resolveContentType(contentPart), contentLength: resolveContentLength(contentPart) }, onRequestDownload, onRequestAttach, onSourceUrlRelease: () => this.#releaseObjectUrl(sourceUrl) });
         }
         const type = previewType === 'document' ? 'document' : 'file';
-        return createDocumentContentPreviewRequest({ scope: 'chat', headerDescription: i18n.t('chat.attachments.badge.soaiLink'), sourceReference, openSourceUrl, externalOpenBehavior: 'neverConfirm', type, title: inputArguments.title, onRequestDownload: () => this.#download(inputArguments, contentPart, generation, signal), onRequestAttach: () => this.#copyToken(inputArguments, contentPart, generation, signal) });
+        return createDocumentContentPreviewRequest({ scope: 'chat', headerDescription, sourceReference, openSourceUrl, externalOpenBehavior: 'neverConfirm', type, title: inputArguments.title, onRequestDownload, onRequestAttach });
     }
 
     async #readTextPreview(conversationId: string, contentPart: SoaiPathStoragePart, signal: AbortSignal): Promise<string> {
         const payload = await this.#runWithBoundary('chat:soaiPathContentPreviewRead', () => this.#soaiPathsApi.read(conversationId, { contentPart: contentPart }, { signal }));
-        return payload.state === 'available' ? payload.text : '';
+        if (payload.state !== 'available') {
+            throw new Error('SoAI path text preview is unavailable');
+        }
+        return payload.text;
     }
 
     async #readFolderPreview(conversationId: string, contentPart: SoaiPathStoragePart, signal: AbortSignal): Promise<string> {

@@ -143,13 +143,11 @@ const handleDragMove = (state: ModalHostState, event: Event): void => {
         left: point.clientX - dragState.pointerOffsetX,
         top: point.clientY - dragState.pointerOffsetY,
         width: contentWidth,
-        height: contentHeight,
-        isMobileViewport: state.isMobileViewportState
+        height: contentHeight
     });
     const bounded = clampPosition({
         content: dragState.modalContent,
         position: targetPosition,
-        isMobileViewport: state.isMobileViewportState,
         sizeOverride: {
             width: contentWidth,
             height: contentHeight

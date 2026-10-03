@@ -7,10 +7,13 @@ from typing import TYPE_CHECKING
 
 from core.automation.automation_interactive_tool_approval import (
     extract_interactive_tool_approval,
+    restore_interactive_tool_approval,
 )
+from core.automation.automation_record_validation import require_automation_bool_field
 from core.conversations.conversation_model_settings_resolution import (
     resolve_conversation_model_settings,
 )
+from core.errors.exceptions import StateError
 
 if TYPE_CHECKING:
     from core.automation.protocols_database import DatabaseAutomationsProtocol
@@ -69,9 +72,15 @@ async def resolve_automation_effective_conversation_model_settings(
     current_model_settings = automation.get("model_settings")
     if not isinstance(current_model_settings, dict):
         return dict(executed_model_settings)
+    approval = require_automation_bool_field(
+        automation,
+        "interactive_tool_approval",
+        build_error=StateError,
+        label_prefix="Automation definition",
+    )
     return await resolve_automation_conversation_model_settings(
         user_id=user_id,
-        model_settings=current_model_settings,
+        model_settings=restore_interactive_tool_approval(current_model_settings, approval),
         database_chat_identity_defaults=database_chat_identity_defaults,
         database_chat_model_defaults=database_chat_model_defaults,
     )

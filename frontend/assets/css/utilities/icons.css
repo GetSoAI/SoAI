@@ -2,6 +2,10 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer utilities {
+    [data-icon-mirror='true'] {
+        scale: var(--dir-sign) 1;
+    }
+
     .u-icon-xs {
         width: 12px;
         height: 12px;

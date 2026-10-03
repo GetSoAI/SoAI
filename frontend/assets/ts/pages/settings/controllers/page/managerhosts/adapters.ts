@@ -3,7 +3,6 @@
 
 import { dispatchCustomEvent } from '@core/environment/public.ts';
 import { decodeWallpaperInfoResponse } from '@core/api/contracts/wallpaperContracts.ts';
-import type { WallpaperMetadata } from '@core/settings/contracts.ts';
 import type { WebuiUser } from '@core/api/contracts/webuiUserContracts.ts';
 import { runIdentityMutationWithStatusRecovery } from '@core/mutations/identityMutationPolling.ts';
 import { createStorageDefaults } from '@core/storage/defaults.ts';
@@ -11,11 +10,12 @@ import { isJsonValue, type JsonValue } from '@core/types/jsonValues.ts';
 import { requestWebSocketSnapshotRecord } from '@core/websocketclient/snapshotPayload.ts';
 import type { SettingsManagerCallbacks, SettingsRuntimeContext, SettingsPageState } from '@pages/settings/controllers/page/contracts.ts';
 import { buildBaseHostBindings } from '@pages/settings/controllers/page/hostBindings.ts';
-import { hasSettingsAction } from '@pages/settings/controllers/page/settingsAccessController.ts';
+import { canManageWallpaper, hasSettingsAction } from '@pages/settings/controllers/page/settingsAccessController.ts';
 import { SETTINGS_SYSTEM_FACTORY_RESET_ACTION, SETTINGS_SYSTEM_RESET_CONFIGURATION_ACTION, SETTINGS_SYSTEM_RESET_HARDWARE_HISTORY_ACTION, SETTINGS_SYSTEM_RESET_METRICS_ACTION } from '@pages/settings/controllers/systemmanager/constants.ts';
 import type { UiPreferenceKey } from '@core/settings/settingsFieldKeys.ts';
 import type { SystemManagerActionId, SystemManagerHost } from '@pages/settings/controllers/systemmanager/contracts.ts';
-import type { ThemeManagerHost } from '@pages/settings/controllers/thememanager/contracts.ts';
+import type { CurrentWallpaper, ThemeManagerHost } from '@pages/settings/controllers/thememanager/contracts.ts';
+import type { WallpaperPresence } from '@pages/settings/controllers/thememanager/wallpaperPresenceState.ts';
 import type { PreferencesManagerHost } from '@pages/settings/controllers/preferences/types.ts';
 import type { UsersManagerHost } from '@pages/settings/controllers/usersmanager/types.ts';
 
@@ -57,26 +57,28 @@ const createPreferencesManagerHost = (page: SettingsRuntimeContext, state: Setti
     notifySaveChanged: callbacks.notifySaveChanged,
     languageService: page.owners.languageService,
     storage: page.owners.storage,
-    ...createUiPreferenceBindings(state),
-    filterSettings: callbacks.filterSettings
+    ...createUiPreferenceBindings(state)
 });
+
+const applyCurrentWallpaper = (state: SettingsPageState, wallpaper: CurrentWallpaper | null): void => {
+    state.currentWallpaperUrl = wallpaper?.url ?? null;
+    state.currentWallpaperMetadata = wallpaper?.metadata ?? null;
+    state.wallpaperPresence = wallpaper ? 'present' : 'absent';
+};
 
 const createThemeManagerHost = (page: SettingsRuntimeContext, state: SettingsPageState, callbacks: SettingsManagerCallbacks): ThemeManagerHost => ({
     ...buildBaseHostBindings(page, callbacks),
-    canManageWallpaper: (): boolean => page.owners.auth.isAdmin() && hasSettingsAction(state, 'WEBUI_APPEARANCE_ADMIN'),
+    canManageWallpaper: (): boolean => canManageWallpaper(page, state),
     uploadWallpaper: (file: File) => page.owners.api.webui.wallpaper.upload(file),
     downloadWallpaper: (url: string) => page.owners.api.webui.wallpaper.download(url),
     deleteWallpaper: () => page.owners.api.webui.wallpaper.delete(),
-    getWallpaperStatus: async () => decodeWallpaperInfoResponse(await requestWebSocketSnapshotRecord('webui.wallpaper.status')),
+    getWallpaperStatus: async (signal) => decodeWallpaperInfoResponse(await requestWebSocketSnapshotRecord('webui.wallpaper.status', null, { signal })),
     storage: page.owners.storage,
     ...createUiPreferenceBindings(state),
-    getCurrentWallpaperUrl: (): string | null => state.currentWallpaperUrl,
-    setCurrentWallpaperUrl: (url: string | null): void => {
-        state.currentWallpaperUrl = url;
-    },
-    getCurrentWallpaperMetadata: (): WallpaperMetadata | null => state.currentWallpaperMetadata,
-    setCurrentWallpaperMetadata: (metadata: WallpaperMetadata | null): void => {
-        state.currentWallpaperMetadata = metadata;
+    getCurrentWallpaper: (): CurrentWallpaper | null => (state.currentWallpaperUrl === null ? null : { url: state.currentWallpaperUrl, metadata: state.currentWallpaperMetadata }),
+    getWallpaperPresence: (): WallpaperPresence => state.wallpaperPresence,
+    setCurrentWallpaper: (wallpaper: CurrentWallpaper | null): void => {
+        applyCurrentWallpaper(state, wallpaper);
     },
     getCurrentSolidBackground: (): string | null => state.currentSolidBackground,
     setCurrentSolidBackground: (value: string | null): void => {
@@ -186,7 +188,7 @@ const createUsersManagerHost = (page: SettingsRuntimeContext, state: SettingsPag
         getCurrentUserId: (): string | null => state.currentUserId,
         canAdministerUsers: (): boolean => page.owners.auth.isAdmin() && hasSettingsAction(state, 'USER_ADMIN')
     },
-    filterSettings: callbacks.filterSettings
+    filterSettings: buildBaseHostBindings(page, callbacks).filterSettings
 });
 
 const createSystemManagerHost = (page: SettingsRuntimeContext, state: SettingsPageState, callbacks: SettingsManagerCallbacks): SystemManagerHost => ({
@@ -197,7 +199,10 @@ const createSystemManagerHost = (page: SettingsRuntimeContext, state: SettingsPa
         },
         resetAppearancePreferences: async (): Promise<void> => {
             const defaults = createStorageDefaults().ui;
-            await page.owners.api.webui.wallpaper.delete();
+            if (canManageWallpaper(page, state)) {
+                await page.owners.api.webui.wallpaper.delete();
+                applyCurrentWallpaper(state, null);
+            }
             page.owners.storage.setAccentColor(defaults.accentColor);
             page.owners.storage.setSurfaceColor(defaults.surfaceColor);
             page.owners.storage.setReduceMotions(defaults.reduceMotions);
@@ -208,8 +213,7 @@ const createSystemManagerHost = (page: SettingsRuntimeContext, state: SettingsPa
             page.owners.storage.setAnimationSpeed(defaults.animationSpeed);
             page.owners.storage.setWallpaperOverlay(defaults.wallpaperOverlay);
             page.owners.storage.setSolidBackground(defaults.solidBackground);
-            state.currentWallpaperUrl = null;
-            state.currentWallpaperMetadata = null;
+            page.owners.storage.setDefaultWallpaper(defaults.defaultWallpaper);
             state.currentSolidBackground = defaults.solidBackground;
         },
         resetAclPolicy: () => page.owners.api.webui.acl.resetPolicy(),
@@ -277,11 +281,12 @@ const createSystemManagerHost = (page: SettingsRuntimeContext, state: SettingsPa
         clearTimer: (timerId: number | null | undefined): void => page.owners.pageResources.clearTimer(timerId),
         applyWallpaperOverlay: callbacks.applyWallpaperOverlay,
         refreshWallpaperPreview: callbacks.refreshWallpaperPreview,
+        scheduleWallpaperRefresh: callbacks.scheduleWallpaperRefresh,
         refreshSettingsAfterPreferencesReset: async (): Promise<void> => await callbacks.refreshSettingsAfterPreferencesReset(),
         navigate: (route: string, options?: Record<string, JsonValue | null | undefined>): void => {
             page.owners.router.navigate(route, options);
         },
-        filterSettings: callbacks.filterSettings,
+        filterSettings: buildBaseHostBindings(page, callbacks).filterSettings,
         showRestartOverlay: (value: string): void => state.restartOverlay.show(value)
     }
 });

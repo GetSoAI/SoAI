@@ -9,6 +9,7 @@ import type { OperationType } from '@features/overlays/public.ts';
 import type { BackupTaskAcceptedResponse } from '@core/api/contracts/adminContracts.ts';
 import type { StreamActionResult } from '@core/realtime/streammanager/types.ts';
 import type { StreamActionHandlers } from '@core/types/streamTypes.ts';
+import type { SignalOptions } from '@core/api/requestOptions.ts';
 
 interface BackupManagerDependencies {
     host: BackupManagerHost;
@@ -16,7 +17,7 @@ interface BackupManagerDependencies {
 
 interface BackupManagerApiHost {
     isAdmin: () => boolean;
-    listBackups: () => Promise<{ backups: BackupApiEntry[] }>;
+    listBackups: (options?: SignalOptions) => Promise<{ backups: BackupApiEntry[] }>;
     createBackup: () => Promise<BackupTaskAcceptedResponse>;
     restoreBackup: (backupId: string) => Promise<BackupTaskAcceptedResponse>;
     verifyBackup: (backupId: string) => Promise<BackupTaskAcceptedResponse>;

@@ -23,6 +23,8 @@ export const isUnicodeScalarText = (value: string): boolean => {
     return true;
 };
 
+export const unicodeCodePointLength = (value: string): number => Array.from(value).length;
+
 const isPythonWhitespace = (character: string): boolean => {
     const codePoint = character.codePointAt(0);
     return codePoint !== undefined && ((codePoint >= 0x0009 && codePoint <= 0x000d) || (codePoint >= 0x001c && codePoint <= 0x0020) || codePoint === 0x0085 || codePoint === 0x00a0 || codePoint === 0x1680 || (codePoint >= 0x2000 && codePoint <= 0x200a) || codePoint === 0x2028 || codePoint === 0x2029 || codePoint === 0x202f || codePoint === 0x205f || codePoint === 0x3000);

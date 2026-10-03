@@ -30,6 +30,8 @@ interface ChatRequestParameters {
 
 interface ChatUiParameters extends ChatRequestParameters {
     widescreenMode: boolean;
+    autoHideChatComposer: boolean;
+    autoHideChatHeader: boolean;
     richTextEnabled: boolean;
     inlineMultimediaPreviewsEnabled: boolean;
     textZoom?: number;
@@ -50,6 +52,7 @@ interface ChatUiParameters extends ChatRequestParameters {
     inputActionTokenCounterEnabled: boolean;
     inputActionNewConversationEnabled: boolean;
     inputActionCharacterMapEnabled: boolean;
+    inputActionSketchEnabled: boolean;
     inputActionMobileAuxiliaryAction: ChatMobileAuxiliaryAction;
     conversationPdfExportEnabled: boolean;
     ctrlEnterSendEnabled: boolean;

@@ -1,0 +1,38 @@
+/* SoAI - Chat composer auto hide states [frontend/assets/css/components/chat/chat-composer-auto-hide.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    :where(.chat-container) .chat-input-wrapper--auto-hidden {
+        --chat-composer-fold-visibility-delay: var(--header-fold-duration);
+        pointer-events: none;
+    }
+
+    :where(.chat-container) .chat-input-wrapper--auto-hidden::before,
+    :where(.chat-container) .chat-input-wrapper--auto-hidden > .chat-input,
+    :where(.chat-container) .chat-input-wrapper--auto-hidden > .chat-input-actions > :not(.chat-input-actions-inline, .chat-composer-skeleton-actions, .chat-action-btn.is-stop-mode),
+    :where(.chat-container) .chat-input-wrapper--auto-hidden > .chat-input-actions > :is(.chat-input-actions-inline, .chat-composer-skeleton-actions) > * {
+        opacity: 0;
+        visibility: hidden;
+        translate: 0 var(--chat-composer-resting-height);
+        transition: var(--chat-composer-fold-transition);
+    }
+
+    :where(.chat-container) .chat-input-wrapper--auto-hidden.chat-input-wrapper--floating-stop > .chat-input-actions > .chat-action-btn {
+        translate: none;
+    }
+
+    :where(.chat-container) .chat-input-wrapper--auto-hidden > .chat-input-actions > .chat-action-btn.is-stop-mode {
+        pointer-events: auto;
+    }
+
+    :where(.chat-container) .chat-input-wrapper--floating-stop > .chat-input-actions > .chat-action-btn::before {
+        opacity: 0;
+        transition: opacity var(--header-fold-duration) var(--header-fold-easing);
+    }
+
+    :where(.chat-container .chat-input-actions > :not(.chat-input-actions-inline, .chat-composer-skeleton-actions), .chat-container .chat-input-actions > :is(.chat-input-actions-inline, .chat-composer-skeleton-actions) > *) {
+        transition:
+            opacity var(--transition-fast),
+            translate var(--header-fold-duration) var(--header-fold-easing);
+    }
+}

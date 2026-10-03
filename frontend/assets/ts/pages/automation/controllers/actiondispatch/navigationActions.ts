@@ -4,8 +4,6 @@
 import { isAutomationViewMode } from '@core/automation/guards.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
-import { i18n } from '@core/i18n/index.ts';
-import { showOperationFailureNotification } from '@core/ui/notifications/operationFailure.ts';
 import type { AutomationPageActionDispatcherHost } from '@pages/automation/controllers/actiondispatch/AutomationPageActionDispatcherHost.ts';
 import { buildAutomationBufferedWindowSignature } from '@pages/automation/controllers/automationWindow.ts';
 import { AutomationUserNotifiedError } from '@pages/automation/controllers/AutomationUserNotifiedError.ts';
@@ -13,19 +11,19 @@ import { applyViewMode, selectDayAndZoom } from '@pages/automation/controllers/s
 import { navigateToday } from '@pages/automation/controllers/todayNavigation.ts';
 import type { AutomationViewMode } from '@pages/automation/types.ts';
 
-const refreshAutomationDataOrNotify = async (host: AutomationPageActionDispatcherHost, dependencies: { logSource: string; logMessage: string }): Promise<void> => {
+const runRefreshOrNotify = async (host: AutomationPageActionDispatcherHost, refresh: () => Promise<void>, dependencies: { logSource: string; logMessage: string }): Promise<void> => {
     try {
-        await host.state.refreshData();
+        await refresh();
     } catch (error) {
         const runtimeError = ensureError(error);
-        showOperationFailureNotification({
-            error: runtimeError,
-            operation: i18n.t('common.refresh'),
-            showNotification: (message, level): void => host.state.showNotification(message, level)
-        });
-        errorHandler.error(dependencies.logSource, dependencies.logMessage, runtimeError);
+        host.controllers.reportRefreshFailure(runtimeError);
+        errorHandler.warn(dependencies.logSource, dependencies.logMessage, runtimeError);
         throw new AutomationUserNotifiedError(runtimeError);
     }
+};
+
+const refreshAutomationDataOrNotify = async (host: AutomationPageActionDispatcherHost, dependencies: { logSource: string; logMessage: string }): Promise<void> => {
+    await runRefreshOrNotify(host, () => host.state.refreshData(), dependencies);
 };
 
 const refreshWithNotification = async (host: AutomationPageActionDispatcherHost, context: string): Promise<void> => {
@@ -137,4 +135,8 @@ const handleNavigateRegistryPage = (host: AutomationPageActionDispatcherHost, di
     host.controllers.run(direction === -1 ? 'automation:registryPrevious' : 'automation:registryNext', async () => refreshWithNotification(host, direction === -1 ? 'Refresh failed after navigating to previous automation page' : 'Refresh failed after navigating to next automation page'));
 };
 
-export { handleCycleViewMode, handleNavigate, handleNavigateRegistryPage, handleNavigateToday, handleSelectDay, handleSetViewMode, handleToggleRegistryOverlay, refreshAutomationDataOrNotify };
+const handleRetryPageData = (host: AutomationPageActionDispatcherHost): void => {
+    host.controllers.run('automation:retryPageData', async () => runRefreshOrNotify(host, () => host.state.retryPageData(), { logSource: 'AutomationNavigationActions', logMessage: 'Retrying automation page data failed' }));
+};
+
+export { handleCycleViewMode, handleNavigate, handleNavigateRegistryPage, handleNavigateToday, handleRetryPageData, handleSelectDay, handleSetViewMode, handleToggleRegistryOverlay, refreshAutomationDataOrNotify };

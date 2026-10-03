@@ -1,8 +1,7 @@
 /* SoAI - Tasks feature task manager actions [frontend/assets/ts/features/tasks/taskmanager/TaskManagerActions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { handleApiResult } from '@core/api/apiResultHandler.ts';
-import { stopAllPluginsActionPath, stopPluginActionPath } from '@core/api/endpoints/uiPaths.ts';
+import { stopPluginActionPath } from '@core/api/endpoints/uiPaths.ts';
 import { dom } from '@core/dom/dom.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
@@ -14,19 +13,14 @@ import { isObject } from '@core/typeGuards.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
 import type { NotificationType } from '@core/ui/notifications/notifications.ts';
-import type { OperationMeta, TaskManagerApi, TaskManagerStoreApi, TaskManagerStreamManager, TaskOperationCancellationOwner } from '@features/tasks/taskmanager/taskManagerTypes.ts';
-
-const ensureRequiredString = <T>(value: T, errorMessage: string): string => {
-    return readRequiredTrimmedStringValue(value, errorMessage);
-};
+import type { OperationMeta, TaskManagerStoreApi, TaskManagerStreamManager, TaskOperationCancellationOwner } from '@features/tasks/taskmanager/taskManagerTypes.ts';
+import { resolveStopAllTargets } from '@features/tasks/taskmanager/service.ts';
 
 interface TaskManagerActionsDependencies {
-    apiClient: TaskManagerApi;
     stream: TaskManagerStreamManager;
     store: TaskManagerStoreApi;
     operationCancellation: TaskOperationCancellationOwner;
     showNotification: (message: string, type: NotificationType) => void;
-    hidePanel: () => void;
 }
 
 class TaskManagerActions {
@@ -37,7 +31,7 @@ class TaskManagerActions {
     }
 
     async stopPlugin(pluginName: string): Promise<void> {
-        const normalized = ensureRequiredString(pluginName, 'TaskManager stopPlugin requires a plugin name');
+        const normalized = readRequiredTrimmedStringValue(pluginName, 'TaskManager stopPlugin requires a plugin name');
         await this.#runTaskAction(
             stopPluginActionPath(normalized),
             {
@@ -51,10 +45,9 @@ class TaskManagerActions {
 
     async stopAllPlugins(): Promise<void> {
         const store = this.#dependencies.store;
-        const stoppable = store.getStoppablePlugins();
-        const cancelable = store.getCancelableOperations();
-        const stopCount = stoppable.length;
-        const cancelCount = cancelable.length;
+        const targets = resolveStopAllTargets(store);
+        const stopCount = targets.plugins.length;
+        const cancelCount = targets.operations.length;
 
         if (stopCount === 0 && cancelCount === 0) {
             this.#dependencies.showNotification(i18n.t('taskManager.messages.noStoppablePlugins'), 'warning');
@@ -80,26 +73,17 @@ class TaskManagerActions {
             return;
         }
 
-        const cancellationPromise = this.#dependencies.operationCancellation.cancelOperations(cancelable);
-        const pluginStopPromise =
-            stopCount > 0
-                ? handleApiResult(this.#dependencies.apiClient.post(stopAllPluginsActionPath(), null), {
-                      boundaryName: 'TaskManager',
-                      notifyOnSuccess: true,
-                      notifySuccessMessage: i18n.t('taskManager.notifications.stopAllSuccess'),
-                      notifyOnError: true,
-                      notifyErrorMessage: i18n.t('taskManager.notifications.stopAllFailed')
-                  })
-                : Promise.resolve();
-        const [cancellationSummary, pluginsStopped] = await Promise.all([
-            cancellationPromise,
-            pluginStopPromise.then(
-                () => true,
-                () => false
-            )
-        ]);
-        if (pluginsStopped && cancellationSummary.failedCount === 0) {
-            this.#dependencies.hidePanel();
+        const approvedPluginKeys = new Set(targets.plugins.map((plugin) => store.getPluginKey(plugin)));
+        const currentTargets = resolveStopAllTargets(store);
+        const pluginNames = currentTargets.plugins.filter((plugin) => approvedPluginKeys.has(store.getPluginKey(plugin))).map((plugin) => readRequiredTrimmedStringValue(plugin.name || plugin.identifier || plugin.plugin, 'TaskManager stop-all requires a plugin name'));
+        const cancellationSummary = await this.#dependencies.operationCancellation.cancelOperations(targets.operations);
+        if (pluginNames.length > 0) {
+            const results = await Promise.allSettled(pluginNames.map((pluginName) => this.#runTaskAction(stopPluginActionPath(pluginName), { type: 'background-job', pluginName }, i18n.t('taskManager.notifications.pluginStopped', { pluginName }), i18n.t('taskManager.notifications.stopFailed', { pluginName }), false)));
+            if (results.some((result) => result.status === 'rejected')) {
+                this.#dependencies.showNotification(i18n.t('taskManager.notifications.stopAllFailed'), 'error');
+            } else if (cancellationSummary.failedCount === 0 && results.every((result) => result.status === 'fulfilled' && result.value)) {
+                this.#dependencies.showNotification(i18n.t('taskManager.notifications.stopAllSuccess'), 'success');
+            }
         }
     }
 
@@ -107,8 +91,8 @@ class TaskManagerActions {
         if (!button) {
             throw new Error('TaskManager requires a valid button element for stop handler');
         }
-        const name = ensureRequiredString(dom.getData(button, 'plugin'), 'TaskManager stop button missing plugin name');
-        const key = ensureRequiredString(dom.getData(button, 'pluginKey'), 'TaskManager stop button missing plugin key');
+        const name = readRequiredTrimmedStringValue(dom.getData(button, 'plugin'), 'TaskManager stop button missing plugin name');
+        const key = readRequiredTrimmedStringValue(dom.getData(button, 'pluginKey'), 'TaskManager stop button missing plugin key');
         const canCancel = String(dom.getData(button, 'canCancel')).trim() === 'true';
 
         if (canCancel) {
@@ -119,12 +103,12 @@ class TaskManagerActions {
     }
 
     async cancelOperationsForPlugin(key: string): Promise<void> {
-        const normalized = ensureRequiredString(key, 'TaskManager requires a plugin key to cancel operations');
+        const normalized = readRequiredTrimmedStringValue(key, 'TaskManager requires a plugin key to cancel operations');
         const operations = this.#dependencies.store.getCancelableOperationsForPluginKey(normalized);
         await this.#dependencies.operationCancellation.cancelOperations(operations);
     }
 
-    async #runTaskAction(endpoint: string, operation: OperationMeta, successMessage: string, errorMessage: string): Promise<void> {
+    async #runTaskAction(endpoint: string, operation: OperationMeta, successMessage: string, errorMessage: string, notify = true): Promise<boolean> {
         await ensureStreamManagerReady(this.#dependencies.stream.resources, { allowDiscovery: true });
         let result: JsonValue | null | undefined;
         try {
@@ -135,25 +119,26 @@ class TaskManagerActions {
             result = await handle.finished;
         } catch (error) {
             const runtimeError = ensureError(error);
-            this.#reportTaskActionFailure(runtimeError, errorMessage);
+            this.#reportTaskActionFailure(runtimeError, errorMessage, notify);
             throw runtimeError;
         }
         const record = isObject(result) ? result : null;
         if (record?.['cancelled'] === true) {
-            return;
+            return false;
         }
         if (record?.['success'] === false) {
             const diagnosticMessage = toTrimmedString(record?.['message']) || 'Task action failed';
             const runtimeError = new Error(diagnosticMessage);
-            this.#reportTaskActionFailure(runtimeError, errorMessage);
+            this.#reportTaskActionFailure(runtimeError, errorMessage, notify);
             throw runtimeError;
         }
-        this.#dependencies.showNotification(successMessage, 'success');
+        if (notify) this.#dependencies.showNotification(successMessage, 'success');
+        return true;
     }
 
-    #reportTaskActionFailure(error: Error, userMessage: string): void {
+    #reportTaskActionFailure(error: Error, userMessage: string, notify: boolean): void {
         errorHandler.error('TaskManager', 'Task action failed', error);
-        this.#dependencies.showNotification(userMessage, 'error');
+        if (notify) this.#dependencies.showNotification(userMessage, 'error');
     }
 }
 

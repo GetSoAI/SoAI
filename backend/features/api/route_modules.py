@@ -11,6 +11,7 @@ from features.api.routes.anthropic import messages
 from features.api.routes.automations import (
     definition_endpoints,
     mcp_tools_routes,
+    schedule_preview_routes,
     window_routes,
 )
 from features.api.routes.backups import backup_routes
@@ -82,6 +83,7 @@ from features.api.routes.plugins import (
 from features.api.routes.routing import routing_endpoints
 from features.api.routes.system import (
     system_access_control_routes,
+    system_connect_pairing_routes,
     system_database_operation_routes,
     system_logs_routes,
     system_meta_routes,
@@ -169,6 +171,7 @@ ROUTE_REGISTRARS: tuple[Callable[[ApiRouters], None], ...] = (
     routing_endpoints.register_routes,
     websocket.register_routes,
     system_access_control_routes.register_routes,
+    system_connect_pairing_routes.register_routes,
     system_database_operation_routes.register_routes,
     system_reset_routes.register_routes,
     system_logs_routes.register_routes,
@@ -186,6 +189,7 @@ ROUTE_REGISTRARS: tuple[Callable[[ApiRouters], None], ...] = (
     task_list_routes.register_routes,
     mcp_tools_routes.register_routes,
     window_routes.register_routes,
+    schedule_preview_routes.register_routes,
     definition_endpoints.register_routes,
 )
 

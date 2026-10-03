@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from core.errors.exceptions import StateError
 from core.tasks.type_catalog import TaskTypeCatalog
+from database.core.savepoints import SQLiteSavepoint
 from database.migrations.registry import DatabaseMigrationStep, build_database_migration_steps
 from database.schema_creation import sync_create_database_schema
 from database.schema_version import (
@@ -55,22 +56,23 @@ def upgrade_database_schema_to_current(
         sync_create_database_schema(conn, task_catalog)
         return (from_version, CURRENT_DATABASE_SCHEMA_VERSION)
 
-    indexed = _index_steps(build_database_migration_steps())
-    working_version = from_version
-    while working_version < CURRENT_DATABASE_SCHEMA_VERSION:
-        step = indexed.get(working_version)
-        if step is None:
-            raise StateError(
-                f"Missing database migration step: from_version={working_version} to_version={CURRENT_DATABASE_SCHEMA_VERSION}.",
+    with SQLiteSavepoint(conn, "upgrade_database_schema"):
+        indexed = _index_steps(build_database_migration_steps())
+        working_version = from_version
+        while working_version < CURRENT_DATABASE_SCHEMA_VERSION:
+            step = indexed.get(working_version)
+            if step is None:
+                raise StateError(
+                    f"Missing database migration step: from_version={working_version} to_version={CURRENT_DATABASE_SCHEMA_VERSION}.",
+                )
+            logger.warning(
+                "Database migration: applying step %s -> %s",
+                step.from_version,
+                step.to_version,
             )
-        logger.warning(
-            "Database migration: applying step %s -> %s",
-            step.from_version,
-            step.to_version,
-        )
-        step.apply(conn, logger)
-        write_database_schema_version(conn, step.to_version)
-        working_version = step.to_version
+            step.apply(conn, logger)
+            write_database_schema_version(conn, step.to_version)
+            working_version = step.to_version
 
-    sync_create_database_schema(conn, task_catalog)
+        sync_create_database_schema(conn, task_catalog)
     return (from_version, CURRENT_DATABASE_SCHEMA_VERSION)

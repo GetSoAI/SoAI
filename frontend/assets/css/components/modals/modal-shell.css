@@ -4,10 +4,11 @@
 @layer components {
     .ui-modal {
         --modal-frame-top: var(--layout-top-offset);
-        --modal-frame-left: var(--sidebar-collapsed-width);
+        --modal-frame-inline-start: var(--sidebar-collapsed-width);
 
         position: fixed;
-        inset: var(--modal-frame-top) 0 0 var(--modal-frame-left);
+        inset-block: var(--modal-frame-top) 0;
+        inset-inline: var(--modal-frame-inline-start) 0;
         z-index: calc(var(--z-modal) - 2);
         display: flex;
         align-items: center;
@@ -19,8 +20,7 @@
     }
 
     body:is(.detached-window, .page-login, .page-wizard) .ui-modal {
-        --modal-frame-top: 0;
-        --modal-frame-left: 0;
+        --modal-frame-inline-start: 0;
     }
 
     .ui-modal.u-hidden {
@@ -77,7 +77,7 @@
 
     @container ui-viewport (width <= 1024px) or (height <= 768px) {
         .ui-modal {
-            --modal-frame-left: 0;
+            --modal-frame-inline-start: var(--sidebar-border-inline-total-width);
         }
     }
 }

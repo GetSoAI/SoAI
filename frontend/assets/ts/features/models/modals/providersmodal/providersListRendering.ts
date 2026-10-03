@@ -22,7 +22,7 @@ const renderProvidersListMarkup = (providers: readonly ProviderData[], sanitizer
 	                                <div class="provider-name" data-tooltip="${sanitizer.attribute(provider.name)}">${sanitizer.html(provider.name)}</div>
 	                                <div class="provider-details">
                                     <span class="provider-plugin">${sanitizer.html(provider.pluginName)}</span>
-                                    <span class="provider-url">${sanitizer.html(provider.apiUrl)}</span>
+                                    <span dir="ltr" class="provider-url">${sanitizer.html(provider.apiUrl)}</span>
                                 </div>
                                 <div class="provider-availability">
                                     <div class="provider-availability-row">

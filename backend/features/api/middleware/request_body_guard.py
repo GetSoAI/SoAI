@@ -80,7 +80,9 @@ class RequestBodyGuardMiddleware:
                 if scope.get(_STREAMING_MULTIPART_OWNER_SCOPE_KEY) is not True:
                     violation = _streaming_multipart_required_violation()
                     raise _BodyViolationSignal
-            remaining_seconds = deadline - time.monotonic()
+            remaining_seconds = (
+                self._policy.read_deadline_seconds if is_multipart else deadline - time.monotonic()
+            )
             if remaining_seconds <= 0.0:
                 violation = _timeout_violation()
                 raise _BodyViolationSignal

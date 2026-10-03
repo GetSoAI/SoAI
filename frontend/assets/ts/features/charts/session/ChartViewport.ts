@@ -1,52 +1,53 @@
 /* SoAI - Chart viewport ownership [frontend/assets/ts/features/charts/session/ChartViewport.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { JsonValue } from '@core/types/jsonValues.ts';
-import type { ChartOptions, CrosshairState, OhlcValues } from '@features/charts/chartTypes.ts';
-import type { PanState, RedrawRequest, Scale, SlotMetrics, ViewportIntent, VisibleRange, ZoomState } from '@features/charts/component/chartComponentTypes.ts';
-import { getMaxOffsetForMetrics, getPixelsPerBar, getSlotMetrics, getSlotMetricsForLevel } from '@features/charts/component/data/visibleRange.ts';
+import { scaleAnimationDurationMs } from '@core/animations/speed.ts';
+import { clampNumber } from '@core/primitives/clampNumber.ts';
+import { monotonicMs } from '@core/time/clock.ts';
+import { minutesToMs } from '@core/time/durations.ts';
+import type { ChartOptions } from '@features/charts/chartTypes.ts';
+import type { RedrawRequest, Scale } from '@features/charts/component/chartComponentTypes.ts';
 import type { ChartEventDetail } from '@features/charts/component/effects.ts';
-import { captureViewState, restoreViewState } from '@features/charts/component/data/viewState.ts';
-import { alignToLatest, applyViewportIntent, fitToTimeRangeMinutes, fitToWindow, markViewportManual, resetZoom } from '@features/charts/component/interactions/viewportIntent.ts';
-import { normalizeClampedFloat, recalculateZoomBounds } from '@features/charts/component/state/actions.ts';
-import { applyInertialPanning, applySmoothZoom, clampPanOffset } from '@features/charts/interaction/viewportMotion.ts';
-import type { ChartDimensions } from '@features/charts/rendering/renderingModels.ts';
+import { createRenderGeometry } from '@features/charts/layout/geometry.ts';
+import type { ChartDimensions, RenderGeometry } from '@features/charts/rendering/renderingModels.ts';
 import { enforceScaleBounds, panVertical } from '@features/charts/scales/scaleBounds.ts';
-import type { ChartConfigurationState, ChartInteractionState, ChartViewportState } from '@features/charts/session/chartState.ts';
-import type { ChartRedrawQueue } from '@features/charts/session/ChartRedrawQueue.ts';
+import type { ChartConfigurationState, ChartViewportState } from '@features/charts/session/chartState.ts';
 import type { ChartEvents } from '@features/charts/session/ChartEvents.ts';
+import type { ChartRedrawQueue } from '@features/charts/session/ChartRedrawQueue.ts';
+import { isUsableViewport, panByPixels, plotRight, xToTime, type TimeAxisFrame } from '@features/charts/viewport/timeViewport.ts';
+import { SERIES_TRANSITION_MS } from '@features/charts/viewport/easing.ts';
+import { cancelViewportAnimation, shiftViewportAnimation, startViewportAnimation, stepViewportAnimation } from '@features/charts/viewport/viewportAnimation.ts';
+import { clampTimeViewport, clampViewportRightEdge, clampViewportScale, resolveSeriesIntervalMs, type ViewportBoundsInput } from '@features/charts/viewport/viewportBounds.ts';
+import { alignViewportToNewest, applyViewportFit, DATA_FIT, isNewestVisible, type ViewportFit } from '@features/charts/viewport/viewportFit.ts';
 
 interface ChartViewportSeriesPort {
     readonly dataLength: number;
     readonly timestamps: Float64Array;
-    effectiveLength(): number;
-    closeValue(index: number): number | undefined;
-    ohlcAt(index: number, target?: OhlcValues | null): OhlcValues;
 }
 
 interface ChartViewportDependencies {
     configuration: ChartConfigurationState;
     state: ChartViewportState;
-    interaction: ChartInteractionState;
     series: ChartViewportSeriesPort;
     surface: { readonly element: HTMLElement; getCanvasSize(): { width: number; height: number }; resize(): boolean };
     redraw: ChartRedrawQueue;
     events: ChartEvents;
 }
 
+const ZOOM_EPSILON_RATIO = 1e-6;
+const FULL_REDRAW: RedrawRequest = { static: true, data: true, interaction: true };
+
 class ChartViewport {
     readonly #configuration: ChartConfigurationState;
     readonly #state: ChartViewportState;
-    readonly #interaction: ChartInteractionState;
     readonly #series: ChartViewportSeriesPort;
     readonly #surface: ChartViewportDependencies['surface'];
     readonly #redraw: ChartRedrawQueue;
     readonly #events: ChartEvents;
 
-    constructor({ configuration, state, interaction, series, surface, redraw, events }: ChartViewportDependencies) {
+    constructor({ configuration, state, series, surface, redraw, events }: ChartViewportDependencies) {
         this.#configuration = configuration;
         this.#state = state;
-        this.#interaction = interaction;
         this.#series = series;
         this.#surface = surface;
         this.#redraw = redraw;
@@ -54,7 +55,23 @@ class ChartViewport {
     }
 
     get status(): Readonly<{ isAnimating: boolean; isDragging: boolean; isAtTail: boolean }> {
-        return Object.freeze({ isAnimating: this.#state.zoom.isAnimating, isDragging: this.#state.pan.isDragging, isAtTail: this.#state.pan.isAtTail });
+        return Object.freeze({ isAnimating: this.#state.animation.active || this.#state.scaleGlide.active, isDragging: this.#state.pan.isDragging, isAtTail: this.#state.time.followLive });
+    }
+
+    get intervalMs(): number {
+        return resolveSeriesIntervalMs(this.#configuration.options.expectedSampleIntervalMs, this.#series.timestamps, this.#series.dataLength);
+    }
+
+    get element(): HTMLElement {
+        return this.#surface.element;
+    }
+
+    get chartOptions(): ChartOptions {
+        return this.#configuration.options;
+    }
+
+    get scale(): Scale {
+        return this.#state.scale;
     }
 
     get yAxisMinRange(): number {
@@ -73,70 +90,95 @@ class ChartViewport {
         return { top: padding.top, left: padding.left, chartWidth, chartHeight, width, height, right: padding.left + chartWidth };
     }
 
-    getSlotMetrics(): SlotMetrics {
-        return getSlotMetrics(this, this);
+    getRenderGeometry(dimensions: ChartDimensions = this.getChartDimensions()): RenderGeometry | null {
+        return createRenderGeometry(dimensions, this.#state.time, this.intervalMs);
     }
 
-    getSlotMetricsForLevel(level: number | null | undefined): SlotMetrics {
-        return getSlotMetricsForLevel(this, this, level);
+    panByPixels(deltaPx: number): boolean {
+        const input = this.#boundsInput();
+        const time = this.#state.time;
+        if (!input || !isUsableViewport(time) || !Number.isFinite(deltaPx) || deltaPx === 0) return false;
+        cancelViewportAnimation(this.#state.animation);
+        const previousRightEdgeTs = time.rightEdgeTs;
+        panByPixels(time, deltaPx);
+        const requestedRightEdgeTs = time.rightEdgeTs;
+        clampTimeViewport(time, input);
+        if (deltaPx > 0 && input.oldestNavigableTs !== null && time.rightEdgeTs > requestedRightEdgeTs) {
+            this.#state.historyBoundaryHitAt = monotonicMs();
+            this.#redraw.request({ data: true });
+        }
+        return this.#commit(input, time.rightEdgeTs !== previousRightEdgeTs);
     }
 
-    getMaxOffset(metrics: SlotMetrics | null = null): number {
-        return getMaxOffsetForMetrics(this, this, metrics);
+    zoomBy(anchorX: number, factor: number, animate: boolean): boolean {
+        const target = this.#targetFrame();
+        return target !== null && Number.isFinite(factor) && factor > 0 && this.#zoomAround(target, anchorX, target.msPerPx * factor, animate);
     }
 
-    getPixelsPerBar(): number {
-        return getPixelsPerBar(this, this);
+    zoomTo(anchorX: number, msPerPx: number): boolean {
+        const dimensions = this.getChartDimensions();
+        const time = this.#state.time;
+        cancelViewportAnimation(this.#state.animation);
+        return isUsableViewport(time) && this.#zoomAround({ plotLeft: dimensions.left, plotWidth: dimensions.chartWidth, rightEdgeTs: time.rightEdgeTs, msPerPx: time.msPerPx }, anchorX, msPerPx, false);
     }
 
-    getMaxOffsetForMetrics(metrics: SlotMetrics | null | undefined = null): number {
-        return this.getMaxOffset(metrics);
+    fitTimeRange(minutes: number): boolean {
+        const durationMs = minutesToMs(Number(minutes));
+        if (!Number.isFinite(durationMs) || durationMs <= 0) return false;
+        return this.#requestFit({ mode: 'duration', durationMs });
     }
 
-    recalculateZoomBounds(): void {
-        recalculateZoomBounds(this, { preserveLevel: true });
+    resetZoom(): boolean {
+        return this.#requestFit(DATA_FIT);
     }
 
-    clampPanOffset(): void {
-        clampPanOffset(this);
-    }
-
-    resetZoom(options: { alignToTail?: boolean } = {}): void {
-        resetZoom(this, options);
-    }
-
-    fitTimeRange(minutes: number, options: { align?: string } = {}): boolean {
-        return fitToTimeRangeMinutes(this, minutes, options);
-    }
-
-    fitWindow(start: number, end: number, options: { align?: string } = {}): boolean {
-        return fitToWindow(this, start, end, options);
+    requestDataFit(): void {
+        this.#state.pendingFit ??= DATA_FIT;
+        this.syncToSeries();
     }
 
     alignToLatest(): void {
-        alignToLatest(this);
+        const input = this.#boundsInput();
+        const time = this.#state.time;
+        if (!input || !isUsableViewport(time)) return;
+        cancelViewportAnimation(this.#state.animation);
+        alignViewportToNewest(time, input);
+        this.#commit(input, true);
     }
 
-    applyIntent(_source: string = 'default'): void {
-        applyViewportIntent(this);
+    syncToSeries(previousNewestTs: number = Number.NaN): void {
+        const input = this.#boundsInput();
+        const { time, animation } = this.#state;
+        if (!input) {
+            this.#redraw.request(FULL_REDRAW);
+            return;
+        }
+        if (this.#state.pendingFit || !isUsableViewport(time)) {
+            if (applyViewportFit(time, this.#state.pendingFit ?? DATA_FIT, input)) {
+                this.#state.pendingFit = null;
+                cancelViewportAnimation(animation);
+            }
+        } else {
+            const deltaTs = input.newestTs - previousNewestTs;
+            if (time.followLive && Number.isFinite(deltaTs) && deltaTs !== 0) this.#followNewest(deltaTs);
+            if (!animation.active) clampTimeViewport(time, input);
+        }
+        this.#commit(input, true);
     }
 
-    markManual(source: string = 'manual'): void {
-        markViewportManual(this, source);
+    advanceAnimation(now: number): boolean {
+        const { time, animation } = this.#state;
+        if (!animation.active) return false;
+        const running = stepViewportAnimation(animation, time, now);
+        const input = this.#boundsInput();
+        if (input) clampTimeViewport(time, input);
+        this.#redraw.request(FULL_REDRAW);
+        return running;
     }
 
-    capture(): Record<string, JsonValue | null | undefined> {
-        return captureViewState(this);
-    }
-
-    restore(snapshot: Record<string, JsonValue | null | undefined>): void {
-        restoreViewState(this, snapshot);
-    }
-
-    setAutoScale(enabled: boolean | string | null | undefined): void {
-        const normalized = Boolean(enabled);
-        this.#state.scale.auto = normalized;
-        this.#configuration.options.autoScale = normalized;
+    setAutoScale(enabled: boolean): void {
+        this.#state.scale.auto = enabled;
+        this.#configuration.options.autoScale = enabled;
     }
 
     enforceScaleBounds(options: { preserveRange?: boolean } = {}): void {
@@ -147,14 +189,6 @@ class ChartViewport {
         return panVertical(this, deltaY);
     }
 
-    advanceInertialPanning(): void {
-        applyInertialPanning(this);
-    }
-
-    advanceSmoothZoom(): void {
-        applySmoothZoom(this);
-    }
-
     requestRedraw(requirements?: RedrawRequest): void {
         this.#redraw.request(requirements);
     }
@@ -163,95 +197,69 @@ class ChartViewport {
         this.#events.emit(event, detail);
     }
 
-    getEffectiveDataLength(): number {
-        return this.#series.effectiveLength();
-    }
-    getCloseValue(index: number): number | undefined {
-        return this.#series.closeValue(index);
-    }
-    getOhlcForIndex(index: number, target?: OhlcValues | null): OhlcValues {
-        return this.#series.ohlcAt(index, target ?? null);
-    }
-    normalizeClampedFloat(value: number | string | null | undefined, fallback: number, min?: number, max?: number): number {
-        return normalizeClampedFloat(value, fallback, min, max);
-    }
-    customBezierEasing(time: number, x1: number, y1: number, x2: number, y2: number): number {
-        const cx = 3 * x1;
-        const bx = 3 * (x2 - x1) - cx;
-        const ax = 1 - cx - bx;
-        const cy = 3 * y1;
-        const by = 3 * (y2 - y1) - cy;
-        const ay = 1 - cy - by;
-        let progress = time;
-        for (let iteration = 0; iteration < 8; iteration += 1) {
-            const offset = ((ax * progress + bx) * progress + cx) * progress - time;
-            if (Math.abs(offset) < 0.001) break;
-            const derivative = (3 * ax * progress + 2 * bx) * progress + cx;
-            if (Math.abs(derivative) < 1e-6) break;
-            progress -= offset / derivative;
-        }
-        return ((ay * progress + by) * progress + cy) * progress;
+    #requestFit(fit: ViewportFit): boolean {
+        this.#state.pendingFit = fit;
+        this.syncToSeries();
+        return this.#state.pendingFit === null;
     }
 
-    get element(): HTMLElement {
-        return this.#surface.element;
+    #targetFrame(): TimeAxisFrame | null {
+        const { time, animation } = this.#state;
+        if (!isUsableViewport(time)) return null;
+        const { left, chartWidth } = this.getChartDimensions();
+        if (!animation.active) return { plotLeft: left, plotWidth: chartWidth, rightEdgeTs: time.rightEdgeTs, msPerPx: time.msPerPx };
+        return { plotLeft: left, plotWidth: chartWidth, rightEdgeTs: animation.toAnchorTs + animation.anchorOffsetPx * animation.toMsPerPx, msPerPx: animation.toMsPerPx };
     }
-    get chartOptions(): ChartOptions {
-        return this.#configuration.options;
+
+    #followNewest(deltaTs: number): void {
+        const { time, animation } = this.#state;
+        if ((animation.active && animation.fromMsPerPx !== animation.toMsPerPx) || Math.abs(deltaTs) < time.msPerPx) {
+            time.rightEdgeTs += deltaTs;
+            shiftViewportAnimation(animation, deltaTs);
+            return;
+        }
+        const rightEdgeTs = (animation.active ? animation.toAnchorTs + animation.anchorOffsetPx * animation.toMsPerPx : time.rightEdgeTs) + deltaTs;
+        startViewportAnimation(animation, time, { msPerPx: time.msPerPx, anchorTs: rightEdgeTs, anchorOffsetPx: 0 }, scaleAnimationDurationMs(SERIES_TRANSITION_MS, this.#surface.element), monotonicMs());
     }
-    get dataLength(): number {
-        return this.#series.dataLength;
+
+    #zoomAround(frame: TimeAxisFrame, anchorX: number, requestedMsPerPx: number, animate: boolean): boolean {
+        const input = this.#boundsInput();
+        if (!input || !Number.isFinite(requestedMsPerPx) || requestedMsPerPx <= 0) return false;
+        const anchorOffsetPx = plotRight(frame) - clampNumber(anchorX, frame.plotLeft, plotRight(frame));
+        const anchorTs = xToTime(frame, plotRight(frame) - anchorOffsetPx);
+        const msPerPx = clampViewportScale(requestedMsPerPx, input);
+        if (Math.abs(msPerPx / frame.msPerPx - 1) < ZOOM_EPSILON_RATIO) return false;
+        const rightEdgeTs = clampViewportRightEdge(anchorTs + anchorOffsetPx * msPerPx, msPerPx, input);
+        const target = { msPerPx, anchorTs: rightEdgeTs - anchorOffsetPx * msPerPx, anchorOffsetPx };
+        const durationMs = animate && this.#configuration.options.enableSmoothZoom ? scaleAnimationDurationMs(this.#configuration.options.zoomEasingMs, this.#surface.element) : 0;
+        startViewportAnimation(this.#state.animation, this.#state.time, target, durationMs, monotonicMs());
+        this.#state.time.followLive = isNewestVisible({ rightEdgeTs, msPerPx, followLive: false }, input.newestTs);
+        this.#redraw.request(FULL_REDRAW);
+        return true;
     }
-    get timestamps(): Float64Array {
-        return this.#series.timestamps;
+
+    #commit(input: ViewportBoundsInput, changed: boolean): boolean {
+        if (!this.#state.animation.active) this.#state.time.followLive = isNewestVisible(this.#state.time, input.newestTs);
+        if (changed) this.#redraw.request(FULL_REDRAW);
+        return changed;
     }
-    get baseBarPixelWidth(): number {
-        return this.#state.baseBarPixelWidth;
-    }
-    get zoom(): ZoomState {
-        return this.#state.zoom;
-    }
-    get pan(): PanState {
-        return this.#state.pan;
-    }
-    get scale(): Scale {
-        return this.#state.scale;
-    }
-    get crosshair(): CrosshairState {
-        return this.#interaction.crosshair;
-    }
-    get visibleRange(): VisibleRange {
-        return this.#state.visibleRange;
-    }
-    get suspendIntentRecording(): boolean {
-        return this.#state.suspendIntentRecording;
-    }
-    set suspendIntentRecording(value: boolean) {
-        this.#state.suspendIntentRecording = value;
-    }
-    get viewportIntent(): ViewportIntent | null {
-        return this.#state.viewportIntent;
-    }
-    set viewportIntent(value: ViewportIntent | null) {
-        this.#state.viewportIntent = value;
-    }
-    get pendingViewportIntent(): ViewportIntent | null {
-        return this.#state.pendingViewportIntent;
-    }
-    set pendingViewportIntent(value: ViewportIntent | null) {
-        this.#state.pendingViewportIntent = value;
-    }
-    get isHistoricalDataLoading(): boolean {
-        return this.#state.isHistoricalDataLoading;
-    }
-    set isHistoricalDataLoading(value: boolean) {
-        this.#state.isHistoricalDataLoading = value;
-    }
-    get lastHistoricalRequestTimestamp(): number | null {
-        return this.#state.lastHistoricalRequestTimestamp;
-    }
-    set lastHistoricalRequestTimestamp(value: number | null) {
-        this.#state.lastHistoricalRequestTimestamp = value;
+
+    #boundsInput(): ViewportBoundsInput | null {
+        const { dataLength, timestamps } = this.#series;
+        const plotWidth = this.getChartDimensions().chartWidth;
+        const oldestLoadedTs = timestamps[0] ?? Number.NaN;
+        const newestTs = timestamps[dataLength - 1] ?? Number.NaN;
+        if (dataLength === 0 || plotWidth <= 0 || !Number.isFinite(oldestLoadedTs) || !Number.isFinite(newestTs)) return null;
+        const options = this.#configuration.options;
+        const navigableTs = options.history ? options.history.oldestNavigableTs : oldestLoadedTs;
+        return {
+            plotWidth,
+            intervalMs: this.intervalMs,
+            newestTs,
+            oldestLoadedTs,
+            oldestNavigableTs: navigableTs === null ? null : Math.max(navigableTs, oldestLoadedTs),
+            maxDataPoints: options.maxDataPoints
+        };
     }
 }
 

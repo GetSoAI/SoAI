@@ -61,6 +61,8 @@ const decodeModelRecord = (record: JsonObject): ModelRecord => {
     const modelId = readOptionalStringValue(record['model_id'], 'models.collection model.model_id');
     const sourceModelId = readOptionalStringValue(record['source_model_id'], 'models.collection model.source_model_id');
     const rawUpstreamModelId = readOptionalStringValue(record['raw_upstream_model_id'], 'models.collection model.raw_upstream_model_id');
+    const repositoryId = readOptionalStringValue(record['repository_id'], 'models.collection model.repository_id');
+    const requestedRevision = readOptionalStringValue(record['requested_revision'], 'models.collection model.requested_revision');
     const displayName = readOptionalStringValue(record['display_name'], 'models.collection model.display_name');
     const description = readOptionalStringValue(record['description'], 'models.collection model.description');
     const modelType = readOptionalStringValue(record['model_type'], 'models.collection model.model_type');
@@ -82,6 +84,8 @@ const decodeModelRecord = (record: JsonObject): ModelRecord => {
     if (modelId !== undefined) decoded.modelId = modelId;
     if (sourceModelId !== undefined) decoded.sourceModelId = sourceModelId;
     if (rawUpstreamModelId !== undefined) decoded.rawUpstreamModelId = rawUpstreamModelId;
+    if (repositoryId !== undefined) decoded.repositoryId = repositoryId;
+    if (requestedRevision !== undefined) decoded.requestedRevision = requestedRevision;
     if (displayName !== undefined) decoded.displayName = displayName;
     if (description !== undefined) decoded.description = description;
     if (modelType !== undefined) decoded.modelType = modelType;

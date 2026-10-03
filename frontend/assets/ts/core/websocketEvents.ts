@@ -45,6 +45,8 @@ const WEBSOCKET_MESSAGE_TYPES = Object.freeze({
 const WEBSOCKET_EVENT_TYPES = Object.freeze({
     HARDWARE_SNAPSHOT_UPDATED: 'HardwareSnapshotUpdatedEvent',
     METRICS_UPDATED: 'MetricsUpdatedEvent',
+    METRICS_HISTORY_RESET: 'MetricsHistoryResetEvent',
+    HARDWARE_HISTORY_RESET: 'HardwareHistoryResetEvent',
     MODEL_DATABASE_CHANGE: 'ModelDatabaseChangeEvent',
     MODEL_LAST_USED_CHANGED: 'ModelLastUsedChangedEvent',
     MODEL_LOADED: 'ModelLoadedEvent',

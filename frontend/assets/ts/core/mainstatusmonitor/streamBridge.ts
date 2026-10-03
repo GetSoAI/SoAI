@@ -8,7 +8,7 @@ import { getStatusStream, validateMainStatusStreamManager } from '@core/mainstat
 import type { StreamManagerInterface, StreamSnapshot } from '@core/mainstatusmonitor/types.ts';
 import { getStreamRuntime } from '@core/realtime/streammanager/public.ts';
 import { ensureStreamManagerReady } from '@core/realtime/streammanager/readiness.ts';
-import type { SystemStatusResource } from '@core/realtime/streammanager/resourceRegistry.ts';
+import { isAbortError } from '@core/errors/abort.ts';
 
 class MainStatusStreamBridge {
     #unsubscribeStream: (() => void) | null = null;
@@ -23,18 +23,18 @@ class MainStatusStreamBridge {
         return manager;
     }
 
-    async getReadyStreamManager(): Promise<StreamManagerInterface> {
+    async getReadyStreamManager(signal?: AbortSignal): Promise<StreamManagerInterface> {
         const manager = this.#getStreamManager();
-        await ensureStreamManagerReady(manager.resources, { allowDiscovery: true });
+        await ensureStreamManagerReady(manager.resources, { allowDiscovery: true, signal });
         return manager;
     }
 
-    resolveStreamManager(): StreamManagerInterface {
+    resolveStreamManager(signal?: AbortSignal): StreamManagerInterface {
         const manager = this.#getStreamManager();
-        const readyTask = ensureStreamManagerReady(manager.resources, { allowDiscovery: true });
+        const readyTask = ensureStreamManagerReady(manager.resources, { allowDiscovery: true, signal });
         void readyTask.catch((error) => {
             const runtimeError = ensureError(error);
-            if (isLifecycleCancellationError(runtimeError)) {
+            if (isAbortError(runtimeError) || isLifecycleCancellationError(runtimeError)) {
                 return;
             }
             errorHandler.warn('MainStatusMonitor', 'Stream manager readiness refresh failed', runtimeError);
@@ -47,15 +47,16 @@ class MainStatusStreamBridge {
     }
 
     disconnect(): void {
-        if (typeof this.#unsubscribeStream === 'function') {
+        const unsubscribe = this.#unsubscribeStream;
+        this.#unsubscribeStream = null;
+        if (typeof unsubscribe === 'function') {
             try {
-                this.#unsubscribeStream();
+                unsubscribe();
             } catch (error) {
                 const runtimeError = ensureError(error);
                 errorHandler.warn('MainStatusMonitor', 'Failed to remove stream subscription', runtimeError);
             }
         }
-        this.#unsubscribeStream = null;
     }
 
     reset(): void {
@@ -63,9 +64,9 @@ class MainStatusStreamBridge {
         this.#streamManager = null;
     }
 
-    async connect(inputArguments: { generation: number; isGenerationActive: (generation: number) => boolean; onValue: (value: SystemStatusResource) => void; onError: () => void }): Promise<boolean> {
+    async connect(inputArguments: { generation: number; isGenerationActive: (generation: number) => boolean; signal?: AbortSignal; onSnapshot: (snapshot: StreamSnapshot | null) => void }): Promise<boolean> {
         const generation = inputArguments.generation;
-        const streamManager = this.resolveStreamManager();
+        const streamManager = this.resolveStreamManager(inputArguments.signal);
         if (!inputArguments.isGenerationActive(generation)) {
             return false;
         }
@@ -77,29 +78,27 @@ class MainStatusStreamBridge {
 
         const statusStream = getStatusStream();
         const state = streamManager.resources.getResource(statusStream, { state: true });
-        if (state?.status === 'ready' && state.value) {
-            inputArguments.onValue(state.value);
-        }
+        inputArguments.onSnapshot(state);
+        if (!inputArguments.isGenerationActive(generation)) return false;
 
         const unsubscribe = streamManager.subscriptions.subscribeResourceState(statusStream, (snapshot: StreamSnapshot) => {
             if (!inputArguments.isGenerationActive(generation)) {
                 return;
             }
-            if (snapshot.status === 'ready' && snapshot.value) {
-                inputArguments.onValue(snapshot.value);
-            } else if (snapshot.status === 'error') {
-                inputArguments.onError();
-            }
+            inputArguments.onSnapshot(snapshot);
         });
-        if (typeof unsubscribe === 'function') {
-            this.#unsubscribeStream = unsubscribe;
+        if (!inputArguments.isGenerationActive(generation)) {
+            unsubscribe?.();
+            return false;
         }
+        if (typeof unsubscribe !== 'function') throw new Error('Main status subscription must provide cleanup');
+        this.#unsubscribeStream = unsubscribe;
 
         try {
-            await streamManager.resources.ensureResourceStarted(statusStream);
+            await streamManager.resources.ensureResourceStarted(statusStream, { signal: inputArguments.signal });
         } catch (error) {
             const runtimeError = ensureError(error);
-            if (isLifecycleCancellationError(runtimeError)) {
+            if (isAbortError(runtimeError) || isLifecycleCancellationError(runtimeError)) {
                 return inputArguments.isGenerationActive(generation);
             }
             errorHandler.warn('MainStatusMonitor', `Failed to start ${statusStream} stream`, runtimeError);

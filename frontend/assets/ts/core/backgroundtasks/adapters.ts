@@ -9,7 +9,7 @@ import { isAuthInstance, isStorageInstance } from '@core/backgroundtasks/guards.
 const resolveStorage = (): StorageInstance => {
     const instance = requireStorageService();
     if (!isStorageInstance(instance)) {
-        throw new Error('BackgroundTasks requires core.storage.getSolidBackground() and core.storage.getWallpaperOverlay()');
+        throw new Error('BackgroundTasks requires core.storage.getSolidBackground(), core.storage.getDefaultWallpaper() and core.storage.getWallpaperOverlay()');
     }
     return instance;
 };

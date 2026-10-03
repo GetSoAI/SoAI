@@ -240,4 +240,4 @@ const syncAutoScrollStateFromScroll = (context: ChatUIManagerContext, messagesAr
     syncAutoScrollLockAttribute(context, messagesArea);
 };
 
-export { disposeAutoScrollLockRuntime, isMainTimelineUserScrollIntent, setupAutoScrollLockRuntime, syncAutoScrollLockAttribute, syncAutoScrollStateFromScroll };
+export { disposeAutoScrollLockRuntime, isEditableKeyTarget, isMainTimelineUserScrollIntent, setupAutoScrollLockRuntime, syncAutoScrollLockAttribute, syncAutoScrollStateFromScroll };

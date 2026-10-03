@@ -34,7 +34,11 @@ def classify_model_load_failure(exception: BaseException) -> ModelLoadFailureCla
     if isinstance(exception, ValidationError | ConfigurationError):
         return ModelLoadFailureClassification(
             model_scoped=True,
-            reason="Model startup settings are invalid. Review the model parameters and backend configuration.",
+            reason=(
+                public_reason
+                if exception.public_message is not None
+                else "Model startup settings are invalid. Review the model parameters and backend configuration."
+            ),
         )
     if isinstance(exception, ModelScopedLoadError):
         return ModelLoadFailureClassification(
@@ -44,10 +48,14 @@ def classify_model_load_failure(exception: BaseException) -> ModelLoadFailureCla
     if isinstance(exception, IpcRemoteRequestError):
         remote_error_code = resolve_remote_error_code(exception)
         return ModelLoadFailureClassification(
-            model_scoped=remote_error_code in MODEL_SCOPED_REMOTE_ERROR_CODES,
+            model_scoped=(
+                remote_error_code in MODEL_SCOPED_REMOTE_ERROR_CODES
+                or remote_error_code == ConfigurationError.code
+            ),
             reason=(
                 "Model startup settings are invalid. Review the model parameters and backend configuration."
-                if remote_error_code == ErrorType.INVALID_REQUEST.value
+                if remote_error_code in {ErrorType.INVALID_REQUEST.value, ConfigurationError.code}
+                and exception.public_message is None
                 else public_reason
             ),
         )

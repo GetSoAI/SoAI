@@ -64,6 +64,15 @@ interface ComposerDraftTransferTicket {
     cancel(): void;
 }
 
+interface ComposerDraftSurfaceSnapshot {
+    readonly conversationId: string | null;
+    readonly generation: number;
+    readonly mutationToken: number;
+    readonly surfaceRevision: number;
+    readonly mode: 'restore' | 'adopt-current';
+    readonly signature: string;
+}
+
 type ComposerDraftLoadSettlement = { status: 'ready'; draft: ParsedComposerDraft } | { status: 'failed'; error: Error };
 
-export type { ComposerDraftApi, ComposerDraftFlushOptions, ComposerDraftLoadSettlement, ComposerDraftManagerDependencies, ComposerDraftProjection, ComposerDraftTransferTicket, ParsedComposerDraft };
+export type { ComposerDraftApi, ComposerDraftFlushOptions, ComposerDraftLoadSettlement, ComposerDraftManagerDependencies, ComposerDraftProjection, ComposerDraftSurfaceSnapshot, ComposerDraftTransferTicket, ParsedComposerDraft };

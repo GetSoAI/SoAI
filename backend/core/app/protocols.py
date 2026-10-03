@@ -31,6 +31,7 @@ if TYPE_CHECKING:
         TaskFinalizerTrackerProtocol,
         TokenCollectionProtocol,
     )
+    from core.types.json import JSONDict
 
     type ApplicationUpdateOutcome = Literal[
         "accepted",
@@ -63,6 +64,12 @@ class ApplicationRuntimeCoordinatorProtocol(Protocol):
 
 class ApplicationControlProtocol(Protocol):
     async def update(self) -> tuple[ApplicationUpdateOutcome, str]: ...
+
+    async def get_update_preparation_status(self) -> JSONDict: ...
+
+    async def get_update_notice(self, user_id: int) -> JSONDict | None: ...
+
+    async def acknowledge_update_notice(self, *, user_id: int, task_id: str) -> bool: ...
 
     def restart(self) -> bool: ...
 

@@ -22,6 +22,7 @@ from core.tasks.protocols import TaskRegistryProtocol
 from core.tasks.task import Task
 from features.api.openai.openai_error_responses import (
     build_openai_error_json_response,
+    build_openai_error_json_response_for_soai_payload,
     build_openai_error_json_response_for_status,
 )
 from features.api.routes.openai.chat.chat_ops import (
@@ -216,6 +217,15 @@ async def run_non_streaming_result_loop(
 
 
 async def _handle_error_event(event: ErrorEvent) -> JSONResponse:
+    public_error = event.public_error
+    if public_error is not None:
+        return build_openai_error_json_response_for_soai_payload(
+            status_code=public_error.http_status or error_type_to_status_code(event.error_type),
+            message=public_error.message,
+            soai_error_type=public_error.code,
+            details=public_error.details,
+            trace_id=public_error.trace_id or event.trace_id,
+        )
     status_code = error_type_to_status_code(event.error_type)
     return build_openai_error_json_response(
         status_code=status_code,

@@ -11,6 +11,7 @@ from core.concurrency.reply_queue_terminal_delivery import (
 from core.errors.error_types import ErrorType
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
+from core.errors.payload import ErrorPublicPayload
 from core.errors.public_projection import project_public_status_error
 from core.errors.status_mapping import error_type_to_status_code
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
@@ -72,6 +73,7 @@ async def try_publish_error_event(
     log_message: str,
     operation: str,
     reason_is_public: bool = False,
+    public_error: ErrorPublicPayload | None = None,
     details: JSONDict | None = None,
     level: str | None = None,
 ) -> bool:
@@ -84,13 +86,15 @@ async def try_publish_error_event(
         event = context.event
         event_context = event.context if event else None
         public_message = reason
-        if task.status != TaskStatus.CANCELLED and not reason_is_public:
-            public_error = project_public_status_error(
+        if public_error is not None:
+            public_message = public_error.message
+        elif task.status != TaskStatus.CANCELLED and not reason_is_public:
+            projected_error = project_public_status_error(
                 status_code=error_type_to_status_code(error_type),
                 code=error_type.value,
                 message=reason,
             )
-            public_message = public_error.message
+            public_message = projected_error.message
         terminal_event: Event
         if task.status == TaskStatus.CANCELLED:
             terminal_event = TaskCompleteEvent(
@@ -104,6 +108,7 @@ async def try_publish_error_event(
             terminal_event = ErrorEvent(
                 message=public_message,
                 error_type=error_type,
+                public_error=public_error,
                 context=event_context,
                 trace_id=(
                     event.trace_id

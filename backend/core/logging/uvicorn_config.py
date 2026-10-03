@@ -9,16 +9,13 @@ from typing import override
 __all__ = ("UvicornConnectionDemoteFilter",)
 
 _DEMOTED_MESSAGES = frozenset({"connection open", "connection closed"})
-_WEBSOCKET_ACCEPTED_MESSAGE_TEMPLATE = '%s - "WebSocket %s" [accepted]'
+_DEMOTED_MESSAGE_TEMPLATES = ('%s - "WebSocket %s" [accepted]', "Started server process [%d]")
 
 
 class UvicornConnectionDemoteFilter(logging.Filter):
     @override
     def filter(self, record: logging.LogRecord) -> bool:
-        if (
-            record.getMessage() in _DEMOTED_MESSAGES
-            or record.msg == _WEBSOCKET_ACCEPTED_MESSAGE_TEMPLATE
-        ):
+        if record.getMessage() in _DEMOTED_MESSAGES or record.msg in _DEMOTED_MESSAGE_TEMPLATES:
             record.levelno = logging.DEBUG
             record.levelname = "DEBUG"
         return True

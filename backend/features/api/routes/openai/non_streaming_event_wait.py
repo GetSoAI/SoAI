@@ -5,6 +5,8 @@ from __future__ import annotations
 
 from core.concurrency.task_groups import QueueEventWaiter
 from core.errors.error_types import ErrorType
+from core.errors.exceptions import ApiError
+from core.errors.status_mapping import error_type_to_status_code
 from core.events.types_base import Event
 from core.events.types_plugins import ErrorEvent
 from core.runtime.protocols import RequestProtocol
@@ -31,5 +33,17 @@ async def wait_for_non_streaming_event(
             error_type=ErrorType.SERVER_ERROR.value,
         )
     if isinstance(result_event, ErrorEvent):
+        public_error = result_event.public_error
+        if public_error is not None:
+            error = ApiError(
+                public_error.message,
+                code=public_error.code,
+                http_status=public_error.http_status
+                or error_type_to_status_code(result_event.error_type),
+                trace_id=public_error.trace_id,
+            )
+            error.public_message = public_error.message
+            error.public_details = public_error.details
+            raise error
         raise_error_type(request, result_event.error_type, result_event.message)
     return result_event

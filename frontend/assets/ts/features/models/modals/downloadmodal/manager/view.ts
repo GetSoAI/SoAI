@@ -12,7 +12,8 @@ import { isObject, isString } from '@core/typeGuards.ts';
 import { resolveNotifyBadgeText } from '@core/ui/controls/tabs/service.ts';
 import { applyDownloadPluginSelection, applyProviderPluginSelection, populateDownloadPluginDropdown, populateProviderPluginDropdown, renderDownloadPluginWarning, updateRepositoryLink } from '@features/models/modals/downloadmodal/effects.ts';
 import type { DownloadModalManagerRuntime } from '@features/models/modals/downloadmodal/manager/contracts.ts';
-import { countActiveModelDownloads } from '@features/models/modals/downloadmodal/manager/modelDownloadOperations.ts';
+import { countActiveModelDownloads } from '@features/models/downloads/modelDownloadOperations.ts';
+import { MODEL_DOWNLOAD_OPERATION_TYPE } from '@features/models/modelDownloadOperation.ts';
 import { cancelModelSearchRequest, clearModelSearchResults, handleModelSearchPluginChange, resetModelSearchState, updateModelIdGroupVisibility, updateModelSearchButtonState, updateModelSearchPlaceholder, updateModelSearchVisibility } from '@features/models/modals/downloadmodal/manager/searchControls.ts';
 import { updateDownloadModalUI, updateModalTabsVisibility, updateVariantControlsVisibility } from '@features/models/modals/downloadmodal/manager/tabsView.ts';
 
@@ -223,9 +224,11 @@ const updateDownloadBadge = (runtime: DownloadModalManagerRuntime): void => {
     const modalId = runtime.modalId;
     const modalRoot = runtime.host.session.modals.requireElement(modalId);
     const badge = runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'download-notify'), modalRoot);
-    const count = countActiveModelDownloads(runtime);
+    const count = countActiveModelDownloads();
     runtime.host.view.updateText(badge, resolveNotifyBadgeText(count));
     runtime.host.view.toggleClassName(badge, CSS_CLASSES.HIDDEN, count === 0);
 };
 
-export { cancelModelSearchRequest, clearDownloadFormFields, clearModelSearchResults, clearProviderFormFields, closeDownloadModelModal, handleDownloadTabClick, handleModelSearchPluginChange, handlePluginSelectChange, handleProviderPluginSelectChange, handleProviderTabClick, handleVariantInputChange, openDownloadModelModal, populatePluginDropdowns, resetModelSearchState, updateDownloadBadge, updateDownloadButtonState, updateDownloadModalUI, updateModelIdGroupVisibility, updateModelSearchButtonState, updateModelSearchPlaceholder, updateModelSearchVisibility, updateModalTabsVisibility, updatePluginRequiredMarkers, updateSelectedModelDisplay };
+const hasActiveModelDownloads = (runtime: DownloadModalManagerRuntime): boolean => countActiveModelDownloads() > 0 || runtime.host.execution.requireStreamManager().hasActiveOperationsOfType(MODEL_DOWNLOAD_OPERATION_TYPE);
+
+export { cancelModelSearchRequest, clearDownloadFormFields, clearModelSearchResults, clearProviderFormFields, closeDownloadModelModal, handleDownloadTabClick, handleModelSearchPluginChange, handlePluginSelectChange, handleProviderPluginSelectChange, handleProviderTabClick, handleVariantInputChange, hasActiveModelDownloads, openDownloadModelModal, populatePluginDropdowns, resetModelSearchState, updateDownloadBadge, updateDownloadButtonState, updateDownloadModalUI, updateModelIdGroupVisibility, updateModelSearchButtonState, updateModelSearchPlaceholder, updateModelSearchVisibility, updateModalTabsVisibility, updatePluginRequiredMarkers, updateSelectedModelDisplay };

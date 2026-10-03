@@ -19,6 +19,7 @@ const initializeStorageManager = (page: ChatControllerInitializationContext): vo
         new ChatStorageManager(
             {
                 storage: page.state.settings.storage,
+                navigationMemory: page.state.settings.navigationMemory,
                 api: page.platform.api,
                 state: {
                     getConversations: () => page.state.conversationState.conversations,
@@ -33,7 +34,7 @@ const initializeStorageManager = (page: ChatControllerInitializationContext): vo
                     },
                     getCurrentConversationId: () => page.state.conversationState.currentConversationId,
                     setCurrentConversationId: (conversationId) => {
-                        setCurrentConversationIdForChatPage({ conversationState: page.state.conversationState, runtimeServices: page.state.runtimeServices, pageDom: page.page.pageDom, composer: page.sessions.composer, voiceSession: page.sessions.voiceSession }, conversationId);
+                        setCurrentConversationIdForChatPage({ composerSurface: page.runtime.composerSurface, conversationState: page.state.conversationState, runtimeServices: page.state.runtimeServices, pageDom: page.page.pageDom, composer: page.sessions.composer, voiceSession: page.sessions.voiceSession }, conversationId);
                     },
                     getCurrentModel: () => page.state.conversationState.currentModel,
                     setCurrentModel: (modelId) => {

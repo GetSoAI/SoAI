@@ -1,9 +1,11 @@
 /* SoAI - Hardware feature network card view [frontend/assets/ts/features/hardware/networkCardView.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { WindowsNetworkInventoryStatus } from '@core/api/contracts/hardwareContracts.ts';
 import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { narrowHTMLElement } from '@core/dom/narrowElement.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { isolateLtrText } from '@core/localization/public.ts';
 import { clampPercent } from '@core/primitives/clampNumber.ts';
 import { isNullOrUndefined } from '@core/typeGuards.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
@@ -80,6 +82,7 @@ const createNetworkSpeedSegment = (host: NetworkCardViewHost, segmentType: 'down
     const arrow = narrowHTMLElement(host.createElement('span', { className: `hardware-network-speed-arrow ${arrowClass}` }, segmentType === 'download' ? '↓' : '↑'), 'network speed arrow');
     const labelElement = narrowHTMLElement(host.createElement('span', { className: `hardware-network-speed-label hardware-resource-speed-label ${arrowClass}` }, label), 'network speed label');
     const valueElement = narrowHTMLElement(host.createElement('span', { className: 'hardware-network-speed-value' }, formatSpeedValue(value)), 'network speed value');
+    valueElement.dir = 'ltr';
     segment.append(arrow, labelElement, valueElement);
     return segment;
 };
@@ -98,6 +101,7 @@ const createNetworkStatItem = (host: NetworkCardViewHost, label: string, value: 
     const labelElement = narrowHTMLElement(host.createElement('span', { className: 'hardware-network-stat-label hardware-resource-stat-label' }, label), 'network stat label');
     const truncatedClass = truncate ? ' hardware-network-stat-value--truncated' : '';
     const valueElement = narrowHTMLElement(host.createElement('span', { className: `hardware-network-stat-value hardware-resource-stat-value hardware-network-stat-value${truncatedClass}` }, value), 'network stat value');
+    valueElement.dir = 'ltr';
     if (truncate) {
         setTooltipText(valueElement, value);
     }
@@ -111,6 +115,7 @@ const createNetworkInterfaceRow = ({ host, entry, index, labels }: NetworkRowOpt
 
     const header = narrowHTMLElement(host.createElement('div', { className: 'hardware-network-row-header hardware-resource-row-header' }), 'network row header');
     const nameElement = narrowHTMLElement(host.createElement('span', { className: 'hardware-network-name hardware-resource-name' }, entry.name), 'network row name');
+    nameElement.dir = 'auto';
     setTooltipText(nameElement, entry.name);
     header.append(nameElement, createNetworkSpeedDisplay(host, labels, entry.dlMbps, entry.ulMbps));
 
@@ -129,9 +134,11 @@ const createNetworkInterfaceRow = ({ host, entry, index, labels }: NetworkRowOpt
     return row;
 };
 
-const buildNetworkSummaryText = (rows: readonly NetworkInterfaceModel[]): string => {
+const buildNetworkEmptyText = (windowsInventoryStatus: WindowsNetworkInventoryStatus | null): string => (windowsInventoryStatus === 'unavailable' ? i18n.t('hardware.cards.network.unavailable') : i18n.t('hardware.cards.network.empty'));
+
+const buildNetworkSummaryText = (rows: readonly NetworkInterfaceModel[], windowsInventoryStatus: WindowsNetworkInventoryStatus | null = null): string => {
     if (!rows.length) {
-        return i18n.t('hardware.cards.network.summary.none');
+        return windowsInventoryStatus === 'unavailable' ? i18n.t('hardware.cards.network.unavailable') : i18n.t('hardware.cards.network.summary.none');
     }
     let peakMbps = 0;
     let peakDirection: 'download' | 'upload' | null = null;
@@ -147,13 +154,14 @@ const buildNetworkSummaryText = (rows: readonly NetworkInterfaceModel[]): string
     });
     const label = rows.length === 1 ? i18n.t('hardware.cards.network.summary.interfaceSingular') : i18n.t('hardware.cards.network.summary.interfacePlural');
     const direction = peakDirection === 'download' ? i18n.t('hardware.cards.network.summary.peakDownloadMarker') : peakDirection === 'upload' ? i18n.t('hardware.cards.network.summary.peakUploadMarker') : null;
-    let summary = direction === null ? i18n.t('hardware.cards.network.summary.withPeak', { count: rows.length, label, peakLabel: i18n.t('hardware.cards.network.summary.peakLabel'), peak: formatSpeedValue(peakMbps) }) : i18n.t('hardware.cards.network.summary.withPeakDirection', { count: rows.length, label, peakLabel: i18n.t('hardware.cards.network.summary.peakLabel'), peak: formatSpeedValue(peakMbps), direction });
+    const peak = isolateLtrText(formatSpeedValue(peakMbps));
+    let summary = direction === null ? i18n.t('hardware.cards.network.summary.withPeak', { count: rows.length, label, peakLabel: i18n.t('hardware.cards.network.summary.peakLabel'), peak }) : i18n.t('hardware.cards.network.summary.withPeakDirection', { count: rows.length, label, peakLabel: i18n.t('hardware.cards.network.summary.peakLabel'), peak, direction });
     const primaryRow = rows.find((row) => row.dlMbps > 0 || row.ulMbps > 0);
     if (primaryRow?.name) {
-        summary += ` • ${primaryRow.name}`;
+        summary += ` • ${isolateLtrText(primaryRow.name)}`;
     }
     return summary;
 };
 
-export { buildNetworkSummaryText, createNetworkInterfaceRow };
+export { buildNetworkEmptyText, buildNetworkSummaryText, createNetworkInterfaceRow };
 export type { NetworkCardLabelSet, NetworkCardViewHost };

@@ -41,7 +41,6 @@ interface RunAppLifecycleBootstrapOptions {
     monitorConnectionStatus: () => void;
     toggleMainUI: (show: boolean) => void;
     destroyRegisteredComponents: () => Promise<void>;
-    renderInitializationError: (error: Error) => void;
 }
 
 const runAppLifecycleBootstrap = async (options: RunAppLifecycleBootstrapOptions): Promise<void> => {
@@ -98,10 +97,11 @@ const runAppLifecycleBootstrap = async (options: RunAppLifecycleBootstrapOptions
             );
         }
         options.monitorConnectionStatus();
-        void dependencies.boot.finalizePreloader().catch((error) => {
+        const preloaderFinalization = dependencies.boot.finalizePreloader();
+        dependencies.boot.clearBootState();
+        await preloaderFinalization.catch((error) => {
             errorHandler.warn('AppLifecycle', 'Preloader finalization failed after bootstrap', ensureError(error));
         });
-        dependencies.boot.clearBootState();
         if (dependencies.auth.isAuthenticated) {
             void dependencies.streamManager.resources.startAuto().catch((error) => {
                 if (isAbortError(error) || isLifecycleCancellationError(error)) {
@@ -140,7 +140,6 @@ const runAppLifecycleBootstrap = async (options: RunAppLifecycleBootstrapOptions
         options.setDataHubConnectionSubscription(cleanupResult.dataHubConnectionSubscription);
         options.setRouterWarmupUnsubscribe(cleanupResult.routerWarmupUnsubscribe);
         options.setUiTracker(cleanupResult.uiTracker);
-        options.renderInitializationError(runtimeError);
         throw runtimeError;
     }
 };

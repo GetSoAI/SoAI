@@ -118,7 +118,7 @@ export interface HeaderSearchManagerContract extends SearchManagerState {
     displayResultsWithCategoryState: (results: SearchItem[], state: { category: string; type: 'loading' | 'empty' | 'error'; message: string }) => void;
     displayNoResults: (query: string) => void;
     displaySearchInitializing: () => void;
-    displaySearchError: () => void;
+    displaySearchError: (error?: Error) => void;
     showMessage: (markup: TrustedHtml) => void;
 
     updateSelectedItems: (nodes: HTMLElement[], options?: { scroll?: boolean }) => void;

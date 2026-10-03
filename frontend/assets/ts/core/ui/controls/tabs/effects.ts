@@ -3,22 +3,12 @@
 
 import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { dom } from '@core/dom/dom.ts';
-import { OverflowNavController } from '@core/ui/controls/OverflowNav.ts';
 import { calculateTabScrollOffset } from '@core/ui/controls/tabs/service.ts';
 import type { RightButtonConfig } from '@core/ui/controls/tabs/types.ts';
 import { renderRightButtonsMarkup } from '@core/ui/controls/tabs/view.ts';
 
 type ResolveElement = (selector: string) => Element | null;
 type ResolveElements = (selector: string) => Element[];
-type RegisterEventHandler = (target: EventTarget, event: string, handler: EventListener, options?: AddEventListenerOptions) => () => void;
-
-interface TabsDomReferences {
-    navWrapper: HTMLElement | null;
-    nav: HTMLElement | null;
-    leftNavButton: HTMLElement | null;
-    rightNavButton: HTMLElement | null;
-    buttonsContainer: HTMLElement | null;
-}
 
 interface RightButtonsRenderOptions {
     className: string;
@@ -28,32 +18,20 @@ interface RightButtonsRenderOptions {
     resolveElement: ResolveElement;
 }
 
-interface OverflowNavSetupOptions {
-    enableOverflowNav: boolean;
-    navScrollAmount: number;
-    nav: HTMLElement | null;
-    leftNavButton: HTMLElement | null;
-    rightNavButton: HTMLElement | null;
-    addEventListener: RegisterEventHandler;
-}
-
 const toHtmlElement = (value: Element | null): HTMLElement | null => (value instanceof HTMLElement ? value : null);
 
-const cacheTabsDomReferences = (resolveElement: ResolveElement, className: string): TabsDomReferences => ({
-    navWrapper: toHtmlElement(resolveElement(`.${className}-nav-wrapper`)),
-    nav: toHtmlElement(resolveElement(`.${className}-nav`)),
-    leftNavButton: toHtmlElement(resolveElement(`.${className}-nav-button--left`)),
-    rightNavButton: toHtmlElement(resolveElement(`.${className}-nav-button--right`)),
-    buttonsContainer: toHtmlElement(resolveElement(`#${className}-buttons`))
-});
+const resolveTabsNav = (resolveElement: ResolveElement, className: string): HTMLElement | null => toHtmlElement(resolveElement(`.${className}-nav`));
 
 const updateActiveTabState = (resolveElements: ResolveElements, className: string, activeTab: string | null): void => {
     resolveElements(`.${className}-tab`).forEach((tab) => {
-        dom.toggleClass(tab, 'is-active', dom.getData(tab, 'tab') === activeTab);
+        const isActive = dom.getData(tab, 'tab') === activeTab;
+        dom.toggleClass(tab, 'is-active', isActive);
+        dom.setAttribute(tab, 'aria-selected', isActive ? 'true' : 'false');
     });
 };
 
 const updateTabSelectionState = (tab: HTMLElement, panel: HTMLElement, isActive: boolean): void => {
+    dom.toggleClass(panel, 'is-active', isActive);
     dom.setAttribute(tab, 'aria-selected', isActive ? 'true' : 'false');
     dom.setAttribute(panel, 'aria-hidden', isActive ? 'false' : 'true');
     panel.hidden = !isActive;
@@ -76,17 +54,6 @@ const renderRightButtons = (options: RightButtonsRenderOptions): HTMLElement | n
     return resolvedContainer;
 };
 
-const setupOverflowNav = (options: OverflowNavSetupOptions): OverflowNavController | null => {
-    if (!options.enableOverflowNav || !options.nav || !options.leftNavButton || !options.rightNavButton) {
-        return null;
-    }
-    const overflowNav = new OverflowNavController(options.nav, options.leftNavButton, options.rightNavButton, {
-        scrollAmount: options.navScrollAmount
-    });
-    overflowNav.initialize(options.addEventListener);
-    return overflowNav;
-};
-
 const scrollTabIntoView = (nav: HTMLElement | null, tabId: string, resolveElement: ResolveElement): void => {
     if (!nav) {
         return;
@@ -101,5 +68,4 @@ const scrollTabIntoView = (nav: HTMLElement | null, tabId: string, resolveElemen
     }
 };
 
-export { cacheTabsDomReferences, renderRightButtons, scrollTabIntoView, setupOverflowNav, updateActiveTabState, updateTabAvailabilityState, updateTabSelectionState };
-export type { TabsDomReferences };
+export { renderRightButtons, resolveTabsNav, scrollTabIntoView, updateActiveTabState, updateTabAvailabilityState, updateTabSelectionState };

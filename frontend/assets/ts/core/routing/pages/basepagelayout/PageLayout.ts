@@ -230,7 +230,7 @@ class PageLayout implements PageLayoutContract {
                 ...(this.#controls.getActionsMenuBreakpoint ? { getActionsMenuBreakpoint: this.#controls.getActionsMenuBreakpoint } : {}),
                 ...(this.#controls.getActionsMenuSidebarState ? { getActionsMenuSidebarState: this.#controls.getActionsMenuSidebarState } : {}),
                 ...(this.#controls.onActionsMenuCollapsedChange ? { onActionsMenuCollapsedChange: this.#controls.onActionsMenuCollapsedChange } : {}),
-                ...(this.#controls.collapseActionsMenuToFit === true ? { collapseActionsMenuToFit: true } : {})
+                collapseActionsMenuToFit: this.#controls.collapseActionsMenuToFit ?? true
             })
         );
     }

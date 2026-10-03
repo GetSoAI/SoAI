@@ -1,6 +1,8 @@
 /* SoAI - Charts feature rendering models [frontend/assets/ts/features/charts/rendering/renderingModels.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { TimeAxisFrame } from '@features/charts/viewport/timeViewport.ts';
+
 interface AxisBreakpoint {
     width: number;
     labels: number;
@@ -21,24 +23,11 @@ interface CanvasSize {
     height: number;
 }
 
-interface TimeWindow {
+interface RenderGeometry extends TimeAxisFrame {
     startTs: number;
     endTs: number;
     span: number;
-}
-
-interface RenderGeometry {
-    baseLeft: number;
-    spacing: number;
-    effectiveWidth: number;
-    rightBoundary: number;
-    visibleCount: number;
-    originX: number;
-    timeWindow: TimeWindow | null;
-    span: number;
-    chartWidth: number;
-    nearTail: boolean;
-    appliedMarginSlots: number;
+    slotWidth: number;
 }
 
 interface ValueViewport {
@@ -73,4 +62,4 @@ interface CornerRadii {
     bl: number;
 }
 
-export type { AxisBreakpoint, ChartDimensions, CanvasSize, TimeWindow, RenderGeometry, ValueViewport, YAxisTick, XAxisTick, AxisCache, CornerRadii };
+export type { AxisBreakpoint, ChartDimensions, CanvasSize, RenderGeometry, ValueViewport, YAxisTick, XAxisTick, AxisCache, CornerRadii };

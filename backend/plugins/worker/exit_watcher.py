@@ -15,7 +15,7 @@ from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ProcessError
 from core.logging.trace import get_logger
 from core.runtime.backend_process_tracking import cleanup_backend_process_identities
-from core.timing.constants import SHORT_POLL_INTERVAL_SEC
+from core.timing.constants import STANDARD_DELAY_SEC
 from plugins.package_leases import remove_plugin_package_lease
 from plugins.worker.controller_faults import mark_worker_crashed
 from plugins.worker.descendant_ownership import capture_worker_descendants
@@ -80,6 +80,10 @@ class PluginWorkerExitWatcher:
         identities: list[BackendProcessIdentity] = []
         created: int | None = None
         cleanup_attempted = False
+        exit_wait = create_ephemeral_task(
+            process.wait(),
+            name=f"plugin-worker-exit-wait-{plugin_name}",
+        )
         try:
             while process.returncode is None:
                 try:
@@ -96,7 +100,7 @@ class PluginWorkerExitWatcher:
                     )
                     await runtime.worker.terminate(operation=OPERATION_OWNERSHIP_FAILED)
                     break
-                await asyncio.sleep(SHORT_POLL_INTERVAL_SEC)
+                await asyncio.wait({exit_wait}, timeout=STANDARD_DELAY_SEC)
             async with self._manager.dependencies.infrastructure.lifecycle.plugin_lock_scope(
                 plugin_name,
             ):
@@ -117,14 +121,17 @@ class PluginWorkerExitWatcher:
                     if not result.succeeded:
                         raise ProcessError("Exited plugin worker resources could not be released.")
         finally:
-            if process.returncode is not None and not cleanup_attempted:
-                result = await cancellation_cleanup(
-                    cleanup_backend_process_identities(
-                        identities, plugin_name=plugin_name, logger=get_logger(LOGGER_NAME)
+            try:
+                await cancel_and_await((exit_wait,), task_label="plugin worker exit wait")
+            finally:
+                if process.returncode is not None and not cleanup_attempted:
+                    result = await cancellation_cleanup(
+                        cleanup_backend_process_identities(
+                            identities, plugin_name=plugin_name, logger=get_logger(LOGGER_NAME)
+                        )
                     )
-                )
-                if not result.succeeded:
-                    raise ProcessError("Stopped plugin worker resources could not be released.")
+                    if not result.succeeded:
+                        raise ProcessError("Stopped plugin worker resources could not be released.")
 
     async def _reconcile_worker_exit(
         self,

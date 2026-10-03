@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from playwright.async_api import HttpCredentials, Page
 
 from core.browser_adblock.protocols import EasyListAdblockServiceProtocol
+from core.concurrency.lock_registry import TTLAsyncLockRegistry, TTLAsyncLockRegistryDependencies
 from core.config.protocols import ConfigProtocol
 from core.errors.exceptions import ValidationError
 from core.hardware.protocols_storage import StorageManagerProtocol
@@ -82,7 +83,14 @@ class BrowserSessionStore:
         self.adblock_service = adblock_service
         self.sessions: dict[str, BrowserSessionState] = {}
         self.sessions_lock = asyncio.Lock()
-        self.owner_create_locks: dict[str, asyncio.Lock] = {}
+        self.closing = False
+        self.owner_create_locks: TTLAsyncLockRegistry[str] = TTLAsyncLockRegistry(
+            TTLAsyncLockRegistryDependencies(
+                ttl_seconds=self.SESSION_IDLE_TTL_SEC,
+                max_size=self.MAX_SESSIONS,
+                cleanup_interval_seconds=300.0,
+            ),
+        )
         self.runtime = PlaywrightBrowserRuntime(
             config=config,
             runtime_flags=runtime_flags,
@@ -142,11 +150,12 @@ class BrowserSessionStore:
     async def shutdown(self) -> None:
         await shutdown(self)
 
-    async def _mark_driver_disconnected_sessions(self) -> None:
+    async def _mark_driver_disconnected_sessions(self, generation: int) -> None:
         async with self.sessions_lock:
             states = list(self.sessions.values())
         for state in states:
-            mark_browser_session_driver_disconnected(
-                state,
-                reason="Playwright driver connection closed while the browser session was active.",
-            )
+            if state.driver_generation == generation:
+                mark_browser_session_driver_disconnected(
+                    state,
+                    reason="Playwright driver connection closed while the browser session was active.",
+                )

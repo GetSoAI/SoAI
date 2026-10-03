@@ -28,11 +28,11 @@
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-nav--left {
-        left: var(--space-3);
+        inset-inline-start: var(--space-3);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-nav--right {
-        right: var(--space-3);
+        inset-inline-end: var(--space-3);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-overflow-nav.is-active {

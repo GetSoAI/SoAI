@@ -32,7 +32,7 @@ OHLC_SQL = """
             COUNT(*) AS sample_count
         FROM bucketed
         GROUP BY bin_start_ts
-        ORDER BY bin_start_ts ASC
+        ORDER BY bin_start_ts DESC
         LIMIT ?
     """
 
@@ -51,7 +51,7 @@ AVG_SQL = """
             COUNT(*) AS sample_count
         FROM base
         GROUP BY bin_start_ts
-        ORDER BY bin_start_ts ASC
+        ORDER BY bin_start_ts DESC
         LIMIT ?
     """
 
@@ -69,7 +69,7 @@ MIN_SQL = """
             COUNT(*) AS sample_count
         FROM base
         GROUP BY bin_start_ts
-        ORDER BY bin_start_ts ASC
+        ORDER BY bin_start_ts DESC
         LIMIT ?
     """
 
@@ -87,7 +87,7 @@ MAX_SQL = """
             COUNT(*) AS sample_count
         FROM base
         GROUP BY bin_start_ts
-        ORDER BY bin_start_ts ASC
+        ORDER BY bin_start_ts DESC
         LIMIT ?
     """
 
@@ -105,7 +105,7 @@ COUNT_SQL = """
             COUNT(*) AS sample_count
         FROM base
         GROUP BY bin_start_ts
-        ORDER BY bin_start_ts ASC
+        ORDER BY bin_start_ts DESC
         LIMIT ?
     """
 
@@ -160,7 +160,7 @@ DELTA_SQL = """
             COUNT(delta_value) AS sample_count
         FROM deltas
         GROUP BY bin_start_ts
-        ORDER BY bin_start_ts ASC
+        ORDER BY bin_start_ts DESC
         LIMIT ?8
     """
 
@@ -229,7 +229,7 @@ DELTA_OHLC_SQL = """
             COUNT(*) AS sample_count
         FROM bucketed
         GROUP BY bin_start_ts
-        ORDER BY bin_start_ts ASC
+        ORDER BY bin_start_ts DESC
         LIMIT ?8
     """
 

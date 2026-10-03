@@ -6,7 +6,7 @@ from __future__ import annotations
 import re
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from core.errors.exceptions import ValidationError
 from features.api.schemas.json_fields import PydanticJSONValue
@@ -54,6 +54,8 @@ class VirtualModelCreate(BaseModel):
 
 
 class VirtualModelUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     strategy: Literal["load_balancing", "failover"] | None = None
     models: list[ConstituentModel] | None = Field(None)
 
@@ -74,4 +76,6 @@ class VirtualModelUpdate(BaseModel):
 
 
 class VirtualModelEnabledUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     enabled: bool

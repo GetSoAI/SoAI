@@ -56,6 +56,7 @@ export type ChatMessageTranslationKey =
     | 'chat.message.timestampCopied'
     | 'chat.message.timestampRange'
     | 'chat.message.timestampToday'
+    | 'chat.message.timestampWithTime'
     | 'chat.message.timestampYesterday'
     | 'chat.message.toolCall'
     | 'chat.message.waiting'

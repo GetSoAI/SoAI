@@ -26,6 +26,7 @@ class PageLifecycle {
     readonly #teardown: PageTeardown;
     readonly #initializeScope = new LifecycleScope();
     readonly #listenersScope = new LifecycleScope();
+    readonly #detachedScopes: Map<string, LifecycleScope> = new Map();
     readonly #activation = new PageActivationGate();
     #initialized = false;
     #destroyed = false;
@@ -72,9 +73,22 @@ class PageLifecycle {
         return await this.#boundary.execute(task, operation);
     }
 
-    runDetached(operation: string, task: () => Promise<void> | void): void {
-        void this.#boundary.execute(task, operation).catch((error) => {
-            errorHandler.debug(this.#dependencies.pageId, `Detached operation rejection settled: ${operation}`, ensureError(error));
+    runDetached(operation: string, task: (signal: AbortSignal) => Promise<void> | void): void {
+        const scope = this.#detachedScopes.get(operation) ?? new LifecycleScope();
+        this.#detachedScopes.set(operation, scope);
+        const run = scope.begin(`${operation}-superseded`);
+        const detachedTask = this.#boundary
+            .execute(() => task(run.signal), operation)
+            .finally(() => {
+                if (scope.isCurrent(run)) {
+                    scope.abort(`${operation}-complete`);
+                    this.#detachedScopes.delete(operation);
+                }
+            });
+        void detachedTask.catch((error) => {
+            if (!isAbortError(error)) {
+                errorHandler.debug(this.#dependencies.pageId, `Detached operation rejection settled: ${operation}`, ensureError(error));
+            }
         });
     }
 
@@ -95,7 +109,6 @@ class PageLifecycle {
                     phases: this.#activation.phases(command.readiness),
                     pageHost: this.#dependencies.pageHost,
                     pageDom: this.#dependencies.pageDom,
-                    services: this.#dependencies.services,
                     layout: this.#dependencies.layout,
                     isDestroyed: this.#destroyed,
                     isInitialized: this.#initialized,
@@ -160,6 +173,7 @@ class PageLifecycle {
         this.#activation.cancel();
         this.abortListeners(reason);
         this.#runtime.cancel(reason);
+        this.#abortDetached(reason);
     }
 
     deferActivation(): void {
@@ -215,10 +229,11 @@ class PageLifecycle {
     }
 
     setup(): void {
-        runBasePageStandardSetup(this.#dependencies.services, this.#dependencies.layout);
+        runBasePageStandardSetup(this.#dependencies.layout);
     }
 
     async refresh(parameters: JsonObject | null, command: PageRefreshCommand, context: { signal?: AbortSignal } = {}): Promise<void> {
+        this.#abortDetached('refresh');
         command.beforeCleanup();
         await this.#dependencies.layout.cleanup();
         await this.#dependencies.resources.cleanupTracked();
@@ -275,6 +290,13 @@ class PageLifecycle {
 
     async cleanup(cleanupDomainState: () => void, onCollectionStateCleaned: () => void): Promise<boolean> {
         return this.#teardown.cleanup(cleanupDomainState, onCollectionStateCleaned);
+    }
+
+    #abortDetached(reason: string): void {
+        for (const scope of this.#detachedScopes.values()) {
+            scope.abort(reason);
+        }
+        this.#detachedScopes.clear();
     }
 
     #requireActiveInitialization(generation: number): void {

@@ -68,11 +68,12 @@ const renderInlineActivityPreview = (dependencies: InlineActivityHeaderDependenc
     const rootClassName = inputArguments.rootClassName ? ` ${inputArguments.rootClassName.trim()}` : '';
     const textAttributes = inputArguments.textAttributes ? ` ${inputArguments.textAttributes.trim()}` : '';
     const previewText = stripTrailingPreviewDot(inputArguments.text);
-    return `<span class="inline-activity-preview${rootClassName}"${hiddenAttribute}${rootAttributes}><span class="inline-activity-preview-text"${textAttributes}>${dependencies.escapeHtml(previewText)}</span></span>`;
+    return `<span class="inline-activity-preview${rootClassName}"${hiddenAttribute}${rootAttributes}><span dir="auto" class="inline-activity-preview-text"${textAttributes}>${dependencies.escapeHtml(previewText)}</span></span>`;
 };
 
-const renderInlineActivityStreamedPreview = (dependencies: InlineActivityHeaderDependencies, inputArguments: { status: InlineLoadingActivitySegment['status']; visible: string; latest: string }): string => {
-    const rootAttributes = `${STREAMED_PREVIEW_ATTRIBUTE_NAMES.root}="true"` + ` ${STREAMED_PREVIEW_ATTRIBUTE_NAMES.status}="${dependencies.escapeAttribute(inputArguments.status)}"` + ` ${STREAMED_PREVIEW_ATTRIBUTE_NAMES.visible}="${dependencies.escapeAttribute(inputArguments.visible)}"` + ` ${STREAMED_PREVIEW_ATTRIBUTE_NAMES.latest}="${dependencies.escapeAttribute(inputArguments.latest)}"`;
+const renderInlineActivityStreamedPreview = (dependencies: InlineActivityHeaderDependencies, inputArguments: { status: InlineLoadingActivitySegment['status']; visible: string; latest: string; revealAtMs?: number | undefined }): string => {
+    const revealAtAttribute = inputArguments.revealAtMs === undefined ? '' : ` ${STREAMED_PREVIEW_ATTRIBUTE_NAMES.revealAt}="${dependencies.escapeAttribute(String(inputArguments.revealAtMs))}"`;
+    const rootAttributes = `${STREAMED_PREVIEW_ATTRIBUTE_NAMES.root}="true"` + ` ${STREAMED_PREVIEW_ATTRIBUTE_NAMES.status}="${dependencies.escapeAttribute(inputArguments.status)}"` + ` ${STREAMED_PREVIEW_ATTRIBUTE_NAMES.visible}="${dependencies.escapeAttribute(inputArguments.visible)}"` + ` ${STREAMED_PREVIEW_ATTRIBUTE_NAMES.latest}="${dependencies.escapeAttribute(inputArguments.latest)}"` + revealAtAttribute;
     return renderInlineActivityPreview(dependencies, { text: inputArguments.visible, rootAttributes });
 };
 
@@ -140,7 +141,7 @@ const renderInlineActivityHeaderRow = (
     const ariaLabelAttr = escapedName ? ` aria-label="${escapedName}"` : '';
     const headerOpen = `<${inputArguments.tagName} class="inline-activity-header"${attrs}${titleAttr}${ariaLabelAttr}>`;
     const headerClose = `</${inputArguments.tagName}>`;
-    return `${headerOpen}${inputArguments.leadingIconHtml}${inputArguments.statusLedHtml}${inputArguments.mainIconHtml}<span class="inline-activity-name">${dependencies.escapeHtml(inputArguments.name)}</span>${separatorDot}${preview}${duration}${stopButton}${closeButton}${headerClose}`;
+    return `${headerOpen}${inputArguments.leadingIconHtml}${inputArguments.statusLedHtml}${inputArguments.mainIconHtml}<span dir="auto" class="inline-activity-name">${dependencies.escapeHtml(inputArguments.name)}</span>${separatorDot}${preview}${duration}${stopButton}${closeButton}${headerClose}`;
 };
 
 export { renderInlineActivityHeaderRow, renderInlineActivityIcon, renderInlineActivityLeadingIcon, renderInlineActivityPreview, renderInlineActivityStreamedPreview };

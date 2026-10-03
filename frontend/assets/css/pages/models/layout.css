@@ -18,7 +18,7 @@
     }
 
     :where([data-section='models'], [data-page-scope='models']) .variant-check-badge-text {
-        margin-left: var(--space-15);
+        margin-inline-start: var(--space-15);
     }
 
     :where([data-section='models'], [data-page-scope='models']) .variant-check-advisory {
@@ -61,7 +61,7 @@
         font-weight: 600;
         color: var(--text-tertiary);
         opacity: 1;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-05px);
         margin-bottom: var(--space-2);
         display: block;
@@ -105,11 +105,11 @@
         font-size: var(--font-size-body-xs);
         font-weight: 600;
         flex-shrink: 0;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-05px);
         min-width: 114px;
         max-width: 171px;
-        text-align: right;
+        text-align: end;
         justify-content: flex-end;
         position: relative;
     }
@@ -209,7 +209,7 @@
     :where([data-section='models'], [data-page-scope='models']) .detail-label {
         font-size: var(--font-size-caption-plus);
         color: var(--text-tertiary);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         font-weight: 500;
         letter-spacing: var(--tracking-05px);
         display: block;

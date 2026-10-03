@@ -4,7 +4,7 @@
 import { getWindow } from '@core/environment/public.ts';
 import { applyAdaptiveNumbers } from '@core/ui/adaptiveNumber.ts';
 import { openMetricsAdvancedModal } from '@features/metrics/public.ts';
-import { METRICS_ACTION_EXPORT, METRICS_ACTION_MORE, METRICS_ACTION_REQUEST_DISTRIBUTION_SOURCE_TOGGLE, METRICS_ACTION_SORT, type MetricsActionId } from '@pages/metrics/actions.ts';
+import { METRICS_ACTION_EXPORT, METRICS_ACTION_HISTORY_RETRY, METRICS_ACTION_MORE, METRICS_ACTION_REQUEST_DISTRIBUTION_SOURCE_TOGGLE, METRICS_ACTION_SORT, type MetricsActionId } from '@pages/metrics/actions.ts';
 import { openMetricsExportPreview } from '@pages/metrics/controllers/page/adapters.ts';
 import type { MetricsPageEventHost } from '@pages/metrics/controllers/page/contracts.ts';
 import { handleMetricsRootSortAction, initializeMetricsTables } from '@pages/metrics/controllers/page/tables.ts';
@@ -14,6 +14,10 @@ import { toggleMetricsRequestDistributionSource } from '@pages/metrics/widgets/e
 const handleMetricsRootClick = (host: MetricsPageEventHost, action: MetricsActionId, actionElement: Element, event: Event): void | Promise<void> => {
     if (event.defaultPrevented) {
         return;
+    }
+    if (action === METRICS_ACTION_HISTORY_RETRY) {
+        event.preventDefault();
+        return host.history.load();
     }
     if (action === METRICS_ACTION_EXPORT) {
         event.preventDefault();

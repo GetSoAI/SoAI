@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 __all__ = (
     "get_all_live_metrics_query",
-    "sync_clear_all_live_metrics",
     "sync_upsert_live_metrics",
 )
 
@@ -38,7 +37,3 @@ async def get_all_live_metrics_query(
 ) -> list[JSONDict]:
     rows = await query_to_dicts(database, "SELECT * FROM metrics_live")
     return sqlite_row_dicts_to_json_dicts(rows)
-
-
-def sync_clear_all_live_metrics(conn: sqlite3.Connection) -> None:
-    conn.execute("DELETE FROM metrics_live")

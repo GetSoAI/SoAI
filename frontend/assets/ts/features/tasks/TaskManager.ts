@@ -12,6 +12,7 @@ import { TaskManagerActions } from '@features/tasks/taskmanager/TaskManagerActio
 import { bindTaskManagerInteractionBindings } from '@features/tasks/taskmanager/taskManagerInteractionBindings.ts';
 import type { TaskManagerDependencies, TaskManagerElements, TaskManagerStoreApi } from '@features/tasks/taskmanager/taskManagerTypes.ts';
 import { TaskManagerView } from '@features/tasks/taskmanager/TaskManagerView.ts';
+import { resolveStopAllTargets } from '@features/tasks/taskmanager/service.ts';
 import { runAsyncCleanupStepCollectingFailure, throwCollectedCleanupFailures } from '@core/lifecycle/cleanup.ts';
 
 const TASK_PANEL_EXPANDED_STORAGE_KEY = 'header_task_panel_expanded';
@@ -26,6 +27,7 @@ class TaskManager extends LifecycleModel implements TaskOperationsApi {
     #elements: TaskManagerElements | null = null;
     #storeSubscription: (() => void) | null = null;
     #lifecycleGeneration = 0;
+    #stoppingAll = false;
 
     isExpanded = false;
     constructor(dependencies: TaskManagerDependencies) {
@@ -38,9 +40,6 @@ class TaskManager extends LifecycleModel implements TaskOperationsApi {
         }
         if (!dependencies.statusManager || !isFunction(dependencies.statusManager.createIndicator)) {
             throw new Error('TaskManager requires statusManager.createIndicator');
-        }
-        if (!dependencies.apiClient || !isFunction(dependencies.apiClient.post)) {
-            throw new Error('TaskManager requires apiClient');
         }
         if (!dependencies.stream) {
             throw new Error('TaskManager requires stream owners');
@@ -61,12 +60,10 @@ class TaskManager extends LifecycleModel implements TaskOperationsApi {
             showNotification: (message: string, type: NotificationType) => showNotification(message, type)
         });
         this.#actions = new TaskManagerActions({
-            apiClient: dependencies.apiClient,
             stream: dependencies.stream,
             store: this.#store,
             operationCancellation: this.#operationCancellation,
-            showNotification: (message: string, type: NotificationType) => showNotification(message, type),
-            hidePanel: () => this.#collapse()
+            showNotification: (message: string, type: NotificationType) => showNotification(message, type)
         });
         this.#operations = new TaskOperationApiController({ store: this.#store, cancellation: this.#operationCancellation });
     }
@@ -194,10 +191,18 @@ class TaskManager extends LifecycleModel implements TaskOperationsApi {
     }
 
     async stopAllPlugins(): Promise<void> {
-        if (this.isExpanded) {
-            this.collapse();
+        if (this.#stoppingAll) return;
+        this.#stoppingAll = true;
+        if (this.#elements) this.#updateStopAllAvailability(this.#elements);
+        try {
+            if (this.isExpanded) {
+                this.collapse();
+            }
+            await this.#actions.stopAllPlugins();
+        } finally {
+            this.#stoppingAll = false;
+            if (this.#elements) this.#updateStopAllAvailability(this.#elements);
         }
-        await this.#actions.stopAllPlugins();
     }
 
     renderPluginList(): void {
@@ -253,10 +258,8 @@ class TaskManager extends LifecycleModel implements TaskOperationsApi {
     }
 
     #updateStopAllAvailability(elements: TaskManagerElements): void {
-        const stopCount = this.#store.getStoppableCount();
-        const cancelCount = this.#store.getCancelableOperations().length;
-        const enabled = stopCount > 0 || cancelCount > 0;
-        elements.stopAllButton.disabled = !enabled;
+        const targets = resolveStopAllTargets(this.#store);
+        elements.stopAllButton.disabled = this.#stoppingAll || (targets.plugins.length === 0 && targets.operations.length === 0);
     }
 
     #resolveExpandedPreference(): boolean {

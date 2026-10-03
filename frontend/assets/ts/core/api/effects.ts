@@ -60,7 +60,7 @@ const resolveUploadProgressPayload = (event: ProgressEvent<EventTarget>): Upload
     };
 };
 
-const executeXmlHttpRequestUpload = async (requestUrl: string, fetchConfig: RequestInit, requestBody: FormData, scope: ApiAbortScope, onUploadProgress: (progress: UploadProgress) => void): Promise<Response> => {
+const executeXmlHttpRequestUpload = async (requestUrl: string, fetchConfig: RequestInit, requestBody: FormData, scope: ApiAbortScope, onUploadProgress: ((progress: UploadProgress) => void) | undefined, refreshTimeoutOnProgress: boolean): Promise<Response> => {
     const xhr = new XMLHttpRequest();
     const handleAbort = (): void => {
         xhr.abort();
@@ -78,11 +78,13 @@ const executeXmlHttpRequestUpload = async (requestUrl: string, fetchConfig: Requ
                 xhr.setRequestHeader(key, value);
             });
             xhr.upload.onprogress = (event): void => {
-                onUploadProgress(resolveUploadProgressPayload(event));
+                if (refreshTimeoutOnProgress) scope.refreshTimeout();
+                onUploadProgress?.(resolveUploadProgressPayload(event));
             };
             xhr.upload.onload = (event): void => {
+                if (refreshTimeoutOnProgress) scope.refreshTimeout();
                 const progress = resolveUploadProgressPayload(event);
-                onUploadProgress({ ...progress, percent: 100 });
+                onUploadProgress?.({ ...progress, percent: 100 });
             };
             xhr.onerror = (): void => {
                 reject(new Error('Network request failed'));
@@ -107,7 +109,7 @@ const executeXmlHttpRequestUpload = async (requestUrl: string, fetchConfig: Requ
 };
 
 const executeApiRequest = async (method: string, endpoint: string, data: ApiRequestBody, options: RequestOptions, dependencies: ApiRequestExecutorDependencies): Promise<ApiResponsePayload> => {
-    const { rawResponse = false, bufferRawResponse = false, headers: optionHeaders = {}, query = null, body: explicitBody, timeoutMs, onUploadProgress, authTransitionOwned = false, ...restOptions } = options;
+    const { rawResponse = false, bufferRawResponse = false, headers: optionHeaders = {}, query = null, body: explicitBody, timeoutMs, onUploadProgress, refreshTimeoutOnUploadProgress = false, authTransitionOwned = false, ...restOptions } = options;
 
     if (bufferRawResponse && !rawResponse) {
         throw new Error('Buffered raw responses require rawResponse');
@@ -139,7 +141,12 @@ const executeApiRequest = async (method: string, endpoint: string, data: ApiRequ
             signal: scope.signal
         });
         const requestStartedAtMonotonicMs = monotonicMs();
-        const response = fetchConfig.body instanceof FormData && typeof onUploadProgress === 'function' && fetchConfig.keepalive !== true ? await executeXmlHttpRequestUpload(requestUrl, fetchConfig, fetchConfig.body, scope, onUploadProgress) : await fetch(requestUrl, fetchConfig);
+        const uploadFormData = fetchConfig.body instanceof FormData ? fetchConfig.body : null;
+        if (refreshTimeoutOnUploadProgress && uploadFormData === null) {
+            throw new Error('Upload-progress timeout refresh requires a FormData request body');
+        }
+        const useXmlHttpRequest = uploadFormData !== null && fetchConfig.keepalive !== true && (typeof onUploadProgress === 'function' || refreshTimeoutOnUploadProgress);
+        const response = useXmlHttpRequest && uploadFormData !== null ? await executeXmlHttpRequestUpload(requestUrl, fetchConfig, uploadFormData, scope, onUploadProgress, refreshTimeoutOnUploadProgress) : await fetch(requestUrl, fetchConfig);
         if (scope.signal.aborted) {
             throw new DOMException('The operation was aborted.', 'AbortError');
         }
@@ -207,7 +214,7 @@ const executeApiRequest = async (method: string, endpoint: string, data: ApiRequ
 };
 
 const fetchApiAsset = async (path: string, options: { timeout?: number; responseType?: 'text' | 'json' | 'blob'; signal?: AbortSignal } = {}): Promise<ApiResponsePayload> => {
-    const { timeout = 30000, responseType = 'text', signal: externalSignal } = options;
+    const { timeout, responseType = 'text', signal: externalSignal } = options;
     const scope = createAbortScope(externalSignal, normalizeRequestTimeoutMs(timeout));
     try {
         const response = await fetch(path, {

@@ -21,6 +21,8 @@ export type ChatMemoryTranslationKey =
     | 'chat.memory.profile.fields.recurring_tools_projects.placeholder'
     | 'chat.memory.profile.fields.role_background.label'
     | 'chat.memory.profile.fields.role_background.placeholder'
+    | 'chat.memory.profile.loadFailed'
+    | 'chat.memory.profile.retry'
     | 'chat.memory.profile.save'
     | 'chat.memory.profile.skip'
     | 'chat.memory.profile.title'

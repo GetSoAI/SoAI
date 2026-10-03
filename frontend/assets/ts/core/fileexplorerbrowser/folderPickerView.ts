@@ -4,6 +4,7 @@
 import { resolveFileExplorerBrowserStatusMessage } from '@core/fileexplorerbrowser/errorMessages.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { getLanguageService } from '@core/languageservice/service.ts';
+import { getCollator } from '@core/localization/intlCache.ts';
 import { parentVirtualPath, resolveAbsolutePath } from '@core/fileexplorerbrowser/paths.ts';
 import type { FileBrowserEntry } from '@core/fileexplorerbrowser/types.ts';
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
@@ -45,7 +46,8 @@ const resolveBrowserErrorMessage = (error: Error): string => {
 
 const sortEntriesByName = <T extends { name: string }>(entries: readonly T[], direction: 'asc' | 'desc'): readonly T[] => {
     const multiplier = direction === 'asc' ? 1 : -1;
-    return [...entries].sort((firstValue, secondValue) => multiplier * firstValue.name.localeCompare(secondValue.name, getLanguageService().getLocale(), { sensitivity: 'base' }));
+    const collator = getCollator(getLanguageService().getLocale(), { sensitivity: 'base' });
+    return [...entries].sort((firstValue, secondValue) => multiplier * collator.compare(firstValue.name, secondValue.name));
 };
 
 const formatDisplayPath = (virtualPath: string, workspacePathResolved: string | null): string => {
@@ -114,7 +116,7 @@ const renderFolderPickerModalMarkup = (options: { modalId: string; labels: Folde
                 <div class="form-row-split manual-path-row folder-picker-current">
                     <div class="form-col-main">
                         <label for="${uiAttr(modalUiId(options.modalId, 'current'))}">${options.labels.currentFolder}</label>
-                        <input id="${uiAttr(modalUiId(options.modalId, 'current'))}" class="form-input manual-models-path folder-picker-current-path" type="text" value="" readonly spellcheck="false" autocapitalize="off" autocomplete="off">
+                        <input dir="ltr" id="${uiAttr(modalUiId(options.modalId, 'current'))}" class="form-input manual-models-path folder-picker-current-path" type="text" value="" readonly spellcheck="false" autocapitalize="off" autocomplete="off">
                     </div>
                     ${rootSelector}
                 </div>

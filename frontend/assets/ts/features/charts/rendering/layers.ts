@@ -1,16 +1,14 @@
 /* SoAI - Charts feature layers [frontend/assets/ts/features/charts/rendering/layers.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { getRenderGeometry } from '@features/charts/layout/geometry.ts';
+import { monotonicMs } from '@core/time/clock.ts';
 import { computeAxisCache, drawAxes, drawGrid } from '@features/charts/rendering/axes.ts';
 import type { ChartRenderingScene } from '@features/charts/rendering/chartRenderingHost.ts';
-import { drawChartFrame } from '@features/charts/rendering/frame.ts';
+import { clipToPlotArea, drawChartFrame, resolvePlotBackground } from '@features/charts/rendering/frame.ts';
 import { drawCrosshair, drawLegend } from '@features/charts/rendering/overlays.ts';
-import { drawRoundedRect, getChartCornerRadii, hexToRgba } from '@features/charts/rendering/primitives.ts';
+import { drawHistoryPreview } from '@features/charts/rendering/preview/historyPreview.ts';
 import { drawChartData } from '@features/charts/rendering/series/service.ts';
 import { renderChartDataState } from '@features/charts/rendering/stateRenderer.ts';
-
-const { max } = Math;
 
 const renderStaticLayer = (scene: ChartRenderingScene): void => {
     const { width, height } = scene.geometry.getCanvasSize();
@@ -30,32 +28,12 @@ const renderStaticLayer = (scene: ChartRenderingScene): void => {
     }
 
     const dims = scene.geometry.getChartDimensions();
-    const geometry = getRenderGeometry(scene.state, scene.geometry, dims);
-    const theme = scene.geometry.getThemeStyles();
+    const geometry = scene.geometry.getRenderGeometry(dims);
     if (dims.chartWidth > 0 && dims.chartHeight > 0) {
-        const lineWidth = scene.geometry.getCssPixelSize?.(1) ?? 1;
-        const inset = lineWidth / 2;
-        const bgX = dims.left + inset;
-        const bgY = dims.top + inset;
-        const bgW = dims.chartWidth - lineWidth;
-        const bgH = dims.chartHeight - lineWidth;
-        const element = scene.state.element;
-        if (!element) {
-            throw new Error('Chart requires an element to resolve corner radii');
-        }
-        const radii = getChartCornerRadii(element);
-        const clipRadii = {
-            tl: max(0, (radii.tl || 0) - inset),
-            tr: max(0, (radii.tr || 0) - inset),
-            br: max(0, (radii.br || 0) - inset),
-            bl: max(0, (radii.bl || 0) - inset)
-        };
         context.save();
-        drawRoundedRect(context, bgX, bgY, bgW, bgH, clipRadii);
-        context.clip();
-        const colors = scene.state.chartOptions.colors;
-        context.fillStyle = theme?.plotBackground || hexToRgba(theme?.background || colors.background || colors.textSecondary || colors.text || colors.grid || '', 0.08);
-        context.fillRect(bgX, bgY, bgW, bgH);
+        const area = clipToPlotArea(scene, context, dims);
+        context.fillStyle = resolvePlotBackground(scene);
+        context.fillRect(area.x, area.y, area.width, area.height);
         computeAxisCache(scene, context, dims, geometry);
         drawGrid(scene, context, dims, geometry);
         context.restore();
@@ -80,8 +58,13 @@ const renderDataLayer = (scene: ChartRenderingScene): void => {
     if (renderChartDataState(scene, context, width, height)) {
         return;
     }
-    drawChartData(scene, context);
-    drawAxes(scene, context);
+    const dims = scene.geometry.getChartDimensions();
+    const geometry = scene.geometry.getRenderGeometry(dims);
+    if (geometry) {
+        drawChartData(scene, context, dims, geometry);
+        drawHistoryPreview(scene, context, dims, geometry, scene.preview.frame(monotonicMs()));
+    }
+    drawAxes(scene, context, dims, geometry);
     drawChartFrame(scene, context);
     if (scene.state.chartOptions.enableCrosshair && scene.state.crosshair.visible) drawCrosshair(scene, context);
     drawLegend(scene, context);

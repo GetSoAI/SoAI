@@ -110,7 +110,7 @@ const renderModelTypeBadges = (plugin: PluginRecord, context: PluginInfoRenderCo
             }
             const formatted = host.sanitizeText(label.toUpperCase(), { allowEmpty: true });
             const badgeClass = getBadgeColorClass(label);
-            return `<span class="ui-model-type-badge ${badgeClass}">${formatted}</span>`;
+            return `<span dir="auto" class="ui-model-type-badge ${badgeClass}">${formatted}</span>`;
         })
         .filter(Boolean)
         .join('');
@@ -131,7 +131,7 @@ const renderCapabilityBadges = (descriptors: readonly PluginCapabilityDescriptor
             const colorClass = getBadgeColorClass(descriptor.id || label);
             const title = descriptor.title ? security.escapeAttribute(descriptor.title) : '';
             const tooltipAttr = title ? ` data-tooltip="${title}"` : '';
-            return `<span class="ui-model-type-badge capability-badge ${className} ${colorClass}"${tooltipAttr}>${label}</span>`;
+            return `<span dir="auto" class="ui-model-type-badge capability-badge ${className} ${colorClass}"${tooltipAttr}>${label}</span>`;
         })
         .filter(Boolean)
         .join('');
@@ -213,8 +213,8 @@ const renderTechnicalSection = (plugin: PluginRecord, context: PluginInfoRenderC
                 <div class="plugin-info-section">
                     <h4 class="plugin-info-section-title">${i18n.t('plugins.modal.info.technical')}</h4>
                     <div class="plugin-info-grid">
-                        ${filePath ? `<div class="plugin-info-row plugin-info-row-full"><span class="plugin-info-label">${i18n.t('plugins.modal.info.file_path')}</span><span class="plugin-info-value plugin-info-value-mono">${filePath}</span></div>` : ''}
-                        ${fileHash ? `<div class="plugin-info-row plugin-info-row-full"><span class="plugin-info-label">${i18n.t('plugins.modal.info.file_hash')}</span><span class="plugin-info-value plugin-info-value-mono">${fileHash}</span></div>` : ''}
+                        ${filePath ? `<div class="plugin-info-row plugin-info-row-full"><span class="plugin-info-label">${i18n.t('plugins.modal.info.file_path')}</span><span dir="ltr" class="plugin-info-value plugin-info-value-mono">${filePath}</span></div>` : ''}
+                        ${fileHash ? `<div class="plugin-info-row plugin-info-row-full"><span class="plugin-info-label">${i18n.t('plugins.modal.info.file_hash')}</span><span dir="ltr" class="plugin-info-value plugin-info-value-mono">${fileHash}</span></div>` : ''}
                         ${maxConcurrent ? `<div class="plugin-info-row"><span class="plugin-info-label">${i18n.t('plugins.modal.info.maxConcurrent')}</span><span class="plugin-info-value">${maxConcurrent}</span></div>` : ''}
                         ${firstSeen ? `<div class="plugin-info-row"><span class="plugin-info-label">${i18n.t('plugins.modal.info.firstSeen')}</span><span class="plugin-info-value">${firstSeen}</span></div>` : ''}
                         ${lastSeen ? `<div class="plugin-info-row"><span class="plugin-info-label">${i18n.t('plugins.modal.info.last_seen')}</span><span class="plugin-info-value">${lastSeen}</span></div>` : ''}

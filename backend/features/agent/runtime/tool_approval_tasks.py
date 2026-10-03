@@ -3,10 +3,12 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from core.concurrency.cancellation_cleanup import uncancel_then_cleanup
 from core.conversations.interaction_checkpoint import (
     build_conversation_interaction_checkpoint,
     raise_if_conversation_input_suspended,
@@ -17,7 +19,7 @@ from core.errors.exceptions import StateError, ValidationError
 from core.runtime.soai_identifiers import extend_soai_id
 from core.tasks.cancellation_ids import normalize_cancellation_id
 from core.tasks.enums import TaskStatus
-from core.tasks.noncritical_finalization import finalize_noncritical
+from core.tasks.finalization import finalize
 from core.tool_approval.task_metadata import build_tool_approval_task_metadata
 from features.agent.runtime.tool_approval_task_creation import (
     build_tool_approval_notification_id,
@@ -25,6 +27,7 @@ from features.agent.runtime.tool_approval_task_creation import (
     ensure_tool_approval_task,
 )
 from features.agent.runtime.tool_approval_task_waiting import (
+    ToolApprovalWaitOutcome,
     delete_tool_approval_notification_noncritical,
     wait_for_tool_approval_completion,
 )
@@ -212,77 +215,57 @@ async def await_tool_approval_outcome(
             details={**details, "task_id": task.task_id},
         )
     notification_id = resolved_notification_id
-    if task.status.is_terminal():
-        outcome = _decode_approval_task_result(
-            logger,
-            task=task,
+    was_cancelled = False
+    wait_outcome: ToolApprovalWaitOutcome | None = None
+    try:
+        if task.status.is_terminal():
+            return _decode_approval_task_result(
+                logger,
+                task=task,
+                details={**details, "task_id": task.task_id},
+            )
+        wait_outcome = await wait_for_tool_approval_completion(
+            task_registry=task_registry,
+            cancellation_history=cancellation_history,
+            task_cancellation_id=task_cancellation_id,
+            task_id=task.task_id,
+            expires_at_ms=task.ttl_expires_at_ms,
+            logger=logger,
             details={**details, "task_id": task.task_id},
         )
-        await delete_tool_approval_notification_noncritical(
-            logger=logger,
-            database_notifications=database_notifications,
-            user_id=user_id,
-            metadata=task.metadata,
-            conv_id=conv_id,
-            task_id=task.task_id,
-            notification_id=notification_id,
+        was_cancelled = wait_outcome.was_cancelled
+        if was_cancelled:
+            return ToolApprovalTaskOutcome(approved=None, remember=False)
+        completed = wait_outcome.task
+        if completed is None:
+            return ToolApprovalTaskOutcome(approved=False, remember=False)
+        return _decode_approval_task_result(
+            logger,
+            task=completed,
+            details={**details, "task_id": task.task_id},
         )
-        return outcome
-    wait_outcome = await wait_for_tool_approval_completion(
-        task_registry=task_registry,
-        cancellation_history=cancellation_history,
-        task_cancellation_id=task_cancellation_id,
-        task_id=task.task_id,
-        expires_at_ms=task.ttl_expires_at_ms,
-        logger=logger,
-        details={**details, "task_id": task.task_id},
-    )
-    if wait_outcome.was_cancelled:
-        await finalize_noncritical(
-            task_registry,
-            task.task_id,
-            TaskStatus.CANCELLED,
-            error_message="Tool approval cancelled.",
-            status_message="Cancelled",
-            logger=logger,
-            operation="agent.tool_approval_tasks.cancelled.finalize",
-            log_message="Failed to finalize tool approval task after cancellation (non-critical).",
-            details={"conv_id": conv_id, "task_id": task.task_id, "user_id": int(user_id)},
-        )
-        await delete_tool_approval_notification_noncritical(
-            logger=logger,
-            database_notifications=database_notifications,
-            user_id=user_id,
-            metadata=task.metadata,
-            conv_id=conv_id,
-            task_id=task.task_id,
-            notification_id=notification_id,
-        )
-        return ToolApprovalTaskOutcome(approved=None, remember=False)
-    completed = wait_outcome.task
-    if completed is None:
-        await delete_tool_approval_notification_noncritical(
-            logger=logger,
-            database_notifications=database_notifications,
-            user_id=user_id,
-            metadata=task.metadata,
-            conv_id=conv_id,
-            task_id=task.task_id,
-            notification_id=notification_id,
-        )
-        return ToolApprovalTaskOutcome(approved=False, remember=False)
-    outcome = _decode_approval_task_result(
-        logger,
-        task=completed,
-        details={**details, "task_id": task.task_id},
-    )
-    await delete_tool_approval_notification_noncritical(
-        logger=logger,
-        database_notifications=database_notifications,
-        user_id=user_id,
-        metadata=task.metadata,
-        conv_id=conv_id,
-        task_id=task.task_id,
-        notification_id=notification_id,
-    )
-    return outcome
+    except asyncio.CancelledError:
+        was_cancelled = True
+        raise
+    finally:
+        if was_cancelled:
+            await finalize(
+                task_registry,
+                task.task_id,
+                TaskStatus.CANCELLED,
+                error_message="Tool approval cancelled.",
+                status_message="Cancelled",
+            )
+        if was_cancelled or wait_outcome is not None or task.status.is_terminal():
+            await uncancel_then_cleanup(
+                delete_tool_approval_notification_noncritical(
+                    logger=logger,
+                    database_notifications=database_notifications,
+                    user_id=user_id,
+                    metadata=task.metadata,
+                    conv_id=conv_id,
+                    task_id=task.task_id,
+                    notification_id=notification_id,
+                ),
+                propagate_cancellation=True,
+            )

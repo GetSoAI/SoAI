@@ -20,6 +20,7 @@ export const CHAT_MODEL_CONTROL_ACTION_TOGGLE_MENU = 'chat:model-control-toggle-
 export const CHAT_MODEL_CONTROL_ACTION_SELECT_MODEL = 'chat:model-control-select-model';
 export const CHAT_MODEL_CONTROL_ACTION_ADD_MODEL = 'chat:model-control-add-model';
 export const CHAT_MODEL_CONTROL_ACTION_REMOVE_MODEL = 'chat:model-control-remove-model';
+const MODEL_SLOT_PRESENCE_ATTRIBUTES = 'data-presence data-presence-atomic';
 
 type ModelControlScope = 'sidebar' | 'composer' | 'empty-state' | 'configuration';
 
@@ -128,7 +129,7 @@ const buildMenuMarkup = (inputArguments: ModelControlRenderArguments & { slotInd
     });
     const emptyMarkup = renderChatModelMenuEmpty({ sanitizer: stringValue, hidden: true });
 
-    return `<div class="${menuClass}" role="menu" aria-hidden="${isOpen ? 'false' : 'true'}">${searchMarkup}${actionsMarkup}${preservedMarkup}${groups.map(renderGroup).join('')}${emptyMarkup}</div>`;
+    return `<div class="${menuClass}" role="menu" popover="manual" data-presence-suspended aria-hidden="${isOpen ? 'false' : 'true'}"><div class="chat-model-menu-header">${searchMarkup}${actionsMarkup}</div>${preservedMarkup}${groups.map(renderGroup).join('')}${emptyMarkup}</div>`;
 };
 
 const resolveMissingSuffix = (inputArguments: { modelStreamHasPayload: boolean; modelIndex: Map<string, ModelData>; modelId: string | null }): string => {
@@ -155,7 +156,7 @@ const renderSingleModelControls = (inputArguments: ModelControlRenderArguments):
     const chevron = renderDropdownChevron(inputArguments.getCachedIcon, 'chat-model-control-primary-chevron');
 
     const primaryText = selectedModelId ? stringValue.html(modelLabel) : stringValue.html(i18n.t('chat.sidebar.selectModel'));
-    const primaryButton = `<button type="button" class="chat-model-control-primary ui-button${isMenuOpen ? ' is-open' : ''}" data-action="${CHAT_MODEL_CONTROL_ACTION_TOGGLE_MENU}" data-slot-index="0" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, label))} ${renderModelControlStateAttributes(inputArguments, false)}>` + `<span class="chat-model-control-primary-text">${primaryText}</span>` + `${chevron}` + `</button>`;
+    const primaryButton = `<button type="button" class="chat-model-control-primary ui-button${isMenuOpen ? ' is-open' : ''}" data-action="${CHAT_MODEL_CONTROL_ACTION_TOGGLE_MENU}" data-slot-index="0" ${inputArguments.scope === 'composer' ? 'data-presence-visual-only' : ''} ${renderLabelAttributes(resolveModelControlLabels(inputArguments, label))} ${renderModelControlStateAttributes(inputArguments, false)}>` + `<span class="chat-model-control-primary-text">${primaryText}</span>` + `${chevron}` + `</button>`;
 
     const menu = isMenuOpen
         ? buildMenuMarkup({
@@ -169,6 +170,7 @@ const renderSingleModelControls = (inputArguments: ModelControlRenderArguments):
 };
 
 const renderMultiModelControls = (inputArguments: ModelControlRenderArguments): string => {
+    const animateSlotLayout = inputArguments.scope === 'composer' || inputArguments.scope === 'sidebar';
     const effective = resolveEffectiveModelIds(inputArguments.effectiveModels);
     const openMenu = inputArguments.openMenu;
     let openSlotIndex = -1;
@@ -185,24 +187,23 @@ const renderMultiModelControls = (inputArguments: ModelControlRenderArguments): 
     const addLabel = i18n.t('models.actions.addModel');
     const addIcon = inputArguments.getCachedIcon('add', { size: 18, strokeWidth: 2 }).html;
 
-    const slotButtons = Array.from({ length: CHAT_COMPARISON_MAX_EFFECTIVE_MODELS }, (_unusedValue, index) => {
-        const modelId = effective[index] ?? null;
-        if (!modelId) {
-            const button = `<button type="button" class="chat-model-slot chat-model-slot--placeholder ui-icon-button ui-variant-accent" data-action="${CHAT_MODEL_CONTROL_ACTION_ADD_MODEL}" data-slot-index="${String(index)}" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, addLabel))} ${renderModelControlStateAttributes(inputArguments, addDisabled)}>` + `${addIcon}` + `</button>`;
-            return `<div class="chat-model-slot-wrap chat-model-slot-wrap--placeholder">${button}</div>`;
-        }
-
-        const missingSuffix = resolveMissingSuffix({ modelStreamHasPayload: inputArguments.modelStreamHasPayload, modelIndex: inputArguments.modelIndex, modelId });
-        const modelLabel = `${inputArguments.modelIndex.get(modelId)?.name ?? modelId}${missingSuffix ? ` ${missingSuffix}` : ''}`;
-        const label = i18n.t('chat.modelControl.configureSlot', { index: index + 1, model: modelLabel });
-        const isOpen = openSlotIndexNormalized === index;
-        const cube = inputArguments.getCachedIcon('model-default', { size: 20, strokeWidth: 1.5 }).html;
-        const removeLabel = i18n.t('chat.attachments.removeTooltip');
-        const removeIcon = inputArguments.getCachedIcon('close', { size: 12, strokeWidth: 2.2 }).html;
-        const slotButton = `<button type="button" class="chat-model-slot ui-icon-button${isOpen ? ' is-open' : ''}" data-action="${CHAT_MODEL_CONTROL_ACTION_TOGGLE_MENU}" data-slot-index="${String(index)}" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, label))} ${renderModelControlStateAttributes(inputArguments, false)}>` + `${cube}` + `</button>`;
-        const removeButton = `<button type="button" class="chat-model-slot-remove ui-corner-badge ui-corner-badge--danger" data-action="${CHAT_MODEL_CONTROL_ACTION_REMOVE_MODEL}" data-slot-index="${String(index)}" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, removeLabel))} ${renderModelControlStateAttributes(inputArguments, false)}>` + `${removeIcon}` + `</button>`;
-        return `<div class="chat-model-slot-wrap">${slotButton}${removeButton}</div>`;
-    }).join('');
+    const selectedSlotButtons = effective
+        .map((modelId, index) => {
+            const missingSuffix = resolveMissingSuffix({ modelStreamHasPayload: inputArguments.modelStreamHasPayload, modelIndex: inputArguments.modelIndex, modelId });
+            const modelLabel = `${inputArguments.modelIndex.get(modelId)?.name ?? modelId}${missingSuffix ? ` ${missingSuffix}` : ''}`;
+            const label = i18n.t('chat.modelControl.configureSlot', { index: index + 1, model: modelLabel });
+            const isOpen = openSlotIndexNormalized === index;
+            const cube = inputArguments.getCachedIcon('model-default', { size: 20, strokeWidth: 1.5 }).html;
+            const removeLabel = i18n.t('chat.attachments.removeTooltip');
+            const removeIcon = inputArguments.getCachedIcon('close', { size: 12, strokeWidth: 2.2 }).html;
+            const slotButton = `<button type="button" class="chat-model-slot ui-icon-button${isOpen ? ' is-open' : ''}" data-action="${CHAT_MODEL_CONTROL_ACTION_TOGGLE_MENU}" data-slot-index="${String(index)}" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, label))} ${renderModelControlStateAttributes(inputArguments, false)}>` + `${cube}` + `</button>`;
+            const removeButton = `<button type="button" class="chat-model-slot-remove ui-corner-badge ui-corner-badge--danger" data-action="${CHAT_MODEL_CONTROL_ACTION_REMOVE_MODEL}" data-slot-index="${String(index)}" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, removeLabel))} ${renderModelControlStateAttributes(inputArguments, false)}>` + `${removeIcon}` + `</button>`;
+            return `<div class="chat-model-slot-wrap" ${animateSlotLayout ? MODEL_SLOT_PRESENCE_ATTRIBUTES : ''}>${slotButton}${removeButton}</div>`;
+        })
+        .join('');
+    const addSlotButton = hasRoomForAnotherModel ? `<button type="button" class="chat-model-slot chat-model-slot--placeholder ui-icon-button ui-variant-accent" data-action="${CHAT_MODEL_CONTROL_ACTION_ADD_MODEL}" data-slot-index="${String(effective.length)}" ${renderLabelAttributes(resolveModelControlLabels(inputArguments, addLabel))} ${renderModelControlStateAttributes(inputArguments, addDisabled)}>${addIcon}</button>` : '';
+    const addSlot = addSlotButton ? `<div class="chat-model-slot-wrap chat-model-slot-wrap--placeholder" ${MODEL_SLOT_PRESENCE_ATTRIBUTES} ${animateSlotLayout ? '' : 'data-presence-visual-only'}>${addSlotButton}</div>` : '';
+    const slotButtons = `${selectedSlotButtons}${addSlot}`;
 
     const selectedModelId = resolveSelectedModelIdForSlot(inputArguments.effectiveModels, slotIndex);
 

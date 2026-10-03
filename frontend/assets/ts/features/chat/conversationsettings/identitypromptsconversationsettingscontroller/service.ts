@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
-import { isUnicodeScalarText } from '@core/primitives/text.ts';
+import { isUnicodeScalarText, unicodeCodePointLength } from '@core/primitives/text.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { FieldStateTracker } from '@core/forms/fieldStateTracker.ts';
 import { updateToggleLabel } from '@core/toggleSwitch.ts';
@@ -88,7 +88,7 @@ class IdentityPromptsConversationSettingsController {
         if (!working || !this.#settingChangeTracker?.isValid()) {
             return false;
         }
-        return [working.userDisplayName, working.assistantDisplayName].every((value) => value === null || (isUnicodeScalarText(value) && Array.from(value).length <= 50)) && (working.userSystemPrompt === null || isUnicodeScalarText(working.userSystemPrompt));
+        return [working.userDisplayName, working.assistantDisplayName].every((value) => value === null || (isUnicodeScalarText(value) && unicodeCodePointLength(value) <= 50)) && (working.userSystemPrompt === null || isUnicodeScalarText(working.userSystemPrompt));
     }
 
     workingSnapshot(): IdentityPromptsSnapshot | null {
@@ -134,7 +134,7 @@ class IdentityPromptsConversationSettingsController {
             assignBoolean(completion, 'soai_system_prompt_enabled', (value) => {
                 next.soaiSystemPromptEnabled = value;
             });
-        if (!valid || ![next.userDisplayName, next.assistantDisplayName].every((value) => value === null || (isUnicodeScalarText(value) && Array.from(value).length <= 50))) return null;
+        if (!valid || ![next.userDisplayName, next.assistantDisplayName].every((value) => value === null || (isUnicodeScalarText(value) && unicodeCodePointLength(value) <= 50))) return null;
         return next;
     }
 
@@ -220,7 +220,7 @@ class IdentityPromptsConversationSettingsController {
         const hasChanges = baseline ? !snapshotsEqual(current, baseline) : true;
         this.#dirtyCallback?.(hasChanges);
         syncIdentityPromptsChangeTracker(this.#settingChangeTracker, baseline);
-        const invalidName = [current.userDisplayName, current.assistantDisplayName].some((value) => value !== null && (!isUnicodeScalarText(value) || Array.from(value).length > 50));
+        const invalidName = [current.userDisplayName, current.assistantDisplayName].some((value) => value !== null && (!isUnicodeScalarText(value) || unicodeCodePointLength(value) > 50));
         const nameMessage = invalidName ? i18n.t('chat.configuration.identityNameInvalid') : null;
         this.#settingChangeTracker?.setInvalid('identity.user_display_name', nameMessage);
         this.#settingChangeTracker?.setInvalid('identity.assistant_display_name', nameMessage);

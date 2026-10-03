@@ -1,6 +1,7 @@
 /* SoAI - Frontend hardware API contract types [frontend/assets/ts/core/api/contracts/hardwareContractTypes.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import type { HistoryAvailability } from '@core/realtime/historyAvailabilityContracts.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import type { GpuIdentity, GpuSoAIBenchHistoryRun, GpuSoAIBenchRun, GpuSoAIBenchStartRequest } from '@core/api/contracts/hardwareSoAIBenchTypes.ts';
 
@@ -75,6 +76,7 @@ interface HardwareNetworkInterface {
     linkSpeedMbps?: number | undefined;
     isUp?: boolean | undefined;
 }
+type WindowsNetworkInventoryStatus = 'available' | 'unavailable';
 interface HardwareNetworkSpeed {
     uploadMbps?: number | undefined;
     downloadMbps?: number | undefined;
@@ -137,7 +139,7 @@ interface HardwareSnapshotResponse {
     os?: HardwareOperatingSystemSnapshot;
     disk?: HardwareVolumeSnapshot[];
     gpu?: { gpus: HardwareGpuSnapshot[]; binding?: { devices: HardwareGpuSnapshot[] } };
-    network?: { interfaces: HardwareNetworkInterface[]; byDeviceId?: Record<string, HardwareNetworkInterface> };
+    network?: { interfaces: HardwareNetworkInterface[]; byDeviceId?: Record<string, HardwareNetworkInterface>; windowsInventoryStatus?: WindowsNetworkInventoryStatus };
     networkSpeed?: Record<string, HardwareNetworkSpeed>;
     diskSpeed?: { status: string; observedAtMs?: number } | null;
 }
@@ -169,6 +171,7 @@ interface HardwareHistoryMetadata {
     component: string;
     deviceId: string | null;
     identifier: string | null;
+    availability: HistoryAvailability | null;
 }
 interface HardwareHistoryResponse {
     aggregation: string;
@@ -176,6 +179,7 @@ interface HardwareHistoryResponse {
     timestampsMs: number[];
     metrics: string[];
     data: JsonObject[];
+    sampleCounts?: JsonObject[] | undefined;
     metadata: HardwareHistoryMetadata;
 }
 interface HardwareHistoryRequest {
@@ -187,6 +191,7 @@ interface HardwareHistoryRequest {
     gpuIndex?: number | undefined;
     identifier?: string | undefined;
     intervalMs?: number | undefined;
+    availabilityMetric?: string | undefined;
 }
 type GpuSettingValue = number | 'auto' | null;
 interface GpuSettingsUpdateRequest {
@@ -219,4 +224,4 @@ interface KillProcessResponse {
     status: string;
 }
 
-export type { GpuIdentity, GpuOperationResponse, GpuSettingValue, GpuSettingsUpdateRequest, GpuSlotStoreRequest, GpuSoAIBenchHistoryRun, GpuSoAIBenchRun, GpuSoAIBenchStartRequest, HardwareCapabilitiesResponse, HardwareCpuSnapshot, HardwareGpuSnapshot, HardwareHistoryConfiguration, HardwareHistoryMetadata, HardwareHistoryRequest, HardwareHistoryResponse, HardwareMemorySnapshot, HardwareNetworkAddress, HardwareNetworkInterface, HardwareNetworkSpeed, HardwareOperatingSystemSnapshot, HardwareSnapshotResponse, HardwareSummary, HardwareUptimeSnapshot, HardwareVolumeSnapshot, KillProcessResponse };
+export type { GpuIdentity, GpuOperationResponse, GpuSettingValue, GpuSettingsUpdateRequest, GpuSlotStoreRequest, GpuSoAIBenchHistoryRun, GpuSoAIBenchRun, GpuSoAIBenchStartRequest, HardwareCapabilitiesResponse, HardwareCpuSnapshot, HardwareGpuSnapshot, HardwareHistoryConfiguration, HardwareHistoryMetadata, HardwareHistoryRequest, HardwareHistoryResponse, HardwareMemorySnapshot, HardwareNetworkAddress, HardwareNetworkInterface, HardwareNetworkSpeed, HardwareOperatingSystemSnapshot, HardwareSnapshotResponse, HardwareSummary, HardwareUptimeSnapshot, HardwareVolumeSnapshot, KillProcessResponse, WindowsNetworkInventoryStatus };

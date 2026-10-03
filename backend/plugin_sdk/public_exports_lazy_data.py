@@ -59,6 +59,12 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
         ("calculate_directory_hash", "calculate_file_hash", "calculate_file_hash_sync"),
     ),
     ("core.files.locking", ("guarded_file_lock",)),
+    ("core.files.temp_files", ("create_persistent_staging_directory",)),
+    (
+        "core.concurrency.cancellation_cleanup",
+        ("run_idempotent_current_task_operation",),
+    ),
+    ("core.concurrency.joined_thread_call", ("run_joined_thread_call",)),
     ("core.filesystem.size_calculation", ("get_path_size",)),
     (
         "core.openai.embedding",
@@ -175,6 +181,10 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
         PROCESS_SESSION_EXPORTS,
     ),
     (
+        "plugin_sdk.contracts.server_observation",
+        ("ServerObservation", "ServerObservationDependencies"),
+    ),
+    (
         "plugin_sdk.contracts.loopback_listener_processes",
         (
             "LoopbackListenerIdentity",
@@ -208,6 +218,8 @@ LAZY_IMPORT_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
     ("plugin_sdk.contracts.tar_zst_extraction", ("async_safe_tar_zst_extractall",)),
     ("plugin_sdk.contracts.downloads", ("async_stream_download_to_file",)),
+    ("core.network.errors", ("HTTPReadUnavailableError",)),
+    ("core.network.retryable_reads", ("run_retryable_http_read",)),
     (
         "plugin_sdk.contracts.outbound_headers",
         OUTBOUND_HEADER_EXPORTS,

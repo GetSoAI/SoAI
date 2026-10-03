@@ -15,9 +15,9 @@ export const hasUnsavedGpuChanges = (states: Map<string, GpuUiState>): boolean =
     return false;
 };
 
-export const findFirstPendingGpuIndex = (states: Map<string, GpuUiState>): string | null => {
+export const findFirstPendingGpuIndex = (states: Map<string, GpuUiState>, matches: (index: string) => boolean = () => true): string | null => {
     for (const [index, state] of states.entries()) {
-        if (state && hasPendingGpuApplyAction(state)) {
+        if (state && hasPendingGpuApplyAction(state) && matches(index)) {
             return index;
         }
     }

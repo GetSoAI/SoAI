@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import ctypes
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -30,6 +31,7 @@ class OpenCLRuntime(OpenCLDeviceInfo):
     device: int
     queue_api: str
     match_basis: str
+    enumeration_warnings: tuple[str, ...] = ()
 
 
 def build_opencl_runtime(identity: SoAIBenchGpuIdentity) -> OpenCLRuntime:
@@ -56,7 +58,12 @@ def build_opencl_runtime(identity: SoAIBenchGpuIdentity) -> OpenCLRuntime:
             message="OpenCL returned an empty context handle.",
         )
     try:
-        queue, queue_api = _create_queue(bindings, int(context), match.device.device_handle)
+        queue, queue_api = _create_queue(
+            bindings,
+            int(context),
+            match.device.device_handle,
+            match.device.device_version,
+        )
     except SoAIBenchUnsupported as exception:
         _release_context_after_queue_failure(bindings, int(context), exception)
         raise
@@ -74,6 +81,7 @@ def build_opencl_runtime(identity: SoAIBenchGpuIdentity) -> OpenCLRuntime:
         driver_version=match.device.driver_version,
         global_mem_bytes=match.device.global_mem_bytes,
         max_alloc_bytes=match.device.max_alloc_bytes,
+        enumeration_warnings=match.device.enumeration_warnings,
     )
 
 
@@ -106,13 +114,16 @@ def _create_queue(
     bindings: OpenCLBindings,
     context: int,
     device: int,
+    device_version: str,
 ) -> tuple[int, str]:
     error_code = ctypes.c_int(0)
     try:
         create_queue_with_properties = bindings.library.clCreateCommandQueueWithProperties
     except AttributeError:
         create_queue_with_properties = None
-    if create_queue_with_properties is not None:
+    version_match = re.match(r"OpenCL ([0-9]+)\.[0-9]+(?:\s|$)", device_version)
+    supports_modern_queue = version_match is not None and int(version_match.group(1)) >= 2
+    if create_queue_with_properties is not None and supports_modern_queue:
         queue = create_queue_with_properties(
             ctypes.c_void_p(context),
             ctypes.c_void_p(device),

@@ -4,7 +4,7 @@
 import { dom } from '@core/dom/dom.ts';
 import { createElementFromMarkup } from '@pages/hardware/controllers/gpucontrol/gpucontrolmanager/dom.ts';
 import type { GpuControlManagerViewContext } from '@pages/hardware/controllers/gpucontrol/gpucontrolmanager/internalContracts.ts';
-import { hasActiveSoAIBenchRunForDevice, hasActiveStressSoAIBenchRunForDevice, isSoAIBenchToggleDisabled, renderSoAIBenchActions, renderSoAIBenchHistoryButton, renderSoAIBenchState, renderSoAIBenchToggleButton } from '@pages/hardware/controllers/gpucontrol/soaibench/soaibenchRenderController.ts';
+import { hasActiveSoAIBenchRunForDevice, hasActiveStressSoAIBenchRunForDevice, isCertifiedSoAIBenchRunLocked, isSoAIBenchToggleDisabled, renderSoAIBenchActions, renderSoAIBenchHistoryButton, renderSoAIBenchState, renderSoAIBenchToggleButton } from '@pages/hardware/controllers/gpucontrol/soaibench/soaibenchRenderController.ts';
 
 const keys = Object.keys;
 const str = String;
@@ -59,7 +59,7 @@ const syncSoAIBenchStateBadge = (context: GpuControlManagerViewContext, panel: H
     }
     const state = context.ensureUiState(index);
     const activeStressRun = !state.soaibenchStopRequested && hasActiveStressSoAIBenchRunForDevice(context.soaibenchRuns, state.deviceId);
-    const markup = renderSoAIBenchState({ security: context.security, getIconSync: context.dependencies.getIconSync }, context.soaibenchRuns, index, state);
+    const markup = renderSoAIBenchState({ security: context.security, getIconSync: context.dependencies.getIconSync }, context.soaibenchRuns, state);
     patchOptionalElement(header, '.gpu-soaibench-state', activeStressRun ? '' : markup, title);
     patchOptionalElement(primaryActions, '.gpu-soaibench-state', activeStressRun ? markup : '', null, primaryActionGroup);
 };
@@ -123,20 +123,31 @@ const syncGpuControlSoAIBenchUi = (context: GpuControlManagerViewContext, { only
         return;
     }
     const targets = only?.map(str).filter(Boolean) ?? keys(context.capabilitiesByIndex ?? {});
+    const lockTransitions: string[] = [];
     targets.forEach((index) => {
         const panel = resolveGpuControlPanel(container, index);
         if (!panel) {
             return;
         }
         const state = context.ensureUiState(index);
+        const locked = isCertifiedSoAIBenchRunLocked(context.dependencies.soaibenchActivity, state);
+        if (panel.classList.contains('is-soaibench-certified-active') !== locked) {
+            lockTransitions.push(index);
+            return;
+        }
         panel.classList.toggle('is-soaibench-stress-active', !state.soaibenchStopRequested && hasActiveStressSoAIBenchRunForDevice(context.soaibenchRuns, state.deviceId));
         if (state.soaibenchStopRequested && !hasActiveSoAIBenchRunForDevice(context.soaibenchRuns, state.deviceId)) {
             state.soaibenchStopRequested = false;
         }
         syncSoAIBenchStateBadge(context, panel, index);
         syncSoAIBenchHistoryButton(context, panel, index);
-        syncSoAIBenchActions(context, panel, index);
+        if (!locked) {
+            syncSoAIBenchActions(context, panel, index);
+        }
     });
+    if (lockTransitions.length > 0) {
+        context.renderGpuControls({ only: lockTransitions });
+    }
 };
 
 export { syncGpuControlSoAIBenchUi };

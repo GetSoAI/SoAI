@@ -2,10 +2,14 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { JsonValue } from '@core/types/jsonValues.ts';
+import type { ModelRecord } from '@core/types/modelTypes.ts';
+import type { PluginRecord } from '@core/types/pluginTypes.ts';
 import { ensureError } from '@core/errors/coerce.ts';
+import { i18n } from '@core/i18n/index.ts';
 import { formatNullableEpochMsSecondOrNull } from '@core/primitives/dateTime.ts';
+import { capitalize, formatTitleFromId } from '@core/primitives/text.ts';
 import { resolveHttpUrl } from '@core/security/public.ts';
-import { isArray, isObject } from '@core/typeGuards.ts';
+import { isArray, isObject, isString } from '@core/typeGuards.ts';
 
 const maskModelDetailApiUrl = (url: string | null | undefined): string | null => {
     if (!url) return null;
@@ -39,4 +43,20 @@ const extractCleanModelIdentifier = (identifier: string | undefined): string | u
     return parts.length > 1 ? parts.slice(1).join('/') : identifier;
 };
 
-export { extractCleanModelIdentifier, formatModelDetailDateTime, formatModelDetailDefaultValue, maskModelDetailApiUrl };
+const formatModelDetailPluginName = (record: PluginRecord | null, pluginName: string): string => {
+    const displayRaw = (isString(record?.displayName) && record.displayName) || (isString(record?.name) && record.name) || pluginName;
+    return formatTitleFromId(displayRaw) || displayRaw;
+};
+
+const formatModelDetailTypeLabel = (model: ModelRecord): string => {
+    const type = isString(model.type) ? model.type.trim() : '';
+    if (type === 'virtual') {
+        return `${i18n.t('modelDetail.cards.identity.virtual')} (${model.strategy || i18n.t('models.types.unknown')})`;
+    }
+    if (type === 'local') {
+        return i18n.t('models.types.local');
+    }
+    return type ? capitalize(type) : i18n.t('models.types.unknown');
+};
+
+export { extractCleanModelIdentifier, formatModelDetailDateTime, formatModelDetailDefaultValue, formatModelDetailPluginName, formatModelDetailTypeLabel, maskModelDetailApiUrl };

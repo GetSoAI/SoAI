@@ -7,9 +7,12 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 from core.openai.sse_frames import sse_done_chunk
-from core.openai.usage.serialization import build_internal_usage_payload
+from core.openai.streaming_usage import build_openai_usage_chunk_bytes
+from core.openai.usage.serialization import (
+    build_internal_usage_payload,
+    extract_public_usage_payload,
+)
 from features.agent.runtime.openai_payload import resolve_payload_model
-from features.agent.runtime.openai_usage import build_usage_sse_bytes
 
 if TYPE_CHECKING:
     from core.openai.usage.models import CanonicalUsage
@@ -27,10 +30,14 @@ async def emit_streaming_turn_completion(
     on_bytes: Callable[[bytes], Awaitable[None] | None],
 ) -> None:
     if include_usage and usage_aggregate is not None:
-        usage_bytes = build_usage_sse_bytes(
+        public_usage = extract_public_usage_payload(build_internal_usage_payload(usage_aggregate))
+        if public_usage is None:
+            raise ValueError("Agent usage SSE requires canonical public usage.")
+        usage_bytes = build_openai_usage_chunk_bytes(
+            public_usage=public_usage,
             stream_id=stream_id,
+            object_type="chat.completion.chunk",
             model=resolve_payload_model(base_request_payload),
-            usage=build_internal_usage_payload(usage_aggregate),
         )
         usage_awaitable = on_bytes(usage_bytes)
         if usage_awaitable is not None:

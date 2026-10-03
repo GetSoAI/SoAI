@@ -15,6 +15,7 @@ from core.ipc.ndjson import IpcStreamClosedError, NdjsonCodec
 from core.ipc.server_connections import WorkerConnection, WorkerConnectionIndex
 from core.ipc.stream_closing import close_ipc_writer
 from core.logging.trace import get_logger
+from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -177,7 +178,10 @@ class LocalIpcServer(LoopbackIpcServerBase):
         logger = get_logger(LOGGER_NAME)
         worker_id: int | None = None
         try:
-            hello = await self._codec.read_message(reader, timeout_sec=5.0)
+            hello = await self._codec.read_message(
+                reader,
+                timeout_sec=INTERACTIVE_TIMEOUT_SEC,
+            )
             if hello.get("type") != "hello":
                 raise ValidationError("IPC hello message type mismatch.")
             if str(hello.get("token") or "") != self._token:
@@ -195,7 +199,11 @@ class LocalIpcServer(LoopbackIpcServerBase):
             old = await self._connections.replace(connection)
             if old is not None:
                 await close_ipc_writer(old.writer, worker_id=int(worker_id))
-            await self._codec.write_message(writer, {"type": "hello_ack"}, timeout_sec=5.0)
+            await self._codec.write_message(
+                writer,
+                {"type": "hello_ack"},
+                timeout_sec=INTERACTIVE_TIMEOUT_SEC,
+            )
             await writer.wait_closed()
         except IPC_CONNECTION_RECOVERABLE_EXCEPTIONS as exception:
             peer = writer.get_extra_info("peername")

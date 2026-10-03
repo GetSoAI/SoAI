@@ -23,6 +23,12 @@ const resolveConversationListRefreshState = (manager: ChatConversationListRuntim
     return state;
 };
 
+const invalidateConversationListRefresh = (manager: ChatConversationListRuntime): number => {
+    const state = resolveConversationListRefreshState(manager);
+    state.sequence += 1;
+    return state.sequence;
+};
+
 const wasConversationModifiedAfterRefreshStart = (conversation: Conversation, refreshStartedAtMs: number): boolean => {
     if (!isNumber(refreshStartedAtMs) || !Number.isFinite(refreshStartedAtMs) || refreshStartedAtMs <= 0) {
         throw new Error('Conversation list refresh requires a positive refresh start timestamp');
@@ -117,9 +123,7 @@ const refreshConversationList = async (manager: ChatConversationListRuntime): Pr
         return;
     }
     const refreshStartedAtMs = serverEpochMs();
-    const refreshState = resolveConversationListRefreshState(manager);
-    const refreshSequence = refreshState.sequence + 1;
-    refreshState.sequence = refreshSequence;
+    const refreshSequence = invalidateConversationListRefresh(manager);
     const chatApi = manager.api.webui.chat;
     const response = await chatApi.list();
     if (!manager.isActive()) {
@@ -140,4 +144,4 @@ const refreshConversationList = async (manager: ChatConversationListRuntime): Pr
     await manager.refreshConversationListUI();
 };
 
-export { refreshConversationList };
+export { invalidateConversationListRefresh, refreshConversationList };

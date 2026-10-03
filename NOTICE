@@ -34,21 +34,34 @@ analytics or usage reporting; and the only first-party endpoints SoAI contacts o
 explicit licensing operations and https://api.github.com for release lookups. The privacy notice at
 https://soai.to/privacy/ separately covers the licensing website, checkout, and direct support records.
 
-This distribution does not include a prebuilt Python environment. On first start, SoAI installs Python
-dependencies listed in requirements.txt into its managed runtime environment. Those downloaded dependencies
-are not included in this distribution and carry their own license terms.
+This distribution does not include a prebuilt Python environment. Windows release packages include the pinned
+Python 3.13 NuGet package, and SoAI installs it into the managed runtime only when needed. On every platform,
+Python dependencies listed in requirements.txt are installed into that managed environment; those separately
+acquired dependencies are not included in this distribution and carry their own license terms.
 
 On first start, SoAI may also download additional runtime artifacts, such as:
 - Playwright Chromium (stored under data/state/playwright-browsers)
 - Microsoft Build of OpenJDK for Apache Tika (stored under data/state/java)
-- Apache Tika Server JAR (stored under data/state/tika)
-- ripgrep binary for MCP grep_files (stored under data/state/ripgrep)
 - tiktoken encoding tables published by OpenAI from Microsoft-operated storage at
   https://openaipublic.blob.core.windows.net, used for local token counting
   (stored under data/state/tiktoken-cache)
 
+Linux, macOS, and Windows release packages include Apache Tika Server 3.3.2 at
+runtime-assets/tika-server-standard-3.3.2.jar. Source and development runs can
+download it to data/state/tika. The JAR retains its upstream license and notice files.
+
+Linux and macOS release packages include pinned micromamba and ripgrep archives for both supported native
+architectures. Windows release packages include the pinned x64 ripgrep archive, Python NuGet package, and managed
+Tesseract OCR runtime. SoAI verifies and extracts these archives lazily when their corresponding runtime capability
+is first needed. The unmodified upstream archives retain their embedded license and metadata files.
+
 Third-Party Notices
 -------------------
+
+Country flag images in frontend/assets/img/flags/ and soai.to/public/assets/img/flags/ derive from
+flag-icons by Lipis, pinned to release 7.3.2 (commit fe15c16e7463d0c66d6c5730e9d0e832438d98e1).
+Copyright (c) 2013 Panayiotis Lipiridis and flag-icons contributors. The artwork is licensed under the MIT License;
+the license text is in licenses/MIT.txt.
 
 This distribution includes a vendored copy of the Apache Tika Python library ("tika") version 3.3.2.
 Location: data/vendor/tika
@@ -57,10 +70,11 @@ License text (vendored): data/vendor/tika/LICENSE.txt
 Upstream: https://github.com/chrismattmann/tika-python
 
 Note: The vendored "tika" Python library may download and run Apache Tika server components at runtime,
-depending on configuration. Those runtime-fetched components are not included in this distribution.
+depending on configuration. SoAI's managed document-parsing runtime uses the separately packaged
+Apache Tika Server JAR described above in platform releases.
 
-SoAI bootstraps a managed Java runtime for Tika using Microsoft Build of OpenJDK and downloads the Tika
-Server JAR. License and notice texts for those runtime-fetched artifacts are provided in:
+SoAI bootstraps a managed Java runtime for Tika using Microsoft Build of OpenJDK. License and notice
+texts for that runtime-fetched artifact are provided in:
   licenses/Microsoft-OpenJDK-NOTICE.txt
   licenses/OpenJDK-GPLv2.txt
   licenses/OpenJDK-ADDITIONAL-LICENSE-INFO.txt
@@ -81,6 +95,15 @@ Version 1.1. SoAIType remains under the OFL, must keep its license text alongsid
 and must not be sold on its own. Inter declares no Reserved Font Name.
   licenses/OFL.txt
   frontend/assets/fonts/soaitype/OFL.txt
+
+Bundled Font Notices (Noto)
+--------------------------
+
+This distribution includes Noto Sans Arabic for Arabic and Persian interface text, together with other Noto
+fonts used for document rendering. The Noto fonts are licensed under the SIL Open Font License, Version 1.1,
+which permits embedding and redistribution with software, including web fonts. Copyright notices and the
+complete license terms accompany the fonts in:
+  frontend/assets/fonts/noto/licenses/
 
 SoAI Connect for Android
 ---------------------------------------

@@ -33,7 +33,7 @@ const canAdmitSteer = async (host: MessageSendingHost, conversationId: string, s
     return admission.canSteerPrompt;
 };
 
-const sendMessageWithResolvedPayload = async (inputArguments: { host: MessageSendingHost; lockLease: SendLockLease; initialSendLockKey: string; payload: ComposerPayload; applyComposerSideEffects: boolean; inputIntent?: ConversationInputIntent; beforeSend?: QueuedSendGuard | null; afterAdmission?: PostAdmissionHook | null; abortSignal?: AbortSignal | null } & SendMessageOptions): Promise<QueuedSendOutcome> => {
+const sendMessageWithResolvedPayload = async (inputArguments: { host: MessageSendingHost; lockLease: SendLockLease; initialSendLockKey: string; payload: ComposerPayload; applyComposerSideEffects: boolean; inputIntent?: ConversationInputIntent; beforeSend?: QueuedSendGuard | null | undefined; onAdmissionStarted?: (() => void) | undefined; afterAdmission?: PostAdmissionHook | null; abortSignal?: AbortSignal | null } & SendMessageOptions): Promise<QueuedSendOutcome> => {
     const host = inputArguments.host;
     const inputIntent = inputArguments.inputIntent ?? 'prompt';
     let payload = inputArguments.payload;
@@ -63,15 +63,23 @@ const sendMessageWithResolvedPayload = async (inputArguments: { host: MessageSen
             isFirstMessage,
             chatStreamingController: host.services.getChatStreamingController()
         });
-    let guardOutcome = runSendGuard();
+    const revalidateSend = (): QueuedSendOutcome => {
+        throwIfAborted(inputArguments.abortSignal, 'Queued chat send was aborted.');
+        return runSendGuard();
+    };
+    let guardOutcome = revalidateSend();
     if (guardOutcome.status !== 'sent') return guardOutcome;
     await host.conversation.waitForPendingAgentModeUpdate();
+    guardOutcome = revalidateSend();
+    if (guardOutcome.status !== 'sent') return guardOutcome;
     const executionModelPreflight = resolveSendExecutionModelPreflight(host, conversation);
     if (executionModelPreflight.status === 'blocked') return executionModelPreflight.outcome;
     const modelPreflight = executionModelPreflight.plan;
     const executionAgentMode = host.conversation.resolveAgentModeForConversation(conversationId);
     const isWorkspaceCurrent = (): boolean => matchesSoaiLinkWorkspaceSnapshot(host.conversation.getCurrentConversation(), workspaceSnapshot);
     await host.conversation.commitPendingDeletesForConversation(conversation);
+    guardOutcome = revalidateSend();
+    if (guardOutcome.status !== 'sent') return guardOutcome;
     if (!host.conversation.getConversationById(conversationId)) return blockQueuedSend('conversation-mismatch');
     const mutationSnapshot = captureConversationMutationSnapshot(conversation);
     let didPersistConversation = false;
@@ -85,12 +93,12 @@ const sendMessageWithResolvedPayload = async (inputArguments: { host: MessageSen
             });
             await applyLockedUserInstructionForSend(host, conversation, conversationId);
         }
-        guardOutcome = runSendGuard();
+        guardOutcome = revalidateSend();
         if (guardOutcome.status !== 'sent') {
             restoreConversationMutationSnapshot(conversation, mutationSnapshot);
             return guardOutcome;
         }
-        const resolvedSoaiLinkPayload = inputArguments.applyComposerSideEffects ? await resolveComposerSoaiLinks(host, conversationId, payload) : await resolvePayloadSoaiLinks(host, conversationId, payload, inputArguments.abortSignal ?? null);
+        const resolvedSoaiLinkPayload = inputArguments.applyComposerSideEffects ? await resolveComposerSoaiLinks(host, conversationId, payload, inputArguments.abortSignal ?? null) : await resolvePayloadSoaiLinks(host, conversationId, payload, inputArguments.abortSignal ?? null);
         if (resolvedSoaiLinkPayload === null || host.conversation.getCurrentConversation()?.id !== conversationId || !isWorkspaceCurrent()) {
             return blockSendForConversationMismatch({ host, conversation, mutationSnapshot, restoreConversation: true, workspaceCurrent: isWorkspaceCurrent() });
         }
@@ -118,8 +126,7 @@ const sendMessageWithResolvedPayload = async (inputArguments: { host: MessageSen
             refreshComposerState(host);
             return blockQueuedSend('stale');
         }
-        throwIfAborted(inputArguments.abortSignal, 'Queued chat send was aborted.');
-        guardOutcome = runSendGuard();
+        guardOutcome = revalidateSend();
         if (guardOutcome.status !== 'sent') {
             restoreConversationMutationSnapshot(conversation, mutationSnapshot);
             return guardOutcome;
@@ -133,6 +140,12 @@ const sendMessageWithResolvedPayload = async (inputArguments: { host: MessageSen
             });
         }
         didPersistConversation = true;
+        guardOutcome = revalidateSend();
+        if (guardOutcome.status !== 'sent') {
+            refreshComposerState(host);
+            return guardOutcome;
+        }
+        inputArguments.onAdmissionStarted?.();
         attachmentManager.markDraftCommitStarted();
         const optimisticInputOrderingAnchor = resolveOptimisticInputOrderingAnchor(conversation);
         const enqueuedInput = await host.services.getConversationInputsManager().enqueue(conversationId, {

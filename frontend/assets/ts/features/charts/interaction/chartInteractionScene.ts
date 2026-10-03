@@ -1,12 +1,12 @@
 /* SoAI - Chart interaction capability graph [frontend/assets/ts/features/charts/interaction/chartInteractionScene.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { ChartOptions, CrosshairState, Dataset, OhlcValues, PointerState } from '@features/charts/chartTypes.ts';
-import type { CanvasLayers, OhlcData, PanState, RedrawRequest, Scale, SlotMetrics, XAxisDragState, YAxisDragState, ZoomState } from '@features/charts/component/chartComponentTypes.ts';
+import type { CanvasLayers, OhlcData, PanState, RedrawRequest, Scale, VisibleRange, XAxisDragState, YAxisDragState } from '@features/charts/component/chartComponentTypes.ts';
 import type { ChartEventDetail } from '@features/charts/component/effects.ts';
 import type { ChartDimensions, RenderGeometry } from '@features/charts/rendering/renderingModels.ts';
 import type { WheelPayload } from '@features/charts/types.ts';
+import type { TimeViewportState } from '@features/charts/viewport/timeViewport.ts';
 
 interface ChartInteractionStatePort {
     pointer: PointerState;
@@ -18,10 +18,10 @@ interface ChartInteractionStatePort {
 }
 
 interface ChartInteractionViewportStatePort {
-    zoom: ZoomState;
+    time: TimeViewportState;
     pan: PanState;
     scale: Scale;
-    visibleRange: { start: number; end: number; displayCount: number; offsetFraction: number };
+    visibleRange: VisibleRange;
     yAxisMinRange: number;
 }
 
@@ -33,16 +33,13 @@ interface ChartInteractionSurfacePort {
 
 interface ChartInteractionViewportCommands {
     getChartDimensions(): ChartDimensions;
-    getPixelsPerBar(): number;
-    getSlotMetrics(): SlotMetrics;
-    getSlotMetricsForLevel(level: number | null | undefined): SlotMetrics;
-    getMaxOffsetForMetrics(metrics?: SlotMetrics | null): number;
-    clampPanOffset(): void;
+    panByPixels(deltaPx: number): boolean;
+    zoomBy(anchorX: number, factor: number, animate: boolean): boolean;
+    zoomTo(anchorX: number, msPerPx: number): boolean;
     enforceScaleBounds(): void;
     panVertical(deltaY: number): boolean;
-    markManual(source?: string): void;
-    setAutoScale(enabled: JsonValue | null | undefined): void;
-    resetZoom(options?: { alignToTail?: boolean }): void;
+    setAutoScale(enabled: boolean): void;
+    resetZoom(): void;
     alignToLatest(): void;
 }
 
@@ -62,9 +59,8 @@ interface ChartInteractionDataPort {
 }
 
 interface ChartInteractionGeometryPort {
-    renderGeometry(dimensions?: ChartDimensions): RenderGeometry;
+    renderGeometry(dimensions?: ChartDimensions): RenderGeometry | null;
     valueViewport(): { height: number; top: number } | null;
-    xForVisibleIndex(index: number): number;
 }
 
 interface ChartInteractionPresentationPort {
@@ -73,7 +69,6 @@ interface ChartInteractionPresentationPort {
 
 interface ChartInteractionEffectsPort {
     requestRedraw(requirements?: RedrawRequest): void;
-    scheduleFrame(): void;
     emit(event: string, detail?: ChartEventDetail): void;
 }
 

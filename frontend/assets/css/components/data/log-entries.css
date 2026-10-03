@@ -3,16 +3,13 @@
 
 @layer components {
     :where(.log-timestamp, .log-component, .log-level, .log-message) {
-        --log-cell-reflection: var(--surface-reflection-soft);
         border: var(--border-width-1) solid var(--glass-border-strong);
         border-radius: var(--border-radius);
         padding: var(--space-2) var(--space-3);
         display: flex;
         align-items: center;
-        background-image: var(--log-cell-reflection), linear-gradient(to bottom, color-mix(in srgb, var(--text-primary) 5%, transparent), transparent 62%);
+        background-image: linear-gradient(to bottom, color-mix(in srgb, var(--text-primary) 5%, transparent), transparent 62%);
         box-shadow:
-            inset 2px 2px 4px var(--surface-inner-highlight-soft),
-            inset -2px -2px 4px var(--surface-inner-shadow-soft),
             var(--glass-shadow-base),
             0 0 0 1px var(--surface-outline-highlight-soft);
         -webkit-backdrop-filter: var(--glass-blur-base);
@@ -38,7 +35,7 @@
     .log-level {
         font-size: var(--font-size-relative-body-sm);
         font-weight: 600;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         white-space: nowrap;
         min-width: 80px;
         justify-content: center;

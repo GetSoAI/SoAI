@@ -13,8 +13,7 @@ from core.models.reference_resolution import (
     load_model_info_records,
     resolve_model_reference,
 )
-from core.openai.capability_checks import is_openai_model_capability_enabled
-from core.openai.capability_taxonomy import OPENAI_CAPABILITY_CATEGORIES
+from core.openai.capability_checks import is_openai_model_capability_supported
 from core.validation.strings import coerce_optional_trimmed_str
 
 if TYPE_CHECKING:
@@ -23,20 +22,8 @@ if TYPE_CHECKING:
         ModelResolutionServiceProtocol,
     )
     from core.orchestrator.routing_config import VirtualModelConfig
-    from core.types.json import JSONDict
 
 __all__ = ("require_openai_capability_for_model",)
-
-
-def _model_supports_capability(model_info: JSONDict, capability_key: str) -> bool:
-    return any(
-        is_openai_model_capability_enabled(
-            model_info,
-            category=category,
-            token=capability_key,
-        )
-        for category in OPENAI_CAPABILITY_CATEGORIES
-    )
 
 
 async def _require_virtual_model_capability(
@@ -62,7 +49,7 @@ async def _require_virtual_model_capability(
         if not is_model_info_active_and_enabled(model_info):
             continue
         any_enabled = True
-        if _model_supports_capability(model_info, capability_key):
+        if is_openai_model_capability_supported(model_info, capability_key):
             return
     if any_enabled:
         raise ValidationError(
@@ -116,7 +103,7 @@ async def require_openai_capability_for_model(
     model_info = model_infos[0]
     if not is_model_info_active_and_enabled(model_info):
         raise ValidationError(f"{label_prefix}model is disabled: {reference.requested_name}")
-    if not _model_supports_capability(model_info, capability_key):
+    if not is_openai_model_capability_supported(model_info, capability_key):
         raise ValidationError(
             f"{label_prefix}model does not support {capability_key}: {reference.requested_name}",
         )

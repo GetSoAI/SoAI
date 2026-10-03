@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { ConfigurationManager } from '@core/configurationManager.ts';
-import { dom, domCache } from '@core/dom/dom.ts';
+import { dom } from '@core/dom/dom.ts';
 import { getComputedStyleStrict, getLocation } from '@core/environment/public.ts';
 import { i18n } from '@core/i18n/index.ts';
 import type { ClipboardApi, PageContext } from '@core/pagecontext/public.ts';
@@ -14,6 +14,7 @@ import { hidePageLoadingHandle, showPageLoadingHandle, withPageLoadingHandle, ty
 import { getPageCurrentRoute, loadPageStorageValue, navigatePageRoute, removePageStorageValue, resolvePageAuthenticated, savePageStorageValue } from '@core/routing/pages/basepagecore/storageRouting.ts';
 import type { IconDefinition, LanguageService } from '@core/routing/pages/pagetypes/public.ts';
 import { windowIdentity } from '@core/runtime/windowIdentity.ts';
+import { DETACHED_CONTEXT_TIMEOUT_MS } from '@core/runtimeenv/constants.ts';
 import { getWindowService } from '@core/runtimeenv/public.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import { monotonicMs } from '@core/time/clock.ts';
@@ -65,10 +66,6 @@ class PageServices {
             ...options,
             notify: isFunction(options.notify) ? options.notify : (message, type) => this.#dependencies.pageContext.notifications.show(message, type)
         });
-    }
-
-    clearDomCache(): void {
-        domCache.clear();
     }
 
     getIcon(name: IconName, options?: IconOptions): Promise<TrustedHtml> {
@@ -144,7 +141,7 @@ class PageServices {
         const pathname = getLocation().pathname || '';
         if (!(pathname.endsWith('/detached.html') || pathname === '/detached.html') || !this.isDetached()) return;
         if (!this.#detachedContextReady) {
-            this.#detachedContextReady = Promise.resolve(request(getWindowService(), 'runtimeWindowService').awaitDetachedContext({ timeout: 8000 }));
+            this.#detachedContextReady = Promise.resolve(request(getWindowService(), 'runtimeWindowService').awaitDetachedContext({ timeout: DETACHED_CONTEXT_TIMEOUT_MS }));
         }
         await this.#detachedContextReady;
     }

@@ -9,20 +9,14 @@ import { errorHandler } from '@core/errorHandler.ts';
 import { isFunction, isObject } from '@core/typeGuards.ts';
 import { requestWebSocketSnapshotRecord } from '@core/websocketclient/snapshotPayload.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import { ARIA_HIDDEN_ATTR, STYLE_DISPLAY, STYLE_OPACITY } from '@core/layout/sidebar/dom.ts';
+import { ARIA_HIDDEN_ATTR, STYLE_OPACITY } from '@core/layout/sidebar/dom.ts';
 import { extractSidebarVersionFromSystemInfo, normalizeSidebarVersionValue } from '@core/layout/sidebar/mappers.ts';
 import { decodeSystemInfo } from '@core/api/contracts/systemContracts.ts';
 
 type SidebarVersionDomRefKey = 'logoLarge' | 'logoSmall' | 'versionSmall' | 'versionLarge';
 
-interface SidebarVersionDisplayState {
-    collapsed: boolean;
-    mobile: boolean;
-    open: boolean;
-}
-
 interface SidebarVersionHost {
-    getDisplayState: () => SidebarVersionDisplayState;
+    isCollapsed: () => boolean;
     getDomRef: (key: SidebarVersionDomRefKey) => HTMLElement | null;
 }
 
@@ -44,8 +38,7 @@ class SidebarVersionController {
     }
 
     refreshVisibility(): void {
-        const state = this.#host.getDisplayState();
-        const smallMode = state.mobile ? !state.open : state.collapsed;
+        const smallMode = this.#host.isCollapsed();
 
         const updateVisibility = (element: HTMLElement | null, visible: boolean): void => {
             if (element) {
@@ -148,10 +141,8 @@ class SidebarVersionController {
         const set = (element: HTMLElement | null, visible: boolean): void => {
             if (element) {
                 dom.setText(element, text);
-                dom.setStyles(element, {
-                    [STYLE_DISPLAY]: visible ? 'block' : 'none',
-                    [STYLE_OPACITY]: visible ? '0.7' : '0'
-                });
+                dom.toggleClass(element, 'u-hidden', !visible);
+                dom.setStyle(element, STYLE_OPACITY, visible ? '0.7' : '0');
                 dom.setAttribute(element, ARIA_HIDDEN_ATTR, String(!visible));
             }
         };
@@ -161,4 +152,4 @@ class SidebarVersionController {
 }
 
 export { SidebarVersionController };
-export type { SidebarVersionDomRefKey, SidebarVersionDisplayState, SidebarVersionHost };
+export type { SidebarVersionDomRefKey, SidebarVersionHost };

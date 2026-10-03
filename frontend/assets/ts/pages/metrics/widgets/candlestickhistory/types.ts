@@ -6,24 +6,17 @@ import type { HistoryChartInstance, HistoryChartOhlcModule, ParsedOhlcResult } f
 import type { CandlestickDataPoint, CandlestickMetadata, CandlestickResult, MetricsCatalogEntry } from '@pages/metrics/types.ts';
 
 interface CandlestickHistoryQueryPort {
-    runWithBoundary<T>(name: string, functionValue: () => Promise<T>): Promise<T>;
     getMetricHistoryKey(): string | null;
     getMetricHistoryOhlcAggregation(): string;
     getCatalogEntry(metricKey: string): MetricsCatalogEntry | null;
     getMetricTransform(): (value: number) => number;
     getEffectiveCandlestickIntervalMs(): number;
-    syncChartControls(options: { range?: boolean; candles?: boolean }): Promise<void>;
-    isCandlestickActive(): boolean;
-    updateMainChart(options: { resetView?: boolean }): void;
-    getRequestSignature(): string | null;
-    setRequestSignature(signature: string | null): void;
-    isRequestActive(): boolean;
-    setRequestActive(active: boolean): void;
 }
 
 interface CandlestickHistoryLimitsPort {
     supportsOhlc: boolean;
     timeRange: number;
+    availableTimeRanges: number[];
     maxRetentionMinutes: number | null;
     supportedHistoryIntervalsMs: number[] | null;
     pointBudget: number;
@@ -36,7 +29,6 @@ interface CandlestickHistoryLimitsPort {
 }
 
 interface CandlestickHistoryStatePort {
-    candlestickHistoryExhausted: boolean;
     candlestickIntervalMinutes: number;
     lastResolvedCandlestickIntervalMs: number | null;
     baseCandleIntervals: number[] | null;

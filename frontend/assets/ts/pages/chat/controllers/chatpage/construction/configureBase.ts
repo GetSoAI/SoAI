@@ -6,6 +6,7 @@ import type { ChatUiStorage } from '@core/chat/protocols.ts';
 import { TextZoomController } from '@core/TextZoomController.ts';
 import { isBoolean, isNumber, isString } from '@core/typeGuards.ts';
 import { isJsonValue, type JsonRecord, type JsonValue } from '@core/types/jsonValues.ts';
+import { createChatNavigationMemory } from '@features/chat/public.ts';
 import type { ChatPageStorageSource, ChatTextZoomPageHost } from '@pages/chat/controllers/chatpage/construction/baseHost.ts';
 import { serializeChatPreferences } from '@core/storage/persistence/chatPreferenceSerialization.ts';
 import type { TimerHost } from '@pages/chat/controllers/chatUiBehaviors.ts';
@@ -18,6 +19,7 @@ interface ChatFoundationDependencies {
     pageDom: PageDom;
     pageResources: PageResources;
     getDocumentElement(): HTMLElement;
+    isDetached(): boolean;
 }
 
 const createChatStorage = (storage: ChatPageStorageSource): ChatUiStorage => {
@@ -92,7 +94,9 @@ const createTimerHost = (page: ChatFoundationDependencies): TimerHost => {
 const createChatFoundation = (page: ChatFoundationDependencies, logger: (level: LogLevel, message: string, error?: Error) => void): { settings: ChatSettingsState; timers: TimerHost } => {
     const storage = createChatStorage(page.storage);
     const textZoomController = TextZoomController.createForChat(storage, (level, message, error): void => logger(level, message, error));
-    const settings = new ChatSettingsState(storage, textZoomController, createTextZoomPageHost(page));
+    const sessionUserId = page.storage.session?.['userId'];
+    const navigationMemory = createChatNavigationMemory({ userId: isString(sessionUserId) ? sessionUserId : null, isDetached: () => page.isDetached() });
+    const settings = new ChatSettingsState(storage, navigationMemory, textZoomController, createTextZoomPageHost(page));
     return { settings, timers: createTimerHost(page) };
 };
 

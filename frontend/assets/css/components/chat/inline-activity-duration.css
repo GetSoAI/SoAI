@@ -8,7 +8,7 @@
             max-inline-size: 0;
             min-inline-size: 0;
             margin-inline-start: calc(-1 * var(--space-2));
-            transform: translateX(-0.45rem);
+            transform: translateX(calc((-0.45rem) * var(--dir-sign)));
         }
 
         to {

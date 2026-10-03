@@ -3,17 +3,8 @@
 
 import type { AutomationModelSettings, AutomationOccurrenceKeyRequest, CreateAutomationRequest, UpdateAutomationRequest } from '@core/api/contracts/automationContractTypes.ts';
 import { STORED_CHAT_PARAMETER_KEYS, CHAT_PARAMETER_WIRE_KEYS } from '@core/chat/parameters/chatParameterKeySets.ts';
-import type { McpFormValues } from '@core/mcp/configTypes.ts';
+import { serializeConversationMcpSettings } from '@core/chat/executionSettingsMapping.ts';
 import { isJsonValue, type JsonObject } from '@core/types/jsonValues.ts';
-
-const serializeMcpFormValues = (configuration: McpFormValues): JsonObject => ({
-    'default_tools': configuration.defaultTools,
-    'plan_tools': configuration.planTools,
-    'execute_tools': configuration.executeTools,
-    'server_configs': configuration.serverConfigs,
-    'tools_enabled': configuration.toolsEnabled,
-    'tool_approval_required': configuration.toolApprovalRequired
-});
 
 const serializeAutomationPrompts = (prompts: NonNullable<AutomationModelSettings['prompts']>): JsonObject => {
     const serialized: JsonObject = { ...prompts.additionalPrompts };
@@ -25,12 +16,14 @@ const serializeAutomationPrompts = (prompts: NonNullable<AutomationModelSettings
 
 const serializeAutomationModelSettings = (settings: AutomationModelSettings): JsonObject => {
     const serialized: JsonObject = {
+        ...settings.additionalSettings,
         model: settings.model,
         agent: {
+            ...settings.agent.additionalSettings,
             mode: settings.agent.mode,
             ...(settings.agent.maxIterations === undefined ? {} : { 'max_iterations': settings.agent.maxIterations })
         },
-        mcp: serializeMcpFormValues(settings.mcp)
+        mcp: serializeConversationMcpSettings(settings.mcp)
     };
     if (settings.workspacePath !== undefined) serialized['workspace_path'] = settings.workspacePath;
     if (settings.prompts !== undefined) serialized['prompts'] = serializeAutomationPrompts(settings.prompts);

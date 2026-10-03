@@ -4,7 +4,7 @@
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
-import { isProtectedEmptyConversation } from '@features/chat/public.ts';
+import { isProtectedEmptyConversation, resolveConversationDisplayTitleFromConversation } from '@features/chat/public.ts';
 import { clearLocalConversationDeletes, isLocalConversationDeletePending, markLocalConversationDeletes } from '@pages/chat/controllers/chatconversationactionscontroller/conversationDeletionCoordinatorController.ts';
 import { activateConversationById, clearConversationSelection, createConversation } from '@pages/chat/controllers/chatconversationactionscontroller/conversationSelectionController.ts';
 import type { ConversationDeleteOperationOptions } from '@pages/chat/controllers/chatconversationactionscontroller/operations.ts';
@@ -30,13 +30,14 @@ const normalizeConversationIds = (conversationIds: readonly string[]): string[] 
     return normalized;
 };
 
-const confirmConversationDelete = async (options: ConversationDeleteOperationOptions): Promise<boolean> => {
+const confirmConversationDelete = async (runtime: ChatConversationActionsControllerRuntime, conversationIds: readonly string[], options: ConversationDeleteOperationOptions): Promise<boolean> => {
     if (options.confirm === false) {
         return true;
     }
     return await requireDialogsService().showConfirmation({
         title: i18n.t('chat.conversation.deleteTitle'),
         message: i18n.t('chat.conversation.deleteConfirm'),
+        description: conversationIds.map((conversationId) => resolveConversationDisplayTitleFromConversation(runtime.state.getConversation(conversationId), i18n.t('chat.conversation.untitled'))).join('\n'),
         confirmText: i18n.t('common.delete'),
         variant: 'danger'
     });
@@ -104,7 +105,7 @@ const deleteConversations = async (runtime: ChatConversationActionsControllerRun
         return { deletedConversationIds: [] };
     }
     await cancelConversationRename(runtime.host, runtime.state);
-    if (!(await confirmConversationDelete(options))) {
+    if (!(await confirmConversationDelete(runtime, targetConversationIds, options))) {
         return { deletedConversationIds: [] };
     }
     const currentConversationId = runtime.state.getCurrentConversationId();

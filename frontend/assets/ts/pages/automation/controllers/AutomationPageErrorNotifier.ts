@@ -33,6 +33,10 @@ class AutomationPageErrorNotifier {
     notifyErrorOnce(error: Error): void {
         this.#reporter.report(error, { errorMessage: resolveAutomationOperationErrorMessage(error) });
     }
+
+    notifyRefreshFailureOnce(error: Error): void {
+        this.#reporter.report(error, { operation: i18n.t('common.refresh') });
+    }
 }
 
 export { AutomationPageErrorNotifier, resolveAutomationOperationErrorMessage };

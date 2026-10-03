@@ -21,8 +21,8 @@ const sanitizeSavedModalState = (savedState: SavedModalState | null): SavedModal
     return { size: { width, height } };
 };
 
-const resolveCenteredPosition = ({ content, isMobileViewport, sizeOverride = null }: ModalBoundsDependencies): Position => {
-    const boundaries = calculateModalBoundaries({ content, isMobileViewport, sizeOverride });
+const resolveCenteredPosition = ({ content, sizeOverride = null }: ModalBoundsDependencies): Position => {
+    const boundaries = calculateModalBoundaries({ content, sizeOverride });
     return {
         x: (boundaries.minX + boundaries.maxX) / 2,
         y: (boundaries.minY + boundaries.maxY) / 2

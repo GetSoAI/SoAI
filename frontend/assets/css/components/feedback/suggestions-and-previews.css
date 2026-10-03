@@ -34,12 +34,12 @@
 
         --chat-previews-container-bottom: calc(80px + var(--ui-safe-area-inset-bottom));
         --chat-previews-container-gap: var(--space-2);
-        --chat-previews-container-left: var(--space-14);
-        --chat-previews-container-focus-left: var(--chat-previews-container-left);
-        --chat-previews-container-right: 3rem;
+        --chat-previews-container-inline-start: var(--space-14);
+        --chat-previews-container-focus-inline-start: var(--chat-previews-container-inline-start);
+        --chat-previews-container-inline-end: 3rem;
         bottom: var(--chat-previews-container-bottom);
-        left: var(--chat-previews-container-left);
-        right: var(--chat-previews-container-right);
+        inset-inline-start: var(--chat-previews-container-inline-start);
+        inset-inline-end: var(--chat-previews-container-inline-end);
         max-height: var(--chat-attached-files-max-height);
         overflow-y: auto;
         z-index: var(--z-dropdown);
@@ -50,7 +50,7 @@
     }
 
     :where(.chat-container) .chat-main-container:has(.chat-input:focus) .chat-previews-container {
-        left: var(--chat-previews-container-focus-left);
+        inset-inline-start: var(--chat-previews-container-focus-inline-start);
     }
 
     :where(.chat-container) .chat-previews-container.u-hidden {
@@ -70,7 +70,7 @@
 
     :where(.chat-container) .agent-todo-panel-container {
         position: absolute;
-        top: var(--chat-conversation-header-height);
+        top: var(--chat-conversation-header-offset);
         inset-inline: 0 var(--chat-native-scrollbar-gutter-width);
         z-index: var(--z-raised);
         display: flex;
@@ -175,7 +175,7 @@
     :where(.chat-container) .agent-todo-plan-update-count {
         position: absolute;
         top: -4px;
-        right: -4px;
+        inset-inline-end: -4px;
         background-color: var(--status-red);
         color: var(--color-white);
         width: var(--status-led-size);

@@ -66,12 +66,12 @@ export const buildFootnotesSection = (footnotes: Map<string, FootnoteDefinition>
     if (usedFootnotes.length === 0) {
         return '';
     }
-    let footnotesHtml = '<section class="footnotes-section"><hr class="footnotes-separator"><ol class="footnotes-list">';
+    let footnotesHtml = '<section class="footnotes-section"><hr class="footnotes-separator"><ol dir="auto" class="footnotes-list">';
     for (const footnote of usedFootnotes) {
         const escapedId = escapeHtml(footnote.id);
         const renderedContent = renderInlineText(footnote.content, footnotes);
         const backReferenceLabel = escapeHtml(translateBackRef());
-        footnotesHtml += `<li id="fn-${escapedId}" class="footnote-item"><span class="footnote-content">${renderedContent}</span><a href="#fnref-${escapedId}" class="footnote-backref" aria-label="${backReferenceLabel}">↩</a></li>`;
+        footnotesHtml += `<li dir="auto" id="fn-${escapedId}" class="footnote-item"><span class="footnote-content">${renderedContent}</span><a href="#fnref-${escapedId}" class="footnote-backref" aria-label="${backReferenceLabel}">↩</a></li>`;
     }
     footnotesHtml += '</ol></section>';
     return footnotesHtml;

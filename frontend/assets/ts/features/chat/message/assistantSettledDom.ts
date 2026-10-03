@@ -10,8 +10,8 @@ import { ASSISTANT_STREAM_TEXT_SELECTOR, collectCanonicalStreamingTextChildNodes
 import { STREAM_SEGMENTS_ATTRIBUTE, STREAM_SEGMENTS_SELECTOR } from '@features/chat/stream/streamSegmentsMarker.ts';
 import { normalizeStreamingRevealTree, STREAM_WORD_CLASS, STREAM_WORD_CONTINUATION_SELECTOR } from '@features/chat/stream/streamingTextFadeWrap.ts';
 
-const TRANSIENT_SELECTOR = [STREAM_SEGMENTS_SELECTOR, ASSISTANT_STREAM_TEXT_SELECTOR, '[data-stream-text-settled="true"]', '[data-stream-text-tail="true"]', `.${STREAM_WORD_CLASS}`, STREAM_WORD_CONTINUATION_SELECTOR, '.fade-slide-in', '.message-action-buttons-enter'].join(',');
-const TRANSIENT_CLASS_NAMES: readonly string[] = [STREAM_WORD_CLASS, 'fade-slide-in', 'message-action-buttons-enter'];
+const TRANSIENT_SELECTOR = [STREAM_SEGMENTS_SELECTOR, ASSISTANT_STREAM_TEXT_SELECTOR, '[data-stream-text-settled="true"]', '[data-stream-text-tail="true"]', `.${STREAM_WORD_CLASS}`, STREAM_WORD_CONTINUATION_SELECTOR, '.fade-slide-in'].join(',');
+const TRANSIENT_CLASS_NAMES: readonly string[] = [STREAM_WORD_CLASS, 'fade-slide-in'];
 const TRANSIENT_ATTRIBUTE_NAMES: readonly string[] = [STREAM_SEGMENTS_ATTRIBUTE, 'data-stream-text', 'data-stream-text-visible', 'data-stream-text-settled', 'data-stream-text-tail'];
 
 const replaceElementWithNodes = (element: HTMLElement, nodes: ChildNode[]): boolean => {

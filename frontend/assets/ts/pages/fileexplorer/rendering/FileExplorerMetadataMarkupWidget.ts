@@ -10,13 +10,13 @@ import { securityApi } from '@core/security/public.ts';
 const renderMetadataMarkup = (metadata: FileBrowserMetadata): string => {
     const typeLabel = resolveFileEntryTypeLabel(metadata.typeId);
     return `
-        <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.labels.path')}</span><span>${securityApi.escapeHtml(metadata.path)}</span></div>
+        <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.labels.path')}</span><bdi dir="ltr">${securityApi.escapeHtml(metadata.path)}</bdi></div>
         <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.table.type')}</span><span>${securityApi.escapeHtml(typeLabel)}</span></div>
-        <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.table.size')}</span><span>${securityApi.escapeHtml(formatBytes(metadata.size, 1))}</span></div>
-        <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.table.modified')}</span><span>${securityApi.escapeHtml(metadata.modifiedAt)}</span></div>
-        <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.labels.permissions')}</span><span>${securityApi.escapeHtml(metadata.permissions)}</span></div>
-        <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.labels.mime_type')}</span><span>${securityApi.escapeHtml(metadata.mimeType)}</span></div>
-        <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.labels.sha256')}</span><span>${metadata.sha256 !== null ? securityApi.escapeHtml(metadata.sha256) : '-'}</span></div>
+        <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.table.size')}</span><bdi dir="ltr">${securityApi.escapeHtml(formatBytes(metadata.size, 1))}</bdi></div>
+        <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.table.modified')}</span><bdi dir="ltr">${securityApi.escapeHtml(metadata.modifiedAt)}</bdi></div>
+        <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.labels.permissions')}</span><bdi dir="ltr">${securityApi.escapeHtml(metadata.permissions)}</bdi></div>
+        <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.labels.mime_type')}</span><bdi dir="ltr">${securityApi.escapeHtml(metadata.mimeType)}</bdi></div>
+        <div class="file-explorer-metadata-row"><span>${i18n.t('fileExplorer.labels.sha256')}</span><bdi dir="ltr">${metadata.sha256 !== null ? securityApi.escapeHtml(metadata.sha256) : '-'}</bdi></div>
     `;
 };
 

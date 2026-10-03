@@ -14,8 +14,8 @@
         margin: 0;
         position: sticky;
         top: 0;
-        border-right: none;
-        border-left: none;
+        border-inline-end: none;
+        border-inline-start: none;
     }
 
     body.detached-window .hardware-container:where([data-section='hardware'], [data-page-scope='hardware']) .page-actions__menu {
@@ -62,7 +62,7 @@
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact :is(th, td) {
-        text-align: left;
+        text-align: start;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper .table-compact th:first-child,
@@ -98,7 +98,7 @@
         flex-shrink: 0;
         width: 1.25rem;
         height: 1.25rem;
-        margin-left: var(--space-15);
+        margin-inline-start: var(--space-15);
         border: none;
         border-radius: var(--border-radius);
         background: transparent;
@@ -128,7 +128,7 @@
     :where([data-section='hardware'], [data-page-scope='hardware']) .process-owner {
         font-size: var(--font-size-compact-sm);
         color: var(--text-tertiary);
-        margin-left: var(--space-15);
+        margin-inline-start: var(--space-15);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper:has(.hardware-process-body-loading) > .table-compact {
@@ -136,7 +136,7 @@
         height: 100%;
     }
 
-    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper:has(.hardware-process-body-loading) > .table-compact > thead {
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-process-table-wrapper:has(.hardware-process-body-loading) > .table-compact > .hardware-process-table-head {
         display: none;
     }
 

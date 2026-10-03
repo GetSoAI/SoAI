@@ -178,7 +178,7 @@ def apply_rate_limiting(
             runtime_state.replace_config(resolved, reset_counters=True)
     else:
         if not already_initialized:
-            get_logger(LOGGER_NAME).info("API Rate Limiting is DISABLED by configuration.")
+            get_logger(LOGGER_NAME).debug("API Rate Limiting is DISABLED by configuration.")
         if previous_signature is not None:
             runtime_state.replace_config(None, reset_counters=True)
         else:

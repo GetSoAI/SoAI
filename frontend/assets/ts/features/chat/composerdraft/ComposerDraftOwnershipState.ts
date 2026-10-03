@@ -55,6 +55,11 @@ class ComposerDraftOwnershipState {
         return signal?.aborted !== true && snapshot.generation === this.#generation && snapshot.conversationId === this.#conversationId;
     }
 
+    matchesCurrentOrAdopted(snapshot: ComposerDraftOwnershipSnapshot, adoptedConversationId?: string): boolean {
+        if (this.isCurrent(snapshot)) return true;
+        return snapshot.conversationId === null && adoptedConversationId !== undefined && this.#conversationId === adoptedConversationId && this.#generation === snapshot.generation + 1 && this.#mode === 'adopt-current';
+    }
+
     noteMutation(): void {
         this.#mutationToken += 1;
     }

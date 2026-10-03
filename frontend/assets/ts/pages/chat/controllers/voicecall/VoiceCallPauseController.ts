@@ -5,7 +5,6 @@ import { SequenceToken } from '@core/concurrency/sequenceToken.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { i18n } from '@core/i18n/index.ts';
-import type { NotificationType } from '@core/ui/notifications/notifications.ts';
 
 interface VoiceCallPauseAudioCapture {
     pause(): Promise<void>;
@@ -30,7 +29,7 @@ interface VoiceCallPauseControllerDependencies {
     uiState: VoiceCallPauseUiState;
     isRuntimeActive(): boolean;
     isStarting(): boolean;
-    showNotification(message: string, type: NotificationType, duration?: number): void;
+    onFailure(message: string): void;
 }
 
 class VoiceCallPauseController {
@@ -39,7 +38,7 @@ class VoiceCallPauseController {
     #uiState: VoiceCallPauseUiState;
     #isRuntimeActive: () => boolean;
     #isStarting: () => boolean;
-    #showNotification: (message: string, type: NotificationType, duration?: number) => void;
+    #onFailure: (message: string) => void;
     readonly #transitionToken = new SequenceToken();
     #paused = false;
     #desiredPaused = false;
@@ -52,7 +51,7 @@ class VoiceCallPauseController {
         this.#uiState = dependencies.uiState;
         this.#isRuntimeActive = dependencies.isRuntimeActive;
         this.#isStarting = dependencies.isStarting;
-        this.#showNotification = dependencies.showNotification;
+        this.#onFailure = dependencies.onFailure;
     }
 
     isPaused(): boolean {
@@ -147,18 +146,14 @@ class VoiceCallPauseController {
                 this.reset();
             }
         } catch (error) {
+            if (!this.#transitionToken.isActive(token) || !this.#isRuntimeActive()) return;
             const runtimeError = ensureError(error);
             this.#desiredPaused = false;
             this.#paused = false;
             this.#uiState.setPaused(false);
             this.#capturePaused = false;
-            if (!this.#isRuntimeActive()) {
-                return;
-            }
             errorHandler.warn('VoiceCallPauseController', 'Voice call pause transition failed', runtimeError);
-            const failureMessage = i18n.t('chat.voiceCall.pauseFailed');
-            this.#uiState.setStatus('error', failureMessage);
-            this.#showNotification(failureMessage, 'error');
+            this.#onFailure(i18n.t('chat.voiceCall.pauseFailed'));
         } finally {
             if (this.#transitionToken.isActive(token)) {
                 this.#transitioning = false;

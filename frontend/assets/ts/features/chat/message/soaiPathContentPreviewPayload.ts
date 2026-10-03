@@ -50,7 +50,7 @@ const parseSoaiPathToken = (response: SoaiPathTokenResponse): string => {
 
 const parseFolderEntriesText = (response: SoaiPathPreviewResponse): string => {
     if (response.state !== 'available' || response.entries === undefined) {
-        return '';
+        throw new Error('SoAI path folder preview is unavailable');
     }
     const lines: string[] = [];
     for (const entry of response.entries) {

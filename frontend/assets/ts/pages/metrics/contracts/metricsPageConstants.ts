@@ -18,6 +18,7 @@ const METRIC_TYPE_OPTIONS: readonly MetricTypeOption[] = Object.freeze([
     { value: 'requests', getLabel: () => i18n.t('metrics.cards.performanceMetrics.metricTypes.requests') },
     { value: 'latency', getLabel: () => i18n.t('metrics.cards.performanceMetrics.metricTypes.latency') },
     { value: 'tokens', getLabel: () => i18n.t('metrics.cards.performanceMetrics.metricTypes.tokens') },
+    { value: 'throughput', getLabel: () => i18n.t('metrics.cards.performanceMetrics.metricTypes.throughput') },
     { value: 'queue', getLabel: () => i18n.t('metrics.cards.performanceMetrics.metricTypes.queueDepth') }
 ]);
 

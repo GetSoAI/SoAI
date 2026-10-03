@@ -8,6 +8,8 @@ SoAI brings local inference engines and remote OpenAI-compatible providers into 
 
 It is also a workspace for using those models. The WebUI includes chat, files, document collections, agent tools, and scheduled automations, with shared administration for users, access, hardware, and system health. You can run SoAI for one person on a workstation or make it available to a team on a private network.
 
+**SoAI is source available, free for personal use, and its complete source code can be inspected in the [GitHub repository](https://github.com/GetSoAI/SoAI).**
+
 #### Documentation version policy
 
 This public documentation describes the latest SoAI release. It does not retain separate version-specific documentation sets.
@@ -16,7 +18,7 @@ This public documentation describes the latest SoAI release. It does not retain 
 
 A plugin connects SoAI to an inference engine or provider. The bundled plugins cover [Ollama](https://ollama.com/), [vLLM](https://vllm.ai/), [llama.cpp](https://github.com/ggml-org/llama.cpp), translation, embeddings, speech, and any service that exposes an OpenAI-compatible API. Local and remote models then appear together in the model catalog. See the [Bundled plugins reference](#bundled-plugins-reference) for help choosing a backend.
 
-**A new installation has no models.** You can install a local backend and download a model, register files already on the machine, or connect a remote provider. The catalog keeps each model's source and capabilities visible, since a chat model, an embedding model, and a speech model do different jobs. The [Models catalog](#models-catalog) page covers each route.
+**A new installation has no models.** [SoAI setup in the first-run wizard](#set-up-ai-in-the-wizard) can download a local model or connect a remote provider. You can also install a local backend and download a model, register files already on the machine, or connect a provider yourself. The catalog keeps each model's source and capabilities visible, since a chat model, an embedding model, and a speech model do different jobs. The [Models catalog](#models-catalog) page covers each route.
 
 ##### How requests reach a model
 
@@ -52,12 +54,60 @@ Start with [Install SoAI Core](#install-soai-core), then follow the [Quickstart]
 
 #### Related documentation
 
+- [Requirements](#requirements)
 - [How SoAI works](#how-soai-works)
 - [SoAI products and editions](#soai-products-and-editions)
 - [SoAI quickstart](#soai-quickstart)
 - [Models catalog](#models-catalog)
 - [Release notes and upgrade notices](#release-notes-and-upgrade-notices)
 - [License and legal](#license-and-legal)
+
+### Requirements [page: requirements]
+
+Check the supported edition and operating system path, then size the host for the models and backends you plan to run.
+
+#### Software and operating system requirements
+
+| Edition and platform | Current installation path |
+| --- | --- |
+| SoAI Core on [Linux](https://www.kernel.org/) | The published [Linux](https://www.kernel.org/) archive supports 64-bit x64 and ARM64 hosts running [Debian](https://www.debian.org/) 12 or 13 or [Ubuntu](https://ubuntu.com/) 24.x or 26.x. |
+| SoAI Core on [macOS](https://www.apple.com/macos/) | The published complete archive supports [Intel](https://www.intel.com/) and [Apple](https://www.apple.com/) silicon and provides an in-application update path. |
+| SoAI Core on [Windows](https://www.microsoft.com/windows/) | The published installer supports 64-bit [Windows](https://www.microsoft.com/windows/) 10 or later on x64. There is no [Windows](https://www.microsoft.com/windows/) ARM64 installer. |
+| SoAI OS | The appliance edition uses a UEFI [Debian](https://www.debian.org/) 13 [KDE](https://kde.org/) image for AMD64 and ARM64 hosts. |
+
+**Platform support does not guarantee a particular inference backend or GPU feature.** Check the backend's own requirements and the model's memory needs before deploying it.
+
+##### Operating system tiers
+
+**Minimum:** [Debian](https://www.debian.org/) 12 or 13, [Ubuntu](https://ubuntu.com/) 24.x or 26.x, [Windows](https://www.microsoft.com/windows/) 10 or 11, [Windows](https://www.microsoft.com/windows/) Server 2016, 2019, 2022, or 2025, or [macOS](https://www.apple.com/macos/). **Recommended:** [Debian](https://www.debian.org/) 13, [Ubuntu](https://ubuntu.com/) 26.x, [Windows](https://www.microsoft.com/windows/) 11, [Windows](https://www.microsoft.com/windows/) Server 2025, or [macOS](https://www.apple.com/macos/).
+
+The operating system tiers apply to SoAI Core. SoAI OS uses the appliance image listed above. The selected backend may have additional operating system, driver, and runtime requirements.
+
+The standard [Linux](https://www.kernel.org/) installer requires root or `sudo` access to install system packages and write to `/opt/soai`. Automatic service startup requires [systemd](https://systemd.io/). The [macOS](https://www.apple.com/macos/) installer requires `launchctl` and `plutil` when automatic startup is selected. A first installation needs a temporary internet connection to obtain the release, managed runtime dependencies, and required artifacts. See [Install SoAI Core](#install-soai-core) for the installation and privilege choices, and [Offline installation and operation](#offline-installation-and-operation) for preparing an offline host.
+
+#### Hardware requirements
+
+SoAI works on CPU-only machines and on machines with one or more GPUs. A GPU is optional, but it is needed for reasonable local inference speeds.
+
+| Resource | Minimum | Recommended |
+| --- | --- | --- |
+| CPU | [Intel](https://www.intel.com/) Core i5-2500 or [AMD](https://www.amd.com/) FX-6100 | [Intel](https://www.intel.com/) Core i7-6700 or [AMD](https://www.amd.com/) Ryzen 5 1600 |
+| RAM | 4 GB DDR3 | 16 GB DDR4 |
+| Storage | 128 GB SATA SSD (SoAI occupies about 5 GB when freshly installed) | 512 GB NVMe SSD (SoAI occupies about 5 GB when freshly installed) |
+| GPU | Optional compatible [NVIDIA](https://www.nvidia.com/) Pascal-generation GeForce GTX 10-series, Quadro P-series, or Tesla P-series cards; or an [AMD](https://www.amd.com/) or [Intel](https://www.intel.com/) GPU supported by the selected backend's [ROCm](https://www.amd.com/), [Vulkan](https://www.vulkan.org/), XPU, [SYCL](https://www.khronos.org/sycl/), [OpenVINO](https://www.intel.com/), or [OpenCL](https://www.khronos.org/opencl/) runtime | Compatible [NVIDIA](https://www.nvidia.com/) Ampere-generation GeForce RTX 30-series, RTX A-series, or Ampere data-center cards; [AMD](https://www.amd.com/) Radeon RX 6000/7000-series or Instinct MI200/MI300-series GPUs; or [Intel](https://www.intel.com/) Arc A-series/B-series or Data Center GPU Max cards |
+
+RAM and VRAM needs depend on the selected model, quantization, context length, plugin, and concurrency rather than on SoAI alone. Larger models and concurrent requests need more memory. Model files, plugin backends, databases, user files, backups, and working space also need storage beyond the application itself.
+
+SoAI can run from a hard disk drive (HDD), SD card, or USB drive, but those storage types are not recommended and do not meet the SSD-based minimum or recommended storage tiers. Their lower throughput, higher latency, and removable-media failure risks can affect model loading, database activity, indexing, updates, backups, and concurrent file operations. Use an SSD for a normal installation and durable data paths.
+
+Use an enterprise SSD for heavy or enterprise workloads. For maximum persistent-storage performance, an [Intel Optane](https://www.intel.com/) drive is the best option where available. A RAM drive can be used for maximum performance, but it is not recommended.
+
+#### Related documentation
+
+- [Install SoAI Core](#install-soai-core)
+- [Hardware compatibility](#hardware-compatibility)
+- [Capacity planning](#capacity-planning)
+- [SoAI products and editions](#soai-products-and-editions)
 
 ### How SoAI works [page: how-soai-works]
 
@@ -162,13 +212,15 @@ These are SoAI Core paths. SoAI OS is a separate private appliance edition with 
 
 ##### Confirm the host requirements
 
-The minimum and recommended CPU, memory, storage, and GPU specifications are listed in [System requirements](#system-requirements). Model files, plugin backends, databases, user files, and working space need capacity beyond the application installation. A hard disk drive (HDD), SD card, or USB drive can host SoAI, but these options are not recommended and do not satisfy the SSD-based storage tiers.
+The minimum and recommended CPU, memory, storage, and GPU specifications are listed in [Requirements](#system-requirements). Model files, plugin backends, databases, user files, and working space need capacity beyond the application installation. A hard disk drive (HDD), SD card, or USB drive can host SoAI, but these options are not recommended and do not satisfy the SSD-based storage tiers.
 
 ##### Understand the network and privilege requirements
 
 Installing a third-party component for a user and redistributing that component inside the SoAI installer are different legal acts. SoAI installs packages, runtimes, browser artifacts, and optional backends that remain under their owners' licenses; the SoAI license cannot grant redistribution rights for them. SoAI does not have permission to repackage every dependency, and other licenses impose redistribution conditions that vary by component and build. A complete bundled installer would itself redistribute all of those works. SoAI therefore includes a third-party component only when its redistribution rights and notice obligations are satisfied, and otherwise downloads it from its supported source so the component is supplied under its own terms.
 
 **Because third-party runtime dependencies must be downloaded under their respective licenses rather than bundled, an initial installation requires a temporary internet connection.** The network installer retrieves the current SoAI release metadata and the correct platform artifact, then the installed launcher provisions the managed [Python](https://www.python.org/) environment and the third-party dependencies and runtime artifacts that cannot be included in the release payload. It can also use the host package manager for missing system prerequisites. Backends, models, and optional feature assets are obtained separately when you choose them. After everything required for your deployment is present, SoAI can operate without public-network access as described in [Offline installation and operation](#offline-installation-and-operation).
+
+Network installers retry temporary download failures. On [Linux](https://www.kernel.org/) and [macOS](https://www.apple.com/macos/), archive downloads can resume from saved data. On [Windows](https://www.microsoft.com/windows/), the installer shows where it saved diagnostic logs for download attempts; keep those logs when reporting a failed installation.
 
 On [Linux](https://www.kernel.org/), root or `sudo` access is required by the standard installer because it writes the system-owned `/opt/soai` installation, creates the `/usr/local/bin/soai` command, installs missing host packages when necessary, and, if automatic startup is selected, writes and manages `/etc/systemd/system/soai.service`. `sudo` is only the elevation mechanism for those host changes; it is not required merely to use the WebUI. An extracted, verified release can instead be installed to a user-writable target without `--fast` when the host prerequisites are already installed, but that path does not install a system service or the global `soai` command.
 
@@ -210,6 +262,10 @@ Without `--fast`, the installer provisions the selected application target and i
 
 ##### Install on Windows
 
+Setup requests administrator privileges and enables the operating system's long-path support before preparing its managed runtime. The complete-archive launcher uses the same preparation. Choose a concrete installation folder; setup rejects links, unsafe path components, conflicting launcher configuration, and installations with unfinished update recovery before replacing application files. Long paths remain subject to the limits of external backends and operating-system tools. If one of those tools rejects a path, use a shorter location for the affected backend or model.
+
+If setup fails while preparing SoAI, it shows where diagnostic logs were saved. Keep that folder when asking for help, even if setup removes the incomplete installation.
+
 Run the verified `SoAI-<version>-windows-x64-setup.exe`, or use the network bootstrap below. The native installer copies the application, prepares its managed runtime, creates the registered uninstall entry and shortcuts, then offers **Start SoAI** on the finish page. **The executable is currently unsigned.** When downloading it directly, authenticate it with the signed release manifest before approving the operating-system warning. The network bootstrap instead validates the release metadata and checksum before starting the same setup.
 
 ```powershell
@@ -242,7 +298,7 @@ SoAI provisions its own [Python](https://www.python.org/) 3.13 runtime and requi
 
 **Expect that first provisioning to take several minutes rather than seconds.** It prepares the managed [Python](https://www.python.org/) environment and then installs runtime artifacts in turn, among them the [Playwright](https://playwright.dev/) [Chromium](https://www.chromium.org/) build, a managed [Java](https://www.java.com/) runtime, the [Apache Tika](https://tika.apache.org/) server, and a token encoding cache, and the launcher names each one as it starts. How long it runs depends on the connection and the host, so read the launcher output rather than a clock: a step that is still downloading is working, not stuck. The WebUI does not exist yet during this phase, which is why the address the launcher prints appears only once provisioning finishes.
 
-An interrupted first install is recoverable, unlike an interrupted database check on an established instance. Stopping the launcher can leave the managed runtime incomplete, and the next start or an explicit `install-deps` provisions what is missing rather than beginning again from nothing. A lock left behind by a killed installer is reclaimed automatically once its owning process is gone, so a repeat run is the correct response to an install that ended early.
+An interrupted first install is recoverable, unlike an interrupted database check on an established instance. Stopping the launcher can leave the managed runtime incomplete, and the next start or an explicit `install-deps` provisions what is missing rather than beginning again from nothing. A lock left behind by an interrupted installer may require verified recovery when the remaining ownership evidence is incomplete. Close any active installer and retry. If SoAI still reports that recovery is required, retain the failure diagnostics and obtain support before removing lock or transaction files.
 
 From a stopped installation, `install-deps` provisions or repairs the runtime without starting SoAI:
 
@@ -268,11 +324,11 @@ The [Windows](https://www.microsoft.com/windows/) lifecycle and repair commands 
 ##### Complete first run
 
 1. Open the SoAI WebUI at the URL printed by the launcher.
-2. Complete the setup wizard and create the first Administrator.
-3. Open Plugins and install or configure an inference backend.
-4. Add a model, select it in Chat, and send a bounded test message.
+2. Follow the account steps in the setup wizard to create the first Administrator.
+3. Follow SoAI setup in the wizard to connect a provider or install a local engine and model, then select **Chat** once a model is ready.
+4. If you skipped SoAI setup, open **Plugins** to install an inference backend, add a model through **Models**, and send a short test message in Chat.
 
-Before the first user exists, normal application and compatible API routes remain unavailable. After setup, the `/v1` surface remains open until an Administrator creates the first API key. Review [Authentication and API keys](#authentication-and-api-keys) before making the server reachable from another host.
+Before the first user exists, normal application and compatible API routes remain unavailable. After account creation, the `/v1` surface remains open until an Administrator creates the first API key. Review [Authentication and API keys](#authentication-and-api-keys) before making the server reachable from another host.
 
 #### Related documentation
 
@@ -317,13 +373,24 @@ These commands drive SoAI Core. A [SoAI OS](#soai-os-overview) appliance has its
 
 A database with no users opens the setup wizard instead of the sign-in page. The welcome step carries the interface language selector, the license step shows the controlling document with its fingerprint and records your acceptance, and the use declaration step asks how the deployment will be used. **Personal use** is the only declaration you can select on SoAI Core, and choosing it skips the product access step, so a Core installation reaches the account form one step after the declaration. [Licensing administration](#licensing-administration) describes the entitlement paths and the controls a deployment sees once it holds one.
 
-The account form takes a username of 3 to 50 ASCII letters, numbers, dots, underscores, or hyphens, a password of 8 to 1,024 characters, and the same password again in **Confirm password**. SoAI stores the username in lowercase, gives the account the Administrator role, and applies the language you picked on the welcome step as its interface language. Completing the wizard signs you in and opens the dashboard, and only when that session fails to activate does the final step send you to the sign-in page instead. See [Users, roles, and sessions](#users-roles-and-sessions) for later account management and [Passwords and credential tools](#passwords-and-credential-tools) before choosing the administrator password.
+The account form takes a username of 3 to 50 ASCII letters, numbers, dots, underscores, or hyphens, a password of 8 to 1,024 characters, and the same password again in **Confirm password**. SoAI stores the username in lowercase, gives the account the Administrator role, and applies the language you picked on the welcome step as its interface language. Creating the account signs you in and continues to SoAI setup. If automatic sign-in fails, the wizard opens the sign-in page instead. See [Users, roles, and sessions](#users-roles-and-sessions) for later account management and [Passwords and credential tools](#passwords-and-credential-tools) before choosing the administrator password.
 
-**Until the wizard completes, SoAI answers requests outside the wizard's own routes with `403` and `setup_required`, including everything under `/v1`.** The health, system information, system limits, and license routes stay public throughout, so a monitoring probe can still tell that the process is up while setup is pending.
+**Until the first administrator account exists, protected API requests return `403` with `setup_required`, including requests under `/v1`.** The health, system information, system limits, and license routes stay public throughout, so a monitoring probe can still tell that the process is up while setup is pending.
+
+##### Set up AI in the wizard
+
+SoAI setup helps you prepare a first model. Under **Where should your AI run?**, choose **On this device**, **Cloud providers**, or both. If local setup is unavailable, the wizard explains why and recommends a cloud provider.
+
+1. On **Get ready**, enter a provider's **API URL** and **API key**, then select **Connect**. For a local model, use **Automatic (recommended)** to let SoAI choose an engine, or select **Choose manually**. This step is skipped when you chose only local models and a suitable engine is already installed.
+2. On **Choose a model**, select a suggested model or use **Search for another model**. Suggestions show download size and estimated reply speed. Models from a connected provider appear in their own list.
+3. Follow installation and download progress on **Getting everything ready**. SoAI tests local models before marking them ready. For a provider model, select **Send a test message** to check that it answers.
+4. Select **Chat** once a model is ready. Chat opens with that model selected.
+
+Select **Skip SoAI setup** on the first step to use the manual setup instructions below. On a later step, **Skip** keeps your progress while installations and downloads continue. When Chat offers **Finish SoAI setup**, select it to return to the remaining steps. If no model is ready, **Enter SoAI** opens your default page.
 
 #### Connect a model
 
-Use this route when SoAI will run an inference engine on the same machine. The controls below need **Plugin read access** ([`PLUGIN_READ`](#acl-PLUGIN_READ)), **Plugin administration** ([`PLUGIN_ADMIN`](#acl-PLUGIN_ADMIN)), **Model read access** ([`MODEL_READ`](#acl-MODEL_READ)), and **Model administration** ([`MODEL_ADMIN`](#acl-MODEL_ADMIN)).
+Use this route to add a local inference engine yourself if you skipped SoAI setup or want another engine. The controls below need **Plugin read access** ([`PLUGIN_READ`](#acl-PLUGIN_READ)), **Plugin administration** ([`PLUGIN_ADMIN`](#acl-PLUGIN_ADMIN)), **Model read access** ([`MODEL_READ`](#acl-MODEL_READ)), and **Model administration** ([`MODEL_ADMIN`](#acl-MODEL_ADMIN)).
 
 1. Open **Plugins** and find the engine you want, such as **[Ollama](https://ollama.com/)**. A bundled plugin that is compatible with the host arrives enabled, so its card switch reads **Enabled**, and the card status tells you whether the backend itself is present, where **Not installed** means there is nothing to run yet.
 2. Select **Install backend** on that card, choose a build that matches the host, then select **Start installation**.
@@ -370,6 +437,8 @@ Select the **Settings** button at the right of the header, choose **Settings**, 
 ### Adding your first backend [page: adding-your-first-backend]
 
 Your first backend should match the work you want to do and the host that will run it. SoAI does not require one engine for every installation. Use the bundled plugin descriptions in [Bundled plugins reference](#bundled-plugins-reference) to choose a local engine, or add an External provider when the model already runs behind an OpenAI-compatible API.
+
+If you used [SoAI setup in the first-run wizard](#set-up-ai-in-the-wizard), check **Plugins** and **Models** before adding another backend. When Chat offers **Finish SoAI setup**, select it to continue the remaining steps.
 
 #### Pick a starting point
 
@@ -426,8 +495,8 @@ Start with [Install SoAI Core](#install-soai-core) and verify downloaded artifac
 #### Configure the deployment
 
 1. Start SoAI and open the SoAI WebUI at the URL printed by the launcher. The default port is `5090`.
-2. Complete the setup wizard and create the first Administrator.
-3. Add a local backend or remote provider, then send a test request in Chat.
+2. Follow the account steps in the setup wizard to create the first Administrator.
+3. Follow SoAI setup in the wizard, or add a local backend or remote provider yourself, then send a test message in Chat.
 4. Create a backup before changing network exposure or moving data paths.
 
 **Before the first account exists, normal application and compatible API routes are unavailable.** Do not place an incomplete wizard behind a shared endpoint.
@@ -538,6 +607,8 @@ The script refuses to operate on a running instance, a Git working tree, a broad
 
 Close SoAI, then use **Uninstall SoAI** from the SoAI Start Menu folder or uninstall SoAI from the [Windows](https://www.microsoft.com/windows/) installed-apps settings. The installer registers `Uninstall.exe` for this purpose. The uninstaller stops SoAI, removes its shortcuts, registry entries, application files, and managed runtime, and retains the installation's `data` directory by default. Select **Remove all SoAI application data** only when you also intend to delete accounts, configuration, chats, models, files, logs, and backups. For an intentional unattended full removal, run `Uninstall.exe /S /REMOVEAPPDATA`.
 
+Uninstall waits up to 60 seconds for SoAI and its desktop window to close. If either is still running, uninstall stops without removing application files and shows where diagnostic logs were saved. Close SoAI, then run the uninstaller again. It leaves the operating system's long-path setting enabled because other applications may use it.
+
 ##### Windows complete-archive deployment
 
 Stop the selected archive installation, then run its target-scoped uninstaller from outside the installation directory:
@@ -585,12 +656,14 @@ Use Chat to talk to a model, compare answers, work with files, [speak instead of
 
 #### Before Chat appears
 
-On a fresh installation with no selectable conversation model, SoAI leaves **Chat** and **Automation** out of the main sidebar.
+[SoAI setup in the first-run wizard](#set-up-ai-in-the-wizard) can prepare a model and open Chat with it. On a fresh installation with no selectable conversation model, SoAI leaves **Chat** and **Automation** out of the main sidebar. To add a model yourself:
 
 1. In the SoAI WebUI, open **Models** and select **Add model**.
 2. Use **Download model** for a local chat model. If it needs a local backend first, follow [Install and manage plugins](#install-and-manage-plugins). For a remote model, select **Add provider** and use the bundled External plugin.
 
 Chat appears after the catalog contains a selectable conversation model, meaning the model is loaded or available and is not embedding-only. A provider configuration alone does not count; discovery must add one of its models to the catalog. See [Models catalog](#models-catalog) for model discovery, downloads, and availability.
+
+When Chat offers **Finish SoAI setup**, select it to continue the remaining setup steps.
 
 **An embedding-only model does not unlock Chat because it cannot answer conversation prompts.** It can still supply the vectors used by Knowledge. After this first-run gate opens, that browser remembers it; Chat can remain in the sidebar if the model later becomes unavailable, but you must select or restore a selectable conversation model before you can send a message.
 
@@ -607,7 +680,7 @@ Chat shows actions when they apply. Visibility and availability depend on the mo
 | Message actions | Hover over a message or focus it with the keyboard. The message role and current state decide whether actions such as Edit, Resend message, Regenerate, Speak, or Message info apply. History-changing actions stay unavailable during a turn. |
 | Model selector in the header | The sidebar model selector is the main control while the sidebar is open. The header selector appears when the sidebar is closed or Chat is in a detached window. |
 | Previous variant and Next variant | These appear only on a comparison turn that has more than one model reply. |
-| Saved prompts, character map, token counter, voice, attachments, and camera | Turn each action on under **Chat configuration** > **Appearance** > **Input actions**. The Upload and Scan panes follow the attachment and camera choices. Dictation can remain disabled when the page or browser cannot record audio or permission is missing. Voice Call also requires a selected conversation model. Scan needs browser camera support and permission. |
+| Saved prompts, character map, sketch, token counter, voice, attachments, and camera | Turn each action on under **Chat configuration** > **Appearance** > **Input actions**. The Upload and Scan panes follow the attachment and camera choices. Dictation can remain disabled when the page or browser cannot record audio or permission is missing. Voice Call also requires a selected conversation model. Scan needs browser camera support and permission. |
 | Toggle plan bar and Toggle todo bar | These appear after the current conversation has a plan or todo list. |
 
 #### Page layout
@@ -619,6 +692,8 @@ Chat shows actions when they apply. Visibility and availability depend on the mo
 | Timeline | Read messages, reasoning and activity states, tool calls, plans, todos, attachments, approval requests, and errors. Older or newer windows of a long transcript load as you move through it. |
 | Interaction previews | Review queued prompts, approve tools, answer agent questions, provide requested secrets, monitor voice recording, and inspect attachments before sending. |
 | Composer | Write a prompt, attach context, use saved prompts, dictate, start a voice call, inspect token use, and send, stop, steer, or queue input. |
+
+Chat can hide its conversation header and empty composer while you scroll up through earlier messages. Scroll down to reveal them, or move the pointer to the top edge for the header and the bottom edge for the composer. Typing brings back the composer, and a running response keeps its **Stop** control available. Turn off **Auto hide chat header** or **Auto hide chat composer** under **Chat configuration > Appearance** to keep them visible. With the conversation sidebar collapsed, rest the pointer on its toggle button to open it over the page.
 
 #### Start a conversation
 
@@ -659,7 +734,9 @@ You cannot steer a comparison because several models are answering. If SoAI can 
 
 #### Write, send, steer, and queue prompts
 
-The composer accepts multiline text and direct attachments. On an empty conversation, suggestion cards can insert a starting prompt. Select **Saved prompts** beside the composer to insert an entry from your prompt library. Select **Manage prompts** in that picker to create or edit entries on the Prompts page. Select **Open character map**, choose one or more characters, then select **Insert** when you need characters that are inconvenient to type. If either action is missing, turn it on under **Chat configuration** > **Appearance** > **Input actions**, then select **Save**.
+The composer accepts multiline text and direct attachments. On an empty conversation, suggestion cards can insert a starting prompt. Select **Saved prompts** beside the composer to insert an entry from your prompt library. Select **Manage prompts** in that picker to create or edit entries on the Prompts page. Select **Open character map**, choose one or more characters, then select **Insert** when you need characters that are inconvenient to type. Select **Open sketch** to draw with a mouse, pen, or touch, then select **Attach** to add the drawing to the composer as an image. If an action is missing, turn it on under **Chat configuration** > **Appearance** > **Input actions**, then select **Save**.
+
+**Auto hide chat composer** is enabled by default under **Chat configuration** > **Appearance**. When the composer is empty and unfocused, it folds away as you scroll up through earlier messages. Scroll down, type, or move the pointer to the bottom of Chat to reveal it. The **Stop** button remains visible while a response runs, and agent questions or approval requests bring the composer back when your attention is needed. Turn the setting off if you prefer a fixed composer.
 
 SoAI saves the composer text and ready direct attachments as a draft for that conversation. Switch conversations or reload the page and the draft returns. Drafts also sync between signed-in browsers. If another browser changes the same draft while you are typing, SoAI keeps your local text and shows a conflict instead of replacing it.
 
@@ -683,6 +760,17 @@ The button label tells you what will happen. An approval, agent question, secret
 | `Esc` | Stop an active turn, cancel an agent question, or exit conversation selection mode. |
 | `ArrowUp` at the start of the composer | Move backward through your saved prompt history. |
 | `ArrowDown` at the end of the composer | Move forward through your saved prompt history. |
+
+##### Hold shortcuts
+
+Press and hold these controls to open another action.
+
+| Control | Hold action |
+| --- | --- |
+| **Start voice recording** | Record while held, then release to transcribe and send. See [Using speech in Chat](#use-speech-in-chat) for cancellation and draft review. |
+| **Token counter** | Open **Chat configuration** on **Parameters** with the context length in view. |
+| **Chat configuration** | Open **Presets**. |
+| **Toggle tools** | Open **Tools** settings for this conversation. |
 
 #### Attach files, folders, and media
 
@@ -741,7 +829,7 @@ SoAI locks the Tools control during an active turn. Indexed Knowledge also keeps
 
 To edit the starting lists for later conversations, select **Select** under **Default tools (new chats)**. This dialog is another view of the staged tool lists for the open conversation, so its changes also appear in the main tool picker. Close the dialog, review the selections, and select **Save** to update both the open conversation and your defaults for later chats.
 
-The list contains the built-in tools and any tools from remote MCP servers available to your account. Chat can use web search, browser control, file editing, shell commands, memory, or image generation only when the matching tool appears in the list and you select it for the current mode. See [Agent tools overview](#agent-tools-overview) and [MCP overview](#mcp-overview) for the catalogs and server setup.
+The list contains the built-in tools and any tools from remote MCP servers available to your account. Chat can use web search, browser control, file editing, shell commands, memory, or image generation only when the matching tool appears in the list and you select it for the current mode. See [Agent tools overview](#agent-tools-overview) and [MCP overview](#mcp-overview) for the catalogs and server setup. When a saved tool or MCP server is no longer available, the tool settings list it as unavailable and keep it selected for when it returns.
 
 ##### Approval prompts
 
@@ -764,6 +852,8 @@ Answer the panel above the composer to continue. If you cancel it or let it expi
 #### Follow plans, todos, tools, and subagents
 
 Plan and Execute turns can expose a plan or todo panel above the timeline. After the turn creates one, the matching **Toggle plan bar** or **Toggle todo bar** control appears in the header. Use it to show or hide the panel. The same progress updates remain in the transcript.
+
+In Plan mode, the agent can place its plan in the **Plan** widget and leave a short summary in chat. Select **View plan** to review it, then **Execute plan** when you want the agent to carry it out.
 
 Tool activity appears inside the assistant turn. A row can show the tool name, state, input, result, duration, URL, code diff, media preview, or error. Expand a row for details. Select **View full output** when a long result offers it. A running shell command has its own **Stop command** action.
 
@@ -789,11 +879,11 @@ Under **Chat configuration > Appearance**, turn on **Inline multimedia previews*
 
 #### Use the token counter and compact context
 
-Open **Chat configuration** > **Appearance** > **Input actions**, turn on **Token counter**, and select **Save**. The counter beside the composer shows estimated or measured prompt use and the model's context window when SoAI knows it. Select the counter to switch between token use and generation speed. Its color changes as the prompt approaches the limit. Prompt use includes the enabled [SoAI system prompt](#soai-system-prompt) and its runtime context.
+Open **Chat configuration** > **Appearance** > **Input actions**, turn on **Token counter**, and select **Save**. The counter beside the composer shows estimated or measured prompt use and the model's context window when SoAI knows it. Select the counter to switch between token use and generation speed, or hold it to open **Parameters** with the context length in view. Its color changes as the prompt approaches the limit. Prompt use includes the enabled [SoAI system prompt](#soai-system-prompt) and its runtime context.
 
 ##### Context compaction
 
-Before an agent request, SoAI may compact older history when the full prompt no longer fits the available prompt budget. To start compaction yourself, wait until the conversation has at least one message and is idle, then select **Compact** in the header. SoAI uses the selected conversation model, summarizes older context, and adds a visible boundary to the transcript. Later turns use that summary in place of the earlier detail.
+Before an agent request, SoAI may compact older history when the full prompt no longer fits the available prompt budget. To start compaction yourself, wait until the conversation has at least one message and is idle, then select **Compact** in the header. SoAI uses the selected conversation model, summarizes older context, and adds a visible boundary to the transcript. Later turns use that summary in place of the earlier detail. If the summary would not be smaller than the context it replaces, SoAI keeps the existing history and reports that nothing was compacted.
 
 Automatic compaction also applies to messaging conversations. It lets a conversation continue without a fixed message-count limit. The server may replace older details with a summary instead of sending them to the model word for word. Each messaging account can use a different context length and therefore have its own effective compaction limit. Select the **Settings** button at the right of the header, choose **Settings**, select **Messaging**, then use **Edit** for the account. Under **Chat execution**, select **Edit parameters** and set **Context length (tokens)** under **Model settings**. Clear it to use the selected model's default. A lower value gives that account a smaller context budget, so it compacts sooner. This can help when a smaller model gives worse answers as its prompt grows, and it does not change the context length of other messaging accounts.
 
@@ -801,11 +891,11 @@ Expand the boundary to read its summary, injected prompt, and compaction details
 
 #### Use dictation, speech, and voice calls
 
-Select **Start voice recording**, speak, then select **Stop recording**. SoAI transcribes the recording with the selected or automatic speech-to-text model and adds the text to the composer. Review it before sending. **Starting dictation ends an active voice call.**
+Select **Start voice recording**, speak, then select **Stop recording**. SoAI transcribes the recording with the selected or automatic speech-to-text model and adds the text to the composer. Review it before sending. **Starting dictation ends an active voice call.** Hold **Start voice recording** for push-to-talk, then release to transcribe and send. If the draft or selected model changes, the transcript stays in the composer for review. See [Voice, dictation, and speech](#voice-dictation-and-speech).
 
 ##### Voice call
 
-Select **Start voice call** for hands-free chat. Voice Call listens until you stop speaking, sends the transcription, waits for the model, and reads the answer aloud. If you speak while the assistant is answering, SoAI stops that speech and response so your new utterance can take over. Use **Pause voice call**, **Resume voice call**, or **End voice call** in the call dialog. Switching conversations ends the call.
+Select **Start voice call** for hands-free chat. Voice Call listens until you stop speaking, sends the transcription, waits for the model, and reads the answer aloud. If you speak while the assistant is answering, SoAI stops that speech and response so your new utterance can take over. Use **Pause voice call**, **Resume voice call**, or **End voice call** in the call dialog. Switching conversations ends the call. If a call fails, it ends and shows an error message. Follow that message before starting another call.
 
 ##### Voice requirements
 
@@ -855,11 +945,11 @@ Select **Chat configuration** in the header, choose a tab, make your changes, th
 
 | Tab | Controls | Main scope |
 | --- | --- | --- |
-| Appearance | Text zoom, widescreen layout, Markdown rendering, inline multimedia previews, automatic titles, activity display, sidebar visibility filters, completion and error notifications, microphone sounds, composer action visibility, and **Auxiliary mobile input action**, which keeps one extra action beside Send on compact layouts. | WebUI preferences. |
+| Appearance | Text zoom, widescreen layout, Markdown rendering, inline multimedia previews, automatic titles, activity display, header and composer auto-hide, sidebar visibility filters, completion and error notifications, microphone sounds, composer action visibility, and **Auxiliary mobile input action**, which keeps one extra action beside Send on compact layouts. | WebUI preferences. |
 | Files | Select **Change folder** to override the workspace folder for this conversation, or **Inherit default** to use your default folder. SoAI removes an override if a later default folder change places it outside your allowed workspace. | Current conversation. |
 | General | Primary and comparison models, **Hide model id**, **Your name**, **Your photo**, **Model name**, **Model photo**, **Export to PDF**, and **Use last settings for new chats**. | Conversation identity plus user defaults and export preference. |
 | Knowledge | RAG enablement, embedding model, retrieval strategy, Top K, similarity threshold, and chunking controls. Use **Add attachments** > **Knowledge** for documents and reindexing. | Current conversation. |
-| Memory | Select **Refresh memory** to reload saved memories or **Open profile form** to edit the personal context SoAI can use across your chats. | User memory shared across chats. |
+| Memory | Select **Refresh memory** to reload saved memories or **Open profile form** to edit the personal context SoAI can use across your chats. If the profile cannot load, select **Retry**. Saving is unavailable until it loads successfully. | User memory shared across chats. |
 | Parameters | **System prompt**, **Lock system prompt**, [**SoAI system prompt**](#soai-system-prompt), **Context length (tokens)**, **Reasoning effort**, **Max completion tokens**, **Agent max iterations**, temperature, Top P, frequency and presence penalties, **Stop sequences**, **Top log probabilities**, and **Service tier**. Reasoning effort, Max completion tokens, Top P, both penalties, Stop sequences, and Top log probabilities have a **Send this parameter to the model** switch. | Current conversation, model requests, and the user's prompt-lock preference. |
 | Presets | Search, create, apply, rename, replace, and delete reusable configuration presets. A preset records only the sections you select. Parameter reset leaves model, identity, Files, Knowledge, and Tools unchanged. | User preset library. |
 | Tools | Tool enablement, approval requirement, defaults for new chats, server groups, tool search, and separate Chat, Plan, and Execute selections. | Current conversation plus user defaults for new chats. |
@@ -882,6 +972,8 @@ If PDF creation fails after SoAI has prepared the conversation, SoAI reports the
 #### Leave, return, and work in another window
 
 **Switching conversations or leaving Chat does not stop work that SoAI has accepted.** The sidebar marks conversations that are running or need your attention, and the timeline catches up when you return. Turn completion and error notifications on under **Chat configuration** > **Appearance**. Select **Stop** before leaving when you want to end the work.
+
+When you return to Chat without choosing a conversation, SoAI reopens the last conversation available for your account in that browser and restores its saved scroll position. If that conversation is unavailable, it opens the most recent available conversation.
 
 After a connection returns, SoAI reloads drafts, queued prompts, messages, tool activity, and attention notices. The same items appear in another signed-in browser, so a prompt queued in one browser can appear in another. You can cancel a pending queue item. Once it starts, use **Stop**.
 
@@ -962,6 +1054,8 @@ Answer the panel above the composer. Cancelling it or allowing it to expire prod
 
 Plan and Execute can add a plan or todo panel above the timeline. After one exists, use **Toggle plan bar** or **Toggle todo bar** in the header to show or hide it. The progress events remain in the transcript.
 
+In Plan mode, the agent can place its plan in the **Plan** widget and leave a short summary in chat. Select **View plan** to review it, then **Execute plan** when you want the agent to carry it out.
+
 Tool rows can show state, input, result, duration, URL, code changes, media, or an error. Expand a row for detail and use **View full output** when it is available. A running shell action has its own **Stop command**. If an agent delegates work, subagent status, timing, and nested activity appear in the same assistant turn.
 
 ##### Stop, steer, or queue
@@ -998,11 +1092,11 @@ In the SoAI WebUI, open **Chat** from the sidebar and select the conversation be
 
 ##### Watch context occupancy
 
-Open **Chat configuration > Appearance > Input actions**, enable **Token counter**, and select **Save**. The composer counter shows measured or estimated prompt use, including the enabled [SoAI system prompt](#soai-system-prompt), and the selected model's context window when SoAI knows it. Its color changes near the limit. Select it to switch between token occupancy and generation speed.
+Open **Chat configuration > Appearance > Input actions**, enable **Token counter**, and select **Save**. The composer counter shows measured or estimated prompt use, including the enabled [SoAI system prompt](#soai-system-prompt), and the selected model's context window when SoAI knows it. Its color changes near the limit. Select it to switch between token occupancy and generation speed, or hold it to open **Parameters** with the context length in view.
 
 ##### Compact older context
 
-Before an agent request, SoAI can compact older history when the full prompt no longer fits its available budget. To start it yourself, wait until the conversation has a message and is idle, then select **Compact** in the header. SoAI uses the selected conversation model, summarizes older context, and places a visible boundary in the timeline. Later requests use that summary instead of sending every earlier detail word for word.
+Before an agent request, SoAI can compact older history when the full prompt no longer fits its available budget. To start it yourself, wait until the conversation has a message and is idle, then select **Compact** in the header. SoAI uses the selected conversation model, summarizes older context, and places a visible boundary in the timeline. Later requests use that summary instead of sending every earlier detail word for word. If the summary would not be smaller than the context it replaces, SoAI keeps the existing history and reports that nothing was compacted.
 
 Expand a boundary to inspect its summary, injected prompt, and statistics. While idle, select **Regenerate** to rebuild a manually created boundary or **Remove boundary** to return the earlier transcript to normal context. Check occupancy before removing one because the restored detail can exceed the model's prompt budget.
 
@@ -1056,6 +1150,10 @@ Chat supports dictation, hands-free voice calls, and text-to-speech playback. Th
 
 Select **Start voice recording**, speak, then select **Stop recording**. SoAI transcribes the audio with the selected or automatic STT model and inserts the text into the composer. Review it before sending. **Starting dictation ends an active voice call.**
 
+For push-to-talk, hold **Start voice recording**, speak, then release. SoAI transcribes the recording, adds it to any text already in the composer, and sends the message. Slide the pointer left before releasing, or press `Esc`, to cancel. If a reply is still running, the message joins the queue.
+
+If you edit the draft or change the selected model during recording or transcription, the transcript stays in the composer for review instead of being sent. Switching conversations cancels the recording. Click the recording button without holding it to use ordinary dictation and review the text before sending.
+
 ##### Run a voice call
 
 Select **Start voice call**. The call listens until you stop speaking, transcribes the utterance, sends it to the conversation model, and reads the reply through the selected TTS model. If you speak while the assistant is answering, SoAI stops the current speech and response so the new utterance can take over. Use **Pause voice call**, **Resume voice call**, or **End voice call**. Switching conversations ends the call.
@@ -1092,11 +1190,12 @@ Your account needs **Files reading** ([`FILE_EXPLORER_READ`](#acl-FILE_EXPLORER_
 | --- | --- | --- |
 | Knowledge | A conversation collection that SoAI parses, chunks, embeds, and makes available through the required Knowledge tools. | You expect to ask several questions across one or many documents. |
 | Scan | A JPEG photo captured with the browser camera. | You want to show the model a page, object, label, or other physical source. |
+| Sketch | A PNG drawing uploaded from the Chat sketch pad and attached to the current message. | You want to draw a diagram or mark an idea without creating an image file elsewhere. |
 | SoAI link | A workspace reference copied from Files, a Files preview, or another supported SoAI surface. | You have already found the source elsewhere in the WebUI. |
 | Upload | A managed copy of every selected file, attached to the current user message. | The model needs files for the current prompt and you do not need a searchable collection. |
 | Workspace | A live, verified reference to a Files item, or linked reuse of a completed Knowledge source shown in the same search. | The source is already stored in SoAI and should not be uploaded again. |
 
-Direct uploads and scans belong to one message and remain visible in its conversation history. Workspace file and folder references and SoAI links point to stored workspace items; Workspace can also link completed Knowledge from another conversation. **Only Knowledge creates a searchable conversation collection.**
+Direct uploads, scans, and sketches belong to one message and remain visible in its conversation history. Workspace file and folder references and SoAI links point to stored workspace items; Workspace can also link completed Knowledge from another conversation. **Only Knowledge creates a searchable conversation collection.**
 
 #### Receive files from a messaging app
 
@@ -1111,6 +1210,8 @@ Direct uploads and scans belong to one message and remain visible in its convers
 5. Wait for direct files and any draft Knowledge attachments to finish processing, then send the message.
 
 If **Add attachments** is not visible, open **Chat configuration**, choose **Appearance**, expand **Input actions**, and enable **Upload file**. The Upload tab follows that setting. The Scan tab follows the **Camera** input action. Workspace, SoAI link, and Knowledge remain enabled whenever the picker is open. A valid SoAI link can also be pasted into the main composer.
+
+**Open sketch** is a separate composer action. Enable **Sketch** under **Chat configuration > Appearance > Input actions**, draw in the sketch pad, then select **Attach**. SoAI uploads the drawing through the same direct-file path as Upload; review its card before sending. Closing a sketch with unsaved strokes asks whether to discard them.
 
 ##### Controls that appear only when they apply
 
@@ -1190,7 +1291,7 @@ The provider receives a prepared projection of each attachment. SoAI chooses it 
 
 ##### Images and camera scans
 
-Common image formats can be attached through Upload, Workspace, a SoAI link, or Scan. A vision-capable model receives normalized visual input within the configured pixel and encoded-size limits. OCR text can accompany the image. If visual preparation fails and OCR succeeded, SoAI can still use the extracted text.
+Common image formats can be attached through Upload, Workspace, a SoAI link, Scan, or Sketch. A vision-capable model receives normalized visual input within the configured pixel and encoded-size limits. OCR text can accompany the image. If visual preparation fails and OCR succeeded, SoAI can still use the extracted text.
 
 **Scan** captures a browser camera frame as a JPEG. **Switch camera** requests the other facing mode on devices that offer one. Select **Capture**, use **Retake** if needed, then select **Use photo**. A vision-capable selected model receives prepared visual input. Other cases use the document and OCR path. Camera support and permission come from the browser and operating system.
 
@@ -1447,7 +1548,7 @@ The **Models** page is SoAI's model catalog. Use it to add local models or exter
 
 #### Add models
 
-A fresh SoAI installation does not include any models. Choose how you want to add your first one:
+A fresh SoAI installation does not include any models. [SoAI setup in the first-run wizard](#set-up-ai-in-the-wizard) can add one for you. To add one yourself, choose how:
 
 | If you want | What to do in the SoAI WebUI |
 | --- | --- |
@@ -1496,7 +1597,7 @@ The summary above the catalog shows model counts, loaded models, external provid
 | **Availability** | Turn availability off to block requests and remove the model from model pickers. This control does not unload the backend. |
 | **Delete model** | Deletes a local model through its plugin. You cannot undo this action. SoAI shows it only when the plugin supports model deletion. Remove external-provider models through **Providers** instead. |
 | **Edit model** | Opens shortcuts for **Model information**, **Rename**, **Test model**, **Edit parameters**, **Copy**, and **Delete**. The same dialog has the model's availability and capability controls. Virtual models use an **Edit virtual model** control instead. |
-| **Edit parameters** | Opens the model detail page. Use the **Parameters** tab to search or filter the settings exposed by that plugin, change the values you need, and select **Save**. A **REQUIRES RELOAD** badge marks settings that need the plugin to reload before they apply. Select **Reset** to discard your unsaved edits and return every field to the values the page loaded. |
+| **Edit parameters** | Opens the model detail page. On **Parameters**, search the settings or use the category list. **Customized** shows saved custom values, and **Unsaved changes** shows your current edits. An empty number field shows **Backend default** and uses that value. Change the settings you need and select **Save**. A **REQUIRES RELOAD** badge marks settings that need the plugin to reload before they apply. **Revert change** undoes one unsaved edit; **Reset** discards all unsaved edits and restores the values loaded when you opened the page. |
 | **Rename** | Sets a display alias while keeping the source model ID unchanged. Leave the alias empty to return to the source name. |
 | **Stop model** | Appears only for a non-virtual model with **READY** or **PROCESSING** status whose plugin is not persistent. It stops the whole plugin, including access to any other models it serves. SoAI starts the plugin again when a later request needs one of those models. |
 | **Test model** | Opens a short or long inference test and shows the model state, plugin state, elapsed time, response, and plugin activity. Use this after a download or configuration change to confirm that the model runs. |
@@ -1829,13 +1930,13 @@ The sidebar shows **Automation** after this browser has seen a selectable model.
 
 1. In the SoAI WebUI, select **Automation** in the sidebar.
 2. Select **Create automation** in the Automation toolbar. On a compact toolbar, open **More actions** first.
-3. Enter a **Title**, choose a **Timezone**, and set **Start**.
+3. Enter a **Title**, choose a **Timezone**, and set **Start**. **Auto** uses your browser's timezone and shows its name. Check the next-run preview below the schedule; it also shows your local time when another timezone is selected and explains any adjustment for a clock change.
 4. Choose **Recurrence**: None, Hourly, Daily, Weekly, Monthly, or Yearly.
-5. Select an available **Model** that supports tool calling. The list shows model availability, but it does not guarantee that a model can call tools. In **Turns**, enter the first prompt and use **Add turn** for each follow-up prompt. Each entered turn runs as one agent turn.
+5. Select an available **Model** that supports tool calling. Models marked **Unavailable** or **No chat support** cannot be used to save the automation. Availability alone does not guarantee tool support. In **Turns**, enter the first prompt and use **Add turn** for each follow-up prompt. Each entered turn runs as one agent turn.
 6. Choose a workspace with **Choose folder** when the run needs files. Recurring runs retain that automation folder.
 7. Use **Edit parameters** for settings that apply only to this automation, then select **Save**.
 
-**Automations run in Execute mode.** The editor has no Chat or Plan mode selector. Use the MCP tools and approval section to choose the tools available to the run. Turn on **Require permissions** when tool calls must wait for your approval while the automation runs. Loading and choosing tools requires **MCP usage** ([`MCP_USE`](#acl-MCP_USE)).
+**Automations run in Execute mode.** The editor has no Chat or Plan mode selector. Use the MCP tools and approval section to choose the tools available to the run. Turn on **Require permissions** when tool calls must wait for your approval while the automation runs. Loading and choosing tools requires **MCP usage** ([`MCP_USE`](#acl-MCP_USE)). Before saving, enable tools and the built-in tool server, and select `todo_write`.
 
 #### Set a run limit
 
@@ -1846,6 +1947,10 @@ The sidebar shows **Automation** after this browser has seen a selectable model.
 On a wide desktop layout, the registry beside the calendar contains **Automations** and **Runs**. When the available page width is 1,400px or less, select **Pane** in the Automation toolbar to show that registry over the calendar; it changes to **Calendar** when the registry is open. The Automations section lists each schedule with an **Enabled** toggle, an edit control, and a delete control. Disabling a schedule prevents future scheduled runs and marks its queued runs **Abandoned**; it does not stop a running run.
 
 Before deleting an automation, stop or wait for any queued or running runs; SoAI rejects the deletion while either exists. **Deleting it removes the definition and its stored run records, while existing chat transcripts remain available.** The Runs section shows upcoming and recent occurrences. Queued and running entries use **Stop run**; every other entry uses **Delete run**. **Select runs** appears when at least two runs are in the current view and lets you remove several entries at once. The confirmation warns that deleting running runs stops them. Select a run to open **Details**, which can show its plan, progress, and excerpt. Use **Open transcript** when a transcript exists.
+
+Drag **Resize calendar and side pane** to adjust their widths. SoAI asks for confirmation before skipping future occurrences, stopping running ones, or removing past ones. You can act on up to 5,000 selected occurrences at once. If the toolbar shows **Out of date**, select it to refresh.
+
+If someone else saves an automation while you edit it, SoAI shows both sets of changes. Select **Keep my changes** to keep your edited fields alongside the other saved changes, then review and save again. **Load latest version** discards your unsaved edits and loads the saved automation.
 
 The WebUI has no **Run now** button. An authenticated WebUI API client can create an immediate run with `POST /api/v1/automations/{automation_id}/run-now`.
 
@@ -1979,7 +2084,7 @@ Conversations, prompts, uploaded avatars, layouts, and personal preferences belo
 
 ### Personal preferences [page: personal-preferences]
 
-Each signed-in account has its own language, theme, navigation, Dashboard layout, chat presentation, and saved page layouts. Most changes take effect after you select **Save** and do not require a SoAI restart.
+Each signed-in account has its own language, theme, navigation, Dashboard layout, chat presentation, and saved page layouts. Most changes take effect after you select **Save** and do not require a SoAI restart. Built-in wallpaper and solid background choices apply as soon as you select them.
 
 Account-scoped preferences are restored when that user signs in from another browser. Conversation display names belong to their conversation, and one user's theme or layout does not change another user's interface.
 
@@ -1989,7 +2094,7 @@ In the SoAI WebUI, select the **Settings** button at the right of the header, th
 
 ##### Set language and regional preferences
 
-**Settings > General** contains interface language, OCR extraction language, clock format, regional locale, date format, measurement units, notification duration, interface scale, notification sounds, header clock, seconds display, and the live status overlay. Interface language changes WebUI text. Locale, date, and measurement options change how values are displayed, not the stored timestamps or measurements.
+**Settings > General** contains interface language, OCR extraction language, clock format, regional locale, date format, measurement units, notification duration, interface scale, notification sounds, header clock, seconds display, and the live status overlay. Interface language changes WebUI text. Locale, date, and measurement options change how values are displayed, not the stored timestamps or measurements. Arabic and Persian use a right-to-left layout. Code, logs, file paths, model IDs, addresses, keys, and charts remain left to right.
 
 To change the language used by Tesseract for future image and document text extraction, choose **OCR extraction language**, then select the page-header **Save**. SoAI tries RapidOCR first and uses Tesseract as a fallback. The setting does not reprocess text that SoAI has already extracted. Languages that are not installed are marked as unavailable, while installed languages remain selectable.
 
@@ -2001,11 +2106,11 @@ To change the language used by Tesseract for future image and document text extr
 
 Turn on **Disable animations**, turn off **Glass effects**, and turn off **Code recognition** when large code blocks make the page slow. In General, hide the header clock or its seconds and turn off the live status overlay if you do not use them. Removing a shared wallpaper also avoids a full-window image and overlay. **These choices reduce browser rendering and timers; they do not change model speed or server capacity.**
 
-Keep only the Dashboard elements you read, use list view for large Models, Plugins, Prompts, or Files collections, and leave live pages such as Hardware, Metrics, and Logs when monitoring is finished. Each additional browser tab or detached Chat window has its own frontend runtime and WebSocket connection, so close copies you no longer need.
+Keep only the Dashboard elements you read, use list view for large Models, Plugins, Prompts, or Files collections, and leave live pages such as Hardware, Metrics, and Logs when monitoring is finished. Each additional browser tab or detached window uses resources on your device, so close copies you no longer need.
 
 #### Arrange navigation and pages
 
-Under **Settings > Theme > Sidebar**, choose a **Default page**, then select the page-header **Save**. SoAI opens that page after you connect. If it is unavailable or the account can no longer access it, SoAI opens Dashboard.
+Under **Settings > Theme > Sidebar**, choose a **Default page**, then select the page-header **Save**. SoAI opens that page after you connect. If it is unavailable or the account can no longer access it, SoAI opens Dashboard. With the main sidebar collapsed, rest the pointer on the menu button to open it over the page. It closes shortly after the pointer leaves.
 
 1. Open **Settings > Theme > Sidebar**.
 2. Under **Visible pages**, select **Edit**.
@@ -2033,27 +2138,31 @@ In a conversation, open **Chat configuration**. Its General tab controls the dis
 
 **Show activities** chooses whether response activity details begin expanded or collapsed. While a response is running, select its loading activity to show or hide the individual activities and their details. The collapsed loading activity continues to show what the model is doing in real time. Turn off **Show activities elapsed time** to stop updating the timer while an activity runs; its final duration still appears after it ends. Select **Save** after changing these settings.
 
+**Auto hide chat composer** is on by default. When the composer is empty and unfocused, it folds away as you scroll up through earlier messages, then returns when you scroll down or start typing. A running response keeps its **Stop** button visible. Turn the setting off in Chat configuration if you want the composer to stay in place. **Auto hide chat header** hides the conversation header while you scroll up through earlier messages. Scroll down or move the pointer to the top edge to reveal it. The header also stays visible near the start of the conversation.
+
 Most chat choices wait for the Chat configuration Save action. Photo upload and removal save to the account as soon as the operation succeeds. **Display choices are not sent to the model as inference parameters.** See [Conversation context, compaction, and history](#conversation-context-compaction-and-history) for request-affecting controls.
 
-##### Set a shared background
+#### Choose a background
 
-An Administrator with **UI customization** ([`WEBUI_APPEARANCE_ADMIN`](#acl-WEBUI_APPEARANCE_ADMIN)) can use **Settings > Theme > Background** to select **Choose file** and upload a wallpaper, or enter an HTTP or HTTPS URL under **Download from URL** and select **Download**. When a wallpaper exists, **Choose file** becomes **Remove**. The wallpaper is shared by every account, and upload, download, or removal saves when the operation succeeds.
+An Administrator with **UI customization** ([`WEBUI_APPEARANCE_ADMIN`](#acl-WEBUI_APPEARANCE_ADMIN)) can open **Settings > Theme > Background** and choose from 10 **Built-in wallpapers**. Select **No wallpaper** to clear that choice. A built-in wallpaper belongs to the signed-in account and applies immediately, without the page-header **Save**.
 
-Wallpaper overlay is a per-account preference shown only while a shared wallpaper exists. Solid background color is shown to an Administrator when no wallpaper exists. Use the page-header Save button after changing either value.
+The same permission allows an Administrator to upload a custom wallpaper or enter an HTTP or HTTPS URL under **Download from URL** and select **Download**. An uploaded or downloaded wallpaper is shared by every account and takes priority over personal background choices. While it exists, the built-in picker is hidden; select **Remove** to make it available again. Upload, download, and removal take effect when the operation succeeds.
+
+Administrators can select a **Solid background color** for their own account. It applies immediately and clears a built-in wallpaper selection; an uploaded shared wallpaper remains visible until an Administrator with UI customization removes it. An Administrator with that permission can adjust **Wallpaper overlay** for their account while either type of wallpaper is visible, then select the page-header **Save**.
 
 #### Reset preferences and understand their scope
 
-**Settings > Reset > WebUI** restores the current Administrator's non-advanced WebUI preferences, including language, layout, and appearance. **Page layouts** restores the saved Dashboard, Metrics, and Hardware layouts. An Administrator with UI customization permission can use **Appearance** to remove the shared wallpaper and reset shared visual settings. Read the confirmation scope before continuing.
+**Settings > Reset > WebUI** restores the current Administrator's non-advanced WebUI preferences, including language, layout, and appearance. **Page layouts** restores the saved Dashboard, Metrics, and Hardware layouts. An Administrator with UI customization permission can use **Appearance** to remove the shared wallpaper and reset personal background and visual settings. Read the confirmation scope before continuing.
 
 ##### Know when a change is saved
 
 General, Theme, Chat Appearance, avatars, navigation, Dashboard cards, and page layouts belong to the signed-in account and return in another browser. Conversation display names belong to their conversation. Most General, Theme, and Chat configuration changes wait for that page's **Save** action.
 
-Avatar upload or removal, the Dashboard image, and the shared wallpaper save when their operation succeeds. Sidebar pages, Dashboard elements, the Memo card, and movable page layouts each have their own Edit and Save controls. **A visible preview is not evidence that a pending preference has been stored.**
+Avatar upload or removal, the Dashboard image, and the shared wallpaper save when their operation succeeds. Built-in wallpapers and solid background colors save when selected. Sidebar pages, Dashboard elements, the Memo card, and movable page layouts each have their own Edit and Save controls. **A visible preview is not evidence that a pending preference has been stored.**
 
 ##### Know what preferences cannot change
 
-**WebUI settings do not change product branding, interface labels, route definitions, new navigation destinations, or component behavior.** Those are frontend source and edition-composition responsibilities and require a new build. See [WebUI architecture](#webui-architecture) for those boundaries.
+WebUI preferences customize the available appearance and layout options. They do not add pages or replace product branding.
 
 #### Related documentation
 
@@ -2061,7 +2170,7 @@ Avatar upload or removal, the Dashboard image, and the shared wallpaper save whe
 - [Prompts](#prompts) for per-account reusable prompts.
 - [Users, roles, and sessions](#users-roles-and-sessions) for account administration.
 - [Reset and account recovery](#reset-and-account-recovery) for every reset scope.
-- [WebUI architecture](#webui-architecture) for changes that require source work and a build.
+- [WebUI architecture](#webui-architecture)
 
 ## Integrations
 
@@ -4639,7 +4748,7 @@ A conversation holds one todo checklist and one plan document. They serve differ
 
 The split is about lifespan. The todo list is the steps in front of the agent right now. The plan is the reasoning you do not want it to rebuild after the conversation is compacted.
 
-Plan mode can produce this document while SoAI blocks tools marked destructive in the catalog. Other selected Plan tools can still have external effects. When the plan looks right, **Execute plan** on the widget switches the conversation to Execute mode and tells the agent to implement it. The plan tools themselves are nondestructive and remain available in Plan mode.
+Plan mode can place the finished plan in this document and leave a short summary in chat, while SoAI blocks tools marked destructive in the catalog. Other selected Plan tools can still have external effects. When the plan looks right, **Execute plan** on the widget switches the conversation to Execute mode and tells the agent to implement it. The plan tools themselves are nondestructive and remain available in Plan mode.
 
 #### Subagents
 
@@ -5086,15 +5195,17 @@ Open **Plugins** when a card identifies a problem with one backend or circuit, a
 2. Review the CPU, memory, storage, network, and GPU data reported by the host.
 3. In **Chart**, choose **Device** and **Metric**, then select a chart type and time range.
 
-An OHLC chart also provides **Interval** for its time buckets. The page shows **History is disabled by the backend.** when history collection is off, while the values and controls that appear depend on the detected device, driver, and vendor tooling. Continue with [Hardware monitoring](#hardware-monitoring) for chart, history, and export details, or [GPU setup and troubleshooting](#gpu-setup-and-troubleshooting) when telemetry or controls are missing.
+An **OHLC** or **Heikin Ashi** chart also provides **Interval** to choose how much time each candle represents. The page shows **History is disabled by the backend.** when history collection is off, while the values and controls that appear depend on the detected device, driver, and vendor tooling. Continue with [Hardware monitoring](#hardware-monitoring) for chart, history, and export details, or [GPU setup and troubleshooting](#gpu-setup-and-troubleshooting) when telemetry or controls are missing.
 
 **GPU control** appears only for an account with [`HW_GPU_TUNING`](#acl-HW_GPU_TUNING). It shows **No GPU controls available** when no detected GPU reports an actionable control; otherwise each panel contains only the controls supported by that GPU. Read [GPU controls and tuning](#gpu-controls-and-tuning) before changing power, clocks, fan settings, or saved slots.
 
 ##### Metrics
 
-Open **Metrics** from the side navigation. In **Chart**, select **Requests**, **Latency**, **Tokens**, or **Queue depth**, then choose the chart type and time range. **Request distribution**, **Plugin usage**, **Model usage**, **System performance**, and **Frontend telemetry** provide more focused views, while **More** opens **Advanced metrics**. **API key usage** appears only for an Administrator, and loading its data also requires [`OPENAI_API_ADMIN`](#acl-OPENAI_API_ADMIN).
+Open **Metrics** from the side navigation. In **Chart**, select **Requests**, **Latency**, **Tokens**, **Token throughput**, or **Queue depth**, then choose the chart type and time range. **Request distribution**, **Plugin usage**, **Model usage**, **System performance**, and **Frontend telemetry** provide more focused views, while **More** opens **Advanced metrics**. **API key usage** appears only for an Administrator, and loading its data also requires [`OPENAI_API_ADMIN`](#acl-OPENAI_API_ADMIN).
 
 Select **Export** to open a preview, then download the metrics-history CSV. Available history intervals and the metrics stored in history come from the server's current metrics configuration.
+
+Drag or swipe the chart to move through time, and use the mouse wheel or a pinch gesture to inspect a different span. Moving into older history loads stored samples until the oldest available reading. The selected time range follows the visible span, including while earlier samples load.
 
 ##### Logs
 
@@ -5122,7 +5233,7 @@ To change these settings, an Administrator with [`CONFIG_PATCH`](#acl-CONFIG_PAT
 | Metrics broadcasts to the WebUI | Every 1 second | [`OBSERVABILITY.METRICS.BROADCAST_INTERVAL_MS`](#config-OBSERVABILITY.METRICS.BROADCAST_INTERVAL_MS) |
 | Metrics history | Enabled, sampled every 3 seconds, retained for 168 hours. The configured result limit is 50,000 points. The WebUI uses WebSocket snapshots and respects that configured limit, while the REST history endpoint accepts a `points` parameter of at most 25,000. | [`OBSERVABILITY.METRICS.METRICS_HISTORY.ENABLED`](#config-OBSERVABILITY.METRICS.METRICS_HISTORY.ENABLED), [`OBSERVABILITY.METRICS.METRICS_HISTORY.LOGGING_INTERVAL_MS`](#config-OBSERVABILITY.METRICS.METRICS_HISTORY.LOGGING_INTERVAL_MS), [`OBSERVABILITY.METRICS.METRICS_HISTORY.DB_RETENTION_HOURS`](#config-OBSERVABILITY.METRICS.METRICS_HISTORY.DB_RETENTION_HOURS), [`OBSERVABILITY.METRICS.METRICS_HISTORY.MAX_POINTS`](#config-OBSERVABILITY.METRICS.METRICS_HISTORY.MAX_POINTS), [`OBSERVABILITY.METRICS.METRICS_HISTORY.SUPPORTED_INTERVALS_MS`](#config-OBSERVABILITY.METRICS.METRICS_HISTORY.SUPPORTED_INTERVALS_MS), and [`OBSERVABILITY.METRICS.METRICS_HISTORY.TRACKED_METRICS`](#config-OBSERVABILITY.METRICS.METRICS_HISTORY.TRACKED_METRICS) |
 
-**Live broadcasts and stored history are independent, so disabling metrics history does not stop current Metrics updates.** An empty [`OBSERVABILITY.METRICS.METRICS_HISTORY.TRACKED_METRICS`](#config-OBSERVABILITY.METRICS.METRICS_HISTORY.TRACKED_METRICS) list uses SoAI's built-in history set for total, completed, and failed requests, generated tokens, and queue size.
+**Live broadcasts and stored history are independent, so disabling metrics history does not stop current Metrics updates.** An empty [`OBSERVABILITY.METRICS.METRICS_HISTORY.TRACKED_METRICS`](#config-OBSERVABILITY.METRICS.METRICS_HISTORY.TRACKED_METRICS) list uses SoAI's built-in history set for total, completed, and failed requests, generated tokens, request latency, queue size, and effective token throughput.
 
 #### Related documentation
 
@@ -5536,9 +5647,12 @@ The **Backup** tab appears only to an Administrator with **Backup administration
 ##### Install an application update
 
 1. On **Updates**, select **Check for updates**.
-2. In **SoAI application updates**, review the current version, latest version, release notes, and release link.
+2. In **SoAI application updates**, review the current version, latest version, and notes for each published release between them. If SoAI reports incomplete note history, open the [official repository](https://github.com/GetSoAI/SoAI), select **Releases**, and read the missing notes before continuing.
 3. On a supported [Linux](https://www.kernel.org/), [macOS](https://www.apple.com/macos/), or [Windows](https://www.microsoft.com/windows/) installation, select **Install update** and confirm the dialog.
-4. Wait for the updating screen to reconnect before using SoAI again.
+4. Follow preparation, download, verification, and staging progress on the Updates page. When SoAI restarts to install the update, the updating screen names the version being installed and waits for the updated application.
+5. Keep the window or page open until SoAI returns. A dialog then confirms that SoAI was updated successfully to the new version, or explains that the update did not complete and which version is still installed.
+
+In the [Windows](https://www.microsoft.com/windows/) desktop window, the window closes while the installer replaces the application. A small **SoAI update** window then shows that the update is installing and closes when the desktop window reopens with SoAI ready; do not turn off the computer during this step. In a browser, the page reloads automatically when SoAI is back online and loads the updated WebUI without stale cached files. Other browser tabs that stayed open during the update offer to reload once they reconnect. Every user sees the update result dialog once, the next time they open the WebUI.
 
 The update service checks the signed release manifest, its signing key, the selected edition, and the downloaded release artifact before applying it. It stages the change in an update transaction and keeps rollback data until the updated application completes startup successfully. During startup, SoAI applies required database and settings migrations to the existing data directory. User accounts, conversations, settings, attachments, files, models, plugins, automations, and benchmark history remain in place. SoAI restarts the application when the update was started from a running instance.
 
@@ -5546,13 +5660,17 @@ The update service checks the signed release manifest, its signing key, the sele
 
 **The WebUI cannot check or install an application update when [`SYSTEM.RUNTIME.STAY_OFFLINE`](#config-SYSTEM.RUNTIME.STAY_OFFLINE) is enabled.** Automatic application updates are also unavailable when [`SYSTEM.RUNTIME.HOST_SYSTEM_ACTIONS_DISABLED`](#config-SYSTEM.RUNTIME.HOST_SYSTEM_ACTIONS_DISABLED) disables host actions. Core automatic installation supports [Linux](https://www.kernel.org/) x64 and ARM64, [macOS](https://www.apple.com/macos/) [Intel](https://www.intel.com/) and [Apple](https://www.apple.com/) silicon, and [Windows](https://www.microsoft.com/windows/) x64. [Linux](https://www.kernel.org/) and [macOS](https://www.apple.com/macos/) use complete archives. [Windows](https://www.microsoft.com/windows/) verifies and hands off the release installer, which preserves the existing data directory and replaces the launcher and application files in place.
 
+The Updates page offers installation only when a newer release is available and the current platform has an automatic installation path. It does not provide a downgrade option; on other platforms, it can still show whether a newer release is available. To return to an older installation, restore its matching backup from before the update. An older release may be unable to open data saved by a newer one.
+
 #### Edition boundaries and recovery
 
 An application update stays within the installed edition. **It cannot switch Core into the appliance edition or the reverse.** In an appliance installation, the **SoAI OS updates** section handles host package updates separately; continue with [the appliance update guide](#soai-os-package-updates) for that workflow.
 
 ##### Recover from an unsuccessful update
 
-**Do not begin another update while the previous transaction may still be recovering.** If the WebUI does not reconnect, use the matching launcher to check status, preserve the reported error, and follow the [Operational runbooks](#operational-runbooks). Restore a verified backup only when recovery of the installation cannot retain the required data.
+**Do not begin another update while the previous transaction may still be recovering.** If the WebUI does not reconnect, use the matching launcher to check status, preserve the reported error, and follow the [Operational runbooks](#operational-runbooks). The updater records its progress in `application_updater.log` and any unexpected interpreter failure in `application_updater.stderr.log`, both in the configured logs directory ([`OBSERVABILITY.LOGGING.LOGS_PATH`](#config-OBSERVABILITY.LOGGING.LOGS_PATH)). Restore a verified backup only when recovery of the installation cannot retain the required data.
+
+On [Windows](https://www.microsoft.com/windows/), download the current setup program from **Releases** and run it to update an existing installation in place. This also provides a recovery path when an in-app update stops before installation begins. Setup preserves the existing data directory; keep a backup before updating.
 
 Use [Reset and account recovery](#reset-and-account-recovery) only when the failure is caused by a specific damaged setting or when you deliberately intend to clear managed data; an update failure does not by itself justify a factory reset.
 
@@ -5578,8 +5696,8 @@ The Reset tab clears a selected category of data. It is for recovery and deliber
 | Reset action | Result |
 | --- | --- |
 | **ACL policy** | Restores access-control policy overrides to their defaults. |
-| **Appearance** | Removes the shared wallpaper and restores the current user's color, glass, animation, and appearance-effect settings. |
-| **Metrics** | Resets in-memory metrics and live persistence. Historical time-series data remains available. |
+| **Appearance** | Removes the shared wallpaper and restores the current user's built-in wallpaper, solid background, color, glass, animation, and appearance-effect settings. |
+| **Metrics** | Clears in-memory metrics, live persistence, and stored metrics history. Previously recorded samples disappear from charts and new history exports. |
 | **Hardware** | Removes recorded hardware-monitoring and SoAIBench history. |
 | **Page layouts** | Restores saved Dashboard, Metrics, and Hardware movable layouts. |
 | **WebUI** | Restores the signed-in user's non-advanced WebUI preferences, including appearance, language, layout, and related preferences. |
@@ -5749,36 +5867,11 @@ Remove API keys, passwords, cookies, authorization headers, provider credentials
 
 Hardware compatibility depends on the SoAI edition and platform, then on the selected plugin, model, driver, and resources available on the host. Use the Hardware page to see what the current installation reports before choosing a model or changing a GPU setting.
 
-#### Supported platform paths
+#### Check system requirements
 
-| Edition and platform | Current installation path |
-| --- | --- |
-| SoAI Core on [Linux](https://www.kernel.org/) | The published [Linux](https://www.kernel.org/) archive supports 64-bit x64 and ARM64 hosts running [Debian](https://www.debian.org/) 12 or 13 or [Ubuntu](https://ubuntu.com/) 24.x or 26.x. |
-| SoAI Core on [macOS](https://www.apple.com/macos/) | The published complete archive supports [Intel](https://www.intel.com/) and [Apple](https://www.apple.com/) silicon and provides an in-application update path. |
-| SoAI Core on [Windows](https://www.microsoft.com/windows/) | The published installer supports 64-bit [Windows](https://www.microsoft.com/windows/) 10 or later on x64. There is no [Windows](https://www.microsoft.com/windows/) ARM64 installer. |
-| SoAI OS | The appliance edition uses a UEFI [Debian](https://www.debian.org/) 13 [KDE](https://kde.org/) image for AMD64 and ARM64 hosts. |
+See [Requirements](#requirements) for the supported operating systems, installation prerequisites, and minimum and recommended hardware tiers. Use this page to check what a particular host and backend can do.
 
-**Platform support does not guarantee a particular inference backend or GPU feature.** Check the backend's own requirements and the model's memory needs before deploying it.
-
-#### System requirements
-
-SoAI works on CPU-only machines and on machines with one or more GPUs. A GPU is optional, but it is needed for reasonable local inference speeds.
-
-| Resource | Minimum | Recommended |
-| --- | --- | --- |
-| CPU | [Intel](https://www.intel.com/) Core i5-2500 or [AMD](https://www.amd.com/) FX-6100 | [Intel](https://www.intel.com/) Core i7-6700 or [AMD](https://www.amd.com/) Ryzen 5 1600 |
-| RAM | 4 GB DDR3 | 16 GB DDR4 |
-| Storage | 128 GB SATA SSD (SoAI occupies about 5 GB when freshly installed) | 512 GB NVMe SSD (SoAI occupies about 5 GB when freshly installed) |
-| GPU | Optional compatible [NVIDIA](https://www.nvidia.com/) Pascal-generation GeForce GTX 10-series, Quadro P-series, or Tesla P-series cards; or an [AMD](https://www.amd.com/) or [Intel](https://www.intel.com/) GPU supported by the selected backend's [ROCm](https://www.amd.com/), [Vulkan](https://www.vulkan.org/), XPU, [SYCL](https://www.khronos.org/sycl/), [OpenVINO](https://www.intel.com/), or [OpenCL](https://www.khronos.org/opencl/) runtime | Compatible [NVIDIA](https://www.nvidia.com/) Ampere-generation GeForce RTX 30-series, RTX A-series, or Ampere data-center cards; [AMD](https://www.amd.com/) Radeon RX 6000/7000-series or Instinct MI200/MI300-series GPUs; or [Intel](https://www.intel.com/) Arc A-series/B-series or Data Center GPU Max cards |
-| Operating system | [Debian](https://www.debian.org/) 12 or 13, [Ubuntu](https://ubuntu.com/) 24.x or 26.x, [Windows](https://www.microsoft.com/windows/) 10 or 11, [Windows](https://www.microsoft.com/windows/) Server 2016, 2019, 2022, or 2025, or [macOS](https://www.apple.com/macos/) | [Debian](https://www.debian.org/) 13, [Ubuntu](https://ubuntu.com/) 26.x, [Windows](https://www.microsoft.com/windows/) 11, [Windows](https://www.microsoft.com/windows/) Server 2025, or [macOS](https://www.apple.com/macos/) |
-
-RAM and VRAM needs depend on the selected model, quantization, context length, plugin, and concurrency rather than on SoAI alone. Larger models and concurrent requests need more memory. Model files, plugin backends, databases, user files, backups, and working space also need storage beyond the application itself.
-
-SoAI can run from a hard disk drive (HDD), SD card, or USB drive, but those storage types are not recommended and do not meet the SSD-based minimum or recommended storage tiers. Their lower throughput, higher latency, and removable-media failure risks can affect model loading, database activity, indexing, updates, backups, and concurrent file operations. Use an SSD for a normal installation and durable data paths.
-
-Use an enterprise SSD for heavy or enterprise workloads. For maximum persistent-storage performance, an [Intel Optane](https://www.intel.com/) drive is the best option where available. A RAM drive can be used for maximum performance, but it is not recommended.
-
-##### Use NVIDIA, AMD, and Intel GPUs together
+#### Use NVIDIA, AMD, and Intel GPUs together
 
 SoAI supports mixed-vendor hosts containing [NVIDIA](https://www.nvidia.com/), [AMD](https://www.amd.com/), and [Intel](https://www.intel.com/) GPUs. Hardware inventory keeps a global device identity and a vendor-local binding index for every detected card, so monitoring and capability discovery do not assume that all GPUs come from one vendor. Full telemetry and controls still require the matching vendor driver and management tool.
 
@@ -5801,6 +5894,7 @@ Use the Hardware page as the host-specific answer. For capacity decisions, combi
 
 #### Related documentation
 
+- [Requirements](#requirements)
 - [Install SoAI Core](#install-soai-core)
 - [Capacity planning](#capacity-planning)
 - [Hardware monitoring](#hardware-monitoring)
@@ -5830,9 +5924,11 @@ A mixed-vendor host can show [NVIDIA](https://www.nvidia.com/), [AMD](https://ww
 1. In **Chart**, choose a **Device**.
 2. Choose a **Metric** that the selected device reports.
 3. Choose the time range and chart type you need.
-4. When using the **OHLC** chart type, use **Interval** to choose the aggregation interval.
+4. For **OHLC** and **Heikin Ashi** charts, use **Interval** to choose how much time each candle represents.
 
 The available devices, metrics, time ranges, and intervals come from the current hardware snapshot and history capability data. If history is disabled, Chart shows **History is disabled by the backend.** Select **Export** in the page header after selecting the hardware source you want to export. SoAI opens an export preview for that source.
+
+Drag or swipe a history chart to move through time. Use the mouse wheel or a pinch gesture to change the visible span; when you move into older history, SoAI loads more stored samples until it reaches the oldest available reading. Changing chart type keeps the visible time window. Chart detail adjusts as you zoom in or out. Periods when SoAI was not running appear as gaps labelled **No data · SoAI offline**.
 
 ##### Change sampling and retention
 
@@ -5905,12 +6001,14 @@ The rest is ordinary discipline. Change one control at a time so a failure has o
 
 ##### Test the result
 
-1. After applying a setting, select **Test**.
-2. Select **Bench** for a certified SoAIBench run, or **Stress** for a stability run.
+1. For a certified run, select **SoAIBench** at the top of the Hardware page, select the GPU, then select **Start**.
+2. For a stress run after applying a setting, select **Test** then **Stress** in the GPU controls panel.
 3. Watch temperature, power, and status while it runs, and select **Stop** to end a stress run early.
 4. After a run exists, use the **History** control in the GPU panel to compare or export previous results.
 
 A stress run started from this page lasts at most 60 seconds and ends on its own, so **Stop** only shortens it. The page continues to show live hardware data during a run. The `hardware_benchmark` tool accepts a `temperature_limit_celsius` checkpoint for either profile. Readings above that limit stop the run after the active [OpenCL](https://www.khronos.org/opencl/) phase. The benchmark controls report an explicit unsupported result when the selected GPU or runtime cannot run the requested profile.
+
+While a certified SoAIBench run is active on a GPU, SoAI blocks saving or applying its pending settings. Stop the run or wait for it to finish before saving. If benchmark status is unknown, check its status before trying again.
 
 ##### Save and reuse a slot
 
@@ -6216,7 +6314,7 @@ People sign in to the WebUI with a browser session, covered in [Users, roles, an
 
 #### First run and API protection
 
-Until the first administrator completes the setup wizard, SoAI refuses every request outside the wizard's own endpoints with `403` and `setup_required`, and that includes `/v1`. After setup, the compatible API stays open only while the API-key store holds no records, and creating the first record makes bearer authentication required for those requests.
+Until the first administrator account exists, SoAI refuses protected API requests outside the setup wizard's own endpoints with `403` and `setup_required`, and that includes `/v1`. After account creation, the compatible API stays open only while the API-key store holds no records, and creating the first record makes bearer authentication required for those requests.
 
 **Revoking a key or letting it expire does not reopen the API, because the store counts every record rather than only the usable ones.** Select **Delete all keys** only when you intentionally want to remove every API-key record (including revoked or expired ones) and return the compatible API to the unauthenticated state. This does not grant or remove WebUI access.
 
@@ -6411,7 +6509,7 @@ The operator controls filesystem access, encryption at rest, backups, retention,
 
 ### Security updates and vulnerability reporting [page: security-updates-and-vulnerability-reporting]
 
-SoAI receives security support from **22 August 2026 through 22 August 2031**. Security fixes are delivered through the same signed, numbered release path as other SoAI updates and are free of charge, regardless of whether an installation is personal, evaluation, or commercial.
+SoAI receives security support from **22 August 2026** through **22 August 2031**. Security fixes are delivered through the same signed, numbered release path as other SoAI updates and are free of charge, regardless of whether an installation is personal, evaluation, or commercial.
 
 The supported baseline is the latest available stable SoAI release. **To remain supported, update to that release; superseded releases are not maintained for feature parity or guaranteed separate security fixes.**
 
@@ -6586,7 +6684,7 @@ Most of what follows lives in one place. In the WebUI, select the **Settings** b
 
 #### Cut motion and compositing
 
-**Settings > Theme > Motion** holds the three settings with the largest effect on a slow client.
+**Settings > Theme > Interface** holds the three settings with the largest effect on a slow client.
 
 1. Turn **Disable animations** on.
 2. Turn **Auto-hide page header** off.
@@ -6603,13 +6701,14 @@ Most of what follows lives in one place. In the WebUI, select the **Settings** b
 
 ##### Background
 
-A wallpaper puts a full-window image and a darkness overlay behind the whole interface, and it is shared by every account rather than being yours alone. On a low-end client, use the default background or a solid color.
+A wallpaper adds a full-window image and optional overlay. An uploaded wallpaper is shared across accounts, while a built-in wallpaper belongs to one account. On a low-end client, use the default background or a solid color.
 
 1. Open **Settings > Theme > Background**.
-2. If a wallpaper is set, the first row reads **Remove custom wallpaper**. Select **Remove**.
-3. To use a color instead, set **Solid background color**, then select the page-header **Save**.
+2. If **Remove custom wallpaper** appears, an Administrator with UI customization can select **Remove**. Otherwise, ask an Administrator with that permission to remove the shared wallpaper.
+3. If you can manage wallpapers and a built-in image is selected, choose **No wallpaper** in **Built-in wallpapers**.
+4. Select **Solid background color** to set your personal color. It applies immediately, but an uploaded wallpaper remains visible over it until removed.
 
-**The color control is inactive while a wallpaper exists, which is why the order matters.** What appears under **Background** depends on your permissions: an Administrator with **UI customization** ([`WEBUI_APPEARANCE_ADMIN`](#acl-WEBUI_APPEARANCE_ADMIN)) gets upload, download, overlay, information, and removal, an Administrator without it sees only **Solid background color**, and any other account sees no **Background** group and needs an administrator to remove a shared wallpaper. [Personal preferences](#personal-preferences) covers wallpaper administration in full.
+What appears under **Background** depends on permission. An Administrator with **UI customization** ([`WEBUI_APPEARANCE_ADMIN`](#acl-WEBUI_APPEARANCE_ADMIN)) can manage the shared wallpaper and choose built-in images. An Administrator without it can set a solid color for their account, while a Standard user cannot change the background. An uploaded wallpaper takes priority over personal colors and built-in images until an Administrator with UI customization removes it. See [Personal preferences](#personal-preferences) for the background controls.
 
 ##### Chat rendering
 
@@ -6967,7 +7066,7 @@ Read completed throughput rather than queue depth, because a queue that keeps gr
 
 When no candidate exists, the task is deferred with a reason recording that the instance is at capacity, and it stays queued for the next scheduling cycle instead of failing. Plan around that, because a slot limit set too low turns into waiting and repeated model loading rather than a visible error, and the model load time you measured earlier is the price of each swap.
 
-**Persistent plugins sit outside the count entirely, so they neither consume a slot nor become eviction candidates.** The bundled embedding, speech to text, text to speech, and external provider plugins are all persistent, which makes their memory part of the steady state on every host that keeps them enabled, and browser workers, Knowledge processing, and scheduled integrations run beside inference in the same way.
+Persistent plugins do not count toward the resident plugin limit and are not unloaded to make room. The bundled speech to text, text to speech, and external provider plugins are persistent, so account for their memory separately when enabled. The embedding plugin uses a resident plugin slot and can be unloaded to make room. Browser workers, Knowledge processing, and scheduled integrations also use resources alongside inference.
 
 #### Turn the measurements into limits
 
@@ -7087,6 +7186,8 @@ The bundled variants include CPU builds for [Linux](https://www.kernel.org/) x64
 
 The managed variants cover CPU and selected [CUDA](https://developer.nvidia.com/cuda-zone), [ROCm](https://www.amd.com/), [Vulkan](https://www.vulkan.org/), [OpenVINO](https://www.intel.com/), [SYCL](https://www.khronos.org/sycl/), [OpenCL](https://www.khronos.org/opencl/), and [Metal](https://developer.apple.com/metal/) paths across the platforms shown in **Manage backend**. Pick from that live list instead of copying a backend port or build setting from another host.
 
+A [Snapdragon](https://www.qualcomm.com/snapdragon) variant is available for Arm [Linux](https://www.kernel.org/) hosts in both the chat and embedding plugins. It supports CPU, Adreno GPU, and Hexagon NPU execution and requires the corresponding [Qualcomm](https://www.qualcomm.com/) runtimes. Select a compatible variant in **Manage backend**.
+
 Mixed-vendor hosts can run separate compatible plugin instances or backends for [NVIDIA](https://www.nvidia.com/), [AMD](https://www.amd.com/), and [Intel](https://www.intel.com/) GPUs. [CUDA](https://developer.nvidia.com/cuda-zone), [ROCm](https://www.amd.com/), and XPU bindings validate that every selected GPU belongs to the matching vendor. Clone a plugin when separate instances need different runtime variants or GPU bindings; one vendor-specific backend instance cannot combine [CUDA](https://developer.nvidia.com/cuda-zone), [ROCm](https://www.amd.com/), and XPU devices. See [Mixed-vendor GPU systems](#mixed-vendor-systems) for the hardware boundary.
 
 #### Task-specific local backends
@@ -7097,7 +7198,7 @@ Use it when the job is translation. You can install its backend, download a tran
 
 ##### Llama.cpp Embeddings
 
-[Llama.cpp](https://github.com/ggml-org/llama.cpp) Embeddings is a separate, persistent GGUF embedding runtime. It supports the embeddings endpoint and not chat completions, completions, Responses, media, or tool calling. It can be installed, configured, searched, downloaded, and cloned like the other local model plugins.
+[Llama.cpp](https://github.com/ggml-org/llama.cpp) Embeddings is a separate GGUF embedding runtime. It uses a resident plugin slot and can be unloaded to make room. It supports the embeddings endpoint and not chat completions, completions, Responses, media, or tool calling. It can be installed, configured, searched, downloaded, and cloned like the other local model plugins.
 
 Use this plugin when you want a dedicated local embedding model for Knowledge collections or embedding API work. In Chat, open **Chat configuration > Knowledge**, then choose **Embedding model** after the model is installed and appears in the catalog.
 
@@ -7157,7 +7258,7 @@ The status badge describes the current backend or runtime condition. Transient s
 
 ##### Persistent services
 
-`Persistent` means the plugin is declared persistent, such as a dedicated embedding or audio service. Check its capability and capacity requirements before treating it like an unloadable chat backend.
+`Persistent` identifies plugins that stay running rather than being unloaded to make room, such as the bundled audio services and External provider. Check its capability and capacity requirements before treating it like an unloadable chat backend.
 
 ##### Errors, quarantine, and incompatibility
 
@@ -7175,7 +7276,7 @@ A clone is a separate plugin instance for a plugin that supports cloning. On the
 
 #### Add third-party plugins carefully
 
-Open **Plugins** and select **Add plugin**. The dialog offers **Upload plugin**, **Download plugin from URL**, and **Add plugin manually**. These controls require **Plugin administration** ([`PLUGIN_ADMIN`](#acl-PLUGIN_ADMIN)). **A plugin can execute code on the SoAI host, so install only a package you trust.** If a backend already offers an OpenAI-compatible API, use the External provider route instead of installing a plugin solely to proxy it.
+Open **Plugins** and select **Add plugin**. The dialog offers **Upload plugin**, **Download plugin from URL**, and **Add plugin manually**. These controls require **Plugin administration** ([`PLUGIN_ADMIN`](#acl-PLUGIN_ADMIN)). **A plugin can execute code on the SoAI host, so install only a package you trust.** If a backend already offers an OpenAI-compatible API, use the External provider route instead of installing a plugin solely to proxy it. On **Upload plugin**, drag a `.soaiplugin` file onto **Drop a plugin here** or select that area to choose one, then select **Upload plugin**.
 
 The manual tab displays the plugin folder, offers **Open Files**, and shows **Restart** after you place a `.soaiplugin` file there. SoAI loads that manually placed plugin after the restart.
 
@@ -7218,7 +7319,7 @@ A plugin package may include one optional, case-sensitive root `logo.png` or `lo
 
 #### Declare the manifest as literals
 
-SoAI reads the manifest by parsing the entrypoint before the package ever runs, so every required value must be a plain literal assigned directly on `Plugin`. A computed expression, a property, an inherited default, or an imported constant is rejected even when it would produce the correct value at runtime, and an annotation is fine, since `NAME: str = "Acme"` and `MODEL_TYPES: typing.ClassVar[list[str]] = ["acme"]` both read as literal assignments. `EXTERNAL_PROVIDER_MODE` is the one exception and may be written as a `plugin_sdk.ExternalProviderMode` member, a string, or `None`. These required fields are defined in `backend/plugins/manifest/class_field_contract.py`.
+SoAI reads the manifest by parsing the entrypoint before the package ever runs, so every required value must be a plain literal assigned directly on `Plugin`. A computed expression, a property, an inherited default, or an imported constant is rejected even when it would produce the correct value at runtime, and an annotation is fine, since `NAME: str = "Acme"` and `MODEL_TYPES: typing.ClassVar[list[str]] = ["acme"]` both read as literal assignments. `EXTERNAL_PROVIDER_MODE` is the one exception and may be written as a `plugin_sdk.ExternalProviderMode` member, a string, or `None`.
 
 | Group | Required literal assignments |
 | --- | --- |
@@ -7227,7 +7328,7 @@ SoAI reads the manifest by parsing the entrypoint before the package ever runs, 
 | Models and resources | `MODEL_REPOSITORY`, `MODEL_TYPES`, `ALIASES`, `SUPPORTED_MODALITIES`, `LOCAL_RESOURCES`, and `LOCAL_MODELS`. |
 | Runtime and management | `PERSISTENT`, `MAX_CONCURRENT_REQUESTS`, `SUPPORTS_BACKEND_INSTALLATION`, `SUPPORTS_BACKEND_PROCESS_TRACKING`, `SUPPORTS_MODEL_DELETION`, `SUPPORTS_MODEL_DOWNLOAD`, `SUPPORTS_CONFIGURATION`, `SUPPORTS_EXTERNAL_PROVIDERS`, `EXTERNAL_PROVIDER_MODE`, and `SUPPORTS_CLONING`. |
 
-**Every flag in `OPENAI_FEATURE_MATRIX` is required as a literal boolean too.** The matrix covers Chat Completions, Completions, Responses and its subresources, embeddings, images, audio endpoints, image edits and variations, vision, input audio, tool calling, parallel tool calls, structured output, and JSON Schema, and it is exported through the top-level SDK and defined in `backend/core/openai/capability_taxonomy.py`. The worker repeats that check against the loaded class and adds `SUPPORTED_MODALITIES`, so a flag inherited from a base class instead of assigned on `Plugin` passes archive inspection and then fails at load.
+**Every flag in `OPENAI_FEATURE_MATRIX` is required as a literal boolean too.** The matrix covers Chat Completions, Completions, Responses and its subresources, embeddings, images, audio endpoints, image edits and variations, vision, input audio, tool calling, parallel tool calls, structured output, and JSON Schema, and it is exported through the top-level SDK. The worker repeats that check against the loaded class and adds `SUPPORTED_MODALITIES`, so a flag inherited from a base class instead of assigned on `Plugin` passes archive inspection and then fails at load.
 
 Everything outside those two lists is optional and falls back to the BasePlugin default when omitted, including `DEFAULT_CONFIGURATION`, `BACKEND_VARIANT_OPTIONS`, `CLONABLE_FIELDS`, `WELCOME_MESSAGE`, `LICENSE_MANAGED_BACKEND`, `EXTERNAL_PROVIDER_DEFAULTS`, `SUPPORTS_GPU_BINDING`, `SUPPORTS_MODEL_SEARCH`, `SUPPORTS_MODEL_VARIANT_DISCOVERY`, and `SUPPORTS_PROMPT_TOKEN_COUNTING`. The last four have a fallback implementation on the base class that raises a state error when the flag is set and the method is not overridden, so declaring one of them early turns a missing feature into a failed request rather than a quiet no.
 
@@ -7257,7 +7358,7 @@ The base class supplies defaults for partial-install cleanup and backend-process
 
 1. Sign in as an Administrator with **Plugin administration** ( [`PLUGIN_ADMIN`](#acl-PLUGIN_ADMIN) ).
 2. In the SoAI WebUI, open **Plugins**, then select **Add plugin**.
-3. Select **Upload plugin**, select **Choose file**, choose the `.soaiplugin` archive, then select **Upload plugin**.
+3. Select **Upload plugin**, drop the `.soaiplugin` archive on **Drop a plugin here** or select that area to choose it, then select **Upload plugin**.
 4. Watch the modal progress, or select the bell at the right of the header and expand **Tasks**. Once the task reaches a terminal result, open the new card and read its status and compatibility details.
 5. Use only the actions the package declares. **Install backend**, for example, appears only when the current plugin state and capability permit it.
 
@@ -7400,7 +7501,7 @@ The SDK exports `SoAIError`, `ValidationError`, `ConfigurationError`, `PluginCon
 
 #### Install and inspect a package in the SoAI WebUI
 
-To test a package, sign in as an Administrator with **Plugin administration** ([`PLUGIN_ADMIN`](#acl-PLUGIN_ADMIN)), open **Plugins**, select **Add plugin**, choose **Upload plugin**, select **Choose file**, then select **Upload plugin**. Follow progress in the dialog or the **Tasks** panel in the header. SoAI checks the archive, manifest, dependencies, and compatibility before it loads the worker.
+To test a package, sign in as an Administrator with **Plugin administration** ([`PLUGIN_ADMIN`](#acl-PLUGIN_ADMIN)), open **Plugins**, select **Add plugin**, choose **Upload plugin**, drop the package on **Drop a plugin here** or select that area to choose it, then select **Upload plugin**. Follow progress in the dialog or the **Tasks** panel in the header. SoAI checks the archive, manifest, dependencies, and compatibility before it loads the worker.
 
 #### Related documentation
 
@@ -7665,6 +7766,8 @@ The main screen is the WebUI inside [Android](https://www.android.com/) WebView.
 
 Server alerts can reach the [Android](https://www.android.com/) notification shade while the app is in the background. You can also send a Wake-on-LAN packet before you connect. Open the app's settings to review certificate trust, clear WebUI data, change servers, or use Incognito Mode. The device name saved there appears in the server's session list. The app includes English and 25 translations, and follows the phone's dark theme.
 
+To set up a connection, open **Settings > Connect** in the SoAI WebUI and scan its QR code with the app. SoAI Connect checks that the address belongs to the intended server before connecting. You can also enter the address manually; see [Connect to a SoAI server](#connect-to-a-soai-server) for both paths.
+
 #### Requirements
 
 | Requirement | Details |
@@ -7715,7 +7818,7 @@ Release APKs use [Android](https://www.android.com/) signature schemes v2 and v3
 
 ### Connect to a SoAI server [page: connect-to-a-soai-server]
 
-SoAI Connect remembers one server at a time. Enter the address of the server, check the result, and sign in with the same account you use in the WebUI.
+SoAI Connect remembers one server at a time. Scan the QR code from the WebUI or enter the address of the server, check the result, and sign in with the same account you use in the WebUI.
 
 #### Prepare the server in the SoAI WebUI
 
@@ -7723,10 +7826,21 @@ SoAI Connect remembers one server at a time. Enter the address of the server, ch
 2. To make a separate account for the phone, an administrator with **User administration** ( [`USER_ADMIN`](#acl-USER_ADMIN) ) permission can select the **Settings** button at the right of the header, choose **Settings**, select **Users**, then select **Create user**. See [Administration overview](#administration-overview) for the full account and ACL workflow.
 3. If you run SoAI OS and have **SoAI OS administration** ( [`HOST_MANAGEMENT_ADMIN`](#acl-HOST_MANAGEMENT_ADMIN) ) permission, open **Network** from the sidebar. Use the **IP ADDRESS** shown on the connected network card. With SoAI Core, use the hostname or LAN IP that already opens the WebUI from another machine.
 4. Put the phone on the same LAN or VPN as the server unless you have configured secure remote access.
+5. To pair by QR code, select the **Settings** button at the right of the header, choose **Settings**, then select **Connect**. Every signed-in user can open this tab. It shows a QR code with the address it points to underneath, and when the server has more than one usable address, **Address for your phone** lets you pick the one the phone can reach.
 
 **Do not enter `localhost` or `127.0.0.1`; on the phone, those names point back to the phone.** An address such as `192.168.1.100` or `soai.local` is usually enough. The app also accepts IPv6 and full `http://` or `https://` URLs. Add `:port` when more than one instance runs on the host.
 
 #### Connect for the first time
+
+##### Scan the QR code
+
+1. Open the **Connect** tab in the WebUI.
+2. In SoAI Connect, select the QR code button at the right of the server address field and allow camera access when asked.
+3. Point the camera at the code. The scanner closes as soon as it reads a SoAI Connect code, fills in the address, and checks the server.
+
+When the server that answers has the same instance, scheme, and port as the code, the app connects without another tap. A private or self-signed certificate still opens the certificate prompt, so compare the fingerprint before you trust it. If discovery fell back to another scheme or port, or the connection would use HTTP to a public address, the app stops on the result so you can read the warning and select **Connect** yourself.
+
+##### Enter the address
 
 1. Open SoAI Connect and enter the server address.
 2. Select **Check**.
@@ -7766,6 +7880,11 @@ For a private certificate, **Trust once** keeps approval for the current app ses
 | Multiple SoAI servers were found | Enter `hostname:port` for the instance you want. |
 | Server not found | Check that discovery ports `7950` through `7960` reach the server, or enter its runtime port. |
 | Server not reachable | Confirm that SoAI is running. In SoAI OS, an account with **SoAI OS administration** ([`HOST_MANAGEMENT_ADMIN`](#acl-HOST_MANAGEMENT_ADMIN)) permission can open **Network** in the SoAI WebUI and check that the selected network card is **Connected** and still has the address you entered. |
+| Only reachable from this computer | The **Connect** tab shows this when SoAI listens on a loopback address, which the phone cannot reach directly. Set [`SERVER.HTTP.NETWORK.HOST`](#config-SERVER.HTTP.NETWORK.HOST) to `0.0.0.0` and restart SoAI, or publish it through a reverse proxy that uses the same scheme and port as SoAI, because SoAI Connect rejects a server that answers on a different scheme or port than the one it contacted. |
+| No reachable address found | The server has no usable network address. Connect it to a network and select **Refresh addresses** on the **Connect** tab, or open the WebUI from the address the phone should use. |
+| This QR code belongs to a different SoAI server | The address in the code reached another SoAI instance. Select **Refresh addresses**, choose the address the phone can reach, and scan again. |
+| This QR code needs a newer version of SoAI Connect | Update SoAI Connect, then scan the code again. |
+| Camera access is needed to scan a QR code | Allow camera access for SoAI Connect in the phone's app settings, or type the server address instead. |
 | The endpoint responded but is not a SoAI server | Check the address and port. Another service may be listening there. |
 | The WebUI opens but sign-in fails | Use an account from this server. An administrator with **User administration** ([`USER_ADMIN`](#acl-USER_ADMIN)) permission can select the **Settings** button at the right of the header, choose **Settings**, then select **Users**. |
 
@@ -7872,11 +7991,11 @@ Standard results are certified after all 5 measured passes produce valid workloa
 
 #### Open SoAIBench
 
-1. Open **Hardware** and find the GPU's **GPU controls** panel.
-2. Select **Test** to reveal **Bench** and **Stress**.
-3. Select **Bench** for the certified run or **Stress** for the 60-second stress run.
+1. Open **Hardware** and select **SoAIBench** at the top of the page.
+2. When more than 1 GPU is available, select one from the list. With 1 available GPU, SoAI opens its run dialog directly.
+3. Review the certified run dialog and select **Start**.
 
-Starting a run requires **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)), while stopping one requires **Recovery administration** ([`RECOVERY_ADMIN`](#acl-RECOVERY_ADMIN)); the default Administrator role has both permissions. The controls also require a visible GPU controls panel, which depends on the account permission and the current device capability.
+The page button can open the certified run dialog for a GPU without tuning controls. To start a 60-second stress run, use **Test** then **Stress** in that GPU's **GPU controls** panel. Starting either run requires **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)), while stopping one requires **Recovery administration** ([`RECOVERY_ADMIN`](#acl-RECOVERY_ADMIN)); the default Administrator role has both permissions.
 
 #### Related documentation
 
@@ -7888,20 +8007,22 @@ Starting a run requires **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)), 
 
 ### Running benchmarks [page: running-benchmarks]
 
-Run SoAIBench from the GPU's controls on the Hardware page. Before starting, make sure the selected GPU is not already running a benchmark or stress workload and that you can pause other GPU-heavy work for the test.
+Open SoAIBench from the top of the Hardware page. Before starting, make sure the selected GPU is not already running a benchmark or stress workload and that you can pause other GPU-heavy work for the test.
 
-The **Test** button is disabled while GPU changes are pending or awaiting application. While **Save** mode is active, SoAI hides **Test**, **Bench**, and **Stress**. The benchmark actions cannot start another run while that GPU already has one.
+In a GPU controls panel, **Test** is disabled while GPU changes are pending or awaiting application. While **Save** mode is active, SoAI hides **Test**, **Bench**, and **Stress**. The benchmark actions cannot start another run while that GPU already has one.
 
 To clear a pending adjustment, select **Apply** and wait for it to finish. When **Save** mode is active, select **Save** again to leave it without storing a slot. See [GPU controls and tuning](#gpu-controls-and-tuning) for how to apply or save a setting before a run.
 
 #### Run benchmark and stress workloads
 
-1. In the SoAI WebUI, open **Hardware** and find the selected GPU's **GPU controls** panel.
-2. Select **Test**, then select **Bench**.
-3. Review the **SoAIBench** dialog and select **Start**.
-4. Keep the dialog open to follow warm-up, measured passes, and the final report.
+1. In the SoAI WebUI, open **Hardware** and select **SoAIBench** at the top of the page.
+2. When more than 1 GPU is available, select one from the list; if only 1 is available, SoAI opens the run dialog for it.
+3. Review the certified run dialog and select **Start**.
+4. Follow warm-up, measured passes, and the final report in the dialog. You can close it while the run continues.
 
-The WebUI starts a Standard run in certified mode. It performs at least 120 seconds of active warm-up work, followed by 5 measured passes. Closing the dialog requests a stop for an active certified run.
+The WebUI starts a Standard run in certified mode, including for a GPU without tuning controls. It performs at least 120 seconds of active warm-up work, followed by 5 measured passes. Closing the dialog leaves the benchmark running. Use **View benchmark** on its GPU card to reopen it.
+
+If the dialog shows **Status unknown**, use its retry action to check again before starting another run. A lost connection does not mean the benchmark stopped. If SoAI cannot confirm whether a run started, check **History** before retrying.
 
 ##### Run the stress workload
 
@@ -7914,7 +8035,7 @@ The WebUI stress action starts a 60-second quick mixed workload and displays liv
 
 #### Permissions and consistent test conditions
 
-Starting Standard or Stress requires **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)), while stopping a run requires **Recovery administration** ([`RECOVERY_ADMIN`](#acl-RECOVERY_ADMIN)); the default Administrator role has both permissions. The GPU controls panel is absent without **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)), and a run can return **Unsupported** when the [OpenCL](https://www.khronos.org/opencl/) preflight cannot use the selected device.
+Starting Standard or Stress requires **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)), while stopping a run requires **Recovery administration** ([`RECOVERY_ADMIN`](#acl-RECOVERY_ADMIN)); the default Administrator role has both permissions. The GPU controls panel is absent without **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)) or when no GPU supports tuning controls. The **SoAIBench** page button does not depend on that panel. A run can return **Unsupported** when the [OpenCL](https://www.khronos.org/opencl/) preflight cannot use the selected device.
 
 Only 1 run can be active per GPU. The terminal statuses are **Completed**, **Unstable**, **Failed**, **Cancelled**, **Stopped**, **Unsupported**, and **Indeterminate**. Read the result and its reason before comparing it with another run.
 
@@ -7974,25 +8095,27 @@ A SoAIBench result combines score fields with the device identity, settings snap
 
 #### Open and export results in the SoAI WebUI
 
-1. Open **Hardware** and find the GPU's **GPU controls** panel.
-2. Select **History** when it is available for the GPU.
+1. Open **Hardware**, select **SoAIBench** at the top of the page, then select the GPU.
+2. Select **History** in the SoAIBench dialog when that GPU has a run.
 3. Inspect the profile, status, duration, certification, score, and device details for the run.
 4. Select **Download** in the history dialog to export that GPU's history as CSV.
 
-The Standard run dialog also exposes its terminal report and a **Download** action for the displayed run. History and exports require **Hardware read access** ([`HARDWARE_READ`](#acl-HARDWARE_READ)). In the current WebUI, the **History** button sits in **GPU controls**, so it also requires **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)). It appears when SoAI has any run record for that GPU, including an active run.
+The Standard run dialog also exposes its terminal report and a **Download** action for the displayed run. History and exports require **Hardware read access** ([`HARDWARE_READ`](#acl-HARDWARE_READ)). **History** appears in the SoAIBench dialog when SoAI has any run record for the selected GPU, including an active run. This path does not depend on a GPU controls panel.
+
+The **SoAIBench previous runs** table on the Hardware page lists runs across GPUs. Sort it by start time, profile, status, score, or duration, and use a row's actions to copy, download, share, or delete that run.
 
 #### Share an eligible score
 
 A **Share** action appears when a completed, certified Standard run contains all 5 measured passes and the evidence required for publication. Sharing requires **GPU tuning** ([`HW_GPU_TUNING`](#acl-HW_GPU_TUNING)). New GPU scores are welcome, especially for GPU models that are not represented on the leaderboard yet.
 
-1. Open the GPU's **History** dialog.
+1. Open **SoAIBench** on the Hardware page, select the GPU, then select **History**.
 2. Select **Share** beside an eligible result.
 3. Review the publication preview. It contains the score, 5 measured passes, public GPU and runtime details, benchmark settings, and available sensor evidence.
 4. Confirm the publication. If it succeeds, SoAI provides the public result link.
 
 The publication does not include the SoAI account identity, files, configuration, analytics, or general telemetry. A result held for review does not count toward the leaderboard until the review is complete. If sharing times out, use **Share** again; SoAI reconciles the same publication instead of creating another submission.
 
-To remove an eligible run from SoAI, open **History** and select **Delete local history** beside it. An active or indeterminate run cannot be deleted. A run prepared for or published to the leaderboard also remains in local history so SoAI can preserve its publication state.
+To remove an eligible run from SoAI, open **History** and select **Delete local history** beside it. An active or indeterminate run cannot be deleted. A run prepared for or published to the leaderboard also remains in local history so SoAI can preserve its publication state. SoAI asks for confirmation before deleting an eligible local run.
 
 #### Read the score fields
 
@@ -8189,6 +8312,7 @@ This table covers every OpenAPI operation in the current Core route composition,
 | `GET` | `/api/v1/automations/runs` | List automation runs |
 | `GET` | `/api/v1/automations/runs/active` | List active automation runs |
 | `GET` | `/api/v1/automations/runs/{run_id}` | Get automation run |
+| `GET` | `/api/v1/automations/schedule-preview` | Preview schedule |
 | `DELETE` | `/api/v1/automations/{automation_id}` | Delete automation |
 | `GET` | `/api/v1/automations/{automation_id}` | Get automation |
 | `PATCH` | `/api/v1/automations/{automation_id}` | Update automation |
@@ -8424,6 +8548,7 @@ This table covers every OpenAPI operation in the current Core route composition,
 
 | Method | Endpoint | Operation |
 | --- | --- | --- |
+| `GET` | `/api/v1/software/update-preparation` | Get update preparation |
 | `POST` | `/api/v1/software/update-soai` | Update SoAI software |
 
 ##### System and monitoring
@@ -8435,6 +8560,7 @@ This table covers every OpenAPI operation in the current Core route composition,
 | `PUT` | `/api/v1/system/access-control/policy` | Update access control policy |
 | `POST` | `/api/v1/system/admin/configuration/reset` | Configuration reset system |
 | `POST` | `/api/v1/system/admin/factory-reset` | Factory reset system |
+| `GET` | `/api/v1/system/connect-pairing` | System connect pairing |
 | `GET` | `/api/v1/system/database/operations/{operation_id}` | Get database operation status |
 | `POST` | `/api/v1/system/hardware/history/reset` | Reset hardware history |
 | `GET` | `/api/v1/system/health` | System health check |
@@ -8545,6 +8671,7 @@ This table covers every OpenAPI operation in the current Core route composition,
 | `PUT` | `/api/v1/webui/conversations/{conv_id}/messages` | Update conversation messages |
 | `POST` | `/api/v1/webui/conversations/{conv_id}/messages/delete` | Delete conversation message |
 | `POST` | `/api/v1/webui/conversations/{conv_id}/messages/regenerate` | Regenerate conversation message |
+| `GET` | `/api/v1/webui/conversations/{conv_id}/messages/regenerate/latest-status` | Get latest conversation regeneration status |
 | `GET` | `/api/v1/webui/conversations/{conv_id}/messages/regenerate/status` | Get conversation regeneration status |
 | `POST` | `/api/v1/webui/conversations/{conv_id}/messages/resubmit` | Resubmit conversation user message |
 | `GET` | `/api/v1/webui/conversations/{conv_id}/messages/running-activity` | Get conversation running activity |
@@ -8637,6 +8764,8 @@ This table covers every OpenAPI operation in the current Core route composition,
 | `GET` | `/api/v1/webui/sessions` | List sessions |
 | `PATCH` | `/api/v1/webui/sessions/current` | Rename current android session |
 | `DELETE` | `/api/v1/webui/sessions/{jti}` | Revoke session |
+| `GET` | `/api/v1/webui/software-update-notice` | Get update notice |
+| `POST` | `/api/v1/webui/software-update-notice/{task_id}/acknowledge` | Acknowledge update notice |
 | `GET` | `/api/v1/webui/terminal/policy` | Get terminal policy |
 | `GET` | `/api/v1/webui/users` | List all users |
 | `POST` | `/api/v1/webui/users` | Create new user |
@@ -9037,7 +9166,7 @@ This reference lists every terminal setting supported by the current Core V1 con
 | `SERVER.HTTP.SECURITY.ENFORCE_UPGRADE_INSECURE_REQUESTS` | Boolean | Adds a content security policy instructing browsers to upgrade insecure subresource requests. | `false` | Yes |
 | `SERVER.HTTP.REQUEST_BODY.OPENAI_MAX_BYTES` | Integer | OpenAI-compatible and Anthropic-compatible endpoints reject a request body larger than this many bytes. | `268435456` | Yes |
 | `SERVER.HTTP.REQUEST_BODY.NATIVE_MAX_BYTES` | Integer | SoAI-native endpoints reject a request body larger than this many bytes. | `16777216` | Yes |
-| `SERVER.HTTP.REQUEST_BODY.READ_DEADLINE_SEC` | Number | The HTTP server must receive a complete request body within this many seconds. | `120.0` | Yes |
+| `SERVER.HTTP.REQUEST_BODY.READ_DEADLINE_SEC` | Number | Time allowed, in seconds, to receive an ordinary HTTP request body. For streaming multipart uploads, this limits each wait for more data rather than the total upload time. | `120.0` | Yes |
 | `SERVER.HTTP.STREAMING.STREAM_INACTIVITY_TIMEOUT_SEC` | Number | SoAI closes a response stream after it produces no data for this many seconds. | `300.0` | Yes |
 | `SERVER.HTTP.STREAMING.REPLAY_BUFFER_SIZE` | Integer | The replay buffer keeps this many events for reconnecting stream clients. | `1000` | Yes |
 | `SERVER.HTTP.STREAMING.POST_TERMINAL_CHANNEL_RETENTION_SEC` | Number | SoAI keeps a completed stream channel available to late readers for this many seconds. | `300.0` | Yes |
@@ -9383,7 +9512,7 @@ This reference lists every terminal setting supported by the current Core V1 con
 | `TOOLS.RAG.ENABLED` | Boolean | Starts the knowledge-base indexing, retrieval, and configured web-search capabilities. | `true` | Yes |
 | `TOOLS.RAG.CHROMA_PATH` | String | [Chroma](https://www.trychroma.com/) vector index directory, resolved under the system data directory. | `"chroma_rag"` | Yes |
 | `TOOLS.RAG.CHROMA_SHARD_COUNT` | Integer | Number of isolated [Chroma](https://www.trychroma.com/) worker shards used for vector index operations. | `1` | Yes |
-| `TOOLS.RAG.CHROMA_IPC_STARTUP_TIMEOUT_SEC` | Integer | [Chroma](https://www.trychroma.com/) worker IPC must become ready within this many seconds. | `120` | Yes |
+| `TOOLS.RAG.CHROMA_IPC_STARTUP_TIMEOUT_SEC` | Integer | [Chroma](https://www.trychroma.com/) worker IPC must become ready within this many seconds. | `300` | Yes |
 | `TOOLS.RAG.CHROMA_IPC_RETRY_COUNT` | Integer | Additional attempts made after a [Chroma](https://www.trychroma.com/) IPC operation fails transiently. | `1` | Yes |
 | `TOOLS.RAG.CHROMA_IPC_JOB_TTL_SEC` | Integer | A submitted [Chroma](https://www.trychroma.com/) IPC job remains recoverable for this many seconds before it expires. | `3600` | Yes |
 | `TOOLS.RAG.CHROMA_QUERY_TIMEOUT_SEC` | Integer | A [Chroma](https://www.trychroma.com/) vector similarity query must finish within this many seconds. | `30` | Yes |
@@ -9427,8 +9556,8 @@ This reference lists every terminal setting supported by the current Core V1 con
 | `TOOLS.RAG.WEB.FETCH_VARIANTS_TOTAL_TIMEOUT_SEC` | Integer | Overall deadline, in seconds, when a fetch tries alternate retrieval variants. | `35` | Yes |
 | `TOOLS.RAG.WEB.DNS_TIMEOUT_SEC` | Integer | A web search or fetch fails if its safety check cannot resolve the destination within this many seconds. | `5` | Yes |
 | `TOOLS.RAG.WEB.STREAM_CHUNK_SIZE` | Integer | Bytes read per streamed response chunk while fetching a remote document. | `65536` | Yes |
-| `TOOLS.RAG.WEB.HTML_PARSE_TIMEOUT` | Integer | Readable-content extraction from fetched HTML must finish within this many seconds. | `15` | Yes |
-| `TOOLS.RAG.WEB.PDF_PARSE_TIMEOUT` | Integer | Text extraction from a fetched PDF must finish within this many seconds. | `30` | Yes |
+| `TOOLS.RAG.WEB.HTML_PARSE_TIMEOUT` | Integer | Readable-content extraction from fetched HTML must finish within this many seconds. | `60` | Yes |
+| `TOOLS.RAG.WEB.PDF_PARSE_TIMEOUT` | Integer | Text extraction from a fetched PDF must finish within this many seconds. | `300` | Yes |
 | `TOOLS.RAG.WEB.CONTENT_MAX_CHARS` | Integer | SoAI keeps up to this many extracted characters from one fetched document. | `120000` | Yes |
 | `TOOLS.RAG.WEB.CONTENT_TRIM_MODE` | String | Method used at the fetched-text limit. sentence trims at a text boundary; hard cuts at the exact character count. | `"sentence"` | Yes |
 | `TOOLS.RAG.WEB.USER_AGENT` | String | Default HTTP User-Agent header sent when fetching web documents. | `"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"` | Yes |
@@ -9477,7 +9606,7 @@ This reference lists every terminal setting supported by the current Core V1 con
 | `DATA.DATABASE.SQLITE.READ_POOL_MAX_SIZE` | Integer | The connection pool keeps up to this many read-only [SQLite](https://www.sqlite.org/) connections. | `8` | Yes |
 | `DATA.DATABASE.SQLITE.READ_MMAP_SIZE_MB` | Integer | Read connections use an [SQLite](https://www.sqlite.org/) memory-mapped I/O region of up to this many megabytes. | `4096` | Yes |
 | `DATA.DATABASE.SQLITE.WRITE_MMAP_SIZE_MB` | Integer | The writer connection uses an [SQLite](https://www.sqlite.org/) memory-mapped I/O region of up to this many megabytes. | `4096` | Yes |
-| `DATA.DATABASE.WRITER.INIT_TIMEOUT_SEC` | Integer | The serialized database writer must initialize within this many seconds. | `30` | Yes |
+| `DATA.DATABASE.WRITER.INIT_TIMEOUT_SEC` | Integer | The serialized database writer must initialize within this many seconds. | `120` | Yes |
 | `DATA.DATABASE.WRITER.SHUTDOWN_TIMEOUT_SEC` | Integer | The database writer gets this many seconds to stop during shutdown. | `5` | Yes |
 | `DATA.DATABASE.WRITER.OPERATION_TIMEOUT_SEC` | Integer | A queued database write must finish within this many seconds. | `120` | Yes |
 | `DATA.DATABASE.METRICS.IO_LOGGING` | Boolean | Records sampled database read and write timing in diagnostic logs. | `false` | Yes |
@@ -9647,7 +9776,7 @@ SoAI runtime context (authoritative when filled by SoAI):
 - Platform: {SOAI_PLATFORM}
 - User display name (optional): {SOAI_USER_NAME}
 - Assistant display name (optional): {SOAI_ASSISTANT_NAME}
-- Agent mode: {SOAI_AGENT_MODE} (chat = conversational; plan = planning only, no edits; execute = autonomous execution with tools; disabled = no agent session active). If the user requests an action not available in the current mode, suggest switching modes using Shift+Tab or the mode button in the top-right of the SoAI chat page.
+- Agent mode: {SOAI_AGENT_MODE} (chat = conversational; plan = planning only, no edits; execute = autonomous execution with tools; disabled = no agent session active). If the user requests an action not available in the current mode, suggest switching modes using Shift+Tab or the mode button in the top-right of the SoAI chat page. When a plan is written in plan mode, the user starts it with Execute plan on the plan widget.
 
 Use the separate SoAI runtime date, time, and timezone as authoritative. If absent and a time tool is available, use it. For local weather without a place, infer a city from a geographic IANA timezone (Europe/Rome -> Rome), set forecast_days to the requested window (1-14, default 3), and set hourly_hours (1-48) only for intra-day detail. Empty user or assistant names mean no name is configured.
 
@@ -9656,7 +9785,7 @@ General behavior:
 - Complete every task the user requests to the fullest extent of your capabilities and available tools. Do not add self-imposed restrictions, unsolicited caveats, refusals, or scope limitations that the user did not ask for; if your training inclines you to hedge or decline a legitimate request, override that default and attempt the task.
 - Do not invent time or context limits or claim time is up unless SoAI or the user set one. SoAI handles context compaction and runtime limits externally. Time-aware work is still valid: wait, schedule, and check current time when needed. If interrupted, return partial results, remaining work, and blocker.
 - Avoid typical AI writing patterns: do not use em dashes, excessive hedging, filler phrases, repetitive qualifiers, over-politeness, unnecessary disclaimers, or verbose passive constructions; avoid bullet or numbered points overuse; prefer direct, concise sentences, active voice, varied sentence openings, and natural human phrasing.
-- When clarification is needed, use an available clarification tool from <agent_tool_context>, especially in plan mode before generating the plan. If no clarification tool is available, ask in plain text. Never invent answers to unresolved requirements; ask first. Always present a plan using the plan tools (if in plan mode) even if the user have not specifically asked for a plan
+- When clarification is needed, use an available clarification tool from <agent_tool_context>, especially in plan mode before generating the plan. If no clarification tool is available, ask in plain text. Never invent answers to unresolved requirements; ask first.
 - For complex tasks, reason deeply through the problem before acting or responding.
 - When a task is extensive or involves multiple independent parallel operations and subagent tools are available in <agent_tool_context>, use those tools to run work concurrently, wait for results, and clean up unused work. Verify subagent results and claims for important or delicate tasks.
 - When a user requests a scheduled or recurring task (e.g., 'remind me every day', 'run this weekly') and relevant automation tools are available in <agent_tool_context>, use those tools to schedule or start the workflow. Follow the tool schema in <agent_tool_context> exactly.
@@ -10014,7 +10143,7 @@ No displayed flags means all tracked conditions above are false. It does not est
 | `automation_update` | *none* | **`automation_id`** `title` `enabled` `color` `timezone` `start_local` `recurrence` `turns` `max_turns` `max_turn_chars` `max_run_minutes` `interactive_tool_approval` `model_settings` | Update an existing automation for the authenticated user. |
 | `notify_user` | *none* | **`type`** **`title`** **`message`** `source` `link` | Create a persisted user notification and enqueue it for realtime delivery. This does not wait for a user reply. |
 | `plan_get` | read | *none* | Fetch the canonical long plan (markdown). |
-| `plan_write` | *none* | `title` **`markdown`** | Write the canonical long plan (markdown). |
+| `plan_write` | *none* | `title` **`markdown`** | Write the plan the user reviews and approves before execution (markdown). Each call replaces the whole plan. In plan mode, deliver the final plan here. |
 | `stop_conversation` | chat | *none* | Stop the current model turn cleanly without closing the conversation. |
 | `subagent_cancel` | *none* | **`subagent_id`** | Cancel a running subagent. Cancellation is cooperative/asynchronous and may not stop in-flight work immediately. |
 | `subagent_observe` | read | **`subagent_id`** **`mode`** `timeout_ms` | Read a current-turn subagent snapshot. `mode=current` returns immediately; `mode=terminal` waits for completion, cancellation, error, or abandonment. |
@@ -10141,6 +10270,8 @@ Record the SoAI version, edition, platform, plugin and backend version, model id
 ### Release notes and upgrade notices [page: release-notes-and-upgrade-notices]
 
 Release notes explain what changed in a SoAI release and identify anything that needs attention during an update. Open the **Releases** section of the [official SoAI repository](https://github.com/GetSoAI/SoAI) to read the notes published with a release and download its files.
+
+In the SoAI WebUI, **Settings > Updates** shows notes for the published releases between your installed version and the latest available release. If it reports that some notes could not be loaded, use the repository's **Releases** section to read them before updating.
 
 **The public documentation is updated for the latest SoAI release and does not retain separate version-specific documentation sets.**
 
@@ -10287,13 +10418,15 @@ Start with [Logs in the SoAI WebUI](#monitoring-and-observability). Choose the C
 
 #### Startup and access issues
 
-**403 "setup_required"** means no users exist in the database yet. SoAI returns this on every authenticated endpoint until someone completes the initial setup wizard. If you see it after a factory reset or on a fresh install, open the SoAI WebUI and go through the wizard. If you see it after a database restore, the restore may have failed or pointed at the wrong file. Check [`DATA.DATABASE.PATHS.SYSTEM_DB`](#config-DATA.DATABASE.PATHS.SYSTEM_DB). To inspect it there, an administrator with **Configuration changes** ([`CONFIG_PATCH`](#acl-CONFIG_PATCH)) selects the **Settings** button at the right of the header, chooses **Settings**, selects **Advanced** in the page header, then opens **Data** and finds **System db** in the **Paths** group.
+**403 "setup_required"** means no users exist in the database yet. SoAI returns this on protected API endpoints until someone creates the first account in the setup wizard. If you see it after a factory reset or on a fresh install, open the SoAI WebUI and go through the wizard. If you see it after a database restore, the restore may have failed or pointed at the wrong file. Check [`DATA.DATABASE.PATHS.SYSTEM_DB`](#config-DATA.DATABASE.PATHS.SYSTEM_DB). To inspect it there, an administrator with **Configuration changes** ([`CONFIG_PATCH`](#acl-CONFIG_PATCH)) selects the **Settings** button at the right of the header, chooses **Settings**, selects **Advanced** in the page header, then opens **Data** and finds **System db** in the **Paths** group.
 
 **401 on `/api/v1/*`** means the request is missing a valid WebUI session. Sign in and retain the auth and CSRF cookies returned for your transport. HTTP uses `soai-http-token` and `soai-http-csrf`; HTTPS uses `__Host-soai-token` and `__Host-soai-csrf`. Mutating requests must also send the CSRF cookie value in `X-SoAI-CSRF`. Wizard status, login, and health are among the public routes. See [Authentication and API keys](#authentication-and-api-keys) for the management-session and compatible-API boundaries.
 
 **401 on `/v1/*`** means the compatible client endpoints require a SoAI API key and one was not provided, or the token was wrong. After setup, these endpoints are open while the API-key store is empty. The 401 appears after you create at least one API key inside SoAI. If you did not intend to enable key authentication, an administrator with **API key management** ([`OPENAI_API_ADMIN`](#acl-OPENAI_API_ADMIN)) selects the **Settings** button at the right of the header, chooses **Settings**, selects **[OpenAI](https://openai.com/)**, then selects **Delete** for each key that should no longer exist. Review [Authentication and API keys](#authentication-and-api-keys) before changing the instance-wide key policy.
 
-**SoAI won't start.** Run the launcher for the installed edition and read its bootstrap output. Use `./soai.sh --debug` for Core or `./soai_os/soai-os.sh --debug` for SoAI OS. The [Windows](https://www.microsoft.com/windows/) launcher has no terminal of its own, so it reports a failed start in its window and writes the same detail to `data\state\launcher-startup-error.txt` under the installation folder; read that file when the window closes before you can. Common causes include starting `backend/main.py` directly, port 5090 already being in use, an incomplete managed runtime, or missing dependencies while [`SYSTEM.RUNTIME.STAY_OFFLINE`](#config-SYSTEM.RUNTIME.STAY_OFFLINE) is enabled. If the configured port is occupied, change [`SERVER.HTTP.NETWORK.PORT`](#config-SERVER.HTTP.NETWORK.PORT) in the active configuration file. To repair the runtime, stop SoAI and run `install-deps` through the same edition launcher. The [Launcher and CLI reference](#launcher-and-cli-reference) gives the exact commands and configuration-path rules.
+**SoAI won't start.** Run the launcher for the installed edition and read its bootstrap output. Use `./soai.sh --debug` for Core or `./soai_os/soai-os.sh --debug` for SoAI OS. The [Windows](https://www.microsoft.com/windows/) launcher has no terminal of its own, so it reports a failed start in its window and writes the same detail to `data\state\launcher-startup-error.txt` under the installation folder; read that file when the window closes before you can. Common causes include starting SoAI without its launcher, port 5090 already being in use, an incomplete managed runtime, or missing dependencies while [`SYSTEM.RUNTIME.STAY_OFFLINE`](#config-SYSTEM.RUNTIME.STAY_OFFLINE) is enabled. If the configured port is occupied, change [`SERVER.HTTP.NETWORK.PORT`](#config-SERVER.HTTP.NETWORK.PORT) in the active configuration file. To repair the runtime, stop SoAI and run `install-deps` through the same edition launcher. The [Launcher and CLI reference](#launcher-and-cli-reference) gives the exact commands and configuration-path rules.
+
+If the [Windows](https://www.microsoft.com/windows/) launcher cannot recover an interrupted update, close other SoAI windows and try again. If recovery still fails, keep the installation and its recovery files for repair. When setup asks you to restart [Windows](https://www.microsoft.com/windows/) after a failed installation or cleanup, do that before running setup again.
 
 **SoAI takes several minutes to answer after a crash or power loss.** A start that follows an unclean shutdown verifies the core database before the application serves anything, and that verification reads the whole file, so a large instance can spend minutes with no WebUI and no API. The lifecycle log states that the previous run did not shut down cleanly and reports the check as it finishes. Let it run: stopping SoAI or power-cycling the host during the check means the next start finds an unclean shutdown again and starts the same check over. [After an unclean shutdown](#after-an-unclean-shutdown) describes the behavior, including the GPU settings that the same start returns to safe defaults.
 
@@ -10307,11 +10440,15 @@ Start with [Logs in the SoAI WebUI](#monitoring-and-observability). Choose the C
 
 **Model download fails.** HTTP 507 means there is not enough disk space. HTTP 403 can mean that offline mode is blocking the download ([`SYSTEM.RUNTIME.STAY_OFFLINE`](#config-SYSTEM.RUNTIME.STAY_OFFLINE) is enabled). Network failures from the model source are recorded in the affected plugin log. Read the HTTP status or diagnostic message available there. For [HuggingFace](https://huggingface.co/) models that require authentication, set [`MODELS.CREDENTIALS.HUGGINGFACE_TOKEN`](#config-MODELS.CREDENTIALS.HUGGINGFACE_TOKEN) in **Settings**, **Advanced**, and **Models**. To use a plugin-specific token, open **Plugins**, select **Edit configuration** for the affected plugin, set `DOWNLOADER_HF_TOKEN`, then select **Save**. The [Models catalog](#models-catalog) owns download, registration, and provider workflows.
 
+SoAI retries temporary download failures and can resume a transfer when its source supports it. Authentication failures, invalid files, and other permanent errors need corrective action. To replace an installed [CTranslate2](https://opennmt.net/CTranslate2/) model, delete it before starting another download.
+
 #### WebUI and realtime issues
 
 **WebUI shows stale data.** Live updates use the WebSocket at `/api/v1/system/ws` without a polling fallback. If a reverse proxy, firewall, or load balancer blocks the connection, the UI marks retained data as stale or disconnected. Check the browser console for WebSocket errors; for Nginx, confirm that the proxy forwards the WebSocket upgrade and does not impose a short idle timeout.
 
 **Terminal not available.** An administrator with **Configuration changes** ([`CONFIG_PATCH`](#acl-CONFIG_PATCH)) selects the **Settings** button at the right of the header, chooses **Settings**, selects **Advanced** in the page header, opens **Server**, and enables [`SERVER.WEBUI.TERMINAL.ENABLED`](#config-SERVER.WEBUI.TERMINAL.ENABLED). The user must also have **Terminal and shell access** ([`TERMINAL_USE`](#acl-TERMINAL_USE)), which is admin-only by default. Continue with [Terminal](#terminal) for access, session, and transport details.
+
+**WebUI does not load.** If the page shows **Failed to Initialize SoAI WebUI**, check that SoAI is running and reachable, then select **Reload page**.
 
 #### Where to look
 
@@ -10346,11 +10483,11 @@ SoAI ships 8 bundled plugins: External, [Ollama](https://ollama.com/), [vLLM](ht
 
 ##### Does SoAI include models?
 
-No. A fresh installation contains no models. For local inference, install a compatible backend through **Plugins**, then download a model or register model files already on the host. An External provider imports its remote model catalog but does not install or run the provider on the SoAI host. See the [Models catalog](#models-catalog).
+No. A fresh installation contains no models. [SoAI setup in the first-run wizard](#set-up-ai-in-the-wizard) can download a local model or connect a provider. For manual setup, install a compatible backend through **Plugins**, then download a model or register existing model files through **Models**. Remote provider models run at the provider and do not need a local download. See the [Models catalog](#models-catalog).
 
 ##### Can I use existing OpenAI client libraries?
 
-Yes. Set the client base URL to SoAI, which defaults to `http://localhost:5090/v1`, and select an exact model ID returned by the server. The compatible API is unavailable before the first administrator completes setup, then remains open while the API-key store has no records. **Once any API-key record exists, including a revoked or expired record, compatible requests require a valid bearer token.** Only deleting every key record restores the open state. See [Authentication and API keys](#authentication-and-api-keys).
+Yes. Set the client base URL to SoAI, which defaults to `http://localhost:5090/v1`, and select an exact model ID returned by the server. The compatible API is unavailable until the first administrator account exists, then remains open while the API-key store has no records. **Once any API-key record exists, including a revoked or expired record, compatible requests require a valid bearer token.** Only deleting every key record restores the open state. See [Authentication and API keys](#authentication-and-api-keys).
 
 ##### Can I use Claude Code?
 
@@ -10386,7 +10523,7 @@ Yes. SoAI provides multi-user authentication with per-user conversations, prompt
 
 ##### What are the system requirements?
 
-**SoAI can run on a CPU-only host, although a compatible GPU is needed for reasonable local inference speed.** Actual RAM, VRAM, storage, and compute requirements depend on the model, quantization, context length, plugin, and concurrency. [Hardware compatibility](#hardware-compatibility) owns the supported platform paths and minimum and recommended hardware tiers, while [Capacity planning](#capacity-planning) explains how to size a real workload.
+**SoAI can run on a CPU-only host, although a compatible GPU is needed for reasonable local inference speed.** Actual RAM, VRAM, storage, and compute requirements depend on the model, quantization, context length, plugin, and concurrency. [Requirements](#requirements) lists the supported platform paths and minimum and recommended hardware tiers, while [Capacity planning](#capacity-planning) explains how to size a real workload.
 
 ##### Where does SoAI store its data?
 
@@ -10444,7 +10581,8 @@ Application composition is the only composition root. Foundation contracts depen
 
 | Surface | Protocol owner | Contract |
 | --- | --- | --- |
-| `/v1/*` | Compatible inference API | REST for finite requests. OpenAI-compatible streaming uses plain SSE frames and terminates with `data: [DONE]`. |
+| `/v1/*` | OpenAI-compatible inference API | REST for finite requests, with endpoint-specific streaming. Chat completions and Responses use SSE and finish with `data: [DONE]`; streamed transcription finishes with `transcript.text.done`. Speech output can stream audio bytes. |
+| `/v1/messages` and `/v1/messages/count_tokens` | Anthropic-compatible messages API | Messages and token counting share the compatible API authentication boundary. Streamed messages use named SSE events and finish with `message_stop`. |
 | `/api/v1/*` | SoAI management API | REST commands and snapshots for configuration, accounts, plugins, models, tasks, hardware, files, and other application domains. |
 | `/api/v1/system/ws` | WebUI realtime transport | Event subscriptions, authoritative snapshots, task and chat progress, and interactive sessions such as Terminal. The WebUI has no SSE-only fallback. |
 | `/mcp` | MCP server mode | JSON-RPC over MCP Streamable HTTP, including protocol-required event-stream notifications. It is not tunneled through the WebUI WebSocket. |
@@ -10454,7 +10592,7 @@ Each public boundary applies its own authentication and access policy. Mutation 
 #### Request path and state ownership
 
 ```
-client request
+client inference request
       |
       v
 protocol parsing, authentication, and validation
@@ -10489,9 +10627,15 @@ A transient member failure can make another eligible virtual-model constituent a
 | Accepted work | Task registry, durable mutation storage, and domain outboxes | Queued and running work has explicit progress, cancellation, recovery, and terminal state. |
 | Live projections | Domain resource publishers and WebUI transport | Snapshots and events project authoritative state. Retained client data is marked stale after freshness is lost. |
 
+##### Agent execution
+
+An agent turn alternates model inference with tool execution. SoAI supplies the tools available to the conversation, checks requested actions against their access policy, and waits for approval when interactive approval is required. Tool results are saved with turn progress and returned to the model so it can continue or produce a final response. The host owns this sequence and its cancellation state; inference plugins provide model responses without owning conversation permissions or tool execution.
+
 #### Lifecycle and failure recovery
 
 Stage zero verifies the requested edition and handles dependency-light lifecycle commands before loading the full runtime. Bootstrap then reconciles configuration, opens and validates the database, constructs services, recovers accepted work, reconciles plugin packages and inherited processes, starts background actors, and publishes initial resource state. Readiness is announced only after essential startup and reconciliation complete.
+
+Recovery follows each operation's contract. Saved conversation and domain progress can support reconciliation or continuation, while ordinary tasks left queued or running after a restart are marked failed with `Server restarted` and error code `503`. Acceptance alone does not mean a task will run again.
 
 An optional subsystem can publish degraded health without preventing unrelated capabilities from starting. An essential configuration, integrity, database, or recovery failure blocks readiness. **Repair-plane operations remain available only when their own invariants hold; a running [Uvicorn](https://uvicorn.dev/) process alone is not evidence that the application is ready.**
 
@@ -10533,7 +10677,7 @@ browser document
       |
       +-- critical startup: pre-application browser state
       +-- primary entry: main application window
-      `-- detached entry: detached Chat runtime
+      `-- detached entry: selected page
                   |
                   v
         selected frontend edition
@@ -10607,11 +10751,11 @@ Page views use shared DOM and UI primitives. Dynamic HTML crosses the trusted-HT
 
 Feature domains own reusable behavior and expose named public contracts. Pages compose those features but do not reach into another page or a feature's private implementation. This keeps rendering, validation, errors, and transport behavior from drifting into page-specific copies.
 
-##### Detached Chat runtime
+##### Detached pages
 
-Detached Chat is a separate browser document with its own bootstrap, service instances, page lifecycle, WebSocket connection, timers, and DOM. It uses the same authenticated account and server-side conversation records as the primary window. Cross-window coordination identifies the selected conversation and window lifecycle; it does not make both documents share in-memory application state.
+Chat, Logs, Terminal, and Hardware can open in separate windows using the same signed-in account and SoAI server.
 
-**Closing the detached document releases only that browser runtime.** Accepted server-side work continues according to the conversation and task contracts and can be recovered by another signed-in client.
+Closing one of these windows leaves SoAI running. Chat conversations remain saved, and closing the window does not cancel a response or task already running on the server.
 
 #### Runtime ownership map
 
@@ -10673,7 +10817,7 @@ The archive must be a valid ZIP with safe member paths and exactly one regular r
 
 Package identity and manifest data are extracted from literal class assignments before the package runs. The manifest declares the plugin ID, version, SoAI compatibility requirement, dependencies, persistence and model behavior, capabilities, and compatible API feature flags. **There is no separate JSON manifest.** Values that require executing package code cannot establish admission identity.
 
-The package hash identifies the prepared cache entry. Preparation and environment state are tied to the inspected archive, so changing archive bytes produces a different identity and cannot silently reuse an older audited cache.
+The archive's SHA-256 hash identifies its prepared package cache, so changing archive bytes creates a separate cache entry. The [Python](https://www.python.org/) environment belongs to the plugin ID and can be reused when its runtime baseline, declared dependencies, and installed packages still match. A different package hash does not by itself require rebuilding that environment.
 
 ##### SDK and dependency boundary
 
@@ -10694,6 +10838,19 @@ Reconciliation scans the configured package directory, compares on-disk packages
 Package upload, download, deletion, cloning, configuration, and backend operations use task and transaction boundaries around their filesystem and database state. Startup recovery resolves interrupted owned operations before those artifacts are published as available. **Partial archive or backend state is not treated as a successful installation.**
 
 ##### Worker and IPC boundary
+
+```
+SoAI host process
+      |
+      | authenticated IPC
+      v
+plugin worker process
+      |
+      +-- optional local inference backend process
+      `-- remote provider API
+```
+
+The worker and a local backend are separate roles. A plugin can manage an additional inference process, perform work in its worker, or connect to a remote provider, according to its capabilities. The host keeps scheduling and public API ownership across those arrangements.
 
 Preparation leases the hash-addressed package cache and ensures the plugin environment is ready. The worker starts from an explicit bootstrap payload, imports the prepared package, validates the runtime class surface, and reports its callable contract. The host retains a proxy and validated static surface rather than the plugin object.
 

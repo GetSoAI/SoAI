@@ -43,7 +43,7 @@
     }
 
     .content-preview-modal .content-preview-image-transition-track--previous {
-        transform: translate3d(-100%, 0, 0);
+        transform: translate3d(calc(-100% * var(--dir-sign)), 0, 0);
     }
 
     .content-preview-modal .content-preview-image-transition-track > .content-preview-image-scene {
@@ -58,7 +58,7 @@
     }
 
     .content-preview-modal .content-preview-image-transition-track--next.is-active {
-        transform: translate3d(-100%, 0, 0);
+        transform: translate3d(calc(-100% * var(--dir-sign)), 0, 0);
     }
 
     .content-preview-modal .content-preview-image-transition-track--previous.is-active {
@@ -67,6 +67,8 @@
 
     .content-preview-modal .content-preview-image-stage {
         position: absolute;
+
+        /* direction: physical — image pan and minimap use physical canvas coordinates */
         left: 0;
         top: 0;
         opacity: 0;
@@ -121,7 +123,7 @@
 
     .content-preview-modal .content-preview-image-minimap {
         position: absolute;
-        right: var(--space-3);
+        inset-inline-end: var(--space-3);
         bottom: var(--space-3);
         z-index: var(--z-above-sibling);
         display: flex;
@@ -157,6 +159,8 @@
 
     .content-preview-modal .content-preview-image-minimap-viewport {
         position: absolute;
+
+        /* direction: physical — image pan and minimap use physical canvas coordinates */
         left: 0;
         top: 0;
         border: var(--border-width-2) solid var(--accent-green);
@@ -214,7 +218,7 @@
         color: var(--text-primary);
         font-size: var(--font-size-sm);
         opacity: 0;
-        text-align: left;
+        text-align: start;
         text-overflow: ellipsis;
         white-space: nowrap;
         transition: opacity var(--duration-150) var(--ease-out);
@@ -241,7 +245,7 @@
         font-weight: 600;
         letter-spacing: var(--tracking-05px);
         margin: 0;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     .content-preview-modal .content-preview-image-info-value {
@@ -261,7 +265,7 @@
         align-items: center;
         gap: var(--space-1);
         flex: 0 0 auto;
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     @media (prefers-reduced-motion: reduce) {

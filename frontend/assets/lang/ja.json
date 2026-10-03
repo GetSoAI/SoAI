@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "現在"
+                "now": "現在",
+                "occurrenceLabel": "{title}、{date} {time}、{status}",
+                "createAt": "{date} の {time} にオートメーションを作成します。矢印キーで時刻を変更できます。"
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "開始",
                     "turns": "ターン",
                     "timezone": "タイムゾーン",
-                    "title": "タイトル"
+                    "title": "タイトル",
+                    "modelSettings": "モデル、ツール、パラメーター"
                 },
                 "workspace": {
                     "button": "フォルダーを選択",
                     "description": "このオートメーション実行で使用するフォルダーを選択します。繰り返し実行では、このオートメーションフォルダーが維持されます。",
                     "fieldLabel": "ワークスペースフォルダー",
-                    "title": "オートメーションのワークスペースフォルダー"
+                    "title": "オートメーションのワークスペースフォルダー",
+                    "viewButton": "ワークスペースを参照"
                 },
                 "parameters": {
                     "button": "パラメーターを編集",
@@ -166,17 +170,17 @@
                     "fieldLabel": "モデルパラメーター",
                     "summaryCustom": "カスタムオートメーションパラメーター",
                     "summaryDefault": "デフォルトのモデルパラメーター",
-                    "title": "オートメーションのモデルパラメーター"
+                    "title": "オートメーションのモデルパラメーター",
+                    "viewButton": "パラメーターを表示"
                 },
                 "timezone": {
-                    "auto": "自動"
+                    "autoWithZone": "自動（{timezone}）"
                 },
                 "placeholders": {
                     "assistantTurn": "モデルの応答",
                     "endOfAutomation": "オートメーションの終了",
                     "model": "モデルを選択",
                     "turn": "メッセージを入力",
-                    "turnIndexed": "メッセージ {index} を入力",
                     "title": "タイトルを入力"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "保存",
                 "validation": {
                     "maxRunMinutesInvalid": "最大実行時間は 1～1440 分の範囲で指定してください。",
-                    "modelUnavailable": "選択したモデルは利用できません。",
+                    "modelUnavailable": "{model} は利用できません。別のモデルを選択してください。",
                     "modelRequired": "モデルは必須です。",
                     "recurrenceInvalid": "繰り返し設定が無効です。",
                     "startInvalid": "開始日時が無効です。",
@@ -195,7 +199,42 @@
                     "turnsRequired": "すべてのターンが必須です。",
                     "tooManyTurns": "ターンが多すぎます（最大 {max}）。各ターンはエージェントの 1 ターンとして実行されます。",
                     "timezoneRequired": "タイムゾーンは必須です。",
-                    "titleRequired": "タイトルは必須です。"
+                    "titleRequired": "タイトルは必須です。",
+                    "modelDisabled": "{model} は無効です。有効にするか、別のモデルを選択してください。",
+                    "modelMissing": "{model} はインストールされていません。別のモデルを選択してください。",
+                    "modelUnsupported": "{model} はチャットに対応していません。別のモデルを選択してください。",
+                    "summary": "保存する前に {count} 件のフィールドを修正してください。",
+                    "toolsRequired": "実行するにはツールを有効にし、todo_writeを選択してください。",
+                    "timezoneInvalid": "タイムゾーンが無効です。対応しているタイムゾーンを選択してください。"
+                },
+                "conflict": {
+                    "message": "編集中に、このオートメーションが別の場所で変更されました。あなたの変更は保存されていません。",
+                    "remoteChanges": "別の場所で変更: {fields}",
+                    "localChanges": "あなたの変更: {fields}",
+                    "keepChanges": "自分の変更を保持",
+                    "loadLatest": "最新バージョンを読み込む"
+                },
+                "modelStatus": {
+                    "unavailable": "利用不可",
+                    "unsupported": "チャット非対応"
+                },
+                "prerequisites": {
+                    "failed": "エディターに必要なデータをすべて読み込めませんでした。",
+                    "missing": "このオートメーションはもう存在しません。",
+                    "toolsUnavailable": "ツールを読み込めませんでした。既存のツール選択は保持されます。",
+                    "childFailed": "設定を開けませんでした。もう一度お試しください。"
+                },
+                "schedule": {
+                    "ambiguous": "時刻の切り替えにより、{timezone} では {start} が 2 回あります。1 回目が使用されます。",
+                    "shiftedForward": "時刻の切り替えにより、{timezone} には {start} が存在しません。代わりに {effective} に実行されます。",
+                    "disabled": "無効: 実行はスケジュールされません。",
+                    "nextRun": "次回の実行: {when}（{timezone}）",
+                    "nextRunLocal": "次回の実行: {when}（{timezone}）、あなたの時刻で {localWhen}",
+                    "unavailable": "スケジュールのプレビューを利用できません。"
+                },
+                "turns": {
+                    "label": "ターン {index}",
+                    "remove": "ターン {index} を削除"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "オートメーション設定をデフォルトにリセットしました。",
                 "runOpenFailed": "指定されたオートメーション実行を開けませんでした。",
                 "runUnavailable": "指定されたオートメーション実行は、このビューでは利用できなくなりました。",
-                "updated": "オートメーションを更新しました。"
+                "updated": "オートメーションを更新しました。",
+                "changeRefreshFailed": "変更は適用されましたが、表示を更新できませんでした。",
+                "conflict": "このオートメーションは別の場所で変更されました。もう一度保存する前に変更内容を確認してください。",
+                "defaultsNotRemembered": "保存しましたが、これらの設定を新しいオートメーション用に記憶できませんでした。",
+                "missingOnSave": "このオートメーションはもう存在しません。別の場所で削除された可能性があります。"
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "今日",
                         "yesterday": "昨日"
                     },
-                    "turnsCount": "ターン: {count}",
                     "title": "実行",
                     "toolbar": {
                         "batchDelete": "選択した実行を削除",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "{count} 件の実行を削除しますか？実行中のものは停止されます。",
-                        "deleteTitle": "実行を削除しますか？"
+                        "deleteTitle": "実行を削除しますか？",
+                        "skipTitle": "予定をスキップしますか？",
+                        "skipMessage": "{title} はこの時刻には実行されません。他の予定には影響しません。",
+                        "skipConfirm": "スキップ",
+                        "stopTitle": "実行を停止しますか？",
+                        "stopMessage": "{title} は実行中です。停止してカレンダーから削除します。",
+                        "stopConfirm": "停止",
+                        "removeTitle": "実行記録を削除しますか？",
+                        "removeMessage": "{title} をカレンダーから削除します。",
+                        "removeConfirm": "削除"
                     },
                     "notifications": {
-                        "deleteSuccess": "{count} 件の実行を削除しました。"
-                    }
+                        "deleteSuccess": "{count} 件の実行を削除しました。",
+                        "nothingToDelete": "選択した実行はこのビューにもうありません。",
+                        "tooManySelected": "一度に選択できるのは最大 {max} 件です。"
+                    },
+                    "occurrencesCount": "件数: {count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "前へ",
                 "showCalendar": "カレンダー",
                 "showRegistry": "ペイン",
-                "today": "今日"
+                "today": "今日",
+                "staleData": "最新ではありません",
+                "staleDataSince": "オートメーションのデータが最新ではない可能性があります。最終更新: {time}。選択すると再試行します。",
+                "resizePanes": "カレンダーとサイドペインのサイズを変更"
             },
             "views": {
                 "day": "日",
@@ -300,6 +357,7 @@
                     "bar": "バー",
                     "candlestick": "OHLC",
                     "deviation": "偏差",
+                    "heikin-ashi": "平均足",
                     "label": "チャートの種類",
                     "line": "折れ線",
                     "precision-line": "折れ線"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "最小: ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "データなし · SoAI オフライン",
                 "openPrefix": "始値: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "リアルタイム ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "履歴を読み込めませんでした。",
             "loadingState": "読み込み中",
             "manualScaleLabel": "手動"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "SoAI リンクを添付",
                 "tabBrowse": "ワークスペース",
                 "tabCamera": "スキャン",
+                "tabDisabledReason": "チャット設定 › {tab} で {setting} をオンにしてください",
                 "tabKnowledge": "ナレッジ",
                 "tabSoaiLink": "SoAI リンク",
                 "tabUpload": "アップロード",
@@ -559,7 +620,16 @@
                 "recordingStatus": "録音中 {elapsed}",
                 "recordingTitle": "音声録音",
                 "requestingStatus": "ブラウザーの許可を待機中",
-                "requestingTitle": "マイクを要求中"
+                "requestingTitle": "マイクを要求中",
+                "pushToTalk": {
+                    "cancelled": "録音をキャンセルしました。",
+                    "queued": "キューに追加しました。",
+                    "releaseToCancel": "離すとキャンセル",
+                    "releaseToSend": "離すと送信 · 左にスライドしてキャンセル",
+                    "sending": "送信中…",
+                    "transcribing": "文字起こし中…",
+                    "transcriptReview": "文字起こしを追加しました。送信前に更新された下書きを確認してください。"
+                }
             },
             "authorityLock": {
                 "automationReason": "これはオートメーションの会話です。実行設定は オートメーション → オートメーションを編集 で変更してください。",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "アップロード",
                 "assistantAvatarUploadLabel": "アシスタントのアバターをアップロード",
                 "assistantNamePlaceholder": "カスタムモデル名を入力...",
+                "autoHideChatComposer": "チャット入力欄を自動的に隠す",
+                "autoHideChatComposerHint": "以前のメッセージを読んでいる間、空のチャット入力欄を隠します。",
+                "autoHideChatHeader": "チャットヘッダーを自動的に隠す",
+                "autoHideChatHeaderHint": "以前のメッセージを読んでいる間、会話のヘッダーを隠します。",
                 "identityNameInvalid": "表示名は 50 文字以内の Unicode 文字で、無効なテキストを含めないでください。",
                 "promptInvalid": "プロンプトに無効な Unicode テキストが含まれています。",
                 "close": "閉じる",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "この会話の実行中はツールへのアクセスを変更できません。",
                     "toolsEnabledHint": "この会話で MCP ツールを有効にします。新しいチャットでは最後に保存した値が使用されます。",
                     "tool_approval_required": "ツールの承認を必須にする",
-                    "toolApprovalRequiredHint": "破壊的なツールを実行する前に確認を求めます。"
+                    "toolApprovalRequiredHint": "破壊的なツールを実行する前に確認を求めます。",
+                    "unavailableTools": "保存済みの利用できないツール: {tools}。選択は保持されます。",
+                    "unavailableServers": "保存済みの利用できないサーバー: {servers}。設定は保持されます。"
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "この機能のコンテキスト長を上書きします。空欄にすると、選択したモデルのデフォルトが使用されます。",
@@ -1035,7 +1111,8 @@
                 "newTitle": "新しい会話",
                 "renameFailed": "会話名を変更できませんでした。",
                 "switchFailed": "会話を切り替えられませんでした。",
-                "untitled": "無題"
+                "untitled": "無題",
+                "titleRequired": "会話のタイトルを入力してください。"
             },
             "detached": {
                 "windowTitle": "チャット（分離）"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "HTTPS が必要です"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "長押ししてパラメーターを開き、コンテキスト長を表示します。",
+                "presetsHint": "長押ししてプリセットを開きます。",
+                "pushToTalkHint": "長押しして話します。",
+                "toolsHint": "長押ししてツール設定を開きます。",
+                "toolsRestrictedHint": "{reason}。長押ししてツール設定を開きます。",
+                "toolsToggleHint": "{action}。長押ししてツール設定を開きます。"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "キュー待ち",
@@ -1286,7 +1371,8 @@
                     "running": "実行中",
                     "inputRequired": "操作が必要"
                 },
-                "attachmentsCount": "(+{count} 件の添付ファイル)"
+                "attachmentsCount": "(+{count} 件の添付ファイル)",
+                "open": "プロンプトを開く: {prompt}"
             },
             "loading": {
                 "errorType": "エラーの種類",
@@ -1337,7 +1423,9 @@
                     },
                     "save": "保存",
                     "skip": "スキップ",
-                    "title": "SoAI にあなたのことを伝える"
+                    "title": "SoAI にあなたのことを伝える",
+                    "loadFailed": "保存済みのプロフィールを読み込めませんでした。何も上書きされないよう、保存を一時停止しています。",
+                    "retry": "再試行"
                 },
                 "viewer": {
                     "none": "なし",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "昨日",
                 "toolCall": "ツール呼び出し",
                 "waiting": "待機中...",
-                "you": "あなた"
+                "you": "あなた",
+                "timestampWithTime": "{label}、{time}"
             },
             "modelControl": {
                 "compareModels": "モデルを比較",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "\"{model}\" という名前のモデルが複数あります。サイドバーで特定のモデルを選択してください。",
                 "available": "(利用可能)",
-                "loaded": "(読み込み済み)"
+                "loaded": "(読み込み済み)",
+                "unavailable": "(利用不可)"
             },
             "news": {
                 "articleCount": "{count} 件の記事",
@@ -1469,6 +1559,48 @@
                 "clearFailed": "プロンプト履歴の消去に失敗しました。",
                 "cleared": "プロンプト履歴を消去しました。",
                 "loadFailed": "プロンプト履歴の読み込みに失敗しました。"
+            },
+            "sketch": {
+                "open": "スケッチを開く",
+                "mobileOption": "スケッチ",
+                "preference": "スケッチ",
+                "preferenceHint": "チャット入力欄にスケッチパッドを表示し、絵を描いてメッセージに添付します",
+                "title": "スケッチ",
+                "description": "マウス、ペン、または指で描き、描いた絵を画像としてメッセージに添付します。",
+                "canvasLabel": "描画キャンバス",
+                "toolsLabel": "描画ツール",
+                "tools": {
+                    "pen": "ペン",
+                    "brush": "ブラシ",
+                    "highlighter": "蛍光ペン",
+                    "eraser": "消しゴム",
+                    "line": "直線",
+                    "rectangle": "長方形",
+                    "ellipse": "楕円"
+                },
+                "colorsLabel": "色",
+                "colors": {
+                    "black": "黒",
+                    "grey": "灰色",
+                    "red": "赤",
+                    "orange": "オレンジ",
+                    "yellow": "黄",
+                    "green": "緑",
+                    "teal": "ティール",
+                    "blue": "青",
+                    "purple": "紫",
+                    "brown": "茶"
+                },
+                "customColor": "カスタムカラー",
+                "size": "サイズ",
+                "undo": "元に戻す",
+                "redo": "やり直す",
+                "clear": "クリア",
+                "resize": "キャンバスのサイズを変更",
+                "attach": "添付",
+                "discardConfirm": "このスケッチを破棄しますか?",
+                "discard": "破棄",
+                "exportFailed": "スケッチを書き出せませんでした。もう一度お試しください。"
             },
             "characterMap": {
                 "allEmoji": "すべての絵文字",
@@ -2201,7 +2333,8 @@
                 "started": "音声通話を開始しました。",
                 "transcriptionFailed": "音声の文字起こしに失敗しました。",
                 "ttsFailed": "テキスト読み上げに失敗しました。",
-                "messageSendFailed": "音声メッセージの送信に失敗しました。"
+                "messageSendFailed": "音声メッセージの送信に失敗しました。",
+                "stoppedAfterFailure": "通話を停止しました。問題を解決してから、新しい通話を開始してください。"
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "アシスタントの応答を再生しています。",
@@ -2319,7 +2452,7 @@
                 "messageInfo": "メッセージのメタデータ。",
                 "metricsAdvanced": "拡張ランタイムメトリクス。",
                 "modelDetailTest": "このモデルにテストリクエストを送信します。",
-                "modelsDownload": "新しいモデルをダウンロードします。",
+                "modelsDownload": "モデルをダウンロードするか、外部プロバイダーに接続するか、ローカルのモデルファイルを追加します",
                 "modelsEdit": "このモデルで可能な操作を上書きします。",
                 "modelsProviders": "外部モデルプロバイダー。",
                 "modelsRename": "このモデルにローカル名を付けます。",
@@ -2328,7 +2461,7 @@
                 "pluginsClone": "新しい設定でこのプラグインを複製します。",
                 "pluginsConcurrent": "プラグインタスクの最大同時実行数。",
                 "pluginsConfig": "プラグイン設定。",
-                "pluginsDownload": "バンドル済みまたはローカルのプラグインをインストールします。",
+                "pluginsDownload": "プラグインをダウンロードまたはアップロードするか、ローカルのプラグインフォルダーから追加します",
                 "pluginsInfo": "プラグインの詳細と診断。",
                 "pluginsIntro": "プラグインによる SoAI の拡張方法。",
                 "pluginsManageBackend": "バックエンドのバージョンを管理します。",
@@ -2336,7 +2469,8 @@
                 "settingsApiKeyQuota": "この API キーの使用上限。",
                 "settingsExternalAccounts": "メールとカレンダーのアカウント。",
                 "settingsMcpServer": "MCP サーバー接続。",
-                "toolCallOutput": "ツール呼び出しの出力。"
+                "toolCallOutput": "ツール呼び出しの出力。",
+                "conversationInput": "このプロンプトと添付ファイルを表示します。"
             },
             "loading": "読み込み中...",
             "confirm": "確認",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count}秒"
+                    },
+                    "year": {
+                        "short": "{count}年"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "保存されていない変更があります。保存せずに続行しますか？",
             "unsavedChangesTitle": "未保存の変更",
             "view": "表示",
-            "yes": "はい"
+            "yes": "はい",
+            "retry": "再試行"
         },
         "contentPreview": {
             "actions": {
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "ネットワーク",
+                    "unavailable": "アダプター一覧を取得できません",
                     "waiting": "検出中..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "ベンチ",
                     "soaibenchStop": "停止",
                     "soaibenchStress": "ストレス",
+                    "viewBenchmark": "ベンチマークを表示",
                     "test": "テスト",
                     "reset": "リセット",
                     "save": "保存"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index} で SoAIBench {profile} を開始しました",
                     "soaibenchStopRequested": "GPU {index} の SoAIBench 停止を要求しました",
                     "soaibenchUnsupported": "GPU {index} は SoAIBench をサポートしていません: {reason}",
+                    "soaibenchSettingsLocked": "GPU {index} でベンチマークを実行中です。設定を保存する前に、ベンチマークを停止するか完了するまでお待ちください。",
                     "slotApplied": "GPU {index} のスロット {slot} を適用しました",
                     "slotSaved": "GPU {index} のスロット {slot} を保存しました"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "ローカル履歴を削除",
+                "deleteLocalConfirm": {
+                    "title": "SoAIBench 実行を削除しますか？",
+                    "message": "この SoAIBench 実行をローカル履歴から削除しますか？この操作は元に戻せません。"
+                },
                 "action": "共有",
+                "openRun": "結果を開く",
                 "ariaLabel": "このSoAIBenchスコアを共有",
                 "unavailable": "公開可能なSoAIBench実行はありません",
-                "confirm": { "title": "SoAIBenchスコアを共有しますか？", "message": "スコア{score}と{passes}回の計測パスを公開SoAIBenchランキングに掲載しますか？", "description": "スコア、5回の計測パス、公開GPUおよびランタイム情報、ベンチマーク設定、任意のセンサー証拠が送信されます。アカウントの識別情報、ファイル、構成、分析、一般的なテレメトリは除外されます。soai.toには、IPアドレスなど通常の接続メタデータが表示されます。" },
-                "outcomes": { "published": "SoAIBenchスコアを公開しました。", "alreadyPublished": "このSoAIBenchスコアはすでに共有されています。", "heldForReview": "SoAIBench の結果は ID または異常値の確認のため保留されており、まだランキングには反映されていません。", "offline": "SoAIがオフラインのため、スコアを共有できませんでした。", "unavailable": "SoAIBench公開サービスを利用できません。", "timeout": "スコアの共有がタイムアウトしました。同じ公開内容を照合するには再試行してください。", "rateLimited": "この接続から共有されたスコアが多すぎます。後でもう一度お試しください。", "capacity": "SoAIBenchランキングは現在、容量上限に達しています。", "rejected": "SoAIBenchランキングがこの結果を拒否しました。", "conflict": "この公開は既存のランキング状態と競合しています。", "invalidResponse": "SoAIBenchランキングから無効な応答が返されました。", "retryAfter": "{seconds}秒後にもう一度お試しください。" }
+                "confirm": {
+                    "title": "SoAIBenchスコアを共有しますか？",
+                    "message": "スコア{score}と{passes}回の計測パスを公開SoAIBenchランキングに掲載しますか？",
+                    "description": "スコア、5回の計測パス、公開GPUおよびランタイム情報、ベンチマーク設定、任意のセンサー証拠が送信されます。アカウントの識別情報、ファイル、構成、分析、一般的なテレメトリは除外されます。"
+                },
+                "outcomes": {
+                    "published": "SoAIBenchスコアを公開しました。",
+                    "alreadyPublished": "このSoAIBenchスコアはすでに共有されています。",
+                    "heldForReview": "SoAIBench の結果は ID または異常値の確認のため保留されており、まだランキングには反映されていません。",
+                    "offline": "SoAIがオフラインのため、スコアを共有できませんでした。",
+                    "unavailable": "SoAIBench公開サービスを利用できません。",
+                    "timeout": "スコアの共有がタイムアウトしました。同じ公開内容を照合するには再試行してください。",
+                    "rateLimited": "この接続から共有されたスコアが多すぎます。後でもう一度お試しください。",
+                    "capacity": "SoAIBenchランキングは現在、容量上限に達しています。",
+                    "rejected": "SoAIBenchランキングがこの結果を拒否しました。",
+                    "conflict": "この公開は既存のランキング状態と競合しています。",
+                    "invalidResponse": "SoAIBenchランキングから無効な応答が返されました。",
+                    "retryAfter": "{seconds}秒後にもう一度お試しください。"
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3126,6 +3289,8 @@
                     "description": "選択した GPU の過去の SoAIBench 実行。",
                     "empty": "この GPU の SoAIBench 実行はまだありません。",
                     "loading": "実行履歴を読み込み中...",
+                    "pageEmpty": "SoAIBench の実行履歴はまだありません。",
+                    "pageLoadFailed": "SoAIBench の実行履歴を読み込めませんでした。再試行してください。",
                     "matchBases": {
                         "device_id": "デバイス ID",
                         "gpu_model_key": "GPU モデルキー",
@@ -3146,7 +3311,9 @@
                         "standard": "標準",
                         "stress": "ストレス"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "OpenCL ワークロードの数値検証に失敗しました。" },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "OpenCL ワークロードの数値検証に失敗しました。"
+                    },
                     "rowCopyUnavailable": "コピーできる SoAIBench 実行がありません",
                     "staleHardware": "古いハードウェア一致",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "SoAIBench の過去の実行"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "ベンチマークする GPU を選択",
+                    "noGpus": "ベンチマークに使用できる GPU がありません。",
                     "ariaLabels": {
                         "close": "SoAIBench を閉じる",
                         "copy": "SoAIBench 実行をコピー",
@@ -3170,6 +3339,9 @@
                         "retry": "認定 SoAIBench を再試行",
                         "stop": "認定 SoAIBench を停止",
                         "stopping": "認定 SoAIBench を停止中",
+                        "newBenchmark": "新しい認定 SoAIBench の実行を開始",
+                        "runAgain": "この GPU で認定 SoAIBench をもう一度実行",
+                        "recover": "SoAIBench の状態を再確認",
                         "start": "認定 SoAIBench を開始"
                     },
                     "close": "閉じる",
@@ -3231,7 +3403,11 @@
                         "stopping": "SoAIBench を停止中",
                         "warmupDetail": "ウォームアップ {pass}/{total}",
                         "warmupPhase": "ウォームアップ: {phase}",
-                        "warmup": "ウォームアップパス完了"
+                        "warmup": "ウォームアップパス完了",
+                        "reconnecting": "再接続中... 最終更新: {age}",
+                        "checkingStatus": "ベンチマークの状態を確認中...",
+                        "statusUnavailable": "ベンチマークの状態を取得できません。再試行してもう一度確認してください。",
+                        "startUnconfirmed": "ベンチマークの開始を確認できず、この GPU で実行中の処理はありません。再試行する前に履歴を確認してください。"
                     },
                     "retry": "再試行",
                     "scoreLabel": "SoAIBench スコア",
@@ -3253,6 +3429,15 @@
                     "standardRun": "標準実行",
                     "stop": "停止",
                     "stopping": "停止中",
+                    "newBenchmark": "新しいベンチマーク",
+                    "runAgain": "もう一度実行",
+                    "gpuBusy": "ベンチマーク実行中",
+                    "startedAt": "開始: {time}",
+                    "states": {
+                        "starting": "開始中",
+                        "unresolved": "状態不明",
+                        "rejected": "未開始"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "ドキュメント",
             "intro": {
                 "aboutButton": "SoAI について",
-                "paragraph1": "<strong>SoAI（Smart Orchestrator for Artificial Intelligence）</strong>は、ローカル推論エンジンとリモート AI プロバイダーを一つの WebUI から管理し、全モデルを OpenAI および Anthropic 互換 API で提供します。",
+                "paragraph1": "<strong dir=\"auto\">SoAI（Smart Orchestrator for Artificial Intelligence）</strong>は、ローカル推論エンジンとリモート AI プロバイダーを一つの WebUI から管理し、全モデルを OpenAI および Anthropic 互換 API で提供します。",
                 "paragraph2": "SoAI は Linux、macOS、Windows で動作します。ソースは閲覧でき、個人およびホームラボでの利用は無料です。ユーザーデータを収集せず、分析、テレメトリー、利用状況レポートも送信しません。"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "レイテンシ",
                         "queueDepth": "キュー深度",
                         "requests": "リクエスト",
+                        "throughput": "トークン生成速度",
                         "tokens": "トークン"
                     },
                     "title": "チャート"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "表示名",
                     "source_model_id": "ソースモデル ID",
-                    "provider": "プロバイダー",
-                    "title": "識別情報",
                     "type": "種類",
                     "universal_id": "Universal ID",
                     "virtual": "仮想"
@@ -4064,30 +4248,20 @@
                     "title": "推論のデフォルト"
                 },
                 "metrics": {
-                    "avgLatency": "平均レイテンシ",
                     "avgTokens": "平均トークン/リクエスト",
                     "audioIn": "音声入力",
                     "audioOut": "音声出力",
-                    "failedRequests": "失敗したリクエスト",
                     "imagesIn": "画像入力",
                     "imagesOut": "画像出力",
                     "last_used": "最終使用",
                     "modalityUsage": "使用状況",
                     "success_rate": "成功率",
                     "textTokens": "テキストトークン",
-                    "title": "メトリクス",
                     "tokensGenerated": "生成トークン",
-                    "totalRequests": "合計リクエスト",
-                    "waitTime": "平均待機時間"
+                    "totalRequests": "合計リクエスト"
                 },
                 "plugin": {
-                    "author": "作者",
-                    "models": "モデル",
-                    "plugin_status": "プラグインのステータス",
-                    "providers": "プロバイダー",
-                    "title": "プラグイン",
-                    "type": "種類",
-                    "version": "バージョン"
+                    "title": "プラグイン"
                 },
                 "status": {
                     "available": "利用可能",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "名前を変更",
                     "modelStatus": "モデルのステータス",
                     "orphaned": "孤立",
-                    "parameters": "パラメーター",
                     "stopPlugin": "プラグインを停止",
-                    "title": "ステータスと操作"
+                    "title": "ステータス"
                 },
                 "technical": {
                     "created": "作成日時",
-                    "description": "説明",
                     "family": "ファミリー",
                     "license": "ライセンス",
                     "path": "パス",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "すべてのパラメーター",
-                "category": "カテゴリー",
                 "groupInference": "推論",
                 "groupStartup": "起動"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "{itemType} の項目を追加",
                 "aliasesPrefix": "別名:",
                 "arrayOfType": "{itemType} 値の配列",
+                "backendDefault": "バックエンドの既定値",
                 "backendDocumentationDescription": "これらのモデルパラメーターには、プラグインが公開する <strong>バックエンド定義の設定</strong> が含まれます。正確な動作、受け付ける値、デフォルト値については、バックエンド固有のドキュメントを参照してください。",
-                "backendDocumentationTitle": "情報",
                 "badges": {
                     "custom": "カスタム",
-                    "default": "デフォルト",
                     "requiresReload": "再読み込みが必要"
                 },
-                "countLabel": "{count} 個のパラメーター",
+                "count": {
+                    "plural": "{count} 個のパラメーター",
+                    "singular": "{count} 個のパラメーター"
+                },
                 "invalidJson": "このパラメーターには有効な JSON を入力してください。",
                 "jsonObject": "JSON オブジェクト",
                 "noMatchDescription": "検索条件またはフィルター条件を調整してください。",
                 "noMatchTitle": "フィルターに一致するパラメーターはありません",
                 "noParameters": "このモデルで利用できるパラメーターはありません",
+                "railLabel": "パラメーターのカテゴリ",
                 "range": "範囲: {min} - {max}",
-                "removeItem": "項目を削除"
+                "removeItem": "項目を削除",
+                "revertChange": "変更を元に戻す",
+                "unsavedCount": {
+                    "plural": "{count} 件の未保存の変更",
+                    "singular": "{count} 件の未保存の変更"
+                },
+                "views": {
+                    "customized": "カスタマイズ済み",
+                    "unsaved": "未保存の変更"
+                }
             },
             "status": {
                 "loaded": "読み込み済み",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "ファイルを選択",
                     "close": "閉じる",
                     "confirmDownload": "プラグインをダウンロード",
                     "confirmUpload": "プラグインをアップロード",
+                    "fileDropHint": ".soaiplugin ファイルをクリックして選択するか、ここにドラッグします",
+                    "fileDropTitle": "ここにプラグインをドロップ",
                     "fileHelp": "ZIP 形式の Python プラグインパッケージ（.soaiplugin）を選択してください",
                     "fileLabel": "プラグインファイル",
                     "manualCopySuccess": "プラグインフォルダーのパスをクリップボードにコピーしました。",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant}（インストール済み）",
                     "loadFailed": "バックエンドのバリアントを読み込めませんでした。",
                     "loading": "バックエンドのバリアントを読み込み中...",
+                    "loadingBackends": "バックエンドを読み込み中...",
                     "saveFailed": "バックエンドのバリアントを保存できませんでした。"
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "{plugin} の互換性オーバーライドを有効にしました。",
                 "overrideRequired": "{plugin} を起動する前に互換性オーバーライドを有効にしてください。",
                 "persistentNoStop": "常駐プラグインは停止できません",
-                "pluginDisabled": "プラグインを無効にしました",
-                "pluginEnabled": "プラグインを有効にしました",
+                "pluginDisabled": "プラグイン「{plugin}」を無効にしました",
+                "pluginEnabled": "プラグイン「{plugin}」を有効にしました",
                 "pluginIncompatibleReason": "プラグイン「{plugin}」には互換性がありません: {reason}",
                 "pluginInfoCopyFailed": "プラグイン情報のコピーに失敗しました",
                 "pluginStopInProgress": "{plugin} を停止中...",
@@ -5489,16 +5674,21 @@
                 "restarting": "アプリケーションを再起動しています。通常は数分以内に完了します。",
                 "shutdown": "システムをシャットダウンしています。このブラウザーウィンドウは閉じてもかまいません。",
                 "sleep": "システムはスリープモードに入っています。SoAI の使用を続けるにはシステムを復帰させてください。",
-                "updating": "SoAI はアップデートをダウンロードしてインストールしています。完了まで数分かかる場合があります。"
+                "updateTimeout": "更新後、SoAI がオンラインに戻りませんでした。SoAI のログフォルダーにある application_updater.log を確認してから、このページを再読み込みしてください。",
+                "updating": "更新を完了するために SoAI を再起動します。SoAI がオンラインに戻ると、このページは自動的に再読み込みされます。数分かかる場合があります。",
+                "updatingDesktop": "更新を完了するために SoAI を再起動します。更新が完了すると、このウィンドウは閉じてから自動的に再び開きます。コンピューターの電源を切らないでください。",
+                "updatingSlow": "更新にいつもより時間がかかっています。SoAI はまだ処理中のため、このページを開いたままにしてください。"
             },
             "messages": {
                 "connectionLost": "バックエンドとの接続が失われました",
+                "installingVersion": "SoAI {version} をインストールしています...",
                 "pleaseWait": "お待ちください...",
                 "rebooting": "システムを再起動しています...",
                 "rebootTimeout": "再起動が続行中です...",
                 "restarting": "SoAI を再起動しています...",
                 "shutdown": "システムをシャットダウンしています",
                 "sleep": "システムがスリープに移行しています",
+                "updateTimeout": "SoAI がまだ復帰していません",
                 "updating": "SoAI をアップデートしています..."
             },
             "reconnecting": "再接続を試行しています..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "すべてのグラフに使用するカスタム色を選択します",
-                    "label": "固定色"
+                    "label": "グラフの色"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "SoAI 全体でコード風コンテンツを表示する方法を制御します。",
                 "subgroupTitle": "コードブロック"
+            },
+            "connect": {
+                "addressCopied": "アドレスをコピーしました",
+                "browserAddress": "このブラウザーのアドレス",
+                "chooseAddress": "スマートフォンで使うアドレス",
+                "copyAddress": "アドレスをコピー",
+                "description": "QR コードをスキャンして、Android アプリ SoAI Connect をこのサーバーに接続します。",
+                "documentationHint": "手動設定とトラブルシューティングについては、SoAI ドキュメントの \"Connect to a SoAI server\" を開いてください。",
+                "documentationLink": "SoAI ドキュメント",
+                "loadFailed": "接続情報を読み込めませんでした",
+                "loopbackWarningMessage": "SoAI はループバックアドレスで待ち受けているため、他のデバイスから直接到達できません。QR コードは、SoAI と同じスキームとポートを使うリバースプロキシ経由でのみ機能します。直接接続を許可するには、次のオプションを設定して SoAI を再起動してください:",
+                "loopbackWarningTitle": "このコンピューターからのみ到達可能",
+                "noAddressesMessage": "このサーバーをネットワークに接続するか、スマートフォンが使うアドレスからこのページを開いてください。",
+                "noAddressesTitle": "到達可能なアドレスが見つかりません",
+                "qrLabel": "SoAI Connect を {address} に接続するための QR コード",
+                "refresh": "アドレスを更新",
+                "scanHint": "SoAI Connect アプリでこの QR コードをスキャンしてください",
+                "stepInstall": "Android スマートフォンに SoAI Connect をインストールして開きます",
+                "stepScan": "サーバーアドレス欄の横にある QR コードボタンをタップし、このページのコードをスキャンします",
+                "stepSignIn": "証明書の確認が表示されたら内容を確認し、SoAI アカウントでサインインします",
+                "stepsTitle": "接続方法",
+                "title": "SoAI Connect",
+                "vpnHint": "スマートフォンからこのサーバーに到達できる必要があります。SoAI をインターネットに公開するのではなく、同じローカルネットワークを使うか、外出時は VPN を使ってください。",
+                "vpnTitle": "外出先から使う場合"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "ページヘッダーを自動的に隠す"
                     }
                 },
-                "subgroupTitle": "モーション",
+                "subgroupTitle": "インターフェース",
                 "subgroupDescription": "モーション、遷移、ガラスサーフェス、スクロール動作を調整します。"
             },
             "externalAccounts": {
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "バックアップ",
+                "connect": "接続",
                 "externalAccounts": "メールとカレンダー",
                 "licensing": "ライセンス",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "選択するとすぐに適用されます",
+                    "label": "内蔵の壁紙",
+                    "none": "壁紙なし",
+                    "option": "壁紙 {number}"
+                },
                 "downloadUrl": {
                     "button": "ダウンロード",
                     "help": "ダウンロードして壁紙に設定する URL を指定します",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "一部のリリースノートを読み込めませんでした。取得できたノートを表示しています。"
+            },
+            "outcome": {
+                "failureMessage": "バージョン {version} への更新は完了しませんでした。SoAI {previousVersion} は引き続きインストールされています。詳細は SoAI のログフォルダーにある application_updater.log を確認してください。",
+                "failureTitle": "更新が完了しませんでした",
+                "later": "後で",
+                "reloadMessage": "SoAI は現在バージョン {version} で動作しています。更新されたインターフェースを使用するには、このページを再読み込みしてください。",
+                "reloadTitle": "SoAI が更新されました",
+                "successMessage": "SoAI はバージョン {version} に正常に更新されました。",
+                "successTitle": "更新が完了しました"
+            },
+            "progress": {
+                "downloading": "アップデートをダウンロードしています...",
+                "handoff": "SoAI の再起動を準備しています...",
+                "staging": "アップデートファイルを準備しています...",
+                "unavailable": "進行状況を一時的に取得できません。",
+                "verifying": "アップデートを検証しています..."
+            },
             "actions": {
                 "checkUpdates": "更新を確認",
                 "installUpdate": "更新をインストール"
@@ -7943,6 +8183,184 @@
             "welcome": {
                 "description": "SoAI はローカルおよびリモートの LLM バックエンドを、1 つの OpenAI 互換オーケストレーションレイヤーに統合します。",
                 "heading": "SoAI へようこそ！"
+            },
+            "aiSetup": {
+                "eyebrow": "SoAI セットアップ",
+                "loadFailed": {
+                    "title": "SoAI セットアップを読み込めませんでした",
+                    "description": "SoAI は利用可能なエンジンとプロバイダーを読み取れませんでした。SoAI が実行中か確認してから再試行するか、後でセットアップを完了してください。",
+                    "retry": "再試行"
+                },
+                "nav": {
+                    "finishLater": "スキップ",
+                    "skip": "SoAI セットアップをスキップ",
+                    "continue": "続行",
+                    "installAndContinue": "インストール",
+                    "downloadAndContinue": "ダウンロード",
+                    "startChatting": "チャット",
+                    "close": "閉じる"
+                },
+                "sources": {
+                    "heading": "AI をどこで実行しますか?",
+                    "description": "どちらか一方または両方を選択してください。後で変更できます。",
+                    "local": {
+                        "title": "このデバイス",
+                        "description": "プライベートで、セットアップ後はオフラインで動作します。初回のみダウンロードが必要です。"
+                    },
+                    "cloud": {
+                        "title": "クラウドプロバイダー",
+                        "description": "インターネット接続とプロバイダーの API キーがあれば、どこでも使えます。",
+                        "recommended": "推奨"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "無料の API キーを入手",
+                    "accessibleName": "無料の API キーを入手(新しいウィンドウで開きます)"
+                },
+                "limited": {
+                    "noCompatibleEngine": "このデバイスに対応するローカルエンジンがありません。",
+                    "insufficientMemory": "ローカルモデルには約 {required} の空きメモリが必要ですが、このデバイスは約 {available} です。",
+                    "useCloud": "代わりにクラウドモデルを使用",
+                    "searchManually": "モデルを手動で検索"
+                },
+                "connect": {
+                    "heading": "準備",
+                    "description": "プロバイダーを接続し、このデバイスを準備します。",
+                    "cloud": {
+                        "heading": "クラウドプロバイダーを接続",
+                        "description": "プロバイダーの API URL とキーを貼り付けてください。",
+                        "moreOptions": "その他のオプション",
+                        "modelFilter": "モデルフィルター(任意)",
+                        "connect": "接続",
+                        "connecting": "{name} に接続しています…",
+                        "connected": {
+                            "singular": "接続済み · {count} 個のモデルが利用可能",
+                            "plural": "接続済み · {count} 個のモデルが利用可能"
+                        },
+                        "change": "変更"
+                    },
+                    "local": {
+                        "heading": "ローカルエンジンをインストール",
+                        "description": "このデバイスでモデルを実行できるようになります。",
+                        "automatic": "自動(推奨)",
+                        "usesGpu": "グラフィックカードで {engine} を使用",
+                        "usesProcessor": "プロセッサーで {engine} を使用",
+                        "usesInstalled": "インストール済みの {engine} を使用",
+                        "chooseManually": "手動で選択",
+                        "status": {
+                            "installed": "インストール済み",
+                            "recommended": "推奨",
+                            "warning": "警告",
+                            "unavailable": "利用不可"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "モデルを選択",
+                    "description": "チャットに使うモデルを選んでください。後から追加できます。",
+                    "local": {
+                        "heading": "このデバイス向けのモデル",
+                        "description": "お使いのハードウェアに合わせて選択しました。"
+                    },
+                    "role": {
+                        "recommended": "推奨",
+                        "faster": "高速",
+                        "smallest": "最小"
+                    },
+                    "useCase": {
+                        "advanced": "文章作成、コーディング、推論で最高の品質",
+                        "balanced": "日常のチャット、文章作成、コーディングに最適",
+                        "reasoning": "段階的な推論に強い",
+                        "light": "控えめなハードウェアでもすばやく応答"
+                    },
+                    "downloadSize": "{size} のダウンロード",
+                    "runsOnGpu": "グラフィックカードで動作",
+                    "runsOnCpu": "プロセッサーで動作",
+                    "speed": {
+                        "fast": "高速な応答",
+                        "moderate": "標準的な速度",
+                        "slow": "応答はやや遅め"
+                    },
+                    "details": {
+                        "label": "詳細",
+                        "quantization": "量子化",
+                        "parameters": "パラメーター",
+                        "parametersDense": "{total}B",
+                        "parametersMoe": "{total}B(アクティブ {active}B)",
+                        "context": "コンテキスト長",
+                        "contextTokens": "{tokens} トークン",
+                        "contextReduced": "{tokens} トークン(このデバイスに合わせて縮小)",
+                        "file": "ファイル",
+                        "source": "ソース"
+                    },
+                    "openChatWith": "このモデルでチャットを開く",
+                    "searchAnother": "別のモデルを検索",
+                    "cloud": {
+                        "heading": "{provider} のモデル",
+                        "description": "1 つ以上選択してください。",
+                        "filterPlaceholder": "モデルを絞り込み…",
+                        "noMatches": "このフィルターに一致するモデルはありません。",
+                        "empty": "このプロバイダーからモデルが返されませんでした。モデルフィルターを確認するか、別のプロバイダーをお試しください。",
+                        "backToProvider": "プロバイダーに戻る"
+                    }
+                },
+                "progress": {
+                    "heading": "準備しています",
+                    "description": "モデルが 1 つ準備できたらすぐにチャットを始められます。",
+                    "readyCount": "{total} 件中 {ready} 件準備完了",
+                    "installing": "{engine} をインストールしています",
+                    "downloading": "{model} をダウンロードしています",
+                    "waitingForEngine": "{engine} のインストール完了を待っています",
+                    "discovering": "{model} をモデルに追加しています",
+                    "configuring": "初期設定を適用しています",
+                    "testing": "短いテストメッセージを送信しています",
+                    "ready": "{model} の準備ができました",
+                    "blocked": "{engine} がインストールされるまで開始できません",
+                    "checkingStatus": "状態を確認しています",
+                    "retry": "再試行",
+                    "retryInstallation": "インストールを再試行",
+                    "skipItem": "この項目をスキップ",
+                    "testAgain": "もう一度テスト",
+                    "checkAgain": "もう一度確認",
+                    "sendTest": "テストメッセージを送信",
+                    "error": {
+                        "empty": "モデルは読み込まれましたが応答がありませんでした。再試行するか、別のモデルを選んでください。",
+                        "loadError": "このデバイスでモデルを起動できませんでした。再試行するか、より小さいモデルを選んでください。",
+                        "timeout": "モデルの応答に時間がかかりすぎました。再試行するか、より小さいモデルを選んでください。",
+                        "disconnected": "テスト中に接続が切れました。再試行してください。",
+                        "downloadFailed": "ダウンロードが停止しました。再試行してください。",
+                        "installFailed": "インストールが完了しませんでした。再試行してください。",
+                        "noDiskSpace": "このモデルに必要なディスク容量が足りません。空き容量を増やすか、より小さいモデルを選んでください。"
+                    },
+                    "testPrompt": "短く親しみやすい一文で返答してください。",
+                    "testCancelled": "SoAI セットアップのテストはキャンセルされました。"
+                },
+                "completion": {
+                    "modelsTitle": "AI モデル",
+                    "modelsReady": {
+                        "singular": "{count} 件準備完了",
+                        "plural": "{count} 件準備完了"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} 件をバックグラウンドで準備中",
+                        "plural": "{count} 件をバックグラウンドで準備中"
+                    }
+                },
+                "resume": {
+                    "link": "SoAI セットアップを完了",
+                    "toast": "SoAI セットアップの一部の手順で対応が必要です。"
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "モデルのダウンロードはバックグラウンドで続行されます。",
+                        "plural": "{count} 件のモデルのダウンロードはバックグラウンドで続行されます。"
+                    },
+                    "installations": {
+                        "singular": "バックエンドのインストールはバックグラウンドで続行されます。",
+                        "plural": "{count} 件のバックエンドのインストールはバックグラウンドで続行されます。"
+                    },
+                    "both": "モデルのダウンロードとバックエンドのインストールはバックグラウンドで続行されます。"
+                }
             }
         }
     }

@@ -18,6 +18,7 @@ from core.errors.exceptions import (
     ValidationError,
 )
 from core.licensing.canonicalization import canonicalize_licensing_json
+from core.network.redirect_headers import REDIRECT_STATUS_CODES
 from core.serialization.json_parsing import parse_json_value
 from core.timing.retry_backoff import parse_retry_after_seconds
 from core.types.json import JSONDict
@@ -33,7 +34,6 @@ __all__ = (
 
 MAX_AUTHORITY_RESPONSE_BYTES = 64 * 1024
 WHOLE_ATTEMPT_TIMEOUT_SECONDS = 30.0
-_REDIRECTS = frozenset((301, 302, 303, 307, 308))
 _RETRYABLE_STATUS = frozenset((429, 500, 502, 503, 504))
 
 
@@ -159,7 +159,7 @@ def _decode_response(
 
 
 def _validate_response_headers(response: httpx2.Response) -> None:
-    if response.status_code in _REDIRECTS:
+    if response.status_code in REDIRECT_STATUS_CODES:
         raise SecurityError("Licensing authority redirect is not permitted.")
     if (
         response.status_code not in _RETRYABLE_STATUS

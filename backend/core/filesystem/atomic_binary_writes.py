@@ -5,8 +5,6 @@ from __future__ import annotations
 
 import io
 import os
-import shutil
-import uuid
 from collections.abc import Callable
 from contextlib import ExitStack
 from typing import TYPE_CHECKING
@@ -14,14 +12,15 @@ from typing import TYPE_CHECKING
 from core.errors.exceptions import ValidationError
 from core.filesystem.atomic_write_primitives import (
     AtomicWriteTarget,
+    allocate_atomic_temporary_file,
     cleanup_temp_file_on_failure,
+    copy_existing_file_to_descriptor,
     ensure_parent_directory,
     finalize_atomic_write_create_and_clear_callbacks,
     finalize_atomic_write_replace_and_clear_callbacks,
-    open_temp_file_descriptor,
 )
 from core.filesystem.file_sync import flush_and_fsync_file
-from core.filesystem.path_coercion import coerce_path
+from core.filesystem.path_coercion import coerce_path, normalize_filesystem_path
 
 if TYPE_CHECKING:
     from core.filesystem.path_coercion import PathInput
@@ -78,21 +77,21 @@ def atomic_write_binary(
     parent = os.path.dirname(resolved)
     if ensure_parent:
         ensure_parent_directory(resolved, mode=None)
-    temp_path = f"{resolved}.tmp.{os.getpid()}.{uuid.uuid4().hex}"
+    file_descriptor, temp_path = allocate_atomic_temporary_file(resolved, file_mode=file_mode)
     target = AtomicWriteTarget(resolved, temp_path, parent)
     with ExitStack() as stack:
         stack.callback(cleanup_temp_file_on_failure, temp_path)
-        append_existing_file = mode == "ab" and os.path.exists(resolved)
-        if append_existing_file:
-            shutil.copy2(resolved, temp_path)
-        file_descriptor = open_temp_file_descriptor(
-            temp_path,
-            append=mode == "ab",
-            exclusive=not append_existing_file,
-            file_mode=file_mode,
-        )
-        binary_handle = os.fdopen(file_descriptor, mode)
+        try:
+            if mode == "ab" and os.path.exists(normalize_filesystem_path(resolved)):
+                copy_existing_file_to_descriptor(
+                    resolved, file_descriptor, preserve_permissions=file_mode is None
+                )
+            binary_handle = os.fdopen(file_descriptor, mode)
+        except (OSError, ValueError):
+            os.close(file_descriptor)
+            raise
         if not isinstance(binary_handle, io.BufferedIOBase):
+            binary_handle.close()
             raise ValidationError("Atomic binary writer failed to open a binary stream.")
         with binary_handle:
             writer(binary_handle)

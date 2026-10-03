@@ -7,10 +7,12 @@ import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import { resolveAutomationZoneByKey } from '@pages/automation/contracts/zoneKey.ts';
 import type { AutomationCalendarRenderCache } from '@pages/automation/controllers/automationCalendarPresentation.ts';
 import { AutomationCheckerboardController } from '@pages/automation/controllers/AutomationCheckerboardController.ts';
+import type { AutomationPageDataStatus } from '@pages/automation/controllers/AutomationPageDataController.ts';
+import { buildAutomationBufferedWindowSignature } from '@pages/automation/controllers/automationWindow.ts';
 import { renderAutomationPage } from '@pages/automation/controllers/AutomationPageRenderer.ts';
 import type { AutomationPageUiConnectionsController } from '@pages/automation/controllers/AutomationPageUiConnectionsController.ts';
 import type { AutomationWindowRunsPaneController } from '@pages/automation/controllers/windowrunstoolbar/paneController.ts';
-import type { AutomationDefinition, AutomationZone } from '@features/automation/public.ts';
+import type { AutomationOccurrenceResponse } from '@features/automation/public.ts';
 import type { AutomationPageState, AutomationUiRefs } from '@pages/automation/types.ts';
 
 type AutomationPageViewControllerDependencies = {
@@ -21,6 +23,7 @@ type AutomationPageViewControllerDependencies = {
     getHourHeightPx: () => number;
     getMonthMaxChipsPerDay: () => number;
     getRunningAutomationIds: () => ReadonlySet<string>;
+    getDataStatus: () => AutomationPageDataStatus;
     isPreferencesCorrupt: () => boolean;
     queueRender: () => void;
     windowRunsPane: AutomationWindowRunsPaneController;
@@ -28,7 +31,6 @@ type AutomationPageViewControllerDependencies = {
 };
 
 interface AutomationPageDerivedRenderState {
-    registryAutomations: readonly AutomationDefinition[];
     selectedAutomationId: string | null;
     mergedRunningAutomationIds: ReadonlySet<string>;
 }
@@ -38,11 +40,9 @@ class AutomationPageViewController {
     readonly #checkerboard: AutomationCheckerboardController;
     readonly #calendarCache: AutomationCalendarRenderCache = { presentationSignature: '' };
     #derivedCache: {
-        automationsRef: readonly AutomationDefinition[];
-        zonesRef: readonly AutomationZone[];
+        zonesRef: readonly AutomationOccurrenceResponse[];
         selectedZoneKey: string | null;
         runningAutomationIdsRef: ReadonlySet<string>;
-        registryAutomations: readonly AutomationDefinition[];
         selectedAutomationId: string | null;
         mergedRunningAutomationIds: ReadonlySet<string>;
     } | null = null;
@@ -55,26 +55,9 @@ class AutomationPageViewController {
     #getDerived(state: AutomationPageState): AutomationPageDerivedRenderState {
         const cached = this.#derivedCache;
         const runningAutomationIdsRef = this.#dependencies.getRunningAutomationIds();
-        if (cached && cached.automationsRef === state.automations && cached.zonesRef === state.zones && cached.selectedZoneKey === state.selectedZoneKey && cached.runningAutomationIdsRef === runningAutomationIdsRef) {
-            return {
-                registryAutomations: cached.registryAutomations,
-                selectedAutomationId: cached.selectedAutomationId,
-                mergedRunningAutomationIds: cached.mergedRunningAutomationIds
-            };
+        if (cached && cached.zonesRef === state.zones && cached.selectedZoneKey === state.selectedZoneKey && cached.runningAutomationIdsRef === runningAutomationIdsRef) {
+            return { selectedAutomationId: cached.selectedAutomationId, mergedRunningAutomationIds: cached.mergedRunningAutomationIds };
         }
-
-        const terminalStatuses: ReadonlySet<AutomationZone['status']> = new Set(['completed', 'error', 'cancelled', 'abandoned']);
-        const completedOneShotIds = new Set<string>();
-        for (const zone of state.zones) {
-            if (!terminalStatuses.has(zone.status)) {
-                continue;
-            }
-            if (zone.finishedAtMs === null) {
-                continue;
-            }
-            completedOneShotIds.add(zone.automationId);
-        }
-        const registryAutomations = state.automations.filter((automation) => !(automation.recurrence === 'none' && completedOneShotIds.has(automation.id)));
 
         const selectedZone = state.selectedZoneKey ? resolveAutomationZoneByKey(state.zones, state.selectedZoneKey) : null;
         const selectedAutomationId = selectedZone?.automationId ?? null;
@@ -93,18 +76,17 @@ class AutomationPageViewController {
         })();
 
         this.#derivedCache = {
-            automationsRef: state.automations,
             zonesRef: state.zones,
             selectedZoneKey: state.selectedZoneKey,
             runningAutomationIdsRef,
-            registryAutomations,
             selectedAutomationId,
             mergedRunningAutomationIds
         };
-        return { registryAutomations, selectedAutomationId, mergedRunningAutomationIds };
+        return { selectedAutomationId, mergedRunningAutomationIds };
     }
 
     render(state: AutomationPageState): string {
+        this.#dependencies.windowRunsPane.reconcileSelection(state.zones, buildAutomationBufferedWindowSignature(state));
         const derived = this.#getDerived(state);
         const connections = this.#dependencies.getConnections();
         const renderedWindowSignature = this.#renderSettledCalendar(state, derived, connections);
@@ -141,13 +123,14 @@ class AutomationPageViewController {
             {
                 monthMaxChipsPerDay: this.#dependencies.getMonthMaxChipsPerDay(),
                 calendarCache: this.#calendarCache,
-                registryAutomations: derived.registryAutomations,
+                registryAutomations: state.automations,
                 selectedAutomationId: derived.selectedAutomationId,
                 runningAutomationIds: derived.mergedRunningAutomationIds,
                 registryLimit: state.automationRegistryLimit,
                 registryOffset: state.automationRegistryOffset,
                 registryHasMore: state.automationRegistryHasMore,
                 visibleWindowRuns: state.zones,
+                dataStatus: this.#dependencies.getDataStatus(),
                 preferencesCorrupt: this.#dependencies.isPreferencesCorrupt(),
                 totalWindowRunsCount: state.zones.length,
                 windowRunsSelectionActive: this.#dependencies.windowRunsPane.isSelectionActive(),

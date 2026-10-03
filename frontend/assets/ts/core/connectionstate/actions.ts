@@ -18,6 +18,8 @@ const resolveStorageKey = (): string => {
     return `connection_base_url_${sanitizeForId(hostname)}`;
 };
 
+const isPageOriginBaseUrl = (baseUrl: string): boolean => new URL(baseUrl).origin === getLocation().origin;
+
 const readPersistedEndpoint = (storage: StorageService, storageKey: string): ConnectionEndpoint | null => {
     if (!isFunction(storage.get)) {
         throw new Error('Storage service must expose get for connection state persistence');
@@ -78,6 +80,7 @@ const updateBaseUrl = (
 
     if (state.baseUrl === nextValue && state.instanceId === nextInstanceId) {
         if (nextValue === null && options.releaseConfigured) {
+            if (state.allowConfiguredFallback || state.persistedBaseUrl !== null) state.revision += 1;
             state.allowConfiguredFallback = false;
             state.persistedBaseUrl = null;
             persistEndpoint(state.storage, state.storageKey, null);
@@ -87,6 +90,7 @@ const updateBaseUrl = (
 
     state.baseUrl = nextValue;
     state.instanceId = nextInstanceId;
+    state.revision += 1;
     if (state.baseUrl && state.instanceId) {
         persistEndpoint(state.storage, state.storageKey, {
             baseUrl: state.baseUrl,
@@ -118,7 +122,7 @@ const captureConfiguredBaseUrl = (
     const persisted = readPersistedEndpoint(state.storage, state.storageKey);
     if (persisted) {
         const normalized = options.normalizeBaseUrl(persisted.baseUrl);
-        if (normalized) {
+        if (normalized && isPageOriginBaseUrl(normalized)) {
             state.persistedBaseUrl = normalized;
             state.instanceId = persisted.instanceId;
             persistEndpoint(state.storage, state.storageKey, {
@@ -127,7 +131,7 @@ const captureConfiguredBaseUrl = (
             });
             return state.persistedBaseUrl;
         }
-        persistEndpoint(state.storage, state.storageKey, null);
+        if (!normalized) persistEndpoint(state.storage, state.storageKey, null);
     }
 
     state.persistedBaseUrl = null;
@@ -170,6 +174,9 @@ const applyStorageSnapshot = (
     }
 
     const normalized = callbacks.normalizeBaseUrl(endpoint.baseUrl);
+    if (normalized && !isPageOriginBaseUrl(normalized)) {
+        return state.baseUrl;
+    }
     if (state.baseUrl === normalized && state.instanceId === endpoint.instanceId) {
         return state.baseUrl;
     }

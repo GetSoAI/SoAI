@@ -7,7 +7,7 @@ import { uiAttr, uiHtml, uiText } from '@core/security/uiHtml.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import { renderIconSlot } from '@core/ui/icons/view.ts';
-import { AUTOMATION_ACTION_CYCLE_VIEW, AUTOMATION_ACTION_NAV_NEXT, AUTOMATION_ACTION_NAV_PREVIOUS, AUTOMATION_ACTION_NAV_TODAY, AUTOMATION_ACTION_OPEN_CALENDAR_SETTINGS_MODAL, AUTOMATION_ACTION_OPEN_CREATE_MODAL, AUTOMATION_ACTION_RESET_PREFERENCES, AUTOMATION_ACTION_SET_VIEW, AUTOMATION_ACTION_TOGGLE_REGISTRY_OVERLAY } from '@features/automation/public.ts';
+import { AUTOMATION_ACTION_CYCLE_VIEW, AUTOMATION_ACTION_NAV_NEXT, AUTOMATION_ACTION_NAV_PREVIOUS, AUTOMATION_ACTION_NAV_TODAY, AUTOMATION_ACTION_OPEN_CALENDAR_SETTINGS_MODAL, AUTOMATION_ACTION_OPEN_CREATE_MODAL, AUTOMATION_ACTION_RESET_PREFERENCES, AUTOMATION_ACTION_RETRY_PAGE_DATA, AUTOMATION_ACTION_SET_VIEW, AUTOMATION_ACTION_TOGGLE_REGISTRY_OVERLAY } from '@features/automation/public.ts';
 
 interface RenderAutomationPageDependencies {
     getIconSync: (icon: IconName, options?: IconOptions) => TrustedHtml;
@@ -21,6 +21,8 @@ const renderAutomationPageView = (dependencies: RenderAutomationPageDependencies
     const registryOverlayToggleLabel = i18n.t('automation.toolbar.showRegistry');
     const calendarSettingsLabel = i18n.t('automation.toolbar.calendarSettings');
     const moreActionsLabel = i18n.t('header.actions.moreActions');
+    const retryLabel = i18n.t('common.retry');
+    const splitterLabel = i18n.t('automation.toolbar.resizePanes');
 
     const monthLabel = i18n.t('automation.views.month');
     const weekLabel = i18n.t('automation.views.week');
@@ -31,6 +33,7 @@ const renderAutomationPageView = (dependencies: RenderAutomationPageDependencies
     const iconAdd = renderIconSlot(dependencies.getIconSync('add', { size: 16, strokeWidth: 1.8 }));
     const iconSettings = renderIconSlot(dependencies.getIconSync('model-config', { size: 16, strokeWidth: 1.5 }));
     const iconMore = renderIconSlot(dependencies.getIconSync('ellipsis', { size: 20, strokeWidth: 1.5 }));
+    const iconRefresh = renderIconSlot(dependencies.getIconSync('refresh', { size: 16, strokeWidth: 1.8 }));
     const iconRegistryOverlay = renderIconSlot(dependencies.getIconSync('panel-hidden', { size: 16, strokeWidth: 1.5 }));
     const iconViewMonth = renderIconSlot(dependencies.getIconSync('view-month', { size: 16 }), { className: 'ui-icon automation-view-toggle-icon' });
     const iconViewWeek = renderIconSlot(dependencies.getIconSync('view-week', { size: 16 }), { className: 'ui-icon automation-view-toggle-icon' });
@@ -78,7 +81,11 @@ const renderAutomationPageView = (dependencies: RenderAutomationPageDependencies
                 <section class="automation-pane automation-pane--calendar">
                             <div class="automation-surface surface-card">
                         <div class="automation-surface-body">
-                            <div id="automation-calendar-root" class="automation-calendar-root">
+                            <div id="automation-data-recovery" class="form-disclaimer form-disclaimer-error u-flex u-flex-wrap u-items-center u-justify-between u-gap-3 u-hidden" role="status" data-presence-atomic>
+                                <span id="automation-data-recovery-message"></span>
+                                <button id="automation-data-retry-button" type="button" class="ui-button ui-variant-neutral" data-action="${uiAttr(AUTOMATION_ACTION_RETRY_PAGE_DATA)}" aria-label="${uiAttr(retryLabel)}" data-tooltip="${uiAttr(retryLabel)}">${iconRefresh}${uiText(retryLabel)}</button>
+                            </div>
+                            <div id="automation-calendar-root" class="automation-calendar-root" data-presence-suspended>
                                 <div class="loading-container automation-calendar-loading">
                                     <div class="loading-spinner" aria-hidden="true"></div>
                                     <span class="loading-text">${uiText(loadingLabel)}</span>
@@ -90,11 +97,11 @@ const renderAutomationPageView = (dependencies: RenderAutomationPageDependencies
                         </div>
                     </div>
                 </section>
-                <div id="automation-splitter" class="automation-splitter" role="separator" aria-orientation="vertical"></div>
+                <div id="automation-splitter" class="automation-splitter" role="separator" aria-orientation="vertical" aria-controls="automation-calendar-root" tabindex="0" aria-label="${uiAttr(splitterLabel)}"></div>
                 <aside class="automation-pane automation-pane--registry">
                     <div class="automation-surface surface-card automation-registry">
                         <div class="automation-surface-body">
-                            <div id="automation-registry-root" class="automation-registry-root">
+                            <div id="automation-registry-root" class="automation-registry-root" data-presence-suspended>
                                 <div id="automation-registry-scroll" class="automation-registry-scroll">
                                     <div id="automation-automations-root" class="automation-automations-root"></div>
                                     <div id="automation-window-runs-root" class="automation-window-runs-root"></div>

@@ -26,26 +26,27 @@ interface HistoryExpansionRuntime {
 }
 
 const loadExpandedSnapshot = async (runtime: HistoryExpansionRuntime, limit: number): Promise<void> => {
-    const expectedGeneration = runtime.state.connectionGeneration;
+    const signal = runtime.state.sourceAbort.signal;
     const expectedSource = runtime.state.snapshotMeta.source;
-    const api = await ensureLogApiReady(runtime.state);
+    const api = await ensureLogApiReady(runtime.state, signal);
     const logsFunctionValue = api.system?.logs;
     if (!isFunction(logsFunctionValue)) {
         runtime.logger.logWarn('Log history API is unavailable');
         return;
     }
-    const logHistoryOptions: LogApiOptions = { query: { limit } };
+    const logHistoryOptions: LogApiOptions = { query: { limit }, signal };
     const responsePayload = await handleApiResult(logsFunctionValue(expectedSource, logHistoryOptions), {
         boundaryName: 'LogStreamService',
         rethrow: false,
         notifyOnError: false,
         logErrors: false
     });
+    if (signal.aborted) return;
     if (responsePayload === null) {
         runtime.logger.logWarn('Log history API returned an invalid response');
         return;
     }
-    if (expectedGeneration !== runtime.state.connectionGeneration || expectedSource !== runtime.state.snapshotMeta.source) {
+    if (signal.aborted || expectedSource !== runtime.state.snapshotMeta.source) {
         return;
     }
     const source = responsePayload.source;
@@ -67,7 +68,7 @@ const loadExpandedSnapshot = async (runtime: HistoryExpansionRuntime, limit: num
         }
     });
     const bounded = Math.min(limit, MAX_BUFFER_SIZE);
-    if (expectedGeneration !== runtime.state.connectionGeneration || expectedSource !== runtime.state.snapshotMeta.source) {
+    if (signal.aborted || expectedSource !== runtime.state.snapshotMeta.source) {
         return;
     }
     updateBufferFromResolved(runtime.state, {

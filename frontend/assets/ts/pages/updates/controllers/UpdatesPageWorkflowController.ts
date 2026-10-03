@@ -26,6 +26,10 @@ import { createDeferred } from '@core/runtime/deferred.ts';
 import { narrowButton } from '@core/dom/narrowElement.ts';
 import { isFunction } from '@core/typeGuards.ts';
 import { hoursToMs } from '@core/time/durations.ts';
+import { RichTextRenderer } from '@core/richtextrenderer/service.ts';
+import { toTrustedHtml } from '@core/security/public.ts';
+import { i18n } from '@core/i18n/index.ts';
+import { UpdatesPreparationProgressController } from '@pages/updates/controllers/updatesPreparationProgressController.ts';
 
 const UPDATE_OPERATION_TIMEOUT_MS = hoursToMs(2);
 
@@ -50,6 +54,7 @@ class UpdatesPageWorkflowController {
     #systemController: UpdatesSystemController | null = null;
     #productController: UpdatesProductController | null = null;
     #checkingUpdates = false;
+    #preparationProgress: UpdatesPreparationProgressController | null = null;
 
     constructor(dependencies: UpdatesPageWorkflowControllerDependencies) {
         this.#dependencies = dependencies;
@@ -65,6 +70,13 @@ class UpdatesPageWorkflowController {
 
     setUi(ui: UpdatesUiRefs): void {
         this.#ui = ui;
+        this.#preparationProgress = new UpdatesPreparationProgressController({
+            ui,
+            createReporter: (container) => this.#dependencies.streaming.progressReporter(container, { showCancel: false, showBadge: false }),
+            getPreparation: async () => await this.#dependencies.api.software.getUpdatePreparation(),
+            setTimeout: (callback, milliseconds) => this.#dependencies.pageResources.setTimeout(callback, milliseconds),
+            clearTimer: (timerId) => this.#dependencies.pageResources.clearTimer(timerId)
+        });
     }
 
     setControllers(systemController: UpdatesSystemController, productController: UpdatesProductController | null): void {
@@ -84,6 +96,8 @@ class UpdatesPageWorkflowController {
     }
 
     cleanup(): void {
+        this.#preparationProgress?.destroy();
+        this.#preparationProgress = null;
         this.#productController?.destroy();
         this.#productController = null;
         this.#systemController?.destroy();
@@ -119,7 +133,10 @@ class UpdatesPageWorkflowController {
         await executeApplicationInstallWorkflow({
             button,
             systemController: this.#requireSystemController(),
-            completeInstall: (outcome) => this.#onInstallCompleted(outcome, outcome.operationRevision)
+            completeInstall: (outcome) => {
+                if (outcome.type === 'error') this.#preparationProgress?.stop();
+                this.#onInstallCompleted(outcome, outcome.operationRevision);
+            }
         });
     }
 
@@ -139,12 +156,23 @@ class UpdatesPageWorkflowController {
                 sanitizeHtml: (value) => this.#dependencies.pageContext.sanitizer.html(value),
                 sanitizeAttribute: (value) => this.#dependencies.pageContext.sanitizer.attribute(value),
                 sanitizeUrl: (value, options) => this.#dependencies.pageContext.sanitizer.url(value, options),
+                renderMarkdown: (value) =>
+                    toTrustedHtml(
+                        new RichTextRenderer({
+                            sanitizer: this.#dependencies.pageContext.sanitizer,
+                            translateFootnoteBackRef: () => i18n.t('richText.footnotes.backToReference'),
+                            isCodeRecognitionEnabled: () => false
+                        }).render(value)
+                    ),
                 getIconSync: (name, options) => this.#dependencies.services.getIconSync(name, options),
-                showOverlay: (value, options) => this.#dependencies.restartOverlay.show(value, options),
+                showOverlay: (value, options) => {
+                    this.#dependencies.restartOverlay.show(value, options);
+                    this.#preparationProgress?.stop();
+                },
                 resolveInstallButton: () => this.#resolveInstallButton(),
                 wait: (milliseconds) => this.#wait(milliseconds)
             },
-            onApplicationInstallStarted: () => this.#onInstallStarted()
+            onApplicationInstallStarted: () => this.#onApplicationInstallStarted()
         };
     }
 
@@ -201,6 +229,12 @@ class UpdatesPageWorkflowController {
         const operationRevision = this.#operationMonitor.begin();
         this.#withNoticeUi((ui) => applyInstallStartedNotice(this.#createNoticeHost(), ui));
         return operationRevision;
+    }
+
+    #onApplicationInstallStarted(): number {
+        const revision = this.#onInstallStarted();
+        this.#preparationProgress?.start();
+        return revision;
     }
 
     #onInstallCompleted(outcome: UpdatesInstallOutcome, operationRevision: number | null): void {

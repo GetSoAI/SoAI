@@ -70,6 +70,7 @@ fi
 for soai_launcher_module in \
     update_recovery.sh \
     runtime_environment.sh \
+    micromamba_asset_catalog.sh \
     runtime_environment_sqlite.sh \
     runtime_environment_tesseract.sh \
     runtime_environment_conda.sh \
@@ -89,7 +90,9 @@ done
 
 soai_launcher__configure_paths() {
     SOAI_MANAGED_PYTHON="${SOAI_MANAGED_PYTHON:-3.13}"
-    SOAI_MICROMAMBA_VERSION="${SOAI_MICROMAMBA_VERSION:-2.5.0}"
+    if [ -z "${SOAI_MICROMAMBA_VERSION:-}" ]; then
+        SOAI_MICROMAMBA_VERSION="$(soai_managed_runtime__default_micromamba_version)" || return 1
+    fi
     SOAI_LAUNCHER_STATE_DIR="${SCRIPT_DIR}/data/state"
     SOAI_STATE_DIR="${SOAI_STATE_DIR:-$SOAI_LAUNCHER_STATE_DIR}"
     SOAI_LOCKS_PATH="${SOAI_LAUNCHER_STATE_DIR}/locks"
@@ -100,6 +103,9 @@ soai_launcher__configure_paths() {
     mkdir -p "$SOAI_STATE_DIR" "$SOAI_LOCKS_PATH" "$PLAYWRIGHT_BROWSERS_PATH" "$SOAI_TMP_DIR" "$SOAI_PIP_CACHE_DIR"
     export TMPDIR="$SOAI_TMP_DIR"
     export PIP_CACHE_DIR="$SOAI_PIP_CACHE_DIR"
+    export PIP_RETRIES="${PIP_RETRIES-10}"
+    export PIP_RESUME_RETRIES="${PIP_RESUME_RETRIES-10}"
+    export MAMBA_REMOTE_MAX_RETRIES="${MAMBA_REMOTE_MAX_RETRIES-8}"
     CONFIG_PATH="${SOAI_CONFIG_PATH:-${SCRIPT_DIR}/data/config/config.yaml}"
     OFFLINE_MODE_ENABLED="$(soai_managed_runtime__read_stay_offline "$CONFIG_PATH")"
 }
@@ -132,7 +138,11 @@ soai_launcher__run_start() {
         soai_managed_runtime__release_lock_dir "$runtime_lock_dir"
         return 1
     fi
-    exec "${SOAI_VENV_PATH}/bin/python" "$MAIN_PY_PATH" "${SOAI_PASSTHROUGH_ARGS[@]}"
+    if [ "$SOAI_PASSTHROUGH_ARGS_PRESENT" = "1" ]; then
+        exec "${SOAI_VENV_PATH}/bin/python" "$MAIN_PY_PATH" "${SOAI_PASSTHROUGH_ARGS[@]}"
+    else
+        exec "${SOAI_VENV_PATH}/bin/python" "$MAIN_PY_PATH"
+    fi
     soai_managed_runtime__release_lock_dir "$runtime_lock_dir"
     return 1
 }
@@ -147,7 +157,11 @@ soai_launcher__run_management() {
     if [ ! -x "$python_bin" ]; then
         soai_managed_runtime__die "Cannot run management command because managed Python is missing: ${python_bin}" || return 1
     fi
-    exec "$python_bin" "$MAIN_PY_PATH" "$SOAI_LAUNCHER_COMMAND" "${SOAI_PASSTHROUGH_ARGS[@]}"
+    if [ "$SOAI_PASSTHROUGH_ARGS_PRESENT" = "1" ]; then
+        exec "$python_bin" "$MAIN_PY_PATH" "$SOAI_LAUNCHER_COMMAND" "${SOAI_PASSTHROUGH_ARGS[@]}"
+    else
+        exec "$python_bin" "$MAIN_PY_PATH" "$SOAI_LAUNCHER_COMMAND"
+    fi
 }
 
 

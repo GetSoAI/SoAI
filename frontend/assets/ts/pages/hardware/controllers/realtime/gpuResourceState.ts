@@ -4,7 +4,7 @@
 import type { GpuCapabilitiesResource } from '@core/realtime/streammanager/resources/gpuCapabilitiesResource.ts';
 import type { GpuSlotsBuilderResult } from '@core/types/streamTypes.ts';
 
-type HardwareGpuResource = 'capabilities' | 'slots';
+type HardwareGpuResource = 'capabilities' | 'slots' | 'soaibenchRuns';
 type HardwareGpuResourceHealth = 'pending' | 'ready' | 'degraded' | 'stale' | 'unavailable';
 
 interface GpuResourceFreshness {
@@ -25,6 +25,7 @@ const resolveCapabilitiesHealth = (value: GpuCapabilitiesResource): HardwareGpuR
 class HardwareGpuResourceState {
     readonly capabilities: GpuResourceFreshness = { generation: 0, health: 'pending', updatedAt: null };
     readonly slots: GpuResourceFreshness = { generation: 0, health: 'pending', updatedAt: null };
+    readonly soaibenchRuns: GpuResourceFreshness = { generation: 0, health: 'pending', updatedAt: null };
     retainedCapabilities: GpuCapabilitiesResource | null = null;
     retainedSlots: GpuSlotsBuilderResult | null = null;
 
@@ -54,6 +55,12 @@ class HardwareGpuResourceState {
             this.retainedCapabilities = value;
             this.capabilities.updatedAt = Date.now();
         }
+    }
+
+    acceptSoAIBenchRuns(): void {
+        this.soaibenchRuns.generation += 1;
+        this.soaibenchRuns.health = 'ready';
+        this.soaibenchRuns.updatedAt = Date.now();
     }
 
     acceptSlots(value: GpuSlotsBuilderResult): void {

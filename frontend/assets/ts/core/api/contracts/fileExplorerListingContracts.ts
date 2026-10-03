@@ -2,15 +2,14 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { FileExplorerListingAcceptedResponse, FileExplorerListingLocateOptions, FileExplorerListingLocateResponse, FileExplorerListingPageOptions, FileExplorerListingPageResponse, FileExplorerListingReleasedResponse } from '@core/api/contracts/fileExplorerListingContractTypes.ts';
-import type { FileExplorerEntryResponse } from '@core/api/contracts/fileExplorerContractTypes.ts';
+import { decodeFileExplorerEntry } from '@core/api/contracts/fileExplorerEntryContract.ts';
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import type { ApiQueryParameters } from '@core/api/types/request.ts';
 import { readOffsetPaginationMetadata } from '@core/data/offsetPagination.ts';
-import { isFileEntryTypeId } from '@core/fileexplorerbrowser/entryTypeMappings.ts';
 import { readRequiredNonNegativeIntegerValue } from '@core/types/payloadNumberReaders.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
-import { readRequiredBooleanValue, readRequiredTrimmedString } from '@core/types/payloadValueReaders.ts';
-import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
+import { readRequiredPresentStringValue, readRequiredTrimmedString } from '@core/types/payloadValueReaders.ts';
+import type { JsonObject } from '@core/types/jsonValues.ts';
 
 const serializeFileExplorerListingStartRequest = (listingId: string, path: string): JsonObject => ({
     'listing_id': listingId,
@@ -32,23 +31,6 @@ const serializeFileExplorerListingLocateQuery = (name: string, options: FileExpl
     'entry_type': options.entryType
 });
 
-const decodeListingEntry = (value: JsonValue, label: string): FileExplorerEntryResponse => {
-    const record = requireRecord(value, label);
-    const typeId = readRequiredTrimmedString(record, 'type_id', `${label}.type_id`);
-    if (!isFileEntryTypeId(typeId)) throw new TypeError(`${label}.type_id is unsupported.`);
-    const typeRank = readRequiredNonNegativeIntegerValue(record['type_rank'], `${label}.type_rank`);
-    return {
-        name: readRequiredTrimmedString(record, 'name', `${label}.name`),
-        isDirectory: readRequiredBooleanValue(record['is_directory'], `${label}.is_directory`),
-        size: readRequiredNonNegativeIntegerValue(record['size'], `${label}.size`),
-        modifiedAtMs: readRequiredNonNegativeIntegerValue(record['modified_at_ms'], `${label}.modified_at_ms`),
-        mimeType: readRequiredTrimmedString(record, 'mime_type', `${label}.mime_type`),
-        typeId,
-        typeRank,
-        permissions: readRequiredTrimmedString(record, 'permissions', `${label}.permissions`)
-    };
-};
-
 const decodeFileExplorerListingAcceptedResponse = (value: ApiResponsePayload): FileExplorerListingAcceptedResponse => {
     const label = 'File explorer listing accepted response';
     const record = requireRecord(value, label);
@@ -58,7 +40,7 @@ const decodeFileExplorerListingAcceptedResponse = (value: ApiResponsePayload): F
         status,
         listingId: readRequiredTrimmedString(record, 'listing_id', `${label}.listing_id`),
         taskId: readRequiredTrimmedString(record, 'task_id', `${label}.task_id`),
-        path: readRequiredTrimmedString(record, 'path', `${label}.path`)
+        path: readRequiredPresentStringValue(record['path'], `${label}.path`)
     };
 };
 
@@ -77,14 +59,14 @@ const decodeFileExplorerListingPageResponse = (value: ApiResponsePayload): FileE
     }
     return {
         listingId: readRequiredTrimmedString(record, 'listing_id', `${label}.listing_id`),
-        path: readRequiredTrimmedString(record, 'path', `${label}.path`),
-        entries: entriesValue.map((entry, index) => decodeListingEntry(entry, `${label}.entries[${String(index)}]`)),
+        path: readRequiredPresentStringValue(record['path'], `${label}.path`),
+        entries: entriesValue.map((entry, index) => decodeFileExplorerEntry(entry, `${label}.entries[${String(index)}]`)),
         total,
         offset: metadata.offset,
         limit: metadata.limit,
         hasMore: metadata.hasMore,
         nextOffset: metadata.nextOffset,
-        workspacePathResolved: readRequiredTrimmedString(record, 'workspace_path_resolved', `${label}.workspace_path_resolved`)
+        workspacePathResolved: readRequiredPresentStringValue(record['workspace_path_resolved'], `${label}.workspace_path_resolved`)
     };
 };
 

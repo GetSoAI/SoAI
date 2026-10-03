@@ -4,7 +4,7 @@
 import type { ResourceTracker } from '@core/resourcetracker/service.ts';
 import { getRequestAnimationFrame } from '@core/environment/public.ts';
 import { ensureError } from '@core/errors/coerce.ts';
-import { PAGE_CONTENT_READY, PAGE_TRANSITIONING_IN, PAGE_TRANSITION_MODE_ATTRIBUTE, isReduceMotionsEnabled, resolveActiveSection, requirePageTransitionSurface, waitForElementAnimations } from '@core/pageTransitions.ts';
+import { PAGE_CONTENT_READY, PAGE_EXITING_ATTRIBUTE, PAGE_TRANSITIONING_IN, PAGE_TRANSITION_MODE_ATTRIBUTE, isReduceMotionsEnabled, resolveActiveSection, requirePageTransitionSurface, waitForElementAnimations } from '@core/pageTransitions.ts';
 import { DelayedPageOutletLoading } from '@core/pageoutlet/delayedLoading.ts';
 import { startPageExitAnimation, captureExitAnimationStartState } from '@core/pageoutlet/exitAnimation.ts';
 
@@ -192,6 +192,7 @@ class PageOutletVisualTransaction {
         }
         const animation = startPageExitAnimation(section, captureExitAnimationStartState(section));
         this.#exitAnimation = animation;
+        section.setAttribute(PAGE_EXITING_ATTRIBUTE, 'true');
         try {
             await animation.finished;
         } catch (error) {
@@ -204,6 +205,7 @@ class PageOutletVisualTransaction {
                 this.#exitAnimation = null;
             }
             animation.cancel();
+            section.removeAttribute(PAGE_EXITING_ATTRIBUTE);
         }
         this.#applyExitedSectionState(section, epoch);
     }

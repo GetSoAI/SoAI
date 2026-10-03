@@ -7,7 +7,6 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { errorHandler } from '@core/errorHandler.ts';
 import { requirePerformanceNow } from '@core/environment/public.ts';
 import { getStreamRuntime, type StreamRuntimeOwners } from '@core/realtime/streammanager/public.ts';
-import { STATUS } from '@core/realtime/streammanager/resources/ids.ts';
 import { isFunction, isNumber, isObject } from '@core/typeGuards.ts';
 
 export type StreamManagerRef = StreamRuntimeOwners;
@@ -25,17 +24,11 @@ export interface AuthManagerInterface {
 type AuthManagerCandidate = AuthManagerInterface | JsonValue | null | undefined;
 type StreamManagerCandidate = StreamManagerRef | JsonValue | null | undefined;
 
-let statusStreamCache: string | null = null;
 let diagnosticsManager: DiagnosticsManager | null = null;
 let diagnosticsErrorLogged = false;
 
 export const startTimer = (): number => requirePerformanceNow()();
 export const readTimer = (token: number | null): number | null => (isNumber(token) ? Math.max(0, requirePerformanceNow()() - token) : null);
-
-export const getStatusStream = (): string => {
-    if (statusStreamCache === null) statusStreamCache = STATUS;
-    return statusStreamCache;
-};
 
 export const requireAuthManager = (): AuthManagerInterface => {
     const authManager = getAuthManager();

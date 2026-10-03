@@ -4,7 +4,7 @@
 import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { decodeRawResponse } from '@core/api/contracts/systemContracts.ts';
 import { requireRecord } from '@core/types/payloadRecordReaders.ts';
-import { readRequiredBooleanValue, readRequiredEnumValue, readRequiredEpochMsValue, readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
+import { readRequiredBooleanValue, readRequiredEnumValue, readRequiredEpochMsValue, readRequiredPresentStringValue, readRequiredSignedEpochMsValue, readRequiredTrimmedStringValue } from '@core/types/payloadValueReaders.ts';
 import { readRequiredNonNegativeIntegerValue } from '@core/types/payloadNumberReaders.ts';
 import { isJsonArray, isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import type {
@@ -118,15 +118,15 @@ const decodeSoaiPathContentPart = (value: JsonValue | undefined, label: string):
     return {
         type: 'soai_path',
         entryType: readRequiredEnumValue(record['entry_type'], `${label}.entry_type`, ['file', 'folder']),
-        sourceReference: { type: 'conversation_virtual_path', value: requireString(source['value'], `${label}.source_reference.value`) },
-        toolReference: { type: 'workspace_relative_path', value: requireString(tool['value'], `${label}.tool_reference.value`) },
+        sourceReference: { type: 'conversation_virtual_path', value: readRequiredPresentStringValue(source['value'], `${label}.source_reference.value`) },
+        toolReference: { type: 'workspace_relative_path', value: readRequiredPresentStringValue(tool['value'], `${label}.tool_reference.value`) },
         workspaceScope: { type: 'conversation_effective_workspace', rootFingerprint: requireString(scope['root_fingerprint'], `${label}.workspace_scope.root_fingerprint`) },
         targetFingerprint: { type: readRequiredEnumValue(fingerprint['type'], `${label}.target_fingerprint.type`, ['file_sha256', 'folder_listing_sha256']), value: requireString(fingerprint['value'], `${label}.target_fingerprint.value`) },
         title: requireString(record['title'], `${label}.title`),
         previewType: requireString(record['preview_type'], `${label}.preview_type`),
         mimeType: requireNullableString(record['mime_type'], `${label}.mime_type`),
         sizeBytes: record['size_bytes'] === null || record['size_bytes'] === undefined ? null : readRequiredNonNegativeIntegerValue(record['size_bytes'], `${label}.size_bytes`),
-        modifiedAtMs: readRequiredEpochMsValue(record['modified_at_ms'], `${label}.modified_at_ms`),
+        modifiedAtMs: readRequiredSignedEpochMsValue(record['modified_at_ms'], `${label}.modified_at_ms`),
         resolvedAtMs: readRequiredEpochMsValue(record['resolved_at_ms'], `${label}.resolved_at_ms`)
     };
 };
@@ -146,7 +146,7 @@ const decodeSoaiPreview = (value: ApiResponsePayload): SoaiPathPreviewResponse =
         contentPart: contentPart,
         entries: entries.map((entry, index) => {
             const item = requireRecord(entry, `SoAI path preview response.entries[${String(index)}]`);
-            return { name: requireString(item['name'], `SoAI path preview response.entries[${String(index)}].name`), entryType: readRequiredEnumValue(item['entry_type'], 'SoAI path preview entry_type', ['file', 'folder']), sizeBytes: readRequiredNonNegativeIntegerValue(item['size_bytes'], 'SoAI path preview size_bytes'), modifiedAtMs: readRequiredEpochMsValue(item['modified_at_ms'], 'SoAI path preview modified_at_ms') };
+            return { name: readRequiredPresentStringValue(item['name'], `SoAI path preview response.entries[${String(index)}].name`), entryType: readRequiredEnumValue(item['entry_type'], 'SoAI path preview entry_type', ['file', 'folder']), sizeBytes: readRequiredNonNegativeIntegerValue(item['size_bytes'], 'SoAI path preview size_bytes'), modifiedAtMs: readRequiredSignedEpochMsValue(item['modified_at_ms'], 'SoAI path preview modified_at_ms') };
         })
     };
 };
@@ -167,7 +167,7 @@ const decodeSoaiRead = (value: ApiResponsePayload): SoaiPathReadResponse => {
 const decodeSoaiOpen = (value: ApiResponsePayload): SoaiPathOpenResponse => {
     const record = requireRecord(value, 'SoAI path open response');
     if (record['state'] === 'unavailable') return { state: 'unavailable' };
-    return { state: 'available', virtualPath: requireString(record['virtual_path'], 'SoAI path open response.virtual_path') };
+    return { state: 'available', virtualPath: readRequiredPresentStringValue(record['virtual_path'], 'SoAI path open response.virtual_path') };
 };
 const decodeSoaiToken = (value: ApiResponsePayload): SoaiPathTokenResponse => {
     const record = requireRecord(value, 'SoAI path token response');

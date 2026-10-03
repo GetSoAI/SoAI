@@ -48,9 +48,6 @@ class ThemeManager {
             host,
             addCleanup: (cleanup) => {
                 this.#lifecycle.addCleanup(cleanup);
-            },
-            runDetachedWithBoundary: (operationName, task) => {
-                runDetachedWithBoundary(host, operationName, task);
             }
         });
         this.#wallpaperController = new ThemeWallpaperController({
@@ -70,6 +67,7 @@ class ThemeManager {
             host: this.#host,
             canManageSolidBackground: this.#canManageSolidBackground,
             canManageWallpaper: this.#host.canManageWallpaper(),
+            wallpaperPresence: this.#host.getWallpaperPresence(),
             grantedActions: this.#getGrantedActions(),
             getPreferenceStateLabels: () => this.#getPreferenceStateLabels()
         };

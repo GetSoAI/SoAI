@@ -10,8 +10,10 @@ import re
 import uuid
 from collections.abc import Sequence
 
+from core.concurrency.joined_thread_call import run_joined_thread_call
 from core.errors.exception_logging import log_handled_exception
 from core.files.windows_reserved_names import WINDOWS_RESERVED_DEVICE_NAMES
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.logging.protocols import LoggerProtocol
 
 __all__ = (
@@ -40,12 +42,18 @@ def secure_filename(filename: str) -> str:
 
 
 async def async_remove(path: str) -> None:
-    await asyncio.to_thread(os.remove, path)
+    filesystem_path = normalize_filesystem_path(os.path.abspath(path))
+    await run_joined_thread_call(
+        os.remove,
+        filesystem_path,
+        task_name="core.files.operations.remove",
+        retain_resources_until_complete=True,
+    )
 
 
 def remove_if_exists(path: str) -> bool:
     try:
-        os.remove(path)
+        os.remove(normalize_filesystem_path(path))
         return True
     except FileNotFoundError:
         return False
@@ -56,6 +64,7 @@ async def async_remove_if_exists(
     *,
     logger: LoggerProtocol | None = None,
     log_level: int = logging.WARNING,
+    raise_on_failure: bool = False,
 ) -> bool:
     try:
         await async_remove(path)
@@ -63,6 +72,8 @@ async def async_remove_if_exists(
     except FileNotFoundError:
         return False
     except OSError as exception:
+        if raise_on_failure:
+            raise
         if logger:
             log_handled_exception(
                 logger,
@@ -99,7 +110,8 @@ async def ensure_dirs_exist(paths: Sequence[str]) -> None:
             directories.add(trimmed)
     if directories:
         mkdir_tasks = [
-            asyncio.to_thread(os.makedirs, directory, exist_ok=True) for directory in directories
+            asyncio.to_thread(os.makedirs, normalize_filesystem_path(directory), exist_ok=True)
+            for directory in directories
         ]
         await asyncio.gather(*mkdir_tasks, return_exceptions=False)
 
@@ -119,7 +131,7 @@ async def ensure_parent_dirs_exist(file_paths: Sequence[str]) -> None:
             parent_directories.add(parent)
     if parent_directories:
         mkdir_tasks = [
-            asyncio.to_thread(os.makedirs, directory, exist_ok=True)
+            asyncio.to_thread(os.makedirs, normalize_filesystem_path(directory), exist_ok=True)
             for directory in parent_directories
         ]
         await asyncio.gather(*mkdir_tasks, return_exceptions=False)

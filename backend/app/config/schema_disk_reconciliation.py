@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import io
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
 
 __all__ = (
+    "ConfigPayloadTransformResult",
     "ConfigSchemaDiskReconciliationResult",
     "coerce_config_yaml_mapping",
     "ensure_default_config_schema_file",
@@ -47,6 +49,12 @@ class ConfigSchemaDiskReconciliationResult:
     changed_paths: tuple[str, ...]
     applied_migrations: tuple[str, ...]
     created: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ConfigPayloadTransformResult:
+    data: ConfigDict
+    changed_paths: tuple[str, ...]
 
 
 def ensure_default_config_schema_file(
@@ -152,6 +160,7 @@ def reconcile_config_payload_on_disk(
     migration_message: str,
     drift_message: str,
     changed_paths_message: str,
+    payload_transform: Callable[[ConfigDict], ConfigPayloadTransformResult] | None = None,
 ) -> ConfigSchemaDiskReconciliationResult:
     user_config, created = load_config_yaml_or_create(
         config_path=config_path,
@@ -169,6 +178,17 @@ def reconcile_config_payload_on_disk(
         logger=logger,
         migration_message=migration_message,
     )
+    if payload_transform is not None:
+        transformed_payload = payload_transform(result.data)
+        result = ConfigSchemaDiskReconciliationResult(
+            data=transformed_payload.data,
+            backup_path=result.backup_path,
+            changed_paths=tuple(
+                sorted(set((*result.changed_paths, *transformed_payload.changed_paths)))
+            ),
+            applied_migrations=result.applied_migrations,
+            created=result.created,
+        )
     backup_path = f"{config_path}.backup" if os.path.isfile(config_path) else None
     should_write = bool(result.changed_paths or result.applied_migrations)
     if result.changed_paths:

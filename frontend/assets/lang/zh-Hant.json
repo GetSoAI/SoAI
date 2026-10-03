@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "現在"
+                "now": "現在",
+                "occurrenceLabel": "{title}，{date} {time}，{status}",
+                "createAt": "在 {date} {time} 建立自動化。使用方向鍵變更時間。"
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "開始",
                     "turns": "回合",
                     "timezone": "時區",
-                    "title": "標題"
+                    "title": "標題",
+                    "modelSettings": "模型、工具與參數"
                 },
                 "workspace": {
                     "button": "選擇資料夾",
                     "description": "選擇此次自動化執行要使用的資料夾。週期性執行會持續使用此自動化資料夾。",
                     "fieldLabel": "工作區資料夾",
-                    "title": "自動化工作區資料夾"
+                    "title": "自動化工作區資料夾",
+                    "viewButton": "瀏覽工作區"
                 },
                 "parameters": {
                     "button": "編輯參數",
@@ -166,17 +170,17 @@
                     "fieldLabel": "模型參數",
                     "summaryCustom": "自訂自動化參數",
                     "summaryDefault": "預設模型參數",
-                    "title": "自動化模型參數"
+                    "title": "自動化模型參數",
+                    "viewButton": "檢視參數"
                 },
                 "timezone": {
-                    "auto": "自動"
+                    "autoWithZone": "自動（{timezone}）"
                 },
                 "placeholders": {
                     "assistantTurn": "模型回覆",
                     "endOfAutomation": "自動化結束",
                     "model": "選擇模型",
                     "turn": "輸入訊息",
-                    "turnIndexed": "輸入訊息 {index}",
                     "title": "輸入標題"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "儲存",
                 "validation": {
                     "maxRunMinutesInvalid": "執行時間上限必須介於 1 到 1440 分鐘之間。",
-                    "modelUnavailable": "所選模型無法使用。",
+                    "modelUnavailable": "{model} 無法使用。請選擇其他模型。",
                     "modelRequired": "必須選擇模型。",
                     "recurrenceInvalid": "重複週期無效。",
                     "startInvalid": "開始日期和時間無效。",
@@ -195,7 +199,42 @@
                     "turnsRequired": "所有回合皆為必填。",
                     "tooManyTurns": "回合數過多（上限為 {max}）。每個回合都會作為一個代理程式回合執行。",
                     "timezoneRequired": "必須指定時區。",
-                    "titleRequired": "必須輸入標題。"
+                    "titleRequired": "必須輸入標題。",
+                    "modelDisabled": "{model} 已停用。請啟用它或選擇其他模型。",
+                    "modelMissing": "{model} 已不再安裝。請選擇其他模型。",
+                    "modelUnsupported": "{model} 不支援聊天。請選擇其他模型。",
+                    "summary": "儲存前請修正 {count} 個欄位。",
+                    "toolsRequired": "執行需要啟用工具並選擇 todo_write。",
+                    "timezoneInvalid": "時區無效。請選擇支援的時區。"
+                },
+                "conflict": {
+                    "message": "在你編輯期間，此自動化已在其他位置變更。你的變更尚未儲存。",
+                    "remoteChanges": "其他位置的變更：{fields}",
+                    "localChanges": "你的變更：{fields}",
+                    "keepChanges": "保留我的變更",
+                    "loadLatest": "載入最新版本"
+                },
+                "modelStatus": {
+                    "unavailable": "無法使用",
+                    "unsupported": "不支援聊天"
+                },
+                "prerequisites": {
+                    "failed": "編輯器無法載入所需的全部內容。",
+                    "missing": "此自動化已不存在。",
+                    "toolsUnavailable": "無法載入工具。已保留現有的工具選擇。",
+                    "childFailed": "無法開啟設定。請重試。"
+                },
+                "schedule": {
+                    "ambiguous": "由於時鐘調整，{start} 在 {timezone} 中會出現兩次。將使用第一次。",
+                    "shiftedForward": "由於時鐘調整，{timezone} 中不存在 {start}。將改為在 {effective} 執行。",
+                    "disabled": "已停用：不會排定任何執行。",
+                    "nextRun": "下次執行：{when}（{timezone}）",
+                    "nextRunLocal": "下次執行：{when}（{timezone}），你的時間為 {localWhen}",
+                    "unavailable": "排程預覽無法使用。"
+                },
+                "turns": {
+                    "label": "第 {index} 回合",
+                    "remove": "移除第 {index} 回合"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "自動化偏好設定已重設為預設值。",
                 "runOpenFailed": "無法開啟所請求的自動化執行。",
                 "runUnavailable": "所請求的自動化執行已無法在此檢視中使用。",
-                "updated": "自動化已更新。"
+                "updated": "自動化已更新。",
+                "changeRefreshFailed": "變更已套用，但無法重新整理檢視。",
+                "conflict": "此自動化已在其他位置變更。請在再次儲存前檢視這些變更。",
+                "defaultsNotRemembered": "已儲存，但無法為新的自動化記住這些設定。",
+                "missingOnSave": "此自動化已不存在，可能已在其他位置刪除。"
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "今天",
                         "yesterday": "昨天"
                     },
-                    "turnsCount": "回合：{count}",
                     "title": "執行",
                     "toolbar": {
                         "batchDelete": "刪除所選執行",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "刪除 {count} 次執行？正在執行的項目將會停止。",
-                        "deleteTitle": "刪除執行？"
+                        "deleteTitle": "刪除執行？",
+                        "skipTitle": "略過此執行項目？",
+                        "skipMessage": "{title} 不會在此時間執行。其他執行項目不受影響。",
+                        "skipConfirm": "略過",
+                        "stopTitle": "停止執行？",
+                        "stopMessage": "{title} 正在執行。它將會停止並從行事曆中移除。",
+                        "stopConfirm": "停止",
+                        "removeTitle": "移除此執行項目？",
+                        "removeMessage": "{title} 將從行事曆中移除。",
+                        "removeConfirm": "移除"
                     },
                     "notifications": {
-                        "deleteSuccess": "已刪除 {count} 次執行。"
-                    }
+                        "deleteSuccess": "已刪除 {count} 次執行。",
+                        "nothingToDelete": "所選執行項目已不在此檢視中。",
+                        "tooManySelected": "一次最多選取 {max} 個執行項目。"
+                    },
+                    "occurrencesCount": "執行項目：{count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "上一個",
                 "showCalendar": "行事曆",
                 "showRegistry": "窗格",
-                "today": "今天"
+                "today": "今天",
+                "staleData": "資料已過時",
+                "staleDataSince": "自動化資料可能已過時。上次更新：{time}。選取以重試。",
+                "resizePanes": "調整行事曆與側邊窗格大小"
             },
             "views": {
                 "day": "日",
@@ -300,6 +357,7 @@
                     "bar": "長條圖",
                     "candlestick": "OHLC",
                     "deviation": "偏差",
+                    "heikin-ashi": "平均K線",
                     "label": "圖表類型",
                     "line": "折線圖",
                     "precision-line": "折線圖"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "最小： ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "無資料 · SoAI 離線",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "即時 ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "無法載入歷史記錄。",
             "loadingState": "載入中",
             "manualScaleLabel": "手動"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "附加 SoAI 連結",
                 "tabBrowse": "工作區",
                 "tabCamera": "掃描",
+                "tabDisabledReason": "請在 聊天設定 › {tab} 中開啟 {setting}",
                 "tabKnowledge": "知識",
                 "tabSoaiLink": "SoAI 連結",
                 "tabUpload": "上傳",
@@ -559,7 +620,16 @@
                 "recordingStatus": "正在錄音 {elapsed}",
                 "recordingTitle": "語音錄製",
                 "requestingStatus": "正在等待瀏覽器權限",
-                "requestingTitle": "正在請求存取麥克風"
+                "requestingTitle": "正在請求存取麥克風",
+                "pushToTalk": {
+                    "cancelled": "錄音已取消。",
+                    "queued": "已加入佇列。",
+                    "releaseToCancel": "放開以取消",
+                    "releaseToSend": "放開以傳送 · 向左滑動以取消",
+                    "sending": "正在傳送…",
+                    "transcribing": "正在轉錄…",
+                    "transcriptReview": "已新增轉錄文字。請在傳送前檢查更新後的草稿。"
+                }
             },
             "authorityLock": {
                 "automationReason": "這是自動化對話。請前往「自動化 → 編輯自動化」變更其執行設定。",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "上傳",
                 "assistantAvatarUploadLabel": "上傳助理頭像",
                 "assistantNamePlaceholder": "輸入自訂模型名稱...",
+                "autoHideChatComposer": "自動隱藏聊天輸入框",
+                "autoHideChatComposerHint": "閱讀較早的訊息時隱藏空白的聊天輸入框。",
+                "autoHideChatHeader": "自動隱藏聊天標題列",
+                "autoHideChatHeaderHint": "閱讀較早的訊息時隱藏對話標題列。",
                 "identityNameInvalid": "顯示名稱最多可包含 50 個 Unicode 字元，且不得包含無效文字。",
                 "promptInvalid": "提示詞包含無效的 Unicode 文字。",
                 "close": "關閉",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "此對話執行期間無法變更工具存取權。",
                     "toolsEnabledHint": "為此對話啟用 MCP 工具。新聊天會使用您上次儲存的值。",
                     "tool_approval_required": "需要工具核准",
-                    "toolApprovalRequiredHint": "執行具破壞性的工具前要求確認。"
+                    "toolApprovalRequiredHint": "執行具破壞性的工具前要求確認。",
+                    "unavailableTools": "無法使用的已儲存工具：{tools}。已保留選擇。",
+                    "unavailableServers": "無法使用的已儲存伺服器：{servers}。已保留設定。"
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "覆寫此功能的脈絡長度。留空則使用所選模型的預設值。",
@@ -1035,7 +1111,8 @@
                 "newTitle": "新增對話",
                 "renameFailed": "無法重新命名對話。",
                 "switchFailed": "無法切換對話。",
-                "untitled": "未命名"
+                "untitled": "未命名",
+                "titleRequired": "請輸入對話標題。"
             },
             "detached": {
                 "windowTitle": "聊天（獨立視窗）"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "需要 HTTPS"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "長按以開啟參數並顯示上下文長度。",
+                "presetsHint": "長按以開啟預設。",
+                "pushToTalkHint": "長按以說話。",
+                "toolsHint": "長按以開啟工具設定。",
+                "toolsRestrictedHint": "{reason}。長按以開啟工具設定。",
+                "toolsToggleHint": "{action}。長按以開啟工具設定。"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "已排入佇列",
@@ -1286,7 +1371,8 @@
                     "running": "執行中",
                     "inputRequired": "需要操作"
                 },
-                "attachmentsCount": "（+{count} 個附件）"
+                "attachmentsCount": "（+{count} 個附件）",
+                "open": "開啟提示詞：{prompt}"
             },
             "loading": {
                 "errorType": "錯誤類型",
@@ -1337,7 +1423,9 @@
                     },
                     "save": "儲存",
                     "skip": "略過",
-                    "title": "協助 SoAI 了解您"
+                    "title": "協助 SoAI 了解您",
+                    "loadFailed": "無法載入您儲存的個人資料。已暫停儲存，以免覆寫任何內容。",
+                    "retry": "重試"
                 },
                 "viewer": {
                     "none": "無",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "昨天",
                 "toolCall": "工具呼叫",
                 "waiting": "等待中...",
-                "you": "您"
+                "you": "您",
+                "timestampWithTime": "{label}，{time}"
             },
             "modelControl": {
                 "compareModels": "比較模型",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "有多個模型共用名稱「{model}」。請在側邊欄中選擇特定模型。",
                 "available": "（可用）",
-                "loaded": "（已載入）"
+                "loaded": "（已載入）",
+                "unavailable": "（無法使用）"
             },
             "news": {
                 "articleCount": "{count} 篇文章",
@@ -1469,6 +1559,48 @@
                 "clearFailed": "無法清除提示詞歷程記錄。",
                 "cleared": "提示詞歷程記錄已清除。",
                 "loadFailed": "無法載入提示詞歷程記錄。"
+            },
+            "sketch": {
+                "open": "開啟草圖",
+                "mobileOption": "草圖",
+                "preference": "草圖",
+                "preferenceHint": "在聊天輸入框中顯示草圖板，用於繪製圖像並附加到訊息中",
+                "title": "草圖",
+                "description": "使用滑鼠、觸控筆或手指繪製，然後將繪圖作為圖片附加到訊息中。",
+                "canvasLabel": "繪圖畫布",
+                "toolsLabel": "繪圖工具",
+                "tools": {
+                    "pen": "鋼筆",
+                    "brush": "畫筆",
+                    "highlighter": "螢光筆",
+                    "eraser": "橡皮擦",
+                    "line": "直線",
+                    "rectangle": "矩形",
+                    "ellipse": "橢圓"
+                },
+                "colorsLabel": "顏色",
+                "colors": {
+                    "black": "黑色",
+                    "grey": "灰色",
+                    "red": "紅色",
+                    "orange": "橙色",
+                    "yellow": "黃色",
+                    "green": "綠色",
+                    "teal": "藍綠色",
+                    "blue": "藍色",
+                    "purple": "紫色",
+                    "brown": "棕色"
+                },
+                "customColor": "自訂顏色",
+                "size": "大小",
+                "undo": "復原",
+                "redo": "重做",
+                "clear": "清除",
+                "resize": "調整畫布大小",
+                "attach": "附加",
+                "discardConfirm": "要捨棄此草圖嗎？",
+                "discard": "捨棄",
+                "exportFailed": "無法匯出草圖，請再試一次。"
             },
             "characterMap": {
                 "allEmoji": "所有表情符號",
@@ -2201,7 +2333,8 @@
                 "started": "語音通話已開始。",
                 "transcriptionFailed": "語音轉錄失敗。",
                 "ttsFailed": "文字轉語音失敗。",
-                "messageSendFailed": "語音訊息傳送失敗。"
+                "messageSendFailed": "語音訊息傳送失敗。",
+                "stoppedAfterFailure": "通話已停止。請解決問題後再開始新的通話。"
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "正在播放助理回覆。",
@@ -2319,7 +2452,7 @@
                 "messageInfo": "訊息中繼資料。",
                 "metricsAdvanced": "延伸的執行階段指標。",
                 "modelDetailTest": "向此模型傳送測試要求。",
-                "modelsDownload": "下載新模型。",
+                "modelsDownload": "下載模型、連接外部供應商或加入本機模型檔案",
                 "modelsEdit": "覆寫此模型可執行的功能。",
                 "modelsProviders": "外部模型提供者。",
                 "modelsRename": "為此模型指定本地名稱。",
@@ -2328,7 +2461,7 @@
                 "pluginsClone": "使用新設定複製此外掛程式。",
                 "pluginsConcurrent": "外掛程式工作的最大並行數。",
                 "pluginsConfig": "外掛程式設定。",
-                "pluginsDownload": "安裝內建或本地外掛程式。",
+                "pluginsDownload": "下載、上傳外掛程式，或從本機外掛程式資料夾加入",
                 "pluginsInfo": "外掛程式詳細資料與診斷資訊。",
                 "pluginsIntro": "外掛程式如何擴充 SoAI。",
                 "pluginsManageBackend": "管理後端版本。",
@@ -2336,7 +2469,8 @@
                 "settingsApiKeyQuota": "此 API 金鑰的使用量限制。",
                 "settingsExternalAccounts": "郵件與行事曆帳戶。",
                 "settingsMcpServer": "MCP 伺服器連線。",
-                "toolCallOutput": "工具呼叫的輸出。"
+                "toolCallOutput": "工具呼叫的輸出。",
+                "conversationInput": "檢視此提示詞及其附件。"
             },
             "loading": "載入中...",
             "confirm": "確認",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count}s"
+                    },
+                    "year": {
+                        "short": "{count}年"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "您有尚未儲存的變更。要不儲存並繼續嗎？",
             "unsavedChangesTitle": "未儲存的變更",
             "view": "檢視",
-            "yes": "是"
+            "yes": "是",
+            "retry": "重試"
         },
         "contentPreview": {
             "actions": {
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "網路",
+                    "unavailable": "無法取得介面卡清單",
                     "waiting": "正在偵測..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "基準測試",
                     "soaibenchStop": "停止",
                     "soaibenchStress": "壓力測試",
+                    "viewBenchmark": "檢視基準測試",
                     "test": "測試",
                     "reset": "重設",
                     "save": "儲存"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index} 的 SoAIBench {profile} 已開始",
                     "soaibenchStopRequested": "已要求停止 GPU {index} 的 SoAIBench",
                     "soaibenchUnsupported": "GPU {index} 不支援 SoAIBench：{reason}",
+                    "soaibenchSettingsLocked": "GPU {index} 正在執行基準測試。請先停止測試或等待其完成，再儲存設定。",
                     "slotApplied": "已套用 GPU {index} 插槽 {slot}",
                     "slotSaved": "已儲存 GPU {index} 插槽 {slot}"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "刪除本機歷史記錄",
+                "deleteLocalConfirm": {
+                    "title": "刪除 SoAIBench 執行結果？",
+                    "message": "要從本機歷史記錄中刪除此 SoAIBench 執行結果嗎？此操作無法復原。"
+                },
                 "action": "分享",
+                "openRun": "開啟結果",
                 "ariaLabel": "分享此 SoAIBench 分數",
                 "unavailable": "沒有可發布的 SoAIBench 執行結果",
-                "confirm": { "title": "分享 SoAIBench 分數？", "message": "要將分數 {score} 及其 {passes} 次測量結果發布至公開 SoAIBench 排行榜嗎？", "description": "這會傳送分數、五次測量結果、公開的 GPU 與執行階段資訊、基準測試設定，以及選用的感測器證據。不會傳送帳戶身分、檔案、設定、分析資料及一般遙測資料。soai.to 可看見一般連線中繼資料，例如您的 IP 位址。" },
-                "outcomes": { "published": "已公開分享 SoAIBench 分數。", "alreadyPublished": "此 SoAIBench 分數已分享。", "heldForReview": "SoAIBench 結果因需審核身分或異常情況而暫時保留，尚未計入排行榜。", "offline": "SoAI 離線時無法分享分數。", "unavailable": "SoAIBench 發布服務目前無法使用。", "timeout": "分享分數逾時。請重試以核對同一筆發布。", "rateLimited": "此連線分享的分數過多，請稍後再試。", "capacity": "SoAIBench 排行榜目前已達容量上限。", "rejected": "SoAIBench 排行榜拒絕了此結果。", "conflict": "此發布與現有排行榜狀態衝突。", "invalidResponse": "SoAIBench 排行榜傳回無效回應。", "retryAfter": "請在 {seconds} 秒後重試。" }
+                "confirm": {
+                    "title": "分享 SoAIBench 分數？",
+                    "message": "要將分數 {score} 及其 {passes} 次測量結果發布至公開 SoAIBench 排行榜嗎？",
+                    "description": "這會傳送分數、五次測量結果、公開的 GPU 與執行階段資訊、基準測試設定，以及選用的感測器證據。不會傳送帳戶身分、檔案、設定、分析資料及一般遙測資料。"
+                },
+                "outcomes": {
+                    "published": "已公開分享 SoAIBench 分數。",
+                    "alreadyPublished": "此 SoAIBench 分數已分享。",
+                    "heldForReview": "SoAIBench 結果因需審核身分或異常情況而暫時保留，尚未計入排行榜。",
+                    "offline": "SoAI 離線時無法分享分數。",
+                    "unavailable": "SoAIBench 發布服務目前無法使用。",
+                    "timeout": "分享分數逾時。請重試以核對同一筆發布。",
+                    "rateLimited": "此連線分享的分數過多，請稍後再試。",
+                    "capacity": "SoAIBench 排行榜目前已達容量上限。",
+                    "rejected": "SoAIBench 排行榜拒絕了此結果。",
+                    "conflict": "此發布與現有排行榜狀態衝突。",
+                    "invalidResponse": "SoAIBench 排行榜傳回無效回應。",
+                    "retryAfter": "請在 {seconds} 秒後重試。"
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3126,6 +3289,8 @@
                     "description": "所選 GPU 先前的 SoAIBench 執行記錄。",
                     "empty": "此 GPU 尚無 SoAIBench 執行記錄。",
                     "loading": "正在載入執行歷史記錄...",
+                    "pageEmpty": "目前沒有 SoAIBench 執行紀錄。",
+                    "pageLoadFailed": "無法載入 SoAIBench 執行紀錄。請重試。",
                     "matchBases": {
                         "device_id": "裝置 ID",
                         "gpu_model_key": "GPU 模型鍵",
@@ -3146,7 +3311,9 @@
                         "standard": "標準",
                         "stress": "壓力測試"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "OpenCL 工作負載數值驗證失敗。" },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "OpenCL 工作負載數值驗證失敗。"
+                    },
                     "rowCopyUnavailable": "沒有可複製的 SoAIBench 執行結果",
                     "staleHardware": "過期的硬體比對",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "SoAIBench 先前執行記錄"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "選擇要進行基準測試的 GPU",
+                    "noGpus": "沒有可用於基準測試的 GPU。",
                     "ariaLabels": {
                         "close": "關閉 SoAIBench",
                         "copy": "複製 SoAIBench 執行結果",
@@ -3170,6 +3339,9 @@
                         "retry": "重試認證 SoAIBench",
                         "stop": "停止認證 SoAIBench",
                         "stopping": "正在停止認證 SoAIBench",
+                        "newBenchmark": "開始新的認證 SoAIBench 執行",
+                        "runAgain": "在此 GPU 上再次執行認證 SoAIBench",
+                        "recover": "重新檢查 SoAIBench 狀態",
                         "start": "開始認證 SoAIBench"
                     },
                     "close": "關閉",
@@ -3231,7 +3403,11 @@
                         "stopping": "正在停止 SoAIBench",
                         "warmupDetail": "預熱 {pass}/{total}",
                         "warmupPhase": "預熱：{phase}",
-                        "warmup": "預熱回合完成"
+                        "warmup": "預熱回合完成",
+                        "reconnecting": "正在重新連線... 最後更新：{age}",
+                        "checkingStatus": "正在檢查基準測試狀態...",
+                        "statusUnavailable": "無法取得基準測試狀態。請重試以再次檢查。",
+                        "startUnconfirmed": "無法確認基準測試已啟動，且此 GPU 上沒有正在進行的執行。重試前請查看歷史記錄。"
                     },
                     "retry": "重試",
                     "scoreLabel": "SoAIBench 分數",
@@ -3253,6 +3429,15 @@
                     "standardRun": "標準執行",
                     "stop": "停止",
                     "stopping": "正在停止",
+                    "newBenchmark": "新增基準測試",
+                    "runAgain": "再次執行",
+                    "gpuBusy": "基準測試進行中",
+                    "startedAt": "開始於 {time}",
+                    "states": {
+                        "starting": "正在啟動",
+                        "unresolved": "狀態不明",
+                        "rejected": "未啟動"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "說明文件",
             "intro": {
                 "aboutButton": "關於 SoAI",
-                "paragraph1": "<strong>SoAI (人工智慧智慧型編排器)</strong> 可透過單一 WebUI 管理本機推論引擎與遠端 AI 提供者，並透過 OpenAI 與 Anthropic 相容 API 提供其模型。",
+                "paragraph1": "<strong dir=\"auto\">SoAI (人工智慧智慧型編排器)</strong> 可透過單一 WebUI 管理本機推論引擎與遠端 AI 提供者，並透過 OpenAI 與 Anthropic 相容 API 提供其模型。",
                 "paragraph2": "SoAI 可在 Linux、macOS 和 Windows 上執行。其原始碼可供檢視，個人與 homelab 使用免費。SoAI 不會收集您的資料，也不會傳送分析、遙測或使用情況報告。"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "延遲",
                         "queueDepth": "佇列深度",
                         "requests": "要求",
+                        "throughput": "Token 產生速率",
                         "tokens": "Token"
                     },
                     "title": "圖表"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "顯示名稱",
                     "source_model_id": "來源模型 ID",
-                    "provider": "提供者",
-                    "title": "識別資訊",
                     "type": "類型",
                     "universal_id": "通用 ID",
                     "virtual": "虛擬"
@@ -4064,30 +4248,20 @@
                     "title": "推論預設值"
                 },
                 "metrics": {
-                    "avgLatency": "平均延遲",
                     "avgTokens": "平均 token/要求",
                     "audioIn": "輸入音訊",
                     "audioOut": "輸出音訊",
-                    "failedRequests": "失敗的要求",
                     "imagesIn": "輸入影像",
                     "imagesOut": "輸出影像",
                     "last_used": "上次使用",
                     "modalityUsage": "使用量",
                     "success_rate": "成功率",
                     "textTokens": "文字 token",
-                    "title": "指標",
                     "tokensGenerated": "已生成的 token",
-                    "totalRequests": "要求總數",
-                    "waitTime": "平均等待時間"
+                    "totalRequests": "要求總數"
                 },
                 "plugin": {
-                    "author": "作者",
-                    "models": "模型",
-                    "plugin_status": "外掛程式狀態",
-                    "providers": "提供者",
-                    "title": "外掛程式",
-                    "type": "類型",
-                    "version": "版本"
+                    "title": "外掛程式"
                 },
                 "status": {
                     "available": "可用",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "重新命名",
                     "modelStatus": "模型狀態",
                     "orphaned": "孤立",
-                    "parameters": "參數",
                     "stopPlugin": "停止外掛程式",
-                    "title": "狀態與動作"
+                    "title": "狀態"
                 },
                 "technical": {
                     "created": "建立時間",
-                    "description": "說明",
                     "family": "系列",
                     "license": "授權條款",
                     "path": "路徑",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "所有參數",
-                "category": "類別",
                 "groupInference": "推論",
                 "groupStartup": "啟動"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "新增 {itemType} 項目",
                 "aliasesPrefix": "別名：",
                 "arrayOfType": "{itemType} 值的陣列",
+                "backendDefault": "後端預設值",
                 "backendDocumentationDescription": "這些模型參數包含由外掛程式提供的<strong>後端定義設定</strong>。如需瞭解確切行為、接受的值與預設值，請參閱後端本身的說明文件。",
-                "backendDocumentationTitle": "資訊",
                 "badges": {
                     "custom": "自訂",
-                    "default": "預設",
                     "requiresReload": "需要重新載入"
                 },
-                "countLabel": "{count} 個參數",
+                "count": {
+                    "plural": "{count} 個參數",
+                    "singular": "{count} 個參數"
+                },
                 "invalidJson": "請為此參數輸入有效的 JSON。",
                 "jsonObject": "JSON 物件",
                 "noMatchDescription": "請嘗試調整搜尋或篩選條件。",
                 "noMatchTitle": "沒有符合篩選條件的參數",
                 "noParameters": "此模型沒有可用的參數",
+                "railLabel": "參數類別",
                 "range": "範圍：{min} - {max}",
-                "removeItem": "移除項目"
+                "removeItem": "移除項目",
+                "revertChange": "還原變更",
+                "unsavedCount": {
+                    "plural": "{count} 項未儲存的變更",
+                    "singular": "{count} 項未儲存的變更"
+                },
+                "views": {
+                    "customized": "已自訂",
+                    "unsaved": "未儲存的變更"
+                }
             },
             "status": {
                 "loaded": "已載入",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "選擇檔案",
                     "close": "關閉",
                     "confirmDownload": "下載外掛程式",
                     "confirmUpload": "上傳外掛程式",
+                    "fileDropHint": "按一下以選擇 .soaiplugin 檔案，或將其拖曳到這裡",
+                    "fileDropTitle": "將外掛程式拖放到這裡",
                     "fileHelp": "選擇 ZIP 格式的 Python 外掛程式套件 (.soaiplugin)",
                     "fileLabel": "外掛程式檔案",
                     "manualCopySuccess": "外掛程式資料夾路徑已複製到剪貼簿。",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant}（已安裝）",
                     "loadFailed": "無法載入後端變體。",
                     "loading": "正在載入後端變體...",
+                    "loadingBackends": "正在載入後端...",
                     "saveFailed": "無法儲存後端變體。"
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "已啟用 {plugin} 的相容性覆寫。",
                 "overrideRequired": "啟動 {plugin} 前，請先啟用相容性覆寫。",
                 "persistentNoStop": "常駐外掛程式無法停止",
-                "pluginDisabled": "外掛程式已停用",
-                "pluginEnabled": "外掛程式已啟用",
+                "pluginDisabled": "已停用外掛程式 {plugin}",
+                "pluginEnabled": "已啟用外掛程式 {plugin}",
                 "pluginIncompatibleReason": "外掛程式「{plugin}」不相容：{reason}",
                 "pluginInfoCopyFailed": "無法複製外掛程式資訊",
                 "pluginStopInProgress": "正在停止 {plugin}...",
@@ -5489,16 +5674,21 @@
                 "restarting": "應用程式正在重新啟動。這應該只需要片刻。",
                 "shutdown": "系統正在關機。您可以關閉此瀏覽器視窗。",
                 "sleep": "系統正在進入睡眠模式。請喚醒系統以繼續使用 SoAI。",
-                "updating": "SoAI 正在下載並安裝更新。這可能需要幾分鐘。"
+                "updateTimeout": "更新後 SoAI 未能恢復上線。請檢查 SoAI 記錄資料夾中的 application_updater.log，然後重新載入此頁面。",
+                "updating": "SoAI 將重新啟動以完成更新。SoAI 恢復上線後，此頁面將自動重新載入。這可能需要幾分鐘。",
+                "updatingDesktop": "SoAI 將重新啟動以完成更新。更新完成後，此視窗將關閉並自動重新開啟。請不要關閉電腦。",
+                "updatingSlow": "更新所需時間比平常久。SoAI 仍在執行中，請保持此頁面開啟。"
             },
             "messages": {
                 "connectionLost": "後端連線中斷",
+                "installingVersion": "正在安裝 SoAI {version}...",
                 "pleaseWait": "請稍候...",
                 "rebooting": "系統正在重新啟動...",
                 "rebootTimeout": "重新啟動仍在進行中...",
                 "restarting": "SoAI 正在重新啟動...",
                 "shutdown": "系統正在關機",
                 "sleep": "系統即將進入睡眠",
+                "updateTimeout": "SoAI 尚未恢復",
                 "updating": "SoAI 正在更新..."
             },
             "reconnecting": "正在嘗試重新連線..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "為所有圖表選擇自訂色彩",
-                    "label": "固定色彩"
+                    "label": "圖表色彩"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "控制 SoAI 中類似程式碼的內容呈現方式。",
                 "subgroupTitle": "程式碼區塊"
+            },
+            "connect": {
+                "addressCopied": "已複製位址",
+                "browserAddress": "此瀏覽器的位址",
+                "chooseAddress": "手機使用的位址",
+                "copyAddress": "複製位址",
+                "description": "掃描 QR 碼，將 SoAI Connect Android 應用程式連線到此伺服器。",
+                "documentationHint": "如需手動設定與疑難排解，請在 SoAI 文件中開啟 \"Connect to a SoAI server\"。",
+                "documentationLink": "SoAI 文件",
+                "loadFailed": "無法載入連線詳細資料",
+                "loopbackWarningMessage": "SoAI 正在迴路位址上接聽，因此其他裝置無法直接連線。QR 碼僅能透過與 SoAI 使用相同協定和連接埠的反向代理運作。若要允許直接連線，請設定以下選項並重新啟動 SoAI：",
+                "loopbackWarningTitle": "僅能從此電腦連線",
+                "noAddressesMessage": "請將此伺服器連上網路，或從手機應使用的位址開啟此頁面。",
+                "noAddressesTitle": "找不到可連線的位址",
+                "qrLabel": "用於將 SoAI Connect 連線到 {address} 的 QR 碼",
+                "refresh": "重新整理位址",
+                "scanHint": "使用 SoAI Connect 應用程式掃描此 QR 碼",
+                "stepInstall": "在 Android 手機上安裝並開啟 SoAI Connect",
+                "stepScan": "輕觸伺服器位址欄位旁的 QR 碼按鈕，然後掃描此頁面上的 QR 碼",
+                "stepSignIn": "如出現憑證提示，請先檢視，然後使用您的 SoAI 帳戶登入",
+                "stepsTitle": "連線方式",
+                "title": "SoAI Connect",
+                "vpnHint": "您的手機必須能夠連到此伺服器。請使用相同的區域網路，或在外出時使用 VPN，而不要將 SoAI 暴露在網際網路上。",
+                "vpnTitle": "不在家？"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "自動隱藏頁首"
                     }
                 },
-                "subgroupTitle": "動態效果",
+                "subgroupTitle": "介面",
                 "subgroupDescription": "調整動態效果、轉場、玻璃表面與捲動行為。"
             },
             "externalAccounts": {
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "備份",
+                "connect": "連線",
                 "externalAccounts": "郵件與行事曆",
                 "licensing": "授權",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "選擇一張即可套用",
+                    "label": "內建桌布",
+                    "none": "無桌布",
+                    "option": "桌布 {number}"
+                },
                 "downloadUrl": {
                     "button": "下載",
                     "help": "提供 URL 以下載並設為桌布",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "部分版本說明無法載入。已顯示可用的說明。"
+            },
+            "outcome": {
+                "failureMessage": "更新至 {version} 版未完成。SoAI {previousVersion} 仍保持安裝。如需詳細資訊，請檢查 SoAI 記錄資料夾中的 application_updater.log。",
+                "failureTitle": "更新未完成",
+                "later": "稍後",
+                "reloadMessage": "SoAI 現在執行的是 {version} 版。請重新載入此頁面以使用更新後的介面。",
+                "reloadTitle": "SoAI 已更新",
+                "successMessage": "SoAI 已成功更新至 {version} 版。",
+                "successTitle": "更新完成"
+            },
+            "progress": {
+                "downloading": "正在下載更新...",
+                "handoff": "正在準備重新啟動 SoAI...",
+                "staging": "正在準備更新檔案...",
+                "unavailable": "即時進度暫時無法使用。",
+                "verifying": "正在驗證更新..."
+            },
             "actions": {
                 "checkUpdates": "檢查更新",
                 "installUpdate": "安裝更新"
@@ -7943,6 +8183,184 @@
             "welcome": {
                 "description": "SoAI 透過單一 OpenAI 相容編排層整合本機與遠端 LLM 後端。",
                 "heading": "歡迎使用 SoAI！"
+            },
+            "aiSetup": {
+                "eyebrow": "SoAI 設定",
+                "loadFailed": {
+                    "title": "無法載入 SoAI 設定",
+                    "description": "SoAI 無法讀取可用的引擎和提供者。請確認 SoAI 正在執行，然後重試，或稍後再完成設定。",
+                    "retry": "重試"
+                },
+                "nav": {
+                    "finishLater": "略過",
+                    "skip": "略過 SoAI 設定",
+                    "continue": "繼續",
+                    "installAndContinue": "安裝",
+                    "downloadAndContinue": "下載",
+                    "startChatting": "聊天",
+                    "close": "關閉"
+                },
+                "sources": {
+                    "heading": "您希望 AI 在哪裡執行？",
+                    "description": "選擇其中一項或兩項都選。之後可以變更。",
+                    "local": {
+                        "title": "在此裝置上",
+                        "description": "私密，設定完成後可離線使用。需要一次性下載。"
+                    },
+                    "cloud": {
+                        "title": "雲端提供者",
+                        "description": "只要有網路和供應商 API 金鑰，即可在任何地方使用。",
+                        "recommended": "建議"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "取得免費 API 金鑰",
+                    "accessibleName": "取得免費 API 金鑰（在新視窗中開啟）"
+                },
+                "limited": {
+                    "noCompatibleEngine": "沒有支援此裝置的本機引擎。",
+                    "insufficientMemory": "本機模型需要約 {required} 可用記憶體；此裝置約有 {available}。",
+                    "useCloud": "改用雲端模型",
+                    "searchManually": "手動搜尋模型"
+                },
+                "connect": {
+                    "heading": "準備就緒",
+                    "description": "連線提供者並準備此裝置。",
+                    "cloud": {
+                        "heading": "連線雲端提供者",
+                        "description": "貼上提供者給您的 API URL 和金鑰。",
+                        "moreOptions": "更多選項",
+                        "modelFilter": "模型篩選（選填）",
+                        "connect": "連線",
+                        "connecting": "正在連線至 {name}…",
+                        "connected": {
+                            "singular": "已連線 · {count} 個模型可用",
+                            "plural": "已連線 · {count} 個模型可用"
+                        },
+                        "change": "變更"
+                    },
+                    "local": {
+                        "heading": "安裝本機引擎",
+                        "description": "讓模型能在此裝置上執行。",
+                        "automatic": "自動（建議）",
+                        "usesGpu": "透過顯示卡使用 {engine}",
+                        "usesProcessor": "在處理器上使用 {engine}",
+                        "usesInstalled": "使用已安裝的 {engine}",
+                        "chooseManually": "手動選擇",
+                        "status": {
+                            "installed": "已安裝",
+                            "recommended": "建議",
+                            "warning": "警告",
+                            "unavailable": "無法使用"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "選擇模型",
+                    "description": "選擇要聊天的模型。之後可以再新增。",
+                    "local": {
+                        "heading": "適合此裝置的模型",
+                        "description": "依您的硬體挑選。"
+                    },
+                    "role": {
+                        "recommended": "建議",
+                        "faster": "更快",
+                        "smallest": "最小"
+                    },
+                    "useCase": {
+                        "advanced": "寫作、程式設計和推理的最佳品質",
+                        "balanced": "非常適合日常聊天、寫作和程式設計",
+                        "reasoning": "擅長逐步推理",
+                        "light": "在一般硬體上快速回答"
+                    },
+                    "downloadSize": "下載 {size}",
+                    "runsOnGpu": "在您的顯示卡上執行",
+                    "runsOnCpu": "在您的處理器上執行",
+                    "speed": {
+                        "fast": "回覆迅速",
+                        "moderate": "速度適中",
+                        "slow": "回覆較慢"
+                    },
+                    "details": {
+                        "label": "詳細資料",
+                        "quantization": "量化",
+                        "parameters": "參數",
+                        "parametersDense": "{total}B",
+                        "parametersMoe": "{total}B，啟用 {active}B",
+                        "context": "內容長度",
+                        "contextTokens": "{tokens} 個權杖",
+                        "contextReduced": "{tokens} 個權杖（已為此裝置縮減）",
+                        "file": "檔案",
+                        "source": "來源"
+                    },
+                    "openChatWith": "使用此模型開啟聊天",
+                    "searchAnother": "搜尋其他模型",
+                    "cloud": {
+                        "heading": "來自 {provider} 的模型",
+                        "description": "選擇一個或多個。",
+                        "filterPlaceholder": "篩選模型…",
+                        "noMatches": "沒有符合此篩選條件的模型。",
+                        "empty": "此提供者未傳回任何模型。請檢查模型篩選條件或嘗試其他提供者。",
+                        "backToProvider": "返回提供者"
+                    }
+                },
+                "progress": {
+                    "heading": "正在準備一切",
+                    "description": "只要有一個模型就緒，您就可以開始聊天。",
+                    "readyCount": "{ready}/{total} 已就緒",
+                    "installing": "正在安裝 {engine}",
+                    "downloading": "正在下載 {model}",
+                    "waitingForEngine": "正在等待 {engine} 完成安裝",
+                    "discovering": "正在將 {model} 新增至您的模型",
+                    "configuring": "正在套用初始設定",
+                    "testing": "正在傳送一則簡短的測試訊息",
+                    "ready": "{model} 已就緒",
+                    "blocked": "需要先安裝 {engine} 才能開始",
+                    "checkingStatus": "正在檢查狀態",
+                    "retry": "重試",
+                    "retryInstallation": "重試安裝",
+                    "skipItem": "略過此項目",
+                    "testAgain": "再次測試",
+                    "checkAgain": "再次檢查",
+                    "sendTest": "傳送測試訊息",
+                    "error": {
+                        "empty": "模型已載入但沒有回覆。請重試或選擇其他模型。",
+                        "loadError": "模型無法在此裝置上啟動。請重試或選擇較小的模型。",
+                        "timeout": "模型回覆時間過長。請重試或選擇較小的模型。",
+                        "disconnected": "測試期間連線中斷。請重試。",
+                        "downloadFailed": "下載已停止。請重試。",
+                        "installFailed": "安裝未完成。請重試。",
+                        "noDiskSpace": "磁碟空間不足，無法容納此模型。請釋出空間或選擇較小的模型。"
+                    },
+                    "testPrompt": "請用一句簡短友善的話回覆。",
+                    "testCancelled": "SoAI 設定測試已取消。"
+                },
+                "completion": {
+                    "modelsTitle": "AI 模型",
+                    "modelsReady": {
+                        "singular": "{count} 個已就緒",
+                        "plural": "{count} 個已就緒"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} 個仍在背景準備中",
+                        "plural": "{count} 個仍在背景準備中"
+                    }
+                },
+                "resume": {
+                    "link": "完成 SoAI 設定",
+                    "toast": "部分 SoAI 設定步驟需要您處理。"
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "模型下載將在背景繼續進行。",
+                        "plural": "{count} 個模型下載將在背景繼續進行。"
+                    },
+                    "installations": {
+                        "singular": "後端安裝將在背景繼續進行。",
+                        "plural": "{count} 個後端安裝將在背景繼續進行。"
+                    },
+                    "both": "模型下載和後端安裝將在背景繼續進行。"
+                }
             }
         }
     }

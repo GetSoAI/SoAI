@@ -6,6 +6,7 @@ import { filterStringArrayValue } from '@core/types/payloadArrayReaders.ts';
 import { DEFAULT_IGNORED_NETWORK_PREFIXES } from '@features/hardware/models/constants.ts';
 import { buildVolumeModels, getCpuDevices, getGpuDevices, getNetworkInterfaces } from '@features/hardware/models/mappers.ts';
 import { resolveNetworkSpeedEntry } from '@features/hardware/models/networkSpeed.ts';
+import { getWindowsNetworkInventoryStatus, isVisibleNetworkInterfaceName } from '@features/hardware/models/networkVisibility.ts';
 import type { HardwareModels, HardwareModelsOptions, HardwareSnapshot, NetworkAddress, NetworkInterfaceModel, NetworkInterfaceRaw, NetworkInterfaceOptions, NetworkModelOptions, NetworkSpeedSnapshot } from '@features/hardware/models/types.ts';
 
 const normalizeNetworkAddresses = (value: NetworkAddress[] | null | undefined): NetworkAddress[] => {
@@ -38,7 +39,7 @@ const normalizeNetworkAddresses = (value: NetworkAddress[] | null | undefined): 
     return addresses;
 };
 
-const buildNetworkInterfaceModel = (iface: NetworkInterfaceRaw, speeds: NetworkSpeedSnapshot | null | undefined, { ignorePrefixes = DEFAULT_IGNORED_NETWORK_PREFIXES }: NetworkInterfaceOptions = {}): NetworkInterfaceModel | null => {
+const buildNetworkInterfaceModel = (iface: NetworkInterfaceRaw, speeds: NetworkSpeedSnapshot | null | undefined, { ignorePrefixes = DEFAULT_IGNORED_NETWORK_PREFIXES, windowsInventoryStatus = null }: NetworkInterfaceOptions = {}): NetworkInterfaceModel | null => {
     const nameValue = iface?.name;
     const deviceIdValue = iface?.deviceId;
     if (!isString(nameValue) || !nameValue.trim()) {
@@ -49,9 +50,7 @@ const buildNetworkInterfaceModel = (iface: NetworkInterfaceRaw, speeds: NetworkS
     }
 
     const name = nameValue.trim();
-    const normalizedName = name.toLowerCase();
-    const ignored = filterStringArrayValue(ignorePrefixes).map((value) => value.toLowerCase());
-    if (ignored.some((prefix) => normalizedName.startsWith(prefix))) {
+    if (!isVisibleNetworkInterfaceName(name, windowsInventoryStatus, filterStringArrayValue(ignorePrefixes))) {
         return null;
     }
 
@@ -90,7 +89,7 @@ const buildNetworkInterfaceModel = (iface: NetworkInterfaceRaw, speeds: NetworkS
 
 const buildNetworkInterfaceModels = (snapshot: HardwareSnapshot | null | undefined, { speeds = snapshot?.networkSpeed, ignorePrefixes = DEFAULT_IGNORED_NETWORK_PREFIXES }: NetworkModelOptions = {}): NetworkInterfaceModel[] =>
     getNetworkInterfaces(snapshot)
-        .map((iface) => buildNetworkInterfaceModel(iface, speeds, { ignorePrefixes }))
+        .map((iface) => buildNetworkInterfaceModel(iface, speeds, { ignorePrefixes, windowsInventoryStatus: getWindowsNetworkInventoryStatus(snapshot) }))
         .filter((value): value is NetworkInterfaceModel => value !== null)
         .sort((firstValue, secondValue) => Math.max(secondValue.dlMbps, secondValue.ulMbps) - Math.max(firstValue.dlMbps, firstValue.ulMbps));
 

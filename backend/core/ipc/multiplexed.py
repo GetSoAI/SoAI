@@ -27,6 +27,7 @@ from core.ipc.ndjson import IpcStreamClosedError, NdjsonCodec
 from core.ipc.outbound_request_execution import execute_outbound_ipc_request
 from core.ipc.stream_closing import close_ipc_writer, is_ipc_peer_closed_exception
 from core.logging.trace import get_logger
+from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 from core.types.json import JSONDict
 
 __all__ = ("MultiplexedIpcServer",)
@@ -142,7 +143,10 @@ class MultiplexedIpcServer(LoopbackIpcServerBase):
     ) -> None:
         worker_id: int | None = None
         try:
-            hello = await self._codec.read_message(reader, timeout_sec=5.0)
+            hello = await self._codec.read_message(
+                reader,
+                timeout_sec=INTERACTIVE_TIMEOUT_SEC,
+            )
             worker_id, worker_secret = validate_hello(hello, self._token)
             await self._authorization.require_worker_secret(worker_id, worker_secret)
             connection = MultiplexedConnection(
@@ -155,7 +159,7 @@ class MultiplexedIpcServer(LoopbackIpcServerBase):
             await self._codec.write_message(
                 writer,
                 {"type": "hello_ack"},
-                timeout_sec=5.0,
+                timeout_sec=INTERACTIVE_TIMEOUT_SEC,
             )
             await read_multiplexed_connection(
                 codec=self._codec,

@@ -83,7 +83,7 @@
     }
 
     .prompt-enhancer-modal .prompt-enhancer-panes.prompt-enhancer-panes--split .prompt-enhancer-pane-separator .prompt-enhancer-pane-separator-icon {
-        margin-left: calc(var(--space-1) * 0.5);
+        margin-inline-start: calc(var(--space-1) * 0.5);
     }
 
     .prompt-enhancer-modal .prompt-enhancer-pane {

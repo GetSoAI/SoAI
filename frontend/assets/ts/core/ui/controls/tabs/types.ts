@@ -27,8 +27,6 @@ interface TabsOptions {
     activeTab?: string | null | undefined;
     onTabChange?: ((activeTab: string, previousTab: string | null) => void) | null | undefined;
     className?: string | undefined;
-    enableOverflowNav?: boolean | undefined;
-    navScrollAmount?: number | undefined;
 }
 
 export type { RightButtonConfig, TabConfig, TabsOptions };

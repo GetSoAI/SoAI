@@ -11,6 +11,7 @@ from core.tool_calls.chronology import (
     resolve_required_non_negative_integer,
 )
 from core.types.json import is_json_dict
+from core.validation.integers import is_strict_int
 from core.validation.strict_numbers import coerce_optional_non_negative_int_strict
 from core.validation.strings import coerce_required_non_empty_str
 from features.assistant_timeline.activity_status_sets import (
@@ -64,10 +65,18 @@ def normalize_tool_payload_content_anchor_locked(
         label="Assistant timeline tool payload 'call_id'",
     )
     layout = resolve_tool_call_layout(runtime, call_id)
+    authoritative = isinstance(tool_payload.get("turn_id"), str) and is_strict_int(
+        tool_payload.get("iteration_index")
+    )
     stable_boundary = layout.content_index_before if layout is not None else None
     if stable_boundary is None:
-        stable_boundary = content_boundary
-    elif stable_boundary > content_boundary:
+        if authoritative:
+            stable_boundary = content_index_before
+        else:
+            stable_boundary = content_boundary
+    if authoritative and layout is not None and content_index_before != stable_boundary:
+        raise ValidationError("Assistant timeline tool chronology conflicts with published layout.")
+    if stable_boundary > content_boundary:
         raise ValidationError("Assistant timeline tool layout exceeds visible content boundary.")
     if content_index_before == stable_boundary:
         return

@@ -10,7 +10,7 @@ import { ensureApiReady, hydrateIndexFromResources, markSystemReady, monitorSyst
 import { createSearchExecutionContext } from '@features/search/panel/executionContext.ts';
 import { resolveSoaiPathFileResult, searchFileExplorerResults, type FileSearchContext } from '@features/search/panel/fileResults.ts';
 import { getSearchIndexBucket } from '@features/search/panel/mappers.ts';
-import { loadSearchGrantedActions } from '@features/search/panel/permissions.ts';
+import { SearchPermissions } from '@features/search/panel/permissions.ts';
 import { buildPageIndexEntries } from '@features/search/searchPageIndex.ts';
 import { refreshStaticSearchIndexes } from '@features/search/panel/staticIndexes.ts';
 import type { SearchBackendDependencies, SearchIndexKey } from '@features/search/panel/contracts.ts';
@@ -19,7 +19,7 @@ import { SearchBackendState } from '@features/search/panel/state.ts';
 class SearchBackend {
     #dependencies: SearchBackendDependencies;
     #state: SearchBackendState;
-    readonly #permissionRefreshToken = new SequenceToken();
+    readonly #permissions = new SearchPermissions();
     readonly #staticRefreshToken = new SequenceToken();
 
     constructor(dependencies: SearchBackendDependencies) {
@@ -36,7 +36,7 @@ class SearchBackend {
     }
 
     reset(): void {
-        this.#permissionRefreshToken.invalidate();
+        this.#permissions.cancel();
         this.#staticRefreshToken.invalidate();
         this.#state.reset();
     }
@@ -76,19 +76,12 @@ class SearchBackend {
     }
 
     async refreshGrantedActions(): Promise<boolean> {
-        const sequence = this.#permissionRefreshToken.next();
-        const actions = await loadSearchGrantedActions();
-        if (!this.#permissionRefreshToken.isActive(sequence)) {
-            return false;
-        }
-        this.#state.grantedActions = actions;
-        this.#state.invalidateSearches();
-        this.syncAccessControlledIndexes();
-        return true;
+        return await this.#permissions.refresh(this.#state, () => this.syncAccessControlledIndexes());
     }
 
     resetGrantedActions(): void {
-        this.#permissionRefreshToken.invalidate();
+        this.#state.permissionError = null;
+        this.#permissions.cancel();
         this.#staticRefreshToken.invalidate();
         this.#state.invalidateSearches();
         this.#state.grantedActions = new Set();
@@ -178,6 +171,7 @@ class SearchBackend {
     }
 
     async search(query: string, limitOrOptions: number | SearchOptions = 10, options: SearchOptions = {}): Promise<SearchItem[]> {
+        if (this.#state.permissionError) throw this.#state.permissionError;
         if (parseSearchDirectReference(query)?.kind === 'soaiPath') {
             return [];
         }
@@ -185,6 +179,7 @@ class SearchBackend {
     }
 
     async searchFiles(query: string, limit: number = 10, options: SearchOptions = {}): Promise<SearchItem[]> {
+        if (this.#state.permissionError) throw this.#state.permissionError;
         if (!this.#state.grantedActions.has('FILE_EXPLORER_READ')) {
             return [];
         }

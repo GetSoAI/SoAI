@@ -4,6 +4,7 @@
 interface ApiAbortScope {
     readonly signal: AbortSignal;
     readonly timeoutTriggered: boolean;
+    refreshTimeout(): void;
     cleanup(): void;
 }
 
@@ -12,6 +13,16 @@ const createAbortScope = (externalSignal: AbortSignal | undefined, timeoutMs: nu
     let externalAbortHandler: (() => void) | null = null;
     let timeoutTriggered = false;
     let cleaned = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const startTimeout = (): void => {
+        timeoutId = setTimeout(() => {
+            if (abortController.signal.aborted) {
+                return;
+            }
+            timeoutTriggered = true;
+            abortController.abort();
+        }, timeoutMs);
+    };
     if (externalSignal) {
         if (externalSignal.aborted) {
             abortController.abort();
@@ -22,17 +33,18 @@ const createAbortScope = (externalSignal: AbortSignal | undefined, timeoutMs: nu
             externalSignal.addEventListener('abort', externalAbortHandler, { once: true });
         }
     }
-    const timeoutId = setTimeout(() => {
-        if (abortController.signal.aborted) {
-            return;
-        }
-        timeoutTriggered = true;
-        abortController.abort();
-    }, timeoutMs);
+    startTimeout();
     return {
         signal: abortController.signal,
         get timeoutTriggered(): boolean {
             return timeoutTriggered;
+        },
+        refreshTimeout(): void {
+            if (cleaned || abortController.signal.aborted) {
+                return;
+            }
+            clearTimeout(timeoutId);
+            startTimeout();
         },
         cleanup(): void {
             if (cleaned) {

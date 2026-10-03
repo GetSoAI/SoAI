@@ -6,12 +6,11 @@ class FileExplorerContentPreviewRequestController {
     #path: string | null = null;
     #abort = new AbortController();
 
-    normalizePath(path: string, message: string): string {
-        const normalized = path.trim();
-        if (!normalized) {
+    requirePath(path: string, message: string): string {
+        if (!path.trim()) {
             throw new Error(message);
         }
-        return normalized;
+        return path;
     }
 
     signal(): AbortSignal {

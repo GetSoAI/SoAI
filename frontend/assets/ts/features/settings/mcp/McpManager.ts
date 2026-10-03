@@ -6,6 +6,7 @@ import { requireNonNegativeIntegerDataAttribute, requireTrimmedDataAttribute } f
 import { errorHandler } from '@core/errorHandler.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { renderSettingsSection } from '@core/settings/settingsSectionRuntime.ts';
 import { SettingsSectionLifecycle } from '@features/settings/sectionLifecycle.ts';
 import { createSettingsCapabilityAvailability, markSettingsCapabilityFailed, markSettingsCapabilityReady, renderSettingsCapabilityNotice, settleSettingsCapability, type SettingsCapabilityAvailability } from '@features/settings/capabilityAvailability.ts';
@@ -43,6 +44,12 @@ class McpManager {
     readonly #sectionExpansion: McpSectionExpansionState;
     readonly #lifecycle: SettingsSectionLifecycle = new SettingsSectionLifecycle();
     #availability: SettingsCapabilityAvailability = createSettingsCapabilityAvailability();
+    #sectionActive = false;
+    #activityRefreshesStarted = false;
+    #hasLoaded = false;
+    #reloadInProgress = false;
+    #reloadSequence = 0;
+    #realtimeRefreshPending = false;
     constructor({ host }: McpManagerDependencies) {
         if (!host) {
             throw new Error('McpManager requires a host instance');
@@ -80,14 +87,14 @@ class McpManager {
         const resolveExpanded = this.#sectionExpansion.resolve;
         const configSection = this.#host.data.canPatchCoreConfig() ? renderMcpConfigSubgroup(this.#host, resolveExpanded) : '';
         const sections = renderMcpStatusSubgroup(this.#host) + this.#accessTokens.renderSubgroup(resolveExpanded) + configSection + renderMcpServersSubgroup(this.#host, resolveExpanded) + renderMcpConnectionsSubgroup(this.#host, resolveExpanded) + this.#interactions.renderSubgroup(resolveExpanded) + renderMcpResourcesSubgroup(this.#host, resolveExpanded) + renderMcpPromptsSubgroup(this.#host, resolveExpanded) + renderMcpToolsSubgroup(this.#host, resolveExpanded) + this.#searchKeys.renderSubgroup(resolveExpanded) + this.#roots.renderSubgroup(resolveExpanded);
-        return toTrustedUiHtml(`${renderSettingsCapabilityNotice(this.#availability)}<div class="settings-mcp-grid mcp-tools-scope">${sections}</div>`);
+        return toTrustedUiHtml(`${renderSettingsCapabilityNotice(this.#availability, { showPending: true })}<div class="settings-mcp-grid mcp-tools-scope">${sections}</div>`);
     }
     setupEventListeners(): void {
         this.dispose();
         this.#lifecycle.mount();
         this.#bindContainerHandlers();
         if (this.#host.services.isAdmin()) {
-            this.#lifecycle.addCleanup(bindMcpRealtime(this.#host, async () => this.reload()));
+            this.#lifecycle.addCleanup(bindMcpRealtime(this.#host, async () => this.#handleRealtimeRefresh()));
         }
     }
     readonly reload = async (): Promise<boolean> => {
@@ -95,12 +102,15 @@ class McpManager {
         if (reloadRun === null) {
             return false;
         }
+        this.#reloadSequence += 1;
+        const reloadSequence = this.#reloadSequence;
+        this.#reloadInProgress = true;
         try {
-            const accessTokensResult = settleSettingsCapability(() => this.#accessTokens.reload());
+            const accessTokensResult = settleSettingsCapability(() => this.#accessTokens.reload(reloadRun.signal));
             let successfulCapabilities = 0;
             const failures: Error[] = [];
             if (this.#host.services.isAdmin()) {
-                const [tokens, data] = await Promise.all([accessTokensResult, fetchMcpManagerData(this.#host)]);
+                const [tokens, data] = await Promise.all([accessTokensResult, fetchMcpManagerData(this.#host, reloadRun.signal)]);
                 if (!this.#lifecycle.isReloadCurrent(reloadRun)) {
                     return false;
                 }
@@ -118,6 +128,7 @@ class McpManager {
             }
             const expectedCapabilities = this.#host.services.isAdmin() ? 10 : 1;
             this.#availability = failures.length === 0 ? markSettingsCapabilityReady() : markSettingsCapabilityFailed(this.#availability, successfulCapabilities > 0);
+            this.#hasLoaded = true;
             for (const failure of failures) {
                 this.#host.execution.feedback.handle(failure, 'MCP manager capability reload', { severity: 'warn' });
             }
@@ -135,10 +146,43 @@ class McpManager {
             errorHandler.warn('McpManager', 'MCP manager reload failed', runtimeError);
             this.#host.execution.feedback.show(i18n.t('settings.mcp.errors.reloadFailed'), 'error');
             return false;
+        } finally {
+            if (this.#reloadSequence === reloadSequence) {
+                this.#reloadInProgress = false;
+                this.#schedulePendingRealtimeRefresh();
+            }
         }
     };
+
+    setSectionActive(active: boolean): void {
+        if (this.#sectionActive === active) {
+            return;
+        }
+        this.#sectionActive = active;
+        if (!active) {
+            this.#lifecycle.abortReload('mcp-section-hidden');
+            return;
+        }
+        if (!this.#activityRefreshesStarted) {
+            return;
+        }
+        if (!this.#hasLoaded || this.#realtimeRefreshPending) {
+            this.#realtimeRefreshPending = false;
+            terminateHandledPromise(this.reload());
+        }
+    }
+
+    async startActivityRefreshes(): Promise<boolean> {
+        this.#activityRefreshesStarted = true;
+        if (!this.#sectionActive || this.#hasLoaded) {
+            return true;
+        }
+        return await this.reload();
+    }
+
     dispose(): void {
         this.#lifecycle.dispose('mcp-dispose');
+        this.#reloadInProgress = false;
     }
     #renderIntoContainer(): void {
         if (!this.#lifecycle.isMounted) {
@@ -182,6 +226,20 @@ class McpManager {
             this.#roots.syncPendingFieldStates();
         }
         this.#host.execution.notifySaveChanged();
+    }
+    async #handleRealtimeRefresh(): Promise<boolean> {
+        if (!this.#sectionActive || this.#reloadInProgress) {
+            this.#realtimeRefreshPending = true;
+            return false;
+        }
+        return await this.reload();
+    }
+    #schedulePendingRealtimeRefresh(): void {
+        if (!this.#sectionActive || !this.#realtimeRefreshPending) {
+            return;
+        }
+        this.#realtimeRefreshPending = false;
+        terminateHandledPromise(this.reload());
     }
     #requireContainer(): HTMLElement {
         return this.#host.view.pageDom.requireHTMLElement(MCP_CONTAINER_ID);

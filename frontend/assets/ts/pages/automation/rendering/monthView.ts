@@ -4,7 +4,7 @@
 import { i18n } from '@core/i18n/index.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { uiAttr, uiText } from '@core/security/uiHtml.ts';
-import { AUTOMATION_ACTION_SELECT_DAY, AUTOMATION_ACTION_SELECT_ZONE, type AutomationZone } from '@features/automation/public.ts';
+import { AUTOMATION_ACTION_SELECT_DAY, AUTOMATION_ACTION_SELECT_ZONE, type AutomationOccurrenceResponse } from '@features/automation/public.ts';
 import { buildAutomationZoneKeyForZone } from '@pages/automation/contracts/zoneKey.ts';
 import { resolveAutomationRunStatusContainerClass } from '@pages/automation/controllers/automationZoneFormatters.ts';
 import { renderAutomationColorAttribute } from '@pages/automation/rendering/automationColorMarkup.ts';
@@ -17,7 +17,7 @@ const resolveSparkPos = (utcMs: number): number => {
     return clampSparkPos(minutes / 1440);
 };
 
-const renderSparklineMarkers = (zones: readonly AutomationZone[]): string => {
+const renderSparklineMarkers = (zones: readonly AutomationOccurrenceResponse[]): string => {
     const MAX_MARKERS = 12;
     if (zones.length === 0) {
         return '';
@@ -33,7 +33,7 @@ const renderSparklineMarkers = (zones: readonly AutomationZone[]): string => {
             .join('');
     }
 
-    const bins: { count: number; color: AutomationZone['color'] }[] = Array.from({ length: MAX_MARKERS }).map(() => ({ count: 0, color: null }));
+    const bins: { count: number; color: AutomationOccurrenceResponse['color'] }[] = Array.from({ length: MAX_MARKERS }).map(() => ({ count: 0, color: null }));
     for (const zone of zones) {
         const pos = resolveSparkPos(zone.scheduledAtMs);
         const index = clampNumber(Math.floor(pos * MAX_MARKERS), 0, MAX_MARKERS - 1);
@@ -67,13 +67,15 @@ const renderMonthView = (options: {
     showWeekNumbers: boolean;
     weekNumbers: readonly number[];
     maxChipsPerDay: number;
+    formatZoneLabel: (zone: AutomationOccurrenceResponse) => string;
     days: readonly {
         iso: string;
+        label: string;
         day: number;
         isOutside: boolean;
         isToday: boolean;
         isSelected: boolean;
-        zones: readonly AutomationZone[];
+        zones: readonly AutomationOccurrenceResponse[];
         selectedZoneKey: string | null;
     }[];
 }): string => {
@@ -107,8 +109,10 @@ const renderMonthView = (options: {
             }
             return String(entry.zones.length);
         })();
-        const countBadgeMarkup = countBadgeText ? `<span class="automation-month-day-count automation-month-day-count-badge">${uiText(countBadgeText).html}</span>` : '';
-        const dayLabel = String(entry.day);
+        const countBadgeMarkup = countBadgeText ? `<span class="automation-month-day-count automation-month-day-count-badge" aria-hidden="true">${uiText(countBadgeText).html}</span>` : '';
+        const dayAction = `data-action="${uiAttr(AUTOMATION_ACTION_SELECT_DAY).html}" data-date="${uiAttr(entry.iso).html}"`;
+        const dayState = `aria-pressed="${entry.isSelected ? 'true' : 'false'}"${entry.isToday ? ' aria-current="date"' : ''}`;
+        const dayButton = `<button type="button" class="automation-month-day-number" ${dayAction} ${dayState} aria-label="${uiAttr(entry.label).html}" data-tooltip="${uiAttr(entry.label).html}">${uiText(String(entry.day)).html}</button>`;
 
         const zones = visibleZones
             .map((zone) => {
@@ -116,11 +120,11 @@ const renderMonthView = (options: {
                 const selected = entry.selectedZoneKey === key ? ' is-selected' : '';
                 const statusClass = resolveAutomationRunStatusContainerClass(zone.status);
                 const colorAttr = renderAutomationColorAttribute(zone.color);
-                return `<button type="button" class="automation-zone-chip ${uiAttr(statusClass).html}${selected}"${colorAttr} data-run-status="${uiAttr(zone.status).html}" data-action="${uiAttr(AUTOMATION_ACTION_SELECT_ZONE).html}" data-zone-key="${uiAttr(key).html}" aria-label="${uiAttr(zone.title).html}" data-tooltip="${uiAttr(zone.title).html}">` + `<span class="automation-zone-chip-title">${uiText(zone.title).html}</span>` + `</button>`;
+                return `<button type="button" class="automation-zone-chip ${uiAttr(statusClass).html}${selected}"${colorAttr} data-run-status="${uiAttr(zone.status).html}" data-action="${uiAttr(AUTOMATION_ACTION_SELECT_ZONE).html}" data-zone-key="${uiAttr(key).html}" aria-label="${uiAttr(options.formatZoneLabel(zone)).html}" data-tooltip="${uiAttr(zone.title).html}">` + `<span dir="auto" class="automation-zone-chip-title">${uiText(zone.title).html}</span>` + `</button>`;
             })
             .join('');
         const sparklineMarkup = showSparkline ? `<div class="automation-month-sparkline" aria-hidden="true">${renderSparklineMarkers(entry.zones)}</div>` : '';
-        return `<div class="${uiAttr(classes.join(' ')).html}" data-action="${uiAttr(AUTOMATION_ACTION_SELECT_DAY).html}" data-date="${uiAttr(entry.iso).html}" role="button" tabindex="0" aria-label="${uiAttr(dayLabel).html}" data-tooltip="${uiAttr(dayLabel).html}">` + `${sparklineMarkup}` + `<div class="automation-month-day-header"><span class="automation-month-day-number">${uiText(String(entry.day)).html}</span>${countBadgeMarkup}</div>` + `<div class="automation-month-zones">${zones}</div>` + `</div>`;
+        return `<div class="${uiAttr(classes.join(' ')).html}" ${dayAction}>` + `${sparklineMarkup}` + `<div class="automation-month-day-header">${dayButton}${countBadgeMarkup}</div>` + `<div class="automation-month-zones">${zones}</div>` + `</div>`;
     });
 
     let dayCells = '';

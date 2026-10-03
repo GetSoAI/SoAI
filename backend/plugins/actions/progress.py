@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from core.errors.exception_coercion import coerce_to_soai_error
@@ -14,6 +15,7 @@ from core.logging.trace import get_logger
 from core.tasks.api_events import send_task_complete_event, send_task_progress_event
 
 if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
     from core.events.types_base import Event
     from core.tasks.protocols import TaskRegistryProtocol
     from core.tasks.protocols_operations import (
@@ -104,6 +106,7 @@ async def send_completion_with_task(
     error_code: int | None = None,
     error_type: str | None = None,
     error_message: str | None = None,
+    public_error: ErrorPublicPayload | None = None,
     mutation_fencing_token: int | None = None,
     task_registry: TaskRegistryProtocol,
     send_task_complete_event_callable: SendTaskCompleteEventCallable | None = None,
@@ -128,6 +131,7 @@ async def send_completion_with_task(
             error_code=error_code,
             error_type=error_type,
             error_message=error_message,
+            public_error=public_error,
             mutation_fencing_token=mutation_fencing_token,
             registry=registry,
         )
@@ -152,6 +156,7 @@ async def send_completion_with_task_for_plugin_manager(
     cancelled: bool = False,
     error_code: int | None = None,
     error_message: str | None = None,
+    public_error: ErrorPublicPayload | None = None,
     mutation_fencing_token: int | None = None,
 ) -> None:
     await send_completion_with_task(
@@ -163,6 +168,7 @@ async def send_completion_with_task_for_plugin_manager(
         cancelled=cancelled,
         error_code=error_code,
         error_message=error_message,
+        public_error=public_error,
         mutation_fencing_token=mutation_fencing_token,
         task_registry=manager.task_registry,
         send_task_complete_event_callable=manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
@@ -177,7 +183,11 @@ async def send_unexpected_error_completion_for_plugin_manager(
 ) -> None:
     error = coerce_to_soai_error(exception, trace_id=task_id)
     public_error = project_public_exception(error, trace_id=task_id)
-    message = "The plugin operation failed. Check the selected resource and server diagnostics, then retry."
+    message = (
+        public_error.message
+        if error.public_message
+        else "The plugin operation failed. Check the selected resource and server diagnostics, then retry."
+    )
     await send_completion_with_task(
         reply_channel,
         task_id,
@@ -186,6 +196,7 @@ async def send_unexpected_error_completion_for_plugin_manager(
         error_code=error.http_status,
         error_type=str(public_error.code),
         error_message=message,
+        public_error=replace(public_error, message=message),
         task_registry=manager.task_registry,
         send_task_complete_event_callable=manager.dependencies.infrastructure.task_helpers.send_task_complete_event,
     )

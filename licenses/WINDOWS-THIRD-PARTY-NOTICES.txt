@@ -15,9 +15,9 @@ for the SDK files and runtime deployment are provided in:
 Managed Python runtime
 ----------------------
 
-The Windows installer downloads the pinned Python 3.13 NuGet runtime into the SoAI installation. That package includes
-Python, OpenSSL, libffi, and Microsoft Visual C++ runtime components and retains its own upstream license file. Additional
-copies and notices shipped with SoAI are provided in:
+The Windows distribution includes the pinned Python 3.13 NuGet runtime package and installs it into the SoAI managed
+runtime only when needed. That package includes Python, OpenSSL, libffi, and Microsoft Visual C++ runtime components
+and retains its own upstream license file. Additional copies and notices shipped with SoAI are provided in:
 
   licenses/Python-3.13-LICENSE.txt
   licenses/OpenSSL-NOTICE.txt

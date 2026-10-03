@@ -3,6 +3,7 @@
 
 import { i18n } from '@core/i18n/index.ts';
 import { getCurrentLocale } from '@core/languageservice/service.ts';
+import { getCollator } from '@core/localization/intlCache.ts';
 import { formatDateTimeSecond } from '@core/primitives/dateTime.ts';
 import { resolveAlphabeticGroupKey } from '@core/primitives/grouping.ts';
 import { sanitizeDownloadFilename } from '@core/primitives/download.ts';
@@ -70,7 +71,7 @@ const resolveDateGroupHeading = (groupKey: string): string => {
 export const comparePromptNames = (left: string | null | undefined, right: string | null | undefined): number => {
     const firstValue = left ?? '';
     const secondValue = right ?? '';
-    return firstValue.localeCompare(secondValue, getCurrentLocale(), { sensitivity: 'base', numeric: true });
+    return getCollator(getCurrentLocale(), { sensitivity: 'base', numeric: true }).compare(firstValue, secondValue);
 };
 
 export const mapPromptsByDate = (prompts: PromptRecord[], now: Date, dateGroups: ReadonlyArray<string>): PromptGroup[] => {

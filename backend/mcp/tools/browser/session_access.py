@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, NoReturn
 
 from core.config.value_validation import is_config_dict
@@ -224,22 +223,17 @@ async def find_existing_session(
         session_scope=session_scope,
     )
     store = utility_tools.browser_sessions
-    create_lock: asyncio.Lock | None = None
     async with store.sessions_lock:
         state = store.sessions.get(owner_key)
         if state is not None and bool(state.context_closed):
-            store.sessions.pop(owner_key, None)
             state = None
-        if state is None:
-            create_lock = store.owner_create_locks.get(owner_key)
     if state is not None:
         return (store, state)
-    if create_lock is not None and create_lock.locked():
-        async with create_lock:
+    if store.owner_create_locks.is_locked(owner_key):
+        async with store.owner_create_locks.lock(owner_key):
             async with store.sessions_lock:
                 state = store.sessions.get(owner_key)
                 if state is not None and bool(state.context_closed):
-                    store.sessions.pop(owner_key, None)
                     state = None
             if state is not None:
                 return (store, state)

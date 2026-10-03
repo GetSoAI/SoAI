@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "अभी"
+                "now": "अभी",
+                "occurrenceLabel": "{title}, {date} {time}, {status}",
+                "createAt": "{date} को {time} पर ऑटोमेशन बनाएँ। समय बदलने के लिए तीर कुंजियों का उपयोग करें।"
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "शुरुआत",
                     "turns": "टर्न",
                     "timezone": "समय क्षेत्र",
-                    "title": "शीर्षक"
+                    "title": "शीर्षक",
+                    "modelSettings": "मॉडल, टूल और पैरामीटर"
                 },
                 "workspace": {
                     "button": "फ़ोल्डर चुनें",
                     "description": "इस ऑटोमेशन रन द्वारा उपयोग किया जाने वाला फ़ोल्डर चुनें। दोहराए जाने वाले रन इसी ऑटोमेशन फ़ोल्डर को रखते हैं।",
                     "fieldLabel": "वर्कस्पेस फ़ोल्डर",
-                    "title": "ऑटोमेशन वर्कस्पेस फ़ोल्डर"
+                    "title": "ऑटोमेशन वर्कस्पेस फ़ोल्डर",
+                    "viewButton": "कार्यस्थान देखें"
                 },
                 "parameters": {
                     "button": "पैरामीटर संपादित करें",
@@ -166,17 +170,17 @@
                     "fieldLabel": "मॉडल पैरामीटर",
                     "summaryCustom": "कस्टम ऑटोमेशन पैरामीटर",
                     "summaryDefault": "डिफ़ॉल्ट मॉडल पैरामीटर",
-                    "title": "ऑटोमेशन मॉडल पैरामीटर"
+                    "title": "ऑटोमेशन मॉडल पैरामीटर",
+                    "viewButton": "पैरामीटर देखें"
                 },
                 "timezone": {
-                    "auto": "ऑटो"
+                    "autoWithZone": "स्वचालित ({timezone})"
                 },
                 "placeholders": {
                     "assistantTurn": "मॉडल का जवाब",
                     "endOfAutomation": "ऑटोमेशन का अंत",
                     "model": "मॉडल चुनें",
                     "turn": "संदेश दर्ज करें",
-                    "turnIndexed": "संदेश {index} दर्ज करें",
                     "title": "शीर्षक दर्ज करें"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "सहेजें",
                 "validation": {
                     "maxRunMinutesInvalid": "रन की अधिकतम अवधि 1 से 1440 मिनट के बीच होनी चाहिए।",
-                    "modelUnavailable": "चुना गया मॉडल उपलब्ध नहीं है।",
+                    "modelUnavailable": "{model} उपलब्ध नहीं है। कोई दूसरा मॉडल चुनें।",
                     "modelRequired": "मॉडल आवश्यक है।",
                     "recurrenceInvalid": "पुनरावृत्ति अमान्य है।",
                     "startInvalid": "शुरू होने की तारीख़ और समय अमान्य है।",
@@ -195,7 +199,42 @@
                     "turnsRequired": "सभी टर्न आवश्यक हैं।",
                     "tooManyTurns": "बहुत अधिक टर्न हैं (अधिकतम {max})। हर टर्न एक एजेंट टर्न के रूप में निष्पादित होता है।",
                     "timezoneRequired": "समय क्षेत्र आवश्यक है।",
-                    "titleRequired": "शीर्षक आवश्यक है।"
+                    "titleRequired": "शीर्षक आवश्यक है।",
+                    "modelDisabled": "{model} अक्षम है। इसे सक्षम करें या कोई दूसरा मॉडल चुनें।",
+                    "modelMissing": "{model} अब इंस्टॉल नहीं है। कोई दूसरा मॉडल चुनें।",
+                    "modelUnsupported": "{model} चैट का समर्थन नहीं करता। कोई दूसरा मॉडल चुनें।",
+                    "summary": "सहेजने से पहले {count} फ़ील्ड ठीक करें।",
+                    "toolsRequired": "निष्पादन के लिए टूल सक्षम होने चाहिए और todo_write चयनित होना चाहिए।",
+                    "timezoneInvalid": "समय क्षेत्र अमान्य है। कोई समर्थित समय क्षेत्र चुनें।"
+                },
+                "conflict": {
+                    "message": "जब आप इसे संपादित कर रहे थे, तब यह ऑटोमेशन कहीं और बदला गया। आपके बदलाव सहेजे नहीं गए हैं।",
+                    "remoteChanges": "कहीं और बदला गया: {fields}",
+                    "localChanges": "आपके बदलाव: {fields}",
+                    "keepChanges": "मेरे बदलाव रखें",
+                    "loadLatest": "नवीनतम संस्करण लोड करें"
+                },
+                "modelStatus": {
+                    "unavailable": "अनुपलब्ध",
+                    "unsupported": "चैट समर्थन नहीं"
+                },
+                "prerequisites": {
+                    "failed": "संपादक आवश्यक सभी चीज़ें लोड नहीं कर सका।",
+                    "missing": "यह ऑटोमेशन अब मौजूद नहीं है।",
+                    "toolsUnavailable": "टूल लोड नहीं हो सके। मौजूदा चुने गए टूल बनाए रखे गए हैं।",
+                    "childFailed": "सेटिंग्स नहीं खोली जा सकीं। फिर से प्रयास करें।"
+                },
+                "schedule": {
+                    "ambiguous": "घड़ी बदलने के कारण {timezone} में {start} दो बार आता है। पहली बार वाला समय उपयोग किया जाता है।",
+                    "shiftedForward": "घड़ी बदलने के कारण {timezone} में {start} मौजूद नहीं है। इसके बजाय यह {effective} पर चलेगा।",
+                    "disabled": "अक्षम: कोई रन शेड्यूल नहीं किया जाएगा।",
+                    "nextRun": "अगला रन: {when} ({timezone})",
+                    "nextRunLocal": "अगला रन: {when} ({timezone}), आपके समय अनुसार {localWhen}",
+                    "unavailable": "शेड्यूल पूर्वावलोकन उपलब्ध नहीं है।"
+                },
+                "turns": {
+                    "label": "टर्न {index}",
+                    "remove": "टर्न {index} हटाएँ"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "ऑटोमेशन प्राथमिकताएँ डिफ़ॉल्ट पर रीसेट की गईं।",
                 "runOpenFailed": "अनुरोधित ऑटोमेशन रन नहीं खोला जा सका।",
                 "runUnavailable": "अनुरोधित ऑटोमेशन रन अब इस दृश्य में उपलब्ध नहीं है।",
-                "updated": "ऑटोमेशन अपडेट किया गया।"
+                "updated": "ऑटोमेशन अपडेट किया गया।",
+                "changeRefreshFailed": "बदलाव लागू हो गया, लेकिन दृश्य रीफ़्रेश नहीं हो सका।",
+                "conflict": "यह ऑटोमेशन कहीं और बदला गया था। फिर से सहेजने से पहले बदलावों की समीक्षा करें।",
+                "defaultsNotRemembered": "सहेजा गया, लेकिन इन सेटिंग्स को नए ऑटोमेशन के लिए याद नहीं रखा जा सका।",
+                "missingOnSave": "यह ऑटोमेशन अब मौजूद नहीं है। हो सकता है इसे कहीं और हटाया गया हो।"
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "आज",
                         "yesterday": "कल"
                     },
-                    "turnsCount": "टर्न: {count}",
                     "title": "रन",
                     "toolbar": {
                         "batchDelete": "चुने गए रन हटाएँ",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "क्या {count} रन हटाएँ? चल रहे रन रोक दिए जाएँगे।",
-                        "deleteTitle": "रन हटाएँ?"
+                        "deleteTitle": "रन हटाएँ?",
+                        "skipTitle": "रन छोड़ें?",
+                        "skipMessage": "{title} इस समय नहीं चलेगा। अन्य रन प्रभावित नहीं होंगे।",
+                        "skipConfirm": "छोड़ें",
+                        "stopTitle": "रन रोकें?",
+                        "stopMessage": "{title} चल रहा है। इसे रोक दिया जाएगा और कैलेंडर से हटा दिया जाएगा।",
+                        "stopConfirm": "रोकें",
+                        "removeTitle": "रन हटाएँ?",
+                        "removeMessage": "{title} को कैलेंडर से हटा दिया जाएगा।",
+                        "removeConfirm": "हटाएँ"
                     },
                     "notifications": {
-                        "deleteSuccess": "{count} रन हटाए गए।"
-                    }
+                        "deleteSuccess": "{count} रन हटाए गए।",
+                        "nothingToDelete": "चुने गए रन अब इस दृश्य में नहीं हैं।",
+                        "tooManySelected": "एक बार में अधिकतम {max} रन चुनें।"
+                    },
+                    "occurrencesCount": "रन: {count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "पिछला",
                 "showCalendar": "कैलेंडर",
                 "showRegistry": "पैन",
-                "today": "आज"
+                "today": "आज",
+                "staleData": "पुराना डेटा",
+                "staleDataSince": "ऑटोमेशन डेटा पुराना हो सकता है। अंतिम अपडेट {time}। फिर से प्रयास करने के लिए चुनें।",
+                "resizePanes": "कैलेंडर और साइड पैनल का आकार बदलें"
             },
             "views": {
                 "day": "दिन",
@@ -300,6 +357,7 @@
                     "bar": "बार",
                     "candlestick": "OHLC",
                     "deviation": "विचलन",
+                    "heikin-ashi": "हाइकिन आशी",
                     "label": "चार्ट प्रकार",
                     "line": "लाइन",
                     "precision-line": "लाइन"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "न्यूनतम: ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "कोई डेटा नहीं · SoAI ऑफ़लाइन",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "रीयल-टाइम ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "इतिहास लोड नहीं किया जा सका।",
             "loadingState": "लोड हो रहा है",
             "manualScaleLabel": "मैन्युअल"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "SoAI लिंक अटैच करें",
                 "tabBrowse": "वर्कस्पेस",
                 "tabCamera": "स्कैन",
+                "tabDisabledReason": "चैट कॉन्फ़िगरेशन › {tab} में {setting} चालू करें",
                 "tabKnowledge": "ज्ञान",
                 "tabSoaiLink": "SoAI लिंक",
                 "tabUpload": "अपलोड",
@@ -559,7 +620,16 @@
                 "recordingStatus": "रिकॉर्डिंग {elapsed}",
                 "recordingTitle": "वॉइस रिकॉर्डिंग",
                 "requestingStatus": "ब्राउज़र की अनुमति का इंतज़ार है",
-                "requestingTitle": "माइक्रोफ़ोन एक्सेस माँगा जा रहा है"
+                "requestingTitle": "माइक्रोफ़ोन एक्सेस माँगा जा रहा है",
+                "pushToTalk": {
+                    "cancelled": "रिकॉर्डिंग रद्द की गई।",
+                    "queued": "कतार में जोड़ा गया।",
+                    "releaseToCancel": "रद्द करने के लिए छोड़ें",
+                    "releaseToSend": "भेजने के लिए छोड़ें · रद्द करने के लिए बाएँ खिसकाएँ",
+                    "sending": "भेजा जा रहा है…",
+                    "transcribing": "लिप्यंतरण हो रहा है…",
+                    "transcriptReview": "लिप्यंतरण जोड़ दिया गया। भेजने से पहले अपडेट किया गया ड्राफ़्ट जाँचें।"
+                }
             },
             "authorityLock": {
                 "automationReason": "यह एक ऑटोमेशन वार्तालाप है। इसकी निष्पादन सेटिंग्स ऑटोमेशन → ऑटोमेशन संपादित करें में बदलें।",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "अपलोड",
                 "assistantAvatarUploadLabel": "सहायक अवतार अपलोड करें",
                 "assistantNamePlaceholder": "कस्टम मॉडल नाम दर्ज करें...",
+                "autoHideChatComposer": "चैट कंपोज़र स्वतः छिपाएँ",
+                "autoHideChatComposerHint": "पिछले संदेश पढ़ते समय खाली चैट कंपोज़र छिपाएँ।",
+                "autoHideChatHeader": "चैट हेडर स्वतः छिपाएँ",
+                "autoHideChatHeaderHint": "पिछले संदेश पढ़ते समय बातचीत का हेडर छिपाएँ।",
                 "identityNameInvalid": "डिस्प्ले नाम में अधिकतम 50 Unicode वर्ण हो सकते हैं और उसमें अमान्य टेक्स्ट नहीं होना चाहिए।",
                 "promptInvalid": "प्रॉम्प्ट में अमान्य Unicode टेक्स्ट है।",
                 "close": "बंद करें",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "यह वार्तालाप चलने के दौरान टूल एक्सेस नहीं बदला जा सकता।",
                     "toolsEnabledHint": "इस वार्तालाप के लिए MCP टूल सक्षम करें। नई चैट आपके आख़िरी सहेजे गए मान से शुरू होती हैं।",
                     "tool_approval_required": "टूल अनुमोदन आवश्यक करें",
-                    "toolApprovalRequiredHint": "विनाशकारी टूल चलाने से पहले पुष्टि माँगें।"
+                    "toolApprovalRequiredHint": "विनाशकारी टूल चलाने से पहले पुष्टि माँगें।",
+                    "unavailableTools": "अनुपलब्ध सहेजे गए टूल: {tools}। चयन सुरक्षित रखे गए हैं।",
+                    "unavailableServers": "अनुपलब्ध सहेजे गए सर्वर: {servers}। सेटिंग्स सुरक्षित रखी गई हैं।"
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "इस सुविधा के लिए संदर्भ लंबाई को ओवरराइड करता है। चुने गए मॉडल का डिफ़ॉल्ट उपयोग करने के लिए खाली छोड़ें।",
@@ -1035,7 +1111,8 @@
                 "newTitle": "नया वार्तालाप",
                 "renameFailed": "वार्तालाप का नाम नहीं बदला जा सका।",
                 "switchFailed": "वार्तालाप बदला नहीं जा सका।",
-                "untitled": "शीर्षकहीन"
+                "untitled": "शीर्षकहीन",
+                "titleRequired": "बातचीत का शीर्षक आवश्यक है।"
             },
             "detached": {
                 "windowTitle": "चैट (अलग विंडो)"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "HTTPS आवश्यक है"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "पैरामीटर खोलने और संदर्भ लंबाई दिखाने के लिए दबाकर रखें।",
+                "presetsHint": "प्रीसेट खोलने के लिए दबाकर रखें।",
+                "pushToTalkHint": "बोलने के लिए दबाकर रखें।",
+                "toolsHint": "टूल सेटिंग खोलने के लिए दबाकर रखें।",
+                "toolsRestrictedHint": "{reason}। टूल सेटिंग खोलने के लिए दबाकर रखें।",
+                "toolsToggleHint": "{action}। टूल सेटिंग खोलने के लिए दबाकर रखें।"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "कतार में",
@@ -1286,7 +1371,8 @@
                     "running": "चल रहा है",
                     "inputRequired": "कार्रवाई आवश्यक"
                 },
-                "attachmentsCount": "(+{count} अटैचमेंट)"
+                "attachmentsCount": "(+{count} अटैचमेंट)",
+                "open": "प्रॉम्प्ट खोलें: {prompt}"
             },
             "loading": {
                 "errorType": "त्रुटि प्रकार",
@@ -1337,7 +1423,9 @@
                     },
                     "save": "सहेजें",
                     "skip": "छोड़ें",
-                    "title": "SoAI को आपको समझने में मदद करें"
+                    "title": "SoAI को आपको समझने में मदद करें",
+                    "loadFailed": "आपकी सहेजी गई प्रोफ़ाइल लोड नहीं हो सकी। कुछ भी ओवरराइट न हो, इसलिए सहेजना रोका गया है।",
+                    "retry": "फिर प्रयास करें"
                 },
                 "viewer": {
                     "none": "कोई नहीं",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "कल",
                 "toolCall": "टूल इनवोकेशन",
                 "waiting": "प्रतीक्षा हो रही है...",
-                "you": "आप"
+                "you": "आप",
+                "timestampWithTime": "{label}, {time}"
             },
             "modelControl": {
                 "compareModels": "मॉडल की तुलना करें",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "एक से अधिक मॉडल का नाम \"{model}\" है। कृपया साइडबार में कोई विशिष्ट मॉडल चुनें।",
                 "available": "(उपलब्ध)",
-                "loaded": "(लोड किया गया)"
+                "loaded": "(लोड किया गया)",
+                "unavailable": "(अनुपलब्ध)"
             },
             "news": {
                 "articleCount": "{count} लेख",
@@ -1469,6 +1559,48 @@
                 "clearFailed": "प्रॉम्प्ट इतिहास साफ़ नहीं किया जा सका।",
                 "cleared": "प्रॉम्प्ट इतिहास साफ़ किया गया।",
                 "loadFailed": "प्रॉम्प्ट इतिहास लोड नहीं किया जा सका।"
+            },
+            "sketch": {
+                "open": "स्केच खोलें",
+                "mobileOption": "स्केच",
+                "preference": "स्केच",
+                "preferenceHint": "चैट कंपोज़र में स्केच पैड दिखाएँ ताकि आप चित्र बनाकर उसे अपने संदेश के साथ संलग्न कर सकें",
+                "title": "स्केच",
+                "description": "माउस, पेन या उंगली से बनाएँ, फिर चित्र को छवि के रूप में अपने संदेश के साथ संलग्न करें।",
+                "canvasLabel": "ड्रॉइंग कैनवास",
+                "toolsLabel": "ड्रॉइंग टूल",
+                "tools": {
+                    "pen": "पेन",
+                    "brush": "ब्रश",
+                    "highlighter": "हाइलाइटर",
+                    "eraser": "इरेज़र",
+                    "line": "रेखा",
+                    "rectangle": "आयत",
+                    "ellipse": "दीर्घवृत्त"
+                },
+                "colorsLabel": "रंग",
+                "colors": {
+                    "black": "काला",
+                    "grey": "धूसर",
+                    "red": "लाल",
+                    "orange": "नारंगी",
+                    "yellow": "पीला",
+                    "green": "हरा",
+                    "teal": "टील",
+                    "blue": "नीला",
+                    "purple": "बैंगनी",
+                    "brown": "भूरा"
+                },
+                "customColor": "कस्टम रंग",
+                "size": "आकार",
+                "undo": "पूर्ववत करें",
+                "redo": "फिर से करें",
+                "clear": "साफ़ करें",
+                "resize": "कैनवास का आकार बदलें",
+                "attach": "संलग्न करें",
+                "discardConfirm": "यह स्केच हटाएँ?",
+                "discard": "हटाएँ",
+                "exportFailed": "स्केच निर्यात नहीं किया जा सका। कृपया फिर से प्रयास करें।"
             },
             "characterMap": {
                 "allEmoji": "सभी इमोजी",
@@ -2201,7 +2333,8 @@
                 "started": "वॉइस कॉल शुरू हुई।",
                 "transcriptionFailed": "वॉइस ट्रांसक्रिप्शन विफल रहा।",
                 "ttsFailed": "टेक्स्ट-टू-स्पीच विफल रहा।",
-                "messageSendFailed": "वॉइस संदेश नहीं भेजा जा सका।"
+                "messageSendFailed": "वॉइस संदेश नहीं भेजा जा सका।",
+                "stoppedAfterFailure": "कॉल रुक गई है। नई कॉल शुरू करने से पहले समस्या ठीक करें।"
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "सहायक का जवाब चलाया जा रहा है।",
@@ -2319,7 +2452,7 @@
                 "messageInfo": "संदेश मेटाडेटा।",
                 "metricsAdvanced": "विस्तारित रनटाइम मेट्रिक्स।",
                 "modelDetailTest": "इस मॉडल को परीक्षण अनुरोध भेजें।",
-                "modelsDownload": "नया मॉडल डाउनलोड करें।",
+                "modelsDownload": "मॉडल डाउनलोड करें, बाहरी प्रदाताओं को कनेक्ट करें या स्थानीय मॉडल फ़ाइलें जोड़ें",
                 "modelsEdit": "यह मॉडल क्या कर सकता है, उसे ओवरराइड करें।",
                 "modelsProviders": "बाहरी मॉडल प्रदाता।",
                 "modelsRename": "इस मॉडल को स्थानीय नाम दें।",
@@ -2328,7 +2461,7 @@
                 "pluginsClone": "नई सेटिंग्स के साथ इस प्लगइन की डुप्लिकेट कॉपी बनाएँ।",
                 "pluginsConcurrent": "अधिकतम समवर्ती प्लगइन कार्य।",
                 "pluginsConfig": "प्लगइन सेटिंग्स।",
-                "pluginsDownload": "बंडल किया गया या स्थानीय प्लगइन इंस्टॉल करें।",
+                "pluginsDownload": "प्लगइन डाउनलोड या अपलोड करें, या स्थानीय प्लगइन फ़ोल्डर से जोड़ें",
                 "pluginsInfo": "प्लगइन विवरण और डायग्नोस्टिक्स।",
                 "pluginsIntro": "प्लगइन SoAI को कैसे विस्तारित करते हैं।",
                 "pluginsManageBackend": "बैकएंड संस्करण प्रबंधित करें।",
@@ -2336,7 +2469,8 @@
                 "settingsApiKeyQuota": "इस API key की उपयोग सीमाएँ।",
                 "settingsExternalAccounts": "मेल और कैलेंडर खाते।",
                 "settingsMcpServer": "MCP सर्वर कनेक्शन।",
-                "toolCallOutput": "टूल कॉल का आउटपुट।"
+                "toolCallOutput": "टूल कॉल का आउटपुट।",
+                "conversationInput": "इस प्रॉम्प्ट और इसके संलग्नकों को देखें।"
             },
             "loading": "लोड हो रहा है...",
             "confirm": "पुष्टि करें",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count}s"
+                    },
+                    "year": {
+                        "short": "{count} वर्ष"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "आपके बदलाव सहेजे नहीं गए हैं। बिना सहेजे जारी रखें?",
             "unsavedChangesTitle": "न सहेजे गए बदलाव",
             "view": "देखें",
-            "yes": "हाँ"
+            "yes": "हाँ",
+            "retry": "फिर से प्रयास करें"
         },
         "contentPreview": {
             "actions": {
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "नेटवर्क",
+                    "unavailable": "एडेप्टर सूची उपलब्ध नहीं है",
                     "waiting": "पता लगाया जा रहा है..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "बेंच",
                     "soaibenchStop": "रोकें",
                     "soaibenchStress": "स्ट्रेस",
+                    "viewBenchmark": "बेंचमार्क देखें",
                     "test": "परीक्षण",
                     "reset": "रीसेट करें",
                     "save": "सहेजें"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index} SoAIBench {profile} शुरू हुआ",
                     "soaibenchStopRequested": "GPU {index} SoAIBench को रोकने का अनुरोध किया गया",
                     "soaibenchUnsupported": "GPU {index} पर SoAIBench समर्थित नहीं है: {reason}",
+                    "soaibenchSettingsLocked": "GPU {index} पर बेंचमार्क चल रहा है। इसकी सेटिंग्स सहेजने से पहले इसे रोकें या इसके पूरा होने की प्रतीक्षा करें।",
                     "slotApplied": "GPU {index} स्लॉट {slot} लागू किया गया",
                     "slotSaved": "GPU {index} स्लॉट {slot} सहेजा गया"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "स्थानीय इतिहास हटाएँ",
+                "deleteLocalConfirm": {
+                    "title": "SoAIBench रन हटाएँ?",
+                    "message": "इस SoAIBench रन को स्थानीय इतिहास से हटाएँ? इस कार्रवाई को पूर्ववत नहीं किया जा सकता।"
+                },
                 "action": "साझा करें",
+                "openRun": "परिणाम खोलें",
                 "ariaLabel": "यह SoAIBench स्कोर साझा करें",
                 "unavailable": "प्रकाशित करने योग्य कोई SoAIBench रन उपलब्ध नहीं है",
-                "confirm": { "title": "SoAIBench स्कोर साझा करें?", "message": "स्कोर {score} और उसके {passes} मापे गए पास सार्वजनिक SoAIBench लीडरबोर्ड पर प्रकाशित करें?", "description": "इसमें स्कोर, पाँच मापे गए पास, सार्वजनिक GPU और रनटाइम जानकारी, बेंचमार्क सेटिंग और वैकल्पिक सेंसर प्रमाण भेजे जाते हैं। खाता पहचान, फ़ाइलें, कॉन्फ़िगरेशन, विश्लेषण और सामान्य टेलीमेट्री शामिल नहीं किए जाते। soai.to आपके IP पते जैसे सामान्य कनेक्शन मेटाडेटा देख सकता है।" },
-                "outcomes": { "published": "SoAIBench स्कोर सार्वजनिक रूप से साझा किया गया।", "alreadyPublished": "यह SoAIBench स्कोर पहले ही साझा किया जा चुका है।", "heldForReview": "SoAIBench परिणाम को पहचान या असामान्यता की समीक्षा के लिए रोका गया है और अभी रैंकिंग में नहीं गिना गया है।", "offline": "SoAI के ऑफ़लाइन रहते स्कोर साझा नहीं किया जा सका।", "unavailable": "SoAIBench प्रकाशन सेवा उपलब्ध नहीं है।", "timeout": "स्कोर साझा करने की समय-सीमा समाप्त हो गई। उसी प्रकाशन का मिलान करने के लिए फिर प्रयास करें।", "rateLimited": "इस कनेक्शन से बहुत अधिक स्कोर साझा किए गए हैं। बाद में फिर प्रयास करें।", "capacity": "SoAIBench लीडरबोर्ड अभी पूरी क्षमता पर है।", "rejected": "SoAIBench लीडरबोर्ड ने यह परिणाम अस्वीकार कर दिया।", "conflict": "यह प्रकाशन मौजूदा लीडरबोर्ड स्थिति से टकराता है।", "invalidResponse": "SoAIBench लीडरबोर्ड ने अमान्य प्रतिक्रिया दी।", "retryAfter": "{seconds} सेकंड बाद फिर प्रयास करें।" }
+                "confirm": {
+                    "title": "SoAIBench स्कोर साझा करें?",
+                    "message": "स्कोर {score} और उसके {passes} मापे गए पास सार्वजनिक SoAIBench लीडरबोर्ड पर प्रकाशित करें?",
+                    "description": "इसमें स्कोर, पाँच मापे गए पास, सार्वजनिक GPU और रनटाइम जानकारी, बेंचमार्क सेटिंग और वैकल्पिक सेंसर प्रमाण भेजे जाते हैं। खाता पहचान, फ़ाइलें, कॉन्फ़िगरेशन, विश्लेषण और सामान्य टेलीमेट्री शामिल नहीं किए जाते।"
+                },
+                "outcomes": {
+                    "published": "SoAIBench स्कोर सार्वजनिक रूप से साझा किया गया।",
+                    "alreadyPublished": "यह SoAIBench स्कोर पहले ही साझा किया जा चुका है।",
+                    "heldForReview": "SoAIBench परिणाम को पहचान या असामान्यता की समीक्षा के लिए रोका गया है और अभी रैंकिंग में नहीं गिना गया है।",
+                    "offline": "SoAI के ऑफ़लाइन रहते स्कोर साझा नहीं किया जा सका।",
+                    "unavailable": "SoAIBench प्रकाशन सेवा उपलब्ध नहीं है।",
+                    "timeout": "स्कोर साझा करने की समय-सीमा समाप्त हो गई। उसी प्रकाशन का मिलान करने के लिए फिर प्रयास करें।",
+                    "rateLimited": "इस कनेक्शन से बहुत अधिक स्कोर साझा किए गए हैं। बाद में फिर प्रयास करें।",
+                    "capacity": "SoAIBench लीडरबोर्ड अभी पूरी क्षमता पर है।",
+                    "rejected": "SoAIBench लीडरबोर्ड ने यह परिणाम अस्वीकार कर दिया।",
+                    "conflict": "यह प्रकाशन मौजूदा लीडरबोर्ड स्थिति से टकराता है।",
+                    "invalidResponse": "SoAIBench लीडरबोर्ड ने अमान्य प्रतिक्रिया दी।",
+                    "retryAfter": "{seconds} सेकंड बाद फिर प्रयास करें।"
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3126,6 +3289,8 @@
                     "description": "चुने गए GPU के पिछले SoAIBench रन।",
                     "empty": "इस GPU के लिए अभी कोई SoAIBench रन नहीं है।",
                     "loading": "रन इतिहास लोड हो रहा है...",
+                    "pageEmpty": "अभी तक कोई SoAIBench रन नहीं है।",
+                    "pageLoadFailed": "SoAIBench रन लोड नहीं हो सके। फिर से कोशिश करें।",
                     "matchBases": {
                         "device_id": "डिवाइस ID",
                         "gpu_model_key": "GPU मॉडल कुंजी",
@@ -3146,7 +3311,9 @@
                         "standard": "मानक",
                         "stress": "स्ट्रेस"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "OpenCL वर्कलोड का संख्यात्मक सत्यापन विफल हुआ।" },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "OpenCL वर्कलोड का संख्यात्मक सत्यापन विफल हुआ।"
+                    },
                     "rowCopyUnavailable": "कॉपी करने के लिए कोई SoAIBench रन उपलब्ध नहीं है",
                     "staleHardware": "पुराना हार्डवेयर मिलान",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "SoAIBench के पिछले रन"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "बेंचमार्क के लिए GPU चुनें",
+                    "noGpus": "बेंचमार्क के लिए कोई GPU उपलब्ध नहीं है।",
                     "ariaLabels": {
                         "close": "SoAIBench बंद करें",
                         "copy": "SoAIBench रन कॉपी करें",
@@ -3170,6 +3339,9 @@
                         "retry": "प्रमाणित SoAIBench का पुनः प्रयास करें",
                         "stop": "प्रमाणित SoAIBench रोकें",
                         "stopping": "प्रमाणित SoAIBench रोका जा रहा है",
+                        "newBenchmark": "नया प्रमाणित SoAIBench रन शुरू करें",
+                        "runAgain": "इस GPU पर प्रमाणित SoAIBench फिर से चलाएँ",
+                        "recover": "SoAIBench की स्थिति फिर से जाँचें",
                         "start": "प्रमाणित SoAIBench शुरू करें"
                     },
                     "close": "बंद करें",
@@ -3231,7 +3403,11 @@
                         "stopping": "SoAIBench रोका जा रहा है",
                         "warmupDetail": "वार्मअप {pass}/{total}",
                         "warmupPhase": "वार्मअप: {phase}",
-                        "warmup": "वार्मअप पास पूरा हुआ"
+                        "warmup": "वार्मअप पास पूरा हुआ",
+                        "reconnecting": "फिर से कनेक्ट हो रहा है... अंतिम अपडेट: {age}",
+                        "checkingStatus": "बेंचमार्क की स्थिति जाँची जा रही है...",
+                        "statusUnavailable": "बेंचमार्क की स्थिति उपलब्ध नहीं है। फिर से जाँचने के लिए पुनः प्रयास करें।",
+                        "startUnconfirmed": "बेंचमार्क के शुरू होने की पुष्टि नहीं हो सकी और इस GPU पर कोई रन सक्रिय नहीं है। पुनः प्रयास करने से पहले इतिहास देखें।"
                     },
                     "retry": "पुनः प्रयास करें",
                     "scoreLabel": "SoAIBench स्कोर",
@@ -3253,6 +3429,15 @@
                     "standardRun": "मानक रन",
                     "stop": "रोकें",
                     "stopping": "रोका जा रहा है",
+                    "newBenchmark": "नया बेंचमार्क",
+                    "runAgain": "फिर से चलाएँ",
+                    "gpuBusy": "बेंचमार्क जारी है",
+                    "startedAt": "{time} पर शुरू हुआ",
+                    "states": {
+                        "starting": "शुरू हो रहा है",
+                        "unresolved": "स्थिति अज्ञात",
+                        "rejected": "शुरू नहीं हुआ"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "दस्तावेज़ीकरण",
             "intro": {
                 "aboutButton": "SoAI के बारे में",
-                "paragraph1": "<strong>SoAI (Smart Orchestrator for Artificial Intelligence)</strong> एक WebUI से लोकल inference engine और remote AI provider संभालता है और सभी मॉडल OpenAI-compatible और Anthropic-compatible APIs के ज़रिए देता है।",
+                "paragraph1": "<strong dir=\"auto\">SoAI (Smart Orchestrator for Artificial Intelligence)</strong> एक WebUI से लोकल inference engine और remote AI provider संभालता है और सभी मॉडल OpenAI-compatible और Anthropic-compatible APIs के ज़रिए देता है।",
                 "paragraph2": "SoAI Linux, macOS और Windows पर चलता है। इसका source देखा जा सकता है और personal तथा homelab उपयोग मुफ़्त है। SoAI आपका डेटा जमा नहीं करता और analytics, telemetry या usage report नहीं भेजता।"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "विलंबता",
                         "queueDepth": "कतार गहराई",
                         "requests": "अनुरोध",
+                        "throughput": "टोकन उत्पादन दर",
                         "tokens": "टोकन"
                     },
                     "title": "चार्ट"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "डिस्प्ले नाम",
                     "source_model_id": "स्रोत मॉडल ID",
-                    "provider": "प्रदाता",
-                    "title": "पहचान",
                     "type": "प्रकार",
                     "universal_id": "Universal ID",
                     "virtual": "वर्चुअल"
@@ -4064,30 +4248,20 @@
                     "title": "इन्फ़रेंस डिफ़ॉल्ट्स"
                 },
                 "metrics": {
-                    "avgLatency": "औसत लेटेंसी",
                     "avgTokens": "औसत टोकन/अनुरोध",
                     "audioIn": "ऑडियो इन",
                     "audioOut": "ऑडियो आउट",
-                    "failedRequests": "विफल अनुरोध",
                     "imagesIn": "इमेज इन",
                     "imagesOut": "इमेज आउट",
                     "last_used": "अंतिम उपयोग",
                     "modalityUsage": "उपयोग",
                     "success_rate": "सफलता दर",
                     "textTokens": "टेक्स्ट टोकन",
-                    "title": "मेट्रिक्स",
                     "tokensGenerated": "जनरेट किए गए टोकन",
-                    "totalRequests": "कुल अनुरोध",
-                    "waitTime": "औसत प्रतीक्षा समय"
+                    "totalRequests": "कुल अनुरोध"
                 },
                 "plugin": {
-                    "author": "लेखक",
-                    "models": "मॉडल",
-                    "plugin_status": "प्लगइन स्थिति",
-                    "providers": "प्रदाता",
-                    "title": "प्लगइन",
-                    "type": "प्रकार",
-                    "version": "संस्करण"
+                    "title": "प्लगइन"
                 },
                 "status": {
                     "available": "उपलब्ध",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "नाम बदलें",
                     "modelStatus": "मॉडल स्थिति",
                     "orphaned": "असंबद्ध",
-                    "parameters": "पैरामीटर",
                     "stopPlugin": "प्लगइन रोकें",
-                    "title": "स्थिति और कार्रवाइयाँ"
+                    "title": "स्थिति"
                 },
                 "technical": {
                     "created": "बनाया गया",
-                    "description": "विवरण",
                     "family": "फ़ैमिली",
                     "license": "लाइसेंस",
                     "path": "पथ",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "सभी पैरामीटर",
-                "category": "श्रेणी",
                 "groupInference": "इन्फ़रेंस",
                 "groupStartup": "स्टार्टअप"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "{itemType} आइटम जोड़ें",
                 "aliasesPrefix": "इसके नाम से भी जाना जाता है:",
                 "arrayOfType": "{itemType} मानों की ऐरे",
+                "backendDefault": "बैकएंड डिफ़ॉल्ट",
                 "backendDocumentationDescription": "इन मॉडल पैरामीटर में प्लगइन द्वारा उपलब्ध कराई गई <strong>बैकएंड-परिभाषित सेटिंग्स</strong> शामिल हैं। सटीक व्यवहार, स्वीकृत मानों और डिफ़ॉल्ट के लिए बैकएंड के अपने दस्तावेज़ देखें।",
-                "backendDocumentationTitle": "जानकारी",
                 "badges": {
                     "custom": "कस्टम",
-                    "default": "डिफ़ॉल्ट",
                     "requiresReload": "रीलोड आवश्यक"
                 },
-                "countLabel": "{count} पैरामीटर",
+                "count": {
+                    "plural": "{count} पैरामीटर",
+                    "singular": "{count} पैरामीटर"
+                },
                 "invalidJson": "इस पैरामीटर के लिए मान्य JSON दर्ज करें।",
                 "jsonObject": "JSON ऑब्जेक्ट",
                 "noMatchDescription": "अपनी खोज या फ़िल्टर मानदंड समायोजित करके देखें।",
                 "noMatchTitle": "आपके फ़िल्टर से कोई पैरामीटर मेल नहीं खाता",
                 "noParameters": "इस मॉडल के लिए कोई पैरामीटर उपलब्ध नहीं है",
+                "railLabel": "पैरामीटर श्रेणियाँ",
                 "range": "सीमा: {min} - {max}",
-                "removeItem": "आइटम हटाएँ"
+                "removeItem": "आइटम हटाएँ",
+                "revertChange": "बदलाव वापस लें",
+                "unsavedCount": {
+                    "plural": "{count} बिना सहेजे बदलाव",
+                    "singular": "{count} बिना सहेजा बदलाव"
+                },
+                "views": {
+                    "customized": "अनुकूलित",
+                    "unsaved": "बिना सहेजे बदलाव"
+                }
             },
             "status": {
                 "loaded": "लोडेड",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "फ़ाइल चुनें",
                     "close": "बंद करें",
                     "confirmDownload": "प्लगइन डाउनलोड करें",
                     "confirmUpload": "प्लगइन अपलोड करें",
+                    "fileDropHint": ".soaiplugin फ़ाइल चुनने के लिए क्लिक करें या उसे यहाँ खींचें",
+                    "fileDropTitle": "यहाँ प्लगइन छोड़ें",
                     "fileHelp": "ZIP-फ़ॉर्मेट Python प्लगइन पैकेज (.soaiplugin) चुनें",
                     "fileLabel": "प्लगइन फ़ाइल",
                     "manualCopySuccess": "प्लगइन फ़ोल्डर का पथ क्लिपबोर्ड पर कॉपी किया गया।",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant} (इंस्टॉल्ड)",
                     "loadFailed": "बैकएंड वेरिएंट लोड नहीं किए जा सके।",
                     "loading": "बैकएंड वेरिएंट लोड हो रहे हैं...",
+                    "loadingBackends": "बैकएंड लोड हो रहे हैं...",
                     "saveFailed": "बैकएंड वेरिएंट सहेजा नहीं जा सका।"
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "{plugin} के लिए संगतता ओवरराइड सक्षम किया गया।",
                 "overrideRequired": "{plugin} शुरू करने से पहले संगतता ओवरराइड सक्षम करें।",
                 "persistentNoStop": "स्थायी प्लगइन रोके नहीं जा सकते",
-                "pluginDisabled": "प्लगइन अक्षम किया गया",
-                "pluginEnabled": "प्लगइन सक्षम किया गया",
+                "pluginDisabled": "{plugin} प्लगइन अक्षम किया गया",
+                "pluginEnabled": "{plugin} प्लगइन सक्षम किया गया",
                 "pluginIncompatibleReason": "प्लगइन \"{plugin}\" असंगत है: {reason}",
                 "pluginInfoCopyFailed": "प्लगइन जानकारी कॉपी करने में विफल",
                 "pluginStopInProgress": "{plugin} रोका जा रहा है...",
@@ -5489,16 +5674,21 @@
                 "restarting": "एप्लिकेशन पुनः शुरू हो रहा है। इसमें केवल कुछ क्षण लगने चाहिए।",
                 "shutdown": "सिस्टम बंद हो रहा है। आप यह ब्राउज़र विंडो बंद कर सकते हैं।",
                 "sleep": "सिस्टम स्लीप मोड में जा रहा है। SoAI का उपयोग जारी रखने के लिए इसे जगाएँ।",
-                "updating": "SoAI अपडेट डाउनलोड और इंस्टॉल कर रहा है। इसमें कई मिनट लग सकते हैं।"
+                "updateTimeout": "अपडेट के बाद SoAI फिर से ऑनलाइन नहीं आया। SoAI लॉग फ़ोल्डर में application_updater.log देखें, फिर यह पेज रीलोड करें।",
+                "updating": "अपडेट पूरा करने के लिए SoAI फिर से शुरू होगा। SoAI के फिर से ऑनलाइन होते ही यह पेज अपने-आप रीलोड हो जाएगा। इसमें कुछ मिनट लग सकते हैं।",
+                "updatingDesktop": "अपडेट पूरा करने के लिए SoAI फिर से शुरू होगा। अपडेट पूरा होने पर यह विंडो बंद होकर अपने-आप फिर से खुल जाएगी। कृपया अपना कंप्यूटर बंद न करें।",
+                "updatingSlow": "अपडेट में सामान्य से अधिक समय लग रहा है। SoAI अभी भी काम कर रहा है, इसलिए कृपया यह पेज खुला रखें।"
             },
             "messages": {
                 "connectionLost": "बैकएंड कनेक्शन टूट गया",
+                "installingVersion": "SoAI {version} इंस्टॉल हो रहा है...",
                 "pleaseWait": "कृपया प्रतीक्षा करें...",
                 "rebooting": "सिस्टम रीबूट हो रहा है...",
                 "rebootTimeout": "रीबूट अभी भी जारी है...",
                 "restarting": "SoAI पुनः शुरू हो रहा है...",
                 "shutdown": "सिस्टम बंद हो रहा है",
                 "sleep": "सिस्टम स्लीप में जा रहा है",
+                "updateTimeout": "SoAI अभी तक वापस नहीं आया है",
                 "updating": "SoAI अपडेट हो रहा है..."
             },
             "reconnecting": "फिर से कनेक्ट करने का प्रयास किया जा रहा है..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "सभी चार्ट के लिए कस्टम रंग चुनें",
-                    "label": "स्थिर रंग"
+                    "label": "चार्ट रंग"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "SoAI में code-जैसी सामग्री कैसे दिखाई जाए, इसे नियंत्रित करें।",
                 "subgroupTitle": "कोड ब्लॉक"
+            },
+            "connect": {
+                "addressCopied": "पता कॉपी हो गया",
+                "browserAddress": "इस ब्राउज़र का पता",
+                "chooseAddress": "आपके फ़ोन के लिए पता",
+                "copyAddress": "पता कॉपी करें",
+                "description": "QR कोड स्कैन करके SoAI Connect Android ऐप को इस सर्वर से कनेक्ट करें।",
+                "documentationHint": "मैन्युअल सेटअप और समस्या निवारण के लिए SoAI दस्तावेज़ में \"Connect to a SoAI server\" खोलें।",
+                "documentationLink": "SoAI दस्तावेज़",
+                "loadFailed": "कनेक्शन विवरण लोड नहीं हो सका",
+                "loopbackWarningMessage": "SoAI एक loopback पते पर सुन रहा है, इसलिए अन्य डिवाइस सीधे उस तक नहीं पहुँच सकते। QR कोड केवल ऐसे reverse proxy के ज़रिए काम करता है जो SoAI वाली ही scheme और port इस्तेमाल करता हो। सीधे कनेक्शन की अनुमति देने के लिए नीचे दिया विकल्प सेट करें और SoAI को फिर से शुरू करें:",
+                "loopbackWarningTitle": "केवल इसी कंप्यूटर से पहुँच योग्य",
+                "noAddressesMessage": "इस सर्वर को किसी नेटवर्क से जोड़ें, या यह पेज उस पते से खोलें जिसे आपका फ़ोन इस्तेमाल करेगा।",
+                "noAddressesTitle": "कोई पहुँच योग्य पता नहीं मिला",
+                "qrLabel": "SoAI Connect को {address} से कनेक्ट करने का QR कोड",
+                "refresh": "पते रीफ़्रेश करें",
+                "scanHint": "इस QR कोड को SoAI Connect ऐप से स्कैन करें",
+                "stepInstall": "अपने Android फ़ोन पर SoAI Connect इंस्टॉल करें और उसे खोलें",
+                "stepScan": "सर्वर पते वाले फ़ील्ड के पास QR कोड बटन पर टैप करें, फिर इस पेज पर दिया कोड स्कैन करें",
+                "stepSignIn": "किसी भी प्रमाणपत्र संकेत की समीक्षा करें, फिर अपने SoAI खाते से साइन इन करें",
+                "stepsTitle": "कनेक्ट कैसे करें",
+                "title": "SoAI Connect",
+                "vpnHint": "आपका फ़ोन इस सर्वर तक पहुँच पाना चाहिए। SoAI को इंटरनेट पर खोलने के बजाय वही स्थानीय नेटवर्क, या बाहर होने पर VPN इस्तेमाल करें।",
+                "vpnTitle": "घर से बाहर हैं?"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "पेज हेडर अपने आप छिपाएँ"
                     }
                 },
-                "subgroupTitle": "मोशन",
+                "subgroupTitle": "इंटरफ़ेस",
                 "subgroupDescription": "मोशन, ट्रांज़िशन, ग्लास सतहें और स्क्रॉल व्यवहार समायोजित करें।"
             },
             "externalAccounts": {
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "बैकअप",
+                "connect": "कनेक्ट",
                 "externalAccounts": "Mail और calendar",
                 "licensing": "लाइसेंसिंग",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "लागू करने के लिए एक चुनें",
+                    "label": "अंतर्निहित वॉलपेपर",
+                    "none": "कोई वॉलपेपर नहीं",
+                    "option": "वॉलपेपर {number}"
+                },
                 "downloadUrl": {
                     "button": "डाउनलोड करें",
                     "help": "Wallpaper के रूप में डाउनलोड और सेट करने के लिए URL दें",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "कुछ रिलीज़ नोट्स लोड नहीं हो सके। उपलब्ध नोट्स दिखाए जा रहे हैं।"
+            },
+            "outcome": {
+                "failureMessage": "संस्करण {version} का अपडेट पूरा नहीं हुआ। SoAI {previousVersion} अभी भी इंस्टॉल है। विवरण के लिए SoAI लॉग फ़ोल्डर में application_updater.log देखें।",
+                "failureTitle": "अपडेट पूरा नहीं हुआ",
+                "later": "बाद में",
+                "reloadMessage": "SoAI अब संस्करण {version} चला रहा है। अपडेट किया गया इंटरफ़ेस इस्तेमाल करने के लिए यह पेज रीलोड करें।",
+                "reloadTitle": "SoAI अपडेट हो गया",
+                "successMessage": "SoAI को संस्करण {version} में सफलतापूर्वक अपडेट किया गया।",
+                "successTitle": "अपडेट पूरा हुआ"
+            },
+            "progress": {
+                "downloading": "अपडेट डाउनलोड हो रहा है...",
+                "handoff": "SoAI को फिर से शुरू करने की तैयारी हो रही है...",
+                "staging": "अपडेट फ़ाइलें तैयार हो रही हैं...",
+                "unavailable": "लाइव प्रगति अस्थायी रूप से उपलब्ध नहीं है।",
+                "verifying": "अपडेट की जाँच हो रही है..."
+            },
             "actions": {
                 "checkUpdates": "अपडेट जाँचें",
                 "installUpdate": "Update इंस्टॉल करें"
@@ -7943,6 +8183,184 @@
             "welcome": {
                 "description": "SoAI local और remote LLM backends को एक OpenAI-compatible orchestration layer के पीछे एकीकृत करता है।",
                 "heading": "SoAI में आपका स्वागत है!"
+            },
+            "aiSetup": {
+                "eyebrow": "SoAI setup",
+                "loadFailed": {
+                    "title": "SoAI setup लोड नहीं हो सका",
+                    "description": "SoAI उपलब्ध engines और providers नहीं पढ़ सका। जाँचें कि SoAI चल रहा है, फिर दोबारा प्रयास करें, या setup बाद में पूरा करें।",
+                    "retry": "फिर प्रयास करें"
+                },
+                "nav": {
+                    "finishLater": "छोड़ें",
+                    "skip": "SoAI setup छोड़ें",
+                    "continue": "जारी रखें",
+                    "installAndContinue": "इंस्टॉल",
+                    "downloadAndContinue": "डाउनलोड",
+                    "startChatting": "चैट",
+                    "close": "बंद करें"
+                },
+                "sources": {
+                    "heading": "आपका AI कहाँ चले?",
+                    "description": "एक या दोनों चुनें। आप इसे बाद में बदल सकते हैं।",
+                    "local": {
+                        "title": "इस डिवाइस पर",
+                        "description": "निजी और setup के बाद offline काम करता है। एक बार डाउनलोड करना होगा।"
+                    },
+                    "cloud": {
+                        "title": "Cloud providers",
+                        "description": "इंटरनेट और प्रदाता की API कुंजी के साथ कहीं भी काम करता है।",
+                        "recommended": "अनुशंसित"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "मुफ़्त API key पाएँ",
+                    "accessibleName": "मुफ़्त API key पाएँ (नई विंडो में खुलता है)"
+                },
+                "limited": {
+                    "noCompatibleEngine": "कोई भी local engine इस डिवाइस को सपोर्ट नहीं करता।",
+                    "insufficientMemory": "Local models को लगभग {required} खाली मेमोरी चाहिए; इस डिवाइस में लगभग {available} है।",
+                    "useCloud": "इसके बजाय cloud model उपयोग करें",
+                    "searchManually": "Models को मैन्युअल रूप से खोजें"
+                },
+                "connect": {
+                    "heading": "तैयार हो जाएँ",
+                    "description": "एक provider कनेक्ट करें और इस डिवाइस को तैयार करें।",
+                    "cloud": {
+                        "heading": "Cloud provider कनेक्ट करें",
+                        "description": "अपने provider से API URL और key पेस्ट करें।",
+                        "moreOptions": "और विकल्प",
+                        "modelFilter": "Model filter (वैकल्पिक)",
+                        "connect": "कनेक्ट करें",
+                        "connecting": "{name} से कनेक्ट हो रहा है…",
+                        "connected": {
+                            "singular": "कनेक्ट हो गया · {count} model उपलब्ध",
+                            "plural": "कनेक्ट हो गया · {count} models उपलब्ध"
+                        },
+                        "change": "बदलें"
+                    },
+                    "local": {
+                        "heading": "Local engine इंस्टॉल करें",
+                        "description": "इससे models इस डिवाइस पर चलते हैं।",
+                        "automatic": "स्वचालित (अनुशंसित)",
+                        "usesGpu": "आपके graphics card के साथ {engine} का उपयोग करता है",
+                        "usesProcessor": "Processor पर {engine} का उपयोग करता है",
+                        "usesInstalled": "{engine} का उपयोग करता है, पहले से इंस्टॉल है",
+                        "chooseManually": "मैन्युअल रूप से चुनें",
+                        "status": {
+                            "installed": "इंस्टॉल है",
+                            "recommended": "अनुशंसित",
+                            "warning": "चेतावनी",
+                            "unavailable": "उपलब्ध नहीं"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "एक model चुनें",
+                    "description": "चुनें कि किससे चैट करनी है। आप बाद में और जोड़ सकते हैं।",
+                    "local": {
+                        "heading": "इस डिवाइस के लिए models",
+                        "description": "आपके hardware के अनुसार चुने गए।"
+                    },
+                    "role": {
+                        "recommended": "अनुशंसित",
+                        "faster": "तेज़",
+                        "smallest": "सबसे छोटा"
+                    },
+                    "useCase": {
+                        "advanced": "लेखन, coding और reasoning के लिए सर्वोत्तम गुणवत्ता",
+                        "balanced": "रोज़मर्रा की चैट, लेखन और coding के लिए बढ़िया",
+                        "reasoning": "मज़बूत चरण-दर-चरण reasoning",
+                        "light": "साधारण hardware पर तेज़ उत्तर"
+                    },
+                    "downloadSize": "{size} डाउनलोड",
+                    "runsOnGpu": "आपके graphics card पर चलता है",
+                    "runsOnCpu": "आपके processor पर चलता है",
+                    "speed": {
+                        "fast": "तेज़ उत्तर",
+                        "moderate": "मध्यम गति",
+                        "slow": "धीमे उत्तर"
+                    },
+                    "details": {
+                        "label": "विवरण",
+                        "quantization": "Quantization",
+                        "parameters": "Parameters",
+                        "parametersDense": "{total}B",
+                        "parametersMoe": "{total}B, {active}B सक्रिय",
+                        "context": "Context लंबाई",
+                        "contextTokens": "{tokens} tokens",
+                        "contextReduced": "{tokens} tokens (इस डिवाइस के अनुसार घटाया गया)",
+                        "file": "फ़ाइल",
+                        "source": "स्रोत"
+                    },
+                    "openChatWith": "इस model के साथ चैट खोलें",
+                    "searchAnother": "कोई दूसरा model खोजें",
+                    "cloud": {
+                        "heading": "{provider} के models",
+                        "description": "एक या अधिक चुनें।",
+                        "filterPlaceholder": "Models फ़िल्टर करें…",
+                        "noMatches": "इस फ़िल्टर से कोई model मेल नहीं खाता।",
+                        "empty": "इस provider ने कोई model नहीं लौटाया। Model filter जाँचें या कोई दूसरा provider आज़माएँ।",
+                        "backToProvider": "Provider पर वापस जाएँ"
+                    }
+                },
+                "progress": {
+                    "heading": "सब कुछ तैयार हो रहा है",
+                    "description": "एक model तैयार होते ही आप चैट शुरू कर सकते हैं।",
+                    "readyCount": "{total} में से {ready} तैयार",
+                    "installing": "{engine} इंस्टॉल हो रहा है",
+                    "downloading": "{model} डाउनलोड हो रहा है",
+                    "waitingForEngine": "{engine} का इंस्टॉलेशन पूरा होने की प्रतीक्षा",
+                    "discovering": "{model} को आपके models में जोड़ा जा रहा है",
+                    "configuring": "शुरुआती सेटिंग्स लागू हो रही हैं",
+                    "testing": "एक छोटा परीक्षण संदेश भेजा जा रहा है",
+                    "ready": "{model} तैयार है",
+                    "blocked": "{engine} इंस्टॉल होने तक शुरू नहीं हो सकता",
+                    "checkingStatus": "स्थिति जाँची जा रही है",
+                    "retry": "फिर प्रयास करें",
+                    "retryInstallation": "इंस्टॉलेशन फिर से करें",
+                    "skipItem": "इस आइटम को छोड़ें",
+                    "testAgain": "फिर से परीक्षण करें",
+                    "checkAgain": "फिर से जाँचें",
+                    "sendTest": "परीक्षण संदेश भेजें",
+                    "error": {
+                        "empty": "Model लोड हुआ लेकिन उत्तर नहीं दिया। फिर प्रयास करें या कोई दूसरा model चुनें।",
+                        "loadError": "Model इस डिवाइस पर शुरू नहीं हो सका। फिर प्रयास करें या कोई छोटा model चुनें।",
+                        "timeout": "Model ने उत्तर देने में बहुत समय लिया। फिर प्रयास करें या कोई छोटा model चुनें।",
+                        "disconnected": "परीक्षण के दौरान कनेक्शन टूट गया। फिर प्रयास करें।",
+                        "downloadFailed": "डाउनलोड रुक गया। फिर प्रयास करें।",
+                        "installFailed": "इंस्टॉलेशन पूरा नहीं हुआ। फिर प्रयास करें।",
+                        "noDiskSpace": "इस model के लिए पर्याप्त डिस्क स्थान नहीं है। स्थान खाली करें या कोई छोटा model चुनें।"
+                    },
+                    "testPrompt": "एक छोटे, मैत्रीपूर्ण वाक्य में उत्तर दें।",
+                    "testCancelled": "SoAI setup परीक्षण रद्द कर दिया गया।"
+                },
+                "completion": {
+                    "modelsTitle": "AI models",
+                    "modelsReady": {
+                        "singular": "{count} तैयार",
+                        "plural": "{count} तैयार"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} अभी भी पृष्ठभूमि में तैयार हो रहा है",
+                        "plural": "{count} अभी भी पृष्ठभूमि में तैयार हो रहे हैं"
+                    }
+                },
+                "resume": {
+                    "link": "SoAI setup पूरा करें",
+                    "toast": "SoAI setup के कुछ चरणों पर आपका ध्यान चाहिए।"
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "Model डाउनलोड पृष्ठभूमि में जारी रहेगा।",
+                        "plural": "{count} model डाउनलोड पृष्ठभूमि में जारी रहेंगे।"
+                    },
+                    "installations": {
+                        "singular": "Backend इंस्टॉलेशन पृष्ठभूमि में जारी रहेगा।",
+                        "plural": "{count} backend इंस्टॉलेशन पृष्ठभूमि में जारी रहेंगे।"
+                    },
+                    "both": "Model डाउनलोड और backend इंस्टॉलेशन पृष्ठभूमि में जारी रहेंगे।"
+                }
             }
         }
     }

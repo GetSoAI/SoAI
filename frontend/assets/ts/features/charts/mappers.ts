@@ -45,8 +45,8 @@ const getMousePosition = (
     return { x: event.clientX - rect.left, y: event.clientY - rect.top, rect };
 };
 
-const normalizeWheelDelta = (chart: ChartInteractionScene, payload: WheelPayload): number => {
-    const base = Number(payload?.deltaY) || 0;
+const normalizeWheelDelta = (chart: ChartInteractionScene, payload: WheelPayload, axis: 'x' | 'y' = 'y'): number => {
+    const base = Number(axis === 'x' ? payload?.deltaX : payload?.deltaY) || 0;
     if (!Number.isFinite(base)) {
         return 0;
     }
@@ -54,7 +54,9 @@ const normalizeWheelDelta = (chart: ChartInteractionScene, payload: WheelPayload
         return base * 32;
     }
     if (payload.deltaMode === 2) {
-        return base * Math.max(240, measureLayoutBox(chart.surface.element ?? chart.surface.canvasLayers.interaction)?.height || 600);
+        const dimensions = measureLayoutBox(chart.surface.element ?? chart.surface.canvasLayers.interaction);
+        const pageSize = axis === 'x' ? dimensions?.width : dimensions?.height;
+        return base * Math.max(240, pageSize || 600);
     }
     return base;
 };

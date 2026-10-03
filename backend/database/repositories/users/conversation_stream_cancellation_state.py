@@ -16,9 +16,17 @@ if TYPE_CHECKING:
 
 __all__ = (
     "CHAT_STREAM_CANCELLATION_EVENT_TYPE",
+    "CHAT_STREAM_CANCELLATION_FOR_INPUT_SQL",
     "CHAT_STREAM_CANCELLATION_SETTLED_EVENT_TYPE",
+    "CHAT_STREAM_CANCELLATION_SETTLED_SQL",
+    "CHAT_STREAM_REQUEST_FINISH_REASON_SQL",
+    "CHAT_STREAM_REQUEST_INPUT_STATE_SQL",
+    "CHAT_STREAM_TERMINAL_INPUT_STATES",
+    "PENDING_CHAT_STREAM_CANCELLATIONS_SQL",
     "build_chat_stream_cancellation_event_id",
+    "build_chat_stream_cancellation_for_input_params",
     "build_chat_stream_cancellation_settled_event_id",
+    "parse_pending_chat_stream_cancellation_request_id",
     "read_chat_stream_cancellation_receipt",
     "read_chat_stream_request_terminal_state",
     "sync_has_chat_stream_cancellation_for_input",
@@ -29,6 +37,43 @@ __all__ = (
 
 CHAT_STREAM_CANCELLATION_EVENT_TYPE = "ConversationStreamCancellationRequestedEvent"
 CHAT_STREAM_CANCELLATION_SETTLED_EVENT_TYPE = "ConversationStreamCancellationSettledEvent"
+CHAT_STREAM_TERMINAL_INPUT_STATES = frozenset(
+    {"completed", "failed", "cancelled", "effect_unknown"}
+)
+CHAT_STREAM_CANCELLATION_FOR_INPUT_SQL = """
+        SELECT 1 AS found FROM webui_domain_event_outbox
+        WHERE event_type = ?
+          AND json_extract(payload_json, '$.user_id') = ?
+          AND json_extract(payload_json, '$.conversation_id') = ?
+          AND (json_extract(payload_json, '$.request_id') = ?
+               OR json_extract(payload_json, '$.request_id') GLOB ?)
+        LIMIT 1
+        """
+CHAT_STREAM_REQUEST_INPUT_STATE_SQL = """
+        SELECT state FROM webui_conversation_inputs
+        WHERE conv_id = ? AND user_id = ?
+          AND (request_id = ? OR ? GLOB request_id || ':variant:[0-9]*')
+        LIMIT 1
+        """
+CHAT_STREAM_REQUEST_FINISH_REASON_SQL = """
+        SELECT message.finish_reason
+        FROM webui_messages AS message
+        JOIN webui_conversations AS conversation ON conversation.id = message.conv_id
+        WHERE message.conv_id = ? AND conversation.user_id = ?
+          AND message.role = 'assistant' AND message.request_id = ?
+          AND message.finalized_at_ms IS NOT NULL
+        LIMIT 1
+        """
+CHAT_STREAM_CANCELLATION_SETTLED_SQL = (
+    "SELECT 1 AS found FROM webui_domain_event_outbox WHERE event_id = ? LIMIT 1"
+)
+PENDING_CHAT_STREAM_CANCELLATIONS_SQL = """
+        SELECT payload_json FROM webui_domain_event_outbox
+        WHERE event_type = ?
+          AND json_extract(payload_json, '$.user_id') = ?
+          AND json_extract(payload_json, '$.conversation_id') = ?
+        ORDER BY id DESC
+        """
 
 
 def validate_chat_stream_cancellation_receipt_payload(
@@ -60,6 +105,28 @@ def build_chat_stream_cancellation_settled_event_id(
 ) -> str:
     identity = f"{user_id}\0{conv_id}\0{request_id}".encode("utf-8")
     return f"chat_stream_cancellation_settled:{sha256(identity).hexdigest()}"
+
+
+def build_chat_stream_cancellation_for_input_params(
+    *, user_id: int, conv_id: str, request_id: str
+) -> tuple[SQLiteValue, ...]:
+    return (
+        CHAT_STREAM_CANCELLATION_EVENT_TYPE,
+        user_id,
+        conv_id,
+        request_id,
+        f"{request_id}:variant:[0-9]*",
+    )
+
+
+def parse_pending_chat_stream_cancellation_request_id(payload_json: SQLiteValue) -> str:
+    if not isinstance(payload_json, str):
+        raise StateError("Chat stream cancellation receipt payload is invalid.")
+    payload = parse_json_dict(payload_json, field="Chat stream cancellation receipt")
+    request_id = payload.get("request_id")
+    if not isinstance(request_id, str) or not request_id:
+        raise StateError("Chat stream cancellation receipt request identity is invalid.")
+    return request_id
 
 
 def read_chat_stream_cancellation_receipt(
@@ -112,21 +179,11 @@ def sync_has_chat_stream_cancellation_for_input(
     request_id: str,
 ) -> bool:
     row = conn.execute(
-        """
-        SELECT 1 FROM webui_domain_event_outbox
-        WHERE event_type = ?
-          AND json_extract(payload_json, '$.user_id') = ?
-          AND json_extract(payload_json, '$.conversation_id') = ?
-          AND (json_extract(payload_json, '$.request_id') = ?
-               OR json_extract(payload_json, '$.request_id') GLOB ?)
-        LIMIT 1
-        """,
-        (
-            CHAT_STREAM_CANCELLATION_EVENT_TYPE,
-            user_id,
-            conv_id,
-            request_id,
-            f"{request_id}:variant:[0-9]*",
+        CHAT_STREAM_CANCELLATION_FOR_INPUT_SQL,
+        build_chat_stream_cancellation_for_input_params(
+            user_id=user_id,
+            conv_id=conv_id,
+            request_id=request_id,
         ),
     ).fetchone()
     return row is not None
@@ -140,35 +197,20 @@ def read_chat_stream_request_terminal_state(
     request_id: str,
 ) -> str | None:
     input_row = conn.execute(
-        """
-        SELECT state FROM webui_conversation_inputs
-        WHERE conv_id = ? AND user_id = ?
-          AND (request_id = ? OR ? GLOB request_id || ':variant:[0-9]*')
-        LIMIT 1
-        """,
+        CHAT_STREAM_REQUEST_INPUT_STATE_SQL,
         (conv_id, user_id, request_id, request_id),
     ).fetchone()
     if input_row is not None and isinstance(input_row[0], str):
         input_state = input_row[0]
-        if input_state in {"completed", "failed", "cancelled", "effect_unknown"}:
-            return input_state
-        return None
+        return input_state if input_state in CHAT_STREAM_TERMINAL_INPUT_STATES else None
     row = conn.execute(
-        """
-        SELECT message.finish_reason
-        FROM webui_messages AS message
-        JOIN webui_conversations AS conversation ON conversation.id = message.conv_id
-        WHERE message.conv_id = ? AND conversation.user_id = ?
-          AND message.role = 'assistant' AND message.request_id = ?
-          AND message.finalized_at_ms IS NOT NULL
-        LIMIT 1
-        """,
+        CHAT_STREAM_REQUEST_FINISH_REASON_SQL,
         (conv_id, user_id, request_id),
     ).fetchone()
     if row is not None:
         return row[0] if isinstance(row[0], str) and row[0] else "completed"
     settled = conn.execute(
-        "SELECT 1 FROM webui_domain_event_outbox WHERE event_id = ? LIMIT 1",
+        CHAT_STREAM_CANCELLATION_SETTLED_SQL,
         (
             build_chat_stream_cancellation_settled_event_id(
                 user_id=user_id, conv_id=conv_id, request_id=request_id
@@ -184,22 +226,11 @@ def sync_has_pending_chat_stream_cancellation(
     conv_id: str,
 ) -> bool:
     rows = conn.execute(
-        """
-        SELECT payload_json FROM webui_domain_event_outbox
-        WHERE event_type = ?
-          AND json_extract(payload_json, '$.user_id') = ?
-          AND json_extract(payload_json, '$.conversation_id') = ?
-        ORDER BY id DESC
-        """,
+        PENDING_CHAT_STREAM_CANCELLATIONS_SQL,
         (CHAT_STREAM_CANCELLATION_EVENT_TYPE, user_id, conv_id),
     ).fetchall()
     for row in rows:
-        if not isinstance(row[0], str):
-            raise StateError("Chat stream cancellation receipt payload is invalid.")
-        payload = parse_json_dict(row[0], field="Chat stream cancellation receipt")
-        request_id = payload.get("request_id")
-        if not isinstance(request_id, str) or not request_id:
-            raise StateError("Chat stream cancellation receipt request identity is invalid.")
+        request_id = parse_pending_chat_stream_cancellation_request_id(row[0])
         if (
             read_chat_stream_request_terminal_state(
                 conn,

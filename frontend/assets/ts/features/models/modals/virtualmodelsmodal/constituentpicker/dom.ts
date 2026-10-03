@@ -61,8 +61,15 @@ const buildEntries = (models: ModelRecord[]): ConstituentEntry[] => {
 const buildCard = (entry: ConstituentEntry, isSelected: boolean, host: VirtualModelsHost): string => {
     const sanitizer = host.view.sanitizer;
     const labelSafe = sanitizer.html(entry.label);
-    const labelAttribute = sanitizer.attribute(entry.label);
     const idSafe = sanitizer.html(entry.universalId);
+    const tooltipLines = [entry.label, `${i18n.t('modelDetail.cards.identity.universal_id')}: ${entry.universalId}`];
+    if (entry.typeLabel) {
+        tooltipLines.push(`${i18n.t('modelDetail.cards.identity.type')}: ${entry.typeLabel}`);
+    }
+    if (entry.pluginLabel) {
+        tooltipLines.push(`${i18n.t('models.modal.addModel.pluginLabel')}: ${entry.pluginLabel}`);
+    }
+    const tooltipAttribute = sanitizer.attribute(tooltipLines.join('\n'));
     const badge = entry.typeLabel ? `<span class="search-item-badge">${sanitizer.html(entry.typeLabel)}</span>` : '';
     const pluginLine = entry.pluginLabel ? `<div class="u-text-muted">${sanitizer.html(entry.pluginLabel)}</div>` : '';
     const titleHtml = entry.label.includes('/')
@@ -74,7 +81,7 @@ const buildCard = (entry: ConstituentEntry, isSelected: boolean, host: VirtualMo
           })()
         : `<span class="search-item-model">${labelSafe}</span>`;
     const stateClass = isSelected ? ' is-selected' : '';
-    return `<button type="button" class="search-item search-item--card${stateClass}" data-constituent-id="${sanitizer.attribute(entry.universalId)}" aria-label="${labelAttribute}" data-tooltip="${labelAttribute}" aria-pressed="${isSelected ? 'true' : 'false'}"><span class="search-item-content"><div class="search-item-header"><span class="search-item-title">${titleHtml}</span>${badge}</div><div class="search-item-description">${idSafe}</div>${pluginLine}</span></button>`;
+    return `<button type="button" class="search-item search-item--card${stateClass}" data-constituent-id="${sanitizer.attribute(entry.universalId)}" aria-label="${tooltipAttribute}" data-tooltip="${tooltipAttribute}" aria-pressed="${isSelected ? 'true' : 'false'}"><span class="search-item-content"><div class="search-item-header"><span class="search-item-title">${titleHtml}</span>${badge}</div><div class="search-item-description">${idSafe}</div>${pluginLine}</span></button>`;
 };
 
 const renderCards = (dependencies: ConstituentPickerDependencies, store: HTMLSelectElement, results: HTMLDivElement, query: string): void => {

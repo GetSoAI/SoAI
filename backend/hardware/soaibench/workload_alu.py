@@ -6,7 +6,6 @@ from __future__ import annotations
 from core.hardware.soaibench_workloads import (
     ALU_BATCH_DISPATCHES,
     ALU_MAXIMUM_ELEMENTS,
-    ALU_OPERATION_FACTOR,
     ALU_ROUNDS,
     counted_operations,
 )
@@ -26,7 +25,6 @@ __all__ = (
 
 STANDARD_ALU_REPEATS = ALU_BATCH_DISPATCHES
 ALU_ELEMENT_COUNT = ALU_MAXIMUM_ELEMENTS
-ALU_OPERATIONS_PER_ROUND = ALU_OPERATION_FACTOR
 
 ALU_KERNEL_SOURCE = """
 __kernel void soaibench_alu(__global float *data, const uint rounds) {

@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from core.openai.sse_frame_accumulator import OpenAISSEFrameAccumulator
 from core.openai.stream_transcript.transcript import OpenAIStreamTranscript
 from core.openai.streaming_token_budget import StreamingTokenBudgetTracker
+
+if TYPE_CHECKING:
+    from core.types.json import JSONDict
 
 __all__ = ("OpenAIStreamRuntimeState",)
 
@@ -27,3 +31,4 @@ class OpenAIStreamRuntimeState:
     collect_tool_calls: bool
     tool_call_ids_by_index: dict[int, str] = field(default_factory=dict[int, str])
     tool_call_ids_by_ordinal: dict[int, str] = field(default_factory=dict[int, str])
+    withheld_provider_usage: JSONDict | None = None

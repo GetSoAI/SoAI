@@ -48,7 +48,7 @@
     }
 
     :where(.chat-container) .chat-message.user .message-action-buttons {
-        margin-left: 0;
+        margin-inline-start: 0;
     }
 
     :where(.chat-container) .chat-message.assistant .message-action-buttons--assistant {
@@ -173,8 +173,8 @@
     :where(.chat-container) .chat-message.chat-message--compaction-boundary > .message-content--compaction-boundary > .message-actions {
         width: 100%;
         margin-top: var(--space-2);
-        padding-left: 0;
-        padding-right: 0;
+        padding-inline-start: 0;
+        padding-inline-end: 0;
     }
 
     :where(.chat-container) .chat-message.chat-message--compaction-boundary > .message-content--compaction-boundary > .message-actions .message-action-buttons {
@@ -182,17 +182,17 @@
     }
 
     :where(.chat-container) .assistant.chat-message > .glass-surface--no-shadow.glass-surface-strong.message-content--with-header.message-content > .message-actions {
-        margin-left: 0;
-        padding-left: 0;
-        padding-right: 0;
+        margin-inline-start: 0;
+        padding-inline-start: 0;
+        padding-inline-end: 0;
         width: 100%;
     }
 
     :where(.chat-container) .assistant.chat-message > .glass-surface--no-shadow.glass-surface-strong.message-content--with-header.message-content > .message-actions > .message-action-buttons,
     :where(.chat-container) .assistant.chat-message > .glass-surface--no-shadow.glass-surface-strong.message-content--with-header.message-content > .message-actions .message-action-buttons-left,
     :where(.chat-container) .assistant.chat-message > .glass-surface--no-shadow.glass-surface-strong.message-content--with-header.message-content > .message-actions .message-action-buttons-right {
-        margin-left: 0;
-        padding-left: 0;
+        margin-inline-start: 0;
+        padding-inline-start: 0;
         width: auto;
     }
 

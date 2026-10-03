@@ -275,4 +275,4 @@ class ConfigReconciler:
         )
         if update_baseline:
             self.initial_baseline_established = True
-            self._deps.logger.info("Configuration baseline has been successfully updated.")
+            self._deps.logger.debug("Configuration baseline has been successfully updated.")

@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { renderLabelAttributes, securityApi } from '@core/security/public.ts';
-import { CHAT_ACTIONS, CHAT_CHARACTER_MAP_BUTTON_CLASS, type ChatPageMarkupContext } from '@features/chat/public.ts';
+import { i18n } from '@core/i18n/index.ts';
+import { CHAT_ACTIONS, CHAT_CHARACTER_MAP_BUTTON_CLASS, CHAT_SKETCH_BUTTON_CLASS, type ChatPageMarkupContext } from '@features/chat/public.ts';
 
 type ChatInputActionDescriptor = Readonly<{
     actionId: string;
@@ -20,12 +21,13 @@ const resolveChatInputActionDescriptors = (context: ChatPageMarkupContext): read
         { actionId: CHAT_ACTIONS.TOGGLE_CALL, buttonClassName: 'call-btn', label: strings.voiceCallStart },
         { actionId: CHAT_ACTIONS.TOGGLE_RECORDING, buttonClassName: 'microphone-btn', label: strings.startRecording, stopLabel: strings.stopRecording },
         { actionId: CHAT_ACTIONS.OPEN_CAMERA, buttonClassName: 'camera-btn', label: strings.openCamera },
+        { actionId: CHAT_ACTIONS.OPEN_SKETCH, buttonClassName: CHAT_SKETCH_BUTTON_CLASS, label: strings.openSketch },
         { actionId: CHAT_ACTIONS.OPEN_ATTACH_MODAL, buttonClassName: 'attach-add-btn', label: strings.attachAdd }
     ];
 };
 
 const renderMicrophoneIconSlots = (): string => {
-    return '<span class="ui-icon chat-action-icon chat-action-icon--microphone microphone-btn-icon--microphone" aria-hidden="true"></span><span class="ui-icon chat-action-icon chat-action-icon--stop microphone-btn-icon--stop" aria-hidden="true"></span>';
+    return '<span class="ui-icon chat-action-icon chat-action-icon--microphone microphone-btn-icon--microphone" aria-hidden="true"></span><span class="ui-icon chat-action-icon chat-action-icon--stop microphone-btn-icon--stop" aria-hidden="true"></span><span class="ui-icon chat-action-icon chat-action-icon--close microphone-btn-icon--close" aria-hidden="true"></span>';
 };
 
 const renderActionIconSlots = (action: ChatInputActionDescriptor): string => {
@@ -36,7 +38,7 @@ const renderMicrophoneLabelDataAttributes = (action: ChatInputActionDescriptor):
     if (!action.stopLabel) {
         return '';
     }
-    return ` data-start-label="${securityApi.escapeAttribute(action.label)}" data-stop-label="${securityApi.escapeAttribute(action.stopLabel)}"`;
+    return ` data-start-label="${securityApi.escapeAttribute(action.label)}" data-stop-label="${securityApi.escapeAttribute(action.stopLabel)}" aria-description="${securityApi.escapeAttribute(i18n.t('chat.holdShortcuts.pushToTalkHint'))}"`;
 };
 
 const renderMenuKeepOpenAttribute = (action: ChatInputActionDescriptor): string => {
@@ -53,7 +55,7 @@ const renderChatInputActionMenuButtonHtml = (action: ChatInputActionDescriptor):
 
 const renderChatInputActionButtonsInline = (context: ChatPageMarkupContext): { leading: string; auxiliary: string } => {
     const strings = context.strings;
-    const tokenCounterButton = `<button type="button" class="chat-token-counter-btn chat-token-counter-inline ui-icon-button u-hidden" data-action="chat:cycle-token-counter" ${renderLabelAttributes(strings.tokenCounterTooltip)} aria-pressed="false"><span class="chat-token-counter-label">${strings.tokenCounterInactive}</span></button>`;
+    const tokenCounterButton = `<button type="button" class="chat-token-counter-btn chat-token-counter-inline ui-icon-button u-hidden" data-action="chat:cycle-token-counter" data-presence-morph ${renderLabelAttributes(strings.tokenCounterTooltip)} aria-description="${securityApi.escapeAttribute(i18n.t('chat.holdShortcuts.parametersHint'))}" aria-pressed="false"><span dir="ltr" class="chat-token-counter-label">${strings.tokenCounterInactive}</span></button>`;
     let leading = '';
     const auxiliary: string[] = [];
     for (const action of resolveChatInputActionDescriptors(context)) {
@@ -73,7 +75,7 @@ const renderChatHeaderOverflowComposerButtons = (context: ChatPageMarkupContext)
     const buttons = resolveChatInputActionDescriptors(context)
         .map((action) => renderChatInputActionMenuButtonHtml(action))
         .join('');
-    const tokenCounterButton = `<button type="button" class="chat-token-counter-btn chat-token-counter-menu ui-button chat-input-action chat-header-action chat-composer-overflow-action" data-action="chat:cycle-token-counter" data-page-actions-menu-keep-open="true" ${renderLabelAttributes(strings.tokenCounterTooltip)} aria-pressed="false"><span class="chat-action-icon" aria-hidden="true"></span><span class="chat-token-counter-label chat-action-label">${strings.tokenCounterInactive}</span></button>`;
+    const tokenCounterButton = `<button type="button" class="chat-token-counter-btn chat-token-counter-menu ui-button chat-input-action chat-header-action chat-composer-overflow-action" data-action="chat:cycle-token-counter" data-page-actions-menu-keep-open="true" ${renderLabelAttributes(strings.tokenCounterTooltip)} aria-description="${securityApi.escapeAttribute(i18n.t('chat.holdShortcuts.parametersHint'))}" aria-pressed="false"><span class="chat-action-icon" aria-hidden="true"></span><span dir="ltr" class="chat-token-counter-label chat-action-label">${strings.tokenCounterInactive}</span></button>`;
     return `${tokenCounterButton}${buttons}`;
 };
 

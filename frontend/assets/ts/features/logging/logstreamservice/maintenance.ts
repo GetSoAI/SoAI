@@ -21,6 +21,7 @@ interface LogStreamMaintenanceSource {
 }
 
 const suspendLogStreamRecovery = (context: LogStreamMaintenanceContext): void => {
+    context.state.recovery.setLiveDemand(false);
     context.state.connectionGeneration += 1;
     context.state.connectPromise = null;
     if (!context.state.recoverySuspended) {
@@ -38,6 +39,7 @@ const resumeLogStreamRecovery = (context: LogStreamMaintenanceContext): void => 
         return;
     }
     context.state.recoverySuspended = false;
+    context.state.recovery.setLiveDemand(context.state.subscribers.size > 0);
     if (context.state.subscribers.size === 0) {
         return;
     }

@@ -33,6 +33,7 @@ if TYPE_CHECKING:
         ModelParameterServiceProtocol,
         ModelResolutionServiceProtocol,
     )
+    from core.openai.chat_template_role_policy_resolver import ChatTemplateRolePolicyResolver
     from core.openai.token_counter import PromptTokenCounter
     from core.openai.token_estimation_profile import TokenEstimationProfile
     from core.orchestrator.protocols_lifecycle import OrchestratorLifecycleProtocol
@@ -60,6 +61,7 @@ async def count_model_aware_prompt_occupancy(
     ),
     state_aggregator: StateAggregatorProtocol,
     orchestrator_lifecycle: OrchestratorLifecycleProtocol,
+    chat_template_role_policy_resolver: ChatTemplateRolePolicyResolver,
     request_context: RequestContext,
 ) -> tuple[PromptOccupancy, OpenAIModelRuntimeProfile]:
     model_name = resolve_optional_model_name(request_payload) or ""
@@ -120,6 +122,7 @@ async def count_model_aware_prompt_occupancy(
                     plugin_manager=plugin_manager,
                     state_aggregator=state_aggregator,
                     orchestrator_lifecycle=orchestrator_lifecycle,
+                    chat_template_role_policy_resolver=chat_template_role_policy_resolver,
                     request_context=request_context,
                 )
                 if exact is not None:

@@ -195,8 +195,10 @@ class ChatMessageView {
             const deleteNowLabel = i18n.t('chat.message.actions.delete');
             const deleteNowLabelAttr = this.escapeAttribute(deleteNowLabel);
             const deleteNowIconHtml = renderIconSlot(this.#dependencies.getIcon('close', CHAT_ICON_SIZE_XS));
-            const deletedMessageMarkup = avatarContainerHtml + `<div class="message-content message-content--deleted glass-surface-strong glass-surface--no-shadow">` + `<div class="message-text">` + `<p><strong class="message-deleted-badge">${deletedText}</strong></p>` + `<p class="message-deleted-actions"><button type="button" class="ui-button ui-button--sm ui-variant-neutral" data-action="delete-undo" aria-label="${undoLabelAttr}" data-tooltip="${undoLabelAttr}">${undoIconHtml}${undoLabelHtml}</button><button type="button" class="ui-icon-button ui-variant-danger delete-message-now-btn" data-action="delete-now" aria-label="${deleteNowLabelAttr}" data-tooltip="${deleteNowLabelAttr}">${deleteNowIconHtml}</button></p>` + `</div>` + `</div>`;
-            return toTrustedUiHtml(`<div class="chat-message${messageClassSuffix}" data-id="${this.escapeAttribute(messageDomId)}"${assistantSemanticIdentityAttributes}${renderChatPostRenderCapabilitiesAttribute('')}>${deletedMessageMarkup}</div>`);
+            const deletionBody = `<p><strong class="message-deleted-badge">${deletedText}</strong></p>` + `<p class="message-deleted-actions"><button type="button" class="ui-button ui-button--sm ui-variant-neutral" data-action="delete-undo" aria-label="${undoLabelAttr}" data-tooltip="${undoLabelAttr}">${undoIconHtml}${undoLabelHtml}</button><button type="button" class="ui-icon-button ui-variant-danger delete-message-now-btn" data-action="delete-now" aria-label="${deleteNowLabelAttr}" data-tooltip="${deleteNowLabelAttr}">${deleteNowIconHtml}</button></p>`;
+            const deletionText = this.#isAssistantRole(message) ? buildAssistantResponseMarkup({ bodyHtml: injectAssistantBodyRootAttributes(this.#renderHost, `<div>${deletionBody}</div>`, 'pending-deletion', deletionBody) }) : deletionBody;
+            const deletedMessageMarkup = avatarContainerHtml + `<div class="message-content message-content--deleted glass-surface-strong glass-surface--no-shadow"><div class="message-text">${deletionText}</div></div>`;
+            return toTrustedUiHtml(`<div class="chat-message${messageClassSuffix}" data-id="${this.escapeAttribute(messageDomId)}"${assistantSemanticIdentityAttributes}${comparisonRootAttributes}${renderChatPostRenderCapabilitiesAttribute('')}>${deletedMessageMarkup}</div>`);
         }
 
         const textHtml = isInvalidComparisonTurn ? buildAssistantResponseMarkup({ bodyHtml: renderMessageError(this.#renderHost, i18n.t('chat.comparison.invalidTurn')) }) : this.#renderMessageTextContent(message, model.presentation, null, model.forceSettledAssistantBody === true, conversationId).html;
@@ -206,7 +208,7 @@ class ChatMessageView {
                   {
                       escapeHtml: (value) => this.escapeHtml(value),
                       escapeAttribute: (value) => this.escapeAttribute(value),
-                      getIcon: (name, options) => this.#dependencies.getIcon(name, options).html,
+                      getIcon: (name, options) => this.#dependencies.getIcon(name, options),
                       isConversationExecuting: (conversationId) => this.#dependencies.isConversationExecuting(conversationId),
                       getCurrentConversationId: () => conversationId,
                       getCurrentRunningActivitySnapshot: () => this.#dependencies.getCurrentRunningActivitySnapshot(),

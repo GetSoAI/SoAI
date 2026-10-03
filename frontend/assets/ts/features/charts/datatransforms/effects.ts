@@ -124,20 +124,17 @@ const toLineSeries = (data: JsonValue | null | undefined, maxPoints: JsonValue |
         }
     }
 
-    if (!fillGaps || working.length <= 1) {
-        return working.length <= displayLimit ? working : reduceSeriesDensity(working, displayLimit, densityMode);
+    if (fillGaps && working.length > 1) {
+        let intervalMs: number | null = readRuntimeFiniteNumberOrFallbackValue(intervalOption, null);
+        if (intervalMs === null || !Number.isFinite(intervalMs) || intervalMs <= 0) {
+            intervalMs = estimateIntervalMs(working);
+        }
+        if (intervalMs !== null && Number.isFinite(intervalMs) && intervalMs > 0) {
+            working = fillGapsInSeries(working, intervalMs, limit, rangeMs);
+        }
     }
-
-    let intervalMs: number | null = readRuntimeFiniteNumberOrFallbackValue(intervalOption, null);
-    if (intervalMs === null || intervalMs === undefined || !Number.isFinite(intervalMs) || intervalMs <= 0) {
-        intervalMs = estimateIntervalMs(working);
-    }
-    if (intervalMs === null || intervalMs === undefined || !Number.isFinite(intervalMs) || intervalMs <= 0) {
-        return working.length <= displayLimit ? working : reduceSeriesDensity(working, displayLimit, densityMode);
-    }
-
-    const filled = fillGapsInSeries(working, intervalMs, limit, rangeMs);
-    return filled.length <= displayLimit ? filled : reduceSeriesDensity(filled, displayLimit, densityMode);
+    if (working.length <= displayLimit) return working;
+    return densityMode === 'preserve' ? working.slice(-displayLimit) : reduceSeriesDensity(working, displayLimit, densityMode);
 };
 
 const toHeikinAshiSeries = (data: JsonValue | null | undefined, { assumeSorted = false }: ToHeikinAshiOptions = {}): OhlcPoint[] => {

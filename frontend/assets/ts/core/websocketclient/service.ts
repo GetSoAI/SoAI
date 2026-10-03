@@ -1,7 +1,7 @@
 /* SoAI - Shared frontend WebSocket client service [frontend/assets/ts/core/websocketclient/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { CONNECTION_STATES } from '@core/websocketclient/constants.ts';
+import { CONNECTION_STATES, CONNECTION_WAIT_TIMEOUT_MS } from '@core/websocketclient/constants.ts';
 import { SnapshotError, SnapshotProtocolError } from '@core/websocketclient/snapshotManager.ts';
 import { WebSocketClient } from '@core/websocketclient/WebSocketClient.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -30,7 +30,7 @@ const connectWebSocket = (): void => {
     getWebSocketClient().connect();
 };
 
-const waitForWebSocketConnection = (timeoutMs: number = 15000, options: WaitForConnectionOptions = {}): Promise<void> => getWebSocketClient().waitForConnection(timeoutMs, options);
+const waitForWebSocketConnection = (timeoutMs: number = CONNECTION_WAIT_TIMEOUT_MS, options: WaitForConnectionOptions = {}): Promise<void> => getWebSocketClient().waitForConnection(timeoutMs, options);
 
 const sendWebSocketMessage = (payload: JsonObject, options: { waitForConnection?: boolean; timeoutMs?: number; signal?: AbortSignal } = {}): Promise<void> => getWebSocketClient().sendMessage(payload, options);
 

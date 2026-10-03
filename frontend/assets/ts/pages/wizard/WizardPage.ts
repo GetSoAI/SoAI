@@ -38,7 +38,8 @@ class WizardPage extends StaticBasePage {
             pageLifecycle: this.pageLifecycle,
             router: this.dependencies.router,
             services: this.services,
-            storage: this.dependencies.storage
+            storage: this.dependencies.storage,
+            streaming: this.streaming
         });
         this.state = this.#domain.state;
     }
@@ -57,7 +58,7 @@ class WizardPage extends StaticBasePage {
 
     override async beforeRender(parameters: JsonObject): Promise<JsonObject> {
         await super.beforeRender(parameters);
-        await this.#domain.resolveVisibility();
+        await this.#domain.resolveVisibility(parameters);
         return {};
     }
 

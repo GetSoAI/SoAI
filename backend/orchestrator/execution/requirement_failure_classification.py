@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 from core.errors.error_types import ErrorType
-from core.errors.exceptions import ValidationError
+from core.errors.exceptions import SoAIError, ValidationError
+from core.errors.public_projection import project_public_error
 from core.openai.context_overflow_validation import extract_context_overflow_validation
 from core.openai.request_requirement_failures import (
     build_openai_request_requirement_failure_message,
@@ -12,7 +13,7 @@ from core.openai.request_requirement_failures import (
 )
 from orchestrator.execution.failure_classification_models import ExecutionFailureDetails
 
-__all__ = ("classify_validation_execution_failure",)
+__all__ = ("classify_configuration_execution_failure", "classify_validation_execution_failure")
 
 
 def classify_validation_execution_failure(
@@ -44,8 +45,26 @@ def classify_validation_execution_failure(
             allow_failover=False,
         )
     return ExecutionFailureDetails(
-        user_message="Request validation failed.",
+        user_message=project_public_error(exception).message,
         state_reason=f"Task {task_id} failed: request validation error",
+        log_stack=False,
+        error_type=ErrorType.INVALID_REQUEST,
+        affects_plugin_health=False,
+        allow_failover=False,
+    )
+
+
+def classify_configuration_execution_failure(
+    task_id: str,
+    exception: SoAIError,
+) -> ExecutionFailureDetails:
+    return ExecutionFailureDetails(
+        user_message=(
+            project_public_error(exception).message
+            if exception.public_message is not None
+            else "Request configuration is invalid."
+        ),
+        state_reason=f"Task {task_id} failed: configuration error",
         log_stack=False,
         error_type=ErrorType.INVALID_REQUEST,
         affects_plugin_health=False,

@@ -16,7 +16,7 @@ from core.concurrency.cancellation_cleanup import uncancel_and_wait
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
-from core.errors.exceptions import StateError
+from core.errors.exceptions import ProcessError, StateError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.platform.os import is_windows
 from core.system.async_process_spawning import spawn_async_process
@@ -45,7 +45,7 @@ PROCESS_SESSION_OPERATION_EXCEPTIONS: tuple[type[Exception], ...] = (
 class ManagedProcessSession:
     process: asyncio.subprocess.Process
     process_group_id: int | None = None
-    log_consumer_tasks: list[asyncio.Task[None]] = field(default_factory=list)
+    log_consumer_tasks: list[asyncio.Task[None]] = field(default_factory=list[asyncio.Task[None]])
     log_file_handle: io.BufferedIOBase | None = None
 
     def active_pids(self) -> list[int]:
@@ -176,13 +176,16 @@ async def spawn_logged_process(
             use_process_group=start_new_session or creationflags != 0,
         )
         raise
-    except PROCESS_SESSION_OPERATION_EXCEPTIONS:
-        await _terminate_spawn_failure_session(
+    except PROCESS_SESSION_OPERATION_EXCEPTIONS as exception:
+        if not await _terminate_spawn_failure_session(
             session=session,
             logger=logger,
             plugin_label=plugin_label,
             use_process_group=start_new_session or creationflags != 0,
-        )
+        ):
+            raise ProcessError(
+                "Process startup cleanup could not verify process termination."
+            ) from exception
         raise
     return session
 
@@ -217,8 +220,8 @@ async def _terminate_spawn_failure_session(
     logger: logging.Logger,
     plugin_label: str,
     use_process_group: bool,
-) -> None:
-    await terminate_managed_process(
+) -> bool:
+    return await terminate_managed_process(
         process=session.process,
         process_group_id=session.process_group_id,
         logger=logger,

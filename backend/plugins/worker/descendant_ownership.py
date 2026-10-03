@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import psutil
 
+from core.runtime.process_descendants import list_process_descendants
 from core.runtime.process_identity_signals import (
     process_identity_matches,
     read_process_create_time_ms,
@@ -39,13 +40,9 @@ def capture_worker_descendants(
             expected_create_time_ms = current_create_time_ms
         if current_create_time_ms != expected_create_time_ms:
             return expected_create_time_ms, list(identities.values())
-        children = worker.children(recursive=True)
+        descendants = list_process_descendants(worker)
     except psutil.NoSuchProcess:
         return expected_create_time_ms, list(identities.values())
-    for child in children:
-        try:
-            created = read_process_create_time_ms(child)
-        except psutil.NoSuchProcess:
-            continue
+    for child, created in descendants:
         identities[(child.pid, created)] = {"pid": child.pid, "createTimeMs": created}
     return expected_create_time_ms, list(identities.values())

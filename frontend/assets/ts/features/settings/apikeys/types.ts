@@ -6,6 +6,7 @@ import type { ApiKeyQuotaUpdateRequest } from '@core/api/contracts/apiKeyQuotaCo
 import type { ToggleLabelState } from '@core/toggleSwitch.ts';
 import type { DomEventHost, DomMutationHost, DomQueryHost, ExecutionHost, NotificationHost, SearchHost } from '@core/ui/controllerHosts.ts';
 import type { ApiKey, ApiKeyQuotaSummary } from '@core/settings/contracts.ts';
+import type { SignalOptions } from '@core/api/requestOptions.ts';
 
 interface ApiKeysManagerDependencies {
     host: ApiKeysManagerHost;
@@ -15,7 +16,7 @@ type ApiKeyOperation = 'revoke' | 'rotate' | 'delete';
 
 interface ApiKeysManagerApiHost {
     isAdmin: () => boolean;
-    listApiKeys: (includeRevoked: boolean) => Promise<ApiKey[]>;
+    listApiKeys: (includeRevoked: boolean, options?: SignalOptions) => Promise<ApiKey[]>;
     createApiKey: (payload: ApiKeyCreateRequest) => Promise<ApiKeySecretResponse>;
     revokeApiKey: (keyId: string) => Promise<ApiKeyRevokeResponse>;
     rotateApiKey: (keyId: string) => Promise<ApiKeySecretResponse>;
@@ -23,7 +24,7 @@ interface ApiKeysManagerApiHost {
     deleteAllApiKeys: () => Promise<ApiKeyDeleteAllResponse>;
     getApiKeyQuota: (keyId: string) => Promise<ApiKeyQuotaSummary>;
     updateApiKeyQuota: (keyId: string, payload: ApiKeyQuotaUpdateRequest) => Promise<ApiKeyQuotaSummary>;
-    listApiKeyQuotaStatus: () => Promise<Record<string, ApiKeyQuotaSummary>>;
+    listApiKeyQuotaStatus: (options?: SignalOptions) => Promise<Record<string, ApiKeyQuotaSummary>>;
     assignApiKeyToUser: (keyId: string, userId: number) => Promise<ApiKeyAssignmentResponse>;
     unassignApiKeyFromUser: (keyId: string) => Promise<void>;
     listUsers: () => Promise<Array<{ id: number; username: string }>>;

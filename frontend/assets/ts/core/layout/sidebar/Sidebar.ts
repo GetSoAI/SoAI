@@ -23,7 +23,7 @@ import { setSidebarActiveByPage, syncSidebarWithCurrentRoute } from '@core/layou
 import { isSidebarStoragePluginIndicatorContract, type SidebarStoragePluginIndicatorContract } from '@core/layout/sidebar/pluginIndicator.ts';
 import { resolveSidebarIconMarkup, resolveSidebarLabel, resolveSidebarStorage, syncSidebarExpandedWidth, updateSidebarMainStateIndicator, waitForSidebarComponent } from '@core/layout/sidebar/service.ts';
 import { createInitialSidebarState, type SidebarState } from '@core/layout/sidebar/state.ts';
-import { closeSidebarMobile, compactSidebarState, isSidebarExpanded, toggleSidebarState, updateSidebarStateUI } from '@core/layout/sidebar/stateUi.ts';
+import { closeSidebarMobile, compactSidebarState, isSidebarCollapsed, isSidebarExpanded, toggleSidebarState, updateSidebarStateUI } from '@core/layout/sidebar/stateUi.ts';
 import { SidebarRenderer, type SidebarConfigEntry } from '@core/layout/sidebar/view.ts';
 
 class LayoutSidebar extends LifecycleModel {
@@ -33,7 +33,7 @@ class LayoutSidebar extends LifecycleModel {
     readonly #routeComponentMap: Record<string, string>;
     #sidebarConfig: SidebarConfigEntry[] = [];
     #instanceId: string | null = null;
-    #state: SidebarState = createInitialSidebarState();
+    readonly #state: SidebarState = createInitialSidebarState();
     #sidebarReady: boolean = false;
     #router: Router | null = null;
     #componentRegistry: ComponentRegistryContract | null = null;
@@ -79,11 +79,7 @@ class LayoutSidebar extends LifecycleModel {
             getFileExplorerLink: () => getSidebarPageLink(this.#domRefs, 'fileExplorer'),
             getAutomationLink: () => getSidebarAutomationLink(this.#domRefs),
             resolveStorage: () => this.#resolveStorage(),
-            getDisplayState: () => ({
-                collapsed: this.#state.collapsed,
-                mobile: this.#state.mobile,
-                open: this.#state.open
-            }),
+            isCollapsed: () => isSidebarCollapsed(this.#state),
             getDomRef: (key) => getSidebarDomRef(this.#domRefs, key)
         });
         this.#pluginIndicator = auxControllers.pluginIndicator;
@@ -125,6 +121,8 @@ class LayoutSidebar extends LifecycleModel {
                 addSessionDisposer: (functionValue: SidebarDisposerCandidate) => addSidebarDisposer(this.#sessionDisposers, functionValue, 'session'),
                 flushSessionDisposers: () => flushSidebarDisposers(this.#sessionDisposers, 'session'),
                 on: (target: EventTarget | Element, eventName: string, handler: (event: Event) => void) => this.lifecycleResources.addEventListener(target, eventName, handler),
+                setTimer: (handler: () => void, delay: number) => this.lifecycleResources.setTimer(handler, delay),
+                clearTimer: (timerId: number) => this.lifecycleResources.clearTimer(timerId),
                 refreshSidebar: (options?: { syncRoute?: boolean }) => refreshSidebarContent(this.#refreshDependencies, options),
                 filterModelDependentNavigation: (entries) => this.#modelDependentNavigation.filterEntries(entries),
                 closeMobile: async () => {
@@ -199,7 +197,7 @@ class LayoutSidebar extends LifecycleModel {
         await teardownSidebarLifecycle(this.#lifecycleDependencies, this.#sidebarReady);
         flushSidebarDisposers(this.#persistentDisposers, 'persistent');
         this.#sidebarConfig = cloneSidebarConfigEntries(this.#defaultSidebarConfig);
-        this.#state = createInitialSidebarState();
+        Object.assign(this.#state, createInitialSidebarState());
         this.#router = null;
         this.#componentRegistry = null;
         this.#authManager = null;

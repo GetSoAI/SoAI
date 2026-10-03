@@ -32,7 +32,8 @@
         inset: 0;
     }
 
-    .u-hidden {
+    .u-hidden,
+    :is(button, [role='button'], [data-presence])[hidden] {
         display: var(--hidden-display);
     }
 
@@ -107,8 +108,8 @@
             width: max-content;
             min-width: 14px;
             margin-top: var(--space-05);
-            margin-right: auto;
-            margin-left: auto;
+            margin-inline-end: auto;
+            margin-inline-start: auto;
         }
     }
 

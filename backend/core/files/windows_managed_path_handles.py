@@ -150,7 +150,7 @@ def open_windows_managed_path_handles(
         stat_result = (
             os.fstat(leaf_file_descriptor)
             if leaf_file_descriptor >= 0
-            else os.stat(current_path, follow_symlinks=False)
+            else os.stat(normalize_filesystem_path(current_path), follow_symlinks=False)
         )
         if require_directory is False and not stat.S_ISREG(stat_result.st_mode):
             raise FileStorageSecurityError("Managed path is not a regular file.")

@@ -9,6 +9,9 @@ import type { WizardDeclaration, WizardStatusResponse } from '@core/api/contract
 import type { WizardLicensingDocumentResponse } from '@core/api/contracts/wizardLicensingMutations.ts';
 import type { LicensingLegalDocumentSet, LicensingLegalFlow } from '@core/api/contracts/licensingLegalDocumentContracts.ts';
 import type { LicensingCredentialActivationInput, LicensingLegalAcceptanceInput, LicensingOrganizationInput } from '@core/api/contracts/licensingRequestSerialization.ts';
+import type { AiSetupFlowController } from '@pages/wizard/services/aisetup/AiSetupFlowController.ts';
+
+type WizardCompletionDestination = 'default' | 'chat';
 
 interface WizardViewPort {
     state: WizardState;
@@ -17,7 +20,9 @@ interface WizardViewPort {
     isDomUsable(): boolean;
     createViewContext(): WizardViewContext;
     updateProgress(ui: WizardUi): void;
+    syncWelcomeLanguageFlag(content: HTMLElement): void;
     syncNavigation(ui: WizardUi, stepId: WizardStepId): void;
+    syncCurrentNavigation(): void;
     syncUseSelection(ui: WizardUi): void;
     selectedProductAccessFlow(ui: WizardUi): ProductAccessFlow | null;
     syncProductAccessSelection(ui: WizardUi, selected: ProductAccessFlow | null, focusPanel: boolean): void;
@@ -50,7 +55,7 @@ interface WizardDataPort {
 
 interface WizardCompletionPort {
     dispatchWizardCompleted(): void;
-    navigateAfterCompletion(isSessionActivationRequired: boolean): Promise<void>;
+    navigateAfterCompletion(isSessionActivationRequired: boolean, destination: WizardCompletionDestination): Promise<void>;
     refreshLogos(): void;
     logWarn(operation: string, error: Error): void;
     logError(operation: string, error: Error): void;
@@ -61,6 +66,7 @@ interface WizardPageServiceHost {
     view: WizardViewPort;
     data: WizardDataPort;
     completion: WizardCompletionPort;
+    aiSetup: AiSetupFlowController;
 }
 
-export type { WizardPageServiceHost };
+export type { WizardCompletionDestination, WizardPageServiceHost };

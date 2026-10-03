@@ -45,7 +45,6 @@ interface HardwareProcessControllerDependencies {
 
 interface HardwareUiDependencies {
     owners: HardwareServiceOwners;
-    renderGpuControls(options?: { only?: string[] | null }): void;
     showSoAIBenchHistory(request: Parameters<SoAIBenchHistoryModal['open']>[0]): Promise<void>;
 }
 

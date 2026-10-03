@@ -55,14 +55,17 @@ if ($releaseInfo.schema_version -ne 1 `
 }
 foreach ($requiredPath in @(
     'soai.exe',
+    'soai.exe.config',
     'install-soai-from-release.bat',
     'install-soai-windows.ps1',
     'Microsoft.Web.WebView2.Core.dll',
     'Microsoft.Web.WebView2.WinForms.dll',
     'WebView2Loader.dll',
     'installer-support\Install-SoAIRuntime.ps1',
+    'installer-support\dependencies-v1.json',
     'installer-support\Remove-SoAI.ps1',
     'installer-support\installed-files.txt'
+    'installer-support\soai.exe.config'
 )) {
     if (!(Test-Path -LiteralPath (Join-Path $payloadRoot $requiredPath) -PathType Leaf)) {
         throw "Windows complete payload is missing: $requiredPath"

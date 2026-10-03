@@ -13,6 +13,7 @@ from core.conversations.assistant_turn_variant_identity import (
 )
 from core.errors.exceptions import ValidationError
 from core.tool_calls.chronology import bound_required_chronology_anchor
+from core.validation.integers import is_strict_int
 from core.validation.strict_numbers import coerce_optional_non_negative_int_strict
 from features.assistant_timeline.models import (
     AssistantTimelineRuntime,
@@ -95,6 +96,9 @@ def cache_tool_call_layout_from_payload(
     layout = extract_layout_from_payload(payload)
     existing_layout = runtime.tool_call_layout_by_call_id.get(call_id)
     if existing_layout is not None and layout is not None:
+        authoritative = isinstance(payload.get("turn_id"), str) and is_strict_int(
+            payload.get("iteration_index")
+        )
         if existing_layout.content_index_before > runtime.assistant_visible_chars:
             raise ValidationError(
                 "Assistant timeline tool layout exceeds assistant visible text length.",
@@ -102,14 +106,16 @@ def cache_tool_call_layout_from_payload(
         if (
             existing_layout.sequence_index != layout.sequence_index
             or existing_layout.thinking_index_before != layout.thinking_index_before
+            or (
+                authoritative
+                and existing_layout.content_index_before != layout.content_index_before
+            )
         ):
             raise ValidationError(
                 f"Assistant timeline tool chronology changed for call_id '{call_id}'.",
             )
     tool_name_value = payload.get("tool_name")
     tool_name = tool_name_value.strip() if isinstance(tool_name_value, str) else ""
-    if tool_name:
-        runtime.tool_name_by_call_id[call_id] = tool_name
     existing_identity = runtime.tool_call_identity_by_call_id.get(call_id)
     message_index_value = payload.get("message_index")
     message_index = (
@@ -155,7 +161,7 @@ def cache_tool_call_layout_from_payload(
     elif existing_identity is not None:
         assistant_turn_at_ms = existing_identity.assistant_identity.assistant_turn_at_ms
         model_variant_index = existing_identity.assistant_identity.model_variant_index
-    runtime.tool_call_identity_by_call_id[call_id] = ToolCallPersistenceIdentity(
+    resolved_identity = ToolCallPersistenceIdentity(
         message_index=message_index,
         assistant_identity=AssistantTurnVariantIdentity(
             assistant_at_ms=int(runtime.assistant_at_ms),
@@ -165,7 +171,14 @@ def cache_tool_call_layout_from_payload(
         turn_id=turn_id,
         iteration_index=iteration_index,
     )
+    if existing_identity is not None and existing_identity != resolved_identity:
+        raise ValidationError(
+            f"Assistant timeline tool identity changed for call_id '{call_id}'.",
+        )
     if layout is None:
+        runtime.tool_call_identity_by_call_id[call_id] = resolved_identity
+        if tool_name:
+            runtime.tool_name_by_call_id[call_id] = tool_name
         return
     if existing_layout is not None:
         payload["sequence_index"] = existing_layout.sequence_index
@@ -176,7 +189,9 @@ def cache_tool_call_layout_from_payload(
         elif "thinking_duration_before_ms" in payload:
             payload.pop("thinking_duration_before_ms", None)
         layout = existing_layout
-    else:
+    elif not (
+        isinstance(payload.get("turn_id"), str) and is_strict_int(payload.get("iteration_index"))
+    ):
         content_index_before = bound_required_chronology_anchor(
             layout.content_index_before,
             "content_index_before",
@@ -191,6 +206,9 @@ def cache_tool_call_layout_from_payload(
                 thinking_duration_before_ms=layout.thinking_duration_before_ms,
             )
     cache_tool_call_layout(runtime, call_id, layout)
+    runtime.tool_call_identity_by_call_id[call_id] = resolved_identity
+    if tool_name:
+        runtime.tool_name_by_call_id[call_id] = tool_name
 
 
 def _tool_call_layout_conflicts(existing: ToolCallLayout, incoming: ToolCallLayout) -> bool:
@@ -206,11 +224,6 @@ def cache_pending_tool_call_layout_from_runtime_locked(
     call_id: str,
     content_boundary: int,
 ) -> None:
-    if (
-        call_id in runtime.tool_call_layout_by_call_id
-        and call_id in runtime.tool_call_identity_by_call_id
-    ):
-        return
     pending = runtime.pending_tool_events
     if pending is None:
         return
@@ -221,7 +234,27 @@ def cache_pending_tool_call_layout_from_runtime_locked(
         )
         if pending_call_id != call_id:
             continue
-        if call_id not in runtime.tool_call_layout_by_call_id:
+        authoritative = isinstance(
+            pending_event.tool_payload.get("turn_id"), str
+        ) and is_strict_int(pending_event.tool_payload.get("iteration_index"))
+        if authoritative:
+            required_content = coerce_optional_non_negative_int_strict(
+                pending_event.tool_payload.get("content_index_before")
+            )
+            if (
+                required_content is None
+                or required_content > content_boundary
+                or pending_event.thinking_index_before > runtime.thinking_phase_cursor
+            ):
+                raise ValidationError(
+                    "Assistant timeline terminal tool chronology prerequisites were not published."
+                )
+        if (
+            call_id in runtime.tool_call_layout_by_call_id
+            and call_id in runtime.tool_call_identity_by_call_id
+        ):
+            return
+        if call_id not in runtime.tool_call_layout_by_call_id and not authoritative:
             pending_event.tool_payload["content_index_before"] = content_boundary
         cache_tool_call_layout_from_payload(runtime, pending_event.tool_payload)
         return

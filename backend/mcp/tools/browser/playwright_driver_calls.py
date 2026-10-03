@@ -7,15 +7,12 @@ import asyncio
 from collections.abc import Awaitable, Mapping
 from typing import TYPE_CHECKING
 
+from core.browser.playwright_driver_errors import (
+    classify_playwright_driver_connection_closed_exception,
+)
 from core.errors.cancellation import raise_cancelled_error
 from core.errors.exception_coercion import coerce_to_soai_error
 from core.errors.exception_logging import log_exception
-from mcp.tools.browser.playwright_driver_errors import (
-    classify_playwright_driver_connection_closed_exception,
-)
-from mcp.tools.browser.playwright_operation_exceptions import (
-    PLAYWRIGHT_OPERATION_EXCEPTIONS,
-)
 
 if TYPE_CHECKING:
     from core.logging.protocols import LoggerProtocol
@@ -36,7 +33,7 @@ async def await_playwright_driver_call[DriverResult](
         return await pending
     except asyncio.CancelledError as exception:
         raise_cancelled_error(exception)
-    except PLAYWRIGHT_OPERATION_EXCEPTIONS as exception:
+    except Exception as exception:
         driver_error = classify_playwright_driver_connection_closed_exception(
             exception,
             operation=operation,

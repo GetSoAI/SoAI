@@ -3,7 +3,7 @@
 
 import { i18n } from '@core/i18n/index.ts';
 import { requireDialogsService } from '@core/ui/modals/dialogs/service.ts';
-import type { AutomationDataService, AutomationDefinition } from '@features/automation/public.ts';
+import type { AutomationDefinitionResponse } from '@features/automation/public.ts';
 import type { AutomationPageState } from '@pages/automation/types.ts';
 
 const requireAutomationId = (element: HTMLElement, actionLabel: string): string => {
@@ -15,7 +15,7 @@ const requireAutomationId = (element: HTMLElement, actionLabel: string): string 
     return trimmed;
 };
 
-const resolveAutomationById = (automations: readonly AutomationDefinition[], automationId: string): AutomationDefinition => {
+const resolveAutomationById = (automations: readonly AutomationDefinitionResponse[], automationId: string): AutomationDefinitionResponse => {
     const match = automations.find((entry) => entry.id === automationId) ?? null;
     if (!match) {
         throw new Error('Automation not found');
@@ -52,20 +52,4 @@ const clearSelectionIfMatchesAutomation = (state: AutomationPageState, automatio
     return { ...state, selectedZoneKey: null };
 };
 
-export type ToggleEnabledDependencies = {
-    dataService: AutomationDataService;
-};
-
-const runToggleAutomationEnabled = async (dependencies: ToggleEnabledDependencies, inputArguments: { automationId: string; enabled: boolean }): Promise<void> => {
-    await dependencies.dataService.updateAutomation(inputArguments.automationId, { enabled: inputArguments.enabled });
-};
-
-export type DeleteAutomationDependencies = {
-    dataService: AutomationDataService;
-};
-
-const runDeleteAutomation = async (dependencies: DeleteAutomationDependencies, automationId: string): Promise<void> => {
-    await dependencies.dataService.deleteAutomation(automationId);
-};
-
-export { clearSelectionIfMatchesAutomation, confirmDeleteAutomation, requireAutomationId, requireCheckboxInput, resolveAutomationById, runDeleteAutomation, runToggleAutomationEnabled };
+export { clearSelectionIfMatchesAutomation, confirmDeleteAutomation, requireAutomationId, requireCheckboxInput, resolveAutomationById };

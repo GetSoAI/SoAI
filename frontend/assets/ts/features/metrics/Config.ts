@@ -14,6 +14,7 @@ interface MetricHistoryKeys {
     latency: string;
     tokens: string;
     queue: string;
+    throughput: string;
 }
 
 interface MetricHistoryAggregations {
@@ -21,6 +22,7 @@ interface MetricHistoryAggregations {
     latency: string;
     tokens: string;
     queue: string;
+    throughput: string;
 }
 
 interface MetricHistoryOhlcAggregations {
@@ -28,6 +30,7 @@ interface MetricHistoryOhlcAggregations {
     latency: string;
     tokens: string;
     queue: string;
+    throughput: string;
 }
 
 interface MetricValueTransforms {
@@ -44,6 +47,7 @@ interface MetricScaleBounds {
     latency: ScaleBound;
     tokens: ScaleBound;
     queue: ScaleBound;
+    throughput: ScaleBound;
 }
 
 interface MetricsFormatter {
@@ -81,21 +85,24 @@ const METRIC_HISTORY_KEYS: Readonly<MetricHistoryKeys> = Object.freeze({
     requests: 'director.requests.total',
     latency: 'director.gauges.request_latency_ms',
     tokens: 'billing.total_tokens_generated',
-    queue: 'director.gauges.queue_size'
+    queue: 'director.gauges.queue_size',
+    throughput: 'token_rates.total.effective_rate'
 });
 
 const METRIC_HISTORY_AGGREGATIONS: Readonly<MetricHistoryAggregations> = Object.freeze({
     requests: 'max',
     latency: 'avg',
     tokens: 'max',
-    queue: 'avg'
+    queue: 'avg',
+    throughput: 'avg'
 });
 
 const METRIC_HISTORY_OHLC_AGGREGATIONS: Readonly<MetricHistoryOhlcAggregations> = Object.freeze({
     requests: 'ohlc',
     latency: 'ohlc',
     tokens: 'ohlc',
-    queue: 'ohlc'
+    queue: 'ohlc',
+    throughput: 'ohlc'
 });
 
 const METRIC_VALUE_TRANSFORMS: Readonly<MetricValueTransforms> = Object.freeze({
@@ -106,7 +113,8 @@ const METRIC_SCALE_BOUNDS: Readonly<MetricScaleBounds> = Object.freeze({
     requests: { min: 0 },
     latency: { min: 0 },
     tokens: { min: 0 },
-    queue: { min: 0 }
+    queue: { min: 0 },
+    throughput: { min: 0 }
 });
 
 const CHART_TYPE_SEQUENCE = DEFAULT_CHART_TYPE_SEQUENCE;

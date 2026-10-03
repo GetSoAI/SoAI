@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING
 
 from core.browser.html_pdf_renderer import (
     HtmlPdfRenderRequest,
-    PdfBrowserUnavailableError,
     render_html_file_to_pdf,
     require_pdf_browser_ready,
 )
@@ -21,25 +20,18 @@ from core.browser.pdf_document_merge import merge_pdf_documents
 from core.browser.pdf_font_manifest import resolve_pdf_font_cache_root
 from core.browser.pdf_font_staging import stage_pdf_fonts
 from core.browser.pdf_font_text import extract_pdf_visible_text
-from core.concurrency.cancellation import TaskCancelledError
-from core.errors.exception_logging import log_exception
-from core.errors.exceptions import ConflictError, PayloadTooLargeError
-from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
+from core.errors.exceptions import PayloadTooLargeError
 from core.files.content_hashing import hash_file_content
 from core.files.locking import async_guarded_file_lock
 from core.files.operations import secure_filename
 from core.filesystem.open_files import open_text
 from core.hardware.reservation_claims import claim_reserved_write
-from core.logging.trace import get_logger
-from core.tasks.enums import TaskStatus
 from core.tasks.progress_reporting import report_progress_without_status_change
 from features.api.routes.webui.conversation_pdf_export_snapshot import (
     validate_conversation_pdf_export_snapshot,
 )
-from features.api.runtime.task_execution import finalize_task_safely
 from features.conversation_export.artifacts import (
     cleanup_conversation_pdf_intermediate_artifacts,
-    cleanup_conversation_pdf_task_directory,
 )
 
 if TYPE_CHECKING:
@@ -55,13 +47,8 @@ if TYPE_CHECKING:
     from features.conversation_export.artifacts import ConversationPdfArtifactPaths
     from features.conversation_export.settings import ConversationPdfExportSettings
 
-__all__ = ("run_conversation_pdf_export_render_task",)
+__all__ = ("render_conversation_pdf_artifact",)
 
-LOGGER_NAME = "SoAI.features.api.conversation_pdf_export_rendering"
-OPERATION_CONVERSATION_PDF_EXPORT_COMPLETE = "webui.conversation_pdf_export.complete"
-OPERATION_CONVERSATION_PDF_EXPORT_CANCEL = "webui.conversation_pdf_export.cancel"
-OPERATION_CONVERSATION_PDF_EXPORT_RENDER = "webui.conversation_pdf_export.render"
-OPERATION_CONVERSATION_PDF_EXPORT_FAIL = "webui.conversation_pdf_export.fail"
 _FILENAME_MAX_STEM_LENGTH = 80
 
 
@@ -110,7 +97,7 @@ async def _merge_and_measure(
     return measured.size_bytes, measured.sha256_hex
 
 
-async def _render_and_write(
+async def render_conversation_pdf_artifact(
     *,
     api_context: ApiContext,
     registry: TaskRegistryProtocol,
@@ -218,94 +205,3 @@ async def _render_and_write(
             "pdf_size_bytes": pdf_size_bytes,
             "sha256": digest,
         }
-
-
-async def run_conversation_pdf_export_render_task(
-    *,
-    api_context: ApiContext,
-    registry: TaskRegistryProtocol,
-    task_id: str,
-    trace_id: str | None,
-    settings: ConversationPdfExportSettings,
-    paths: ConversationPdfArtifactPaths,
-    metadata: ConversationPdfExportMetadata,
-    staged: ConversationPdfStagedUpload,
-    user_id: int,
-) -> None:
-    try:
-        result = await _render_and_write(
-            api_context=api_context,
-            registry=registry,
-            task_id=task_id,
-            settings=settings,
-            paths=paths,
-            metadata=metadata,
-            staged=staged,
-            user_id=user_id,
-        )
-        await finalize_task_safely(
-            registry=registry,
-            task_id=task_id,
-            status=TaskStatus.COMPLETED,
-            operation=OPERATION_CONVERSATION_PDF_EXPORT_COMPLETE,
-            trace_id=trace_id,
-            result=result,
-            status_message="PDF export ready",
-        )
-    except (asyncio.CancelledError, TaskCancelledError):
-        cleanup_conversation_pdf_task_directory(paths.task_dir)
-        await finalize_task_safely(
-            registry=registry,
-            task_id=task_id,
-            status=TaskStatus.CANCELLED,
-            operation=OPERATION_CONVERSATION_PDF_EXPORT_CANCEL,
-            trace_id=trace_id,
-            error_message="PDF export was cancelled.",
-            status_message="PDF export cancelled",
-        )
-        raise
-    except ConflictError as exception:
-        cleanup_conversation_pdf_task_directory(paths.task_dir)
-        await finalize_task_safely(
-            registry=registry,
-            task_id=task_id,
-            status=TaskStatus.FAILED,
-            operation=OPERATION_CONVERSATION_PDF_EXPORT_FAIL,
-            trace_id=trace_id,
-            error_code=409,
-            error_message=str(exception),
-            status_message="PDF export blocked",
-        )
-    except PdfBrowserUnavailableError as exception:
-        cleanup_conversation_pdf_task_directory(paths.task_dir)
-        await finalize_task_safely(
-            registry=registry,
-            task_id=task_id,
-            status=TaskStatus.FAILED,
-            operation=OPERATION_CONVERSATION_PDF_EXPORT_FAIL,
-            trace_id=trace_id,
-            error_code=exception.http_status,
-            error_type=str(exception.code),
-            error_message=str(exception),
-            status_message="PDF export browser unavailable",
-        )
-    except HANDLED_RUNTIME_EXCEPTIONS as exception:
-        cleanup_conversation_pdf_task_directory(paths.task_dir)
-        log_exception(
-            get_logger(LOGGER_NAME),
-            exception,
-            message="Conversation PDF export failed.",
-            operation=OPERATION_CONVERSATION_PDF_EXPORT_RENDER,
-            trace_id=trace_id,
-            details={"task_id": task_id},
-        )
-        await finalize_task_safely(
-            registry=registry,
-            task_id=task_id,
-            status=TaskStatus.FAILED,
-            operation=OPERATION_CONVERSATION_PDF_EXPORT_FAIL,
-            trace_id=trace_id,
-            error_code=500,
-            error_message=str(exception),
-            status_message="PDF export failed",
-        )

@@ -15,9 +15,8 @@ from database.repositories.dependencies import DatabaseRepositoryDependencies
 from database.repositories.hardware.history import (
     get_historical_hardware_data_aggregated,
 )
-from database.repositories.hardware.history_reset import sync_clear_hardware_history
-from database.repositories.hardware.history_tables import HARDWARE_HISTORY_TABLES
-from database.repositories.hardware.logging import sync_log_hardware_metrics
+from database.repositories.hardware.history_tables import hardware_history_tables
+from database.repositories.hardware.history_writes import HardwareHistoryWrites
 from database.repositories.hardware.soaibench import (
     get_soaibench_run_for_user_query,
     sync_create_soaibench_run,
@@ -57,6 +56,7 @@ if TYPE_CHECKING:
         SoAIBenchMutationResult,
         SoAIBenchReconciliationResult,
     )
+    from core.history.request.availability import HistoryAvailabilityQuery
     from core.types.json import JSONDict
 
 __all__ = ("DatabaseHardware",)
@@ -69,25 +69,21 @@ class DatabaseHardware:
     def __init__(self, deps: DatabaseRepositoryDependencies) -> None:
         self.core = deps.core
         self.config = deps.config
+        self._history_writes = HardwareHistoryWrites(deps.core)
 
     async def log_hardware_metrics(self, info: JSONDict) -> None:
-        await self.core.writer.queue_write_operation(
-            sync_log_hardware_metrics,
-            info,
-        )
+        await self._history_writes.log(info)
 
     async def prune_old_hardware_metrics(self, retention_hours: int) -> None:
         sanitized_retention = validate_retention_hours(retention_hours)
         await self.core.writer.queue_write_operation(
             sync_prune_by_timestamp,
-            HARDWARE_HISTORY_TABLES,
+            hardware_history_tables(),
             sanitized_retention,
         )
 
-    async def clear_hardware_history(self) -> None:
-        await self.core.writer.queue_write_operation(
-            sync_clear_hardware_history,
-        )
+    async def clear_hardware_history(self, reset_genesis_uptime: bool) -> int:
+        return await self._history_writes.clear(reset_genesis_uptime)
 
     async def get_latest_network_speed_snapshot(self) -> JSONDict:
         return await self.core.reader.execute_read(get_latest_network_speed_snapshot_query)
@@ -152,6 +148,7 @@ class DatabaseHardware:
         aggregation: str,
         max_points: int,
         identifier: str | None = None,
+        availability: HistoryAvailabilityQuery | None = None,
     ) -> JSONDict:
         return await self.core.reader.execute_read(
             get_historical_hardware_data_aggregated,
@@ -162,6 +159,7 @@ class DatabaseHardware:
             aggregation,
             max_points,
             identifier,
+            availability,
         )
 
     async def create_soaibench_run(self, run: JSONDict) -> SoAIBenchMutationResult:

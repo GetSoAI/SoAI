@@ -15,6 +15,7 @@ from core.openai.sse_validation import validate_openai_sse_frame
 from core.openai.stream_frame_processing import process_openai_stream_frame
 from core.openai.streaming_text_deltas import extract_openai_streaming_output_deltas
 from core.openai.streaming_tool_calls import rewrite_missing_tool_call_ids_in_sse_frame
+from core.openai.streaming_usage import withhold_openai_chunk_usage
 from features.api.streaming.openai_stream_generator.provider_error_frames import (
     raise_provider_sse_error_if_present,
 )
@@ -43,6 +44,7 @@ def iter_stream_bytes_from_chunk_event(
     trace_id: str,
     logger: LoggerProtocol,
     schedule_task_cancel: Callable[[str], None],
+    include_usage: bool,
     allow_image_events: bool = False,
 ) -> Iterator[bytes]:
     try:
@@ -96,6 +98,13 @@ def iter_stream_bytes_from_chunk_event(
                 )
             if state.stream_transcript is not None:
                 state.stream_transcript.feed(filtered_chunk_text)
-            yield filtered_chunk_text.encode("utf-8")
+            public_chunk_text: str | None = filtered_chunk_text
+            if include_usage:
+                withholding = withhold_openai_chunk_usage(filtered_chunk_text)
+                if withholding.provider_usage is not None:
+                    state.withheld_provider_usage = withholding.provider_usage
+                public_chunk_text = withholding.public_frame_text
+            if public_chunk_text is not None:
+                yield public_chunk_text.encode("utf-8")
         if frame.done_marker_observed:
             state.done_marker_observed = True

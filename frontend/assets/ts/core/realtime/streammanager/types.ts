@@ -58,7 +58,9 @@ export interface StreamWebSocketClient {
     subscribe: (eventType: string, handler: (payload: JsonValue, context: WebSocketDispatchContext) => void | Promise<void>) => () => void;
     connect: () => void;
     isDestroyed?: () => boolean;
-    sendMessage: (payload: JsonObject) => Promise<void>;
+    isConnected: () => boolean;
+    readonly connectionEpoch: number;
+    sendMessage: (payload: JsonObject, options?: { signal?: AbortSignal; waitForConnection?: boolean }) => Promise<void>;
     waitForConnection: (timeoutMs?: number, options?: { signal?: AbortSignal | undefined }) => Promise<void>;
     requestSnapshot: (resource: string, parameters?: JsonObject | null, options?: { signal?: AbortSignal | undefined }) => Promise<{ data: JsonValue; resource: string; timestampMs: number | null } | null>;
 }

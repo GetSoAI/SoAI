@@ -8,11 +8,12 @@ import { i18n } from '@core/i18n/index.ts';
 import { attachBeforeCloseConfirmationGuard } from '@core/modals/closeGuard.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import { showUnsavedChangesConfirmation } from '@core/modals/unsavedChangesConfirmation.ts';
-import { createSaveController, SAVE_HEADER_PRIORITY_MODAL, type SaveController } from '@core/save/public.ts';
+import { createSaveController, SAVE_HEADER_PRIORITY_MODAL, type SaveController, type SaveUnitResult } from '@core/save/public.ts';
 import { setAriaBusy } from '@core/ui/controls/ariaBusy.ts';
 import { showOperationFailureNotification } from '@core/ui/notifications/operationFailure.ts';
 import type { NotificationType } from '@core/ui/notifications/types.ts';
 import { AUTOMATION_ACTION_SAVE_CALENDAR_SETTINGS } from '@features/automation/public.ts';
+import { refreshAfterAutomationChange } from '@pages/automation/controllers/AutomationMutationCompletionDomain.ts';
 import { AutomationCalendarSettingsFieldStateController } from '@pages/automation/controllers/configurationmodal/AutomationCalendarSettingsFieldStateController.ts';
 import { AutomationCalendarSettingsModalController } from '@pages/automation/controllers/AutomationCalendarSettingsModalController.ts';
 import { requireActionButton } from '@pages/automation/dom.ts';
@@ -22,8 +23,7 @@ interface CalendarSettingsControllerDependencies {
     requireHTMLElement: (selector: string, context?: Element | Document | null) => HTMLElement;
     modalPresenter: ModalPresenterApi;
     getSettings: () => AutomationCalendarSettings;
-    setSettings: (settings: AutomationCalendarSettings) => void;
-    persistPreferences: () => void;
+    saveSettings: (settings: AutomationCalendarSettings) => void;
     refreshData: () => Promise<void>;
     showNotification: (message: string, type?: NotificationType, duration?: number) => void;
 }
@@ -138,15 +138,14 @@ class AutomationCalendarSettingsController {
         return await showUnsavedChangesConfirmation();
     }
 
-    async #performSaveCalendarSettings(): Promise<void> {
+    async #performSaveCalendarSettings(): Promise<SaveUnitResult> {
         const next = this.#modal.readAndValidate();
         if (!next) {
-            return;
+            return { type: 'stop' };
         }
         const modalSessionToken = this.#modalSessionToken.value;
         try {
-            this.#dependencies.setSettings(next);
-            this.#dependencies.persistPreferences();
+            this.#dependencies.saveSettings(next);
         } catch (error) {
             const runtimeError = ensureError(error);
             showOperationFailureNotification({
@@ -155,27 +154,14 @@ class AutomationCalendarSettingsController {
                 showNotification: (message, level): void => this.#dependencies.showNotification(message, level)
             });
             errorHandler.error('AutomationCalendarSettingsController', 'Failed to save calendar settings', runtimeError);
-            return;
+            return { type: 'stop' };
         }
 
         if (this.#modalSessionToken.isActive(modalSessionToken)) {
             this.#modal.close();
         }
-
-        try {
-            await this.#dependencies.refreshData();
-        } catch (error) {
-            const refreshError = ensureError(error);
-            showOperationFailureNotification({
-                error: refreshError,
-                operation: i18n.t('common.refresh'),
-                showNotification: (message, level): void => this.#dependencies.showNotification(message, level)
-            });
-            errorHandler.error('AutomationCalendarSettingsController', 'Refresh failed after saving calendar settings', refreshError);
-            return;
-        }
-
         this.#dependencies.showNotification(i18n.t('automation.notifications.calendarSettingsSaved'), 'success');
+        await refreshAfterAutomationChange(this.#dependencies, 'AutomationCalendarSettingsController');
     }
 }
 

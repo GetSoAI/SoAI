@@ -15,6 +15,7 @@ from core.filesystem.async_queries import (
     async_makedirs,
     async_path_exists,
 )
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.logging.protocols import LoggerProtocol
 
 __all__ = (
@@ -47,7 +48,7 @@ async def collect_wallpaper_files(storage_path: str) -> list[tuple[str, os.stat_
             if not await async_isfile(file_path):
                 continue
             try:
-                stat_result = await asyncio.to_thread(os.stat, file_path)
+                stat_result = await asyncio.to_thread(os.stat, normalize_filesystem_path(file_path))
             except FileNotFoundError:
                 continue
             matches.append((file_path, stat_result))

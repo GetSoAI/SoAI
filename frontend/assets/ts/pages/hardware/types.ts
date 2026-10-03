@@ -31,6 +31,7 @@ type QuerySelection = {
 interface HistoryDataPoint {
     timestamp: number;
     value?: number | undefined;
+    sampleCount?: number | undefined;
     open?: number | undefined;
     high?: number | undefined;
     low?: number | undefined;
@@ -76,6 +77,7 @@ type HistoryRequestParameters = {
     gpuIndex?: number;
     identifier?: string;
     intervalMs?: number;
+    availabilityMetric?: string;
 };
 
 type MetricConfigEntry = {

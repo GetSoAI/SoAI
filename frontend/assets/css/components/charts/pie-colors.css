@@ -36,7 +36,10 @@
     .distribution-legend__item--others-boundary {
         margin-top: var(--space-1);
         padding-top: var(--space-2);
-        border-top: var(--border-width-1) solid color-mix(in srgb, var(--surface-card-border) 72%, transparent);
+        background-image: var(--ui-separator-gradient-horizontal);
+        background-position: center top;
+        background-repeat: no-repeat;
+        background-size: 100% var(--border-width-1);
     }
 
     .hardware-memory-swap-process-row {

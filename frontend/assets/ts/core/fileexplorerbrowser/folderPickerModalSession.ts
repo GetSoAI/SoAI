@@ -34,6 +34,7 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
     return await runModalSession<FolderPickerResult | null>({
         presenter,
         modalId,
+        signal: options.signal,
         onAlreadyOpen: 'replace',
         initialResult: null,
         initialize: ({ modal, signal, setResult, close }): { dispose: () => void } => {
@@ -68,6 +69,11 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
                 throw error;
             }
             const { currentPathElement, rootSelect, statusElement, tableElement, rowsElement, sortHeaderElement, searchInput, manualInput, confirmButton, cancelButton, resetButton } = elements;
+            confirmButton.classList.toggle('u-hidden', options.browseOnly === true);
+            if (resetButton) {
+                resetButton.disabled = options.browseOnly === true;
+                resetButton.classList.toggle('u-hidden', options.browseOnly === true);
+            }
 
             let sortState: SortState<'name'> = { column: 'name', direction: 'asc' };
             let lastRenderedDisplayPath = '';
@@ -96,7 +102,7 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
             const updateConfirmButton = (): void => {
                 const state = browser.getState();
                 const override = manualPathController ? manualPathController.getStatusOverrideMessage() : null;
-                confirmButton.disabled = confirmationPending || state.isLoading || !state.canConfirm || Boolean(override);
+                confirmButton.disabled = options.browseOnly === true || confirmationPending || state.isLoading || !state.canConfirm || Boolean(override);
             };
 
             const syncRootSelector = (): void => {
@@ -238,7 +244,7 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
             cancelButton.addEventListener('click', handleCancelClick, { signal });
 
             const confirmFolderSelection = async (): Promise<void> => {
-                if (confirmationPending) return;
+                if (options.browseOnly === true || confirmationPending || signal.aborted) return;
                 confirmationPending = true;
                 updateConfirmButton();
                 try {
@@ -248,6 +254,7 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
                     if (!(await browser.validateSelection())) {
                         return;
                     }
+                    if (signal.aborted) return;
                     const selection = resolveFolderPickerSelection(browser);
                     closeWith(selection, 'confirm');
                 } catch (error) {
@@ -270,6 +277,7 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
             if (resetButton) {
                 const handleResetClick = (event: Event): void => {
                     event.preventDefault();
+                    if (options.browseOnly === true) return;
                     closeWith({ resultType: 'reset' }, 'reset');
                 };
                 resetButton.addEventListener('click', handleResetClick, { signal });

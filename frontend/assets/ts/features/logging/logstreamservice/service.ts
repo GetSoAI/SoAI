@@ -1,6 +1,9 @@
 /* SoAI - Logging feature log stream service [frontend/assets/ts/features/logging/logstreamservice/service.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { ensureError } from '@core/errors/coerce.ts';
+import { isAbortError } from '@core/errors/abort.ts';
+import { isLifecycleCancellationError } from '@core/errors/lifecycleCancellation.ts';
 import { LifecycleModel } from '@core/LifecycleModel.ts';
 import type { TelemetryFields } from '@core/telemetry/contracts.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
@@ -46,6 +49,7 @@ class LogStream extends LifecycleModel {
         const state = this.getSourceState(source);
         const replayLimit = validateReplayLimit(this.dependencies.validator, options.replayLimit, this.logger);
         state.subscribers.set(callback, replayLimit);
+        state.recovery.setLiveDemand(!state.recoverySuspended);
         this.updateBufferSize(state);
         if (!state.replayedSubscribers.has(callback)) {
             const bufferedEnough = state.logBuffer.length >= replayLimit;
@@ -69,7 +73,9 @@ class LogStream extends LifecycleModel {
                         state.replayedSubscribers.add(callback);
                     })
                     .catch((error) => {
-                        this.logger.logWarn('Failed to load historical logs', error);
+                        const runtimeError = ensureError(error);
+                        if (isAbortError(runtimeError) || isLifecycleCancellationError(runtimeError)) return;
+                        this.logger.logWarn('Failed to load historical logs', runtimeError);
                     });
             }
         }
@@ -98,6 +104,7 @@ class LogStream extends LifecycleModel {
         state.replayedSubscribers.delete(callback);
         this.updateBufferSize(state);
         if (state.subscribers.size === 0) {
+            state.recovery.setLiveDemand(false);
             this.teardownConnection(state);
             if (state.snapshotMeta.source !== DEFAULT_LOG_SOURCE) {
                 this.destroySourceState(state);
@@ -161,6 +168,7 @@ class LogStream extends LifecycleModel {
         });
     }
     private applySnapshot(state: LogStreamMutableState, snapshot: JsonValue | null | undefined): void {
+        if (this.#states.get(state.snapshotMeta.source) !== state || state.subscribers.size === 0 || state.recoverySuspended) return;
         const resolved = this.createSnapshotResolver(state)(snapshot);
         if (!resolved) {
             return;

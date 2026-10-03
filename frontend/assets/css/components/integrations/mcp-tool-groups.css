@@ -42,7 +42,7 @@
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
         box-shadow: var(--glass-shadow-base);
-        text-align: left;
+        text-align: start;
         font-weight: 600;
         color: var(--text-primary);
         transition:
@@ -60,7 +60,7 @@
         border: none;
         background: transparent;
         color: inherit;
-        text-align: left;
+        text-align: start;
         font: inherit;
         font-weight: 600;
     }
@@ -71,7 +71,7 @@
 
     :where(.mcp-tools-scope) .mcp-tool-group-collapse-toggle {
         border-radius: var(--border-round);
-        transform: rotate(-90deg);
+        transform: rotate(calc(-90deg * var(--dir-sign)));
         transition: transform var(--transition-fast);
     }
 

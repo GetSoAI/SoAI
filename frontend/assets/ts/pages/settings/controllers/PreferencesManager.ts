@@ -15,6 +15,7 @@ import { isDateFormatPreference, isMeasurementUnitsPreference, isRegionalLocaleP
 import { setSettingItemApplicable } from '@core/settings/settingItemApplicability.ts';
 import { updateToggleLabel } from '@core/toggleSwitch.ts';
 import { setControlDisabledState } from '@core/ui/controls/disabledState.ts';
+import { syncFlagSelect } from '@core/ui/dropdown/flagSelect.ts';
 import { UI_IDS } from '@features/settings/public.ts';
 import type { UiPreferenceKey } from '@core/settings/settingsFieldKeys.ts';
 import { buildLanguageOptions } from '@pages/settings/controllers/preferences/service.ts';
@@ -89,8 +90,10 @@ class PreferencesManager {
         const ocrCandidate = this.#host.pageDom.optional('ocr-language-select');
         if (ocrCandidate && this.#ocrReady) {
             const select = narrowSelect(ocrCandidate, 'OCR language select');
+            syncFlagSelect(select);
             this.#disposers.push(
                 this.#host.pageResources.on(select, 'change', () => {
+                    syncFlagSelect(select);
                     const language = requireOcrLanguage(select.value, this.#ocrLanguages);
                     if (!this.#ocrLanguages.some((entry) => entry.code === language && entry.available)) return;
                     this.#ocrConfig.updateValue('language', language);
@@ -123,11 +126,13 @@ class PreferencesManager {
             return;
         }
         const select = narrowSelect(selectCandidate, label);
+        if (id === 'language-select') syncFlagSelect(select);
         const dispose = this.#host.pageResources.on(select, 'change', (event: Event) => {
             const target = event.target;
             if (!(target instanceof HTMLSelectElement)) {
                 return;
             }
+            if (id === 'language-select') syncFlagSelect(target);
             this.#host.setUiPrefValue(key, normalize(target.value));
         });
         this.#disposers.push(dispose);
@@ -245,6 +250,7 @@ class PreferencesManager {
         if (!(control instanceof HTMLElement)) throw new TypeError('OCR setting control must be an HTMLElement.');
         this.#host.pageDom.updateHtml(control, toTrustedUiHtml(renderOcrLanguageControl(this.#ocrOptions(), this.#ocrReady ? this.#ocrLanguage() : '', this.#ocrReady)));
         const refreshed = this.#host.pageDom.requireHTMLElement('ocr-language-select');
+        if (this.#ocrReady) syncFlagSelect(narrowSelect(refreshed, 'OCR language select'));
         this.#syncOcrHelp(refreshed);
         this.setupEventListeners();
     }
@@ -300,12 +306,12 @@ class PreferencesManager {
         return requireOcrLanguage(this.#ocrConfig.getValue('language'), this.#ocrLanguages);
     }
 
-    #ocrOptions(): Array<{ value: string; label: string; disabled: boolean }> {
+    #ocrOptions(): Array<{ value: string; label: string; countryCode: string | null; disabled: boolean }> {
         if (!this.#ocrReady) return [];
         const uiLanguages = this.#host.languageService.getAvailableLanguages();
         const candidates = this.#ocrLanguages.map((entry) => {
             const uiLanguage = uiLanguages.find((candidate) => candidate.code === entry.uiLocale);
-            return { code: entry.code, name: uiLanguage?.name ?? entry.nativeName, flag: uiLanguage?.flag ?? entry.flag, direction: uiLanguage?.direction ?? 'ltr', region: uiLanguage?.region ?? null };
+            return { code: entry.code, name: uiLanguage?.name ?? entry.nativeName, countryCode: uiLanguage?.countryCode ?? entry.countryCode, direction: uiLanguage?.direction ?? 'ltr', region: uiLanguage?.region ?? null };
         });
         return buildLanguageOptions(candidates, this.#ocrLanguage()).map((option) => ({ ...option, disabled: !this.#ocrLanguages.some((entry) => entry.code === option.value && entry.available) }));
     }

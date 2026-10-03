@@ -7,7 +7,7 @@ import type { DecodedSoAIBenchRun } from '@core/realtime/streammanager/resources
 import { isArray } from '@core/typeGuards.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import type { SoAIBenchRunMetrics, SoAIBenchRunRecord } from '@features/hardware/modals/soaibenchrun/types.ts';
-import { getSoAIBenchRunById, getSoAIBenchRunsForDevice } from '@features/hardware/soaibenchRunsIndex.ts';
+import { getSoAIBenchRunsForDevice } from '@features/hardware/soaibenchRunsIndex.ts';
 
 const nullableInteger = (value: number | null | undefined): number | null => {
     return value === null || value === undefined ? null : Math.max(0, Math.trunc(value));
@@ -66,6 +66,23 @@ const metricsFromRun = (run: GpuSoAIBenchRun): SoAIBenchRunMetrics => {
     };
 };
 
+interface SoAIBenchRunClassification {
+    profile?: string | null | undefined;
+    benchmarkMode?: string | null | undefined;
+}
+
+const resolveRunProfile = (value: SoAIBenchRunClassification): string => toTrimmedString(value.profile) || 'standard';
+
+const resolveRunBenchmarkMode = (value: SoAIBenchRunClassification): string => toTrimmedString(value.benchmarkMode) || 'quick';
+
+const isCertifiedSoAIBenchRun = (value: SoAIBenchRunClassification): boolean => resolveRunProfile(value) === 'standard' && resolveRunBenchmarkMode(value) === 'certified';
+
+const isActiveSoAIBenchRun = (value: { active?: boolean | undefined; status?: string | undefined }): boolean => value.active === true || toTrimmedString(value.status) === 'running';
+
+const isTerminalSoAIBenchStatus = (status: string): boolean => {
+    return status === 'completed' || status === 'failed' || status === 'unsupported' || status === 'unstable' || status === 'cancelled' || status === 'stopped' || status === 'indeterminate';
+};
+
 function presentRunRecord(value: DecodedSoAIBenchRun, raw: JsonObject): SoAIBenchRunRecord;
 function presentRunRecord(value: GpuSoAIBenchRun, raw: JsonObject): SoAIBenchRunRecord | null;
 function presentRunRecord(value: GpuSoAIBenchRun, raw: JsonObject): SoAIBenchRunRecord | null {
@@ -76,14 +93,18 @@ function presentRunRecord(value: GpuSoAIBenchRun, raw: JsonObject): SoAIBenchRun
         return null;
     }
     const summary = value.summary ?? {};
+    const gpuIndex = value.gpuIdentity?.gpuIndex;
     return {
         runId,
         deviceId,
-        profile: toTrimmedString(value.profile) || 'standard',
-        benchmarkMode: toTrimmedString(value.benchmarkMode) || 'quick',
+        gpuIndex: gpuIndex === undefined ? null : String(gpuIndex),
+        gpuName: nullableText(value.gpuIdentity?.gpuName),
+        profile: resolveRunProfile(value),
+        benchmarkMode: resolveRunBenchmarkMode(value),
         status,
         startedAtMs: value.startedAtMs ?? null,
-        active: value.active === true || status === 'running',
+        stopRequestedAtMs: value.stopRequestedAtMs ?? null,
+        active: isActiveSoAIBenchRun(value),
         updateSeq: nullableInteger(value.updateSeq) ?? 0,
         leaderboardEligible: value.leaderboardEligible === true,
         leaderboardRejectionReason: nullableText(value.leaderboardRejectionReason),
@@ -106,35 +127,8 @@ const normalizeRunRecord = (value: JsonValue | null | undefined): SoAIBenchRunRe
 
 const presentDecodedRunRecord = (value: DecodedSoAIBenchRun): SoAIBenchRunRecord => presentRunRecord(value, serializeGpuSoAIBenchRun(value));
 
-const presentGpuSoAIBenchRun = (value: GpuSoAIBenchRun): SoAIBenchRunRecord | null => presentRunRecord(value, serializeGpuSoAIBenchRun(value));
-
-const findRunById = (payload: JsonValue | null | undefined, runId: string): SoAIBenchRunRecord | null => {
-    const run = getSoAIBenchRunById(payload, runId);
-    return run ? presentDecodedRunRecord(run) : null;
+const findActiveRunForDevice = (payload: JsonValue | null | undefined, deviceId: string): DecodedSoAIBenchRun | null => {
+    return getSoAIBenchRunsForDevice(payload, deviceId).find((run) => isActiveSoAIBenchRun(run)) ?? null;
 };
 
-const findActiveRunForDevice = (payload: JsonValue | null | undefined, deviceId: string): SoAIBenchRunRecord | null => {
-    for (const value of getSoAIBenchRunsForDevice(payload, deviceId)) {
-        const run = presentDecodedRunRecord(value);
-        if (run.active) {
-            return run;
-        }
-    }
-    return null;
-};
-
-const findActiveStandardRunForDevice = (payload: JsonValue | null | undefined, deviceId: string): SoAIBenchRunRecord | null => {
-    for (const value of getSoAIBenchRunsForDevice(payload, deviceId)) {
-        const run = presentDecodedRunRecord(value);
-        if (run.profile === 'standard' && run.benchmarkMode === 'certified' && run.active) {
-            return run;
-        }
-    }
-    return null;
-};
-
-const isTerminalSoAIBenchStatus = (status: string): boolean => {
-    return status === 'completed' || status === 'failed' || status === 'unsupported' || status === 'unstable' || status === 'cancelled' || status === 'stopped' || status === 'indeterminate';
-};
-
-export { findActiveRunForDevice, findActiveStandardRunForDevice, findRunById, isTerminalSoAIBenchStatus, normalizeRunRecord, presentGpuSoAIBenchRun };
+export { findActiveRunForDevice, isActiveSoAIBenchRun, isCertifiedSoAIBenchRun, isTerminalSoAIBenchStatus, normalizeRunRecord, presentDecodedRunRecord };

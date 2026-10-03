@@ -7,7 +7,7 @@ import { toJsonCompatibleObject } from '@core/primitives/clone.ts';
 import { setAriaBusy } from '@core/ui/controls/ariaBusy.ts';
 import { isPlainObject } from '@core/typeGuards.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
-import { UI_IDS, createAdvancedSettingsRenderer, markSettingsCapabilityFailed, markSettingsCapabilityReady, settleSettingsCapability } from '@features/settings/public.ts';
+import { UI_IDS, createAdvancedSettingsRenderer, markSettingsCapabilityFailed, markSettingsCapabilityReady, markSettingsCapabilityRefreshing, settleSettingsCapability } from '@features/settings/public.ts';
 import { canManageInstanceIdentity, hasSettingsAction, isSettingsNormalTabVisibleById, refreshAccessState } from '@pages/settings/controllers/page/settingsAccessController.ts';
 import { createCoreSettingsManagers } from '@pages/settings/controllers/page/adapters.ts';
 import type { SettingsManagerCallbacks, SettingsRuntimeContext } from '@pages/settings/controllers/page/contracts.ts';
@@ -61,6 +61,10 @@ const setupManagersEventListeners = (page: SettingsRuntimeContext, state: Settin
     if (isSettingsNormalTabVisibleById(page, state, 'messaging')) {
         if (!state.messagingManager) throw new Error('MessagingManager not initialized');
         state.messagingManager.setupEventListeners();
+    }
+    if (isSettingsNormalTabVisibleById(page, state, 'connect')) {
+        if (!state.connectManager) throw new Error('ConnectManager not initialized');
+        state.connectManager.setupEventListeners();
     }
 
     if (isSettingsNormalTabVisibleById(page, state, 'users')) {
@@ -118,6 +122,12 @@ const setupManagersEventListeners = (page: SettingsRuntimeContext, state: Settin
             }
         }
     }
+    syncSettingsSectionActivity(state, state.currentSection);
+};
+
+const syncSettingsSectionActivity = (state: SettingsPageState, activeTab: string): void => {
+    state.apiKeysManager?.setSectionActive(activeTab === 'api-keys');
+    state.mcpManager?.setSectionActive(activeTab === 'mcp');
 };
 
 const disposeManagers = (state: SettingsPageState): void => {
@@ -127,6 +137,7 @@ const disposeManagers = (state: SettingsPageState): void => {
     state.mcpManager?.dispose();
     state.securityManager?.dispose();
     state.licensingManager?.dispose();
+    state.connectManager?.dispose();
     state.externalAccountsManager?.dispose();
     state.apiKeysManager?.dispose();
     state.aclManager?.dispose();
@@ -143,6 +154,7 @@ const disposeManagers = (state: SettingsPageState): void => {
     state.apiKeysManager = null;
     state.securityManager = null;
     state.licensingManager = null;
+    state.connectManager = null;
     state.mcpManager = null;
     state.externalAccountsManager = null;
     state.messagingManager = null;
@@ -185,23 +197,27 @@ const loadData = async (page: SettingsRuntimeContext, state: SettingsPageState, 
         const emptyCoreConfig: JsonObject = {};
         const coreConfigRequest = canReadCoreConfig ? page.owners.api.configs.get('core', requestOptions) : Promise.resolve(emptyCoreConfig);
         const instanceIdentityRequest = requestInstanceIdentity(page, state, requestOptions);
-        const usersResultRequest = settleSettingsCapability(() => (isAdmin && hasSettingsAction(state, 'USER_ADMIN') ? page.owners.api.webui.users.list(requestOptions) : page.owners.api.webui.users.current(requestOptions).then((user) => [user])));
+        const usersVisible = isSettingsNormalTabVisibleById(page, state, 'users');
+        const usersResultRequest = usersVisible && isAdmin && hasSettingsAction(state, 'USER_ADMIN') ? settleSettingsCapability(() => page.owners.api.webui.users.list(requestOptions)) : null;
         const aclPolicyResultRequest = isAdmin && hasSettingsAction(state, 'ACL_ADMIN') ? settleSettingsCapability(() => page.owners.api.webui.acl.getPolicy(requestOptions)) : null;
-        const securityAuditResultRequest = isSettingsNormalTabVisibleById(page, state, 'security') ? settleSettingsCapability(() => page.owners.api.system.securityHardeningAudit(requestOptions)) : null;
-        const modelCatalogResultRequest = isSettingsNormalTabVisibleById(page, state, 'messaging') ? settleSettingsCapability(() => page.owners.api.models.list(requestOptions)) : null;
-        const [coreConfig, instanceIdentity, usersResult, aclPolicyResult, securityAuditResult, modelCatalogResult] = await Promise.all([coreConfigRequest, instanceIdentityRequest, usersResultRequest, aclPolicyResultRequest, securityAuditResultRequest, modelCatalogResultRequest]);
+        if (isSettingsNormalTabVisibleById(page, state, 'security')) {
+            state.securityAvailability = markSettingsCapabilityRefreshing(state.securityAvailability);
+        }
+        const [coreConfig, instanceIdentity, usersResult, aclPolicyResult] = await Promise.all([coreConfigRequest, instanceIdentityRequest, usersResultRequest, aclPolicyResultRequest]);
         throwIfAborted(signal);
         if (!isPlainObject(coreConfig)) {
             throw new TypeError('SettingsPage expects core config response to be an object');
         }
         state.coreConfig = toJsonCompatibleObject(coreConfig);
         state.instanceIdentity = instanceIdentity;
-        if (usersResult.succeeded && usersResult.value) {
+        if (usersResult?.succeeded && usersResult.value) {
             state.users = usersResult.value;
             state.usersAvailability = markSettingsCapabilityReady();
-        } else {
+        } else if (usersResult) {
             state.usersAvailability = markSettingsCapabilityFailed(state.usersAvailability);
             if (usersResult.error) page.owners.feedback.handle(usersResult.error, 'Settings users load');
+        } else {
+            state.users = [];
         }
         if (aclPolicyResult?.succeeded) {
             state.aclPolicy = aclPolicyResult.value;
@@ -210,30 +226,12 @@ const loadData = async (page: SettingsRuntimeContext, state: SettingsPageState, 
             state.aclAvailability = markSettingsCapabilityFailed(state.aclAvailability);
             if (aclPolicyResult.error) page.owners.feedback.handle(aclPolicyResult.error, 'Settings ACL load');
         }
-        if (securityAuditResult?.succeeded) {
-            state.securityAudit = securityAuditResult.value;
-            state.securityAvailability = markSettingsCapabilityReady();
-        } else if (securityAuditResult) {
-            state.securityAvailability = markSettingsCapabilityFailed(state.securityAvailability);
-            if (securityAuditResult.error) page.owners.feedback.handle(securityAuditResult.error, 'Settings security audit load');
-        }
-
         state.uiPrefsManager = page.owners.services.createConfigurationManager();
         state.uiPrefsManager.initialize(createUiPrefsSnapshot(page));
         state.uiPrefsManager.onChange(() => callbacks.notifySaveChanged());
 
         initializeManagers(page, state, callbacks);
-        await state.preferencesManager?.loadOcrPreference();
         throwIfAborted(signal);
-
-        if (state.messagingManager) {
-            if (modelCatalogResult?.succeeded && modelCatalogResult.value) {
-                state.messagingManager.setModelCatalog(modelCatalogResult.value);
-            } else if (modelCatalogResult) {
-                if (modelCatalogResult.error) page.owners.feedback.handle(modelCatalogResult.error, 'Settings messaging model catalog load');
-                state.messagingManager.setModelCatalogUnavailable();
-            }
-        }
         state.configManager = page.owners.services.createConfigurationManager();
         if (state.configManager) {
             state.configManager.initialize(state.coreConfig);
@@ -254,4 +252,4 @@ const loadData = async (page: SettingsRuntimeContext, state: SettingsPageState, 
     }
 };
 
-export { disposeManagers, getElement, loadData, requestInstanceIdentity, resetElementCache, resolveAdvancedRenderer, setupManagersEventListeners };
+export { disposeManagers, getElement, loadData, requestInstanceIdentity, resetElementCache, resolveAdvancedRenderer, setupManagersEventListeners, syncSettingsSectionActivity };

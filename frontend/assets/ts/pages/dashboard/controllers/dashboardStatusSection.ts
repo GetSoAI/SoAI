@@ -6,6 +6,7 @@ import { resolveCheckerboardClass } from '@core/dom/checkerboardAssignment.ts';
 import { narrowHTMLElement } from '@core/dom/narrowElement.ts';
 import { applyTextContent } from '@core/dom/textContent.ts';
 import { i18n } from '@core/i18n/index.ts';
+import { countUnisolatedTextCharacters } from '@core/localization/public.ts';
 import { getMainStatusMonitor } from '@core/mainstatusmonitor/public.ts';
 import { formatCompactNumber } from '@core/primitives/compactNumber.ts';
 import { formatDuration } from '@core/primitives/duration.ts';
@@ -25,6 +26,7 @@ interface DashboardStatusRendererDependencies {
 interface DashboardStatusItem {
     label: string;
     value: string;
+    uptime?: boolean;
 }
 
 interface DashboardStatusItemElements {
@@ -43,7 +45,7 @@ const STATUS_VALUE_DENSE_THRESHOLD = 14;
 const STATUS_VALUE_TIGHT_THRESHOLD = 20;
 
 const resolveStatusValueSizeClass = (value: string): string => {
-    const length = Array.from(value).length;
+    const length = countUnisolatedTextCharacters(value);
     if (length >= STATUS_VALUE_TIGHT_THRESHOLD) {
         return 'status-value--tight';
     }
@@ -55,6 +57,8 @@ const resolveStatusValueSizeClass = (value: string): string => {
     }
     return '';
 };
+
+const resolveStatusValueClass = (item: DashboardStatusItem): string => ['status-value', 'ui-mini-stat-strip__value', resolveStatusValueSizeClass(item.value), item.uptime ? 'status-value--uptime' : ''].filter(Boolean).join(' ');
 
 const createDashboardStatusSectionRenderer = (dependencies: DashboardStatusRendererDependencies): (() => void) => {
     const host = dependencies.host;
@@ -68,7 +72,7 @@ const createDashboardStatusSectionRenderer = (dependencies: DashboardStatusRende
             { label: i18n.t('dashboard.sections.status.completedRequests'), value: formatCompactNumber(statusMetrics.completedRequests) },
             { label: i18n.t('dashboard.sections.status.failedRequests'), value: formatCompactNumber(statusMetrics.failedRequests) },
             { label: i18n.t('dashboard.sections.status.totalTokens'), value: formatCompactNumber(statusMetrics.totalTokens) },
-            { label: i18n.t('dashboard.sections.status.uptime'), value: formatDuration(statusMetrics.uptimeSeconds, 'uptime') }
+            { label: i18n.t('dashboard.sections.status.uptime'), value: formatDuration(statusMetrics.uptimeSeconds, 'uptime'), uptime: true }
         ];
     };
 
@@ -84,8 +88,9 @@ const createDashboardStatusSectionRenderer = (dependencies: DashboardStatusRende
                 const checkerboardClass = resolveCheckerboardClass(index + itemIndex, { columns: 2 });
                 const row = host.createElement('div', { className: `status-item ui-mini-stat-strip__card ${checkerboardClass}` });
                 const rowElement = narrowHTMLElement(row, 'status overview row');
-                const valueClass = ['status-value', 'ui-mini-stat-strip__value', resolveStatusValueSizeClass(item.value)].filter(Boolean).join(' ');
+                const valueClass = resolveStatusValueClass(item);
                 const valueNode = narrowHTMLElement(host.createElement('span', { className: valueClass }, item.value), 'status value');
+                valueNode.dir = 'auto';
                 const labelNode = narrowHTMLElement(host.createElement('span', { className: 'status-label ui-mini-stat-strip__label' }, item.label), 'status label');
                 rowElement.append(valueNode, labelNode);
                 groupElement.appendChild(rowElement);
@@ -110,7 +115,7 @@ const createDashboardStatusSectionRenderer = (dependencies: DashboardStatusRende
             }
             applyTextContent(itemElements.label, item.label);
             applyTextContent(itemElements.value, item.value);
-            const valueClass = ['status-value', 'ui-mini-stat-strip__value', resolveStatusValueSizeClass(item.value)].filter(Boolean).join(' ');
+            const valueClass = resolveStatusValueClass(item);
             if (itemElements.value.className !== valueClass) {
                 itemElements.value.className = valueClass;
             }

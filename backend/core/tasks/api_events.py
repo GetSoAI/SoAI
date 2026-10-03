@@ -21,6 +21,7 @@ from core.tasks.task_public_fields import resolve_public_task_terminal_fields
 from core.types.json import is_json_value
 
 if TYPE_CHECKING:
+    from core.errors.payload import ErrorPublicPayload
     from core.types.json import JSONDict, JSONValue
 
 __all__ = (
@@ -101,6 +102,7 @@ async def send_task_complete_event(
     error_code: int | None = None,
     error_type: str | None = None,
     error_message: str | None = None,
+    public_error: ErrorPublicPayload | None = None,
     mutation_fencing_token: int | None = None,
 ) -> TaskCompleteEvent | None:
     if registry is None:
@@ -157,26 +159,24 @@ async def send_task_complete_event(
             error_code=resolved_error_code,
             error_type=error_type,
             error_message=error_message or normalized_message or "Operation failed",
+            public_error=public_error,
             mutation_fencing_token=mutation_fencing_token,
         )
     if terminal_task is None or terminal_task.status != expected_status:
         return None
-    public_terminal_fields = resolve_public_task_terminal_fields(
-        status=terminal_task.status,
-        error_code=terminal_task.error_code,
-        error_type=terminal_task.error_type,
-        status_message=terminal_task.status_message,
-        error_message=terminal_task.error_message,
-    )
+    public_terminal_fields = resolve_public_task_terminal_fields(terminal_task)
     resolved_status = terminal_task.status.value
+    task_failed = terminal_task.status == TaskStatus.FAILED
     event = TaskCompleteEvent(
-        success=success,
-        message=public_terminal_fields.status_message or message,
+        success=terminal_task.status == TaskStatus.COMPLETED,
+        message=(
+            public_terminal_fields.status_message or public_terminal_fields.error_message or ""
+        ),
         task_id=task_id,
         user_id=user_id if user_id is not None else terminal_task.user_id,
         status=resolved_status,
-        error_code=(None if success or cancelled else resolved_error_code),
-        error_type=(None if success or cancelled else terminal_task.error_type),
-        error_message=(None if success or cancelled else public_terminal_fields.error_message),
+        error_code=terminal_task.error_code if task_failed else None,
+        error_type=terminal_task.error_type if task_failed else None,
+        error_message=public_terminal_fields.error_message if task_failed else None,
     )
     return event

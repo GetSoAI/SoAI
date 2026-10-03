@@ -19,6 +19,7 @@ from app.backup.copy_no_symlinks.tree_hash_format import (
 )
 from core.errors.exceptions import ValidationError
 from core.filesystem.atomic_write_primitives import fsync_directory
+from core.filesystem.path_coercion import normalize_filesystem_path
 from files.archive import sync_raise_if_symlink
 
 if TYPE_CHECKING:
@@ -37,13 +38,15 @@ def sync_fsync_directory_tree(root_path: str) -> None:
     if not isinstance(root_path, str) or not root_path.strip():
         raise ValidationError("root_path is required.")
     sync_raise_if_symlink(root_path, context="directory durability root")
-    if not os.path.isdir(root_path):
+    if not os.path.isdir(normalize_filesystem_path(root_path)):
         raise ValidationError(f"Expected a directory at {root_path}.")
-    for current_root, directory_names, file_names in os.walk(
-        root_path,
+    for filesystem_root, directory_names, file_names in os.walk(
+        normalize_filesystem_path(root_path),
         topdown=False,
         followlinks=False,
     ):
+        relative_root = os.path.relpath(filesystem_root, normalize_filesystem_path(root_path))
+        current_root = root_path if relative_root == "." else os.path.join(root_path, relative_root)
         for directory_name in directory_names:
             sync_raise_if_symlink(
                 os.path.join(current_root, directory_name),
@@ -63,11 +66,11 @@ def _prepare_copy_tree_roots(source_root: str, destination_root: str) -> None:
     if not isinstance(destination_root, str) or not destination_root.strip():
         raise ValidationError("destination_root is required.")
     sync_raise_if_symlink(source_root, context="tree copy source")
-    if not os.path.isdir(source_root):
+    if not os.path.isdir(normalize_filesystem_path(source_root)):
         raise ValidationError(f"Expected a directory at {source_root}.")
-    if os.path.exists(destination_root):
+    if os.path.exists(normalize_filesystem_path(destination_root)):
         raise ValidationError(f"Destination already exists: {destination_root}")
-    os.makedirs(destination_root, mode=0o700, exist_ok=False)
+    os.makedirs(normalize_filesystem_path(destination_root), mode=0o700, exist_ok=False)
 
 
 def _prepare_copy_tree_roots_allow_existing_empty_destination(
@@ -79,16 +82,18 @@ def _prepare_copy_tree_roots_allow_existing_empty_destination(
     if not isinstance(destination_root, str) or not destination_root.strip():
         raise ValidationError("destination_root is required.")
     sync_raise_if_symlink(source_root, context="tree copy source")
-    if not os.path.isdir(source_root):
+    if not os.path.isdir(normalize_filesystem_path(source_root)):
         raise ValidationError(f"Expected a directory at {source_root}.")
-    if os.path.lexists(destination_root) and os.path.islink(destination_root):
+    if os.path.lexists(normalize_filesystem_path(destination_root)) and os.path.islink(
+        normalize_filesystem_path(destination_root)
+    ):
         raise ValidationError(f"Destination must not be a symlink: {destination_root}")
-    if not os.path.exists(destination_root):
-        os.makedirs(destination_root, mode=0o700, exist_ok=False)
+    if not os.path.exists(normalize_filesystem_path(destination_root)):
+        os.makedirs(normalize_filesystem_path(destination_root), mode=0o700, exist_ok=False)
         return
-    if not os.path.isdir(destination_root):
+    if not os.path.isdir(normalize_filesystem_path(destination_root)):
         raise ValidationError(f"Destination must be a directory: {destination_root}")
-    if os.listdir(destination_root):
+    if os.listdir(normalize_filesystem_path(destination_root)):
         raise ValidationError(f"Destination directory must be empty: {destination_root}")
 
 
@@ -107,7 +112,12 @@ def sync_copy_directory_and_hash_no_symlinks(
 
     dir_hasher = hashlib.sha256()
     total_bytes = 0
-    for root, dir_names, file_names in os.walk(source_root, topdown=True, followlinks=False):
+    filesystem_source = normalize_filesystem_path(source_root)
+    for filesystem_root, dir_names, file_names in os.walk(
+        filesystem_source, topdown=True, followlinks=False
+    ):
+        relative_path = os.path.relpath(filesystem_root, filesystem_source)
+        root = source_root if relative_path == "." else os.path.join(source_root, relative_path)
         check_deadline(deadline_monotonic, context=f"copy_dir:{root}")
         dir_names.sort()
         file_names.sort()
@@ -116,7 +126,7 @@ def sync_copy_directory_and_hash_no_symlinks(
             relative_root = ""
         if relative_root:
             os.makedirs(
-                os.path.join(destination_root, relative_root),
+                normalize_filesystem_path(os.path.join(destination_root, relative_root)),
                 mode=0o700,
                 exist_ok=True,
             )
@@ -126,7 +136,7 @@ def sync_copy_directory_and_hash_no_symlinks(
             sync_raise_if_symlink(directory_path, context="tree copy entry")
             relative_dir = os.path.relpath(directory_path, source_root)
             os.makedirs(
-                os.path.join(destination_root, relative_dir),
+                normalize_filesystem_path(os.path.join(destination_root, relative_dir)),
                 mode=0o700,
                 exist_ok=True,
             )
@@ -161,7 +171,12 @@ def sync_copy_tree_no_symlinks(
     else:
         _prepare_copy_tree_roots(source_root, destination_root)
 
-    for root, dir_names, file_names in os.walk(source_root, topdown=True, followlinks=False):
+    filesystem_source = normalize_filesystem_path(source_root)
+    for filesystem_root, dir_names, file_names in os.walk(
+        filesystem_source, topdown=True, followlinks=False
+    ):
+        relative_path = os.path.relpath(filesystem_root, filesystem_source)
+        root = source_root if relative_path == "." else os.path.join(source_root, relative_path)
         ignore_names: set[str] = set()
         if ignore is not None:
             ignore_names = set(ignore(root, dir_names + file_names) or [])
@@ -178,7 +193,7 @@ def sync_copy_tree_no_symlinks(
             sync_raise_if_symlink(directory_path, context="tree copy entry")
             relative_dir = os.path.relpath(directory_path, source_root)
             os.makedirs(
-                os.path.join(destination_root, relative_dir),
+                normalize_filesystem_path(os.path.join(destination_root, relative_dir)),
                 mode=0o700,
                 exist_ok=True,
             )

@@ -22,9 +22,9 @@ import type { AskUserInteractionResolutionRequest, ComparisonTurnPreflightReques
 import type { WebuiConversationMessageResponse } from '@core/api/contracts/webuiMessageContracts.ts';
 import type { ConversationCloneRequest, ConversationCreateRequest } from '@core/api/contracts/webuiConversationRequestContracts.ts';
 import type { MessageResubmitRequest, MessageTargetMutationRequest } from '@core/api/contracts/webuiMessageMutationContracts.ts';
-import type { ConversationRegenerationReceipt, ConversationRegenerationRequest } from '@core/api/contracts/webuiMessageRegenerationContracts.ts';
+import type { ConversationLatestRegenerationStatus, ConversationRegenerationReceipt, ConversationRegenerationRequest } from '@core/api/contracts/webuiMessageRegenerationContracts.ts';
 import type { KnowledgeAttachmentClaimRequest, KnowledgeAttachmentClaimResponse, KnowledgeAttachmentCollectionResponse, KnowledgeAttachmentItemsResponse, KnowledgeAttachmentPreviewRequest, KnowledgeAttachmentPreviewResponse, KnowledgeAttachmentSummary, KnowledgeAttachmentUseRequest, KnowledgeAttachmentUseResponse, PhysicalAttachmentResponse } from '@core/api/contracts/webuiAttachmentContracts.ts';
-import type { RagBatchUploadResponse, RagConfigResponse, RagConfigUpdateRequest, RagDeleteResponse, RagDocumentsResponse, RagIngestResponse, RagReindexResponse, RagUploadResponse } from '@core/api/contracts/webuiRagContracts.ts';
+import type { RagBatchUploadResponse, RagConfigResponse, RagConfigUpdateRequest, RagDocumentsResponse, RagIngestResponse, RagReindexResponse, RagUploadResponse } from '@core/api/contracts/webuiRagContracts.ts';
 
 interface ChatPreferencesManager {
     model?: string;
@@ -73,6 +73,7 @@ interface ChatConversationMessagesApi {
     syncCursor: (conversationId: string) => Promise<ConversationMessageSyncCursorResponse>;
     regenerate: (conversationId: string, payload: ConversationRegenerationRequest) => Promise<ConversationRegenerationReceipt>;
     regenerationStatus: (conversationId: string, clientId?: string, clientRequestId?: string) => Promise<ConversationRegenerationReceipt>;
+    latestRegenerationStatus: (conversationId: string, requestOptions?: RequestOptions) => Promise<ConversationLatestRegenerationStatus>;
 }
 
 interface ChatAttachmentsApi {
@@ -112,7 +113,7 @@ interface ChatConversationRagApi {
     uploadDocument: (conversationId: string, file: File) => Promise<RagUploadResponse>;
     uploadDocumentsBatch: (conversationId: string, files: readonly File[], options?: RagBatchUploadOptions) => Promise<RagBatchUploadResponse>;
     ingestFileExplorer: (conversationId: string, payload: { path: string; recursive?: boolean }, options?: RequestOptions) => Promise<RagIngestResponse>;
-    deleteDocument: (conversationId: string, documentId: string, options?: RequestOptions) => Promise<RagDeleteResponse>;
+    deleteDocument: (conversationId: string, documentId: string, options?: RequestOptions) => Promise<void>;
     reindex: (conversationId: string, embeddingModel: string, options?: RequestOptions) => Promise<RagReindexResponse>;
 }
 

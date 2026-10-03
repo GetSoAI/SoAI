@@ -76,7 +76,14 @@ def register_routes(routers: ApiRouters) -> None:
                     "code": entry.code,
                     "name": entry.name,
                     "native_name": entry.native_name,
-                    "flag": entry.flag,
+                    "country_code": entry.country_code,
+                    "flag": (
+                        "".join(
+                            chr(0x1F1E6 + ord(letter) - ord("a")) for letter in entry.country_code
+                        )
+                        if entry.country_code is not None
+                        else "🌐"
+                    ),
                     "ui_locale": entry.ui_locale,
                     "available": tesseract_model_available(data_directory, entry.code),
                 }

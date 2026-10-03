@@ -5,13 +5,14 @@ import type { ApiClientContext } from '@core/api/types/apiClientContext.ts';
 import { FILE_TRANSFER_REQUEST_TIMEOUT_MS } from '@core/api/fileTransferTimeout.ts';
 import { decodeBackupExportResponse, decodeBackupListResponse, decodeBackupTaskAcceptedResponse, decodeFactoryResetResponse, type BackupListEntry, type BackupListResponse, type BackupTaskAcceptedResponse, type FactoryResetResponse } from '@core/api/contracts/adminContracts.ts';
 import { decodeApplicationRestartResponse, type ApplicationRestartResponse } from '@core/api/contracts/powerContracts.ts';
+import { buildSignalRequestOptions, type SignalOptions } from '@core/api/requestOptions.ts';
 
 interface WebuiAdminEndpoints {
     admin: {
         resetConfiguration(): Promise<ApplicationRestartResponse>;
         factoryReset(): Promise<FactoryResetResponse>;
         backups: {
-            list(): Promise<BackupListResponse>;
+            list(options?: SignalOptions): Promise<BackupListResponse>;
             create(): Promise<BackupTaskAcceptedResponse>;
             restore(backupId: string): Promise<BackupTaskAcceptedResponse>;
             verify(backupId: string): Promise<BackupTaskAcceptedResponse>;
@@ -27,7 +28,7 @@ const createWebuiAdminEndpoints = (api: ApiClientContext): WebuiAdminEndpoints =
         resetConfiguration: async (): Promise<ApplicationRestartResponse> => decodeApplicationRestartResponse(await api.post('/api/v1/system/admin/configuration/reset')),
         factoryReset: async (): Promise<FactoryResetResponse> => decodeFactoryResetResponse(await api.post('/api/v1/system/admin/factory-reset')),
         backups: {
-            list: async (): Promise<BackupListResponse> => decodeBackupListResponse(await api.get('/api/v1/backups')),
+            list: async (options: SignalOptions = {}): Promise<BackupListResponse> => decodeBackupListResponse(await api.get('/api/v1/backups', buildSignalRequestOptions(options))),
             create: async (): Promise<BackupTaskAcceptedResponse> => decodeBackupTaskAcceptedResponse(await api.post('/api/v1/backups')),
             restore: async (backupId): Promise<BackupTaskAcceptedResponse> => decodeBackupTaskAcceptedResponse(await api.post(`/api/v1/backups/${api.encodePathSegment(backupId)}/restore`)),
             verify: async (backupId): Promise<BackupTaskAcceptedResponse> => decodeBackupTaskAcceptedResponse(await api.post(`/api/v1/backups/${api.encodePathSegment(backupId)}/verify`)),

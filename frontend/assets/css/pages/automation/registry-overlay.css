@@ -24,10 +24,10 @@
         :where([data-section='automation'], [data-page-scope='automation']) .automation-pane--registry {
             position: absolute;
             inset-block: 0;
-            right: 0;
+            inset-inline-start: 0;
             width: min(420px, 100%);
             z-index: var(--z-overlay);
-            transform: translateX(calc(100% + var(--layout-container-padding)));
+            transform: translateX(calc((100% + var(--layout-container-padding)) * -1 * var(--dir-sign)));
             visibility: hidden;
             box-shadow: var(--glass-shadow-base);
             transition:

@@ -21,6 +21,7 @@ interface RequestOptions {
     keepalive?: boolean;
     signal?: AbortSignal | undefined;
     onUploadProgress?: (progress: UploadProgress) => void;
+    refreshTimeoutOnUploadProgress?: boolean;
     authTransitionOwned?: boolean | undefined;
 }
 

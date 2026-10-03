@@ -28,19 +28,43 @@ __all__ = ("phase_result_from_child", "preflight_result_from_child")
 CHILD_OPERATION = "hardware.soaibench.opencl_child"
 PREFLIGHT_FIELDS = (
     "match_basis",
+    "queue_api",
     "opencl_platform_name",
     "opencl_platform_vendor",
     "opencl_device_name",
     "opencl_device_vendor",
     "opencl_driver_version",
+    "opencl_enumeration_warnings",
 )
 
 
 def preflight_result_from_child(payload: JSONDict) -> JSONDict:
     if set(payload) != set(PREFLIGHT_FIELDS):
         raise _protocol_error("SoAIBench child preflight fields are invalid.")
-    for field in PREFLIGHT_FIELDS:
+    if payload.get("queue_api") not in {
+        "clCreateCommandQueue",
+        "clCreateCommandQueueWithProperties",
+    }:
+        raise _protocol_error("SoAIBench child queue API is invalid.")
+    for field in ("match_basis", "opencl_device_name"):
         _bounded_nonempty_text(payload.get(field), field)
+    for field in (
+        "opencl_platform_name",
+        "opencl_platform_vendor",
+        "opencl_device_vendor",
+        "opencl_driver_version",
+    ):
+        _bounded_optional_text(payload.get(field), field)
+    warnings = payload.get("opencl_enumeration_warnings")
+    if (
+        not isinstance(warnings, list)
+        or len(warnings) > 32
+        or any(
+            not isinstance(warning, str) or not warning or len(warning) > 128
+            for warning in warnings
+        )
+    ):
+        raise _protocol_error("SoAIBench child OpenCL enumeration warnings are invalid.")
     return payload
 
 
@@ -227,15 +251,21 @@ def _validate_summary(
         "clCreateCommandQueueWithProperties",
     }:
         raise _protocol_error("SoAIBench child queue API is invalid.")
+    for field in ("match_basis", "opencl_device_name"):
+        _bounded_nonempty_text(result.summary.get(field), field)
     for field in (
-        "match_basis",
         "opencl_platform_name",
         "opencl_platform_vendor",
-        "opencl_device_name",
         "opencl_device_vendor",
         "opencl_driver_version",
     ):
-        _bounded_nonempty_text(result.summary.get(field), field)
+        _bounded_optional_text(result.summary.get(field), field)
+
+
+def _bounded_optional_text(value: JSONValue, field: str) -> str:
+    if not isinstance(value, str) or len(value.encode("utf-8")) > 4096:
+        raise _protocol_error(f"SoAIBench child {field} is invalid.")
+    return value
 
 
 def _bounded_nonempty_text(value: JSONValue, field: str) -> str:

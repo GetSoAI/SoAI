@@ -8,7 +8,7 @@ import os
 
 from core.errors.exceptions import ValidationError
 from core.ipc.settings import build_ndjson_codec_from_env
-from core.timing.constants import LOCAL_IO_TIMEOUT_SEC
+from core.timing.constants import INTERACTIVE_TIMEOUT_SEC
 from core.types.json import JSONDict
 
 __all__ = ("connect_ndjson_ipc_worker_session",)
@@ -48,9 +48,12 @@ async def connect_ndjson_ipc_worker_session(
     await codec.write_message(
         writer,
         hello,
-        timeout_sec=LOCAL_IO_TIMEOUT_SEC,
+        timeout_sec=INTERACTIVE_TIMEOUT_SEC,
     )
-    ack = await codec.read_message(reader, timeout_sec=LOCAL_IO_TIMEOUT_SEC)
+    ack = await codec.read_message(
+        reader,
+        timeout_sec=INTERACTIVE_TIMEOUT_SEC,
+    )
     if ack.get("type") != "hello_ack":
         raise ValidationError("IPC hello_ack missing from server.")
     return reader, writer, worker_id

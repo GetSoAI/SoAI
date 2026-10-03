@@ -68,34 +68,6 @@ const cloneMcpFormValues = (config: McpFormValues): McpFormValues => ({
     toolApprovalRequired: config.toolApprovalRequired
 });
 
-const readMcpFormValues = (root: Element, baseline: Pick<McpFormValues, 'toolsEnabled' | 'toolApprovalRequired'>): McpFormValues => {
-    const serverConfigs: Record<string, boolean> = {};
-    dom.resolveAll('.mcp-server-toggle', root).forEach((element) => {
-        if (!(element instanceof HTMLInputElement)) throw new Error('MCP server toggle must be an input');
-        const serverId = requireTrimmedDataAttribute(element, 'serverId', 'MCP server toggle');
-        if (!element.checked) serverConfigs[serverId] = false;
-    });
-    const selections: Record<McpToolMode, string[]> = { default: [], plan: [], execute: [] };
-    dom.resolveAll('.mcp-tool-toggle', root).forEach((element) => {
-        if (!(element instanceof HTMLInputElement)) throw new Error('MCP tool toggle must be an input');
-        const serverId = requireTrimmedDataAttribute(element, 'serverId', 'MCP tool toggle');
-        const mode = requireTrimmedDataAttribute(element, 'toolMode', 'MCP tool toggle');
-        if (mode !== 'default' && mode !== 'plan' && mode !== 'execute') throw new Error('MCP tool toggle has an invalid mode');
-        const name = requireTrimmedDataAttribute(element, 'toolName', 'MCP tool toggle');
-        if (element.checked && isMcpToolServerEnabled(serverId, serverConfigs)) selections[mode].push(name);
-    });
-    const toolsEnabled = dom.resolve('.mcp-tools-enabled-toggle', root);
-    const approvalRequired = dom.resolve('.mcp-tool-approval-required-toggle', root);
-    return {
-        defaultTools: selections.default,
-        planTools: selections.plan,
-        executeTools: selections.execute,
-        serverConfigs,
-        toolsEnabled: toolsEnabled instanceof HTMLInputElement ? toolsEnabled.checked : baseline.toolsEnabled,
-        toolApprovalRequired: approvalRequired instanceof HTMLInputElement ? approvalRequired.checked : baseline.toolApprovalRequired
-    };
-};
-
 const applyMcpServerAvailability = (root: Element, serverConfigs: Record<string, boolean>, readOnly: boolean): void => {
     dom.resolveAll('.mcp-input, .mcp-tool-mode-tabs button', root).forEach((element) => {
         if (!(element instanceof HTMLInputElement || element instanceof HTMLButtonElement)) throw new Error('MCP control must be an input or button');
@@ -104,8 +76,9 @@ const applyMcpServerAvailability = (root: Element, serverConfigs: Record<string,
     dom.resolveAll('.mcp-tool-toggle', root).forEach((element) => {
         if (!(element instanceof HTMLInputElement)) throw new Error('MCP tool toggle must be an input');
         const enabled = isMcpToolServerEnabled(requireTrimmedDataAttribute(element, 'serverId', 'MCP tool toggle'), serverConfigs);
-        element.disabled = readOnly || !enabled;
-        if (!enabled) element.checked = false;
+        const selectionLocked = element.dataset['selectionLocked'] === 'true';
+        const toolDisallowed = element.dataset['toolAllowed'] === 'false';
+        element.disabled = readOnly || !enabled || selectionLocked || toolDisallowed;
         updateToggleLabel(element, { checked: element.checked });
     });
 };
@@ -119,6 +92,7 @@ class McpFormController {
     #config: McpFormValues;
     #activeToolMode: McpToolMode;
     #readOnly = false;
+    #hasExplicitValues = false;
 
     constructor(options: McpFormControllerOptions) {
         this.#options = options;
@@ -145,15 +119,17 @@ class McpFormController {
             planTools: catalog.planTools.filter((name) => names.has(name)),
             executeTools: catalog.executeTools.filter((name) => names.has(name))
         };
-        if (this.#config.defaultTools.length + this.#config.planTools.length + this.#config.executeTools.length === 0) {
+        if (!this.#hasExplicitValues) {
             this.#config.defaultTools = [...this.#catalog.defaultTools];
             this.#config.planTools = [...this.#catalog.planTools];
             this.#config.executeTools = [...this.#catalog.executeTools];
+            this.#hasExplicitValues = true;
         }
         this.#render();
     }
 
     setValues(config: McpFormValues): void {
+        this.#hasExplicitValues = true;
         this.#config = cloneMcpFormValues(config);
         this.#render();
     }
@@ -163,8 +139,12 @@ class McpFormController {
         this.#applyAvailability(this.readConfig().serverConfigs);
     }
 
+    hasCatalog(): boolean {
+        return this.#catalog !== null;
+    }
+
     readConfig(): McpFormValues {
-        return readMcpFormValues(this.#options.root, this.#config);
+        return cloneMcpFormValues(this.#config);
     }
 
     destroy(): void {
@@ -175,14 +155,32 @@ class McpFormController {
         const action = requireTrimmedDataAttribute(element, 'action', 'MCP form action');
         const actions = this.#options.actions;
         if (eventType === 'change' && element instanceof HTMLInputElement) {
+            this.#hasExplicitValues = true;
             updateToggleLabel(element, { checked: element.checked });
-            if (action === actions.serverToggle) this.#applyAvailability(this.readConfig().serverConfigs);
+            if (action === actions.serverToggle) {
+                const serverId = requireTrimmedDataAttribute(element, 'serverId', 'MCP server toggle');
+                this.#config.serverConfigs[serverId] = element.checked;
+                this.#applyAvailability(this.#config.serverConfigs);
+            } else if (element.classList.contains('mcp-tool-toggle') && action === actions.toolToggle) {
+                const name = requireTrimmedDataAttribute(element, 'toolName', 'MCP tool toggle');
+                const mode = requireTrimmedDataAttribute(element, 'toolMode', 'MCP tool toggle');
+                if (mode !== 'default' && mode !== 'plan' && mode !== 'execute') throw new Error('MCP tool toggle has an invalid mode');
+                const selected = mode === 'default' ? this.#config.defaultTools : mode === 'plan' ? this.#config.planTools : this.#config.executeTools;
+                const next = selected.filter((tool) => tool !== name);
+                if (element.checked) next.push(name);
+                if (mode === 'default') this.#config.defaultTools = next;
+                if (mode === 'plan') this.#config.planTools = next;
+                if (mode === 'execute') this.#config.executeTools = next;
+            } else if (element.classList.contains('mcp-tools-enabled-toggle')) {
+                this.#config.toolsEnabled = element.checked;
+            } else if (element.classList.contains('mcp-tool-approval-required-toggle')) {
+                this.#config.toolApprovalRequired = element.checked;
+            }
             return;
         }
         if (eventType === 'click' && action === actions.toolModeSelect) {
             const mode = requireTrimmedDataAttribute(element, 'toolMode', 'MCP tool mode');
             if (mode !== 'default' && mode !== 'plan' && mode !== 'execute') throw new Error('MCP tool mode is invalid');
-            this.#config = this.readConfig();
             this.#activeToolMode = mode;
             this.#render();
             return;
@@ -219,13 +217,24 @@ class McpFormController {
     }
 
     #render(): void {
-        if (!this.#catalog) return;
         this.#syncTopLevelToggles();
+        const tools = this.#catalog?.tools ?? [];
         const config: McpConfig<null> = { ...cloneMcpFormValues(this.#config), knowledgeState: null };
-        renderMcpToolModeGroups({ host: this.#host, container: this.#options.toolsList, emptyState: this.#options.toolsEmpty, config, tools: this.#catalog.tools, activeToolTab: this.#activeToolMode, toolModes: this.#options.toolModes, toolModeAction: this.#options.actions.toolModeSelect, buildToggleSwitch: this.#buildToggle, toggleIdPrefix: `${this.#options.modalId}-mcp-tool-toggle`, applyServerToolAvailability: (serverConfigs) => this.#applyAvailability(serverConfigs), collapsedToolGroups: true, toolGroupToggleAction: this.#options.actions.toolGroupToggle, toolGroupToggleIcon: this.#options.getIconSync('chevron-left', { size: 14, strokeWidth: 2 }), expandedToolGroupIds: this.#expandedToolGroupIds, showServerToggles: true, toolSearchAction: this.#options.actions.toolSearch });
+        renderMcpToolModeGroups({ host: this.#host, container: this.#options.toolsList, emptyState: this.#options.toolsEmpty, config, tools, activeToolTab: this.#activeToolMode, toolModes: this.#options.toolModes, toolModeAction: this.#options.actions.toolModeSelect, buildToggleSwitch: this.#buildToggle, toggleIdPrefix: `${this.#options.modalId}-mcp-tool-toggle`, applyServerToolAvailability: (serverConfigs) => this.#applyAvailability(serverConfigs), collapsedToolGroups: true, toolGroupToggleAction: this.#options.actions.toolGroupToggle, toolGroupToggleIcon: this.#options.getIconSync('chevron-left', { size: 14, strokeWidth: 2 }), expandedToolGroupIds: this.#expandedToolGroupIds, showServerToggles: true, toolSearchAction: this.#options.actions.toolSearch });
         this.#applyAvailability(config.serverConfigs);
+        const availableNames = new Set(tools.map((tool) => tool.name));
+        const unavailableTools = [...new Set([...config.defaultTools, ...config.planTools, ...config.executeTools])].filter((name) => !availableNames.has(name));
+        const availableServers = new Set(tools.map((tool) => tool.serverId));
+        const unavailableServers = Object.keys(config.serverConfigs).filter((serverId) => !availableServers.has(serverId));
+        for (const message of [unavailableTools.length ? i18n.t('chat.configuration.mcp.unavailableTools', { tools: unavailableTools.join(', ') }) : null, unavailableServers.length ? i18n.t('chat.configuration.mcp.unavailableServers', { servers: unavailableServers.join(', ') }) : null]) {
+            if (message === null) continue;
+            const status = document.createElement('p');
+            status.className = 'form-help';
+            status.textContent = message;
+            this.#options.toolsList.append(status);
+        }
     }
 }
 
-export { McpFormController, applyMcpServerAvailability, readMcpFormValues };
+export { McpFormController, applyMcpServerAvailability };
 export type { McpFormActions, McpFormControllerOptions };

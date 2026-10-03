@@ -49,10 +49,10 @@
         content: attr(data-language-label);
         position: absolute;
         top: var(--space-2);
-        right: var(--space-35);
+        inset-inline-end: var(--space-35);
         font-size: var(--font-size-compact-plus);
         letter-spacing: var(--tracking-08em);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         color: var(--surface-code-label);
         pointer-events: none;
     }
@@ -79,7 +79,7 @@
 
     .code-block .token-comment {
         color: var(--syntax-token-comment);
-        font-style: italic;
+        font-style: var(--font-style-emphasis);
     }
 
     .code-block .token-string {
@@ -162,7 +162,7 @@
 
     .code-block .token-diff.token-meta {
         color: var(--text-tertiary);
-        font-style: italic;
+        font-style: var(--font-style-emphasis);
     }
 
     .code-block[data-language='diff'] code {

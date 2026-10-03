@@ -22,11 +22,10 @@ const normalizeOptionalVirtualPath = (value: string | null): string | null => {
     if (!value) {
         return null;
     }
-    const trimmed = value.trim();
-    if (!trimmed) {
+    if (!value.trim()) {
         return null;
     }
-    return toVirtualPath(trimmed);
+    return toVirtualPath(value);
 };
 
 const createFileExplorerDeeplinkHighlightController = (dependencies: FileExplorerDeeplinkHighlightDependencies): FileExplorerDeeplinkHighlightController => {

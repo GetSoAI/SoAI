@@ -18,6 +18,7 @@ export type MetricsData = Metrics & SystemMetricsResponse;
 export interface MetricsHistoryPoint {
     timestamp: number;
     value: number;
+    sampleCount?: number | undefined;
 }
 
 export type CandlestickDataPoint = CandlestickPoint;
@@ -86,6 +87,7 @@ export interface ValueHistoryResult {
     added: number;
     prepended: MetricsHistoryPoint[];
     replaced: boolean;
+    capped: boolean;
 }
 
 export type CapabilitiesData = MetricsCapabilities;

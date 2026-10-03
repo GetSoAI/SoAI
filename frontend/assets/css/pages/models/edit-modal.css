@@ -73,7 +73,7 @@
 
     :where([data-section='models'], [data-page-scope='models']) .model-edit-enabled-state {
         flex: 0 0 auto;
-        margin-left: auto;
+        margin-inline-start: auto;
         width: auto;
         min-width: 86px;
         min-height: var(--control-height-compact);

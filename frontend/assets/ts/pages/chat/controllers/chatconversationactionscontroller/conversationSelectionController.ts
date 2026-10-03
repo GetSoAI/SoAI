@@ -34,7 +34,6 @@ const finishConversationPresentation = async (runtime: ChatConversationActionsCo
     if (isVisualActivation) {
         await renderActivatedConversationWindow(runtime);
         if (!isConversationActivationCurrent(runtime, conversationId, activation)) return;
-        runtime.host.view.invalidateChatMarkup('list');
         await runtime.host.view.refreshConversationListAndHeader();
         if (!isConversationActivationCurrent(runtime, conversationId, activation)) return;
     }
@@ -103,7 +102,7 @@ const clearConversationSelection = async (runtime: ChatConversationActionsContro
             if (!isClearActivationCurrent(runtime, activation)) return;
         }
         if (isVisualActivation) {
-            runtime.host.view.invalidateChatMarkup('both');
+            runtime.host.view.invalidateChatMarkup('current');
             await runtime.host.view.refreshConversationsUI();
             if (!isClearActivationCurrent(runtime, activation)) return;
         }

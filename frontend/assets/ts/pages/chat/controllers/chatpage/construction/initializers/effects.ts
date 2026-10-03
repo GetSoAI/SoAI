@@ -73,7 +73,10 @@ const initializeElicitationSession = (page: ChatControllerInitializationContext)
             getCurrentConversationId: () => page.state.conversationState.currentConversationId,
             canAcknowledgePrompt: (conversationId) => page.state.runtimeServices.presence.isActivelyViewingConversation(conversationId),
             optionalUI: (selector) => page.page.pageDom.optional(selector),
-            updatePreview: (type, markup) => preview.update(type, markup),
+            updatePreview: (type, markup) => {
+                preview.update(type, markup);
+                page.runtime.composerSurface.optionalUi()?.syncChatChromeVisibility();
+            },
             postRender: (container) => messages.postRender(container),
             logWarning: (message, error) => errorHandler.warn('ChatElicitation', message, error),
             subscribeTaskCreated: (listener) => subscribeManagedWebSocketContract({ label: 'ChatElicitation', contract: WEBSOCKET_EVENT_CONTRACTS.task.created, handler: listener }),

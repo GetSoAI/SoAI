@@ -168,7 +168,10 @@
     }
 
     :is(.modal-resize-handle--top, .modal-resize-handle--bottom) {
+        /* direction: physical — resize edges share physical pointer coordinates with modalhost */
         left: 10px;
+
+        /* direction: physical — resize edges share physical pointer coordinates with modalhost */
         right: 10px;
         height: 10px;
     }
@@ -190,11 +193,13 @@
     }
 
     .modal-resize-handle--left {
+        /* direction: physical — resize edges share physical pointer coordinates with modalhost */
         left: 0;
         cursor: ew-resize;
     }
 
     .modal-resize-handle--right {
+        /* direction: physical — resize edges share physical pointer coordinates with modalhost */
         right: -6px;
         cursor: ew-resize;
     }
@@ -206,24 +211,32 @@
 
     .modal-resize-handle--top-left {
         top: 0;
+
+        /* direction: physical — resize edges share physical pointer coordinates with modalhost */
         left: 0;
         cursor: nwse-resize;
     }
 
     .modal-resize-handle--top-right {
         top: 0;
+
+        /* direction: physical — resize edges share physical pointer coordinates with modalhost */
         right: -8px;
         cursor: nesw-resize;
     }
 
     .modal-resize-handle--bottom-left {
         bottom: 0;
+
+        /* direction: physical — resize edges share physical pointer coordinates with modalhost */
         left: 0;
         cursor: nesw-resize;
     }
 
     .modal-resize-handle--bottom-right {
         bottom: -6px;
+
+        /* direction: physical — resize edges share physical pointer coordinates with modalhost */
         right: -8px;
         cursor: nwse-resize;
     }
@@ -232,10 +245,14 @@
         content: '';
         position: absolute;
         bottom: 4px;
+
+        /* direction: physical — resize edges share physical pointer coordinates with modalhost */
         right: 4px;
         width: 8px;
         height: 8px;
         border-bottom: var(--border-width-2) solid var(--border-color);
+
+        /* direction: physical — resize edges share physical pointer coordinates with modalhost */
         border-right: var(--border-width-2) solid var(--border-color);
         opacity: 0;
         transition: opacity var(--transition-fast);

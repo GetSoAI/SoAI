@@ -3,11 +3,23 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
+from playwright.async_api import Error
+
+from core.browser.playwright_driver_errors import (
+    PlaywrightDriverConnectionClosedError,
+    classify_playwright_driver_connection_closed_exception,
+)
+from core.errors.cancellation import raise_cancelled_error
+from core.errors.exception_coercion import coerce_to_soai_error
+from core.errors.exception_logging import log_exception
+from core.logging.trace import get_logger
 from mcp.tools.browser.security_policy import require_browser_page_output_allowed
 from mcp.tools.browser.session_access import require_current_page
+from mcp.tools.browser.session_state import mark_browser_session_driver_disconnected
 from mcp.tools.browser.session_sync import sync_session_state
 from mcp.tools.browser.storage_state import persist_synced_browser_action_storage_state
 from mcp.tools.error import MCPToolError
@@ -22,17 +34,83 @@ if TYPE_CHECKING:
 
 __all__ = (
     "browser_action_lock",
+    "browser_session_driver_is_active",
     "finalize_locked_browser_action",
     "locked_browser_action_page",
     "require_browser_action_lock_held",
     "require_synced_browser_page_output",
 )
 
+LOGGER_NAME = "SoAI.mcp.tools.session_action_lock"
+OPERATION_SESSION_ACTION = "mcp.browser.session_action"
+
 
 @asynccontextmanager
-async def browser_action_lock(state: BrowserSessionState) -> AsyncGenerator[None]:
+async def browser_action_lock(
+    state: BrowserSessionState,
+    *,
+    cleanup: bool = False,
+    allow_disconnected: bool = False,
+) -> AsyncGenerator[None]:
     async with state.action_lock:
-        yield
+        if cleanup:
+            yield
+            return
+        if not allow_disconnected:
+            await _require_active_driver(state)
+        try:
+            yield
+        except asyncio.CancelledError as exception:
+            raise_cancelled_error(exception)
+        except Exception as exception:
+            if not isinstance(exception, Error | PlaywrightDriverConnectionClosedError):
+                raise
+            driver_error = classify_playwright_driver_connection_closed_exception(
+                exception,
+                operation=OPERATION_SESSION_ACTION,
+                details={"owner_key": state.owner_key},
+            )
+            if driver_error is None:
+                raise
+            log_exception(
+                get_logger(LOGGER_NAME),
+                coerce_to_soai_error(
+                    driver_error,
+                    operation=OPERATION_SESSION_ACTION,
+                ),
+                message="Browser session lost its Playwright driver connection.",
+                operation=OPERATION_SESSION_ACTION,
+                details={"owner_key": state.owner_key},
+                level="warning",
+            )
+            mark_browser_session_driver_disconnected(state, reason=str(driver_error))
+            if state.driver_disconnect_handler is not None and state.driver_generation is not None:
+                await state.driver_disconnect_handler(state.driver_generation, driver_error)
+            if driver_error is exception:
+                raise
+            raise driver_error from exception
+        if not allow_disconnected:
+            await _require_active_driver(state)
+
+
+async def _require_active_driver(state: BrowserSessionState) -> None:
+    if await browser_session_driver_is_active(state):
+        return
+    raise MCPToolError(-32603, "Browser session disconnected. Start a new browser session.")
+
+
+async def browser_session_driver_is_active(state: BrowserSessionState) -> bool:
+    if (
+        state.driver_generation is None
+        or state.driver_generation_is_active is None
+        or await state.driver_generation_is_active(state.driver_generation)
+    ):
+        return True
+    mark_browser_session_driver_disconnected(
+        state,
+        reason="Playwright driver is no longer active.",
+    )
+    return False
 
 
 async def require_synced_browser_page_output(

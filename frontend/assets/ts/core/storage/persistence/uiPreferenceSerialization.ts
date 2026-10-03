@@ -26,6 +26,7 @@ const serializeUiPreferences = (preferences: UiPreferences): JsonObject => ({
     'modal_states': preferences.modalStates,
     'wallpaper_overlay': preferences.wallpaperOverlay,
     'solid_background': preferences.solidBackground,
+    'default_wallpaper': preferences.defaultWallpaper,
     'glass_enabled': preferences.glassEnabled,
     'hidden_sidebar_pages': preferences.hiddenSidebarPages,
     'show_main_status_indicator': preferences.showMainStatusIndicator,

@@ -5,7 +5,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from core.events.types_system import MetricsUpdatedEvent
+from core.errors.exceptions import ServiceUnavailableError
+from core.events.types_system import MetricsHistoryResetEvent, MetricsUpdatedEvent
+from core.history.reset_notification import (
+    HistoryResetOutcome,
+    publish_committed_history_reset,
+)
 from core.logging.trace import get_logger
 from core.timing.epoch import epoch_ms
 from metrics.manager.background_worker_bootstrap import create_background_worker_runtime
@@ -31,6 +36,7 @@ from metrics.manager.reset import reset_metrics_state
 from metrics.manager.structure_factory import create_metrics_structure
 
 if TYPE_CHECKING:
+    from core.logging.protocols import LoggerProtocol
     from core.metrics.usage import ModalityUsageRecord
     from metrics.manager.internal_protocols import (
         MetricsOperationSurfaceOwnerProtocol,
@@ -58,6 +64,7 @@ __all__ = (
 )
 
 LOGGER_NAME = "SoAI.metrics.manager.service_methods"
+RESET_OPERATION = "metrics.manager.reset"
 
 
 def increment_counter_method(
@@ -169,40 +176,57 @@ async def rehydrate_from_db_method(self: MetricsServiceMethodSurfaceProtocol) ->
     )
 
 
-async def reset_metrics_method(self: MetricsServiceMethodSurfaceProtocol) -> None:
+async def reset_metrics_method(self: MetricsServiceMethodSurfaceProtocol) -> HistoryResetOutcome:
     logger = get_logger(LOGGER_NAME)
-    self.accepting_operations = False
-    await drain_background_queue(
-        self.background_queue,
-        self.background_worker_task,
+    async with self.reset_lock:
+        if self.lifecycle.shutdown_event.is_set():
+            raise ServiceUnavailableError("Metrics manager is shutting down.")
+        self.accepting_operations = False
+        try:
+            try:
+                await drain_background_queue(self.background_queue, self.background_worker_task)
+            finally:
+                _replace_background_worker(self, logger)
+            cleared_through_ms = await reset_metrics_state(
+                lock=self.lock,
+                genesis_flush_lock=self.genesis_flush_lock,
+                genesis_requests_delta=self.genesis_requests_delta,
+                genesis_tokens_delta=self.genesis_tokens_delta,
+                metrics_ref=self.metrics_ref,
+                session_start_time_ms=self.session_start_time_ms,
+                reset_genesis_counters=self.config.get_bool(
+                    "OBSERVABILITY.METRICS.RESET_GENESIS_ON_CLEAR",
+                ),
+                database_metrics=self.database_metrics,
+            )
+            self.token_rate_calculator.reset()
+            self.queue_full_throttle = MetricsQueueFullThrottle()
+            self.capabilities_cache = None
+            self.capabilities_cache_timestamp = 0.0
+        finally:
+            self.accepting_operations = True
+    return await publish_committed_history_reset(
+        event_bus=self.event_bus,
+        event=MetricsHistoryResetEvent(cleared_through_ms=cleared_through_ms),
+        logger=logger,
+        operation=RESET_OPERATION,
     )
-    background_worker = self.background_worker
-    cancellation_binder = self.cancellation_binder
-    queue, worker_task = create_background_worker_runtime(
+
+
+def _replace_background_worker(
+    self: MetricsServiceMethodSurfaceProtocol,
+    logger: LoggerProtocol,
+) -> None:
+    previous_worker_task = self.background_worker_task
+    if previous_worker_task is not None and not previous_worker_task.done():
+        previous_worker_task.cancel()
+    self.background_queue, self.background_worker_task = create_background_worker_runtime(
         config=self.config,
-        background_worker=background_worker(),
-        cancellation_binder=cancellation_binder,
+        background_worker=self.background_worker(),
+        cancellation_binder=self.cancellation_binder,
         finalizer_tracker=self.lifecycle.finalizer_tracker,
         logger=logger,
     )
-    self.background_queue = queue
-    self.background_worker_task = worker_task
-    self.token_rate_calculator.reset()
-    self.queue_full_throttle = MetricsQueueFullThrottle()
-    self.capabilities_cache = None
-    self.capabilities_cache_timestamp = 0.0
-    metrics_ref = self.metrics_ref
-    await reset_metrics_state(
-        lock=self.lock,
-        genesis_flush_lock=self.genesis_flush_lock,
-        genesis_requests_delta=self.genesis_requests_delta,
-        genesis_tokens_delta=self.genesis_tokens_delta,
-        metrics_ref=metrics_ref,
-        session_start_time_ms=self.session_start_time_ms,
-        config=self.config,
-        database_metrics=self.database_metrics,
-    )
-    self.accepting_operations = True
 
 
 async def broadcast_metrics_method(self: MetricsServiceMethodSurfaceProtocol) -> None:

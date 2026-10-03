@@ -71,6 +71,7 @@ async def finalize_unified_task(
     status_message: str | None = None,
     mutation_fencing_token: int | None = None,
     interaction_mutation: ConversationInteractionMutation | None = None,
+    public_error_message: str | None = None,
 ) -> UnifiedTaskFinalizationWriteResult:
     return await self.core.writer.queue_write_operation(
         finalization.sync_finalize_unified_task,
@@ -84,6 +85,7 @@ async def finalize_unified_task(
         status_message,
         mutation_fencing_token,
         interaction_mutation,
+        public_error_message,
     )
 
 

@@ -13,6 +13,7 @@ from core.errors.exception_logging import log_exception
 from core.errors.exceptions import ValidationError
 from core.errors.unexpected_exceptions import HANDLED_RUNTIME_EXCEPTIONS
 from core.hardware.soaibench_persistence import SoAIBenchMutationOutcome
+from core.history.reset_notification import HistoryResetOutcome
 from core.tasks.task_cancellation import mark_task_cancellation_requested
 from core.timing.epoch import epoch_ms
 from hardware.soaibench.active_runs import ActiveSoAIBenchRuns
@@ -23,6 +24,7 @@ from hardware.soaibench.gpu_identity import (
     identity_payload_for_history,
     resolve_gpu_identity,
 )
+from hardware.soaibench.history_reset import reset_soaibench_history
 from hardware.soaibench.history_service import (
     export_soaibench_history_csv,
     list_soaibench_history,
@@ -56,7 +58,6 @@ __all__ = (
 )
 
 SHUTDOWN_OPERATION = "hardware.soaibench.shutdown"
-HISTORY_RESET_OPERATION = "hardware.soaibench.history_reset"
 LOCAL_DELETION_EVENT_OPERATION = "hardware.soaibench.local_deletion_event"
 
 
@@ -90,17 +91,14 @@ class SoAIBenchService:
         finally:
             await self._deps.opencl_pool.shutdown()
 
-    async def reset_history(self) -> None:
+    async def reset_history(self, *, reset_genesis_uptime: bool) -> HistoryResetOutcome:
         self._require_ready()
-        async with self._history_reset_lock.write_lock():
-            await cancel_active_soaibench_runs(
-                deps=self._deps,
-                active_runs=self._active_runs,
-                reason="SoAIBench history reset",
-                operation=HISTORY_RESET_OPERATION,
-                cancelled_message="SoAIBench worker cancelled during history reset.",
-            )
-            await self._deps.database_hardware.clear_hardware_history()
+        return await reset_soaibench_history(
+            deps=self._deps,
+            active_runs=self._active_runs,
+            history_reset_lock=self._history_reset_lock,
+            reset_genesis_uptime=reset_genesis_uptime,
+        )
 
     async def start_run(
         self,

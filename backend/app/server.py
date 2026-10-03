@@ -22,7 +22,6 @@ from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.licensing.types import Edition
 from core.logging.trace import get_logger
 from core.meta.instance_identity import resolve_instance_identity
-from core.network.hosts import is_bind_all_interfaces_host
 from core.runtime.instance_record import (
     read_runtime_instance_record,
     runtime_record_matches_current_process,
@@ -38,7 +37,6 @@ from features.api.middleware.tls_network import get_accessible_network_addresses
 if TYPE_CHECKING:
     from app.application_host_instance import ApplicationHostInstance
     from core.config.runtime_config import Config
-    from core.hardware.protocols import HardwareManagerProtocol
     from core.licensing.protocols import LicensingRepositoryProtocol
     from core.logging.protocols import LoggingManagerProtocol
     from core.plugins.protocols_database import DatabasePluginsProtocol
@@ -78,7 +76,6 @@ class ApplicationServerCoordinatorDependencies:
     logging_manager: LoggingManagerProtocol | None
     lifecycle_coordinator: LifecycleCoordinatorProtocol
     discovery_service: DiscoveryServerProtocol
-    hardware_manager: HardwareManagerProtocol | None
     cancellation_binder: TaskCancellationBinderProtocol
     finalizer_tracker: TaskFinalizerTrackerProtocol
     module_dependencies: ApplicationServerModuleDependencies
@@ -262,19 +259,13 @@ class ApplicationServerCoordinator:
         self._deps.logging.gui_status(
             f"Server started at {runtime_api_endpoint.scheme}://{runtime_api_endpoint.bind_host}:{runtime_api_endpoint.effective_port}",
         )
-        hardware_manager = self._deps.hardware_manager
-        if (
-            is_bind_all_interfaces_host(runtime_api_endpoint.bind_host)
-            and hardware_manager is not None
-        ):
-            network_message = get_accessible_network_addresses(
-                runtime_api_endpoint.bind_host,
-                runtime_api_endpoint.effective_port,
-                runtime_api_endpoint.scheme,
-                hardware_manager,
-            )
-            if network_message:
-                self._deps.logging.logger.info(network_message)
+        network_message = get_accessible_network_addresses(
+            runtime_api_endpoint.bind_host,
+            runtime_api_endpoint.effective_port,
+            runtime_api_endpoint.scheme,
+        )
+        if network_message:
+            self._deps.logging.logger.info(network_message)
 
     async def shutdown_servers(self, timeout: float) -> None:
         if timeout < 0:

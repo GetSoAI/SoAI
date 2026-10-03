@@ -16,9 +16,9 @@ import { resumeChatPageVisibilityRuntime, suspendChatPageVisibilityRuntime } fro
 import type { ChatRootEventsHost } from '@pages/chat/controllers/page/events/contracts.ts';
 import { requireChatRoot } from '@pages/chat/dom.ts';
 import type { AttachViewportResizeOptions } from '@core/routing/pages/pagetypes/public.ts';
-import { bindDataActionListener } from '@core/dom/dataActionBinding.ts';
-import { isChatActionId } from '@pages/chat/actions.ts';
-import { handleRootActionClick } from '@pages/chat/controllers/page/events/handlers.ts';
+import { requireModalPresenter } from '@core/modals/modalPresenter.ts';
+import { CHAT_CONVERSATION_INPUT_MODAL_ID } from '@features/chat/public.ts';
+import { bindChatActionClicks } from '@pages/chat/controllers/page/events/setup.ts';
 import type { ChatVoiceSessionHost } from '@pages/chat/controllers/chatpage/voice/ChatVoiceSession.ts';
 import type { ChatComposerController } from '@pages/chat/controllers/chatpage/composer/ChatComposerController.ts';
 import type { ChatConfigurationController } from '@pages/chat/controllers/chatpage/configuration/ChatConfigurationController.ts';
@@ -250,14 +250,8 @@ class ChatPageLifecycleController {
         const signal = this.#controls.resetListenersAbortSignal();
         this.#rootEventsHost = this.#page.operations.createRootEventsHost(signal);
         const rootEventsHost = this.#rootEventsHost;
-        bindDataActionListener({
-            root: rootElement,
-            eventType: 'click',
-            signal,
-            isAction: isChatActionId,
-            preventDefault: 'never',
-            onAction: ({ event, action, actionElement }): void => handleRootActionClick(rootEventsHost, event, action, actionElement)
-        });
+        bindChatActionClicks(rootEventsHost, rootElement, signal);
+        bindChatActionClicks(rootEventsHost, requireModalPresenter().requireElement(CHAT_CONVERSATION_INPUT_MODAL_ID), signal);
         bindChatAttachModalDragOpen(
             {
                 conversationState: this.#page.conversationState,

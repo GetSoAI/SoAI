@@ -5,7 +5,7 @@ import type { ChartOhlcPointInput, ChartValuePointInput } from '@features/charts
 
 type DataPoint = ChartValuePointInput;
 type OhlcPoint = ChartOhlcPointInput;
-type DensityMode = 'shape' | 'average';
+type DensityMode = 'shape' | 'average' | 'preserve';
 
 interface BuildLineGapFillersOptions {
     maxFill?: number;

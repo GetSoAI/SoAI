@@ -12,6 +12,7 @@ import type { ChatAttachBrowseResult, ChatAttachBrowseSortColumn, ChatAttachBrow
 const appendText = (documentRef: Document, parent: HTMLElement, className: string, text: string): HTMLElement => {
     const element = documentRef.createElement('span');
     element.className = className;
+    element.dir = 'auto';
     element.textContent = text;
     parent.append(element);
     return element;
@@ -84,6 +85,7 @@ const createSelectCell = (documentRef: Document, result: ChatAttachBrowseResult,
 const createMetaCell = (documentRef: Document, text: string): HTMLTableCellElement => {
     const cell = documentRef.createElement('td');
     cell.className = 'chat-attach-results-meta-cell';
+    cell.dir = 'auto';
     cell.textContent = text;
     return cell;
 };

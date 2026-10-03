@@ -5,6 +5,8 @@ import { securityApi } from '@core/security/public.ts';
 import { renderToggleSwitch } from '@core/toggleSwitch.ts';
 import { renderControlDisabledAttributes } from '@core/ui/controls/disabledState.ts';
 import { renderDropdownSelectControl, renderStandardDropdownSelectControl } from '@core/ui/dropdown/selectControl.ts';
+import { renderFlagSelectControl } from '@core/ui/dropdown/flagSelect.ts';
+import { requireFlagCountryCode } from '@core/countryFlags.ts';
 import type { SectionOptions, SelectControlOptions, SettingItemOptions, SettingsGroupOptions, SettingsRecordListOptions, SettingsStatusBadgeTone, SettingsSubgroupOptions, SliderControlOptions, ToggleControlOptions } from '@core/settings/contracts.ts';
 
 const isValidAttributeName = (name: string): boolean => /^[a-zA-Z][a-zA-Z0-9_:-]*$/.test(name);
@@ -121,7 +123,7 @@ const renderToggleControl = (options: ToggleControlOptions): string => {
     });
 };
 
-const renderSelectControl = ({ id, options, selected, disabled, wide, compact }: SelectControlOptions): string => {
+const renderSelectControl = ({ id, options, selected, disabled, wide, compact, flagPrefix }: SelectControlOptions): string => {
     const selectedValue = selected === null || selected === undefined ? '' : selected;
     const classes = wide ? 'setting-input setting-input--wide' : 'setting-input';
     const classMarkup = compact === true ? '' : ` class="${classes}"`;
@@ -129,9 +131,11 @@ const renderSelectControl = ({ id, options, selected, disabled, wide, compact }:
         .map((option) => {
             const value = option.value === null || option.value === undefined ? '' : option.value;
             const isSelected = value === selectedValue;
-            return `<option value="${securityApi.escapeAttribute(value)}"${isSelected ? ' selected' : ''}${option.disabled ? ' disabled' : ''}>${securityApi.escapeHtml(option.label)}</option>`;
+            const countryCodeAttribute = option.countryCode ? ` data-country-code="${requireFlagCountryCode(option.countryCode)}"` : '';
+            return `<option value="${securityApi.escapeAttribute(value)}"${countryCodeAttribute}${isSelected ? ' selected' : ''}${option.disabled ? ' disabled' : ''}>${securityApi.escapeHtml(option.label)}</option>`;
         })
         .join('')}</select>`;
+    if (flagPrefix === true) return renderFlagSelectControl(selectMarkup);
     return compact === true ? renderDropdownSelectControl({ shellClassName: 'dropdown-select--sm', selectMarkup }) : renderStandardDropdownSelectControl(selectMarkup);
 };
 

@@ -126,17 +126,17 @@ async def recreate_context(
     state.user_data_dir = context_result.user_data_dir
     state.storage_state_path = context_result.storage_state_path
     state.storage_state_last_error = context_result.storage_state_error
+    state.driver_generation = context_result.driver_generation
     state.http_credentials = http_credentials
     state.ignore_https_errors = bool(ignore_https_errors)
     state.downloads_dir = download_paths.downloads_dir
     _reset_context_state(state)
+    initialized = False
     try:
         install_context_page_tracking(self.config, state)
         await attach_context_handlers(self.config, state)
         await sync_session_state(self.config, state, enforce_page_limit=True)
-    except asyncio.CancelledError:
-        await asyncio.shield(close_browser_context(state, operation=OPERATION_RECREATE))
-        raise
+        initialized = True
     except RECOVERABLE_EXCEPTIONS as exception:
         coerced = coerce_to_soai_error(
             exception,
@@ -150,8 +150,10 @@ async def recreate_context(
             details={"owner_key": state.owner_key, "profile": state.profile},
             level="warning",
         )
-        await close_failed_context_initialization(
-            state,
-            operation=OPERATION_RECREATE,
-        )
         raise
+    finally:
+        if not initialized:
+            await close_failed_context_initialization(
+                state,
+                operation=OPERATION_RECREATE,
+            )

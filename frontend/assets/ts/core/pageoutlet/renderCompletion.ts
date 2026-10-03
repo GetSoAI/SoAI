@@ -11,7 +11,7 @@ interface PageOutletRenderCompletionContext {
 }
 
 interface PageOutletRenderCompletionHost {
-    emitEvent: (stage: string, payload?: Record<string, JsonValue>, severity?: string) => void;
+    emitEvent?: ((stage: string, payload?: Record<string, JsonValue>, severity?: string) => void) | undefined;
 }
 
 const completePageOutletRender = (context: PageOutletRenderCompletionContext, host: PageOutletRenderCompletionHost): void => {
@@ -21,7 +21,7 @@ const completePageOutletRender = (context: PageOutletRenderCompletionContext, ho
         refresh: context.refresh,
         durationMs: Number(duration.toFixed(2))
     };
-    host.emitEvent('component:load:ready', payload);
+    host.emitEvent?.('component:load:ready', payload, 'info');
     errorHandler.info('PageOutlet', 'Component load complete', payload);
 };
 

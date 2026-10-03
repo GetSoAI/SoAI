@@ -53,8 +53,6 @@ LOGGER_NAME = "SoAI.hardware.manager.hardware_manager"
 
 
 class HardwareManager(Shutdownable):
-    get_network_info = staticmethod(get_network_info)
-
     def __init__(self, deps: HardwareManagerDependencies) -> None:
         self._deps = deps
         self.enabled = bool(deps.settings.enabled)
@@ -111,6 +109,9 @@ class HardwareManager(Shutdownable):
     @property
     def nvidia_nvml_gate(self) -> NvmlGateProtocol:
         return self._nvidia_nvml_gate
+
+    def get_network_info(self) -> JSONDict:
+        return get_network_info(self._executor)
 
     def sync_get_system_info(
         self,
@@ -219,6 +220,7 @@ class HardwareManager(Shutdownable):
         component: str = "cpu",
         gpu_index: int | None = None,
         identifier: str | None = None,
+        availability_metric: str | None = None,
     ) -> JSONDict:
         return await query_historical_data(
             logger=self.logger,
@@ -241,6 +243,7 @@ class HardwareManager(Shutdownable):
             component=component,
             gpu_index=gpu_index,
             identifier=identifier,
+            availability_metric=availability_metric,
         )
 
     async def start_monitoring(self) -> bool:

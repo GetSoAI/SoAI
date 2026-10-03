@@ -11,13 +11,16 @@ import { HARDWARE_GPU_CAPABILITIES, HARDWARE_GPU_SLOTS, HARDWARE_GPU_SOAIBENCH_R
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import type { StreamRuntimeOwners } from '@core/realtime/streammanager/public.ts';
 import type { ReconciledResourceStatus, ResourceReconciliationSnapshot } from '@core/realtime/streammanager/resources/resourceReconciliationTypes.ts';
+import { subscribeHistoryResync } from '@features/charts/public.ts';
 import type { HardwareGpuResource } from '@pages/hardware/controllers/realtime/gpuResourceState.ts';
+import type { HardwareHistoryController } from '@pages/hardware/controllers/realtime/hardwareHistoryController.ts';
 import type { ResourcesInterface } from '@pages/hardware/contracts/contracts.ts';
 
 interface HardwareRealtimeHost {
     realtimeStreamActive: boolean;
     realtimeSubscriptionHandles: Set<() => void>;
     resources?: ResourcesInterface | null;
+    history: Pick<HardwareHistoryController, 'handleReset' | 'handleReconnect'>;
 
     resolveStreamManager: (options?: { signal?: AbortSignal | undefined }) => Promise<StreamRuntimeOwners | null>;
     ensureDataSubscriptions: (options?: { signal?: AbortSignal }) => Promise<void>;
@@ -39,7 +42,8 @@ interface HardwareRealtimeHost {
 
 const GPU_RESOURCE_IDS: Readonly<Record<string, HardwareGpuResource>> = Object.freeze({
     [HARDWARE_GPU_CAPABILITIES]: 'capabilities',
-    [HARDWARE_GPU_SLOTS]: 'slots'
+    [HARDWARE_GPU_SLOTS]: 'slots',
+    [HARDWARE_GPU_SOAIBENCH_RUNS]: 'soaibenchRuns'
 });
 
 const RECOVERABLE_STATUSES: ReadonlySet<ReconciledResourceStatus> = new Set(['initializing', 'recovering', 'disconnected']);
@@ -121,8 +125,8 @@ const setupRealtimeSubscriptions = (host: HardwareRealtimeHost, streams: Hardwar
             bindings: subscriptions.map(([resource, handler]) => ({ resource, handler })),
             subscribeToData: (resource, handler) => subscribeHardwareResource(host, resource, handler)
         });
-        for (const subscription of resourceSubscriptions) {
-            const disposer = subscription.dispose;
+        const historyResync = subscribeHistoryResync({ label: 'Hardware history', resetType: 'hardware', onReset: (event) => host.history.handleReset(event), onReconnect: () => host.history.handleReconnect() });
+        for (const disposer of [...resourceSubscriptions.map((subscription) => subscription.dispose), historyResync]) {
             host.realtimeSubscriptionHandles.add(disposer);
             host.trackDisposable(disposer, () => {
                 host.realtimeSubscriptionHandles.delete(disposer);

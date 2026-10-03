@@ -1,7 +1,7 @@
 /* SoAI - Shared frontend configuration manager [frontend/assets/ts/core/configurationManager.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { cloneJsonObject } from '@core/primitives/clone.ts';
+import { cloneJsonObject, cloneJsonValue } from '@core/primitives/clone.ts';
 import { isFunction, isString } from '@core/typeGuards.ts';
 import { mergeJsonObjectPatch } from '@core/types/jsonObjectPatch.ts';
 import { isJsonObject, type JsonObject, type JsonValue } from '@core/types/jsonValues.ts';
@@ -138,6 +138,13 @@ class ConfigurationManager {
         }
         const current = this.#requireCurrentData();
         return getValueByPath(current, path);
+    }
+
+    getOriginalValue(path: string): JsonValue {
+        if (!path) {
+            throw new Error('Path is required');
+        }
+        return cloneJsonValue(getValueByPath(this.#requireOriginalData(), path));
     }
 
     getValueByPath(target: JsonValue, path: string): JsonValue {

@@ -1,0 +1,123 @@
+/* SoAI - Intrinsic direction and bidirectional text isolation [frontend/assets/css/utilities/direction.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer utilities {
+    .u-ltr-island,
+    .code-block,
+    .code-block-plain,
+    .message-code-block pre,
+    .inline-tool-field-pre,
+    .inline-tool-code-diff-path,
+    .inline-tool-code-diff,
+    .tool-approval-arguments-pre,
+    .tool-call-args,
+    .tool-call-function,
+    .tool-call-metadata,
+    .katex,
+    .mermaid,
+    .mermaid-container,
+    .xterm,
+    .log-message,
+    .log-timestamp,
+    .model-test-logs,
+    .file-explorer-breadcrumb,
+    .folder-picker-breadcrumb,
+    .file-explorer-task-id,
+    .model-universal-id,
+    .model-id,
+    .model-parameter-name,
+    .message-info-value-mono,
+    .provider-url,
+    .plugin-info-value-mono,
+    .setting-json,
+    .json-input,
+    .secret-input,
+    .secret-prompt-scope,
+    .settings-control-code,
+    .api-key-quota-window-value,
+    .settings-connect__chip,
+    .version-value,
+    .math-error,
+    .settings-token-secret-field,
+    .api-key-prefix,
+    .settings-connect__endpoint-text,
+    .settings-licensing-fingerprint .setting-help,
+    .backup-id,
+    .settings-operation-preview__code,
+    .model-edit-source-value,
+    .model-rename-source-value,
+    .modeldetail-spec-value--mono,
+    .modeldetail-spec-label--mono,
+    .metrics-advanced-value-mono,
+    .chat-character-map-code-points,
+    .clock-time,
+    .dashboard-clock-digital,
+    .dashboard-clock-flip-board,
+    .dashboard-clock-timezone-offset,
+    .dashboard-clock-swatch,
+    .dashboard-clock-mjd,
+    .dashboard-clock-day-of-year,
+    .chart-container,
+    .chart-legend,
+    .dashboard-clock-face {
+        --dir-sign: 1;
+        --inline-start-percent: 0%;
+        --inline-end-edge: right;
+        --layout-label-alignment: left;
+
+        direction: ltr;
+        text-align: start;
+        unicode-bidi: isolate;
+    }
+
+    .u-ltr-inline,
+    code,
+    kbd,
+    samp {
+        --dir-sign: 1;
+
+        direction: ltr;
+        unicode-bidi: isolate;
+    }
+
+    :root[dir='rtl'] .ui-inline-action-field > :is(input[dir='ltr'], .secret-input, .file-explorer-breadcrumb) {
+        padding-inline-start: calc(var(--inline-action-input-padding) + var(--inline-action-field-width));
+        padding-inline-end: var(--inline-action-input-padding);
+    }
+
+    :where([dir='auto']) {
+        unicode-bidi: isolate;
+    }
+
+    :is(input, textarea)[dir='auto']:placeholder-shown {
+        direction: inherit;
+    }
+
+    :root[dir='rtl'] :where([dir='auto'], [dir='ltr']):not(textarea, input, pre) {
+        text-align: match-parent;
+    }
+
+    @supports not (text-align: match-parent) {
+        :root[dir='rtl'] :where([dir='auto'], [dir='ltr']):not(textarea, input, pre) {
+            text-align: var(--layout-label-alignment);
+        }
+    }
+
+    :root[dir='rtl'] .log-message {
+        justify-content: flex-end;
+    }
+
+    :is(.ui-metric-badge, .ui-mini-stat-strip__card, .ui-page-header-stats__card) {
+        --layout-label-alignment: center;
+    }
+
+    :root[dir='rtl'] :is(.message-text, .markdown-content, .rich-text-section, .first-run-rich-text, .help-intro) :is(p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th)[dir='auto'],
+    :root[dir='rtl'] :is(.prompt-card-text, .prompts-list-preview, .model-description, .plugin-description, .plugins-list-description, .ui-collection-card__description, .ui-notification__message, .code-block, .code-block-plain, .inline-tool-field-pre, .tool-approval-arguments-pre, .u-ltr-island),
+    :root[dir='rtl'] .message-code-block pre {
+        text-align: start;
+    }
+
+    :root[dir='rtl'] :is(.ui-mini-stat-strip__value) {
+        text-align: center;
+    }
+}

@@ -1,7 +1,6 @@
 /* SoAI - SoAI Bench run modal public contracts [frontend/assets/ts/features/hardware/modals/soaibenchrun/types.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { OperationProgressReporter } from '@core/operationprogress/types.ts';
 import type { ModalPresenterApi } from '@core/modals/modalPresenter.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
@@ -49,10 +48,13 @@ interface SoAIBenchRunMetrics {
 interface SoAIBenchRunRecord {
     runId: string;
     deviceId: string;
+    gpuIndex: string | null;
+    gpuName: string | null;
     profile: string;
     benchmarkMode: string;
     status: string;
     startedAtMs: number | null;
+    stopRequestedAtMs: number | null;
     active: boolean;
     updateSeq: number;
     leaderboardEligible: boolean;
@@ -68,19 +70,44 @@ interface SoAIBenchRunRecord {
     raw: JsonObject;
 }
 
+type SoAIBenchRunSettlement = 'open' | 'rejected' | 'unresolved';
+
+interface SoAIBenchRunEntry {
+    readonly sectionId: string;
+    readonly request: SoAIBenchRunOpenRequest;
+    createdAtMs: number;
+    runId: string | null;
+    run: SoAIBenchRunRecord | null;
+    stopPending: boolean;
+    settlement: SoAIBenchRunSettlement;
+    reason: string | null;
+    recovering: boolean;
+}
+
+type SoAIBenchRunPhase = 'starting' | 'running' | 'stopping' | 'unresolved' | 'terminal' | 'rejected';
+type SoAIBenchActivityState = 'starting' | 'running' | 'stopping' | 'unresolved';
+
+interface SoAIBenchActivityProjection {
+    hasActivity(): boolean;
+    deviceActivity(deviceId: string | null): SoAIBenchActivityState | null;
+}
+
+interface SoAIBenchRunsFreshness {
+    live: boolean;
+    updatedAtMs: number | null;
+}
+
+type SoAIBenchComposer = { type: 'closed' } | { type: 'picker' } | { type: 'intro'; request: SoAIBenchRunOpenRequest; fromPicker: boolean };
+
 interface SoAIBenchRunModalHost {
     modals: ModalPresenterApi;
     requireHTMLElement(selector: string | Element, context?: Element): HTMLElement;
     setHTML(target: Element, html: TrustedHtml): void;
-    updateText(target: Element, text: string): void;
-    addClassName(target: Element, className: string): void;
-    removeClassName(target: Element, className: string): void;
     runWithBoundary<T>(name: string, functionValue: () => Promise<T>): Promise<T>;
     showNotification(message: string, type: NotificationType, duration?: number): void;
     hasClipboardSupport(): boolean;
     copyToClipboard(value: string, options?: { notify(message: string, type: NotificationType): void }): Promise<void>;
     refreshSoAIBenchRuns(): Promise<JsonObject | null>;
-    renderGpuControls(options?: { only?: string[] | null }): void;
     showSoAIBenchHistory(request: SoAIBenchRunOpenRequest): Promise<void>;
 }
 
@@ -89,28 +116,4 @@ interface SoAIBenchRunModalDependencies {
     publishRun(run: SoAIBenchRunRecord, setDisabled: (disabled: boolean) => void): Promise<void>;
 }
 
-interface SoAIBenchRunSession {
-    deviceId: string;
-    gpuIndex: string;
-    gpuName: string;
-    runId: string | null;
-    updateSeq: number;
-    token: symbol;
-    cancelRequested: boolean;
-    starting: boolean;
-    stopWhenStartSettles: boolean;
-    stopRequestSent: boolean;
-}
-
-interface SoAIBenchRunRenderContext {
-    request: SoAIBenchRunOpenRequest;
-    run: SoAIBenchRunRecord | null;
-    cancelRequested: boolean;
-    terminalReason: string | null;
-}
-
-interface SoAIBenchRunProgressRuntime {
-    reporter: OperationProgressReporter | null;
-}
-
-export type { SoAIBenchRunMetrics, SoAIBenchRunModalDependencies, SoAIBenchRunModalHost, SoAIBenchRunOpenRequest, SoAIBenchRunProgressRuntime, SoAIBenchRunRecord, SoAIBenchRunRenderContext, SoAIBenchRunSession };
+export type { SoAIBenchActivityProjection, SoAIBenchActivityState, SoAIBenchComposer, SoAIBenchRunEntry, SoAIBenchRunMetrics, SoAIBenchRunModalDependencies, SoAIBenchRunModalHost, SoAIBenchRunOpenRequest, SoAIBenchRunPhase, SoAIBenchRunRecord, SoAIBenchRunsFreshness };

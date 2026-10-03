@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Callable, Hashable
 from typing import TYPE_CHECKING
 
+from core.openai.stream_transcript.published_tool_chronology import PublishedToolCallChronology
 from core.openai.stream_transcript.tool_call_contract_state import (
     OpenAIStreamToolCallContractState,
 )
@@ -43,7 +44,7 @@ class OpenAIStreamToolCallState:
         self._call_id_by_stream_index: dict[int, str] = {}
         self._next_sequence_index = 0
         self._emitted_tool_call_ids: set[str] = set()
-        self._emitted_sequence_index_by_call_id: dict[str, int] = {}
+        self._published_chronology = PublishedToolCallChronology()
         self._last_tool_payload_content_boundary: int | None = None
         self._last_tool_payload_thinking_boundary: int | None = None
         self._contract_state = OpenAIStreamToolCallContractState()
@@ -83,7 +84,7 @@ class OpenAIStreamToolCallState:
 
     def _renumber_sequence_indices(self) -> None:
         renumbered: list[Hashable] = []
-        reserved_sequence_indexes = set(self._emitted_sequence_index_by_call_id.values())
+        reserved_sequence_indexes = self._published_chronology.reserved_sequence_indexes()
         next_available_sequence_index = 0
         for key in self._sequence_order:
             entry = self._tool_calls.get(key)
@@ -91,7 +92,7 @@ class OpenAIStreamToolCallState:
                 continue
             call_id_value = entry.get("id")
             call_id = call_id_value.strip() if isinstance(call_id_value, str) else ""
-            emitted_sequence_index = self._emitted_sequence_index_by_call_id.get(call_id)
+            emitted_sequence_index = self._published_chronology.sequence_for(call_id)
             if emitted_sequence_index is not None:
                 entry["_sequence_index"] = emitted_sequence_index
             else:
@@ -127,6 +128,8 @@ class OpenAIStreamToolCallState:
                     self._stream_index_by_call_id[call_id] = int(call_index)
                 if call_index not in self._call_id_by_stream_index:
                     self._call_id_by_stream_index[call_index] = call_id
+            if isinstance(call_id, str) and call_id:
+                self._published_chronology.validate_fragment(call_id, call)
             key: Hashable | None = None
             if isinstance(call_id, str) and call_id and call_id in self._tool_calls:
                 key = call_id
@@ -247,7 +250,10 @@ class OpenAIStreamToolCallState:
             self._last_tool_payload_thinking_boundary = self._get_thinking_index_before()
 
     def get_tool_calls(self) -> list[JSONDict]:
-        return finalize_tool_calls_sorted(self._tool_calls)
+        calls = finalize_tool_calls_sorted(self._tool_calls)
+        for call in calls:
+            self._published_chronology.apply(call)
+        return calls
 
     def finalize_implicit_chronology(
         self,
@@ -303,7 +309,7 @@ class OpenAIStreamToolCallState:
             )
             if sequence_index is None:
                 raise ValueError("Emitted tool call sequence_index must be a non-negative integer.")
-            self._emitted_sequence_index_by_call_id[call_id] = sequence_index
+            self._published_chronology.snapshot(tool_call)
             emitted_tool_call = dict(tool_call)
             emitted_tool_call["function"] = {"name": function_name}
             new_calls.append(emitted_tool_call)

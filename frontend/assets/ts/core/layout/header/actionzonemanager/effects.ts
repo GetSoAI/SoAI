@@ -1,6 +1,7 @@
 /* SoAI - Shared frontend layout header action zone manager effects [frontend/assets/ts/core/layout/header/actionzonemanager/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { insertWithPresence, removeWithPresence } from '@core/animations/presence/public.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { dom } from '@core/dom/dom.ts';
 import { getLanguageService } from '@core/languageservice/service.ts';
@@ -21,7 +22,8 @@ const createActionEntry = (id: string): ActionEntry => {
 
     const badge = dom.create('span', {
         className: BADGE_SELECTOR.slice(1),
-        hidden: true
+        hidden: true,
+        dataset: { presence: '' }
     });
 
     const element = dom.create('button', {
@@ -55,12 +57,14 @@ const removeActionEntry = (state: ActionZoneManagerState, id: string): void => {
     }
     if (isFunction(entry.cleanup)) {
         entry.cleanup();
+        entry.cleanup = null;
+        entry.handler = null;
     }
-    const container = state.container;
-    if (container && entry.element.parentElement === container) {
-        container.removeChild(entry.element);
+    if (state.container && entry.element.parentElement === state.container) {
+        removeWithPresence(entry.element);
+    } else {
+        state.actions.delete(id);
     }
-    state.actions.delete(id);
 };
 
 const applyRequestedIcon = (header: ActionZoneManagerHost, entry: ActionEntry, actionId: string): void => {
@@ -130,11 +134,9 @@ const updateActionEntry = (state: ActionZoneManagerState, header: ActionZoneMana
     if (badgeValue) {
         header.updateText(entry.badge, badgeValue);
         entry.badge.hidden = false;
-        dom.setStyle(entry.badge, 'display', '');
     } else {
         entry.badge.hidden = true;
         entry.badge.textContent = '';
-        dom.setStyle(entry.badge, 'display', 'none');
     }
 
     if (action.visible) {
@@ -142,9 +144,7 @@ const updateActionEntry = (state: ActionZoneManagerState, header: ActionZoneMana
         if (!container) {
             throw new Error('ActionZoneManager container is required to render visible actions');
         }
-        if (entry.element.parentElement !== state.container) {
-            container.appendChild(entry.element);
-        }
+        insertWithPresence(container, entry.element);
         const icon = action.icon;
         if (icon) {
             entry.requestedIcon = icon;
@@ -155,9 +155,8 @@ const updateActionEntry = (state: ActionZoneManagerState, header: ActionZoneMana
             entry.icon.textContent = '';
         }
     } else {
-        const container = state.container;
-        if (container && entry.element.parentElement === container) {
-            container.removeChild(entry.element);
+        if (state.container && entry.element.parentElement === state.container) {
+            removeWithPresence(entry.element);
         }
     }
 
@@ -198,16 +197,12 @@ const reorderVisibleActions = (state: ActionZoneManagerState, actions: Action[])
         return firstValue.id.localeCompare(secondValue.id, getLanguageService().getLocale());
     });
 
-    ordered.forEach((action) => {
-        const entry = state.actions.get(action.id);
-        if (!entry) {
-            return;
-        }
-        if (entry.element.parentElement !== container) {
-            return;
-        }
-        container.appendChild(entry.element);
-    });
+    const orderedElements = ordered.map((action) => state.actions.get(action.id)?.element).filter((element): element is HTMLButtonElement => element?.parentElement === container);
+    const currentElements = Array.from(container.children).filter((child) => orderedElements.some((element) => element === child));
+    if (currentElements.every((element, index) => element === orderedElements[index])) {
+        return;
+    }
+    orderedElements.forEach((element) => container.appendChild(element));
 };
 
 const updateActionZoneEmptyState = (state: ActionZoneManagerState, header: ActionZoneManagerHost, hiddenClass: string, visibleActions: Action[]): void => {

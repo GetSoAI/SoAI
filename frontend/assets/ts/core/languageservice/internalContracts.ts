@@ -15,7 +15,7 @@ interface LanguageServiceRuntime {
     initialized: boolean;
     initializePromise: Promise<void> | null;
     isLanguageRequestSettled: (code: string) => boolean;
-    languageFlags: Map<string, string>;
+    languageCountryCodes: Map<string, string>;
     languages: Map<string, LanguageEntry>;
     loadedLanguages: Map<string, TranslationObject>;
     loadingLanguages: Map<string, Promise<TranslationObject>>;

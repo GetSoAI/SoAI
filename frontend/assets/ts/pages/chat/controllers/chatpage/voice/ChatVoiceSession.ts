@@ -1,13 +1,34 @@
 /* SoAI - Chat voice recording, speech, and call lifecycle ownership [frontend/assets/ts/pages/chat/controllers/chatpage/voice/ChatVoiceSession.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { ChatAudioManager, ChatStreamTerminalUpdate, ChatTtsManager } from '@features/chat/public.ts';
+import type { AudioRecordingSnapshot, AudioRecordingTerminalOutcome, AudioRecordingTimerHost, ChatAudioManager, ChatStreamTerminalUpdate, ChatTtsManager, ComposerDraftSurfaceSnapshot } from '@features/chat/public.ts';
+import type { GeometryPoint } from '@core/layout/elementGeometry.ts';
+import type { QueueConversationInputOptions, ConversationInputComposerOutcome } from '@pages/chat/controllers/chatmessagesendingcontroller/types.ts';
+import { PushToTalkSession } from '@pages/chat/controllers/chatpage/voice/PushToTalkSession.ts';
 import type { VoiceCallController } from '@pages/chat/controllers/voicecall/VoiceCallController.ts';
+
+interface PushToTalkActivation {
+    button: HTMLButtonElement;
+    start: GeometryPoint;
+    lifecycleSignal: AbortSignal;
+    timers: AudioRecordingTimerHost;
+    conversationId: string | null;
+    modelId: string | null;
+    draftSnapshot: ComposerDraftSurfaceSnapshot;
+    getConversationId(): string | null;
+    getModelId(): string | null;
+    matchesDraftSurface(snapshot: ComposerDraftSurfaceSnapshot, adoptedConversationId?: string): boolean;
+    captureDraftSurface(): ComposerDraftSurfaceSnapshot;
+    insertTranscript(text: string): void;
+    queueInput(options: QueueConversationInputOptions): Promise<ConversationInputComposerOutcome>;
+    present(snapshot: AudioRecordingSnapshot): void;
+}
 
 class ChatVoiceSession {
     #audio: ChatAudioManager | null = null;
     #speech: ChatTtsManager | null = null;
     #call: VoiceCallController | null = null;
+    #pushToTalk: PushToTalkSession | null = null;
 
     initializeAudio(manager: ChatAudioManager): void {
         if (this.#audio) {
@@ -46,11 +67,43 @@ class ChatVoiceSession {
     }
 
     toggleRecording(): void {
+        if (this.#pushToTalk) return;
         this.#requireAudio().toggleRecording();
     }
 
     cancelRecording(): void {
+        if (this.#pushToTalk) {
+            this.#pushToTalk.cancel(false);
+            return;
+        }
         this.#audio?.cancelRecording();
+    }
+
+    canStartPushToTalk(): boolean {
+        return this.#pushToTalk === null && this.#audio?.state === 'idle';
+    }
+
+    beginPushToTalk(activation: PushToTalkActivation): PushToTalkSession | null {
+        if (!this.canStartPushToTalk()) return null;
+        const session = new PushToTalkSession({
+            ...activation,
+            audio: this.#requireAudio(),
+            onFinished: (finished) => {
+                if (this.#pushToTalk === finished) this.#pushToTalk = null;
+            }
+        });
+        this.#pushToTalk = session;
+        return session;
+    }
+
+    handleAudioSnapshot(snapshot: AudioRecordingSnapshot, present: (snapshot: AudioRecordingSnapshot) => void): void {
+        if (this.#pushToTalk?.handleAudioSnapshot(snapshot) === true) return;
+        present(snapshot);
+    }
+
+    handleAudioTerminal(outcome: AudioRecordingTerminalOutcome, insertDictation: (text: string) => void): void {
+        if (this.#pushToTalk?.handleTerminal(outcome) === true) return;
+        if (outcome.intent === 'dictation' && outcome.status === 'transcript') insertDictation(outcome.text);
     }
 
     async stopCallBeforeRecording(): Promise<void> {
@@ -76,6 +129,7 @@ class ChatVoiceSession {
     }
 
     handleConversationChanged(conversationId: string | null): void {
+        this.#pushToTalk?.handleConversationChanged(conversationId);
         this.#call?.handleConversationChanged(conversationId);
     }
 
@@ -92,6 +146,8 @@ class ChatVoiceSession {
     }
 
     disposeAudio(): void {
+        this.#pushToTalk?.cancel(false);
+        this.#pushToTalk = null;
         this.#audio?.dispose();
         this.#audio = null;
     }
@@ -99,6 +155,8 @@ class ChatVoiceSession {
     async dispose(): Promise<void> {
         await this.#call?.dispose();
         this.#call = null;
+        this.#pushToTalk?.cancel(false);
+        this.#pushToTalk = null;
         this.#audio?.dispose();
         this.#audio = null;
         this.#speech?.dispose();
@@ -122,6 +180,7 @@ class ChatVoiceSession {
 }
 
 export { ChatVoiceSession };
+export type { PushToTalkActivation };
 export interface ChatVoiceSessionHost {
     voiceSession: ChatVoiceSession;
 }

@@ -16,7 +16,7 @@
         --status-badge-font-size: var(--font-size-compact);
         --status-badge-font-weight: 600;
         --status-badge-letter-spacing: var(--tracking-03px);
-        --status-badge-text-transform: uppercase;
+        --status-badge-text-transform: var(--text-case-label);
         --status-badge-line-height: var(--line-height-badge);
         display: inline-flex;
         align-items: center;

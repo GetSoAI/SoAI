@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { replaceChildrenFromTrustedHtml } from '@core/dom/html.ts';
+import { reconcileChildNodes } from '@core/dom/childNodeReconciliation.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { formatBytes } from '@core/primitives/byteSize.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
@@ -51,6 +52,7 @@ const createDraftAttachmentVisual = (documentRef: Document, entry: ChatAttachDra
     const visual = documentRef.createElement('span');
     visual.className = 'chat-attachment-visual';
     visual.setAttribute('data-attachment-image-state', entry.previewUrl === null ? 'error' : 'loading');
+    visual.setAttribute('data-attachment-processing-state', entry.attachment.parseStatus);
     visual.append(icon);
     if (entry.previewUrl !== null) {
         const image = documentRef.createElement('img');
@@ -60,6 +62,16 @@ const createDraftAttachmentVisual = (documentRef: Document, entry: ChatAttachDra
         image.decoding = 'async';
         image.setAttribute('data-chat-attachment-thumbnail', 'true');
         visual.append(image);
+    }
+    if (entry.attachment.parseStatus === 'processing') {
+        const overlay = documentRef.createElement('span');
+        overlay.className = 'file-preview-image-loading';
+        overlay.setAttribute('aria-hidden', 'true');
+        const spinner = documentRef.createElement('span');
+        spinner.className = 'loading-spinner file-preview-image-spinner';
+        spinner.setAttribute('aria-hidden', 'true');
+        overlay.append(spinner);
+        visual.append(overlay);
     }
     return visual;
 };
@@ -76,6 +88,7 @@ const createDraftAttachmentListRow = (documentRef: Document, entry: ChatAttachDr
     header.className = 'chat-attach-draft-attachment-row-header';
     const name = documentRef.createElement('div');
     name.className = 'chat-attach-draft-attachment-row-name';
+    name.dir = 'auto';
     name.textContent = attachment.name;
     const statusInfo = resolveDraftAttachmentStatusPresentation(attachment);
     const badge = documentRef.createElement('span');
@@ -87,12 +100,14 @@ const createDraftAttachmentListRow = (documentRef: Document, entry: ChatAttachDr
     if (metaText) {
         const meta = documentRef.createElement('div');
         meta.className = 'chat-attach-draft-attachment-row-meta';
+        meta.dir = 'ltr';
         meta.textContent = metaText;
         info.append(meta);
     }
     if (attachment.parseStatus === 'error' && attachment.parseError) {
         const detail = documentRef.createElement('div');
         detail.className = 'chat-attach-draft-attachment-row-detail';
+        detail.dir = 'auto';
         detail.textContent = attachment.parseError;
         info.append(detail);
     }
@@ -128,9 +143,9 @@ const collectDraftAttachmentRows = (list: HTMLElement): Map<string, HTMLElement>
 };
 
 const patchDraftAttachmentListRow = (current: HTMLElement, next: HTMLElement): boolean => {
-    const preservesVisual = preserveStableAttachmentThumbnailVisuals(current, next) > 0;
+    const preservesVisual = preserveStableAttachmentThumbnailVisuals(current, next, 'clone') > 0;
     current.setAttribute(DRAFT_ATTACHMENT_RENDER_SIGNATURE_ATTRIBUTE, next.getAttribute(DRAFT_ATTACHMENT_RENDER_SIGNATURE_ATTRIBUTE) ?? '');
-    current.replaceChildren(...Array.from(next.childNodes));
+    reconcileChildNodes(current, Array.from(next.childNodes));
     return !preservesVisual && hasAttachmentThumbnail(current);
 };
 

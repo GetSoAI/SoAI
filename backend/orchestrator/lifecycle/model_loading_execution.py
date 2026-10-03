@@ -207,30 +207,37 @@ async def execute_start_plugin_and_load_model(
         parameter_version = (
             context.parameter_version if context.parameter_version is not None else 0
         )
-        if not await publish_ready_pending_dispatch_state(
-            plugin_name=plugin_name,
-            universal_id=universal_id,
-            publisher=deps.lifecycle_publisher,
-            logger=logger,
-        ):
-            await stop_started_plugin_for_concurrent_lifecycle_state_change(
-                deps,
-                started_process=started_process,
-                plugin_instance=plugin_instance,
-                plugin_name=plugin_name,
-                logger=logger,
-            )
-            return ModelLoadingResult.deferred()
-        async with deps.state.plugins_context() as plugin_context:
-            plugin_state = plugin_context.plugin_states.get(plugin_name)
-            if plugin_state is None:
-                plugin_state = PluginState(plugin_name=plugin_name)
-                plugin_context.plugin_states[plugin_name] = plugin_state
-            plugin_state.loaded_model_universal_id = universal_id
-            plugin_state.last_activity = time.monotonic()
-            plugin_state.model_load_time = time.monotonic()
-            plugin_state.loaded_parameters = loaded_parameters
-            plugin_state.parameter_version = parameter_version
+        async with deps.orchestrator.plugin_manager.lifecycle.plugin_lock_scope(plugin_name):
+            async with deps.state.plugins_context() as plugin_context:
+                plugin_state = plugin_context.plugin_states.get(plugin_name)
+                if plugin_state is None:
+                    plugin_state = PluginState(plugin_name=plugin_name)
+                    plugin_context.plugin_states[plugin_name] = plugin_state
+                plugin_state.loaded_model_universal_id = universal_id
+                plugin_state.last_activity = time.monotonic()
+                plugin_state.model_load_time = time.monotonic()
+                plugin_state.loaded_parameters = loaded_parameters
+                plugin_state.parameter_version = parameter_version
+            handoff_confirmed = False
+            try:
+                handoff_confirmed = await publish_ready_pending_dispatch_state(
+                    plugin_name=plugin_name,
+                    universal_id=universal_id,
+                    publisher=deps.lifecycle_publisher,
+                    logger=logger,
+                )
+            finally:
+                if not handoff_confirmed:
+                    await uncancel_then_cleanup(deps.state.reset_plugin_runtime_state(plugin_name))
+            if not handoff_confirmed:
+                await stop_started_plugin_for_concurrent_lifecycle_state_change(
+                    deps,
+                    started_process=started_process,
+                    plugin_instance=plugin_instance,
+                    plugin_name=plugin_name,
+                    logger=logger,
+                )
+                return ModelLoadingResult.deferred()
         await deps.orchestrator.bus.publish(
             ModelLoadedEvent(
                 context=create_system_context("model_load"),

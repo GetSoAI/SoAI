@@ -12,6 +12,7 @@ from core.agent.prompt_injection_slots import (
 
 __all__ = (
     "InjectedPromptEchoStrippingResult",
+    "resolve_streaming_echo_prefix",
     "strip_echoed_injected_prompt_blocks",
 )
 
@@ -62,6 +63,32 @@ def strip_echoed_injected_prompt_blocks(text: str) -> InjectedPromptEchoStrippin
         stripped=True,
         stripped_tags=tuple(stripped_tags),
     )
+
+
+def resolve_streaming_echo_prefix(
+    text: str,
+    *,
+    terminal: bool = False,
+) -> InjectedPromptEchoStrippingResult | None:
+    remainder = text.lstrip()
+    if not remainder:
+        return strip_echoed_injected_prompt_blocks(text) if terminal else None
+    while remainder:
+        open_markers = tuple(f"<{tag}>" for tag in _ECHO_XML_TAGS)
+        if any(marker.startswith(remainder) for marker in open_markers):
+            return strip_echoed_injected_prompt_blocks(text) if terminal else None
+        if any(prefix.startswith(remainder) for prefix in AGENT_INSTRUCTIONS_PREFIXES):
+            return strip_echoed_injected_prompt_blocks(text) if terminal else None
+        consumed = _consume_one_injected_block(remainder)
+        if consumed is None:
+            if any(remainder.startswith(marker) for marker in open_markers) or any(
+                remainder.startswith(prefix) for prefix in AGENT_INSTRUCTIONS_PREFIXES
+            ):
+                return strip_echoed_injected_prompt_blocks(text) if terminal else None
+            return strip_echoed_injected_prompt_blocks(text)
+        remainder, _tag = consumed
+        remainder = remainder.lstrip()
+    return strip_echoed_injected_prompt_blocks(text) if terminal else None
 
 
 def _consume_one_injected_block(text: str) -> tuple[str, str] | None:

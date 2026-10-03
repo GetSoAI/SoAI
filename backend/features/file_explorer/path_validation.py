@@ -21,11 +21,6 @@ def sanitize_virtual_path(virtual_path: str) -> str:
             "Virtual path must be a string.",
             operation="file_explorer.sanitize_path",
         )
-    if virtual_path != virtual_path.strip():
-        raise ValidationError(
-            "Invalid virtual path.",
-            operation="file_explorer.sanitize_path",
-        )
     if "\x00" in virtual_path:
         raise ValidationError(
             "Invalid virtual path.",
@@ -47,12 +42,6 @@ def sanitize_virtual_path(virtual_path: str) -> str:
     if normalized == ".":
         return ""
     parts = normalized.split(os.sep)
-    for part in parts:
-        if part != part.strip():
-            raise ValidationError(
-                "Invalid virtual path.",
-                operation="file_explorer.sanitize_path",
-            )
     if any(part == ".." for part in parts):
         raise SecurityError(
             "Path traversal is not allowed.",

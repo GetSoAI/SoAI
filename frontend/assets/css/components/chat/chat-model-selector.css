@@ -4,24 +4,28 @@
 @layer components {
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu {
         --chat-model-menu-max-height: calc(calc(100 * var(--ui-viewport-height-unit)) - 160px);
+        --page-actions-menu-top: 0;
+        --page-actions-menu-inset-inline-start: 0;
+        --page-actions-menu-width: 360px;
+        --page-actions-menu-max-width: calc(100 * var(--ui-viewport-width-unit) - var(--space-4));
 
-        position: absolute;
-        top: calc(100% + var(--space-2));
-        inset-inline-start: 0;
-        min-width: min(360px, 100%);
-        max-width: min(420px, 100%);
+        position: fixed;
+        inset: auto;
+        top: calc(var(--page-actions-menu-top) * var(--ui-scale));
+        inset-inline-start: calc(var(--page-actions-menu-inset-inline-start) * var(--ui-scale) + var(--page-actions-menu-width) * (var(--ui-scale) - 1) / 2);
+        transform: scale(var(--ui-scale));
+        transform-origin: top center;
+        width: 360px;
+        min-width: 0;
+        max-width: var(--page-actions-menu-max-width);
         max-height: min(420px, var(--chat-model-menu-max-height));
         overflow: auto;
         background-color: var(--soai-dropdown-surface);
+        color: inherit;
         border-radius: var(--border-radius);
         padding: 0;
+        margin: 0;
         z-index: calc(var(--z-overlay) + 2);
-    }
-
-    :where(.chat-container) .model-selector.chat-page-model-indicator-select.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu {
-        transform: none;
-        min-width: min(200px, calc(calc(100 * var(--ui-viewport-width-unit)) - 2rem));
-        max-height: min(420px, var(--chat-model-menu-max-height));
     }
 
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu[aria-hidden='true'] {
@@ -81,8 +85,8 @@
         font-size: var(--font-size-xs);
         font-weight: 700;
         letter-spacing: var(--tracking-04em);
-        text-align: left;
-        text-transform: uppercase;
+        text-align: start;
+        text-transform: var(--text-case-label);
         color: var(--text-tertiary);
         padding: var(--space-2) var(--space-2) var(--space-1);
     }
@@ -91,9 +95,9 @@
         --chat-model-menu-option-overlay-accent: var(--glass-border-strong);
         --chat-model-menu-option-hover-overlay-opacity: 0;
         --chat-model-menu-option-hover-surface: color-mix(in srgb, color-mix(in srgb, var(--glass-surface-interactive-hover) 86%, var(--color-black) 14%) 28%, transparent);
-        --chat-model-menu-option-left-rail-color: transparent;
+        --chat-model-menu-option-inline-start-rail-color: transparent;
         width: 100%;
-        text-align: left;
+        text-align: start;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -122,7 +126,7 @@
 
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-option:is(:hover, :focus-visible):not(:disabled) {
         --chat-model-menu-option-hover-overlay-opacity: 1;
-        --chat-model-menu-option-left-rail-color: var(--chat-model-menu-option-overlay-accent);
+        --chat-model-menu-option-inline-start-rail-color: var(--chat-model-menu-option-overlay-accent);
         color: var(--text-primary);
     }
 
@@ -139,8 +143,8 @@
     }
 
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu.is-open .chat-model-menu-group:first-of-type .chat-model-menu-option:first-of-type {
-        border-top-left-radius: var(--border-radius);
-        border-top-right-radius: var(--border-radius);
+        border-start-start-radius: var(--border-radius);
+        border-start-end-radius: var(--border-radius);
     }
 
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-menu-option[aria-current='true'] {

@@ -4,12 +4,11 @@
 from __future__ import annotations
 
 import logging
-import os
 import signal
 
 import psutil
 
-from app.cli.instance_control_pid import read_running_pid
+from app.cli.instance_control_pid import read_running_pid, read_running_process
 from app.cli.instance_control_waits import (
     read_runtime_id,
     wait_for_api_health_up,
@@ -24,6 +23,7 @@ from core.concurrency.deadlines import deadline_after
 from core.errors.exception_logging import log_exception
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
 from core.platform.os import is_windows
+from core.system.process_launcher import SUBPROCESS_RECOVERABLE_EXCEPTIONS
 from core.timing.constants import EXTENDED_TIMEOUT_SEC
 
 __all__ = (
@@ -33,24 +33,28 @@ __all__ = (
 )
 
 OPERATION = "app.cli.instance_control.send_signal"
-
+SIGNAL_DELIVERY_EXCEPTIONS: tuple[type[Exception], ...] = (
+    psutil.Error,
+    *RECOVERABLE_EXCEPTIONS,
+)
 
 STOP_TOTAL_TIMEOUT_SECONDS = 120.0
 RESTART_TOTAL_TIMEOUT_SECONDS = STOP_TOTAL_TIMEOUT_SECONDS
 STOP_FORCE_KILL_TIMEOUT_SECONDS = 10.0
 
 
-def _send_signal(pid: int, sig: signal.Signals, logger: logging.Logger) -> bool:
+def _send_signal(process: psutil.Process, sig: signal.Signals, logger: logging.Logger) -> bool:
+    pid = process.pid
     try:
-        os.kill(pid, sig)
+        process.send_signal(sig)
         return True
-    except ProcessLookupError:
+    except (ProcessLookupError, psutil.NoSuchProcess):
         logger.error("Process %s no longer exists.", pid)
         return False
-    except PermissionError:
+    except (PermissionError, psutil.AccessDenied):
         logger.error("Insufficient permissions to signal process %s.", pid)
         return False
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except SIGNAL_DELIVERY_EXCEPTIONS as exception:
         log_exception(
             logger,
             exception,
@@ -62,9 +66,9 @@ def _send_signal(pid: int, sig: signal.Signals, logger: logging.Logger) -> bool:
         return False
 
 
-def _force_kill_process(pid: int, logger: logging.Logger) -> bool:
+def _force_kill_process(process: psutil.Process, logger: logging.Logger) -> bool:
+    pid = process.pid
     try:
-        process = psutil.Process(pid)
         process.kill()
         logger.critical(
             "Graceful shutdown timed out for SoAI (PID %s). Forced termination requested; waiting up to %s seconds.",
@@ -87,14 +91,14 @@ def _force_kill_process(pid: int, logger: logging.Logger) -> bool:
     return False
 
 
-def _wait_for_forced_termination(pid: int, logger: logging.Logger) -> bool:
-    if not _force_kill_process(pid, logger):
+def _wait_for_forced_termination(process: psutil.Process, logger: logging.Logger) -> bool:
+    if not _force_kill_process(process, logger):
         return False
-    if wait_for_process_exit(pid, timeout_seconds=STOP_FORCE_KILL_TIMEOUT_SECONDS):
+    if wait_for_process_exit(process, timeout_seconds=STOP_FORCE_KILL_TIMEOUT_SECONDS):
         return True
     logger.critical(
         "SoAI process %s did not exit within %s seconds of forced termination.",
-        pid,
+        process.pid,
         int(STOP_FORCE_KILL_TIMEOUT_SECONDS),
     )
     return False
@@ -102,7 +106,7 @@ def _wait_for_forced_termination(pid: int, logger: logging.Logger) -> bool:
 
 def _recover_timed_out_restart(
     base_dir: str,
-    pid: int,
+    process: psutil.Process,
     logger: logging.Logger,
     *,
     restart_cli_module: str,
@@ -118,19 +122,20 @@ def _recover_timed_out_restart(
     ):
         logger.info("SoAI became healthy while restart recovery was being evaluated.")
         return True
-    target_pid = read_running_pid(
+    target_process = read_running_process(
         base_dir,
         logger,
         expected_edition=expected_edition,
     )
-    if target_pid is None:
-        target_pid = pid
+    if target_process is None:
+        target_process = process
+    target_pid = target_process.pid
     logger.critical(
         "SoAI restart did not complete within %s seconds. Force-terminating PID %s and launching a clean replacement.",
         int(RESTART_TOTAL_TIMEOUT_SECONDS),
         target_pid,
     )
-    if not _wait_for_forced_termination(target_pid, logger):
+    if not _wait_for_forced_termination(target_process, logger):
         return False
     try:
         spawn_replacement_application(
@@ -138,7 +143,7 @@ def _recover_timed_out_restart(
             lifecycle_logger=logger,
             cli_module=restart_cli_module,
         )
-    except RECOVERABLE_EXCEPTIONS as exception:
+    except (*RECOVERABLE_EXCEPTIONS, *SUBPROCESS_RECOVERABLE_EXCEPTIONS) as exception:
         log_exception(
             logger,
             exception,
@@ -172,7 +177,7 @@ def _complete_restart_wait(
     base_dir: str,
     logger: logging.Logger,
     *,
-    pid: int,
+    process: psutil.Process,
     initial_runtime_id: str | None,
     restart_cli_module: str,
     expected_edition: str,
@@ -180,7 +185,7 @@ def _complete_restart_wait(
     if wait_for_restart(
         base_dir,
         logger,
-        pid=pid,
+        pid=process.pid,
         timeout_seconds=RESTART_TOTAL_TIMEOUT_SECONDS,
         initial_runtime_id=initial_runtime_id,
         expected_edition=expected_edition,
@@ -189,7 +194,7 @@ def _complete_restart_wait(
         return 0
     if _recover_timed_out_restart(
         base_dir,
-        pid,
+        process,
         logger,
         restart_cli_module=restart_cli_module,
         expected_edition=expected_edition,
@@ -206,17 +211,18 @@ def handle_restart(
     restart_cli_module: str,
     expected_edition: str,
 ) -> int:
-    pid = read_running_pid(base_dir, logger, expected_edition=expected_edition)
-    if pid is None:
+    process = read_running_process(base_dir, logger, expected_edition=expected_edition)
+    if process is None:
         logger.error("No running SoAI instance found. Cannot restart.")
         return 1
+    pid = process.pid
     initial_runtime_id = read_runtime_id(
         base_dir,
         logger,
         expected_edition=expected_edition,
     )
     if is_windows():
-        request_path = write_windows_lifecycle_request(base_dir, pid, "restart", logger)
+        request_path = write_windows_lifecycle_request(base_dir, process, "restart", logger)
         if request_path is None:
             return 1
         logger.info(
@@ -227,12 +233,12 @@ def handle_restart(
         return _complete_restart_wait(
             base_dir,
             logger,
-            pid=pid,
+            process=process,
             initial_runtime_id=initial_runtime_id,
             restart_cli_module=restart_cli_module,
             expected_edition=expected_edition,
         )
-    if not _send_signal(pid, signal.SIGUSR1, logger):
+    if not _send_signal(process, signal.SIGUSR1, logger):
         return 1
     logger.info(
         "Restart signal sent to SoAI instance (PID %s). Waiting for restart to complete...",
@@ -241,7 +247,7 @@ def handle_restart(
     return _complete_restart_wait(
         base_dir,
         logger,
-        pid=pid,
+        process=process,
         initial_runtime_id=initial_runtime_id,
         restart_cli_module=restart_cli_module,
         expected_edition=expected_edition,
@@ -254,14 +260,15 @@ def handle_stop(
     *,
     expected_edition: str,
 ) -> int:
-    pid = read_running_pid(base_dir, logger, expected_edition=expected_edition)
-    if pid is None:
+    process = read_running_process(base_dir, logger, expected_edition=expected_edition)
+    if process is None:
         logger.error("No running SoAI instance found. Cannot stop.")
         return 1
+    pid = process.pid
     windows = is_windows()
     stop_request_description = "lifecycle stop request" if windows else "SIGTERM"
     if windows:
-        request_path = write_windows_lifecycle_request(base_dir, pid, "stop", logger)
+        request_path = write_windows_lifecycle_request(base_dir, process, "stop", logger)
         if request_path is None:
             return 1
         logger.info(
@@ -270,7 +277,7 @@ def handle_stop(
             request_path,
         )
     else:
-        if not _send_signal(pid, signal.SIGTERM, logger):
+        if not _send_signal(process, signal.SIGTERM, logger):
             return 1
         logger.info("SIGTERM sent to SoAI (PID %s). Waiting for API shutdown...", pid)
     deadline = deadline_after(STOP_TOTAL_TIMEOUT_SECONDS)
@@ -278,7 +285,7 @@ def handle_stop(
     if not wait_for_stop_api_down(
         base_dir,
         expected_edition=expected_edition,
-        pid=pid,
+        process=process,
         timeout_seconds=api_down_timeout,
     ):
         logger.warning(
@@ -287,16 +294,16 @@ def handle_stop(
             stop_request_description,
             pid,
         )
-        return 0 if _wait_for_forced_termination(pid, logger) else 1
+        return 0 if _wait_for_forced_termination(process, logger) else 1
     logger.info("SoAI API is down. Waiting for process shutdown (PID %s)...", pid)
     process_exit_timeout = deadline.remaining_seconds()
-    if not wait_for_process_exit(pid, timeout_seconds=process_exit_timeout):
+    if not wait_for_process_exit(process, timeout_seconds=process_exit_timeout):
         logger.warning(
             "SoAI instance (PID %s) did not stop within %s seconds.",
             pid,
             int(STOP_TOTAL_TIMEOUT_SECONDS),
         )
-        return 0 if _wait_for_forced_termination(pid, logger) else 1
+        return 0 if _wait_for_forced_termination(process, logger) else 1
     logger.info("SoAI instance (PID %s) has stopped.", pid)
     return 0
 

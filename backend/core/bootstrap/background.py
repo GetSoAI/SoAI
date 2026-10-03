@@ -46,7 +46,7 @@ BACKGROUND_FLAG_VARIANTS: frozenset[str] = frozenset(
         "background",
     },
 )
-READINESS_TIMEOUT_SECONDS: float = 120.0
+READINESS_TIMEOUT_SECONDS: float = 600.0
 READINESS_POLL_INTERVAL_SECONDS: float = 2.0
 SUPERSESSION_READINESS_TIMEOUT_SECONDS: float = 15.0
 NO_BROWSER_FLAGS: frozenset[str] = frozenset({"--start-no-browser", "-start-no-browser"})

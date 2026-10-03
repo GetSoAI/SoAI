@@ -77,6 +77,10 @@ const serializeHardwareHistoryRequest = (request: HardwareHistoryRequest): JsonO
     if (request.gpuIndex !== undefined) serialized['gpu_index'] = request.gpuIndex;
     if (request.identifier !== undefined) serialized['identifier'] = request.identifier;
     if (request.intervalMs !== undefined) serialized['interval_ms'] = request.intervalMs;
+    if (request.availabilityMetric !== undefined) {
+        serialized['include_availability'] = true;
+        serialized['metric'] = request.availabilityMetric;
+    }
     return serialized;
 };
 

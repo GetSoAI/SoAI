@@ -12,7 +12,7 @@ import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import { CHAT_ACTIONS } from '@features/chat/chatActionIds.ts';
 import { CHAT_ATTACHMENT_INLINE_LIMIT } from '@features/chat/chatConstants.ts';
 import { renderChatMultimediaPreviewOpenActionAttributes, resolveChatMultimediaPreviewSourceReferenceForUrl } from '@features/chat/message/multimediaPreviewDataset.ts';
-import type { ChatMessageRenderHost, ImageSegment, MessageRenderOptions, MessageSegment, SoaiFileSegment, SoaiFileUnavailableSegment, SoaiKnowledgeSegment, SoaiKnowledgeUnavailableSegment, SoaiPathSegment } from '@features/chat/message/messageview/types.ts';
+import type { ChatAttachmentCardRenderHost, ImageSegment, MessageRenderOptions, MessageSegment, SoaiFileSegment, SoaiFileUnavailableSegment, SoaiKnowledgeSegment, SoaiKnowledgeUnavailableSegment, SoaiPathSegment } from '@features/chat/message/messageview/types.ts';
 
 type AttachmentSummarySegment = ImageSegment | SoaiFileSegment | SoaiKnowledgeSegment | SoaiPathSegment | SoaiFileUnavailableSegment | SoaiKnowledgeUnavailableSegment;
 
@@ -28,14 +28,14 @@ const requireConversationId = (options: MessageRenderOptions): string => {
     return conversationId.trim();
 };
 
-const renderBadge = (host: ChatMessageRenderHost, label: string): string => {
+const renderBadge = (host: ChatAttachmentCardRenderHost, label: string): string => {
     const colorClass = host.escapeAttribute(getBadgeColorClass(`chat-attachment:${label}`));
     return `<span class="chat-attachment-badge ui-model-type-badge ui-badge--micro ${colorClass}">${host.escapeHtml(label)}</span>`;
 };
 
-const renderDocumentCardBody = (host: ChatMessageRenderHost, iconName: IconName, title: string, status: string, badge: string): string => {
+const renderDocumentCardBody = (host: ChatAttachmentCardRenderHost, iconName: IconName, title: string, status: string, badge: string): string => {
     const icon = host.getIconHtml(iconName, { size: 16, strokeWidth: 1.5 });
-    return `<span class="file-preview-leading-icon" aria-hidden="true">${icon}</span><span class="file-info"><span class="file-name">${host.escapeHtml(title)}</span><span class="file-status">${badge}<span>${host.escapeHtml(status)}</span></span></span>`;
+    return `<span class="file-preview-leading-icon" aria-hidden="true">${icon}</span><span class="file-info"><span dir="auto" class="file-name">${host.escapeHtml(title)}</span><span class="file-status">${badge}<span>${host.escapeHtml(status)}</span></span></span>`;
 };
 
 type ImageSummaryCardArguments = {
@@ -56,7 +56,7 @@ type ImageSummaryCardArguments = {
     iconName: IconName;
 };
 
-const renderImageSummaryCard = (host: ChatMessageRenderHost, inputArguments: ImageSummaryCardArguments): string => {
+const renderImageSummaryCard = (host: ChatAttachmentCardRenderHost, inputArguments: ImageSummaryCardArguments): string => {
     const thumbnailSrc = host.sanitizeImage(inputArguments.thumbnailUrl);
     const actionAttributes = renderChatMultimediaPreviewOpenActionAttributes({
         type: 'image',
@@ -74,20 +74,20 @@ const renderImageSummaryCard = (host: ChatMessageRenderHost, inputArguments: Ima
     const icon = host.getIconHtml(inputArguments.iconName, { size: 20, strokeWidth: 1.5 });
     const image = thumbnailSrc === null ? '' : `<img src="${host.escapeAttribute(thumbnailSrc)}" alt="${host.escapeAttribute(inputArguments.title)}" loading="lazy" decoding="async" data-chat-attachment-thumbnail="true">`;
     const state = thumbnailSrc === null ? 'error' : 'loading';
-    return `<button type="button" class="file-preview-item document chat-attachment-summary-card ${host.escapeAttribute(inputArguments.className)} glass-surface-light glass-surface--bordered glass-surface--rounded"${inputArguments.attributes}${actionAttributes.html} aria-label="${host.escapeAttribute(inputArguments.label)}" data-tooltip="${host.escapeAttribute(inputArguments.label)}"><span class="chat-attachment-visual" data-attachment-image-state="${state}"><span class="file-preview-leading-icon" aria-hidden="true">${icon}</span>${image}</span><span class="file-info"><span class="file-name">${host.escapeHtml(inputArguments.title)}</span><span class="file-status">${inputArguments.badge}${status}</span></span></button>`;
+    return `<button type="button" class="file-preview-item document chat-attachment-summary-card ${host.escapeAttribute(inputArguments.className)} glass-surface-light glass-surface--bordered glass-surface--rounded"${inputArguments.attributes}${actionAttributes.html} aria-label="${host.escapeAttribute(inputArguments.label)}" data-tooltip="${host.escapeAttribute(inputArguments.label)}"><span class="chat-attachment-visual" data-attachment-image-state="${state}"><span class="file-preview-leading-icon" aria-hidden="true">${icon}</span>${image}</span><span class="file-info"><span dir="auto" class="file-name">${host.escapeHtml(inputArguments.title)}</span><span class="file-status">${inputArguments.badge}${status}</span></span></button>`;
 };
 
-const renderDocumentActionCard = (host: ChatMessageRenderHost, inputArguments: { className: string; iconName: IconName; title: string; status: string; badge: string; label: string; actionAttributes: string; extraAttributes?: string }): string => {
+const renderDocumentActionCard = (host: ChatAttachmentCardRenderHost, inputArguments: { className: string; iconName: IconName; title: string; status: string; badge: string; label: string; actionAttributes: string; extraAttributes?: string }): string => {
     const body = renderDocumentCardBody(host, inputArguments.iconName, inputArguments.title, inputArguments.status, inputArguments.badge);
     return `<button type="button" class="file-preview-item document chat-attachment-summary-card ${host.escapeAttribute(inputArguments.className)} glass-surface-light glass-surface--bordered glass-surface--rounded"${inputArguments.actionAttributes}${inputArguments.extraAttributes ?? ''} aria-label="${host.escapeAttribute(inputArguments.label)}" data-tooltip="${host.escapeAttribute(inputArguments.label)}">${body}</button>`;
 };
 
-const renderDocumentStaticCard = (host: ChatMessageRenderHost, inputArguments: { className: string; iconName: IconName; title: string; status: string; badge: string; label: string }): string => {
+const renderDocumentStaticCard = (host: ChatAttachmentCardRenderHost, inputArguments: { className: string; iconName: IconName; title: string; status: string; badge: string; label: string }): string => {
     const body = renderDocumentCardBody(host, inputArguments.iconName, inputArguments.title, inputArguments.status, inputArguments.badge);
     return `<div class="file-preview-item document chat-attachment-summary-card ${host.escapeAttribute(inputArguments.className)} glass-surface-light glass-surface--bordered glass-surface--rounded" aria-label="${host.escapeAttribute(inputArguments.label)}" data-tooltip="${host.escapeAttribute(inputArguments.label)}">${body}</div>`;
 };
 
-const renderSoaiFileCard = (host: ChatMessageRenderHost, segment: SoaiFileSegment, options: MessageRenderOptions): string => {
+const renderSoaiFileCard = (host: ChatAttachmentCardRenderHost, segment: SoaiFileSegment, options: MessageRenderOptions): string => {
     const conversationId = requireConversationId(options);
     const thumbnailUrl = buildWebuiConversationAttachmentThumbnailPath(conversationId, segment.attachmentId);
     const previewUrl = buildWebuiConversationAttachmentContentPath(conversationId, segment.attachmentId, false);
@@ -129,7 +129,7 @@ const renderSoaiFileCard = (host: ChatMessageRenderHost, segment: SoaiFileSegmen
     });
 };
 
-const renderImageAttachmentCard = (host: ChatMessageRenderHost, segment: ImageSegment): string => {
+const renderImageAttachmentCard = (host: ChatAttachmentCardRenderHost, segment: ImageSegment): string => {
     const previewUrl = segment.imageUrl;
     const title = segment.title || i18n.t('chat.message.generatedImage');
     const badge = renderBadge(host, i18n.t('chat.attachments.badge.attachment'));
@@ -152,7 +152,7 @@ const renderImageAttachmentCard = (host: ChatMessageRenderHost, segment: ImageSe
     });
 };
 
-const renderSoaiPathCard = (host: ChatMessageRenderHost, segment: SoaiPathSegment, options: MessageRenderOptions): string => {
+const renderSoaiPathCard = (host: ChatAttachmentCardRenderHost, segment: SoaiPathSegment, options: MessageRenderOptions): string => {
     const badge = renderBadge(host, i18n.t('chat.attachments.badge.soaiLink'));
     const label = i18n.t('chat.attachments.openSoaiLink');
     const iconName = resolveFileEntryIconName({ name: segment.title, mimeType: segment.mimeType ?? segment.contentPart.mimeType, isDirectory: segment.entryType === 'folder' });
@@ -199,7 +199,7 @@ const renderSoaiPathCard = (host: ChatMessageRenderHost, segment: SoaiPathSegmen
     });
 };
 
-const renderSoaiKnowledgeCard = (host: ChatMessageRenderHost, segment: SoaiKnowledgeSegment): string => {
+const renderSoaiKnowledgeCard = (host: ChatAttachmentCardRenderHost, segment: SoaiKnowledgeSegment): string => {
     const badge = renderBadge(host, i18n.t('chat.attachments.badge.knowledge'));
     const status = `${String(segment.visibleCount)} / ${String(segment.totalCount)}`;
     if (segment.sourceType === 'linked_knowledge') {
@@ -217,7 +217,7 @@ const renderSoaiKnowledgeCard = (host: ChatMessageRenderHost, segment: SoaiKnowl
     return `<button type="button" class="file-preview-item document chat-attachment-summary-card chat-attachment-summary-card--knowledge glass-surface-light glass-surface--bordered glass-surface--rounded" data-action="${host.escapeAttribute(CHAT_ACTIONS.OPEN_KNOWLEDGE_ATTACHMENT_PREVIEW)}" data-knowledge-attachment-id="${host.escapeAttribute(segment.knowledgeAttachmentId)}" data-knowledge-title="${host.escapeAttribute(segment.title)}" aria-label="${label}" data-tooltip="${label}">${body}</button>`;
 };
 
-const renderUnavailableCard = (host: ChatMessageRenderHost, segment: SoaiFileUnavailableSegment | SoaiKnowledgeUnavailableSegment): string => {
+const renderUnavailableCard = (host: ChatAttachmentCardRenderHost, segment: SoaiFileUnavailableSegment | SoaiKnowledgeUnavailableSegment): string => {
     const isFile = segment.type === 'soai_file_unavailable';
     const title = isFile ? segment.filename : segment.title;
     const unavailableLabel = i18n.t('chat.inlinePreviews.typeLabel.unavailable');
@@ -233,7 +233,7 @@ const renderUnavailableCard = (host: ChatMessageRenderHost, segment: SoaiFileUna
     });
 };
 
-const renderAttachmentCard = (host: ChatMessageRenderHost, segment: AttachmentSummarySegment, options: MessageRenderOptions): string => {
+const renderAttachmentCard = (host: ChatAttachmentCardRenderHost, segment: AttachmentSummarySegment, options: MessageRenderOptions): string => {
     if (segment.type === 'soai_file') {
         return renderSoaiFileCard(host, segment, options);
     }
@@ -249,7 +249,7 @@ const renderAttachmentCard = (host: ChatMessageRenderHost, segment: AttachmentSu
     return renderSoaiPathCard(host, segment, options);
 };
 
-const renderOverflowCard = (host: ChatMessageRenderHost, hiddenCount: number): string => {
+const renderOverflowCard = (host: ChatAttachmentCardRenderHost, hiddenCount: number): string => {
     const labelText = i18n.plural('chat.attachments.overflowHidden', hiddenCount, { count: hiddenCount });
     const label = host.escapeAttribute(labelText);
     const badge = renderBadge(host, labelText);
@@ -257,14 +257,14 @@ const renderOverflowCard = (host: ChatMessageRenderHost, hiddenCount: number): s
     return `<button type="button" class="file-preview-item document chat-attachment-summary-card chat-attachment-summary-card--overflow glass-surface-light glass-surface--bordered glass-surface--rounded" data-action="${host.escapeAttribute(CHAT_ACTIONS.OPEN_ATTACHMENT_OVERFLOW)}" data-hidden-attachment-count="${host.escapeAttribute(String(hiddenCount))}" aria-label="${label}" data-tooltip="${label}">${body}</button>`;
 };
 
-const renderAttachmentStrip = (host: ChatMessageRenderHost, segments: AttachmentSummarySegment[], options: MessageRenderOptions): string => {
+const renderAttachmentStrip = (host: ChatAttachmentCardRenderHost, segments: AttachmentSummarySegment[], options: MessageRenderOptions): string => {
     const visible = segments.slice(0, CHAT_ATTACHMENT_INLINE_LIMIT);
     const hiddenCount = Math.max(0, segments.length - visible.length);
     const cards = visible.map((segment) => renderAttachmentCard(host, segment, options));
     if (hiddenCount > 0) {
         cards.push(renderOverflowCard(host, hiddenCount));
     }
-    return `<div class="message-attachment-strip" data-attachment-count="${host.escapeAttribute(String(segments.length))}">${cards.join('')}</div>`;
+    return `<div class="message-attachment-strip" data-presence-suspended data-attachment-count="${host.escapeAttribute(String(segments.length))}">${cards.join('')}</div>`;
 };
 
 export { isAttachmentSummarySegment, renderAttachmentCard, renderAttachmentStrip };

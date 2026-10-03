@@ -203,7 +203,8 @@ export const scheduleRequestTerminalization = async (context: ChatStreamingContr
             const acknowledgeTerminalPostRender = (): void => {
                 context.dependencies.presentation.onTerminalPostRenderCommitted?.(inputArguments.conversationId, inputArguments.requestId);
             };
-            if (context.presentationActive && activeConversationId === inputArguments.conversationId && assistantMessage !== null) {
+            const hasLocalCanonicalAssistant = findCanonicalAssistantMessage(context.dependencies.conversations.get(inputArguments.conversationId), assistantMessage) !== null;
+            if (context.presentationActive && activeConversationId === inputArguments.conversationId && assistantMessage !== null && hasLocalCanonicalAssistant) {
                 dropPendingStreamRender(context, assistantMessage, inputArguments.conversationId);
                 context.cachedStreamingElements = null;
                 const settlementArguments = { conversationId: inputArguments.conversationId, assistantMessage, activeConversationId, onPostRenderCommitted: acknowledgeTerminalPostRender };

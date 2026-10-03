@@ -1,6 +1,7 @@
 /* SoAI - Automation page controller [frontend/assets/ts/pages/automation/controllers/AutomationPageController.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { buildAutomationWindowSignature, resolveBufferedAutomationWindow } from '@pages/automation/controllers/automationWindow.ts';
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { ChangeNotificationSource } from '@core/primitives/changeNotificationSource.ts';
 import { throwIfAborted } from '@core/errors/abort.ts';
@@ -50,7 +51,10 @@ class AutomationPageController {
     #state: AutomationPageState;
     readonly #getState = (): AutomationPageState => this.#state;
     readonly #setState = (next: AutomationPageState): void => {
+        const previous = this.#state;
         this.#state = next;
+        if (resolveBufferedAutomationWindow(previous).signature !== resolveBufferedAutomationWindow(next).signature || previous.automationRegistryOffset !== next.automationRegistryOffset || previous.automationRegistryLimit !== next.automationRegistryLimit) this.#dataController.noteWindowChanged();
+        if (buildAutomationWindowSignature(previous) !== buildAutomationWindowSignature(next)) this.#windowRunsPane.reconcileSelection(next.zones, buildAutomationWindowSignature(next));
     };
 
     constructor(dependencies: ControllerDependencies) {
@@ -71,26 +75,22 @@ class AutomationPageController {
             getState: this.#getState,
             setState: this.#setState,
             queueRender: () => this.#renderRequests.notify(),
-            isDestroyed: () => this.#destroyed
+            isDestroyed: () => this.#destroyed,
+            setTimeout: runtime.setTimeout,
+            clearTimer: runtime.clearTimer
         });
         this.#realtimeController = new AutomationPageRealtimeController({
             runActivity: dependencies.runActivity,
-            getState: this.#getState,
-            setState: this.#setState,
-            getWindowSignature: () => this.#dataController.getWindowSignature(),
-            refreshData: () => this.#dataController.refresh(),
+            data: this.#dataController,
             queueRender: () => this.#renderRequests.notify(),
-            getRun: (runId) => dependencies.dataService.getRun(runId),
             setRunningAutomationIds: (next) => {
                 this.#runningAutomationIds = next;
-            },
-            run: (operation, task) => this.#operationRunner.run(operation, task)
+            }
         });
         this.#interactionController = new AutomationPageInteractionController({
             initialization: {
                 requireHTMLElement: runtime.requireHTMLElement,
                 modalPresenter: dependencies.modalPresenter,
-                api: dependencies.api,
                 dataService: dependencies.dataService,
                 getIconSync: runtime.getIconSync,
                 getState: this.#getState,
@@ -132,6 +132,7 @@ class AutomationPageController {
             getHourHeightPx: () => this.#hourHeightPx,
             getMonthMaxChipsPerDay: () => this.#monthMaxChipsPerDay,
             getRunningAutomationIds: () => this.#runningAutomationIds,
+            getDataStatus: () => this.#dataController.getStatus(),
             isPreferencesCorrupt: () => this.#preferencesStatus.isCorrupt,
             queueRender: () => this.#renderRequests.notify(),
             windowRunsPane: this.#windowRunsPane,
@@ -139,12 +140,12 @@ class AutomationPageController {
         });
         this.#renderScheduler = new AutomationPageRenderScheduler({
             requestAnimationFrame: runtime.requestAnimationFrame,
-            runWithBoundary: runtime.runWithBoundary,
+            run: (operation, task) => this.#operationRunner.run(operation, task),
             isDestroyed: () => this.#destroyed,
             render: () => {
                 this.#calendarTransition.playPending(this.#viewController.render(this.#state));
-            },
-            errorNotifier: this.#errorNotifier
+                this.#interactionController.getOccurrenceModal()?.syncZones(this.#state.zones, this.#state.calendarSettings, !this.#dataController.getStatus().stale);
+            }
         });
         this.#unsubscribeRenderRequests = this.#renderRequests.subscribe(() => this.#renderScheduler.queue());
         this.#activationController = new AutomationPageActivationController({
@@ -173,6 +174,7 @@ class AutomationPageController {
                 persistPreferences: () => persistAutomationPagePreferences(dependencies.storage, this.#state, this.#preferencesStatus.isCorrupt),
                 queueRender: () => this.#renderRequests.notify(),
                 refreshData: () => this.#dataController.refresh(),
+                retryPageData: () => this.#dataController.retry(),
                 stageCalendarTransition: (direction, signature, variant = 'standard') => this.#calendarTransition.stage(direction, signature, variant),
                 setTimeout: runtime.setTimeout,
                 showNotification: runtime.showNotification,
@@ -187,6 +189,7 @@ class AutomationPageController {
                 centerNowLineNow: () => this.#requireConnections().centerNowLineNow(),
                 animateVisiblePeriod: (direction) => this.#requireConnections().animateVisiblePeriod(direction),
                 run: (operation, task) => this.#operationRunner.run(operation, task),
+                reportRefreshFailure: (error) => this.#errorNotifier.notifyRefreshFailureOnce(error),
                 isPreferencesCorrupt: () => this.#preferencesStatus.isCorrupt,
                 resetPreferences: () => this.#resetPreferences()
             },
@@ -203,7 +206,7 @@ class AutomationPageController {
     async initializeShell(signal: AbortSignal | null = null): Promise<void> {
         await this.#activationController.initializeShell();
         throwIfAborted(signal);
-        await this.#interactionController.initialize();
+        this.#interactionController.initialize();
     }
 
     async activate(signal: AbortSignal | null = null): Promise<void> {
@@ -238,6 +241,7 @@ class AutomationPageController {
         this.#monthMaxChipsPerDay = AUTOMATION_DEFAULT_MONTH_MAX_ZONES_PER_DAY;
         this.#calendarTransition.dispose();
         this.#realtimeController.dispose();
+        this.#dataController.dispose();
         this.#windowRunsPane.dispose();
         this.#viewController.destroy();
         this.#interactionController.destroy();
@@ -271,7 +275,7 @@ class AutomationPageController {
     }
 
     #applySplit(percent: number): void {
-        this.#dependencies.ui.root.style.setProperty('--automation-left-width', `${clampNumber(percent, AUTOMATION_SPLIT_MIN_PERCENT, AUTOMATION_SPLIT_MAX_PERCENT)}%`);
+        this.#dependencies.ui.root.style.setProperty('--automation-primary-width', `${clampNumber(percent, AUTOMATION_SPLIT_MIN_PERCENT, AUTOMATION_SPLIT_MAX_PERCENT)}%`);
     }
 
     #requireConnections(): AutomationPageUiConnectionsController {
@@ -290,7 +294,7 @@ class AutomationPageController {
                 queueRender: () => this.#renderRequests.notify(),
                 refreshDataWithBoundary: () => this.#dependencies.runWithBoundary('automation:scrollNavigate', async () => this.#dataController.refresh()),
                 cancelPendingScrollShift: () => this.#interactionController.cancelPendingScrollShift(),
-                showErrorNotification: (message) => this.#dependencies.showNotification(message, 'error')
+                reportRefreshFailure: (error) => this.#errorNotifier.notifyRefreshFailureOnce(error)
             },
             offset
         );

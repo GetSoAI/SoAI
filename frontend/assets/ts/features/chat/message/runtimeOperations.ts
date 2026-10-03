@@ -46,6 +46,7 @@ interface ChatMessageRuntimeOperations {
     updateConversationModel: (conversationId: string, modelId: string) => Promise<void>;
     speakText: (text: string, options?: { onPlaybackStart?: (() => void) | null }) => Promise<void>;
     stopSpeaking: () => void;
+    notifyMessageEditingChanged: () => void;
 }
 
 export type { ChatMessageRuntimeOperations, RemoveCompactionBoundaryRequest, StopShellRequest };

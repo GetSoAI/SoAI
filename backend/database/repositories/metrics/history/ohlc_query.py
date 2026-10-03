@@ -53,6 +53,7 @@ async def get_ohlc_historical_data(
     last_close: float | None = None
     for timestamp in expected_timestamps:
         row = row_map.get(timestamp)
+        is_missing_bucket = True
         if row:
             open_val = coerce_float_or_none(row.get("open_value"))
             high_val = coerce_float_or_none(row.get("high_value"))
@@ -65,6 +66,7 @@ async def get_ohlc_historical_data(
                 entry = None
                 close_values.append(None)
             else:
+                is_missing_bucket = False
                 if avg_val is None:
                     avg_val = close_val if close_val is not None else open_val
                 entry = {
@@ -83,16 +85,13 @@ async def get_ohlc_historical_data(
             ohlc_series.append(entry)
         elif last_close is not None:
             gap_entry = build_gap_fill_entry(last_close)
-            if gap_entry is None:
-                ohlc_series.append(None)
-                close_values.append(None)
-                continue
             ohlc_series.append(gap_entry)
-            close_values.append(last_close)
-            gap_count += 1
+            close_values.append(None)
         else:
             ohlc_series.append(None)
             close_values.append(None)
+        if is_missing_bucket:
+            gap_count += 1
 
     metadata: JSONDict = {
         "bucket_gap_count": gap_count,

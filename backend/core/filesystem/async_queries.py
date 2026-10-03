@@ -7,7 +7,7 @@ import asyncio
 import os
 from typing import TYPE_CHECKING
 
-from core.filesystem.path_coercion import coerce_path
+from core.filesystem.path_coercion import coerce_path, normalize_filesystem_path
 
 if TYPE_CHECKING:
     from core.filesystem.path_coercion import PathInput
@@ -23,22 +23,22 @@ __all__ = (
 
 
 async def async_path_exists(path: PathInput) -> bool:
-    target = coerce_path(path)
+    target = normalize_filesystem_path(os.path.abspath(coerce_path(path)))
     return await asyncio.to_thread(os.path.exists, target)
 
 
 async def async_isdir(path: PathInput) -> bool:
-    target = coerce_path(path)
+    target = normalize_filesystem_path(os.path.abspath(coerce_path(path)))
     return await asyncio.to_thread(os.path.isdir, target)
 
 
 async def async_isfile(path: PathInput) -> bool:
-    target = coerce_path(path)
+    target = normalize_filesystem_path(os.path.abspath(coerce_path(path)))
     return await asyncio.to_thread(os.path.isfile, target)
 
 
 async def async_islink(path: PathInput) -> bool:
-    target = coerce_path(path)
+    target = normalize_filesystem_path(os.path.abspath(coerce_path(path)))
     return await asyncio.to_thread(os.path.islink, target)
 
 
@@ -48,10 +48,10 @@ async def async_makedirs(
     *,
     mode: int = 0o777,
 ) -> None:
-    target = coerce_path(path)
+    target = normalize_filesystem_path(os.path.abspath(coerce_path(path)))
     await asyncio.to_thread(os.makedirs, target, mode=mode, exist_ok=exist_ok)
 
 
 async def async_listdir(path: PathInput) -> list[str]:
-    target = coerce_path(path)
+    target = normalize_filesystem_path(os.path.abspath(coerce_path(path)))
     return await asyncio.to_thread(os.listdir, target)

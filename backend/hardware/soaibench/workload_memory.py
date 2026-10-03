@@ -12,7 +12,6 @@ from core.hardware.soaibench_workloads import (
 from hardware.soaibench.opencl_session import OpenCLExecutionSession
 from hardware.soaibench.types import SoAIBenchGpuIdentity
 from hardware.soaibench.workload_common import (
-    FLOAT_SIZE_BYTES,
     SoAIBenchPhaseResult,
     execute_opencl_phase,
 )
@@ -25,7 +24,6 @@ __all__ = (
 )
 
 STANDARD_MEMORY_REPEATS = MEMORY_BATCH_DISPATCHES
-MEMORY_BUFFER_TARGET_BYTES = MEMORY_ELEMENTS * FLOAT_SIZE_BYTES
 MEMORY_ELEMENT_COUNT = MEMORY_ELEMENTS
 
 MEMORY_KERNEL_SOURCE = """

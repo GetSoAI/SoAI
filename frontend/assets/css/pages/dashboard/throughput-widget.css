@@ -119,7 +119,7 @@
         color: var(--text-tertiary);
         font-size: var(--font-size-xs);
         font-weight: 600;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-04px);
     }
 
@@ -164,6 +164,6 @@
         font-variant-numeric: tabular-nums;
         line-height: var(--line-height-compact);
         flex-shrink: 0;
-        text-align: right;
+        text-align: end;
     }
 }

@@ -10,7 +10,10 @@ from fastapi.responses import JSONResponse
 from starlette.responses import Response
 
 from core.errors.exceptions import ValidationError
-from core.hardware.history_selection import parse_hardware_history_query_selection
+from core.hardware.history_selection import (
+    parse_hardware_history_availability_metric,
+    parse_hardware_history_query_selection,
+)
 from core.history.request.query import build_history_query
 from core.state.access import AccessAction
 from features.api.routes.hardware.hardware_history_data_loading import (
@@ -58,10 +61,23 @@ def _parse_history_request(
     return (selection.component or "", selection.gpu_index, selection.identifier)
 
 
-async def _hardware_history_initial_state(request: Request) -> JSONDict:
+async def _hardware_history_initial_state(
+    request: Request,
+    *,
+    include_availability: bool,
+    metric: str | None,
+) -> JSONDict:
     api_context = resolve_api_context(request)
     hw_mgr = api_context.dependencies.hw_manager
     component, gpu_index, identifier = _parse_history_request(request)
+    try:
+        availability_metric = parse_hardware_history_availability_metric(
+            component,
+            include_availability=include_availability,
+            metric=metric,
+        )
+    except ValidationError as exception:
+        raise_invalid_request(request, str(exception))
     history_params = request.query_params
     history_request = build_history_query(
         {
@@ -79,6 +95,7 @@ async def _hardware_history_initial_state(request: Request) -> JSONDict:
         component=component,
         gpu_index=gpu_index,
         identifier=identifier,
+        availability_metric=availability_metric,
     )
 
 
@@ -96,6 +113,8 @@ def register_routes(routers: ApiRouters) -> None:
         points: int = Query(300, ge=1, le=25000),
         interval_ms: int | None = Query(None, ge=1, le=_HARDWARE_HISTORY_MAX_INTERVAL_MS),
         aggregation: Literal["avg", "min", "max", "ohlc"] = Query("avg"),
+        include_availability: bool = Query(False),
+        metric: str | None = Query(None),
     ) -> Response:
         allowed_keys = {
             "component",
@@ -106,6 +125,8 @@ def register_routes(routers: ApiRouters) -> None:
             "interval_ms",
             "aggregation",
             "identifier",
+            "include_availability",
+            "metric",
         }
         require_supported_query_parameters(request, allowed_keys=allowed_keys)
         _parse_history_request(
@@ -124,5 +145,9 @@ def register_routes(routers: ApiRouters) -> None:
             },
             resolve_api_context(request).dependencies.hw_manager.history_config,
         )
-        initial_state = await _hardware_history_initial_state(request)
+        initial_state = await _hardware_history_initial_state(
+            request,
+            include_availability=include_availability,
+            metric=metric,
+        )
         return JSONResponse(content=initial_state)

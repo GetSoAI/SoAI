@@ -2,6 +2,12 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer foundations {
+    @property --motion-essential-duration {
+        syntax: '<time>#';
+        inherits: false;
+        initial-value: 0ms;
+    }
+
     :root {
         --transition-fast: 150ms ease-in-out;
         --transition-normal: 250ms ease-in-out;
@@ -32,6 +38,10 @@
         --duration-8000: 8000ms;
         --duration-9000: 9000ms;
         --duration-12000: 12000ms;
+        --spinner-duration-600: 600ms;
+        --spinner-duration-800: 800ms;
+        --spinner-duration-1000: 1000ms;
+        --spinner-duration-1200: 1200ms;
         --ease-linear: linear;
         --ease-in: ease-in;
         --ease-out: ease-out;
@@ -61,6 +71,14 @@
         --effect-intensity-subtle: 0.05;
         --effect-intensity-moderate: 0.1;
         --effect-intensity-strong: 0.2;
+        --presence-enter-duration: var(--duration-300);
+        --presence-exit-duration: var(--duration-200);
+        --presence-morph-duration: var(--duration-300);
+        --presence-enter-ease: var(--ease-in-out);
+        --presence-exit-ease: var(--ease-in-out);
+        --presence-scale-from: 0.6;
+        --presence-blur-from: 4px;
+        --presence-morph-fade-from: 0.35;
         --transition-interactive-border: border-color var(--transition-fast), box-shadow var(--transition-fast);
         --transition-interactive-full: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
         --transition-surface-hover: border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-normal);

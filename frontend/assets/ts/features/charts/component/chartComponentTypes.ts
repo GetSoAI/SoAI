@@ -20,10 +20,8 @@ interface RenderBuffers {
 interface VisibleRange {
     start: number;
     end: number;
-    displayCount: number;
-    totalSlots: number;
-    marginSlots: number;
-    offsetFraction: number;
+    startTs: number;
+    endTs: number;
 }
 
 interface VisibleRangeStats {
@@ -39,27 +37,11 @@ interface Scale {
     auto: boolean;
 }
 
-interface ZoomState {
-    level: number;
-    targetLevel: number;
-    minLevel: number;
-    maxLevel: number;
-    isAnimating: boolean;
-    startTime: number;
-    startLevel: number;
-    wheelAccumulator: number;
-}
-
 interface PanState {
-    offset: number;
-    velocity: number;
     isDragging: boolean;
     lastX: number;
     lastY: number;
-    isAtTail: boolean;
-    startOffset: number;
-    targetOffset: number;
-    isZooming: boolean;
+    travelPx: number;
 }
 
 interface YAxisDragState {
@@ -75,16 +57,8 @@ interface YAxisDragState {
 interface XAxisDragState {
     active: boolean;
     startX: number;
-    startZoomLevel: number;
-    anchor: number;
-    startPanOffset: number;
-    startMetrics: SlotMetrics;
-}
-
-interface SlotMetrics {
-    totalSlots: number;
-    dataSlots: number;
-    marginSlots: number;
+    startMsPerPx: number;
+    anchorX: number;
 }
 
 interface OhlcData {
@@ -126,8 +100,6 @@ interface ChartPadding {
 }
 
 interface TimeRange {
-    start: number;
-    end: number;
     startTs: number | null;
     endTs: number | null;
 }
@@ -137,22 +109,12 @@ interface ChartRuntimeInstance {
     releaseLayers: (layers: readonly RuntimeLayer[] | null) => void;
 }
 
-interface ChartNeedHistoricalDataDetail {
-    timestamp: number;
-}
-
 interface ChartTimeRangeChangeDetail {
     start: number;
     end: number;
 }
 
-interface ChartZoomChangeDetail {
-    level: number;
-    oldLevel: number;
-    source?: string | undefined;
-}
-
-type ComponentEventDetail = CrosshairState | ChartNeedHistoricalDataDetail | ChartTimeRangeChangeDetail | ChartZoomChangeDetail | null;
+type ComponentEventDetail = CrosshairState | ChartTimeRangeChangeDetail | null;
 type EventHandler = (data?: ComponentEventDetail | undefined) => void;
 
 interface RedrawRequest {
@@ -174,11 +136,4 @@ interface ColorComponents {
     alpha: number;
 }
 
-interface ViewportIntent {
-    mode: string;
-    source?: string | undefined;
-    timestamp?: number | undefined;
-    [key: string]: string | number | boolean | null | undefined;
-}
-
-export type { CanvasContexts, CanvasDimensions, CanvasLayers, ChartPadding, ChartRuntimeInstance, ColorComponents, ComponentEventDetail, EventHandler, NeedsRedraw, OhlcData, PanState, RedrawRequest, RenderBuffers, RuntimeLayer, Scale, SlotMetrics, ThemeColorFlags, TimeRange, ViewportIntent, VisiblePointsCache, VisibleRange, VisibleRangeStats, XAxisDragState, YAxisDragState, ZoomState };
+export type { CanvasContexts, CanvasDimensions, CanvasLayers, ChartPadding, ChartRuntimeInstance, ColorComponents, ComponentEventDetail, EventHandler, NeedsRedraw, OhlcData, PanState, RedrawRequest, RenderBuffers, RuntimeLayer, Scale, ThemeColorFlags, TimeRange, VisiblePointsCache, VisibleRange, VisibleRangeStats, XAxisDragState, YAxisDragState };

@@ -87,7 +87,7 @@
         gap: var(--header-button-gap);
     }
 
-    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow-trigger {
+    :where([data-section='automation'], [data-page-scope='automation']) .automation-toolbar-overflow:not(.page-actions--dropdown) .automation-toolbar-overflow-trigger {
         display: none;
     }
 

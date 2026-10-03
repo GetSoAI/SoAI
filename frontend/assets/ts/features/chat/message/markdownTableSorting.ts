@@ -5,6 +5,7 @@ import { measureLayoutBox } from '@core/layout/elementGeometry.ts';
 import { requireNonNegativeIntegerAttribute } from '@core/dom/attributes.ts';
 import { getComputedStyleStrict } from '@core/environment/public.ts';
 import { getCurrentLocale } from '@core/languageservice/service.ts';
+import { getCollator } from '@core/localization/intlCache.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
 import { getIconSync } from '@core/ui/icons/iconservice/public.ts';
 import { normalizeSortDirection, requireSortableHeaders, resolveNextSortState, updateSortableTableIndicators, type SortableHeaderRef, type SortDirection, type SortState } from '@core/ui/tables/sortableTable.ts';
@@ -92,7 +93,7 @@ const resolveCurrentSortState = (table: HTMLTableElement): SortState<string> => 
 
 const sortRows = (rows: readonly SortableMarkdownRow[], columnIndex: number, direction: SortDirection): HTMLTableRowElement[] => {
     const multiplier = direction === 'asc' ? 1 : -1;
-    const collator = new Intl.Collator(getCurrentLocale(), { numeric: true, sensitivity: 'base' });
+    const collator = getCollator(getCurrentLocale(), { numeric: true, sensitivity: 'base' });
     return [...rows]
         .sort((left, right) => {
             const leftValue = left.values[columnIndex] ?? '';

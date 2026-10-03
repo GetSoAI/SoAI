@@ -6,19 +6,19 @@ import type { PageControlsStorageInput } from '@core/pagecontrols/storageControl
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
+import type { ParameterGroup, ParameterView } from '@pages/modeldetail/contracts/parameterTypes.ts';
 import type { ParameterStateManager } from '@pages/modeldetail/controllers/ParameterStateManager.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
 
-type ModificationOptions = { suppressCallbacks?: boolean };
-type ParameterViewNavigationQueryValue = string | number | boolean | bigint;
-
 type ParameterElementCache = Map<string, Element>;
+
+type BoundParameterEvents = Map<Element, Set<string>>;
 
 interface ParameterViewFilters {
     search: string;
-    category: string;
-    group: string;
+    group: ParameterGroup | null;
+    view: ParameterView;
 }
 
 interface ParameterViewHost extends PageDomOwnerHost, PageResourcesOwnerHost {
@@ -32,11 +32,8 @@ interface ParameterViewHost extends PageDomOwnerHost, PageResourcesOwnerHost {
         resolveAll: (selector: string, context?: DOMQueryRoot) => Element[];
         replaceElement: (target: Element, newContent: Node | TrustedHtml, context?: Element | null) => Element | null;
     };
-    router?: {
-        navigateWithQuery?: (page: string, query: Record<string, ParameterViewNavigationQueryValue>) => void;
-    };
     notifySaveChanged: () => void;
-    updateParametersBadge: (count: number) => void;
+    updateUnsavedParametersBadge: (count: number) => void;
 }
 
 interface ParameterViewManagerOptions {
@@ -44,4 +41,4 @@ interface ParameterViewManagerOptions {
     parameterState: ParameterStateManager;
 }
 
-export type { ModificationOptions, ParameterElementCache, ParameterViewFilters, ParameterViewHost, ParameterViewManagerOptions, ParameterViewNavigationQueryValue };
+export type { BoundParameterEvents, ParameterElementCache, ParameterViewFilters, ParameterViewHost, ParameterViewManagerOptions };

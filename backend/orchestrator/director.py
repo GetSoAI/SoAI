@@ -86,7 +86,7 @@ class InactivityMonitor(Shutdownable):
                 system_enabled = False
             self._system_monitoring_enabled = system_enabled
             if not system_enabled and (not self._settings.models_enabled):
-                return logger.info("Inactivity monitor is disabled by configuration.")
+                return logger.debug("Inactivity monitor is disabled by configuration.")
             if self._shutdown_event.is_set():
                 self._shutdown_event = asyncio.Event()
             if not self._subscriptions_registered:
@@ -111,7 +111,7 @@ class InactivityMonitor(Shutdownable):
                 metadata={"check_interval": self._settings.check_interval_seconds},
                 finalizer_tracker=self._deps.finalizer_tracker,
             )
-            logger.debug(
+            logger.info(
                 "Inactivity monitor started - System: %s (%.1fm), Models: %s (%.1fm)",
                 system_enabled,
                 self._settings.system_timeout_seconds / 60,

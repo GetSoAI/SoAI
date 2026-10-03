@@ -13,13 +13,12 @@ import { resolvePointerRecord } from '@features/charts/guards.ts';
 import { handleDoubleClickFromCoordinates, handleMouseDown, handleMouseLeave, handleMouseMove, handleMouseUp } from '@features/charts/interaction/actions.ts';
 import { beginPinchGesture, endPinchGesture, updatePinchGesture } from '@features/charts/interaction/effects.ts';
 import { requirePointerState, resetDragState } from '@features/charts/interaction/state.ts';
-import { applyZoomAtRatio } from '@features/charts/interaction/viewportCommands.ts';
 import { createLayoutPointerEventInput, createWheelPayload, getMousePosition, normalizeWheelDelta } from '@features/charts/mappers.ts';
 import type { WheelPayload } from '@features/charts/types.ts';
 
-const WHEEL_ZOOM_DELTA_SCALE = 0.0042;
-const WHEEL_ZOOM_ACCELERATION_LIMIT = 0.65;
-const WHEEL_ZOOM_ACTIVATION_THRESHOLD = 0.00015;
+const WHEEL_ZOOM_SENSITIVITY = 0.0022;
+const WHEEL_PINCH_SENSITIVITY = 0.01;
+const WHEEL_ZOOM_STEP_LIMIT = Math.log(1.6);
 
 const accumulateWheelPayload = (currentPayload: WheelPayload | null, nextPayload: WheelPayload | null): WheelPayload | null => {
     if (!nextPayload) {
@@ -209,29 +208,26 @@ const handleWheelThrottled = (chart: ChartInteractionScene, event: WheelEvent): 
         });
     }
 };
+const resolveWheelZoomFactor = (delta: number, sensitivity: number): number => Math.exp(clampNumber(delta * sensitivity, -WHEEL_ZOOM_STEP_LIMIT, WHEEL_ZOOM_STEP_LIMIT));
+
 const handleWheel = (chart: ChartInteractionScene, payload: WheelPayload): void => {
-    const { chartWidth, left } = chart.viewport.getChartDimensions();
-    if (chartWidth <= 0) {
+    if (chart.viewport.getChartDimensions().chartWidth <= 0) {
         return;
     }
-    const normDelta = normalizeWheelDelta(chart, payload);
-    if (normDelta === 0) {
+    const horizontalDelta = normalizeWheelDelta(chart, payload, 'x');
+    const verticalDelta = normalizeWheelDelta(chart, payload, 'y');
+    if (horizontalDelta === 0 && verticalDelta === 0) {
         return;
     }
-    chart.viewport.markManual('wheel');
-    const { zoom } = chart.viewportState;
-    const { options } = chart.configuration;
-    const modifier = (payload.shiftKey ? 1.45 : 1) * (payload.ctrlKey || payload.metaKey ? 1.35 : 1);
-    const velocity = Math.abs(normDelta);
-    const accel = 1 + Math.min(WHEEL_ZOOM_ACCELERATION_LIMIT, velocity / 850);
-    zoom.wheelAccumulator += normDelta * WHEEL_ZOOM_DELTA_SCALE * modifier * accel;
-    if (Math.abs(zoom.wheelAccumulator) < WHEEL_ZOOM_ACTIVATION_THRESHOLD) {
-        return;
+    const anchorX = getMousePosition(chart, payload).x;
+    if (payload.ctrlKey || payload.metaKey) {
+        chart.viewport.zoomBy(anchorX, resolveWheelZoomFactor(verticalDelta, WHEEL_PINCH_SENSITIVITY), false);
+    } else if (payload.shiftKey) {
+        chart.viewport.panByPixels(-(horizontalDelta !== 0 ? horizontalDelta : verticalDelta));
+    } else if (Math.abs(horizontalDelta) > Math.abs(verticalDelta)) {
+        chart.viewport.panByPixels(-horizontalDelta);
+    } else {
+        chart.viewport.zoomBy(anchorX, resolveWheelZoomFactor(verticalDelta, WHEEL_ZOOM_SENSITIVITY), true);
     }
-    const deltaApply = zoom.wheelAccumulator;
-    zoom.wheelAccumulator = 0;
-    const { x: xCoordinate } = getMousePosition(chart, payload);
-    const anchorRatio = clampNumber((xCoordinate - left) / Math.max(1, chartWidth), 0, 1);
-    applyZoomAtRatio(chart, { level: zoom.level * Math.exp(-deltaApply), anchorRatio, source: 'wheel', animate: Boolean(options['enableSmoothZoom']) });
 };
 export { handlePointerCancel, handlePointerDown, handlePointerLeave, handlePointerMove, handlePointerUp, handleWheel, handleWheelThrottled };

@@ -6,7 +6,7 @@ import { securityApi } from '@core/security/public.ts';
 import { toTrimmedString } from '@core/normalize.ts';
 import { readRequiredTrimmedStringMessageValue } from '@core/types/payloadValueReaders.ts';
 import { resolveProgressUsageClass } from '@core/ui/progressWidths.ts';
-import type { OperationEntry, OperationMeta } from '@features/tasks/taskmanager/taskManagerModels.ts';
+import type { OperationEntry, OperationMeta, PluginEntry } from '@features/tasks/taskmanager/taskManagerModels.ts';
 import type { TaskManagerStoreApi } from '@features/tasks/taskmanager/taskManagerTypes.ts';
 
 interface OperationContext {
@@ -17,6 +17,30 @@ interface OperationContext {
 interface OperationLabelDependencies {
     store: TaskManagerStoreApi;
 }
+
+interface StopAllTargets {
+    plugins: PluginEntry[];
+    operations: OperationEntry[];
+}
+
+const resolveStopAllTargets = (store: TaskManagerStoreApi): StopAllTargets => {
+    const operations = store.getActiveOperations();
+    const protectedPluginKeys = new Set<string>();
+    let hasUnownedProtectedOperation = false;
+    for (const operation of operations) {
+        if (operation.cancelable === true) continue;
+        const pluginKey = operation.pluginKey || store.getPluginKey(operation.pluginName);
+        if (pluginKey) protectedPluginKeys.add(pluginKey);
+        else hasUnownedProtectedOperation = true;
+    }
+    const plugins = hasUnownedProtectedOperation
+        ? []
+        : store.getStoppablePlugins().filter((plugin) => {
+              const pluginKey = store.getPluginKey(plugin);
+              return pluginKey !== null && !protectedPluginKeys.has(pluginKey);
+          });
+    return { plugins, operations: store.getCancelableOperations() };
+};
 
 const resolveOperationContext = (op: OperationEntry): OperationContext => {
     const meta = resolveTaskOperationMeta(op);
@@ -61,4 +85,4 @@ const resolveTaskStopButton = (target: EventTarget | null): HTMLElement | null =
     return stopButton instanceof HTMLElement ? stopButton : null;
 };
 
-export { buildOperationSignature, renderOperationRow, resolveOperationContext, resolveTaskStopButton };
+export { buildOperationSignature, renderOperationRow, resolveOperationContext, resolveStopAllTargets, resolveTaskStopButton };

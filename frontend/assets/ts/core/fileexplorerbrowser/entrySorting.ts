@@ -3,6 +3,7 @@
 
 import type { FileBrowserEntry } from '@core/fileexplorerbrowser/types.ts';
 import { getCurrentLocale } from '@core/languageservice/service.ts';
+import { getCollator } from '@core/localization/intlCache.ts';
 import type { SortDirection } from '@core/ui/tables/sortableTable.ts';
 
 type FileExplorerSortColumn = 'name' | 'type' | 'size' | 'modified';
@@ -16,7 +17,7 @@ const FILE_EXPLORER_SORT_COLUMN_DEFAULT_DIRECTIONS: Readonly<Record<FileExplorer
     modified: 'desc'
 };
 
-const compareNamesAscending = (entryA: FileBrowserEntry, entryB: FileBrowserEntry, locale: string): number => entryA.name.localeCompare(entryB.name, locale, { sensitivity: 'base' });
+const compareNamesAscending = (entryA: FileBrowserEntry, entryB: FileBrowserEntry, collator: Intl.Collator): number => collator.compare(entryA.name, entryB.name);
 
 const compareTypeGroupAscending = (entryA: FileBrowserEntry, entryB: FileBrowserEntry): number => {
     const rankComparison = entryA.typeRank - entryB.typeRank;
@@ -28,20 +29,20 @@ const compareTypeGroupAscending = (entryA: FileBrowserEntry, entryB: FileBrowser
 
 const sortFileExplorerEntries = (entries: readonly FileBrowserEntry[], column: FileExplorerSortColumn, direction: SortDirection): readonly FileBrowserEntry[] => {
     const multiplier = direction === 'asc' ? 1 : -1;
-    const locale = getCurrentLocale();
+    const collator = getCollator(getCurrentLocale(), { sensitivity: 'base' });
     return [...entries].sort((entryA, entryB) => {
         if (column !== 'type' && entryA.isDirectory !== entryB.isDirectory) {
             return entryA.isDirectory ? -1 : 1;
         }
         switch (column) {
             case 'name':
-                return multiplier * compareNamesAscending(entryA, entryB, locale);
+                return multiplier * compareNamesAscending(entryA, entryB, collator);
             case 'type': {
                 const typeComparison = compareTypeGroupAscending(entryA, entryB);
                 if (typeComparison !== 0) {
                     return multiplier * typeComparison;
                 }
-                return compareNamesAscending(entryA, entryB, locale);
+                return compareNamesAscending(entryA, entryB, collator);
             }
             case 'size':
                 return multiplier * (entryA.size - entryB.size);

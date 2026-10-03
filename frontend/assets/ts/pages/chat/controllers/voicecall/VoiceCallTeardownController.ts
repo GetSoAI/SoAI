@@ -18,12 +18,26 @@ interface VoiceCallTeardownControllerDependencies {
 
 class VoiceCallTeardownController {
     readonly #dependencies: VoiceCallTeardownControllerDependencies;
+    #pending: Promise<void> | null = null;
 
     constructor(dependencies: VoiceCallTeardownControllerDependencies) {
         this.#dependencies = dependencies;
     }
 
-    async perform(): Promise<void> {
+    perform(): Promise<void> {
+        if (this.#pending !== null) return this.#pending;
+        const operation = this.#releaseResources().finally(() => {
+            if (this.#pending === operation) this.#pending = null;
+        });
+        this.#pending = operation;
+        return operation;
+    }
+
+    async waitForIdle(): Promise<void> {
+        await this.#pending;
+    }
+
+    async #releaseResources(): Promise<void> {
         try {
             this.#dependencies.speaker.stop();
         } catch (error) {

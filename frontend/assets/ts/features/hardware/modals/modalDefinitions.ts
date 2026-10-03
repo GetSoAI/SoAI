@@ -6,12 +6,13 @@ import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@co
 import { MODAL_HEADER_CLOSE_SELECTOR } from '@core/modals/headerButtons.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
 import type { ModalOpenOptions } from '@core/modals/types.ts';
-import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
+import { modalUiId } from '@core/modals/uiIds.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
 import { renderModalBody, renderModalLoadingState, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 import { uiHtml } from '@core/security/uiHtml.ts';
 import { HARDWARE_SOAIBENCH_HISTORY_MODAL_ID, HARDWARE_SOAIBENCH_RUN_MODAL_ID, HARDWARE_SYSTEM_INFO_MODAL_ID } from '@features/hardware/modals/constants.ts';
 import { HARDWARE_SOAIBENCH_HISTORY_COPY_ACTION, HARDWARE_SOAIBENCH_HISTORY_DOWNLOAD_ACTION } from '@features/hardware/modals/soaibenchhistory/constants.ts';
+import { HARDWARE_SOAIBENCH_RUN_NEW_ACTION } from '@features/hardware/modals/soaibenchrun/constants.ts';
 
 const createSystemInfoModalElement = (): HTMLElement => {
     const modalId = HARDWARE_SYSTEM_INFO_MODAL_ID;
@@ -97,16 +98,7 @@ const createSoAIBenchHistoryModalElement = (): HTMLElement => {
 const createSoAIBenchRunModalElement = (): HTMLElement => {
     const modalId = HARDWARE_SOAIBENCH_RUN_MODAL_ID;
     const closeAriaLabel = i18n.t('hardware.modals.soaibenchRun.ariaLabels.close');
-    const historyAriaLabel = i18n.t('hardware.modals.soaibenchRun.ariaLabels.history');
-    const copyAriaLabel = i18n.t('hardware.modals.soaibenchRun.ariaLabels.copy');
-    const downloadAriaLabel = i18n.t('hardware.modals.soaibenchRun.ariaLabels.download');
-    const startAriaLabel = i18n.t('hardware.modals.soaibenchRun.ariaLabels.start');
-    const closeText = i18n.t('hardware.modals.soaibenchRun.close');
-    const historyText = i18n.t('hardware.modals.soaibenchRun.history');
-    const copyText = i18n.t('hardware.modals.soaibenchRun.copy');
-    const downloadText = i18n.t('hardware.modals.soaibenchRun.download');
-    const publishText = i18n.t('hardware.soaibenchPublication.action');
-    const startText = i18n.t('hardware.modals.soaibenchRun.start');
+    const newBenchmarkText = i18n.t('hardware.modals.soaibenchRun.newBenchmark');
     const titleId = modalUiId(modalId, 'title');
     const header = renderStandardModalHeader({
         modalId,
@@ -115,10 +107,10 @@ const createSoAIBenchRunModalElement = (): HTMLElement => {
         titleId,
         closeLabel: closeAriaLabel
     });
-    const body = renderModalBody(uiHtml`<div id="${modalUiId(modalId, 'body')}" class="hardware-soaibench-run-body"></div>`);
+    const newBenchmarkButton = renderModalFooterActionButton({ text: newBenchmarkText, ariaLabel: i18n.t('hardware.modals.soaibenchRun.ariaLabels.newBenchmark'), variant: 'accent', action: HARDWARE_SOAIBENCH_RUN_NEW_ACTION });
+    const body = renderModalBody(uiHtml`<div class="hardware-soaibench-run-body"><div id="${modalUiId(modalId, 'toolbar')}" class="hardware-soaibench-run-toolbar u-hidden" data-presence>${newBenchmarkButton}</div><div id="${modalUiId(modalId, 'composer')}" class="hardware-soaibench-composer u-hidden"></div><div id="${modalUiId(modalId, 'runs')}" class="hardware-soaibench-run-list"></div></div>`);
     const footer = renderSplitModalFooter({
-        left: renderModalFooterCloseButton({ modalId, id: modalUiId(modalId, 'close'), text: closeText, ariaLabel: closeAriaLabel }),
-        right: uiHtml`${renderModalFooterActionButton({ text: historyText, ariaLabel: historyAriaLabel, id: modalUiId(modalId, 'history'), variant: 'neutral', action: 'hardware.gpu.soaibench.history', disabled: true, attributes: { hidden: true } })}${renderModalFooterActionButton({ text: copyText, ariaLabel: copyAriaLabel, id: modalUiId(modalId, 'copy'), variant: 'primary', action: 'hardware.gpu.soaibench.run.copy', disabled: true })}${renderModalFooterActionButton({ text: downloadText, ariaLabel: downloadAriaLabel, id: modalUiId(modalId, 'download'), variant: 'accent', action: 'hardware.gpu.soaibench.run.download', disabled: true })}${renderModalFooterActionButton({ text: publishText, ariaLabel: i18n.t('hardware.soaibenchPublication.ariaLabel'), id: modalUiId(modalId, 'publish'), variant: 'violet', action: 'hardware.gpu.soaibench.run.publish', disabled: true, attributes: { hidden: true } })}${renderModalFooterActionButton({ text: startText, ariaLabel: startAriaLabel, id: modalUiId(modalId, 'start'), variant: 'accent', action: 'hardware.gpu.soaibench.start.confirm' })}`
+        left: renderModalFooterCloseButton({ modalId, id: modalUiId(modalId, 'close'), text: i18n.t('hardware.modals.soaibenchRun.close'), ariaLabel: closeAriaLabel })
     });
     return createModalElement({
         id: modalId,
@@ -147,7 +139,7 @@ const HARDWARE_MODAL_DEFINITIONS: readonly ModalDefinition[] = Object.freeze([
     {
         id: HARDWARE_SOAIBENCH_RUN_MODAL_ID,
         layout: 'lg',
-        initialFocusSelector: modalUiSelector(HARDWARE_SOAIBENCH_RUN_MODAL_ID, 'start'),
+        initialFocusSelector: MODAL_HEADER_CLOSE_SELECTOR,
         createElement: (_options: ModalOpenOptions): HTMLElement => createSoAIBenchRunModalElement()
     }
 ]);

@@ -19,8 +19,7 @@
 
     .sidebar-separator {
         height: 1px;
-        background: var(--glass-border-strong);
-        opacity: 0.6;
+        background: var(--ui-separator-gradient-horizontal);
         margin: calc(var(--sidebar-menu-gap) * 0.5) 0;
         flex-shrink: 0;
         border: none;
@@ -60,7 +59,7 @@
     .sidebar-active-rail {
         position: absolute;
         top: var(--sidebar-active-rail-y);
-        right: 0;
+        inset-inline-end: 0;
         width: calc(var(--border-width-1) / var(--ui-scale));
         height: var(--sidebar-active-rail-height);
         background: var(--accent-primary);
@@ -97,7 +96,7 @@
         --sidebar-icon-stroke-width: 1.5;
         margin: 0 auto;
         justify-self: center;
-        transform: translateX(var(--sidebar-button-alignment-offset-x));
+        transform: translateX(calc(var(--sidebar-button-alignment-offset-x) * var(--dir-sign)));
     }
 
     .main-state-indicator .sidebar-icon-button,
@@ -138,7 +137,7 @@
         --status-badge-color: var(--status-red);
         position: absolute;
         top: 0;
-        right: 0;
+        inset-inline-end: 0;
         min-width: 18px;
     }
 

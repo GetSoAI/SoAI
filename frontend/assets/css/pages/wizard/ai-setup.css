@@ -1,0 +1,221 @@
+/* SoAI - Wizard AI setup layout [frontend/assets/css/pages/wizard/ai-setup.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer pages {
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-step--ai {
+        max-width: 720px;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-section {
+        display: grid;
+        gap: var(--space-4);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-source-cell {
+        position: relative;
+        display: grid;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-source-cell > .wizard-choice-card {
+        height: 100%;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-source-cell--cloud > .wizard-choice-card {
+        padding-bottom: calc(var(--space-5) + var(--space-6) + var(--space-2));
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-source-key {
+        position: absolute;
+        z-index: calc(var(--z-base) + 2);
+        inset-inline-end: var(--space-5);
+        inset-block-end: var(--space-4);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-choice-body {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: start;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-choice-icon {
+        display: flex;
+        color: var(--accent-green);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-choice-text {
+        display: grid;
+        gap: var(--space-1);
+        min-width: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-choice-body > .wizard-ai-choice-text:only-child {
+        grid-column: 1 / -1;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-choice-title {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-choice-title strong {
+        margin-bottom: 0;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-choice-note {
+        margin-top: var(--space-1);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-choice-card > .wizard-ai-recommended {
+        position: absolute;
+        inset-block-start: 0;
+        inset-inline-end: var(--space-4);
+        translate: 0 -50%;
+
+        --status-badge-color: var(--status-blue);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-field-hint.wizard-ai-hint {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-2);
+        margin-top: 0;
+        color: var(--status-orange);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-hint > svg {
+        flex: 0 0 auto;
+        margin-top: var(--space-05);
+        color: var(--status-orange);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-free-key a {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        min-height: var(--space-6);
+        color: var(--accent-green);
+        font-weight: 600;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-disclosure {
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-disclosure > summary {
+        padding: var(--space-3) var(--space-4);
+        color: var(--accent-green);
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-disclosure-body {
+        display: grid;
+        gap: var(--space-3);
+        margin: 0;
+        padding: 0 var(--space-4) var(--space-4);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-provider-form {
+        width: 100%;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-form-actions,
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-row-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-connected {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        border: var(--border-width-1) solid var(--glass-border-strong);
+        border-radius: var(--border-radius);
+        background: var(--glass-surface-medium);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-connected-name {
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-connected .wizard-ai-chips {
+        margin-inline-start: auto;
+        margin-top: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-connected .ui-button {
+        margin-inline-start: 0;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-choice:has(input:focus-visible),
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-cloud-choice:has(input:focus-visible) {
+        border-color: transparent;
+        outline: var(--border-width-2) solid var(--accent-green);
+        outline-offset: var(--space-05);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-ready-count {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-body-sm);
+        font-weight: 600;
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-progress {
+        display: grid;
+        gap: var(--space-3);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-progress-item {
+        display: grid;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-progress-item:focus-visible {
+        outline: var(--border-width-2) solid var(--accent-green);
+        outline-offset: var(--space-05);
+    }
+
+    :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-link-button {
+        display: inline-flex;
+        align-items: center;
+        min-height: var(--space-6);
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--accent-green);
+        font: inherit;
+        font-weight: 600;
+        text-align: start;
+        cursor: pointer;
+    }
+
+    @container ui-viewport (width <= 480px) {
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-step--ai .ui-inline-action-field {
+            --inline-action-field-inset: 0;
+            --inline-action-field-width: 44px;
+        }
+
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-free-key a,
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-link-button {
+            min-height: 44px;
+        }
+
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-step--ai :is(.ui-button, .wizard-form-input, .wizard-disclosure > summary),
+        :where([data-section='wizard'], [data-page-scope='wizard']) .wizard-ai-cloud-choice {
+            min-height: 44px;
+        }
+    }
+}

@@ -35,6 +35,7 @@ class BaseHardwareCardRenderer<THost extends BaseHardwareCardRendererHost = Base
         const labelElement = host.createElement('span', { className: `hardware-${type}-stat-label hardware-resource-stat-label` });
         const valueElement = host.createElement('span', { className: `hardware-${type}-stat-value hardware-resource-stat-value` });
         host.updateText(labelElement, label);
+        valueElement.dir = 'auto';
         host.updateText(valueElement, value);
         statItem.append(labelElement, valueElement);
         return statItem;

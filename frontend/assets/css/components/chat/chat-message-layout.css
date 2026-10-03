@@ -45,8 +45,8 @@
         overflow-anchor: none;
         scrollbar-gutter: stable;
         background:
-            linear-gradient(var(--glass-border-strong), var(--glass-border-strong)) right 0 top calc(var(--chat-conversation-header-height) + var(--chat-plan-header-height)) / var(--chat-native-scrollbar-gutter-width) var(--chat-plan-divider-height) no-repeat,
-            linear-gradient(to bottom, var(--glass-border-strong) 0, var(--glass-border-strong) var(--border-width-1), var(--chat-plan-overlay-surface) var(--border-width-1), var(--chat-plan-overlay-surface) calc(100% - var(--border-width-1)), var(--glass-border-strong) calc(100% - var(--border-width-1)), var(--glass-border-strong) 100%) right 0 top calc(var(--chat-conversation-header-height) - var(--border-width-1)) / var(--chat-native-scrollbar-gutter-width) calc(var(--chat-plan-overlay-height) + var(--border-width-1)) no-repeat,
+            linear-gradient(var(--glass-border-strong), var(--glass-border-strong)) right 0 top calc(var(--chat-conversation-header-offset) + var(--chat-plan-header-height)) / var(--chat-native-scrollbar-gutter-width) var(--chat-plan-divider-height) no-repeat,
+            linear-gradient(to bottom, var(--glass-border-strong) 0, var(--glass-border-strong) var(--border-width-1), var(--chat-plan-overlay-surface) var(--border-width-1), var(--chat-plan-overlay-surface) calc(100% - var(--border-width-1)), var(--glass-border-strong) calc(100% - var(--border-width-1)), var(--glass-border-strong) 100%) right 0 top calc(var(--chat-conversation-header-offset) - var(--border-width-1)) / var(--chat-native-scrollbar-gutter-width) calc(var(--chat-plan-overlay-height) + var(--border-width-1)) no-repeat,
             var(--chat-messages-surface);
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
@@ -58,8 +58,8 @@
     }
 
     :where(.chat-container) .chat-messages-area.widescreen-mode {
-        padding-left: var(--space-8);
-        padding-right: var(--space-8);
+        padding-inline-start: var(--space-8);
+        padding-inline-end: var(--space-8);
     }
 
     :where(.chat-container) .chat-messages-area:has(> .chat-messages[data-conversation-color]) {
@@ -115,10 +115,9 @@
     }
 
     :where(.chat-container) .chat-message-window-loading-spinner {
+        --soai-spinner-stroke: var(--border-width-150);
         width: 16px;
         height: 16px;
-        border-width: var(--border-width-150);
-        border-top-width: var(--border-width-150);
     }
 
     :where(.chat-container) .chat-message {

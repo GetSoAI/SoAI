@@ -124,7 +124,7 @@ class HistoryChartRuntime implements HistoryChartRuntimeContract {
         return Math.min(...candidates);
     }
 
-    async initializeChart({ container, chartType, options = {}, onRequestHistoricalData, signal }: InitializeChartOptions = {}): Promise<HistoryChartInstance> {
+    async initializeChart({ container, chartType, options = {}, signal }: InitializeChartOptions = {}): Promise<HistoryChartInstance> {
         if (!isInstanceOf(container, HTMLElement)) {
             throw new Error('History chart container element is required');
         }
@@ -134,18 +134,15 @@ class HistoryChartRuntime implements HistoryChartRuntimeContract {
         throwIfAborted(signal);
         await this.ensureModules();
         throwIfAborted(signal);
-        const historicalDataRequest = isFunction(onRequestHistoricalData) ? onRequestHistoricalData : (options.onRequestHistoricalData ?? null);
         const chart = this.getChartFactory()(container, {
             autoScale: true,
             enableCrosshair: true,
-            enableInertialPanning: true,
+            enableInertialPanning: false,
             minHeight: HISTORY_CHART_MIN_HEIGHT,
             padding: { ...DEFAULT_CHART_PADDING },
             bottomAxisPadding: DEFAULT_PRIMARY_BOTTOM_AXIS_PADDING,
-            rightMarginBars: 0,
             chartType,
-            ...options,
-            onRequestHistoricalData: historicalDataRequest
+            ...options
         });
         try {
             await chart.lifecycle.initialize(signal ? { signal } : {});

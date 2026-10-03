@@ -8,7 +8,7 @@ import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import { hasTerminalAssistantState } from '@features/chat/message/assistantTerminalState.ts';
 import { resolveLoadingActivityToggleEnabled } from '@features/chat/message/messageview/loadingActivityToggleEnabled.ts';
 import { COLLAPSED_LOADING_CONTENT_WRAPPER_ATTRIBUTE } from '@features/chat/message/messageview/loadingActivityCollapsePolicy.ts';
-import { resolveInlineActivityName } from '@features/chat/message/messageview/inlineActivityName.ts';
+import { resolveLatestInlineActivityName } from '@features/chat/message/messageview/inlineActivityName.ts';
 import type { RenderInlineLoadingActivityGroupArguments } from '@features/chat/message/messageview/renderInlineLoadingActivityGroup.ts';
 import { isInlineRefreshActivitySegment, isInlineTimelineSequenceSegment, type InlineRefreshActivitySegment } from '@features/chat/message/messageSegmentTypes.ts';
 import type { InlineLoadingActivitySegment, MessageSegment } from '@features/chat/message/messageSegments.ts';
@@ -176,17 +176,6 @@ const resolveCollapsedLoadingSummarySegment = (message: ChatMessage, segments: M
     };
 };
 
-const resolveCollapsedLatestActivityName = (segments: MessageSegment[]): string | null => {
-    for (let index = segments.length - 1; index >= 0; index -= 1) {
-        const segment = segments[index];
-        if (!segment || !isInlineRefreshActivitySegment(segment)) {
-            continue;
-        }
-        return segment.type === 'inline_loading_activity' ? null : resolveInlineActivityName(segment);
-    }
-    return null;
-};
-
 const resolveCollapsedLoadingContentSegments = (segments: MessageSegment[]): MessageSegment[] => {
     const contentSegments: MessageSegment[] = [];
     let skippedLoadingSegment = false;
@@ -222,7 +211,7 @@ const renderCollapsedLoadingSummary = (dependencies: CollapsedLoadingSummaryDepe
         displayStatus,
         durationStatus,
         toggleEnabled: resolveLoadingActivityToggleEnabled(segments),
-        latestActivityName: streamingPhase === null ? null : resolveCollapsedLatestActivityName(dependencies.resolveRenderableSegments(segments))
+        latestActivityName: streamingPhase === null ? null : resolveLatestInlineActivityName(dependencies.resolveRenderableSegments(segments))
     });
     const contentSegments = resolveCollapsedLoadingContentSegments(segments);
     const loadingHtml = dependencies.renderAssistantBodyItem(loadingMarkup, loadingKey, loadingMarkup);

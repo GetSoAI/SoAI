@@ -18,7 +18,10 @@ from database.core.sqlite_values import SQLiteValue
 if TYPE_CHECKING:
     from core.types.json import JSONDict, JSONValue
 
-__all__ = ("sync_log_hardware_metrics",)
+__all__ = (
+    "resolve_hardware_sample_timestamp_ms",
+    "sync_log_hardware_metrics",
+)
 
 
 def _none_if_blank_string(value: JSONValue) -> JSONValue | None:
@@ -27,17 +30,20 @@ def _none_if_blank_string(value: JSONValue) -> JSONValue | None:
     return value
 
 
+def resolve_hardware_sample_timestamp_ms(info: JSONDict) -> int:
+    timestamp_raw = info.get("timestamp_ms")
+    if isinstance(timestamp_raw, int):
+        return int(timestamp_raw)
+    if isinstance(timestamp_raw, float) and math.isfinite(timestamp_raw):
+        return int(timestamp_raw)
+    return epoch_ms()
+
+
 def sync_log_hardware_metrics(
     conn: sqlite3.Connection,
     info: JSONDict,
 ) -> None:
-    timestamp_raw = info.get("timestamp_ms")
-    if isinstance(timestamp_raw, int):
-        current_time = int(timestamp_raw)
-    elif isinstance(timestamp_raw, float):
-        current_time = int(timestamp_raw) if math.isfinite(timestamp_raw) else epoch_ms()
-    else:
-        current_time = epoch_ms()
+    current_time = resolve_hardware_sample_timestamp_ms(info)
     cpu_info_list, mem_info = (info.get("cpus"), info.get("memory"))
     if cpu_info_list and isinstance(cpu_info_list, list | tuple):
         mem_percent = (

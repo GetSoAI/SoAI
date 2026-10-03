@@ -62,7 +62,8 @@ class ExternalAccountsManager {
             return false;
         }
         try {
-            const [mailResult, calendarResult] = await Promise.all([settleSettingsCapability(() => this.#host.api.webui.mail.accounts.list()), settleSettingsCapability(() => this.#host.api.webui.calendar.accounts.list())]);
+            const requestOptions = { signal: reloadRun.signal };
+            const [mailResult, calendarResult] = await Promise.all([settleSettingsCapability(() => this.#host.api.webui.mail.accounts.list(requestOptions)), settleSettingsCapability(() => this.#host.api.webui.calendar.accounts.list(requestOptions))]);
             if (!this.#lifecycle.isReloadCurrent(reloadRun)) {
                 return false;
             }

@@ -3,12 +3,17 @@
 
 import { dom } from '@core/dom/dom.ts';
 import { isHTMLElement } from '@core/typeGuards.ts';
-import { PAGE_CLASS_PREFIX, SOLID_BACKGROUND_STYLE_ID, WALLPAPER_STYLE_ID } from '@core/backgroundtasks/constants.ts';
+import { PAGE_CLASS_PREFIX, SOLID_BACKGROUND_STYLE_ID, WALLPAPER_LAYER_CLASS } from '@core/backgroundtasks/constants.ts';
 import { getCspNonce } from '@core/security/cspNonce.ts';
 
 const resolveStyleElement = (selector: string): HTMLStyleElement | null => {
     const element = dom.resolve(selector);
     return element instanceof HTMLStyleElement ? element : null;
+};
+
+const resolveWallpaperLayer = (): HTMLImageElement | null => {
+    const element = dom.resolve(`.${WALLPAPER_LAYER_CLASS}`);
+    return element instanceof HTMLImageElement ? element : null;
 };
 
 const requireBody = (): HTMLElement => {
@@ -57,41 +62,33 @@ const updateBodyRouteClass = (body: HTMLElement, route: string): void => {
     }
 };
 
-const applyWallpaperCSS = (url: string): void => {
-    const stylesheetId = `#${WALLPAPER_STYLE_ID}`;
-    let styleElement: HTMLStyleElement | null = resolveStyleElement(stylesheetId);
-    const nonce = getCspNonce();
-
-    if (styleElement && nonce && styleElement.nonce !== nonce) {
-        styleElement.remove();
-        styleElement = null;
+const ensureWallpaperLayer = (): HTMLImageElement => {
+    const existing = resolveWallpaperLayer();
+    if (existing) {
+        return existing;
     }
-
-    if (!styleElement) {
-        const created = dom.create('style', {
-            id: WALLPAPER_STYLE_ID
-        });
-        if (!(created instanceof HTMLStyleElement)) {
-            throw new Error('Wallpaper style element must be an HTMLStyleElement');
-        }
-        if (nonce) {
-            created.nonce = nonce;
-        }
-        styleElement = created;
-        dom.appendChild(requireHead(), created);
+    const created = dom.create('img', {
+        className: WALLPAPER_LAYER_CLASS,
+        alt: '',
+        decoding: 'sync',
+        draggable: false,
+        'aria-hidden': 'true'
+    });
+    if (!(created instanceof HTMLImageElement)) {
+        throw new Error('Wallpaper layer element must be an HTMLImageElement');
     }
+    const body = requireBody();
+    dom.insertBefore(body, created, body.firstElementChild);
+    dom.flush();
+    return created;
+};
 
-    if (styleElement.dataset['appliedUrl'] === url) {
+const applyWallpaperImage = (url: string): void => {
+    const layer = ensureWallpaperLayer();
+    if (layer.getAttribute('src') === url) {
         return;
     }
-
-    const escapedUrl = url.replace(/'/g, "\\'");
-    styleElement.textContent = `
-            body.has-wallpaper::before {
-                background-image: url('${escapedUrl}');
-            }
-        `;
-    styleElement.dataset['appliedUrl'] = url;
+    layer.src = url;
 };
 
 const applyWallpaperOverlay = (overlay: number): void => {
@@ -132,10 +129,7 @@ const applySolidBackgroundCSS = (color: string): void => {
 };
 
 const removeWallpaperStyles = (): void => {
-    const wallpaperStyle = resolveStyleElement(`#${WALLPAPER_STYLE_ID}`);
-    if (wallpaperStyle) {
-        wallpaperStyle.remove();
-    }
+    resolveWallpaperLayer()?.removeAttribute('src');
 
     const solidBgStyle = resolveStyleElement(`#${SOLID_BACKGROUND_STYLE_ID}`);
     if (solidBgStyle) {
@@ -146,4 +140,4 @@ const removeWallpaperStyles = (): void => {
 const getBody = (): HTMLElement => requireBody();
 const getHead = (): HTMLElement => requireHead();
 const getMainContainer = (): HTMLElement => requireMainContainer();
-export { applySolidBackgroundCSS, applyWallpaperCSS, applyWallpaperOverlay, clearBackgroundClasses, getBody, getHead, getMainContainer, removeWallpaperStyles, requireBody, requireMainContainer, requireHead, updateBodyRouteClass };
+export { applySolidBackgroundCSS, applyWallpaperImage, applyWallpaperOverlay, clearBackgroundClasses, getBody, getHead, getMainContainer, removeWallpaperStyles, requireBody, requireMainContainer, requireHead, updateBodyRouteClass };

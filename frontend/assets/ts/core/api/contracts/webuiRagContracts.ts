@@ -88,10 +88,6 @@ interface RagIngestResponse {
     knowledgeAttachmentId: string;
     knowledgeAttachment: KnowledgeAttachmentSummary;
 }
-interface RagDeleteResponse {
-    status: string;
-    knowledgeAttachment?: KnowledgeAttachmentSummary | undefined;
-}
 interface RagReindexResponse {
     status: 'queued';
     taskId: string;
@@ -172,14 +168,10 @@ const decodeRagIngest = (value: ApiResponsePayload): RagIngestResponse => {
     const record = requireRecord(value, 'RAG file explorer ingest response');
     return { status: readRequiredEnumValue(record['status'], 'RAG file explorer ingest response.status', ['accepted', 'queued']), taskId: requiredString(record, 'task_id', 'RAG file explorer ingest response'), knowledgeAttachmentId: requiredString(record, 'knowledge_attachment_id', 'RAG file explorer ingest response'), knowledgeAttachment: decodeSummary(record['knowledge_attachment']) };
 };
-const decodeRagDelete = (value: ApiResponsePayload): RagDeleteResponse => {
-    const record = requireRecord(value, 'RAG delete response');
-    return { status: requiredString(record, 'status', 'RAG delete response'), knowledgeAttachment: record['knowledge_attachment'] === undefined ? undefined : decodeSummary(record['knowledge_attachment']) };
-};
 const decodeRagReindex = (value: ApiResponsePayload): RagReindexResponse => {
     const record = requireRecord(value, 'RAG reindex response');
     return { status: readRequiredEnumValue(record['status'], 'RAG reindex response.status', ['queued']), taskId: requiredString(record, 'task_id', 'RAG reindex response'), convId: requiredString(record, 'conv_id', 'RAG reindex response'), embeddingModel: requiredString(record, 'embedding_model', 'RAG reindex response'), knowledgeAttachment: decodeSummary(record['knowledge_attachment']) };
 };
 
-export { decodeRagBatch, decodeRagConfig, decodeRagDelete, decodeRagDocuments, decodeRagIngest, decodeRagReindex, decodeRagUpload, serializeRagConfigUpdateRequest };
-export type { RagBatchResultResponse, RagBatchUploadResponse, RagConfigResponse, RagConfigUpdateRequest, RagDeleteResponse, RagDocumentResponse, RagDocumentStatusCounts, RagDocumentsResponse, RagIngestResponse, RagReindexResponse, RagUploadResponse };
+export { decodeRagBatch, decodeRagConfig, decodeRagDocuments, decodeRagIngest, decodeRagReindex, decodeRagUpload, serializeRagConfigUpdateRequest };
+export type { RagBatchResultResponse, RagBatchUploadResponse, RagConfigResponse, RagConfigUpdateRequest, RagDocumentResponse, RagDocumentStatusCounts, RagDocumentsResponse, RagIngestResponse, RagReindexResponse, RagUploadResponse };

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
         Page,
     )
 
+    from core.browser.playwright_driver_errors import PlaywrightDriverConnectionClosedError
     from core.hardware.protocols_storage import StorageManagerProtocol
     from core.runtime.protocols import RuntimeFlagsViewProtocol
     from core.tasks.protocols import (
@@ -163,6 +165,9 @@ class BrowserSessionState:
         "downloads_dir",
         "driver_connected",
         "driver_disconnect_reason",
+        "driver_generation",
+        "driver_disconnect_handler",
+        "driver_generation_is_active",
         "finalizer_tracker",
         "host_block_cache",
         "http_credentials",
@@ -225,6 +230,11 @@ class BrowserSessionState:
         storage_state_last_error: str | None = None,
         driver_connected: bool = True,
         driver_disconnect_reason: str | None = None,
+        driver_generation: int | None = None,
+        driver_disconnect_handler: (
+            Callable[[int, PlaywrightDriverConnectionClosedError], Awaitable[None]] | None
+        ) = None,
+        driver_generation_is_active: Callable[[int], Awaitable[bool]] | None = None,
         downloads_dir: str | None = None,
         next_ref_index: int = 1,
         ref_page_url: str | None = None,
@@ -262,6 +272,9 @@ class BrowserSessionState:
         self.storage_state_last_error = storage_state_last_error
         self.driver_connected = bool(driver_connected)
         self.driver_disconnect_reason = driver_disconnect_reason
+        self.driver_generation = driver_generation
+        self.driver_disconnect_handler = driver_disconnect_handler
+        self.driver_generation_is_active = driver_generation_is_active
         self.refs: dict[str, SnapshotRefMapping] = {}
         self.ref_aliases: dict[str, str] = {}
         self.ref_registry: dict[SnapshotRefMapping, str] = {}

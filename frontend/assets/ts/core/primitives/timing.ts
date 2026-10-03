@@ -3,9 +3,9 @@
 
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { monotonicMs } from '@core/time/clock.ts';
-import { createDebouncedHandler, createThrottledHandler } from '@core/timers/scheduledHandlers.ts';
+import { createDebouncedHandler, createThrottledHandler, type ScheduledHandler } from '@core/timers/scheduledHandlers.ts';
 
-const debounce = <TArguments extends JsonValue[]>(functionValue: (...inputArguments: TArguments) => void, delayMs: number): ((...inputArguments: TArguments) => void) => {
+const debounce = <TArguments extends JsonValue[]>(functionValue: (...inputArguments: TArguments) => void, delayMs: number): ScheduledHandler<TArguments> => {
     return createDebouncedHandler(functionValue, delayMs, {
         setTimer: (callback, timeoutMs): number => window.setTimeout(callback, timeoutMs),
         clearTimer: (timerId): void => window.clearTimeout(timerId),
@@ -13,7 +13,7 @@ const debounce = <TArguments extends JsonValue[]>(functionValue: (...inputArgume
     });
 };
 
-const throttle = <TArguments extends JsonValue[]>(functionValue: (...inputArguments: TArguments) => void, delayMs: number): ((...inputArguments: TArguments) => void) => {
+const throttle = <TArguments extends JsonValue[]>(functionValue: (...inputArguments: TArguments) => void, delayMs: number): ScheduledHandler<TArguments> => {
     return createThrottledHandler(functionValue, delayMs, {
         setTimer: (callback, timeoutMs): number => window.setTimeout(callback, timeoutMs),
         clearTimer: (timerId): void => window.clearTimeout(timerId),

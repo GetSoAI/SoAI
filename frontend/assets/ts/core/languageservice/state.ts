@@ -5,7 +5,7 @@ import { log } from '@core/languageservice/constants.ts';
 import type { LanguageServiceRuntime } from '@core/languageservice/internalContracts.ts';
 import type { StorageInterface } from '@core/languageservice/types.ts';
 
-const resolveInitialLanguagePreference = (service: LanguageServiceRuntime, store: StorageInterface | null): string => {
+const resolveInitialLanguagePreference = (service: Pick<LanguageServiceRuntime, 'defaultLanguage'> & { languages: ReadonlyMap<string, { code: string }> }, store: Pick<StorageInterface, 'getLanguage'> | null): string => {
     const stored = store?.getLanguage?.();
     if (stored) {
         if (service.languages.has(stored)) {

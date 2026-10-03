@@ -4,7 +4,7 @@
 import { isHexColorString } from '@core/theme/hexColor.ts';
 import type { SettingsRuntimeContext } from '@pages/settings/controllers/page/contracts.ts';
 import type { SettingsPageState } from '@pages/settings/controllers/page/state.ts';
-import { requireUiPrefsAnimation, requireUiPrefsAnimationSpeed, requireUiPrefsBoolean, requireUiPrefsChartColorMode, requireUiPrefsClockFormat, requireUiPrefsDateFormat, requireUiPrefsInterfaceScale, requireUiPrefsLanguage, requireUiPrefsMeasurementUnits, requireUiPrefsNonEmptyString, requireUiPrefsNotificationDuration, requireUiPrefsNullableString, requireUiPrefsRegionalLocale, requireUiPrefsSolidBackground, requireUiPrefsTheme, requireUiPrefsWallpaperOverlay } from '@pages/settings/controllers/uiprefs/guards.ts';
+import { requireUiPrefsAnimation, requireUiPrefsAnimationSpeed, requireUiPrefsBoolean, requireUiPrefsChartColorMode, requireUiPrefsClockFormat, requireUiPrefsDateFormat, requireUiPrefsInterfaceScale, requireUiPrefsLanguage, requireUiPrefsMeasurementUnits, requireUiPrefsNonEmptyString, requireUiPrefsNotificationDuration, requireUiPrefsNullableString, requireUiPrefsRegionalLocale, requireUiPrefsTheme, requireUiPrefsWallpaperOverlay } from '@pages/settings/controllers/uiprefs/guards.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 
 function requireHexColor(value: JsonValue | null | undefined, label: string, nullable: true): string | null;
@@ -39,7 +39,6 @@ const readUiPreferencesForCommit = (current: Record<string, JsonValue | null | u
     animationSpeed: requireUiPrefsAnimationSpeed(current['animationSpeed']),
     interfaceScale: requireUiPrefsInterfaceScale(current['interfaceScale']),
     wallpaperOverlay: requireUiPrefsWallpaperOverlay(current['wallpaperOverlay']),
-    solidBackground: requireUiPrefsSolidBackground(current['solidBackground']),
     headerAutoHide: requireUiPrefsBoolean(current['headerAutoHide'], 'uiPrefs.headerAutoHide'),
     showScrollToTopButton: requireUiPrefsBoolean(current['showScrollToTopButton'], 'uiPrefs.showScrollToTopButton'),
     showMainStatusIndicator: requireUiPrefsBoolean(current['showMainStatusIndicator'], 'uiPrefs.showMainStatusIndicator'),
@@ -49,15 +48,14 @@ const readUiPreferencesForCommit = (current: Record<string, JsonValue | null | u
     chartStaticColor: requireHexColor(current['chartStaticColor'], 'uiPrefs.chartStaticColor', false)
 });
 
-const commitUiPreferences = async (page: SettingsRuntimeContext, state: SettingsPageState): Promise<boolean> => {
+const commitUiPreferences = async (page: SettingsRuntimeContext, state: SettingsPageState): Promise<void> => {
     const manager = state.uiPrefsManager;
     if (!manager || !manager.hasChanges) {
-        return false;
+        return;
     }
 
     const current = manager.currentData;
     const preferences = readUiPreferencesForCommit(current);
-    const solidBackgroundChanged = current['solidBackground'] !== manager.originalData['solidBackground'];
     const storage = page.owners.storage;
 
     const language = preferences.language;
@@ -129,9 +127,6 @@ const commitUiPreferences = async (page: SettingsRuntimeContext, state: Settings
     const wallpaperOverlay = preferences.wallpaperOverlay;
     storage.setWallpaperOverlay(wallpaperOverlay);
 
-    const solidBackground = preferences.solidBackground;
-    storage.setSolidBackground(solidBackground);
-
     const headerAutoHide = preferences.headerAutoHide;
     storage.setHeaderAutoHide(headerAutoHide);
 
@@ -154,7 +149,6 @@ const commitUiPreferences = async (page: SettingsRuntimeContext, state: Settings
     storage.setChartStaticColor(chartStaticColor);
 
     manager.commitChanges();
-    return solidBackgroundChanged;
 };
 
 export { commitUiPreferences };

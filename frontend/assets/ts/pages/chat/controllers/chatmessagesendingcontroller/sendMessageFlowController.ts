@@ -100,14 +100,14 @@ const sendQueuedTextMessage = async (inputArguments: { host: MessageSendingHost;
     }
 };
 
-const sendConversationInputFromComposer = async (inputArguments: { host: MessageSendingHost; manager: ConversationSendLockManager; intent: ConversationInputIntent; afterAdmission?: PostAdmissionHook | null }): Promise<ConversationInputComposerOutcome> => {
+const sendConversationInputFromComposer = async (inputArguments: { host: MessageSendingHost; manager: ConversationSendLockManager; intent: ConversationInputIntent; signal?: AbortSignal | undefined; beforeSend?: QueuedSendGuard | undefined; onAdmissionStarted?: (() => void) | undefined; onEffectiveSendCommitted?: (() => void) | undefined; afterAdmission?: PostAdmissionHook | null }): Promise<ConversationInputComposerOutcome> => {
     const host = inputArguments.host;
     const initialSendLockKey = resolveSendLockKey(host.conversation.getCurrentConversation()?.id);
     try {
-        return await runWithAbortSignalScope([host.platform.getRuntimeAbortSignal()], async (signal) => {
+        return await runWithAbortSignalScope([host.platform.getRuntimeAbortSignal(), inputArguments.signal], async (signal) => {
             const lease = await inputArguments.manager.acquire([initialSendLockKey], signal);
             try {
-                const payload = await resolveComposerPayloadForSubmission(host);
+                const payload = await resolveComposerPayloadForSubmission(host, signal);
                 if (!payload) return 'empty';
                 const outcome = await sendMessageWithResolvedPayload({
                     host,
@@ -116,6 +116,9 @@ const sendConversationInputFromComposer = async (inputArguments: { host: Message
                     payload,
                     applyComposerSideEffects: true,
                     inputIntent: inputArguments.intent,
+                    beforeSend: inputArguments.beforeSend,
+                    onAdmissionStarted: inputArguments.onAdmissionStarted,
+                    onEffectiveSendCommitted: inputArguments.onEffectiveSendCommitted,
                     afterAdmission: inputArguments.afterAdmission ?? null,
                     abortSignal: signal
                 });

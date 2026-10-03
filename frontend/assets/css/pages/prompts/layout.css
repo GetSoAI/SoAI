@@ -19,7 +19,7 @@
     }
 
     :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card:not(.is-editing) .prompt-card-title {
-        padding-right: calc(var(--control-round-button-size) + var(--space-3));
+        padding-inline-end: calc(var(--control-round-button-size) + var(--space-3));
     }
 
     :where([data-section='prompts'], [data-page-scope='prompts']) .prompt-card-title-text {

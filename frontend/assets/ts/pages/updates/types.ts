@@ -10,6 +10,8 @@ export interface NormalizedUpdatePayload {
     message: string;
     releaseUrl: string;
     releaseNotes: string;
+    releaseHistory: readonly { version: string; body: string; publishedAt: string | null }[];
+    releaseHistoryComplete: boolean;
     publishedAt: string;
     platformId: string;
     deliveryType: 'complete_archive' | 'installer' | null;
@@ -18,6 +20,8 @@ export interface NormalizedUpdatePayload {
 
 export interface UpdatesUiRefs {
     pageNotice: HTMLElement;
+    pageNoticeBody: HTMLElement;
+    pageProgress: HTMLElement;
     pageNoticeIndicator: HTMLElement;
     pageNoticeHeading: HTMLElement;
     pageNoticeDetail: HTMLElement;

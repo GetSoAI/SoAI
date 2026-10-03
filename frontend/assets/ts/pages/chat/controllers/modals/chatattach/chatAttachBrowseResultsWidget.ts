@@ -7,6 +7,7 @@ import { resolveFileEntryIconName } from '@core/fileexplorerbrowser/entryIconRes
 import { resolveFileEntryTypeLabel } from '@core/fileexplorerbrowser/entryTypeLabels.ts';
 import type { FileBrowserEntry } from '@core/fileexplorerbrowser/types.ts';
 import { getCurrentLocale } from '@core/languageservice/service.ts';
+import { getCollator } from '@core/localization/intlCache.ts';
 import { isImageMimeType } from '@core/media/mimeTypes.ts';
 import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { SortDirection, SortState } from '@core/ui/tables/sortableTable.ts';
@@ -129,21 +130,21 @@ const parseReusableKnowledgeResults = (payload: KnowledgeAttachmentCollectionRes
     return results;
 };
 
-const compareText = (left: string, right: string, locale: string): number => left.localeCompare(right, locale, { sensitivity: 'base' });
+const compareText = (left: string, right: string, collator: Intl.Collator): number => collator.compare(left, right);
 
 const sortBrowseResults = (results: readonly ChatAttachBrowseResult[], sortState: ChatAttachBrowseSortState): ChatAttachBrowseResult[] => {
     const multiplier = sortState.direction === 'asc' ? 1 : -1;
-    const locale = getCurrentLocale();
+    const collator = getCollator(getCurrentLocale(), { sensitivity: 'base' });
     return [...results].sort((left, right) => {
         switch (sortState.column) {
             case 'name':
-                return multiplier * compareText(left.title, right.title, locale);
+                return multiplier * compareText(left.title, right.title, collator);
             case 'type': {
-                const typeComparison = compareText(left.typeLabel, right.typeLabel, locale);
+                const typeComparison = compareText(left.typeLabel, right.typeLabel, collator);
                 if (typeComparison !== 0) {
                     return multiplier * typeComparison;
                 }
-                return compareText(left.title, right.title, locale);
+                return compareText(left.title, right.title, collator);
             }
             case 'size':
                 return multiplier * (left.sortSize - right.sortSize);

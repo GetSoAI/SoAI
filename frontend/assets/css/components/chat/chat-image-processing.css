@@ -1,0 +1,21 @@
+/* SoAI - Shared chat image processing presentation [frontend/assets/css/components/chat/chat-image-processing.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .chat-attachment-visual > img,
+    .chat-container img[data-media-load-state],
+    .assistant-news-widget__media .assistant-news-widget__image,
+    .chat-inline-media-card__media > .chat-inline-media-card__image:not(.chat-inline-media-card__image--blurred-bg) {
+        filter: grayscale(1) blur(var(--space-025));
+        transition:
+            filter var(--duration-500) var(--ease-out),
+            opacity var(--duration-150) var(--ease-in-out);
+    }
+
+    .chat-attachment-visual[data-attachment-image-state='loaded']:not([data-attachment-processing-state='processing'], [data-attachment-processing-state='error']) > img,
+    .chat-container img[data-media-load-state='loaded'],
+    .assistant-news-widget__media[data-image-state='loaded'] .assistant-news-widget__image,
+    .chat-inline-media-card__media[data-media-load-state='loaded'] > .chat-inline-media-card__image:not(.chat-inline-media-card__image--blurred-bg) {
+        filter: grayscale(0) blur(0);
+    }
+}

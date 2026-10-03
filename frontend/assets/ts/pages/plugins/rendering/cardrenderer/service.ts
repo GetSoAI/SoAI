@@ -96,9 +96,9 @@ class PluginCardRenderer extends BaseCardRenderer<PluginRecord | null | undefine
                     <button type="button" class="plugins-list-open" data-action="${PLUGINS_ACTION_OPEN_PLUGIN}" ${renderLabelAttributes(listTitle)}>
                         <span class="plugins-list-title-row">
                             ${pluginLogo ? `<img src="${this.host.presentation.sanitizeText(pluginLogo)}" data-plugin-logo-fallback="${this.host.presentation.sanitizeText(pluginLogoFallback)}" alt="" class="plugin-logo-small" />` : ''}
-                            <span class="plugins-list-title" data-tooltip="${listTitle}">${listTitle}</span>
+                            <span dir="auto" class="plugins-list-title" data-tooltip="${listTitle}">${listTitle}</span>
                         </span>
-                        <span class="plugins-list-description">${description}</span>
+                        <span dir="auto" class="plugins-list-description">${description}</span>
                     </button>
                 </td>
                 <td class="plugins-list-cell plugins-list-metrics">
@@ -257,7 +257,7 @@ class PluginCardRenderer extends BaseCardRenderer<PluginRecord | null | undefine
         const metricKey = this.cards.escapeAttribute(fact.metricKey);
         const label = this.cards.escapeHtml(fact.label);
         const value = this.cards.escapeHtml(String(fact.value));
-        return `<${tagName}${typeAttribute} class="ui-collection-list__fact${actionClass}"${actionAttribute} data-metric-key="${metricKey}"><span class="ui-metric-label">${label}</span><span class="ui-metric-value">${value}</span></${tagName}>`;
+        return `<${tagName}${typeAttribute} class="ui-collection-list__fact${actionClass}"${actionAttribute} data-metric-key="${metricKey}"><span class="ui-metric-label">${label}</span><span dir="auto" class="ui-metric-value">${value}</span></${tagName}>`;
     }
 }
 

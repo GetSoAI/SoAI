@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ValidationError
-from core.hardware.gpu_model_catalog import resolve_catalog_model
+from core.hardware.gpu_model_catalog import resolve_catalog_submission_identity
 from core.hardware.soaibench_persistence import SOAIBENCH_GPU_HISTORY_IDENTITY_FIELDS
 from core.types.json_value import coerce_json_dict_or_empty
 from hardware.control_snapshots import find_gpu_entry
@@ -42,7 +42,7 @@ def resolve_gpu_identity(snapshot: JSONDict, device_id: str) -> SoAIBenchGpuIden
     raw_model_key = optional_identity_text(gpu.get("gpu_model_key")) or normalize_model_key(
         raw_name
     )
-    catalog_model = resolve_catalog_model(raw_name, raw_model_key, raw_vendor)
+    catalog_model = resolve_catalog_submission_identity(raw_name, raw_model_key, raw_vendor).model
     name = catalog_model.name if catalog_model is not None else raw_name
     vendor = catalog_model.vendor if catalog_model is not None else raw_vendor
     model_key = catalog_model.model_key if catalog_model is not None else raw_model_key
@@ -157,7 +157,7 @@ def _model_key_is_unique_in_snapshot(snapshot: JSONDict, model_key: str | None) 
         raw_model_key = optional_identity_text(gpu.get("gpu_model_key")) or normalize_model_key(
             name
         )
-        catalog_model = resolve_catalog_model(name, raw_model_key, vendor)
+        catalog_model = resolve_catalog_submission_identity(name, raw_model_key, vendor).model
         candidate = catalog_model.model_key if catalog_model is not None else raw_model_key
         if candidate == model_key:
             matches += 1

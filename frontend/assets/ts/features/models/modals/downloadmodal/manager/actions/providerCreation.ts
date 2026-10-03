@@ -7,49 +7,31 @@ import { ensureError } from '@core/errors/coerce.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { createModalElementResolver } from '@core/modals/modalElementResolver.ts';
 import { modalUiSelector } from '@core/modals/uiIds.ts';
-import { splitTrimmedList, toTrimmedString } from '@core/normalize.ts';
 import type { DownloadModalManagerRuntime } from '@features/models/modals/downloadmodal/manager/contracts.ts';
 import { closeDownloadModelModal } from '@features/models/modals/downloadmodal/manager/view.ts';
 import { locatePluginByName } from '@features/models/modals/downloadmodal/pluginAvailability.ts';
+import { submitProviderForm, validateProviderForm } from '@features/models/providerform/providerSubmission.ts';
 
 const createExternalProvider = async (runtime: DownloadModalManagerRuntime): Promise<void> => {
     const modalId = runtime.modalId;
     const modalRoot = runtime.host.session.modals.requireElement(modalId);
     const resolver = createModalElementResolver(modalRoot, 'Download modal');
-    const plugin = toTrimmedString(requireSelectElement(resolver, modalUiSelector(modalId, 'provider-plugin-select'), 'Download modal provider-plugin-select', modalRoot).value);
-    const name = toTrimmedString(requireInputElement(resolver, modalUiSelector(modalId, 'provider-name'), 'Download modal provider-name', modalRoot).value);
-    const url = toTrimmedString(requireInputElement(resolver, modalUiSelector(modalId, 'provider-api-url'), 'Download modal provider-api-url', modalRoot).value);
-    const key = toTrimmedString(requireInputElement(resolver, modalUiSelector(modalId, 'provider-api-key'), 'Download modal provider-api-key', modalRoot).value);
-    const filter = toTrimmedString(requireInputElement(resolver, modalUiSelector(modalId, 'provider-models-filter'), 'Download modal provider-models-filter', modalRoot).value);
-    if (!plugin) {
-        runtime.host.session.showNotification(i18n.t('models.notifications.selectPlugin'), 'error');
+    const readValue = (token: string): string => requireInputElement(resolver, modalUiSelector(modalId, token), `Download modal ${token}`, modalRoot).value;
+    const validation = validateProviderForm(
+        {
+            pluginName: requireSelectElement(resolver, modalUiSelector(modalId, 'provider-plugin-select'), 'Download modal provider-plugin-select', modalRoot).value,
+            name: readValue('provider-name'),
+            apiUrl: readValue('provider-api-url'),
+            apiKey: readValue('provider-api-key'),
+            modelsFilter: readValue('provider-models-filter')
+        },
+        { getPluginByName: (name) => locatePluginByName(runtime.host, name), isProviderPluginOperational: (plugin) => runtime.host.catalog.isProviderPluginOperational(plugin) }
+    );
+    if (validation.status === 'invalid') {
+        runtime.host.session.showNotification(validation.message, 'error');
         return;
     }
-    if (!name) {
-        runtime.host.session.showNotification(i18n.t('models.notifications.enterProviderName'), 'error');
-        return;
-    }
-    if (!url) {
-        runtime.host.session.showNotification(i18n.t('models.notifications.enterApiUrl'), 'error');
-        return;
-    }
-    if (!key) {
-        runtime.host.session.showNotification(i18n.t('models.notifications.enterApiKey'), 'error');
-        return;
-    }
-    const pluginEntry = locatePluginByName(runtime.host, plugin);
-    if (!pluginEntry || !runtime.host.catalog.isProviderPluginOperational(pluginEntry)) {
-        runtime.host.session.showNotification(i18n.t('models.notifications.pluginUnavailable'), 'error');
-        return;
-    }
-    const payload: { name: string; apiUrl: string; apiKey: string; modelsFilter?: string[] } = {
-        name,
-        apiUrl: url,
-        apiKey: key
-    };
-    if (filter) {
-        payload.modelsFilter = splitTrimmedList(filter, ',');
-    }
+    const name = validation.payload.name;
     const confirmButton = runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'confirm-download'), modalRoot);
     const disableTargets = [runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'provider-plugin-select'), modalRoot), runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'provider-name'), modalRoot), runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'provider-api-url'), modalRoot), runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'provider-api-key'), modalRoot), runtime.host.session.requireHTMLElement(modalUiSelector(modalId, 'provider-models-filter'), modalRoot)];
     const discoveryAbort = new AbortController();
@@ -60,37 +42,42 @@ const createExternalProvider = async (runtime: DownloadModalManagerRuntime): Pro
         idleText: i18n.t('models.modal.addProvider.confirmProvider'),
         disableTargets
     });
-    let providerAccepted = false;
     try {
-        const catalogChange = runtime.host.execution.waitForModelCatalogChange(discoveryAbort.signal);
-        await runtime.host.session.api.plugins.providers.add(plugin, payload);
-        providerAccepted = true;
-        if (!discoveryAbort.signal.aborted) {
-            runtime.state.acceptedCatalogMutation = true;
-        }
-        runtime.host.session.showNotification(i18n.t('models.notifications.providerCreateSuccess', { provider: name }), 'success');
-        runtime.host.view.setButtonLoading(confirmButton, true, {
-            loadingText: i18n.t('models.loading.models'),
-            idleText: i18n.t('models.modal.addProvider.confirmProvider'),
-            disableTargets
+        const outcome = await submitProviderForm({
+            pluginName: validation.pluginName,
+            payload: validation.payload,
+            signal: discoveryAbort.signal,
+            addProvider: (pluginName, payload) => runtime.host.session.api.plugins.providers.add(pluginName, payload),
+            waitForModelCatalogChange: (signal) => runtime.host.execution.waitForModelCatalogChange(signal),
+            onAccepted: () => {
+                if (!discoveryAbort.signal.aborted) {
+                    runtime.state.acceptedCatalogMutation = true;
+                }
+                runtime.host.session.showNotification(i18n.t('models.notifications.providerCreateSuccess', { provider: name }), 'success');
+                runtime.host.view.setButtonLoading(confirmButton, true, {
+                    loadingText: i18n.t('models.loading.models'),
+                    idleText: i18n.t('models.modal.addProvider.confirmProvider'),
+                    disableTargets
+                });
+            }
         });
-        await catalogChange;
-        if (!discoveryAbort.signal.aborted && runtime.host.session.modals.isOpen(modalId)) {
-            closeDownloadModelModal(runtime);
+        if (outcome.status === 'failed') {
+            if (!outcome.accepted) runtime.host.session.showNotification(i18n.t('models.notifications.providerCreateFailed'), 'error');
+            return;
+        }
+        try {
+            if (!discoveryAbort.signal.aborted && runtime.host.session.modals.isOpen(modalId)) {
+                closeDownloadModelModal(runtime);
+            }
+        } catch (error) {
+            errorHandler.error('DownloadModalController', 'Provider was created but post-accept processing failed', ensureError(error));
+            return;
         }
         try {
             await runtime.host.catalog.loadPlugins({ force: true });
             runtime.host.catalog.updateProviderButtonVisibility();
         } catch (error) {
             errorHandler.error('DownloadModalController', 'Provider was created but the plugin catalog refresh failed', ensureError(error));
-        }
-    } catch (error) {
-        const runtimeError = ensureError(error);
-        if (providerAccepted) {
-            errorHandler.error('DownloadModalController', 'Provider was created but post-accept processing failed', runtimeError);
-        } else {
-            errorHandler.error('DownloadModalController', 'Failed to create external provider', runtimeError);
-            runtime.host.session.showNotification(i18n.t('models.notifications.providerCreateFailed'), 'error');
         }
     } finally {
         discoveryAbort.abort();

@@ -15,6 +15,7 @@ type ControlContext = {
     setSliderToAuto: (index: string | number, controlType: string) => void;
     setSliderToManual: (index: string | number, controlType: string, manualValue: string | number | null) => void;
     refreshApplyState: (index: string | number) => void;
+    isCertifiedRunLocked: (index: string | number) => boolean;
     resetUiControls?: (index: string | number) => void;
 };
 

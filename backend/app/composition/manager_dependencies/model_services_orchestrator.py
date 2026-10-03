@@ -36,6 +36,7 @@ from orchestrator.types import OrchestratorDependencies
 
 if TYPE_CHECKING:
     from app.composition.manager_bootstrap_types import ModelBootstrapComponents
+    from core.openai.chat_template_role_policy_resolver import ChatTemplateRolePolicyResolver
     from core.openai.token_counter import PromptTokenCounter
 
 __all__ = ("build_model_services_and_orchestrator_dependencies",)
@@ -52,6 +53,7 @@ def build_model_services_and_orchestrator_dependencies(
     plugin_manager: PluginManagerProtocol,
     model_bootstrap_components: ModelBootstrapComponents,
     prompt_token_counter: PromptTokenCounter,
+    chat_template_role_policy_resolver: ChatTemplateRolePolicyResolver,
     domain_event_delivery: DurableEventDeliveryProtocol,
     licensing_status: LicensingStatusProtocol,
 ) -> tuple[
@@ -168,6 +170,7 @@ def build_model_services_and_orchestrator_dependencies(
         task_cancellation_binder=cancellation_binder,
         task_finalizer_tracker=finalizer_tracker,
         prompt_token_counter=prompt_token_counter,
+        chat_template_role_policy_resolver=chat_template_role_policy_resolver,
         licensing_status=licensing_status,
     )
     return (

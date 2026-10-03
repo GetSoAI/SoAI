@@ -4,7 +4,7 @@
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { ChartOptions, ChartTimestampFormatter, TimestampFormatConfig } from '@features/charts/chartTypes.ts';
 import { formatValue, valueToPixel } from '@features/charts/component/data/visibleRange.ts';
-import { formatAxisTimestamp, formatDateTime, formatDetailedTimestamp, formatTimestamp, getVisibleTimeSpan, getVisibleTimeWindow, resolveAxisFormat } from '@features/charts/component/data/timeFormatting.ts';
+import { formatAxisTimestamp, formatDateTime, formatDetailedTimestamp, formatTimestamp, getVisibleTimeSpan, resolveAxisFormat } from '@features/charts/component/data/timeFormatting.ts';
 import type { Scale, VisibleRange } from '@features/charts/component/chartComponentTypes.ts';
 import type { ChartViewportSeriesPort } from '@features/charts/session/ChartViewport.ts';
 import type { ChartConfigurationState, ChartViewportState } from '@features/charts/session/chartState.ts';
@@ -44,9 +44,6 @@ class ChartFormatting {
     }
     resolveAxisFormat(span: number): { options: Intl.DateTimeFormatOptions } {
         return resolveAxisFormat(span);
-    }
-    getVisibleTimeWindow(): { startTs: number; endTs: number; span: number } | null {
-        return getVisibleTimeWindow(this);
     }
     getVisibleTimeSpan(): number {
         return getVisibleTimeSpan(this);

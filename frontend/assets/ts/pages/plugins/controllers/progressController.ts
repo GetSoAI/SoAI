@@ -146,7 +146,7 @@ class PluginsProgressController {
             getBackendStatus: (plugin: PluginRecord): string => this.#dependencies.getBackendStatus(plugin),
             getBackendVersion: (plugin: PluginRecord): string => this.#dependencies.getBackendVersion(plugin),
             statusManager: this.#dependencies.getStatusManager(),
-            currentManagingPlugin: this.#dependencies.getCurrentManagingPlugin(),
+            getCurrentManagingPlugin: (): PluginRecord | null => this.#dependencies.getCurrentManagingPlugin(),
             setInterval: (callback: () => void, delay: number): number | null => this.#dependencies.pageResources.setInterval(callback, delay),
             clearTimer: (timerId: number): void => this.#dependencies.pageResources.clearTimer(timerId)
         };

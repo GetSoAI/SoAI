@@ -4,8 +4,10 @@
 import type { AnimationSpeed } from '@core/animations/speed.ts';
 import type { InterfaceScalePercent } from '@core/layout/interfaceScale.ts';
 import type { DateFormatPreference, MeasurementUnitsPreference, RegionalLocalePreference } from '@core/localization/public.ts';
+import type { AiSetupState } from '@core/storage/aisetup/aiSetupTypes.ts';
 import type { JsonObject, JsonRecord } from '@core/types/jsonValues.ts';
 import type { ChatUiParameters } from '@core/types/chatParameters.ts';
+import type { DefaultWallpaperId } from '@core/theme/defaultWallpapers.ts';
 
 type AnimationType = 'fade' | 'slide' | 'scale' | 'zoom' | 'lateral';
 type SyncGroup = 'ui' | 'chat' | 'logs' | 'terminal' | 'search' | 'hardware' | 'filters' | 'wizard' | 'settings';
@@ -48,6 +50,7 @@ interface UiPreferences {
     modalStates: Record<string, ModalState>;
     wallpaperOverlay: number;
     solidBackground: string | null;
+    defaultWallpaper: DefaultWallpaperId | null;
     glassEnabled: boolean;
     hiddenSidebarPages: string[];
     showMainStatusIndicator: boolean;
@@ -181,6 +184,7 @@ interface FiltersCache {
 
 interface WizardCache {
     completed: boolean;
+    aiSetup: AiSetupState | null;
 }
 
 interface SettingsCache {

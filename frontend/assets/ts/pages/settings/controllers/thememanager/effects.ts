@@ -1,18 +1,19 @@
 /* SoAI - Settings page theme manager effects [frontend/assets/ts/pages/settings/controllers/thememanager/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { requireClosestElement } from '@core/dom/attributes.ts';
+import { requireClosestElement, requireNonNegativeIntegerDataAttribute } from '@core/dom/attributes.ts';
 import { dom } from '@core/dom/dom.ts';
 import { narrowButton, narrowInput, narrowSelect } from '@core/dom/narrowElement.ts';
 import { setSelectValueAndSyncDefault } from '@core/dom/selectSelection.ts';
-import { i18n } from '@core/i18n/index.ts';
 import { setSettingItemApplicable } from '@core/settings/settingItemApplicability.ts';
+import { isDefaultWallpaperId, resolveDefaultWallpaperUrl, type DefaultWallpaperId } from '@core/theme/defaultWallpapers.ts';
 import { setControlDisabledState } from '@core/ui/controls/disabledState.ts';
 import { setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { UI_IDS } from '@features/settings/public.ts';
 import type { UiPreferenceKey } from '@core/settings/settingsFieldKeys.ts';
 import type { AddThemeManagerCleanup, ThemeManagerHost } from '@pages/settings/controllers/thememanager/contracts.ts';
 import { formatWallpaperInfo } from '@pages/settings/controllers/thememanager/mappers.ts';
+import { resolveWallpaperView, WALLPAPER_REMOVE_VARIANT_CLASS, WALLPAPER_UPLOAD_VARIANT_CLASS, type WallpaperUploadControlView } from '@pages/settings/controllers/thememanager/wallpaperPresenceState.ts';
 
 interface ThemePreferenceEffectsDependencies {
     host: ThemeManagerHost;
@@ -23,8 +24,8 @@ interface ThemePreferenceEffectsDependencies {
 interface WallpaperRefreshDependencies {
     host: ThemeManagerHost;
     isMounted: () => boolean;
-    expectedToken: number;
-    isTokenActive: (token: number) => boolean;
+    signal: AbortSignal;
+    isCurrent: () => boolean;
 }
 
 const bindSimpleToggleControls = (dependencies: ThemePreferenceEffectsDependencies): void => {
@@ -79,6 +80,7 @@ const setupChartsEventListeners = (dependencies: { host: ThemeManagerHost; addCl
         host.pageResources.on(modeSelect, 'change', () => {
             host.setUiPrefValue('chartColorMode', modeSelect.value);
             setSettingItemApplicable(colorItem, modeSelect.value === 'static');
+            host.filterSettings();
         })
     );
     addCleanup(
@@ -89,83 +91,100 @@ const setupChartsEventListeners = (dependencies: { host: ThemeManagerHost; addCl
 };
 
 const refreshWallpaperPreview = async (dependencies: WallpaperRefreshDependencies): Promise<void> => {
-    const { host, isMounted, expectedToken } = dependencies;
+    const { host, isMounted } = dependencies;
     const storage = host.storage;
-    const previousUrl = host.getCurrentWallpaperUrl();
+    const previousUrl = host.getCurrentWallpaper()?.url ?? null;
     const previousSolid = host.getCurrentSolidBackground();
 
     host.setCurrentSolidBackground(storage.getSolidBackground());
-    const status = await host.getWallpaperStatus();
+    const status = await host.getWallpaperStatus(dependencies.signal);
     if (!isMounted()) {
         return;
     }
-    if (!dependencies.isTokenActive(expectedToken)) {
+    if (!dependencies.isCurrent()) {
         return;
     }
 
     const url = status.url;
-    const hasWallpaper = status.exists && url !== null;
-    const metadata = hasWallpaper ? status.metadata : null;
-    host.setCurrentWallpaperMetadata(metadata);
-    host.setCurrentWallpaperUrl(hasWallpaper ? url : null);
-    updateWallpaperUI(host, hasWallpaper, url);
+    host.setCurrentWallpaper(status.exists && url !== null ? { url, metadata: status.metadata } : null);
+    updateWallpaperUI(host);
 
-    if (previousUrl !== host.getCurrentWallpaperUrl() || previousSolid !== host.getCurrentSolidBackground()) {
+    if (previousUrl !== (host.getCurrentWallpaper()?.url ?? null) || previousSolid !== host.getCurrentSolidBackground()) {
         host.scheduleWallpaperRefresh();
     }
 };
 
-const updateWallpaperUI = (host: ThemeManagerHost, hasWallpaper: boolean, url: string | null): void => {
-    if (hasWallpaper && !url) {
-        throw new Error('Wallpaper url is required when wallpaper exists');
+const requireSettingItem = (host: ThemeManagerHost, elementId: string, context: string): HTMLElement => {
+    const item = requireClosestElement(host.pageDom.requireHTMLElement(elementId), '.setting-item', context);
+    if (!(item instanceof HTMLElement)) {
+        throw new TypeError(`${context} setting item must be an HTMLElement`);
     }
-
-    const preview = host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_PREVIEW);
-    preview.style.setProperty('background-image', hasWallpaper ? `url("${url}")` : 'none');
-    dom.setVisibility(preview, hasWallpaper);
-
-    const noWallpaperMessage = host.pageDom.requireHTMLElement(UI_IDS.NO_WALLPAPER_MESSAGE);
-    dom.setVisibility(noWallpaperMessage, !hasWallpaper);
-    updateWallpaperUploadControl(host, hasWallpaper);
-
-    const overlaySlider = narrowInput(host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_OVERLAY_SLIDER), 'Wallpaper overlay slider');
-    const overlayItem = requireClosestElement(overlaySlider, '.setting-item', 'Wallpaper overlay slider');
-    if (!(overlayItem instanceof HTMLElement)) {
-        throw new TypeError('Wallpaper overlay setting item must be an HTMLElement');
-    }
-    setSettingItemApplicable(overlayItem, hasWallpaper);
-
-    const info = host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_INFO);
-    const infoItem = requireClosestElement(info, '.setting-item', 'Wallpaper info');
-    if (!(infoItem instanceof HTMLElement)) {
-        throw new TypeError('Wallpaper info setting item must be an HTMLElement');
-    }
-    setSettingItemApplicable(infoItem, hasWallpaper);
-    host.pageDom.updateText(info, hasWallpaper ? formatWallpaperInfo(host.getCurrentWallpaperMetadata()) : '');
-
-    const solidBackgroundContainer = host.pageDom.requireHTMLElement(UI_IDS.SOLID_BACKGROUND_CONTAINER);
-    setSettingItemApplicable(solidBackgroundContainer, !hasWallpaper);
+    return item;
 };
 
-const updateWallpaperUploadControl = (host: ThemeManagerHost, hasWallpaper: boolean): void => {
+const resolvePreviewUrl = (host: ThemeManagerHost, defaultWallpaper: DefaultWallpaperId | null): string | null => {
+    const wallpaper = host.getCurrentWallpaper();
+    if (host.getWallpaperPresence() === 'present') {
+        if (wallpaper === null) {
+            throw new Error('Wallpaper url is required when wallpaper exists');
+        }
+        return wallpaper.url;
+    }
+    return defaultWallpaper === null ? null : resolveDefaultWallpaperUrl(defaultWallpaper);
+};
+
+const readBuiltInWallpaperOptionId = (option: Element): DefaultWallpaperId | null => {
+    if (!option.hasAttribute('data-default-wallpaper-id')) {
+        return null;
+    }
+    const id = requireNonNegativeIntegerDataAttribute(option, 'defaultWallpaperId', 'Built-in wallpaper option');
+    if (!isDefaultWallpaperId(id)) {
+        throw new RangeError(`Unknown built-in wallpaper ${id}`);
+    }
+    return id;
+};
+
+const syncBuiltInWallpaperSelection = (host: ThemeManagerHost, defaultWallpaper: DefaultWallpaperId | null): void => {
+    const options = dom.resolveAll('.wallpaper-builtin-option', host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_BUILTIN_OPTIONS));
+    for (const option of options) {
+        option.setAttribute('aria-pressed', readBuiltInWallpaperOptionId(option) === defaultWallpaper ? 'true' : 'false');
+    }
+};
+
+const updateWallpaperUI = (host: ThemeManagerHost): void => {
+    const defaultWallpaper = host.storage.getDefaultWallpaper();
+    const view = resolveWallpaperView(host.getWallpaperPresence(), defaultWallpaper !== null);
+    const wallpaper = host.getCurrentWallpaper();
+    const previewUrl = view.previewVisible ? resolvePreviewUrl(host, defaultWallpaper) : null;
+
+    const preview = host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_PREVIEW);
+    preview.style.setProperty('background-image', previewUrl !== null ? `url("${previewUrl}")` : 'none');
+    dom.setVisibility(preview, view.previewVisible);
+    dom.setVisibility(host.pageDom.requireHTMLElement(UI_IDS.NO_WALLPAPER_MESSAGE), view.messageVisible);
+    updateWallpaperUploadControl(host, view.upload);
+
+    setSettingItemApplicable(requireSettingItem(host, UI_IDS.WALLPAPER_BUILTIN_OPTIONS, 'Built-in wallpaper options'), view.builtInApplicable);
+    syncBuiltInWallpaperSelection(host, defaultWallpaper);
+    setSettingItemApplicable(requireSettingItem(host, UI_IDS.WALLPAPER_OVERLAY_SLIDER, 'Wallpaper overlay slider'), view.overlayApplicable);
+    setSettingItemApplicable(requireSettingItem(host, UI_IDS.WALLPAPER_INFO, 'Wallpaper info'), view.detailsApplicable);
+    host.pageDom.updateText(host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_INFO), view.detailsApplicable ? formatWallpaperInfo(wallpaper?.metadata ?? null) : '');
+    setSettingItemApplicable(host.pageDom.requireHTMLElement(UI_IDS.SOLID_BACKGROUND_CONTAINER), view.solidApplicable);
+    host.filterSettings();
+};
+
+const updateWallpaperUploadControl = (host: ThemeManagerHost, upload: WallpaperUploadControlView): void => {
     const uploadButton = narrowButton(host.pageDom.requireHTMLElement(UI_IDS.WALLPAPER_UPLOAD), 'Wallpaper upload button');
     const uploadItem = requireClosestElement(uploadButton, '.setting-item', 'Wallpaper upload button');
-    const label = host.pageDom.requireHTMLElement('.setting-label', uploadItem);
-    const help = host.pageDom.requireHTMLElement('.setting-help', uploadItem);
-
-    const labelText = hasWallpaper ? i18n.t('settings.wallpaper.remove.label') : i18n.t('settings.wallpaper.upload.label');
-    const helpText = hasWallpaper ? i18n.t('settings.wallpaper.remove.help') : i18n.t('settings.wallpaper.upload.help');
-    const buttonText = hasWallpaper ? i18n.t('settings.wallpaper.remove.button') : i18n.t('settings.wallpaper.upload.button');
-    host.pageDom.updateText(label, labelText);
-    host.pageDom.updateText(help, helpText);
-    host.pageDom.updateText(uploadButton, buttonText);
-    uploadButton.setAttribute('aria-label', buttonText);
-    setTooltipText(uploadButton, buttonText);
-    uploadButton.classList.toggle('ui-variant-danger', hasWallpaper);
-    uploadButton.classList.toggle('ui-variant-neutral', !hasWallpaper);
+    host.pageDom.updateText(host.pageDom.requireHTMLElement('.setting-label', uploadItem), upload.label);
+    host.pageDom.updateText(host.pageDom.requireHTMLElement('.setting-help', uploadItem), upload.help);
+    host.pageDom.updateText(uploadButton, upload.buttonText);
+    uploadButton.setAttribute('aria-label', upload.buttonText);
+    setTooltipText(uploadButton, upload.buttonText);
+    uploadButton.classList.toggle(WALLPAPER_REMOVE_VARIANT_CLASS, upload.removes);
+    uploadButton.classList.toggle(WALLPAPER_UPLOAD_VARIANT_CLASS, !upload.removes);
     if (uploadButton.getAttribute('aria-busy') !== 'true') {
         setControlDisabledState(uploadButton, false);
     }
 };
 
-export { bindSimpleToggleControls, refreshWallpaperPreview, setupChartsEventListeners };
+export { bindSimpleToggleControls, readBuiltInWallpaperOptionId, refreshWallpaperPreview, setupChartsEventListeners, updateWallpaperUI };

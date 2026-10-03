@@ -7,12 +7,15 @@ import os
 import sys
 
 from core.bootstrap.lock import acquire_interprocess_lock
+from core.bootstrap.python_dependencies import ensure_pip_ready
 from core.bootstrap.runtime_directories import ensure_runtime_directory_environment
 from core.bootstrap.stage0_environment import is_stage0_offline_mode_enabled
 from core.bootstrap.venv_paths import get_venv_path, get_venv_python_executable
 from core.bootstrap.windows_sqlite_runtime import ensure_windows_sqlite_runtime
 from core.errors.exceptions import StateError
 from core.platform.os import is_windows
+from core.serialization.json import serialize_json_compact_stable
+from core.system.command_failures import build_command_failure_details
 from core.system.commands import run_argv_capture
 from core.timing.constants import SETUP_TIMEOUT_SEC
 
@@ -65,8 +68,9 @@ def ensure_windows_managed_venv(repo_root_path: str) -> str:
                     ),
                 ),
             )
+        creation_command = [sys.executable, "-m", "venv", "--without-pip", venv_path]
         result = run_argv_capture(
-            [sys.executable, "-m", "venv", venv_path],
+            creation_command,
             cwd=repo_root,
             encoding="utf-8",
             errors="replace",
@@ -74,14 +78,18 @@ def ensure_windows_managed_venv(repo_root_path: str) -> str:
         )
         if result.return_code != 0:
             output = result.stderr.strip() or result.stdout.strip() or "no output"
-            raise StateError(
+            details = build_command_failure_details(argv=creation_command, result=result)
+            failure = StateError(
                 " ".join(
                     (
                         f"Failed to create SoAI managed environment at '{venv_path}'",
                         f"with exit code {result.return_code}: {output}",
                     ),
                 ),
+                details=details,
             )
+            failure.add_note(serialize_json_compact_stable(details))
+            raise failure
         if not os.path.isfile(python_executable):
             raise StateError(
                 " ".join(
@@ -91,6 +99,23 @@ def ensure_windows_managed_venv(repo_root_path: str) -> str:
                     ),
                 ),
             )
+        pip_command = [python_executable, "-m", "ensurepip", "--upgrade", "--default-pip"]
+        pip_result = run_argv_capture(
+            pip_command,
+            cwd=repo_root,
+            encoding="utf-8",
+            errors="replace",
+            timeout=SETUP_TIMEOUT_SEC,
+        )
+        if pip_result.return_code != 0:
+            details = build_command_failure_details(argv=pip_command, result=pip_result)
+            failure = StateError(
+                f"Failed to bootstrap pip in SoAI managed environment at '{venv_path}' with exit code {pip_result.return_code}.",
+                details=details,
+            )
+            failure.add_note(serialize_json_compact_stable(details))
+            raise failure
+        ensure_pip_ready(python_executable)
         ensure_windows_sqlite_runtime(
             repo_root,
             runtime_directories,

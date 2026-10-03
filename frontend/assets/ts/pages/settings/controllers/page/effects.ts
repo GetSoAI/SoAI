@@ -55,7 +55,7 @@ const createAdminSettingsManagers = (page: SettingsRuntimeContext, state: Settin
         host: {
             api: {
                 isAdmin: adminBindings.isAdmin,
-                listApiKeys: (includeRevoked: boolean) => page.owners.api.webui.apiKeys.list(includeRevoked),
+                listApiKeys: (includeRevoked: boolean, options) => page.owners.api.webui.apiKeys.list(includeRevoked, options),
                 createApiKey: (payload: ApiKeyCreateRequest) => page.owners.api.webui.apiKeys.create(payload),
                 revokeApiKey: (keyId: string) => page.owners.api.webui.apiKeys.revoke(keyId),
                 rotateApiKey: (keyId: string) => page.owners.api.webui.apiKeys.rotate(keyId),
@@ -63,7 +63,7 @@ const createAdminSettingsManagers = (page: SettingsRuntimeContext, state: Settin
                 deleteAllApiKeys: () => page.owners.api.webui.apiKeys.deleteAll(),
                 getApiKeyQuota: (keyId: string) => page.owners.api.webui.apiKeys.getQuota(keyId),
                 updateApiKeyQuota: (keyId: string, payload: ApiKeyQuotaUpdateRequest) => page.owners.api.webui.apiKeys.updateQuota(keyId, payload),
-                listApiKeyQuotaStatus: () => page.owners.api.webui.apiKeys.listQuotaStatus(),
+                listApiKeyQuotaStatus: (options) => page.owners.api.webui.apiKeys.listQuotaStatus(options),
                 assignApiKeyToUser: (keyId: string, userId: number) => page.owners.api.webui.apiKeys.assignUser(keyId, userId),
                 unassignApiKeyFromUser: (keyId: string) => page.owners.api.webui.apiKeys.unassignUser(keyId),
                 listUsers: async (): Promise<Array<{ id: number; username: string }>> => {
@@ -88,7 +88,7 @@ const createAdminSettingsManagers = (page: SettingsRuntimeContext, state: Settin
             notifications: { feedback: page.owners.feedback },
             search: {
                 hasSearchQuery: adminBindings.hasSearchQuery,
-                filterSettings: callbacks.filterSettings
+                filterSettings: adminBindings.filterSettings
             },
             state: {
                 getApiKeys: (): ApiKey[] => state.apiKeys,
@@ -174,7 +174,7 @@ const createAdminSettingsManagers = (page: SettingsRuntimeContext, state: Settin
             requireContainer: () => page.owners.pageDom.require('licensing-content'),
             updateHtml: (container, markup) => page.owners.pageDom.updateHtml(container, markup),
             bindEvent: (container, event, listener) => page.owners.pageResources.on(container, event, listener),
-            filter: callbacks.filterSettings,
+            filter: adminBindings.filterSettings,
             hasSearchQuery: adminBindings.hasSearchQuery
         }
     });
@@ -182,7 +182,7 @@ const createAdminSettingsManagers = (page: SettingsRuntimeContext, state: Settin
         host: {
             api: {
                 isAdmin: adminBindings.isAdmin,
-                listBackups: (): Promise<{ backups: BackupApiEntry[] }> => page.owners.api.webui.admin.backups.list(),
+                listBackups: (options): Promise<{ backups: BackupApiEntry[] }> => page.owners.api.webui.admin.backups.list(options),
                 createBackup: () => page.owners.api.webui.admin.backups.create(),
                 restoreBackup: (backupId: string) => page.owners.api.webui.admin.backups.restore(backupId),
                 verifyBackup: (backupId: string) => page.owners.api.webui.admin.backups.verify(backupId),

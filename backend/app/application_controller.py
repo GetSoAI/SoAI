@@ -22,6 +22,7 @@ from app.runtime import ApplicationRuntimeCoordinator
 from app.runtime_dependencies import ApplicationRuntimeCoordinatorDependencies
 from app.types_application import ApplicationAssembly, ApplicationContext
 from core.logging.trace import get_logger
+from core.runtime.process_exit_deadline import ProcessExitDeadline
 from core.runtime.protocols import RuntimeFlagsViewProtocol
 from core.timing.startup_timings import StartupTimingsRecorder
 from features.api.runtime.power_operation_dispatch import (
@@ -51,6 +52,7 @@ class ApplicationController:
         assembly: ApplicationAssembly,
         *,
         startup_timings: StartupTimingsRecorder,
+        process_exit_deadline: ProcessExitDeadline,
     ) -> None:
         self._context = ApplicationContext(
             logging=assembly.logging,
@@ -106,6 +108,7 @@ class ApplicationController:
                 services=self._context.services,
                 runtime_coordinator=self._runtime_coordinator,
                 update_service=self._controller_services.update,
+                process_exit_deadline=process_exit_deadline,
             ),
         )
         power_dispatcher = PowerOperationDispatcher(

@@ -19,6 +19,7 @@ interface ChatAttachUploadElements {
 
 interface ChatAttachSoaiLinkElements {
     input: HTMLTextAreaElement;
+    error: HTMLElement;
     draftList: ChatAttachDraftAttachmentListElements;
 }
 

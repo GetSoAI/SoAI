@@ -84,7 +84,8 @@ const composeChatSessions = (domain: ChatSessionDomainOwners, page: ChatSessionP
         pageContext: platform.pageContext,
         modelSession,
         presentation,
-        conversationSelection
+        conversationSelection,
+        aiSetupStorage: platform.storage
     });
     const avatar = new ChatAvatarController({ conversationView, settings: domain.settings, taskScope: domain.taskScope, pageDom: page.pageDom, feedback: page.feedback });
     const preferences = new ChatPreferencesManager({
@@ -107,9 +108,10 @@ const composeChatSessions = (domain: ChatSessionDomainOwners, page: ChatSessionP
         state: { settings: domain.settings, conversationState: domain.conversationState },
         sessions: { taskScope: domain.taskScope, preferences, conversationView, presentation, voiceSession },
         platform: { api: platform.api, dom: platform.dom },
-        input: composerInput
+        input: composerInput,
+        openToolsSettings: () => configuration.openTab('mcp')
     });
-    const configuration = new ChatConfigurationController({ composerSurface: domain.composerSurface, configurationRuntime: domain.configurationRuntime, conversationView, composer, taskScope: domain.taskScope, modelSession, presentation, layout: page.layout, services: page.services, pageDom: page.pageDom, feedback: page.feedback, api: platform.api, pageLifecycle: page.pageLifecycle, runtimeServices: domain.runtimeServices, settings: domain.settings });
+    const configuration = new ChatConfigurationController({ composerSurface: domain.composerSurface, configurationRuntime: domain.configurationRuntime, conversationView, composer, taskScope: domain.taskScope, modelSession, presentation, layout: page.layout, services: page.services, pageDom: page.pageDom, pageResources: page.pageResources, feedback: page.feedback, api: platform.api, pageLifecycle: page.pageLifecycle, runtimeServices: domain.runtimeServices, settings: domain.settings });
     const toolbar = new ChatConversationToolbarManager({ conversationRuntime: domain.conversationRuntime, conversationView, conversationState: domain.conversationState, presentation, pageDom: page.pageDom, feedback: page.feedback, taskScope: domain.taskScope, pageContext: platform.pageContext, api: platform.api, conversationSelection });
     const promptPicker = new ChatPromptPickerController({ feedback: page.feedback, composer, presentation, api: platform.api, getDocument: () => platform.dom.getDocument(), requireStreamManager: () => page.streaming.runtime(), navigate: (page) => platform.router.navigate(page), taskScope: domain.taskScope });
     const characterMap = new ChatCharacterMapController({

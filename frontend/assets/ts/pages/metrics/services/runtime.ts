@@ -14,6 +14,7 @@ import type { PageUiOwnerHost } from '@core/routing/pages/basepagecore/PageUi.ts
 import { readRuntimeFiniteNumberOrFallbackValue } from '@core/types/numberCoercionReaders.ts';
 import { readPayloadPathValue } from '@core/types/payloadPathReader.ts';
 import { FrontendTelemetryPresenter, MetricsFormatter, type FrontendTelemetryHost, type MetricsKpiHost, type TelemetryService } from '@features/metrics/public.ts';
+import { subscribeHistoryResync } from '@features/charts/public.ts';
 import { metricsLogger } from '@pages/metrics/contracts/MetricsPageSupport.ts';
 import { loadMetricsCapabilities } from '@pages/metrics/controllers/page/capabilities.ts';
 import type { MetricsRuntimeContext } from '@pages/metrics/controllers/page/contracts.ts';
@@ -26,6 +27,7 @@ import { updatePluginHealth } from '@pages/metrics/widgets/service.ts';
 
 interface MetricsPageServicesHost {
     owners: PageUiOwnerHost & { pageContext: PageContext | null };
+    requestPresentation(): boolean;
 }
 
 type MetricsDeferredHost = MetricsRuntimeContext;
@@ -58,6 +60,9 @@ const resolveMetricsTelemetryService = (host: MetricsPageServicesHost): Telemetr
 
 const createMetricsTelemetryHost = (host: MetricsPageServicesHost): FrontendTelemetryHost => ({
     setUIValue: (id: string, value: string | null | undefined, options?: { allowNull?: boolean }): void => {
+        if (!host.requestPresentation()) {
+            return;
+        }
         host.owners.pageElements.setValue(id, value, options);
     }
 });
@@ -92,6 +97,7 @@ class MetricsDeferredController {
     #deferredInitializeSignal: AbortSignal | null = null;
     #metricsDisposer: (() => void) | null = null;
     #pluginsDisposer: (() => void) | null = null;
+    #historyDisposer: (() => void) | null = null;
     #apiKeyUsageTimer: number | null = null;
     #apiKeyUsageRequestInFlight = false;
     #lifecycleSequence = 0;
@@ -133,6 +139,7 @@ class MetricsDeferredController {
         this.#lifecycleSequence += 1;
         this.disposeMetricsSubscription();
         this.disposePluginsSubscription();
+        this.disposeHistorySubscription();
         this.#clearApiKeyUsageTimer();
         this.#deferredInitializePromise = null;
         this.#deferredInitializeSignal = null;
@@ -158,11 +165,27 @@ class MetricsDeferredController {
         disposer();
     }
 
+    disposeHistorySubscription(): void {
+        const disposer = this.#historyDisposer;
+        if (!disposer) return;
+        this.#historyDisposer = null;
+        this.host.owners.pageResources.untrack(disposer);
+        disposer();
+    }
+
     async #prepare(signal: AbortSignal): Promise<void> {
         await this.start(signal, this.#lifecycleSequence);
         if (signal.aborted) {
             return;
         }
+        const historyDisposer = subscribeHistoryResync({
+            label: 'Metrics history',
+            resetType: 'metrics',
+            onReset: (event) => this.host.history.reset(event.clearedThroughMs),
+            onReconnect: () => this.host.history.reconnect()
+        });
+        this.#historyDisposer = historyDisposer;
+        this.host.owners.pageResources.track(historyDisposer, () => this.disposeHistorySubscription());
         await loadMetricsCapabilities(this.host, signal);
         if (signal.aborted) {
             return;
@@ -177,7 +200,7 @@ class MetricsDeferredController {
         if (signal.aborted) {
             return;
         }
-        await reloadMetricsChartData(this.host, true);
+        await reloadMetricsChartData(this.host);
         if (signal.aborted) {
             return;
         }
@@ -239,7 +262,9 @@ class MetricsDeferredController {
                 processMetricsUpdate: (data: MetricsData) => processMetricsUpdate(this.host, data),
                 processPluginsUpdate: (data: readonly JsonValue[]) => {
                     this.host.state.currentPlugins = data;
-                    updatePluginHealth(this.host);
+                    if (this.host.presentation.requestRefresh()) {
+                        updatePluginHealth(this.host);
+                    }
                 },
                 setMetricsDisposer: (disposer: (() => void) | null) => {
                     this.#metricsDisposer = disposer;

@@ -13,11 +13,12 @@ import { createLocalFolderOpenModal } from '@core/ui/modals/dialogs/localFolderO
 import { createPasswordChangeFlow } from '@core/ui/modals/dialogs/passwordChangeFlow.ts';
 import { createUsernameRenameFlow } from '@core/ui/modals/dialogs/usernameRenameFlow.ts';
 import { createPromptFlow } from '@core/ui/modals/dialogs/promptFlow.ts';
-import type { ConfirmationOptions, CopyTextModalOptions, ExternalLinkOptions, LocalFolderOpenOptions, PasswordChangeModalOptions, PromptModalOptions, UsernameRenameModalOptions } from '@core/ui/modals/dialogs/types.ts';
+import type { ConfirmationOptions, CopyTextModalOptions, ExternalLinkOptions, LocalFolderOpenOptions, NoticeOptions, PasswordChangeModalOptions, PromptModalOptions, UsernameRenameModalOptions } from '@core/ui/modals/dialogs/types.ts';
 import { CONFIRMATION_MODAL_ID, DIALOGS_SERVICE_ID, PASSWORD_CHANGE_MODAL_ID, PROMPT_MODAL_ID, USERNAME_RENAME_MODAL_ID } from '@core/ui/modals/dialogs/ids.ts';
 
 interface DialogsServiceApi {
     showConfirmation: (options: ConfirmationOptions) => Promise<boolean>;
+    showNotice: (options: NoticeOptions) => Promise<void>;
     showExternalLinkModal: (options?: ExternalLinkOptions | undefined) => Promise<boolean>;
     showChatExternalLinkModal: (options?: ExternalLinkOptions | undefined) => Promise<boolean>;
     showLocalFolderOpenModal: (options: LocalFolderOpenOptions) => Promise<boolean>;
@@ -31,7 +32,7 @@ const isDialogsServiceApi = <T>(value: T): value is T & DialogsServiceApi => {
     if (!isObject(value)) {
         return false;
     }
-    return hasFunctionProperty(value, 'showConfirmation') && hasFunctionProperty(value, 'showExternalLinkModal') && hasFunctionProperty(value, 'showChatExternalLinkModal') && hasFunctionProperty(value, 'showLocalFolderOpenModal') && hasFunctionProperty(value, 'showCopyTextModal') && hasFunctionProperty(value, 'showPrompt') && hasFunctionProperty(value, 'showPasswordChange') && hasFunctionProperty(value, 'showUsernameRename');
+    return hasFunctionProperty(value, 'showConfirmation') && hasFunctionProperty(value, 'showNotice') && hasFunctionProperty(value, 'showExternalLinkModal') && hasFunctionProperty(value, 'showChatExternalLinkModal') && hasFunctionProperty(value, 'showLocalFolderOpenModal') && hasFunctionProperty(value, 'showCopyTextModal') && hasFunctionProperty(value, 'showPrompt') && hasFunctionProperty(value, 'showPasswordChange') && hasFunctionProperty(value, 'showUsernameRename');
 };
 
 const requireDialogsService = (): DialogsServiceApi => {
@@ -72,12 +73,14 @@ const createDialogsService = (): DialogsServiceApi => {
                 variantClassName: confirmVariant,
                 disabled: false,
                 title: null,
-                perform: () => true
+                perform: config.onConfirm ?? (() => true),
+                deferredBusy: config.onConfirm !== undefined
             },
             second: null
         });
 
         return await confirmationFlow.show({
+            signal: config.signal,
             title: config.title || defaults.title,
             typeTokens: ['confirmation', variant],
             icon,
@@ -87,6 +90,20 @@ const createDialogsService = (): DialogsServiceApi => {
             allowDescriptionHtml: config.descriptionAllowHTML === true,
             cancelText: config.cancelText || defaults.cancelText,
             actions
+        });
+    };
+
+    const showNotice = async (options: NoticeOptions): Promise<void> => {
+        await confirmationFlow.show({
+            title: options.title,
+            typeTokens: ['confirmation', 'notice', options.variant],
+            icon: resolveVariantIcon(options.variant),
+            message: options.message,
+            description: options.description ?? null,
+            allowMessageHtml: false,
+            allowDescriptionHtml: false,
+            cancelText: options.closeText ?? i18n.t('common.close'),
+            actions: Object.freeze({ first: null, second: null })
         });
     };
 
@@ -113,6 +130,7 @@ const createDialogsService = (): DialogsServiceApi => {
 
     return {
         showConfirmation,
+        showNotice,
         showExternalLinkModal: externalLinkModal.showExternalLinkModal,
         showChatExternalLinkModal: externalLinkModal.showChatExternalLinkModal,
         showLocalFolderOpenModal: localFolderOpenModal.showLocalFolderOpenModal,

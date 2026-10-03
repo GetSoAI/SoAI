@@ -1,0 +1,244 @@
+/* SoAI - Chat sketch modal component styles [frontend/assets/css/components/chat/chat-sketch-modal.css] */
+/* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
+
+@layer components {
+    .chat-sketch-workbench {
+        --chat-sketch-swatch-gap: var(--space-05);
+        --chat-sketch-swatch-size: calc((var(--icon-button-size) - var(--chat-sketch-swatch-gap)) / 2 - 1px);
+
+        display: grid;
+        gap: var(--space-3);
+        min-width: 0;
+        padding: var(--space-4);
+    }
+
+    .chat-sketch-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-2) var(--space-4);
+        min-width: 0;
+    }
+
+    .chat-sketch-toolbar__group {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+        min-width: 0;
+    }
+
+    .chat-sketch-toolbar__separator {
+        align-self: stretch;
+        width: var(--border-width-1);
+        margin-inline: var(--space-1);
+        margin-block: var(--space-2);
+        background: var(--ui-separator-gradient-vertical);
+    }
+
+    .chat-sketch-toolbar__history {
+        margin-inline-start: auto;
+    }
+
+    .chat-sketch-tool[aria-pressed='true'] {
+        border-color: var(--accent-primary);
+        background-color: color-mix(in srgb, var(--accent-primary) 18%, transparent);
+        color: var(--accent-primary);
+    }
+
+    .chat-sketch-palette {
+        align-items: stretch;
+        gap: var(--space-2);
+        height: var(--icon-button-size);
+    }
+
+    .chat-sketch-swatches {
+        display: grid;
+        grid-template-columns: repeat(5, var(--chat-sketch-swatch-size));
+        grid-template-rows: repeat(2, var(--chat-sketch-swatch-size));
+        align-content: center;
+        gap: var(--chat-sketch-swatch-gap);
+    }
+
+    .chat-sketch-swatch {
+        width: 100%;
+        height: 100%;
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-round);
+        padding: 0;
+        cursor: pointer;
+        appearance: none;
+        background: var(--chat-sketch-swatch-color);
+        transition: transform var(--transition-fast);
+    }
+
+    .chat-sketch-swatch:hover {
+        transform: scale(1.12);
+    }
+
+    .chat-sketch-swatch[aria-pressed='true'] {
+        border-color: var(--surface-card);
+        box-shadow: 0 0 0 var(--border-width-2) var(--accent-primary);
+    }
+
+    .chat-sketch-color-input {
+        width: var(--icon-button-size);
+        height: 100%;
+        border: none;
+        border-radius: var(--border-round);
+        padding: var(--space-1);
+        cursor: pointer;
+        appearance: none;
+        background: var(--chat-sketch-spectrum);
+    }
+
+    .chat-sketch-swatch:focus-visible,
+    .chat-sketch-color-input:focus-visible {
+        outline: var(--border-width-2) solid var(--accent-primary);
+        outline-offset: var(--border-width-2);
+    }
+
+    .chat-sketch-color-input::-webkit-color-swatch-wrapper {
+        padding: 0;
+    }
+
+    .chat-sketch-color-input::-webkit-color-swatch {
+        border: var(--border-width-2) solid var(--surface-card);
+        border-radius: var(--border-round);
+    }
+
+    .chat-sketch-color-input::-moz-color-swatch {
+        border: var(--border-width-2) solid var(--surface-card);
+        border-radius: var(--border-round);
+    }
+
+    .chat-sketch-size {
+        gap: var(--space-2);
+        height: var(--icon-button-size);
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        padding-inline: var(--space-1) var(--space-3);
+    }
+
+    .chat-sketch-size-preview {
+        --chat-sketch-size: 2px;
+        --chat-sketch-swatch-color: currentColor;
+
+        display: grid;
+        flex: 0 0 auto;
+        place-items: center;
+        width: calc(var(--icon-button-size) - var(--space-3));
+        height: calc(var(--icon-button-size) - var(--space-3));
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-round);
+        background: var(--color-white);
+    }
+
+    .chat-sketch-size-preview::before {
+        --chat-sketch-size-dot: min(var(--chat-sketch-size), calc(var(--icon-button-size) - var(--space-3) - var(--space-1)));
+
+        width: var(--chat-sketch-size-dot);
+        height: var(--chat-sketch-size-dot);
+        border-radius: var(--border-round);
+        background: var(--chat-sketch-swatch-color);
+        content: '';
+    }
+
+    .chat-sketch-size-preview[data-sketch-tool='highlighter']::before {
+        opacity: 0.4;
+    }
+
+    .chat-sketch-size-preview[data-sketch-tool='eraser']::before {
+        border: var(--border-width-1) solid var(--color-grey-400);
+        background: var(--color-white);
+    }
+
+    .chat-sketch-size-input {
+        flex: 0 0 auto;
+        width: 112px;
+        margin: 0;
+    }
+
+    .chat-sketch-size-value {
+        min-width: 2ch;
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+        font-variant-numeric: tabular-nums;
+        text-align: end;
+    }
+
+    .chat-sketch-stage {
+        --chat-sketch-frame-width: calc(62 * var(--ui-viewport-height-unit) * 4 / 3);
+
+        display: grid;
+        place-items: center;
+        min-width: 0;
+    }
+
+    .chat-sketch-frame {
+        position: relative;
+        width: min(100%, var(--chat-sketch-frame-width));
+    }
+
+    .chat-sketch-canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: var(--border-width-1) solid var(--surface-card-border);
+        border-radius: var(--border-radius);
+        background: var(--color-white);
+        cursor: crosshair;
+        touch-action: none;
+        user-select: none;
+    }
+
+    .chat-sketch-canvas[data-sketch-tool='eraser'] {
+        cursor: cell;
+    }
+
+    .chat-sketch-resize {
+        position: absolute;
+        inset-block-end: var(--space-05);
+        inset-inline-end: var(--space-05);
+        display: grid;
+        place-items: center;
+        width: calc(var(--chat-sketch-swatch-size) + var(--space-1));
+        height: calc(var(--chat-sketch-swatch-size) + var(--space-1));
+        border: none;
+        border-radius: var(--border-radius-inset);
+        padding: 0;
+        cursor: nwse-resize;
+        background: transparent;
+        color: var(--color-grey-400);
+        touch-action: none;
+        opacity: 0.8;
+        transition: opacity var(--transition-fast);
+    }
+
+    .chat-sketch-resize:hover {
+        opacity: 1;
+    }
+
+    .chat-sketch-resize:focus-visible {
+        outline: var(--border-width-2) solid var(--accent-primary);
+        outline-offset: var(--border-width-2);
+        opacity: 1;
+    }
+
+    .chat-sketch-resize svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+        .chat-sketch-resize {
+            display: none;
+        }
+    }
+
+    @container ui-viewport (width <= 768px) {
+        .chat-sketch-toolbar__separator,
+        .chat-sketch-resize {
+            display: none;
+        }
+    }
+}

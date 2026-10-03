@@ -92,7 +92,9 @@
             },
             "calendar": {
                 "countOverflow": "9+",
-                "now": "Şimdi"
+                "now": "Şimdi",
+                "occurrenceLabel": "{title}, {date} {time}, {status}",
+                "createAt": "{date} tarihinde {time} saatinde otomasyon oluştur. Saati değiştirmek için ok tuşlarını kullanın."
             },
             "placeholders": {
                 "unset": "—"
@@ -152,13 +154,15 @@
                     "start": "Başlangıç",
                     "turns": "Turlar",
                     "timezone": "Saat dilimi",
-                    "title": "Başlık"
+                    "title": "Başlık",
+                    "modelSettings": "Model, araçlar ve parametreler"
                 },
                 "workspace": {
                     "button": "Klasör seç",
                     "description": "Bu otomasyon çalıştırmasının kullanacağı klasörü seçin. Yinelenen çalıştırmalar bu otomasyon klasörünü kullanmaya devam eder.",
                     "fieldLabel": "Çalışma alanı klasörü",
-                    "title": "Otomasyon çalışma alanı klasörü"
+                    "title": "Otomasyon çalışma alanı klasörü",
+                    "viewButton": "Çalışma alanını incele"
                 },
                 "parameters": {
                     "button": "Parametreleri düzenle",
@@ -166,17 +170,17 @@
                     "fieldLabel": "Model parametreleri",
                     "summaryCustom": "Özel otomasyon parametreleri",
                     "summaryDefault": "Varsayılan model parametreleri",
-                    "title": "Otomasyon model parametreleri"
+                    "title": "Otomasyon model parametreleri",
+                    "viewButton": "Parametreleri görüntüle"
                 },
                 "timezone": {
-                    "auto": "Otomatik"
+                    "autoWithZone": "Otomatik ({timezone})"
                 },
                 "placeholders": {
                     "assistantTurn": "Model yanıtı",
                     "endOfAutomation": "Otomasyonun sonu",
                     "model": "Bir model seçin",
                     "turn": "İleti girin",
-                    "turnIndexed": "İleti girin {index}",
                     "title": "Başlık girin"
                 },
                 "counters": {
@@ -186,7 +190,7 @@
                 "save": "Kaydet",
                 "validation": {
                     "maxRunMinutesInvalid": "En fazla çalıştırma süresi 1 ile 1440 dakika arasında olmalıdır.",
-                    "modelUnavailable": "Seçilen model kullanılamıyor.",
+                    "modelUnavailable": "{model} kullanılamıyor. Başka bir model seçin.",
                     "modelRequired": "Model gereklidir.",
                     "recurrenceInvalid": "Yineleme geçersiz.",
                     "startInvalid": "Başlangıç tarihi ve saati geçersiz.",
@@ -195,7 +199,42 @@
                     "turnsRequired": "Tüm turlar gereklidir.",
                     "tooManyTurns": "Çok fazla tur var (en fazla {max}). Her tur, tek bir ajan turu olarak yürütülür.",
                     "timezoneRequired": "Saat dilimi gereklidir.",
-                    "titleRequired": "Başlık gereklidir."
+                    "titleRequired": "Başlık gereklidir.",
+                    "modelDisabled": "{model} devre dışı. Etkinleştirin veya başka bir model seçin.",
+                    "modelMissing": "{model} artık yüklü değil. Başka bir model seçin.",
+                    "modelUnsupported": "{model} sohbeti desteklemiyor. Başka bir model seçin.",
+                    "summary": "Kaydetmeden önce {count} alanı düzeltin.",
+                    "toolsRequired": "Yürütme için araçlar etkinleştirilmeli ve todo_write seçilmelidir.",
+                    "timezoneInvalid": "Saat dilimi geçersiz. Desteklenen bir saat dilimi seçin."
+                },
+                "conflict": {
+                    "message": "Siz düzenlerken bu otomasyon başka bir yerde değiştirildi. Değişiklikleriniz kaydedilmedi.",
+                    "remoteChanges": "Başka yerde değiştirildi: {fields}",
+                    "localChanges": "Değişiklikleriniz: {fields}",
+                    "keepChanges": "Değişikliklerimi koru",
+                    "loadLatest": "En son sürümü yükle"
+                },
+                "modelStatus": {
+                    "unavailable": "Kullanılamıyor",
+                    "unsupported": "Sohbet desteği yok"
+                },
+                "prerequisites": {
+                    "failed": "Düzenleyici ihtiyaç duyduğu her şeyi yükleyemedi.",
+                    "missing": "Bu otomasyon artık mevcut değil.",
+                    "toolsUnavailable": "Araçlar yüklenemedi. Mevcut araç seçimleri korunur.",
+                    "childFailed": "Ayarlar açılamadı. Tekrar deneyin."
+                },
+                "schedule": {
+                    "ambiguous": "Saat değişikliği nedeniyle {start}, {timezone} diliminde iki kez gerçekleşir. İlki kullanılır.",
+                    "shiftedForward": "Saat değişikliği nedeniyle {start}, {timezone} diliminde mevcut değil. Bunun yerine {effective} saatinde çalışır.",
+                    "disabled": "Devre dışı: hiçbir çalıştırma planlanmayacak.",
+                    "nextRun": "Sonraki çalıştırma: {when} ({timezone})",
+                    "nextRunLocal": "Sonraki çalıştırma: {when} ({timezone}), sizin saatinizle {localWhen}",
+                    "unavailable": "Zamanlama önizlemesi kullanılamıyor."
+                },
+                "turns": {
+                    "label": "Tur {index}",
+                    "remove": "Tur {index} öğesini kaldır"
                 }
             },
             "notifications": {
@@ -207,7 +246,11 @@
                 "preferencesReset": "Otomasyon tercihleri varsayılanlara sıfırlandı.",
                 "runOpenFailed": "İstenen otomasyon çalıştırması açılamadı.",
                 "runUnavailable": "İstenen otomasyon çalıştırması artık bu görünümde kullanılamıyor.",
-                "updated": "Otomasyon güncellendi."
+                "updated": "Otomasyon güncellendi.",
+                "changeRefreshFailed": "Değişiklik uygulandı ancak görünüm yenilenemedi.",
+                "conflict": "Bu otomasyon başka bir yerde değiştirildi. Yeniden kaydetmeden önce değişiklikleri gözden geçirin.",
+                "defaultsNotRemembered": "Kaydedildi ancak bu ayarlar yeni otomasyonlar için hatırlanamadı.",
+                "missingOnSave": "Bu otomasyon artık mevcut değil. Başka bir yerde silinmiş olabilir."
             },
             "pane": {
                 "automations": {
@@ -234,7 +277,6 @@
                         "today": "Bugün",
                         "yesterday": "Dün"
                     },
-                    "turnsCount": "Turlar: {count}",
                     "title": "Çalıştırmalar",
                     "toolbar": {
                         "batchDelete": "Seçili çalıştırmaları sil",
@@ -247,11 +289,23 @@
                     },
                     "confirmations": {
                         "deleteMessage": "{count} çalıştırma silinsin mi? Çalışmakta olan çalıştırmalar durdurulacak.",
-                        "deleteTitle": "Çalıştırmalar silinsin mi?"
+                        "deleteTitle": "Çalıştırmalar silinsin mi?",
+                        "skipTitle": "Çalıştırma atlansın mı?",
+                        "skipMessage": "{title} bu saatte çalışmayacak. Diğer çalıştırmalar etkilenmez.",
+                        "skipConfirm": "Atla",
+                        "stopTitle": "Çalıştırma durdurulsun mu?",
+                        "stopMessage": "{title} çalışıyor. Durdurulacak ve takvimden kaldırılacak.",
+                        "stopConfirm": "Durdur",
+                        "removeTitle": "Çalıştırma kaldırılsın mı?",
+                        "removeMessage": "{title} takvimden kaldırılacak.",
+                        "removeConfirm": "Kaldır"
                     },
                     "notifications": {
-                        "deleteSuccess": "{count} çalıştırma silindi."
-                    }
+                        "deleteSuccess": "{count} çalıştırma silindi.",
+                        "nothingToDelete": "Seçilen çalıştırmalar artık bu görünümde değil.",
+                        "tooManySelected": "Tek seferde en fazla {max} çalıştırma seçin."
+                    },
+                    "occurrencesCount": "Çalıştırmalar: {count}"
                 }
             },
             "recurrence": {
@@ -278,7 +332,10 @@
                 "previous": "Önceki",
                 "showCalendar": "Takvim",
                 "showRegistry": "Panel",
-                "today": "Bugün"
+                "today": "Bugün",
+                "staleData": "Güncel değil",
+                "staleDataSince": "Otomasyon verileri güncel olmayabilir. Son güncelleme: {time}. Yeniden denemek için seçin.",
+                "resizePanes": "Takvimi ve yan bölmeyi yeniden boyutlandır"
             },
             "views": {
                 "day": "Gün",
@@ -300,6 +357,7 @@
                     "bar": "Çubuk",
                     "candlestick": "OHLC",
                     "deviation": "Sapma",
+                    "heikin-ashi": "Heikin Ashi",
                     "label": "Grafik türü",
                     "line": "Çizgi",
                     "precision-line": "Çizgi"
@@ -327,6 +385,7 @@
                 "metricNameSeparator": ": ",
                 "minPrefix": "Min: ",
                 "nameValueSeparator": ": ",
+                "noDataLabel": "Veri yok · SoAI çevrimdışı",
                 "openPrefix": "O: ",
                 "partSeparator": " | ",
                 "realtimeLabel": "Gerçek zamanlı ●",
@@ -334,6 +393,7 @@
                 "statusMarker": "●",
                 "statusMarkerSpacing": "● "
             },
+            "historyFailed": "Geçmiş yüklenemedi.",
             "loadingState": "Yükleniyor",
             "manualScaleLabel": "MANUEL"
         },
@@ -459,6 +519,7 @@
                 "soaiLinkTitle": "SoAI bağlantıları ekle",
                 "tabBrowse": "Çalışma alanı",
                 "tabCamera": "Tara",
+                "tabDisabledReason": "{setting} seçeneğini Sohbet yapılandırması › {tab} bölümünden açın",
                 "tabKnowledge": "Bilgi",
                 "tabSoaiLink": "SoAI bağlantısı",
                 "tabUpload": "Yükle",
@@ -559,7 +620,16 @@
                 "recordingStatus": "Kayıt: {elapsed}",
                 "recordingTitle": "Ses kaydı",
                 "requestingStatus": "Tarayıcı izni bekleniyor",
-                "requestingTitle": "Mikrofon izni isteniyor"
+                "requestingTitle": "Mikrofon izni isteniyor",
+                "pushToTalk": {
+                    "cancelled": "Kayıt iptal edildi.",
+                    "queued": "Kuyruğa eklendi.",
+                    "releaseToCancel": "İptal etmek için bırakın",
+                    "releaseToSend": "Göndermek için bırakın · İptal etmek için sola kaydırın",
+                    "sending": "Gönderiliyor…",
+                    "transcribing": "Metne dönüştürülüyor…",
+                    "transcriptReview": "Döküm eklendi. Göndermeden önce güncellenen taslağı inceleyin."
+                }
             },
             "authorityLock": {
                 "automationReason": "Bu bir otomasyon sohbetidir. Yürütme ayarlarını Otomasyonlar → Otomasyonu düzenle bölümünden değiştirin.",
@@ -598,6 +668,10 @@
                 "assistantAvatarUpload": "Yükle",
                 "assistantAvatarUploadLabel": "Asistan avatarı yükle",
                 "assistantNamePlaceholder": "Özel model adı girin...",
+                "autoHideChatComposer": "Sohbet düzenleyicisini otomatik gizle",
+                "autoHideChatComposerHint": "Önceki mesajları okurken boş sohbet düzenleyicisini gizleyin",
+                "autoHideChatHeader": "Sohbet başlığını otomatik gizle",
+                "autoHideChatHeaderHint": "Önceki mesajları okurken konuşma başlığını gizleyin",
                 "identityNameInvalid": "Görünen adlar en fazla 50 Unicode karakter içermeli ve geçersiz metin içermemelidir.",
                 "promptInvalid": "İstem geçersiz Unicode metni içeriyor.",
                 "close": "Kapat",
@@ -735,7 +809,9 @@
                     "toolsEnabledLockedWhileConversationRunningHint": "Bu sohbet çalışırken araç erişimi değiştirilemez",
                     "toolsEnabledHint": "Bu sohbet için MCP araçlarını etkinleştirin. Yeni sohbetler son kaydettiğiniz değerle başlar",
                     "tool_approval_required": "Araç onayını zorunlu tut",
-                    "toolApprovalRequiredHint": "Yıkıcı araçları çalıştırmadan önce onay isteyin"
+                    "toolApprovalRequiredHint": "Yıkıcı araçları çalıştırmadan önce onay isteyin",
+                    "unavailableTools": "Kullanılamayan kayıtlı araçlar: {tools}. Seçimler korunur.",
+                    "unavailableServers": "Kullanılamayan kayıtlı sunucular: {servers}. Ayarlar korunur."
                 },
                 "model_settings": {
                     "contextWindowTokensHint": "Bu özellik için bağlam uzunluğunu geçersiz kılar. Seçili modelin varsayılanını kullanmak için boş bırakın",
@@ -1035,7 +1111,8 @@
                 "newTitle": "Yeni sohbet",
                 "renameFailed": "Sohbet yeniden adlandırılamadı.",
                 "switchFailed": "Sohbetler arasında geçiş yapılamadı.",
-                "untitled": "Başlıksız"
+                "untitled": "Başlıksız",
+                "titleRequired": "Bir sohbet başlığı gereklidir."
             },
             "detached": {
                 "windowTitle": "Sohbet (Ayrı Pencere)"
@@ -1276,6 +1353,14 @@
                     "requiresHttps": "HTTPS gerektirir"
                 }
             },
+            "holdShortcuts": {
+                "parametersHint": "Parametreleri açmak ve bağlam uzunluğunu göstermek için basılı tutun",
+                "presetsHint": "Ön Ayarları açmak için basılı tutun",
+                "pushToTalkHint": "Konuşmak için basılı tutun",
+                "toolsHint": "Araç ayarlarını açmak için basılı tutun",
+                "toolsRestrictedHint": "{reason}. Araç ayarlarını açmak için basılı tutun",
+                "toolsToggleHint": "{action}. Araç ayarlarını açmak için basılı tutun"
+            },
             "inputQueue": {
                 "badge": {
                     "queued": "Kuyrukta",
@@ -1286,7 +1371,8 @@
                     "running": "Çalışıyor",
                     "inputRequired": "Eylem gerekli"
                 },
-                "attachmentsCount": "(+{count} ek)"
+                "attachmentsCount": "(+{count} ek)",
+                "open": "İstemi aç: {prompt}"
             },
             "loading": {
                 "errorType": "Hata türü",
@@ -1337,7 +1423,9 @@
                     },
                     "save": "Kaydet",
                     "skip": "Atla",
-                    "title": "SoAI'nin sizi tanımasına yardımcı olun"
+                    "title": "SoAI'nin sizi tanımasına yardımcı olun",
+                    "loadFailed": "Kayıtlı profiliniz yüklenemedi. Hiçbir şeyin üzerine yazılmaması için kaydetme duraklatıldı.",
+                    "retry": "Tekrar dene"
                 },
                 "viewer": {
                     "none": "Yok",
@@ -1411,7 +1499,8 @@
                 "timestampYesterday": "dün",
                 "toolCall": "Araç çağrısı",
                 "waiting": "Bekleniyor...",
-                "you": "Siz"
+                "you": "Siz",
+                "timestampWithTime": "{label}, {time}"
             },
             "modelControl": {
                 "compareModels": "Modelleri karşılaştır",
@@ -1427,7 +1516,8 @@
             "models": {
                 "ambiguousSelection": "\"{model}\" adını birden fazla model kullanıyor. Lütfen kenar çubuğundan belirli bir model seçin.",
                 "available": "(Kullanılabilir)",
-                "loaded": "(Yüklü)"
+                "loaded": "(Yüklü)",
+                "unavailable": "(Kullanılamıyor)"
             },
             "news": {
                 "articleCount": "{count} makale",
@@ -1470,10 +1560,52 @@
                 "cleared": "İstem geçmişi temizlendi.",
                 "loadFailed": "İstem geçmişi yüklenemedi."
             },
+            "sketch": {
+                "open": "Çizimi aç",
+                "mobileOption": "Çizim",
+                "preference": "Çizim",
+                "preferenceHint": "Bir görsel çizip mesajınıza eklemek için sohbet giriş alanında çizim defterini göster",
+                "title": "Çizim",
+                "description": "Fare, kalem veya parmağınızla çizin, ardından çizimi mesajınıza görsel olarak ekleyin",
+                "canvasLabel": "Çizim alanı",
+                "toolsLabel": "Çizim araçları",
+                "tools": {
+                    "pen": "Kalem",
+                    "brush": "Fırça",
+                    "highlighter": "Vurgulayıcı",
+                    "eraser": "Silgi",
+                    "line": "Çizgi",
+                    "rectangle": "Dikdörtgen",
+                    "ellipse": "Elips"
+                },
+                "colorsLabel": "Renkler",
+                "colors": {
+                    "black": "Siyah",
+                    "grey": "Gri",
+                    "red": "Kırmızı",
+                    "orange": "Turuncu",
+                    "yellow": "Sarı",
+                    "green": "Yeşil",
+                    "teal": "Deniz mavisi",
+                    "blue": "Mavi",
+                    "purple": "Mor",
+                    "brown": "Kahverengi"
+                },
+                "customColor": "Özel renk",
+                "size": "Boyut",
+                "undo": "Geri al",
+                "redo": "Yinele",
+                "clear": "Temizle",
+                "resize": "Tuvali yeniden boyutlandır",
+                "attach": "Ekle",
+                "discardConfirm": "Bu çizim silinsin mi?",
+                "discard": "Sil",
+                "exportFailed": "Çizim dışa aktarılamadı. Lütfen tekrar deneyin."
+            },
             "characterMap": {
                 "allEmoji": "Tüm emojiler",
                 "allUnicode": "Tüm Unicode",
-                "description": "Unicode karakterlerine ve emojilere göz atın, bir dizi oluşturun, ardından kopyalayın veya iletinize ekleyin.",
+                "description": "Unicode karakterlerine ve emojilere göz atın, bir dizi oluşturun, ardından kopyalayın veya iletinize ekleyin",
                 "font": "Yazı tipi",
                 "fontHint": "Yazı tipleri yalnızca görünümü etkiler; listelenen her karakter seçilebilir kalır",
                 "fonts": {
@@ -2201,7 +2333,8 @@
                 "started": "Sesli arama başladı.",
                 "transcriptionFailed": "Ses transkripsiyonu başarısız.",
                 "ttsFailed": "Metinden sese dönüştürme başarısız oldu.",
-                "messageSendFailed": "Sesli ileti gönderilemedi."
+                "messageSendFailed": "Sesli ileti gönderilemedi.",
+                "stoppedAfterFailure": "Arama durduruldu. Yeni bir arama başlatmadan önce sorunu giderin."
             },
             "voiceCallModal": {
                 "assistantSpeakingDetail": "Asistan yanıtı oynatılıyor.",
@@ -2299,44 +2432,45 @@
                 "toggle": "Tam ekranı aç/kapat"
             },
             "modalDescriptions": {
-                "agentPlan": "Etkin ajan planının adımları.",
-                "automationCalendar": "Takvim yerel ayarı ve tarih biçimlendirmesi.",
-                "automationConfiguration": "Zamanlama, model ve çalıştırma sınırları.",
-                "automationOccurrence": "Tek bir zamanlanmış çalıştırma.",
-                "chatConfiguration": "Bu sohbet için model, araçlar, bellek ve arayüz.",
-                "chatAttach": "Bu sohbete dosya yükleyin veya bağlantılı bilgiyi ekleyin.",
-                "chatAttachments": "Bu iletinin başvurduğu ekler.",
-                "chatMcpDefaultTools": "Yeni sohbetler için varsayılan MCP araçları.",
-                "chatMemoryProfile": "SoAI'nin sohbetler arasında hatırladığı kişisel ayrıntılar.",
-                "chatPromptsPicker": "Bu sohbete eklenmeye hazır kayıtlı istemler.",
-                "voiceCall": "Mikrofon, transkripsiyon, akış yanıtları ve sesli oynatma ile eller serbest sohbet.",
-                "credits": "Üçüncü taraf bağımlılık katkıları.",
-                "fileExplorerMetadata": "Dosya meta verileri.",
-                "folderPicker": "Bir klasör seçin.",
-                "exportPreview": "Dışa aktarmanın içeriği.",
-                "hardwareSystemInfo": "Ayrıntılı sistem raporu.",
-                "license": "SoAI lisans metni.",
-                "messageInfo": "İleti meta verileri.",
-                "metricsAdvanced": "Genişletilmiş çalışma zamanı metrikleri.",
-                "modelDetailTest": "Bu modele bir test isteği gönderin.",
-                "modelsDownload": "Yeni bir model indirin.",
-                "modelsEdit": "Bu modelin yapabileceklerini geçersiz kılın.",
-                "modelsProviders": "Harici model sağlayıcıları.",
-                "modelsRename": "Bu modele yerel bir ad verin.",
-                "modelsVirtual": "Sanal model yönlendirme grupları.",
-                "modelsVirtualEdit": "Bu sanal model için yönlendirme.",
-                "pluginsClone": "Bu eklentiyi yeni ayarlarla çoğaltın.",
-                "pluginsConcurrent": "En fazla eşzamanlı eklenti görevi.",
-                "pluginsConfig": "Eklenti ayarları.",
-                "pluginsDownload": "Paketlenmiş veya yerel bir eklenti yükleyin.",
-                "pluginsInfo": "Eklenti ayrıntıları ve tanılama bilgileri.",
-                "pluginsIntro": "Eklentilerin SoAI'yi nasıl genişlettiği.",
-                "pluginsManageBackend": "Arka uç sürümlerini yönetin.",
-                "promptEnhancer": "Kayıtlı bir istemi modelle yeniden yazın.",
-                "settingsApiKeyQuota": "Bu API anahtarının kullanım sınırları.",
-                "settingsExternalAccounts": "E-posta ve takvim hesapları.",
-                "settingsMcpServer": "MCP sunucu bağlantısı.",
-                "toolCallOutput": "Bir araç çağrısının çıktısı."
+                "agentPlan": "Etkin ajan planının adımları",
+                "automationCalendar": "Takvim yerel ayarı ve tarih biçimlendirmesi",
+                "automationConfiguration": "Zamanlama, model ve çalıştırma sınırları",
+                "automationOccurrence": "Tek bir zamanlanmış çalıştırma",
+                "chatConfiguration": "Bu sohbet için model, araçlar, bellek ve arayüz",
+                "chatAttach": "Bu sohbete dosya yükleyin veya bağlantılı bilgiyi ekleyin",
+                "chatAttachments": "Bu iletinin başvurduğu ekler",
+                "chatMcpDefaultTools": "Yeni sohbetler için varsayılan MCP araçları",
+                "chatMemoryProfile": "SoAI'nin sohbetler arasında hatırladığı kişisel ayrıntılar",
+                "chatPromptsPicker": "Bu sohbete eklenmeye hazır kayıtlı istemler",
+                "voiceCall": "Mikrofon, transkripsiyon, akış yanıtları ve sesli oynatma ile eller serbest sohbet",
+                "credits": "Üçüncü taraf bağımlılık katkıları",
+                "fileExplorerMetadata": "Dosya meta verileri",
+                "folderPicker": "Bir klasör seçin",
+                "exportPreview": "Dışa aktarmanın içeriği",
+                "hardwareSystemInfo": "Ayrıntılı sistem raporu",
+                "license": "SoAI lisans metni",
+                "messageInfo": "İleti meta verileri",
+                "metricsAdvanced": "Genişletilmiş çalışma zamanı metrikleri",
+                "modelDetailTest": "Bu modele bir test isteği gönderin",
+                "modelsDownload": "Modelleri indirin, harici sağlayıcıları bağlayın veya yerel model dosyaları ekleyin",
+                "modelsEdit": "Bu modelin yapabileceklerini geçersiz kılın",
+                "modelsProviders": "Harici model sağlayıcıları",
+                "modelsRename": "Bu modele yerel bir ad verin",
+                "modelsVirtual": "Sanal model yönlendirme grupları",
+                "modelsVirtualEdit": "Bu sanal model için yönlendirme",
+                "pluginsClone": "Bu eklentiyi yeni ayarlarla çoğaltın",
+                "pluginsConcurrent": "En fazla eşzamanlı eklenti görevi",
+                "pluginsConfig": "Eklenti ayarları",
+                "pluginsDownload": "Eklentileri indirin, yükleyin veya yerel eklenti klasöründen ekleyin",
+                "pluginsInfo": "Eklenti ayrıntıları ve tanılama bilgileri",
+                "pluginsIntro": "Eklentilerin SoAI'yi nasıl genişlettiği",
+                "pluginsManageBackend": "Arka uç sürümlerini yönetin",
+                "promptEnhancer": "Kayıtlı bir istemi modelle yeniden yazın",
+                "settingsApiKeyQuota": "Bu API anahtarının kullanım sınırları",
+                "settingsExternalAccounts": "E-posta ve takvim hesapları",
+                "settingsMcpServer": "MCP sunucu bağlantısı",
+                "toolCallOutput": "Bir araç çağrısının çıktısı",
+                "conversationInput": "Bu istemi ve eklerini görüntüleyin"
             },
             "loading": "Yükleniyor...",
             "confirm": "Onayla",
@@ -2455,6 +2589,9 @@
                     },
                     "second": {
                         "short": "{count}sn"
+                    },
+                    "year": {
+                        "short": "{count}y"
                     }
                 }
             },
@@ -2465,7 +2602,8 @@
             "unsavedChanges": "Kaydedilmemiş değişiklikleriniz var. Kaydetmeden devam edilsin mi?",
             "unsavedChangesTitle": "Kaydedilmemiş değişiklikler",
             "view": "Görüntüle",
-            "yes": "Evet"
+            "yes": "Evet",
+            "retry": "Yeniden dene"
         },
         "contentPreview": {
             "actions": {
@@ -2620,7 +2758,7 @@
                 }
             },
             "firstRun": {
-                "description": "Yerel arka uçlar, uzak sağlayıcılar, modeller ve güncellemeler için kısa bir kurulum yolu.",
+                "description": "Yerel arka uçlar, uzak sağlayıcılar, modeller ve güncellemeler için kısa bir kurulum yolu",
                 "sections": {
                     "models": {
                         "heading": "Arka uç hazır olduğunda bir model ekleyin veya indirin",
@@ -2917,6 +3055,7 @@
                         "withPeakDirection": "{peakLabel} {peak} ({direction})"
                     },
                     "title": "Ağ",
+                    "unavailable": "Bağdaştırıcı listesi kullanılamıyor",
                     "waiting": "Algılanıyor..."
                 },
                 "memorySwap": {
@@ -3006,6 +3145,7 @@
                     "soaibenchStandard": "Kıyasla",
                     "soaibenchStop": "Durdur",
                     "soaibenchStress": "Stres",
+                    "viewBenchmark": "Karşılaştırmayı görüntüle",
                     "test": "Test",
                     "reset": "Sıfırla",
                     "save": "Kaydet"
@@ -3029,6 +3169,7 @@
                     "soaibenchStarted": "GPU {index} SoAIBench {profile} başlatıldı",
                     "soaibenchStopRequested": "GPU {index} SoAIBench durdurma isteği gönderildi",
                     "soaibenchUnsupported": "GPU {index} SoAIBench desteklenmiyor: {reason}",
+                    "soaibenchSettingsLocked": "GPU {index} bir karşılaştırma testi çalıştırıyor. Ayarlarını kaydetmeden önce testi durdurun veya bitmesini bekleyin.",
                     "slotApplied": "GPU {index} yuva {slot} uygulandı",
                     "slotSaved": "GPU {index} yuva {slot} kaydedildi"
                 },
@@ -3074,11 +3215,33 @@
             },
             "soaibenchPublication": {
                 "deleteLocalHistory": "Yerel geçmişi sil",
+                "deleteLocalConfirm": {
+                    "title": "SoAIBench çalıştırması silinsin mi?",
+                    "message": "Bu SoAIBench çalıştırması yerel geçmişten silinsin mi? Bu işlem geri alınamaz."
+                },
                 "action": "Paylaş",
+                "openRun": "Sonucu aç",
                 "ariaLabel": "Bu SoAIBench puanını paylaş",
                 "unavailable": "Yayınlanabilir bir SoAIBench çalışması yok",
-                "confirm": { "title": "SoAIBench puanı paylaşılsın mı?", "message": "{score} puanı ve {passes} ölçülen geçişi herkese açık SoAIBench sıralamasında yayınlansın mı?", "description": "Puan, beş ölçülen geçiş, herkese açık GPU ve çalışma zamanı bilgileri, kıyaslama ayarları ve isteğe bağlı sensör kanıtları gönderilir. Hesap kimliği, dosyalar, yapılandırma, analizler ve genel telemetri hariç tutulur. soai.to, IP adresiniz gibi normal bağlantı meta verilerini görebilir." },
-                "outcomes": { "published": "SoAIBench puanı herkese açık olarak paylaşıldı.", "alreadyPublished": "Bu SoAIBench puanı zaten paylaşılmıştı.", "heldForReview": "SoAIBench sonucu kimlik veya anormallik incelemesi için bekletiliyor ve henüz sıralamaya dahil edilmiyor.", "offline": "SoAI çevrimdışıyken puan paylaşılamadı.", "unavailable": "SoAIBench yayınlama hizmeti kullanılamıyor.", "timeout": "Puan paylaşımı zaman aşımına uğradı. Aynı yayını uzlaştırmak için yeniden deneyin.", "rateLimited": "Bu bağlantıdan çok fazla puan paylaşıldı. Daha sonra yeniden deneyin.", "capacity": "SoAIBench sıralaması şu anda kapasite sınırında.", "rejected": "SoAIBench sıralaması bu sonucu reddetti.", "conflict": "Bu yayın mevcut sıralama durumuyla çakışıyor.", "invalidResponse": "SoAIBench sıralaması geçersiz bir yanıt döndürdü.", "retryAfter": "{seconds} saniye sonra yeniden deneyin." }
+                "confirm": {
+                    "title": "SoAIBench puanı paylaşılsın mı?",
+                    "message": "{score} puanı ve {passes} ölçülen geçişi herkese açık SoAIBench sıralamasında yayınlansın mı?",
+                    "description": "Puan, beş ölçülen geçiş, herkese açık GPU ve çalışma zamanı bilgileri, kıyaslama ayarları ve isteğe bağlı sensör kanıtları gönderilir. Hesap kimliği, dosyalar, yapılandırma, analizler ve genel telemetri hariç tutulur."
+                },
+                "outcomes": {
+                    "published": "SoAIBench puanı herkese açık olarak paylaşıldı.",
+                    "alreadyPublished": "Bu SoAIBench puanı zaten paylaşılmıştı.",
+                    "heldForReview": "SoAIBench sonucu kimlik veya anormallik incelemesi için bekletiliyor ve henüz sıralamaya dahil edilmiyor.",
+                    "offline": "SoAI çevrimdışıyken puan paylaşılamadı.",
+                    "unavailable": "SoAIBench yayınlama hizmeti kullanılamıyor.",
+                    "timeout": "Puan paylaşımı zaman aşımına uğradı. Aynı yayını uzlaştırmak için yeniden deneyin.",
+                    "rateLimited": "Bu bağlantıdan çok fazla puan paylaşıldı. Daha sonra yeniden deneyin.",
+                    "capacity": "SoAIBench sıralaması şu anda kapasite sınırında.",
+                    "rejected": "SoAIBench sıralaması bu sonucu reddetti.",
+                    "conflict": "Bu yayın mevcut sıralama durumuyla çakışıyor.",
+                    "invalidResponse": "SoAIBench sıralaması geçersiz bir yanıt döndürdü.",
+                    "retryAfter": "{seconds} saniye sonra yeniden deneyin."
+                }
             },
             "modals": {
                 "soaibenchHistory": {
@@ -3123,9 +3286,11 @@
                         "quick": "Hızlı",
                         "varianceSuffix": "{variance}% varyans"
                     },
-                    "description": "Seçili GPU için önceki SoAIBench çalıştırmaları.",
+                    "description": "Seçili GPU için önceki SoAIBench çalıştırmaları",
                     "empty": "Bu GPU için henüz SoAIBench çalıştırması yok.",
                     "loading": "Çalıştırma geçmişi yükleniyor...",
+                    "pageEmpty": "Henüz SoAIBench çalıştırması yok.",
+                    "pageLoadFailed": "SoAIBench çalıştırmaları yüklenemedi. Yeniden deneyin.",
                     "matchBases": {
                         "device_id": "Aygıt kimliği",
                         "gpu_model_key": "GPU model anahtarı",
@@ -3146,7 +3311,9 @@
                         "standard": "Standart",
                         "stress": "Stres"
                     },
-                    "reasons": { "opencl_numerical_mismatch": "OpenCL iş yükünün sayısal doğrulaması başarısız oldu." },
+                    "reasons": {
+                        "opencl_numerical_mismatch": "OpenCL iş yükünün sayısal doğrulaması başarısız oldu."
+                    },
                     "rowCopyUnavailable": "Kopyalanabilecek SoAIBench çalıştırması yok",
                     "staleHardware": "Güncelliğini yitirmiş donanım eşleşmesi",
                     "statuses": {
@@ -3162,6 +3329,8 @@
                     "title": "Önceki SoAIBench çalıştırmaları"
                 },
                 "soaibenchRun": {
+                    "selectGpu": "Karşılaştırma testi için bir GPU seçin",
+                    "noGpus": "Karşılaştırma testi için kullanılabilir GPU yok.",
                     "ariaLabels": {
                         "close": "SoAIBench'i kapat",
                         "copy": "SoAIBench çalıştırmasını kopyala",
@@ -3170,13 +3339,16 @@
                         "retry": "Sertifikalı SoAIBench'i yeniden dene",
                         "stop": "Sertifikalı SoAIBench'i durdur",
                         "stopping": "Sertifikalı SoAIBench durduruluyor",
+                        "newBenchmark": "Yeni bir sertifikalı SoAIBench çalıştırması başlat",
+                        "runAgain": "Bu GPU üzerinde sertifikalı SoAIBench testini yeniden çalıştır",
+                        "recover": "SoAIBench durumunu yeniden kontrol et",
                         "start": "Sertifikalı SoAIBench'i başlat"
                     },
                     "close": "Kapat",
                     "copy": "Kopyala",
                     "copySuccess": "SoAIBench çalıştırması panoya kopyalandı",
                     "copyUnavailable": "Kopyalanabilecek SoAIBench çalıştırması yok",
-                    "description": "SoAI çıkarımına hazır olma durumunu ölçen sertifikalı GPU kıyaslama testi.",
+                    "description": "SoAI çıkarımına hazır olma durumunu ölçen sertifikalı GPU kıyaslama testi",
                     "download": "İndir",
                     "export": {
                         "deviceId": "Aygıt kimliği",
@@ -3231,7 +3403,11 @@
                         "stopping": "SoAIBench durduruluyor",
                         "warmupDetail": "Isınma {pass}/{total}",
                         "warmupPhase": "Isınma: {phase}",
-                        "warmup": "Isınma turu tamamlandı"
+                        "warmup": "Isınma turu tamamlandı",
+                        "reconnecting": "Yeniden bağlanılıyor... Son güncelleme: {age}",
+                        "checkingStatus": "Karşılaştırma testi durumu kontrol ediliyor...",
+                        "statusUnavailable": "Karşılaştırma testi durumu kullanılamıyor. Yeniden kontrol etmek için tekrar deneyin.",
+                        "startUnconfirmed": "Karşılaştırma testinin başladığı doğrulanamadı ve bu GPU üzerinde etkin bir çalıştırma yok. Yeniden denemeden önce geçmişi kontrol edin."
                     },
                     "retry": "Yeniden dene",
                     "scoreLabel": "SoAIBench puanı",
@@ -3253,6 +3429,15 @@
                     "standardRun": "Standart çalıştırma",
                     "stop": "Durdur",
                     "stopping": "Durduruluyor",
+                    "newBenchmark": "Yeni karşılaştırma testi",
+                    "runAgain": "Yeniden çalıştır",
+                    "gpuBusy": "Karşılaştırma testi sürüyor",
+                    "startedAt": "Başlangıç: {time}",
+                    "states": {
+                        "starting": "Başlatılıyor",
+                        "unresolved": "Durum bilinmiyor",
+                        "rejected": "Başlatılmadı"
+                    },
                     "title": "SoAIBench"
                 },
                 "systemInfo": {
@@ -3459,7 +3644,7 @@
             "documentationUrl": "Belgeler",
             "intro": {
                 "aboutButton": "SoAI Hakkında",
-                "paragraph1": "<strong>SoAI (Smart Orchestrator for Artificial Intelligence)</strong>, yerel çıkarım motorlarını ve uzak yapay zekâ sağlayıcılarını tek bir web arayüzünden yönetir. Modelleri OpenAI ve Anthropic uyumlu API'ler üzerinden sunar",
+                "paragraph1": "<strong dir=\"auto\">SoAI (Smart Orchestrator for Artificial Intelligence)</strong>, yerel çıkarım motorlarını ve uzak yapay zekâ sağlayıcılarını tek bir web arayüzünden yönetir. Modelleri OpenAI ve Anthropic uyumlu API'ler üzerinden sunar",
                 "paragraph2": "SoAI Linux, macOS ve Windows üzerinde çalışır. Kaynak kodu görüntülenebilir; kişisel ve homelab kullanımı ücretsizdir. SoAI verilerinizi toplamaz, analiz, telemetri veya kullanım raporu göndermez"
             },
             "logoAlt": "SoAI",
@@ -3920,6 +4105,7 @@
                         "latency": "Gecikme",
                         "queueDepth": "Kuyruk derinliği",
                         "requests": "İstekler",
+                        "throughput": "Token üretim hızı",
                         "tokens": "Tokenlar"
                     },
                     "title": "Grafik"
@@ -4053,8 +4239,6 @@
                 "identity": {
                     "display_name": "Görünen ad",
                     "source_model_id": "Kaynak model kimliği",
-                    "provider": "Sağlayıcı",
-                    "title": "Kimlik",
                     "type": "Tür",
                     "universal_id": "Universal ID",
                     "virtual": "Sanal"
@@ -4064,30 +4248,20 @@
                     "title": "Varsayılan çıkarım ayarları"
                 },
                 "metrics": {
-                    "avgLatency": "Ort. gecikme",
                     "avgTokens": "Ort. token/istek",
                     "audioIn": "Ses girişi",
                     "audioOut": "Ses çıkışı",
-                    "failedRequests": "Başarısız istekler",
                     "imagesIn": "Görüntü girişi",
                     "imagesOut": "Görüntü çıkışı",
                     "last_used": "Son kullanım",
                     "modalityUsage": "Kullanım",
                     "success_rate": "Başarı oranı",
                     "textTokens": "Metin tokenları",
-                    "title": "Metrikler",
                     "tokensGenerated": "Üretilen tokenlar",
-                    "totalRequests": "Toplam istek",
-                    "waitTime": "Ort. bekleme süresi"
+                    "totalRequests": "Toplam istek"
                 },
                 "plugin": {
-                    "author": "Yazar",
-                    "models": "Modeller",
-                    "plugin_status": "Eklenti durumu",
-                    "providers": "Sağlayıcılar",
-                    "title": "Eklenti",
-                    "type": "Tür",
-                    "version": "Sürüm"
+                    "title": "Eklenti"
                 },
                 "status": {
                     "available": "Kullanılabilir",
@@ -4097,13 +4271,11 @@
                     "manageAlias": "Yeniden adlandır",
                     "modelStatus": "Model durumu",
                     "orphaned": "Yetim",
-                    "parameters": "Parametreler",
                     "stopPlugin": "Eklentiyi durdur",
-                    "title": "Durum ve işlemler"
+                    "title": "Durum"
                 },
                 "technical": {
                     "created": "Oluşturulma",
-                    "description": "Açıklama",
                     "family": "Aile",
                     "license": "Lisans",
                     "path": "Yol",
@@ -4148,7 +4320,6 @@
             },
             "filters": {
                 "allParameters": "Tüm parametreler",
-                "category": "Kategori",
                 "groupInference": "Çıkarım",
                 "groupStartup": "Başlangıç"
             },
@@ -4214,21 +4385,33 @@
                 "addItemWithType": "{itemType} öğesi ekle",
                 "aliasesPrefix": "Diğer adları:",
                 "arrayOfType": "{itemType} değerleri dizisi",
+                "backendDefault": "Arka uç varsayılanı",
                 "backendDocumentationDescription": "Bu model parametreleri, eklenti tarafından sunulan <strong>arka uç tarafından tanımlanmış ayarları</strong> içerir. Kesin davranış, kabul edilen değerler ve varsayılanlar için arka ucun kendi belgelerine başvurun.",
-                "backendDocumentationTitle": "Bilgiler",
                 "badges": {
                     "custom": "ÖZEL",
-                    "default": "VARSAYILAN",
                     "requiresReload": "YENİDEN YÜKLEME GEREKTİRİR"
                 },
-                "countLabel": "{count} parametre",
+                "count": {
+                    "plural": "{count} parametre",
+                    "singular": "{count} parametre"
+                },
                 "invalidJson": "Bu parametre için geçerli JSON girin.",
                 "jsonObject": "JSON nesnesi",
                 "noMatchDescription": "Arama veya filtre ölçütlerinizi ayarlamayı deneyin.",
                 "noMatchTitle": "Filtrelerinizle eşleşen parametre yok",
                 "noParameters": "Bu model için kullanılabilir parametre yok",
+                "railLabel": "Parametre kategorileri",
                 "range": "Aralık: {min} - {max}",
-                "removeItem": "Öğeyi kaldır"
+                "removeItem": "Öğeyi kaldır",
+                "revertChange": "Değişikliği geri al",
+                "unsavedCount": {
+                    "plural": "{count} kaydedilmemiş değişiklik",
+                    "singular": "{count} kaydedilmemiş değişiklik"
+                },
+                "views": {
+                    "customized": "Özelleştirilmiş",
+                    "unsaved": "Kaydedilmemiş değişiklikler"
+                }
             },
             "status": {
                 "loaded": "Yüklendi",
@@ -4961,10 +5144,11 @@
             },
             "modal": {
                 "addPlugin": {
-                    "chooseFile": "Dosya seç",
                     "close": "Kapat",
                     "confirmDownload": "Eklentiyi indir",
                     "confirmUpload": "Eklentiyi yükle",
+                    "fileDropHint": "Bir .soaiplugin dosyası seçmek için tıklayın veya buraya sürükleyin",
+                    "fileDropTitle": "Bir eklentiyi buraya bırakın",
                     "fileHelp": "ZIP biçiminde bir Python eklenti paketi (.soaiplugin) seçin",
                     "fileLabel": "Eklenti dosyası",
                     "manualCopySuccess": "Eklentiler klasörü yolu panoya kopyalandı.",
@@ -5080,6 +5264,7 @@
                     "installedOption": "{variant} (kurulu)",
                     "loadFailed": "Arka uç varyantları yüklenemedi.",
                     "loading": "Arka uç varyantları yükleniyor...",
+                    "loadingBackends": "Arka uçlar yükleniyor...",
                     "saveFailed": "Arka uç varyantı kaydedilemedi."
                 },
                 "manageBackend": {
@@ -5133,8 +5318,8 @@
                 "overrideEnabled": "{plugin} için uyumluluk geçersiz kılması etkinleştirildi.",
                 "overrideRequired": "{plugin} başlatılmadan önce uyumluluk geçersiz kılmasını etkinleştirin.",
                 "persistentNoStop": "Kalıcı eklentiler durdurulamaz",
-                "pluginDisabled": "Eklenti devre dışı bırakıldı",
-                "pluginEnabled": "Eklenti etkinleştirildi",
+                "pluginDisabled": "{plugin} eklentisi devre dışı bırakıldı",
+                "pluginEnabled": "{plugin} eklentisi etkinleştirildi",
                 "pluginIncompatibleReason": "\"{plugin}\" eklentisi uyumsuz: {reason}",
                 "pluginInfoCopyFailed": "Eklenti bilgileri kopyalanamadı",
                 "pluginStopInProgress": "{plugin} durduruluyor...",
@@ -5489,16 +5674,21 @@
                 "restarting": "Uygulama yeniden başlatılıyor. Bu işlem yalnızca birkaç dakika sürmelidir.",
                 "shutdown": "Sistem kapatılıyor. Bu tarayıcı penceresini kapatabilirsiniz.",
                 "sleep": "Sistem uyku moduna geçiyor. SoAI'yi kullanmaya devam etmek için sistemi uyandırın.",
-                "updating": "SoAI güncellemeleri indirip yüklüyor. Bu işlem birkaç dakika sürebilir."
+                "updateTimeout": "SoAI güncellemeden sonra tekrar çevrimiçi olmadı. SoAI günlük klasöründeki application_updater.log dosyasını kontrol edin, ardından bu sayfayı yeniden yükleyin.",
+                "updating": "SoAI güncellemeyi tamamlamak için yeniden başlatılacak. SoAI tekrar çevrimiçi olduğunda bu sayfa otomatik olarak yeniden yüklenecek. Bu birkaç dakika sürebilir.",
+                "updatingDesktop": "SoAI güncellemeyi tamamlamak için yeniden başlatılacak. Güncelleme tamamlandığında bu pencere kapanıp otomatik olarak yeniden açılacak. Lütfen bilgisayarınızı kapatmayın.",
+                "updatingSlow": "Güncelleme her zamankinden uzun sürüyor. SoAI hâlâ çalışıyor, lütfen bu sayfayı açık tutun."
             },
             "messages": {
                 "connectionLost": "Arka uç bağlantısı kesildi",
+                "installingVersion": "SoAI {version} yükleniyor...",
                 "pleaseWait": "Lütfen bekleyin...",
                 "rebooting": "Sistem yeniden başlatılıyor...",
                 "rebootTimeout": "Yeniden başlatma hâlâ sürüyor...",
                 "restarting": "SoAI yeniden başlatılıyor...",
                 "shutdown": "Sistem kapatılıyor",
                 "sleep": "Sistem uyku moduna geçiyor",
+                "updateTimeout": "SoAI henüz geri gelmedi",
                 "updating": "SoAI güncelleniyor..."
             },
             "reconnecting": "Yeniden bağlanmaya çalışılıyor..."
@@ -5977,7 +6167,7 @@
                 },
                 "staticColor": {
                     "help": "Tüm grafikler için özel bir renk seçin",
-                    "label": "Sabit renk"
+                    "label": "Grafik rengi"
                 }
             },
             "codeBlocks": {
@@ -5987,6 +6177,30 @@
                 },
                 "subgroupDescription": "Kod benzeri içeriğin SoAI genelinde nasıl sunulacağını denetleyin.",
                 "subgroupTitle": "Kod blokları"
+            },
+            "connect": {
+                "addressCopied": "Adres kopyalandı",
+                "browserAddress": "Bu tarayıcının adresi",
+                "chooseAddress": "Telefonunuz için adres",
+                "copyAddress": "Adresi kopyala",
+                "description": "Bir QR kodu tarayarak SoAI Connect Android uygulamasını bu sunucuya bağlayın.",
+                "documentationHint": "Elle kurulum ve sorun giderme için SoAI belgelerinde \"Connect to a SoAI server\" sayfasını açın",
+                "documentationLink": "SoAI belgeleri",
+                "loadFailed": "Bağlantı ayrıntıları yüklenemedi",
+                "loopbackWarningMessage": "SoAI bir loopback adresini dinliyor, bu nedenle diğer cihazlar ona doğrudan erişemez. QR kodu yalnızca SoAI ile aynı şemayı ve bağlantı noktasını kullanan bir ters proxy üzerinden çalışır. Doğrudan bağlantılara izin vermek için aşağıdaki seçeneği ayarlayın ve SoAI'yi yeniden başlatın:",
+                "loopbackWarningTitle": "Yalnızca bu bilgisayardan erişilebilir",
+                "noAddressesMessage": "Bu sunucuyu bir ağa bağlayın veya bu sayfayı telefonunuzun kullanacağı adresten açın.",
+                "noAddressesTitle": "Erişilebilir adres bulunamadı",
+                "qrLabel": "SoAI Connect'i {address} adresine bağlamak için QR kodu",
+                "refresh": "Adresleri yenile",
+                "scanHint": "Bu QR kodunu SoAI Connect uygulamasıyla tarayın",
+                "stepInstall": "SoAI Connect'i Android telefonunuza yükleyin ve açın",
+                "stepScan": "Sunucu adresi alanının yanındaki QR kodu düğmesine dokunun, ardından bu sayfadaki kodu tarayın",
+                "stepSignIn": "Varsa sertifika istemini inceleyin, ardından SoAI hesabınızla oturum açın",
+                "stepsTitle": "Nasıl bağlanılır",
+                "title": "SoAI Connect",
+                "vpnHint": "Telefonunuzun bu sunucuya erişebilmesi gerekir. SoAI'yi internete açmak yerine aynı yerel ağı ya da dışarıdayken bir VPN kullanın",
+                "vpnTitle": "Evden uzakta mısınız?"
             },
             "dashboard": {
                 "customization": {
@@ -6050,7 +6264,7 @@
                         "label": "Sayfa başlığını otomatik gizle"
                     }
                 },
-                "subgroupTitle": "Hareket",
+                "subgroupTitle": "Arayüz",
                 "subgroupDescription": "Hareketi, geçişleri, cam yüzeyleri ve kaydırma davranışını ayarlayın."
             },
             "externalAccounts": {
@@ -6975,7 +7189,7 @@
                     "authorizedSendersPlaceholder": "sender-id | İsteğe bağlı etiket",
                     "credentialsDescription": "Seçilen sağlayıcının gerektirdiği kimlik bilgilerini girin.",
                     "credentialsTitle": "Sağlayıcı kimlik bilgileri",
-                    "description": "Bir gerçek sağlayıcı hesabını ve onun sahip olduğu standart Sohbet yürütme ayarlarını yapılandırın.",
+                    "description": "Bir gerçek sağlayıcı hesabını ve onun sahip olduğu standart Sohbet yürütme ayarlarını yapılandırın",
                     "executionDescription": "Sohbet modelini, kimliği, istemleri, çalışma alanını ve yürütme parametrelerini seçin.",
                     "executionTitle": "Sohbet yürütme",
                     "identityDescription": "Hesabı adlandırın; sağlayıcısını ve yanıt dilini seçin.",
@@ -7323,6 +7537,7 @@
                 "acl": "ACL",
                 "apiKeys": "OpenAI",
                 "backup": "Yedekleme",
+                "connect": "Bağlan",
                 "externalAccounts": "Posta ve takvim",
                 "licensing": "Lisanslama",
                 "mcp": "MCP",
@@ -7463,6 +7678,12 @@
                 }
             },
             "wallpaper": {
+                "builtIn": {
+                    "help": "Uygulamak için birini seçin",
+                    "label": "Yerleşik duvar kâğıtları",
+                    "none": "Duvar kâğıdı yok",
+                    "option": "Duvar kâğıdı {number}"
+                },
                 "downloadUrl": {
                     "button": "İndir",
                     "help": "İndirip duvar kâğıdı olarak ayarlamak için bir URL girin",
@@ -7708,6 +7929,25 @@
             }
         },
         "updates": {
+            "notes": {
+                "partial": "Bazı sürüm notları yüklenemedi. Mevcut notlar gösteriliyor."
+            },
+            "outcome": {
+                "failureMessage": "{version} sürümüne güncelleme tamamlanmadı. SoAI {previousVersion} hâlâ yüklü. Ayrıntılar için SoAI günlük klasöründeki application_updater.log dosyasını kontrol edin.",
+                "failureTitle": "Güncelleme tamamlanmadı",
+                "later": "Daha sonra",
+                "reloadMessage": "SoAI artık {version} sürümünü çalıştırıyor. Güncellenmiş arayüzü kullanmak için bu sayfayı yeniden yükleyin.",
+                "reloadTitle": "SoAI güncellendi",
+                "successMessage": "SoAI başarıyla {version} sürümüne güncellendi.",
+                "successTitle": "Güncelleme tamamlandı"
+            },
+            "progress": {
+                "downloading": "Güncelleme indiriliyor...",
+                "handoff": "SoAI yeniden başlatılmaya hazırlanıyor...",
+                "staging": "Güncelleme dosyaları hazırlanıyor...",
+                "unavailable": "Canlı ilerleme geçici olarak kullanılamıyor.",
+                "verifying": "Güncelleme doğrulanıyor..."
+            },
             "actions": {
                 "checkUpdates": "Güncellemeleri denetle",
                 "installUpdate": "Güncellemeyi yükle"
@@ -7943,6 +8183,184 @@
             "welcome": {
                 "description": "SoAI, yerel ve uzak LLM arka uçlarını OpenAI uyumlu tek bir orkestrasyon katmanının arkasında birleştirir.",
                 "heading": "SoAI'ye hoş geldiniz!"
+            },
+            "aiSetup": {
+                "eyebrow": "SoAI kurulumu",
+                "loadFailed": {
+                    "title": "SoAI kurulumu yüklenemedi",
+                    "description": "SoAI kullanılabilir motorları ve sağlayıcıları okuyamadı. SoAI’nin çalıştığından emin olup tekrar deneyin veya kurulumu daha sonra tamamlayın.",
+                    "retry": "Tekrar dene"
+                },
+                "nav": {
+                    "finishLater": "Atla",
+                    "skip": "SoAI kurulumunu atla",
+                    "continue": "Devam",
+                    "installAndContinue": "Yükle",
+                    "downloadAndContinue": "İndir",
+                    "startChatting": "Sohbet",
+                    "close": "Kapat"
+                },
+                "sources": {
+                    "heading": "Yapay zekânız nerede çalışsın?",
+                    "description": "Birini veya ikisini seçin. Bunu daha sonra değiştirebilirsiniz.",
+                    "local": {
+                        "title": "Bu cihazda",
+                        "description": "Gizli ve kurulumdan sonra çevrimdışı çalışır. Tek seferlik bir indirme gerektirir."
+                    },
+                    "cloud": {
+                        "title": "Bulut sağlayıcıları",
+                        "description": "İnternet ve sağlayıcı API anahtarıyla her yerde çalışır.",
+                        "recommended": "Önerilen"
+                    }
+                },
+                "freeApiKey": {
+                    "label": "Ücretsiz bir API anahtarı edinin",
+                    "accessibleName": "Ücretsiz bir API anahtarı edinin (yeni pencerede açılır)"
+                },
+                "limited": {
+                    "noCompatibleEngine": "Bu cihazı destekleyen yerel bir motor yok.",
+                    "insufficientMemory": "Yerel modeller yaklaşık {required} boş bellek gerektirir; bu cihazda yaklaşık {available} var.",
+                    "useCloud": "Bunun yerine bir bulut modeli kullan",
+                    "searchManually": "Modelleri elle ara"
+                },
+                "connect": {
+                    "heading": "Hazırlanın",
+                    "description": "Bir sağlayıcı bağlayın ve bu cihazı hazırlayın.",
+                    "cloud": {
+                        "heading": "Bir bulut sağlayıcısı bağlayın",
+                        "description": "Sağlayıcınızdan aldığınız API URL’sini ve anahtarı yapıştırın.",
+                        "moreOptions": "Daha fazla seçenek",
+                        "modelFilter": "Model filtresi (isteğe bağlı)",
+                        "connect": "Bağlan",
+                        "connecting": "{name} sağlayıcısına bağlanılıyor…",
+                        "connected": {
+                            "singular": "Bağlandı · {count} model kullanılabilir",
+                            "plural": "Bağlandı · {count} model kullanılabilir"
+                        },
+                        "change": "Değiştir"
+                    },
+                    "local": {
+                        "heading": "Yerel bir motor yükleyin",
+                        "description": "Bu, modellerin bu cihazda çalışmasını sağlar.",
+                        "automatic": "Otomatik (önerilen)",
+                        "usesGpu": "{engine} ekran kartınızla kullanılır",
+                        "usesProcessor": "{engine} işlemcide kullanılır",
+                        "usesInstalled": "Zaten yüklü olan {engine} kullanılır",
+                        "chooseManually": "Elle seç",
+                        "status": {
+                            "installed": "Yüklü",
+                            "recommended": "Önerilen",
+                            "warning": "Uyarı",
+                            "unavailable": "Kullanılamıyor"
+                        }
+                    }
+                },
+                "models": {
+                    "heading": "Bir model seçin",
+                    "description": "Neyle sohbet edeceğinizi seçin. Daha sonra başkalarını ekleyebilirsiniz.",
+                    "local": {
+                        "heading": "Bu cihaz için modeller",
+                        "description": "Donanımınıza göre seçildi."
+                    },
+                    "role": {
+                        "recommended": "Önerilen",
+                        "faster": "Daha hızlı",
+                        "smallest": "En küçük"
+                    },
+                    "useCase": {
+                        "advanced": "Yazma, kodlama ve akıl yürütme için en iyi kalite",
+                        "balanced": "Günlük sohbet, yazma ve kodlama için harika",
+                        "reasoning": "Güçlü adım adım akıl yürütme",
+                        "light": "Mütevazı donanımda hızlı yanıtlar"
+                    },
+                    "downloadSize": "{size} indirme",
+                    "runsOnGpu": "Ekran kartınızda çalışır",
+                    "runsOnCpu": "İşlemcinizde çalışır",
+                    "speed": {
+                        "fast": "Hızlı yanıtlar",
+                        "moderate": "Orta hız",
+                        "slow": "Daha yavaş yanıtlar"
+                    },
+                    "details": {
+                        "label": "Ayrıntılar",
+                        "quantization": "Nicemleme",
+                        "parameters": "Parametreler",
+                        "parametersDense": "{total} milyar",
+                        "parametersMoe": "{total} milyar, {active} milyar etkin",
+                        "context": "Bağlam uzunluğu",
+                        "contextTokens": "{tokens} token",
+                        "contextReduced": "{tokens} token (bu cihaza sığacak şekilde azaltıldı)",
+                        "file": "Dosya",
+                        "source": "Kaynak"
+                    },
+                    "openChatWith": "Bu modelle sohbeti aç",
+                    "searchAnother": "Başka bir model ara",
+                    "cloud": {
+                        "heading": "{provider} modelleri",
+                        "description": "Bir veya daha fazlasını seçin.",
+                        "filterPlaceholder": "Modelleri filtrele…",
+                        "noMatches": "Bu filtreyle eşleşen model yok.",
+                        "empty": "Bu sağlayıcı hiç model döndürmedi. Model filtresini kontrol edin veya başka bir sağlayıcı deneyin.",
+                        "backToProvider": "Sağlayıcıya dön"
+                    }
+                },
+                "progress": {
+                    "heading": "Her şey hazırlanıyor",
+                    "description": "Bir model hazır olur olmaz sohbete başlayabilirsiniz.",
+                    "readyCount": "{ready}/{total} hazır",
+                    "installing": "{engine} yükleniyor",
+                    "downloading": "{model} indiriliyor",
+                    "waitingForEngine": "{engine} yüklemesinin bitmesi bekleniyor",
+                    "discovering": "{model} modellerinize ekleniyor",
+                    "configuring": "Başlangıç ayarları uygulanıyor",
+                    "testing": "Kısa bir test mesajı gönderiliyor",
+                    "ready": "{model} hazır",
+                    "blocked": "{engine} yüklenene kadar başlatılamaz",
+                    "checkingStatus": "Durum denetleniyor",
+                    "retry": "Tekrar dene",
+                    "retryInstallation": "Yüklemeyi tekrar dene",
+                    "skipItem": "Bu öğeyi atla",
+                    "testAgain": "Yeniden test et",
+                    "checkAgain": "Yeniden denetle",
+                    "sendTest": "Test mesajı gönder",
+                    "error": {
+                        "empty": "Model yüklendi ancak yanıt vermedi. Tekrar deneyin veya başka bir model seçin.",
+                        "loadError": "Model bu cihazda başlatılamadı. Tekrar deneyin veya daha küçük bir model seçin.",
+                        "timeout": "Modelin yanıt vermesi çok uzun sürdü. Tekrar deneyin veya daha küçük bir model seçin.",
+                        "disconnected": "Test sırasında bağlantı kesildi. Tekrar deneyin.",
+                        "downloadFailed": "İndirme durdu. Tekrar deneyin.",
+                        "installFailed": "Yükleme tamamlanmadı. Tekrar deneyin.",
+                        "noDiskSpace": "Bu model için yeterli disk alanı yok. Yer açın veya daha küçük bir model seçin."
+                    },
+                    "testPrompt": "Kısa ve samimi tek bir cümleyle yanıt ver.",
+                    "testCancelled": "SoAI kurulum testi iptal edildi."
+                },
+                "completion": {
+                    "modelsTitle": "Yapay zekâ modelleri",
+                    "modelsReady": {
+                        "singular": "{count} hazır",
+                        "plural": "{count} hazır"
+                    },
+                    "stillPreparing": {
+                        "singular": "{count} arka planda hâlâ hazırlanıyor",
+                        "plural": "{count} arka planda hâlâ hazırlanıyor"
+                    }
+                },
+                "resume": {
+                    "link": "SoAI kurulumunu tamamla",
+                    "toast": "SoAI kurulumunun bazı adımları ilginizi bekliyor."
+                },
+                "background": {
+                    "downloads": {
+                        "singular": "Model indirmesi arka planda devam edecek.",
+                        "plural": "{count} model indirmesi arka planda devam edecek."
+                    },
+                    "installations": {
+                        "singular": "Arka uç yüklemesi arka planda devam edecek.",
+                        "plural": "{count} arka uç yüklemesi arka planda devam edecek."
+                    },
+                    "both": "Model indirmeleri ve arka uç yüklemeleri arka planda devam edecek."
+                }
             }
         }
     }

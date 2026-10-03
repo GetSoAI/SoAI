@@ -1,31 +1,32 @@
 /* SoAI - Language option construction and selection [frontend/assets/ts/core/languageservice/languageOptions.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import type { LanguageEntryWithFlag } from '@core/languageservice/types.ts';
+import type { LanguageEntryWithCountryCode } from '@core/languageservice/types.ts';
 
 interface LanguageOption {
     code: string;
-    flag: string | null;
+    countryCode: string | null;
     name: string | null;
 }
 
-const toLanguageOption = (value: LanguageEntryWithFlag): LanguageOption => ({
+const toLanguageOption = (value: LanguageEntryWithCountryCode): LanguageOption => ({
     code: value.code,
-    flag: value.flag ?? null,
+    countryCode: value.countryCode ?? null,
     name: value.name
 });
 
-const buildLanguageOptions = (languageCandidates: ReadonlyArray<LanguageEntryWithFlag>, currentLanguage: string): Array<{ value: string; label: string }> => {
+const buildLanguageOptions = (languageCandidates: ReadonlyArray<LanguageEntryWithCountryCode>, currentLanguage: string): Array<{ value: string; label: string; countryCode: string | null }> => {
     const options = languageCandidates.map((entry) => {
         const language = toLanguageOption(entry);
         return {
             value: language.code,
-            label: `${language.flag ? language.flag + ' ' : ''}${String(language.name ?? language.code)}`
+            label: String(language.name ?? language.code),
+            countryCode: language.countryCode
         };
     });
 
     if (!options.some((option) => option.value === currentLanguage)) {
-        options.push({ value: currentLanguage, label: currentLanguage });
+        options.push({ value: currentLanguage, label: currentLanguage, countryCode: null });
     }
 
     return options;

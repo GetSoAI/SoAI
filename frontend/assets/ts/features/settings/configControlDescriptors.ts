@@ -86,7 +86,7 @@ const renderSettingControlMarkup = (value: JsonValue, path: string, surface: Set
         });
     }
     if (descriptor.controlType === 'textarea') {
-        return `<textarea class="${securityApi.escapeAttribute(descriptor.className)}" id="${securityApi.escapeAttribute(descriptor.id)}" data-path="${securityApi.escapeAttribute(descriptor.path)}" rows="${descriptor.rows}">${securityApi.escapeHtml(descriptor.value)}</textarea>`;
+        return `<textarea dir="${descriptor.className.includes('setting-json') ? 'ltr' : 'auto'}" class="${securityApi.escapeAttribute(descriptor.className)}" id="${securityApi.escapeAttribute(descriptor.id)}" data-path="${securityApi.escapeAttribute(descriptor.path)}" rows="${descriptor.rows}">${securityApi.escapeHtml(descriptor.value)}</textarea>`;
     }
     if (descriptor.controlType === 'number') {
         return `<input type="number" class="setting-input" id="${securityApi.escapeAttribute(descriptor.id)}" data-path="${securityApi.escapeAttribute(descriptor.path)}" value="${securityApi.escapeAttribute(descriptor.value)}">`;

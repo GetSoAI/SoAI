@@ -15,7 +15,16 @@ const escaped = (value: string): string => securityApi.escapeHtml(value);
 const formatTimeMinute = (value: number | null): string => formatNullableEpochMsMinuteWithFallback(value, i18n.t('common.notAvailable'));
 const actionButton = (action: string, label: string, variant = 'neutral', disabled = false): string => `<button type="button" class="ui-button ui-button--sm ui-variant-${variant}" data-action="${action}" ${renderLabelAttributes(label)}${disabled ? ' disabled' : ''}>${escaped(label)}</button>`;
 
-const statusTone = (status: LicensingSettingsStatus): 'active' | 'warning' | 'danger' | 'neutral' => {
+type LicensingStatusTone = 'active' | 'warning' | 'danger' | 'neutral';
+
+const LICENSING_STATUS_TONE_CLASSES: Readonly<Record<LicensingStatusTone, string>> = Object.freeze({
+    active: 'settings-licensing-status--active',
+    warning: 'settings-licensing-status--warning',
+    danger: 'settings-licensing-status--danger',
+    neutral: 'settings-licensing-status--neutral'
+});
+
+const statusTone = (status: LicensingSettingsStatus): LicensingStatusTone => {
     if (licensingStateRequiresRepair(status.state)) return 'danger';
     if (licensingStateNeedsAttention(status.state)) return 'warning';
     if (status.operation && !['succeeded', 'failed', 'cancelled'].includes(status.operation.state)) return 'warning';
@@ -29,7 +38,7 @@ const statusLabel = (status: LicensingSettingsStatus): string => {
 
 const statusValue = (status: LicensingSettingsStatus): string => {
     const tone = statusTone(status);
-    return `<strong class="settings-licensing-status settings-licensing-status--${tone}">${escaped(statusLabel(status))}</strong>`;
+    return `<strong class="settings-licensing-status ${LICENSING_STATUS_TONE_CLASSES[tone]}">${escaped(statusLabel(status))}</strong>`;
 };
 
 const declarationEntitlement = (status: LicensingSettingsStatus): string => {
@@ -124,7 +133,7 @@ const environmentControl = (id: string, selected: 'production' | 'non_production
     });
 
 const organizationControls = (): string =>
-    `<div class="settings-licensing-organization-controls"><input id="settings-organization-legal-name" class="setting-input" autocomplete="organization" maxlength="256" placeholder="${securityApi.escapeAttribute(i18n.t('settings.licensing.organizationLegalName'))}"><input id="settings-organization-country" class="setting-input" autocomplete="country" maxlength="2" placeholder="${securityApi.escapeAttribute(i18n.t('settings.licensing.organizationCountry'))}"><input id="settings-organization-tax-id" class="setting-input" maxlength="256" placeholder="${securityApi.escapeAttribute(i18n.t('settings.licensing.organizationTaxId'))}"><input id="settings-authorized-acceptor-name" class="setting-input" autocomplete="name" maxlength="256" placeholder="${securityApi.escapeAttribute(i18n.t('settings.licensing.authorizedAcceptorName'))}"><input id="settings-authorized-acceptor-email" class="setting-input" type="email" autocomplete="email" maxlength="320" placeholder="${securityApi.escapeAttribute(i18n.t('settings.licensing.authorizedAcceptorEmail'))}"></div>`;
+    `<div class="settings-licensing-organization-controls"><input id="settings-organization-legal-name" class="setting-input" autocomplete="organization" maxlength="256" placeholder="${securityApi.escapeAttribute(i18n.t('settings.licensing.organizationLegalName'))}"><input id="settings-organization-country" class="setting-input" autocomplete="country" maxlength="2" placeholder="${securityApi.escapeAttribute(i18n.t('settings.licensing.organizationCountry'))}"><input id="settings-organization-tax-id" class="setting-input" maxlength="256" placeholder="${securityApi.escapeAttribute(i18n.t('settings.licensing.organizationTaxId'))}"><input id="settings-authorized-acceptor-name" class="setting-input" autocomplete="name" maxlength="256" placeholder="${securityApi.escapeAttribute(i18n.t('settings.licensing.authorizedAcceptorName'))}"><input dir="ltr" id="settings-authorized-acceptor-email" class="setting-input" type="email" autocomplete="email" maxlength="320" placeholder="${securityApi.escapeAttribute(i18n.t('settings.licensing.authorizedAcceptorEmail'))}"></div>`;
 
 const entitlementTransitionItems = (status: LicensingSettingsStatus, operationInProgress: boolean): string[] => {
     const entitlement = status.entitlement;
@@ -137,7 +146,7 @@ const entitlementTransitionItems = (status: LicensingSettingsStatus, operationIn
         items.push(renderSettingItem({ label: i18n.t('settings.licensing.revertOsEvaluation'), help: i18n.t('settings.licensing.revertOsEvaluationHelp'), className: 'full-width', control: actionButton('licensing-revert-os-evaluation', i18n.t('settings.licensing.revertOsEvaluation'), 'warning') }));
     }
     if (entitlement.entitlementType === 'personal_os_perpetual' || entitlement.entitlementType === 'organization_evaluation') {
-        const input = `<input id="settings-commercial-key" name="commercial-license-key" type="${resolveSecretInputType()}" class="setting-input setting-input--wide secret-input" autocomplete="off" spellcheck="false">`;
+        const input = `<input dir="ltr" id="settings-commercial-key" name="commercial-license-key" type="${resolveSecretInputType()}" class="setting-input setting-input--wide secret-input" autocomplete="off" spellcheck="false">`;
         items.push(renderSettingItem({ label: i18n.t('settings.licensing.convertCommercial'), help: i18n.t('settings.licensing.convertCommercialHelp'), className: 'full-width', control: `<div class="settings-licensing-key-control">${renderSecretInputControl({ inputId: 'settings-commercial-key', inputMarkup: input })}${environmentControl('settings-commercial-environment')}${actionButton('licensing-convert-commercial', i18n.t('settings.licensing.convertCommercial'), 'success', true)}</div>` }));
     }
     if (entitlement.deploymentEnvironment !== null && ['commercial_term', 'commercial_continuity', 'commercial_full_perpetual'].includes(entitlement.entitlementType)) {
@@ -189,7 +198,7 @@ const renderLicensingSettings = (status: LicensingSettingsStatus | null, soaiVer
     const actions: string[] = [];
     if (status.licenseAcceptedAtMs === null) actions.push(renderSettingItem({ label: i18n.t('about.licenseTitle'), help: i18n.t('licensing.errors.licenseChanged'), className: 'full-width', control: `<div class="settings-licensing-action-controls">${actionButton('licensing-review-license', i18n.t('about.licenseTitle'))}${actionButton('licensing-accept-license', i18n.t('wizard.navigation.acceptLicense'), 'success')}</div>` }));
     if (status.licenseAcceptedAtMs !== null && !operationInProgress && status.entitlement === null && status.productAccessRequired) {
-        const input = `<input id="settings-license-key" name="license-key" type="${resolveSecretInputType()}" class="setting-input setting-input--wide secret-input" autocomplete="off" spellcheck="false">`;
+        const input = `<input dir="ltr" id="settings-license-key" name="license-key" type="${resolveSecretInputType()}" class="setting-input setting-input--wide secret-input" autocomplete="off" spellcheck="false">`;
         const environment = status.declaration === 'organization_commercial' ? environmentControl('settings-activation-environment') : '';
         actions.push(renderSettingItem({ label: i18n.t('settings.licensing.activate'), help: i18n.t('settings.licensing.activateHelp'), className: 'full-width', control: `<div class="settings-licensing-key-control">${renderSecretInputControl({ inputId: 'settings-license-key', inputMarkup: input })}${environment}${actionButton('licensing-activate', i18n.t('settings.licensing.activate'), 'success', true)}</div>` }));
     }

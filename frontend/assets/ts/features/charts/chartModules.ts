@@ -60,7 +60,6 @@ const moduleSummary: Readonly<ChartModules> = Object.freeze({
     ohlc: ChartOhlc
 });
 
-let cachedModules: ChartModules | null = null;
 let loggedReady = false;
 
 const logReady = (): void => {
@@ -75,18 +74,14 @@ const logReady = (): void => {
 };
 
 const resolveModules = (): ChartModules => {
-    if (!cachedModules) {
-        cachedModules = moduleSummary;
-        logReady();
-    }
-    return cachedModules;
+    logReady();
+    return moduleSummary;
 };
 
 const chartModulesAccess: Readonly<ChartModulesAccess> = Object.freeze({
     ensure: async (): Promise<ChartModules> => resolveModules(),
     getSync: (): ChartModules => resolveModules(),
     reset: (): void => {
-        cachedModules = null;
         loggedReady = false;
     }
 });

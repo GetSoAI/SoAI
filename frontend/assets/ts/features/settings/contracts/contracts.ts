@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { AnimationSpeed, ClockFormatType } from '@core/storage/types.ts';
+import type { DefaultWallpaperId } from '@core/theme/defaultWallpapers.ts';
 import type { DateFormatPreference, MeasurementUnitsPreference, RegionalLocalePreference } from '@core/localization/public.ts';
 import type { ApiKey, ApiKeyQuotaSummary } from '@core/settings/contracts.ts';
 import type { MessageResponse } from '@core/api/contracts/systemContracts.ts';
@@ -22,6 +23,7 @@ import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { ConversationDeleteAllResponse, WebuiConversationResponse } from '@core/api/contracts/webuiConversationContracts.ts';
 import type { ConversationSearchConfigResponse } from '@core/api/contracts/webuiChatOperationContracts.ts';
 import type { InterfaceScalePercent } from '@core/layout/interfaceScale.ts';
+import type { SignalOptions } from '@core/api/requestOptions.ts';
 
 interface AuthService {
     isAuthenticated: boolean;
@@ -41,6 +43,7 @@ interface StorageService {
     getNotificationDuration: () => number;
     setNotificationDuration: (duration: number) => void;
     setSolidBackground: (color: string | null) => void;
+    setDefaultWallpaper: (id: DefaultWallpaperId | null) => void;
     getClockFormat: () => ClockFormatType;
     setClockFormat: (format: ClockFormatType) => void;
     getRegionalLocale: () => RegionalLocalePreference;
@@ -72,6 +75,7 @@ interface StorageService {
     getWallpaperOverlay: () => number;
     setWallpaperOverlay: (value: number) => void;
     getSolidBackground: () => string | null;
+    getDefaultWallpaper: () => DefaultWallpaperId | null;
     getHiddenSidebarPages: () => string[];
     setHiddenSidebarPages: (pages: string[]) => void;
     getHiddenDashboardElements: () => string[];
@@ -137,7 +141,7 @@ interface SettingsPageApi {
             listQuotaStatus: () => Promise<Record<string, ApiKeyQuotaSummary>>;
         };
         mcpAccessTokens: {
-            list: () => Promise<McpAccessTokensListResponse>;
+            list: (options?: SignalOptions) => Promise<McpAccessTokensListResponse>;
             create: (payload: McpAccessTokenCreateRequest) => Promise<McpAccessTokenCreateResponse>;
             revoke: (tokenId: string) => Promise<McpAccessTokenRevokeResponse>;
         };
@@ -187,9 +191,9 @@ interface SettingsPageApi {
         update: (key: string, data: JsonValue) => Promise<ConfigUpdateResponse>;
     };
     mcp: {
-        status: () => Promise<McpStatus>;
+        status: (options?: SignalOptions) => Promise<McpStatus>;
         servers: {
-            list: () => Promise<McpServer[]>;
+            list: (options?: SignalOptions) => Promise<McpServer[]>;
             create: (payload: McpServerCreatePayload) => Promise<McpServerCreateResponse>;
             update: (id: string, payload: McpServerUpdatePayload) => Promise<McpServer>;
             delete: (id: string) => Promise<void>;
@@ -202,27 +206,27 @@ interface SettingsPageApi {
             status: (id: string) => Promise<McpOauthStatusResponse>;
         };
         connections: {
-            list: () => Promise<McpConnection[]>;
+            list: (options?: SignalOptions) => Promise<McpConnection[]>;
         };
         tools: {
-            list: () => Promise<McpToolEntry[]>;
+            list: (options?: SignalOptions) => Promise<McpToolEntry[]>;
         };
         resources: {
-            list: () => Promise<McpResourceEntry[]>;
+            list: (options?: SignalOptions) => Promise<McpResourceEntry[]>;
         };
         prompts: {
-            list: () => Promise<McpPromptEntry[]>;
+            list: (options?: SignalOptions) => Promise<McpPromptEntry[]>;
         };
         roots: {
-            get: () => Promise<McpRootsResponse>;
+            get: (options?: SignalOptions) => Promise<McpRootsResponse>;
             update: (payload: { roots: McpRootEntry[] }) => Promise<McpRootsResponse>;
         };
         interactions: {
-            list: () => Promise<McpInteractionEntry[]>;
+            list: (options?: SignalOptions) => Promise<McpInteractionEntry[]>;
             resolve: (id: string, payload: McpInteractionResolvePayload) => Promise<JsonObject>;
         };
         searchApiKeys: {
-            list: () => Promise<McpSearchKeysResponse>;
+            list: (options?: SignalOptions) => Promise<McpSearchKeysResponse>;
             set: (provider: string, payload: { apiKey: string }) => Promise<McpSearchKeyEntry>;
             delete: (provider: string) => Promise<void>;
         };

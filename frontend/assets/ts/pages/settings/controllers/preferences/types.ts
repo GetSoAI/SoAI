@@ -5,7 +5,7 @@ import type { ConfigurationManager } from '@core/configurationManager.ts';
 import type { OcrLanguage } from '@core/api/contracts/ocrLanguageContracts.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import type { DateFormatPreference, MeasurementUnitsPreference, RegionalLocalePreference } from '@core/localization/public.ts';
-import type { LanguageEntryWithFlag } from '@core/languageservice/types.ts';
+import type { LanguageEntryWithCountryCode } from '@core/languageservice/types.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageResourcesOwnerHost } from '@core/routing/pages/basepagecore/PageResources.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
@@ -39,7 +39,7 @@ interface PreferencesStorage {
 interface PreferencesLanguageService {
     getLanguage: () => string;
     setLanguage: (lang: string) => Promise<void>;
-    getAvailableLanguages: () => ReadonlyArray<LanguageEntryWithFlag>;
+    getAvailableLanguages: () => ReadonlyArray<LanguageEntryWithCountryCode>;
 }
 
 interface PreferencesManagerHost extends PageDomOwnerHost, PageResourcesOwnerHost, PageFeedbackOwnerHost {
@@ -82,7 +82,7 @@ interface PreferenceToggleContract {
 }
 
 interface PreferenceViewModel {
-    languageOptions: Array<{ value: string; label: string }>;
+    languageOptions: Array<{ value: string; label: string; countryCode: string | null }>;
     selectedLanguage: string;
     selectedClockFormat: '12h' | '24h';
     notificationDuration: number;

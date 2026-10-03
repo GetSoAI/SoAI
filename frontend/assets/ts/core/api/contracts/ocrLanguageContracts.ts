@@ -5,12 +5,13 @@ import type { ApiResponsePayload } from '@core/api/types/payload.ts';
 import { requireRecord, readRequiredJsonObjectArrayValue } from '@core/types/payloadRecordReaders.ts';
 import { readRequiredBooleanValue, readRequiredStringValue } from '@core/types/payloadValueReaders.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
+import { decodeRegionalIndicatorFlag, isFlagCountryCode } from '@core/countryFlags.ts';
 
 interface OcrLanguage {
     code: string;
     name: string;
     nativeName: string;
-    flag: string;
+    countryCode: string | null;
     uiLocale: string | null;
     available: boolean;
 }
@@ -21,11 +22,17 @@ const decodeOcrLanguages = (value: ApiResponsePayload): readonly OcrLanguage[] =
     if (!Array.isArray(entries)) throw new TypeError('OCR languages must be an array.');
     const languages = readRequiredJsonObjectArrayValue(entries, 'OCR languages').map((entry): OcrLanguage => {
         const uiLocale = entry['ui_locale'];
+        const explicitCountryCode = entry['country_code'];
+        if (explicitCountryCode !== undefined && explicitCountryCode !== null && (typeof explicitCountryCode !== 'string' || !isFlagCountryCode(explicitCountryCode))) {
+            throw new TypeError('OCR catalog has an invalid country code.');
+        }
+        const legacyFlag = entry['flag'];
+        const countryCode = explicitCountryCode === undefined ? (typeof legacyFlag === 'string' ? decodeRegionalIndicatorFlag(legacyFlag) : null) : explicitCountryCode;
         return {
             code: readRequiredStringValue(entry['code'], 'OCR model code'),
             name: readRequiredStringValue(entry['name'], 'OCR model name'),
             nativeName: readRequiredStringValue(entry['native_name'], 'OCR native name'),
-            flag: readRequiredStringValue(entry['flag'], 'OCR flag'),
+            countryCode,
             uiLocale: uiLocale === null ? null : readRequiredStringValue(uiLocale, 'OCR UI locale'),
             available: readRequiredBooleanValue(entry['available'], 'OCR availability')
         };

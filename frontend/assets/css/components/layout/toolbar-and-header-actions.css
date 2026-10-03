@@ -125,7 +125,7 @@
     :where(.chat-container) .chat-page-shortcut-label {
         color: var(--text-secondary);
         font-size: var(--font-size-xs);
-        margin-left: var(--space-1);
+        margin-inline-start: var(--space-1);
     }
 
     @container ui-viewport (height <= 480px) or (width <= 1024px) {
@@ -231,7 +231,7 @@
     }
 
     :where(.chat-container) .chat-header-overflow.page-actions--dropdown {
-        margin-left: 0;
+        margin-inline-start: 0;
     }
 
     :where(.chat-container) .chat-header-action.ui-button,
@@ -266,7 +266,7 @@
         font-size: var(--font-size-sm);
         font-weight: 500;
         line-height: 1.2;
-        margin-left: var(--space-2);
+        margin-inline-start: var(--space-2);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;

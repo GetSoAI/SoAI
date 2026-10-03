@@ -49,8 +49,8 @@
         place-items: start start;
         width: 100%;
         max-width: calc(6 * var(--hardware-insight-size) + 5 * 1.5rem);
-        margin-left: 0;
-        margin-right: auto;
+        margin-inline-start: 0;
+        margin-inline-end: auto;
         position: relative;
         z-index: var(--z-base);
     }
@@ -63,7 +63,7 @@
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-insight-title {
         font-size: var(--font-size-body);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-055px);
     }
 
@@ -97,8 +97,8 @@
         flex-shrink: 0;
         gap: var(--space-2);
         justify-content: flex-start;
-        padding-left: var(--space-2);
-        padding-right: calc(var(--control-round-button-size) + var(--space-4));
+        padding-inline-start: var(--space-2);
+        padding-inline-end: calc(var(--control-round-button-size) + var(--space-4));
         -webkit-backdrop-filter: none;
         backdrop-filter: none;
     }
@@ -106,7 +106,7 @@
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-control-action-bar {
         position: absolute;
         top: var(--space-15);
-        right: var(--space-2);
+        inset-inline-end: var(--space-2);
         display: flex;
         flex-direction: column;
         gap: var(--space-15);
@@ -181,7 +181,7 @@
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-auto-toggle {
         gap: var(--space-15);
         transform: scale(0.95);
-        transform-origin: right center;
+        transform-origin: calc(100% - var(--inline-start-percent)) center;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-slider-auto-toggle .toggle-label {
@@ -191,7 +191,7 @@
         text-transform: lowercase;
         color: var(--text-primary);
         min-width: 4rem;
-        text-align: right;
+        text-align: end;
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .gpu-controls-container .toggle-switch,

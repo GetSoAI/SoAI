@@ -1,6 +1,7 @@
 /* SoAI - Shared UI modal wiring [frontend/assets/ts/core/ui/modals/contentpreview/modalWiring.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { resolveInlineArrowStep } from '@core/layout/direction.ts';
 import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { isEditableKeyboardTarget } from '@core/dom/editableTargets.ts';
 import { errorHandler } from '@core/errorHandler.ts';
@@ -125,7 +126,7 @@ const wireContentPreviewModalEvents = ({ resources, modalRoot, handleClose, hand
             if (isPlainImageNavigationKey(event) && canNavigateImage() && !isEditableKeyboardTarget(event.target)) {
                 event.preventDefault();
                 event.stopPropagation();
-                runContentPreviewAsyncAction(event.key, event.key === 'ArrowLeft' ? handleImagePrevious : handleImageNext);
+                runContentPreviewAsyncAction(event.key, resolveInlineArrowStep(event.key, modalRoot) < 0 ? handleImagePrevious : handleImageNext);
                 return;
             }
         },

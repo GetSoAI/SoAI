@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { formatShortDurationUnit } from '@core/primitives/duration.ts';
 import { resolveDeviceNamePresentation } from '@features/hardware/widgets/basehardwarewidget/mappers.ts';
 import type { DeviceNameParts, MetricConfig, UnitConfig, WidgetElements } from '@features/hardware/widgets/contracts.ts';
 
@@ -47,7 +48,7 @@ const selectHardwareWidgetMetric = (container: HTMLElement, elements: WidgetElem
         const labelWrapper = dom.resolve('.hardware-widget__metric-label-wrapper', row);
         if (labelWrapper) {
             const timeScale = dom.create('div', { className: 'hardware-widget__time-scale' });
-            dom.setText(timeScale, '5m');
+            dom.setText(timeScale, formatShortDurationUnit('minute', 5));
             labelWrapper.append(timeScale);
         }
     }

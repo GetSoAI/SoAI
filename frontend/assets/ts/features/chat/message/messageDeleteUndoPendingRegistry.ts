@@ -19,6 +19,7 @@ type PendingDeleteDescriptor = {
     nonce: string;
     timerId: number | null;
     phase: PendingDeletePhase;
+    presentationReady: boolean;
 };
 
 type CommitResult = {
@@ -70,22 +71,28 @@ class ChatMessageDeleteUndoPendingRegistry {
         return false;
     }
 
-    requestDelete(conversationKey: string, messageDomId: string, cursor: MessageCursor | null): boolean {
+    requestDelete(conversationKey: string, messageDomId: string, cursor: MessageCursor | null): string | null {
         const renderIdentity = normalizeMessageDomId(messageDomId);
-        if (!renderIdentity) return false;
+        if (!renderIdentity) return null;
         const targetKey = cursor === null ? `local:${renderIdentity}` : `persisted:${buildPersistedMessageCursorKey(cursor)}`;
         const pendingByCursor = this.#pendingByConversationKey.get(conversationKey) ?? new Map<string, PendingDeleteDescriptor>();
-        if (pendingByCursor.has(targetKey)) return false;
+        if (pendingByCursor.has(targetKey)) return null;
         const nonce = this.#createNonce();
-        const timerId = this.#timers.setTimeout(() => this.#onCommitTimer(conversationKey, targetKey, nonce), this.#deleteDelayMs);
-        pendingByCursor.set(targetKey, { targetKey, cursor: cursor === null ? null : { ...cursor }, renderIdentity, nonce, timerId, phase: 'countdown' });
+        pendingByCursor.set(targetKey, { targetKey, cursor: cursor === null ? null : { ...cursor }, renderIdentity, nonce, timerId: null, phase: 'countdown', presentationReady: false });
         this.#pendingByConversationKey.set(conversationKey, pendingByCursor);
-        return true;
+        return nonce;
     }
 
-    undoDelete(conversationKey: string, messageDomId: string): boolean {
+    markPresented(conversationKey: string, messageDomId: string, nonce: string): void {
         const resolved = this.#resolveByRenderIdentity(conversationKey, messageDomId);
-        if (resolved === null || resolved.descriptor.phase === 'committing') return false;
+        if (resolved === null || resolved.descriptor.nonce !== nonce || resolved.descriptor.phase === 'committing') return;
+        resolved.descriptor.presentationReady = true;
+        if (resolved.descriptor.phase === 'countdown') this.#schedule(conversationKey, resolved.targetKey, resolved.descriptor);
+    }
+
+    undoDelete(conversationKey: string, messageDomId: string, expectedNonce?: string): boolean {
+        const resolved = this.#resolveByRenderIdentity(conversationKey, messageDomId);
+        if (resolved === null || (expectedNonce !== undefined && resolved.descriptor.nonce !== expectedNonce) || resolved.descriptor.phase === 'committing') return false;
         this.#remove(conversationKey, resolved.targetKey, resolved.descriptor);
         return true;
     }
@@ -95,7 +102,7 @@ class ChatMessageDeleteUndoPendingRegistry {
         if (resolved === null || resolved.descriptor.phase === 'committing') return false;
         if (resolved.descriptor.timerId !== null) this.#timers.clearTimer(resolved.descriptor.timerId);
         resolved.descriptor.timerId = null;
-        resolved.descriptor.nonce = this.#createNonce();
+        if (resolved.descriptor.presentationReady) resolved.descriptor.nonce = this.#createNonce();
         resolved.descriptor.phase = 'paused';
         return true;
     }
@@ -153,10 +160,11 @@ class ChatMessageDeleteUndoPendingRegistry {
     }
 
     #schedule(conversationKey: string, targetKey: string, descriptor: PendingDeleteDescriptor): void {
+        descriptor.phase = 'countdown';
+        if (!descriptor.presentationReady) return;
         if (descriptor.timerId !== null) this.#timers.clearTimer(descriptor.timerId);
         const nonce = this.#createNonce();
         descriptor.nonce = nonce;
-        descriptor.phase = 'countdown';
         descriptor.timerId = this.#timers.setTimeout(() => this.#onCommitTimer(conversationKey, targetKey, nonce), this.#deleteDelayMs);
     }
 

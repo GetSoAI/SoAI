@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { RouteDefinition } from '@core/routing/router/types.ts';
+import type { DefaultWallpaperId } from '@core/theme/defaultWallpapers.ts';
 
 type BackgroundRouteDescriptor = RouteDefinition & {
     name?: string;
@@ -13,6 +14,7 @@ type BackgroundRoute = BackgroundRouteDescriptor | string | null;
 
 interface StorageInstance {
     getSolidBackground: () => string | null;
+    getDefaultWallpaper: () => DefaultWallpaperId | null;
     getWallpaperOverlay: () => number;
 }
 

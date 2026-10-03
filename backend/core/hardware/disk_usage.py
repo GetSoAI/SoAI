@@ -7,6 +7,8 @@ import os
 import shutil
 from dataclasses import dataclass
 
+from core.filesystem.path_coercion import normalize_filesystem_path
+from core.platform.os import is_windows
 from core.validation.integers import coerce_non_negative_int_or_zero
 from core.validation.numbers import coerce_int_from_json
 
@@ -27,9 +29,11 @@ class DiskUsageSnapshot:
 
 def _read_disk_usage_values(path: str) -> tuple[str, int, int, int]:
     usage_path = path
+    if is_windows() and os.path.isfile(normalize_filesystem_path(usage_path)):
+        usage_path = os.path.dirname(usage_path)
     while True:
         try:
-            usage = shutil.disk_usage(usage_path)
+            usage = shutil.disk_usage(normalize_filesystem_path(usage_path))
             return usage_path, usage.total, usage.used, usage.free
         except FileNotFoundError:
             parent = os.path.dirname(usage_path)

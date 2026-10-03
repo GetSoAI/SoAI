@@ -4,13 +4,19 @@
 from __future__ import annotations
 
 from core.errors.exceptions import ValidationError
+from core.hardware.gpu_identity_normalization import is_specific_gpu_name
 from core.hardware.soaibench_score_fields import SOAIBENCH_MEASUREMENT_FIELDS
+from core.hardware.soaibench_telemetry import (
+    project_public_telemetry,
+    telemetry_availability_is_consistent,
+)
 from core.types.json import JSONDict, JSONValue
 from core.types.json_value import coerce_json_dict_or_empty
 from core.validation.integers import is_strict_int
 from core.validation.strict_numbers import require_finite_float_strict
-from hardware.soaibench.publication_document_validation import PASS_FIELDS, TELEMETRY_FIELDS
+from hardware.soaibench.publication_document_validation import PASS_FIELDS
 from hardware.soaibench.publication_numeric_validation import has_public_certification_status
+from hardware.soaibench.publication_projection import resolve_public_gpu_name
 from hardware.soaibench.types import SOAIBENCH_SCORE_VERSION
 
 __all__ = ("classify_run",)
@@ -62,16 +68,21 @@ def _has_complete_public_run(run: JSONDict) -> bool:
     environment = coerce_json_dict_or_empty(run.get("environment"))
     opencl = coerce_json_dict_or_empty(environment.get("opencl"))
     summary = coerce_json_dict_or_empty(run.get("summary"))
+    public_gpu_name = resolve_public_gpu_name(run, opencl)
+    gpu_model_key = run.get("gpu_model_key")
+    has_public_gpu_identity = (
+        isinstance(public_gpu_name, str) and is_specific_gpu_name(public_gpu_name)
+    ) or (isinstance(gpu_model_key, str) and is_specific_gpu_name(gpu_model_key))
     required_numbers = (*SOAIBENCH_MEASUREMENT_FIELDS, "score_variance_percent")
     return (
         all(_finite_number(run.get(field)) for field in required_numbers)
-        and (_nonempty_text(run.get("gpu_name")) or _nonempty_text(run.get("gpu_model_key")))
+        and has_public_gpu_identity
         and all(
             _nonempty_text(environment.get(field)) for field in ("soai_version", "os", "cpu_name")
         )
         and _finite_number(environment.get("system_ram_gb"), positive=True)
         and _nonempty_text(opencl.get("device_name"))
-        and all(field in summary for field in TELEMETRY_FIELDS)
+        and telemetry_availability_is_consistent(project_public_telemetry(summary))
     )
 
 
@@ -87,7 +98,7 @@ def _has_complete_measured_pass(entry: JSONValue, index: int) -> bool:
         and entry.get("warmup") is False
         and entry.get("score_version") == SOAIBENCH_SCORE_VERSION
         and all(field in entry for field in PASS_FIELDS)
-        and all(field in telemetry for field in TELEMETRY_FIELDS)
+        and telemetry_availability_is_consistent(project_public_telemetry(telemetry))
         and set(evidence) == {"alu", "compute", "matrix", "latency", "memory", "mixed"}
     )
 

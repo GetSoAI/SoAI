@@ -76,6 +76,7 @@ async def execute_prepared_conversation_input_stream(
         plugin_manager=api_dependencies.plugin_manager,
         state_aggregator=api_dependencies.state_aggregator,
         orchestrator_lifecycle=api_dependencies.orchestrator_lifecycle,
+        chat_template_role_policy_resolver=api_dependencies.chat_template_role_policy_resolver,
         request_context=request_context,
         stream_transcript=session.stream_transcript,
     )

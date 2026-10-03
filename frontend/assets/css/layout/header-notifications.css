@@ -5,7 +5,7 @@
     .header-notification-center {
         position: absolute;
         top: calc(100% + 8px);
-        right: 0;
+        inset-inline-end: 0;
 
         --notification-item-overlay-strong: 18%;
         --notification-item-outline-opacity: 26%;
@@ -134,7 +134,7 @@
         font-size: var(--font-size-xs);
         font-weight: 500;
         color: var(--text-secondary);
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
         letter-spacing: var(--tracking-05px);
         min-width: 0;
         overflow: hidden;
@@ -203,8 +203,8 @@
     .notification-item.dropdown-item:is(.notification-item--info, .notification-item--success, .notification-item--warning, .notification-item--error) {
         border-top: var(--border-width-1) solid color-mix(in srgb, var(--notification-item-accent) var(--notification-item-outline-opacity), transparent);
         border-bottom: var(--border-width-1) solid color-mix(in srgb, var(--notification-item-accent) var(--notification-item-outline-opacity), transparent);
-        border-left: none;
-        border-right: none;
+        border-inline-start: none;
+        border-inline-end: none;
         border-radius: 0;
     }
 
@@ -258,8 +258,8 @@
         .header-notification-center {
             position: fixed;
             top: calc(var(--header-height) + var(--space-2));
-            right: calc(var(--space-3) + var(--ui-safe-area-inset-right));
-            left: calc(var(--space-3) + var(--ui-safe-area-inset-left));
+            inset-inline-end: calc(var(--space-3) + var(--ui-safe-area-inset-inline-end));
+            inset-inline-start: calc(var(--space-3) + var(--ui-safe-area-inset-inline-start));
             width: auto;
             max-width: none;
             max-height: calc(calc(100 * var(--ui-viewport-dynamic-height-unit)) - var(--header-height) - var(--space-5) - var(--ui-safe-area-inset-bottom));

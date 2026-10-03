@@ -6,8 +6,8 @@
         overflow: auto;
     }
 
-    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-modal .ui-button[hidden] {
-        display: none;
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-modal[data-soaibench-layout='runs'] .modal-content {
+        height: min(calc(85 * var(--ui-viewport-height-unit)), 800px);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-body {
@@ -15,6 +15,91 @@
         flex-direction: column;
         gap: var(--space-4);
         min-height: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-toolbar {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-composer {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-5);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-entry {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        min-width: 0;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-entry + .hardware-soaibench-run-entry,
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-composer:not(.u-hidden) + .hardware-soaibench-run-list:not(:empty) {
+        padding-top: var(--space-5);
+        border-top: var(--border-width-1) solid var(--surface-card-border);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-heading {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: var(--space-05);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-started {
+        color: var(--text-tertiary);
+        font-size: var(--font-size-compact);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-status {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: var(--font-size-body-sm);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: var(--space-2);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-gpu-selection-title {
+        margin: 0;
+        color: var(--text-primary);
+        font-size: var(--font-size-body);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-gpu-list {
+        display: grid;
+        gap: var(--space-2);
+        justify-items: start;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-gpu-option {
+        justify-content: flex-start;
+        gap: var(--space-2);
+        max-width: 100%;
+        text-align: start;
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-gpu-option-reason {
+        color: var(--text-tertiary);
+        font-size: var(--font-size-compact);
+    }
+
+    :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-gpu-empty {
+        margin: 0;
+        color: var(--text-secondary);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-summary {
@@ -30,6 +115,7 @@
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-run-gpu {
         min-width: 0;
+        margin: 0;
         color: var(--text-primary);
         font-size: var(--font-size-body);
         font-weight: 600;
@@ -58,7 +144,7 @@
         flex-direction: column;
         gap: var(--space-1);
         margin: 0;
-        padding-left: var(--space-4);
+        padding-inline-start: var(--space-4);
         color: var(--text-secondary);
         font-size: var(--font-size-body-sm);
     }
@@ -104,7 +190,7 @@
         color: var(--text-secondary);
         font-size: var(--font-size-body-sm);
         font-weight: 600;
-        text-transform: uppercase;
+        text-transform: var(--text-case-label);
     }
 
     :where([data-section='hardware'], [data-page-scope='hardware']) .hardware-soaibench-report-band strong {

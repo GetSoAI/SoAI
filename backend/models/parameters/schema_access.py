@@ -6,29 +6,25 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 
 from core.errors.exceptions import ValidationError
+from core.models.persisted_parameter_values import resolve_effective_parameter_values
 from core.models.protocols import ParameterManagerProtocol
 from core.types.json import JSONDict
 
 __all__ = (
-    "get_default_parameters",
+    "get_effective_parameters",
     "get_validated_parameter_schema",
 )
 
 
-async def get_default_parameters(
+async def get_effective_parameters(
     param_manager: ParameterManagerProtocol,
     plugin_name: str,
+    custom_parameters: JSONDict,
 ) -> JSONDict:
     schema = await param_manager.get_all_parameters_for_plugin(plugin_name)
-    defaults: JSONDict = {}
     if not isinstance(schema, dict):
-        return defaults
-    for name, definition in schema.items():
-        if not isinstance(definition, dict):
-            continue
-        if definition.get("has_default", "default" in definition):
-            defaults[name] = definition.get("default")
-    return defaults
+        raise ValidationError(f"Parameter schema for plugin '{plugin_name}' must be a mapping.")
+    return resolve_effective_parameter_values(schema, custom_parameters)
 
 
 async def get_validated_parameter_schema(

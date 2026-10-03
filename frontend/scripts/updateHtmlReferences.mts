@@ -1,6 +1,7 @@
 /* SoAI - Built asset reference synchronization for frontend HTML [frontend/scripts/updateHtmlReferences.mts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { createHash } from 'crypto';
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -27,7 +28,8 @@ interface Manifest {
     [key: string]: ManifestEntry;
 }
 
-const frontendRoot = process.env.SOAI_FRONTEND_BUILD_ROOT ? resolve(process.env.SOAI_FRONTEND_BUILD_ROOT) : resolve(__dirname, '..');
+const coreFrontendRoot = resolve(__dirname, '..');
+const frontendRoot = process.env.SOAI_FRONTEND_BUILD_ROOT ? resolve(process.env.SOAI_FRONTEND_BUILD_ROOT) : coreFrontendRoot;
 const manifestPath = resolve(frontendRoot, 'assets/build/manifest.json');
 const indexPath = resolve(frontendRoot, 'index.html');
 const detachedPath = resolve(frontendRoot, 'detached.html');
@@ -81,7 +83,24 @@ const replaceOrThrow = (source: string, pattern: RegExp, replacement: string, la
 
 const leadingPathPattern = '(?:/|\\.\\/)?';
 
-const CSS_BOOT_PATTERN = new RegExp(`(\\s*)<link rel="stylesheet" href="${leadingPathPattern}assets/css/boot\\.css" />`);
+const versionQueryPattern = '(?:\\?v=[0-9a-f]+)?';
+
+const CSS_BOOT_PATTERN = new RegExp(`(\\s*)<link rel="stylesheet" href="${leadingPathPattern}assets/css/boot\\.css${versionQueryPattern}" />`);
+const THEME_PREINIT_PATTERN = new RegExp(`(\\s*)<script src="${leadingPathPattern}assets/js/theme-preinit\\.js${versionQueryPattern}"></script>`);
+const WALLPAPER_PREINIT_PATTERN = new RegExp(`(\\s*)<script src="${leadingPathPattern}assets/js/wallpaper-preinit\\.js${versionQueryPattern}"></script>`);
+
+const getContentVersionedUrl = (relativePath: string): string => {
+    const digest = createHash('sha256')
+        .update(readFileSync(resolve(coreFrontendRoot, relativePath)))
+        .digest('hex');
+    return `./${relativePath}?v=${digest.slice(0, 16)}`;
+};
+
+const updateUnhashedBootReferences = (html: string, label: string): string => {
+    let updated = replaceOrThrow(html, THEME_PREINIT_PATTERN, `$1<script src="${getContentVersionedUrl('assets/js/theme-preinit.js')}"></script>`, `${label} theme preinit script`);
+    updated = replaceOrThrow(updated, WALLPAPER_PREINIT_PATTERN, `$1<script src="${getContentVersionedUrl('assets/js/wallpaper-preinit.js')}"></script>`, `${label} wallpaper preinit script`);
+    return replaceOrThrow(updated, CSS_BOOT_PATTERN, `$1<link rel="stylesheet" href="${getContentVersionedUrl('assets/css/boot.css')}" />`, `${label} boot CSS`);
+};
 
 const CSS_MAIN_PATTERN = new RegExp(`(\\s*)<link rel="stylesheet" href="(?:${leadingPathPattern}assets/build/css/[^"]+\\.css)?" />`);
 const CSS_DETACHED_PATTERN = new RegExp(`(\\s*)<link rel="stylesheet" href="(?:${leadingPathPattern}assets/build/css/[^"]+\\.css)?" />`);
@@ -92,7 +111,7 @@ const DETACHED_ENTRY_PATTERN = new RegExp(`(\\s*)<script type="module" src="${le
 const updateIndexHtml = (): void => {
     let html = readFileSync(indexPath, 'utf-8');
 
-    html = replaceOrThrow(html, CSS_BOOT_PATTERN, `$1<link rel="stylesheet" href="./assets/css/boot.css" />`, 'index.html boot CSS');
+    html = updateUnhashedBootReferences(html, 'index.html');
 
     html = replaceOrThrow(html, CSS_MAIN_PATTERN, `$1<link rel="stylesheet" href="${getStyleCss()}" />`, 'index.html CSS');
 
@@ -107,7 +126,7 @@ const updateIndexHtml = (): void => {
 const updateDetachedHtml = (): void => {
     let html = readFileSync(detachedPath, 'utf-8');
 
-    html = replaceOrThrow(html, CSS_BOOT_PATTERN, `$1<link rel="stylesheet" href="./assets/css/boot.css" />`, 'detached.html boot CSS');
+    html = updateUnhashedBootReferences(html, 'detached.html');
 
     html = replaceOrThrow(html, CSS_DETACHED_PATTERN, `$1<link rel="stylesheet" href="${getStyleCss()}" />`, 'detached.html CSS');
 

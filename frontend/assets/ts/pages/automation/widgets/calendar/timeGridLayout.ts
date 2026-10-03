@@ -3,7 +3,7 @@
 
 import { clampNumber } from '@core/primitives/clampNumber.ts';
 import { buildAutomationZoneKeyForZone } from '@pages/automation/contracts/zoneKey.ts';
-import type { AutomationZone } from '@features/automation/public.ts';
+import type { AutomationOccurrenceResponse } from '@features/automation/public.ts';
 import type { TimeGridZoneLayout } from '@pages/automation/widgets/calendar/timeGridTypes.ts';
 
 interface CalendarDisplayConstants {
@@ -18,8 +18,8 @@ interface LayoutInterval {
     startMinutes: number;
     endMinutes: number;
     isSelected: boolean;
-    status: AutomationZone['status'];
-    color: AutomationZone['color'];
+    status: AutomationOccurrenceResponse['status'];
+    color: AutomationOccurrenceResponse['color'];
 }
 
 const minutesFromMidnightLocal = (utcMs: number): number => {
@@ -88,7 +88,7 @@ const assignColumns = (cluster: readonly LayoutInterval[]): Map<string, { column
     return placement;
 };
 
-const layoutZonesForTimeGrid = (zones: readonly AutomationZone[], selectedZoneKey: string | null, constants: CalendarDisplayConstants): TimeGridZoneLayout[] => {
+const layoutZonesForTimeGrid = (zones: readonly AutomationOccurrenceResponse[], selectedZoneKey: string | null, constants: CalendarDisplayConstants): TimeGridZoneLayout[] => {
     const durationMinutes = constants.displayDurationMs / 60000;
     const heightPx = Math.max(18, (durationMinutes / 60) * constants.hourHeightPx);
 

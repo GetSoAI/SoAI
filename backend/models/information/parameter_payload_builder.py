@@ -14,6 +14,7 @@ from core.models.context_window import (
     build_standardized_context_display_name,
     resolve_semantic_parameter_name,
 )
+from core.models.persisted_parameter_values import resolve_effective_parameter_values
 from core.models.source_identifier import require_source_model_id
 from core.types.json import is_json_dict
 from core.validation.strings import coerce_optional_trimmed_str
@@ -45,30 +46,31 @@ async def build_formatted_parameters_payload(
     universal_id: str,
     model_get_info: Callable[[str], Awaitable[JSONDict | None]],
 ) -> JSONDict:
-    model_info = await model_get_info(universal_id)
-    if not model_info:
-        raise NotFoundError(
-            f"Model '{universal_id}' not found.",
-            details={"universal_id": universal_id},
+    async with deps.model_record_locks[universal_id]:
+        model_info = await model_get_info(universal_id)
+        if not model_info:
+            raise NotFoundError(
+                f"Model '{universal_id}' not found.",
+                details={"universal_id": universal_id},
+            )
+        plugin_name = coerce_optional_trimmed_str(model_info.get("plugin"))
+        if not plugin_name:
+            raise ConfigurationError(
+                f"Model '{universal_id}' has invalid plugin metadata.",
+                details={"universal_id": universal_id},
+            )
+        if not deps.plugin_manager.is_known_plugin(plugin_name):
+            display_name = await deps.plugin_manager.get_plugin_display_name(plugin_name)
+            raise ConfigurationError(
+                f"Plugin '{display_name}' for model '{universal_id}' is not recognized.",
+                details={"plugin": plugin_name, "universal_id": universal_id},
+            )
+        source_model_id = require_source_model_id(model_info)
+        (schema, categories), overrides = await asyncio.gather(
+            deps.param_manager.get_parameter_schema_snapshot(plugin_name),
+            deps.database_models.get_model_custom_parameters(universal_id),
+            return_exceptions=False,
         )
-    plugin_name = coerce_optional_trimmed_str(model_info.get("plugin"))
-    if not plugin_name:
-        raise ConfigurationError(
-            f"Model '{universal_id}' has invalid plugin metadata.",
-            details={"universal_id": universal_id},
-        )
-    if not deps.plugin_manager.is_known_plugin(plugin_name):
-        display_name = await deps.plugin_manager.get_plugin_display_name(plugin_name)
-        raise ConfigurationError(
-            f"Plugin '{display_name}' for model '{universal_id}' is not recognized.",
-            details={"plugin": plugin_name, "universal_id": universal_id},
-        )
-    source_model_id = require_source_model_id(model_info)
-    (schema, categories), overrides = await asyncio.gather(
-        deps.param_manager.get_parameter_schema_snapshot(plugin_name),
-        deps.database_models.get_model_custom_parameters(universal_id),
-        return_exceptions=False,
-    )
     schema_definitions: dict[str, JSONDict] = (
         {
             name: definition
@@ -78,14 +80,7 @@ async def build_formatted_parameters_payload(
         if isinstance(schema, dict)
         else {}
     )
-    effective_values = {
-        **{
-            name: definition.get("default")
-            for name, definition in schema_definitions.items()
-            if _definition_has_default(definition)
-        },
-        **overrides,
-    }
+    effective_values = resolve_effective_parameter_values(schema, overrides)
     context_parameter_name = resolve_semantic_parameter_name(
         schema_definitions,
         PARAMETER_SEMANTIC_ROLE_CONTEXT_WINDOW,

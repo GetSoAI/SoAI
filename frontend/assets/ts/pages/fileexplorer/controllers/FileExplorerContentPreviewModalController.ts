@@ -91,7 +91,7 @@ class FileExplorerContentPreviewModalController {
     }
 
     async #show(path: string, imageNavigationDirection: ContentPreviewImageNavigationDirection | null): Promise<void> {
-        const normalized = this.#previewRequest.normalizePath(path, 'File content preview modal requires a file path');
+        const normalized = this.#previewRequest.requirePath(path, 'File content preview modal requires a file path');
         const sequence = this.#previewRequest.begin(normalized);
         try {
             const metadata = await this.#host.loadMetadata(normalized, this.#previewRequest.signal());
@@ -141,7 +141,7 @@ class FileExplorerContentPreviewModalController {
         if (!this.#previewRequest.isCurrent(sequence)) {
             return;
         }
-        const normalized = this.#previewRequest.normalizePath(path, 'File content preview modal requires a file path');
+        const normalized = this.#previewRequest.requirePath(path, 'File content preview modal requires a file path');
 
         requireContentPreviewModalService().open(
             createDocumentContentPreviewRequest({
@@ -210,7 +210,7 @@ class FileExplorerContentPreviewModalController {
     }
 
     showNewFile(path: string): void {
-        const normalized = this.#previewRequest.normalizePath(path, 'New file path is required');
+        const normalized = this.#previewRequest.requirePath(path, 'New file path is required');
         this.#previewRequest.begin(normalized);
         const service = requireContentPreviewModalService();
         this.#openTextPreview(normalized, '', null, '', false, true);

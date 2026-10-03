@@ -14,7 +14,7 @@
         background: transparent;
         color: inherit;
         padding: 0;
-        text-align: left;
+        text-align: start;
     }
 
     :where([data-section='models'], [data-page-scope='models']) .models-list-title-row {
@@ -32,7 +32,7 @@
         display: none;
         align-items: center;
         flex: 0 0 auto;
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     :where([data-section='models'], [data-page-scope='models']) .models-list-title-type .ui-model-type-badges {
@@ -42,15 +42,15 @@
 
     :where([data-section='models'], [data-page-scope='models']) .models-list-title-row > :is(.alias-badge, .orphan-badge, .new-item-badge) {
         flex: 0 0 auto;
-        margin-left: auto;
+        margin-inline-start: auto;
     }
 
     :where([data-section='models'], [data-page-scope='models']) .models-list-title-row > :is(.alias-badge, .orphan-badge, .new-item-badge) ~ :is(.alias-badge, .orphan-badge, .new-item-badge) {
-        margin-left: 0;
+        margin-inline-start: 0;
     }
 
     :where([data-section='models'], [data-page-scope='models']) .models-list-title-row > .models-list-title-type ~ :is(.alias-badge, .orphan-badge, .new-item-badge) {
-        margin-left: 0;
+        margin-inline-start: 0;
     }
 
     :where([data-section='models'], [data-page-scope='models']) .models-list-title {
@@ -124,14 +124,14 @@
         display: flex;
     }
 
-    :where([data-section='models'], [data-page-scope='models']).page-scrollable[data-view-mode='list']:has(.ui-collection-list) .ui-collection-list__table tbody tr {
+    :where([data-section='models'], [data-page-scope='models']).page-scrollable[data-view-mode='list'] .ui-collection-list .ui-collection-list__table tbody tr {
         position: static;
         min-height: 0;
         background: var(--surface-collection-row-background);
         box-shadow: none;
     }
 
-    :where([data-section='models'], [data-page-scope='models']).page-scrollable[data-view-mode='list']:has(.ui-collection-list) .ui-collection-list__table tbody tr[data-action] {
+    :where([data-section='models'], [data-page-scope='models']).page-scrollable[data-view-mode='list'] .ui-collection-list .ui-collection-list__table tbody tr[data-action] {
         cursor: pointer;
     }
 

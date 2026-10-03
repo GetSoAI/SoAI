@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { dom } from '@core/dom/dom.ts';
+import { syncAttribute } from '@core/dom/patching.ts';
 
 const ATTACHMENT_VISUAL_SELECTOR = '.chat-attachment-visual';
 const ATTACHMENT_THUMBNAIL_SELECTOR = 'img[data-chat-attachment-thumbnail="true"]';
+const ATTACHMENT_LOADING_OVERLAY_SELECTOR = '.file-preview-image-loading';
 
 const resolveAttachmentVisuals = (root: HTMLElement): HTMLElement[] => {
     const visuals = dom.resolveAll(ATTACHMENT_VISUAL_SELECTOR, root).filter((element): element is HTMLElement => element instanceof HTMLElement);
@@ -19,11 +21,23 @@ const resolveAttachmentThumbnail = (visual: HTMLElement): HTMLImageElement | nul
     return image instanceof HTMLImageElement ? image : null;
 };
 
+const syncAttachmentLoadingOverlay = (currentVisual: HTMLElement, nextVisual: HTMLElement): void => {
+    const currentOverlay = dom.resolve(ATTACHMENT_LOADING_OVERLAY_SELECTOR, currentVisual);
+    const nextOverlay = dom.resolve(ATTACHMENT_LOADING_OVERLAY_SELECTOR, nextVisual);
+    if (nextOverlay === null) {
+        currentOverlay?.remove();
+        return;
+    }
+    if (currentOverlay === null) {
+        currentVisual.append(nextOverlay);
+    }
+};
+
 const hasAttachmentThumbnail = (root: HTMLElement): boolean => {
     return resolveAttachmentVisuals(root).some((visual) => resolveAttachmentThumbnail(visual) !== null);
 };
 
-const preserveStableAttachmentThumbnailVisuals = (currentRoot: HTMLElement, nextRoot: HTMLElement): number => {
+const preserveStableAttachmentThumbnailVisuals = (currentRoot: HTMLElement, nextRoot: HTMLElement, retention: 'move' | 'clone' = 'move'): number => {
     const currentVisuals = resolveAttachmentVisuals(currentRoot);
     const nextVisuals = resolveAttachmentVisuals(nextRoot);
     const available = new Set(currentVisuals);
@@ -40,7 +54,9 @@ const preserveStableAttachmentThumbnailVisuals = (currentRoot: HTMLElement, next
         if (currentVisual === null) {
             continue;
         }
-        nextVisual.replaceWith(currentVisual);
+        syncAttachmentLoadingOverlay(currentVisual, nextVisual);
+        syncAttribute({ target: currentVisual, source: nextVisual, name: 'data-attachment-processing-state' });
+        nextVisual.replaceWith(retention === 'clone' ? currentVisual.cloneNode(true) : currentVisual);
         available.delete(currentVisual);
         preservedCount += 1;
     }

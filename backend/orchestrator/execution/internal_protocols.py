@@ -8,6 +8,7 @@ from collections.abc import AsyncIterable
 from typing import TYPE_CHECKING, Protocol
 
 from core.errors.error_types import ErrorType
+from core.errors.payload import ErrorPublicPayload
 from core.plugins.protocols_instance import PluginInstanceProtocol
 from core.tasks.task import Task
 from orchestrator.execution.active_inferences import ActiveInferenceInfo
@@ -134,6 +135,7 @@ class OutcomeManagerProtocol(Protocol):
         allow_failover: bool = True,
         error_type: ErrorType = ErrorType.SERVER_ERROR,
         reason_is_public: bool = False,
+        public_error: ErrorPublicPayload | None = None,
     ) -> None: ...
 
     async def fail_waiters(
@@ -143,6 +145,7 @@ class OutcomeManagerProtocol(Protocol):
         *,
         allow_failover: bool = True,
         error_type: ErrorType = ErrorType.SERVER_ERROR,
+        public_error: ErrorPublicPayload | None = None,
     ) -> None: ...
 
     async def cancel_waiters(
@@ -184,6 +187,7 @@ class FailTaskCallable(Protocol):
         allow_failover: bool = True,
         error_type: ErrorType = ErrorType.SERVER_ERROR,
         reason_is_public: bool = False,
+        public_error: ErrorPublicPayload | None = None,
     ) -> None: ...
 
 

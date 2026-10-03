@@ -92,11 +92,8 @@ async def prune(self: BrowserSessionStoreProtocol) -> None:
                     continue
                 self.sessions.pop(owner_key)
                 to_close.append(evicted_state)
-        for owner_key in list(self.owner_create_locks.keys()):
-            if owner_key not in self.sessions:
-                self.owner_create_locks.pop(owner_key, None)
     for state in to_close:
-        async with browser_action_lock(state):
+        async with browser_action_lock(state, cleanup=True):
             await cancel_active_download_tasks(state, reason="prune")
             await maybe_save_storage_state_for_session(
                 config=self.config,
@@ -119,28 +116,25 @@ async def close_owner_session(
     key = owner_key.strip() if isinstance(owner_key, str) else ""
     if not key:
         return
-    state: BrowserSessionState | None = None
-    async with self.sessions_lock:
-        state = self.sessions.get(key)
-        if state is not None:
-            self.sessions.pop(key)
-        self.owner_create_locks.pop(key, None)
-    if state is None:
-        return
-    async with browser_action_lock(state):
-        await cancel_active_download_tasks(state, reason="close_owner_session")
-        if persist:
-            await maybe_save_storage_state_for_session(
-                config=self.config,
-                state=state,
-                reason="close_owner_session",
-                force=True,
-            )
-        async with state.lock:
-            await close_browser_context(
-                state,
-                "mcp.browser.session_store.close_owner_session.close_context",
-            )
+    async with self.owner_create_locks.lock(key):
+        async with self.sessions_lock:
+            state = self.sessions.pop(key, None)
+        if state is None:
+            return
+        async with browser_action_lock(state, cleanup=True):
+            await cancel_active_download_tasks(state, reason="close_owner_session")
+            if persist:
+                await maybe_save_storage_state_for_session(
+                    config=self.config,
+                    state=state,
+                    reason="close_owner_session",
+                    force=True,
+                )
+            async with state.lock:
+                await close_browser_context(
+                    state,
+                    "mcp.browser.session_store.close_owner_session.close_context",
+                )
 
 
 def _log_noncritical_profile_lock_error(

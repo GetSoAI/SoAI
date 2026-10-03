@@ -4,7 +4,7 @@
 import { isJsonArray, isJsonObject, type JsonValue } from '@core/types/jsonValues.ts';
 import { isString } from '@core/typeGuards.ts';
 import type { ToolActivityItem } from '@features/chat/ChatTypes.ts';
-import { resolveInlineToolHeaderQueryText } from '@features/chat/message/messageview/inlineToolActivityPayloadParsing.ts';
+import { resolveInlineToolActivityHeaderPreviewSignature } from '@features/chat/message/messageSegmentSignatures.ts';
 import type { InlineToolActivitySegment } from '@features/chat/message/messageview/types.ts';
 import { resolveSubagentResultSignature } from '@features/chat/message/subagentResultSignature.ts';
 import { resolveToolResultMediaStateSignature } from '@features/chat/toolactivity/toolMediaSignatures.ts';
@@ -83,16 +83,12 @@ const resolveToolProjectionResultSignature = (tool: ToolActivityItem): string =>
     return resolveSubagentResultSignature(result);
 };
 
-const resolveToolProjectionHeaderPreviewText = (projection: ToolActivityItem): string => {
-    return resolveInlineToolHeaderQueryText(buildInlineToolActivitySegment(projection));
-};
-
 const resolveToolProjectionVisibleStructureStreamingSignature = (projection: ToolActivityItem): string => {
     return [projection.callId, projection.toolName, projection.status, String(projection.sequenceIndex), String(projection.contentIndexBefore), String(projection.thinkingIndexBefore), projection.collapsed !== false ? '1' : '0', String(projection.startedAtMs ?? ''), String(projection.completedAtMs ?? ''), projection.durationMs === undefined ? '' : 'duration', isString(projection.error) ? String(projection.error.length) : '0'].join('|');
 };
 
 const resolveToolProjectionVisibleStreamingSignature = (projection: ToolActivityItem): string => {
-    return [resolveToolProjectionVisibleStructureStreamingSignature(projection), resolveToolProjectionHeaderPreviewText(projection)].join('|');
+    return [resolveToolProjectionVisibleStructureStreamingSignature(projection), resolveInlineToolActivityHeaderPreviewSignature(buildInlineToolActivitySegment(projection))].join('|');
 };
 
 const resolveToolProjectionActiveStreamingSignature = (projection: ToolActivityItem): string => {
@@ -102,4 +98,4 @@ const resolveToolProjectionActiveStreamingSignature = (projection: ToolActivityI
     return [resolveToolProjectionVisibleStreamingSignature(projection), String(projection.liveRevision ?? 0), String(projection.lastLiveSequence ?? -1), String(projection.lastLiveEventAtMs ?? 0), resolveJsonShapeSignature(projection.inputArguments), isJsonArray(projection.codeDiffs) ? String(projection.codeDiffs.length) : '0', resolveToolProjectionResultSignature(projection)].join('|');
 };
 
-export { resolveToolProjectionActiveStreamingSignature, resolveToolProjectionHeaderPreviewText, resolveToolProjectionVisibleStreamingSignature, resolveToolProjectionVisibleStructureStreamingSignature };
+export { resolveToolProjectionActiveStreamingSignature, resolveToolProjectionVisibleStreamingSignature, resolveToolProjectionVisibleStructureStreamingSignature };

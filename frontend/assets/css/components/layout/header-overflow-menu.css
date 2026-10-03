@@ -18,11 +18,11 @@
         justify-content: flex-start;
         align-items: center;
         gap: var(--space-2);
-        text-align: left;
+        text-align: start;
     }
 
     :where(.chat-container) .chat-header-overflow.page-actions--dropdown .page-actions__menu--open .chat-action-icon {
-        margin-right: var(--space-2);
+        margin-inline-end: var(--space-2);
     }
 
     :where(.chat-container) .chat-header-overflow.page-actions--dropdown .page-actions__menu--open .agent-mode-cycle-btn {
@@ -30,11 +30,11 @@
     }
 
     :where(.chat-container) .chat-header-overflow.page-actions--dropdown .page-actions__menu--open .agent-mode-cycle-icon {
-        margin-right: var(--space-2);
+        margin-inline-end: var(--space-2);
     }
 
     :where(.chat-container) .chat-header-overflow.page-actions--dropdown .page-actions__menu--open .agent-mode-cycle-label {
-        margin-left: var(--space-2);
+        margin-inline-start: var(--space-2);
     }
 
     :where(.chat-container) .chat-header-overflow.page-actions--dropdown .page-actions__menu--open .tools-toggle-btn:disabled {
@@ -124,15 +124,16 @@
 
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slots {
         position: absolute;
-        top: calc((100% - (var(--control-height) - 2px)) / 2 - var(--space-1));
+        top: calc((100% - (var(--control-height) - 2px)) / 2 - var(--space-2));
         inset-inline-start: 0;
         display: flex;
         align-items: flex-start;
         gap: var(--space-2);
         width: 100%;
-        height: calc(var(--control-height) - 2px + var(--space-1) + var(--ui-scrollbar-inline-size));
+        height: calc(var(--control-height) - 2px + var(--space-2) + var(--ui-scrollbar-inline-size));
         min-width: 0;
-        padding-top: var(--space-1);
+        padding-top: var(--space-2);
+        padding-inline-end: var(--space-1);
         margin-top: 0;
         overflow-x: auto;
         overflow-y: hidden;
@@ -149,11 +150,14 @@
     }
 
     :where(.chat-container) .chat-sidebar-header .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slots {
-        gap: var(--space-15);
+        gap: var(--space-2);
+        padding-inline-end: 0;
+        scrollbar-gutter: auto;
     }
 
     :where(.chat-container) .chat-page-model-indicator .chat-page-model-indicator-select.page-header-filter-select[data-chat-model-control='true'] .chat-model-control--multi .chat-model-slots {
-        width: max-content;
+        width: 100%;
+        scrollbar-gutter: auto;
     }
 
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slot-wrap {
@@ -225,5 +229,13 @@
 
     :is(:where(.chat-container), .chat-configuration-modal) .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slot-remove:hover:not(:disabled, [aria-disabled='true']) {
         transform: translateY(-0.5px);
+    }
+
+    :where(.chat-container) .chat-sidebar-header .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slots:has(> .chat-model-slot-wrap:nth-child(5)) {
+        justify-content: space-between;
+    }
+
+    :where(.chat-container) .chat-sidebar-header .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-slots > .chat-model-slot-wrap:nth-child(5) .chat-model-slot-remove {
+        inset-inline-end: 0;
     }
 }

@@ -7,10 +7,10 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
+from core.errors.exceptions import ModelOutputContractError
 from core.openai.internal_retry_prompt import is_internal_retry_output_leak
+from core.openai.streaming_tool_calls import inject_collected_tool_calls_into_payload
 from core.runtime.soai_identifiers import create_prefixed_hex_id
-from core.tool_calls.chronology import bound_required_chronology_anchor
-from core.validation.integers import is_strict_int
 from features.agent.internal_protocols import (
     AgentStreamingInferenceOutcome,
     AgentStreamingInferenceRunnerProtocol,
@@ -33,12 +33,18 @@ from features.agent.runtime.openai_payload import (
 from features.agent.runtime.streaming_assistant_output_publisher import (
     StreamingAssistantOutputPublisher,
 )
+from features.agent.runtime.streaming_inference_outcome_chronology import (
+    align_outcome_to_final_visible_text,
+)
 from features.agent.runtime.streaming_inference_outcomes import (
     build_agent_streaming_inference_outcome,
 )
 from features.agent.runtime.streaming_inference_runner import (
     INFERENCE_ADMISSION_UNAVAILABLE_ERROR_TYPE,
     StreamingTaskCreationRetryableError,
+)
+from features.agent.runtime.streaming_tool_detection_publication import (
+    StreamingToolDetectionPublication,
 )
 from features.agent.runtime.turn_engine import publish_agent_event
 from features.agent.runtime.turn_iteration_policy_types import (
@@ -85,6 +91,7 @@ async def stream_inference_step(
         Callable[[str], Awaitable[PreviewContractOutputValidationResult]] | None
     ) = None,
     suppress_tools: bool = False,
+    content_index_base: int = 0,
 ) -> StreamingInferenceStepResult:
     item_id = create_prefixed_hex_id("item", length=12)
     buffer_output = output_publication_mode is AgentOutputPublicationMode.VALIDATE_BEFORE_PUBLISH
@@ -101,20 +108,28 @@ async def stream_inference_step(
         next_action_sequence=next_action_sequence,
         on_bytes=on_bytes,
         on_visible_deltas=on_visible_deltas,
+        content_index_base=content_index_base,
     )
 
     if not buffer_output:
         await output_publisher.publish_item_started_event()
 
-    detected_tool_calls: list[JSONDict] = []
+    detection = StreamingToolDetectionPublication(
+        callback=on_tool_calls_detected if not buffer_output else None,
+        content_index_base=content_index_base,
+    )
 
     async def record_detected_tool_calls(tool_calls: tuple[JSONDict, ...]) -> None:
-        detected_tool_calls.extend(dict(tool_call) for tool_call in tool_calls)
-        if buffer_output or on_tool_calls_detected is None:
-            return
-        detected_awaitable = on_tool_calls_detected(tool_calls)
-        if detected_awaitable is not None:
-            await detected_awaitable
+        await detection.record(
+            tool_calls,
+            hold=buffer_output or output_publisher.prefix_pending,
+            removed_chars=output_publisher.prefix_removed_chars,
+        )
+
+    async def publish_visible_deltas(deltas: tuple[str, ...]) -> None:
+        await output_publisher.handle_visible_deltas(deltas)
+        if not buffer_output and not output_publisher.prefix_pending:
+            await detection.flush(removed_chars=output_publisher.prefix_removed_chars)
 
     try:
         outcome = await streaming_inference_runner(
@@ -122,7 +137,7 @@ async def stream_inference_step(
             iteration_index=iteration_index,
             cancellation_id=cancellation_id,
             on_bytes=output_publisher.handle_bytes,
-            on_visible_deltas=output_publisher.handle_visible_deltas,
+            on_visible_deltas=publish_visible_deltas,
             on_tool_calls_detected=record_detected_tool_calls,
         )
     except StreamingTaskCreationRetryableError as exception:
@@ -157,6 +172,18 @@ async def stream_inference_step(
             assistant_output_published=False,
             detected_tool_calls=[],
         )
+    await output_publisher.finalize_live_prefix()
+    if not buffer_output:
+        await detection.flush(removed_chars=output_publisher.prefix_removed_chars)
+    detected_tool_calls = detection.detected_calls
+    if output_publisher.prefix_removed_chars and outcome.tool_calls:
+        adjusted_calls = detection.adjust_calls(
+            outcome.tool_calls,
+            removed_chars=output_publisher.prefix_removed_chars,
+        )
+        outcome = replace(outcome, tool_calls=adjusted_calls)
+        if outcome.payload is not None:
+            inject_collected_tool_calls_into_payload(outcome.payload, adjusted_calls)
     final_text = ""
     if outcome.payload is not None:
         final_text = extract_assistant_content_visible(outcome.payload)
@@ -172,6 +199,15 @@ async def stream_inference_step(
         )
         final_text = stripping.sanitized_text
         retry_output_leaked = buffer_output
+    if detected_tool_calls and not buffer_output:
+        published_prefix = output_publisher.buffered_text()
+        if not final_text.startswith(published_prefix):
+            if not final_text or published_prefix.startswith(final_text):
+                final_text = published_prefix
+            else:
+                raise ModelOutputContractError(
+                    "Final tool-bearing assistant text conflicts with published text.",
+                )
     if buffer_output and is_internal_retry_output_leak(final_text):
         logger.warning("Suppressed internal retry prompt leak from assistant output.")
         final_text = ""
@@ -233,7 +269,7 @@ async def stream_inference_step(
             )
             if outcome.stream_id != repaired_stream_id:
                 outcome = replace(outcome, stream_id=repaired_stream_id)
-    outcome = _align_outcome_to_final_visible_text(outcome, final_text)
+    outcome = align_outcome_to_final_visible_text(outcome, final_text)
     assistant_output_published = not buffer_output or buffered_output_publishable
     if (suppress_tools or not assistant_output_published) and outcome.payload is not None:
         remove_suppressed_assistant_tool_calls(outcome.payload, assistant_text=final_text)
@@ -242,7 +278,7 @@ async def stream_inference_step(
         streaming_inference_runner.commit_latest_iteration(
             visible_text_chars=outcome.visible_text_chars,
             thinking_text_chars=outcome.thinking_text_chars,
-            tool_calls=(detected_tool_calls or outcome.tool_calls),
+            tool_calls=outcome.tool_calls,
         )
     else:
         streaming_inference_runner.discard_latest_iteration()
@@ -266,36 +302,4 @@ async def stream_inference_step(
         assistant_text=final_text,
         assistant_output_published=assistant_output_published,
         detected_tool_calls=(detected_tool_calls if not buffer_output else []),
-    )
-
-
-def _align_outcome_to_final_visible_text(
-    outcome: AgentStreamingInferenceOutcome,
-    final_text: str,
-) -> AgentStreamingInferenceOutcome:
-    visible_text_chars = len(final_text)
-    if not outcome.tool_calls and outcome.visible_text_chars == visible_text_chars:
-        return outcome
-    content_upper_bound = outcome.content_index_base + visible_text_chars
-    aligned_tool_calls: list[JSONDict] = []
-    changed = outcome.visible_text_chars != visible_text_chars
-    for tool_call in outcome.tool_calls:
-        aligned_tool_call = dict(tool_call)
-        content_index_before = aligned_tool_call.get("content_index_before")
-        if is_strict_int(content_index_before):
-            bounded_content_index_before = bound_required_chronology_anchor(
-                content_index_before,
-                "content_index_before",
-                upper_bound=content_upper_bound,
-            )
-            if bounded_content_index_before != content_index_before:
-                aligned_tool_call["content_index_before"] = bounded_content_index_before
-                changed = True
-        aligned_tool_calls.append(aligned_tool_call)
-    if not changed:
-        return outcome
-    return replace(
-        outcome,
-        tool_calls=aligned_tool_calls,
-        visible_text_chars=visible_text_chars,
     )

@@ -1,0 +1,4 @@
+linux-x64	linux-64	2.5.0	2	https://api.anaconda.org/download/conda-forge/micromamba/2.5.0/linux-64/micromamba-2.5.0-2.tar.bz2	micromamba-2.5.0-2.tar.bz2	cec496f2299f9ceb5f5e23fc2ccf081fffda0c4bc87a6fdab575bf1e04f103b6
+linux-arm64	linux-aarch64	2.5.0	2	https://api.anaconda.org/download/conda-forge/micromamba/2.5.0/linux-aarch64/micromamba-2.5.0-2.tar.bz2	micromamba-2.5.0-2.tar.bz2	6ec1517c8c89c875a8fa93f9c66abd4fe3dd147341376bdc37b57c526bc13e44
+darwin-x64	osx-64	2.5.0	2	https://api.anaconda.org/download/conda-forge/micromamba/2.5.0/osx-64/micromamba-2.5.0-2.tar.bz2	micromamba-2.5.0-2.tar.bz2	2d6ab968ba08c003e43642f55afded1f0fc4247387f04e340cdc6a0129d9c550
+darwin-arm64	osx-arm64	2.5.0	2	https://api.anaconda.org/download/conda-forge/micromamba/2.5.0/osx-arm64/micromamba-2.5.0-2.tar.bz2	micromamba-2.5.0-2.tar.bz2	74d1f250b1505cd4d78728bd8b0b7f0ffbaa660b18042f15f7b610c16102d201

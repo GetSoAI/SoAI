@@ -72,9 +72,11 @@ const buildCardRoot = (
 
     const title = doc.createElement('div');
     title.className = 'chat-inline-media-card__title';
+    title.dir = 'auto';
 
     const subtitle = doc.createElement('div');
     subtitle.className = 'chat-inline-media-card__subtitle';
+    subtitle.dir = 'auto';
 
     const actions = doc.createElement('div');
     actions.className = 'chat-inline-media-card__actions';

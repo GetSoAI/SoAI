@@ -2,117 +2,107 @@
 /* SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0 */
 
 @layer components {
-    :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) {
-        width: var(--chat-sidebar-width);
-        opacity: 1;
-        pointer-events: auto;
-        margin-right: var(--layout-container-padding);
+    @property --chat-sidebar-reveal {
+        syntax: '<number>';
+        inherits: false;
+        initial-value: 0;
     }
 
-    :where(.chat-container) .chat-sidebar.is-preparing {
-        opacity: 0;
-        pointer-events: none;
+    @property --chat-sidebar-dock {
+        syntax: '<number>';
+        inherits: false;
+        initial-value: 0;
     }
 
-    :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) .chat-sidebar-header {
-        opacity: 1;
-        pointer-events: auto;
-        position: relative;
+    :where(.chat-container) .chat-content-wrapper {
+        --chat-sidebar-open-width: var(--chat-sidebar-width);
     }
 
-    :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) .chat-search-container {
+    :where(.chat-container) .chat-sidebar {
+        --chat-sidebar-reveal: 0;
         display: flex;
-        opacity: 1;
-        pointer-events: auto;
+        flex-direction: column;
+        overflow: hidden;
+        position: absolute;
+        inset-block: 0;
+        inset-inline-start: 0;
+        z-index: var(--z-raised);
+        width: calc(var(--chat-sidebar-open-width) * var(--chat-sidebar-reveal));
+        opacity: var(--chat-sidebar-reveal);
+        visibility: hidden;
+        transition:
+            --chat-sidebar-reveal var(--duration-300) var(--ease-material),
+            visibility var(--duration-300) var(--ease-linear),
+            box-shadow var(--duration-300) var(--ease-material);
     }
 
-    :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) .searchbar-container {
-        opacity: 1;
-        pointer-events: auto;
-        position: relative;
+    :where(.chat-container) .chat-sidebar:is(.is-open, .is-peeking) {
+        --chat-sidebar-reveal: 1;
+        visibility: visible;
     }
 
-    :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) .chat-toolbar-container {
-        display: grid;
-        opacity: 1;
-        pointer-events: auto;
+    :where(.chat-container) .chat-sidebar.glass-surface-strong {
+        --glass-surface-bg: transparent;
+        box-shadow: none;
     }
 
-    :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) :is(.conversations-list, .conversation-list-empty):not(.u-hidden) {
-        display: block;
-        opacity: 1;
-        pointer-events: auto;
-        position: relative;
+    :where(.chat-container) .chat-sidebar::before {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        transition:
+            background-color var(--duration-300) var(--ease-material),
+            backdrop-filter var(--duration-300) var(--ease-material);
+    }
+
+    :where(.chat-container) .chat-sidebar.is-peeking {
+        --glass-surface-bg: var(--glass-surface-strong);
+        box-shadow: 0 12px 32px color-mix(in srgb, var(--shadow-medium) 40%, transparent);
+    }
+
+    :where(.chat-container) .chat-sidebar.is-peeking::before {
+        -webkit-backdrop-filter: var(--glass-blur-base);
+        backdrop-filter: var(--glass-blur-base);
+    }
+
+    :where(.chat-container) .chat-content-wrapper > .chat-main-container {
+        --chat-sidebar-dock: 0;
+        margin-inline-start: calc((var(--chat-sidebar-open-width) + var(--layout-container-padding)) * var(--chat-sidebar-dock));
+    }
+
+    :where(.chat-container) .chat-sidebar.is-open ~ .chat-main-container {
+        --chat-sidebar-dock: 1;
     }
 
     @container ui-viewport (width > 900px) {
-        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-sidebar-header {
-            padding: var(--space-2);
-            margin-bottom: var(--space-2);
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-sidebar-header > * {
-            display: none;
-        }
-
-        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .searchbar-container {
-            opacity: 0;
-            pointer-events: none;
-            position: absolute;
-        }
-
-        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-toolbar-container,
-        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .conversations-list,
-        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .conversation-list-empty,
-        :where(.chat-container) .chat-sidebar:not(:is(.is-open, .is-preparing)) .chat-search-container {
-            display: none;
+        :where(.chat-container) .chat-sidebar > * {
+            width: calc(var(--chat-sidebar-open-width) - 2 * var(--border-width-1));
         }
     }
 
     @container ui-viewport (width <= 1200px) {
-        :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) {
-            width: var(--chat-sidebar-width-mobile);
+        :where(.chat-container) .chat-content-wrapper {
+            --chat-sidebar-open-width: var(--chat-sidebar-width-mobile);
         }
     }
 
     @container ui-viewport (width <= 900px) {
         :where(.chat-container) .chat-sidebar {
-            position: absolute;
             inset: 0;
-            z-index: var(--z-raised);
             width: 100%;
-            margin-right: 0;
-            transform: translateX(-100%);
-            visibility: hidden;
-            transition:
-                transform var(--duration-250) var(--ease-in-out),
-                opacity var(--duration-250) var(--ease-in-out),
-                visibility var(--duration-250) var(--ease-linear);
-        }
-
-        :where(.chat-container) .chat-sidebar:is(.is-open, .is-preparing) {
-            width: 100%;
-            margin-right: 0;
-        }
-
-        :where(.chat-container) .chat-sidebar.mobile-open {
-            transform: translateX(0);
-            visibility: visible;
+            transform: translateX(calc((var(--chat-sidebar-reveal) - 1) * 100% * var(--dir-sign)));
         }
 
         :where(.chat-container) .chat-content-wrapper > .chat-main-container {
+            --chat-main-reveal: calc(1 - var(--chat-sidebar-dock));
             flex: 1 1 100%;
             width: 100%;
             min-width: 0;
-            transform: translateX(0);
+            margin-inline-start: 0;
+            opacity: var(--chat-main-reveal);
+            transform: translateX(calc(var(--chat-sidebar-dock) * 100% * var(--dir-sign)));
         }
 
-        :where(.chat-container) .chat-sidebar.mobile-open ~ .chat-main-container {
-            opacity: 0;
-            transform: translateX(100%);
+        :where(.chat-container) .chat-sidebar.is-open ~ .chat-main-container {
             visibility: hidden;
             pointer-events: none;
         }

@@ -12,6 +12,7 @@ from core.concurrency.deadlines import deadline_after
 from core.errors.exception_logging import log_exception, log_handled_exception
 from core.errors.exceptions import ValidationError
 from core.errors.recoverable_exceptions import RECOVERABLE_EXCEPTIONS
+from core.filesystem.path_coercion import normalize_filesystem_path
 from core.logging.protocols import LoggerProtocol
 from core.meta.paths import join_data_abs
 from core.runtime.instance_record import read_verified_runtime_instance_record
@@ -43,7 +44,8 @@ def resolve_instance_lock_path(*, base_path: str) -> str:
 
 def is_instance_lock_held(*, logger: LoggerProtocol, lock_path: str) -> bool:
     try:
-        os.makedirs(os.path.dirname(lock_path), exist_ok=True)
+        filesystem_lock_path = normalize_filesystem_path(lock_path)
+        os.makedirs(os.path.dirname(filesystem_lock_path), exist_ok=True)
     except OSError as exception:
         log_exception(
             logger,
@@ -56,7 +58,7 @@ def is_instance_lock_held(*, logger: LoggerProtocol, lock_path: str) -> bool:
         return True
 
     try:
-        lock = FileLock(lock_path, timeout=0)
+        lock = FileLock(filesystem_lock_path, timeout=0)
         try:
             lock.acquire()
         except Timeout:

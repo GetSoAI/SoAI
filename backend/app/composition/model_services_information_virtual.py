@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable
 
+from core.concurrency.protocols import AsyncLockRegistryProtocol
 from core.concurrency.ttl_cache import TTLCache
 from core.events.protocols import EventBusProtocol
 from core.models.protocols import (
@@ -36,6 +37,7 @@ def build_model_information_and_virtual_coordinator(
     state_aggregator: StateAggregatorProtocol,
     model_registry: ModelRegistryProtocol,
     parameter_manager: ParameterManagerProtocol,
+    model_record_locks: AsyncLockRegistryProtocol[str],
     installed_plugin_names_ref: Callable[[], set[str]],
     event_bus: EventBusProtocol,
     routing_config_holder: RoutingConfigHolder,
@@ -50,6 +52,7 @@ def build_model_information_and_virtual_coordinator(
             state_aggregator=state_aggregator,
             model_registry=model_registry,
             param_manager=parameter_manager,
+            model_record_locks=model_record_locks,
             routing_config_holder=routing_config_holder,
             installed_plugin_names_ref=installed_plugin_names_ref,
         ),

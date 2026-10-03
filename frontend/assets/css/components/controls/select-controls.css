@@ -7,7 +7,7 @@
         border: none;
         background: transparent;
         box-shadow: none;
-        text-align: left;
+        text-align: start;
     }
 
     :where(select):not(.chart-filter-select, .chat-page-mode-indicator-select, [multiple]),
@@ -19,18 +19,14 @@
         --filter-control-color: var(--ui-button-color);
         --filter-control-color-hover: var(--ui-button-color-hover);
         --filter-control-focus-ring: var(--ui-button-focus-ring);
-        --filter-control-reflection: var(--ui-button-reflection);
         font-family: inherit;
         font-size: var(--control-dropdown-font-size);
         line-height: 1.2;
-        text-align: left;
+        text-align: start;
         border: var(--border-width-1) solid var(--filter-control-border);
         border-radius: var(--border-radius);
         background-color: var(--filter-control-bg);
-        background-image: var(--filter-control-reflection);
-        background-repeat: no-repeat, no-repeat;
-        background-position: 0 0;
-        background-size: 100% 100%;
+        background-repeat: no-repeat;
         color: var(--filter-control-color);
         transition:
             background-color var(--transition-fast),
@@ -38,27 +34,20 @@
             color var(--transition-fast);
         -webkit-backdrop-filter: var(--glass-blur-base);
         backdrop-filter: var(--glass-blur-base);
-        box-shadow:
-            inset 2px 2px 4px var(--surface-inner-highlight-soft),
-            inset -2px -2px 4px var(--surface-inner-shadow-soft);
     }
 
     select:not(.chart-filter-select, .chat-page-mode-indicator-select, [multiple]) {
         appearance: none;
         height: var(--control-height);
-        padding: var(--control-padding-block) calc(var(--control-padding-inline) + var(--space-15) + var(--control-icon-size)) var(--control-padding-block) var(--control-padding-inline);
-        background-image: var(--filter-control-reflection), var(--control-select-arrow-image);
-        background-position:
-            0 0,
-            right var(--control-padding-inline) center;
-        background-size:
-            100% 100%,
-            var(--control-icon-size);
+        padding-block: var(--control-padding-block) var(--control-padding-block);
+        padding-inline: var(--control-padding-inline) calc(var(--control-padding-inline) + var(--space-15) + var(--control-icon-size));
+        background-image: var(--control-select-arrow-image);
+        background-position: var(--inline-end-edge) var(--control-padding-inline) center;
+        background-size: var(--control-icon-size);
     }
 
     :where(select):not(.chart-filter-select, .chat-page-mode-indicator-select, [multiple], :disabled, [aria-disabled='true']):hover,
     .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary.ui-button:is(:hover, :focus-visible, .is-open):not(:disabled, [aria-disabled='true']) {
-        --filter-control-reflection: var(--surface-reflection-soft-hover);
         background-color: var(--filter-control-bg-hover);
         border-color: var(--filter-control-border-hover);
         color: var(--filter-control-color-hover);
@@ -83,7 +72,7 @@
     .dropdown-select {
         --filter-control-color: var(--ui-button-color);
         --filter-control-color-hover: var(--ui-button-color-hover);
-        --dropdown-select-padding-left: var(--control-padding-inline);
+        --dropdown-select-padding-inline-start: var(--control-padding-inline);
 
         position: relative;
         display: inline-flex;
@@ -96,7 +85,7 @@
         content: '';
         position: absolute;
         top: 50%;
-        right: var(--control-padding-inline);
+        inset-inline-end: var(--control-padding-inline);
         z-index: var(--z-above-sibling);
         width: var(--control-icon-size);
         height: var(--control-icon-size);
@@ -113,7 +102,7 @@
     .dropdown-select__prefix-icon {
         position: absolute;
         top: 50%;
-        left: var(--control-padding-inline);
+        inset-inline-start: var(--control-padding-inline);
         z-index: var(--z-above-sibling);
         display: inline-grid;
         place-items: center;
@@ -130,7 +119,21 @@
     }
 
     .dropdown-select--prefix-icon {
-        --dropdown-select-padding-left: calc(var(--control-padding-inline) + var(--control-icon-size) + var(--space-2));
+        --dropdown-select-padding-inline-start: calc(var(--control-padding-inline) + var(--control-icon-size) + var(--space-2));
+    }
+
+    .dropdown-select__flag:not([hidden]) {
+        position: absolute;
+        inset-inline-start: var(--control-padding-inline);
+        top: 50%;
+        z-index: var(--z-above-sibling);
+        display: block;
+        width: var(--control-icon-size-lg);
+        height: 18px;
+        border-radius: var(--border-radius-flag);
+        box-shadow: 0 0 0 1px var(--surface-outline-highlight-soft);
+        pointer-events: none;
+        transform: translateY(-50%);
     }
 
     .dropdown-select:has(> select:is(.form-input, .setting-input--full)) {
@@ -146,12 +149,19 @@
         z-index: var(--z-base);
         width: 100%;
         min-width: 0;
-        padding-left: var(--dropdown-select-padding-left);
-        text-align: left;
-        background-image: var(--filter-control-reflection), none;
-        background-size:
-            100% 100%,
-            0;
+        padding-inline-start: var(--dropdown-select-padding-inline-start);
+        text-align: start;
+        background-image: none;
+    }
+
+    .dropdown-select--flag > select:not(.chart-filter-select, [multiple]) {
+        padding-inline-start: calc(var(--control-padding-inline) + var(--control-icon-size-lg) + var(--space-2));
+        padding-inline-end: calc(var(--control-padding-inline) + var(--space-15) + var(--control-icon-size));
+        text-align: start;
+    }
+
+    .dropdown-select--flag::after {
+        inset-inline-end: var(--control-padding-inline);
     }
 
     .dropdown-select__selection-label {
@@ -160,7 +170,8 @@
         display: inline-flex;
         align-items: center;
         height: var(--control-height);
-        padding: var(--control-padding-block) calc(var(--control-padding-inline) + var(--space-15) + var(--control-icon-size)) var(--control-padding-block) var(--control-padding-inline);
+        padding-block: var(--control-padding-block) var(--control-padding-block);
+        padding-inline: var(--control-padding-inline) calc(var(--control-padding-inline) + var(--space-15) + var(--control-icon-size));
         color: var(--filter-control-color);
         font-size: var(--control-dropdown-font-size);
         line-height: 1.2;
@@ -169,8 +180,6 @@
     }
 
     .dropdown-select:where(.ui-variant-accent, .ui-variant-danger, .ui-variant-warning, .ui-variant-success, .ui-variant-primary, .ui-variant-violet) > select:not(.chart-filter-select, [multiple]) {
-        --ui-button-reflection: var(--surface-reflection-soft);
-
         font-size: var(--font-size-sm);
         font-weight: 500;
         cursor: pointer;
@@ -178,8 +187,6 @@
 
     .dropdown-select:where(.ui-variant-accent, .ui-variant-danger, .ui-variant-warning, .ui-variant-success, .ui-variant-primary, .ui-variant-violet) > select:not(.chart-filter-select, [multiple], :focus-visible) {
         box-shadow:
-            inset 2px 2px 4px var(--surface-inner-highlight-soft),
-            inset -2px -2px 4px var(--surface-inner-shadow-soft),
             0 2px 4px var(--surface-drop-shadow-soft),
             0 0 0 1px var(--surface-outline-highlight-soft);
     }
@@ -198,13 +205,14 @@
 
     .dropdown-select--sm > select:not(.chart-filter-select, [multiple]) {
         height: auto;
-        padding: var(--space-15) calc(var(--space-3) + var(--space-15) + var(--control-icon-size-compact)) var(--space-15) var(--space-3);
+        padding-block: var(--space-15) var(--space-15);
+        padding-inline: var(--space-3) calc(var(--space-3) + var(--space-15) + var(--control-icon-size-compact));
         font-size: var(--font-size-xs);
         line-height: var(--line-height-compact);
     }
 
     .dropdown-select--sm::after {
-        right: var(--space-3);
+        inset-inline-end: var(--space-3);
         width: var(--control-icon-size-compact);
         height: var(--control-icon-size-compact);
         mask-size: var(--control-icon-size-compact);
@@ -223,7 +231,7 @@
 
     .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary-text {
         flex: 1 1 auto;
-        text-align: left;
+        text-align: start;
     }
 
     .model-selector.page-header-filter-select[data-chat-model-control='true'] .chat-model-control-primary-chevron {

@@ -19,6 +19,10 @@ class ResourceRecoverySupervisor {
         return this.#timer !== null;
     }
 
+    get attemptCount(): number {
+        return this.#failureCount;
+    }
+
     setLiveDemand(active: boolean): void {
         if (this.#disposed) return;
         this.#liveDemand = active;

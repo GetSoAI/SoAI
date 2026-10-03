@@ -28,6 +28,7 @@ const createUpdatesSystemControllerHost = (dependencies: UpdatesPageControllerHo
     sanitizeHtml: dependencies.systemSurface.sanitizeHtml,
     sanitizeAttribute: dependencies.systemSurface.sanitizeAttribute,
     sanitizeUrl: dependencies.systemSurface.sanitizeUrl,
+    renderMarkdown: dependencies.systemSurface.renderMarkdown,
     getIconSync: dependencies.systemSurface.getIconSync,
     showOverlay: dependencies.systemSurface.showOverlay,
     resolveInstallButton: dependencies.systemSurface.resolveInstallButton,

@@ -2,50 +2,40 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { JsonValue } from '@core/types/jsonValues.ts';
-import { isAbortError } from '@core/errors/abort.ts';
-import { ensureError } from '@core/errors/coerce.ts';
+import { decodeHardwareHistory, type HardwareHistoryResponse } from '@core/api/contracts/hardwareContracts.ts';
 import { requestWebSocketSnapshotRecord } from '@core/websocketclient/snapshotPayload.ts';
 import { serializeHardwareHistoryRequest } from '@core/api/contracts/hardwareRequestContracts.ts';
 import type { CandlestickPoint, HistoryChartControlsManager } from '@features/charts/public.ts';
-import type { ChartDataTransformsContract, ChartOhlcContract } from '@pages/hardware/contracts/contracts.ts';
-import { buildHardwareHistorySeries, buildHistoryRequestParameters, clampHistoryPoints, getEffectiveCandlestickIntervalMs, isCandlestickActive, resolveHistoryPointLimit, trimCandlestickData, trimHistoryData, updateRealtimeCandlestick, type HardwareHistoryContext } from '@pages/hardware/controllers/data/effects.ts';
+import type { ChartOhlcContract } from '@pages/hardware/contracts/contracts.ts';
+import { buildHardwareHistorySeries, buildHistoryRequestParameters, isCandlestickActive, resolveHistoryPointLimit, trimCandlestickData, trimHistoryData, updateRealtimeCandlestick, type HardwareHistoryContext } from '@pages/hardware/controllers/data/effects.ts';
 import type { HardwareDataController } from '@pages/hardware/controllers/dataController.ts';
-import { createHardwareHistoryChunkHost, createHardwareHistoryMetadataHost, createHardwareHistoryRealtimeHost } from '@pages/hardware/controllers/hardwarehistoryhostbuilders/service.ts';
-import type { HardwareHistoryStreamState } from '@pages/hardware/controllers/realtime/state.ts';
-import { applyChartDataLimits, updateMainChart } from '@pages/hardware/controllers/render/effects.ts';
+import { createHardwareHistoryMetadataHost, createHardwareHistoryRealtimeHost } from '@pages/hardware/controllers/hardwarehistoryhostbuilders/service.ts';
+import { applyChartDataLimits, buildHardwareDisplaySeries, updateMainChart } from '@pages/hardware/controllers/render/effects.ts';
 import type { HardwareRenderController } from '@pages/hardware/controllers/renderController.ts';
 import { getMetricKey, getMetricLabel } from '@pages/hardware/mappers/mappers.ts';
 import type { HardwareHistoryMetadataHost, HardwareHistoryRealtimeHost } from '@pages/hardware/realtime/hardwareHistoryRealtimeUpdate.ts';
-import type { HardwareHistoryChunkHost } from '@pages/hardware/services/history/hardwareHistoryChunkFetch.ts';
-import { mergeSeriesByTimestamp } from '@pages/hardware/state/history/hardwareSeriesBuilders.ts';
+import type { HardwareOlderHistoryHost } from '@pages/hardware/services/history/hardwareOlderHistoryPage.ts';
 import type { HardwarePageState } from '@pages/hardware/state/state.ts';
-import type { HistoryDataPoint, HistoryMetadata, HistoryRequestParameters, ModuleLoggerFunctionValue } from '@pages/hardware/types.ts';
+import type { HistoryDataPoint, HistoryMetadata, HistoryRequestParameters } from '@pages/hardware/types.ts';
 
 type HardwareHistoryHostCache = {
     metadataHost: HardwareHistoryMetadataHost | null;
     realtimeHost: HardwareHistoryRealtimeHost | null;
-    chunkHost: HardwareHistoryChunkHost | null;
 };
 
 type HardwareHistoryHostDependencies = {
     state: HardwarePageState;
     dataController: HardwareDataController;
     renderController: HardwareRenderController;
-    chartDataTransforms: ChartDataTransformsContract;
     chartOhlc: ChartOhlcContract;
     historyControlsManager: HistoryChartControlsManager;
-    getHistoryRequestToken: () => symbol | null;
-    runHistoryFetch: (parameters: HistoryRequestParameters, onResolve: (result: JsonValue) => Promise<void>) => Promise<void>;
-};
-
-type HardwareHistoryFetchDependencies = {
-    logger: ModuleLoggerFunctionValue;
+    getClearedThroughMs: () => number;
+    acceptRealtimeTimestamp: (timestamp: number) => boolean;
 };
 
 const createHardwareHistoryHostCache = (): HardwareHistoryHostCache => ({
     metadataHost: null,
-    realtimeHost: null,
-    chunkHost: null
+    realtimeHost: null
 });
 
 const buildHistoryContext = (dependencies: HardwareHistoryHostDependencies): HardwareHistoryContext => ({
@@ -73,6 +63,7 @@ const getHistoryMetadataHost = (cache: HardwareHistoryHostCache, dependencies: H
                 dependencies.state.maxHistoryPoints = value;
             },
             getChartHardLimit: (): number => dependencies.state.chartHardLimit,
+            getMaxRetentionMinutes: (): number | null => dependencies.state.maxRetentionMinutes,
             getCurrentHistoryPointBudget: (): number => dependencies.state.currentHistoryPointBudget,
             setCurrentHistoryPointBudget: (value: number): void => {
                 dependencies.state.currentHistoryPointBudget = value;
@@ -88,14 +79,13 @@ const getHistoryRealtimeHost = (cache: HardwareHistoryHostCache, dependencies: H
     if (!cache.realtimeHost) {
         const context = buildHistoryContext(dependencies);
         cache.realtimeHost = createHardwareHistoryRealtimeHost({
-            getHistoryRequestToken: (): symbol | null => dependencies.getHistoryRequestToken(),
+            getClearedThroughMs: (): number => dependencies.getClearedThroughMs(),
             chartOhlc: dependencies.chartOhlc,
             getMetricKey: (): string | undefined => getMetricKey(dependencies.state.selectedMetric, dependencies.dataController.getSelectedHistoryTarget().type),
             getSelectedHistoryTarget: () => dependencies.dataController.getSelectedHistoryTarget(),
             getHistoryData: (): HistoryDataPoint[] => dependencies.state.historyData,
-            chartDataTransforms: dependencies.chartDataTransforms,
-            getMonitoringIntervalMs: (): number => dependencies.state.monitoringIntervalMs,
-            resolveHistoryPointLimit: (): number => resolveHistoryPointLimit(dependencies.state),
+            getHistoryMetadata: (): HistoryMetadata | null => dependencies.state.historyMetadata,
+            acceptRealtimeTimestamp: (timestamp: number): boolean => dependencies.acceptRealtimeTimestamp(timestamp),
             trimHistoryData: (force?: boolean): boolean => trimHistoryData(dependencies.state, force),
             getMainChart: () => dependencies.state.mainChart,
             isCandlestickActive: (): boolean => isCandlestickActive(dependencies.state),
@@ -109,81 +99,18 @@ const getHistoryRealtimeHost = (cache: HardwareHistoryHostCache, dependencies: H
     return cache.realtimeHost;
 };
 
-const getHistoryChunkHost = (cache: HardwareHistoryHostCache, dependencies: HardwareHistoryHostDependencies): HardwareHistoryChunkHost => {
-    if (!cache.chunkHost) {
-        const context = buildHistoryContext(dependencies);
-        cache.chunkHost = createHardwareHistoryChunkHost({
-            getCandlestickHistoryExhausted: (): boolean => dependencies.state.candlestickHistoryExhausted,
-            setCandlestickHistoryExhausted: (value: boolean): void => {
-                dependencies.state.candlestickHistoryExhausted = value;
-            },
-            getLineHistoryExhausted: (): boolean => dependencies.state.lineHistoryExhausted,
-            setLineHistoryExhausted: (value: boolean): void => {
-                dependencies.state.lineHistoryExhausted = value;
-            },
-            getCandlestickData: (): CandlestickPoint[] => dependencies.state.candlestickData,
-            setCandlestickData: (value: CandlestickPoint[]): void => {
-                dependencies.state.candlestickData = value;
-            },
-            getHistoryData: (): HistoryDataPoint[] => dependencies.state.historyData,
-            setHistoryData: (value: HistoryDataPoint[]): void => {
-                dependencies.state.historyData = value;
-            },
-            getCurrentHistoryPointBudget: (): number => dependencies.state.currentHistoryPointBudget,
-            getTimeRange: (): number => dependencies.state.timeRange,
-            getMonitoringIntervalMs: (): number => dependencies.state.monitoringIntervalMs,
-            getHistoryMetadata: (): HistoryMetadata | null => dependencies.state.historyMetadata,
-            setHistoryMetadata: (value: HistoryMetadata | null): void => {
-                dependencies.state.historyMetadata = value;
-            },
-            getCandlestickMetadata: (): HistoryMetadata | null => dependencies.state.candlestickMetadata,
-            setCandlestickMetadata: (value: HistoryMetadata | null): void => {
-                dependencies.state.candlestickMetadata = value;
-            },
-            getCandlestickBuckets: (): Map<number, CandlestickPoint & { count: number }> => dependencies.state.candlestickBuckets,
-            setCandlestickBuckets: (value: Map<number, CandlestickPoint & { count: number }>): void => {
-                dependencies.state.candlestickBuckets = value;
-            },
-            getLastResolvedCandlestickIntervalMs: (): number | undefined => dependencies.state.lastResolvedCandlestickIntervalMs,
-            setLastResolvedCandlestickIntervalMs: (value: number | undefined): void => {
-                dependencies.state.lastResolvedCandlestickIntervalMs = value;
-            },
-            buildHistoryRequestParameters: (): HistoryRequestParameters => buildHistoryRequestParameters(context),
-            getEffectiveCandlestickIntervalMs: (): number => getEffectiveCandlestickIntervalMs(context),
-            clampHistoryPoints: (value: number, min?: number): number => clampHistoryPoints(dependencies.state, value, min),
-            runHistoryFetch: (parameters, onResolve): Promise<void> => dependencies.runHistoryFetch(parameters, onResolve),
-            buildHistorySeriesFromPayload: (payload: JsonValue) => buildHardwareHistorySeries(context, payload),
-            mergeSeriesByTimestamp: <T extends { timestamp: number }>(series: readonly T[], existing: readonly T[]): T[] => mergeSeriesByTimestamp(series, existing),
-            trimCandlestickData: (force: boolean): boolean => trimCandlestickData(dependencies.state, force),
-            trimHistoryData: (force: boolean): boolean => trimHistoryData(dependencies.state, force),
-            updateMainChart: (): void => updateMainChart(dependencies.renderController.chartContext)
-        });
-    }
-    return cache.chunkHost;
+const createHardwareOlderHistoryHost = (dependencies: HardwareHistoryHostDependencies): HardwareOlderHistoryHost => {
+    const context = buildHistoryContext(dependencies);
+    return {
+        state: dependencies.state,
+        buildHistoryRequestParameters: (): HistoryRequestParameters => buildHistoryRequestParameters(context),
+        requestHistory: (parameters: HistoryRequestParameters, signal: AbortSignal): Promise<HardwareHistoryResponse> => requestHardwareHistory(parameters, signal),
+        buildHistorySeriesFromPayload: (payload: HardwareHistoryResponse) => buildHardwareHistorySeries(context, payload),
+        buildDisplaySeries: (source: readonly HistoryDataPoint[], candlestick: boolean) => buildHardwareDisplaySeries(dependencies.renderController.chartContext, source, candlestick)
+    };
 };
 
-const runHistoryFetch = async (dependencies: HardwareHistoryFetchDependencies, historyState: HardwareHistoryStreamState, parameters: HistoryRequestParameters, onResolve: (result: JsonValue) => Promise<void>): Promise<void> => {
-    const requestToken = Symbol('hardware-history-fetch');
-    historyState.historyFetchRequestToken = requestToken;
-    try {
-        const result = await requestWebSocketSnapshotRecord('hardware.history', serializeHardwareHistoryRequest(parameters));
-        if (historyState.historyFetchRequestToken !== requestToken) {
-            return;
-        }
-        await onResolve(result);
-        if (historyState.historyFetchRequestToken === requestToken) {
-            historyState.historyFetchRequestToken = null;
-        }
-    } catch (error) {
-        if (historyState.historyFetchRequestToken === requestToken) {
-            historyState.historyFetchRequestToken = null;
-        }
-        const runtimeError = ensureError(error);
-        if (isAbortError(runtimeError)) return;
-        dependencies.logger('warn', 'History snapshot fetch failed', runtimeError);
-        throw runtimeError;
-    }
-};
+const requestHardwareHistory = async (parameters: HistoryRequestParameters, signal: AbortSignal): Promise<HardwareHistoryResponse> => decodeHardwareHistory(await requestWebSocketSnapshotRecord('hardware.history', serializeHardwareHistoryRequest(parameters), { signal }));
 
-export { createHardwareHistoryHostCache, getHistoryChunkHost, getHistoryMetadataHost, getHistoryRealtimeHost, runHistoryFetch };
-export type { HardwareHistoryHostCache, HardwareHistoryHostDependencies, HardwareHistoryFetchDependencies };
+export { createHardwareHistoryHostCache, createHardwareOlderHistoryHost, getHistoryMetadataHost, getHistoryRealtimeHost, requestHardwareHistory };
+export type { HardwareHistoryHostCache, HardwareHistoryHostDependencies };

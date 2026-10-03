@@ -3,6 +3,8 @@
 
 import type { AppLifecycleInstance, BackendReadyOptions, DetachedParameters } from '@app/entrypoints/types.ts';
 import { ensureBackendReady, type BackendReadyResult } from '@core/backendReady.ts';
+import { clearActiveWallpaperReadiness } from '@core/backgroundtasks/wallpaperReadiness.ts';
+import { resolveDesktopLauncherBootHandoff } from '@core/desktophost/desktopLauncher.ts';
 import { bootstrap, finalizePreloader } from '@app/bootstrap/bootstrap.ts';
 import { ensureBootstrapCore } from '@app/bootstrap/stages/bootstrapCore.ts';
 import { initializeCoreServices } from '@app/bootstrap/stages/initializeCoreServices.ts';
@@ -101,7 +103,7 @@ const localizeStaticHtmlElements = (): void => {
     const preloaderText = dom.resolve('.page-preloader-text', doc);
     if (preloaderText) preloaderText.textContent = i18n.t('app.preloader.loading');
     const preloaderStatus = dom.resolve('.page-preloader-status', doc);
-    if (preloaderStatus) preloaderStatus.textContent = i18n.t('app.preloader.starting');
+    if (preloaderStatus) preloaderStatus.textContent = resolveDesktopLauncherBootHandoff()?.status || i18n.t('app.preloader.starting');
     const preloaderLogo = dom.resolve('.page-preloader-logo', doc);
     if (preloaderLogo) preloaderLogo.setAttribute('alt', i18n.t('app.preloader.logoAlt'));
 
@@ -179,6 +181,7 @@ const renderDetachedError = (message: string): void => {
     wrapper.appendChild(heading);
     wrapper.appendChild(body);
     container.replaceChildren(wrapper);
+    clearActiveWallpaperReadiness();
     void finalizePreloader().catch((error) => {
         errorHandler.warn('Entrypoint', 'Preloader finalization failed while rendering detached error', ensureError(error));
     });

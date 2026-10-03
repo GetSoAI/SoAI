@@ -19,8 +19,8 @@
     }
 
     :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-card-content.metrics-card-content--table.data-table-wrapper:has(> .plugin-health-list) {
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0;
+        border-end-start-radius: 0;
+        border-end-end-radius: 0;
     }
 
     :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-card-content--table .table {
@@ -30,7 +30,7 @@
     }
 
     :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-card-content--table .table-compact :is(th, td) {
-        text-align: left;
+        text-align: start;
     }
 
     :where([data-section='metrics'], [data-page-scope='metrics']) .metrics-table-wrapper > .table-compact {

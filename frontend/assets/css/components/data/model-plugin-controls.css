@@ -95,6 +95,8 @@
     :is(.plugin-card--incompatible, .plugin-card--circuit-breaker) .plugin-compatibility-banner {
         position: absolute;
         top: calc(var(--layout-collection-card-content-padding-block) - var(--space-5));
+
+        /* direction: physical — centering uses physical negative half-width translation */
         left: 50%;
         transform: translateX(-50%);
         width: calc(100% - var(--layout-collection-card-content-padding-inline) - var(--layout-collection-card-content-padding-inline));

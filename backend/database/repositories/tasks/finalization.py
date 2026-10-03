@@ -43,6 +43,7 @@ def sync_finalize_unified_task(
     status_message: str | None = None,
     mutation_fencing_token: int | None = None,
     interaction_mutation: ConversationInteractionMutation | None = None,
+    public_error_message: str | None = None,
 ) -> UnifiedTaskFinalizationWriteResult:
     if mutation_fencing_token is not None:
         require_positive_int_strict(
@@ -77,6 +78,7 @@ def sync_finalize_unified_task(
                    error_code = ?,
                    error_type = ?,
                    error_message = ?,
+                   public_error_message = ?,
                    status_message = ?,
                    updated_at_ms = ?,
                    completed_at_ms = ?,
@@ -95,6 +97,7 @@ def sync_finalize_unified_task(
                 error_code,
                 error_type,
                 error_message,
+                public_error_message,
                 status_message,
                 now,
                 now,

@@ -13,7 +13,7 @@ import { isFunction, isObject, isUndefined } from '@core/typeGuards.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { claimErrorReporting } from '@core/errors/reportingOwnership.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
-const PIPELINE_TIMEOUT_MS = 60000;
+import { PAGE_READINESS_TIMEOUT_MS } from '@core/constants.ts';
 
 const createAbortController = (): AbortController => new (getAbortControllerCtor())();
 const readAbortSignal = (controller: AbortController): AbortSignal => {
@@ -78,14 +78,14 @@ class PageRuntime {
             }
             const elapsed = getTimestamp() - startTime;
             const elapsedLabel = formatCompactMillisecondsAsSecondsUnit(elapsed);
-            const limitLabel = formatCompactMillisecondsAsSecondsUnit(PIPELINE_TIMEOUT_MS);
+            const limitLabel = formatCompactMillisecondsAsSecondsUnit(PAGE_READINESS_TIMEOUT_MS);
             const error = new Error(`PageRuntime pipeline timeout at ${task.stage} after ${elapsedLabel} (limit: ${limitLabel})`);
             if (claimErrorReporting(error)) {
                 errorHandler.error(this.pageId, 'Pipeline timeout - aborting', error);
             }
             this.#failTask(task, error);
             this.cancel('timeout');
-        }, PIPELINE_TIMEOUT_MS);
+        }, PAGE_READINESS_TIMEOUT_MS);
     }
     start(parameters: JsonObject, phases: PageRuntimePhases): Promise<void> {
         this.#validatePhases(phases);

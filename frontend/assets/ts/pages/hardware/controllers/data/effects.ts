@@ -1,10 +1,10 @@
 /* SoAI - Hardware page data effects [frontend/assets/ts/pages/hardware/controllers/data/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { decodeHardwareHistory } from '@core/api/contracts/hardwareContracts.ts';
+import type { HardwareHistoryResponse } from '@core/api/contracts/hardwareContracts.ts';
 import type { JsonValue } from '@core/types/jsonValues.ts';
 import { isArray, isFiniteNumber } from '@core/typeGuards.ts';
-import { clampHistoryChartPointCount, computeHistoryChartPointBudget, filterCandlestickBucketsForSeries, isCandlestickModeActive, resolveCandlestickIntervalMs, resolveHistoryChartPointLimit, trimCandlestickSeriesToTimeRange, type HistoryChartControlsManager, type HistoryChartPointBudgetConfig } from '@features/charts/public.ts';
+import { clampHistoryChartPointCount, computeHistoryChartPointBudget, filterCandlestickBucketsForSeries, isCandlestickModeActive, resolveCandlestickIntervalMs, resolveHistoryChartPlotWidthPx, resolveHistoryChartPointLimit, type HistoryChartControlsManager, type HistoryChartPointBudgetConfig } from '@features/charts/public.ts';
 import type { ChartOhlcContract } from '@pages/hardware/contracts/contracts.ts';
 import { STR_AVG, STR_OHLC } from '@pages/hardware/contracts/hardwarePageSupport.ts';
 import { getHistoryMetricKey } from '@pages/hardware/mappers/mappers.ts';
@@ -50,20 +50,20 @@ const getActiveAggregation = (state: HardwarePageState): string => {
     return preferred;
 };
 
-const buildHardwareHistorySeries = (context: HardwareHistoryContext, payload: JsonValue): HistorySeriesResult | null => {
-    const selectedTarget = context.getSelectedHistoryTarget();
-    const metricKey = getHistoryMetricKey(context.state.selectedMetric, selectedTarget.type);
+const resolveHistorySeriesMetric = (state: HardwarePageState, target: DeviceSelection): string | undefined => getHistoryMetricKey(state.selectedMetric, target.type);
+
+const resolveHistorySeriesKey = (state: HardwarePageState, target: DeviceSelection): string => JSON.stringify([target.type, target.value, resolveHistorySeriesMetric(state, target) ?? null]);
+
+const resolveHistoryRequestKey = (state: HardwarePageState, target: DeviceSelection): string => JSON.stringify([resolveHistorySeriesKey(state, target), getActiveAggregation(state)]);
+
+const buildHardwareHistorySeries = (context: HardwareHistoryContext, payload: HardwareHistoryResponse): HistorySeriesResult => {
     const result = buildHistorySeriesFromPayload({
-        payload: decodeHardwareHistory(payload),
+        payload,
         aggregation: getActiveAggregation(context.state),
-        metricKey,
+        metricKey: resolveHistorySeriesMetric(context.state, context.getSelectedHistoryTarget()),
         monitoringIntervalMs: context.state.monitoringIntervalMs,
         chartOhlc: context.chartOhlc
     });
-    if (!result) return null;
-    if (result.type === STR_OHLC) {
-        context.state.candlestickBuckets = result.candlestickBuckets;
-    }
     return result;
 };
 
@@ -90,8 +90,6 @@ const trimHistoryData = (state: HardwarePageState, force = false): boolean => {
 };
 
 const resetHistoryState = (state: HardwarePageState, { clearLine = false, clearCandle = false }: { clearLine?: boolean; clearCandle?: boolean } = {}): void => {
-    state.lineHistoryExhausted = false;
-    state.candlestickHistoryExhausted = false;
     if (clearLine) state.historyData = [];
     if (clearCandle) {
         state.candlestickData = [];
@@ -106,25 +104,16 @@ const trimCandlestickData = (state: HardwarePageState, force = false): boolean =
         state.candlestickBuckets.clear();
         return lengthModified;
     }
-    const intervalMs = resolveHardwareStateCandlestickIntervalMs(state);
-    applyHardwareCandlestickIntervalMetadata(state, intervalMs);
-    const trimmed = trimCandlestickSeriesToTimeRange({
-        candles: state.candlestickData,
-        pointBudget: state.maxHistoryPoints,
-        timeRangeMs: Math.max(60000, Math.round(state.timeRange * 60000)),
-        intervalMs: intervalMs,
-        errorContext: 'candlestickData'
-    });
-    if (trimmed.modified) {
-        state.candlestickData = trimmed.candles;
-    }
+    applyHardwareCandlestickIntervalMetadata(state, resolveHardwareStateCandlestickIntervalMs(state));
     state.candlestickBuckets = filterCandlestickBucketsForSeries(state.candlestickData, state.candlestickBuckets);
-    return lengthModified || trimmed.modified;
+    return lengthModified;
 };
 
-const buildHistoryRequestParameters = (context: HardwareHistoryContext): HistoryRequestParameters => {
+const resolveHardwareHistoryIntervalMs = (state: HardwarePageState, candlestick: boolean): number => (candlestick ? resolveHardwareStateCandlestickIntervalMs(state) : Math.max(1, Math.round(state.historyMetadata?.intervalMs ?? state.monitoringIntervalMs)));
+
+const resolveHistoryRequest = (context: HardwareHistoryContext): { parameters: HistoryRequestParameters; pointBudget: number } => {
     const pointBudgetConfig = getHistoryPointBudgetConfig(context.state);
-    const { parameters, pointBudget } = buildHardwareHistoryRequestParameters({
+    return buildHardwareHistoryRequestParameters({
         getSelectedHistoryTarget: () => context.getSelectedHistoryTarget(),
         resolveSupportedHistoryComponent: (component: JsonValue): string => context.resolveSupportedHistoryComponent(component),
         getActiveAggregation: () => getActiveAggregation(context.state),
@@ -134,8 +123,17 @@ const buildHistoryRequestParameters = (context: HardwareHistoryContext): History
         timeRange: context.state.timeRange,
         maxRetentionMinutes: context.state.maxRetentionMinutes
     });
+};
+
+const buildHistoryRequestParameters = (context: HardwareHistoryContext): HistoryRequestParameters => {
+    const { parameters, pointBudget } = resolveHistoryRequest(context);
     context.state.currentHistoryPointBudget = pointBudget;
     return parameters;
+};
+
+const buildHistoryAvailabilityRequestParameters = (context: HardwareHistoryContext, metric: string): HistoryRequestParameters => {
+    const { component, startTsMs, endTsMs, gpuIndex, identifier } = resolveHistoryRequest(context).parameters;
+    return { component, aggregation: STR_AVG, points: 1, startTsMs, endTsMs, availabilityMetric: metric, ...(gpuIndex === undefined ? {} : { gpuIndex }), ...(identifier === undefined ? {} : { identifier }) };
 };
 
 const getHistoryPointBudgetConfig = (state: HardwarePageState): HistoryChartPointBudgetConfig => {
@@ -146,7 +144,8 @@ const getHistoryPointBudgetConfig = (state: HardwarePageState): HistoryChartPoin
         maxHistoryPoints: state.maxHistoryPoints,
         maxRetentionMinutes: state.maxRetentionMinutes,
         candlestickActive: isCandlestickActive(state),
-        candlestickIntervalMinutes: state.candlestickIntervalMinutes
+        candlestickIntervalMinutes: state.candlestickIntervalMinutes,
+        plotWidthPx: resolveHistoryChartPlotWidthPx(state.mainChart)
     };
 };
 
@@ -158,5 +157,5 @@ const trimArrayByLength = <T>(data: ReadonlyArray<T>, limit: number, force: bool
     return data.length > threshold ? { modified: true, data: data.slice(-effectiveLimit) } : { modified: false, data: [...data] };
 };
 
-export { buildHardwareHistorySeries, buildHistoryRequestParameters, clampHistoryPoints, getActiveAggregation, getEffectiveCandlestickIntervalMs, isCandlestickActive, resetHistoryState, resolveHistoryPointLimit, trimCandlestickData, trimHistoryData, updateRealtimeCandlestick };
+export { buildHardwareHistorySeries, buildHistoryAvailabilityRequestParameters, buildHistoryRequestParameters, clampHistoryPoints, getHistoryPointBudgetConfig, getActiveAggregation, getEffectiveCandlestickIntervalMs, isCandlestickActive, resetHistoryState, resolveHardwareHistoryIntervalMs, resolveHistoryPointLimit, resolveHistoryRequestKey, resolveHistorySeriesKey, resolveHistorySeriesMetric, trimCandlestickData, trimHistoryData, updateRealtimeCandlestick };
 export type { HardwareHistoryContext };

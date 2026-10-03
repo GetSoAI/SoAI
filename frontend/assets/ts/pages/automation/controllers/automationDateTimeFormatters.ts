@@ -3,7 +3,7 @@
 
 import { parseLocalDateTimeParts, parseLocalDateTimeToUtcDate } from '@core/time/localDateTime.ts';
 import { formatAutomationDate, formatAutomationTime, formatAutomationWeekdayLabel, formatDay2, resolveIsoDateForTimeZone, type WeekdayFormat } from '@pages/automation/formatting/service.ts';
-import type { AutomationDefinition } from '@features/automation/public.ts';
+import type { AutomationDefinitionResponse } from '@features/automation/public.ts';
 import type { AutomationCalendarRangeTitleFormat, AutomationCalendarSettings } from '@pages/automation/types.ts';
 
 const formatAutomationStartLocal = (startLocal: string, settings: AutomationCalendarSettings, options: { includeYear: boolean } = { includeYear: true }): string => {
@@ -40,7 +40,7 @@ const formatAutomationWeekdayForSettings = (date: Date, settings: AutomationCale
     return formatAutomationWeekdayLabel(date, settings, weekday, options);
 };
 
-const formatAutomationDefinitionScheduleParts = (automation: AutomationDefinition, settings: AutomationCalendarSettings): readonly string[] => {
+const formatAutomationDefinitionScheduleParts = (automation: AutomationDefinitionResponse, settings: AutomationCalendarSettings): readonly string[] => {
     const recurrence = automation.recurrence;
     if (recurrence === 'none') {
         return [formatAutomationStartLocal(automation.startLocal, settings, { includeYear: true })];

@@ -10,14 +10,12 @@ from core.automation.automation_identifiers import build_automation_run_cancella
 from core.concurrency.ephemeral_tasks import create_ephemeral_task
 from core.errors.exceptions import StateError
 from core.logging.trace import get_logger
-from core.tasks.cancellation_scope import (
-    publish_and_verify_cancellation_scope_noncritical,
-)
 from features.api.routes.webui.conversation_input_queue_events import (
     publish_current_input_queue_changed,
 )
 from features.chat.conversation_stream_cancellation import (
     cancel_conversation_stream_runtime,
+    publish_and_verify_chat_cancellation_scope,
 )
 
 if TYPE_CHECKING:
@@ -63,10 +61,8 @@ async def _cancel_automation_scope(
     conv_id: str,
     request_id: str,
 ) -> bool:
-    return await publish_and_verify_cancellation_scope_noncritical(
-        event_bus=api_dependencies.event_bus,
-        cancellation_coordinator=api_dependencies.cancellation_coordinator,
-        cancellation_history=api_dependencies.cancellation_history,
+    return await publish_and_verify_chat_cancellation_scope(
+        api_dependencies,
         context=context,
         reason=reason,
         cancellation_id=cancellation_id,

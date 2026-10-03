@@ -5,6 +5,8 @@
     .chart-legend {
         position: absolute;
         top: 20px;
+
+        /* direction: physical — chart coordinates and time axes remain left to right */
         left: 60px;
         background: var(--glass-surface-overlay);
         border: var(--border-width-1) solid var(--glass-border-strong);
@@ -19,10 +21,13 @@
 
     .chart-legend-item {
         display: inline;
+
+        /* direction: physical — chart coordinates and time axes remain left to right */
         margin-right: var(--space-4);
     }
 
     .chart-legend-item:last-child {
+        /* direction: physical — chart coordinates and time axes remain left to right */
         margin-right: 0;
     }
 
@@ -44,11 +49,15 @@
         .chart-legend {
             font-size: var(--font-size-micro);
             padding: var(--space-1) var(--space-15);
+
+            /* direction: physical — chart coordinates and time axes remain left to right */
             left: 45px;
         }
 
         .chart-legend-item {
             display: block;
+
+            /* direction: physical — chart coordinates and time axes remain left to right */
             margin-right: 0;
             margin-bottom: var(--space-05);
         }

@@ -19,7 +19,7 @@ from features.api.routes.system.events.websocket_openai_audio.payloads import (
 from features.api.routes.system.events.websocket_openai_runner_failure_handling import (
     openai_ws_detach_event_is_set,
 )
-from features.api.runtime.event_enqueue import enqueue_correlated_media_event
+from features.api.runtime.event_enqueue import enqueue_correlated_event
 from features.api.streaming.openai_stream_binary_request_stream import (
     BinaryStreamRuntimeFailure,
     prepare_binary_stream_payload,
@@ -65,7 +65,7 @@ async def run_openai_audio_speech_stream(
         )
         if prepared.stream is None:
             message = prepared.error_message or "Speech stream failed."
-            await enqueue_correlated_media_event(
+            await enqueue_correlated_event(
                 enqueue_warning_tracker,
                 connection.queue,
                 build_openai_audio_speech_error(
@@ -85,7 +85,7 @@ async def run_openai_audio_speech_stream(
             if not chunk:
                 continue
             chunk_base64 = encode_base64_ascii(chunk)
-            delivered = await enqueue_correlated_media_event(
+            delivered = await enqueue_correlated_event(
                 enqueue_warning_tracker,
                 connection.queue,
                 build_openai_audio_speech_chunk(
@@ -99,7 +99,7 @@ async def run_openai_audio_speech_stream(
             if not delivered:
                 return
             sequence += 1
-        await enqueue_correlated_media_event(
+        await enqueue_correlated_event(
             enqueue_warning_tracker,
             connection.queue,
             build_openai_audio_speech_completed(
@@ -111,7 +111,7 @@ async def run_openai_audio_speech_stream(
             "OpenAI audio speech completed",
         )
     except BinaryStreamRuntimeFailure as exception:
-        await enqueue_correlated_media_event(
+        await enqueue_correlated_event(
             enqueue_warning_tracker,
             connection.queue,
             build_openai_audio_speech_error(
@@ -142,7 +142,7 @@ async def run_openai_audio_speech_stream(
             trace_id=trace_id,
             level="error",
         )
-        await enqueue_correlated_media_event(
+        await enqueue_correlated_event(
             enqueue_warning_tracker=enqueue_warning_tracker,
             queue=connection.queue,
             event=build_openai_audio_speech_error(

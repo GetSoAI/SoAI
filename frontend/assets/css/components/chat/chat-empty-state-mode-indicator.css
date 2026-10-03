@@ -38,7 +38,7 @@
 
     :where(.chat-container) .chat-page-indicator-row .chat-page-mode-indicator-chevron {
         position: absolute;
-        right: calc(var(--space-3) + var(--space-25));
+        inset-inline-end: calc(var(--space-3) + var(--space-25));
         bottom: calc(var(--space-2) + (var(--chat-page-mode-select-height) - var(--chat-page-mode-chevron-size)) / 2);
         display: inline-flex;
         align-items: center;
@@ -93,22 +93,13 @@
         height: var(--chat-page-mode-select-height);
         min-height: var(--chat-page-mode-select-height);
         min-width: 0;
-        padding: 0 calc(var(--space-25) + var(--control-icon-size) + var(--space-2)) 0 var(--space-25);
+        padding-block: 0 0;
+        padding-inline: var(--space-25) calc(var(--space-25) + var(--control-icon-size) + var(--space-2));
         border: var(--border-width-1) solid var(--filter-control-border);
         border-radius: var(--border-radius);
         font-size: inherit;
         line-height: normal;
-        background-image: var(--filter-control-reflection), none;
-        background-repeat: no-repeat, no-repeat;
-        background-position:
-            0 0,
-            right var(--space-25) center;
-        background-size:
-            100% 100%,
-            0;
-        box-shadow:
-            inset 2px 2px 4px var(--surface-inner-highlight-soft),
-            inset -2px -2px 4px var(--surface-inner-shadow-soft);
+        background-image: none;
         transition:
             background-color var(--transition-fast),
             border-color var(--transition-fast),
@@ -120,7 +111,6 @@
         --filter-control-bg: var(--ui-button-neutral-bg);
         --filter-control-border: var(--ui-button-neutral-color);
         --filter-control-color: var(--ui-button-neutral-color);
-        --filter-control-reflection: var(--surface-reflection-soft);
 
         background-color: var(--filter-control-bg);
         border-color: var(--filter-control-border);
@@ -131,7 +121,6 @@
         --filter-control-bg: var(--ui-button-neutral-bg-hover);
         --filter-control-border: var(--ui-button-neutral-color-hover);
         --filter-control-color: var(--ui-button-neutral-color-hover);
-        --filter-control-reflection: var(--surface-reflection-soft-hover);
 
         background-color: var(--filter-control-bg);
         border-color: var(--filter-control-border);

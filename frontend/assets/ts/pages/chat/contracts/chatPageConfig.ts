@@ -30,11 +30,13 @@ const CHAT_INPUT_ACTION_ICON_MAP: Record<string, IconDefinition> = {
     '.chat-token-counter-menu .chat-action-icon': icon('info', CHAT_ICON_SIZE_MD),
     '.microphone-btn .chat-action-icon--microphone': icon('microphone', CHAT_ICON_SIZE_MD),
     '.microphone-btn .chat-action-icon--stop': icon('stop', CHAT_ICON_SIZE_MD),
+    '.microphone-btn .chat-action-icon--close': icon('close', CHAT_ICON_SIZE_MD),
     '.call-btn .chat-action-icon': icon('call', CHAT_ICON_SIZE_MD),
     '.attach-add-btn .chat-action-icon': icon('paperclip', CHAT_ICON_SIZE_MD),
     '.camera-btn .chat-action-icon': icon('camera', CHAT_ICON_SIZE_MD),
     '.goto-prompts-btn .chat-action-icon': icon('prompt', CHAT_ICON_SIZE_MD),
     [`${CHAT_SELECTORS.CHARACTER_MAP_BTN} .chat-action-icon`]: icon('character-map', CHAT_ICON_SIZE_MD),
+    [`${CHAT_SELECTORS.SKETCH_BTN} .chat-action-icon`]: icon('sketch', CHAT_ICON_SIZE_MD),
     '.chat-action-btn': icon('arrow-up', CHAT_ICON_SIZE_MD)
 };
 Object.freeze(CHAT_INPUT_ACTION_ICON_MAP);

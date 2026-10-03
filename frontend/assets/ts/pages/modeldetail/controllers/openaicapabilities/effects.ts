@@ -1,6 +1,8 @@
 /* SoAI - Model detail page control layer OpenAI capabilities effects [frontend/assets/ts/pages/modeldetail/controllers/openaicapabilities/effects.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { CSS_CLASSES } from '@core/cssConstants.ts';
+import { dom } from '@core/dom/dom.ts';
 import { toTrustedUiHtml } from '@core/security/public.ts';
 import { isJsonObject } from '@core/types/jsonValues.ts';
 import type { ModelRecord } from '@core/types/modelTypes.ts';
@@ -18,11 +20,18 @@ interface ModelDetailOpenAICapabilityOverridesHost extends PageDomOwnerHost {
     resolveOpenAICapabilityLabel(category: OpenAICapabilityOverrideCategory, token: string): string;
 }
 
+const syncModelDetailCapabilityButtons = (card: Element, state: OpenAICapabilityOverrideState): void => {
+    const resetButton = dom.resolve('#modeldetail-openai-capabilities-reset', card);
+    if (resetButton instanceof HTMLButtonElement) {
+        const canReset = state.currentDisabled.size > 0 && !hasOpenAICapabilityOverrideChanges(state);
+        dom.setProperty(resetButton, 'disabled', !canReset);
+        dom.toggleClass(resetButton, CSS_CLASSES.HIDDEN, !canReset);
+    }
+};
+
 const populateModelDetailOpenAICapabilityOverrides = (host: ModelDetailOpenAICapabilityOverridesHost): void => {
     const card = host.pageDom.optionalHTMLElement('modeldetail-status-capabilities');
     const content = host.pageDom.optionalHTMLElement('modeldetail-status-capabilities-list');
-    const resetButton = host.pageDom.optionalHTMLElement('modeldetail-openai-capabilities-reset');
-    const saveButton = host.pageDom.optionalHTMLElement('modeldetail-openai-capabilities-save');
     if (!card || !content) return;
 
     if (!host.model || host.isVirtualModel()) {
@@ -37,16 +46,7 @@ const populateModelDetailOpenAICapabilityOverrides = (host: ModelDetailOpenAICap
         host.pageDom.addClass(card, 'u-hidden');
         return;
     }
-    const hasOverrides = state.currentDisabled.size > 0;
-    const hasDirtyChanges = hasOpenAICapabilityOverrideChanges(state);
-    if (resetButton instanceof HTMLButtonElement) {
-        host.pageDom.updateProperty(resetButton, 'disabled', !hasOverrides || hasDirtyChanges);
-        host.pageDom.toggleClass(resetButton, 'u-hidden', hasDirtyChanges);
-    }
-    if (saveButton instanceof HTMLButtonElement) {
-        host.pageDom.updateProperty(saveButton, 'disabled', !hasDirtyChanges);
-        host.pageDom.toggleClass(saveButton, 'u-hidden', !hasDirtyChanges);
-    }
+    syncModelDetailCapabilityButtons(card, state);
 
     const modelOpenAI = host.model.openaiCapabilities;
     if (!isJsonObject(modelOpenAI)) {
@@ -70,4 +70,4 @@ const populateModelDetailOpenAICapabilityOverrides = (host: ModelDetailOpenAICap
     host.pageDom.removeClass(card, 'u-hidden');
 };
 
-export { populateModelDetailOpenAICapabilityOverrides };
+export { populateModelDetailOpenAICapabilityOverrides, syncModelDetailCapabilityButtons };

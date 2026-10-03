@@ -3,8 +3,9 @@
 
 import type { ChartsEmptyStateTranslationKey } from '@core/i18n/translationkeys/charts/emptyState.generated.ts';
 import type { ChartsFiltersTranslationKey } from '@core/i18n/translationkeys/charts/filters.generated.ts';
+import type { ChartsHistoryFailedTranslationKey } from '@core/i18n/translationkeys/charts/historyFailed.generated.ts';
 import type { ChartsLegendTranslationKey } from '@core/i18n/translationkeys/charts/legend.generated.ts';
 import type { ChartsLoadingStateTranslationKey } from '@core/i18n/translationkeys/charts/loadingState.generated.ts';
 import type { ChartsManualScaleLabelTranslationKey } from '@core/i18n/translationkeys/charts/manualScaleLabel.generated.ts';
 
-export type ChartsTranslationKey = ChartsEmptyStateTranslationKey | ChartsFiltersTranslationKey | ChartsLegendTranslationKey | ChartsLoadingStateTranslationKey | ChartsManualScaleLabelTranslationKey;
+export type ChartsTranslationKey = ChartsEmptyStateTranslationKey | ChartsFiltersTranslationKey | ChartsHistoryFailedTranslationKey | ChartsLegendTranslationKey | ChartsLoadingStateTranslationKey | ChartsManualScaleLabelTranslationKey;

@@ -85,8 +85,7 @@ class AppLifecycle {
                     applyBackground: (route, options) => this.applyBackground(route, options),
                     monitorConnectionStatus: () => this.monitorConnectionStatus(),
                     toggleMainUI: (show) => this.toggleMainUI(show),
-                    destroyRegisteredComponents: () => this.destroyRegisteredComponents(),
-                    renderInitializationError: (error) => this.renderInitializationError(error)
+                    destroyRegisteredComponents: () => this.destroyRegisteredComponents()
                 });
                 this.stateMeta.initialized = true;
             } finally {

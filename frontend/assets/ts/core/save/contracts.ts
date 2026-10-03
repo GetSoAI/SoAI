@@ -45,6 +45,7 @@ interface SaveBinding {
 interface BindSaveScopeOptions {
     scope: SaveScope;
     requestSave: (context: string) => Promise<void>;
+    isRequestInFlight?: (() => boolean) | undefined;
     canRequestSave?: (() => boolean) | undefined;
     headerContextId: string;
     headerPriority?: number | undefined;

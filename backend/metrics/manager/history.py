@@ -6,11 +6,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from core.errors.exceptions import ServiceUnavailableError, ValidationError
+from core.history.request.availability import HistoryAvailabilityQuery
 from core.history.request.metadata import build_history_metadata_for_request
 from core.history.request.preparation import (
     HistoryRequestDefaults,
     prepare_history_request_with_defaults,
 )
+from core.history.request.resolution import resolve_aligned_history_query_start
 from core.logging.trace import get_logger
 from core.metrics.protocols import DatabaseMetricsProtocol
 from core.validation.coercion import coerce_json_dict_stringify_non_json_values
@@ -31,9 +33,14 @@ __all__ = (
     "get_historical_data",
     "log_historical_metrics",
     "prune_historical_metrics",
+    "resolve_tracked_metric_keys",
 )
 
 LOGGER_NAME = "SoAI.metrics.manager.history"
+
+
+def resolve_tracked_metric_keys(history_config: JSONDict) -> list[str]:
+    return coerce_trimmed_nonempty_str_list(history_config.get("TRACKED_METRICS", []))
 
 
 async def log_historical_metrics(
@@ -41,7 +48,7 @@ async def log_historical_metrics(
     history_config: JSONDict,
     database_metrics: DatabaseMetricsProtocol,
 ) -> None:
-    keys_to_track = coerce_trimmed_nonempty_str_list(history_config.get("TRACKED_METRICS", []))
+    keys_to_track = resolve_tracked_metric_keys(history_config)
     if not keys_to_track:
         return
     snapshot_to_log = extract_tracked_metrics(metrics, keys_to_track)
@@ -74,6 +81,9 @@ async def get_historical_data(
     history_config: JSONDict,
     history_enabled: bool,
     database_metrics: DatabaseMetricsProtocol,
+    *,
+    catalog_metric_key_known: bool,
+    include_availability: bool = False,
 ) -> JSONDict:
     logger = get_logger(LOGGER_NAME)
     if not history_enabled or database_metrics is None:
@@ -105,11 +115,24 @@ async def get_historical_data(
     history_resolution = history_request.resolution
     history_data = await database_metrics.get_historical_metrics_data_aggregated(
         metric_key=metric_key,
-        start_ts_ms=history_resolution.start_ts_ms,
+        start_ts_ms=resolve_aligned_history_query_start(
+            history_resolution, history_request.retention_hours
+        ),
         end_ts_ms=history_resolution.end_ts_ms,
         interval_ms=resolved_interval_ms,
         aggregation=history_request.aggregation,
         max_points=history_resolution.bucket_count,
+        metric_key_known=(
+            catalog_metric_key_known or metric_key in resolve_tracked_metric_keys(history_config)
+        ),
+        availability=(
+            HistoryAvailabilityQuery(
+                retention_hours=history_request.retention_hours,
+                metric=metric_key,
+            )
+            if include_availability
+            else None
+        ),
     )
     history_data["aggregation"] = history_request.aggregation
     history_data["interval_ms"] = resolved_interval_ms

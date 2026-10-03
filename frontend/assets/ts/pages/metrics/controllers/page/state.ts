@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { i18n } from '@core/i18n/index.ts';
+import { CHART_FULL_VALUE_LIMIT } from '@core/charts/constants.ts';
 import { formatInvariantNumber } from '@core/localization/public.ts';
+import { formatCompactNumber } from '@core/primitives/compactNumber.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
 import { isFiniteNumber } from '@core/typeGuards.ts';
 import { buildChartColorContext } from '@core/ui/chartColors.ts';
-import { computeHistoryChartPointBudget, isCandlestickModeActive, resolveCandlestickIntervalMs } from '@features/charts/public.ts';
-import { METRIC_HISTORY_AGGREGATIONS, METRIC_HISTORY_KEYS, METRIC_HISTORY_OHLC_AGGREGATIONS, METRIC_SCALE_BOUNDS, type ScaleBound } from '@features/metrics/public.ts';
+import { computeHistoryChartPointBudget, isCandlestickModeActive, resolveCandlestickIntervalMs, resolveHistoryChartPlotWidthPx, type HistoryChartPointBudgetConfig } from '@features/charts/public.ts';
+import { METRIC_HISTORY_AGGREGATIONS, METRIC_HISTORY_KEYS, METRIC_HISTORY_OHLC_AGGREGATIONS, METRIC_SCALE_BOUNDS, resolveMetricsCurrentTokenRateOrNull, type ScaleBound } from '@features/metrics/public.ts';
 import { METRIC_TYPE_OPTIONS } from '@pages/metrics/contracts/metricsPageConstants.ts';
 import type { MetricsPageBudgetHost, MetricsPageStateHost } from '@pages/metrics/controllers/page/contracts.ts';
 import type { MetricsData, ScaleBounds } from '@pages/metrics/types.ts';
@@ -45,21 +47,22 @@ const getEffectiveMetricsCandlestickIntervalMs = (host: MetricsPageStateHost): n
     return resolved;
 };
 
+const resolveMetricsValueIntervalMs = (host: Pick<MetricsPageStateHost, 'state'>): number => host.state.historyIntervalMs ?? host.state.monitoringIntervalMs;
+
+const getMetricsHistoryPointBudgetConfig = (host: MetricsPageBudgetHost): HistoryChartPointBudgetConfig => ({
+    monitoringIntervalMs: host.operations.normalizeMetricsInt(host.state.monitoringIntervalMs, 1),
+    chartHardLimit: host.state.chartHardLimit,
+    historyApiPointCap: host.state.historyApiPointCap,
+    maxHistoryPoints: host.state.maxHistoryPoints,
+    maxRetentionMinutes: host.state.maxRetentionMinutes,
+    candlestickActive: isMetricsCandlestickActive(host),
+    candlestickIntervalMinutes: host.state.candlestickIntervalMinutes,
+    plotWidthPx: resolveHistoryChartPlotWidthPx(host.state.mainChart)
+});
+
 const recalculateMetricsHistoryPointBudget = (host: MetricsPageBudgetHost): void => {
-    const intervalMs = host.operations.normalizeMetricsInt(host.state.monitoringIntervalMs, 1);
-    const rangeMs = Math.max(intervalMs, Math.round(host.state.timeRange * 60_000));
-    host.state.currentHistoryPointBudget = computeHistoryChartPointBudget(
-        {
-            monitoringIntervalMs: intervalMs,
-            chartHardLimit: host.state.chartHardLimit,
-            historyApiPointCap: host.state.historyApiPointCap,
-            maxHistoryPoints: host.state.maxHistoryPoints,
-            maxRetentionMinutes: host.state.maxRetentionMinutes,
-            candlestickActive: host.state.currentChartType === 'candlestick',
-            candlestickIntervalMinutes: host.state.candlestickIntervalMinutes
-        },
-        rangeMs
-    );
+    const config = getMetricsHistoryPointBudgetConfig(host);
+    host.state.currentHistoryPointBudget = computeHistoryChartPointBudget(config, Math.max(config.monitoringIntervalMs, Math.round(host.state.timeRange * 60_000)));
 };
 
 const getMetricsHistoryKey = (host: MetricsPageStateHost, metricType: string = host.state.currentMetricType): string | null => {
@@ -72,6 +75,8 @@ const getMetricsHistoryKey = (host: MetricsPageStateHost, metricType: string = h
             return METRIC_HISTORY_KEYS.tokens;
         case 'queue':
             return METRIC_HISTORY_KEYS.queue;
+        case 'throughput':
+            return METRIC_HISTORY_KEYS.throughput;
         default:
             return null;
     }
@@ -87,6 +92,8 @@ const getMetricsHistoryAggregation = (host: MetricsPageStateHost, metricType: st
             return METRIC_HISTORY_AGGREGATIONS.tokens;
         case 'queue':
             return METRIC_HISTORY_AGGREGATIONS.queue;
+        case 'throughput':
+            return METRIC_HISTORY_AGGREGATIONS.throughput;
         default:
             return 'avg';
     }
@@ -102,6 +109,8 @@ const getMetricsHistoryOhlcAggregation = (host: MetricsPageStateHost, metricType
             return METRIC_HISTORY_OHLC_AGGREGATIONS.tokens;
         case 'queue':
             return METRIC_HISTORY_OHLC_AGGREGATIONS.queue;
+        case 'throughput':
+            return METRIC_HISTORY_OHLC_AGGREGATIONS.throughput;
         default:
             return 'ohlc';
     }
@@ -115,18 +124,7 @@ const getMetricsMetricTransform = (_host: MetricsPageStateHost, metricType: stri
 };
 
 const getMetricsMetricDisplayName = (metricType: string): string => {
-    switch (metricType) {
-        case 'requests':
-            return i18n.t('metrics.cards.performanceMetrics.metricTypes.requests');
-        case 'latency':
-            return i18n.t('metrics.cards.performanceMetrics.metricTypes.latency');
-        case 'tokens':
-            return i18n.t('metrics.cards.performanceMetrics.metricTypes.tokens');
-        case 'queue':
-            return i18n.t('metrics.cards.performanceMetrics.metricTypes.queueDepth');
-        default:
-            return metricType;
-    }
+    return METRIC_TYPE_OPTIONS.find((option) => option.value === metricType)?.getLabel() ?? metricType;
 };
 
 const getMetricsMetricScaleBounds = (metricType: string): ScaleBounds | null => {
@@ -143,6 +141,9 @@ const getMetricsMetricScaleBounds = (metricType: string): ScaleBounds | null => 
             break;
         case 'queue':
             bounds = METRIC_SCALE_BOUNDS.queue;
+            break;
+        case 'throughput':
+            bounds = METRIC_SCALE_BOUNDS.throughput;
             break;
         default:
             bounds = null;
@@ -168,15 +169,18 @@ const formatMetricsMetricValue = (host: MetricsPageStateHost, metricType: string
     }
     const formatter = host.metricsServices.metricsFormatter;
     const roundedValue = Math.round(value);
+    const compact = Math.abs(value) >= CHART_FULL_VALUE_LIMIT ? formatCompactNumber(value) : null;
     switch (metricType) {
         case 'requests':
-            return formatter.number(roundedValue);
+            return compact ?? formatter.number(roundedValue);
         case 'latency':
-            return formatter.ms(value);
+            return compact === null ? formatter.ms(value) : i18n.t('common.time.units.millisecond.short', { count: compact });
         case 'tokens':
-            return formatter.number(value);
+            return compact ?? formatter.number(value);
+        case 'throughput':
+            return i18n.t('metrics.units.tokensPerSecond', { value: compact ?? formatter.number(value) });
         case 'queue':
-            return `${formatter.number(roundedValue)} ${i18n.t('metrics.units.jobs')}`;
+            return `${compact ?? formatter.number(roundedValue)} ${i18n.t('metrics.units.jobs')}`;
         default:
             return formatInvariantNumber(value, { maximumFractionDigits: 2 });
     }
@@ -194,6 +198,9 @@ const extractMetricsValue = (host: MetricsPageStateHost, metrics: MetricsData, m
     }
     if (metricType === 'queue') {
         return metrics.director?.gauges?.queueSize ?? null;
+    }
+    if (metricType === 'throughput') {
+        return resolveMetricsCurrentTokenRateOrNull(metrics);
     }
     return null;
 };
@@ -216,4 +223,4 @@ const extractMetricsTimestamp = (_host: MetricsPageStateHost, _metrics: MetricsD
     return serverEpochMs();
 };
 
-export { calculateMetricsAverageLatency, calculateMetricsTotalRequests, extractMetricsTimestamp, extractMetricsValue, formatMetricsMetricValue, getEffectiveMetricsCandlestickIntervalMs, getMetricsHistoryAggregation, getMetricsHistoryKey, getMetricsHistoryOhlcAggregation, getMetricsMetricDisplayName, getMetricsMetricScaleBounds, getMetricsMetricTransform, isMetricsCandlestickActive, recalculateMetricsHistoryPointBudget, updateMetricsChartConfiguration };
+export { calculateMetricsAverageLatency, calculateMetricsTotalRequests, extractMetricsTimestamp, extractMetricsValue, formatMetricsMetricValue, getEffectiveMetricsCandlestickIntervalMs, getMetricsHistoryAggregation, getMetricsHistoryKey, getMetricsHistoryOhlcAggregation, getMetricsHistoryPointBudgetConfig, getMetricsMetricDisplayName, getMetricsMetricScaleBounds, getMetricsMetricTransform, isMetricsCandlestickActive, recalculateMetricsHistoryPointBudget, resolveMetricsValueIntervalMs, updateMetricsChartConfiguration };

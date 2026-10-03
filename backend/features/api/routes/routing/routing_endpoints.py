@@ -212,9 +212,16 @@ async def virtual_model_update(
 async def virtual_model_set_enabled(
     request: Request,
     name: str,
-    payload: VirtualModelEnabledUpdate,
+    payload: VirtualModelEnabledUpdate | VirtualModelUpdate,
     api_context: ApiContext = Depends(resolve_api_context),
 ) -> Response:
+    if isinstance(payload, VirtualModelUpdate):
+        return await virtual_model_update(
+            request,
+            f"{name}/enabled",
+            payload,
+            api_context,
+        )
     normalized_name = _require_virtual_model_name(request, name)
     _require_existing_virtual_model(request, api_context, normalized_name)
     return await api_context.dependencies.command_dispatcher.dispatch_and_respond(

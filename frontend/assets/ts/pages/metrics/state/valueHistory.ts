@@ -1,15 +1,14 @@
 /* SoAI - Metrics page value history [frontend/assets/ts/pages/metrics/state/valueHistory.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
-import { requestWebSocketSnapshotRecord } from '@core/websocketclient/snapshotPayload.ts';
-import { serializeSystemMetricsHistoryRequest } from '@core/api/contracts/systemMetricsRequestContracts.ts';
+import type { SystemMetricsHistoryRequest } from '@core/api/contracts/systemMetricsRequestContracts.ts';
 import { readTimestampValueHistoryPayload } from '@core/realtime/historyPayloads.ts';
-import { decodeMetricsHistoryPayload } from '@core/realtime/metricsHistoryContracts.ts';
+import type { MetricsHistoryPayload } from '@core/realtime/metricsHistoryContracts.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
-import { hasFunctionProperty, isArray, isFiniteNumber, isNullOrUndefined, isObject } from '@core/typeGuards.ts';
+import { hasFunctionProperty, isArray, isFiniteNumber, isObject } from '@core/typeGuards.ts';
 import type { JsonObject, JsonValue } from '@core/types/jsonValues.ts';
 import { readRoundedIntegerAtLeastValue } from '@core/types/numberCoercionReaders.ts';
-import type { HistoryChartDataTransformsModule, HistoryChartRuntimeContract } from '@features/charts/public.ts';
+import { resolveHistoryPagePoints, type HistoryChartDataTransformsModule, type HistoryChartRuntimeContract, type HistoryPageWindow, type HistoryResolutionWindow } from '@features/charts/public.ts';
 import { resolveHistoryIntervalMs } from '@pages/metrics/mappers/metricsHistoryMapping.ts';
 import type { MetricsCatalogEntry, MetricsHistoryPoint, ParsedHistoryResponse, ValueHistoryResult } from '@pages/metrics/types.ts';
 
@@ -18,21 +17,16 @@ interface ValueHistoryContext {
     getMetricHistoryKey(): string | null;
     getMetricHistoryAggregation(): string;
     getCatalogEntry(metricKey: string): MetricsCatalogEntry | null;
-    isCandlestickActive(): boolean;
-    updateMainChart(options: { resetView?: boolean; prepended?: MetricsHistoryPoint[] }): void;
     trimMetricsHistory(force?: boolean): boolean;
-    getRequestToken(): number | null;
-    setRequestToken(token: number | null): void;
 
     timeRange: number;
     pointBudget: number;
     monitoringIntervalMs: number;
+    historyIntervalMs: number | null;
     supportedHistoryIntervalsMs: number[] | null;
     maxHistoryPoints: number;
 
     metricsHistory: MetricsHistoryPoint[];
-    metricsHistoryExhausted: boolean;
-    valueHistoryRequestState: Map<string, string>;
 }
 
 type ValueSeriesBuilder = Pick<HistoryChartDataTransformsModule, 'buildValueSeriesFromPairs'>;
@@ -56,9 +50,19 @@ const toJsonValuePoint = (point: MetricsHistoryPoint): JsonObject => ({
     value: point.value
 });
 
-const parseValueHistoryResponse = (context: ValueHistoryContext, response: JsonValue): ParsedHistoryResponse => {
-    const payload = readTimestampValueHistoryPayload(decodeMetricsHistoryPayload(response));
+const parseValueHistoryResponse = (context: ValueHistoryContext, response: MetricsHistoryPayload): ParsedHistoryResponse => {
+    const payload = readTimestampValueHistoryPayload(response);
     const points = buildPointsFromTimestampPairs(context, payload.timestamps, payload.values);
+    const counts = new Map<number, number>();
+    response.sampleCounts?.forEach((count, index) => {
+        const timestamp = payload.timestamps[index];
+        if (timestamp !== undefined && count > 0) counts.set(timestamp, count);
+    });
+    for (const point of points) {
+        const count = counts.get(point.timestamp);
+        if (count === undefined) throw new TypeError('Metrics value history sample count is missing or invalid');
+        point.sampleCount = count;
+    }
     return { points, intervalMs: payload.intervalMs };
 };
 
@@ -87,20 +91,15 @@ const integrateValueHistoryPoints = (context: ValueHistoryContext, points: Metri
     if (!isArray(sanitizedRaw)) {
         throw new TypeError('sanitizePoints must return an array');
     }
-    const sanitized = sanitizedRaw.filter(isMetricsHistoryPoint);
+    const counts = new Map(points.map((point) => [point.timestamp, point.sampleCount]));
+    const sanitized = sanitizedRaw.filter(isMetricsHistoryPoint).map((point) => ({ ...point, sampleCount: counts.get(point.timestamp) }));
     if (sanitized.length !== sanitizedRaw.length) {
         throw new TypeError('sanitizePoints returned invalid history points');
-    }
-    if (mode === 'refresh' && sanitized.length === 0) {
-        throw new Error('Metrics history refresh returned no valid points');
-    }
-    if (sanitized.length === 0) {
-        return { added: 0, prepended: [], replaced: false };
     }
     if (context.metricsHistory.length === 0 || mode === 'refresh') {
         context.metricsHistory = sanitized;
         context.trimMetricsHistory(true);
-        return { added: context.metricsHistory.length, prepended: [], replaced: true };
+        return { added: context.metricsHistory.length, prepended: [], replaced: true, capped: false };
     }
     const earliestTimestamp = context.metricsHistory[0]?.timestamp ?? Infinity;
     let cutoffIndex = -1;
@@ -115,138 +114,61 @@ const integrateValueHistoryPoints = (context: ValueHistoryContext, points: Metri
         }
     }
     if (cutoffIndex === -1) {
-        return { added: 0, prepended: [], replaced: false };
+        return { added: 0, prepended: [], replaced: false, capped: false };
     }
     const newEntries = sanitized.slice(0, cutoffIndex + 1);
-    const merged = [...newEntries, ...context.metricsHistory];
-    const limit = context.maxHistoryPoints > 0 ? context.maxHistoryPoints : 20000;
-    const overflow = Math.max(0, merged.length - limit);
-    context.metricsHistory = overflow > 0 ? merged.slice(overflow) : merged;
-    const retainedPrepended = overflow > 0 ? newEntries.slice(overflow) : newEntries;
-    context.trimMetricsHistory(true);
-    return { added: retainedPrepended.length, prepended: retainedPrepended, replaced: false };
+    const room = Math.max(0, context.maxHistoryPoints - context.metricsHistory.length);
+    const prepended = newEntries.slice(Math.max(0, newEntries.length - room));
+    const capped = prepended.length < newEntries.length;
+    if (prepended.length) context.metricsHistory = [...prepended, ...context.metricsHistory];
+    return { added: prepended.length, prepended, replaced: false, capped };
 };
 
-const applyValueHistory = (context: ValueHistoryContext, response: JsonValue, { mode = 'refresh' }: { mode?: string } = {}): ValueHistoryResult & { intervalMs: number | null } => {
+const applyValueHistory = (context: ValueHistoryContext, response: MetricsHistoryPayload, { mode = 'refresh' }: { mode?: string } = {}): ValueHistoryResult & { intervalMs: number | null } => {
     const parsed = parseValueHistoryResponse(context, response);
-    context.monitoringIntervalMs = readRoundedIntegerAtLeastValue(parsed.intervalMs, 'intervalMs', 1);
-    context.metricsHistoryExhausted = false;
+    const intervalMs = readRoundedIntegerAtLeastValue(parsed.intervalMs, 'intervalMs', 1);
+    if (mode === 'prepend' && intervalMs !== (context.historyIntervalMs ?? context.monitoringIntervalMs)) {
+        throw new TypeError('Metrics older history interval differs from the displayed series');
+    }
+    context.historyIntervalMs = intervalMs;
     const result = integrateValueHistoryPoints(context, parsed.points, { mode });
     return { ...result, intervalMs: parsed.intervalMs };
 };
 
-const fetchValueHistory = async (context: ValueHistoryContext, options: { resetView?: boolean; beforeTimestamp?: number | null } = {}, hasChartDataTransforms: boolean): Promise<boolean> => {
-    const { resetView = false, beforeTimestamp = null } = options;
+const resolveValueHistoryRequest = (context: ValueHistoryContext, page: HistoryPageWindow | HistoryResolutionWindow | null): SystemMetricsHistoryRequest | null => {
     const metricKey = context.getMetricHistoryKey();
-    if (!metricKey || !hasChartDataTransforms) {
-        if (resetView) {
-            context.updateMainChart({ resetView });
-        }
-        return false;
+    if (!metricKey || !context.chartRuntime.getCachedModules()?.data) {
+        return null;
     }
     const catalogEntry = context.getCatalogEntry(metricKey);
     if (!catalogEntry) {
         throw new Error(`Missing metricsCatalog entry for: ${metricKey}`);
     }
-    if (!isNullOrUndefined(beforeTimestamp) && context.metricsHistoryExhausted) {
-        return false;
+    const aggregation = context.getMetricHistoryAggregation();
+    const aggregations = isArray(catalogEntry.aggregations) ? catalogEntry.aggregations : [];
+    if (!aggregations.includes(aggregation)) {
+        throw new Error(`metricsCatalog entry for ${metricKey} does not support ${aggregation}`);
+    }
+    if (page) {
+        const pageIntervalMs = readRoundedIntegerAtLeastValue('intervalMs' in page ? page.intervalMs : (context.historyIntervalMs ?? context.monitoringIntervalMs), 'historyIntervalMs', 1);
+        return { metricKey, startTsMs: page.startTsMs, endTsMs: page.endTsMs, points: resolveHistoryPagePoints(page, pageIntervalMs), intervalMs: pageIntervalMs, aggregation };
     }
     const intervalMs = readRoundedIntegerAtLeastValue(context.monitoringIntervalMs, 'monitoringIntervalMs', 1);
-    const earliestTimestamp = context.metricsHistory[0]?.timestamp;
-    const earliestMs = isFiniteNumber(earliestTimestamp) ? Math.floor(earliestTimestamp) : null;
-    let endMs = Math.floor(beforeTimestamp ?? serverEpochMs());
-    if (!isNullOrUndefined(beforeTimestamp)) {
-        endMs -= intervalMs;
-    }
-    if (!isNullOrUndefined(earliestMs)) {
-        endMs = Math.min(endMs, earliestMs - intervalMs);
-    }
-    if (endMs <= 0) {
-        if (!isNullOrUndefined(beforeTimestamp)) {
-            context.metricsHistoryExhausted = true;
-            return true;
-        }
-        return false;
-    }
+    const endMs = Math.floor(serverEpochMs());
     const baseRangeMs = Math.max(intervalMs, Math.round(context.timeRange * 60_000));
-    const desiredWindowMs = Math.max(baseRangeMs, Math.min(baseRangeMs * 4, intervalMs * Math.max(4, Math.min(context.pointBudget, 2000))));
-    const startMs = Math.max(0, endMs - desiredWindowMs);
-    const resolvedIntervalMs = resolveHistoryIntervalMs({
+    const startMs = Math.max(0, endMs - Math.max(baseRangeMs, Math.min(baseRangeMs * 4, intervalMs * Math.max(4, Math.min(context.pointBudget, 2000)))));
+    if (endMs <= 0 || startMs >= endMs) {
+        return null;
+    }
+    return {
+        metricKey,
         startTsMs: startMs,
         endTsMs: endMs,
-        requestedIntervalMs: intervalMs,
-        pointBudget: context.pointBudget,
-        supportedIntervalsMs: context.supportedHistoryIntervalsMs
-    });
-    if (startMs >= endMs) {
-        if (!isNullOrUndefined(beforeTimestamp)) {
-            context.metricsHistoryExhausted = true;
-            return true;
-        }
-        return false;
-    }
-    const cacheKey = beforeTimestamp ? `${metricKey}:${startMs}:${endMs}:${resolvedIntervalMs}:${context.pointBudget}` : null;
-    if (cacheKey) {
-        const state = context.valueHistoryRequestState.get(cacheKey);
-        if (state === 'pending' || state === 'done') {
-            return false;
-        }
-        context.valueHistoryRequestState.set(cacheKey, 'pending');
-    }
-    const token = (context.getRequestToken() ?? 0) + 1;
-    context.setRequestToken(token);
-
-    let response: JsonObject | undefined;
-    try {
-        const aggregation = context.getMetricHistoryAggregation();
-        const aggregations = isArray(catalogEntry.aggregations) ? catalogEntry.aggregations : [];
-        if (!aggregations.includes(aggregation)) {
-            throw new Error(`metricsCatalog entry for ${metricKey} does not support ${aggregation}`);
-        }
-        response = await requestWebSocketSnapshotRecord(
-            'system.metrics.history',
-            serializeSystemMetricsHistoryRequest({
-                metricKey: metricKey,
-                startTsMs: startMs,
-                endTsMs: endMs,
-                points: context.pointBudget,
-                intervalMs: resolvedIntervalMs,
-                aggregation
-            })
-        );
-    } catch (error) {
-        if (cacheKey) {
-            context.valueHistoryRequestState.delete(cacheKey);
-        }
-        if (context.getRequestToken() === token) {
-            context.setRequestToken(null);
-        }
-        throw error;
-    }
-    if (context.getRequestToken() !== token) {
-        if (cacheKey) {
-            context.valueHistoryRequestState.delete(cacheKey);
-        }
-        return false;
-    }
-    context.setRequestToken(null);
-    const mode = isNullOrUndefined(beforeTimestamp) ? 'refresh' : 'prepend';
-    const result = applyValueHistory(context, response, { mode });
-    if (cacheKey) {
-        context.valueHistoryRequestState.set(cacheKey, 'done');
-    }
-    if (!isNullOrUndefined(beforeTimestamp) && result.added === 0) {
-        context.metricsHistoryExhausted = true;
-    }
-    if (result.added > 0) {
-        if (mode === 'prepend' && result.prepended.length && !context.isCandlestickActive()) {
-            context.updateMainChart({ prepended: result.prepended });
-        } else {
-            context.updateMainChart({ resetView: mode === 'refresh' && resetView });
-        }
-    }
-    return true;
+        points: context.pointBudget,
+        intervalMs: resolveHistoryIntervalMs({ startTsMs: startMs, endTsMs: endMs, requestedIntervalMs: intervalMs, pointBudget: context.pointBudget, supportedIntervalsMs: context.supportedHistoryIntervalsMs }),
+        aggregation
+    };
 };
 
-export { applyValueHistory, fetchValueHistory, integrateValueHistoryPoints, parseValueHistoryResponse };
+export { applyValueHistory, resolveValueHistoryRequest };
 export type { ValueHistoryContext };
