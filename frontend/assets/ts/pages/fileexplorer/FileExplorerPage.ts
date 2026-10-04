@@ -19,7 +19,7 @@ import { normalizeSearchDisplayQuery } from '@core/search/searchQuery.ts';
 import { measureScrollEdges } from '@core/dom/scrollGeometry.ts';
 import { InlineTextEditController } from '@core/ui/inlineedit/controller.ts';
 import { FILE_EXPLORER_METADATA_MODAL_ID } from '@features/fileexplorer/public.ts';
-import { FILE_EXPLORER_ACTION_CLEAR_HIGHLIGHT, FILE_EXPLORER_ACTION_NAVIGATE_HOME, FILE_EXPLORER_ACTION_NAVIGATE_NEXT, FILE_EXPLORER_ACTION_NAVIGATE_PATH, FILE_EXPLORER_ACTION_NAVIGATE_PREVIOUS, FILE_EXPLORER_ACTION_NAVIGATE_UP, FILE_EXPLORER_ACTION_PATH_EDIT_SAVE, FILE_EXPLORER_ACTION_PATH_EDIT_START, isFileExplorerChangeActionId, isFileExplorerClickActionId, isFileexplorerActionId } from '@pages/fileexplorer/actions.ts';
+import { FILE_EXPLORER_ACTION_CLEAR_HIGHLIGHT, FILE_EXPLORER_ACTION_NAVIGATE_HOME, FILE_EXPLORER_ACTION_NAVIGATE_NEXT, FILE_EXPLORER_ACTION_NAVIGATE_PATH, FILE_EXPLORER_ACTION_NAVIGATE_PREVIOUS, FILE_EXPLORER_ACTION_NAVIGATE_UP, FILE_EXPLORER_ACTION_OPEN_FOLDER_SETTINGS, FILE_EXPLORER_ACTION_PATH_EDIT_SAVE, FILE_EXPLORER_ACTION_PATH_EDIT_START, isFileExplorerChangeActionId, isFileExplorerClickActionId, isFileexplorerActionId } from '@pages/fileexplorer/actions.ts';
 import { createFileExplorerPageRuntime } from '@pages/fileexplorer/controllers/page/runtime.ts';
 import { awaitDirectoryListingTask } from '@pages/fileexplorer/controllers/page/DirectoryListingTaskSession.ts';
 import { renderFileExplorerPageView } from '@pages/fileexplorer/view.ts';
@@ -229,6 +229,10 @@ class FileExplorerPage extends StaticBasePage {
         }
         if (action === FILE_EXPLORER_ACTION_NAVIGATE_PATH) {
             terminateHandledPromise(runtime.navigatePath(this.#requireBreadcrumbPath(actionElement)));
+            return;
+        }
+        if (action === FILE_EXPLORER_ACTION_OPEN_FOLDER_SETTINGS) {
+            this.dependencies.router.navigateWithQuery('settings', { tab: 'users' });
             return;
         }
         if (action === FILE_EXPLORER_ACTION_PATH_EDIT_START) {

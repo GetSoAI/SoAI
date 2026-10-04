@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "Map wijzigen",
                 "createFile": "Bestand maken",
                 "createFolder": "Map maken",
                 "editPath": "Huidig pad bewerken",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "Schakel het endpoint Images in om dit te kunnen in-/uitschakelen.",
                         "requiresResponses": "Schakel het endpoint Responses in om dit te kunnen in-/uitschakelen.",
                         "requiresVision": "Schakel de modaliteit Vision in om dit te kunnen in-/uitschakelen.",
-                        "text": "Tekst kan niet worden uitgeschakeld."
+                        "text": "Tekst kan niet worden uitgeschakeld.",
+                        "unsupported": "Dit model ondersteunt deze mogelijkheid niet."
                     },
                     "manifestLoading": "Taxonomie van mogelijkheden laden...",
                     "none": "Geen OpenAI-mogelijkheden beschikbaar voor dit model.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "Download geannuleerd",
                 "downloadFailed": "Downloaden van model mislukt",
                 "downloadSuccess": "Model gedownload",
-                "enterApiKey": "Voer een API-sleutel in",
                 "enterApiUrl": "Voer een API-URL in",
                 "enterModelId": "Voer een model-ID in",
                 "enterProviderName": "Voer een providernaam in",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Beheerdersaccount aangemaakt.",
                 "accountCreatedSignInRequired": "Beheerdersaccount aangemaakt. Meld je aan om door te gaan."
             },
             "progress": {

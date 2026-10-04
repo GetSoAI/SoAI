@@ -14,6 +14,7 @@ type ResolvedTheme = 'light' | 'dark';
 
 const THEME_STORAGE_KEY = 'soai.ui.theme';
 const DEFAULT_THEME: ResolvedTheme = 'dark';
+const DEFAULT_THEME_PREFERENCE: ThemePreference = 'auto';
 let themePreferenceFallbackWarned = false;
 let animationSpeedFallbackWarned = false;
 
@@ -69,7 +70,7 @@ const getStoredPreference = (): ThemePreference => {
     try {
         const stored = readStorageText('localStorage', THEME_STORAGE_KEY);
         if (stored === null) {
-            return DEFAULT_THEME;
+            return DEFAULT_THEME_PREFERENCE;
         }
         const normalized = normalizeStoredPreference(stored);
         if (isString(normalized)) {
@@ -81,9 +82,9 @@ const getStoredPreference = (): ThemePreference => {
     } catch (error) {
         ensureError(error);
         warnThemePreferenceFallbackOnce('storage read failed');
-        return DEFAULT_THEME;
+        return DEFAULT_THEME_PREFERENCE;
     }
-    return DEFAULT_THEME;
+    return DEFAULT_THEME_PREFERENCE;
 };
 
 const getStoredAnimationSpeed = (): AnimationSpeed => {

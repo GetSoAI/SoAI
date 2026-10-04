@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "Đổi thư mục",
                 "createFile": "Tạo tệp",
                 "createFolder": "Tạo thư mục",
                 "editPath": "Chỉnh sửa đường dẫn hiện tại",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "Bật endpoint Images để có thể thay đổi mục này.",
                         "requiresResponses": "Bật endpoint Responses để có thể thay đổi mục này.",
                         "requiresVision": "Bật phương thức Vision để có thể thay đổi mục này.",
-                        "text": "Không thể tắt Text."
+                        "text": "Không thể tắt Text.",
+                        "unsupported": "Mô hình này không hỗ trợ khả năng này."
                     },
                     "manifestLoading": "Đang tải phân loại khả năng...",
                     "none": "Không có khả năng OpenAI nào khả dụng cho mô hình này.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "Đã hủy tải xuống",
                 "downloadFailed": "Không thể tải mô hình xuống",
                 "downloadSuccess": "Đã tải mô hình xuống thành công",
-                "enterApiKey": "Vui lòng nhập API key",
                 "enterApiUrl": "Vui lòng nhập API URL",
                 "enterModelId": "Vui lòng nhập ID mô hình",
                 "enterProviderName": "Vui lòng nhập tên nhà cung cấp",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Đã tạo tài khoản quản trị viên thành công.",
                 "accountCreatedSignInRequired": "Đã tạo tài khoản quản trị viên. Hãy đăng nhập để tiếp tục."
             },
             "progress": {

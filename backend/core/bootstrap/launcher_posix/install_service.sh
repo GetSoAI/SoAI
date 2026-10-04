@@ -12,17 +12,6 @@ soai_install__systemd_is_supported() {
     command -v systemctl >/dev/null 2>&1
 }
 
-soai_install__elevate_prefix() {
-    if [ "${EUID:-$(id -u)}" -eq 0 ]; then
-        return 0
-    fi
-    if command -v sudo >/dev/null 2>&1; then
-        printf "sudo"
-        return 0
-    fi
-    return 1
-}
-
 soai_install__write_systemd_unit() {
     local target="$1"
     local launcher_path="${target}/${SOAI_EXPLICIT_LAUNCHER_RELATIVE_PATH}"
@@ -68,41 +57,38 @@ soai_install__install_systemd_service() {
     if ! soai_install__systemd_is_supported; then
         soai_managed_runtime__die "--fast requires systemd on Linux so SoAI can auto-start and be verified." || return 1
     fi
-    local elevate=""
-    elevate="$(soai_install__elevate_prefix || true)"
-    if [ -z "$elevate" ] && [ "${EUID:-$(id -u)}" -ne 0 ]; then
-        soai_managed_runtime__die "systemd detected but sudo is unavailable. Re-run --fast as root." || return 1
+    local -a elevate=()
+    if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+        if ! soai_launcher__select_root_elevation systemctl daemon-reload; then
+            soai_managed_runtime__die "systemd detected but neither sudo nor su can provide root privileges. Re-run --fast as root." || return 1
+        fi
+        elevate=(soai_launcher__run_as_root default-environment)
     fi
     local unit_path="/etc/systemd/system/soai.service"
     soai_launcher__info "Installing systemd service: ${unit_path}"
-    if [ -z "$elevate" ]; then
+    if [ "${#elevate[@]}" -eq 0 ]; then
         soai_install__write_systemd_unit "$target" > "$unit_path" || return 1
-        systemctl daemon-reload || {
-            soai_managed_runtime__die "systemctl daemon-reload failed after writing ${unit_path}." || return 1
-        }
-        if [ "${SOAI_INSTALL_DEFER_SERVICE_START:-0}" = "1" ]; then
-            systemctl enable soai.service || {
-                soai_managed_runtime__die "Failed to enable soai.service via systemctl." || return 1
-            }
-        else
-            systemctl enable --now soai.service || {
-                soai_managed_runtime__die "Failed to enable/start soai.service via systemctl." || return 1
-            }
-        fi
     else
-        soai_install__write_systemd_unit "$target" | "$elevate" tee "$unit_path" >/dev/null || return 1
-        "$elevate" systemctl daemon-reload || {
-            soai_managed_runtime__die "systemctl daemon-reload failed after writing ${unit_path}." || return 1
-        }
-        if [ "${SOAI_INSTALL_DEFER_SERVICE_START:-0}" = "1" ]; then
-            "$elevate" systemctl enable soai.service || {
-                soai_managed_runtime__die "Failed to enable soai.service via systemctl." || return 1
-            }
-        else
-            "$elevate" systemctl enable --now soai.service || {
-                soai_managed_runtime__die "Failed to enable/start soai.service via systemctl." || return 1
-            }
+        local unit_staging_path=""
+        unit_staging_path="$(mktemp)" || return 1
+        if ! soai_install__write_systemd_unit "$target" > "$unit_staging_path" \
+            || ! "${elevate[@]}" install -m 0644 "$unit_staging_path" "$unit_path"; then
+            rm -f -- "$unit_staging_path"
+            soai_managed_runtime__die "Failed to write ${unit_path}." || return 1
         fi
+        rm -f -- "$unit_staging_path"
+    fi
+    soai_install__run_noisy_command "${elevate[@]}" systemctl daemon-reload || {
+        soai_managed_runtime__die "systemctl daemon-reload failed after writing ${unit_path}." || return 1
+    }
+    if [ "${SOAI_INSTALL_DEFER_SERVICE_START:-0}" = "1" ]; then
+        soai_install__run_noisy_command "${elevate[@]}" systemctl enable soai.service || {
+            soai_managed_runtime__die "Failed to enable soai.service via systemctl." || return 1
+        }
+    else
+        soai_install__run_noisy_command "${elevate[@]}" systemctl enable --now soai.service || {
+            soai_managed_runtime__die "Failed to enable/start soai.service via systemctl." || return 1
+        }
     fi
 }
 
@@ -169,24 +155,24 @@ soai_install__install_launchd_service() {
     local plist_path="/Library/LaunchDaemons/com.getsoai.soai.plist"
     local temporary_path="${plist_path}.$$"
     soai_launcher__info "Installing launchd service: ${plist_path}"
-    "$command_prefix" mkdir -p "${target}/data/logs" || return 1
-    soai_install__write_launchd_plist "$target" | "$command_prefix" tee "$temporary_path" >/dev/null || {
+    soai_install__run_noisy_command "$command_prefix" mkdir -p "${target}/data/logs" || return 1
+    soai_install__write_launchd_plist "$target" | soai_install__run_noisy_command "$command_prefix" tee "$temporary_path" || {
         "$command_prefix" rm -f "$temporary_path"
         return 1
     }
-    "$command_prefix" plutil -lint "$temporary_path" >/dev/null || {
+    soai_install__run_noisy_command "$command_prefix" plutil -lint "$temporary_path" >/dev/null || {
         "$command_prefix" rm -f "$temporary_path"
         return 1
     }
-    "$command_prefix" chown root:wheel "$temporary_path" || {
+    soai_install__run_noisy_command "$command_prefix" chown root:wheel "$temporary_path" || {
         "$command_prefix" rm -f "$temporary_path"
         return 1
     }
-    "$command_prefix" chmod 0644 "$temporary_path" || {
+    soai_install__run_noisy_command "$command_prefix" chmod 0644 "$temporary_path" || {
         "$command_prefix" rm -f "$temporary_path"
         return 1
     }
-    "$command_prefix" mv -f "$temporary_path" "$plist_path" || {
+    soai_install__run_noisy_command "$command_prefix" mv -f "$temporary_path" "$plist_path" || {
         "$command_prefix" rm -f "$temporary_path"
         return 1
     }
@@ -194,10 +180,10 @@ soai_install__install_launchd_service() {
         return 0
     fi
     if "$command_prefix" launchctl print system/com.getsoai.soai >/dev/null 2>&1; then
-        "$command_prefix" launchctl bootout system/com.getsoai.soai || return 1
+        soai_install__run_noisy_command "$command_prefix" launchctl bootout system/com.getsoai.soai || return 1
     fi
-    "$command_prefix" launchctl bootstrap system "$plist_path" || return 1
-    "$command_prefix" launchctl kickstart -k system/com.getsoai.soai || return 1
+    soai_install__run_noisy_command "$command_prefix" launchctl bootstrap system "$plist_path" || return 1
+    soai_install__run_noisy_command "$command_prefix" launchctl kickstart -k system/com.getsoai.soai || return 1
 }
 
 soai_install__install_system_service() {
@@ -300,6 +286,10 @@ soai_install__post_install_fast() {
         base_url="$(soai_install__runtime_base_url "$target")" || {
             soai_managed_runtime__die "SoAI service is healthy but its authoritative runtime endpoint is unavailable." || return 1
         }
-        soai_launcher__info "SoAI is installed and running. Open: ${base_url}"
+        if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+            soai_install_ui__message information "Open SoAI: ${base_url}"
+        else
+            soai_launcher__info "SoAI is installed and running. Open: ${base_url}"
+        fi
     fi
 }

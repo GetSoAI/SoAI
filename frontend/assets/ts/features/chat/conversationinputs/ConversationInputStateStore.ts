@@ -37,6 +37,10 @@ class ConversationInputStateStore {
         return stored ? stored.filter((input) => input.inputId !== headInputId && !input.isRegeneration) : [];
     }
 
+    hasActiveInputs(conversationId: string): boolean {
+        return (this.#activeInputIdsByConversationId.get(normalizeConversationId(conversationId))?.size ?? 0) > 0;
+    }
+
     upsertAdmittedInput(conversationId: string, input: ConversationInput, isDispatchableHead: boolean): void {
         const normalizedConversationId = normalizeConversationId(conversationId);
         const normalizedInputId = input.inputId.trim();

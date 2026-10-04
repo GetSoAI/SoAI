@@ -3,6 +3,7 @@
 
 import { i18n } from '@core/i18n/index.ts';
 import { ResourceTracker } from '@core/resourcetracker/service.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import type { WebSocketEventBatchSubscribe } from '@core/realtime/websocketBatchSubscription.ts';
 import type { JsonObject } from '@core/types/jsonValues.ts';
 import { normalizeTokenCounterId, shouldRequestTokenCountForConversationEvent } from '@pages/chat/widgets/tokencounter/guards.ts';
@@ -67,7 +68,7 @@ class ChatTokenCounterController {
     }
 
     #requestIfEnabledAndActive(reason: string): void {
-        if (this.#host.isPageTerminating() || !this.#host.isTokenCounterInputActionEnabled() || !this.#sessionState.isActive) {
+        if (this.#host.isPageTerminating() || !this.#host.isTokenCounterInputActionEnabled() || !this.#sessionState.isActive || this.#usageTracker.isStreamActive) {
             return;
         }
         this.#requestDebounce(reason);
@@ -79,6 +80,10 @@ class ChatTokenCounterController {
         }
         this.#initialized = true;
         try {
+            this.handleConversationChanged(this.#host.getCurrentConversationId());
+            this.handleModelChanged(this.#host.getCurrentModel());
+            this.noteDraftChanged(this.#host.getDraftText());
+            this.syncEnabledState();
             this.#subscriptions.track(this.#host.subscribeDraftAttachmentChanges(() => this.noteDraftAttachmentsChanged()));
             this.#subscriptions.track(
                 subscribeTokenCounterEvents({
@@ -92,16 +97,16 @@ class ChatTokenCounterController {
                     }
                 })
             );
+            this.#streamController.initialize();
         } catch (subscriptionError) {
+            const normalizedError = ensureError(subscriptionError);
             this.#subscriptions.cleanup();
+            this.#streamController.dispose();
+            this.#requestDebounce.cancel();
+            this.#requestCoordinator.resetActiveRequestId();
             this.#initialized = false;
-            throw subscriptionError;
+            throw normalizedError;
         }
-        this.#streamController.initialize();
-        this.handleConversationChanged(this.#host.getCurrentConversationId());
-        this.handleModelChanged(this.#host.getCurrentModel());
-        this.noteDraftChanged(this.#host.getDraftText());
-        this.syncEnabledState();
     }
 
     dispose(): void {
@@ -113,12 +118,15 @@ class ChatTokenCounterController {
         this.#sessionState.reset();
     }
 
-    #resetTokenCounterState(options: { resetActiveRequestId?: boolean; resetNotificationSuppression?: boolean; resetPendingPersistence?: boolean; clearUsage?: boolean } = {}): void {
+    #resetTokenCounterState(options: { resetActiveRequestId?: boolean; resetNotificationSuppression?: boolean; resetPendingPersistence?: boolean; clearUsage?: boolean; preserveActiveStream?: boolean } = {}): void {
         if (options.resetActiveRequestId !== false) {
             this.#requestCoordinator.resetActiveRequestId();
         }
-        this.#streamController.reset();
-        if (options.clearUsage === true) {
+        const preserveActiveStream = options.preserveActiveStream === true && this.#usageTracker.isStreamActive;
+        if (!preserveActiveStream) {
+            this.#streamController.reset();
+        }
+        if (options.clearUsage === true && !preserveActiveStream) {
             this.#usageTracker.clearUsage();
         }
         this.#sessionState.reset(options);
@@ -135,7 +143,8 @@ class ChatTokenCounterController {
             this.#requestDebounce.cancel();
             this.#resetTokenCounterState({ clearUsage: true });
         } else if (requestReason !== null) {
-            this.#requestDebounce(requestReason);
+            this.#streamController.replayActiveStream();
+            this.#requestIfEnabledAndActive(requestReason);
         }
         this.#render('syncEnabledState');
     }
@@ -160,6 +169,7 @@ class ChatTokenCounterController {
             return;
         }
         this.#resetTokenCounterState({ clearUsage: true });
+        this.#streamController.replayActiveStream();
         this.#requestIfEnabledAndActive('conversationChanged');
     }
 
@@ -175,7 +185,7 @@ class ChatTokenCounterController {
         if (!this.#sessionState.handleModelChanged(modelId)) {
             return;
         }
-        this.#resetTokenCounterState({ resetNotificationSuppression: false, clearUsage: true });
+        this.#resetTokenCounterState({ resetNotificationSuppression: false, clearUsage: true, preserveActiveStream: true });
         this.#requestIfEnabledAndActive('modelChanged');
     }
 
@@ -183,17 +193,17 @@ class ChatTokenCounterController {
         if (!this.#sessionState.noteDraftChanged(value)) {
             return;
         }
-        this.#resetTokenCounterState({ resetNotificationSuppression: false });
+        this.#resetTokenCounterState({ resetNotificationSuppression: false, preserveActiveStream: true });
         this.#requestIfEnabledAndActive('draftChanged');
     }
 
     noteDraftAttachmentsChanged(): void {
-        this.#resetTokenCounterState({ resetNotificationSuppression: false });
+        this.#resetTokenCounterState({ resetNotificationSuppression: false, preserveActiveStream: true });
         this.#requestIfEnabledAndActive('draftAttachmentsChanged');
     }
 
     noteRequestParametersChanged(): void {
-        this.#resetTokenCounterState({ resetNotificationSuppression: false });
+        this.#resetTokenCounterState({ resetNotificationSuppression: false, preserveActiveStream: true });
         this.#requestIfEnabledAndActive('parametersChanged');
     }
 
@@ -227,7 +237,7 @@ class ChatTokenCounterController {
     }
 
     #requestTokenCount(_reason: string): void {
-        if (this.#host.isPageTerminating() || !this.#host.isTokenCounterInputActionEnabled() || !this.#sessionState.isActive) {
+        if (this.#host.isPageTerminating() || !this.#host.isTokenCounterInputActionEnabled() || !this.#sessionState.isActive || this.#usageTracker.isStreamActive) {
             return;
         }
         const conversationId = this.#sessionState.activeConversationId;

@@ -12,9 +12,18 @@ const projectRetryableRegeneration = (receipt: ConversationRegenerationReceipt):
     previewContractFeedback: receipt.previewContractFeedback
 });
 
+interface RegenerationObservation {
+    inputId: string;
+    revision: number;
+    terminal: boolean;
+    retryable: boolean;
+}
+
+const revisesSameRevisionObservation = (latest: RegenerationObservation, receipt: ConversationRegenerationReceipt, terminal: boolean): boolean => latest.inputId === receipt.inputId && (!latest.terminal || (terminal && latest.retryable !== receipt.isRetryable));
+
 class ConversationRegenerationRetryStore {
     readonly #receiptByConversationId = new Map<string, ConversationRegenerationReceipt>();
-    readonly #latestObservationByConversationId = new Map<string, { inputId: string; revision: number; terminal: boolean }>();
+    readonly #latestObservationByConversationId = new Map<string, RegenerationObservation>();
 
     reset(): void {
         this.#receiptByConversationId.clear();
@@ -45,14 +54,21 @@ class ConversationRegenerationRetryStore {
         const terminal = receipt.state === 'completed' || receipt.state === 'failed' || receipt.state === 'cancelled' || receipt.state === 'effect_unknown';
         const latest = this.#latestObservationByConversationId.get(normalizedConversationId);
         if (latest && receipt.lastModifiedAtMs < latest.revision) return false;
-        if (latest && receipt.lastModifiedAtMs === latest.revision && (latest.inputId !== receipt.inputId || latest.terminal)) return false;
-        this.#latestObservationByConversationId.set(normalizedConversationId, { inputId: receipt.inputId, revision: receipt.lastModifiedAtMs, terminal });
-        if ((receipt.state === 'failed' || receipt.state === 'cancelled') && !receipt.hasAssistantReplacement) {
+        if (latest && receipt.lastModifiedAtMs === latest.revision && !revisesSameRevisionObservation(latest, receipt, terminal)) return false;
+        this.#latestObservationByConversationId.set(normalizedConversationId, { inputId: receipt.inputId, revision: receipt.lastModifiedAtMs, terminal, retryable: receipt.isRetryable });
+        if (receipt.isRetryable) {
             this.#receiptByConversationId.set(normalizedConversationId, receipt);
             return true;
         }
         this.#receiptByConversationId.delete(normalizedConversationId);
         return true;
+    }
+
+    withdraw(conversationId: string): void {
+        const normalizedConversationId = normalizeConversationId(conversationId);
+        const latest = this.#latestObservationByConversationId.get(normalizedConversationId);
+        if (latest) this.#latestObservationByConversationId.set(normalizedConversationId, { ...latest, retryable: false });
+        this.#receiptByConversationId.delete(normalizedConversationId);
     }
 
     clearIfMatches(conversationId: string, inputId: string): void {

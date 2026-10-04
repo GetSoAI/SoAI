@@ -4,19 +4,18 @@
 import { dom } from '@core/dom/dom.ts';
 import { i18n } from '@core/i18n/index.ts';
 import { createModalElement } from '@core/modals/scaffoldDom.ts';
-import { renderModalBody, renderSplitModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
+import { renderModalBody, renderModalFooter, renderStandardModalHeader } from '@core/modals/scaffold.ts';
 import type { ModalDefinition } from '@core/modals/modalPresenter.ts';
 import type { ModalOpenOptions } from '@core/modals/types.ts';
 import { modalUiId, modalUiSelector } from '@core/modals/uiIds.ts';
-import { uiAttr, uiHtml } from '@core/security/uiHtml.ts';
+import { EMPTY_UI_HTML, uiAttr, uiHtml } from '@core/security/uiHtml.ts';
 
 const FOLDER_PICKER_MODAL_ID = 'folder-picker-modal';
 
 type FolderPickerModalElements = {
     titleElement: HTMLElement;
     bodySlot: HTMLElement;
-    footerLeftSlot: HTMLElement;
-    footerRightSlot: HTMLElement;
+    footerSlot: HTMLElement;
     currentPathElement: HTMLInputElement;
     rootSelect: HTMLSelectElement | null;
     statusElement: HTMLElement;
@@ -33,8 +32,7 @@ type FolderPickerModalElements = {
 type FolderPickerModalScaffoldElements = Readonly<{
     titleElement: HTMLElement;
     bodySlot: HTMLElement;
-    footerLeftSlot: HTMLElement;
-    footerRightSlot: HTMLElement;
+    footerSlot: HTMLElement;
 }>;
 
 const folderPickerModalDefinition: ModalDefinition = {
@@ -45,10 +43,7 @@ const folderPickerModalDefinition: ModalDefinition = {
         const modalId = FOLDER_PICKER_MODAL_ID;
         const header = renderStandardModalHeader({ modalId, title: '', description: i18n.t('common.modalDescriptions.folderPicker'), titleId: modalUiId(modalId, 'title'), closeLabel: i18n.t('common.close') });
         const body = renderModalBody(uiHtml`<div id="${uiAttr(modalUiId(modalId, 'body-slot'))}"></div>`);
-        const footer = renderSplitModalFooter({
-            left: uiHtml`<div id="${uiAttr(modalUiId(modalId, 'footer-left-slot'))}"></div>`,
-            right: uiHtml`<div id="${uiAttr(modalUiId(modalId, 'footer-right-slot'))}"></div>`
-        });
+        const footer = renderModalFooter(EMPTY_UI_HTML, { layout: 'split', attributes: { id: modalUiId(modalId, 'footer-slot') } });
         return createModalElement({
             id: modalId,
             contentClassName: modalId,
@@ -63,19 +58,18 @@ const resolveFolderPickerModalScaffoldElements = (modal: HTMLElement): FolderPic
     const modalId = FOLDER_PICKER_MODAL_ID;
     const titleElement = dom.resolve(modalUiSelector(modalId, 'title'), modal);
     const bodySlot = dom.resolve(modalUiSelector(modalId, 'body-slot'), modal);
-    const footerLeftSlot = dom.resolve(modalUiSelector(modalId, 'footer-left-slot'), modal);
-    const footerRightSlot = dom.resolve(modalUiSelector(modalId, 'footer-right-slot'), modal);
+    const footerSlot = dom.resolve(modalUiSelector(modalId, 'footer-slot'), modal);
 
-    if (!(titleElement instanceof HTMLElement) || !(bodySlot instanceof HTMLElement) || !(footerLeftSlot instanceof HTMLElement) || !(footerRightSlot instanceof HTMLElement)) {
+    if (!(titleElement instanceof HTMLElement) || !(bodySlot instanceof HTMLElement) || !(footerSlot instanceof HTMLElement)) {
         throw new Error('Folder picker modal failed to initialize required scaffold elements');
     }
 
-    return Object.freeze({ titleElement, bodySlot, footerLeftSlot, footerRightSlot });
+    return Object.freeze({ titleElement, bodySlot, footerSlot });
 };
 
 const resolveFolderPickerModalElements = (modal: HTMLElement, requireResetButton: boolean, requireRootSelect: boolean): FolderPickerModalElements => {
     const modalId = FOLDER_PICKER_MODAL_ID;
-    const { titleElement, bodySlot, footerLeftSlot, footerRightSlot } = resolveFolderPickerModalScaffoldElements(modal);
+    const { titleElement, bodySlot, footerSlot } = resolveFolderPickerModalScaffoldElements(modal);
     const currentPathElement = dom.resolve(modalUiSelector(modalId, 'current'), modal);
     const rootSelectCandidate = dom.resolve(modalUiSelector(modalId, 'root'), modal);
     const rootSelect = rootSelectCandidate instanceof HTMLSelectElement ? rootSelectCandidate : null;
@@ -90,15 +84,14 @@ const resolveFolderPickerModalElements = (modal: HTMLElement, requireResetButton
     const resetButtonCandidate = dom.resolve(modalUiSelector(modalId, 'reset'), modal);
     const resetButton = resetButtonCandidate instanceof HTMLButtonElement ? resetButtonCandidate : null;
 
-    if (!(titleElement instanceof HTMLElement) || !(bodySlot instanceof HTMLElement) || !(footerLeftSlot instanceof HTMLElement) || !(footerRightSlot instanceof HTMLElement) || !(currentPathElement instanceof HTMLInputElement) || !(statusElement instanceof HTMLElement) || !(tableElement instanceof HTMLTableElement) || !(rowsElement instanceof HTMLElement) || !(sortHeaderElement instanceof HTMLElement) || !(searchInput instanceof HTMLInputElement) || !(manualInput instanceof HTMLInputElement) || !(confirmButton instanceof HTMLButtonElement) || !(cancelButton instanceof HTMLButtonElement) || (requireResetButton && !resetButton) || (requireRootSelect && !rootSelect)) {
+    if (!(titleElement instanceof HTMLElement) || !(bodySlot instanceof HTMLElement) || !(footerSlot instanceof HTMLElement) || !(currentPathElement instanceof HTMLInputElement) || !(statusElement instanceof HTMLElement) || !(tableElement instanceof HTMLTableElement) || !(rowsElement instanceof HTMLElement) || !(sortHeaderElement instanceof HTMLElement) || !(searchInput instanceof HTMLInputElement) || !(manualInput instanceof HTMLInputElement) || !(confirmButton instanceof HTMLButtonElement) || !(cancelButton instanceof HTMLButtonElement) || (requireResetButton && !resetButton) || (requireRootSelect && !rootSelect)) {
         throw new Error('Folder picker modal failed to initialize required elements');
     }
 
     return {
         titleElement,
         bodySlot,
-        footerLeftSlot,
-        footerRightSlot,
+        footerSlot,
         currentPathElement,
         rootSelect,
         statusElement,

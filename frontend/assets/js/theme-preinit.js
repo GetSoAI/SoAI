@@ -9,6 +9,7 @@
     const INTERFACE_SCALE_STORAGE_KEY = 'soai.ui.interface_scale';
     const INTERFACE_SCALE_ATTRIBUTE = 'data-interface-scale';
     const DEFAULT_THEME = 'dark';
+    const DEFAULT_THEME_PREFERENCE = 'auto';
     const DEFAULT_ANIMATION_SPEED = 'normal';
     const DEFAULT_INTERFACE_SCALE_PERCENT = 100;
     const INTERFACE_SCALE_PERCENT_STEPS = [50, 75, 100, 125, 150];
@@ -96,12 +97,12 @@
     const readThemePreference = (scope) => {
         if (!scope) {
             preinitIssueReporter.report('no-window-scope');
-            return DEFAULT_THEME;
+            return DEFAULT_THEME_PREFERENCE;
         }
         const storage = safeGetLocalStorage(scope);
         if (!storage) {
             preinitIssueReporter.report('storage-unavailable');
-            return DEFAULT_THEME;
+            return DEFAULT_THEME_PREFERENCE;
         }
         try {
             const stored = storage.getItem(THEME_STORAGE_KEY);
@@ -111,9 +112,9 @@
             }
         } catch {
             preinitIssueReporter.report('storage-read-failed');
-            return DEFAULT_THEME;
+            return DEFAULT_THEME_PREFERENCE;
         }
-        return DEFAULT_THEME;
+        return DEFAULT_THEME_PREFERENCE;
     };
     const readAnimationSpeed = (scope) => {
         if (!scope) {

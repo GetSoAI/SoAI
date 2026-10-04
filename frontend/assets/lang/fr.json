@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "Changer de dossier",
                 "createFile": "Créer un fichier",
                 "createFolder": "Créer un dossier",
                 "editPath": "Modifier le chemin actuel",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "Activez l’endpoint Images pour pouvoir modifier ce paramètre.",
                         "requiresResponses": "Activez l’endpoint Responses pour pouvoir modifier ce paramètre.",
                         "requiresVision": "Activez la modalité Vision pour pouvoir modifier ce paramètre.",
-                        "text": "Le texte ne peut pas être désactivé."
+                        "text": "Le texte ne peut pas être désactivé.",
+                        "unsupported": "Ce modèle ne prend pas en charge cette capacité."
                     },
                     "manifestLoading": "Chargement de la taxonomie des capacités...",
                     "none": "Aucune capacité OpenAI disponible pour ce modèle.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "Téléchargement annulé",
                 "downloadFailed": "Échec du téléchargement du modèle",
                 "downloadSuccess": "Modèle téléchargé avec succès",
-                "enterApiKey": "Saisissez une clé API",
                 "enterApiUrl": "Saisissez une URL d’API",
                 "enterModelId": "Saisissez un ID de modèle",
                 "enterProviderName": "Saisissez un nom de fournisseur",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Compte administrateur créé avec succès.",
                 "accountCreatedSignInRequired": "Compte administrateur créé. Connectez-vous pour continuer."
             },
             "progress": {

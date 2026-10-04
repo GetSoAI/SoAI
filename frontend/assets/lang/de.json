@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "Ordner ändern",
                 "createFile": "Datei erstellen",
                 "createFolder": "Ordner erstellen",
                 "editPath": "Aktuellen Pfad bearbeiten",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "Aktivieren Sie den Images-Endpunkt, um diese Option umzuschalten.",
                         "requiresResponses": "Aktivieren Sie den Responses-Endpunkt, um diese Option umzuschalten.",
                         "requiresVision": "Aktivieren Sie die Vision-Modalität, um diese Option umzuschalten.",
-                        "text": "Text kann nicht deaktiviert werden."
+                        "text": "Text kann nicht deaktiviert werden.",
+                        "unsupported": "Dieses Modell unterstützt diese Fähigkeit nicht."
                     },
                     "manifestLoading": "Funktionstaxonomie wird geladen...",
                     "none": "Für dieses Modell sind keine OpenAI-Funktionen verfügbar.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "Download abgebrochen",
                 "downloadFailed": "Modell konnte nicht heruntergeladen werden",
                 "downloadSuccess": "Modell erfolgreich heruntergeladen",
-                "enterApiKey": "Geben Sie einen API-Schlüssel ein",
                 "enterApiUrl": "Geben Sie eine API-URL ein",
                 "enterModelId": "Geben Sie eine Modell-ID ein",
                 "enterProviderName": "Geben Sie einen Anbieternamen ein",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Administratorkonto erfolgreich erstellt.",
                 "accountCreatedSignInRequired": "Administratorkonto erstellt. Melden Sie sich an, um fortzufahren."
             },
             "progress": {

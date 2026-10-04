@@ -24,6 +24,7 @@ export interface WizardUi {
 
 export interface WizardAccountUi {
     form: HTMLFormElement;
+    errorRegion: HTMLElement;
     errorBox: HTMLElement;
 }
 

@@ -177,7 +177,7 @@ export const renderWizardStepView = (stepId: WizardStepId, context: WizardViewCo
         <label class="wizard-choice-card${selected === 'personal' ? ' is-selected' : ''}"><input type="radio" name="wizard-use" value="personal"${selected === 'personal' ? ' checked' : ''}><span class="wizard-choice-orb"></span><span><strong>${i18n.t('wizard.use.personal.title')}</strong><small>${i18n.t('wizard.use.personal.description')}</small></span></label>
         <label class="wizard-choice-card is-disabled${selected === 'organization_commercial' ? ' is-selected' : ''}" tabindex="0" aria-disabled="true" data-tooltip="${commercialUnavailableTooltip}"><input type="radio" name="wizard-use" value="organization_commercial"${selected === 'organization_commercial' ? ' checked' : ''} disabled><span class="wizard-choice-orb"></span><span><strong>${i18n.t('wizard.use.organization.title')}</strong><small>${i18n.t('wizard.use.organization.description')}</small></span></label>
         </div>
-        <div class="wizard-attestation-region${selected === 'personal' ? ' is-expanded' : ''}" aria-hidden="${selected === 'personal' ? 'false' : 'true'}"${selected === 'personal' ? '' : ' inert'}><div class="wizard-attestation-region-inner"><label class="wizard-attestation"><input id="wizard-personal-attestation" type="checkbox"${context.state.attestationConfirmed ? ' checked' : ''}${selected === 'personal' ? '' : ' disabled'}><span>${context.sanitizer.html(status?.personalAttestationText ?? '')}</span></label></div></div>
+        <div class="wizard-reveal-region wizard-attestation-region${selected === 'personal' ? ' is-expanded' : ''}" aria-hidden="${selected === 'personal' ? 'false' : 'true'}"${selected === 'personal' ? '' : ' inert'}><div class="wizard-reveal-region-inner"><label class="wizard-attestation"><input id="wizard-personal-attestation" type="checkbox"${context.state.attestationConfirmed ? ' checked' : ''}${selected === 'personal' ? '' : ' disabled'}><span>${context.sanitizer.html(status?.personalAttestationText ?? '')}</span></label></div></div>
         </div>
         <div class="wizard-error${context.state.inlineError ? '' : ' u-hidden'}" role="alert" data-wizard-licensing-error>${context.sanitizer.html(context.state.inlineError ?? '')}</div>
         </div>`;
@@ -208,7 +208,7 @@ export const renderWizardStepView = (stepId: WizardStepId, context: WizardViewCo
 	        <p>${i18n.t('wizard.userCreation.description')}</p>
 	        </div>
 		        <form id="admin-user-form" class="wizard-form">
-		        <div id="user-creation-error" class="wizard-error u-hidden" role="alert"></div>
+		        <div id="user-creation-error-region" class="wizard-reveal-region" aria-hidden="true"><div class="wizard-reveal-region-inner"><div id="user-creation-error" class="wizard-error" role="alert"></div></div></div>
 		        <div class="wizard-form-group">
 		        <label for="admin-username">${i18n.t('wizard.userCreation.username.label')}</label>
 		        <input dir="ltr" id="admin-username" name="username" type="text" class="wizard-form-input form-input" minlength="3" maxlength="50" pattern="[a-zA-Z0-9_.\\-]+" autocomplete="username" placeholder="${i18n.t('wizard.userCreation.username.placeholder')}" required>

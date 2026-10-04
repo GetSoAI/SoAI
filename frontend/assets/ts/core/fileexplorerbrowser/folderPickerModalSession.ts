@@ -38,15 +38,14 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
         onAlreadyOpen: 'replace',
         initialResult: null,
         initialize: ({ modal, signal, setResult, close }): { dispose: () => void } => {
-            const { titleElement, bodySlot, footerLeftSlot, footerRightSlot } = resolveFolderPickerModalScaffoldElements(modal);
+            const { titleElement, bodySlot, footerSlot } = resolveFolderPickerModalScaffoldElements(modal);
             titleElement.textContent = options.title;
             modal.setAttribute('aria-label', options.title);
 
             const emptySlotHtml = EMPTY_UI_HTML;
             const clearScaffoldSlots = (): void => {
                 dom.setHTML(bodySlot, emptySlotHtml, { escape: false });
-                dom.setHTML(footerLeftSlot, emptySlotHtml, { escape: false });
-                dom.setHTML(footerRightSlot, emptySlotHtml, { escape: false });
+                dom.setHTML(footerSlot, emptySlotHtml, { escape: false });
             };
 
             const markup = renderFolderPickerModalMarkup({
@@ -58,8 +57,7 @@ const runFolderPickerModalSession = async (dependencies: FolderPickerSessionDepe
             });
 
             dom.setHTML(bodySlot, markup.body, { escape: false });
-            dom.setHTML(footerLeftSlot, markup.footerLeft, { escape: false });
-            dom.setHTML(footerRightSlot, markup.footerRight, { escape: false });
+            dom.setHTML(footerSlot, markup.footer, { escape: false });
 
             let elements: FolderPickerModalElements;
             try {

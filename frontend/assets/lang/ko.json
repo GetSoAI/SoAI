@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "폴더 변경",
                 "createFile": "파일 만들기",
                 "createFolder": "폴더 만들기",
                 "editPath": "현재 경로 편집",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "이 항목을 전환하려면 Images 엔드포인트를 활성화하세요.",
                         "requiresResponses": "이 항목을 전환하려면 Responses 엔드포인트를 활성화하세요.",
                         "requiresVision": "이 항목을 전환하려면 비전 모달리티를 활성화하세요.",
-                        "text": "텍스트는 비활성화할 수 없습니다."
+                        "text": "텍스트는 비활성화할 수 없습니다.",
+                        "unsupported": "이 모델은 이 기능을 지원하지 않습니다."
                     },
                     "manifestLoading": "기능 분류 체계 불러오는 중...",
                     "none": "이 모델에서 사용할 수 있는 OpenAI 기능이 없습니다.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "다운로드가 취소되었습니다",
                 "downloadFailed": "모델을 다운로드하지 못했습니다",
                 "downloadSuccess": "모델을 다운로드했습니다",
-                "enterApiKey": "API 키를 입력하세요",
                 "enterApiUrl": "API URL을 입력하세요",
                 "enterModelId": "모델 ID를 입력하세요",
                 "enterProviderName": "공급자 이름을 입력하세요",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "관리자 계정이 성공적으로 생성되었습니다.",
                 "accountCreatedSignInRequired": "관리자 계정이 생성되었습니다. 계속하려면 로그인하세요."
             },
             "progress": {

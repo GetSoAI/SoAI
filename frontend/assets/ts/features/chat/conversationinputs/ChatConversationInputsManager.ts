@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { isNetworkError, isRequestTimeoutError } from '@core/apiError.ts';
+import { LatestRequestController } from '@core/concurrency/latestRequest.ts';
 import { isAbortError, raceWithAbortSignal, throwIfAborted } from '@core/errors/abort.ts';
 import { ensureError } from '@core/errors/coerce.ts';
 import { toTrimmedString } from '@core/normalize.ts';
@@ -30,6 +31,7 @@ class ChatConversationInputsManager {
     readonly #clientId = windowIdentity.current();
     readonly #settlements: ConversationInputSettlementReconciler;
     readonly #regenerationRetries = new ConversationRegenerationRetryStore();
+    readonly #latestRegenerationReads = new Map<string, LatestRequestController>();
     #unsubscribe: (() => void) | null = null;
     #initialized = false;
     #disposed = false;
@@ -62,6 +64,8 @@ class ChatConversationInputsManager {
         this.#unsubscribe?.();
         this.#unsubscribe = null;
         this.#settlements.dispose();
+        for (const latestRead of this.#latestRegenerationReads.values()) latestRead.invalidate();
+        this.#latestRegenerationReads.clear();
         this.#regenerationRetries.reset();
         this.#store.reset();
     }
@@ -71,7 +75,7 @@ class ChatConversationInputsManager {
     }
 
     getRetryableRegeneration(conversationId: string): RetryableConversationRegeneration | null {
-        return this.#regenerationRetries.get(conversationId);
+        return this.#store.hasActiveInputs(conversationId) ? null : this.#regenerationRetries.get(conversationId);
     }
 
     async retryRegeneration(conversationId: string, inputId: string, expectedLastModifiedAtMs: number): Promise<void> {
@@ -175,6 +179,7 @@ class ChatConversationInputsManager {
         );
         throwIfAborted(signal);
         this.#store.upsertAdmittedInput(normalizedConversationId, created, created.isDispatchableHead);
+        this.#withdrawRegenerationRetryWhileActive(normalizedConversationId);
         if (this.#dependencies.getCurrentConversationId() === normalizedConversationId) {
             this.#dependencies.updateInputQueuePreview();
         }
@@ -212,6 +217,7 @@ class ChatConversationInputsManager {
             store: this.#store,
             signal: this.#lifecycleController.signal
         });
+        this.#withdrawRegenerationRetryWhileActive(conversationId);
         await this.#settlements.reconcile(conversationId);
         return inputs;
     }
@@ -229,6 +235,7 @@ class ChatConversationInputsManager {
 
     #applyRegenerationReceipt(conversationId: string, receipt: ConversationRegenerationReceipt): void {
         if (this.#lifecycleController.signal.aborted || !this.#regenerationRetries.observe(conversationId, receipt)) return;
+        this.#withdrawRegenerationRetryWhileActive(conversationId);
         if (this.#dependencies.getCurrentConversationId() === conversationId) this.#dependencies.updateInputQueuePreview();
         if (receipt.state === 'pending' || receipt.state === 'materializing' || receipt.state === 'running' || receipt.state === 'input_required') {
             this.#store.upsertAdmittedInput(
@@ -255,11 +262,20 @@ class ChatConversationInputsManager {
         });
     }
 
+    #withdrawRegenerationRetryWhileActive(conversationId: string): void {
+        if (!this.#store.hasActiveInputs(conversationId)) return;
+        this.#latestRegenerationReads.get(conversationId)?.invalidate();
+        this.#regenerationRetries.withdraw(conversationId);
+    }
+
     #recoverLatestRegenerationNoncritical(conversationId: string): void {
         const regenerationApi = this.#dependencies.regenerationApi;
         if (!regenerationApi) return;
+        const latestRead = this.#latestRegenerationReads.get(conversationId) ?? new LatestRequestController();
+        this.#latestRegenerationReads.set(conversationId, latestRead);
         recoverLatestConversationRegeneration({
             conversationId,
+            latestRead,
             readStatus: (statusConversationId, signal) => regenerationApi.latestRegenerationStatus(statusConversationId, { signal }),
             applyReceipt: (statusConversationId, receipt) => this.#applyRegenerationReceipt(statusConversationId, receipt),
             signal: this.#lifecycleController.signal,

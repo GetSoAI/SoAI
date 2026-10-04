@@ -21,6 +21,10 @@ from core.bootstrap.install_deps_windows import (
     WindowsInstallDepsSession,
     begin_windows_install_deps,
 )
+from core.bootstrap.install_diagnostics import (
+    configure_install_cancellation,
+    read_install_diagnostics_context,
+)
 from core.bootstrap.install_windows import (
     default_windows_install_target,
     install_to_target,
@@ -157,7 +161,15 @@ def main(
             return 0 if launched else 1
 
         try:
-            bootstrap_if_needed(repo_root_path)
+            if not is_windows() and contains_install_deps_flag(sys.argv[1:]):
+                install_diagnostics = read_install_diagnostics_context()
+                if install_diagnostics is None:
+                    bootstrap_if_needed(repo_root_path)
+                else:
+                    configure_install_cancellation(install_diagnostics)
+                    bootstrap_if_needed(repo_root_path, diagnostics=install_diagnostics)
+            else:
+                bootstrap_if_needed(repo_root_path)
         except KeyboardInterrupt:
             if windows_install_deps_session is not None:
                 windows_install_deps_session.fail(

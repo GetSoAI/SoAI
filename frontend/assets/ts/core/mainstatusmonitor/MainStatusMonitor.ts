@@ -127,7 +127,7 @@ class MainStatusMonitor extends LifecycleModel {
     }
 
     #handleSnapshot(snapshot: StreamSnapshot | null, generation: number): void {
-        if (this.#isGenerationActive(generation)) this.#publishState(resolveMainSnapshotState(snapshot));
+        if (this.#isGenerationActive(generation)) this.#publishState(resolveMainSnapshotState(snapshot, this.currentState));
     }
 
     handleStatusUpdate(value: SystemStatusResource, generation: number = this.#generation): void {

@@ -9,6 +9,7 @@ import { hasTerminalThinkingActivityStatusRegression } from '@features/chat/assi
 import { preserveAssistantCollapsedOverrideRecords } from '@features/chat/assistanteventtimeline/collapsedOverrideRecords.ts';
 import type { AssistantEventTimelineItem, ChatMessage } from '@features/chat/ChatTypes.ts';
 import { resolveAssistantTimelineProgress } from '@features/chat/chatstreamservice/assistantStreamMessageState.ts';
+import { preserveChatStreamStatusPreview } from '@features/chat/chatstreamservice/streamStatusPreviewMessageState.ts';
 import type { ChatStreamSession } from '@features/chat/chatstreamservice/types.ts';
 import { requireAssistantMessageVariantIdentity } from '@features/chat/message/assistantMessageIdentity.ts';
 import { resolveDurableAssistantTerminalState } from '@features/chat/message/assistantTerminalState.ts';
@@ -69,6 +70,7 @@ const prepareAssistantSnapshot = (session: ChatStreamSession, incoming: ChatMess
     }
     const candidate: ChatMessage = { ...incoming };
     preserveAssistantCollapsedOverrideRecords(session.assistantMessage, candidate);
+    preserveChatStreamStatusPreview(session.assistantMessage, candidate, session.assistantRevision);
     const progress = resolveAssistantTimelineProgress(candidate);
     if (progress.assistantRevision < session.assistantRevision) return null;
     if (progress.assistantRevision === session.assistantRevision && !equalRevisionSnapshotCanReplace(session.assistantMessage, candidate)) return null;

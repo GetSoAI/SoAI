@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "Change folder",
                 "createFile": "Create file",
                 "createFolder": "Create folder",
                 "editPath": "Edit current path",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "Enable the Images endpoint to toggle this.",
                         "requiresResponses": "Enable the Responses endpoint to toggle this.",
                         "requiresVision": "Enable the Vision modality to toggle this.",
-                        "text": "Text cannot be disabled."
+                        "text": "Text cannot be disabled.",
+                        "unsupported": "This model does not support this capability."
                     },
                     "manifestLoading": "Loading capability taxonomy...",
                     "none": "No OpenAI capabilities available for this model.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "Download cancelled",
                 "downloadFailed": "Failed to download model",
                 "downloadSuccess": "Model downloaded successfully",
-                "enterApiKey": "Please enter an API key",
                 "enterApiUrl": "Please enter an API URL",
                 "enterModelId": "Please enter a model ID",
                 "enterProviderName": "Please enter a provider name",
@@ -8317,7 +8318,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Administrator account created successfully.",
                 "accountCreatedSignInRequired": "Administrator account created. Sign in to continue."
             },
             "progress": {

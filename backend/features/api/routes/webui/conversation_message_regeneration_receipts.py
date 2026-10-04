@@ -33,12 +33,14 @@ def serialize_conversation_regeneration_attempt(attempt: JSONDict) -> JSONDict:
     state = attempt.get("state")
     is_dispatchable_head = attempt.get("is_dispatchable_head")
     has_assistant_replacement = attempt.get("has_assistant_replacement")
+    is_retryable = attempt.get("is_retryable")
     regeneration_request = attempt.get("regeneration_request")
     text_fields_valid = all(
         isinstance(value, str) and bool(value.strip()) for value in (input_id, request_id)
     )
     boolean_fields_valid = all(
-        isinstance(value, bool) for value in (is_dispatchable_head, has_assistant_replacement)
+        isinstance(value, bool)
+        for value in (is_dispatchable_head, has_assistant_replacement, is_retryable)
     )
     if (
         not text_fields_valid
@@ -71,6 +73,7 @@ def serialize_conversation_regeneration_attempt(attempt: JSONDict) -> JSONDict:
         "state": state,
         "is_dispatchable_head": is_dispatchable_head,
         "has_assistant_replacement": has_assistant_replacement,
+        "is_retryable": is_retryable,
         "content_preview_feedback": content_preview_feedback,
         "preview_contract_feedback": preview_contract_feedback,
     }

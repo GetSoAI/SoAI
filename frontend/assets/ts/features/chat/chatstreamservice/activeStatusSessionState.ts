@@ -88,6 +88,9 @@ const applyStatusPreviewSnapshot = (status: ActiveChatStreamStatus, assistantMes
     if (status.previewGeneratedAtMs === null || status.previewCooldownMs === null || status.previewTrigger === null) {
         throw new Error('Active chat stream status preview is incomplete.');
     }
+    if ((assistantMessage.streamStatusPreviewGeneratedAtMs ?? -1) > status.previewGeneratedAtMs) {
+        return;
+    }
     applyChatStreamStatusPreview(assistantMessage, {
         text: previewText,
         generatedAtMs: status.previewGeneratedAtMs,

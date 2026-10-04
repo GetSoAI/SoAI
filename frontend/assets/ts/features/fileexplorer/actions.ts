@@ -32,6 +32,7 @@ export const FILE_EXPLORER_ACTION_MODE_CANCEL = 'fileExplorer.modeCancel';
 
 export const FILE_EXPLORER_ACTION_TASK_PANEL_TOGGLE = 'fileExplorer.taskPanelToggle';
 export const FILE_EXPLORER_ACTION_TOGGLE_VIEW_MODE = 'fileExplorer.toggleViewMode';
+export const FILE_EXPLORER_ACTION_OPEN_FOLDER_SETTINGS = 'fileExplorer.openFolderSettings';
 export const FILE_EXPLORER_ACTION_CLEAR_HIGHLIGHT = 'fileExplorer.clearHighlight';
 
 export const FILE_EXPLORER_ACTION_SELECT_ROW = 'fileExplorer.selectRow';
@@ -67,6 +68,7 @@ export type FileExplorerClickActionId =
     | typeof FILE_EXPLORER_ACTION_MODE_CANCEL
     | typeof FILE_EXPLORER_ACTION_TASK_PANEL_TOGGLE
     | typeof FILE_EXPLORER_ACTION_TOGGLE_VIEW_MODE
+    | typeof FILE_EXPLORER_ACTION_OPEN_FOLDER_SETTINGS
     | typeof FILE_EXPLORER_ACTION_CLEAR_HIGHLIGHT;
 
 export type FileExplorerChangeActionId = typeof FILE_EXPLORER_ACTION_SELECT_ROW | typeof FILE_EXPLORER_ACTION_SELECT_ALL | typeof FILE_EXPLORER_ACTION_UPLOAD_FILES | typeof FILE_EXPLORER_ACTION_NEW_ENTRY;
@@ -101,6 +103,7 @@ const { guard: isFileExplorerClickActionId } = createActionIdSet(
     FILE_EXPLORER_ACTION_MODE_CANCEL,
     FILE_EXPLORER_ACTION_TASK_PANEL_TOGGLE,
     FILE_EXPLORER_ACTION_TOGGLE_VIEW_MODE,
+    FILE_EXPLORER_ACTION_OPEN_FOLDER_SETTINGS,
     FILE_EXPLORER_ACTION_CLEAR_HIGHLIGHT
 );
 

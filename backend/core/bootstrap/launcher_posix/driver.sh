@@ -75,6 +75,7 @@ for soai_launcher_module in \
     runtime_environment_tesseract.sh \
     runtime_environment_conda.sh \
     platform_preflight.sh \
+    install_presentation.sh \
     install_status.sh \
     install_target.sh \
     cli_information.sh \

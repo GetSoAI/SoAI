@@ -15,7 +15,6 @@ export type ModelsNotificationsTranslationKey =
     | 'models.notifications.downloadCancelled'
     | 'models.notifications.downloadFailed'
     | 'models.notifications.downloadSuccess'
-    | 'models.notifications.enterApiKey'
     | 'models.notifications.enterApiUrl'
     | 'models.notifications.enterModelId'
     | 'models.notifications.enterProviderName'

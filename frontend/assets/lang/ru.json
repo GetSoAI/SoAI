@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "Изменить папку",
                 "createFile": "Создать файл",
                 "createFolder": "Создать папку",
                 "editPath": "Изменить текущий путь",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "Чтобы изменить этот параметр, включите эндпоинт Images.",
                         "requiresResponses": "Чтобы изменить этот параметр, включите эндпоинт Responses.",
                         "requiresVision": "Чтобы изменить этот параметр, включите модальность Vision.",
-                        "text": "Text нельзя отключить."
+                        "text": "Text нельзя отключить.",
+                        "unsupported": "Эта модель не поддерживает данную возможность."
                     },
                     "manifestLoading": "Загрузка классификации возможностей...",
                     "none": "Для этой модели нет доступных возможностей OpenAI.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "Скачивание отменено",
                 "downloadFailed": "Не удалось скачать модель",
                 "downloadSuccess": "Модель успешно скачана",
-                "enterApiKey": "Введите ключ API",
                 "enterApiUrl": "Введите URL API",
                 "enterModelId": "Введите ID модели",
                 "enterProviderName": "Введите имя провайдера",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Учётная запись администратора успешно создана.",
                 "accountCreatedSignInRequired": "Учётная запись администратора создана. Войдите, чтобы продолжить."
             },
             "progress": {

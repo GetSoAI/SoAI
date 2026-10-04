@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "更改文件夹",
                 "createFile": "创建文件",
                 "createFolder": "创建文件夹",
                 "editPath": "编辑当前路径",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "启用 Images 端点后即可切换此项。",
                         "requiresResponses": "启用 Responses 端点后即可切换此项。",
                         "requiresVision": "启用视觉模态后即可切换此项。",
-                        "text": "文本无法禁用。"
+                        "text": "文本无法禁用。",
+                        "unsupported": "此模型不支持此功能。"
                     },
                     "manifestLoading": "正在加载能力分类...",
                     "none": "此模型没有可用的 OpenAI 能力。",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "下载已取消",
                 "downloadFailed": "下载模型失败",
                 "downloadSuccess": "模型已成功下载",
-                "enterApiKey": "请输入 API 密钥",
                 "enterApiUrl": "请输入 API URL",
                 "enterModelId": "请输入模型 ID",
                 "enterProviderName": "请输入提供商名称",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "管理员账户已成功创建。",
                 "accountCreatedSignInRequired": "管理员账户已创建。请登录以继续。"
             },
             "progress": {

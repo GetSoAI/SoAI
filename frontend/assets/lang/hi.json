@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "फ़ोल्डर बदलें",
                 "createFile": "फ़ाइल बनाएँ",
                 "createFolder": "फ़ोल्डर बनाएँ",
                 "editPath": "वर्तमान पथ संपादित करें",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "इसे टॉगल करने के लिए Images एंडपॉइंट सक्षम करें।",
                         "requiresResponses": "इसे टॉगल करने के लिए Responses एंडपॉइंट सक्षम करें।",
                         "requiresVision": "इसे टॉगल करने के लिए Vision मोडैलिटी सक्षम करें।",
-                        "text": "टेक्स्ट को अक्षम नहीं किया जा सकता।"
+                        "text": "टेक्स्ट को अक्षम नहीं किया जा सकता।",
+                        "unsupported": "यह मॉडल इस क्षमता का समर्थन नहीं करता।"
                     },
                     "manifestLoading": "क्षमता वर्गीकरण लोड हो रहा है...",
                     "none": "इस मॉडल के लिए कोई OpenAI क्षमता उपलब्ध नहीं है।",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "डाउनलोड रद्द किया गया",
                 "downloadFailed": "मॉडल डाउनलोड करने में विफल",
                 "downloadSuccess": "मॉडल सफलतापूर्वक डाउनलोड हुआ",
-                "enterApiKey": "कृपया API कुंजी दर्ज करें",
                 "enterApiUrl": "कृपया API URL दर्ज करें",
                 "enterModelId": "कृपया मॉडल ID दर्ज करें",
                 "enterProviderName": "कृपया प्रदाता का नाम दर्ज करें",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Administrator account सफलतापूर्वक बनाया गया।",
                 "accountCreatedSignInRequired": "Administrator account बनाया गया। जारी रखने के लिए sign in करें।"
             },
             "progress": {

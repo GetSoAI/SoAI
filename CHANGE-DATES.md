@@ -15,6 +15,7 @@ This schedule applies only to Official Releases of SoAI Core governed by
 | 1.2.0 | 21 September 2026 | 21 September 2030 | MIT |
 | 1.2.1 | 22 September 2026 | 22 September 2030 | MIT |
 | 1.3.0 | 3 October 2026 | 3 October 2030 | MIT |
+| 1.3.1 | 4 October 2026 | 4 October 2030 | MIT |
 
 Each Change Date is exactly four years after that version's first official
 public distribution and may not be postponed. Later versions receive independent

@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "Alterar pasta",
                 "createFile": "Criar arquivo",
                 "createFolder": "Criar pasta",
                 "editPath": "Editar caminho atual",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "Ative o endpoint Images para alterar esta opção.",
                         "requiresResponses": "Ative o endpoint Responses para alterar esta opção.",
                         "requiresVision": "Ative a modalidade Visão para alterar esta opção.",
-                        "text": "Texto não pode ser desativado."
+                        "text": "Texto não pode ser desativado.",
+                        "unsupported": "Este modelo não suporta esta capacidade."
                     },
                     "manifestLoading": "Carregando taxonomia de recursos...",
                     "none": "Nenhum recurso da OpenAI disponível para este modelo.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "Download cancelado",
                 "downloadFailed": "Falha ao baixar o modelo",
                 "downloadSuccess": "Modelo baixado com sucesso",
-                "enterApiKey": "Insira uma chave de API",
                 "enterApiUrl": "Insira uma URL de API",
                 "enterModelId": "Insira um ID de modelo",
                 "enterProviderName": "Insira um nome de provedor",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Conta de administrador criada com sucesso.",
                 "accountCreatedSignInRequired": "Conta de administrador criada. Entre para continuar."
             },
             "progress": {

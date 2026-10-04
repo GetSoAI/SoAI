@@ -8,6 +8,10 @@ class TokenCounterUsageRateTracker {
     #activeStreamRevision: number | null = null;
     #streamActive = false;
 
+    get isStreamActive(): boolean {
+        return this.#streamActive;
+    }
+
     clearUsage(): void {
         this.#lastTokenUsage = null;
     }
@@ -55,7 +59,7 @@ class TokenCounterUsageRateTracker {
         if (this.#lastTokenUsage === null) {
             return 0;
         }
-        if (!this.#streamActive) {
+        if (!this.#streamActive || this.#activeStreamRevision === null) {
             return 0;
         }
         return this.#lastTokenUsage.completionRateTokensPerSecond;

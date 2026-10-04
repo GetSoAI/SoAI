@@ -5,14 +5,13 @@ param(
     [string]$PythonUrl,
     [string]$PythonSha256,
     [string]$WebView2BootstrapperUrl = 'https://go.microsoft.com/fwlink/p/?LinkId=2124703',
-    [string]$VisualCppRedistUrl = 'https://aka.ms/vs/17/release/vc_redist.x64.exe',
-    [string]$VisualCppAppLocalUrl = 'https://www.nuget.org/api/v2/package/VCLibs.VCRuntime.140/1.0.4',
-    [string]$VisualCppAppLocalSha256 = 'EA8FAD02D8DE9CA1AB4E1D20C282166B3386ADF91A9B143019D59507229EA375',
+    [string]$VisualCppRedistUrl = 'https://aka.ms/vc14/vc_redist.x64.exe',
     [string]$StatusPath,
     [string]$DiagnosticRoot,
     [int]$DependencyInstallTimeoutSeconds = 7200,
     [switch]$BootstrapOnly,
-    [switch]$PreflightOnly
+    [switch]$PreflightOnly,
+    [switch]$VisualCppRuntimeOnly
 )
 
 function Resolve-FullPath {
@@ -33,12 +32,15 @@ $ProgressPreference = 'SilentlyContinue'
 if ($PreflightOnly -and $BootstrapOnly) {
     throw 'PreflightOnly and BootstrapOnly are mutually exclusive.'
 }
-if ($PreflightOnly -or $BootstrapOnly) {
+if ($VisualCppRuntimeOnly -and ($PreflightOnly -or $BootstrapOnly)) {
+    throw 'VisualCppRuntimeOnly cannot be combined with PreflightOnly or BootstrapOnly.'
+}
+if ($PreflightOnly -or $BootstrapOnly -or $VisualCppRuntimeOnly) {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     try {
         $principal = [Security.Principal.WindowsPrincipal]::new($identity)
         if (!$principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-            throw 'Windows runtime preflight and bootstrap require an elevated administrator process.'
+            throw 'Windows runtime preflight, bootstrap, and Visual C++ runtime preparation require an elevated administrator process.'
         }
     }
     finally { $identity.Dispose() }
@@ -107,6 +109,12 @@ $script:InstallerDownloadRoot = Join-Path $env:TEMP (
     "SoAI-Installer-" + [Guid]::NewGuid().ToString('N')
 )
 $script:ReleasedInstallerDownloadRoot = Join-Path $env:TEMP 'SoAI-Installer'
+# Microsoft requires a Visual C++ runtime at least as new as the newest MSVC toolset used by
+# any native dependency; the PyTorch 2.13 Windows wheels are built with 14.44.
+$script:MinimumVisualCppRuntimeVersion = [version]'14.44.0.0'
+$script:VisualCppRuntimeSourceDirectory = $null
+$script:VisualCppRuntimeEvidence = $null
+$script:VisualCppRuntimeEvidencePath = $null
 foreach ($retryVariable in @('PIP_RETRIES', 'PIP_RESUME_RETRIES')) {
     if ($null -eq [Environment]::GetEnvironmentVariable($retryVariable, 'Process')) {
         [Environment]::SetEnvironmentVariable($retryVariable, '10', 'Process')
@@ -1065,112 +1073,597 @@ function Get-RequiredVisualCppRuntimeDllNames {
     )
 }
 
-function Get-SystemVisualCppRuntimeDllNames {
-    return (Get-RequiredVisualCppRuntimeDllNames) + @('vcomp140.dll')
+function Get-CompleteVisualCppRuntimeDllNames {
+    return (Get-RequiredVisualCppRuntimeDllNames) + @(
+        'concrt140.dll',
+        'vcomp140.dll',
+        'vcruntime140_threads.dll'
+    )
 }
 
-function Get-MissingVisualCppRuntimeFiles {
+function Get-PortableExecutableArchitecture {
+    param([Parameter(Mandatory=$true)][string]$Path)
+    # Microsoft's ARM64 runtime package contains ARM64EC images that also declare the x64 machine
+    # type; only plain x64 images (no CHPE metadata) can be loaded by x64 SoAI processes.
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, ([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
+    try {
+        $length = $stream.Length
+        $reader = New-Object IO.BinaryReader($stream)
+        if ($length -lt 64 -or $reader.ReadUInt16() -ne 0x5A4D) {
+            return 'not a Windows DLL'
+        }
+        [void]$stream.Seek(0x3C, [IO.SeekOrigin]::Begin)
+        $headerOffset = [long]$reader.ReadInt32()
+        if ($headerOffset -lt 64 -or $headerOffset -gt ($length - 264)) {
+            return 'not a Windows DLL'
+        }
+        [void]$stream.Seek($headerOffset, [IO.SeekOrigin]::Begin)
+        if ($reader.ReadUInt32() -ne 0x00004550) {
+            return 'not a Windows DLL'
+        }
+        $machine = [int]$reader.ReadUInt16()
+        if ($machine -ne 0x8664) {
+            return ('machine 0x{0:X4}' -f $machine)
+        }
+        $sectionCount = [int]$reader.ReadUInt16()
+        [void]$stream.Seek($headerOffset + 20, [IO.SeekOrigin]::Begin)
+        $optionalHeaderSize = [int]$reader.ReadUInt16()
+        $optionalHeaderOffset = $headerOffset + 24
+        [void]$stream.Seek($optionalHeaderOffset, [IO.SeekOrigin]::Begin)
+        if ($optionalHeaderSize -lt 200 -or $reader.ReadUInt16() -ne 0x20B) {
+            return 'not a 64-bit DLL'
+        }
+        [void]$stream.Seek($optionalHeaderOffset + 108, [IO.SeekOrigin]::Begin)
+        $directoryCount = [long]$reader.ReadUInt32()
+        if ($directoryCount -le 10) {
+            return 'x64'
+        }
+        [void]$stream.Seek($optionalHeaderOffset + 192, [IO.SeekOrigin]::Begin)
+        $loadConfigRva = [long]$reader.ReadUInt32()
+        if ($loadConfigRva -eq 0) {
+            return 'x64'
+        }
+        $sectionTableOffset = $optionalHeaderOffset + $optionalHeaderSize
+        if ($sectionTableOffset + (40 * [long]$sectionCount) -gt $length) {
+            return 'damaged DLL'
+        }
+        $loadConfigOffset = $null
+        for ($section = 0; $section -lt $sectionCount; $section += 1) {
+            [void]$stream.Seek($sectionTableOffset + (40 * $section) + 8, [IO.SeekOrigin]::Begin)
+            $virtualSize = [long]$reader.ReadUInt32()
+            $virtualAddress = [long]$reader.ReadUInt32()
+            $rawSize = [long]$reader.ReadUInt32()
+            $rawPointer = [long]$reader.ReadUInt32()
+            if ($loadConfigRva -ge $virtualAddress -and $loadConfigRva -lt ($virtualAddress + [Math]::Max($virtualSize, $rawSize))) {
+                $loadConfigOffset = $rawPointer + ($loadConfigRva - $virtualAddress)
+                break
+            }
+        }
+        if ($null -eq $loadConfigOffset -or $loadConfigOffset + 4 -gt $length) {
+            return 'damaged DLL'
+        }
+        [void]$stream.Seek($loadConfigOffset, [IO.SeekOrigin]::Begin)
+        $loadConfigSize = [long]$reader.ReadUInt32()
+        if ($loadConfigSize -lt 0xD0) {
+            return 'x64'
+        }
+        if ($loadConfigOffset + 0xD0 -gt $length) {
+            return 'damaged DLL'
+        }
+        [void]$stream.Seek($loadConfigOffset + 0xC8, [IO.SeekOrigin]::Begin)
+        if ($reader.ReadUInt64() -ne 0) {
+            return 'ARM64EC'
+        }
+        return 'x64'
+    }
+    finally {
+        $stream.Dispose()
+    }
+}
+
+function Get-VisualCppRuntimeFileState {
+    param(
+        [Parameter(Mandatory=$true)][string]$Path,
+        [Parameter(Mandatory=$true)][string]$Name
+    )
+    $version = $null
+    $architecture = $null
+    $problem = $null
+    if (![IO.File]::Exists($Path)) {
+        $problem = 'missing'
+    }
+    else {
+        try {
+            $info = [Diagnostics.FileVersionInfo]::GetVersionInfo($Path)
+            $version = New-Object Version($info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart, $info.FilePrivatePart)
+            $architecture = Get-PortableExecutableArchitecture -Path $Path
+            if ($architecture -ne 'x64') {
+                $problem = "not an x64 DLL: $architecture"
+            }
+            elseif ($version -lt $script:MinimumVisualCppRuntimeVersion) {
+                $problem = "older than $script:MinimumVisualCppRuntimeVersion"
+            }
+        }
+        catch {
+            $version = $null
+            $architecture = $null
+            $problem = "unreadable: $($_.Exception.Message)"
+        }
+    }
+    return [pscustomobject]@{
+        Name = $Name
+        Path = $Path
+        Version = $version
+        Architecture = $architecture
+        Problem = $problem
+    }
+}
+
+function Get-VisualCppRuntimeDirectoryState {
     param(
         [Parameter(Mandatory=$true)][string]$Directory,
         [Parameter(Mandatory=$true)][string[]]$DllNames
     )
-    $missing = New-Object System.Collections.Generic.List[string]
-    foreach ($dllName in $DllNames) {
-        if (!(Test-Path -LiteralPath (Join-Path $Directory $dllName) -PathType Leaf)) {
-            [void]$missing.Add($dllName)
+    $files = @(foreach ($dllName in $DllNames) {
+        Get-VisualCppRuntimeFileState -Path (Join-Path $Directory $dllName) -Name $dllName
+    })
+    $problems = @($files | Where-Object { $null -ne $_.Problem } | ForEach-Object { "$($_.Name) ($($_.Problem))" })
+    return [pscustomobject]@{
+        Directory = $Directory
+        Files = $files
+        Problems = $problems
+        Ready = $problems.Count -eq 0
+    }
+}
+
+function ConvertTo-VisualCppRuntimeEvidence {
+    param([Parameter(Mandatory=$true)][object]$State)
+    $files = [ordered]@{}
+    foreach ($file in $State.Files) {
+        $versionText = $null
+        if ($null -ne $file.Version) {
+            $versionText = $file.Version.ToString()
+        }
+        $files[$file.Name] = [ordered]@{
+            version = $versionText
+            architecture = $file.Architecture
+            problem = $file.Problem
         }
     }
-    return $missing.ToArray()
+    return [ordered]@{
+        directory = $State.Directory
+        ready = $State.Ready
+        files = $files
+    }
+}
+
+function Format-VisualCppRuntimeProblems {
+    param([Parameter(Mandatory=$true)][object]$State)
+    $details = @(foreach ($file in $State.Files) {
+        if ($null -eq $file.Problem) {
+            continue
+        }
+        if ($null -ne $file.Version) {
+            "$($file.Name) $($file.Version) ($($file.Problem))"
+        }
+        else {
+            "$($file.Name) ($($file.Problem))"
+        }
+    })
+    return $details -join ', '
+}
+
+function Get-UniqueInstallLogPath {
+    param(
+        [Parameter(Mandatory=$true)][string]$Root,
+        [Parameter(Mandatory=$true)][string]$Name,
+        [Parameter(Mandatory=$true)][string]$Extension
+    )
+    $logDir = Get-InstallLogDir -Root $Root
+    for ($attempt = 1; $attempt -le 10000; $attempt += 1) {
+        $suffix = ''
+        if ($attempt -gt 1) {
+            $suffix = ".attempt-$attempt"
+        }
+        $path = Join-Path $logDir "$Name$suffix$Extension"
+        if (!(Test-Path -LiteralPath $path)) {
+            return $path
+        }
+    }
+    throw "Could not allocate a diagnostic log for installer phase: $Name"
+}
+
+function Add-VisualCppRuntimeEvidence {
+    param([Parameter(Mandatory=$true)][System.Collections.IDictionary]$Entry)
+    $Entry['at_utc'] = [DateTime]::UtcNow.ToString('o')
+    [void]$script:VisualCppRuntimeEvidence['events'].Add($Entry)
+}
+
+function Save-VisualCppRuntimeEvidence {
+    if ($null -eq $script:VisualCppRuntimeEvidence) {
+        return
+    }
+    try {
+        $script:VisualCppRuntimeEvidence['updated_at_utc'] = [DateTime]::UtcNow.ToString('o')
+        $script:VisualCppRuntimeEvidence | ConvertTo-Json -Depth 8 |
+            Set-Content -LiteralPath $script:VisualCppRuntimeEvidencePath -Encoding UTF8 -ErrorAction Stop
+    }
+    catch {
+        Write-Warning "Microsoft Visual C++ runtime diagnostics could not be saved: $($_.Exception.Message)"
+    }
+}
+
+function Initialize-VisualCppRuntimeEvidence {
+    param([Parameter(Mandatory=$true)][string]$Root)
+    if ($null -ne $script:VisualCppRuntimeEvidence) {
+        return
+    }
+    $script:VisualCppRuntimeEvidencePath = Get-UniqueInstallLogPath -Root $Root -Name 'visual-cpp-runtime' -Extension '.json'
+    $script:VisualCppRuntimeEvidence = [ordered]@{
+        schema_version = 1
+        started_at_utc = [DateTime]::UtcNow.ToString('o')
+        windows_version = [Environment]::OSVersion.VersionString
+        process_architecture = $env:PROCESSOR_ARCHITECTURE
+        minimum_version = $script:MinimumVisualCppRuntimeVersion.ToString()
+        registry_version = Get-VisualCppRuntimeVersion
+        redistributable_url = $VisualCppRedistUrl
+        source = $null
+        events = New-Object System.Collections.ArrayList
+    }
+}
+
+function Invoke-VisualCppRuntimeProcess {
+    param(
+        [Parameter(Mandatory=$true)][string]$Executable,
+        [Parameter(Mandatory=$true)][string[]]$Arguments,
+        [Parameter(Mandatory=$true)][int]$TimeoutSeconds
+    )
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $Executable
+    $psi.Arguments = Join-ProcessArguments $Arguments
+    $psi.WorkingDirectory = [Environment]::GetFolderPath('System')
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $process = [System.Diagnostics.Process]::Start($psi)
+    try {
+        if (!$process.WaitForExit($TimeoutSeconds * 1000)) {
+            try {
+                $process.Kill()
+            }
+            catch {
+            }
+            return $null
+        }
+        return $process.ExitCode
+    }
+    finally {
+        $process.Dispose()
+    }
+}
+
+function Invoke-VisualCppRedistributable {
+    param(
+        [Parameter(Mandatory=$true)][string]$Root,
+        [Parameter(Mandatory=$true)][string]$Redistributable,
+        [Parameter(Mandatory=$true)][ValidateSet('install', 'repair')][string]$Operation
+    )
+    $exitCode = $null
+    for ($attempt = 1; $attempt -le 6; $attempt += 1) {
+        $logPath = Get-UniqueInstallLogPath -Root $Root -Name "visual-cpp-redist-$Operation" -Extension '.log'
+        $exitCode = Invoke-VisualCppRuntimeProcess -Executable $Redistributable `
+            -Arguments @("/$Operation", '/quiet', '/norestart', '/log', $logPath) -TimeoutSeconds 1200
+        Add-VisualCppRuntimeEvidence ([ordered]@{
+            action = "redistributable-$Operation"
+            attempt = $attempt
+            exit_code = $exitCode
+            timed_out = $null -eq $exitCode
+            log = $logPath
+        })
+        if ($null -eq $exitCode) {
+            Write-InstallerConsoleMessage "[SoAI] Microsoft Visual C++ Runtime $Operation did not finish within 20 minutes. Log: $logPath"
+            return $null
+        }
+        Write-InstallerConsoleMessage "[SoAI] Microsoft Visual C++ Runtime $Operation finished with exit code $exitCode. Log: $logPath"
+        if ($exitCode -ne 1618 -or $attempt -eq 6) {
+            return $exitCode
+        }
+        Write-Step 'Another Windows installation is running; retrying the Microsoft Visual C++ Runtime shortly...'
+        Start-Sleep -Seconds 30
+    }
+    return $exitCode
+}
+
+function Copy-VisualCppRuntimeSnapshot {
+    param(
+        [Parameter(Mandatory=$true)][string]$SourceDirectory,
+        [Parameter(Mandatory=$true)][string]$Destination
+    )
+    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+    foreach ($dllName in Get-CompleteVisualCppRuntimeDllNames) {
+        Copy-Item -LiteralPath (Join-Path $SourceDirectory $dllName) -Destination (Join-Path $Destination $dllName) -Force
+    }
+}
+
+function Expand-VisualCppRuntimeRedistributable {
+    param(
+        [Parameter(Mandatory=$true)][string]$Root,
+        [Parameter(Mandatory=$true)][string]$Redistributable,
+        [Parameter(Mandatory=$true)][string]$Destination
+    )
+    $layoutDir = Join-Path $script:InstallerDownloadRoot 'vc-redist-layout'
+    $cabinetDir = Join-Path $script:InstallerDownloadRoot 'vc-redist-cabinets'
+    foreach ($directory in @($layoutDir, $cabinetDir)) {
+        if (Test-Path -LiteralPath $directory) {
+            Remove-Item -LiteralPath $directory -Recurse -Force
+        }
+        New-Item -ItemType Directory -Force -Path $directory | Out-Null
+    }
+    $logPath = Get-UniqueInstallLogPath -Root $Root -Name 'visual-cpp-redist-layout' -Extension '.log'
+    $exitCode = Invoke-VisualCppRuntimeProcess -Executable $Redistributable `
+        -Arguments @('/layout', $layoutDir, '/quiet', '/norestart', '/log', $logPath) -TimeoutSeconds 1200
+    Add-VisualCppRuntimeEvidence ([ordered]@{
+        action = 'redistributable-layout'
+        exit_code = $exitCode
+        timed_out = $null -eq $exitCode
+        log = $logPath
+    })
+    if ($null -eq $exitCode) {
+        throw "The Microsoft Visual C++ Redistributable layout did not finish within 20 minutes. Log: $logPath"
+    }
+    if ($exitCode -ne 0) {
+        throw "The Microsoft Visual C++ Redistributable layout failed with exit code $exitCode. Log: $logPath"
+    }
+    $cabinets = @(Get-ChildItem -LiteralPath $layoutDir -Recurse -File -Filter '*.cab' | Sort-Object FullName)
+    if ($cabinets.Count -eq 0) {
+        throw "The Microsoft Visual C++ Redistributable layout contained no runtime cabinets. Log: $logPath"
+    }
+    $expand = Join-Path $env:WINDIR 'System32\expand.exe'
+    for ($index = 0; $index -lt $cabinets.Count; $index += 1) {
+        $cabinetTarget = Join-Path $cabinetDir ('{0:D2}' -f ($index + 1))
+        New-Item -ItemType Directory -Force -Path $cabinetTarget | Out-Null
+        Invoke-LoggedCommand -Root $Root -PhaseName 'expand-visual-cpp-runtime' `
+            -WorkingDirectory $cabinetTarget -Executable $expand `
+            -Arguments @($cabinets[$index].FullName, '-F:*', $cabinetTarget) `
+            -EnvironmentValues @{} -TimeoutSeconds 600 | Out-Null
+    }
+
+    $requiredNames = @(Get-CompleteVisualCppRuntimeDllNames)
+    $candidates = @{}
+    foreach ($file in @(Get-ChildItem -LiteralPath $cabinetDir -Recurse -File | Sort-Object FullName)) {
+        $originalName = [string]([Diagnostics.FileVersionInfo]::GetVersionInfo($file.FullName).OriginalFilename)
+        $requiredName = $requiredNames | Where-Object { [string]::Equals($_, $originalName.Trim(), [StringComparison]::OrdinalIgnoreCase) } | Select-Object -First 1
+        if ($null -eq $requiredName) {
+            continue
+        }
+        $state = Get-VisualCppRuntimeFileState -Path $file.FullName -Name $requiredName
+        if ($null -ne $state.Problem) {
+            continue
+        }
+        if (!$candidates.ContainsKey($requiredName) -or $state.Version -gt $candidates[$requiredName].Version) {
+            $candidates[$requiredName] = $state
+        }
+    }
+
+    if (Test-Path -LiteralPath $Destination) {
+        Remove-Item -LiteralPath $Destination -Recurse -Force
+    }
+    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+    foreach ($requiredName in $requiredNames) {
+        if (!$candidates.ContainsKey($requiredName)) {
+            throw "The Microsoft Visual C++ Redistributable did not contain a usable x64 $requiredName at version $script:MinimumVisualCppRuntimeVersion or newer. Diagnostics: $script:VisualCppRuntimeEvidencePath"
+        }
+        $candidate = $candidates[$requiredName]
+        Assert-AuthenticodeValid -Path $candidate.Path -ExpectedPublisher 'Microsoft'
+        Copy-Item -LiteralPath $candidate.Path -Destination (Join-Path $Destination $requiredName) -Force
+    }
+}
+
+function Resolve-VisualCppRuntimeSource {
+    param(
+        [Parameter(Mandatory=$true)][string]$Root,
+        [string[]]$ReadySoAIRuntimeDirectories = @()
+    )
+    $system32 = Join-Path $env:WINDIR 'System32'
+    $staging = Join-Path $script:InstallerDownloadRoot 'visual-cpp-runtime'
+    $systemState = Get-VisualCppRuntimeDirectoryState -Directory $system32 -DllNames (Get-CompleteVisualCppRuntimeDllNames)
+    Add-VisualCppRuntimeEvidence ([ordered]@{
+        action = 'inspect-windows-runtime'
+        state = ConvertTo-VisualCppRuntimeEvidence $systemState
+    })
+    if ($systemState.Ready) {
+        Copy-VisualCppRuntimeSnapshot -SourceDirectory $system32 -Destination $staging
+        $script:VisualCppRuntimeEvidence['source'] = 'windows'
+        return $staging
+    }
+
+    Write-InstallerConsoleMessage "[SoAI] The Microsoft Visual C++ runtime installed in Windows is not usable by SoAI: $(Format-VisualCppRuntimeProblems $systemState)."
+    # A complete runtime set that an earlier SoAI installation already verified is reused, so a
+    # machine whose Windows runtime cannot be repaired does not download it on every update.
+    foreach ($readyDirectory in $ReadySoAIRuntimeDirectories) {
+        Copy-VisualCppRuntimeSnapshot -SourceDirectory $readyDirectory -Destination $staging
+        $script:VisualCppRuntimeEvidence['source'] = 'soai-runtime'
+        $script:VisualCppRuntimeEvidence['source_directory'] = $readyDirectory
+        return $staging
+    }
+    $redistributable = Join-Path $script:InstallerDownloadRoot 'vc_redist.x64.exe'
+    Download-File -Uri $VisualCppRedistUrl -Destination $redistributable
+    Assert-AuthenticodeValid -Path $redistributable -ExpectedPublisher 'Microsoft'
+    $script:VisualCppRuntimeEvidence['redistributable_version'] = [Diagnostics.FileVersionInfo]::GetVersionInfo($redistributable).FileVersion
+
+    Write-Step 'Installing Microsoft Visual C++ Runtime...'
+    $exitCode = Invoke-VisualCppRedistributable -Root $Root -Redistributable $redistributable -Operation 'install'
+    $systemState = Get-VisualCppRuntimeDirectoryState -Directory $system32 -DllNames (Get-CompleteVisualCppRuntimeDllNames)
+    if (!$systemState.Ready -and $null -ne $exitCode -and $exitCode -notin @(1618, 1641, 3010)) {
+        Write-Step 'Repairing Microsoft Visual C++ Runtime...'
+        [void](Invoke-VisualCppRedistributable -Root $Root -Redistributable $redistributable -Operation 'repair')
+        $systemState = Get-VisualCppRuntimeDirectoryState -Directory $system32 -DllNames (Get-CompleteVisualCppRuntimeDllNames)
+    }
+    Add-VisualCppRuntimeEvidence ([ordered]@{
+        action = 'inspect-windows-runtime'
+        state = ConvertTo-VisualCppRuntimeEvidence $systemState
+    })
+    if ($systemState.Ready) {
+        Write-Step 'Microsoft Visual C++ Runtime is updated.'
+        Copy-VisualCppRuntimeSnapshot -SourceDirectory $system32 -Destination $staging
+        $script:VisualCppRuntimeEvidence['source'] = 'windows'
+        return $staging
+    }
+
+    Write-InstallerConsoleMessage "[SoAI] Windows still reports an unusable Visual C++ runtime after setup (a restart may be pending): $(Format-VisualCppRuntimeProblems $systemState)."
+    Write-Step 'Preparing a verified private Microsoft Visual C++ runtime for SoAI...'
+    Expand-VisualCppRuntimeRedistributable -Root $Root -Redistributable $redistributable -Destination $staging
+    $script:VisualCppRuntimeEvidence['source'] = 'redistributable-extraction'
+    return $staging
+}
+
+function Update-RuntimeDllFile {
+    param(
+        [Parameter(Mandatory=$true)][string]$Source,
+        [Parameter(Mandatory=$true)][string]$Destination
+    )
+    $temporary = "$Destination.$([Guid]::NewGuid().ToString('N')).tmp"
+    try {
+        Copy-Item -LiteralPath $Source -Destination $temporary -Force
+        if ([IO.File]::Exists($Destination)) {
+            $attributes = [IO.File]::GetAttributes($Destination)
+            if (($attributes -band [IO.FileAttributes]::ReadOnly) -ne 0) {
+                [IO.File]::SetAttributes($Destination, ($attributes -band (-bnot [IO.FileAttributes]::ReadOnly)))
+            }
+        }
+        Move-Item -LiteralPath $temporary -Destination $Destination -Force
+    }
+    catch {
+        $failure = $_.Exception.Message
+        Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue
+        throw "SoAI could not update $Destination. If SoAI is running, stop it and run the installation again. $failure"
+    }
+}
+
+function Get-ManagedVenvHome {
+    param([Parameter(Mandatory=$true)][string]$Root)
+    $configPath = Join-Path $Root 'soai_main_venv\pyvenv.cfg'
+    if (!(Test-Path -LiteralPath $configPath -PathType Leaf)) {
+        return $null
+    }
+    foreach ($line in [IO.File]::ReadAllLines($configPath)) {
+        $match = [regex]::Match($line, '^\s*home\s*=\s*(.+?)\s*$')
+        if (!$match.Success) {
+            continue
+        }
+        try {
+            $homeDirectory = [IO.Path]::GetFullPath($match.Groups[1].Value).TrimEnd('\')
+        }
+        catch {
+            return $null
+        }
+        if (!$homeDirectory.StartsWith($Root.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) {
+            Write-InstallerConsoleMessage "[SoAI] The SoAI managed environment uses a Python outside the SoAI installation; SoAI will not modify it: $homeDirectory"
+            return $null
+        }
+        return $homeDirectory
+    }
+    return $null
 }
 
 function Install-VisualCppRuntime {
     param([Parameter(Mandatory=$true)][string]$Root)
-    $version = Get-VisualCppRuntimeVersion
-    $system32 = Join-Path $env:WINDIR 'System32'
-    $missing = @(Get-MissingVisualCppRuntimeFiles -Directory $system32 -DllNames (Get-SystemVisualCppRuntimeDllNames))
-    if ($version -and $missing.Count -eq 0) {
-        Write-Step "Microsoft Visual C++ Runtime is already installed ($version)."
-        Copy-AppLocalVisualCppRuntimeDlls -Root $Root
-        return
-    }
-
-    $downloadDir = $script:InstallerDownloadRoot
-    $redist = Join-Path $downloadDir 'vc_redist.x64.exe'
-    Download-File -Uri $VisualCppRedistUrl -Destination $redist
-    Assert-AuthenticodeValid -Path $redist -ExpectedPublisher 'Microsoft'
-
-    Write-Step 'Installing Microsoft Visual C++ Runtime...'
-    $process = Start-Process -FilePath $redist -ArgumentList @('/install', '/quiet', '/norestart') -PassThru
-    if (!$process.WaitForExit(600000)) {
-        try {
-            $process.Kill()
-        }
-        catch {
-        }
-        throw 'Microsoft Visual C++ Runtime installer did not finish within 10 minutes.'
-    }
-    if ($process.ExitCode -ne 0 -and $process.ExitCode -ne 1638 -and $process.ExitCode -ne 3010) {
-        throw "Microsoft Visual C++ Runtime installer failed with exit code $($process.ExitCode)."
-    }
-    $version = Get-VisualCppRuntimeVersion
-    $missing = @(Get-MissingVisualCppRuntimeFiles -Directory $system32 -DllNames (Get-SystemVisualCppRuntimeDllNames))
-    if ($missing.Count -eq 0) {
-        Write-Step "Microsoft Visual C++ Runtime is ready ($version)."
-    }
-    else {
-        Write-Step "Microsoft Visual C++ Runtime system install is still missing: $($missing -join ', '). SoAI will use app-local runtime DLLs where possible."
-    }
     Copy-AppLocalVisualCppRuntimeDlls -Root $Root
+    $sourceDescription = 'existing SoAI copy'
+    if ($script:VisualCppRuntimeEvidence['source'] -eq 'windows') {
+        $sourceDescription = 'Windows'
+    }
+    elseif ($script:VisualCppRuntimeEvidence['source'] -eq 'redistributable-extraction') {
+        $sourceDescription = 'verified private copy'
+    }
+    Write-Step "Microsoft Visual C++ runtime for SoAI is ready ($sourceDescription)."
 }
 
 function Copy-AppLocalVisualCppRuntimeDlls {
     param([Parameter(Mandatory=$true)][string]$Root)
-    $dllNames = Get-RequiredVisualCppRuntimeDllNames
-    $system32 = Join-Path $env:WINDIR 'System32'
-    $systemMissing = @(Get-MissingVisualCppRuntimeFiles -Directory $system32 -DllNames $dllNames)
-    $sourceDir = $system32
-    if ($systemMissing.Count -ne 0) {
-        $downloadDir = $script:InstallerDownloadRoot
-        $package = Join-Path $downloadDir 'VCLibs.VCRuntime.140.1.0.4.nupkg'
-        $packageZip = Join-Path $downloadDir 'VCLibs.VCRuntime.140.1.0.4.zip'
-        $extractDir = Join-Path $downloadDir 'VCLibs.VCRuntime.140.1.0.4'
-        if (!(Test-Path -LiteralPath $package)) {
-            Download-File -Uri $VisualCppAppLocalUrl -Destination $package -Sha256 $VisualCppAppLocalSha256 -Kind Zip
-        }
-        else {
-            Assert-Hash -Path $package -Sha256 $VisualCppAppLocalSha256
-        }
-
-        $sourceDir = Join-Path $extractDir 'runtimes\win-x64\native'
-        if (!(Test-Path -LiteralPath $sourceDir -PathType Container)) {
-            Remove-Item -LiteralPath $extractDir -Recurse -Force -ErrorAction SilentlyContinue
-            Copy-Item -LiteralPath $package -Destination $packageZip -Force
-            Expand-Archive -LiteralPath $packageZip -DestinationPath $extractDir -Force
-        }
-        if (!(Test-Path -LiteralPath $sourceDir -PathType Container)) {
-            throw 'The app-local Visual C++ runtime package did not contain runtimes\win-x64\native.'
-        }
-    }
-
-    $targets = New-Object System.Collections.Generic.List[string]
-    [void]$targets.Add((Resolve-FullPath $Root))
+    Initialize-VisualCppRuntimeEvidence -Root $Root
+    $rootDir = (Resolve-FullPath $Root).TrimEnd('\')
+    $targets = New-Object System.Collections.Generic.List[object]
+    $targetDirectories = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+    [void]$targetDirectories.Add($rootDir)
+    [void]$targets.Add([pscustomobject]@{ Directory = $rootDir; DllNames = @(Get-RequiredVisualCppRuntimeDllNames) })
     $pythonDir = Resolve-ChildPath -Root $Root -Child 'python'
-    if (Test-Path -LiteralPath $pythonDir -PathType Container) {
-        [void]$targets.Add($pythonDir)
+    $interpreterDirs = @($pythonDir) + @(foreach ($legacyDir in @('python-3.13', 'runtime\python', 'runtime\python-3.13', 'soai_python')) {
+        Resolve-ChildPath -Root $Root -Child $legacyDir
+    })
+    $venvHome = Get-ManagedVenvHome -Root $rootDir
+    if ($null -ne $venvHome) {
+        $interpreterDirs += $venvHome
+    }
+    foreach ($interpreterDir in $interpreterDirs) {
+        if ((Test-Path -LiteralPath (Join-Path $interpreterDir 'python.exe') -PathType Leaf) -and $targetDirectories.Add($interpreterDir)) {
+            [void]$targets.Add([pscustomobject]@{ Directory = $interpreterDir; DllNames = @(Get-CompleteVisualCppRuntimeDllNames) })
+        }
     }
     $venvScripts = Resolve-ChildPath -Root $Root -Child 'soai_main_venv\Scripts'
-    if (Test-Path -LiteralPath $venvScripts -PathType Container) {
-        [void]$targets.Add($venvScripts)
+    if ((Test-Path -LiteralPath $venvScripts -PathType Container) -and $targetDirectories.Add($venvScripts)) {
+        [void]$targets.Add([pscustomobject]@{ Directory = $venvScripts; DllNames = @(Get-CompleteVisualCppRuntimeDllNames) })
     }
 
-    foreach ($dllName in $dllNames) {
-        $source = Join-Path $sourceDir $dllName
-        if (!(Test-Path -LiteralPath $source -PathType Leaf)) {
-            throw "The selected Visual C++ runtime source is missing $dllName."
+    try {
+        $completeDllCount = @(Get-CompleteVisualCppRuntimeDllNames).Count
+        $readySoAIRuntimeDirectories = New-Object System.Collections.Generic.List[string]
+        $pendingTargets = @(foreach ($target in $targets) {
+            $state = Get-VisualCppRuntimeDirectoryState -Directory $target.Directory -DllNames $target.DllNames
+            Add-VisualCppRuntimeEvidence ([ordered]@{
+                action = 'inspect-soai-runtime'
+                state = ConvertTo-VisualCppRuntimeEvidence $state
+            })
+            if (!$state.Ready) {
+                $target
+            }
+            elseif ($target.DllNames.Count -eq $completeDllCount) {
+                [void]$readySoAIRuntimeDirectories.Add($target.Directory)
+            }
+        })
+        if ($pendingTargets.Count -eq 0) {
+            return
         }
-        foreach ($target in $targets) {
-            Copy-Item -LiteralPath $source -Destination (Join-Path $target $dllName) -Force
+
+        $sourceDir = $script:VisualCppRuntimeSourceDirectory
+        if ($null -eq $sourceDir) {
+            $sourceDir = Resolve-VisualCppRuntimeSource -Root $Root -ReadySoAIRuntimeDirectories $readySoAIRuntimeDirectories.ToArray()
+            $sourceState = Get-VisualCppRuntimeDirectoryState -Directory $sourceDir -DllNames (Get-CompleteVisualCppRuntimeDllNames)
+            if (!$sourceState.Ready) {
+                throw "The selected Microsoft Visual C++ runtime is not usable: $(Format-VisualCppRuntimeProblems $sourceState). Diagnostics: $script:VisualCppRuntimeEvidencePath"
+            }
+            $script:VisualCppRuntimeSourceDirectory = $sourceDir
         }
+
+        foreach ($target in $pendingTargets) {
+            # A directory that needs repair receives the complete verified source set so its
+            # runtime DLLs stay one coherent Microsoft release; ready directories are never touched.
+            foreach ($dllName in $target.DllNames) {
+                $sourceState = Get-VisualCppRuntimeFileState -Path (Join-Path $sourceDir $dllName) -Name $dllName
+                $targetState = Get-VisualCppRuntimeFileState -Path (Join-Path $target.Directory $dllName) -Name $dllName
+                if ($null -eq $targetState.Problem -and $targetState.Version -eq $sourceState.Version) {
+                    continue
+                }
+                Update-RuntimeDllFile -Source $sourceState.Path -Destination $targetState.Path
+            }
+            $state = Get-VisualCppRuntimeDirectoryState -Directory $target.Directory -DllNames $target.DllNames
+            Add-VisualCppRuntimeEvidence ([ordered]@{
+                action = 'update-soai-runtime'
+                state = ConvertTo-VisualCppRuntimeEvidence $state
+            })
+            if (!$state.Ready) {
+                throw "SoAI could not prepare the Microsoft Visual C++ runtime in $($target.Directory): $(Format-VisualCppRuntimeProblems $state). Diagnostics: $script:VisualCppRuntimeEvidencePath"
+            }
+        }
+    }
+    catch {
+        Add-VisualCppRuntimeEvidence ([ordered]@{
+            action = 'failure'
+            message = $_.Exception.Message
+        })
+        throw
+    }
+    finally {
+        Save-VisualCppRuntimeEvidence
     }
 }
 
@@ -1246,12 +1739,17 @@ function Copy-AppLocalPythonRuntimeDlls {
     }
 
     foreach ($dllName in @('vcruntime140.dll', 'vcruntime140_1.dll')) {
-        $source = Join-Path $pythonDir $dllName
-        if (!(Test-Path -LiteralPath $source -PathType Leaf)) {
+        $sourceState = Get-VisualCppRuntimeFileState -Path (Join-Path $pythonDir $dllName) -Name $dllName
+        if ($null -eq $sourceState.Version -or $sourceState.Architecture -ne 'x64') {
             continue
         }
         foreach ($target in $targets) {
-            Copy-Item -LiteralPath $source -Destination (Join-Path $target $dllName) -Force
+            # Never replace a newer runtime DLL with the older copy bundled with Python.
+            $targetState = Get-VisualCppRuntimeFileState -Path (Join-Path $target $dllName) -Name $dllName
+            if ($targetState.Architecture -eq 'x64' -and $targetState.Version -ge $sourceState.Version) {
+                continue
+            }
+            Update-RuntimeDllFile -Source $sourceState.Path -Destination $targetState.Path
         }
     }
 }
@@ -1797,26 +2295,32 @@ $nativeOwnerPath = Resolve-NativePath (Resolve-ChildPath -Root $resolvedInstallR
 try {
     [SoAILauncher.NativeBackendJob]::PrepareTemporaryEnvironment()
     Set-InstallProgress -Progress 35 -Message "Preparing SoAI in $resolvedInstallRoot"
-    Set-InstallProgress -Progress 38 -Message 'Checking Microsoft Edge WebView2 Runtime...'
-    Install-WebView2Runtime
-    Set-InstallProgress -Progress 43 -Message 'Preparing Microsoft Visual C++ runtime support...'
-    Install-VisualCppRuntime -Root $resolvedInstallRoot
-    Set-InstallProgress -Progress 48 -Message "Preparing app-local Python $PythonVersion runtime..."
-    Install-PythonRuntime -Root $resolvedInstallRoot
-    Copy-AppLocalVisualCppRuntimeDlls -Root $resolvedInstallRoot
-    Set-InstallProgress -Progress 55 -Message 'Preparing SoAI bootstrap dependencies...'
-    Install-Stage0BootstrapDependencies -Root $resolvedInstallRoot
-    if ($BootstrapOnly) {
-        Set-InstallProgress -Progress 98 -Message 'SoAI bootstrap runtime is ready.'
+    if ($VisualCppRuntimeOnly) {
+        Set-InstallProgress -Progress 43 -Message 'Preparing Microsoft Visual C++ runtime support...'
+        Install-VisualCppRuntime -Root $resolvedInstallRoot
     }
     else {
-        Invoke-SoAIInstallCommand -Root $resolvedInstallRoot
-        Set-InstallProgress -Progress 96 -Message 'Writing SoAI installation state...'
-        Write-InstallState -Root $resolvedInstallRoot
-        Set-InstallProgress -Progress 97 -Message 'Configuring SoAI runtime permissions...'
-        Grant-RuntimeWriteAccess -Root $resolvedInstallRoot
-        Test-SQLiteRuntimeAccess -Root $resolvedInstallRoot
-        Set-InstallProgress -Progress 98 -Message 'SoAI is ready to start.'
+        Set-InstallProgress -Progress 38 -Message 'Checking Microsoft Edge WebView2 Runtime...'
+        Install-WebView2Runtime
+        Set-InstallProgress -Progress 43 -Message 'Preparing Microsoft Visual C++ runtime support...'
+        Install-VisualCppRuntime -Root $resolvedInstallRoot
+        Set-InstallProgress -Progress 48 -Message "Preparing app-local Python $PythonVersion runtime..."
+        Install-PythonRuntime -Root $resolvedInstallRoot
+        Copy-AppLocalVisualCppRuntimeDlls -Root $resolvedInstallRoot
+        Set-InstallProgress -Progress 55 -Message 'Preparing SoAI bootstrap dependencies...'
+        Install-Stage0BootstrapDependencies -Root $resolvedInstallRoot
+        if ($BootstrapOnly) {
+            Set-InstallProgress -Progress 98 -Message 'SoAI bootstrap runtime is ready.'
+        }
+        else {
+            Invoke-SoAIInstallCommand -Root $resolvedInstallRoot
+            Set-InstallProgress -Progress 96 -Message 'Writing SoAI installation state...'
+            Write-InstallState -Root $resolvedInstallRoot
+            Set-InstallProgress -Progress 97 -Message 'Configuring SoAI runtime permissions...'
+            Grant-RuntimeWriteAccess -Root $resolvedInstallRoot
+            Test-SQLiteRuntimeAccess -Root $resolvedInstallRoot
+            Set-InstallProgress -Progress 98 -Message 'SoAI is ready to start.'
+        }
     }
 }
 finally {

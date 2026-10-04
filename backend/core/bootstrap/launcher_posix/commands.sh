@@ -14,12 +14,20 @@ soai_launcher__run_post_update_hook() {
     if [ -n "${PYTHONPATH:-}" ]; then
         python_path="${python_path}:${PYTHONPATH}"
     fi
-    (cd "$SCRIPT_DIR" && PYTHONPATH="$python_path" "$python_bin" -m app.updater.post_update_hook)
+    if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+        local previous_directory="$PWD"
+        local status=0
+        cd "$SCRIPT_DIR" || return 1
+        PYTHONPATH="$python_path" soai_install__run_noisy_command "$python_bin" -m app.updater.post_update_hook || status=$?
+        cd "$previous_directory" || return 1
+        return "$status"
+    fi
+    (cd "$SCRIPT_DIR" && PYTHONPATH="$python_path" soai_install__run_noisy_command "$python_bin" -m app.updater.post_update_hook)
 }
 
 soai_launcher__run_backend_install_deps() {
     local python_bin="${SOAI_VENV_PATH}/bin/python"
-    "$python_bin" "$MAIN_PY_PATH" "install-deps"
+    soai_install__run_noisy_command "$python_bin" "$MAIN_PY_PATH" "install-deps"
 }
 
 soai_launcher__run_python_dependency_bootstrap() {
@@ -27,11 +35,20 @@ soai_launcher__run_python_dependency_bootstrap() {
     if [ ! -x "$python_bin" ]; then
         soai_managed_runtime__die "Cannot bootstrap Python dependencies because managed Python is missing: ${python_bin}" || return 1
     fi
+    if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+        local previous_directory="$PWD"
+        local status=0
+        cd "${SCRIPT_DIR}/backend" || return 1
+        SOAI_LOCKS_PATH="$SOAI_LOCKS_PATH" SOAI_STAGE0_OFFLINE_MODE="$OFFLINE_MODE_ENABLED" \
+            soai_install__run_noisy_command "$python_bin" -m core.bootstrap.python_dependencies_cli "$SCRIPT_DIR" || status=$?
+        cd "$previous_directory" || return 1
+        return "$status"
+    fi
     (
         cd "${SCRIPT_DIR}/backend" && \
         SOAI_LOCKS_PATH="$SOAI_LOCKS_PATH" \
         SOAI_STAGE0_OFFLINE_MODE="$OFFLINE_MODE_ENABLED" \
-        "$python_bin" -m core.bootstrap.python_dependencies_cli "$SCRIPT_DIR"
+        soai_install__run_noisy_command "$python_bin" -m core.bootstrap.python_dependencies_cli "$SCRIPT_DIR"
     )
 }
 
@@ -119,6 +136,15 @@ soai_launcher__dispatch() {
         return 0
     fi
     soai_launcher__parse_args "$@"
+    case "$SOAI_LAUNCHER_COMMAND" in
+        install|install-deps)
+            soai_install_ui__init || return 1
+            trap 'soai_install_ui__finish "$?"' EXIT
+            trap 'exit 130' INT
+            trap 'exit 143' TERM
+            trap 'exit 129' HUP
+            ;;
+    esac
     soai_launcher__configure_paths
     case "$SOAI_LAUNCHER_COMMAND" in
         install)

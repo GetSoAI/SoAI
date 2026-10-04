@@ -5,6 +5,8 @@ import { toTrustedUiHtml, type TrustedHtml } from '@core/security/public.ts';
 import { dom } from '@core/dom/dom.ts';
 import { replaceChildrenFromTrustedHtml } from '@core/dom/html.ts';
 import { resolveHTMLElement, syncAttributes, syncClass } from '@core/dom/patching.ts';
+import { stampAssistantBodySegmentSignature } from '@features/chat/message/assistantKeyedChildRetention.ts';
+import { ASSISTANT_BODY_SIGNATURE_ATTRIBUTE_NAME, formatAssistantBodySegmentSignature } from '@features/chat/message/assistantMessageMarkupParts.ts';
 import { applyAssistantMessageTextMarkup } from '@features/chat/message/assistantMessageTextDomApply.ts';
 import { captureAssistantViewportStability, restoreAssistantViewportStability } from '@features/chat/message/assistantViewportStability.ts';
 import { patchInlineActivityHeaderChildrenInPlace } from '@features/chat/message/messageview/inlineActivityHeaderChildrenPatching.ts';
@@ -18,6 +20,8 @@ import { syncStreamingMessagePassiveState } from '@features/chat/stream/streamMe
 import { ensureStreamingSegmentsContainer } from '@features/chat/stream/streamMessageStreamingStructure.ts';
 import { applyKeyedScrollableState, readKeyedScrollableState } from '@features/chat/stream/streamScrollableState.ts';
 import type { RenderStreamingMessageContentArguments, RenderStreamingMessageContentResult } from '@features/chat/stream/streamMessageRenderingContracts.ts';
+
+const LIVE_CONTENT_PRESERVED_ATTRIBUTE_NAMES = new Set<string>([ASSISTANT_BODY_SIGNATURE_ATTRIBUTE_NAME]);
 
 const patchCollapsedLoadingSummary = (currentSummary: HTMLElement, nextSummary: HTMLElement): boolean => {
     const currentHeader = resolveHTMLElement(':scope > .inline-activity-header', currentSummary);
@@ -52,7 +56,7 @@ const patchCollapsedLoadingChrome = (target: HTMLElement, contentHtml: TrustedHt
         return { patched: false, changed: false, summary: null };
     }
     let changed = patchCollapsedLoadingSummary(currentSummary, nextSummary);
-    if (syncAttributes({ target: currentContent, source: nextContent })) {
+    if (syncAttributes({ target: currentContent, source: nextContent, preservedAttributeNames: LIVE_CONTENT_PRESERVED_ATTRIBUTE_NAMES })) {
         changed = true;
     }
     return { patched: true, changed, summary: currentSummary };
@@ -87,6 +91,7 @@ const patchCollapsedLoadingStreamingContent = (inputArguments: RenderStreamingMe
     if (timelineResult.updated) {
         inputArguments.messageManager.postRender(streamSegments);
     }
+    stampAssistantBodySegmentSignature(currentContent, formatAssistantBodySegmentSignature(currentContent.innerHTML));
     return { supported: true, changed };
 };
 

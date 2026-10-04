@@ -11,8 +11,11 @@ const resolveMainStatusUpdate = (value: SystemStatusResource, currentState: stri
     return value.mainState;
 };
 
-const resolveMainSnapshotState = (snapshot: StreamSnapshot | null): string => {
+const UNCONFIRMED_MAIN_STATES: ReadonlySet<string> = new Set(['unknown', 'reconnecting']);
+
+const resolveMainSnapshotState = (snapshot: StreamSnapshot | null, currentState: string): string => {
     if (snapshot?.status === 'ready' && snapshot.value) return snapshot.value.mainState;
+    if (snapshot?.status === 'recovering' && snapshot.value && !UNCONFIRMED_MAIN_STATES.has(currentState)) return currentState;
     if (snapshot?.status === 'recovering' || snapshot?.status === 'disconnected') return 'reconnecting';
     return 'unknown';
 };

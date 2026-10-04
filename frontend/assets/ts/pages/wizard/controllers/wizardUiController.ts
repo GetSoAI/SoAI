@@ -12,6 +12,7 @@ import { normalizeProgressRatio } from '@core/primitives/progress.ts';
 import { scrollElementIntoView } from '@core/scroll.ts';
 import type { TrustedHtml } from '@core/security/public.ts';
 import type { LanguageEntryWithCountryCode } from '@core/languageservice/types.ts';
+import { getBusyDisabledToken } from '@core/ui/controls/busyDisabledState.ts';
 import { syncDeterminateProgress } from '@core/ui/progressWidths.ts';
 import { getTooltipText, setTooltipText } from '@core/ui/tooltips/tooltipAttributes.ts';
 import { syncAttributeValue } from '@core/dom/patching.ts';
@@ -134,9 +135,10 @@ class WizardPageUiController {
         const aiStep = isAiSetupWizardStepId(stepId) ? stepId : null;
         const showBack = stepId !== 'welcome' && stepId !== 'complete' && stepId !== 'ai_sources' && !(state.isAiSetupResume && state.stepIndex === 0);
         const canGoBack = showBack && !isBusy;
-        this.#dependencies.toggleHidden(ui.navFinishLaterButton, aiStep === null);
+        const showSkip = aiStep === 'ai_sources' && !state.isAiSetupResume;
+        this.#dependencies.toggleHidden(ui.navFinishLaterButton, aiStep === null || showSkip);
         this.#dependencies.updateProperty(ui.navFinishLaterButton, 'disabled', isBusy);
-        this.#dependencies.toggleHidden(ui.navSkipButton, aiStep !== 'ai_sources' || state.isAiSetupResume);
+        this.#dependencies.toggleHidden(ui.navSkipButton, !showSkip);
         this.#dependencies.updateProperty(ui.navSkipButton, 'disabled', isBusy);
 
         this.#dependencies.toggleHidden(ui.navBackButton, !showBack);
@@ -159,7 +161,7 @@ class WizardPageUiController {
         this.#dependencies.updateProperty(ui.navNextButton, 'disabled', isNextDisabled);
         ui.navNextButton.toggleAttribute('aria-disabled', isNextDisabled);
 
-        const label = productAccess?.label ?? (aiStep === null ? this.#getNextLabel(stepId) : this.#dependencies.aiSetup.nextLabel(aiStep));
+        const label = productAccess?.label ?? (aiStep === null ? this.#getNextLabel(stepId, ui) : this.#dependencies.aiSetup.nextLabel(aiStep));
         syncAttributeValue(ui.navNextButton, 'data-action', productAccess?.action ?? 'wizard-next');
         this.#dependencies.updateText(ui.navNextButton, label);
         syncAttributeValue(ui.navNextButton, 'aria-label', label);
@@ -188,6 +190,12 @@ class WizardPageUiController {
         this.#dependencies.updateProperty(attestationInput, 'checked', this.#dependencies.state.attestationConfirmed);
         this.#dependencies.updateProperty(attestationInput, 'disabled', !personalSelected);
         if (revealAttestation) scrollElementIntoView(attestationInput, { block: 'center' });
+    }
+
+    syncAccountError(account: WizardAccountUi, message: string | null): void {
+        if (message !== null) this.#dependencies.updateText(account.errorBox, message);
+        this.#dependencies.toggleClassName(account.errorRegion, 'is-expanded', message !== null);
+        this.#dependencies.updateAttribute(account.errorRegion, 'aria-hidden', message === null ? 'true' : 'false');
     }
 
     selectedProductAccessFlow(ui: WizardUi): ProductAccessFlow | null {
@@ -285,7 +293,7 @@ class WizardPageUiController {
         return isWizardAccountFormEligibleForSubmit(form);
     }
 
-    #getNextLabel(stepId: WizardStepId): string {
+    #getNextLabel(stepId: WizardStepId, ui: WizardUi): string {
         switch (stepId) {
             case 'welcome':
                 return i18n.t('wizard.navigation.getStarted');
@@ -296,7 +304,7 @@ class WizardPageUiController {
             case 'product_access':
                 return i18n.t('wizard.navigation.continue');
             case 'account':
-                return i18n.t('wizard.navigation.createAccount');
+                return getBusyDisabledToken(ui.navNextButton) === null ? i18n.t('wizard.navigation.createAccount') : i18n.t('wizard.userCreation.creating');
             case 'complete':
                 if (this.#dependencies.state.isSessionActivationRequired) return i18n.t('wizard.navigation.signIn');
                 if (this.#dependencies.aiSetup.hasReadyModel()) return i18n.t('wizard.aiSetup.nav.startChatting');

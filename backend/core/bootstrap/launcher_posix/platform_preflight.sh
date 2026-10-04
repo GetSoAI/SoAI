@@ -32,18 +32,18 @@ soai_launcher__ensure_linux_host_dependencies() {
 
     local elevate=()
     if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-        if command -v sudo >/dev/null 2>&1; then
-            elevate=("sudo")
+        if soai_launcher__select_root_elevation env DEBIAN_FRONTEND=noninteractive apt-get update; then
+            elevate=(soai_launcher__run_as_root default-environment)
         else
-            soai_managed_runtime__die "Missing system dependencies (${required_packages[*]}) and sudo is not available. Re-run as root or install the packages manually." || return 1
+            soai_managed_runtime__die "Missing system dependencies (${required_packages[*]}) and neither sudo nor su can provide root privileges. Re-run as root or install the packages manually." || return 1
         fi
     fi
 
     soai_launcher__info "Installing required system packages via apt-get: ${required_packages[*]}..."
-    if ! "${elevate[@]}" env DEBIAN_FRONTEND=noninteractive apt-get update; then
+    if ! soai_install__run_noisy_command "${elevate[@]}" env DEBIAN_FRONTEND=noninteractive apt-get update; then
         soai_managed_runtime__die "apt-get update failed while installing SoAI system dependencies." || return 1
     fi
-    if ! "${elevate[@]}" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${required_packages[@]}"; then
+    if ! soai_install__run_noisy_command "${elevate[@]}" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${required_packages[@]}"; then
         soai_managed_runtime__die "apt-get install failed while installing SoAI system dependencies: ${required_packages[*]}." || return 1
     fi
     return 0

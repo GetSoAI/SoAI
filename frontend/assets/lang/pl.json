@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "Zmień folder",
                 "createFile": "Utwórz plik",
                 "createFolder": "Utwórz folder",
                 "editPath": "Edytuj bieżącą ścieżkę",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "Włącz endpoint Images, aby można było to przełączyć.",
                         "requiresResponses": "Włącz endpoint Responses, aby można było to przełączyć.",
                         "requiresVision": "Włącz modalność Vision, aby można było to przełączyć.",
-                        "text": "Nie można wyłączyć tekstu."
+                        "text": "Nie można wyłączyć tekstu.",
+                        "unsupported": "Ten model nie obsługuje tej funkcji."
                     },
                     "manifestLoading": "Ładowanie taksonomii możliwości...",
                     "none": "Brak możliwości OpenAI dostępnych dla tego modelu.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "Pobieranie anulowano",
                 "downloadFailed": "Nie udało się pobrać modelu",
                 "downloadSuccess": "Model pobrano pomyślnie",
-                "enterApiKey": "Wprowadź klucz API",
                 "enterApiUrl": "Wprowadź URL API",
                 "enterModelId": "Wprowadź ID modelu",
                 "enterProviderName": "Wprowadź nazwę dostawcy",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Konto administratora zostało utworzone pomyślnie.",
                 "accountCreatedSignInRequired": "Konto administratora zostało utworzone. Zaloguj się, aby kontynuować."
             },
             "progress": {

@@ -32,8 +32,8 @@ const renderPluginField = (context: WizardViewContext, view: AiSetupConnectView)
 
 const renderProviderForm = (context: WizardViewContext, view: AiSetupConnectView): string => {
     const draft = view.connection.draft;
-    const keyInput = `<input dir="ltr" id="wizard-ai-provider-key" name="api-key" type="${resolveSecretInputType()}" class="wizard-form-input form-input secret-input" autocomplete="off" spellcheck="false" placeholder="${context.sanitizer.attribute(i18n.t('models.modal.addProvider.apiKeyPlaceholder'))}" required>`;
-    const keyField = `<div class="wizard-form-group"><label for="wizard-ai-provider-key">${renderRequiredFieldLabelHtml(i18n.t('models.modal.addProvider.apiKeyLabel'))}</label>${renderSecretInputControl({ inputId: 'wizard-ai-provider-key', inputMarkup: keyInput })}</div>`;
+    const keyInput = `<input dir="ltr" id="wizard-ai-provider-key" name="api-key" type="${resolveSecretInputType()}" class="wizard-form-input form-input secret-input" autocomplete="off" spellcheck="false" placeholder="${context.sanitizer.attribute(i18n.t('models.modal.addProvider.apiKeyPlaceholder'))}">`;
+    const keyField = `<div class="wizard-form-group"><label for="wizard-ai-provider-key">${context.sanitizer.html(i18n.t('models.modal.addProvider.apiKeyLabel'))}</label>${renderSecretInputControl({ inputId: 'wizard-ai-provider-key', inputMarkup: keyInput })}</div>`;
     const filterField = renderTextField(context, { id: 'wizard-ai-provider-filter', name: 'models-filter', label: i18n.t('wizard.aiSetup.connect.cloud.modelFilter'), value: draft.modelsFilter, placeholder: i18n.t('models.modal.addProvider.modelsFilterPlaceholder'), required: false });
     const error = view.connection.error;
     const connectLabel = context.sanitizer.html(i18n.t('wizard.aiSetup.connect.cloud.connect'));

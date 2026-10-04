@@ -22,14 +22,9 @@
       "url": "https://www.nuget.org/api/v2/package/python/3.13.14",
       "version": "3.13.14"
     },
-    "visual_cpp_app_local": {
-      "package_sha256": "ea8fad02d8de9ca1ab4e1d20c282166b3386adf91a9b143019d59507229ea375",
-      "url": "https://www.nuget.org/api/v2/package/VCLibs.VCRuntime.140/1.0.4",
-      "version": "1.0.4"
-    },
     "visual_cpp_redistributable": {
       "integrity": "authenticode-microsoft",
-      "url": "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+      "url": "https://aka.ms/vc14/vc_redist.x64.exe"
     },
     "webview2_runtime": {
       "integrity": "authenticode-microsoft",

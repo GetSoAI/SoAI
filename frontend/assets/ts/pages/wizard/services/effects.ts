@@ -88,22 +88,7 @@ const resolveAccountCreationErrorText = (result: WizardCompletionResult): string
     return errorMessage;
 };
 
-const handleWizardAccountSubmission = async (host: WizardPageServiceHost, account: WizardAccountUi): Promise<boolean> => {
-    const ui = host.view.requireUi();
-    const fields = readWizardAccountFields(account.form);
-
-    const validationError = resolveSubmitValidationError(fields);
-    if (validationError) {
-        host.view.updateText(account.errorBox, validationError);
-        host.view.toggleHidden(account.errorBox, false);
-        return false;
-    }
-
-    host.view.state.isBusy = true;
-    beginLoadingButton(ui.navNextButton);
-    host.view.syncNavigation(ui, 'account');
-    host.view.updateText(ui.navNextButton, i18n.t('wizard.userCreation.creating'));
-
+const createWizardAccount = async (host: WizardPageServiceHost, account: WizardAccountUi, fields: WizardAccountFields): Promise<boolean> => {
     try {
         const result = await host.data.submitWizardAccount(fields.username, fields.password);
         if (isAccountCreated(result) && result.user !== null) {
@@ -112,37 +97,46 @@ const handleWizardAccountSubmission = async (host: WizardPageServiceHost, accoun
             host.view.state.isSessionActivationRequired = result.status === 'sessionActivationFailed';
             syncWizardSteps(host.view.state);
             host.data.markWizardHasUsers();
-            const notification = result.status === 'authenticated' ? i18n.t('wizard.notifications.accountCreated') : i18n.t('wizard.notifications.accountCreatedSignInRequired');
-            host.completion.notify(notification, result.status === 'authenticated' ? 'success' : 'warning');
+            if (result.status === 'sessionActivationFailed') host.completion.notify(i18n.t('wizard.notifications.accountCreatedSignInRequired'), 'warning');
             return true;
         }
 
-        host.view.updateText(account.errorBox, resolveAccountCreationErrorText(result));
-        host.view.toggleHidden(account.errorBox, false);
+        host.view.syncAccountError(account, resolveAccountCreationErrorText(result));
         return false;
     } catch (error) {
         const runtimeError = ensureError(error);
         host.completion.logError('Failed to create admin user', runtimeError);
-        host.view.updateText(account.errorBox, i18n.t('wizard.userCreation.errors.generic'));
-        host.view.toggleHidden(account.errorBox, false);
+        host.view.syncAccountError(account, i18n.t('wizard.userCreation.errors.generic'));
         throw runtimeError;
+    }
+};
+
+const handleWizardAccountSubmission = async (host: WizardPageServiceHost, account: WizardAccountUi, advance: () => Promise<void>): Promise<void> => {
+    const ui = host.view.requireUi();
+    const fields = readWizardAccountFields(account.form);
+
+    const validationError = resolveSubmitValidationError(fields);
+    if (validationError) {
+        host.view.syncAccountError(account, validationError);
+        return;
+    }
+
+    host.view.state.isBusy = true;
+    beginLoadingButton(ui.navNextButton);
+    host.view.syncNavigation(ui, 'account');
+
+    try {
+        if (await createWizardAccount(host, account, fields)) await advance();
     } finally {
         host.view.state.isBusy = false;
         clearLoadingButtonIfNeeded(ui.navNextButton);
-        host.view.updateText(ui.navNextButton, i18n.t('wizard.navigation.createAccount'));
-        host.view.syncNavigation(ui, 'account');
+        host.view.syncCurrentNavigation();
     }
 };
 
 const handleWizardAccountInput = (host: WizardPageServiceHost, account: WizardAccountUi, options: { validateUsername: boolean }): void => {
     const fields = readWizardAccountFields(account.form);
-    const validationError = resolveLiveValidationError(fields, options);
-    if (!validationError) {
-        host.view.toggleHidden(account.errorBox, true);
-        return;
-    }
-    host.view.updateText(account.errorBox, validationError);
-    host.view.toggleHidden(account.errorBox, false);
+    host.view.syncAccountError(account, resolveLiveValidationError(fields, options));
 };
 
 export { handleWizardAccountInput, handleWizardAccountSubmission };

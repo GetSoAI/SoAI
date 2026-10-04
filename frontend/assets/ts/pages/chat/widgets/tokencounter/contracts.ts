@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import type { JsonArray, JsonObject, JsonValue } from '@core/types/jsonValues.ts';
-import type { Conversation, StreamUpdate } from '@features/chat/public.ts';
+import type { ChatTurnAdmissionStreamIdentity, Conversation, StreamUpdate } from '@features/chat/public.ts';
 import type { PageDomOwnerHost } from '@core/routing/pages/basepagecore/PageDom.ts';
 import type { PageFeedbackOwnerHost } from '@core/routing/pages/basepagecore/PageFeedback.ts';
 
@@ -26,6 +26,7 @@ interface TokenCounterHost extends PageDomOwnerHost, PageFeedbackOwnerHost {
     runUiTask(operationId: string, task: () => Promise<void> | void): void;
     createDebouncedHandler<TArguments extends JsonValue[]>(functionValue: (...inputArguments: TArguments) => void, delay: number): ((...inputArguments: TArguments) => void) & { cancel: () => void };
     subscribeTokenCounterStreamUpdates(listener: (update: StreamUpdate) => void): () => void;
+    getTokenCounterStreamIdentity(conversationId: string): ChatTurnAdmissionStreamIdentity | null;
 }
 
 export type { TokenCounterHost, TokenCounterMode };

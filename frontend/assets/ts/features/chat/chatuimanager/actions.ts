@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
 import { prefersReducedMotion } from '@core/animations/prefersReducedMotion.ts';
-import type { ChatMessage } from '@features/chat/ChatTypes.ts';
-import { renderExpandedActivityDetails, resolveActivityToggleContext, resolveCurrentActivityToggleContext, type ResolvedActivityToggleContext } from '@features/chat/chatuimanager/toolActivityExpansion.ts';
+import { renderExpandedActivityDetails, resolveActivityToggleContext, resolveCurrentActivityToggleContext, updateInlineActivityCollapsedState } from '@features/chat/chatuimanager/toolActivityExpansion.ts';
 import { detailsRootHasPopulatedContent, readInlineActivityDetailsRootSignature } from '@features/chat/message/inlineActivityDetailsLifecycle.ts';
 import { INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE, resolveDirectInlineActivityDetailsRoot } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
 import { completeInlineActivityDetailsOpenState, isInlineActivityDetailsPending, resetInlineActivityDetailsClosedState } from '@features/chat/message/inlineActivityDetailsPendingState.ts';
@@ -11,22 +10,6 @@ import { captureAssistantViewportStability, withCapturedAssistantViewportStabili
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 
 const COLLAPSE_SETTLED_TRANSITION_PROPERTY = 'opacity';
-
-const updateCollapsedStateMap = (message: ChatMessage, fieldName: 'inlineToolCollapsedByCallId' | 'inlineThinkingCollapsedByCallId', callId: string, collapsed: boolean): void => {
-    const rawMap = message[fieldName];
-    const map = rawMap ? { ...rawMap } : {};
-    map[callId] = collapsed;
-    message[fieldName] = map;
-};
-
-const updateInlineActivityCollapsedState = (context: ChatUIManagerContext, resolved: ResolvedActivityToggleContext, collapsed: boolean): void => {
-    if (resolved.expectedType === 'inline_thinking_activity') {
-        updateCollapsedStateMap(resolved.message, 'inlineThinkingCollapsedByCallId', resolved.callId, collapsed);
-    } else {
-        updateCollapsedStateMap(resolved.message, 'inlineToolCollapsedByCallId', resolved.callId, collapsed);
-    }
-    context.dependencies.messageManager.invalidateMessageCache(resolved.message);
-};
 
 export async function toggleToolActivityItem(context: ChatUIManagerContext, header: Element | null): Promise<void> {
     if (!header) {
@@ -83,7 +66,7 @@ export async function toggleToolActivityItem(context: ChatUIManagerContext, head
         if (existingDetails instanceof HTMLElement && !existingDetailsHasContent) {
             existingDetails.remove();
         }
-        const handledByDetailsRender = await renderExpandedActivityDetails(context, resolved, existingSignature, existingDetailsHasContent);
+        const handledByDetailsRender = renderExpandedActivityDetails(context, resolved, existingSignature, existingDetailsHasContent);
         if (handledByDetailsRender) {
             updateInlineActivityCollapsedState(context, resolved, false);
             return;

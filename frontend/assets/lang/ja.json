@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "フォルダーを変更",
                 "createFile": "ファイルを作成",
                 "createFolder": "フォルダーを作成",
                 "editPath": "現在のパスを編集",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "切り替えるには Images エンドポイントを有効にしてください。",
                         "requiresResponses": "切り替えるには Responses エンドポイントを有効にしてください。",
                         "requiresVision": "切り替えるには Vision モダリティを有効にしてください。",
-                        "text": "Text は無効にできません。"
+                        "text": "Text は無効にできません。",
+                        "unsupported": "このモデルはこの機能をサポートしていません。"
                     },
                     "manifestLoading": "機能分類を読み込み中...",
                     "none": "このモデルで利用できる OpenAI 機能はありません。",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "ダウンロードをキャンセルしました",
                 "downloadFailed": "モデルのダウンロードに失敗しました",
                 "downloadSuccess": "モデルをダウンロードしました",
-                "enterApiKey": "API キーを入力してください",
                 "enterApiUrl": "API URL を入力してください",
                 "enterModelId": "モデル ID を入力してください",
                 "enterProviderName": "プロバイダー名を入力してください",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "管理者アカウントを正常に作成しました。",
                 "accountCreatedSignInRequired": "管理者アカウントを作成しました。続行するにはサインインしてください。"
             },
             "progress": {

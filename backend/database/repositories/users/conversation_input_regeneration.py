@@ -17,6 +17,10 @@ from database.repositories.users.conversation_input_active_state_reads import (
 from database.repositories.users.conversation_input_claims import (
     attach_conversation_input_dispatch_state,
 )
+from database.repositories.users.conversation_input_constants import (
+    CONVERSATION_REGENERATION_HAS_REPLACEMENT_SQL,
+    conversation_regeneration_retryable_sql,
+)
 from database.repositories.users.conversation_input_fingerprint import (
     build_conversation_input_content_fingerprint,
 )
@@ -65,24 +69,26 @@ def _format_regeneration_attempt(row: SQLiteRowDict | None) -> JSONDict | None:
     return formatted
 
 
-def _attach_replacement_state(
+def _attach_regeneration_receipt_state(
     conn: sqlite3.Connection,
     attempt: JSONDict,
 ) -> JSONDict:
-    request_id = attempt.get("request_id")
-    conv_id = attempt.get("conv_id")
-    if not isinstance(request_id, str) or not isinstance(conv_id, str):
+    input_id = attempt.get("input_id")
+    if not isinstance(input_id, str):
         raise StateError("Conversation regeneration execution identity is invalid.")
-    replacement = conn.execute(
-        """
-        SELECT 1 FROM webui_messages
-        WHERE conv_id = ? AND role = 'assistant'
-          AND (request_id = ? OR request_id GLOB ? || ':variant:[0-9]*')
-        LIMIT 1
+    receipt_state = conn.execute(
+        f"""
+        SELECT {CONVERSATION_REGENERATION_HAS_REPLACEMENT_SQL},
+               {conversation_regeneration_retryable_sql()}
+        FROM webui_conversation_inputs AS input
+        WHERE input.input_id = ?
         """,
-        (conv_id, request_id, request_id),
+        (input_id,),
     ).fetchone()
-    attempt["has_assistant_replacement"] = replacement is not None
+    if receipt_state is None:
+        raise StateError("Conversation regeneration attempt is missing after lookup.")
+    attempt["has_assistant_replacement"] = receipt_state[0] == 1
+    attempt["is_retryable"] = receipt_state[1] == 1
     return attempt
 
 
@@ -109,7 +115,7 @@ def _resolve_existing_attempt(
     formatted = _format_regeneration_attempt(existing)
     if formatted is None:
         raise StateError("Conversation regeneration attempt is missing after lookup.")
-    result = _attach_replacement_state(
+    result = _attach_regeneration_receipt_state(
         conn,
         attach_conversation_input_dispatch_state(conn, formatted),
     )
@@ -307,7 +313,7 @@ def sync_admit_conversation_regeneration(
         raise StateError("Conversation regeneration attempt is missing after admission.")
     formatted["message_count"] = sync_count_stored_messages(conn, conv_id)
     formatted["regeneration_replayed"] = False
-    return _attach_replacement_state(
+    return _attach_regeneration_receipt_state(
         conn,
         attach_conversation_input_dispatch_state(conn, formatted),
     )

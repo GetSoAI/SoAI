@@ -12,6 +12,8 @@ from database.repositories.users.conversation_input_constants import (
     CONVERSATION_INPUT_DISPATCH_RANK_SQL,
     CONVERSATION_INPUT_PRECEDES_SQL,
     CONVERSATION_INPUT_RUNNING_ROOT_AVAILABLE_SQL,
+    CONVERSATION_REGENERATION_HAS_REPLACEMENT_SQL,
+    conversation_regeneration_retryable_sql,
 )
 from database.repositories.users.conversation_input_row_mapping import (
     format_conversation_input_row,
@@ -55,15 +57,9 @@ async def query_conversation_regeneration_attempt(
                                 AND ({CONVERSATION_INPUT_PRECEDES_SQL})
                           )
                     THEN 1 ELSE 0 END AS regeneration_is_dispatchable_head,
-               EXISTS (
-                   SELECT 1 FROM webui_messages AS replacement
-                   WHERE replacement.conv_id = input.conv_id
-                     AND replacement.role = 'assistant'
-                     AND (
-                         replacement.request_id = input.request_id
-                         OR replacement.request_id GLOB input.request_id || ':variant:[0-9]*'
-                     )
-               ) AS regeneration_has_assistant_replacement
+               {CONVERSATION_REGENERATION_HAS_REPLACEMENT_SQL}
+                   AS regeneration_has_assistant_replacement,
+               {conversation_regeneration_retryable_sql()} AS regeneration_is_retryable
         FROM ranked_inputs AS input
         JOIN webui_conversations AS conversation
           ON conversation.id = input.conv_id AND conversation.user_id = input.user_id
@@ -82,4 +78,5 @@ async def query_conversation_regeneration_attempt(
         return None
     formatted["is_dispatchable_head"] = row.get("regeneration_is_dispatchable_head") == 1
     formatted["has_assistant_replacement"] = row.get("regeneration_has_assistant_replacement") == 1
+    formatted["is_retryable"] = row.get("regeneration_is_retryable") == 1
     return formatted

@@ -10,7 +10,7 @@ import type { IconName } from '@core/ui/icons/iconRegistry.generated.ts';
 import type { IconOptions } from '@core/ui/icons/iconservice/public.ts';
 import { resolveInitialViewMode } from '@core/uiprimitives/viewmode/public.ts';
 import { renderSortControl } from '@core/uiprimitives/sortableList.ts';
-import { FILE_EXPLORER_ACTION_NEW_ENTRY, FILE_EXPLORER_ACTION_TOGGLE_VIEW_MODE } from '@features/fileexplorer/public.ts';
+import { FILE_EXPLORER_ACTION_NEW_ENTRY, FILE_EXPLORER_ACTION_OPEN_FOLDER_SETTINGS, FILE_EXPLORER_ACTION_TOGGLE_VIEW_MODE } from '@features/fileexplorer/public.ts';
 import { FILE_EXPLORER_NEW_ENTRY_OPTION_VALUES, type FileExplorerNewEntryOptionValue } from '@pages/fileexplorer/contracts/contracts.ts';
 import { createFileExplorerSortControlDefinition, type FileExplorerSortState } from '@pages/fileexplorer/controllers/page/fileExplorerPageControlsController.ts';
 import { renderFileExplorerAddressBar } from '@pages/fileexplorer/rendering/FileExplorerAddressBarWidget.ts';
@@ -82,6 +82,17 @@ const buildViewModeAction = (dependencies: FileExplorerHeaderWidgetDependencies,
     };
 };
 
+const buildFolderSettingsAction = (dependencies: FileExplorerHeaderWidgetDependencies): HeaderActionDefinition => {
+    const folderSettingsLabel = i18n.t('fileExplorer.actions.changeFolder');
+    return {
+        type: 'button',
+        content: uiHtml`${dependencies.getIconSync('folder', { size: 24, strokeWidth: 1.5 })}<span>${folderSettingsLabel}</span>`,
+        variant: 'ui-variant-neutral',
+        attributes: { 'data-action': FILE_EXPLORER_ACTION_OPEN_FOLDER_SETTINGS, id: 'file-explorer-folder-settings' },
+        ariaLabel: folderSettingsLabel
+    };
+};
+
 const buildNewEntryAction = (dependencies: FileExplorerHeaderWidgetDependencies): HeaderActionDefinition => ({
     type: 'filter',
     class: 'ui-variant-accent file-explorer-new-entry-shell',
@@ -105,7 +116,7 @@ const renderFileExplorerHeaderWidget = (dependencies: FileExplorerHeaderWidgetDe
         description: i18n.t('pages.fileExplorer.description'),
         floating: true,
         contentAreaClass: 'file-explorer-content',
-        actions: [buildSortAction(initialViewMode, dependencies.sortState), ...buildFileExplorerCommandActions(dependencies), buildViewModeAction(dependencies, initialViewMode), buildNewEntryAction(dependencies)],
+        actions: [buildSortAction(initialViewMode, dependencies.sortState), ...buildFileExplorerCommandActions(dependencies), buildViewModeAction(dependencies, initialViewMode), buildFolderSettingsAction(dependencies), buildNewEntryAction(dependencies)],
         toolbars: {
             id: 'file-explorer-chrome',
             ariaLabel: i18n.t('fileExplorer.aria.chrome'),

@@ -197,8 +197,7 @@ const updateDownloadButtonState = (runtime: DownloadModalManagerRuntime): void =
         const hasPlugin = Boolean(toTrimmedString(requireSelectElement(resolver, modalUiSelector(modalId, 'provider-plugin-select'), 'Download modal provider-plugin-select', modalRoot).value));
         const hasProviderName = Boolean(toTrimmedString(requireInputElement(resolver, modalUiSelector(modalId, 'provider-name'), 'Download modal provider-name', modalRoot).value));
         const hasProviderApiUrl = Boolean(toTrimmedString(requireInputElement(resolver, modalUiSelector(modalId, 'provider-api-url'), 'Download modal provider-api-url', modalRoot).value));
-        const hasProviderApiKey = Boolean(toTrimmedString(requireInputElement(resolver, modalUiSelector(modalId, 'provider-api-key'), 'Download modal provider-api-key', modalRoot).value));
-        const hasRequiredFields = hasPlugin && hasProviderName && hasProviderApiUrl && hasProviderApiKey;
+        const hasRequiredFields = hasPlugin && hasProviderName && hasProviderApiUrl;
         runtime.host.view.updateProperty(confirmButton, 'disabled', runtime.state.isCreatingProvider || !hasRequiredFields);
         return;
     }

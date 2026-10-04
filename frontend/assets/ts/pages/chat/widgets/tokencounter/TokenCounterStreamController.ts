@@ -59,6 +59,16 @@ class TokenCounterStreamController {
         this.#resources.track(this.#host.subscribeTokenCounterStreamUpdates((update) => this.#handleStreamUpdate(update)));
     }
 
+    replayActiveStream(): void {
+        if (!this.#initialized) {
+            return;
+        }
+        this.#resources.cleanup();
+        this.#stopRenderTicker();
+        this.#initialized = false;
+        this.initialize();
+    }
+
     reset(): void {
         this.#boundIdentity = null;
         this.#terminalIdentities = [];
@@ -82,7 +92,16 @@ class TokenCounterStreamController {
         if (activeConversationId === null || updateConversationId !== activeConversationId) {
             return;
         }
+        const terminal = isTerminalStreamUpdate(update);
+        if (!terminal && (update.status !== 'streaming' || update.countsAsStreaming !== true)) {
+            return;
+        }
         const updateIdentity = buildUpdateIdentity(update);
+        const authoritativeIdentity = this.#host.getTokenCounterStreamIdentity(activeConversationId);
+        const matchingBoundTerminal = terminal && authoritativeIdentity === null && identitiesMatch(this.#boundIdentity, updateIdentity);
+        if (!identitiesMatch(authoritativeIdentity, updateIdentity) && !matchingBoundTerminal) {
+            return;
+        }
         if (!this.#canAcceptIdentity(updateIdentity)) {
             return;
         }
@@ -93,7 +112,7 @@ class TokenCounterStreamController {
                 this.#render('streamTokenUsage');
             }
         }
-        if (isTerminalStreamUpdate(update)) {
+        if (terminal) {
             this.#usageTracker.completeActiveStream();
             this.#terminalIdentities.push(updateIdentity);
             this.#boundIdentity = null;
@@ -107,12 +126,17 @@ class TokenCounterStreamController {
         if (this.#terminalIdentities.some((identity) => identitiesMatch(identity, updateIdentity))) {
             return false;
         }
+        if (identitiesMatch(this.#boundIdentity, updateIdentity)) {
+            return true;
+        }
         if (this.#boundIdentity !== null) {
-            return identitiesMatch(this.#boundIdentity, updateIdentity);
+            this.#terminalIdentities.push(this.#boundIdentity);
+            this.#usageTracker.clearUsage();
         }
         this.#boundIdentity = updateIdentity;
         this.#usageTracker.beginActiveStream();
         this.#onStreamStarted();
+        this.#render('streamStarted');
         return true;
     }
 

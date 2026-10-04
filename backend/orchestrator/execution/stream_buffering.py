@@ -111,11 +111,11 @@ async def buffer_stream_to_result_payload(
                         )
                     except asyncio.QueueFull:
                         continue
+        transcript.finalize()
         progress_sampler.sample(transcript, force=True)
     finally:
         try:
             await close_async_iterator_if_supported(stream_iterator)
         finally:
             progress_sampler.finish()
-    transcript.finalize()
     return transcript.build_result_payload()

@@ -18,11 +18,9 @@ for soai_install_script_arg in "$@"; do
 done
 
 if [ "$SOAI_INSTALL_SCRIPT_FAST" = "1" ] && [ "${EUID:-$(id -u)}" -ne 0 ]; then
-    if ! command -v sudo >/dev/null 2>&1; then
-        echo "ERROR: --fast installs to the platform system target and requires root privileges, but sudo is unavailable." >&2
-        exit 1
-    fi
-    exec sudo -E "${SCRIPT_DIR}/install-soai-from-release.sh" "$@"
+    source "${SCRIPT_DIR}/backend/core/bootstrap/launcher_posix/update_recovery.sh"
+    echo "--fast installs to the platform system target and requires root privileges." >&2
+    soai_launcher__exec_as_root preserve-environment "${SCRIPT_DIR}/install-soai-from-release.sh" "$@" || exit 1
 fi
 
 if [ "$SOAI_INSTALL_SCRIPT_HAS_COMMAND" = "1" ]; then

@@ -57,7 +57,8 @@ const createChatTokenCounter = (page: ChatTokenCounterDependencies): ChatTokenCo
             requireTokenCounterLabel: (button) => requireChatTokenCounterLabel(button),
             runUiTask: (operationId, task) => page.taskScope.run(operationId, task),
             createDebouncedHandler: (functionValue, delay) => page.services.createDebouncedHandler(functionValue, delay),
-            subscribeTokenCounterStreamUpdates: (listener) => page.turnRuntime.requireStreaming().subscribeStreamUpdates(listener)
+            subscribeTokenCounterStreamUpdates: (listener) => page.turnRuntime.requireStreaming().subscribeStreamUpdates(listener),
+            getTokenCounterStreamIdentity: (conversationId) => page.turnRuntime.requireStreaming().getStreamIdentity(conversationId)
         },
         ws: {
             sendMessage: (payload, options) => sendWebSocketMessage(payload, options)

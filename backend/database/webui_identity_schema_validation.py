@@ -4,15 +4,22 @@
 from __future__ import annotations
 
 import sqlite3
-import time
 
 from core.errors.exceptions import StateError
+from core.logging.trace import get_logger
+from core.timing.epoch import epoch_ms
 from core.users.account_types import HUMAN_ACCOUNT_TYPE
 from core.users.username import require_canonical_username
 from core.workspaces.user_workspace_path import require_default_workspace_path
+from database.core.savepoints import SQLiteSavepoint
+from database.repositories.users.webui_identity_maintenance import (
+    sync_prune_future_session_lineage_state,
+)
 from database.repositories.users.webui_session_lineage_validation import (
     sync_validate_rotation_lineages,
 )
+
+LOGGER_NAME = "SoAI.database.webui_identity_schema_validation"
 
 
 def _validate_account_rows(conn: sqlite3.Connection) -> None:
@@ -35,29 +42,6 @@ def _validate_account_rows(conn: sqlite3.Connection) -> None:
             raise StateError("WebUI account identity fields are invalid.")
 
 
-def _validate_chronology(conn: sqlite3.Connection) -> None:
-    now_ms = int(time.time() * 1000)
-    row = conn.execute(
-        """
-        SELECT max(value)
-        FROM (
-            SELECT max(created_at_ms) AS value
-            FROM webui_device_sessions
-            WHERE expires_at_ms > ?
-            UNION ALL
-            SELECT max(rotated_at_ms) AS value
-            FROM webui_session_rotations
-            WHERE source_expires_at_ms > ?
-               OR replacement_expires_at_ms > ?
-               OR recoverable_until_ms > ?
-        )
-        """,
-        (now_ms, now_ms, now_ms, now_ms),
-    ).fetchone()
-    if row is not None and row[0] is not None and now_ms < int(row[0]):
-        raise StateError("System clock precedes active WebUI session chronology.")
-
-
 def _validate_pending_password_outbox_payloads(conn: sqlite3.Connection) -> None:
     row = conn.execute("""
         SELECT id
@@ -78,10 +62,18 @@ def _validate_pending_password_outbox_payloads(conn: sqlite3.Connection) -> None
 
 
 def validate_current_webui_identity_rows(conn: sqlite3.Connection) -> None:
-    _validate_account_rows(conn)
-    _validate_chronology(conn)
-    sync_validate_rotation_lineages(conn, int(time.time() * 1000))
-    _validate_pending_password_outbox_payloads(conn)
+    observed_at_ms = epoch_ms()
+    with SQLiteSavepoint(conn, "validate_webui_identity_rows"):
+        _validate_account_rows(conn)
+        pruned = sync_prune_future_session_lineage_state(conn, observed_at_ms)
+        sync_validate_rotation_lineages(conn, observed_at_ms)
+        _validate_pending_password_outbox_payloads(conn)
+    if pruned.session_count or pruned.rotation_count:
+        get_logger(LOGGER_NAME).warning(
+            "Removed %s WebUI sessions and %s session rotations dated after the system clock; affected users must sign in again.",
+            pruned.session_count,
+            pruned.rotation_count,
+        )
 
 
 __all__ = ("validate_current_webui_identity_rows",)

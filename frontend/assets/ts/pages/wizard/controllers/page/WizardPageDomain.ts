@@ -217,6 +217,7 @@ class WizardPageDomain {
                 syncNavigation: (ui, stepId) => this.#ui.syncNavigation(ui, stepId),
                 syncCurrentNavigation: () => this.#syncCurrentNavigation(),
                 syncUseSelection: (ui) => this.#ui.syncUseSelection(ui),
+                syncAccountError: (account, message) => this.#ui.syncAccountError(account, message),
                 selectedProductAccessFlow: (ui) => this.#ui.selectedProductAccessFlow(ui),
                 syncProductAccessSelection: (ui, selected, focusPanel) => this.#ui.syncProductAccessSelection(ui, selected, focusPanel),
                 updateText: (element, value) => this.#dependencies.pageDom.updateText(element, value),

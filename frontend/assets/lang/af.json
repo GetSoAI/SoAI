@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "Verander gids",
                 "createFile": "Skep lêer",
                 "createFolder": "Skep gids",
                 "editPath": "Wysig huidige pad",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "Aktiveer die Beelde-eindpunt om dit te wissel.",
                         "requiresResponses": "Aktiveer die Antwoorde-eindpunt om dit te wissel.",
                         "requiresVision": "Aktiveer die Visie-modaliteit om dit te wissel.",
-                        "text": "Teks kan nie gedeaktiveer word nie."
+                        "text": "Teks kan nie gedeaktiveer word nie.",
+                        "unsupported": "Hierdie model ondersteun nie hierdie vermoë nie."
                     },
                     "manifestLoading": "Laai vermoë-taksonomie...",
                     "none": "Geen OpenAI-vermoëns vir hierdie model beskikbaar nie.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "Aflaai gekanselleer",
                 "downloadFailed": "Kon nie model aflaai nie",
                 "downloadSuccess": "Model suksesvol afgelaai",
-                "enterApiKey": "Voer asseblief 'n API-sleutel in",
                 "enterApiUrl": "Voer asseblief 'n API-URL in",
                 "enterModelId": "Voer asseblief 'n model-ID in",
                 "enterProviderName": "Voer asseblief 'n verskaffernaam in",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Administrateurrekening suksesvol geskep.",
                 "accountCreatedSignInRequired": "Administrateurrekening geskep. Meld aan om voort te gaan."
             },
             "progress": {

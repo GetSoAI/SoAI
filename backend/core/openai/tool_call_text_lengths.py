@@ -10,6 +10,7 @@ from core.openai.reasoning_text import normalize_reasoning_text
 from core.openai.tool_call_stream_matching import (
     THINKING_CLOSE_TAG_REGEX,
     THINKING_OPEN_TAG_REGEX,
+    find_text_tag_start,
 )
 
 if TYPE_CHECKING:
@@ -30,7 +31,7 @@ def _resolve_text_lengths_with_thinking_tags(text: str) -> tuple[int, int]:
     thinking_depth = 0
     cursor = 0
     while cursor < len(text):
-        tag_index = text.find("<", cursor)
+        tag_index = find_text_tag_start(text, cursor)
         if tag_index == -1:
             chunk = text[cursor:]
             if thinking_depth > 0:

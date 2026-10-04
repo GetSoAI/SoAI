@@ -266,11 +266,57 @@ soai_uninstall__elevate_if_required() {
     if [ "$needs_root" = "0" ]; then
         return 0
     fi
-    if ! command -v sudo >/dev/null 2>&1; then
-        soai_uninstall__die "Root privileges are required to remove ${SOAI_UNINSTALL_ROOT}, but sudo is unavailable."
-    fi
     soai_uninstall__status "Root privileges are required to remove ${SOAI_UNINSTALL_ROOT}."
-    exec sudo -E bash "$SOAI_UNINSTALL_SCRIPT_PATH" "$@" --yes
+    local -a elevated_uninstall_command=(bash "$SOAI_UNINSTALL_SCRIPT_PATH" "$@" --yes)
+    if command -v sudo >/dev/null 2>&1 && sudo -v; then
+        if soai_uninstall__sudo_permits_command "${elevated_uninstall_command[@]}"; then
+            exec sudo -E "${elevated_uninstall_command[@]}"
+        fi
+        if command -v su >/dev/null 2>&1 \
+            && soai_uninstall__sudo_permits_command su -s /bin/bash root -c true; then
+            exec sudo su -s /bin/bash root -c "$(soai_uninstall__root_shell_command "${elevated_uninstall_command[@]}")"
+        fi
+    fi
+    if command -v su >/dev/null 2>&1 && (exec 3<>/dev/tty) 2>/dev/null; then
+        soai_uninstall__run_with_su "${elevated_uninstall_command[@]}"
+    fi
+    soai_uninstall__die "Root privileges are required to remove ${SOAI_UNINSTALL_ROOT}, but neither sudo nor su can provide them. Run the uninstaller as root."
+}
+
+soai_uninstall__sudo_permits_command() {
+    local sudo_probe_output=""
+    if sudo_probe_output="$(LC_ALL=C sudo -n -l -- "$@" 2>&1)"; then
+        return 0
+    fi
+    case "$sudo_probe_output" in
+        *"a password is required"*) return 0 ;;
+    esac
+    return 1
+}
+
+soai_uninstall__root_shell_command() {
+    printf '%q ' env "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" "$@"
+}
+
+soai_uninstall__run_with_su() {
+    local started_directory=""
+    started_directory="$(mktemp -d)" || soai_uninstall__die "Could not create a temporary directory for root privilege elevation."
+    local root_command=""
+    root_command="$(printf '%q ' touch -- "${started_directory}/started")&& exec $(soai_uninstall__root_shell_command "$@")"
+    local attempt=1
+    local status=0
+    while [ "$attempt" -le 3 ]; do
+        soai_uninstall__status "Enter the root password for su (attempt ${attempt}/3)."
+        status=0
+        su -s /bin/bash root -c "$root_command" </dev/tty || status=$?
+        if [ -e "${started_directory}/started" ] || [ "$status" -gt 128 ]; then
+            rm -rf -- "$started_directory"
+            exit "$status"
+        fi
+        attempt=$((attempt + 1))
+    done
+    rm -rf -- "$started_directory"
+    soai_uninstall__status "Could not obtain root privileges through su."
 }
 
 soai_uninstall__remove_service() {

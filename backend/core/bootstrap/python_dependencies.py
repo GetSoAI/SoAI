@@ -3,19 +3,18 @@
 
 from __future__ import annotations
 
-import ntpath
 import os
 import time
 
-from core.bootstrap.command_streaming import run_bootstrap_command
 from core.bootstrap.files import (
     compute_sha256,
     compute_source_directory_sha256,
     read_text_file,
     write_text_file_atomic,
 )
+from core.bootstrap.install_diagnostics import InstallDiagnostics
 from core.bootstrap.lock import acquire_interprocess_lock
-from core.bootstrap.pytorch_wheel_urls import resolve_pytorch_direct_wheel_urls
+from core.bootstrap.python_dependency_installation import install_python_dependencies
 from core.bootstrap.runtime_directories import (
     LOCKS_PATH_ENV,
     ensure_runtime_directory_environment,
@@ -27,9 +26,7 @@ from core.bootstrap.venv_markers import (
 )
 from core.bootstrap.venv_paths import get_venv_path, get_venv_python_executable
 from core.errors.exceptions import StateError
-from core.filesystem.path_coercion import remove_windows_path_namespace
 from core.meta.paths import join_data_abs
-from core.platform.os import is_windows
 from core.system.commands import CommandResult, run_argv_capture
 from core.timing.constants import LONG_REQUEST_TIMEOUT_SEC
 
@@ -62,13 +59,17 @@ X64_NATIVE_DEPENDENCY_PROBE_IMPORTS: tuple[str, ...] = (
 )
 
 
-def ensure_pip_ready(python_executable: str) -> None:
+def ensure_pip_ready(
+    python_executable: str, *, diagnostics: InstallDiagnostics | None = None
+) -> None:
     pip_probe = run_argv_capture(
         [python_executable, "-m", "pip", "--version"],
         encoding="utf-8",
         errors="replace",
         timeout=30,
     )
+    if diagnostics is not None:
+        diagnostics.record_probe("pip --version", pip_probe, terminal=True)
     if pip_probe.return_code == 0:
         return
     raise StateError(
@@ -99,6 +100,7 @@ def bootstrap_python_dependencies_if_needed(
     *,
     python_executable: str | None = None,
     offline_mode: bool | None = None,
+    diagnostics: InstallDiagnostics | None = None,
 ) -> bool:
     repo_root = os.path.abspath(repo_root_path)
     venv_path = get_venv_path(repo_root)
@@ -115,16 +117,28 @@ def bootstrap_python_dependencies_if_needed(
             raise FileNotFoundError(
                 f"SoAI managed environment is missing. Start SoAI via soai.sh or soai.exe to create it. Expected python at '{resolved_python}'.",
             )
-        ensure_pip_ready(resolved_python)
+        if diagnostics is None:
+            ensure_pip_ready(resolved_python)
+        else:
+            ensure_pip_ready(resolved_python, diagnostics=diagnostics)
         requirements_hash = _runtime_dependency_source_hash(
             repo_root_path=repo_root,
             requirements_path=requirements_path,
         )
-        if not _python_dependencies_need_install(
-            venv_path=venv_path,
-            python_executable=resolved_python,
-            requirements_hash=requirements_hash,
-        ):
+        if diagnostics is None:
+            needs_install = _python_dependencies_need_install(
+                venv_path=venv_path,
+                python_executable=resolved_python,
+                requirements_hash=requirements_hash,
+            )
+        else:
+            needs_install = _python_dependencies_need_install(
+                venv_path=venv_path,
+                python_executable=resolved_python,
+                requirements_hash=requirements_hash,
+                diagnostics=diagnostics,
+            )
+        if not needs_install:
             return False
         resolved_offline_mode = (
             is_stage0_offline_mode_enabled(repo_root)
@@ -135,12 +149,24 @@ def bootstrap_python_dependencies_if_needed(
             raise StateError(
                 "SYSTEM.RUNTIME.STAY_OFFLINE is enabled but required Python dependencies are missing or out of date. Disable SYSTEM.RUNTIME.STAY_OFFLINE and run once online.",
             )
-        _install_python_dependencies(
-            repo_root_path=repo_root,
-            python_executable=resolved_python,
-            requirements_path=requirements_path,
+        if diagnostics is None:
+            install_python_dependencies(
+                repo_root_path=repo_root,
+                python_executable=resolved_python,
+                requirements_path=requirements_path,
+            )
+        else:
+            install_python_dependencies(
+                repo_root_path=repo_root,
+                python_executable=resolved_python,
+                requirements_path=requirements_path,
+                diagnostics=diagnostics,
+            )
+        dependency_probe_failure = (
+            _runtime_dependency_probe_failure(resolved_python)
+            if diagnostics is None
+            else _runtime_dependency_probe_failure(resolved_python, diagnostics=diagnostics)
         )
-        dependency_probe_failure = _runtime_dependency_probe_failure(resolved_python)
         if dependency_probe_failure is not None:
             raise StateError(
                 f"Managed Python dependency preparation failed its runtime validation: {dependency_probe_failure}"
@@ -154,19 +180,29 @@ def _python_dependencies_need_install(
     venv_path: str,
     python_executable: str,
     requirements_hash: str,
+    diagnostics: InstallDiagnostics | None = None,
 ) -> bool:
     stored_hash = read_text_file(os.path.join(venv_path, REQUIREMENTS_HASH_FILENAME))
     marker_value = read_text_file(os.path.join(venv_path, DEPENDENCY_CHECK_MARKER_FILENAME))
     if stored_hash != requirements_hash or not marker_value:
         return True
-    return not _runtime_dependency_probes_pass(python_executable)
+    if diagnostics is None:
+        return not _runtime_dependency_probes_pass(python_executable)
+    return (
+        _runtime_dependency_probe_failure(
+            python_executable, diagnostics=diagnostics, terminal=False
+        )
+        is not None
+    )
 
 
 def _runtime_dependency_probes_pass(python_executable: str) -> bool:
     return _runtime_dependency_probe_failure(python_executable) is None
 
 
-def _runtime_dependency_probe_failure(python_executable: str) -> str | None:
+def _runtime_dependency_probe_failure(
+    python_executable: str, *, diagnostics: InstallDiagnostics | None = None, terminal: bool = True
+) -> str | None:
     probe_groups = (
         (X64_NATIVE_DEPENDENCY_PROBE_IMPORTS, True),
         (DEPENDENCY_PROBE_IMPORTS, False),
@@ -183,6 +219,8 @@ def _runtime_dependency_probe_failure(python_executable: str) -> str | None:
                 errors="replace",
                 timeout=LONG_REQUEST_TIMEOUT_SEC,
             )
+            if diagnostics is not None:
+                diagnostics.record_probe(f"import '{module_name}'", import_probe, terminal=terminal)
             if import_probe.return_code != 0:
                 return _format_dependency_probe_failure(
                     f"module '{module_name}' could not be imported",
@@ -194,6 +232,8 @@ def _runtime_dependency_probe_failure(python_executable: str) -> str | None:
         errors="replace",
         timeout=LONG_REQUEST_TIMEOUT_SEC,
     )
+    if diagnostics is not None:
+        diagnostics.record_probe("pip check", pip_check, terminal=terminal)
     if pip_check.return_code != 0:
         return _format_dependency_probe_failure("pip check failed", pip_check)
     return None
@@ -209,67 +249,6 @@ def _format_dependency_probe_failure(label: str, result: CommandResult) -> str:
             detail_line = f"{detail_line[:237]}..."
         return f"{label} (exit code {result.return_code}): {detail_line}"
     return f"{label} (exit code {result.return_code})."
-
-
-def _install_python_dependencies(
-    *,
-    repo_root_path: str,
-    python_executable: str,
-    requirements_path: str,
-) -> None:
-    install_command = _dependency_install_command(repo_root_path, python_executable)
-    run_bootstrap_command(
-        [*install_command, "pip", "wheel"],
-        log_prefix="pip: ",
-        cwd=repo_root_path,
-    )
-    _install_pytorch_hosted_wheels_if_required(
-        repo_root_path=repo_root_path,
-        python_executable=python_executable,
-        requirements_path=requirements_path,
-    )
-    run_bootstrap_command(
-        [
-            *install_command,
-            "--upgrade-strategy",
-            "eager",
-            "-r",
-            requirements_path,
-        ],
-        log_prefix="pip: ",
-        cwd=repo_root_path,
-    )
-
-
-def _dependency_install_command(repo_root_path: str, python_executable: str) -> list[str]:
-    command = [python_executable, "-m", "pip", "install", "--root-user-action=ignore", "--upgrade"]
-    if is_windows():
-        prefix = remove_windows_path_namespace(get_venv_path(repo_root_path))
-        volume, _relative = ntpath.splitdrive(prefix)
-        if not volume or not ntpath.isabs(prefix) or prefix.startswith("\\\\.\\"):
-            raise StateError("The managed Python install prefix must be a drive or UNC path.")
-        command.extend(("--prefix", prefix))
-    return command
-
-
-def _install_pytorch_hosted_wheels_if_required(
-    *,
-    repo_root_path: str,
-    python_executable: str,
-    requirements_path: str,
-) -> None:
-    wheel_urls = resolve_pytorch_direct_wheel_urls(requirements_path)
-    if not wheel_urls:
-        return
-    run_bootstrap_command(
-        [
-            *_dependency_install_command(repo_root_path, python_executable),
-            "--no-deps",
-            *wheel_urls,
-        ],
-        log_prefix="pip: ",
-        cwd=repo_root_path,
-    )
 
 
 def _runtime_dependency_source_hash(*, repo_root_path: str, requirements_path: str) -> str:

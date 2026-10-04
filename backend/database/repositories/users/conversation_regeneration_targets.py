@@ -9,6 +9,12 @@ from typing import TYPE_CHECKING
 from core.errors.exceptions import ConflictError, StateError, ValidationError
 from core.timing.epoch import epoch_ms
 from core.validation.integers import is_strict_int
+from database.repositories.users.conversation_input_constants import (
+    CONVERSATION_REGENERATION_HAS_REPLACEMENT_SQL,
+    CONVERSATION_REGENERATION_SOURCE_EXISTS_SQL,
+    CONVERSATION_REGENERATION_SOURCE_FOLLOWED_SQL,
+    CONVERSATION_REGENERATION_SUPERSEDED_SQL,
+)
 
 if TYPE_CHECKING:
     from core.types.json import JSONDict
@@ -89,67 +95,36 @@ def resolve_regeneration_retry_source(
     if not isinstance(retry_input_id, str) or not retry_input_id.strip():
         raise ValidationError("Conversation regeneration retry identity is invalid.")
     prior = conn.execute(
-        """
-        SELECT id, state, request_id, materialized_message_id
-        FROM webui_conversation_inputs
-        WHERE input_id = ? AND conv_id = ? AND user_id = ?
-          AND regeneration_request_json IS NOT NULL
+        f"""
+        SELECT input.state, input.request_id, input.materialized_message_id,
+               {CONVERSATION_REGENERATION_HAS_REPLACEMENT_SQL} AS has_replacement,
+               {CONVERSATION_REGENERATION_SUPERSEDED_SQL} AS superseded,
+               {CONVERSATION_REGENERATION_SOURCE_EXISTS_SQL} AS source_exists,
+               {CONVERSATION_REGENERATION_SOURCE_FOLLOWED_SQL} AS source_followed
+        FROM webui_conversation_inputs AS input
+        WHERE input.input_id = ? AND input.conv_id = ? AND input.user_id = ?
+          AND input.regeneration_request_json IS NOT NULL
         LIMIT 1
         """,
         (retry_input_id.strip(), conv_id, user_id),
     ).fetchone()
     if (
         prior is None
-        or prior[1] not in {"failed", "cancelled"}
-        or not isinstance(prior[2], str)
-        or not prior[2]
-        or not is_strict_int(prior[3])
+        or prior[0] not in {"failed", "cancelled"}
+        or not isinstance(prior[1], str)
+        or not prior[1]
+        or not is_strict_int(prior[2])
     ):
         raise ValidationError("Conversation regeneration retry target is not eligible.")
-    assistant_exists = conn.execute(
-        """
-        SELECT 1 FROM webui_messages
-        WHERE conv_id = ? AND role = 'assistant'
-          AND (request_id = ? OR request_id GLOB ? || ':variant:[0-9]*')
-        LIMIT 1
-        """,
-        (conv_id, prior[2], prior[2]),
-    ).fetchone()
-    if assistant_exists is not None:
+    if prior[3] == 1:
         raise ConflictError("Conversation regeneration retry already has an assistant replacement.")
-    later_attempt = conn.execute(
-        """
-        SELECT 1 FROM webui_conversation_inputs
-        WHERE conv_id = ? AND regeneration_request_json IS NOT NULL
-          AND materialized_message_id = ? AND id > ?
-        LIMIT 1
-        """,
-        (conv_id, int(prior[3]), int(prior[0])),
-    ).fetchone()
-    if later_attempt is not None:
+    if prior[4] == 1:
         raise ConflictError("Conversation regeneration retry target was superseded.")
-    source = conn.execute(
-        """
-        SELECT created_at_ms, id FROM webui_messages
-        WHERE conv_id = ? AND id = ? AND role = 'user'
-        LIMIT 1
-        """,
-        (conv_id, int(prior[3])),
-    ).fetchone()
-    if source is None:
+    if prior[5] != 1:
         raise ConflictError("Conversation regeneration source boundary no longer exists.")
-    later_message = conn.execute(
-        """
-        SELECT 1 FROM webui_messages
-        WHERE conv_id = ?
-          AND (created_at_ms > ? OR (created_at_ms = ? AND id > ?))
-        LIMIT 1
-        """,
-        (conv_id, int(source[0]), int(source[0]), int(source[1])),
-    ).fetchone()
-    if later_message is not None:
+    if prior[6] == 1:
         raise ConflictError("Conversation regeneration retry source was superseded.")
-    return int(prior[3]), None, None
+    return int(prior[2]), None, None
 
 
 def sync_next_regeneration_assistant_timestamp(

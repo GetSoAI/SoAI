@@ -21,8 +21,9 @@ export const requireWizardUi = (dependencies: { requireHTMLElement: (selector: s
 export const requireWizardAccountUi = (dependencies: { requireHTMLElement: (selector: string, context?: ParentNode) => HTMLElement }): WizardAccountUi => {
     const root = dependencies.requireHTMLElement('.wizard-container');
     const form = narrowForm(dependencies.requireHTMLElement('#admin-user-form', root), 'Wizard account form');
-    const errorBox = dependencies.requireHTMLElement('#user-creation-error', form);
-    return { form, errorBox };
+    const errorRegion = dependencies.requireHTMLElement('#user-creation-error-region', form);
+    const errorBox = dependencies.requireHTMLElement('#user-creation-error', errorRegion);
+    return { form, errorRegion, errorBox };
 };
 
 export const optionalWizardElement = (dependencies: { optionalHTMLElement: (selector: string, context?: ParentNode) => HTMLElement | null }, selector: string, context?: ParentNode): HTMLElement | null => {

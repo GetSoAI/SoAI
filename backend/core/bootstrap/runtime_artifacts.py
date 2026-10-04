@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import os
 import platform
+import subprocess
 
 from core.bootstrap.command_streaming import run_bootstrap_command
+from core.bootstrap.install_diagnostics import InstallDiagnostics
 from core.bootstrap.java_runtime import (
     ensure_java_runtime_installed,
     is_java_runtime_installed,
@@ -32,7 +34,8 @@ from core.bootstrap.tiktoken_cache import (
     find_invalid_tiktoken_cache_assets,
 )
 from core.browser.playwright_driver_commands import build_playwright_install_command
-from core.errors.exceptions import StateError
+from core.errors.exceptions import SoAIError, StateError
+from core.system.commands import CommandResult
 
 __all__ = (
     "ensure_playwright_chromium_installed",
@@ -48,6 +51,7 @@ def ensure_runtime_artifacts_if_needed(
     repo_root_path: str,
     *,
     python_executable: str,
+    diagnostics: InstallDiagnostics | None = None,
 ) -> None:
     runtime_directories = ensure_runtime_directory_environment(repo_root_path)
     browsers_path = runtime_directories.playwright_browsers_path
@@ -73,29 +77,51 @@ def ensure_runtime_artifacts_if_needed(
         raise StateError(
             f"SYSTEM.RUNTIME.STAY_OFFLINE is enabled but required runtime artifacts are missing or out of date: {missing_text}. Run once online to bootstrap, or disable SYSTEM.RUNTIME.STAY_OFFLINE in config.yaml.",
         )
-    if needs_playwright:
-        emit("INFO", "Installing Playwright Chromium runtime artifact...")
-        ensure_playwright_chromium_installed(
-            python_executable=python_executable,
-            repo_root_path=repo_root_path,
-            browsers_path=browsers_path,
-        )
-    if needs_java:
-        emit("INFO", "Installing managed Java runtime artifact...")
-        ensure_java_runtime_installed(repo_root_path)
-    if needs_tika_jar:
-        emit(
-            "INFO",
-            "Installing Apache Tika server runtime artifact. Please wait; this can take several minutes.",
-        )
-        ensure_tika_server_jar_installed(repo_root_path)
-    if needs_tiktoken:
-        emit("INFO", "Installing managed tiktoken encoding cache...")
-        ensure_tiktoken_cache_installed(
-            repo_root_path,
-            runtime_directories.tiktoken_cache_path,
-            runtime_directories.locks_path,
-        )
+    check = "runtime artifacts"
+    try:
+        if needs_playwright:
+            check = "Playwright Chromium"
+            emit("INFO", "Installing Playwright Chromium runtime artifact...")
+            if diagnostics is None:
+                ensure_playwright_chromium_installed(
+                    python_executable=python_executable,
+                    repo_root_path=repo_root_path,
+                    browsers_path=browsers_path,
+                )
+            else:
+                ensure_playwright_chromium_installed(
+                    python_executable=python_executable,
+                    repo_root_path=repo_root_path,
+                    browsers_path=browsers_path,
+                    diagnostics=diagnostics,
+                )
+        if needs_java:
+            check = "managed Java runtime"
+            emit("INFO", "Installing managed Java runtime artifact...")
+            ensure_java_runtime_installed(repo_root_path)
+        if needs_tika_jar:
+            check = "Apache Tika server jar"
+            emit(
+                "INFO",
+                "Installing Apache Tika server runtime artifact. Please wait; this can take several minutes.",
+            )
+            ensure_tika_server_jar_installed(repo_root_path)
+        if needs_tiktoken:
+            check = "tiktoken encoding cache"
+            emit("INFO", "Installing managed tiktoken encoding cache...")
+            ensure_tiktoken_cache_installed(
+                repo_root_path,
+                runtime_directories.tiktoken_cache_path,
+                runtime_directories.locks_path,
+            )
+    except (SoAIError, OSError, ValueError, subprocess.SubprocessError) as exception:
+        if diagnostics is not None:
+            diagnostics.record_probe(
+                check,
+                CommandResult(return_code=1, stdout="", stderr=str(exception)),
+                terminal=True,
+            )
+        raise
 
 
 def ensure_playwright_chromium_installed(
@@ -103,6 +129,7 @@ def ensure_playwright_chromium_installed(
     python_executable: str,
     repo_root_path: str,
     browsers_path: str,
+    diagnostics: InstallDiagnostics | None = None,
 ) -> None:
     if is_expected_chromium_installed(browsers_path=browsers_path):
         return
@@ -122,16 +149,25 @@ def ensure_playwright_chromium_installed(
     env[PIP_CACHE_DIR_ENV] = runtime_directories.pip_cache_path
     if platform.system() == "Linux" and "DEBIAN_FRONTEND" not in env:
         env["DEBIAN_FRONTEND"] = "noninteractive"
-    run_bootstrap_command(
-        argv,
-        log_prefix="playwright: ",
-        cwd=os.path.abspath(repo_root_path),
-        env=env,
-    )
+    if diagnostics is None:
+        run_bootstrap_command(
+            argv, log_prefix="playwright: ", cwd=os.path.abspath(repo_root_path), env=env
+        )
+    else:
+        run_bootstrap_command(
+            argv,
+            log_prefix="playwright: ",
+            cwd=os.path.abspath(repo_root_path),
+            env=env,
+            diagnostics=diagnostics,
+        )
     prune_outcome = prune_stale_browser_directories(browsers_path=browsers_path)
     if prune_outcome.removed_directories:
         removed_text = ", ".join(prune_outcome.removed_directories)
         emit("INFO", f"Pruned stale Playwright browser directories: {removed_text}")
     if prune_outcome.failed_directories:
         failed_text = ", ".join(prune_outcome.failed_directories)
-        emit("WARNING", f"Failed to prune stale Playwright browser directories: {failed_text}")
+        warning = f"Failed to prune stale Playwright browser directories: {failed_text}"
+        if diagnostics is not None:
+            diagnostics.record_warning(warning)
+        emit("WARNING", warning)

@@ -20,11 +20,11 @@ interface ProviderFormValues {
 interface ProviderCreatePayload {
     name: string;
     apiUrl: string;
-    apiKey: string;
+    apiKey?: string;
     modelsFilter?: string[];
 }
 
-type ProviderFormField = 'pluginName' | 'name' | 'apiUrl' | 'apiKey';
+type ProviderFormField = 'pluginName' | 'name' | 'apiUrl';
 
 type ProviderFormValidation = { status: 'valid'; pluginName: string; payload: ProviderCreatePayload } | { status: 'invalid'; field: ProviderFormField; message: string };
 
@@ -53,10 +53,10 @@ const validateProviderForm = (values: ProviderFormValues, plugins: ProviderFormP
     if (!pluginName) return { status: 'invalid', field: 'pluginName', message: i18n.t('models.notifications.selectPlugin') };
     if (!name) return { status: 'invalid', field: 'name', message: i18n.t('models.notifications.enterProviderName') };
     if (!apiUrl) return { status: 'invalid', field: 'apiUrl', message: i18n.t('models.notifications.enterApiUrl') };
-    if (!apiKey) return { status: 'invalid', field: 'apiKey', message: i18n.t('models.notifications.enterApiKey') };
     const plugin = plugins.getPluginByName(pluginName);
     if (!plugin || !plugins.isProviderPluginOperational(plugin)) return { status: 'invalid', field: 'pluginName', message: i18n.t('models.notifications.pluginUnavailable') };
-    const payload: ProviderCreatePayload = { name, apiUrl, apiKey };
+    const payload: ProviderCreatePayload = { name, apiUrl };
+    if (apiKey) payload.apiKey = apiKey;
     if (modelsFilter) payload.modelsFilter = splitTrimmedList(modelsFilter, ',');
     return { status: 'valid', pluginName, payload };
 };

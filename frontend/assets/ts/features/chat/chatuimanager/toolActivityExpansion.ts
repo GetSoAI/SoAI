@@ -1,14 +1,18 @@
 /* SoAI - Tool activity expansion hydration for chat UI manager [frontend/assets/ts/features/chat/chatuimanager/toolActivityExpansion.ts] */
 // SPDX-License-Identifier: LicenseRef-SoAI-Source-1.0
 
+import { errorHandler } from '@core/errorHandler.ts';
+import { ensureError } from '@core/errors/coerce.ts';
 import { toTrimmedString } from '@core/normalize.ts';
+import { terminateHandledPromise } from '@core/primitives/terminateHandledPromise.ts';
 import { serverEpochMs } from '@core/time/clock.ts';
 import { isNonNegativeInteger, isString } from '@core/typeGuards.ts';
 import type { ChatMessage } from '@features/chat/ChatTypes.ts';
 import type { ChatUIManagerContext } from '@features/chat/chatuimanager/types.ts';
 import { detailsRootHasPopulatedContent, inlineActivityDetailsIdentitiesMatch, readInlineActivityDetailsRootSignature, readInlineActivityDetailsSignature, resolveInlineActivityDetailsIdentity, writeInlineActivityDetailsSignature } from '@features/chat/message/inlineActivityDetailsLifecycle.ts';
 import { INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE, resolveDirectInlineActivityDetailsRoot, resolveInlineActivityDetailsSignatureFromMessage, type InlineActivityDetailsIdentity } from '@features/chat/message/inlineActivityDetailsIdentity.ts';
-import { beginInlineActivityDetailsPendingState, resetInlineActivityDetailsClosedState } from '@features/chat/message/inlineActivityDetailsPendingState.ts';
+import { withAssistantViewportStability } from '@features/chat/message/assistantViewportStability.ts';
+import { beginInlineActivityDetailsPendingState, completeInlineActivityDetailsOpenState, resetInlineActivityDetailsClosedState } from '@features/chat/message/inlineActivityDetailsPendingState.ts';
 import { normalizeMessageDomId } from '@features/chat/message/messageDomIds.ts';
 import { canRequestPersistedToolCallSnapshot } from '@features/chat/toolactivity/toolCallSnapshotEligibility.ts';
 import { upsertToolCallProjection } from '@features/chat/toolactivity/toolProjectionMutation.ts';
@@ -124,6 +128,22 @@ const hydrateOmittedToolImageForExpansion = async (context: ChatUIManagerContext
     context.dependencies.messageManager.invalidateMessageCache(resolved.message);
 };
 
+const updateCollapsedStateMap = (message: ChatMessage, fieldName: 'inlineToolCollapsedByCallId' | 'inlineThinkingCollapsedByCallId', callId: string, collapsed: boolean): void => {
+    const rawMap = message[fieldName];
+    const map = rawMap ? { ...rawMap } : {};
+    map[callId] = collapsed;
+    message[fieldName] = map;
+};
+
+const updateInlineActivityCollapsedState = (context: ChatUIManagerContext, resolved: ResolvedActivityToggleContext, collapsed: boolean): void => {
+    if (resolved.expectedType === 'inline_thinking_activity') {
+        updateCollapsedStateMap(resolved.message, 'inlineThinkingCollapsedByCallId', resolved.callId, collapsed);
+    } else {
+        updateCollapsedStateMap(resolved.message, 'inlineToolCollapsedByCallId', resolved.callId, collapsed);
+    }
+    context.dependencies.messageManager.invalidateMessageCache(resolved.message);
+};
+
 const applyPendingStateToCurrentActivity = (originalItem: HTMLElement, currentItem: HTMLElement): void => {
     if (currentItem === originalItem) {
         return;
@@ -146,29 +166,7 @@ const clearExpansionIntentForResolvedItems = (originalItem: HTMLElement, current
     }
 };
 
-const renderExpandedActivityDetails = async (context: ChatUIManagerContext, resolved: ResolvedActivityToggleContext, existingSignature: string | null, existingDetailsHasContent: boolean): Promise<boolean> => {
-    const initialSignature = toTrimmedString(readInlineActivityDetailsSignature(resolved.item));
-    if (!initialSignature) {
-        throw new Error('Inline activity details signature is required');
-    }
-    const needsHydration = toolActivityNeedsImageHydration(resolved);
-    const needsInitialRender = !existingDetailsHasContent || initialSignature !== existingSignature;
-    if (!needsHydration && !needsInitialRender) {
-        return false;
-    }
-    resolved.item.setAttribute('data-collapsed', 'true');
-    resolved.item.setAttribute(INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE, 'true');
-    resolved.item.removeAttribute('data-collapsing');
-    beginInlineActivityDetailsPendingState(resolved.item);
-    await hydrateOmittedToolImageForExpansion(context, resolved).catch((error) => {
-        clearExpansionIntent(resolved.item);
-        throw error;
-    });
-    const currentResolved = resolveCurrentActivityToggleContext(context, resolved.identity);
-    if (currentResolved === null) {
-        clearExpansionIntent(resolved.item);
-        return true;
-    }
+const renderCurrentActivityDetails = (context: ChatUIManagerContext, resolved: ResolvedActivityToggleContext, currentResolved: ResolvedActivityToggleContext): boolean => {
     const currentSignature = resolveInlineActivityDetailsSignatureFromMessage({
         message: currentResolved.message,
         expectedType: currentResolved.expectedType,
@@ -201,5 +199,59 @@ const renderExpandedActivityDetails = async (context: ChatUIManagerContext, reso
     return true;
 };
 
-export { renderExpandedActivityDetails, resolveActivityToggleContext, resolveCurrentActivityToggleContext };
+const expandActivityDetailsAfterHydration = async (context: ChatUIManagerContext, resolved: ResolvedActivityToggleContext): Promise<void> => {
+    await hydrateOmittedToolImageForExpansion(context, resolved);
+    const currentResolved = resolveCurrentActivityToggleContext(context, resolved.identity);
+    if (currentResolved === null) {
+        clearExpansionIntent(resolved.item);
+        return;
+    }
+    if (currentResolved.item.getAttribute(INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE) !== 'true') {
+        return;
+    }
+    if (!renderCurrentActivityDetails(context, resolved, currentResolved)) {
+        withAssistantViewportStability(currentResolved.item, () => {
+            completeInlineActivityDetailsOpenState(currentResolved.item);
+        });
+    }
+};
+
+const abandonActivityExpansion = (context: ChatUIManagerContext, resolved: ResolvedActivityToggleContext, error: Error): void => {
+    const currentResolved = resolveCurrentActivityToggleContext(context, resolved.identity);
+    clearExpansionIntentForResolvedItems(resolved.item, currentResolved?.item ?? resolved.item);
+    updateInlineActivityCollapsedState(context, resolved, true);
+    errorHandler.warn('ChatUIManager', 'Tool activity details expansion failed', error);
+};
+
+const renderExpandedActivityDetails = (context: ChatUIManagerContext, resolved: ResolvedActivityToggleContext, existingSignature: string | null, existingDetailsHasContent: boolean): boolean => {
+    const initialSignature = toTrimmedString(readInlineActivityDetailsSignature(resolved.item));
+    if (!initialSignature) {
+        throw new Error('Inline activity details signature is required');
+    }
+    const needsHydration = toolActivityNeedsImageHydration(resolved);
+    const needsInitialRender = !existingDetailsHasContent || initialSignature !== existingSignature;
+    if (!needsHydration && !needsInitialRender) {
+        return false;
+    }
+    resolved.item.setAttribute('data-collapsed', 'true');
+    resolved.item.setAttribute(INLINE_ACTIVITY_DETAILS_OPEN_REQUESTED_ATTRIBUTE, 'true');
+    resolved.item.removeAttribute('data-collapsing');
+    beginInlineActivityDetailsPendingState(resolved.item);
+    if (needsHydration) {
+        terminateHandledPromise(
+            expandActivityDetailsAfterHydration(context, resolved).catch((error: Error): void => {
+                abandonActivityExpansion(context, resolved, ensureError(error));
+            })
+        );
+        return true;
+    }
+    const currentResolved = resolveCurrentActivityToggleContext(context, resolved.identity);
+    if (currentResolved === null) {
+        clearExpansionIntent(resolved.item);
+        return true;
+    }
+    return renderCurrentActivityDetails(context, resolved, currentResolved);
+};
+
+export { renderExpandedActivityDetails, resolveActivityToggleContext, resolveCurrentActivityToggleContext, updateInlineActivityCollapsedState };
 export type { ResolvedActivityToggleContext };

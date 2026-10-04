@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "تغيير المجلد",
                 "createFile": "إنشاء ملف",
                 "createFolder": "إنشاء مجلد",
                 "editPath": "تحرير المسار الحالي",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "فعّل نقطة نهاية Images لتبديل هذا الخيار.",
                         "requiresResponses": "فعّل نقطة نهاية Responses لتبديل هذا الخيار.",
                         "requiresVision": "فعّل وسيط Vision لتبديل هذا الخيار.",
-                        "text": "لا يمكن تعطيل النص."
+                        "text": "لا يمكن تعطيل النص.",
+                        "unsupported": "هذا النموذج لا يدعم هذه الإمكانية."
                     },
                     "manifestLoading": "جارٍ تحميل تصنيف الإمكانات...",
                     "none": "لا تتوفر إمكانات OpenAI لهذا النموذج.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "تم إلغاء التنزيل",
                 "downloadFailed": "فشل تنزيل النموذج",
                 "downloadSuccess": "تم تنزيل النموذج بنجاح",
-                "enterApiKey": "يُرجى إدخال مفتاح API",
                 "enterApiUrl": "يُرجى إدخال API URL",
                 "enterModelId": "يُرجى إدخال معرّف النموذج",
                 "enterProviderName": "يُرجى إدخال اسم المزوّد",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "تم إنشاء حساب المسؤول بنجاح.",
                 "accountCreatedSignInRequired": "تم إنشاء حساب المسؤول. سجّل الدخول للمتابعة."
             },
             "progress": {

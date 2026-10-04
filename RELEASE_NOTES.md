@@ -1,5 +1,31 @@
 # SoAI Release Notes
 
+## 1.3.1
+
+SoAI 1.3.1 fixes Windows installations, lets Linux installations obtain root access on systems where sudo is missing or not permitted, and makes the Linux and macOS installers easier to follow when something goes wrong. It also fixes problems in Chat, the setup wizard, provider and model settings, and startup after a clock change.
+
+### Highlights
+
+- Windows setup and the Windows complete archive now check the Microsoft Visual C++ runtime before preparing SoAI. When the runtime on the computer is older than version 14.44, which SoAI's AI libraries require, SoAI installs or repairs it from Microsoft and places the required runtime files in its own Python folders, so an older copy elsewhere on the system is no longer loaded instead. On affected computers, installation previously failed with a DLL initialization error (WinError 1114).
+- On Linux, the network installer, `install-soai-from-release.sh --fast`, the `soai` command for installations owned by root, and the uninstaller no longer stop when sudo is unavailable. SoAI uses sudo when it is permitted, then `sudo su` when only that is allowed, then `su` with the root password (3 attempts, and Ctrl+C cancels). If none of these work, it stops with a message naming each method it tried.
+- The Linux and macOS installers show the current step on one progress line with the elapsed time and, for downloads, the percentage completed, while the full output of every command is kept in a private diagnostic folder. When a step fails, the installer shows the check that failed, its exit code, an excerpt of the error, the location of the full log, and a command you can run to read it.
+
+### Improvements
+
+- The File Explorer header has a Change folder button that opens Settings > Users, where you change your account's default folder. In narrow windows it moves into the page actions menu with the other header buttons.
+- You can add an external provider without an API key, in both the add-provider window and the setup wizard, for providers that do not require one.
+- When no theme has been saved yet, the WebUI and the setup wizard start in the operating system's light or dark theme instead of starting dark and switching after the administrator account is created.
+
+### Fixes
+
+- If the computer's clock moved back after someone signed in, SoAI no longer fails to start or reinstall with "System clock precedes active WebUI session chronology." Sign-ins recorded at the later time end, and those users sign in again.
+- Live token speed in Chat, on the Dashboard, and in Metrics history no longer stalls when a response contains a `<` character that does not start a tag, such as a comparison like `a < b`. The Chat token counter also keeps following a response that is still streaming when you change the selected model or return to its conversation.
+- A Retry row for a regenerated response no longer appears when the regeneration cannot be retried or while other conversation inputs are still active.
+- Activity rows in Chat expand as soon as you click them, even while their tool images are still loading. Restoring a minimized window during a response no longer briefly shows placeholder previews, and the main status no longer switches to reconnecting while a routine status refresh is in progress.
+- In the setup wizard, the create account button stays in its loading state until the next step appears, so a slow computer cannot submit the account twice. An account error now opens and closes smoothly, and the AI sources step shows a single Skip SoAI setup button.
+- On a model's OpenAI capabilities, a capability the model does not support is shown as locked with an explanation instead of turning on and immediately back off.
+- The folder picker and the plugin clone controls use the standard spacing and separators.
+
 ## 1.3.0
 
 SoAI 1.3.0 adds a guided setup that gets a first model running, push-to-talk and a sketch pad in Chat, right-to-left layouts for Arabic and Persian, QR pairing for the SoAI Connect app, and built-in wallpapers. It also lowers idle CPU use, makes downloads and in-app updates more dependable, and moves the llama.cpp and embedding plugins to llama.cpp v0.5.0.

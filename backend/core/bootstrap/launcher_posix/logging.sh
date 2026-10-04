@@ -9,11 +9,19 @@ SOAI_LAUNCHER_COLOR_TAG=$'\033[38;5;215m'
 SOAI_LAUNCHER_COLOR_SEP=$'\033[38;5;246m'
 
 soai_managed_runtime__die() {
+    if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+        soai_install_ui__failure "$1"
+        return 1
+    fi
     echo "ERROR: $1" >&2
     return 1
 }
 
 soai_launcher__info() {
+    if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+        printf '%s\n' "$1" | soai_install_ui__sanitize >> "$SOAI_INSTALL_DIAGNOSTICS_DIR/install.log"
+        return
+    fi
     printf "%s%s%s %s-%s %s[SoAI/Linux_Launcher]%s %s-%s %sINFO%s %s-%s %s\n" \
         "$SOAI_LAUNCHER_COLOR_SEP" \
         "$(date -u '+%Y-%m-%d %H:%M:%S UTC')" \
@@ -32,6 +40,10 @@ soai_launcher__info() {
 }
 
 soai_launcher__warn() {
+    if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+        soai_install_ui__message warning "$1"
+        return
+    fi
     printf "%s%s%s %s-%s %s[SoAI/Linux_Launcher]%s %s-%s %sWARN%s %s-%s %s\n" \
         "$SOAI_LAUNCHER_COLOR_SEP" \
         "$(date -u '+%Y-%m-%d %H:%M:%S UTC')" \

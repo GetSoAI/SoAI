@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "เปลี่ยนโฟลเดอร์",
                 "createFile": "สร้างไฟล์",
                 "createFolder": "สร้างโฟลเดอร์",
                 "editPath": "แก้ไขพาธปัจจุบัน",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "เปิดใช้ endpoint Images เพื่อสลับการตั้งค่านี้.",
                         "requiresResponses": "เปิดใช้ endpoint Responses เพื่อสลับการตั้งค่านี้.",
                         "requiresVision": "เปิดใช้โมดาลิตี Vision เพื่อสลับการตั้งค่านี้.",
-                        "text": "ไม่สามารถปิดใช้งาน Text ได้."
+                        "text": "ไม่สามารถปิดใช้งาน Text ได้.",
+                        "unsupported": "โมเดลนี้ไม่รองรับความสามารถนี้."
                     },
                     "manifestLoading": "กำลังโหลดหมวดหมู่ความสามารถ...",
                     "none": "ไม่มีความสามารถของ OpenAI ที่พร้อมใช้สำหรับโมเดลนี้.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "ยกเลิกการดาวน์โหลดแล้ว",
                 "downloadFailed": "ดาวน์โหลดโมเดลไม่สำเร็จ",
                 "downloadSuccess": "ดาวน์โหลดโมเดลสำเร็จ",
-                "enterApiKey": "โปรดป้อนคีย์ API",
                 "enterApiUrl": "โปรดป้อน API URL",
                 "enterModelId": "โปรดป้อน ID โมเดล",
                 "enterProviderName": "โปรดป้อนชื่อผู้ให้บริการ",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "สร้างบัญชีผู้ดูแลระบบสำเร็จ.",
                 "accountCreatedSignInRequired": "สร้างบัญชีผู้ดูแลระบบแล้ว ลงชื่อเข้าใช้เพื่อดำเนินการต่อ."
             },
             "progress": {

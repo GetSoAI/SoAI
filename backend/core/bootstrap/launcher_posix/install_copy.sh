@@ -78,8 +78,16 @@ soai_install__run_target_install_deps() {
     if [ "${SOAI_INSTALL_SILENT:-0}" = "1" ]; then
         args+=("--silent")
     fi
-    SOAI_INSTALL_LOCK_HELD_PATH="$SOAI_INSTALL_LOCK_DIR" \
-        "${target}/${SOAI_EXPLICIT_LAUNCHER_RELATIVE_PATH}" "${args[@]}" "$@"
+    if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+        soai_install_ui__stop
+    fi
+    if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+        SOAI_INSTALL_UI_PARENT=1 SOAI_INSTALL_LOCK_HELD_PATH="$SOAI_INSTALL_LOCK_DIR" \
+            soai_install_ui__delegate "${target}/${SOAI_EXPLICIT_LAUNCHER_RELATIVE_PATH}" "${args[@]}" "$@"
+    else
+        SOAI_INSTALL_LOCK_HELD_PATH="$SOAI_INSTALL_LOCK_DIR" \
+            "${target}/${SOAI_EXPLICIT_LAUNCHER_RELATIVE_PATH}" "${args[@]}" "$@"
+    fi
 }
 
 soai_install__install_to_target() {

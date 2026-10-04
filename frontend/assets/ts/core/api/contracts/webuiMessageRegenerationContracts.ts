@@ -29,6 +29,7 @@ interface ConversationRegenerationReceipt {
     state: ConversationRegenerationState;
     isDispatchableHead: boolean;
     hasAssistantReplacement: boolean;
+    isRetryable: boolean;
     terminalCode: string | null;
     terminalArguments: JsonObject | null;
     contentPreviewFeedback: JsonObject | null;
@@ -68,6 +69,7 @@ const decodeConversationRegenerationReceipt = (value: ApiResponsePayload): Conve
         state: readRequiredEnumValue(record['state'], 'Conversation regeneration response.state', ['pending', 'materializing', 'running', 'input_required', 'completed', 'failed', 'cancelled', 'effect_unknown']),
         isDispatchableHead: readRequiredBooleanValue(record['is_dispatchable_head'], 'Conversation regeneration response.is_dispatchable_head'),
         hasAssistantReplacement: readRequiredBooleanValue(record['has_assistant_replacement'], 'Conversation regeneration response.has_assistant_replacement'),
+        isRetryable: readRequiredBooleanValue(record['is_retryable'], 'Conversation regeneration response.is_retryable'),
         terminalCode: readNullableTrimmedStringValue(record['terminal_code'], 'Conversation regeneration response.terminal_code'),
         terminalArguments: readNullableJsonObjectValue(record['terminal_args'], 'Conversation regeneration response.terminal_args'),
         contentPreviewFeedback: readNullableJsonObjectValue(record['content_preview_feedback'], 'Conversation regeneration response.content_preview_feedback'),

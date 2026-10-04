@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "Klasörü değiştir",
                 "createFile": "Dosya oluştur",
                 "createFolder": "Klasör oluştur",
                 "editPath": "Geçerli yolu düzenle",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "Bunu değiştirmek için Görüntüler uç noktasını etkinleştirin.",
                         "requiresResponses": "Bunu değiştirmek için Yanıtlar uç noktasını etkinleştirin.",
                         "requiresVision": "Bunu değiştirmek için Görsel modalitesini etkinleştirin.",
-                        "text": "Metin devre dışı bırakılamaz."
+                        "text": "Metin devre dışı bırakılamaz.",
+                        "unsupported": "Bu model bu yeteneği desteklemiyor."
                     },
                     "manifestLoading": "Yetenek sınıflandırması yükleniyor...",
                     "none": "Bu model için kullanılabilir OpenAI yeteneği yok.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "İndirme iptal edildi",
                 "downloadFailed": "Model indirilemedi",
                 "downloadSuccess": "Model başarıyla indirildi",
-                "enterApiKey": "Lütfen bir API anahtarı girin",
                 "enterApiUrl": "Lütfen bir API URL'si girin",
                 "enterModelId": "Lütfen bir model kimliği girin",
                 "enterProviderName": "Lütfen bir sağlayıcı adı girin",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Yönetici hesabı başarıyla oluşturuldu.",
                 "accountCreatedSignInRequired": "Yönetici hesabı oluşturuldu. Devam etmek için oturum açın."
             },
             "progress": {

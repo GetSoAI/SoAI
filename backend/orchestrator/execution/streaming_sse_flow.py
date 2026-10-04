@@ -181,6 +181,9 @@ async def process_streaming_sse_flow(
                 )
             if terminal_observed:
                 break
+        frame_accumulator.finalize()
+        if transcript is not None:
+            transcript.finalize()
         if token_transcript is not None:
             progress_sampler.sample(token_transcript, force=True)
     finally:
@@ -188,9 +191,6 @@ async def process_streaming_sse_flow(
             await close_async_iterator_if_supported(stream_iterator)
         finally:
             progress_sampler.finish()
-    frame_accumulator.finalize()
-    if transcript is not None:
-        transcript.finalize()
     if responses_transcript is not None:
         responses_transcript.finalize()
     if transcription_transcript is not None:

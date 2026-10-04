@@ -7,6 +7,10 @@ import os
 import subprocess
 import sys
 
+from core.bootstrap.install_diagnostics import (
+    configure_install_cancellation,
+    read_install_diagnostics_context,
+)
 from core.bootstrap.launch_console import emit
 from core.bootstrap.python_dependencies import bootstrap_python_dependencies_if_needed
 from core.errors.exceptions import StateError
@@ -17,10 +21,13 @@ __all__ = ("main",)
 def main() -> None:
     repo_root_path = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.getcwd()
     offline_mode = _read_offline_mode_override()
+    diagnostics = read_install_diagnostics_context()
+    configure_install_cancellation(diagnostics)
     try:
         changed = bootstrap_python_dependencies_if_needed(
             repo_root_path,
             offline_mode=offline_mode,
+            diagnostics=diagnostics,
         )
     except (
         OSError,

@@ -23,6 +23,13 @@ interface OpenAICapabilityRenderInput {
     host: OpenAICapabilityRenderingHost;
 }
 
+interface OpenAICapabilityRequirement {
+    category: OpenAICapabilityOverrideCategory;
+    token: string;
+    lockedReason: string;
+    forcedOffByDisabledRequirement: boolean;
+}
+
 const extractManifestTokens = (manifest: JsonObject, category: OpenAICapabilityOverrideCategory): string[] => {
     const raw = manifest[category];
     if (!isJsonArray(raw)) {
@@ -96,10 +103,7 @@ const resolveEffectiveModalities = (input: OpenAICapabilityRenderInput, manifest
     return effective;
 };
 
-const isCapabilityChecked = (input: OpenAICapabilityRenderInput, category: OpenAICapabilityOverrideCategory, token: string): boolean => {
-    if (isOpenAICapabilityDisabled(input.state.currentDisabled, category, token)) {
-        return false;
-    }
+const isCapabilitySupportedByModel = (input: OpenAICapabilityRenderInput, category: OpenAICapabilityOverrideCategory, token: string): boolean => {
     if (isOpenAICapabilityDisabled(input.state.originalDisabled, category, token)) {
         return true;
     }
@@ -110,21 +114,48 @@ const isCapabilityChecked = (input: OpenAICapabilityRenderInput, category: OpenA
     return isOpenAICapabilityEnabled(modelOpenAI, category, token);
 };
 
+const isCapabilityChecked = (input: OpenAICapabilityRenderInput, category: OpenAICapabilityOverrideCategory, token: string): boolean => {
+    return !isOpenAICapabilityDisabled(input.state.currentDisabled, category, token) && isCapabilitySupportedByModel(input, category, token);
+};
+
+const resolveCapabilityRequirement = (category: OpenAICapabilityOverrideCategory, token: string): OpenAICapabilityRequirement | null => {
+    if (category === 'responses_features') {
+        return { category: 'endpoints', token: 'responses', lockedReason: i18n.t('modelDetail.cards.capabilities.lockedReasons.requiresResponses'), forcedOffByDisabledRequirement: false };
+    }
+    if (category === 'image_features') {
+        return { category: 'endpoints', token: 'images', lockedReason: i18n.t('modelDetail.cards.capabilities.lockedReasons.requiresImages'), forcedOffByDisabledRequirement: true };
+    }
+    if (category === 'chat_features' && token === 'vision') {
+        return { category: 'modalities', token: 'vision', lockedReason: i18n.t('modelDetail.cards.capabilities.lockedReasons.requiresVision'), forcedOffByDisabledRequirement: true };
+    }
+    if (category === 'chat_features' && token === 'input_audio') {
+        return { category: 'modalities', token: 'audio', lockedReason: i18n.t('modelDetail.cards.capabilities.lockedReasons.requiresAudio'), forcedOffByDisabledRequirement: true };
+    }
+    return null;
+};
+
+const isCapabilityRequirementMet = (input: OpenAICapabilityRenderInput, requirement: OpenAICapabilityRequirement, effectiveModalities: ReadonlySet<string>): boolean => {
+    if (requirement.category === 'modalities') {
+        return effectiveModalities.has(requirement.token);
+    }
+    return isCapabilityChecked(input, requirement.category, requirement.token);
+};
+
+const isMaskedBySavedRequirementOverride = (input: OpenAICapabilityRenderInput, requirement: OpenAICapabilityRequirement | null): boolean => {
+    return requirement !== null && requirement.forcedOffByDisabledRequirement && isOpenAICapabilityDisabled(input.state.originalDisabled, requirement.category, requirement.token);
+};
+
 const buildLockedReason = (input: OpenAICapabilityRenderInput, category: OpenAICapabilityOverrideCategory, token: string, effectiveModalities: ReadonlySet<string>): string | null => {
-    if (category === 'modalities') {
-        return token === 'text' ? i18n.t('modelDetail.cards.capabilities.lockedReasons.text') : null;
+    if (category === 'modalities' && token === 'text') {
+        return i18n.t('modelDetail.cards.capabilities.lockedReasons.text');
     }
-    if (category === 'responses_features' && !isCapabilityChecked(input, 'endpoints', 'responses')) {
-        return i18n.t('modelDetail.cards.capabilities.lockedReasons.requiresResponses');
+    const requirement = resolveCapabilityRequirement(category, token);
+    const supported = isCapabilitySupportedByModel(input, category, token);
+    if (!supported && !isMaskedBySavedRequirementOverride(input, requirement)) {
+        return i18n.t('modelDetail.cards.capabilities.lockedReasons.unsupported');
     }
-    if (category === 'image_features' && !isCapabilityChecked(input, 'endpoints', 'images')) {
-        return i18n.t('modelDetail.cards.capabilities.lockedReasons.requiresImages');
-    }
-    if (category === 'chat_features' && token === 'vision' && !effectiveModalities.has('vision')) {
-        return i18n.t('modelDetail.cards.capabilities.lockedReasons.requiresVision');
-    }
-    if (category === 'chat_features' && token === 'input_audio' && !effectiveModalities.has('audio')) {
-        return i18n.t('modelDetail.cards.capabilities.lockedReasons.requiresAudio');
+    if (requirement && (!supported || !isCapabilityRequirementMet(input, requirement, effectiveModalities))) {
+        return requirement.lockedReason;
     }
     return null;
 };

@@ -13,6 +13,7 @@
     const INTERFACE_SCALE_STORAGE_KEY = 'soai.ui.interface_scale';
     const INTERFACE_SCALE_ATTRIBUTE = 'data-interface-scale';
     const DEFAULT_THEME: ResolvedTheme = 'dark';
+    const DEFAULT_THEME_PREFERENCE: ThemePreference = 'auto';
     const DEFAULT_ANIMATION_SPEED: AnimationSpeed = 'normal';
     const DEFAULT_INTERFACE_SCALE_PERCENT: InterfaceScalePercent = 100;
     const INTERFACE_SCALE_PERCENT_STEPS: readonly InterfaceScalePercent[] = [50, 75, 100, 125, 150];
@@ -117,13 +118,13 @@
     const readThemePreference = (scope: Window | null): ThemePreference => {
         if (!scope) {
             preinitIssueReporter.report('no-window-scope');
-            return DEFAULT_THEME;
+            return DEFAULT_THEME_PREFERENCE;
         }
 
         const storage = safeGetLocalStorage(scope);
         if (!storage) {
             preinitIssueReporter.report('storage-unavailable');
-            return DEFAULT_THEME;
+            return DEFAULT_THEME_PREFERENCE;
         }
 
         try {
@@ -134,10 +135,10 @@
             }
         } catch {
             preinitIssueReporter.report('storage-read-failed');
-            return DEFAULT_THEME;
+            return DEFAULT_THEME_PREFERENCE;
         }
 
-        return DEFAULT_THEME;
+        return DEFAULT_THEME_PREFERENCE;
     };
 
     const readAnimationSpeed = (scope: Window | null): AnimationSpeed => {

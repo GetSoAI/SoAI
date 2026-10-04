@@ -180,15 +180,16 @@ soai_launcher__provision_soaibench_opencl() {
     soai_launcher__append_opencl_candidate "clinfo" packages warnings
     local -a elevate=()
     if [ "$(id -u)" -ne 0 ]; then
-        if ! command -v sudo >/dev/null 2>&1; then
-            soai_launcher__warn "Skipping optional SoAIBench OpenCL package install: sudo is not available."
+        if ! soai_launcher__select_root_elevation env DEBIAN_FRONTEND=noninteractive apt-get update \
+            || [ "$SOAI_LAUNCHER_ROOT_ELEVATION" = "su" ]; then
+            soai_launcher__warn "Skipping optional SoAIBench OpenCL package install: root privileges through sudo are not available."
             soai_launcher__warn_opencl_provisioning "${warnings[@]}"
             return 0
         fi
-        elevate=(sudo)
+        elevate=(soai_launcher__run_as_root default-environment)
     fi
     soai_launcher__info "Refreshing package metadata for SoAIBench OpenCL provisioning."
-    if ! "${elevate[@]}" env DEBIAN_FRONTEND=noninteractive apt-get update; then
+    if ! soai_install__run_noisy_command "${elevate[@]}" env DEBIAN_FRONTEND=noninteractive apt-get update; then
         soai_launcher__warn "Optional SoAIBench OpenCL apt-get update failed; runtime will report unsupported details if OpenCL is unavailable."
         soai_launcher__warn_opencl_provisioning "${warnings[@]}"
         return 0
@@ -204,7 +205,7 @@ soai_launcher__provision_soaibench_opencl() {
         soai_launcher__warn_opencl_provisioning "${warnings[@]}"
         return 0
     fi
-    if ! "${elevate[@]}" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${packages[@]}"; then
+    if ! soai_install__run_noisy_command "${elevate[@]}" env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "${packages[@]}"; then
         soai_launcher__warn "Optional SoAIBench OpenCL package install failed; runtime will report unsupported details if OpenCL is unavailable."
         soai_launcher__warn_opencl_provisioning "${warnings[@]}"
         return 0

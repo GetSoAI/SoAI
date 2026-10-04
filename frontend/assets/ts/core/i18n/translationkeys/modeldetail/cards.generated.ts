@@ -7,6 +7,7 @@ export type ModelDetailCardsTranslationKey =
     | 'modelDetail.cards.capabilities.lockedReasons.requiresResponses'
     | 'modelDetail.cards.capabilities.lockedReasons.requiresVision'
     | 'modelDetail.cards.capabilities.lockedReasons.text'
+    | 'modelDetail.cards.capabilities.lockedReasons.unsupported'
     | 'modelDetail.cards.capabilities.manifestLoading'
     | 'modelDetail.cards.capabilities.none'
     | 'modelDetail.cards.capabilities.pluginCapabilitiesUnavailable'

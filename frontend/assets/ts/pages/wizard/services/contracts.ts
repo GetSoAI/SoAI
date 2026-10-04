@@ -24,6 +24,7 @@ interface WizardViewPort {
     syncNavigation(ui: WizardUi, stepId: WizardStepId): void;
     syncCurrentNavigation(): void;
     syncUseSelection(ui: WizardUi): void;
+    syncAccountError(account: WizardAccountUi, message: string | null): void;
     selectedProductAccessFlow(ui: WizardUi): ProductAccessFlow | null;
     syncProductAccessSelection(ui: WizardUi, selected: ProductAccessFlow | null, focusPanel: boolean): void;
     updateText(element: HTMLElement, value: string): void;

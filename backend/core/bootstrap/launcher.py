@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 
 from core.bootstrap.command_streaming import run_bootstrap_command
+from core.bootstrap.install_diagnostics import InstallDiagnostics
 from core.bootstrap.launcher_config import ensure_config_yaml_exists
 from core.bootstrap.lock import acquire_interprocess_lock
 from core.bootstrap.python_dependencies import bootstrap_python_dependencies_if_needed
@@ -25,7 +26,9 @@ __all__ = (
 BOOTSTRAP_LOCK_FILENAME = "soai.main_bootstrap.lock"
 
 
-def bootstrap_if_needed(repo_root_path: str) -> None:
+def bootstrap_if_needed(
+    repo_root_path: str, *, diagnostics: InstallDiagnostics | None = None
+) -> None:
     ensure_stage0_soai_python_version()
     ensure_config_yaml_exists(repo_root_path)
     venv_path = get_venv_path(repo_root_path)
@@ -34,26 +37,33 @@ def bootstrap_if_needed(repo_root_path: str) -> None:
         raise FileNotFoundError(
             f"SoAI managed environment is missing. Start SoAI via soai.sh or soai.exe to create it. Expected python at '{python_executable}'.",
         )
-    bootstrap_python_dependencies_if_needed(
-        repo_root_path,
-        python_executable=python_executable,
-    )
+    if diagnostics is None:
+        bootstrap_python_dependencies_if_needed(repo_root_path, python_executable=python_executable)
+    else:
+        bootstrap_python_dependencies_if_needed(
+            repo_root_path, python_executable=python_executable, diagnostics=diagnostics
+        )
     runtime_directories = ensure_runtime_directory_environment(repo_root_path)
     lock_path = os.path.join(
         runtime_directories.locks_path,
         BOOTSTRAP_LOCK_FILENAME,
     )
     with acquire_interprocess_lock(lock_path, timeout_sec=1200.0):
-        _ensure_runtime_artifacts_via_managed_python(
-            repo_root_path,
-            python_executable=python_executable,
-        )
+        if diagnostics is None:
+            _ensure_runtime_artifacts_via_managed_python(
+                repo_root_path, python_executable=python_executable
+            )
+        else:
+            _ensure_runtime_artifacts_via_managed_python(
+                repo_root_path, python_executable=python_executable, diagnostics=diagnostics
+            )
 
 
 def _ensure_runtime_artifacts_via_managed_python(
     repo_root_path: str,
     *,
     python_executable: str,
+    diagnostics: InstallDiagnostics | None = None,
 ) -> None:
     env = dict(os.environ)
     backend_path = os.path.join(os.path.abspath(repo_root_path), "backend")
@@ -70,9 +80,15 @@ def _ensure_runtime_artifacts_via_managed_python(
         "core.bootstrap.runtime_artifacts_cli",
         os.path.abspath(repo_root_path),
     ]
-    run_bootstrap_command(
-        command,
-        log_prefix="artifacts: ",
-        cwd=os.path.abspath(repo_root_path),
-        env=env,
-    )
+    if diagnostics is None:
+        run_bootstrap_command(
+            command, log_prefix="artifacts: ", cwd=os.path.abspath(repo_root_path), env=env
+        )
+    else:
+        run_bootstrap_command(
+            command,
+            log_prefix="artifacts: ",
+            cwd=os.path.abspath(repo_root_path),
+            env=env,
+            diagnostics=diagnostics,
+        )

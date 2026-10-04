@@ -174,9 +174,7 @@ class WizardPageService {
                     this.#host.view.syncNavigation(this.#host.view.requireUi(), 'account');
                     return;
                 }
-                if (await this.#handleAccountSubmission()) {
-                    await this.showStep(Math.min(this.#host.view.state.stepIndex + 1, this.#host.view.state.steps.length - 1), { showNextLoading: false, focusHeading: true });
-                }
+                await handleWizardAccountSubmission(this.#host, this.#requireAccountUi(), () => this.showStep(Math.min(this.#host.view.state.stepIndex + 1, this.#host.view.state.steps.length - 1), { showNextLoading: false, focusHeading: true }));
                 return;
             case 'ai_sources':
             case 'ai_connect':
@@ -283,10 +281,6 @@ class WizardPageService {
                 throw new Error(`WizardPage: unhandled action "${String(exhaustive)}"`);
             }
         }
-    }
-    async #handleAccountSubmission(): Promise<boolean> {
-        const account = this.#requireAccountUi();
-        return handleWizardAccountSubmission(this.#host, account);
     }
     #requireAccountUi(): WizardAccountUi {
         if (this.#accountUi) return this.#accountUi;

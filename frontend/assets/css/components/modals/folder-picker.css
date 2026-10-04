@@ -21,6 +21,8 @@
 
     .folder-picker-current {
         display: flex;
+        gap: var(--space-4);
+        align-items: flex-start;
         flex: 1;
         min-width: 240px;
         margin-top: 0;

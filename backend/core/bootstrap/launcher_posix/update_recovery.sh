@@ -19,6 +19,134 @@ soai_launcher__legacy_update_lock_active() {
     kill -0 "$lock_pid" >/dev/null 2>&1
 }
 
+SOAI_LAUNCHER_ROOT_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+SOAI_LAUNCHER_ROOT_SU_ATTEMPTS=3
+SOAI_LAUNCHER_SUDO_VALIDATION=""
+
+soai_launcher__root_terminal_available() {
+    (exec 3</dev/tty) 2>/dev/null
+}
+
+soai_launcher__sudo_permits_command() {
+    local sudo_probe_output=""
+    if sudo_probe_output="$(LC_ALL=C sudo -n -l -- "$@" 2>&1)"; then
+        return 0
+    fi
+    case "$sudo_probe_output" in
+        *"a password is required"*) return 0 ;;
+    esac
+    return 1
+}
+
+soai_launcher__select_root_elevation() {
+    SOAI_LAUNCHER_ROOT_ELEVATION=""
+    if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+        SOAI_LAUNCHER_ROOT_ELEVATION="root"
+        return 0
+    fi
+    if [ "$SOAI_LAUNCHER_SUDO_VALIDATION" != "failed" ] && command -v sudo >/dev/null 2>&1; then
+        if ! sudo -v; then
+            SOAI_LAUNCHER_SUDO_VALIDATION="failed"
+        fi
+    fi
+    if [ "$SOAI_LAUNCHER_SUDO_VALIDATION" != "failed" ] && command -v sudo >/dev/null 2>&1; then
+        if soai_launcher__sudo_permits_command "$@"; then
+            SOAI_LAUNCHER_ROOT_ELEVATION="sudo"
+            return 0
+        fi
+        if command -v su >/dev/null 2>&1 \
+            && soai_launcher__sudo_permits_command su -s /bin/bash root -c true; then
+            SOAI_LAUNCHER_ROOT_ELEVATION="sudo-su"
+            return 0
+        fi
+    fi
+    if command -v su >/dev/null 2>&1 && soai_launcher__root_terminal_available; then
+        SOAI_LAUNCHER_ROOT_ELEVATION="su"
+        return 0
+    fi
+    return 1
+}
+
+soai_launcher__root_shell_command() {
+    printf '%q ' env "PATH=${SOAI_LAUNCHER_ROOT_PATH}" "$@"
+}
+
+soai_launcher__run_with_su() {
+    local started_directory=""
+    if ! started_directory="$(mktemp -d)"; then
+        echo "ERROR: Could not create a temporary directory for root privilege elevation." >&2
+        return 1
+    fi
+    local root_command=""
+    root_command="$(printf '%q ' touch -- "${started_directory}/started")&& exec $(soai_launcher__root_shell_command "$@")"
+    local attempt=1
+    local status=0
+    while [ "$attempt" -le "$SOAI_LAUNCHER_ROOT_SU_ATTEMPTS" ]; do
+        echo "Root privileges are required. Enter the root password for su (attempt ${attempt}/${SOAI_LAUNCHER_ROOT_SU_ATTEMPTS})." >&2
+        status=0
+        su -s /bin/bash root -c "$root_command" </dev/tty || status=$?
+        if [ -e "${started_directory}/started" ] || [ "$status" -gt 128 ]; then
+            rm -rf -- "$started_directory"
+            return "$status"
+        fi
+        attempt=$((attempt + 1))
+    done
+    rm -rf -- "$started_directory"
+    echo "ERROR: Could not obtain root privileges through su." >&2
+    return 1
+}
+
+soai_launcher__report_root_elevation_unavailable() {
+    echo "ERROR: SoAI requires root privileges, but neither sudo nor su can provide them for this user. Run the command as root." >&2
+}
+
+soai_launcher__run_as_root() {
+    local environment_policy="$1"
+    shift
+    if ! soai_launcher__select_root_elevation "$@"; then
+        soai_launcher__report_root_elevation_unavailable
+        return 1
+    fi
+    case "$SOAI_LAUNCHER_ROOT_ELEVATION" in
+        root) "$@" ;;
+        sudo)
+            if [ "$environment_policy" = "preserve-environment" ]; then
+                sudo -E -- "$@"
+            else
+                sudo -- "$@"
+            fi
+            ;;
+        sudo-su) sudo su -s /bin/bash root -c "$(soai_launcher__root_shell_command "$@")" ;;
+        su) soai_launcher__run_with_su "$@" ;;
+    esac
+}
+
+soai_launcher__exec_as_root() {
+    local environment_policy="$1"
+    shift
+    if ! soai_launcher__select_root_elevation "$@"; then
+        soai_launcher__report_root_elevation_unavailable
+        return 1
+    fi
+    case "$SOAI_LAUNCHER_ROOT_ELEVATION" in
+        root) exec "$@" ;;
+        sudo)
+            if [ "$environment_policy" = "preserve-environment" ]; then
+                exec sudo -E -- "$@"
+            fi
+            exec sudo -- "$@"
+            ;;
+        sudo-su) exec sudo su -s /bin/bash root -c "$(soai_launcher__root_shell_command "$@")" ;;
+        su)
+            local status=0
+            trap ':' INT
+            soai_launcher__run_with_su "$@" || status=$?
+            trap - INT
+            exit "$status"
+            ;;
+    esac
+}
+
 soai_launcher__elevate_for_installed_state() {
     if [ "$(uname -s 2>/dev/null || true)" != "Linux" ] || [ "${EUID:-$(id -u)}" -eq 0 ]; then
         return 0
@@ -27,12 +155,8 @@ soai_launcher__elevate_for_installed_state() {
     if [ ! -d "$launcher_state_dir" ] || [ -w "$launcher_state_dir" ]; then
         return 0
     fi
-    if ! command -v sudo >/dev/null 2>&1; then
-        echo "ERROR: SoAI requires root privileges for this installation, but sudo is unavailable." >&2
-        return 1
-    fi
-    soai_launcher__info "Root privileges are required to manage this SoAI installation."
-    exec sudo -- "${SCRIPT_DIR}/${SOAI_EXPLICIT_LAUNCHER_RELATIVE_PATH}" "$@"
+    echo "Root privileges are required to manage this SoAI installation." >&2
+    soai_launcher__exec_as_root default-environment "${SCRIPT_DIR}/${SOAI_EXPLICIT_LAUNCHER_RELATIVE_PATH}" "$@"
 }
 
 soai_launcher__recover_update_transactions() {

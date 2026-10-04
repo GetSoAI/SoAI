@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "變更資料夾",
                 "createFile": "建立檔案",
                 "createFolder": "建立資料夾",
                 "editPath": "編輯目前路徑",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "啟用影像端點後即可切換此設定。",
                         "requiresResponses": "啟用回應端點後即可切換此設定。",
                         "requiresVision": "啟用視覺模態後即可切換此設定。",
-                        "text": "文字無法停用。"
+                        "text": "文字無法停用。",
+                        "unsupported": "此模型不支援此功能。"
                     },
                     "manifestLoading": "正在載入功能分類體系...",
                     "none": "此模型沒有可用的 OpenAI 功能。",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "下載已取消",
                 "downloadFailed": "無法下載模型",
                 "downloadSuccess": "模型已成功下載",
-                "enterApiKey": "請輸入 API 金鑰",
                 "enterApiUrl": "請輸入 API URL",
                 "enterModelId": "請輸入模型 ID",
                 "enterProviderName": "請輸入提供者名稱",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "系統管理員帳戶已成功建立。",
                 "accountCreatedSignInRequired": "系統管理員帳戶已建立。請登入以繼續。"
             },
             "progress": {

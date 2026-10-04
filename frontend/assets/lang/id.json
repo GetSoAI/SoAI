@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "Ubah folder",
                 "createFile": "Buat file",
                 "createFolder": "Buat folder",
                 "editPath": "Edit path saat ini",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "Aktifkan endpoint Images untuk mengubah opsi ini.",
                         "requiresResponses": "Aktifkan endpoint Responses untuk mengubah opsi ini.",
                         "requiresVision": "Aktifkan modalitas Vision untuk mengubah opsi ini.",
-                        "text": "Teks tidak dapat dinonaktifkan."
+                        "text": "Teks tidak dapat dinonaktifkan.",
+                        "unsupported": "Model ini tidak mendukung kemampuan ini."
                     },
                     "manifestLoading": "Memuat taksonomi kapabilitas...",
                     "none": "Tidak ada kapabilitas OpenAI yang tersedia untuk model ini.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "Unduhan dibatalkan",
                 "downloadFailed": "Gagal mengunduh model",
                 "downloadSuccess": "Model berhasil diunduh",
-                "enterApiKey": "Masukkan kunci API",
                 "enterApiUrl": "Masukkan URL API",
                 "enterModelId": "Masukkan ID model",
                 "enterProviderName": "Masukkan nama penyedia",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Akun administrator berhasil dibuat.",
                 "accountCreatedSignInRequired": "Akun administrator dibuat. Login untuk melanjutkan."
             },
             "progress": {

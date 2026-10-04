@@ -264,12 +264,18 @@ soai_managed_runtime__download_micromamba_archive() {
         local status=0
         while [ "$attempt" -le 5 ]; do
             rm -f "$destination" || return $?
-            if curl "${curl_arguments[@]}" "$SOAI_MICROMAMBA_ASSET_URL" -o "$destination"; then
-                break
+            status=0
+            if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+                soai_install_ui__capture "Micromamba archive download attempt ${attempt}/5" curl "${curl_arguments[@]}" "$SOAI_MICROMAMBA_ASSET_URL" -o "$destination" || status=$?
             else
-                status=$?
+                curl "${curl_arguments[@]}" "$SOAI_MICROMAMBA_ASSET_URL" -o "$destination" || status=$?
             fi
-            printf 'Micromamba download attempt %s/5 failed (curl %s).\n' "$attempt" "$status" >&2
+            if [ "$status" -eq 0 ]; then break; fi
+            if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+                printf 'Micromamba download attempt %s/5 failed (curl %s).\n' "$attempt" "$status" >> "$SOAI_INSTALL_DIAGNOSTICS_DIR/install.log"
+            else
+                printf 'Micromamba download attempt %s/5 failed (curl %s).\n' "$attempt" "$status" >&2
+            fi
             case "$status" in
                 5|6|7|18|28|52|55|56|92) ;;
                 *) return "$status" ;;
@@ -289,9 +295,15 @@ soai_managed_runtime__download_micromamba_archive() {
         if [ -n "$ca_bundle_path" ] && [ -s "$ca_bundle_path" ]; then
             wget_arguments+=(--ca-certificate="$ca_bundle_path")
         fi
-        wget "${wget_arguments[@]}" "$SOAI_MICROMAMBA_ASSET_URL" || {
+        local status=0
+        if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+            soai_install_ui__capture "Micromamba archive download" wget "${wget_arguments[@]}" "$SOAI_MICROMAMBA_ASSET_URL" || status=$?
+        else
+            wget "${wget_arguments[@]}" "$SOAI_MICROMAMBA_ASSET_URL" || status=$?
+        fi
+        if [ "$status" -ne 0 ]; then
             soai_managed_runtime__die "Failed to download the pinned micromamba archive via HTTPS." || return 1
-        }
+        fi
     else
         soai_managed_runtime__die "curl or wget is required to bootstrap micromamba." || return 1
     fi

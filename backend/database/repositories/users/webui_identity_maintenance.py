@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import sqlite3
+from dataclasses import dataclass
 
 from core.errors.exceptions import StateError
 from core.timing.epoch import epoch_ms
@@ -16,6 +17,12 @@ from database.repositories.users.identity_mutation_record_storage import (
 from database.repositories.users.webui_session_lineage_validation import (
     sync_validate_rotation_lineages,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class FutureSessionLineagePrune:
+    session_count: int
+    rotation_count: int
 
 
 def _validate_mutation_rows(conn: sqlite3.Connection) -> None:
@@ -91,7 +98,38 @@ def sync_prune_expired_session_lineage_state(
     )
 
 
+def sync_prune_future_session_lineage_state(
+    conn: sqlite3.Connection,
+    observed_at_ms: int,
+) -> FutureSessionLineagePrune:
+    rotation_count = conn.execute(
+        """
+        DELETE FROM webui_session_rotations
+        WHERE rotated_at_ms > ?
+           OR EXISTS (
+               SELECT 1 FROM webui_device_sessions future_session
+               WHERE future_session.created_at_ms > ?
+                 AND future_session.jti IN (
+                     webui_session_rotations.source_jti,
+                     webui_session_rotations.replacement_jti
+                 )
+           )
+        """,
+        (observed_at_ms, observed_at_ms),
+    ).rowcount
+    session_count = conn.execute(
+        "DELETE FROM webui_device_sessions WHERE created_at_ms > ?",
+        (observed_at_ms,),
+    ).rowcount
+    return FutureSessionLineagePrune(
+        session_count=session_count,
+        rotation_count=rotation_count,
+    )
+
+
 __all__ = (
+    "FutureSessionLineagePrune",
     "sync_maintain_webui_identity_state",
     "sync_prune_expired_session_lineage_state",
+    "sync_prune_future_session_lineage_state",
 )

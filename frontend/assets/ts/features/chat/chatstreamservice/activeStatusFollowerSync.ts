@@ -185,7 +185,6 @@ const syncActiveFollower = async (inputArguments: ActiveStatusFollowerSyncArgume
             }
             releaseStaleOwnerSession(inputArguments, candidateStatus.conversationId, current);
         }
-        applyStatusPreviewSnapshot(candidateStatus, assistantMessage);
         if (current && current.active && current.transportMode === 'follower') {
             if (sessionMatchesActiveStatus(current, candidateStatus)) {
                 current.status = 'streaming';
@@ -197,6 +196,7 @@ const syncActiveFollower = async (inputArguments: ActiveStatusFollowerSyncArgume
                 } else if (applicationResult === 'terminal') {
                     return requireCanonicalMessageLoad('terminalized-session', 'busy');
                 }
+                applyStatusPreviewSnapshot(candidateStatus, current.assistantMessage);
                 inputArguments.runtime.notify(current, { type: 'replay' });
                 return skipCanonicalMessageLoad('active-stream', 'busy');
             }
@@ -205,6 +205,7 @@ const syncActiveFollower = async (inputArguments: ActiveStatusFollowerSyncArgume
             }
             deactivateFollowerSession(inputArguments, candidateStatus.conversationId, current);
         }
+        applyStatusPreviewSnapshot(candidateStatus, assistantMessage);
         const session = createActiveFollowerSession(candidateStatus, assistantMessage);
         inputArguments.sessions.set(candidateStatus.conversationId, session);
         inputArguments.runtime.notify(session, { type: 'replay' });

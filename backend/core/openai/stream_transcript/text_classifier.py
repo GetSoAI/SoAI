@@ -15,6 +15,8 @@ from core.openai.stream_transcript.payload_segments import (
 from core.openai.tool_call_stream_matching import (
     THINKING_CLOSE_TAG_REGEX,
     THINKING_OPEN_TAG_REGEX,
+    find_text_tag_start,
+    is_thinking_tag_prefix,
 )
 from core.timing.monotonic import monotonic_ms
 
@@ -49,6 +51,7 @@ class OpenAIStreamTextClassifier:
         self._has_thinking_content = False
         self._last_thinking_close_visible_chars: int | None = None
         self._thinking_buffer = ""
+        self._literal_tag_pending = False
         self._thinking_depth = 0
         self._last_thinking_boundary_ms: int | None = None
         self._thinking_tail_duration_ms: int | None = None
@@ -172,30 +175,43 @@ class OpenAIStreamTextClassifier:
         self._append_reasoning_mirror(text)
         self._resolve_pending_visible_candidates(force_visible=False)
 
+    def _append_content_text(self, text: str) -> None:
+        if self._thinking_depth > 0:
+            self._append_thinking_text(text)
+        else:
+            self._stage_visible_candidate(text)
+
     def consume_content_text(self, text: str) -> None:
         if not text:
             return
         source = f"{self._thinking_buffer}{text}"
         self._thinking_buffer = ""
         cursor = 0
+        if self._literal_tag_pending:
+            close_index = source.find(">")
+            if close_index == -1:
+                self._append_content_text(source)
+                return
+            self._literal_tag_pending = False
+            self._append_content_text(source[: close_index + 1])
+            cursor = close_index + 1
         while cursor < len(source):
-            tag_index = source.find("<", cursor)
+            tag_index = find_text_tag_start(source, cursor)
             if tag_index == -1:
                 chunk = source[cursor:]
-                if self._thinking_depth > 0:
-                    self._append_thinking_text(chunk)
-                else:
-                    self._stage_visible_candidate(chunk)
+                self._append_content_text(chunk)
                 break
             if tag_index > cursor:
                 chunk = source[cursor:tag_index]
-                if self._thinking_depth > 0:
-                    self._append_thinking_text(chunk)
-                else:
-                    self._stage_visible_candidate(chunk)
+                self._append_content_text(chunk)
             close_index = source.find(">", tag_index + 1)
             if close_index == -1:
-                self._thinking_buffer = source[tag_index:]
+                suffix = source[tag_index:]
+                if is_thinking_tag_prefix(suffix):
+                    self._thinking_buffer = suffix
+                else:
+                    self._literal_tag_pending = True
+                    self._append_content_text(suffix)
                 break
             tag_text = source[tag_index : close_index + 1]
             normalized_tag_text = tag_text.lower()
@@ -212,10 +228,8 @@ class OpenAIStreamTextClassifier:
                         self._note_thinking_boundary_closed()
                 else:
                     self._stage_visible_candidate(tag_text)
-            elif self._thinking_depth > 0:
-                self._append_thinking_text(tag_text)
             else:
-                self._stage_visible_candidate(tag_text)
+                self._append_content_text(tag_text)
             cursor = close_index + 1
 
     def consume_text_source(self, source: JSONDict) -> None:
@@ -238,10 +252,7 @@ class OpenAIStreamTextClassifier:
             return
         buffered = self._thinking_buffer
         self._thinking_buffer = ""
-        if self._thinking_depth > 0:
-            self._append_thinking_text(buffered)
-            return
-        self._stage_visible_candidate(buffered)
+        self._append_content_text(buffered)
 
     def finalize(self) -> None:
         self._flush_unclosed_tag_buffer()

@@ -11,9 +11,14 @@ __all__ = (
     "CONVERSATION_INPUT_DISPATCH_RANK_SQL",
     "CONVERSATION_INPUT_PRECEDES_SQL",
     "CONVERSATION_INPUT_RUNNING_ROOT_AVAILABLE_SQL",
+    "CONVERSATION_REGENERATION_HAS_REPLACEMENT_SQL",
+    "CONVERSATION_REGENERATION_SOURCE_EXISTS_SQL",
+    "CONVERSATION_REGENERATION_SOURCE_FOLLOWED_SQL",
+    "CONVERSATION_REGENERATION_SUPERSEDED_SQL",
     "EPOCH_MS_MIN",
     "TERMINAL_INPUT_STATES",
     "VALID_INPUT_STATES",
+    "conversation_regeneration_retryable_sql",
 )
 
 CONVERSATION_INPUT_DISPATCH_RANK_SQL = """
@@ -53,6 +58,71 @@ NOT EXISTS (
       AND (input.agent_turn_id IS NULL OR root_turn.turn_id != input.agent_turn_id)
 )
 """
+
+CONVERSATION_REGENERATION_HAS_REPLACEMENT_SQL = """
+EXISTS (
+    SELECT 1 FROM webui_messages AS replacement
+    WHERE replacement.conv_id = input.conv_id
+      AND replacement.role = 'assistant'
+      AND (
+          replacement.request_id = input.request_id
+          OR replacement.request_id GLOB input.request_id || ':variant:[0-9]*'
+      )
+)
+"""
+
+CONVERSATION_REGENERATION_SUPERSEDED_SQL = """
+EXISTS (
+    SELECT 1 FROM webui_conversation_inputs AS later_attempt
+    WHERE later_attempt.conv_id = input.conv_id
+      AND later_attempt.regeneration_request_json IS NOT NULL
+      AND later_attempt.materialized_message_id = input.materialized_message_id
+      AND later_attempt.id > input.id
+)
+"""
+
+CONVERSATION_REGENERATION_SOURCE_EXISTS_SQL = """
+EXISTS (
+    SELECT 1 FROM webui_messages AS source
+    WHERE source.conv_id = input.conv_id
+      AND source.id = input.materialized_message_id
+      AND source.role = 'user'
+)
+"""
+
+CONVERSATION_REGENERATION_SOURCE_FOLLOWED_SQL = """
+EXISTS (
+    SELECT 1 FROM webui_messages AS source
+    JOIN webui_messages AS later_message
+      ON later_message.conv_id = source.conv_id
+     AND (
+         later_message.created_at_ms > source.created_at_ms
+         OR (
+             later_message.created_at_ms = source.created_at_ms
+             AND later_message.id > source.id
+         )
+     )
+    WHERE source.conv_id = input.conv_id
+      AND source.id = input.materialized_message_id
+      AND source.role = 'user'
+)
+"""
+
+
+def conversation_regeneration_retryable_sql() -> str:
+    return f"""
+(
+    input.state IN ('failed', 'cancelled')
+    AND input.request_id IS NOT NULL
+    AND input.request_id != ''
+    AND input.materialized_message_id IS NOT NULL
+    AND NOT {CONVERSATION_REGENERATION_HAS_REPLACEMENT_SQL}
+    AND NOT {CONVERSATION_REGENERATION_SUPERSEDED_SQL}
+    AND {CONVERSATION_REGENERATION_SOURCE_EXISTS_SQL}
+    AND NOT {CONVERSATION_REGENERATION_SOURCE_FOLLOWED_SQL}
+)
+"""
+
 
 ACTIVE_INPUT_STATES: frozenset[str] = frozenset(
     {"pending", "materializing", "running", "input_required"},

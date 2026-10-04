@@ -2835,6 +2835,7 @@
                 }
             },
             "actions": {
+                "changeFolder": "Cambia cartella",
                 "createFile": "Crea file",
                 "createFolder": "Crea cartella",
                 "editPath": "Modifica il percorso corrente",
@@ -4208,7 +4209,8 @@
                         "requiresImages": "Abilita l'endpoint Immagini per poterla modificare.",
                         "requiresResponses": "Abilita l'endpoint Risposte per poterla modificare.",
                         "requiresVision": "Abilita la modalità Visione per poterla modificare.",
-                        "text": "Il testo non può essere disabilitato."
+                        "text": "Il testo non può essere disabilitato.",
+                        "unsupported": "Questo modello non supporta questa funzionalità."
                     },
                     "manifestLoading": "Caricamento tassonomia delle capacità...",
                     "none": "Nessuna capacità OpenAI disponibile per questo modello.",
@@ -4705,7 +4707,6 @@
                 "downloadCancelled": "Download annullato",
                 "downloadFailed": "Download del modello fallito",
                 "downloadSuccess": "Modello scaricato con successo",
-                "enterApiKey": "Inserisci una chiave API",
                 "enterApiUrl": "Inserisci un URL API",
                 "enterModelId": "Inserisci un ID modello",
                 "enterProviderName": "Inserisci il nome del provider",
@@ -8139,7 +8140,6 @@
                 }
             },
             "notifications": {
-                "accountCreated": "Account amministratore creato con successo.",
                 "accountCreatedSignInRequired": "Account amministratore creato. Accedi per continuare."
             },
             "progress": {

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import subprocess
 
+from core.bootstrap.install_diagnostics import InstallDiagnostics
 from core.bootstrap.launch_console import emit
 from core.errors.exceptions import StateError
 from core.system.process_launcher import spawn_managed_process
@@ -18,7 +19,11 @@ def run_bootstrap_command(
     log_prefix: str,
     cwd: str | None = None,
     env: dict[str, str] | None = None,
+    diagnostics: InstallDiagnostics | None = None,
 ) -> None:
+    if diagnostics is not None:
+        diagnostics.run(command, label=log_prefix.rstrip(": "), cwd=cwd, env=env)
+        return
     with spawn_managed_process(
         command,
         cwd=cwd,

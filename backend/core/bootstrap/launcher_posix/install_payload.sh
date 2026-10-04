@@ -64,7 +64,7 @@ soai_install__remove_path() {
             soai_managed_runtime__die "Refusing to remove path outside install target: ${path}" || return 1
             ;;
     esac
-    rm -rf -- "$path" || return 1
+    soai_install__run_noisy_command rm -rf -- "$path" || return 1
 }
 
 soai_install__copy_existing_entry() {
@@ -73,10 +73,10 @@ soai_install__copy_existing_entry() {
     if [ ! -e "$source_entry" ]; then
         return 0
     fi
-    if ! mkdir -p "$target_parent"; then
+    if ! soai_install__run_noisy_command mkdir -p "$target_parent"; then
         soai_managed_runtime__die "Failed to create install staging directory: ${target_parent}" || return 1
     fi
-    if ! cp -pPR "$source_entry" "$target_parent/"; then
+    if ! soai_install__run_noisy_command cp -pPR "$source_entry" "$target_parent/"; then
         soai_managed_runtime__die "Failed to copy install payload entry: ${source_entry}" || return 1
     fi
 }
@@ -96,7 +96,7 @@ soai_install__replace_managed_entries() {
     local staging="$2"
     local backup="${target}/.soai_install_previous.$$.$RANDOM"
     soai_install__remove_path "$target" "$backup" || return 1
-    if ! mkdir -p "$backup"; then
+    if ! soai_install__run_noisy_command mkdir -p "$backup"; then
         soai_managed_runtime__die "Failed to create install rollback directory: ${backup}" || return 1
     fi
     if ! soai_install__backup_staged_entries "$target" "$backup" "$staging"; then
@@ -122,13 +122,13 @@ soai_install__backup_staged_entries() {
             continue
         fi
         if [ -e "${target}/${entry}" ]; then
-            mkdir -p "$(dirname "${backup}/${entry}")" || return 1
-            mv "${target}/${entry}" "${backup}/${entry}" || return 1
+            soai_install__run_noisy_command mkdir -p "$(dirname "${backup}/${entry}")" || return 1
+            soai_install__run_noisy_command mv "${target}/${entry}" "${backup}/${entry}" || return 1
         fi
     done < <(soai_install__managed_root_entries)
     if [ -e "${staging}/data/vendor" ] && [ -e "${target}/data/vendor" ]; then
-        mkdir -p "${backup}/data" || return 1
-        mv "${target}/data/vendor" "${backup}/data/vendor" || return 1
+        soai_install__run_noisy_command mkdir -p "${backup}/data" || return 1
+        soai_install__run_noisy_command mv "${target}/data/vendor" "${backup}/data/vendor" || return 1
     fi
 }
 
@@ -138,14 +138,14 @@ soai_install__move_staged_entries() {
     local entry=""
     while IFS= read -r entry; do
         if [ -e "${staging}/${entry}" ]; then
-            mv "${staging}/${entry}" "${target}/${entry}" || return 1
+            soai_install__run_noisy_command mv "${staging}/${entry}" "${target}/${entry}" || return 1
         fi
     done < <(soai_install__managed_root_entries)
     if [ -e "${staging}/data/vendor" ]; then
-        if ! mkdir -p "${target}/data"; then
+        if ! soai_install__run_noisy_command mkdir -p "${target}/data"; then
             soai_managed_runtime__die "Failed to create target data directory: ${target}/data" || return 1
         fi
-        mv "${staging}/data/vendor" "${target}/data/vendor" || return 1
+        soai_install__run_noisy_command mv "${staging}/data/vendor" "${target}/data/vendor" || return 1
     fi
 }
 
@@ -158,15 +158,15 @@ soai_install__restore_managed_entries() {
             soai_install__remove_path "$target" "${target}/${entry}" || return 1
         fi
         if [ -e "${backup}/${entry}" ]; then
-            mv "${backup}/${entry}" "${target}/${entry}" || return 1
+            soai_install__run_noisy_command mv "${backup}/${entry}" "${target}/${entry}" || return 1
         fi
     done < <(soai_install__managed_root_entries)
     if [ -e "${target}/data/vendor" ]; then
         soai_install__remove_path "$target" "${target}/data/vendor" || return 1
     fi
     if [ -e "${backup}/data/vendor" ]; then
-        mkdir -p "${target}/data" || return 1
-        mv "${backup}/data/vendor" "${target}/data/vendor" || return 1
+        soai_install__run_noisy_command mkdir -p "${target}/data" || return 1
+        soai_install__run_noisy_command mv "${backup}/data/vendor" "${target}/data/vendor" || return 1
     fi
 }
 
@@ -191,7 +191,7 @@ soai_install__copy_tree() {
     fi
     local staging="${target}/.soai_install_staging.$$.$RANDOM"
     soai_install__remove_path "$target" "$staging" || return 1
-    if ! mkdir -p "$staging"; then
+    if ! soai_install__run_noisy_command mkdir -p "$staging"; then
         soai_managed_runtime__die "Failed to create install staging directory: ${staging}" || return 1
     fi
     if ! soai_install__copy_staging_payload "$source" "$staging"; then

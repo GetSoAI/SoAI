@@ -34,6 +34,10 @@ soai_install__reject_control_chars() {
 }
 
 soai_install__run_noisy_command() {
+    if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+        soai_install_ui__run "$SOAI_INSTALL_UI_LABEL" "$@"
+        return
+    fi
     if [ "$SOAI_INSTALL_JSON_EVENTS" = "1" ] || [ "${SOAI_INSTALL_SILENT:-0}" = "1" ]; then
         "$@" >&2
         return
@@ -127,7 +131,10 @@ soai_install__emit_stage() {
             "$state" \
             "$(soai_install__json_escape "$message")" \
             "$timestamp" || return 1
-    elif [ "${SOAI_INSTALL_SILENT:-0}" != "1" ]; then
+    elif [ "${SOAI_INSTALL_UI_ENABLED:-0}" != 1 ] && [ "${SOAI_INSTALL_SILENT:-0}" != "1" ]; then
         soai_launcher__info "$message"
+    fi
+    if [ "${SOAI_INSTALL_UI_ENABLED:-0}" = 1 ]; then
+        soai_install_ui__stage "$stage" "$state" "$message" || return 1
     fi
 }

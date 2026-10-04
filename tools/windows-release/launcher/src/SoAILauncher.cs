@@ -4657,6 +4657,17 @@ print(json.dumps(inspect_update_restorations(sys.argv[1])))
                         return result;
                     }
                 }
+                else
+                {
+                    result = RunInstallPreparation(
+                        powershell, script, operationDirectory,
+                        "-VisualCppRuntimeOnly -InstallRoot " + Quote(paths.RootDirectory)
+                            + " -DiagnosticRoot " + Quote(Path.Combine(operationDirectory, "runtime")), "visual-cpp-runtime.log");
+                    if (result != 0)
+                    {
+                        return result;
+                    }
+                }
                 succeeded = true;
                 return 0;
             }

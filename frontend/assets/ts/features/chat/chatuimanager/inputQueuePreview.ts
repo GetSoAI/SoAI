@@ -16,9 +16,6 @@ import type { ConversationInputPreview, ChatUIManagerContext } from '@features/c
 type ConversationInputPreviewState = ConversationInputState | 'regeneration_failed';
 
 const resolveConversationInputStateLabel = (state: ConversationInputPreviewState): string => {
-    if (state === 'regeneration_failed') {
-        return i18n.t('pageOutlet.retry');
-    }
     if (state === 'materializing') {
         return i18n.t('chat.inputQueue.state.materializing');
     }
@@ -78,20 +75,21 @@ export function updateInputQueuePreview(context: ChatUIManagerContext, validProm
 
     const rows = validPrompts.map((entry) => {
         const inputType = entry.inputType === 'steer' ? 'steer' : 'prompt';
-        const badgeText = inputType === 'steer' ? i18n.t('chat.inputQueue.badge.steer') : i18n.t('chat.inputQueue.badge.queued');
-        const badgeClass = inputType === 'steer' ? 'input-queue-badge--steer' : 'input-queue-badge--queued';
+        const isRegenerationRetry = entry.state === 'regeneration_failed';
+        const badgeText = isRegenerationRetry ? i18n.t('chat.message.actions.regenerate') : inputType === 'steer' ? i18n.t('chat.inputQueue.badge.steer') : i18n.t('chat.inputQueue.badge.queued');
+        const badgeClass = isRegenerationRetry ? 'input-queue-badge' : inputType === 'steer' ? 'input-queue-badge input-queue-badge--steer' : 'input-queue-badge input-queue-badge--queued';
 
         const conversationInputLabel = i18n.t('chat.attachments.conversationInputQueue');
         const normalized = isString(entry.text) ? entry.text.replace(/\s+/g, ' ').trim() : '';
         const attachmentCount = isArray(entry.attachmentContent) ? entry.attachmentContent.length : 0;
         const attachmentCountLabel = attachmentCount > 0 ? i18n.t('chat.inputQueue.attachmentsCount', { count: attachmentCount }) : '';
         const attachmentChip = attachmentCount > 0 ? uiHtml`<span class="input-queue-attachment-count" aria-label="${uiAttr(attachmentCountLabel)}"><span aria-hidden="true">${context.dependencies.getCachedIcon('paperclip', { size: 12, strokeWidth: 2.2 })}</span><span aria-hidden="true">${uiText(String(attachmentCount))}</span></span>` : uiHtml``;
-        const nameHtml = uiHtml`<span class="input-queue-prompt-title">${uiText(conversationInputLabel)}</span>${attachmentChip}<span class="input-queue-badge ${uiAttr(badgeClass)}">${uiText(badgeText)}</span>`;
+        const nameHtml = uiHtml`<span class="input-queue-prompt-title">${uiText(conversationInputLabel)}</span>${attachmentChip}<span class="${uiAttr(badgeClass)}">${uiText(badgeText)}</span>`;
         const statusTextParts = [resolveConversationInputStateLabel(entry.state), normalized].filter((part) => Boolean(part));
         const statusLabel = statusTextParts.join(' ');
         const removeButtonMarkup = isConversationInputRemovable(entry.state) ? uiHtml`<button type="button" class="remove-file-btn" data-action="${uiAttr(CHAT_ACTIONS.REMOVE_CONVERSATION_INPUT)}" data-conversation-id="${uiAttr(conversationId ?? '')}" data-input-id="${uiAttr(entry.inputId)}" aria-label="${uiAttr(removeLabel)}" data-tooltip="${uiAttr(removeLabel)}">${removeIcon}</button>` : uiHtml``;
-        const retryButtonMarkup = entry.state === 'regeneration_failed' ? uiHtml`<button type="button" class="remove-file-btn" data-action="${uiAttr(CHAT_ACTIONS.RETRY_CONVERSATION_REGENERATION)}" data-input-id="${uiAttr(entry.inputId)}" aria-label="${uiAttr(retryLabel)}" data-tooltip="${uiAttr(retryLabel)}">${retryIcon}</button>` : uiHtml``;
-        const interactiveBodyAttributesMarkup = entry.state !== 'regeneration_failed' && conversationId !== null ? uiHtml` data-action="${uiAttr(CHAT_ACTIONS.OPEN_CONVERSATION_INPUT)}" data-conversation-id="${uiAttr(conversationId)}" data-input-id="${uiAttr(entry.inputId)}"` : undefined;
+        const retryButtonMarkup = isRegenerationRetry ? uiHtml`<button type="button" class="remove-file-btn" data-action="${uiAttr(CHAT_ACTIONS.RETRY_CONVERSATION_REGENERATION)}" data-input-id="${uiAttr(entry.inputId)}" aria-label="${uiAttr(retryLabel)}" data-tooltip="${uiAttr(retryLabel)}">${retryIcon}</button>` : uiHtml``;
+        const interactiveBodyAttributesMarkup = !isRegenerationRetry && conversationId !== null ? uiHtml` data-action="${uiAttr(CHAT_ACTIONS.OPEN_CONVERSATION_INPUT)}" data-conversation-id="${uiAttr(conversationId)}" data-input-id="${uiAttr(entry.inputId)}"` : undefined;
         const promptLabel = [badgeText, normalized, attachmentCountLabel].filter(Boolean).join(' ');
         return {
             id: `${conversationId ?? ''}:${entry.inputId}`,
@@ -101,7 +99,7 @@ export function updateInputQueuePreview(context: ChatUIManagerContext, validProm
                 nameHtml,
                 statusHtml: uiText(statusLabel),
                 showSpinner: isConversationInputExecuting(entry.state),
-                actionButtonMarkup: entry.state === 'regeneration_failed' ? retryButtonMarkup : removeButtonMarkup
+                actionButtonMarkup: isRegenerationRetry ? retryButtonMarkup : removeButtonMarkup
             })
         };
     });

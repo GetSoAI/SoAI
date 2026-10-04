@@ -8,6 +8,7 @@ import { getCollator } from '@core/localization/intlCache.ts';
 import { parentVirtualPath, resolveAbsolutePath } from '@core/fileexplorerbrowser/paths.ts';
 import type { FileBrowserEntry } from '@core/fileexplorerbrowser/types.ts';
 import { renderModalFooterActionButton, renderModalFooterCloseButton } from '@core/modals/footerButtons.ts';
+import { renderDynamicSplitModalFooterContent } from '@core/modals/scaffold.ts';
 import { modalUiId } from '@core/modals/uiIds.ts';
 
 import { securityApi, type TrustedHtml } from '@core/security/public.ts';
@@ -103,12 +104,12 @@ const renderFolderPickerResetButton = (labels: FolderPickerLabels, modalId: stri
     return renderModalFooterActionButton({ id: modalUiId(modalId, 'reset'), text: labels.reset });
 };
 
-const renderFolderPickerModalMarkup = (options: { modalId: string; labels: FolderPickerLabels; nameColumnLabel: string; allowManualPathEntry?: boolean; hostMode: boolean }): { body: TrustedHtml; footerLeft: TrustedHtml; footerRight: TrustedHtml } => {
+const renderFolderPickerModalMarkup = (options: { modalId: string; labels: FolderPickerLabels; nameColumnLabel: string; allowManualPathEntry?: boolean; hostMode: boolean }): { body: TrustedHtml; footer: TrustedHtml } => {
     const manualInputMarkup = renderFolderPickerManualInput(options.modalId, options.labels, options.allowManualPathEntry === true);
     const resetButtonMarkup = renderFolderPickerResetButton(options.labels, options.modalId);
     const footerLeft = uiHtml`${renderModalFooterCloseButton({ modalId: options.modalId, id: modalUiId(options.modalId, 'cancel'), text: options.labels.cancel })}${resetButtonMarkup}`;
     const footerRight = renderModalFooterActionButton({ id: modalUiId(options.modalId, 'confirm'), text: options.labels.chooseCurrent, variant: 'accent' });
-    const rootSelector = options.hostMode ? uiHtml`<div class="form-col-side"><label for="${uiAttr(modalUiId(options.modalId, 'root'))}">${options.labels.filesystemRoot}</label><select id="${uiAttr(modalUiId(options.modalId, 'root'))}" class="form-input"></select></div>` : EMPTY_UI_HTML;
+    const rootSelector = options.hostMode ? uiHtml`<div class="form-col-secondary"><label for="${uiAttr(modalUiId(options.modalId, 'root'))}">${options.labels.filesystemRoot}</label><select id="${uiAttr(modalUiId(options.modalId, 'root'))}" class="form-input"></select></div>` : EMPTY_UI_HTML;
 
     const body = uiHtml`
         <div class="folder-picker-panel">
@@ -149,7 +150,7 @@ const renderFolderPickerModalMarkup = (options: { modalId: string; labels: Folde
         </div>
     `;
 
-    return { body, footerLeft, footerRight };
+    return { body, footer: renderDynamicSplitModalFooterContent({ left: footerLeft, right: footerRight }) };
 };
 
 export { formatDisplayPath, renderFolderPickerManualInput, renderFolderPickerModalMarkup, renderFolderPickerResetButton, renderFolderRows, resolveBrowserErrorMessage, resolveFolderPickerStatusText, sortEntriesByName };
